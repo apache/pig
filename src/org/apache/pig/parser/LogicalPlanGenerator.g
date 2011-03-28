@@ -93,6 +93,7 @@ import org.apache.pig.builtin.PigStreaming;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
+import java.util.Arrays;
 }
 
 @members {
@@ -548,10 +549,12 @@ flatten_generated_item returns[LogicalExpressionPlan plan, boolean flattenFlag, 
     $plan = new LogicalExpressionPlan();
 }
  : ( flatten_clause[$plan] { $flattenFlag = true; }
+   | col_range[$plan]
    | expr[$plan]
    | STAR
      {
-         builder.buildProjectExpr( $plan, $GScope::currentOp, $statement::inputIndex, null, -1 );
+         SourceLocation loc = new SourceLocation( $STAR.token );
+         builder.buildProjectExpr(loc, $plan, $GScope::currentOp, $statement::inputIndex, null, -1 );
      }
    )
    ( field_def_list { $schema = $field_def_list.schema; } )?
@@ -651,7 +654,8 @@ real_arg [LogicalExpressionPlan plan] returns[LogicalExpression expr]
  : e = expr[$plan] { $expr = $e.expr; }
  | STAR
    {
-       $expr = builder.buildProjectExpr( $plan, $GScope::currentOp, $statement::inputIndex, null, -1 );
+       SourceLocation loc = new SourceLocation( $STAR.token );
+       $expr = builder.buildProjectExpr(loc, $plan, $GScope::currentOp, $statement::inputIndex, null, -1 );
    }
 ;
 
@@ -840,8 +844,22 @@ scoped_col_alias returns[Object col]
     )
 ;
 
-col_index returns[Object col]
+col_index returns[Integer col]
  : DOLLARVAR { $col = builder.undollar( $DOLLARVAR.text ); }
+;
+
+
+col_range[LogicalExpressionPlan plan] returns[LogicalExpression expr]
+ :  ^(COL_RANGE (startExpr = col_ref[$plan])? DOUBLE_PERIOD (endExpr = col_ref[$plan])? )
+    {
+        SourceLocation loc = new SourceLocation(  (CommonTree)$col_range.start );
+        $expr = builder.buildRangeProjectExpr(
+                    loc, plan, $GScope::currentOp,
+                    $statement::inputIndex, 
+                    $startExpr.expr, 
+                    $endExpr.expr
+                );
+    }  
 ;
 
 pound_proj returns[String key]
@@ -897,7 +915,8 @@ order_by_clause returns[List<LogicalExpressionPlan> plans, List<Boolean> ascFlag
 }
  : STAR {
        LogicalExpressionPlan plan = new LogicalExpressionPlan();
-       builder.buildProjectExpr( plan, $GScope::currentOp, $statement::inputIndex, null, -1 );
+       SourceLocation loc = new SourceLocation( $STAR.token );
+       builder.buildProjectExpr(loc, plan, $GScope::currentOp, $statement::inputIndex, null, -1 );
        $plans.add( plan );
    }
    ( ASC { $ascFlags.add( true ); } | DESC { $ascFlags.add( false ); } )?
@@ -913,7 +932,8 @@ order_col returns[LogicalExpressionPlan plan, Boolean ascFlag]
     $plan = new LogicalExpressionPlan();
     $ascFlag = true;
 }
- : col_ref[$plan] ( ASC | DESC { $ascFlag = false; } )?
+ : col_range[$plan] (ASC | DESC { $ascFlag = false; } )?
+ | col_ref[$plan] ( ASC | DESC { $ascFlag = false; } )?        
 ;
 
 distinct_clause returns[String alias]
@@ -1007,10 +1027,12 @@ join_group_by_expr returns[LogicalExpressionPlan plan]
 @init {
     $plan = new LogicalExpressionPlan();
 }
- : expr[$plan]
+ : col_range[$plan]
+ | expr[$plan]
  | STAR 
    {
-       builder.buildProjectExpr( $plan, $GScope::currentOp, $statement::inputIndex, null, -1 );
+       SourceLocation loc = new SourceLocation( $STAR.token );
+       builder.buildProjectExpr(loc, $plan, $GScope::currentOp, $statement::inputIndex, null, -1 );
    }
 ;
 
@@ -1080,8 +1102,8 @@ scope GScope;
                  }
                )+
     )
-   {   
-       builder.buildGenerateOp( $foreach_clause::foreachOp, (LOGenerate)$GScope::currentOp,
+   {   SourceLocation loc = new SourceLocation( $GENERATE.token );
+       builder.buildGenerateOp(loc, $foreach_clause::foreachOp, (LOGenerate)$GScope::currentOp,
            $foreach_plan::operators,
            plans, flattenFlags, schemas );
    }
@@ -1123,7 +1145,8 @@ nested_proj[String alias] returns[Operator op]
         }
       )+ )
    {
-       $op = builder.buildNestedProjectOp( $foreach_plan::innerPlan, $foreach_clause::foreachOp, 
+       SourceLocation loc = new SourceLocation(  (CommonTree)$nested_proj.start);
+       $op = builder.buildNestedProjectOp(loc, $foreach_plan::innerPlan, $foreach_clause::foreachOp, 
            $foreach_plan::operators, $alias, (ProjectExpression)$cr0.expr, plans );
    }
 ;
@@ -1258,7 +1281,8 @@ col_ref[LogicalExpressionPlan plan] returns[LogicalExpression expr]
 alias_col_ref[LogicalExpressionPlan plan] returns[LogicalExpression expr]
  : GROUP 
    {
-       $expr = builder.buildProjectExpr( $plan, $GScope::currentOp, 
+       SourceLocation loc = new SourceLocation( $GROUP.token );
+       $expr = builder.buildProjectExpr(loc, $plan, $GScope::currentOp, 
            $statement::inputIndex, $GROUP.text, 0 );
    }
  | scoped_alias_col_ref
@@ -1282,7 +1306,7 @@ alias_col_ref[LogicalExpressionPlan plan] returns[LogicalExpression expr]
                $expr = builder.buildProjectExpr( loc, $plan, $GScope::currentOp, 
                    $foreach_plan::exprPlans, alias, 0 );
            } else {
-               $expr = builder.buildProjectExpr( $plan, $GScope::currentOp, 
+               $expr = builder.buildProjectExpr( loc, $plan, $GScope::currentOp, 
                    $statement::inputIndex, alias, 0 );
            }
        }
@@ -1306,7 +1330,8 @@ dollar_col_ref[LogicalExpressionPlan plan] returns[LogicalExpression expr]
  : DOLLARVAR
    {
        int col = builder.undollar( $DOLLARVAR.text );
-       $expr = builder.buildProjectExpr( $plan, $GScope::currentOp, 
+       SourceLocation loc = new SourceLocation( $DOLLARVAR.token );
+       $expr = builder.buildProjectExpr(loc, $plan, $GScope::currentOp, 
            $statement::inputIndex, null, col );
    }
 ;

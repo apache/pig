@@ -28,8 +28,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.antlr.grammar.v3.ANTLRv3Parser.range_return;
 import org.antlr.runtime.IntStream;
 import org.antlr.runtime.RecognitionException;
+import org.apache.jute.InputArchive;
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
@@ -49,6 +51,7 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.PlanValidationException;
 import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.streaming.StreamingCommand.Handle;
 import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
@@ -430,16 +433,23 @@ public class LogicalPlanBuilder {
         return new LOGenerate( plan );
     }
     
-    static void buildGenerateOp(LOForEach foreach, LOGenerate gen, Map<String, Operator> operators,
+    void buildGenerateOp(SourceLocation loc, LOForEach foreach, LOGenerate gen,
+            Map<String, Operator> operators,
             List<LogicalExpressionPlan> exprPlans, List<Boolean> flattenFlags,
-            List<LogicalSchema> schemas) {
+            List<LogicalSchema> schemas)
+    throws ParserValidationException{
+        
         boolean[] flags = new boolean[ flattenFlags.size() ];
         for( int i = 0; i < flattenFlags.size(); i++ )
             flags[i] = flattenFlags.get( i );
         LogicalPlan innerPlan = (LogicalPlan)gen.getPlan();
         ArrayList<Operator> inputs = new ArrayList<Operator>();
         for( LogicalExpressionPlan exprPlan : exprPlans ) {
-            processExpressionPlan( foreach, innerPlan, exprPlan, operators, inputs );
+            try {
+                processExpressionPlan( foreach, innerPlan, exprPlan, operators, inputs );
+            } catch (FrontendException e) {
+                throw new ParserValidationException(intStream, loc, e);
+            }
         }
         
         gen.setOutputPlans( exprPlans );
@@ -459,12 +469,13 @@ public class LogicalPlanBuilder {
      * @param plan One of the output expression of the LOGenerate
      * @param operators All logical operators in lp;
      * @param inputs  inputs of the LOGenerate
+     * @throws FrontendException 
      */
     private static void processExpressionPlan(LOForEach foreach,
                                       LogicalPlan lp,  
                                       LogicalExpressionPlan plan,  
                                       Map<String, Operator> operators,  
-                                      ArrayList<Operator> inputs ) {
+                                      ArrayList<Operator> inputs ) throws FrontendException {
         Iterator<Operator> it = plan.getOperators();
         while( it.hasNext() ) {
             Operator sink = it.next();
@@ -472,7 +483,14 @@ public class LogicalPlanBuilder {
             if( sink instanceof ProjectExpression ) {
                 ProjectExpression projExpr = (ProjectExpression)sink;
                 String colAlias = projExpr.getColAlias();
-                if( colAlias != null ) {
+                if( projExpr.isRangeProject()){
+                 
+                    LOInnerLoad innerLoad = new LOInnerLoad( lp, foreach,
+                            new ProjectExpression(projExpr, new LogicalExpressionPlan())
+                    );
+                    setupInnerLoadAndProj(innerLoad, projExpr, lp, inputs);
+                }
+                else if( colAlias != null ) {
                     // the project is using a column alias
                     Operator op = operators.get( colAlias );
                     if( op != null ) {
@@ -492,28 +510,33 @@ public class LogicalPlanBuilder {
                         // this means the project expression refers to a column
                         // in the input of foreach. Add a LOInnerLoad and use that
                         // as input
-                        projExpr.setInputNum( inputs.size() );
                         LOInnerLoad innerLoad = new LOInnerLoad( lp, foreach, colAlias );
-                        projExpr.setColNum( -1 ); // Projection Expression on InnerLoad is always (*).
-                        lp.add( innerLoad );
-                        inputs.add( innerLoad );
+                        setupInnerLoadAndProj(innerLoad, projExpr, lp, inputs);
                     }
                 } else {
                     // the project expression is referring to column in ForEach input
                     // using position (eg $1)
-                    projExpr.setInputNum( inputs.size() );
                     LOInnerLoad innerLoad = new LOInnerLoad( lp, foreach, projExpr.getColNum() );
-                    projExpr.setColNum( -1 ); // Projection Expression on InnerLoad is always (*).
-                    lp.add( innerLoad );
-                    inputs.add( innerLoad );
+                    setupInnerLoadAndProj(innerLoad, projExpr, lp, inputs);
                 }
             }
         }
     }
     
+    private static void setupInnerLoadAndProj(LOInnerLoad innerLoad,
+            ProjectExpression projExpr, LogicalPlan lp,
+            ArrayList<Operator> inputs) {
+        
+        projExpr.setInputNum( inputs.size() );
+        projExpr.setColNum( -1 ); // Projection Expression on InnerLoad is always (*).
+        lp.add( innerLoad );
+        inputs.add( innerLoad );
+        
+    }
+
     Operator buildNestedOperatorInput(SourceLocation loc, LogicalPlan innerPlan, LOForEach foreach, 
             Map<String, Operator> operators, LogicalExpression expr)
-    throws NonProjectExpressionException {
+    throws NonProjectExpressionException, ParserValidationException {
         OperatorPlan plan = expr.getPlan();
         Iterator<Operator> it = plan.getOperators();
         if( !( it.next() instanceof ProjectExpression ) || it.hasNext() ) {
@@ -525,7 +548,7 @@ public class LogicalPlanBuilder {
         if( colAlias != null ) {
             op = operators.get( colAlias );
             if( op == null ) {
-                op = new LOInnerLoad( innerPlan, foreach, colAlias );
+                op = createInnerLoad(loc, innerPlan, foreach, colAlias );
                 innerPlan.add( op );
             }
         } else {
@@ -535,6 +558,15 @@ public class LogicalPlanBuilder {
         return op;
     }
     
+    private LOInnerLoad createInnerLoad(SourceLocation loc, LogicalPlan innerPlan, LOForEach foreach,
+            String colAlias) throws ParserValidationException {
+        try {
+            return new LOInnerLoad( innerPlan, foreach, colAlias );
+        } catch (FrontendException e) {
+            throw new ParserValidationException(intStream, loc, e);
+        }
+    }
+
     StreamingCommand buildCommand(SourceLocation loc, String cmd, List<String> shipPaths, List<String> cachePaths,
             List<HandleSpec> inputHandleSpecs, List<HandleSpec> outputHandleSpecs,
             String logDir, Integer limit) throws RecognitionException {
@@ -727,7 +759,11 @@ public class LogicalPlanBuilder {
                 }
                 return (LogicalExpression)planCopy.getSources().get( 0 );// get the root of the plan
             } else {
-                return new ProjectExpression( plan, 0, colAlias, op );
+                try {
+                    return new ProjectExpression( plan, 0, colAlias, op );
+                } catch (FrontendException e) {
+                    throw new ParserValidationException(intStream, loc, e);
+                }
             }
         }
         return new ProjectExpression( plan, 0, col, op );
@@ -735,15 +771,108 @@ public class LogicalPlanBuilder {
 
     /**
      * Build a project expression for a projection present in global plan (not in nested foreach plan).
+     * @throws ParserValidationException 
      */
-    LogicalExpression buildProjectExpr(LogicalExpressionPlan plan, LogicalRelationalOperator relOp,
-            int input, String colAlias, int col) {
+    LogicalExpression buildProjectExpr(SourceLocation loc, 
+            LogicalExpressionPlan plan, LogicalRelationalOperator relOp,
+            int input, String colAlias, int col)
+    throws ParserValidationException {
+    
         if( colAlias != null )
-            return new ProjectExpression( plan, input, colAlias, relOp );
+            try {
+                return new ProjectExpression( plan, input, colAlias, relOp );
+            } catch (FrontendException e) {
+                throw new ParserValidationException(intStream, loc, e);
+            }
         return new ProjectExpression( plan, input, col, relOp );
     }
-    
-    LogicalExpression buildUDF(SourceLocation loc, LogicalExpressionPlan plan, String funcName, List<LogicalExpression> args)
+
+    /**
+     * Build a project expression that projects a range of columns
+     * @param loc 
+     * @param plan
+     * @param relOp
+     * @param input
+     * @param startExpr the first expression to be projected, null 
+     *        if everything from first is to be projected
+     * @param endExpr the last expression to be projected, null 
+     *        if everything to the end is to be projected
+     * @return project expression
+     * @throws PlanValidationException 
+     */
+    LogicalExpression buildRangeProjectExpr(SourceLocation loc, LogicalExpressionPlan plan, LogicalRelationalOperator relOp,
+            int input, LogicalExpression startExpr, LogicalExpression endExpr)
+    throws ParserValidationException {
+        
+        if(startExpr == null && endExpr == null){
+            // should not reach here as the parser is enforcing this condition
+            String msg = "in range project (..) at least one of start or end " +
+            "has to be specified. Use project-star (*) instead.";
+            throw new ParserValidationException(intStream, loc, msg);
+        }
+        
+        ProjectExpression proj = new ProjectExpression(plan, input, relOp);
+
+        //set first column to be projected
+        if(startExpr != null){
+            checkRangeProjectExpr(loc, startExpr);
+            ProjectExpression startProj = (ProjectExpression)startExpr;
+            if(startProj.getColAlias() != null){
+                try {
+                    proj.setStartAlias(startProj.getColAlias());
+                } catch (FrontendException e) {
+                    throw new ParserValidationException(intStream, loc, e);
+                }
+            }else{
+                proj.setStartCol(startProj.getColNum());
+            }
+        }else{
+            proj.setStartCol(0);//project from first column
+        }
+        
+        //set last column to be projected
+        if(endExpr != null){
+            checkRangeProjectExpr(loc, endExpr);
+            ProjectExpression endProj = (ProjectExpression)endExpr;
+            if(endProj.getColAlias() != null){
+                try {
+                    proj.setEndAlias(endProj.getColAlias());
+                } catch (FrontendException e) {
+                    throw new ParserValidationException(intStream, loc, e);
+                }
+            }else{
+                proj.setEndCol(endProj.getColNum());
+            }
+        }else{
+            proj.setEndCol(-1); //project to last column
+        }
+        
+        try {
+            if(startExpr != null)
+                plan.removeAndReconnect(startExpr);
+            if(endExpr != null)
+                plan.removeAndReconnect(endExpr);
+        } catch (FrontendException e) {
+            throw new ParserValidationException(intStream, loc, e);
+        }
+        
+        
+        return proj;
+    }
+
+    private void checkRangeProjectExpr(SourceLocation loc, LogicalExpression startExpr)
+    throws ParserValidationException {
+        if(! (startExpr instanceof ProjectExpression)){
+            // should not reach here as the parser is enforcing this condition
+            String msg = "range project (..) can have only a simple column." +
+            " Found :" + startExpr;
+            throw new ParserValidationException(intStream, loc, msg);
+        }
+        
+    }
+
+    LogicalExpression buildUDF(SourceLocation loc, LogicalExpressionPlan plan,
+            String funcName, List<LogicalExpression> args)
     throws RecognitionException {
         Object func;
         try {
@@ -790,7 +919,8 @@ public class LogicalPlanBuilder {
         return op;
     }
     
-    private void buildNestedOp(LogicalPlan plan, LogicalRelationalOperator op, String alias, Operator inputOp) {
+    private void buildNestedOp(LogicalPlan plan, LogicalRelationalOperator op,
+            String alias, Operator inputOp) {
         setAlias( op, alias );
         plan.add( op );
         plan.connect( inputOp, op );
@@ -829,9 +959,15 @@ public class LogicalPlanBuilder {
         return op;
     }
     
-    Operator buildNestedProjectOp(LogicalPlan innerPlan, LOForEach foreach, 
+    Operator buildNestedProjectOp(
+            SourceLocation loc,
+            LogicalPlan innerPlan,
+            LOForEach foreach, 
             Map<String, Operator> operators,
-            String alias, ProjectExpression projExpr, List<LogicalExpressionPlan> exprPlans) {
+            String alias,
+            ProjectExpression projExpr,
+            List<LogicalExpressionPlan> exprPlans)
+    throws ParserValidationException {
         Operator input = null;
         String colAlias = projExpr.getColAlias();
         if( colAlias != null ) {
@@ -842,7 +978,7 @@ public class LogicalPlanBuilder {
                 input = op ;
             } else {
                 // Assuming that ProjExpr refers to a column by name. Create an LOInnerLoad
-                input = new LOInnerLoad( innerPlan, foreach, colAlias );
+                input = createInnerLoad( loc, innerPlan, foreach, colAlias );
             }
         } else {
             // ProjExpr refers to a column by number.
@@ -860,7 +996,7 @@ public class LogicalPlanBuilder {
             ProjectExpression pe = (ProjectExpression)plan.getSinks().get( 0 );
             String al = pe.getColAlias();
             LOInnerLoad iload = ( al == null ) ?  
-                    new LOInnerLoad( lp, f, pe.getColNum() ) : new LOInnerLoad( lp, f, al );
+                    new LOInnerLoad( lp, f, pe.getColNum() ) : createInnerLoad(loc, lp, f, al );
             pe.setColNum( -1 );
             pe.setInputNum( innerLoads.size() );
             pe.setAttachedRelationalOp( gen );

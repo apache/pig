@@ -19,7 +19,6 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOp
 
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -39,8 +38,6 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.impl.util.IdentityHashSet;
-import org.apache.pig.pen.util.ExampleTuple;
 
 /**
  * Implements the overloaded form of the project operator.
@@ -78,7 +75,9 @@ public class POProject extends ExpressionOperator {
     //of the translator to set this.
     boolean overloaded = false;
     
-    boolean star = false;
+    
+    private boolean isProjectToEnd = false;
+    private int startCol;
     
     public POProject(OperatorKey k) {
         this(k,-1,0);
@@ -98,11 +97,29 @@ public class POProject extends ExpressionOperator {
         super(k, rp);
         columns = cols;
     }
+    
+    public void setProjectToEnd(int startCol){
+        this.isProjectToEnd = true;
+        this.startCol = startCol;
+        columns = new ArrayList<Integer>();
+    }
 
     @Override
     public String name() {
         
-        return "Project" + "[" + DataType.findTypeName(resultType) + "]" + ((star) ? "[*]" : columns) + " - " + mKey.toString();
+        String str = "Project" + "[" + DataType.findTypeName(resultType) + "]";
+      
+        if(isStar()){
+            str += "[*]";
+        }else if(isProjectToEnd){
+            str += "[" + startCol + " .. " + "]";
+        }else{
+            str += columns;
+        }
+        
+        str += " - " + mKey.toString();
+        return str;
+        
     }
 
     @Override
@@ -145,7 +162,7 @@ public class POProject extends ExpressionOperator {
         if(res.returnStatus != POStatus.STATUS_OK){
             return res;
         }
-        if (star) {
+        if (isStar()) {
             illustratorMarkup(inpValue, res.result, -1);
             return res;
         } else if(columns.size() == 1) {
@@ -167,33 +184,62 @@ public class POProject extends ExpressionOperator {
                 res.returnStatus = POStatus.STATUS_OK;
                 ret = null;
             }
-        } else {
+        } else if(isProjectToEnd){
+            ret = getRangeTuple(inpValue);
+        }
+        else {
             ArrayList<Object> objList = new ArrayList<Object>(columns.size()); 
-                
-            for(int i: columns) {
-                try { 
-                    objList.add(inpValue.get(i)); 
-                } catch (IndexOutOfBoundsException ie) {
-                    if(pigLogger != null) {
-                        pigLogger.warn(this,"Attempt to access field " + i + 
-                                " which was not found in the input", PigWarning.ACCESSING_NON_EXISTENT_FIELD);
-                    }
-                    objList.add(null);
-                }
-                catch (NullPointerException npe) {
-                    // the tuple is null, so a dereference should also produce a null
-                    // there is a slight danger here that the Tuple implementation 
-                    // may have given the exception for a different reason but if we
-                    // don't catch it, we will die and the most common case for the
-                    // exception would be because the tuple is null
-                    objList.add(null);
-                }
+
+            for(int col : columns) {
+                addColumn(objList, inpValue, col);
             }
-            ret = tupleFactory.newTuple(objList);
+            ret = tupleFactory.newTupleNoCopy(objList);
         }
         res.result = ret;
         illustratorMarkup(inpValue, res.result, -1);
         return res;
+    }
+
+    private boolean isRangeInvalid(int lastColIdx) {
+        if(startCol > lastColIdx){
+            // this must be happening because tuple is smaller than startCol
+            if(pigLogger != null) {
+                pigLogger.warn(this, "Invalid range being projected," +
+                        " startCol postition" + startCol + " greater than tuple size",
+                        PigWarning.PROJECTION_INVALID_RANGE
+                );
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Add i'th column from inpValue to objList
+     * @param objList
+     * @param inpValue
+     * @param i
+     * @throws ExecException
+     */
+    private void addColumn(ArrayList<Object> objList, Tuple inpValue, int i)
+    throws ExecException {
+        try { 
+            objList.add(inpValue.get(i)); 
+        } catch (IndexOutOfBoundsException ie) {
+            if(pigLogger != null) {
+                pigLogger.warn(this,"Attempt to access field " + i + 
+                        " which was not found in the input", PigWarning.ACCESSING_NON_EXISTENT_FIELD);
+            }
+            objList.add(null);
+        }
+        catch (NullPointerException npe) {
+            // the tuple is null, so a dereference should also produce a null
+            // there is a slight danger here that the Tuple implementation 
+            // may have given the exception for a different reason but if we
+            // don't catch it, we will die and the most common case for the
+            // exception would be because the tuple is null
+            objList.add(null);
+        }
     }
 
     @Override
@@ -212,7 +258,7 @@ public class POProject extends ExpressionOperator {
     protected Result consumeInputBag(Result input) throws ExecException {
         DataBag inpBag = (DataBag) input.result;
         Result retVal = new Result();
-        if(isInputAttached() || star){
+        if(isInputAttached() || isStar()){
             retVal.result = inpBag;
             retVal.returnStatus = POStatus.STATUS_OK;
             detachInput();
@@ -225,55 +271,51 @@ public class POProject extends ExpressionOperator {
             // A SingleTupleBag for the result and fill it
             // appropriately from the input bag
             Tuple tuple = inpBag.iterator().next();
-            Tuple tmpTuple = tupleFactory.newTuple(columns.size());
-            
-            for (int i = 0; i < columns.size(); i++) {
-                try {
-                    tmpTuple.set(i, tuple.get(columns.get(i)));
-                } catch (IndexOutOfBoundsException ie) {
-                    if(pigLogger != null) {
-                        pigLogger.warn(this,"Attempt to access field " + 
-                                "which was not found in the input", PigWarning.ACCESSING_NON_EXISTENT_FIELD);
-                    }
-                    tmpTuple.set(i, null);
-                } catch (NullPointerException npe) {
-                    // the tuple is null, so a dereference should also produce a null
-                    // there is a slight danger here that the Tuple implementation 
-                    // may have given the exception for a different reason but if we
-                    // don't catch it, we will die and the most common case for the
-                    // exception would be because the tuple is null
-                    tmpTuple.set(i, null);
+            if(!isProjectToEnd){
+                ArrayList<Object> objList = new ArrayList<Object>(columns.size()); 
+                for (int col : columns) {
+                    addColumn(objList, tuple, col);
                 }
-            } 
-            outBag = new SingleTupleBag(tmpTuple);
+                outBag = new SingleTupleBag( tupleFactory.newTupleNoCopy(objList) );
+            }else {
+                Tuple tmpTuple = getRangeTuple(tuple);
+                outBag = new SingleTupleBag(tmpTuple);
+            }
         } else {
             outBag = bagFactory.newDefaultBag();
             for (Tuple tuple : inpBag) {
-                Tuple tmpTuple = tupleFactory.newTuple(columns.size());
-                for (int i = 0; i < columns.size(); i++) {
-                    try {
-                        tmpTuple.set(i, tuple.get(columns.get(i)));
-                    } catch (IndexOutOfBoundsException ie) {
-                        if(pigLogger != null) {
-                            pigLogger.warn(this,"Attempt to access field " + 
-                                    "which was not found in the input", PigWarning.ACCESSING_NON_EXISTENT_FIELD);
-                        }
-                        tmpTuple.set(i, null);
-                    } catch (NullPointerException npe) {
-                        // the tuple is null, so a dereference should also produce a null
-                        // there is a slight danger here that the Tuple implementation 
-                        // may have given the exception for a different reason but if we
-                        // don't catch it, we will die and the most common case for the
-                        // exception would be because the tuple is null
-                        tmpTuple.set(i, null);
+                if(!isProjectToEnd){
+                    ArrayList<Object> objList = new ArrayList<Object>(columns.size()); 
+                    for (int col : columns) {
+                        addColumn(objList, tuple, col);
                     }
+                    outBag.add( tupleFactory.newTupleNoCopy(objList) );
+                }else{
+                    Tuple outTuple = getRangeTuple(tuple);
+                    outBag.add(outTuple);
                 }
-                outBag.add(tmpTuple);
             }
         }
         retVal.result = outBag;
         retVal.returnStatus = POStatus.STATUS_OK;
         return retVal;
+    }
+
+    private Tuple getRangeTuple(Tuple tuple) throws ExecException {
+        int lastColIdx = tuple.size() - 1;
+        Tuple outTuple;
+        if(isRangeInvalid(lastColIdx)){
+            //invalid range - return empty tuple
+            outTuple = tupleFactory.newTuple();
+        }
+        else {
+            ArrayList<Object> objList = new ArrayList<Object>(lastColIdx - startCol + 1); 
+            for(int i = startCol; i <= lastColIdx ; i++){
+                addColumn(objList, tuple, i);
+            }
+            outTuple = tupleFactory.newTupleNoCopy(objList);
+        }
+        return outTuple;
     }
 
     @Override
@@ -331,7 +373,7 @@ public class POProject extends ExpressionOperator {
             res = processInput();
             if(res.returnStatus!=POStatus.STATUS_OK)
                 return res;
-            if(star)
+            if(isStar())
                 return res;
             
             inpValue = (Tuple)res.result;
@@ -356,12 +398,14 @@ public class POProject extends ExpressionOperator {
                     // exception would be because the tuple is null
                     ret = null;
                 }
+            } else if(isProjectToEnd) {
+                ret = getRangeTuple(inpValue);               
             } else {
                 ArrayList<Object> objList = new ArrayList<Object>(columns.size()); 
                 
-                for(int i: columns) {
+                for(int col: columns) {
                     try {
-                        objList.add(inpValue.get(i));
+                        objList.add(inpValue.get(col));
                     } catch (IndexOutOfBoundsException ie) {
                         if(pigLogger != null) {
                             pigLogger.warn(this,"Attempt to access field " + 
@@ -410,12 +454,16 @@ public class POProject extends ExpressionOperator {
         }
     }
 
-    public ArrayList<Integer> getColumns() {
+    public ArrayList<Integer> getColumns(){
+        if(isProjectToEnd) {
+            throw new AssertionError("Internal error. Improper use of method getColumns() in "
+                + POProject.class.getSimpleName()); 
+        }
         return columns;
     }
 
     public int getColumn() throws ExecException {
-        if(columns.size() != 1) {
+        if(columns.size() != 1 || isProjectToEnd) {
             int errCode = 2068;
             String msg = "Internal error. Improper use of method getColumn() in "
                 + POProject.class.getSimpleName(); 
@@ -423,12 +471,20 @@ public class POProject extends ExpressionOperator {
         }
         return columns.get(0);
     }
+    
+    public int getStartCol(){
+        return startCol;
+    }
 
     public void setColumns(ArrayList<Integer> cols) {
+        if(isProjectToEnd){
+            throw new AssertionError("Columns should not be set for range projection");
+        }
         this.columns = cols;
     }
 
     public void setColumn(int col) {
+        isProjectToEnd = false;
         if(null == columns) {
             columns = new ArrayList<Integer>();
         } else {
@@ -446,11 +502,20 @@ public class POProject extends ExpressionOperator {
     }
 
     public boolean isStar() {
-        return star;
+        return isProjectToEnd && startCol == 0;
     }
 
+    public boolean isProjectToEnd(){
+        return isProjectToEnd;
+    }
+       
     public void setStar(boolean star) {
-        this.star = star;
+        if(star){
+            isProjectToEnd = true;
+            startCol = 0;
+        }else{
+            isProjectToEnd = false;
+        }
     }
 
     @Override
@@ -464,8 +529,10 @@ public class POProject extends ExpressionOperator {
             NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)),
             requestedParallelism, cols);
         clone.cloneHelper(this);
-        clone.star = star;
         clone.overloaded = overloaded;
+        clone.startCol = startCol;
+        clone.isProjectToEnd = isProjectToEnd;
+        clone.resultType = resultType;
         return clone;
     }
     

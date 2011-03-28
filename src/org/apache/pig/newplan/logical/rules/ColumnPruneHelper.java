@@ -529,7 +529,7 @@ public class ColumnPruneHelper {
             List<Operator> ll = exp.getSinks();
             for(Operator op: ll) {
                 if (op instanceof ProjectExpression) {
-                    if (!((ProjectExpression)op).isProjectStar()) {
+                    if (!((ProjectExpression)op).isRangeOrStarProject()) {
                         long uid = ((ProjectExpression)op).getFieldSchema().uid;
                         uids.add(uid);
                     } else {

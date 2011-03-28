@@ -17,39 +17,76 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.pig.data.DataType;
 
 // Represent one column inside order key, this is a direct mapping from POProject
-public class ColumnInfo {
+public class ColumnInfo implements Cloneable {
     List<Integer> columns;
-    boolean star = false;
     byte resultType;
-    public ColumnInfo(boolean star, List<Integer> columns, byte type) {
-        this.star = star;
+    int startCol = -1;
+    boolean isRangeProject = false;
+    
+    public ColumnInfo(List<Integer> columns, byte type) {
         this.columns = columns;
         this.resultType = type;
     }
+
+    /**
+     * Constructor for range projection or project-star
+     * @param startCol
+     * @param type
+     */
+    public ColumnInfo(int startCol, byte type) {
+        this.startCol = startCol;
+        this.resultType = type;
+        this.isRangeProject = true;
+    }
+    
     public String toString() {
         String result;
-        if (star)
+        if (isStar())
             result = "[*]:";
         result = columns.toString()+":";
         result+=DataType.findTypeName(resultType);
         return result;
     }
+    
+    private boolean isStar() {
+        return isRangeProject && startCol == 0;
+    }
+
     public boolean equals(Object o2)
     {
-        if (!(o2 instanceof ColumnInfo))
+        
+        if (o2 == null || !(o2 instanceof ColumnInfo))
             return false;
         ColumnInfo c2 = (ColumnInfo)o2;
-        if (star==c2.star && columns.equals(c2.columns))
+        if (
+                isRangeProject == c2.isRangeProject &&
+                startCol == c2.startCol &&
+                ((columns == null && c2.columns == null) || 
+                        (columns != null && columns.equals(c2.columns)))
+        )
             return true;
+        
         return false;
     }
     @Override
     public int hashCode() {
         return toString().hashCode();
+    }
+    
+    @Override
+    public Object clone() throws CloneNotSupportedException{
+        ColumnInfo newColInfo = (ColumnInfo)super.clone();
+        //copy the mutable field
+        List<Integer> cols = new ArrayList<Integer>();
+        cols.addAll(this.columns);
+        newColInfo.columns = cols;
+        return newColInfo;
+        
     }
 }

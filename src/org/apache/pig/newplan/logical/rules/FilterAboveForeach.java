@@ -143,6 +143,8 @@ public class FilterAboveForeach extends Rule {
                     if( op instanceof ProjectExpression ) {
                         ProjectExpression proj = (ProjectExpression)op;
                         if( proj.isProjectStar() ) {
+                            //project-range is always expanded when schema is
+                            //available, so nothing to do here for it
                             LogicalRelationalOperator pred = (LogicalRelationalOperator)filter.getPlan().getPredecessors(filter).get(0);
                             LogicalSchema predSchema = pred.getSchema();
                             if (predSchema!=null) {

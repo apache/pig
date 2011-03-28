@@ -52,6 +52,10 @@ import com.google.common.primitives.Booleans;
  * A visitor to walk operators that contain a nested plan and translate project( * )
  * operators to a list of projection operators, i.e., 
  * project( * ) -> project(0), project(1), ... project(n-2), project(n-1)
+ * If input schema is null, project(*) is not expanded.
+ * It also expands project range ( eg $1 .. $5). It won't expand project-range-to-end
+ * (eg $3 ..) if the input schema is null.
+ * 
  */
 public class ProjectStarExpander extends LogicalRelationalNodesVisitor{
 
@@ -74,6 +78,26 @@ public class ProjectStarExpander extends LogicalRelationalNodesVisitor{
             throw new AssertionError("Size of expPlans and ascorder should be same");
         }
 
+        //check if there is a project-star-to-end followed by another sort plan
+        for(int i=0; i < expPlans.size(); i++){
+            ProjectExpression proj = getProjectStar(expPlans.get(i));
+            if(proj != null && 
+                    proj.isRangeProject() && proj.getEndCol() == -1 &&
+                    i != expPlans.size() -1
+            ){
+                //because of order by sampler logic limitation, this is not
+                //supported right now
+                String msg = "Project-range to end (eg. x..)" +
+                " is supported in order-by only as last sort column";
+                throw new FrontendException(
+                        msg,
+                        1128,
+                        PigException.INPUT
+                );
+            }
+        }
+            
+        
         for(int i=0; i < expPlans.size(); i++){
             //expand the plan
             LogicalExpressionPlan ithExpPlan = expPlans.get(i);
@@ -87,6 +111,8 @@ public class ProjectStarExpander extends LogicalRelationalNodesVisitor{
             }
         }
 
+        
+        
         sort.setSortColPlans(newExpPlans);
         sort.setAscendingCols(newAscOrder);
     }
@@ -135,11 +161,9 @@ public class ProjectStarExpander extends LogicalRelationalNodesVisitor{
             for(int i=0; i<inputs.size(); i++)
                 for(LogicalExpressionPlan lp: inpExprPlans.get(i)) {
                     if(getProjectStar(lp) != null) {
-                        // not following Error handling guidelines to give error code
-                        // and error source since this will get swallowed by the parser
-                        // which will just return a ParseException
-                        String msg = "Cogroup/Group by * is only allowed if " +
-                        "the input has a schema";
+                        String msg = "Cogroup/Group by '*' or 'x..' " +
+                        "(range of columns to the end) " +
+                        "is only allowed if the input has a schema";
                         throw new FrontendException(
                                 msg,
                                 1123,
@@ -186,16 +210,20 @@ public class ProjectStarExpander extends LogicalRelationalNodesVisitor{
         
         //get the LOGenerate
         List<Operator> feOutputs = innerPlan.getSinks();
-        if(feOutputs.size() != 1 || !(feOutputs.get(0) instanceof LOGenerate)){
-            String msg = "Expected single LOGenerate output in innerplan of foreach";
-            throw new FrontendException(
-                    msg,
-                    2266,
-                    PigException.BUG
-            );
+        LOGenerate gen = null;
+        for( Operator op  : feOutputs){
+            if(op instanceof LOGenerate){
+                if(gen != null){
+                    String msg = "Expected single LOGenerate output in innerplan of foreach";
+                    throw new FrontendException(
+                            msg,
+                            2266,
+                            PigException.BUG
+                    );                    
+                }
+                gen = (LOGenerate) op;
+            }
         }
-        
-        LOGenerate gen = (LOGenerate) feOutputs.get(0);
         
         //work on the generate plan, flatten and user schema
         List<LogicalExpressionPlan> expPlans = gen.getOutputPlans();
@@ -230,11 +258,7 @@ public class ProjectStarExpander extends LogicalRelationalNodesVisitor{
         LogicalRelationalOperator pred =
             (LogicalRelationalOperator) foreach.getPlan().getPredecessors(foreach).get(0);
         LogicalSchema inpSch = pred.getSchema();
-        
-        if(inpSch == null){
-            return;
-        }
-        
+ 
         //store mapping between the projection in inner plans of
         // of LOGenerate to the input relation object
         Map<ProjectExpression, LogicalRelationalOperator> proj2InpRel =
@@ -244,81 +268,109 @@ public class ProjectStarExpander extends LogicalRelationalNodesVisitor{
         for(int i=0; i<expPlans.size(); i++){
             LogicalExpressionPlan expPlan = expPlans.get(i);
             ProjectExpression projStar = getProjectLonelyStar(expPlan, oldPos2Rel);
-            
-            if(projStar != null &&
-                 ((LOInnerLoad)loGenPreds.get(projStar.getInputNum())).getProjection().isProjectStar() 
-            ){
+
+            boolean foundExpandableProject = false;
+            if(projStar != null){              
                 //there is a project-star to be expanded
-                
+
                 LogicalSchema userStarSch = null;
-                //user schema for * is not supported (yet)
                 if(userSchema != null && userSchema.get(i) != null){
-                   userStarSch = userSchema.get(i);
+                    userStarSch = userSchema.get(i);
                 }
-                
-                //replacing the existing project star with new ones
-                innerPlan.remove(projStar);
-                
-                //remove the LOInnerLoad with star
-                LOInnerLoad oldLOInnerLoad = (LOInnerLoad)loGenPreds.get(projStar.getInputNum());
-                innerPlan.disconnect(oldLOInnerLoad, gen);
-                innerPlan.remove(oldLOInnerLoad);
-                
-                //generate new exp plan, inner load for each field in schema
-                for(int j=0; j<inpSch.size(); j++){
 
-                    //add new LOInnerLoad
-                    LOInnerLoad newInLoad = new LOInnerLoad(innerPlan, foreach, j);
-                    innerPlan.add(newInLoad);
-                    innerPlan.connect(newInLoad, gen);
-                    
 
-                    // new expression plan and proj
-                    LogicalExpressionPlan newExpPlan = new LogicalExpressionPlan();
-                    newExpPlans.add(newExpPlan);
+                //the range values are set in the project in LOInnerLoad
+                ProjectExpression loInnerProj = ((LOInnerLoad)oldPos2Rel.get(projStar.getInputNum())).getProjection();
+
+                int firstProjCol = 0;
+                int lastProjCol = 0;
+                
+                if(loInnerProj.isRangeProject()){
+                    loInnerProj.setColumnNumberFromAlias();
+                    firstProjCol = loInnerProj.getStartCol();
+                    lastProjCol = loInnerProj.getEndCol();
+                }
+
+                
+                boolean isProjectToEnd = loInnerProj.isProjectStar() || 
+                    (loInnerProj.isRangeProject() && lastProjCol == -1); 
+                
+                //can't expand if there is no input schema, and this is
+                // as project star or project-range-to-end
+                if( !(inpSch == null && isProjectToEnd) ){
                     
-                    ProjectExpression newProj =
-                        new ProjectExpression(newExpPlan, -2, -1, gen);
-                    
-                    proj2InpRel.put(newProj, newInLoad);
-                    
-                    newFlattens.add(flattens[i]);
-                    if(newUserSchema != null ){
-                        
-                        if(userStarSch != null 
-                                && userStarSch.getFields().size() > j 
-                                && userStarSch.getField(j) != null){
-                            
-                            //if the project-star field has user specified schema, use the
-                            // j'th field for this column
-                            LogicalSchema sch = new LogicalSchema();
-                            sch.addField(new LogicalFieldSchema(userStarSch.getField(j)));
-                            newUserSchema.add(sch);
-                        }
-                        else{
-                            newUserSchema.add(null);
+                    foundExpandableProject = true;
+
+                    if(isProjectToEnd)
+                        lastProjCol = inpSch.size() - 1;
+
+                    //replacing the existing project star with new ones
+                    expPlan.remove(projStar);
+
+                    //remove the LOInnerLoad with star
+                    LOInnerLoad oldLOInnerLoad = (LOInnerLoad)oldPos2Rel.get(projStar.getInputNum());
+                    innerPlan.disconnect(oldLOInnerLoad, gen);
+                    innerPlan.remove(oldLOInnerLoad);
+
+
+                    //generate new exp plan, inner load for each field in schema
+                    for(int j = firstProjCol; j <= lastProjCol; j++){
+
+                        //add new LOInnerLoad
+                        LOInnerLoad newInLoad = new LOInnerLoad(innerPlan, foreach, j);
+                        innerPlan.add(newInLoad);
+                        innerPlan.connect(newInLoad, gen);
+
+
+                        // new expression plan and proj
+                        LogicalExpressionPlan newExpPlan = new LogicalExpressionPlan();
+                        newExpPlans.add(newExpPlan);
+
+                        ProjectExpression newProj =
+                            new ProjectExpression(newExpPlan, -2, -1, gen);
+
+                        proj2InpRel.put(newProj, newInLoad);
+
+                        newFlattens.add(flattens[i]);
+                        if(newUserSchema != null ){
+                            //index into user specified schema
+                            int schIdx = j - firstProjCol;
+                            if(userStarSch != null 
+                                    && userStarSch.getFields().size() > schIdx
+                                    && userStarSch.getField(schIdx) != null){
+
+                                //if the project-star field has user specified schema, use the
+                                // j'th field for this column
+                                LogicalSchema sch = new LogicalSchema();
+                                sch.addField(new LogicalFieldSchema(userStarSch.getField(schIdx)));
+                                newUserSchema.add(sch);
+                            }
+                            else{
+                                newUserSchema.add(null);
+                            }
                         }
                     }
                 }
+            }
 
-            }else{ //no project-star
-                
+            if(!foundExpandableProject){ //no project-star that could be expanded
+
                 //get all projects in here 
                 FindProjects findProjs = new FindProjects(expPlan);
                 findProjs.visit();
                 List<ProjectExpression> projs = findProjs.getProjs();
-                
+
                 //create a mapping of project expression to their inputs
                 for(ProjectExpression proj : projs){
                     proj2InpRel.put(proj, oldPos2Rel.get(proj.getInputNum()));
                 }
-                
+
                 newExpPlans.add(expPlan);
-                
+
                 newFlattens.add(flattens[i]);
                 if(newUserSchema != null)
                     newUserSchema.add(userSchema.get(i));
-                
+
             }
         }
 
@@ -337,7 +389,6 @@ public class ProjectStarExpander extends LogicalRelationalNodesVisitor{
         for(Entry<ProjectExpression, LogicalRelationalOperator> projAndInp : proj2InpRel.entrySet()){
            ProjectExpression proj = projAndInp.getKey();
            LogicalRelationalOperator rel = projAndInp.getValue();
-           
            proj.setInputNum(rel2pos.get(rel));
         }
         
@@ -392,13 +443,15 @@ public class ProjectStarExpander extends LogicalRelationalNodesVisitor{
             ProjectExpression proj = (ProjectExpression)outputOp;
             //check if ProjectExpression is projectStar
             if(proj.isProjectStar()){
-                //now check if its input is a LOInnerLoad and it is projectStar
+                //now check if its input is a LOInnerLoad and it is projectStar 
+                // or range project
                 LogicalRelationalOperator inputRel = oldPos2Rel.get(proj.getInputNum());
                 if(! (inputRel  instanceof LOInnerLoad)){
                     return null;
                 }
 
-                if( ((LOInnerLoad) inputRel).getProjection().isProjectStar()){
+                ProjectExpression innerProj = ((LOInnerLoad) inputRel).getProjection(); 
+                if( innerProj.isRangeOrStarProject()){
                     return proj;
                 }
             }
@@ -448,11 +501,35 @@ public class ProjectStarExpander extends LogicalRelationalNodesVisitor{
         List<LogicalExpressionPlan> newPlans = new ArrayList<LogicalExpressionPlan>();
 
         LogicalSchema inputSchema = inputRel.getSchema();
-        if(inputSchema == null){
+        if(inputSchema == null && 
+                (proj.isProjectStar() || (proj.isRangeProject() && proj.getEndCol() == -1))
+        ){
+            // can't expand if input schema is null and it is a project-star
+            // or project-range-until-end
             newPlans.add(expPlan);
             return newPlans;
         }
-        for(int i=0; i < inputSchema.getFields().size(); i++){
+
+        //expand from firstProjCol to lastProjCol after setting their values
+        int firstProjCol;
+        int lastProjCol;
+
+        //the range values are set in the project in LOInnerLoad
+        if(proj.isRangeProject()){
+            proj.setColumnNumberFromAlias();
+            firstProjCol = proj.getStartCol();
+            
+            if(proj.getEndCol() >= 0)
+                lastProjCol = proj.getEndCol();
+            else
+                lastProjCol = inputSchema.size() - 1;
+        }else{
+            //project-star
+            firstProjCol = 0;
+            lastProjCol = inputSchema.size() - 1;
+        }
+        
+        for(int i = firstProjCol; i <= lastProjCol; i++){
             newPlans.add(createExpPlanWithProj(relOp, inputNum, i));
         }
 
@@ -492,10 +569,10 @@ public class ProjectStarExpander extends LogicalRelationalNodesVisitor{
         for(Operator outputOp : outputs){
             if(outputOp instanceof ProjectExpression){
                 ProjectExpression proj = (ProjectExpression)outputOp;
-                if(proj.isProjectStar()){
+                if(proj.isRangeOrStarProject()){
                     if(outputs.size() > 1){
                         String msg = "More than one operator in an expression plan" +
-                        " containing project star";
+                        " containing project star(*)/project-range (..)";
                         throw new FrontendException(
                                 msg,
                                 2264,

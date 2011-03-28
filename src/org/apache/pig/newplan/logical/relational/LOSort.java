@@ -23,6 +23,7 @@ import java.util.List;
 
 import org.apache.pig.FuncSpec;
 import org.apache.pig.SortColInfo;
+import org.apache.pig.SortColInfo.Order;
 import org.apache.pig.SortInfo;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
@@ -123,6 +124,8 @@ public class LOSort extends LogicalRelationalOperator{
         LogicalSchema schema = this.getSchema();
         List<SortColInfo> sortColInfoList = new ArrayList<SortColInfo>();
         for (int i = 0; i < mSortColPlans.size(); i++) {
+            
+            //get the single project from the sort plans
             LogicalExpressionPlan lp = mSortColPlans.get(i);
             Iterator<Operator> opsIterator = lp.getOperators();
             List<Operator> opsList = new ArrayList<Operator>();
@@ -133,14 +136,44 @@ public class LOSort extends LogicalRelationalOperator{
                 throw new FrontendException("Unsupported operator in inner plan: " + opsList.get(0), 2237);
             }
             ProjectExpression project = (ProjectExpression) opsList.get(0);
-            int sortColIndex = project.getColNum();
-            String sortColName = (schema == null) ? null :
-                schema.getField(sortColIndex).alias;
-            sortColInfoList.add(new SortColInfo(sortColName, sortColIndex, 
-                    mAscCols.get(i)? SortColInfo.Order.ASCENDING :
-                        SortColInfo.Order.DESCENDING));
+            
+            //create SortColInfo from the project
+            if(project.isProjectStar()){
+                //there is no input schema, that is why project-star is still here
+                // we don't know how many columns are represented by this
+                //so don't add further columns to sort list
+                return new SortInfo(sortColInfoList);
+            } 
+            if(project.isRangeProject()){
+                if(project.getEndCol() < 0){
+                    //stop here for 
+                    // same reason as project-star condition above 
+                    //(unkown number of columns this represents)
+                    return new SortInfo(sortColInfoList);
+                }
+                //expand the project-range into multiple SortColInfos
+                for(int cnum = project.getStartCol(); cnum < project.getEndCol(); cnum++){
+                    sortColInfoList.add(
+                            new SortColInfo(null, cnum, getOrder(mAscCols,i))
+                    );
+                }
+            }
+            else{
+                int sortColIndex = project.getColNum();
+                String sortColName = (schema == null) ? null :
+                    schema.getField(sortColIndex).alias;
+
+                sortColInfoList.add(
+                        new SortColInfo(sortColName, sortColIndex, getOrder(mAscCols,i))
+                );
+            }
         }
         return new SortInfo(sortColInfoList);
+    }
+
+    private Order getOrder(List<Boolean> mAscCols2, int i) {
+        return mAscCols.get(i) ? 
+                SortColInfo.Order.ASCENDING : SortColInfo.Order.DESCENDING;
     }
 
     @Override

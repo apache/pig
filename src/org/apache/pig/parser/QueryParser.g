@@ -39,6 +39,7 @@ tokens {
     FUNC_REF;
     FUNC_EVAL;
     CAST_EXPR;
+    COL_RANGE;
     BIN_EXPR;
     TUPLE_VAL;
     MAP_VAL;
@@ -332,6 +333,7 @@ rel : alias
 ;
 
 flatten_generated_item : flatten_clause ( AS! ( field_def | ( LEFT_PAREN! field_def_list RIGHT_PAREN! ) ) )?
+                       | col_range ( AS! ( field_def | ( LEFT_PAREN! field_def_list RIGHT_PAREN! ) ) )?
                        | expr ( AS! field_def )?
                        | STAR ( AS! ( field_def | ( LEFT_PAREN! field_def_list RIGHT_PAREN! ) ) )?
 ;
@@ -436,6 +438,13 @@ scoped_col_alias : IDENTIFIER ( DCOLON IDENTIFIER )*
 col_index : DOLLARVAR
 ;
 
+col_range : c1 = col_ref DOUBLE_PERIOD c2 = col_ref?
+          -> ^(COL_RANGE $c1 DOUBLE_PERIOD $c2?)
+          |  DOUBLE_PERIOD col_ref 
+          -> ^(COL_RANGE DOUBLE_PERIOD col_ref)
+
+;
+
 pound_proj : POUND^ ( QUOTEDSTRING | NULL )
 ;
 
@@ -464,7 +473,8 @@ order_col_list : order_col ( COMMA order_col )*
               -> order_col+
 ;
 
-order_col : col_ref ( ASC | DESC )?
+order_col : col_range (ASC | DESC)?
+          | col_ref ( ASC | DESC )?  
           | LEFT_PAREN! col_ref ( ASC | DESC )? RIGHT_PAREN!
 ;
 
@@ -506,7 +516,7 @@ join_group_by_expr_list : LEFT_PAREN join_group_by_expr ( COMMA join_group_by_ex
                         | join_group_by_expr
 ;
 
-join_group_by_expr : expr | STAR
+join_group_by_expr : col_range  | expr | STAR
 ;
 
 union_clause : UNION^ ONSCHEMA? rel_list

@@ -380,6 +380,9 @@ COMMA : ','
 PERIOD : '.'
 ;
 
+DOUBLE_PERIOD : '..'
+;
+
 DIV : '/'
 ;
 

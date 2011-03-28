@@ -50,14 +50,24 @@ public class LOInnerLoad extends LogicalRelationalOperator {
         this.foreach = foreach;
     }
 
-    public LOInnerLoad(OperatorPlan plan, LOForEach foreach, String colAlias) {
+    public LOInnerLoad(OperatorPlan plan, LOForEach foreach, String colAlias)
+    throws FrontendException {
         super("LOInnerLoad", plan); 
         
         // store column number as a ProjectExpression in a plan 
         // to be able to dynamically adjust column number during optimization
         LogicalExpressionPlan exp = new LogicalExpressionPlan();
         
-       this.prj = new ProjectExpression( exp, 0, colAlias, foreach );
+        this.prj = new ProjectExpression( exp, 0, colAlias, foreach );
+        this.foreach = foreach;
+    }
+
+    public LOInnerLoad(LogicalPlan plan, LOForEach foreach,
+            ProjectExpression projectExpression) {
+        super("LOInnerLoad", plan); 
+        this.prj = projectExpression;
+        this.prj.setInputNum(0);
+        this.prj.setAttachedRelationalOp(foreach);
         this.foreach = foreach;
     }
 
@@ -83,7 +93,7 @@ public class LOInnerLoad extends LogicalRelationalOperator {
                 schema = new LogicalSchema();
                 schema.addField(prj.getFieldSchema());
             }
-        } else if (!prj.isProjectStar()) {
+        } else if (!prj.isRangeOrStarProject()) {
             schema = new LogicalSchema();
             schema.addField(new LogicalFieldSchema(null, null, DataType.BYTEARRAY));
         }
@@ -143,8 +153,12 @@ public class LOInnerLoad extends LogicalRelationalOperator {
         msg.append("[");
         if( getProjection().getColAlias() != null )
             msg.append( getProjection().getColAlias() );
-        else if (getProjection().getColNum()==-1)
+        else if (getProjection().isProjectStar())
             msg.append("*");
+        else if (getProjection().isRangeProject())
+            msg.append(getProjection().getStartCol())
+            .append(" .. ")
+            .append(getProjection().getEndCol());
         else
             msg.append(getProjection().getColNum());
         msg.append("]");

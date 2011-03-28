@@ -114,7 +114,7 @@ public class MergeForEach extends Rule {
                     else
                         inputs.add(input);
                     
-                    if (innerLoad.getProjection().isProjectStar())
+                    if (innerLoad.getProjection().isRangeOrStarProject())
                         return false;
                 }
             }

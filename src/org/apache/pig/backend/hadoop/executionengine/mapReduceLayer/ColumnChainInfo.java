@@ -20,6 +20,8 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
+
 // Representing one sort key. Sort key may be compound if we sort on multiple columns, 
 // if that is the case, then this sort key contains multiple ColumnChainInfo
 public class ColumnChainInfo implements Cloneable {
@@ -38,23 +40,51 @@ public class ColumnChainInfo implements Cloneable {
         }
         return true;
     }
-    public void insert(boolean star, List<Integer> columns, byte type)
+    public void insert(List<Integer> columns, byte type)
     {
-        ColumnInfo newColumnInfo = new ColumnInfo(star, columns, type);
+        ColumnInfo newColumnInfo = new ColumnInfo(columns, type);
         columnInfos.add(newColumnInfo);
     }
+    
+    /**
+     * Insert new ColumnInfo for a project-star or project-range-to-end
+     * @param startCol
+     * @param type
+     */
+    public void insert(int startCol, byte type)
+    {
+        ColumnInfo newColumnInfo = new ColumnInfo(startCol, type);
+        columnInfos.add(newColumnInfo);
+    }
+    
     // In reduce, the input#1 represent the first input, put 0 instead of 1, so 
     // that we can match the sort information collected from POLocalRearrange
-    public void insertInReduce(boolean star, List<Integer> columns, byte type)
+    public void insertInReduce(POProject project)
     {
         if (size()==0)
         {
+            int col;
+            if(project.isProjectToEnd() || project.getColumns().size() != 1){
+                // expecting first project to be projecting one of the bags
+                // so getting here is unexpected.
+                // setting -1 as the column so that it secondary sort optimization
+                // will not get used
+                col = -1;
+                return;
+            }else{
+                col = project.getColumns().get(0) - 1;
+            }
             List<Integer> newColumns = new ArrayList<Integer>();
-            newColumns.add(columns.get(0)-1);
-            ColumnInfo newColumnInfo = new ColumnInfo(star, newColumns, type);
+            newColumns.add(col);
+            ColumnInfo newColumnInfo = new ColumnInfo(newColumns, project.getResultType());
             columnInfos.add(newColumnInfo);
         }
-        else insert(star, columns, type);
+        else if (project.isProjectToEnd()){
+            insert(project.getStartCol(), project.getResultType());
+        }
+        else {
+            insert(project.getColumns(), project.getResultType());
+        }
     }
     public void insertColumnChainInfo(ColumnChainInfo columnChainInfo)
     {
@@ -73,7 +103,7 @@ public class ColumnChainInfo implements Cloneable {
         ColumnChainInfo result = new ColumnChainInfo();
         for (ColumnInfo columnInfo:columnInfos)
         {
-            ColumnInfo newColumnInfo = new ColumnInfo(columnInfo.star, columnInfo.columns, columnInfo.resultType);
+            ColumnInfo newColumnInfo = (ColumnInfo) columnInfo.clone();
             result.columnInfos.add(newColumnInfo);
         }
         return result;
