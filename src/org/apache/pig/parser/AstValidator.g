@@ -253,7 +253,7 @@ rel : alias {  validateAliasRef( aliases, $alias.token ); }
     | op_clause
 ;
 
-flatten_generated_item : ( flatten_clause | expr | STAR ) field_def_list?
+flatten_generated_item : ( flatten_clause | col_range | expr | STAR) field_def_list?
 ;
 
 flatten_clause : ^( FLATTEN expr )
@@ -322,6 +322,10 @@ scoped_col_alias : ^( SCOPED_ALIAS IDENTIFIER+ )
 col_index : DOLLARVAR
 ;
 
+col_range :  ^(COL_RANGE col_ref? DOUBLE_PERIOD col_ref?)
+;
+
+
 pound_proj : ^( POUND ( QUOTEDSTRING | NULL ) )
 ;
 
@@ -341,7 +345,8 @@ order_by_clause : STAR ( ASC | DESC )?
                 | order_col+
 ;
 
-order_col : col_ref ( ASC | DESC )?
+order_col : col_range (ASC | DESC)?
+          | col_ref ( ASC | DESC )?
 ;
 
 distinct_clause : ^( DISTINCT rel partition_clause? )
@@ -394,7 +399,7 @@ join_group_by_clause returns[int exprCount]
  : ^( BY ( join_group_by_expr { $exprCount++; } )+ )
 ;
 
-join_group_by_expr : expr | STAR
+join_group_by_expr : col_range  | expr | STAR
 ;
 
 union_clause : ^( UNION ONSCHEMA? rel_list )

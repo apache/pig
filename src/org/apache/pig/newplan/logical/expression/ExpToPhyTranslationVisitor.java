@@ -258,8 +258,20 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
         }
         
         exprOp.setResultType(op.getType());
-        exprOp.setColumn(op.getColNum());
-        exprOp.setStar(op.isProjectStar());
+        if(op.isProjectStar()){
+            exprOp.setStar(op.isProjectStar());
+        }
+        else if(op.isRangeProject()){
+            if(op.getEndCol() != -1){
+                //all other project-range should have been expanded by
+                // project-star expander
+                throw new AssertionError("project range that is not a " +
+                "project-to-end seen in translation to physical plan!");
+            }
+            exprOp.setProjectToEnd(op.getStartCol());
+        }else {
+            exprOp.setColumn(op.getColNum());
+        }
         // TODO implement this
 //        exprOp.setOverloaded(op.getOverloaded());
         logToPhyMap.put(op, exprOp);

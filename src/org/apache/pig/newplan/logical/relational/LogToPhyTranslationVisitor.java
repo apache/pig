@@ -291,7 +291,6 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
         }
 
         poSort.setResultType(DataType.BAG);
-        poSort.setSortInfo(sort.getSortInfo());
     }
     
     @Override
@@ -483,9 +482,21 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                 exprOp.setResultType(DataType.BYTEARRAY);
         }
 
-        exprOp.setColumn(load.getColNum());
-        exprOp.setStar(load.getProjection().isProjectStar());        
-        
+        ProjectExpression proj = load.getProjection();
+        if(proj.isProjectStar()){
+            exprOp.setStar(proj.isProjectStar());
+        }
+        else if(proj.isRangeProject()){
+            if(proj.getEndCol() != -1){
+                //all other project-range should have been expanded by
+                // project-star expander
+                throw new AssertionError("project range that is not a " +
+                "project-to-end seen in translation to physical plan!");
+            }
+            exprOp.setProjectToEnd(proj.getStartCol());
+        }else {
+            exprOp.setColumn(load.getColNum());
+        }
         // set input to POProject to the predecessor of foreach
         
         logToPhyMap.put(load, exprOp);
@@ -541,12 +552,20 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                         currentPlan.remove(leaf);
                         logToPhyMap.remove(pred);
 
+                        POProject leafProj = (POProject)leaf;
                         try {
-                            ((POProject)op).setColumn( ((POProject)leaf).getColumn() );
+                            if(leafProj.isStar()){
+                                ((POProject)op).setStar(true);
+                            }
+                            else if(leafProj.isProjectToEnd()){
+                                ((POProject)op).setProjectToEnd(leafProj.getStartCol());
+                            }else {
+                                ((POProject)op).setColumn(leafProj.getColumn() );
+                            }
+                            
                         } catch (ExecException e) {
                             throw new FrontendException("Cannot get column from "+leaf, 2230, e);
                         }
-                        ((POProject)op).setStar(((POProject)leaf).isStar());
 
                     }else{                    
                         currentPlan.connect(leaf, op);

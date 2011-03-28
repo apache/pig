@@ -1460,12 +1460,6 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         }
 
         sort.setResultType(s.getType());
-        try {
-            sort.setSortInfo(s.getSortInfo());
-        } catch (FrontendException e) {
-            throw new LogicalToPhysicalTranslatorException(e);
-        }
-
     }
 
     @Override

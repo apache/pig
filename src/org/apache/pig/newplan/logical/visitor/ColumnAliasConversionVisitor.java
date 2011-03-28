@@ -53,27 +53,7 @@ public class ColumnAliasConversionVisitor extends AllExpressionVisitor {
         return new LogicalExpressionVisitor( exprPlan, new DependencyOrderWalker( exprPlan ) ) {
             @Override
             public void visit(ProjectExpression expr) throws FrontendException {
-                LogicalRelationalOperator op = expr.getAttachedRelationalOp();
-                LogicalPlan lp = (LogicalPlan)op.getPlan();
-                List<Operator> inputs = lp.getPredecessors( op );
-                LogicalRelationalOperator input = (LogicalRelationalOperator)inputs.get( expr.getInputNum() );
-                LogicalSchema inputSchema = input.getSchema();
-                
-                String alias = expr.getColAlias();
-                if( alias != null ) {
-                    int colNum = inputSchema == null ? -1 : inputSchema.getFieldPosition( alias );
-                    if( colNum == -1 ) {
-                		throw new PlanValidationException( "Invalid field projection. Projected field [" + 
-                    		alias + "] does not exist in schema: " + (inputSchema!=null?inputSchema.toString(false):"") + ".", 1025 );
-                    }
-                    expr.setColNum( colNum );
-                } else {
-                    int col = expr.getColNum();
-                    if( inputSchema != null && col >= inputSchema.size() ) {
-                        throw new PlanValidationException( "Out of bound access. Trying to access non-existent column: " + 
-                                                      col + ". Schema " + inputSchema.toString(false) + " has " + inputSchema.size() + " column(s)." , 1000);
-                    }
-                }
+                expr.setColumnNumberFromAlias();
             }
 
             public void visit(DereferenceExpression expr) throws FrontendException {

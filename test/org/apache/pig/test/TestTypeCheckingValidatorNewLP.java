@@ -114,6 +114,7 @@ import org.apache.pig.parser.ParserTestingUtils;
 import org.apache.pig.test.utils.LogicalPlanTester;
 import org.junit.Before;
 import org.junit.Test;
+import static org.apache.pig.test.Util.*;
 
 public class TestTypeCheckingValidatorNewLP {
 
@@ -2711,16 +2712,13 @@ public class TestTypeCheckingValidatorNewLP {
             String query = "a = load 'a' using PigStorage('a') ;"
             + "b = load 'b' using PigStorage('b') ;"
             + "c = cogroup a by *, b by *;";
-            boolean exceptionThrown = false;
-            try {
-                ParserTestingUtils.generateLogicalPlan( query );
-            } catch(Exception e) {
-                assertTrue(e.toString().contains("Cogroup/Group by * is only allowed if " +
-                "the input has a schema"));
-                exceptionThrown = true;
-            }
-            assertTrue(exceptionThrown);
-            
+
+            String exMsg= "Cogroup/Group by '*' or 'x..' " +
+            "(range of columns to the end) " +
+            "is only allowed if the input has a schema";
+
+            checkExceptionMessage(query, "c", exMsg);
+          
         }
     
         @Test

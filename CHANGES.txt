@@ -28,6 +28,10 @@ PIG-1680: HBaseStorage should work with HBase 0.90 (gstathis, billgraham, dvryab
 
 IMPROVEMENTS
 
+PIG-1693: support project-range expression. (was: There 
+ needs to be a way in foreach to indicate "and all the 
+ rest of the fields" ) (thejas)
+
 PIG-1772: Pig 090 Documentation (chandec via daijy)
 
 PIG-1830: Type mismatch error in key from map, when doing GROUP on PigStorageSchema() variable (dvryaboy)

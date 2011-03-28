@@ -32,6 +32,10 @@ public class ParserException extends FrontendException {
 	public ParserException(String msg) {
 		super( msg );
 	}
+
+	public ParserException(String msg, Throwable cause) {
+	    super( msg, cause );
+	}
 	
 	@Override
 	public String toString() {

@@ -221,7 +221,7 @@ rel
 ;
 
 flatten_generated_item 
-    : ( flatten_clause | expr | STAR ) field_def_list?
+    : ( flatten_clause | col_range | expr | STAR ) field_def_list?
 ;
 
 flatten_clause 
@@ -313,6 +313,9 @@ col_index
     : DOLLARVAR
 ;
 
+col_range :  ^(COL_RANGE col_ref? DOUBLE_PERIOD col_ref?)
+;
+
 pound_proj 
     : ^( POUND ( QUOTEDSTRING | NULL ) )
 ;
@@ -339,7 +342,7 @@ order_by_clause
 ;
 
 order_col 
-    : col_ref ( ASC | DESC )?    
+    : (col_range | col_ref) ( ASC | DESC )?    
 ;
 
 distinct_clause 
@@ -382,7 +385,7 @@ join_group_by_clause
 ;
 
 join_group_by_expr 
-    : expr | STAR
+    : col_range | expr | STAR 
 ;
 
 union_clause 

@@ -365,6 +365,13 @@ public class CombinerOptimizer extends MROpPlanVisitor {
                 POProject proj = (POProject)root;
                 POUserFunc combineUdf = getAlgebraicSuccessor(proj, pplan);
                 if(combineUdf == null){
+                    
+                    if(proj.isProjectToEnd()){
+                        //project-star or project to end
+                        // not combinable
+                        return null;
+                    }
+                    
                     // Check to see if this is a projection of the grouping column.
                     // If so, it will be a projection of col 0 
                     List<Integer> cols = proj.getColumns();

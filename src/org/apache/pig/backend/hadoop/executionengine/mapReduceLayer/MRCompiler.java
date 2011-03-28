@@ -73,6 +73,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PONative;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage.PackageType;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackageLite;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPartitionRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSkewedJoin;
@@ -81,7 +82,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage.PackageType;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.DataType;
@@ -95,6 +95,7 @@ import org.apache.pig.impl.builtin.RandomSampleLoader;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
+import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.Operator;
@@ -102,7 +103,6 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.util.CompilerUtils;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.impl.util.ObjectSerializer;
@@ -1828,7 +1828,6 @@ public class MRCompiler extends PhyPlanVisitor {
     @Override
     public void visitDistinct(PODistinct op) throws VisitorException {
         try{
-            MapReduceOper mro = compiledInputs[0];
             PhysicalPlan ep = new PhysicalPlan();
             POProject prjStar = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
             prjStar.setResultType(DataType.TUPLE);
@@ -2055,9 +2054,9 @@ public class MRCompiler extends PhyPlanVisitor {
             MapReduceOper mro = endSingleInputPlanWithStr(fSpec);
             FileSpec quantFile = getTempFileSpec();
             int rp = op.getRequestedParallelism();
-            Pair<Integer,Byte>[] fields = getSortCols(op.getSortPlans());
+            Pair<POProject, Byte>[] fields = getSortCols(op.getSortPlans());
             Pair<MapReduceOper, Integer> quantJobParallelismPair = 
-                getQuantileJob(op, mro, fSpec, quantFile, rp, fields);
+                getQuantileJob(op, mro, fSpec, quantFile, rp);
             curMROp = getSortJob(op, quantJobParallelismPair.first, fSpec, quantFile, 
                     quantJobParallelismPair.second, fields);
             
@@ -2073,24 +2072,23 @@ public class MRCompiler extends PhyPlanVisitor {
         }
     }
     
-    @SuppressWarnings("unchecked")
-    // Suppress the type conversion warning for Pair. There is no way to create a generic array
-    private Pair<Integer, Byte>[] getSortCols(List<PhysicalPlan> plans) throws PlanException, ExecException {
+
+    private Pair<POProject,Byte> [] getSortCols(List<PhysicalPlan> plans) throws PlanException, ExecException {
         if(plans!=null){
-            Pair[] ret = new Pair[plans.size()]; 
+            @SuppressWarnings("unchecked")
+            Pair<POProject,Byte>[] ret = new Pair[plans.size()]; 
             int i=-1;
             for (PhysicalPlan plan : plans) {
                 PhysicalOperator op = plan.getLeaves().get(0);
-                int first = -1;
+                POProject proj;
                 if (op instanceof POProject) {
                     if (((POProject)op).isStar()) return null;
-                    first = ((POProject)op).getColumn();
+                    proj = (POProject)op;
                 } else {
-                    // the plan is not POProject, so we don't know the column index
-                    first = -1;
+                    proj = null;
                 }
-                byte second = plan.getLeaves().get(0).getResultType();
-                ret[++i] = new Pair<Integer,Byte>(first,second);
+                byte type = ((PhysicalOperator)op).getResultType();
+                ret[++i] = new Pair<POProject, Byte>(proj, type);
             }
             return ret;
         }
@@ -2105,7 +2103,7 @@ public class MRCompiler extends PhyPlanVisitor {
             FileSpec lFile,
             FileSpec quantFile,
             int rp,
-            Pair<Integer,Byte>[] fields) throws PlanException{
+            Pair<POProject, Byte>[] fields) throws PlanException{
         MapReduceOper mro = startNew(lFile, quantJob);
         mro.setQuantFile(quantFile.getFileName());
         mro.setGlobalSort(true);
@@ -2267,8 +2265,7 @@ public class MRCompiler extends PhyPlanVisitor {
             MapReduceOper prevJob,
             FileSpec lFile,
             FileSpec quantFile,
-            int rp,
-            Pair<Integer,Byte>[] fields) throws PlanException, VisitorException {
+            int rp) throws PlanException, VisitorException {
         
         POSort sort = new POSort(inpSort.getOperatorKey(), inpSort
                 .getRequestedParallelism(), null, inpSort.getSortPlans(),
@@ -2403,14 +2400,14 @@ public class MRCompiler extends PhyPlanVisitor {
         
         // if transform plans are not specified, project the columns of sorting keys
         if (transformPlans == null) {        	
-        	Pair<Integer,Byte>[] fields = null;
+            Pair<POProject, Byte>[] sortProjs = null;
             try{
-            	fields = getSortCols(sort.getSortPlans());
+            	sortProjs = getSortCols(sort.getSortPlans());
             }catch(Exception e) {
             	throw new RuntimeException(e);
             }
             // Set up the projections of the key columns 
-            if (fields == null) {
+            if (sortProjs == null) {
                 PhysicalPlan ep = new PhysicalPlan();
                 POProject prj = new POProject(new OperatorKey(scope,
                     nig.getNextNodeId(scope)));
@@ -2421,32 +2418,37 @@ public class MRCompiler extends PhyPlanVisitor {
                 eps1.add(ep);
                 flat1.add(true);
             } else {
-                for (Pair<Integer,Byte> i : fields) {
-                    PhysicalPlan ep = new PhysicalPlan();
-                    POProject prj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
-                    // Check for i being equal to -1. -1 is used by getSortCols for a non POProject
-                    // operator. Since Order by does not allow expression operators, it should never be set to
-                    // -1
-                    if (i.first == -1) {
-                    	int errCode = 2174;
-                    	String msg = "Internal exception. Could not create a sampler job";
+                for (Pair<POProject, Byte> sortProj : sortProjs) {
+                    // Check for proj being null, null is used by getSortCols for a non POProject
+                    // operator. Since Order by does not allow expression operators, 
+                    //it should never be set to null
+                    if(sortProj == null){
+                        int errCode = 2174;
+                        String msg = "Internal exception. Could not create a sampler job";
                         throw new MRCompilerException(msg, errCode, PigException.BUG);
                     }
-                    prj.setColumn(i.first);
-                    prj.setOverloaded(false);
-                    prj.setResultType(i.second);
+                    PhysicalPlan ep = new PhysicalPlan();
+                    POProject prj;
+                    try {
+                        prj = sortProj.first.clone();
+                    } catch (CloneNotSupportedException e) {
+                        //should not get here
+                        throw new AssertionError(
+                                "Error cloning project caught exception" + e
+                        );
+                    }
                     ep.add(prj);
                     eps1.add(ep);
                     flat1.add(true);
                 }
             }
         }else{
-        	for(int i=0; i<transformPlans.size(); i++) {
-        		eps1.add(transformPlans.get(i));
-        		flat1.add(true);
-        	}
+            for(int i=0; i<transformPlans.size(); i++) {
+                eps1.add(transformPlans.get(i));
+                flat1.add(true);
+            }
         }
-        
+
         // This foreach will pick the sort key columns from the RandomSampleLoader output 
         POForEach nfe1 = new POForEach(new OperatorKey(scope,nig.getNextNodeId(scope)),-1,eps1,flat1);
         mro.mapPlan.addAsLeaf(nfe1);
@@ -2504,14 +2506,14 @@ public class MRCompiler extends PhyPlanVisitor {
         		nesSortPlanLst.add(sortKeyPlans.get(i));        	
         	}
         }else{   
-        	Pair<Integer,Byte>[] fields = null;
+            Pair<POProject, Byte>[] sortProjs = null;
             try{
-            	fields = getSortCols(sort.getSortPlans());
+            	sortProjs = getSortCols(sort.getSortPlans());
             }catch(Exception e) {
             	throw new RuntimeException(e);
             }
             // Set up the projections of the key columns 
-            if (fields == null) {
+            if (sortProjs == null) {
                 PhysicalPlan ep = new PhysicalPlan();
                 POProject prj = new POProject(new OperatorKey(scope,
                     nig.getNextNodeId(scope)));
@@ -2521,12 +2523,26 @@ public class MRCompiler extends PhyPlanVisitor {
                 ep.add(prj);
                 nesSortPlanLst.add(ep);
             } else {
-                for (int i=0; i<fields.length; i++) {
-                    PhysicalPlan ep = new PhysicalPlan();
-                    POProject prj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
-                    prj.setColumn(i);
+                for (int i=0; i<sortProjs.length; i++) {
+                    POProject prj =
+                        new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
+                    
+                    prj.setResultType(sortProjs[i].second);
+                    if(sortProjs[i].first != null && sortProjs[i].first.isProjectToEnd()){
+                        if(i != sortProjs.length -1){
+                            //project to end has to be the last sort column
+                            throw new AssertionError("Project-range to end (x..)" +
+                            " is supported in order-by only as last sort column");
+                        }
+                        prj.setProjectToEnd(i);
+                        break;
+                    }
+                    else{
+                        prj.setColumn(i);
+                    }
                     prj.setOverloaded(false);
-                    prj.setResultType(fields[i].second);
+
+                    PhysicalPlan ep = new PhysicalPlan();
                     ep.add(prj);
                     nesSortPlanLst.add(ep);
                 }
@@ -2706,7 +2722,7 @@ public class MRCompiler extends PhyPlanVisitor {
                     POProject proj = (POProject)opProj;
                     // the project should just be for one column
                     // from the input
-                    if(proj.getColumns().size() != 1) {
+                    if(proj.isProjectToEnd() || proj.getColumns().size() != 1) {
                         allSimple = false;
                         break;
                     }

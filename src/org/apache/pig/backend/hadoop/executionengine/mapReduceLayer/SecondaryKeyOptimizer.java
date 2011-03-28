@@ -104,16 +104,20 @@ public class SecondaryKeyOptimizer extends MROpPlanVisitor {
                 // The first item inside columnChainInfo is set to type Tuple.
                 // This value is not actually in use, but it intends to match
                 // the type of POProject in reduce side
-                columnChainInfo.insert(false, columns, DataType.TUPLE);
+                columnChainInfo.insert(columns, DataType.TUPLE);
 
                 PhysicalOperator node = plan.getRoots().get(0);
                 while (node != null) {
                     if (node instanceof POProject) {
                         POProject project = (POProject) node;
-
-                        columnChainInfo.insert(project.isStar(), project
-                                .getColumns(), project.getResultType());
-
+                        if(project.isProjectToEnd()){
+                            columnChainInfo.insert(project.getStartCol(), 
+                                    project.getResultType());
+                        }else {
+                            columnChainInfo.insert(
+                                    project.getColumns(), project.getResultType());
+                        }
+                        
                         if (plan.getSuccessors(node) == null)
                             node = null;
                         else if (plan.getSuccessors(node).size() != 1) {
@@ -386,8 +390,8 @@ public class SecondaryKeyOptimizer extends MROpPlanVisitor {
                             new OperatorKey(scope, NodeIdGenerator
                                     .getGenerator().getNextNodeId(scope)),
                             rearrange.getRequestedParallelism());
-                    if (columnInfo.star)
-                        project.setStar(true);
+                    if(columnInfo.isRangeProject)
+                        project.setProjectToEnd(columnInfo.startCol);
                     else
                         project
                                 .setColumns((ArrayList<Integer>) columnInfo.columns);
@@ -535,8 +539,7 @@ public class SecondaryKeyOptimizer extends MROpPlanVisitor {
 
         // Accumulate column info
         public boolean processProject(POProject project) throws FrontendException {
-            columnChainInfo.insertInReduce(project.isStar(), project
-                    .getColumns(), project.getResultType());
+            columnChainInfo.insertInReduce(project);
             return false;
         }
 
@@ -637,8 +640,7 @@ public class SecondaryKeyOptimizer extends MROpPlanVisitor {
         while (currentNode != null) {
             if (currentNode instanceof POProject) {
                 POProject project = (POProject) currentNode;
-                columnChainInfo.insertInReduce(project.isStar(), project
-                        .getColumns(), project.getResultType());
+                columnChainInfo.insertInReduce(project);
             } else {
                 return true;
             }

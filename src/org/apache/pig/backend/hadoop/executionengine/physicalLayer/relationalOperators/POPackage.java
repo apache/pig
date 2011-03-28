@@ -330,8 +330,8 @@ public class POPackage extends PhysicalOperator {
         
             // we have some fields of the "value" in the
             // "key".
-            copy = mTupleFactory.newTuple();
             int finalValueSize = keyLookupSize + val.size();
+            copy = mTupleFactory.newTuple(finalValueSize);
             int valIndex = 0; // an index for accessing elements from 
                               // the value (val) that we have currently
             for(int i = 0; i < finalValueSize; i++) {
@@ -340,16 +340,16 @@ public class POPackage extends PhysicalOperator {
                     // the field for this index is not in the
                     // key - so just take it from the "value"
                     // we were handed
-                    copy.append(val.get(valIndex));
+                    copy.set(i, val.get(valIndex));
                     valIndex++;
                 } else {
                     // the field for this index is in the key
                     if(isKeyTuple) {
                         // the key is a tuple, extract the
                         // field out of the tuple
-                        copy.append(keyAsTuple.get(keyIndex));
+                        copy.set(i, keyAsTuple.get(keyIndex));
                     } else {
-                        copy.append(key);
+                        copy.set(i, key);
                     }
                 }
             }

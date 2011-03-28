@@ -83,8 +83,6 @@ public class POSort extends PhysicalOperator {
 	private DataBag sortedBag;
 	transient Iterator<Tuple> it;
 
-	private SortInfo sortInfo;
-
 	public POSort(
             OperatorKey k,
             int rp,
@@ -383,20 +381,7 @@ public class POSort extends PhysicalOperator {
             requestedParallelism, null, clonePlans, cloneAsc, cloneFunc);
     }
 
-    /**
-     * @param sortInfo the sortInfo to set
-     */
-    public void setSortInfo(SortInfo sortInfo) {
-        this.sortInfo = sortInfo;
-    }
-
-    /**
-     * @return the sortInfo
-     */
-    public SortInfo getSortInfo() {
-        return sortInfo;
-    }
-    
+   
     public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
         if(illustrator != null) {
           illustrator.getEquivalenceClasses().get(eqClassIndex).add((Tuple) in);

@@ -75,7 +75,7 @@ public class PORelationToExprProject extends POProject {
     @Override
     public String name() {
         
-        return "RelationToExpressionProject" + "[" + DataType.findTypeName(resultType) + "]" + ((star) ? "[*]" : columns) + " - " + mKey.toString();
+        return "RelationToExpressionProject" + "[" + DataType.findTypeName(resultType) + "]" + ((isStar()) ? "[*]" : columns) + " - " + mKey.toString();
     }
 
     @Override
@@ -141,18 +141,7 @@ public class PORelationToExprProject extends POProject {
        
     @Override
     public PORelationToExprProject clone() throws CloneNotSupportedException {
-        ArrayList<Integer> cols = new ArrayList<Integer>(columns.size());
-        // Can resuse the same Integer objects, as they are immutable
-        for (Integer i : columns) {
-            cols.add(i);
-        }
-        PORelationToExprProject clone = new PORelationToExprProject(new OperatorKey(mKey.scope, 
-            NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)),
-            requestedParallelism, cols);
-        clone.cloneHelper(this);
-        clone.star = star;
-        clone.overloaded = overloaded;
-        return clone;
+        return (PORelationToExprProject) super.clone();
     }
     
 }

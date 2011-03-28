@@ -58,6 +58,7 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.SimpleLayout;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
@@ -80,6 +81,7 @@ import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.newplan.logical.LogicalPlanMigrationVistor;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanPrinter;
 import org.apache.pig.newplan.logical.optimizer.SchemaResetter;
@@ -407,7 +409,7 @@ public class Util {
     * expected results.
     * 
     * @param actualResults Result of the executed Pig query
-    * @param expectedResults Expected results to validate against
+    * @param expectedResults Expected results Array to validate against
     */
     static public void checkQueryOutputs(Iterator<Tuple> actualResults, 
                                     Tuple[] expectedResults) {
@@ -416,6 +418,19 @@ public class Util {
             Assert.assertEquals(expected.toString(), actual.toString());
         }
     }
+    
+    /**
+     * Helper function to check if the result of a Pig Query is in line with 
+     * expected results.
+     * 
+     * @param actualResults Result of the executed Pig query
+     * @param expectedResults Expected results List to validate against
+     */
+     static public void checkQueryOutputs(Iterator<Tuple> actualResults, 
+                                     List<Tuple> expectedResults) {
+         
+         checkQueryOutputs(actualResults,expectedResults.toArray(new Tuple[expectedResults.size()]));
+     }
 
     /**
      * Helper function to check if the result of a Pig Query is in line with 
@@ -447,6 +462,37 @@ public class Util {
          if(!str.contains(subStr)){
              fail("String '"+ subStr + "' is not a substring of '" + str + "'");
          }
+     }
+     
+     /**
+      * Check if query plan for alias argument produces exception with expected
+      * error message in expectedErr argument.
+      * @param query
+      * @param alias
+      * @param expectedErr
+      * @throws IOException
+      */
+     static public void checkExceptionMessage(String query, String alias, String expectedErr)
+     throws IOException {
+         PigServer pig = new PigServer(ExecType.LOCAL);
+
+         boolean foundEx = false;
+         try{
+             Util.registerMultiLineQuery(pig, query);
+             pig.explain(alias, System.out);
+         }catch(FrontendException e){
+             PigException pigEx = LogUtils.getPigException(e);
+             foundEx = true;
+             if(!pigEx.getMessage().contains(expectedErr)){
+                 String msg = "Expected exception message matching '" 
+                     + expectedErr + "' but got '" + pigEx.getMessage() + "'" ;
+                 fail(msg);
+             }
+         }
+
+         if(!foundEx)
+             fail("No exception thrown. Exception is expected.");
+
      }
 
 	/**
@@ -563,6 +609,19 @@ public class Util {
         return result;
     }
 
+    public static List<Tuple> getTuplesFromConstantTupleStringAsByteArray(String[] tupleConstants)
+    throws ParseException, ExecException{
+        List<Tuple> tuples = getTuplesFromConstantTupleStrings(tupleConstants);
+        for(Tuple t : tuples){
+            for(int i=0; i<t.size(); i++){
+                DataByteArray dba = (t.get(i) == null) ? 
+                        null : new DataByteArray(t.get(i).toString().getBytes());
+                t.set(i, dba);
+            }
+        }
+        return tuples;
+    }
+    
     public static File createFile(String[] data) throws Exception{
         File f = File.createTempFile("tmp", "");
         PrintWriter pw = new PrintWriter(f);

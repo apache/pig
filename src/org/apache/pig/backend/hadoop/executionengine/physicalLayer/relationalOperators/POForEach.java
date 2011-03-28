@@ -481,7 +481,7 @@ public class POForEach extends PhysicalOperator {
                 planLeafOps[i] = leaf;
                 if(leaf instanceof POProject &&
                         leaf.getResultType() == DataType.TUPLE &&
-                        ((POProject)leaf).isStar()) {
+                         ((POProject)leaf).isProjectToEnd() ) {
                     isToBeFlattenedArray[i] = true;
                 }
             }

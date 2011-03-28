@@ -528,18 +528,28 @@ public class POLocalRearrange extends PhysicalOperator {
                 if(leaf instanceof POProject) {
                     POProject project = (POProject) leaf;
                     if(project.isStar()) {
-                        if(plans.size() == 1) {
-                            // note that we have a project *
-                            mProjectStar  = true;
-                            // key will be a tuple in this case
-                            isKeyTuple = true;
-                        } else {
-                            // TODO: currently "group by (*, somethingelse)" is NOT
-                            // allowed. So we should never get here. But once it is
-                            // allowed, we will need to handle it. For now just log
-                            log.debug("Project * in group by not being optimized in key-value transfer");
+                        // note that we have a project *
+                        mProjectStar  = true;
+                        // key will be a tuple in this case
+                        isKeyTuple = true;
+
+                        //The number of columns from the project * is unkown
+                        // so position of remaining colums in key can't be determined.
+                        //stop optimizing here
+                        break;
+                    } else if(project.isProjectToEnd()){
+                        List<PhysicalOperator> preds = plan.getPredecessors(project);
+                        if(preds != null && preds.size() != 0){
+                            //a sanity check - should never come here
+                            throw new AssertionError("project-range has predecessors");
                         }
-                    } else {
+                        //The number of columns from the project-to-end is unkown
+                        // so position of remaining colums in key can't be determined.
+                        //stop optimizing here
+                        break;
+
+                    }
+                    else {
                         try {
                             List<PhysicalOperator> preds = plan.getPredecessors(leaf);
                             if (preds==null || !(preds.get(0) instanceof POProject)) {
@@ -590,18 +600,27 @@ public class POLocalRearrange extends PhysicalOperator {
                 if(leaf instanceof POProject) {
                     POProject project = (POProject) leaf;
                     if(project.isStar()) {
-                        if(secondaryPlans.size() == 1) {
-                            // note that we have a project *
-                            mSecondaryProjectStar  = true;
-                            // key will be a tuple in this case
-                            isSecondaryKeyTuple = true;
-                        } else {
-                            // TODO: currently "group by (*, somethingelse)" is NOT
-                            // allowed. So we should never get here. But once it is
-                            // allowed, we will need to handle it. For now just log
-                            log.debug("Project * in group by not being optimized in key-value transfer");
+                        // note that we have a project *
+                        mSecondaryProjectStar  = true;
+                        // key will be a tuple in this case
+                        isSecondaryKeyTuple = true;
+                        //The number of columns from the project * is unknown
+                        // so position of remaining columns in key can't be determined.
+                        //stop optimizing here
+                        break;
+                    } else if(project.isProjectToEnd()){
+                        List<PhysicalOperator> preds = plan.getPredecessors(project);
+                        if(preds != null && preds.size() != 0){
+                            //a sanity check - should never come here
+                            throw new AssertionError("project-range has predecessors");
                         }
-                    } else {
+                        //The number of columns from the project-to-end is unknown
+                        // so position of remaining columns in key can't be determined.
+                        //stop optimizing here
+                        break;
+
+                    }
+                    else {
                         try {
                             List<PhysicalOperator> preds = plan.getPredecessors(leaf);
                             if (preds==null || !(preds.get(0) instanceof POProject)) {
@@ -747,9 +766,10 @@ public class POLocalRearrange extends PhysicalOperator {
                 // is reduce the amount of the data sent to Hadoop in the map.
                 if(leaf instanceof POProject) {
                     POProject project = (POProject) leaf;
-                    if(project.isStar()) {
+                    if(project.isProjectToEnd()) {
                         int errCode = 2021;
-                        String msg = "Internal error. Unexpected operator project(*) in local rearrange inner plan.";
+                        String msg = "Internal error. Unexpected operator project(*) " +
+                        		"or (..) in local rearrange inner plan.";
                         throw new PlanException(msg, errCode, PigException.BUG);
                     } else {
                         try {
