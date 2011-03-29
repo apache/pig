@@ -526,7 +526,7 @@ public final class JobStats extends Operator {
     }
     
     private void addOneInputStats(String fileName, int index) {
-        long records = -1;
+        long records = 0;
         Long n = multiInputCounters.get(
                 PigStatsUtil.getMultiInputsCounterName(fileName, index));
         if (n != null) {   
