@@ -614,6 +614,77 @@ public class TestPigRunner {
         }
     }
     
+    
+    @Test //PIG-1893
+    public void testEmptyFileCounter() throws Exception {
+      
+        PrintWriter w = new PrintWriter(new FileWriter("myinputfile"));
+        w.close();
+         
+        Util.copyFromLocalToCluster(cluster, "myinputfile", "1.txt");
+        
+        PrintWriter w1 = new PrintWriter(new FileWriter(PIG_FILE));
+        w1.println("A = load '" + INPUT_FILE + "' as (a0:int, a1:int, a2:int);");
+        w1.println("B = load '1.txt' as (a0:int, a1:int, a2:int);");
+        w1.println("C = join A by a0, B by a0;");
+        w1.println("store C into '" + OUTPUT_FILE + "';");
+        w1.close();
+        
+        try {
+            String[] args = { PIG_FILE };
+            PigStats stats = PigRunner.run(args, new TestNotificationListener());
+     
+            assertTrue(stats.isSuccessful());
+            
+            assertEquals(1, stats.getNumberJobs());
+            List<InputStats> inputs = stats.getInputStats();
+            assertEquals(2, inputs.size());
+            for (InputStats instats : inputs) {
+                if (instats.getLocation().endsWith("1.txt")) {
+                    assertEquals(0, instats.getNumberRecords());
+                } else {
+                    assertEquals(5, instats.getNumberRecords());
+                }
+            }
+        } finally {
+            new File(PIG_FILE).delete();
+            Util.deleteFile(cluster, OUTPUT_FILE);
+        }
+    }
+    
+    @Test //PIG-1893
+    public void testEmptyFileCounter2() throws Exception {
+
+        PrintWriter w1 = new PrintWriter(new FileWriter(PIG_FILE));
+        w1.println("A = load '" + INPUT_FILE + "' as (a0:int, a1:int, a2:int);");
+        w1.println("B = filter A by a0 < 0;");
+        w1.println("store A into '" + OUTPUT_FILE + "';");
+        w1.println("store B into 'output2';");
+        w1.close();
+        
+        try {
+            String[] args = { PIG_FILE };
+            PigStats stats = PigRunner.run(args, new TestNotificationListener());
+     
+            assertTrue(stats.isSuccessful());
+            
+            assertEquals(1, stats.getNumberJobs());
+            List<OutputStats> outputs = stats.getOutputStats();
+            assertEquals(2, outputs.size());
+            for (OutputStats outstats : outputs) {
+                if (outstats.getLocation().endsWith("output2")) {
+                    assertEquals(0, outstats.getNumberRecords());
+                } else {
+                    assertEquals(5, outstats.getNumberRecords());
+                }
+            }
+        } finally {
+            new File(PIG_FILE).delete();
+            Util.deleteFile(cluster, OUTPUT_FILE);
+            Util.deleteFile(cluster, "output2");
+        }
+    }
+    
     public static class TestNotificationListener implements PigProgressNotificationListener {
         
         private Map<String, int[]> numMap = new HashMap<String, int[]>();

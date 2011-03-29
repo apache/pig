@@ -124,6 +124,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-1893: Pig report input size -1 for empty input file (rding)
+
 PIG-1868: New logical plan fails when I have complex data types from udf
 (daijy)
 
