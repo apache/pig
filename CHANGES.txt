@@ -22,11 +22,13 @@ Trunk (unreleased changes)
 
 INCOMPATIBLE CHANGES
 
-PIG-1913: Use a file for excluding tests (tomwhite via gates)
-
 PIG-1680: HBaseStorage should work with HBase 0.90 (gstathis, billgraham, dvryaboy, tlipcon via dvryaboy)
 
 IMPROVEMENTS
+
+PIG-1932: GFCross should allow the user to set the DEFAULT_PARALLELISM value (gates)
+
+PIG-1913: Use a file for excluding tests (tomwhite via gates)
 
 PIG-1693: support project-range expression. (was: There 
  needs to be a way in foreach to indicate "and all the 
