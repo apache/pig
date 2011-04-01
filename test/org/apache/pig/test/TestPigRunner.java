@@ -510,6 +510,39 @@ public class TestPigRunner {
     }
     
     @Test
+    public void testDuplicateCounterName2() throws Exception {
+        
+        PrintWriter w1 = new PrintWriter(new FileWriter(PIG_FILE));
+        w1.println("A = load '" + INPUT_FILE + "' as (a0:int, a1:int, a2:int);");
+        w1.println("B = filter A by a0 > 3;");
+        w1.println("store A into 'output';");
+        w1.println("store B into 'tmp/output';");
+        w1.close();
+        
+        try {
+            String[] args = { PIG_FILE };
+            PigStats stats = PigRunner.run(args, new TestNotificationListener());
+     
+            assertTrue(stats.isSuccessful());
+            
+            assertEquals(1, stats.getNumberJobs());
+            List<OutputStats> outputs = stats.getOutputStats();
+            assertEquals(2, outputs.size());
+            for (OutputStats outstats : outputs) {
+                if (outstats.getLocation().endsWith("tmp/output")) {
+                    assertEquals(2, outstats.getNumberRecords());
+                } else {
+                    assertEquals(5, outstats.getNumberRecords());
+                }
+            }
+        } finally {
+            new File(PIG_FILE).delete();
+            Util.deleteFile(cluster, OUTPUT_FILE);
+            Util.deleteFile(cluster, "tmp/output");
+        }
+    }
+    
+    @Test
     public void testRegisterExternalJar() throws Exception {
         String[] args = { "-Dpig.additional.jars=pig-withouthadoop.jar",
                 "-Dmapred.job.queue.name=default",
@@ -613,7 +646,7 @@ public class TestPigRunner {
             Util.deleteFile(cluster, OUTPUT_FILE);
         }
     }
-    
+        
     
     @Test //PIG-1893
     public void testEmptyFileCounter() throws Exception {

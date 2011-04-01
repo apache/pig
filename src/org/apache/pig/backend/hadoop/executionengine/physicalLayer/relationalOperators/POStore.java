@@ -66,6 +66,9 @@ public class POStore extends PhysicalOperator {
     // flag to distinguish single store from multiquery store.
     private boolean isMultiStore;
     
+    // the index of multiquery store to track counters
+    private int index;
+    
     // If we know how to reload the store, here's how. The lFile
     // FileSpec is set in PigServer.postProcess. It can be used to
     // reload this store, if the optimizer has the need.
@@ -270,5 +273,13 @@ public class POStore extends PhysicalOperator {
             illustrator.addData((Tuple) out);
         }
         return (Tuple) out;
+    }
+
+    public void setIndex(int index) {
+        this.index = index;
+    }
+
+    public int getIndex() {
+        return index;
     }
 }
