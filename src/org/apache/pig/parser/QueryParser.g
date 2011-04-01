@@ -123,7 +123,7 @@ public String getTokenErrorDisplay(Token t) {
 
 @Override
 public String getErrorHeader(RecognitionException ex) {
-	return QueryParserUtils.generateErrorHeader( ex );
+	return QueryParserUtils.generateErrorHeader( ex, this.getSourceName() );
 }
 
 } // End of @members
@@ -210,7 +210,7 @@ macro_return_clause : RETURNS alias (COMMA alias)*
 ;
 
 macro_body_clause : content
-    -> ^(MACRO_BODY { new PigParserNode(new CommonToken(1, $content.text)) } )
+    -> ^(MACRO_BODY { new PigParserNode(new CommonToken(1, $content.text), this.getSourceName()) } )
 ;
 
 macro_clause : macro_param_clause macro_return_clause macro_body_clause

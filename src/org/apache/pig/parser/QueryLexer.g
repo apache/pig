@@ -52,7 +52,7 @@ public String getErrorMessage(RecognitionException e, String[] tokenNames ) {
 
 @Override
 public String getErrorHeader(RecognitionException ex) {
-	return QueryParserUtils.generateErrorHeader( ex );
+	return QueryParserUtils.generateErrorHeader( ex, this.getSourceName() );
 }
 
 } // End of members.

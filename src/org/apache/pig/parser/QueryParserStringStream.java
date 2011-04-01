@@ -27,14 +27,14 @@ import org.antlr.runtime.ANTLRStringStream;
  *  while preserving case.
  */
 public class QueryParserStringStream extends ANTLRStringStream {
-    public QueryParserStringStream(String input) throws IOException {
+    public QueryParserStringStream(String input, String source) throws IOException {
         super( input );
+        this.name = source;
     }
 
     @Override
     public int LA(int i) {
         return QueryParserStreamUtil.LA( i, n, p, data );
     }
-    
 }
 
