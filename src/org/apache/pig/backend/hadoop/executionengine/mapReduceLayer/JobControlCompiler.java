@@ -500,8 +500,10 @@ public class JobControlCompiler{
 
                 nwJob.setOutputFormatClass(PigOutputFormat.class);
                 
+                int idx = 0;
                 for (POStore sto: storeLocations) {
                     sto.setMultiStore(true);
+                    sto.setIndex(idx++);
                 }
  
                 conf.set("pig.streaming.log.dir", 

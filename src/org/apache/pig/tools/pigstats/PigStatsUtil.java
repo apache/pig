@@ -110,7 +110,7 @@ public abstract class PigStatsUtil {
     public static String getMultiStoreCounterName(POStore store) {
         String shortName = getShortName(store.getSFile().getFileName());
         return (shortName == null) ? null 
-                : MULTI_STORE_RECORD_COUNTER + shortName;
+                : MULTI_STORE_RECORD_COUNTER + "_" + store.getIndex() + "_" + shortName;
     }
     
     /**
