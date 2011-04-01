@@ -22,9 +22,15 @@ import org.antlr.runtime.tree.CommonTreeAdaptor;
 
 public class PigParserNodeAdaptor extends CommonTreeAdaptor {
     
+    private String source;
+    
+    PigParserNodeAdaptor(String source) {
+        this.source = source;
+    }
+    
     @Override
     public Object create(Token t) {
-        return new PigParserNode(t);
+        return new PigParserNode(t, source);
     }
     
 }

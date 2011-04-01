@@ -72,7 +72,9 @@ public class QueryParserDriver {
     public LogicalPlan parse(String query) throws ParserException {
         LogicalPlan plan = null;
         
-        CommonTokenStream tokenStream = tokenize( query );
+        ScriptState ss = ScriptState.get();
+        CommonTokenStream tokenStream = tokenize(query, ss.getFileName());
+        
         Tree ast = null;
             
         try {
@@ -111,7 +113,7 @@ public class QueryParserDriver {
             line = rd.readLine();
         }
         
-        CommonTokenStream tokenStream = tokenize(sb.toString());
+        CommonTokenStream tokenStream = tokenize(sb.toString(),  scriptFile);
         Tree ast = null;
             
         try {
@@ -144,10 +146,11 @@ public class QueryParserDriver {
         return operators;
     }
 
-    private static CommonTokenStream tokenize(String query) throws ParserException {
+    private static CommonTokenStream tokenize(String query, String source)
+            throws ParserException {
         CharStream input;
         try {
-            input = new QueryParserStringStream(query);
+            input = new QueryParserStringStream(query, source);
         } catch (IOException ex) {
             throw new ParserException("Unexpected IOException: "
                     + ex.getMessage());
@@ -207,12 +210,6 @@ public class QueryParserDriver {
     private Tree expandMacro(Tree ast) throws ParserException {
         LOG.debug("Original macro AST:\n" + ast.toStringTree() + "\n");
 
-        ScriptState ss = ScriptState.get();
-        if (ss != null) {
-            QueryParserUtils.recursiveSetFileName((PigParserNode) ast,
-                    ss.getFileName());
-        }
-        
         // first insert the import files
         while (expandImport(ast))
             ;
@@ -400,7 +397,7 @@ public class QueryParserDriver {
         }
         
         // parse
-        CommonTokenStream tokenStream = tokenize(sb.toString());
+        CommonTokenStream tokenStream = tokenize(sb.toString(), fname);
         
         Tree ast = null;
         try {

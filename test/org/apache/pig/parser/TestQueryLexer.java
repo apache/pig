@@ -56,7 +56,7 @@ public class TestQueryLexer {
     public void test2() throws IOException {
         String query = "A = load 'input' using PigStorage(';');" +
                        "B = foreach ^ A generate string.concatsep( ';', $1, $2 );";
-        CharStream input = new QueryParserStringStream( query );
+        CharStream input = new QueryParserStringStream( query, null );
         QueryLexer lexer = new QueryLexer( input );
         Token token;
         try {

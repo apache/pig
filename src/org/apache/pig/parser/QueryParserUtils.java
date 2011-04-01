@@ -176,7 +176,7 @@ public class QueryParserUtils {
 
     static String generateErrorHeader(RecognitionException ex, String fname) {
         StringBuilder sb = new StringBuilder();
-        sb.append("<At ").append(fname).append(", line ")
+        sb.append("<file ").append(fname).append(", line ")
                 .append(ex.line).append(", column ")
                 .append(ex.charPositionInLine).append(">");
         return sb.toString();
@@ -192,12 +192,6 @@ public class QueryParserUtils {
 
         List childList = new ArrayList(parent.getChildren());
         List macroList = newTree.getChildren();
-        
-        // set file name
-        for (Object obj : macroList) {
-            PigParserNode node = (PigParserNode)obj;
-            recursiveSetFileName(node, fileName);
-        }
 
         while (parent.getChildCount() > 0) {
             parent.deleteChild(0);
@@ -210,15 +204,6 @@ public class QueryParserUtils {
                 parent.addChild((Tree) childList.get(i));
             }
         }
-    }
-
-    static void recursiveSetFileName(PigParserNode node, String fname) {
-        int n = node.getChildCount();
-        for (int i = 0; i < n; i++) {
-            Tree t = node.getChild(i);
-            recursiveSetFileName((PigParserNode)t, fname);
-        }
-        node.setFileName(fname);
     }
 
     static BufferedReader getImportScriptAsReader(String scriptPath)
@@ -250,7 +235,8 @@ public class QueryParserUtils {
     
     static QueryParser createParser(CommonTokenStream tokens) {
         QueryParser parser = new QueryParser(tokens);
-        PigParserNodeAdaptor adaptor = new PigParserNodeAdaptor();
+        PigParserNodeAdaptor adaptor = new PigParserNodeAdaptor(
+                tokens.getSourceName());
         parser.setTreeAdaptor(adaptor);
         return parser;
     }

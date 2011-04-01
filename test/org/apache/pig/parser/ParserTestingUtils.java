@@ -30,7 +30,7 @@ import org.apache.pig.newplan.logical.relational.LogicalPlan;
 
 public class ParserTestingUtils {
     public static CommonTokenStream tokenize(String query) throws IOException, ParsingFailureException {
-        CharStream input = new QueryParserStringStream( query );
+        CharStream input = new QueryParserStringStream( query, null );
         QueryLexer lexer = new QueryLexer( input );
         CommonTokenStream tokens = new CommonTokenStream( lexer );
         if( 0 < lexer.getNumberOfSyntaxErrors() )

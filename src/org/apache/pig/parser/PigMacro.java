@@ -149,7 +149,7 @@ public class PigMacro {
         CharStream input = null;
         try {
             // parse macro body into ast 
-            input = new QueryParserStringStream(in);
+            input = new QueryParserStringStream(in, file);
         } catch (IOException e) {
             String msg = getErrorMessage(file, line, "Failed to inline macro '"
                     + name + "'", e.getMessage() + "\nmacro content: " + in);
@@ -291,7 +291,7 @@ public class PigMacro {
         StringBuilder sb = new StringBuilder();
         sb.append("<");
         if (file != null) {
-            sb.append("at ").append(file).append(", ");
+            sb.append("file ").append(file).append(", ");
         }
         sb.append("line ").append(line).append("> ").append(header);
         if (reason != null) {

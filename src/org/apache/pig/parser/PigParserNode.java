@@ -26,13 +26,14 @@ public class PigParserNode extends CommonTree {
     // the script file this node belongs to
     private String fileName = null;
     
-    public PigParserNode(Token t) {
+    public PigParserNode(Token t, String fileName) {
         super(t);
+        this.fileName = fileName;
     }
 
     public PigParserNode(PigParserNode node) {
         super(node);
-        this.setFileName(node.getFileName());
+        this.fileName = node.getFileName();
     }
 
 
@@ -40,13 +41,8 @@ public class PigParserNode extends CommonTree {
         return new PigParserNode(this);
     }
 
-    public void setFileName(String fileName) {
-        this.fileName = fileName;
-    }
-
     public String getFileName() {
         return fileName;
     }
 
-    
 }

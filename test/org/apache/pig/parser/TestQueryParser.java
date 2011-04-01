@@ -18,6 +18,8 @@
 
 package org.apache.pig.parser;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 
 import junit.framework.Assert;
@@ -27,6 +29,8 @@ import org.antlr.runtime.CommonTokenStream;
 import org.antlr.runtime.RecognitionException;
 import org.antlr.runtime.tree.CommonTree;
 import org.antlr.runtime.tree.Tree;
+import org.apache.pig.PigRunner;
+import org.apache.pig.tools.pigstats.PigStats;
 import org.junit.Test;
 
 public class TestQueryParser {
@@ -76,6 +80,27 @@ public class TestQueryParser {
     @Test
     public void testNegative6() throws IOException, RecognitionException {
         shouldFail("A = load '/Users/gates/test/data/studenttab10'; B = foreach A generate $0, 3.0e10.1;");
+    }
+    
+    @Test // test error message with file name
+    public void testNagative7() throws IOException {
+        File f1 = new File("myscript.pig");
+        f1.deleteOnExit();
+        
+        FileWriter fw1 = new FileWriter(f1);
+        fw1.append("A = loadd '1.txt';");
+        fw1.close();
+        
+        String[] args = { "-x", "local", "-c", "myscript.pig" };
+        PigStats stats = PigRunner.run(args, null);
+       
+        Assert.assertFalse(stats.isSuccessful());
+        
+        String expected = "Error during parsing. <file myscript.pig, line 1, column 10>";
+        String msg = stats.getErrorMessage();
+        
+        Assert.assertFalse(msg == null);
+        Assert.assertTrue(msg.startsWith(expected));
     }
     
     @Test
@@ -265,7 +290,7 @@ public class TestQueryParser {
     }
     
     private int parse(String query) throws IOException, RecognitionException  {
-        CharStream input = new QueryParserStringStream( query );
+        CharStream input = new QueryParserStringStream( query, null );
         QueryLexer lexer = new QueryLexer(input);
         CommonTokenStream tokens = new  CommonTokenStream(lexer);
 
