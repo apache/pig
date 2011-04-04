@@ -415,6 +415,21 @@ public class TestNewPlanFilterAboveForeach {
         Operator foreach = newLogicalPlan.getPredecessors(store).get(0);
         Assert.assertTrue( foreach instanceof LOForEach );
     }
+    
+    // See PIG-1935
+    @Test
+    public void testPushUpFilterAboveBinCond() throws Exception {
+        planTester.buildPlan("data = LOAD 'data.txt' as (referrer:chararray, canonical_url:chararray, ip:chararray);");
+        planTester.buildPlan("best_url = FOREACH data GENERATE ((canonical_url != '' and canonical_url is not null) ? canonical_url : referrer) AS url, ip;");
+        planTester.buildPlan("filtered = FILTER best_url BY url == 'badsite.com';");
+        org.apache.pig.impl.logicalLayer.LogicalPlan plan = planTester.buildPlan("store filtered into 'empty';");
+
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( plan );
+
+        Operator store = newLogicalPlan.getSinks().get( 0 );
+        Operator filter = newLogicalPlan.getPredecessors(store).get(0);
+        Assert.assertTrue( filter instanceof LOFilter );
+    }
 
     private LogicalPlan migrateAndOptimizePlan(org.apache.pig.impl.logicalLayer.LogicalPlan plan) throws FrontendException {
         LogicalPlan newLogicalPlan = migratePlan( plan );

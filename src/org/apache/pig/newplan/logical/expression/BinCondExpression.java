@@ -98,6 +98,7 @@ public class BinCondExpression extends LogicalExpression {
         if (fieldSchema!=null)
             return fieldSchema;
         fieldSchema = getLhs().getFieldSchema().deepCopy();
+        fieldSchema.uid = -1;
         uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
         return fieldSchema;
     }
