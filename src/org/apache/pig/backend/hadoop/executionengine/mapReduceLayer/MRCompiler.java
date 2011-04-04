@@ -2495,7 +2495,7 @@ public class MRCompiler extends PhyPlanVisitor {
         // from the foreach after the package
         POProject topPrj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
         topPrj.setColumn(1);
-        topPrj.setResultType(DataType.TUPLE);
+        topPrj.setResultType(DataType.BAG);
         topPrj.setOverloaded(true);
         fe2Plan.add(topPrj);
         

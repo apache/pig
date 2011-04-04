@@ -466,13 +466,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
         LogicalSchema s = load.getSchema();
 
         if (load.sourceIsBag()) {
-            Operator succ = load.getPlan().getSuccessors(load).get(0);
-            if (succ instanceof LOGenerate) {
-                exprOp.setResultType(DataType.BAG);
-            }
-            else {
-                exprOp.setResultType(DataType.TUPLE);
-            }
+            exprOp.setResultType(DataType.BAG);
             exprOp.setOverloaded(true);
         }
         else {
