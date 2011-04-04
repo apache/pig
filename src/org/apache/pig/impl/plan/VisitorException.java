@@ -40,6 +40,16 @@ public class VisitorException extends FrontendException {
     }
 
     /**
+     * Create a new VisitorException with the specified message and cause.
+     *
+     * @param op - logical operator where the exception occurs
+     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
+     */
+    public VisitorException(org.apache.pig.newplan.Operator op, String message) {
+        super(op.getLocation() + message);
+    }
+
+    /**
      * Create a new VisitorException with the specified cause.
      *
      * @param cause - The cause (which is saved for later retrieval by the <link>Throwable.getCause()</link> method) indicating the source of this exception. A null value is permitted, and indicates that the cause is nonexistent or unknown.
@@ -71,6 +81,17 @@ public class VisitorException extends FrontendException {
     /**
      * Create a new VisitorException with the specified message and cause.
      *
+     * @param op - logical operator where the exception occurs
+     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
+     * @param errCode - The error code shown to the user 
+     */
+    public VisitorException(org.apache.pig.newplan.Operator op, String message, int errCode) {
+        super(op.getLocation() + message, errCode);
+    }
+
+    /**
+     * Create a new VisitorException with the specified message and cause.
+     *
      * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
      * @param errCode - The error code shown to the user 
      * @param cause - The cause (which is saved for later retrieval by the <link>Throwable.getCause()</link> method) indicating the source of this exception. A null value is permitted, and indicates that the cause is nonexistent or unknown. 
@@ -93,6 +114,18 @@ public class VisitorException extends FrontendException {
     /**
      * Create a new VisitorException with the specified message and cause.
      *
+     * @param op - logical operator where the exception occurs
+     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
+     * @param errCode - The error code shown to the user 
+     * @param errSrc - The error source 
+     */
+    public VisitorException(org.apache.pig.newplan.Operator op, String message, int errCode, byte errSrc) {
+        super(op.getLocation() + message, errCode, errSrc);
+    }
+
+    /**
+     * Create a new VisitorException with the specified message and cause.
+     *
      * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
      * @param errCode - The error code shown to the user 
      * @param errSrc - The error source
@@ -101,6 +134,20 @@ public class VisitorException extends FrontendException {
     public VisitorException(String message, int errCode, byte errSrc,
             Throwable cause) {
         super(message, errCode, errSrc, cause);
+    }
+
+    /**
+     * Create a new VisitorException with the specified message and cause.
+     *
+     * @param op - logical operator where the exception occurs
+     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
+     * @param errCode - The error code shown to the user 
+     * @param errSrc - The error source
+     * @param cause - The cause (which is saved for later retrieval by the <link>Throwable.getCause()</link> method) indicating the source of this exception. A null value is permitted, and indicates that the cause is nonexistent or unknown. 
+     */
+    public VisitorException(org.apache.pig.newplan.Operator op, String message, int errCode, byte errSrc,
+            Throwable cause) {
+        super(op.getLocation() + message, errCode, errSrc, cause);
     }
 
     /**

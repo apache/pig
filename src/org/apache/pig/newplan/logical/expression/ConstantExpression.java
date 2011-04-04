@@ -28,6 +28,7 @@ import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanVisitor;
 import org.apache.pig.newplan.logical.Util;
 import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
+import org.apache.pig.parser.SourceLocation;
 
 /**
  * A constant
@@ -105,7 +106,9 @@ public class ConstantExpression extends ColumnExpression {
  
     @Override
     public LogicalExpression deepCopy(LogicalExpressionPlan lgExpPlan) throws FrontendException{
-        return new ConstantExpression(lgExpPlan, this.getValue());
+        LogicalExpression copy = new ConstantExpression(lgExpPlan, this.getValue());
+        copy.setLocation( new SourceLocation( location ) );
+        return copy;
     }
  
 }

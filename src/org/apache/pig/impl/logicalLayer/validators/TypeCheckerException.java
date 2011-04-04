@@ -93,6 +93,18 @@ public class TypeCheckerException extends VisitorException {
     /**
      * Create a new TypeCheckerException with the specified message and cause.
      *
+     * @param op - The logical operator where the error occurred
+     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
+     * @param errCode - The error code shown to the user 
+     * @param errSrc - The error source 
+     */
+    public TypeCheckerException(org.apache.pig.newplan.Operator op, String message, int errCode, byte errSrc) {
+        super(op, message, errCode, errSrc);
+    }
+
+    /**
+     * Create a new TypeCheckerException with the specified message and cause.
+     *
      * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
      * @param errCode - The error code shown to the user 
      * @param errSrc - The error source
@@ -101,6 +113,20 @@ public class TypeCheckerException extends VisitorException {
     public TypeCheckerException(String message, int errCode, byte errSrc,
             Throwable cause) {
         super(message, errCode, errSrc, cause);
+    }
+
+    /**
+     * Create a new TypeCheckerException with the specified message and cause.
+     *
+     * @param op - The logical operator where the error occurred
+     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
+     * @param errCode - The error code shown to the user 
+     * @param errSrc - The error source
+     * @param cause - The cause (which is saved for later retrieval by the <link>Throwable.getCause()</link> method) indicating the source of this exception. A null value is permitted, and indicates that the cause is nonexistent or unknown. 
+     */
+    public TypeCheckerException(org.apache.pig.newplan.Operator op, String message, int errCode, byte errSrc,
+            Throwable cause) {
+        super(op, message, errCode, errSrc, cause);
     }
 
     /**

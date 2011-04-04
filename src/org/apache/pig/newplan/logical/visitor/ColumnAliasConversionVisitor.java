@@ -25,7 +25,6 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.plan.PlanValidationException;
 import org.apache.pig.newplan.DependencyOrderWalker;
-import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.logical.expression.DereferenceExpression;
 import org.apache.pig.newplan.logical.expression.LogicalExpression;
@@ -33,8 +32,6 @@ import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionVisitor;
 import org.apache.pig.newplan.logical.expression.ProjectExpression;
 import org.apache.pig.newplan.logical.optimizer.AllExpressionVisitor;
-import org.apache.pig.newplan.logical.relational.LogicalPlan;
-import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
 
 /**
@@ -84,14 +81,14 @@ public class ColumnAliasConversionVisitor extends AllExpressionVisitor {
                     if( rc instanceof Integer ) {
                     	col = (Integer)rc;
                     	if( schema != null && col >= schema.size() ) {
-                            throw new PlanValidationException( "Out of bound access. Trying to access non-existent column: " + 
+                            throw new PlanValidationException( expr, "Out of bound access. Trying to access non-existent column: " + 
                                     col + ". Schema " + schema.toString(false) + " has " + schema.size() + " column(s).", 1000 );
                     	}
                         cols.add( (Integer)rc );
                     } else {
                         col = schema == null ? -1 : schema.getFieldPosition( (String)rc );
                         if( col == -1 ) {
-                            throw new PlanValidationException( "Invalid field reference. Referenced field [" + 
+                            throw new PlanValidationException( expr, "Invalid field reference. Referenced field [" + 
                             		rc + "] does not exist in schema: " + (schema!=null?schema.toString(false):"") + "." , 1000);
                         }
                         cols.add( col );

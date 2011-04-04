@@ -71,7 +71,7 @@ public class SchemaAliasVisitor extends LogicalRelationalNodesVisitor {
                         String msg = "Duplicate schema alias: " + schema.getField( i ).alias;
                         if( op.getAlias() != null )
                             msg = msg + " in \"" + op.getAlias() + "\"";
-                        throw new PlanValidationException( msg, errCode, PigException.INPUT );
+                        throw new PlanValidationException( op, msg, errCode, PigException.INPUT );
                     }
                     seenAliases.add(alias);
                 }

@@ -19,15 +19,14 @@
 package org.apache.pig.parser;
 
 import org.antlr.runtime.IntStream;
-import org.antlr.runtime.Token;
 
 public class DuplicatedSchemaAliasException extends PigRecognitionException {
     private static final long serialVersionUID = 1L;
     
     private String alias;
     
-    public DuplicatedSchemaAliasException(IntStream input, Token t, String alias) {
-        super( input, new SourceLocation( t ) );
+    public DuplicatedSchemaAliasException(IntStream input, SourceLocation loc, String alias) {
+        super( input, loc );
         this.alias = alias;
     }
     

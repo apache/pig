@@ -168,7 +168,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             int errCode = 1039;
             String msg = generateIncompatibleTypesMessage(binOp);
             msgCollector.collect(msg, MessageType.Error);
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
+            throw new TypeCheckerException(binOp, msg, errCode, PigException.INPUT) ;
         }
 
         binOp.resetFieldSchema();
@@ -211,14 +211,14 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             int errCode = 1039;
             String msg = generateIncompatibleTypesMessage(binOp);
             msgCollector.collect(msg, MessageType.Error);
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
+            throw new TypeCheckerException(binOp, msg, errCode, PigException.INPUT) ;
         }
         binOp.resetFieldSchema();
     }
 
     private String generateIncompatibleTypesMessage(BinaryExpression binOp)
     throws FrontendException {
-        String msg = ""; 
+        String msg = binOp.toString(); 
         if (currentRelOp.getAlias()!=null){
             msg = "In alias " + currentRelOp.getAlias() + ", ";
         }
@@ -247,7 +247,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             int errCode = 1041;
             String msg = "NEG can be used with numbers or Bytearray only" ;
             msgCollector.collect(msg, MessageType.Error);
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
+            throw new TypeCheckerException(negExp, msg, errCode, PigException.INPUT) ;
         }
 
         negExp.resetFieldSchema();
@@ -257,7 +257,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             int errCode = 1040;
             String msg = "Could not set Negative field schema";
             msgCollector.collect(msg, MessageType.Error);
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
+            throw new TypeCheckerException(negExp, msg, errCode, PigException.INPUT, fe) ;
         }
     }
     
@@ -272,7 +272,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             int errCode = 1042;
             String msg = "NOT can be used with boolean only" ;
             msgCollector.collect(msg, MessageType.Error);
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
+            throw new TypeCheckerException( notExp, msg, errCode, PigException.INPUT) ;
         }
 
     }
@@ -302,7 +302,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             int errCode = 1038;
             String msg = "Operands of AND/OR can be boolean only" ;
             msgCollector.collect(msg, MessageType.Error);
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
+            throw new TypeCheckerException(boolExp, msg, errCode, PigException.INPUT) ;
         }
     }
 
@@ -403,7 +403,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             int errCode = 1039;
             String msg = generateIncompatibleTypesMessage(binOp);
             msgCollector.collect(msg, MessageType.Error) ;
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
+            throw new TypeCheckerException(binOp, msg, errCode, PigException.INPUT) ;
         }
         //input types might have changed, regenerate field schema
         binOp.resetFieldSchema();
@@ -450,7 +450,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
         catch (PlanException pe) {
             int errCode = 2059;
             String msg = "Problem with inserting cast operator for " + node + " in plan.";
-            throw new TypeCheckerException(msg, errCode, PigException.BUG, pe);
+            throw new TypeCheckerException(arg, msg, errCode, PigException.BUG, pe);
         }
         this.visit(cast);
     }
@@ -474,7 +474,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             int errCode = 1051;
             String msg = "Cannot cast to bytearray";
             msgCollector.collect(msg, MessageType.Error) ;
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ; 
+            throw new TypeCheckerException(cast, msg, errCode, PigException.INPUT) ; 
         }
         
         LogicalFieldSchema inFs = cast.getExpression().getFieldSchema();
@@ -496,7 +496,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
                            + DataType.findTypeName(outType)
                            + ((DataType.isSchemaType(outType))? " with schema " + outFs.toString(false) : "");
             msgCollector.collect(msg, MessageType.Error) ;
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ; 
+            throw new TypeCheckerException(cast, msg, errCode, PigException.INPUT) ; 
         }
        
     }
@@ -527,7 +527,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             int errCode = 1037;
             String msg = "Operands of Regex can be CharArray only :" + rg;
             msgCollector.collect(msg, MessageType.Error);
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
+            throw new TypeCheckerException(rg, msg, errCode, PigException.INPUT) ;
         }
     }
     
@@ -538,7 +538,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             int errCode = 1047;
             String msg = "Condition in BinCond must be boolean" ;
             msgCollector.collect(msg, MessageType.Error);
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
+            throw new TypeCheckerException(binCond, msg, errCode, PigException.INPUT) ;
         }       
         
         byte lhsType = binCond.getLhs().getType() ;
@@ -575,7 +575,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             } catch (FrontendException e) {
                 int errCode = 2216;
                 String msg = "Problem getting fieldSchema for " +binCond.getRhs();
-                throw new TypeCheckerException(msg, errCode, PigException.BUG, e);
+                throw new TypeCheckerException(binCond, msg, errCode, PigException.BUG, e);
             }
         } else if (binCond.getRhs() instanceof ConstantExpression
                 && ((ConstantExpression) binCond.getRhs()).getValue() == null) {
@@ -584,7 +584,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             } catch (FrontendException e) {
                 int errCode = 2216;
                 String msg = "Problem getting fieldSchema for " +binCond.getRhs();
-                throw new TypeCheckerException(msg, errCode, PigException.BUG, e);
+                throw new TypeCheckerException(binCond, msg, errCode, PigException.BUG, e);
             }
         } else if (lhsType == rhsType) {
             // Matching schemas if we're working with tuples/bags
@@ -596,7 +596,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
                             + " left hand side: " + binCond.getLhs().getFieldSchema() 
                             + " right hand side: " + binCond.getRhs().getFieldSchema();
                         msgCollector.collect(msg, MessageType.Error) ;
-                        throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
+                        throw new TypeCheckerException(binCond, msg, errCode, PigException.INPUT) ;
                     }
                     // TODO: We may have to merge the schema here
                     //       if the previous check is not exact match
@@ -605,7 +605,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
                     int errCode = 1049;
                     String msg = "Problem during evaluaton of BinCond output type" ;
                     msgCollector.collect(msg, MessageType.Error) ;
-                    throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
+                    throw new TypeCheckerException(binCond, msg, errCode, PigException.INPUT, fe) ;
                 }
             }
         }
@@ -616,7 +616,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
                 + DataType.findTypeName(rhsType);
             
             msgCollector.collect(msg, MessageType.Error) ;
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
+            throw new TypeCheckerException(binCond, msg, errCode, PigException.INPUT) ;
         }
         
 
@@ -645,14 +645,14 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
                 int errCode = 1014;
                 String msg = "Problem with input " + op + " of User-defined function: " + func;
                 msgCollector.collect(msg, MessageType.Error);
-                throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
+                throw new TypeCheckerException(func, msg, errCode, PigException.INPUT) ;
             }
             try {
                 currentArgSchema.add(Util.translateFieldSchema(op.getFieldSchema()));    
             } catch (FrontendException e) {
                 int errCode = 1043;
                 String msg = "Unable to retrieve field schema.";
-                throw new TypeCheckerException(msg, errCode, PigException.INPUT, e);
+                throw new TypeCheckerException(func, msg, errCode, PigException.INPUT, e);
             }
             
         }
@@ -674,7 +674,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
         } catch (Exception e) {
             int errCode = 1044;
             String msg = "Unable to get list of overloaded methods.";
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT, e);
+            throw new TypeCheckerException(func, msg, errCode, PigException.INPUT, e);
         }
         
         /**
@@ -722,7 +722,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
                 //Oops, no exact match found. Trying to see if we
                 //have mappings that we can fit using casts.
                 notExactMatch = true;
-                if(byteArrayFound(currentArgSchema)){
+                if(byteArrayFound(func, currentArgSchema)){
                     // try "exact" matching all other fields except the byte array 
                     // fields and if they all exact match and we have only one candidate
                     // for the byte array cast then that's the matching one!
@@ -734,7 +734,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
                                 + func.getFuncSpec()
                                 + " as multiple or none of them fit. Please use an explicit cast.";
                             msgCollector.collect(msg, MessageType.Error);
-                            throw new TypeCheckerException(msg, errCode, PigException.INPUT);
+                            throw new TypeCheckerException(func, msg, errCode, PigException.INPUT);
                         }
                     }
                 } else if ((matchingSpec = bestFitMatch(funcSpecs, currentArgSchema)) == null) {
@@ -748,7 +748,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
                             + func.getFuncSpec()
                             + " as multiple or none of them fit. Please use an explicit cast.";
                     msgCollector.collect(msg, MessageType.Error);
-                    throw new TypeCheckerException(msg, errCode, PigException.INPUT);
+                    throw new TypeCheckerException(func, msg, errCode, PigException.INPUT);
                 }
             }
         }
@@ -778,7 +778,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             int errCode = 1040;
             String msg = "Could not set UserFunc field schema";
             msgCollector.collect(msg, MessageType.Error);
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fee) ;
+            throw new TypeCheckerException(func, msg, errCode, PigException.INPUT, fee) ;
         }
     }
     
@@ -826,11 +826,11 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
                         + scoreFuncSpecList.get(0).second.getInputArgsSchema() + ", " 
                         + scoreFuncSpecList.get(1).second.getInputArgsSchema() + "). Please use an explicit cast.";
                 msgCollector.collect(msg, MessageType.Error);
-                throw new TypeCheckerException(msg, errCode, PigException.INPUT);
+                throw new TypeCheckerException(func, msg, errCode, PigException.INPUT);
             }
         
             // now consider the bytearray fields
-            List<Integer> byteArrayPositions = getByteArrayPositions(s);
+            List<Integer> byteArrayPositions = getByteArrayPositions(func, s);
             // make sure there is only one type to "cast to" for the byte array
             // positions among the candidate funcSpecs
             Map<Integer, Pair<FuncSpec, Byte>> castToMap = new HashMap<Integer, Pair<FuncSpec, Byte>>();
@@ -857,13 +857,13 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
                                         + ", " + funcSpec.getInputArgsSchema() 
                                         + "). Please use an explicit cast.";
                                 msgCollector.collect(msg, MessageType.Error);
-                                throw new TypeCheckerException(msg, errCode, PigException.INPUT);
+                                throw new TypeCheckerException(func, msg, errCode, PigException.INPUT);
                             }
                         }
                     } catch (FrontendException fee) {
                         int errCode = 1043;
                         String msg = "Unalbe to retrieve field schema.";
-                        throw new TypeCheckerException(msg, errCode, PigException.INPUT, fee);
+                        throw new TypeCheckerException(func, msg, errCode, PigException.INPUT, fee);
                     }
                 }
             }
@@ -959,11 +959,12 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
     
     /**
      * Checks to see if any field of the input schema is a byte array
+     * @param func 
      * @param s - input schema
      * @return true if found else false
      * @throws VisitorException
      */
-    private boolean byteArrayFound(Schema s) throws VisitorException {
+    private boolean byteArrayFound(UserFuncExpression func, Schema s) throws VisitorException {
         for(int i=0;i<s.size();i++){
             try {
                 FieldSchema fs=s.getField(i);
@@ -973,7 +974,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             } catch (FrontendException fee) {
                 int errCode = 1043;
                 String msg = "Unable to retrieve field schema.";
-                throw new TypeCheckerException(msg, errCode, PigException.INPUT, fee);
+                throw new TypeCheckerException(func, msg, errCode, PigException.INPUT, fee);
             }
         }
         return false;
@@ -981,12 +982,13 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
 
     /**
      * Gets the positions in the schema which are byte arrays
+     * @param func 
      * 
      * @param s -
      *            input schema
      * @throws VisitorException
      */
-    private List<Integer> getByteArrayPositions(Schema s)
+    private List<Integer> getByteArrayPositions(UserFuncExpression func, Schema s)
             throws VisitorException {
         List<Integer> result = new ArrayList<Integer>();
         for (int i = 0; i < s.size(); i++) {
@@ -998,7 +1000,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             } catch (FrontendException fee) {
                 int errCode = 1043;
                 String msg = "Unable to retrieve field schema.";
-                throw new TypeCheckerException(msg, errCode, PigException.INPUT, fee);            }
+                throw new TypeCheckerException(func, msg, errCode, PigException.INPUT, fee);            }
         }
         return result;
     }
@@ -1036,7 +1038,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
                                         + ", " + matchingSpecs.get(1).getInputArgsSchema() 
                                         + "). Please use an explicit cast.";
             msgCollector.collect(msg, MessageType.Error);
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT);
+            throw new TypeCheckerException(func, msg, errCode, PigException.INPUT);
         }
         
         // exactly one matching spec - return it

@@ -28,6 +28,7 @@ import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanVisitor;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
+import org.apache.pig.parser.SourceLocation;
 
 /**
  * 
@@ -208,6 +209,7 @@ public class DereferenceExpression extends ColumnExpression {
         lgExpPlan.add( inputCopy );
         lgExpPlan.connect( copy, inputCopy );
         
+        copy.setLocation( new SourceLocation( location ) );
         return copy;
     }
 

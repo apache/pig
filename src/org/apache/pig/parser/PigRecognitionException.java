@@ -31,19 +31,17 @@ import org.antlr.runtime.RecognitionException;
 public abstract class PigRecognitionException extends RecognitionException {
     private static final long serialVersionUID = 1L;
     
+    private SourceLocation location;
+    
     public PigRecognitionException(IntStream input, SourceLocation loc) {
         super( input );
         this.line = loc.line();
         this.charPositionInLine = loc.offset();
+        this.location = loc;
     }
     
     protected String msgHeader() {
-        StringBuilder sb = new StringBuilder();
-        sb.append( "<line " + line );
-        if( charPositionInLine >= 0 )
-            sb.append( ", column " + charPositionInLine );
-        sb.append( "> " );
-        return sb.toString();
+        return location.toString();
     }
 
 }

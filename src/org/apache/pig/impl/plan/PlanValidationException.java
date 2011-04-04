@@ -38,6 +38,16 @@ public class PlanValidationException extends VisitorException {
     }
     
     /**
+     * Create a new PlanValidationException with the specified message and cause.
+     *
+     * @param op - logical operator where the exception occurs
+     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
+     */
+    public PlanValidationException(org.apache.pig.newplan.Operator op, String message) {
+        super(op, message);
+    }
+
+    /**
      * Create a new PlanValidationException with the specified cause.
      *
      * @param cause - The cause (which is saved for later retrieval by the <link>Throwable.getCause()</link> method) indicating the source of this exception. A null value is permitted, and indicates that the cause is nonexistent or unknown.
@@ -71,6 +81,16 @@ public class PlanValidationException extends VisitorException {
      *
      * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
      * @param errCode - The error code shown to the user 
+     */
+    public PlanValidationException(org.apache.pig.newplan.Operator op, String message, int errCode) {
+        super(op, message, errCode);
+    }
+
+    /**
+     * Create a new PlanValidationException with the specified message and cause.
+     *
+     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
+     * @param errCode - The error code shown to the user 
      * @param cause - The cause (which is saved for later retrieval by the <link>Throwable.getCause()</link> method) indicating the source of this exception. A null value is permitted, and indicates that the cause is nonexistent or unknown. 
      */
     public PlanValidationException(String message, int errCode, Throwable cause) {
@@ -86,6 +106,17 @@ public class PlanValidationException extends VisitorException {
      */
     public PlanValidationException(String message, int errCode, byte errSrc) {
         super(message, errCode, errSrc);
+    }   
+
+    /**
+     * Create a new PlanValidationException with the specified message and cause.
+     *
+     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
+     * @param errCode - The error code shown to the user 
+     * @param errSrc - The error source 
+     */
+    public PlanValidationException(org.apache.pig.newplan.Operator op, String message, int errCode, byte errSrc) {
+        super(op, message, errCode, errSrc);
     }   
 
     /**

@@ -23,6 +23,7 @@ import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanVisitor;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
+import org.apache.pig.parser.SourceLocation;
 
 public class NegativeExpression extends UnaryExpression {
 
@@ -63,6 +64,7 @@ public class NegativeExpression extends UnaryExpression {
         LogicalExpression copy = new NegativeExpression(
                 lgExpPlan,
                 this.getExpression().deepCopy(lgExpPlan) );
+        copy.setLocation( new SourceLocation( location ) );
         return copy;
     }
 

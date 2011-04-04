@@ -18,38 +18,49 @@
 
 package org.apache.pig.parser;
 
-import org.antlr.runtime.Token;
-import org.antlr.runtime.tree.CommonTree;
-
 public class SourceLocation {
+    private String file = null; // Name of the source, null if unknown.
     private int line = -1; // line number, -1 if unknown.
     private int offset = -1; // offset, -f if unknown.
     
-    public SourceLocation(int line, int offset) {
-        this.line = line;
-        this.offset = offset;
+    public SourceLocation() {
     }
     
-    public SourceLocation(int line) {
-        this.line = line;
-    }
-    
-    public SourceLocation(Token token) {
-        this.line = token.getLine();
-        this.offset = token.getCharPositionInLine();
-    }
-    
-    public SourceLocation(CommonTree tree) {
+    public SourceLocation(PigParserNode tree) {
+        this.file = tree.getFileName();
         this.line = tree.getLine();
         this.offset = tree.getCharPositionInLine();
     }
     
+    public SourceLocation(SourceLocation location) {
+        this.file = location.file;
+        this.line = location.line;
+        this.offset = location.offset;
+    }
+    
+    public String file() {
+        return file;
+    }
+
     public int line() {
         return line;
     }
     
     public int offset() {
         return offset;
+    }
+    
+    @Override
+    public String toString() {
+        if( line == -1 )
+            return "";
+        
+        StringBuilder sb = new StringBuilder( "<" );
+        if( file != null )
+            sb.append( "file " + file + ", " );
+        sb.append( "line " + line +", column " + offset + "> " );
+        
+        return sb.toString();
     }
     
 }

@@ -103,7 +103,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
             int errCode = 1057;
             String msg = "Filter's cond plan can only have one output" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
+            throwTypeCheckerException(filter, msg, errCode, PigException.INPUT, null) ;
         }
 
         // visit the filter expression
@@ -114,11 +114,11 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
         byte innerCondType = ((LogicalExpression)comparisonPlan.getSources().get(0)).getType();
         if (innerCondType != DataType.BOOLEAN) {
             int errCode = 1058;
-            String msg = "Filter's condition must evaluate to boolean. Found: " + DataType.findTypeName(innerCondType);
+            String msg = "Filter's condition must evaluate to boolean. Found: " + 
+                         DataType.findTypeName(innerCondType);
             msgCollector.collect(msg, MessageType.Error) ;
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
+            throwTypeCheckerException(filter, msg, errCode, PigException.INPUT, null) ;
         }       
-
 
         try {
             // re-compute the schema
@@ -129,11 +129,20 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
             int errCode = 1059;
             String msg = "Problem while reconciling output schema of Filter" ;
             msgCollector.collect(msg, MessageType.Error);
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
+            throwTypeCheckerException(filter, msg, errCode, PigException.INPUT, fe) ;
         }
     }
     
-    @Override
+    private void throwTypeCheckerException(Operator op, String msg,
+			int errCode, byte input, FrontendException fe) throws TypeCheckerException {
+    	if( fe == null ) {
+		    throw new TypeCheckerException(op, msg, errCode, PigException.INPUT);
+    	}
+		throw new TypeCheckerException(op, msg, errCode, PigException.INPUT, fe);
+		
+	}
+
+	@Override
     public void visit(LOGenerate gen) throws FrontendException {
         for(int i=0; i < gen.getOutputPlans().size(); i++) {
             LogicalExpressionPlan expPlan = gen.getOutputPlans().get(i);
@@ -142,7 +151,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
                 int errCode = 1057;
                 String msg = "LOGenerate expression plan can only have one output" ;
                 msgCollector.collect(msg, MessageType.Error) ;
-                throw new TypeCheckerException( msg, errCode, PigException.BUG ) ;
+                throwTypeCheckerException( gen, msg, errCode, PigException.BUG, null) ;
             }
             // visit the filter expression
             visitExpressionPlan( expPlan, gen );
@@ -170,7 +179,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
             int errCode = 1059;
             String msg = "Problem while reconciling output schema of ForEach" ;
             msgCollector.collect(msg, MessageType.Error);
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
+            throwTypeCheckerException(forEach, msg, errCode, PigException.INPUT, fe) ;
         }
     }
 
@@ -212,7 +221,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
             int errCode = 1055;
             String msg = "Problem while reading schemas from inputs of Union" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fee) ;
+            throwTypeCheckerException(u, msg, errCode, PigException.INPUT, fee) ;
         }
 
         // Do cast insertion only if we are typed 
@@ -237,7 +246,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
                         int errCode = 1056;
                         String msg = "Problem while casting inputs of Union" ;
                         msgCollector.collect(msg, MessageType.Error) ;
-                        throw new TypeCheckerException(msg, errCode, PigException.INPUT, fee) ;
+                        throwTypeCheckerException(u, msg, errCode, PigException.INPUT, fee) ;
                     }
                 }
             }
@@ -276,7 +285,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
         if (!found) {
             int errCode = 1077;
             String msg = "Two operators that require a cast in between are not adjacent.";
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT);
+            throwTypeCheckerException(fromOp, msg, errCode, PigException.INPUT, null);
         }
 
         // retrieve input schema to be casted
@@ -291,7 +300,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
             int errCode = 1055;
             String msg = "Problem while reading schema from input of " 
                 + fromOp.getClass().getSimpleName();
-            throw new TypeCheckerException(msg, errCode, PigException.BUG, fe);
+            throwTypeCheckerException(fromOp, msg, errCode, PigException.BUG, fe);
         }
 
         // make sure the supplied targetSchema has the same number of members
@@ -300,7 +309,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
             int errCode = 1078;
             String msg = "Schema size mismatch for casting. Input schema size: " 
                 + fromSchema.size() + ". Target schema size: " + toSchema.size();
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT);
+            throwTypeCheckerException(toOp, msg, errCode, PigException.INPUT, null);
         }
 
         // Plans inside Generate. Fields that do not need casting will only
@@ -379,7 +388,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
         if (list.size() != 1) {
             int errCode = 2008;
             String msg = "LOSplitOutput cannot have more than one input. Found: " + list.size() + " input(s).";
-            throw new TypeCheckerException(msg, errCode, PigException.BUG) ;
+            throwTypeCheckerException(op, msg, errCode, PigException.BUG, null) ;
         }
 
         LogicalExpressionPlan condPlan = op.getFilterPlan() ;
@@ -389,7 +398,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
             int errCode = 1057;
             String msg = "Split's inner plan can only have one output (leaf)" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
+            throwTypeCheckerException(op, msg, errCode, PigException.INPUT, null) ;
         }
 
         visitExpressionPlan(condPlan, op);
@@ -399,7 +408,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
             int errCode = 1058;
             String msg = "Split's condition must evaluate to boolean. Found: " + DataType.findTypeName(innerCondType) ;
             msgCollector.collect(msg, MessageType.Error) ;
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
+            throwTypeCheckerException(op, msg, errCode, PigException.INPUT, null) ;
         }
 
         try {
@@ -411,7 +420,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
             String msg = "Problem while reading"
                 + " schemas from inputs of SplitOutput" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
+            throwTypeCheckerException(op, msg, errCode, PigException.INPUT, fe) ;
         }
     }
 
@@ -434,7 +443,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
             String msg = "Problem while reading"
                 + " schemas from inputs of Distinct" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
+            throwTypeCheckerException(op, msg, errCode, PigException.INPUT, fe) ;
         }
     }
 
@@ -450,7 +459,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
             String msg = "Problem while reading"
                 + " schemas from inputs of Limit" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
+            throwTypeCheckerException(op, msg, errCode, PigException.INPUT, fe) ;
         }
     }
 
@@ -473,7 +482,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
             String msg = "Problem while reading"
                 + " schemas from inputs of Cross" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
+            throwTypeCheckerException(cs, msg, errCode, PigException.INPUT, fe) ;
         }
     }
 
@@ -494,7 +503,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
                 int errCode = 1057;
                 String msg = "Sort's inner plan can only have one output (leaf)" ;
                 msgCollector.collect(msg, MessageType.Error) ;
-                throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
+                throwTypeCheckerException(sort, msg, errCode, PigException.INPUT, null) ;
             }
 
             visitExpressionPlan(sortColPlan, sort);
@@ -508,7 +517,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
             int errCode = 1059;
             String msg = "Problem while reconciling output schema of Sort" ;
             msgCollector.collect(msg, MessageType.Error);
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fee) ;
+            throwTypeCheckerException(sort, msg, errCode, PigException.INPUT, fee) ;
         }
     }
 
@@ -523,7 +532,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
         if (inputList.size() != 1) {            
             int errCode = 2008;
             String msg = "LOSplit cannot have more than one input. Found: " + inputList.size() + " input(s).";
-            throw new TypeCheckerException(msg, errCode, PigException.BUG) ;
+            throwTypeCheckerException(split, msg, errCode, PigException.BUG, null) ;
         }
 
         split.resetSchema();
@@ -535,7 +544,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
             int errCode = 1059;
             String msg = "Problem while reconciling output schema of Split" ;
             msgCollector.collect(msg, MessageType.Error);
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
+            throwTypeCheckerException(split, msg, errCode, PigException.INPUT, fe) ;
         }
     }
 
@@ -551,7 +560,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
             int errCode = 1060;
             String msg = "Cannot resolve Join output schema" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
+            throwTypeCheckerException(join, msg, errCode, PigException.INPUT, fe) ;
         }
 
         MultiMap<Integer, LogicalExpressionPlan> joinColPlans
@@ -573,7 +582,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
                     String msg = "Join's inner plans can only"
                         + " have one output (leaf)" ;
                     msgCollector.collect(msg, MessageType.Error) ;
-                    throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
+                    throwTypeCheckerException(join, msg, errCode, PigException.INPUT, null) ;
                 }
                 visitExpressionPlan(innerPlan, join);
             }
@@ -623,7 +632,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
                             String msg = "Join's inner plans can only"
                                 + "have one output (leaf)" ;
                             msgCollector.collect(msg, MessageType.Error) ;
-                            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
+                            throwTypeCheckerException(join, msg, errCode, PigException.INPUT, null) ;
                         }
                         if (innerType != expectedType) {
                             insertAtomicCastForInnerPlan(
@@ -638,7 +647,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
             int errCode = 1060;
             String msg = "Cannot resolve Join output schema" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
+            throwTypeCheckerException(join, msg, errCode, PigException.INPUT, fe) ;
         }
 
         try {
@@ -649,7 +658,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
             int errCode = 1060;
             String msg = "Cannot resolve Join output schema" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
+            throwTypeCheckerException(join, msg, errCode, PigException.INPUT, fe) ;
         }
     }
 
@@ -768,14 +777,14 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
             int errCode = 1051;
             String msg = "Cannot cast to "
                 + DataType.findTypeName(toType);
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT);
+            throwTypeCheckerException(relOp, msg, errCode, PigException.INPUT, null);
         }
 
         List<Operator> outputs = innerPlan.getSources();
         if (outputs.size() > 1) {
             int errCode = 2060;
             String msg = "Expected one output. Found " + outputs.size() + "  outputs.";
-            throw new TypeCheckerException(msg, errCode, PigException.BUG);
+            throwTypeCheckerException(relOp, msg, errCode, PigException.BUG, null);
         }
         LogicalExpression currentOutput = (LogicalExpression) outputs.get(0);
         TypeCheckingExpVisitor.collectCastWarning(
@@ -866,7 +875,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
             int errCode = 1060;
             String msg = "Cannot resolve COGroup output schema" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
+            throwTypeCheckerException(cg, msg, errCode, PigException.INPUT, fe) ;
         }
 
         MultiMap<Integer, LogicalExpressionPlan> groupByPlans = 
@@ -889,7 +898,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
                     String msg = "COGroup's inner plans can only"
                         + "have one output (leaf)" ;
                     msgCollector.collect(msg, MessageType.Error) ;
-                    throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
+                    throwTypeCheckerException(cg, msg, errCode, PigException.INPUT, null) ;
                 }
                 visitExpressionPlan(innerPlan, cg);
             }
@@ -935,7 +944,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
                             String msg = "Sorry, group by complex types"
                                 + " will be supported soon" ;
                             msgCollector.collect(msg, MessageType.Error) ;
-                            throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
+                            throwTypeCheckerException(cg, msg, errCode, PigException.INPUT, null) ;
                         }
 
                         expectedType = groupBySchema.getField(j).type ;
@@ -953,7 +962,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
             int errCode = 1060;
             String msg = "Cannot resolve COGroup output schema" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
+            throwTypeCheckerException(cg, msg, errCode, PigException.INPUT, fe) ;
         }
 
         try {
@@ -964,7 +973,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
             int errCode = 1060;
             String msg = "Cannot resolve COGroup output schema" ;
             msgCollector.collect(msg, MessageType.Error) ;
-            throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
+            throwTypeCheckerException(cg, msg, errCode, PigException.INPUT, fe) ;
         }
     }
 

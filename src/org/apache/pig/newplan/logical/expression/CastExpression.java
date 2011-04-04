@@ -24,6 +24,7 @@ import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanVisitor;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
+import org.apache.pig.parser.SourceLocation;
 
 public class CastExpression extends UnaryExpression {
     private FuncSpec castFunc;
@@ -97,6 +98,7 @@ public class CastExpression extends UnaryExpression {
         } catch(CloneNotSupportedException e) {
             e.printStackTrace(); 
         }
+        copy.setLocation( new SourceLocation( location ) );
         return copy;
     }
 

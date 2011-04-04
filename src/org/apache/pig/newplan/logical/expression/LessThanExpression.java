@@ -23,6 +23,7 @@ import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanVisitor;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
+import org.apache.pig.parser.SourceLocation;
 
 public class LessThanExpression extends BinaryExpression {
 
@@ -75,6 +76,7 @@ public class LessThanExpression extends BinaryExpression {
                 lgExpPlan,
                 this.getLhs().deepCopy(lgExpPlan),
                 this.getRhs().deepCopy(lgExpPlan));
+        copy.setLocation( new SourceLocation( location ) );
         return copy;
     }
  

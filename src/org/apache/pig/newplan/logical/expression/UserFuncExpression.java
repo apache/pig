@@ -31,6 +31,7 @@ import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanVisitor;
 import org.apache.pig.newplan.logical.Util;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
+import org.apache.pig.parser.SourceLocation;
 
 public class UserFuncExpression extends LogicalExpression {
 
@@ -164,6 +165,7 @@ public class UserFuncExpression extends LogicalExpression {
         } catch(CloneNotSupportedException e) {
              e.printStackTrace();
         }
+        copy.setLocation( new SourceLocation( location ) );
         return copy;
     }
     

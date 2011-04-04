@@ -26,18 +26,11 @@ import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.newplan.DepthFirstWalker;
 import org.apache.pig.newplan.OperatorPlan;
-import org.apache.pig.newplan.PlanWalker;
-import org.apache.pig.newplan.logical.Util;
-import org.apache.pig.newplan.logical.relational.LOCogroup;
 import org.apache.pig.newplan.logical.relational.LOStore;
-import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalNodesVisitor;
-import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
-import org.apache.pig.newplan.logical.rules.GroupByConstParallelSetter.GroupAllParallelSetterTransformer;
-import org.apache.pig.newplan.optimizer.Rule;
-import org.apache.pig.newplan.optimizer.Transformer;
 
 public class InputOutputFileValidator {
     private PigContext pigCtx;
@@ -79,7 +72,7 @@ public class InputOutputFileValidator {
                 } 
                 String exceptionMsg = ioe.getMessage();
                 validationErrStr += (exceptionMsg == null) ? "" : " More info to follow:\n" +exceptionMsg;
-                throw new FrontendException(validationErrStr, errCode, pigCtx.getErrorSource(), ioe);
+                throw new VisitorException(store, validationErrStr, errCode, pigCtx.getErrorSource(), ioe);
             }
             
             validationErrStr += " More info to follow:\n";
@@ -99,10 +92,10 @@ public class InputOutputFileValidator {
                     break;
                 }
                 validationErrStr  += ioe.getMessage();
-                throw new FrontendException(validationErrStr, errCode, errSrc, ioe);
+                throw new VisitorException(store, validationErrStr, errCode, errSrc, ioe);
             } catch (InterruptedException ie) {
                 validationErrStr += ie.getMessage();
-                throw new FrontendException(validationErrStr, errCode, pigCtx.getErrorSource(), ie);
+                throw new VisitorException(store, validationErrStr, errCode, pigCtx.getErrorSource(), ie);
             }
         }
     }

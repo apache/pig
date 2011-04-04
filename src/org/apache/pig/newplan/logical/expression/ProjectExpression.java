@@ -34,6 +34,7 @@ import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
+import org.apache.pig.parser.SourceLocation;
 
 /**
  * Projection of columns in an expression.
@@ -90,7 +91,7 @@ public class ProjectExpression extends ColumnExpression {
      * @throws FrontendException 
      */
     public ProjectExpression(OperatorPlan plan, int inputNum, String alias,
-            LogicalRelationalOperator attachedRelationalOp) throws FrontendException {
+            LogicalRelationalOperator attachedRelationalOp) {
         super("Project", plan);
         this.input = inputNum;
         this.alias = alias;
@@ -151,14 +152,14 @@ public class ProjectExpression extends ColumnExpression {
             if(startCol < 0){
                 String msg = "Invalid start column position in " +
                 "range projection (..) " + startCol;
-                throw new FrontendException(msg, 2270, PigException.BUG);
+                throw new PlanValidationException(this, msg, 2270, PigException.BUG);
             }
             
             if(endCol > 0 && startCol > endCol){
                 String msg = "start column appears after end column in " +
                 "range projection (..) . Start column position " + startCol +
                 " End column position " + endCol;
-                throw new FrontendException(msg, 1127, PigException.INPUT);
+                throw new PlanValidationException(this, msg, 1127, PigException.INPUT);
             }
         }else{
             setColNum(findColNum(alias));
@@ -174,7 +175,7 @@ public class ProjectExpression extends ColumnExpression {
         if( alias != null ) {
             int colNum = inputSchema == null ? -1 : inputSchema.getFieldPosition( alias );
             if( colNum == -1 ) {
-                throw new PlanValidationException(
+                throw new PlanValidationException( this,
                         "Invalid field projection. Projected field [" + 
                         alias + "] does not exist in schema: " +
                         (inputSchema!=null?inputSchema.toString(false):"") + ".", 1025 );
@@ -183,7 +184,7 @@ public class ProjectExpression extends ColumnExpression {
         } else {
             int col = getColNum();
             if( inputSchema != null && col >= inputSchema.size() ) {
-                throw new PlanValidationException( 
+                throw new PlanValidationException( this,
                         "Out of bound access. Trying to access non-existent column: " + 
                         col + ". Schema " +  inputSchema.toString(false) + 
                         " has " + inputSchema.size() + " column(s)." , 1000);
@@ -501,7 +502,8 @@ public class ProjectExpression extends ColumnExpression {
                 this.getInputNum(),
                 this.getColNum(),
                 this.getAttachedRelationalOp());
-        copy.alias = this.alias; 
+        copy.setLocation( new SourceLocation( location ) );
+        copy.alias = alias; 
         copy.isRangeProject = this.isRangeProject;
         copy.startCol = this.startCol;
         copy.endCol = this.endCol;
