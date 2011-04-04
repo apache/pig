@@ -256,49 +256,59 @@ public class POProject extends ExpressionOperator {
      * @throws ExecException 
      */
     protected Result consumeInputBag(Result input) throws ExecException {
-        DataBag inpBag = (DataBag) input.result;
-        Result retVal = new Result();
-        if(isInputAttached() || isStar()){
-            retVal.result = inpBag;
-            retVal.returnStatus = POStatus.STATUS_OK;
-            detachInput();
-            return retVal;
-        }
-        
-        DataBag outBag;
-        if(resultSingleTupleBag) {
-            // we have only one tuple in a bag - so create
-            // A SingleTupleBag for the result and fill it
-            // appropriately from the input bag
-            Tuple tuple = inpBag.iterator().next();
-            if(!isProjectToEnd){
-                ArrayList<Object> objList = new ArrayList<Object>(columns.size()); 
-                for (int col : columns) {
-                    addColumn(objList, tuple, col);
-                }
-                outBag = new SingleTupleBag( tupleFactory.newTupleNoCopy(objList) );
-            }else {
-                Tuple tmpTuple = getRangeTuple(tuple);
-                outBag = new SingleTupleBag(tmpTuple);
+        if (input.result instanceof DataBag) {
+            DataBag inpBag = (DataBag) input.result;
+            Result retVal = new Result();
+            if(isInputAttached() || isStar()){
+                retVal.result = inpBag;
+                retVal.returnStatus = POStatus.STATUS_OK;
+                detachInput();
+                return retVal;
             }
-        } else {
-            outBag = bagFactory.newDefaultBag();
-            for (Tuple tuple : inpBag) {
+            
+            DataBag outBag;
+            if(resultSingleTupleBag) {
+                // we have only one tuple in a bag - so create
+                // A SingleTupleBag for the result and fill it
+                // appropriately from the input bag
+                Tuple tuple = inpBag.iterator().next();
                 if(!isProjectToEnd){
                     ArrayList<Object> objList = new ArrayList<Object>(columns.size()); 
                     for (int col : columns) {
                         addColumn(objList, tuple, col);
                     }
-                    outBag.add( tupleFactory.newTupleNoCopy(objList) );
-                }else{
-                    Tuple outTuple = getRangeTuple(tuple);
-                    outBag.add(outTuple);
+                    outBag = new SingleTupleBag( tupleFactory.newTupleNoCopy(objList) );
+                }else {
+                    Tuple tmpTuple = getRangeTuple(tuple);
+                    outBag = new SingleTupleBag(tmpTuple);
+                }
+            } else {
+                outBag = bagFactory.newDefaultBag();
+                for (Tuple tuple : inpBag) {
+                    if(!isProjectToEnd){
+                        ArrayList<Object> objList = new ArrayList<Object>(columns.size()); 
+                        for (int col : columns) {
+                            addColumn(objList, tuple, col);
+                        }
+                        outBag.add( tupleFactory.newTupleNoCopy(objList) );
+                    }else{
+                        Tuple outTuple = getRangeTuple(tuple);
+                        outBag.add(outTuple);
+                    }
                 }
             }
+            retVal.result = outBag;
+            retVal.returnStatus = POStatus.STATUS_OK;
+            return retVal;
+        } else if (input.result instanceof Tuple) {
+            // if input is tuple, columns should only have one item
+            Result retVal = new Result();
+            retVal.result = ((Tuple)input.result).get(columns.get(0));
+            retVal.returnStatus = POStatus.STATUS_OK;
+            return retVal;
+        } else {
+            throw new ExecException("Cannot dereference a bag from " + input.result.getClass().getName(), 1129);
         }
-        retVal.result = outBag;
-        retVal.returnStatus = POStatus.STATUS_OK;
-        return retVal;
     }
 
     private Tuple getRangeTuple(Tuple tuple) throws ExecException {
@@ -548,8 +558,12 @@ public class POProject extends ExpressionOperator {
         //Should be removed once the model is clear
         if(reporter!=null) reporter.progress();
         
-        if(!isInputAttached())
-            return inputs.get(0).getNext(dummyBag);
+        if(!isInputAttached()) {
+            if (inputs.get(0).getResultType()==DataType.BAG)
+                return inputs.get(0).getNext(dummyBag);
+            else
+                return inputs.get(0).getNext(dummyTuple);
+        }
         else{
             res.result = (DataBag)input.get(columns.get(0));
             res.returnStatus = POStatus.STATUS_OK;

@@ -130,6 +130,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-1866: Dereference a bag within a tuple does not work (daijy)
+
 PIG-1984: Worng stats shown when there are multiple stores but same file names (rding)
 
 PIG-1893: Pig report input size -1 for empty input file (rding)

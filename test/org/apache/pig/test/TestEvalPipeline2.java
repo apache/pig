@@ -1416,4 +1416,23 @@ public class TestEvalPipeline2 {
         // Shall not throw exception
         pigServer.explain("f", System.out);
     }
+    
+    // See PIG-1866
+    @Test
+    public void testProjBagInTuple() throws Exception{
+        String[] input = {
+                "(1,{(one),(two)})",
+        };
+        
+        Util.createInputFile(cluster, "table_testProjBagInTuple", input);
+
+        pigServer.registerQuery("a = load 'table_testProjBagInTuple' as (t : tuple(i: int, b1: bag { b_tuple : tuple ( b_str: chararray) }));");
+        pigServer.registerQuery("b = foreach a generate t.b1;");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("b");
+        
+        Tuple t = iter.next();
+        Assert.assertTrue(t.toString().equals("({(one),(two)})"));
+        Assert.assertFalse(iter.hasNext());
+    }
 }
