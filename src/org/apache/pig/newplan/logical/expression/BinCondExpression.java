@@ -103,6 +103,7 @@ public class BinCondExpression extends LogicalExpression {
         //TypeCheckingExpVisitor will ensure that lhs and rhs have same schema
         LogicalFieldSchema argFs = getLhs().getFieldSchema();
         fieldSchema = argFs.deepCopy();
+        fieldSchema.uid = -1;
         
         uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
         return fieldSchema;
