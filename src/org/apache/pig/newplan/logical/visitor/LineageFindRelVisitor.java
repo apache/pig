@@ -26,7 +26,6 @@ import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
@@ -409,13 +408,13 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
         if(inputSch == null || outSchema == null){
             String msg = "Bug: in split only one of input/output schema is null "
                 + split;
-            throw new VisitorException(msg,2260, PigException.BUG) ; 
+            throw new VisitorException(split, msg,2260, PigException.BUG) ; 
         }
         
         if(inputSch.size() != outSchema.size()){
             String msg = "Bug: input and output schema size of split differ "
                 + split;
-            throw new VisitorException(msg,2261, PigException.BUG) ; 
+            throw new VisitorException(split, msg,2261, PigException.BUG) ; 
         }
 
         for(int i=0; i<inputSch.size(); i++){

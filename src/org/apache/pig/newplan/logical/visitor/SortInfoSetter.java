@@ -21,6 +21,7 @@ package org.apache.pig.newplan.logical.visitor;
 import org.apache.pig.PigException;
 import org.apache.pig.SortInfo;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.newplan.DependencyOrderWalker;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
@@ -46,7 +47,7 @@ public class SortInfoSetter extends LogicalRelationalNodesVisitor {
         if(storePred == null){
             int errCode = 2051;
             String msg = "Did not find a predecessor for Store." ;
-            throw new FrontendException(msg, errCode, PigException.BUG);    
+            throw new VisitorException(store, msg, errCode, PigException.BUG);    
         }
         
         SortInfo sortInfo = null;
@@ -72,12 +73,8 @@ public class SortInfoSetter extends LogicalRelationalNodesVisitor {
         }
         // if this predecessor is a sort, get
         // the sort info.
-        if(storePred instanceof LOSort) {
-            try {
-                sortInfo = ((LOSort)storePred).getSortInfo();
-            } catch (FrontendException e) {
-                throw new FrontendException(e);
-            }
+        if( storePred instanceof LOSort ) {
+            sortInfo = ((LOSort)storePred).getSortInfo();
         }
         store.setSortInfo(sortInfo);
     }

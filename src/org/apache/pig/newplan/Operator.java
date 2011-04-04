@@ -22,8 +22,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.parser.SourceLocation;
 
 public abstract class Operator {
+    protected SourceLocation location; // The location of the operator in the original pig script.
     
     protected String name;
     protected OperatorPlan plan; // plan that contains this operator
@@ -34,6 +36,7 @@ public abstract class Operator {
         name = n;
         plan = p;
         annotations = new HashMap<String, Object>();
+        location = new SourceLocation();
     }
 
     /**
@@ -45,6 +48,14 @@ public abstract class Operator {
 
     public String getName() {
         return name;
+    }
+    
+    public SourceLocation getLocation() {
+        return location;
+    }
+    
+    public void setLocation(SourceLocation loc) {
+        location = loc;
     }
     
     /**

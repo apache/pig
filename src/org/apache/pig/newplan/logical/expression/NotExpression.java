@@ -24,6 +24,7 @@ import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanVisitor;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
+import org.apache.pig.parser.SourceLocation;
 
 public class NotExpression extends UnaryExpression {
 
@@ -63,6 +64,7 @@ public class NotExpression extends UnaryExpression {
         LogicalExpression copy = new NotExpression(
                 lgExpPlan,
                 this.getExpression().deepCopy(lgExpPlan) );
+        copy.setLocation( new SourceLocation( location ) );
         return copy;
     }
 

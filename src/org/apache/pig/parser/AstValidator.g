@@ -76,21 +76,20 @@ public String getErrorHeader(RecognitionException ex) {
 	return QueryParserUtils.generateErrorHeader( ex );
 }
 
-private void validateSchemaAliasName(Set<String> fieldNames, Token t)
+private void validateSchemaAliasName(Set<String> fieldNames, CommonTree node, String name)
 throws DuplicatedSchemaAliasException {
-    String name = t.getText();
     if( fieldNames.contains( name ) ) {
-        throw new DuplicatedSchemaAliasException( input, t, name );
+        throw new DuplicatedSchemaAliasException( input, 
+            new SourceLocation( (PigParserNode)node ), name );
     } else {
         fieldNames.add( name );
     }
 }
 
-private void validateAliasRef(Set<String> aliases, Token t)
+private void validateAliasRef(Set<String> aliases, CommonTree node, String alias)
 throws UndefinedAliasException {
-    String alias = t.getText();
     if( !aliases.contains( alias ) ) {
-        throw new UndefinedAliasException( input, t, alias );
+        throw new UndefinedAliasException( input, new SourceLocation( (PigParserNode)node ), alias );
     }
 }
 
@@ -120,11 +119,11 @@ general_statement : ^( STATEMENT ( alias { aliases.add( $alias.name ); } )? op_c
 parallel_clause : ^( PARALLEL INTEGER )
 ;
 
-alias returns[String name, Token token]
+alias returns[String name, CommonTree node]
  : IDENTIFIER
    { 
        $name = $IDENTIFIER.text;
-       $token = $IDENTIFIER.token;
+       $node = $IDENTIFIER;
    }
 ;
 
@@ -185,7 +184,7 @@ as_clause: ^( AS field_def_list )
 ;
 
 field_def[Set<String> fieldNames] throws Exception
- : ^( FIELD_DEF IDENTIFIER { validateSchemaAliasName( fieldNames, $IDENTIFIER.token ); } type? )
+ : ^( FIELD_DEF IDENTIFIER { validateSchemaAliasName( fieldNames, $IDENTIFIER, $IDENTIFIER.text ); } type? )
 ;
 
 field_def_list
@@ -243,13 +242,13 @@ group_item
            // For the first input
            $group_clause::arity = $join_group_by_clause.exprCount;
        } else if( $join_group_by_clause.exprCount != $group_clause::arity ) {
-           throw new ParserValidationException( input, new SourceLocation( (CommonTree)$group_item.start ),
+           throw new ParserValidationException( input, new SourceLocation( (PigParserNode)$group_item.start ),
                "The arity of the group by columns do not match." );
        }
    }
 ;
 
-rel : alias {  validateAliasRef( aliases, $alias.token ); }
+rel : alias {  validateAliasRef( aliases, $alias.node, $alias.name ); }
     | op_clause
 ;
 
@@ -386,7 +385,7 @@ join_item
            // For the first input
            $join_clause::arity = $join_group_by_clause.exprCount;
        } else if( $join_group_by_clause.exprCount != $join_clause::arity ) {
-           throw new ParserValidationException( input, new SourceLocation( (CommonTree)$join_item.start ),
+           throw new ParserValidationException( input, new SourceLocation( (PigParserNode)$join_item.start ),
                "The arity of the join columns do not match." );
        }
    }

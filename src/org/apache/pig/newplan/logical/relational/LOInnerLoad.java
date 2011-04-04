@@ -27,6 +27,7 @@ import org.apache.pig.newplan.PlanVisitor;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.newplan.logical.expression.ProjectExpression;
 import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
+import org.apache.pig.parser.SourceLocation;
 
 /**
  * Operator to map the data into the inner plan of LOForEach
@@ -174,5 +175,11 @@ public class LOInnerLoad extends LogicalRelationalOperator {
             }
         }
         return msg.toString();
+    }
+    
+    @Override
+    public void setLocation(SourceLocation loc) {
+    	super.setLocation( loc );
+    	prj.setLocation( loc );
     }
 }

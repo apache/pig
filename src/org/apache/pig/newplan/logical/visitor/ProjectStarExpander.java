@@ -25,6 +25,7 @@ import java.util.Map.Entry;
 
 import org.apache.pig.PigException;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.newplan.DependencyOrderWalker;
 import org.apache.pig.newplan.DepthFirstWalker;
@@ -164,7 +165,7 @@ public class ProjectStarExpander extends LogicalRelationalNodesVisitor{
                         String msg = "Cogroup/Group by '*' or 'x..' " +
                         "(range of columns to the end) " +
                         "is only allowed if the input has a schema";
-                        throw new FrontendException(
+                        throw new VisitorException( cg,
                                 msg,
                                 1123,
                                 PigException.INPUT
@@ -178,7 +179,7 @@ public class ProjectStarExpander extends LogicalRelationalNodesVisitor{
             if(arity != inpExprPlans.get(i).size()) {
                 String msg = "The arity of cogroup/group by columns " +
                 "do not match";
-                throw new FrontendException(
+                throw new VisitorException(cg,
                         msg,
                         1122,
                         PigException.INPUT
@@ -215,11 +216,11 @@ public class ProjectStarExpander extends LogicalRelationalNodesVisitor{
             if(op instanceof LOGenerate){
                 if(gen != null){
                     String msg = "Expected single LOGenerate output in innerplan of foreach";
-                    throw new FrontendException(
+                    throw new VisitorException(foreach,
                             msg,
                             2266,
                             PigException.BUG
-                    );                    
+                    );
                 }
                 gen = (LOGenerate) op;
             }
@@ -573,7 +574,7 @@ public class ProjectStarExpander extends LogicalRelationalNodesVisitor{
                     if(outputs.size() > 1){
                         String msg = "More than one operator in an expression plan" +
                         " containing project star(*)/project-range (..)";
-                        throw new FrontendException(
+                        throw new VisitorException(proj,
                                 msg,
                                 2264,
                                 PigException.BUG

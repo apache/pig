@@ -24,7 +24,6 @@ import java.io.IOException;
 
 import junit.framework.Assert;
 
-import org.antlr.runtime.RecognitionException;
 import org.apache.pig.test.Util;
 import org.junit.BeforeClass;
 import org.junit.Test;

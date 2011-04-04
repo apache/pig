@@ -24,6 +24,7 @@ import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanVisitor;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
+import org.apache.pig.parser.SourceLocation;
 
 public class BinCondExpression extends LogicalExpression {
 
@@ -114,6 +115,7 @@ public class BinCondExpression extends LogicalExpression {
                 this.getCondition().deepCopy(lgExpPlan),
                 this.getLhs().deepCopy(lgExpPlan),
                 this.getRhs().deepCopy(lgExpPlan) );
+        copy.setLocation( new SourceLocation( location ) );
         return copy;
     }
 }

@@ -82,7 +82,7 @@ public class ScalarVisitor extends AllExpressionVisitor {
                     try {
                         fileSpec = new FileSpec( FileLocalizer.getTemporaryPath( pigContext ).toString(), funcSpec );                    // TODO: need to hookup the pigcontext.
                     } catch (IOException e) {
-                        throw new PlanValidationException( "Failed to process scalar: " + e);
+                        throw new PlanValidationException( expr, "Failed to process scalar" + e);
                     }
                     store = new LOStore( lp, fileSpec );
                     store.setTmpStore(true);

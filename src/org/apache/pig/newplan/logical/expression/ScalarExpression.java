@@ -30,6 +30,7 @@ import org.apache.pig.newplan.PlanVisitor;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
+import org.apache.pig.parser.SourceLocation;
 
 public class ScalarExpression extends UserFuncExpression {
     private Operator implicitReferencedOperator = null;
@@ -96,6 +97,7 @@ public class ScalarExpression extends UserFuncExpression {
             }
         }
         
+        copy.setLocation( new SourceLocation( location ) );
         return copy;
     }
 
