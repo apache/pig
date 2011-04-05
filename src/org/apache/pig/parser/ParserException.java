@@ -24,17 +24,18 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 
 public class ParserException extends FrontendException {
 	private static final long serialVersionUID = 1L;
+	private static final int errorCode = 1200;
 	
 	public ParserException(RecognitionException recoException) {
-		super( recoException );
+		super( "Pig script failed to parse: " + recoException, errorCode, recoException );
 	}
 	
 	public ParserException(String msg) {
-		super( msg );
+		super( msg, errorCode );
 	}
 
 	public ParserException(String msg, Throwable cause) {
-	    super( msg, cause );
+	    super( msg, errorCode, cause );
 	}
 	
 	@Override

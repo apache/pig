@@ -166,10 +166,16 @@ parallel_clause : PARALLEL^ INTEGER
 // is covered by general_statement.
 // We need to handle foreach specifically because of the ending ';', which is not required 
 // if there is a nested block. This is ugly, but it gets the job done.
-foreach_statement : ( alias EQUAL )? foreach_clause_complex SEMI_COLON?
-                 -> ^( STATEMENT alias? foreach_clause_complex )
-                  | ( alias EQUAL )? foreach_clause_simple parallel_clause? SEMI_COLON
-                 -> ^( STATEMENT alias? foreach_clause_simple parallel_clause? )
+foreach_statement : ( ( alias EQUAL )?  FOREACH rel LEFT_CURLY ) => foreach_complex_statement
+                  | foreach_simple_statement
+;
+
+foreach_complex_statement : ( alias EQUAL )? foreach_clause_complex SEMI_COLON?
+                         -> ^( STATEMENT alias? foreach_clause_complex )
+;
+
+foreach_simple_statement : ( alias EQUAL )? foreach_clause_simple parallel_clause? SEMI_COLON
+                        -> ^( STATEMENT alias? foreach_clause_simple parallel_clause? )
 ;
 
 alias : IDENTIFIER
