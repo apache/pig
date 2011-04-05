@@ -125,9 +125,7 @@ public class TestGrunt extends TestCase {
         try {
             grunt.exec();
         } catch (Exception e) {
-            PigException pe = LogUtils.getPigException(e);
-            String msg = (pe == null? e.getMessage(): pe.getMessage());
-            assertTrue(msg.contains("Error during parsing"));
+            assertTrue(e.getMessage().contains("Error during parsing"));
         }
     }
 

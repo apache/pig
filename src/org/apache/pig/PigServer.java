@@ -70,6 +70,7 @@ import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
+import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.ObjectSerializer;
@@ -179,6 +180,7 @@ public class PigServer {
 
 
     private boolean isMultiQuery = true;
+    private boolean aggregateWarning = true;
 
     private String constructScope() {
         // scope servers for now as a session id
@@ -227,7 +229,7 @@ public class PigServer {
         this.pigContext = context;
         currDAG = new Graph(false);
 
-        //aggregateWarning = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("aggregate.warning"));
+        aggregateWarning = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("aggregate.warning"));
         isMultiQuery = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("opt.multiquery","true"));
         
         jobName = pigContext.getProperties().getProperty(
@@ -1591,7 +1593,16 @@ public class PigServer {
             // TODO: input/output validation visitor
 
             CompilationMessageCollector collector = new CompilationMessageCollector() ;
+            
             new TypeCheckingRelVisitor( lp, collector).visit();
+            if(aggregateWarning) {
+                CompilationMessageCollector.logMessages(collector, MessageType.Warning, aggregateWarning, log);
+            } else {
+                for(Enum type: MessageType.values()) {
+                    CompilationMessageCollector.logAllMessages(collector, log);
+                }
+            }
+            
             new UnionOnSchemaSetter( lp ).visit();
             new CastLineageSetter(lp, collector).visit();
         }

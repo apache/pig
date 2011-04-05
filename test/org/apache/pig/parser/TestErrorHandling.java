@@ -155,4 +155,22 @@ public class TestErrorHandling {
         Assert.fail( "Testcase should fail" );
     }
 
+    @Test // PIG-1956, 1957
+    public void tesNegative9() throws IOException {
+        String query = "A = load 'x' as (name, age, gpa);\n" +
+                       "B = group A by name;\n" +
+                       "C = foreach B { ba = filter A by age < '25'; bb = foreach ba generate gpa; generate group, flatten(bb);}";
+        try {
+            pig.registerQuery( query );
+        } catch(FrontendException ex) {
+        	String msg = ex.getMessage();
+            System.out.println( msg );
+            Assert.assertEquals( 1200, ex.getErrorCode() );
+            Assert.assertTrue( msg.contains( "line 3, column 58" ) );
+            Assert.assertTrue( msg.contains( "mismatched input 'ba' expecting LEFT_PAREN" ) );
+            return;
+        }
+        Assert.fail( "Testcase should fail" );
+    }
+
 }
