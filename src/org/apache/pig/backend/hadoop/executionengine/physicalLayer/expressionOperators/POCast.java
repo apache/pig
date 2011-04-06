@@ -57,9 +57,9 @@ import org.apache.pig.impl.util.LogUtils;
  * implementation.
  */
 public class POCast extends ExpressionOperator {
+    private final static Log log = LogFactory.getLog(POCast.class);
     private FuncSpec funcSpec = null;
     transient private LoadCaster caster;
-    transient private Log log = LogFactory.getLog(getClass());
     private boolean castNotNeeded = false;
     private Byte realType = null;
     private transient List<ExpressionOperator> child;

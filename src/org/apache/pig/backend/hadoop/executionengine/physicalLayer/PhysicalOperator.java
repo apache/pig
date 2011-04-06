@@ -61,8 +61,7 @@ import org.apache.pig.pen.Illustrable;
  *
  */
 public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implements Illustrable, Cloneable {
-
-    private final Log log = LogFactory.getLog(getClass());
+    private static final Log log = LogFactory.getLog(PhysicalOperator.class);
 
     protected static final long serialVersionUID = 1L;
 

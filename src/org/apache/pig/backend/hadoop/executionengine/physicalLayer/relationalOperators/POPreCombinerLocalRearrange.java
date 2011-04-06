@@ -49,13 +49,12 @@ import org.apache.pig.impl.plan.VisitorException;
  * will feed to a foreach which expects this format.
  */
 public class POPreCombinerLocalRearrange extends PhysicalOperator {
+    private static final Log log = LogFactory.getLog(POPreCombinerLocalRearrange.class);
 
     protected static final long serialVersionUID = 1L;
 
     protected static final TupleFactory mTupleFactory = TupleFactory.getInstance();
     protected static BagFactory mBagFactory = BagFactory.getInstance();
-
-    private static Log log = LogFactory.getLog(POPreCombinerLocalRearrange.class);
 
     private static final Result ERR_RESULT = new Result();
 

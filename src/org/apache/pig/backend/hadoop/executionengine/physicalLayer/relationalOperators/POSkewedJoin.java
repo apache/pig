@@ -21,8 +21,6 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOp
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -49,8 +47,6 @@ public class POSkewedJoin extends PhysicalOperator  {
 	
 	// The schema is used only by the MRCompiler to support outer join
 	transient private List<Schema> inputSchema = new ArrayList<Schema>();
-	
-	transient private static Log log = LogFactory.getLog(POSkewedJoin.class);
 	
 	// physical plans to retrive join keys
 	// the key of this <code>MultiMap</code> is the PhysicalOperator that corresponds to an input

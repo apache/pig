@@ -43,6 +43,7 @@ import org.apache.pig.impl.util.IdentityHashSet;
 //We intentionally skip type checking in backend for performance reasons
 @SuppressWarnings("unchecked")
 public class POUserComparisonFunc extends ExpressionOperator {
+    private final static Log log = LogFactory.getLog(POUserComparisonFunc.class);
 
     /**
      * 
@@ -51,7 +52,6 @@ public class POUserComparisonFunc extends ExpressionOperator {
     FuncSpec funcSpec;
     Tuple t1, t2;
     transient ComparisonFunc func;
-    transient private Log log = LogFactory.getLog(getClass());
     
     public POUserComparisonFunc(OperatorKey k, int rp, List inp, FuncSpec funcSpec, ComparisonFunc func) {
         super(k, rp);

@@ -52,8 +52,6 @@ public class POFilter extends PhysicalOperator {
      */
     private static final long serialVersionUID = 1L;
 
-//    private Log log = LogFactory.getLog(getClass());
-
     // The expression plan
     PhysicalPlan plan;
 

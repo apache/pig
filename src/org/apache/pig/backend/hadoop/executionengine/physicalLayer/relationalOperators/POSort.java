@@ -64,6 +64,7 @@ import org.apache.pig.pen.util.LineageTracer;
 //We intentionally skip type checking in backend for performance reasons
 @SuppressWarnings("unchecked")
 public class POSort extends PhysicalOperator {
+    private static final Log log = LogFactory.getLog(POSort.class);
 
 	/**
      *
@@ -74,7 +75,6 @@ public class POSort extends PhysicalOperator {
 	private List<Byte> ExprOutputTypes;
 	private List<Boolean> mAscCols;
 	private POUserComparisonFunc mSortFunc;
-	transient private final Log log = LogFactory.getLog(getClass());
 	private Comparator<Tuple> mComparator;
 
 	private boolean inputsAccumulated = false;

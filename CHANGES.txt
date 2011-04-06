@@ -136,6 +136,9 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-1955: PhysicalOperator has a member variable (non-static) Log object that
+is non-transient, this causes serialization errors (woody via rding)
+
 PIG-1964: PigStorageSchema fails if a column value is null (thejas))
 
 PIG-1866: Dereference a bag within a tuple does not work (daijy)

@@ -22,8 +22,6 @@ import java.util.BitSet;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -81,8 +79,6 @@ import org.apache.pig.pen.util.LineageTracer;
 public class POSplit extends PhysicalOperator {
 
     private static final long serialVersionUID = 1L;
-    
-    transient private Log log = LogFactory.getLog(getClass());
     
     /*
      * The filespec that is used to store and load the output of the split job

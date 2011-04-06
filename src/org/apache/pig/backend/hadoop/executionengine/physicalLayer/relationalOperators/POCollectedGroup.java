@@ -59,8 +59,6 @@ public class POCollectedGroup extends PhysicalOperator {
 
     protected static final TupleFactory mTupleFactory = TupleFactory.getInstance();
 
-//    private Log log = LogFactory.getLog(getClass());
-
     protected List<PhysicalPlan> plans;
 
     protected List<ExpressionOperator> leafOps;

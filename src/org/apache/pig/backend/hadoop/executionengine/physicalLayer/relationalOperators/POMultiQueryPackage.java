@@ -22,8 +22,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -61,8 +59,6 @@ public class POMultiQueryPackage extends POPackage {
     
     private static int idxPart = 0x7F;
 
-    transient private final Log log = LogFactory.getLog(getClass());
-    
     private List<POPackage> packages = new ArrayList<POPackage>();
 
     /**

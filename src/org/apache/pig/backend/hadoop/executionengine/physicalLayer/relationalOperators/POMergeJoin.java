@@ -65,10 +65,9 @@ import org.apache.pig.pen.util.LineageTracer;
  */
 
 public class POMergeJoin extends PhysicalOperator {
+    private static final Log log = LogFactory.getLog(POMergeJoin.class);
 
     private static final long serialVersionUID = 1L;
-
-    private final transient Log log = LogFactory.getLog(getClass());
 
     // flag to indicate when getNext() is called first.
     private boolean firstTime = true;
