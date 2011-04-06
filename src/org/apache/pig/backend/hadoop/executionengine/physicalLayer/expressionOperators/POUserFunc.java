@@ -24,8 +24,6 @@ import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.pig.Accumulator;
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
@@ -58,7 +56,6 @@ public class POUserFunc extends ExpressionOperator {
     transient EvalFunc func;
     transient private String[] cacheFiles = null;
 
-    transient private final Log log = LogFactory.getLog(getClass());
     FuncSpec funcSpec;
     FuncSpec origFSpec;
     public static final byte INITIAL = 0;

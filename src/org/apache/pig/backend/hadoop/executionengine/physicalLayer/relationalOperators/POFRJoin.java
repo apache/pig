@@ -71,11 +71,11 @@ import org.apache.pig.impl.util.ObjectSerializer;
 // We intentionally skip type checking in backend for performance reasons
 @SuppressWarnings("unchecked")
 public class POFRJoin extends PhysicalOperator {
+    private static final Log log = LogFactory.getLog(POFRJoin.class);
     /**
      * 
      */
     private static final long serialVersionUID = 1L;
-    static private Log log = LogFactory.getLog(POFRJoin.class);          
     // The number in the input list which denotes the fragmented input
     private int fragment;
     // There can be n inputs each being a List<PhysicalPlan>
@@ -251,8 +251,7 @@ public class POFRJoin extends PhysicalOperator {
             lr.attachInput((Tuple) inp.result);
             Result lrOut = lr.getNext(dummyTuple);
             if (lrOut.returnStatus != POStatus.STATUS_OK) {
-                log
-                        .error("LocalRearrange isn't configured right or is not working");
+                log.error("LocalRearrange isn't configured right or is not working");
                 return new Result();
             }
             Tuple lrOutTuple = (Tuple) lrOut.result;

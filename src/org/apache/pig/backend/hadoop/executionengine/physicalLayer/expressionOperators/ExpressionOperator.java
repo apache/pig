@@ -23,7 +23,6 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
@@ -44,8 +43,8 @@ import org.apache.pig.pen.Illustrator;
  */
 
 public abstract class ExpressionOperator extends PhysicalOperator {
+    private static final Log log = LogFactory.getLog(ExpressionOperator.class);
     private static final long serialVersionUID = 1L;
-    protected Log log = LogFactory.getLog(getClass());
 
     public ExpressionOperator(OperatorKey k) {
         this(k,-1);

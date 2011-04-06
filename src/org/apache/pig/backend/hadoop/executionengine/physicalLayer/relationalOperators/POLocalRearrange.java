@@ -50,6 +50,7 @@ import org.apache.pig.pen.util.ExampleTuple;
  *
  */
 public class POLocalRearrange extends PhysicalOperator {
+    private static final Log log = LogFactory.getLog(POLocalRearrange.class);
 
     /**
      *
@@ -57,8 +58,6 @@ public class POLocalRearrange extends PhysicalOperator {
     protected static final long serialVersionUID = 1L;
 
     protected static final TupleFactory mTupleFactory = TupleFactory.getInstance();
-
-    private static Log log = LogFactory.getLog(POLocalRearrange.class);
 
     private static final Result ERR_RESULT = new Result();
 

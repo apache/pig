@@ -20,8 +20,6 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOp
 import java.util.LinkedList;
 import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
@@ -42,8 +40,6 @@ public class POLimit extends PhysicalOperator {
      * 
      */
     private static final long serialVersionUID = 1L;
-
-    transient private Log log = LogFactory.getLog(getClass());
 
     // Counts for outputs processed
     private long soFar = 0;

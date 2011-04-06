@@ -22,8 +22,6 @@ import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -61,8 +59,6 @@ public class PODemux extends PhysicalOperator {
     
     private static Result eop = new Result(POStatus.STATUS_EOP, null);
     
-    transient private Log log = LogFactory.getLog(getClass());
-        
     /*
      * The list of sub-plans the inner plan is composed of
      */

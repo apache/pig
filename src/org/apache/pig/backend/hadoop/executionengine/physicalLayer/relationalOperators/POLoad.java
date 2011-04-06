@@ -21,7 +21,6 @@ import java.io.IOException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -47,6 +46,7 @@ import org.apache.pig.pen.util.ExampleTuple;
  *
  */
 public class POLoad extends PhysicalOperator {
+    private static final Log log = LogFactory.getLog(POLoad.class);
     /**
      * 
      */
@@ -61,8 +61,6 @@ public class POLoad extends PhysicalOperator {
     boolean setUpDone = false;
     // Alias for the POLoad
     private String signature;
-    
-    transient private final Log log = LogFactory.getLog(getClass());
     
     public POLoad(OperatorKey k) {
         this(k,-1, null);
