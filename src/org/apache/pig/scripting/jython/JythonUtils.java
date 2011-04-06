@@ -69,10 +69,15 @@ public class JythonUtils {
                 }
                 javaObj = list;
             } else if (pyObject instanceof PyDictionary) {
-                Map<?, PyObject> map = Py.tojava(pyObject, Map.class);
+                Map<?, Object> map = Py.tojava(pyObject, Map.class);
                 Map<Object, Object> newMap = new HashMap<Object, Object>();
-                for (Map.Entry<?, PyObject> entry : map.entrySet()) {
-                    newMap.put(entry.getKey(), pythonToPig(entry.getValue()));
+                for (Map.Entry<?, Object> entry : map.entrySet()) {
+                    if (entry.getValue() instanceof PyObject) {
+                        newMap.put(entry.getKey(), pythonToPig((PyObject) entry.getValue()));
+                    } else {
+                        // Jython sometimes uses directly the java class: for example for integers
+                        newMap.put(entry.getKey(), entry.getValue());
+                    }
                 }
                 javaObj = newMap;
             } else if (pyObject instanceof PyLong) {
@@ -94,15 +99,15 @@ public class JythonUtils {
                     javaObj = new DataByteArray((byte[])javaObj);
                 }
                 else {
-                    throw new ExecException("Non supported pig datatype found, cast failed");
+                    throw new ExecException("Non supported pig datatype found, cast failed: "+(pyObject==null?null:pyObject.getClass().getName()));
                 }
             }
             if(javaObj.equals(Py.NoConversion)) {
-                throw new ExecException("Cannot cast into any pig supported type");
+                throw new ExecException("Cannot cast into any pig supported type: "+(pyObject==null?null:pyObject.getClass().getName()));
             }
             return javaObj;
         } catch (Exception e) {
-            throw new ExecException("Cannot convert jython type to pig datatype "+ e);
+            throw new ExecException("Cannot convert jython type ("+(pyObject==null?null:pyObject.getClass().getName())+") to pig datatype "+ e, e);
         }
     }
 

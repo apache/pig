@@ -80,7 +80,7 @@ public class JythonFunction extends EvalFunc<Object> {
                         "unregistered " + functionName);
             }
         } catch (ParseException pe) {
-            throw new ExecException("Could not parse schema for script function " + pe);
+            throw new ExecException("Could not parse schema for script function " + pe, pe);
         } catch (IOException e) {
             throw new IllegalStateException("Could not initialize: " + filename, e);
         } catch (Exception e) {

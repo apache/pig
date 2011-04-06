@@ -217,10 +217,6 @@ public class JsScriptEngine extends ScriptEngine {
             throw new IOException("Can't read file: " + scriptFile);
         }
 
-        // to enable passing of information to the slave
-        this.scriptPath = scriptFile;
-        clientInstance = this;
-
         registerFunctions(scriptFile, null, pigContext);    
 
         // run main
@@ -232,6 +228,10 @@ public class JsScriptEngine extends ScriptEngine {
     @Override
     public void registerFunctions(String path, String namespace,
             PigContext pigContext) throws IOException {
+        // to enable passing of information to the slave
+        this.scriptPath = path;
+        this.clientInstance = this;
+        
         pigContext.scriptJars.add(getJarPath(Context.class));
         namespace = (namespace == null) ? "" : namespace + NAMESPACE_SEPARATOR;
         FileInputStream fis = new FileInputStream(path);
