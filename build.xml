@@ -994,7 +994,7 @@
     </target>
 
     <!--target name="checkstyle" depends="checkstyle.check, set-checkstyle-classpath" if="checkstyle.home"  -->
-    <target name="checkstyle" depends="ivy-checkstyle" description="Run optional third-party tool targets">
+    <target name="checkstyle" depends="jar, ivy-checkstyle" description="Run optional third-party tool targets">
     	<taskdef resource="checkstyletask.properties">
        <!--	<classpath refid="checkstyle.classpath"/> -->
         	<classpath refid="checkstyle-classpath"/> 
