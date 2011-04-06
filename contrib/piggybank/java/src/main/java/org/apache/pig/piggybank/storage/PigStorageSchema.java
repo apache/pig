@@ -92,9 +92,13 @@ public class PigStorageSchema extends PigStorage implements LoadMetadata, StoreM
             // and cast those.
             for (int i = 0; i < fieldSchemas.length; i++) {
                 if (mRequiredColumns == null || mRequiredColumns[i]) {
-                    byte[] bytes = ((DataByteArray) tup.get(tupleIdx)).get();
-                    tup.set(tupleIdx, CastUtils.convertToType(caster, bytes,
-                            fieldSchemas[i], fieldSchemas[i].getType()));
+                    Object val = null;
+                    if(tup.get(tupleIdx) != null){
+                        byte[] bytes = ((DataByteArray) tup.get(tupleIdx)).get();
+                        val = CastUtils.convertToType(caster, bytes,
+                                fieldSchemas[i], fieldSchemas[i].getType());
+                    }
+                    tup.set(tupleIdx, val);
                     tupleIdx++;
                 }
             }

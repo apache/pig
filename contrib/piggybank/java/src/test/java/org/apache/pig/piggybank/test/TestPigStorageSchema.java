@@ -200,7 +200,7 @@ public class TestPigStorageSchema {
     public void testByteArrayConversion() throws IOException {
         Util.createInputFile(cluster, "originput2",
                 new String[] {"peter\t1", "samir\t2", "michael\t4",
-                "peter\t2", "peter\t4", "samir\t1"
+                "peter\t2", "peter\t4", "samir\t1", "john\t"
         });
         Util.createInputFile(cluster, ".pig_schema",
                 new String[] {
