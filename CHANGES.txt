@@ -136,6 +136,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-1964: PigStorageSchema fails if a column value is null (thejas))
+
 PIG-1866: Dereference a bag within a tuple does not work (daijy)
 
 PIG-1984: Worng stats shown when there are multiple stores but same file names (rding)
