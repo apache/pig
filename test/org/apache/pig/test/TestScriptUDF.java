@@ -19,6 +19,7 @@ package org.apache.pig.test;
 
 import java.io.File;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Random;
 
 import junit.framework.TestCase;
@@ -111,6 +112,50 @@ public class TestScriptUDF extends TestCase {
         t = iter.next();
 
         assertTrue(t.toString().equals("(9)"));
+    }
+    
+    @Test
+    public void testJavascriptExampleScript() throws Exception{
+        String[] script = {
+                "helloworld.outputSchema = \"word:chararray\";",
+                "function helloworld() {",
+                "return 'Hello, World';",
+                "}",
+                "complex.outputSchema = \"word:chararray,num:long\";",
+                "function complex(word) {",
+                "return {word:word, num:word.length};",
+                "}",
+        };
+        String[] input = {
+                "one\t1",
+                "two\t2",
+                "three\t3"
+        };
+
+        Util.createInputFile(cluster, "table_testJavascriptExampleScript", input);
+        Util.createLocalInputFile( "testJavascriptExampleScript.js", script);
+
+        // Test the namespace
+        pigServer.registerCode("testJavascriptExampleScript.js", "javascript", "myfuncs");
+        pigServer.registerQuery("A = LOAD 'table_testJavascriptExampleScript' as (a0:chararray, a1:long);");
+        pigServer.registerQuery("B = foreach A generate myfuncs.helloworld(), myfuncs.complex($0);");
+
+        Iterator<Tuple> iter = pigServer.openIterator("B");
+        assertTrue(iter.hasNext());
+        Tuple t = iter.next();
+
+        assertEquals(((Tuple)t.get(1)).get(1), 3);
+
+        assertTrue(iter.hasNext());
+        t = iter.next();
+
+        assertEquals(((Tuple)t.get(1)).get(1), 3);
+
+        assertTrue(iter.hasNext());
+        t = iter.next();
+
+        assertEquals(((Tuple)t.get(1)).get(1), 5);
+
     }
 
     // See PIG-928
@@ -341,6 +386,45 @@ public class TestScriptUDF extends TestCase {
         tup.append(4);
         tup.append("rocks");
         assertTrue(t.toString().contains(tup.toString()));
+        
+        assertFalse(iter.hasNext());
+        
+    }
+    
+    @Test
+    public void testPythonScriptUDFMapOutput() throws Exception{
+        String[] script = {
+                "#!/usr/bin/python",
+                "@outputSchema(\"mapint:[]\")",
+                "def maptomapint(map):" ,
+                "\toutMap = {}",
+                "\tfor k, v in map.iteritems():",
+                "\t\toutMap[k] = len(v)",
+                "\treturn outMap"
+        };
+        String[] input = {
+                "[1#hello,2#world]",
+                "[3#pig,4#rocks]",
+        };
+
+        Util.createInputFile(cluster, "table_testPythonScriptUDFMapOutput", input);
+        Util.createLocalInputFile( "testPythonScriptUDFMapOutput.py", script);
+
+        pigServer.registerCode("testPythonScriptUDFMapOutput.py", "jython", "pig");
+        pigServer.registerQuery("A = LOAD 'table_testPythonScriptUDFMapOutput' as (a0:map[]);");
+        pigServer.registerQuery("B = foreach A generate pig.maptomapint(a0);");
+
+        Iterator<Tuple> iter = pigServer.openIterator("B");
+        assertTrue(iter.hasNext());
+        Tuple t = iter.next();
+        
+        assertEquals(5, ((Map<?,?>)t.get(0)).get("1"));
+        assertEquals(5, ((Map<?,?>)t.get(0)).get("2"));
+        
+        assertTrue(iter.hasNext());
+        t = iter.next();
+        assertEquals(3, ((Map<?,?>)t.get(0)).get("3"));
+        assertEquals(5, ((Map<?,?>)t.get(0)).get("4"));
         
         assertFalse(iter.hasNext());
         

@@ -38,4 +38,8 @@ public class PlanGenerationFailureException extends PigRecognitionException {
         return ex;
     }
 
+    @Override
+    public Throwable getCause() {
+        return ex;
+    }
 }
