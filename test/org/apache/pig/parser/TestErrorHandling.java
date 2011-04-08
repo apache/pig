@@ -173,4 +173,34 @@ public class TestErrorHandling {
         Assert.fail( "Testcase should fail" );
     }
 
+    @Test // PIG-1961
+    public void tesNegative11() throws IOException {
+        String query = "A = load ^ 'x' as (name, age, gpa);\n";
+        try {
+            pig.registerQuery( query );
+        } catch(FrontendException ex) {
+        	String msg = ex.getMessage();
+            System.out.println( msg );
+            Assert.assertFalse( msg.contains( "file null" ) );
+            Assert.assertTrue( msg.contains( "Unexpected character" ) );
+            return;
+        }
+        Assert.fail( "Testcase should fail" );
+    }
+    
+    @Test // PIG-1961
+    public void tesNegative12() throws IOException {
+        String query = "A = loadd 'x' as (name, age, gpa);\n";
+        try {
+            pig.registerQuery( query );
+        } catch(FrontendException ex) {
+        	String msg = ex.getMessage();
+            System.out.println( msg );
+            Assert.assertFalse( msg.contains( "file null" ) );
+            Assert.assertTrue( msg.contains( "mismatched input ''x'' expecting LEFT_PAREN" ) );
+            return;
+        }
+        Assert.fail( "Testcase should fail" );
+    }
+
 }

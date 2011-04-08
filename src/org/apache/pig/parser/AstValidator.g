@@ -58,24 +58,6 @@ throws RecognitionException {
     throw e;
 }
 
-public String getErrorMessage(RecognitionException e, String[] tokenNames) {
-    String msg = e.getMessage();
-    if ( e instanceof DuplicatedSchemaAliasException ) {
-        DuplicatedSchemaAliasException dae = (DuplicatedSchemaAliasException)e;
-        msg = "Duplicated schema alias name '"+ dae.getAlias() + "' in the schema definition";
-    } else if( e instanceof UndefinedAliasException ) {
-        UndefinedAliasException dae = (UndefinedAliasException)e;
-        msg = "Alias '"+ dae.getAlias() + "' is not defined";
-    }
-    
-    return msg;
-}
-
-@Override
-public String getErrorHeader(RecognitionException ex) {
-	return QueryParserUtils.generateErrorHeader( ex );
-}
-
 private void validateSchemaAliasName(Set<String> fieldNames, CommonTree node, String name)
 throws DuplicatedSchemaAliasException {
     if( fieldNames.contains( name ) ) {
