@@ -96,6 +96,7 @@ throws RecognitionException {
     throw e;
 }
 
+@Override
 public String getErrorMessage(RecognitionException e, String[] tokenNames ) {
     if( !log.isDebugEnabled() ) {
         if( e instanceof NoViableAltException ) {
@@ -117,6 +118,7 @@ public String getErrorMessage(RecognitionException e, String[] tokenNames ) {
     return stack + " " + msg;
 }
 
+@Override
 public String getTokenErrorDisplay(Token t) {
     return "'" + t.getText() + "'";
 }

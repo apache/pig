@@ -26,6 +26,8 @@ PIG-1680: HBaseStorage should work with HBase 0.90 (gstathis, billgraham, dvryab
 
 IMPROVEMENTS
 
+PIG-1961: Pig prints "null" as file name in case of grammar error (xuefu)
+
 PIG-1956: Pig parser shouldn't log error code 0 (xuefu)
 
 PIG-1957: Pig parser gives misleading error message when the next foreach block has syntactic errors (xuefu)

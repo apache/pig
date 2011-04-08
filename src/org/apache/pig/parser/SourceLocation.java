@@ -26,6 +26,12 @@ public class SourceLocation {
     public SourceLocation() {
     }
     
+    public SourceLocation(String filename, int line, int offset) {
+    	this.file = filename;
+    	this.line = line;
+    	this.offset = offset;
+    }
+    
     public SourceLocation(PigParserNode tree) {
         this.file = tree.getFileName();
         this.line = tree.getLine();

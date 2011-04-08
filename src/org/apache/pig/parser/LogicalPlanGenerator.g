@@ -134,25 +134,6 @@ public LogicalPlanGenerator(TreeNodeStream input, PigContext pigContext, String 
     builder = new LogicalPlanBuilder( pigContext, scope, fileNameMap, input );
 }
 
-public String getErrorMessage(RecognitionException e, String[] tokenNames) {
-    String msg = e.getMessage();
-    if ( e instanceof NonProjectExpressionException ) {
-        NonProjectExpressionException pee = (NonProjectExpressionException)e;
-        msg = "For input to a nested operator, if it's an expression, it can only be " +
-              "a projection expression. The given expression is: " + 
-              pee.getExpression().getPlan() + ".";
-    } else {
-        msg = e.toString();
-    }
-    
-    return msg;
-}
-
-@Override
-public String getErrorHeader(RecognitionException ex) {
-    return QueryParserUtils.generateErrorHeader( ex );
-}
-
 } // End of @members
 
 @rulecatch {

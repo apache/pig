@@ -170,16 +170,8 @@ public class QueryParserUtils {
          return alias + "_" + filename + "_" + funcSpec.toString();
      }
      
-     static String generateErrorHeader(RecognitionException ex) {
-         return "<line " + ex.line +", column " + ex.charPositionInLine + ">";
-     }
-
-    static String generateErrorHeader(RecognitionException ex, String fname) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("<file ").append(fname).append(", line ")
-                .append(ex.line).append(", column ")
-                .append(ex.charPositionInLine).append(">");
-        return sb.toString();
+    static String generateErrorHeader(RecognitionException ex, String filename) {
+        return new SourceLocation( filename, ex.line, ex.charPositionInLine ).toString();
     }
     
     @SuppressWarnings({ "unchecked", "rawtypes" })
