@@ -173,6 +173,23 @@ public class TestErrorHandling {
         Assert.fail( "Testcase should fail" );
     }
 
+    @Test
+    public void tesNegative10() throws IOException {
+        String query = "A = load 'x' as (u :int, v: chararray);\n" +
+                       "B = load 'y';\n" +
+                       "C = union onschema A, B;";
+        try {
+            pig.registerQuery( query );
+        } catch(FrontendException ex) {
+            System.out.println( ex.getMessage() );
+            Assert.assertTrue( ex.getMessage().contains( "line 3, column 4" ) );
+            Assert.assertTrue( ex.getMessage().contains( 
+            		"UNION ONSCHEMA cannot be used with relations that have null schema" ) );
+            return;
+        }
+        Assert.fail( "Testcase should fail" );
+    }
+
     @Test // PIG-1961
     public void tesNegative11() throws IOException {
         String query = "A = load ^ 'x' as (name, age, gpa);\n";

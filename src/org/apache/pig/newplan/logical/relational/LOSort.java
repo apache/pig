@@ -133,7 +133,7 @@ public class LOSort extends LogicalRelationalOperator{
                 opsList.add(opsIterator.next());
             }
             if(opsList.size() != 1 || !(opsList.get(0) instanceof ProjectExpression)) {
-                throw new FrontendException("Unsupported operator in inner plan: " + opsList.get(0), 2237);
+                throw new FrontendException(this, "Unsupported operator in inner plan: " + opsList.get(0), 2237);
             }
             ProjectExpression project = (ProjectExpression) opsList.get(0);
             

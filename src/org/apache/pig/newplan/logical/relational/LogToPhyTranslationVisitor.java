@@ -558,7 +558,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                             }
                             
                         } catch (ExecException e) {
-                            throw new FrontendException("Cannot get column from "+leaf, 2230, e);
+                            throw new FrontendException(foreach, "Cannot get column from "+leaf, 2230, e);
                         }
 
                     }else{                    
@@ -921,7 +921,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                         LogicalSchema s = ((LogicalRelationalOperator)op).getSchema();
                         // if the schema cannot be determined
                         if (s == null) {
-                            throw new FrontendException("Cannot determine skewed join schema", 2247);
+                            throw new FrontendException(loj, "Cannot determine skewed join schema", 2247);
                         }
                         skj.addSchema(Util.translateSchema(s));
                     } catch (FrontendException e) {

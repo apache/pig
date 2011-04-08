@@ -117,7 +117,7 @@ public class LOCogroup extends LogicalRelationalOperator {
         List<Operator> inputs = null;
         inputs = plan.getPredecessors(this);
         if (inputs == null) {
-            throw new FrontendException("Cannot get predecessor for " + this, 2233);
+            throw new FrontendException(this, "Cannot get predecessor for " + this, 2233);
         }
         
         List<LogicalFieldSchema> fieldSchemaList = new ArrayList<LogicalFieldSchema>();
@@ -183,7 +183,7 @@ public class LOCogroup extends LogicalRelationalOperator {
         }
         
         if (groupKeySchema==null) {
-            throw new FrontendException("Cannot get group key schema for " + this, 2234);
+            throw new FrontendException(this, "Cannot get group key schema for " + this, 2234);
         }
         groupKeyUidOnlySchema = groupKeySchema.mergeUid(groupKeyUidOnlySchema);
 
