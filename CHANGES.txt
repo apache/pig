@@ -38,6 +38,8 @@ PIG-1911: Infinite loop with accumulator function in nested foreach (thejas)
 
 PIG-1964: PigStorageSchema fails if a column value is null (thejas)
 
+PIG-1963: in nested foreach, accumutive udf taking input from order-by does not get results in order (thejas)
+
 OPTIMIZATIONS
 
 Release 0.8.0 - 12/17/10
