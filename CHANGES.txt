@@ -140,6 +140,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-1963: in nested foreach, accumutive udf taking input from order-by does not get results in order (thejas)
+
 PIG-1911: Infinite loop with accumulator function in nested foreach (thejas)
 
 PIG-1923: Jython UDFs fail to convert Maps of Integer values back to Pig types (julien)
