@@ -236,7 +236,10 @@ public class AccumulatorOptimizer extends MROpPlanVisitor {
         }
 
         if (po instanceof POProject) {
-            return true;
+            if(po.getInputs() == null )
+                return true;
+            else 
+                return checkUDFInput(po.getInputs().get(0));
         }
         
         if (po instanceof ConstantExpression) {
