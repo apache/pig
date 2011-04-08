@@ -540,6 +540,52 @@ public class TestAccumulator extends TestCase{
         }      
     }
     
+    /**
+     * see PIG-1963.
+     * If there is a POSort or PODistinct still remaining in the plan 
+     * (after secondary sort optimization), accumulative mode can't 
+     * be used as they are blocking operators
+     * @throws IOException 
+     */
+    @Test
+    public void testAccumulatorOffOnSort() throws IOException{
+        pigServer.registerQuery("A = load '" + INPUT_FILE2 + "' as (id:int, fruit);");
+        pigServer.registerQuery("B = group A by id;");
+        //one POSort will remain because secondary sort can be used only for one of them
+        pigServer.registerQuery("C = foreach B " +
+                        "{ " +
+                        "  o1 = order A by fruit;" +
+                        "  o2 = order A by fruit desc;" +
+                        "  generate  org.apache.pig.test.utils.AccumulativeSumBag(o1.fruit), " +
+                        "                  org.apache.pig.test.utils.AccumulativeSumBag(o2.fruit); " +
+                        "};");
+        
+        checkAccumulatorOff("C");        
+    }
+    
+    /**
+     * see PIG-1963.
+     * If there is a POSort or PODistinct still remaining in the plan 
+     * (after secondary sort optimization), accumulative mode can't 
+     * be used as they are blocking operators
+     * @throws IOException 
+     */
+    @Test
+    public void testAccumulatorOffOnDistinct() throws IOException{
+        pigServer.registerQuery("A = load '" + INPUT_FILE2 + "' as (id:int, fruit, category);");
+        pigServer.registerQuery("B = group A by id;");
+
+        pigServer.registerQuery("C = foreach B " +
+                        "{ " +
+                        "  o1 = order A by fruit;" +
+                        "  d2 = distinct A.category;" +
+                        "  generate  org.apache.pig.test.utils.AccumulativeSumBag(o1.fruit), " +
+                        "                  org.apache.pig.test.utils.AccumulativeSumBag(d2); " +
+                        "};");
+        
+        checkAccumulatorOff("C");        
+    }
+    
     @Test    
     public void testAccumulatorOff() throws IOException{
         pigServer.getPigContext().getProperties().setProperty("opt.accumulator", "false");
@@ -548,8 +594,14 @@ public class TestAccumulator extends TestCase{
         pigServer.registerQuery("B = group A by id;");
         pigServer.registerQuery("C = foreach B generate group, org.apache.pig.test.utils.AccumulativeSumBag(A);");
         
+        checkAccumulatorOff("C");
+        pigServer.getPigContext().getProperties().setProperty("opt.accumulator", "true");
+        
+    }    
+    
+    private void checkAccumulatorOff(String alias) {
         try {
-            Iterator<Tuple> iter = pigServer.openIterator("C");
+            Iterator<Tuple> iter = pigServer.openIterator(alias);
             int c = 0;
             while(iter.hasNext()) {
                 iter.next();
@@ -559,8 +611,7 @@ public class TestAccumulator extends TestCase{
         }catch(Exception e) {
             // we should get exception
         }
-        
-    }    
+    }
     
     @Test    
     public void testAccumWithMap() throws IOException{
@@ -644,39 +695,5 @@ public class TestAccumulator extends TestCase{
         Util.checkQueryOutputsAfterSort(iter, expectedRes);
     } 
 
-    /**
-     * see PIG-1911 . 
-     * accumulator udf reading from a nested relational op. generate projects
-     * only the accumulator udf. using co-group
-     * @throws IOException
-     * @throws ParseException
-     */
-    @Test
-    public void testAccumAfterNestedOpCoGroup() throws IOException, ParseException{
-        // test group by
-        pigServer.registerQuery("A = load '" + INPUT_FILE + "' as (id:int, fruit);");
-        pigServer.registerQuery("B = load '" + INPUT_FILE + "' as (id:int, fruit);");
-        pigServer.registerQuery("C = cogroup A by id, B by id;");
-        pigServer.registerQuery("D = foreach C " +
-                "{ OA = order A by fruit;" +
-                "  FB = filter B by fruit != 'strawberry'; " +
-                "  generate" +
-                "     org.apache.pig.test.utils.AccumulatorBagCount(OA)," +
-                "     org.apache.pig.test.utils.AccumulativeSumBag(FB.fruit);" +
-        "}; ");                     
-
-        Iterator<Tuple> iter = pigServer.openIterator("D");
- 
-        List<Tuple> expectedRes = 
-            Util.getTuplesFromConstantTupleStrings(
-                    new String[] {
-                            "(2,'(apple)(apple)')",
-                            "(1,'(orange)')",
-                            "(3,'(pear)(pear)')",
-                            "(1,'(apple)')"
-                    });
-        Util.checkQueryOutputsAfterSort(iter, expectedRes);
-    }    
-    
 
 }
