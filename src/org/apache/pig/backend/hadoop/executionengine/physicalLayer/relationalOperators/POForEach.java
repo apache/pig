@@ -256,6 +256,7 @@ public class POForEach extends PhysicalOperator {
                     }
                 }
 
+                setAccumStart();
                 while(true) {
                     if (buffer.hasNextBatch()) {
                         try {
@@ -263,7 +264,6 @@ public class POForEach extends PhysicalOperator {
                         }catch(IOException e) {
                             throw new ExecException(e);
                         }
-                        setAccumStart();
                     }else{
                         inpTuple = ((POPackage.POPackageTupleBuffer) buffer).illustratorMarkup(null, inpTuple, 0);
  //                       buffer.clear();

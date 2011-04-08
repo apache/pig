@@ -140,6 +140,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-1911: Infinite loop with accumulator function in nested foreach (thejas)
+
 PIG-1923: Jython UDFs fail to convert Maps of Integer values back to Pig types (julien)
 
 PIG-1944: register javascript UDFs does not work (julien)
