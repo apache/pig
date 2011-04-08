@@ -262,7 +262,7 @@ public class POForEach extends PhysicalOperator {
                         break;
                     }
                 }
-                
+                setAccumStart();                                
                 while(true) {                    		
                     if (buffer.hasNextBatch()) {        
                         try {
@@ -270,8 +270,7 @@ public class POForEach extends PhysicalOperator {
                         }catch(IOException e) {
                             throw new ExecException(e);
                         }
-                        
-                        setAccumStart();                		
+
                     }else{                
                         buffer.clear();
                         setAccumEnd();                		
@@ -292,7 +291,7 @@ public class POForEach extends PhysicalOperator {
             }
             
             processingPlan = true;
-
+            
             if(lineageTracer != null && res.result != null) {
             //we check for res.result since that can also be null in the case of flatten
             tIn = (ExampleTuple) inp.result;

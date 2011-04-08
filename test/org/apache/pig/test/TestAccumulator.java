@@ -20,12 +20,15 @@ package org.apache.pig.test;
 import java.io.*;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
+
 import junit.framework.TestCase;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -577,6 +580,68 @@ public class TestAccumulator extends TestCase{
             assertEquals(expected.get((Long)t.get(0)), (String)t.get(1));                
         }                                   
     }        
+    
+    /**
+     * see PIG-1911 . 
+     * accumulator udf reading from a nested relational op. generate projects
+     * only the accumulator udf.
+     * @throws IOException
+     * @throws ParseException
+     */
+    @Test
+    public void testAccumAfterNestedOp() throws IOException, ParseException{
+        // test group by
+        pigServer.registerQuery("A = load '" + INPUT_FILE + "' as (id:int, fruit);");
+        pigServer.registerQuery("B = group A by id;");
+        pigServer.registerQuery("C = foreach B " +
+                        "{ o = order A by id; " +
+                        "  generate org.apache.pig.test.utils.AccumulatorBagCount(o);}; ");                     
+                 
+        Iterator<Tuple> iter = pigServer.openIterator("C");
+        List<Tuple> expectedRes = 
+            Util.getTuplesFromConstantTupleStrings(
+                    new String[] {
+                            "(2)",
+                            "(1)",
+                            "(3)",
+                            "(1)"
+                    });
+        Util.checkQueryOutputsAfterSort(iter, expectedRes);
+    } 
+
+    /**
+     * see PIG-1911 . 
+     * accumulator udf reading from a nested relational op. generate projects
+     * only the accumulator udf. using co-group
+     * @throws IOException
+     * @throws ParseException
+     */
+    @Test
+    public void testAccumAfterNestedOpCoGroup() throws IOException, ParseException{
+        // test group by
+        pigServer.registerQuery("A = load '" + INPUT_FILE + "' as (id:int, fruit);");
+        pigServer.registerQuery("B = load '" + INPUT_FILE + "' as (id:int, fruit);");
+        pigServer.registerQuery("C = cogroup A by id, B by id;");
+        pigServer.registerQuery("D = foreach C " +
+                "{ OA = order A by fruit;" +
+                "  FB = filter B by fruit != 'strawberry'; " +
+                "  generate" +
+                "     org.apache.pig.test.utils.AccumulatorBagCount(OA)," +
+                "     org.apache.pig.test.utils.AccumulativeSumBag(FB.fruit);" +
+        "}; ");                     
+
+        Iterator<Tuple> iter = pigServer.openIterator("D");
+ 
+        List<Tuple> expectedRes = 
+            Util.getTuplesFromConstantTupleStrings(
+                    new String[] {
+                            "(2,'(apple)(apple)')",
+                            "(1,'(orange)')",
+                            "(3,'(pear)(pear)')",
+                            "(1,'(apple)')"
+                    });
+        Util.checkQueryOutputsAfterSort(iter, expectedRes);
+    }    
     
 
 }

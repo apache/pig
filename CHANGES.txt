@@ -34,6 +34,8 @@ PIG-1886: Add zookeeper jar to list of jars shipped when HBaseStorage used (dvry
 
 BUG FIXES
 
+PIG-1911: Infinite loop with accumulator function in nested foreach (thejas)
+
 PIG-1964: PigStorageSchema fails if a column value is null (thejas)
 
 OPTIMIZATIONS

@@ -68,6 +68,7 @@ public class POUserFunc extends ExpressionOperator {
     private MonitoredUDFExecutor executor = null;
     
     private PhysicalOperator referencedOperator = null;
+    private boolean isAccumulationDone;
     
     public PhysicalOperator getReferencedOperator() {
         return referencedOperator;
@@ -218,9 +219,24 @@ public class POUserFunc extends ExpressionOperator {
                         ((Accumulator)func).accumulate((Tuple)result.result);
                         result.returnStatus = POStatus.STATUS_BATCH_OK;
                         result.result = null;
-                    }else{												
-                        result.result = ((Accumulator)func).getValue();	
-                        ((Accumulator)func).cleanup();
+                        isAccumulationDone = false;
+                    }else{
+                        if(isAccumulationDone){
+                            //PORelationToExprProject does not return STATUS_EOP
+                            // so that udf gets called both when isAccumStarted
+                            // is first true and then set to false, even
+                            //when the input relation is empty.
+                            // so the STATUS_EOP has to be sent from POUserFunc, 
+                            // after the results have been sent.
+                            result.result = null;
+                            result.returnStatus = POStatus.STATUS_EOP;
+                        }
+                        else{
+                            result.result = ((Accumulator)func).getValue();
+                            result.returnStatus = POStatus.STATUS_OK;
+                            ((Accumulator)func).cleanup();
+                            isAccumulationDone = true;
+                        }
                     }
                 } else {
                     if (executor != null) {
