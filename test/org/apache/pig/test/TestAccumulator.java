@@ -660,39 +660,5 @@ public class TestAccumulator extends TestCase{
         Util.checkQueryOutputsAfterSort(iter, expectedRes);
     } 
 
-    /**
-     * see PIG-1911 . 
-     * accumulator udf reading from a nested relational op. generate projects
-     * only the accumulator udf. using co-group
-     * @throws IOException
-     * @throws ParseException
-     */
-    @Test
-    public void testAccumAfterNestedOpCoGroup() throws IOException, ParseException{
-        // test group by
-        pigServer.registerQuery("A = load '" + INPUT_FILE + "' as (id:int, fruit);");
-        pigServer.registerQuery("B = load '" + INPUT_FILE + "' as (id:int, fruit);");
-        pigServer.registerQuery("C = cogroup A by id, B by id;");
-        pigServer.registerQuery("D = foreach C " +
-                "{ OA = order A by fruit;" +
-                "  FB = filter B by fruit != 'strawberry'; " +
-                "  generate" +
-                "     org.apache.pig.test.utils.AccumulatorBagCount(OA)," +
-                "     org.apache.pig.test.utils.AccumulativeSumBag(FB.fruit);" +
-        "}; ");                     
-
-        Iterator<Tuple> iter = pigServer.openIterator("D");
- 
-        List<Tuple> expectedRes = 
-            Util.getTuplesFromConstantTupleStrings(
-                    new String[] {
-                            "(2,'(apple)(apple)')",
-                            "(1,'(orange)')",
-                            "(3,'(pear)(pear)')",
-                            "(1,'(apple)')"
-                    });
-        Util.checkQueryOutputsAfterSort(iter, expectedRes);
-    }    
-    
 
 }
