@@ -67,7 +67,7 @@ public class LOUnion extends LogicalRelationalOperator {
                         + " is null." 
                         + " UNION ONSCHEMA cannot be used with relations that"
                         + " have null schema.";
-                    throw new FrontendException(msg, 1116, PigException.INPUT);
+                    throw new FrontendException(this, msg, 1116, PigException.INPUT);
 
                 } else {
                     return null;
@@ -137,7 +137,7 @@ public class LOUnion extends LogicalRelationalOperator {
                 if(fs.alias == null){
                     String msg = "Schema of relation " + lop.getAlias()
                         + " has a null fieldschema for column(s). Schema :" + sch.toString(false);
-                    throw new FrontendException( msg, 1116, PigException.INPUT );
+                    throw new FrontendException( this, msg, 1116, PigException.INPUT );
                 }
             }
             schemas.add( sch );
@@ -150,7 +150,7 @@ public class LOUnion extends LogicalRelationalOperator {
         } catch(FrontendException e)                 {
             String msg = "Error merging schemas for union operator : "
                 + e.getMessage();
-            throw new FrontendException(msg, 1116, PigException.INPUT, e);
+            throw new FrontendException(this, msg, 1116, PigException.INPUT, e);
         }
         
         return mergedSchema;

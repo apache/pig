@@ -46,7 +46,7 @@ public class VisitorException extends FrontendException {
      * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
      */
     public VisitorException(org.apache.pig.newplan.Operator op, String message) {
-        super(op.getLocation() + message);
+        super(op, message);
     }
 
     /**
@@ -86,7 +86,7 @@ public class VisitorException extends FrontendException {
      * @param errCode - The error code shown to the user 
      */
     public VisitorException(org.apache.pig.newplan.Operator op, String message, int errCode) {
-        super(op.getLocation() + message, errCode);
+        super(op, message, errCode);
     }
 
     /**
@@ -120,7 +120,7 @@ public class VisitorException extends FrontendException {
      * @param errSrc - The error source 
      */
     public VisitorException(org.apache.pig.newplan.Operator op, String message, int errCode, byte errSrc) {
-        super(op.getLocation() + message, errCode, errSrc);
+        super(op, message, errCode, errSrc);
     }
 
     /**
@@ -147,7 +147,7 @@ public class VisitorException extends FrontendException {
      */
     public VisitorException(org.apache.pig.newplan.Operator op, String message, int errCode, byte errSrc,
             Throwable cause) {
-        super(op.getLocation() + message, errCode, errSrc, cause);
+        super(op, message, errCode, errSrc, cause);
     }
 
     /**

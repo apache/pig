@@ -79,7 +79,7 @@ public class LOLoad extends LogicalRelationalOperator {
             
             return loadFunc;
         }catch (ClassCastException cce) {
-            throw new FrontendException(fs.getFuncSpec() + " should implement the LoadFunc interface.", 2236);    		
+            throw new FrontendException(this, fs.getFuncSpec() + " should implement the LoadFunc interface.", 2236);    		
         }
     }
     
@@ -151,7 +151,7 @@ public class LOLoad extends LogicalRelationalOperator {
                 Schema oldSchema = Schema.getPigSchema(resourceSchema);
                 return Util.translateSchema(oldSchema);
             } catch (IOException e) {
-                throw new FrontendException("Cannot get schema from loadFunc " + loadFunc.getClass().getName(), 2245, e);
+                throw new FrontendException( this, "Cannot get schema from loadFunc " + loadFunc.getClass().getName(), 2245, e);
             }
         }
         return null;
@@ -199,7 +199,7 @@ public class LOLoad extends LogicalRelationalOperator {
 			} catch (IOException ioe) {
 				int errCode = 1018;
 				String msg = "Problem serializing script schema";
-				FrontendException fee = new FrontendException(msg, errCode,
+				FrontendException fee = new FrontendException(this, msg, errCode,
 						PigException.INPUT, false, null, ioe);
 				throw new RuntimeException(fee);
 			}
