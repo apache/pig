@@ -32,6 +32,8 @@ PIG-1876: Typed map for Pig (daijy)
 
 IMPROVEMENTS
 
+PIG-1947: Incorrect line number is reported during parsing(xuefu)
+
 PIG1918: Line number should be give for logical plan failures (xuefu)
 
 PIG-1961: Pig prints "null" as file name in case of grammar error (xuefu)

@@ -1362,6 +1362,8 @@ public class PigServer {
 
         private LogicalPlan lp;
 
+        private int currentLineNum = 0;
+        
         Graph(boolean batchMode) {
             this.batchMode = batchMode;
             this.lp = new LogicalPlan();
@@ -1505,8 +1507,22 @@ public class PigServer {
          * an overall (raw) plan.
          */
         void registerQuery(String query, int startLine) throws IOException {
-            scriptCache.add( query );
-            
+            if( batchMode ) {
+                if( startLine == currentLineNum ) {
+                    String line = scriptCache.remove( scriptCache.size() - 1 );
+                    scriptCache.add( line + query );
+                } else {
+                    while( startLine > currentLineNum + 1 ) {
+                        scriptCache.add( "" );
+                        currentLineNum++;
+                    }
+                    scriptCache.add( query );
+                    currentLineNum = startLine;
+                }
+            } else {
+                scriptCache.add( query );
+            }
+           
             if( !batchMode ) {
                 validateQuery();
             }

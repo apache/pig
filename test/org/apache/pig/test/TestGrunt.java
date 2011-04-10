@@ -23,6 +23,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import junit.framework.Assert;
 import junit.framework.TestCase;
 import org.apache.log4j.Appender;
 import org.apache.log4j.FileAppender;
@@ -35,7 +36,6 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.tools.grunt.Grunt;
 import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.util.LogUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -424,6 +424,30 @@ public class TestGrunt extends TestCase {
             assertTrue(e.getMessage().contains("alias bar"));
         }
         assertTrue(caught);
+    }
+    
+    @Test
+    public void testErrorLineNumber() throws Throwable {
+        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigContext context = server.getPigContext();
+        
+        String strCmd = "A = load 'x' as ( u:int, v:chararray );\n" +
+                        "sh ls\n" +
+                        "B = foreach A generate u , v; C = distinct 'xxx';\n" +
+                        "store C into 'y';";
+        
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+        
+        try {
+            grunt.exec();
+        } catch (Exception e) {
+            assertTrue(e.getMessage().contains("line 3, column 42"));
+            return;
+        }
+        Assert.fail( "Test case is supposed to fail." );
     }
     
     @Test
