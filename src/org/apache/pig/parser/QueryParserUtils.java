@@ -191,7 +191,10 @@ public class QueryParserUtils {
 
         for (int i = 0; i < count; i++) {
             if (i == idx) {
-                parent.addChildren(macroList);
+                // add only there is something to add
+                if (macroList != null) {
+                    parent.addChildren(macroList);
+                }
             } else {
                 parent.addChild((Tree) childList.get(i));
             }
