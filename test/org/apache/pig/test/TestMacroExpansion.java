@@ -1663,6 +1663,31 @@ public class TestMacroExpansion {
         testMacro( query, expected );
     }
     
+    // PIG-1988
+    @Test
+    public void test36() throws Exception {
+        File f = new File("mymacro.pig");
+        f.deleteOnExit();
+        
+        FileWriter fw = new FileWriter(f);
+        fw.append(" ");
+        fw.close();
+
+        String query = "import 'mymacro.pig';" +
+            "define macro1() returns dummy {}; " + 
+            "A = load '1.txt' as (a0:int, a1:chararray);" +
+            "dummy = macro1();" +
+            "B = group A by a0;" + 
+            "store B into 'output';";
+        
+        String expected = 
+            "A = load '1.txt' as (a0:int, a1:chararray);\n" +
+            "B = group A by (a0);\n" +
+            "store B INTO 'output';\n";
+        
+        verify(query, expected);
+    }
+    
     @Test
     public void testCommentInMacro() throws Exception {
         String query = "a = load 'testComplexCast' as (m);\n" +
@@ -1734,7 +1759,11 @@ public class TestMacroExpansion {
         
         String[] args = { "-Dpig.import.search.path=/tmp", "-x", "local", "-c", "myscript.pig" };
         PigStats stats = PigRunner.run(args, null);
- 
+        
+        if (!stats.isSuccessful()) {
+            System.out.println("error msg: " + stats.getErrorMessage());
+        }
+        
         assertTrue(stats.isSuccessful());
         
         String[] args2 = { "-Dpig.import.search.path=/tmp", "-x", "local", "-r", "myscript.pig" };
