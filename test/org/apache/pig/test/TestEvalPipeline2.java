@@ -1435,4 +1435,29 @@ public class TestEvalPipeline2 {
         Assert.assertTrue(t.toString().equals("({(one),(two)})"));
         Assert.assertFalse(iter.hasNext());
     }
+
+    //See PIG-1974
+    @Test
+    public void testCastMap() throws Exception{
+        String[] input = {
+                "([key#1])",
+                "([key#2])",
+        };
+        
+        Util.createInputFile(cluster, "table_testCastMap", input);
+
+        pigServer.registerQuery("a = load 'table_testCastMap' as (m:map[]);");
+        pigServer.registerQuery("b = foreach a generate (map[int])m;");
+        pigServer.registerQuery("c = foreach b generate m#'key' + 1;");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("c");
+        
+        Tuple t = iter.next();
+        Assert.assertEquals(t.get(0), 2);
+        t = iter.next();
+        Assert.assertEquals(t.get(0), 3);
+        Assert.assertFalse(iter.hasNext());
+    }
+    
+    
 }
