@@ -54,8 +54,11 @@ public class StreamingCommandUtils {
         List<String> argv = new ArrayList<String>();
 
         int beginIndex = 0;
+        int endIndex = -1;
+        for( ; beginIndex <  command.length(); beginIndex = endIndex + 1){
+            // look for next arg in string
+            String arg = "";
 
-        while (beginIndex < command.length()) {
             // Skip spaces
             while (Character.isWhitespace(command.charAt(beginIndex))) {
                 ++beginIndex;
@@ -63,30 +66,45 @@ public class StreamingCommandUtils {
 
             char delim = ' ';
             char charAtIndex = command.charAt(beginIndex);
+
+            //find the end of this arg
+            endIndex = beginIndex + 1;
             if (charAtIndex == SINGLE_QUOTE || charAtIndex == DOUBLE_QUOTE) {
                 delim = charAtIndex;
             }
-
-            int endIndex = command.indexOf(delim, beginIndex+1);
-            if (endIndex == -1) {
-                if (Character.isWhitespace(delim)) {
-                    // Reached end of command-line
-                    argv.add(command.substring(beginIndex));
-                    break;
-                } else {
-                    // Didn't find the ending quote/double-quote
-                    throw new ParseException("Illegal command: " + command);
+            else{
+                //space delim
+                while(endIndex < command.length()){
+                    char charAtEndIdx = command.charAt(endIndex);
+                    if(charAtEndIdx == ' '){
+                        // found the next space delim
+                        break;
+                    }else if(charAtEndIdx == SINGLE_QUOTE || charAtEndIdx == DOUBLE_QUOTE){
+                        //switch to new delim so that strings like
+                        // -Dprop='abc xyz' are parsed as one arg
+                        arg = command.substring(beginIndex, endIndex);
+                        beginIndex = endIndex;
+                        endIndex = beginIndex + 1;
+                        delim = charAtEndIdx;
+                        break;
+                    }
+                    endIndex++;
+                }
+                if(delim == ' '){
+                    // reached end of string or next space
+                    argv.add(command.substring(beginIndex, endIndex));
+                    continue;
                 }
             }
 
-            if (Character.isWhitespace(delim)) {
-                // Do not consume the space
-                argv.add(command.substring(beginIndex, endIndex));
-            } else {
-                argv.add(command.substring(beginIndex, endIndex+1));
+            //one of the quote delims
+            endIndex = command.indexOf(delim, endIndex);
+            if (endIndex == -1) {
+                // Didn't find the ending quote/double-quote
+                throw new ParseException("Illegal command: " + command);
             }
+            argv.add(arg + command.substring(beginIndex, endIndex+1));
 
-            beginIndex = endIndex + 1;
         }
 
         return argv.toArray(new String[argv.size()]);
