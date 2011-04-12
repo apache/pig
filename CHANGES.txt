@@ -142,6 +142,9 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-1917: NativeMapReduce does not Allow Configuration Parameters 
+ containing Spaces (thejas)
+
 PIG-1974: Lineage need to set for every cast (thejas)
 
 PIG-1988: Importing an empty macro file causing NPE (rding)

@@ -128,7 +128,9 @@ public class TestNativeMapReduce  {
             pigServer.registerQuery("B = mapreduce '" + jarFileName + "' " +
                     "Store A into 'table_testNativeMRJobSimple_input' "+
                     "Load 'table_testNativeMRJobSimple_output' "+
-            "`org.apache.pig.test.utils.WordCount -files " + STOPWORD_FILE +
+            "`org.apache.pig.test.utils.WordCount " +
+            " -Dmapred.child.java.opts='-Xmx1536m -Xms128m' " +
+            " -files " + STOPWORD_FILE +
             " table_testNativeMRJobSimple_input table_testNativeMRJobSimple_output " +
             STOPWORD_FILE + "`;");
             pigServer.registerQuery("Store B into 'table_testNativeMRJobSimpleDir';");
