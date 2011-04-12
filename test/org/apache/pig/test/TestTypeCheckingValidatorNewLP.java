@@ -3499,6 +3499,7 @@ public class TestTypeCheckingValidatorNewLP {
             checkLastForeachCastLoadFunc(query, "PigStorage('a')", 0);
         }
         
+        
         @Test
         public void testMapLookupLineageNoSchema() throws Throwable {
             String query =  "a = load 'a' using PigStorage('a') ;"
@@ -3609,6 +3610,30 @@ public class TestTypeCheckingValidatorNewLP {
             }
         }
     
+        @Test
+        public void testMapCastLineage() throws Throwable {
+            String query =  
+                "a = load 'a' using PigStorage('a') as (field1 : map[], field2: float );"
+                + "b = foreach a generate (map[int])field1;" ;  
+            checkLastForeachCastLoadFunc(query, "PigStorage('a')");
+        }
+
+        @Test
+        public void testTupleCastLineage() throws Throwable {
+            String query =  
+                "a = load 'a' using PigStorage('a') as (field1 : tuple(i), field2: float);"
+                + "b = foreach a generate (tuple(int))field1;" ;  
+            checkLastForeachCastLoadFunc(query, "PigStorage('a')");
+        }
+        
+        @Test
+        public void testBagCastLineage() throws Throwable {
+            String query =  
+                "a = load 'a' using PigStorage('a') as (field1 : bag{ t : tuple (i)}, field2: float);"
+                + "b = foreach a generate (bag{tuple(int)})field1;" ;  
+            checkLastForeachCastLoadFunc(query, "PigStorage('a')");
+        }
+        
         private void checkLoaderInCasts(LogicalPlan plan, String loaderClassName)
         throws FrontendException 
        {

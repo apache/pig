@@ -28,10 +28,12 @@ import org.apache.pig.newplan.DependencyOrderWalker;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.ReverseDependencyOrderWalker;
 import org.apache.pig.newplan.logical.expression.CastExpression;
+import org.apache.pig.newplan.logical.expression.LogicalExpression;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionVisitor;
 import org.apache.pig.newplan.logical.optimizer.AllExpressionVisitor;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
+import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
 
 
 /**
@@ -98,7 +100,7 @@ public class CastLineageSetter extends AllExpressionVisitor{
             byte inType = cast.getExpression().getType();
             byte outType = cast.getType();
 
-            if(inType == DataType.BYTEARRAY){
+            if(containsByteArrayOrEmtpyInSchema(cast.getExpression().getFieldSchema())){
                 long inUid = cast.getExpression().getFieldSchema().uid;
                 FuncSpec inLoadFunc = uid2LoadFuncMap.get(inUid);
                 if(inLoadFunc == null){
@@ -111,6 +113,34 @@ public class CastLineageSetter extends AllExpressionVisitor{
                 }
             }
         }
+
+        /**
+         * @param fs
+         * @return true if fs is of complex type and contains a bytearray 
+         *  or empty inner schema
+         * @throws FrontendException
+         */
+        private boolean containsByteArrayOrEmtpyInSchema(LogicalFieldSchema fs)
+        throws FrontendException {
+            
+            if(fs.type == DataType.BYTEARRAY)
+                return true;
+            
+            if(DataType.isAtomic(fs.type))
+                return false;
+            
+            if(fs.schema == null || fs.schema.size() == 0)
+                return true;
+            
+            for(LogicalFieldSchema inFs : fs.schema.getFields()){
+                if(containsByteArrayOrEmtpyInSchema(inFs))
+                    return true;
+            }
+
+            return false;
+        }
+
+
 
     }
 
