@@ -44,6 +44,8 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import junit.framework.Assert;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.mapreduce.Job;
@@ -122,7 +124,7 @@ import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 @InterfaceStability.Stable
 public class PigServer {
 
-    private final Log log = LogFactory.getLog(getClass());
+    protected final Log log = LogFactory.getLog(getClass());
 
     /**
      * Given a string, determine the exec type.
@@ -161,14 +163,14 @@ public class PigServer {
      * on a new graph. After the nested script is done, the grunt
      * shell pops up the saved graph and continues working on it.
      */
-    private final Stack<Graph> graphs = new Stack<Graph>();
+    protected final Stack<Graph> graphs = new Stack<Graph>();
 
     /*
      * The current Graph the grunt shell is working on.
      */
     private Graph currDAG;
 
-    private final PigContext pigContext;
+    protected final PigContext pigContext;
     
     private String jobName;
 
@@ -176,7 +178,7 @@ public class PigServer {
 
     private final static AtomicInteger scopeCounter = new AtomicInteger(0);
     
-    private final String scope = constructScope();
+    protected final String scope = constructScope();
 
 
     private boolean isMultiQuery = true;
@@ -366,7 +368,15 @@ public class PigServer {
             stats = execute();
         }
 
-        
+        return getJobs(stats);
+    }
+    
+    /**
+     * Retrieves a list of Job objects from the PigStats object
+     * @param stats
+     * @return A list of ExecJob objects
+     */
+    protected List<ExecJob> getJobs(PigStats stats) {
         LinkedList<ExecJob> jobs = new LinkedList<ExecJob>();
         JobGraph jGraph = stats.getJobGraph();
         Iterator<JobStats> iter = jGraph.iterator();
@@ -649,15 +659,38 @@ public class PigServer {
      */
     public void registerScript(InputStream in, Map<String,String> params,List<String> paramsFiles) throws IOException {
         try {
-            // transform the map type to list type which can been accepted by ParameterSubstitutionPreprocessor
-            List<String> paramList = new ArrayList<String>();
-            if (params!=null){
-                for (Map.Entry<String, String> entry:params.entrySet()){
-                    paramList.add(entry.getKey()+"="+entry.getValue());
-                }
-            }
+            String substituted = doParamSubstitution(in, params, paramsFiles);
+            GruntParser grunt = new GruntParser(new StringReader(substituted));
+            grunt.setInteractive(false);
+            grunt.setParams(this);
+            grunt.parseStopOnError(true);
+        } catch (org.apache.pig.tools.pigscript.parser.ParseException e) {
+            log.error(e.getLocalizedMessage());
+            throw new IOException(e.getCause());
+        }
+    }
 
-            // do parameter substitution
+    /**
+     * Do parameter substitution.
+     * @param in The InputStream of file containing Pig Latin to do substitution on.
+     * @param params Parameters to use to substitute
+     * @param paramsFiles Files to use to do substitution.
+     * @return String containing Pig Latin with substitutions done
+     * @throws IOException
+     */
+    protected String doParamSubstitution(InputStream in,
+                                         Map<String,String> params,
+                                         List<String> paramsFiles) throws IOException {
+        // transform the map type to list type which can been accepted by ParameterSubstitutionPreprocessor
+        List<String> paramList = new ArrayList<String>();
+        if (params != null) {
+            for (Map.Entry<String, String> entry : params.entrySet()) {
+                paramList.add(entry.getKey() + "=" + entry.getValue());
+             }
+        }
+
+        // do parameter substitution
+        try {
             ParameterSubstitutionPreprocessor psp = new ParameterSubstitutionPreprocessor(50);
             StringWriter writer = new StringWriter();
             psp.genSubstitutedFile(new BufferedReader(new InputStreamReader(in)),
@@ -665,18 +698,29 @@ public class PigServer {
                                    paramList.size() > 0 ? paramList.toArray(new String[0]) : null,
                                    paramsFiles!=null ? paramsFiles.toArray(new String[0]) : null);
 
-            GruntParser grunt = new GruntParser(new StringReader(writer.toString()));
-            grunt.setInteractive(false);
-            grunt.setParams(this);
-            grunt.parseStopOnError(true);
-        } catch (org.apache.pig.tools.pigscript.parser.ParseException e) {
-            log.error(e.getLocalizedMessage());
-            throw new IOException(e.getCause());
+            return writer.toString();
         } catch (org.apache.pig.tools.parameters.ParseException e) {
             log.error(e.getLocalizedMessage());
             throw new IOException(e.getCause());
         }
     }
+
+    /**
+     * Creates a clone of the current DAG
+     * @return A Graph object which is a clone of the current DAG
+     * @throws IOException
+     */
+    protected Graph getClonedGraph() throws IOException {
+        Graph graph = currDAG.duplicate();
+
+        if (graph == null) {
+            int errCode = 2127;
+            String msg = "Cloning of plan failed.";
+            throw new FrontendException(msg, errCode, PigException.BUG);
+        }
+        return graph;
+    }
+
 
     /**
      * Register a query with the Pig runtime.  The query will be read from the indicated file.
@@ -1275,10 +1319,22 @@ public class PigServer {
         ScriptState.get().setScriptFeatures( currDAG.lp );
         PhysicalPlan pp = compilePp();
        
+        return launchPlan(pp, "job_pigexec_");
+    }
+
+    /**
+     * A common method for launching the jobs according to the physical plan
+     * @param pp The physical plan
+     * @param jobName A String containing the job name to be used
+     * @return The PigStats object
+     * @throws ExecException
+     * @throws FrontendException
+     */
+    protected PigStats launchPlan(PhysicalPlan pp, String jobName) throws ExecException, FrontendException {
         MapReduceLauncher launcher = new MapReduceLauncher();
         PigStats stats = null;
         try {
-            stats = launcher.launchPig(pp, "job_pigexec_", pigContext);
+            stats = launcher.launchPig(pp, jobName, pigContext);
         } catch (Exception e) {
             // There are a lot of exceptions thrown by the launcher.  If this
             // is an ExecException, just let it through.  Else wrap it.
@@ -1342,7 +1398,7 @@ public class PigServer {
     /*
      * This class holds the internal states of a grunt shell session.
      */
-    private class Graph {
+    protected class Graph {
 
         private final Map<LogicalRelationalOperator, LogicalPlan> aliases = new HashMap<LogicalRelationalOperator, LogicalPlan>();
 
@@ -1364,7 +1420,7 @@ public class PigServer {
 
         private int currentLineNum = 0;
         
-        Graph(boolean batchMode) {
+        public Graph(boolean batchMode) {
             this.batchMode = batchMode;
             this.lp = new LogicalPlan();
         };
@@ -1410,6 +1466,22 @@ public class PigServer {
         Operator getOperator(String alias) throws FrontendException {
             return operators.get( alias );
         }
+
+        public LogicalPlan getPlan(String alias) throws IOException {
+            LogicalPlan plan = lp;
+
+            if (alias != null) {
+                LogicalRelationalOperator op = (LogicalRelationalOperator) operators.get(alias);
+                if(op == null) {
+                    int errCode = 1003;
+                    String msg = "Unable to find an operator for alias " + alias;
+                    throw new FrontendException(msg, errCode, PigException.INPUT);
+                }
+                plan = aliases.get(op);
+            }
+            return plan;
+        }
+
 
         /**
          * Build a plan for the given alias. Extra branches and child branch under alias
@@ -1668,6 +1740,49 @@ public class PigServer {
                     }
                 }
             }
+        }
+        
+
+        protected Graph duplicate() {
+            // There are two choices on how we duplicate the logical plan
+            // 1 - we really clone each operator and connect up the cloned operators
+            // 2 - we cache away the script till the point we need to clone
+            // and then simply re-parse the script. 
+            // The latter approach is used here
+            // FIXME: There is one open issue with this now:
+            // Consider the following script:
+            // A = load 'file:/somefile';
+            // B = filter A by $0 > 10;
+            // store B into 'bla';
+            // rm 'file:/somefile';
+            // A = load 'file:/someotherfile'
+            // when we try to clone - we try to reparse
+            // from the beginning and currently the parser
+            // checks for file existence of files in the load
+            // in the case where the file is a local one -i.e. with file: prefix
+            // This will be a known issue now and we will need to revisit later
+
+            // parse each line of the cached script
+            int lineNumber = 1;
+
+            // create data structures needed for parsing        
+            Graph graph = new Graph(isBatchOn());
+            graph.processedStores = processedStores;
+            graph.fileNameMap = new HashMap<String, String>(fileNameMap);
+
+            try {
+                for (Iterator<String> it = scriptCache.iterator(); it.hasNext(); lineNumber++) {
+                	// always doing registerQuery irrespective of the batch mode
+                	// TODO: Need to figure out if anything different needs to happen if batch 
+                	// mode is not on
+                    graph.registerQuery(it.next(), lineNumber);
+                }
+                graph.postProcess();
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
+                graph = null;
+            }
+            return graph;
         }
     }
 }

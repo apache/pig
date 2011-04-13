@@ -176,14 +176,13 @@ public class GruntParser extends PigScriptParser {
                 parse();
             }
             
-	    if (!sameBatch) {
-		executeBatch();
-	    }
-        } 
-        finally {
-	    if (!sameBatch) {
-		discardBatch();
-	    }
+            if (!sameBatch) {
+                executeBatch();
+            }
+        } finally {
+            if (!sameBatch) {
+                discardBatch();
+            }
         }
         int [] res = { mNumSucceededJobs, mNumFailedJobs };
         return res;
@@ -234,6 +233,20 @@ public class GruntParser extends PigScriptParser {
     public boolean isDone() {
         return mDone;
     }
+
+    /*
+     * parseOnly method added for supporting penny
+     */
+    public void parseOnly() throws IOException, ParseException {
+        if (mPigServer == null) {
+            throw new IllegalStateException();
+        }
+
+        mDone = false;
+        while(!mDone) {
+            parse();
+        }
+    }    
     
     @Override
     protected void processDescribe(String alias) throws IOException {
