@@ -32,6 +32,9 @@ PIG-1876: Typed map for Pig (daijy)
 
 IMPROVEMENTS
 
+PIG-1881: Need a special interface for Penny (Inspector Gadget) (laukik via
+gates)
+
 PIG-1947: Incorrect line number is reported during parsing(xuefu)
 
 PIG1918: Line number should be give for logical plan failures (xuefu)
