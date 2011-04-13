@@ -293,9 +293,9 @@ public class TestTmpFileCompression {
         w1.close();
         
         PrintWriter w2 = new PrintWriter(new FileWriter("tfile2.pig"));
-        w2.println("A = load 'tfile' using org.apache.pig.impl.io.TFileStorage() as (a:int, b:bag{(b0:int, b1:chararray)});");
+        w2.println("A = load 'tfile' using org.apache.pig.impl.io.TFileStorage() as (a:int, b:bag{t:(b0:int, b1:chararray)});");
         w2.println("B = foreach A generate flatten($1);");
-        w2.println("store B into '2.txt';");
+        w2.println("store B into 'output1977';");
         w2.close();
         
         try {
@@ -311,20 +311,22 @@ public class TestTmpFileCompression {
 
             assertTrue(stats2.isSuccessful());
             
-            OutputStats os = stats2.result("B");
-            Iterator<Tuple> iter = os.iterator();
+            Util.copyFromClusterToLocal(cluster, "output1977/part-m-00000", "output1977");
+            BufferedReader reader = new BufferedReader(new FileReader("output1977"));
+            String line = null;   
             int count = 0;
-            String expected = "(1,this is a test for compression of temp files)";
-            while (iter.hasNext()) {
+            while((line = reader.readLine()) != null) {
+                String[] cols = line.split("\t");
+                assertEquals("1", cols[0]);
+                assertEquals("this is a test for compression of temp files", cols[1]);
                 count++;
-                assertEquals(expected, iter.next().toString());
             }
             assertEquals(30, count);
-            
         } finally {
             new File("tfile.pig").delete(); 
             new File("tfile2.pig").delete(); 
             new File("1.txt").delete(); 
+            new File("output1977").delete(); 
         }
     }
 }
