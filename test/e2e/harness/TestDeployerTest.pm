@@ -14,34 +14,44 @@
 #  See the License for the specific language governing permissions and                 
 #  limitations under the License.                                                      
                                                                                        
-###############################################################################
-# Test for TestHarness itself.  The result should be 2 passes
-#
-#
+package TestDeployerTest;
 
-$cfg = {
-	'driver' => 'Test',
-	'propertiesFile' => "./conf/default.conf",
+use TestDeployer;
 
-	'groups' => [
-		{
-		'name' => 'passing',
-		'tests' => [
-			{
-			'num' => 1,
-			'rc' => 1,
-			'benchmark_rc' => 1,
-			},
-			{
-			'num' => 2,
-			'rc' => 2,
-			'benchmark_rc' => 2,
-			}
-		]
-		},
-    ],
+our @ISA = "TestDeployer";
+
+use strict;
+
+###########################################################################
+# Class: TestDeployerTest
+# A very simple test of TestDeployer.  It does nothing.
+
+##############################################################################
+# Sub: new
+# Constructor
+#
+# Paramaters:
+# None
+#
+# Returns:
+# None.
+sub new
+{
+	my $proto = shift;
+	my $class = ref($proto) || $proto;
+	my $self = {};
+
+	bless($self, $class);
+
+	return $self;
 }
-;
 
+sub confirmDeployment
+{
+}
 
+sub confirmUndeployment
+{
+}
 
+1;

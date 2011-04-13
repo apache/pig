@@ -17,6 +17,8 @@
 PIG_TH_DIR     =	.
 
 PIG_TH_MODULES =	$(PIG_TH_DIR)/Insert2Mysql.pm \
+					$(PIG_TH_DIR)/TestDeployerFactory.pm \
+					$(PIG_TH_DIR)/TestDeployer.pm  \
 					$(PIG_TH_DIR)/TestDriverFactory.pm \
 					$(PIG_TH_DIR)/TestDriver.pm  \
 					$(PIG_TH_DIR)/TestReport.pm \
@@ -25,7 +27,8 @@ PIG_TH_MODULES =	$(PIG_TH_DIR)/Insert2Mysql.pm \
 					 
 PIG_TH_TEST_DIR		= $(PIG_TH_DIR)
 
-PIG_TH_TEST_MODULES = $(PIG_TH_TEST_DIR)/TestDriverTest.pm
+PIG_TH_TEST_MODULES = $(PIG_TH_TEST_DIR)/TestDriverTest.pm \
+                      $(PIG_TH_TEST_DIR)/TestDeployerTest.pm
 
 ARCHIVE = pigharness.tar
 
@@ -40,12 +43,13 @@ test: $(ARCHIVE)
 	mkdir -p $(TEST_DIR)
 	mkdir -p $(TEST_DIR)/conf
 	cp $(ARCHIVE) $(TEST_DIR)
-	cp test/tests/test.conf $(TEST_DIR)
+	cp test/tests/*.conf $(TEST_DIR)
 	cp test/conf/default.conf $(TEST_DIR)/conf
 	(cd $(TEST_DIR); tar xf $(ARCHIVE))
 	mkdir -p $(TEST_DIR)/$(PIG_TH_TEST_DIR)
 	cp $(PIG_TH_TEST_MODULES) $(TEST_DIR)/$(PIG_TH_TEST_DIR)
 	(cd $(TEST_DIR); export PIG_HARNESS_ROOT=.; ./$(MAIN) test.conf)
+	(cd $(TEST_DIR); export PIG_HARNESS_ROOT=.; ./$(MAIN) -deploycfg deploy.conf -deploy -undeploy test.conf)
 
 clean:
 	rm -f $(ARCHIVE)

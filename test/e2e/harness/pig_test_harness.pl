@@ -82,6 +82,8 @@ unshift( @INC, ".");
 
 require TestDriver;
 require TestDriverFactory;
+require TestDeployer;
+require TestDeployerFactory;
 require Insert2Mysql;
 require Properties;
 require Log; # why aren't we using log4perl?
@@ -98,14 +100,20 @@ our $dblog;
 #  usage string
 sub usage
 {
-	return "Usage: $0 [OPTIONS] conffile [... confile]\n
-		OPTIONS:\n
-		-l <log file name> - set log file name\n
-		-t <test group name> - set test group testcases\n
-		-d <description name> - set description for MySQL database\n
-		-r <regexp> - set regular expression for test group testcases\n
-		-db <0 or 1> - disable using MySQL database if set to 0\n
-		-st <group name> - start test from provided group name\n";
+    return 
+"Usage: $0 [OPTIONS] conffile [... confile]
+    OPTIONS:
+    -l <log file name> - set log file name
+    -t <test group name> - set test group testcases
+    -d <description name> - set description for MySQL database
+    -r <regexp> - set regular expression for test group testcases
+    -db <0 or 1> - disable using MySQL database if set to 0
+    -st <group name> - start test from provided group name
+    -deploycfg <deploy cfg file> -deploy - Deploy the test setup before testing
+        <deploy cfg file> is the configuration file for deployment
+    -deploycfg <deploy cfg file> -undeploy - Undeploy the test setup after testing
+        <deploy cfg file> is the configuration file for deployment
+    ";
 }
 
 ##############################################################################
@@ -240,6 +248,9 @@ my $testrun_desc = 'none';
 my @testgroups;
 my @testMatches;
 my $startat = undef;
+my $deploycfg = undef;
+my $deploy = undef;
+my $undeploy = undef;
 my $help=0;
 
 die usage() if (@ARGV == 0);
@@ -323,6 +334,24 @@ while ($ARGV[0] =~ /^-/) {
 		next;
 	}
 
+	if ($ARGV[0] =~ /^--?deploycfg$/) {
+		shift;
+		$deploycfg = shift;
+		next;
+	}
+
+	if ($ARGV[0] =~ /^--?deploy$/) {
+		shift;
+		$deploy = 1;
+		next;
+	}
+
+	if ($ARGV[0] =~ /^--?undeploy$/) {
+		shift;
+		$undeploy = 1;
+		next;
+	}
+
 	# Not an argument for us, so just push it into the hash.  These arguments
 	# will override values in the config file.
 	my $key = shift;
@@ -343,6 +372,80 @@ print "=========================================================================
 print "LOGGING RESULTS TO $logfile\n";
 print "================================================================================================\n";
 
+# If they have requested deployment, do it now
+if ($deploy) {
+    if (!$deploycfg) {
+        die "You must define a deployment configuration file using -deploycfg "
+            . "<cfg file> if you want to deploy your test resources.\n";
+    }
+
+    # Read the deployment cfg file
+    print $log "INFO: $0 at ".__LINE__." : Loading configuration file $deploycfg\n";
+    my $cfg = readCfg($deploycfg);
+
+    # Instantiate the TestDeployer
+    my $deployer = TestDeployerFactory::getTestDeployer($cfg);
+    die "FATAL: $0: Deployer does not exist\n" if ( !$deployer );
+
+    eval {
+        $deployer->checkPrerequisites($cfg, $log);
+    };
+    if ($@) {
+        chomp $@;
+        die "Check of prerequites failed: <$@>\n";
+    }
+    eval {
+        $deployer->deploy($cfg, $log);
+    };
+    if ($@) {
+        chomp $@;
+        die "Deployment of test resources failed: <$@>\n";
+    }
+    eval {
+        $deployer->start($cfg, $log);
+    };
+    if ($@) {
+        chomp $@;
+        die "Failed to start test resources: <$@>\n";
+    }
+    eval {
+        $deployer->generateData($cfg, $log);
+    };
+    if ($@) {
+        chomp $@;
+        die "Failed to generate data for testing: <$@>\n";
+    }
+    eval {
+        $deployer->confirmDeployment($cfg, $log);
+    };
+    if ($@) {
+        chomp $@;
+        die "Failed to confirm that test resources were properly deployed: <$@>\n";
+    }
+
+    print $log "INFO: $0 at " . __LINE__ .
+        " : Successfully deployed test resources $deploycfg\n";
+}
+
+# If they said -undeploy test up front that they have a deploycfg file and that we
+# can read it so we lower the risk of running all the tests and then failing to
+# undeploy.
+if ($undeploy) {
+    if (!$deploycfg) {
+        die "You must define a deployment configuration file using -deploycfg "
+            . "<cfg file> if you want to undeploy your test resources.\n";
+    }
+
+    # Read the deployment cfg file
+    print $log "INFO: $0 at ".__LINE__." : Loading configuration file $deploycfg\n";
+    my $cfg = readCfg($deploycfg);
+
+    # Instantiate the TestDeployer
+    my $deployer = TestDeployerFactory::getTestDeployer($cfg);
+    die "FATAL: $0: Deployer does not exist\n" if ( !$deployer );
+}
+
+
 print $log "Beginning test run at " . time . "\n";
 
 my $dbh = undef;
@@ -359,7 +462,7 @@ if($dblog) {
 
 my %testStatuses;
 foreach my $arg (@ARGV) {
-        print $log "INFO: $0 at ".__LINE__." : Loading configuration file $arg\n";
+    print $log "INFO: $0 at ".__LINE__." : Loading configuration file $arg\n";
 	my $cfg = readCfg($arg);
 	# Copy contents of global config file into hash.
 	foreach(keys(%$globalCfg)) {
@@ -379,7 +482,49 @@ $dbh->endTestRun($globalCfg->{'trid'}) if ($dblog);
 TestDriver::printResults(\%testStatuses, \*STDOUT, "Final results ");
 TestDriver::printResults(\%testStatuses, $log, "Final results");
 print $log  "Finished test run at " . time . "\n";
-	
+
+# If they have requested undeployment, do it now
+if ($undeploy) {
+    # Read the deployment cfg file
+    print $log "INFO: $0 at ".__LINE__." : Loading configuration file $deploycfg\n";
+    my $cfg = readCfg($deploycfg);
+
+    # Instantiate the TestDeployer
+    my $deployer = TestDeployerFactory::getTestDeployer($cfg);
+    die "FATAL: $0: Deployer does not exist\n" if ( !$deployer );
+
+    eval {
+        $deployer->deleteData($cfg, $log);
+    };
+    if ($@) {
+        chomp $@;
+        warn "Failed to delete data as part of undeploy: <$@>\n";
+    }
+    eval {
+        $deployer->stop($cfg, $log);
+    };
+    if ($@) {
+        chomp $@;
+        warn "Failed to stop test resources: <$@>\n";
+    }
+    eval {
+        $deployer->undeploy($cfg, $log);
+    };
+    if ($@) {
+        chomp $@;
+        warn "Failed to undeploy test resources: <$@>\n";
+    }
+    eval {
+        $deployer->confirmUndeployment($cfg, $log);
+    };
+    if ($@) {
+        chomp $@;
+        die "Failed to confirm that test resources were properly undeployed: <$@>\n";
+    }
+
+    print $log "INFO: $0 at " . __LINE__ .
+        " : Successfully undeployed test resources $deploycfg\n";
+}
 close $log;
 
 exit exitStatus(\%testStatuses);
