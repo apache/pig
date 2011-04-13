@@ -14,34 +14,43 @@
 #  See the License for the specific language governing permissions and                 
 #  limitations under the License.                                                      
                                                                                        
+package TestDeployerFactory;
+
 ###############################################################################
-# Test for TestHarness itself.  The result should be 2 passes
+# Class: TestDeployerFactory
+# A factory for TestDeployers.  This will read the environment and return the 
+# correct TestDeployer.
 #
+ 
+use strict;
+
+require Exporter;
+our @ISA = "Exporter";
+our @EXPORT_OK = qw(splitLine readLine isTag);
+
+###############################################################################
+# Sub: getTestDeployer
+# Returns the appropriate Test Deployer.  This is determined by reading 
+# the 'deployer' value in the config file.
 #
+# Returns:
+# instance of appropriate subclass of TestDeployer
+#
+sub getTestDeployer
+{
+	my $cfg = shift;
 
-$cfg = {
-	'driver' => 'Test',
-	'propertiesFile' => "./conf/default.conf",
+	if (not defined $cfg->{'deployer'}) {
+		die "$0 FATAL : I didn't see a deployer key in the file, I don't know "
+			. "what deployer to instantiate.\n";
+	}
 
-	'groups' => [
-		{
-		'name' => 'passing',
-		'tests' => [
-			{
-			'num' => 1,
-			'rc' => 1,
-			'benchmark_rc' => 1,
-			},
-			{
-			'num' => 2,
-			'rc' => 2,
-			'benchmark_rc' => 2,
-			}
-		]
-		},
-    ],
+	my $className = $cfg->{'deployer'};
+
+    require "$className.pm";
+	my $deployer = new $className();
+
+	return $deployer;
 }
-;
 
-
-
+1;

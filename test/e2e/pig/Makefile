@@ -107,15 +107,18 @@ $(ARCHIVE): $(TESTS) $(DRIVERS) $(CONF_FILES) $(TOOLS)
 build_udfs: 
 	(if [ "$${PH_PIG}x" == "x" ] ; then echo \
 	 	"You must set the environment variable PH_PIG" \
+		"to the directory your pig.jar is in " \
 		"before building the UDFs"; 1; fi)
 	(cd $(JAVA_UDF_DIR); ant -Dpig.jarfile=$${PH_PIG}/pig.jar)
 
 test: $(ARCHIVE) build_udfs
 	(if [ "$${PH_CLUSTER}x" == "x" ] ; then echo \
-	 	"You must set the environment variable PH_CLUSTER " \
+	 	"You must set the environment variable PH_CLUSTER" \
+		"to the directory that contains your hadoop-site.xml" \
 		"before running the tests"; 1; fi)
 	(if [ "$${PH_JYTHON_JAR}x" == "x" ] ; then echo \
-	 	"You must set the environment variable PH_JYTHON_JAR " \
+	 	"You must set the environment variable PH_JYTHON_JAR" \
+		"to the path of your jython jar" \
 		"before running the tests"; 1; fi)
 	mkdir -p $(TEST_DIST_DIR)/benchmarks
 	cp $(ARCHIVE) $(TEST_DIST_DIR)
