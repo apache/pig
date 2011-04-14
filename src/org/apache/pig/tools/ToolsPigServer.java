@@ -33,6 +33,7 @@ import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.tools.grunt.GruntParser;
@@ -58,6 +59,15 @@ public class ToolsPigServer extends PigServer {
      */
     public ToolsPigServer(String execTypeString) throws ExecException, IOException {
         super(execTypeString);
+    }
+
+    /**
+     * @param ctx the context to use to construct the PigServer
+     * @throws ExecException if throws by PigServer
+     * @throws IOException if throws by PigServer
+     */
+    public ToolsPigServer(PigContext ctx) throws ExecException, IOException {
+        super(ctx);
     }
 
     /**
