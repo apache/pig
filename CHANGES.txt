@@ -147,6 +147,9 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-1897: multiple star projection in a statement does not produce 
+ the right plan (thejas)
+
 PIG-1917: NativeMapReduce does not Allow Configuration Parameters 
  containing Spaces (thejas)
 
