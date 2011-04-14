@@ -114,5 +114,33 @@ public class TestProjectStarExpander  {
 
     }
     
+    /**
+     * Test projecting multiple *
+     * @throws IOException
+     * @throws ParseException
+     */
+    @Test
+    public void testProjectStarMulti() throws IOException, ParseException {
+        PigServer pig = new PigServer(ExecType.LOCAL);
+        String query =
+            "  l1 = load '" + INP_FILE_5FIELDS + "' as (a : int, b : int, c : int);"
+            + "f = foreach l1 generate * as (aa, bb, cc), *;"
+        ; 
+
+        Util.registerMultiLineQuery(pig, query);
+       
+        Schema expectedSch = Util.getSchemaFromString(
+                "aa : int, bb : int, cc : int, a : int, b : int, c : int");
+        Schema sch = pig.dumpSchema("f");
+        assertEquals("Checking expected schema", expectedSch, sch);
+        List<Tuple> expectedRes = 
+            Util.getTuplesFromConstantTupleStrings(
+                    new String[] {
+                            "(10,20,30,10,20,30)",
+                            "(11,21,31,11,21,31)",
+                    });
+        Iterator<Tuple> it = pig.openIterator("f");
+        Util.checkQueryOutputsAfterSort(it, expectedRes);
+    }
    
 }
