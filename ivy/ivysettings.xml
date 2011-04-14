@@ -30,6 +30,8 @@
           http://www.ibiblio.net/pub/packages/maven2
   -->
   <property name="repo.maven.org" value="${mvnrepo}" override="true"/>
+  <property name="repo.jboss.org" value="http://repository.jboss.com/nexus/content/groups/public/" override="false"/>
+
   <property name="maven2.pattern"  value="[organisation]/[module]/[revision]/[module]-[revision](-[classifier])"/> 
   <property name="maven2.pattern.ext" value="${maven2.pattern}.[ext]"/>
   <!-- pull in the local repository -->
@@ -37,9 +39,11 @@
   <settings defaultResolver="default"/>
   <resolvers>
     <ibiblio name="maven2" root="${repo.maven.org}" pattern="${maven2.pattern.ext}" m2compatible="true"/>
+    <ibiblio name="jboss-maven2" root="${repo.jboss.org}" pattern="${maven2.pattern.ext}" m2compatible="true"/>
     <chain name="default" dual="true">
       <resolver ref="local"/>
       <resolver ref="maven2"/>
+      <resolver ref="jboss-maven2"/>
     </chain>
     <chain name="internal">
       <resolver ref="local"/>
