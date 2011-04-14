@@ -239,6 +239,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1993: PigStorageSchema throw NPE with ColumnPruning (daijy)
+
 PIG-1935: New logical plan: Should not push up filter in front of Bincond (daijy)
 
 PIG-1861: The pig script stored in the Hadoop History logs is stored as a concatenated string without whitespace this causes problems when attempting to extract and execute the script (rding) 
