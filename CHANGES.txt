@@ -147,6 +147,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-1697: NullPointerException if log4j.properties is Used (laukik via daijy)
+
 PIG-1929:Type checker failed to catch invalid type comparison (thejas)
 
 PIG-1928: Type Checking, incorrect error message (thejas)
