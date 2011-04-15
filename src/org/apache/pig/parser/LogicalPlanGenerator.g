@@ -801,7 +801,7 @@ var_expr[LogicalExpressionPlan plan] returns[LogicalExpression expr]
   )*
   {
       if( ( $expr instanceof ScalarExpression ) && columns == null ) {
-          throw new InvalidScalarProjectionException( input, loc, (ScalarExpression)$expr );
+          throw new InvalidScalarProjectionException( input, loc, (ScalarExpression)$expr, " : A column needs to be projected from a relation for it to be used as a scalar" );
       }
   }
 ;
