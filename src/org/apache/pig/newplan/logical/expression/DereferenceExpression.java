@@ -158,6 +158,7 @@ public class DereferenceExpression extends ColumnExpression {
                 bagSchema.addField(new LogicalSchema.LogicalFieldSchema(null, innerSchema, DataType.TUPLE, 
                         LogicalExpression.getNextUid()));
                 fieldSchema = new LogicalSchema.LogicalFieldSchema(null, bagSchema, DataType.BAG, LogicalExpression.getNextUid());
+                uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
             }
             else { // Dereference a field out of a tuple
                 if (predFS.schema!=null) {
@@ -167,6 +168,7 @@ public class DereferenceExpression extends ColumnExpression {
                     fieldSchema = predFS.schema.getField(columns.get(0));
                 } else{
                     fieldSchema = new LogicalFieldSchema(null, null, DataType.BYTEARRAY);
+                    uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
                 }
             }
         }
