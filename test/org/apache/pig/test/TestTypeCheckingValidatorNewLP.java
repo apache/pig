@@ -401,7 +401,10 @@ public class TestTypeCheckingValidatorNewLP {
             fail("Exception expected") ;
         }
         catch (TypeCheckerException pve) {
-            // good
+            String msg = "In alias dummy, incompatible types in " +
+            "Add Operator left hand side:chararray right hand side:long";
+            
+            checkMessageInException(pve, msg);
         }
         printMessageCollector(collector) ;
         //printTypeGraph(plan) ;
@@ -2416,22 +2419,19 @@ public class TestTypeCheckingValidatorNewLP {
 
         private CastExpression getCastFromExpPlan( LogicalExpressionPlan expPlan) {
             
-            if(expPlan.getSources().size() == 1 && expPlan.getSinks().size() == 1 ){
-                // looking for explicit cast . eg, foreach .. generate (int)a;
-                Operator out = expPlan.getSources().get(0);
-                Operator in = expPlan.getSinks().get(0);
-                if(in instanceof ProjectExpression && out instanceof CastExpression){
-                    return (CastExpression)out;
+            CastExpression castExpr = null;
+            Iterator<Operator> opsIter = expPlan.getOperators();
+            while(opsIter.hasNext()){
+                Operator op = opsIter.next();
+                if(op instanceof CastExpression){
+                    if(castExpr != null){
+                        fail("more than one cast found in plan");
+                    }
+                    castExpr = (CastExpression) op;
                 }
-
             }
-                        
-            LogicalExpression exOp = (LogicalExpression) expPlan.getSinks().get(0);
-    
-            if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) expPlan.getSinks().get(1);
-    
-            assertNotNull(expPlan.getPredecessors(exOp));
-            return (CastExpression)expPlan.getPredecessors(exOp).get(0);
+            return castExpr;
+
         }
 
         private LOForEach getForeachFromPlan(String query) throws FrontendException {
@@ -2448,7 +2448,30 @@ public class TestTypeCheckingValidatorNewLP {
             }
             return foreach;
         }
+        
+        private CastExpression getCastFromLastFilter(String query) throws FrontendException {
+            LOFilter filter = getFilterFromPlan(query);
+            
+            LogicalExpressionPlan filterPlan = filter.getFilterPlan();
+            return getCastFromExpPlan(filterPlan);
+        }
+        
 
+        private LOFilter getFilterFromPlan(String query) throws FrontendException {
+            LogicalPlan plan = createAndProcessLPlan(query);
+            LOFilter filter = null;
+            
+            for(Operator op : plan.getSinks()){
+                if(op instanceof LOFilter){
+                    if(filter != null){
+                        fail("more than one sink foreach found in plan");
+                    }
+                    filter = (LOFilter) op;
+                }
+            }
+            return filter;
+        }
+        
         private LogicalPlan createAndProcessLPlan(String query) throws FrontendException {
             LogicalPlan plan = generateLogicalPlan(query);
             
@@ -3494,9 +3517,12 @@ public class TestTypeCheckingValidatorNewLP {
         public void testMapLookupLineage() throws Throwable {
             String query =  "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );"
             + "b = foreach a generate field1#'key1' as map1;"
-            + "c = foreach b generate map1#'key2' + 1 ;";
-            
+            + "c = foreach b generate map1#'key2' as keyval;";
             checkLastForeachCastLoadFunc(query, "PigStorage('a')", 0);
+            
+            query += "d = foreach c generate keyval + 1 ;";
+            checkLastForeachCastLoadFunc(query, "PigStorage('a')", 0);
+
         }
         
         
@@ -3504,8 +3530,10 @@ public class TestTypeCheckingValidatorNewLP {
         public void testMapLookupLineageNoSchema() throws Throwable {
             String query =  "a = load 'a' using PigStorage('a') ;"
             + "b = foreach a generate $0#'key1';"
-            + "c = foreach b generate $0#'key2' + 1 ;";
+            + "c = foreach b generate $0#'key2' ;";
+            checkLastForeachCastLoadFunc(query, "PigStorage('a')", 0);
             
+            query += "d = foreach c generate $0 + 1;";
             checkLastForeachCastLoadFunc(query, "PigStorage('a')", 0);
   
         }
@@ -3538,8 +3566,10 @@ public class TestTypeCheckingValidatorNewLP {
         public void testMapLookupLineage3() throws Throwable {
             String query = "a= load 'a' as (s, m, l);"
                 + "b = foreach a generate flatten(l#'viewinfo') as viewinfo ;"
-                + "c = foreach b generate (chararray)viewinfo#'pos' as position;";
+                + "c = foreach b generate viewinfo#'pos' as position;";
+            checkLastForeachCastLoadFunc(query, "org.apache.pig.builtin.PigStorage", 0);
             
+            query +=  "d = foreach c generate (chararray)position;";
             checkLastForeachCastLoadFunc(query, "org.apache.pig.builtin.PigStorage", 0);
 
         }
@@ -3910,5 +3940,112 @@ public class TestTypeCheckingValidatorNewLP {
             LogicalPlan plan = createAndProcessLPlan(query);
             checkLoaderInCasts(plan, PigStorage.class.getName());
         }
+        
+        // See PIG-1929
+        @Test
+        public void testCompareTupleFail() throws Throwable {
+           
+            String query = "a = load 'a' as (t : (i : int, j : int)) ;"
+            + "b = filter a by t > (1,2);";
 
+            String exMsg= "In alias b, incompatible types in GreaterThan Operator" +
+            		" left hand side:tuple i:int,j:int " +
+            		" right hand side:tuple :int,:int";
+
+            checkExceptionMessage(query, "b", exMsg);
+        }
+        
+        @Test
+        public void testCompareEqualityTupleCast() throws Throwable {
+            //test if bytearray col gets casted to tuple
+            String query = "a = load 'a' as (t : (i : int, j : int), col) ;"
+            + "b = filter a by t == col;";
+            
+            CastExpression castExp = getCastFromLastFilter(query);
+            assertNotNull("cast ", castExp);
+            assertEquals("cast type", castExp.getType(), DataType.TUPLE);
+        }
+        
+        @Test
+        public void testCompareEqualityMapCast() throws Throwable {
+            //test if bytearray col gets casted to map
+            String query = "a = load 'a' as (t : map[], col) ;"
+            + "b = filter a by t != col;";
+            
+            CastExpression castExp = getCastFromLastFilter(query);
+            assertNotNull("cast ", castExp);
+            assertEquals("cast type", castExp.getType(), DataType.MAP);
+        }
+        
+        @Test
+        public void testCompareEqualityMapIntegerFail() throws Throwable {
+            //test if failure is reported on use of incompatible type
+            String query = "a = load 'a' as (t1 :map[], t2 : int) ;"
+                + "b = filter a by t1 == t2;";
+
+                String exMsg= "In alias b, incompatible types in Equal " +
+                "Operator left hand side:map right hand side:int";
+                checkExceptionMessage(query, "b", exMsg);
+        }
+        
+        
+        // See PIG-1929
+        @Test
+        public void testCompareMapFail() throws Throwable {
+           
+            String query = "a = load 'a' as (t1 :map[], t2 : map[]) ;"
+            + "b = filter a by t1 <= t2;";
+
+            String exMsg= "In alias b, incompatible types in LessThanEqual " +
+            "Operator left hand side:map right hand side:map";
+            checkExceptionMessage(query, "b", exMsg);
+        }
+        
+        // See PIG-1929
+        @Test
+        public void testCompareBagFail() throws Throwable {
+           
+            String query = "a = load 'a' as (t1 :bag{()}, t2 : bag{()}) ;"
+            + "b = filter a by t1 <= t2;";
+
+            String exMsg= "In alias b, incompatible types in LessThanEqual " +
+            "Operator left hand side:bag :tuple()  right hand side:bag :tuple()";
+            checkExceptionMessage(query, "b", exMsg);
+        }
+
+        // See PIG-1929
+        @Test
+        public void testCompareNULL() throws Throwable {
+           
+            {
+                //equality & null
+                String query = "a = load 'a' as (t1 : int) ;"
+                    + "b = filter a by null == t1;";
+
+                CastExpression castExp = getCastFromLastFilter(query);
+                assertNotNull("cast ", castExp);
+                assertEquals("cast type", castExp.getType(), DataType.INTEGER);
+            }
+            {
+                //equality & null & complex type
+                String query = "a = load 'a' as (t1 : (i : int)) ;"
+                    + "b = filter a by null == t1;";
+
+                CastExpression castExp = getCastFromLastFilter(query);
+                assertNotNull("cast ", castExp);
+                assertEquals("cast type", castExp.getType(), DataType.TUPLE);
+            }
+            {
+                String query = "a = load 'a' as (t1 : int) ;"
+                    + "b = filter a by t1 <= null;";
+
+                CastExpression castExp = getCastFromLastFilter(query);
+                assertNotNull("cast ", castExp);
+                assertEquals("cast type", castExp.getType(), DataType.INTEGER);
+            }
+                        
+        }
+        
+        
+        
 }
