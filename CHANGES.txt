@@ -147,6 +147,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-1979: New logical plan failing with ERROR 2229: Couldn't find matching uid -1 (daijy)
+
 PIG-1897: multiple star projection in a statement does not produce 
  the right plan (thejas)
 
