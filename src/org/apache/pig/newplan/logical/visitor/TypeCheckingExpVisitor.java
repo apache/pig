@@ -226,9 +226,9 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
         LogicalFieldSchema rhsFs = binOp.getRhs().getFieldSchema();
         
         msg = msg + "incompatible types in " + binOp.getName() + " Operator"
-        + " left hand side:" + DataType.findTypeName(lhsFs) 
+        + " left hand side:" + DataType.findTypeName(lhsFs.type) 
         + (lhsFs.schema == null ? "" : " " + lhsFs.schema.toString(false) + " ") 
-        + " right hand side:" + DataType.findTypeName(rhsFs) 
+        + " right hand side:" + DataType.findTypeName(rhsFs.type) 
         + (rhsFs.schema == null ? "" : " " + rhsFs.schema.toString(false) + " ") ;
         return msg;
     }
@@ -309,42 +309,43 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
     @Override
     public void visit(LessThanExpression binOp)
     throws FrontendException {
-        addCastsToCompareBinaryExp(binOp);
+        addCastsToCompareBinaryExp(binOp, false /*not equality op*/);
     }
     
     @Override
     public void visit(LessThanEqualExpression binOp)
     throws FrontendException {
-        addCastsToCompareBinaryExp(binOp);
+        addCastsToCompareBinaryExp(binOp, false /*not equality op*/);
     }
     
 
     @Override
     public void visit(GreaterThanExpression binOp)
     throws FrontendException {
-        addCastsToCompareBinaryExp(binOp);
+        addCastsToCompareBinaryExp(binOp, false /*not equality op*/);
     }
     
     @Override
     public void visit(GreaterThanEqualExpression binOp)
     throws FrontendException {
-        addCastsToCompareBinaryExp(binOp);
+        addCastsToCompareBinaryExp(binOp, false /*not equality op*/);
     }
     
 
     @Override
     public void visit(EqualExpression binOp)
     throws FrontendException {
-        addCastsToCompareBinaryExp(binOp);
+        addCastsToCompareBinaryExp(binOp, true /*equality op*/);
     }
 
     @Override
     public void visit(NotEqualExpression binOp)
     throws FrontendException {
-        addCastsToCompareBinaryExp(binOp);
+        addCastsToCompareBinaryExp(binOp, true /*equality op*/);
     }
     
-    private void addCastsToCompareBinaryExp(BinaryExpression binOp) throws FrontendException {
+    private void addCastsToCompareBinaryExp(BinaryExpression binOp, boolean isEquality)
+    throws FrontendException {
         LogicalExpression lhs = binOp.getLhs() ;
         LogicalExpression rhs = binOp.getRhs() ;
 
@@ -382,32 +383,45 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
         ) {
             // Cast byte array to the type on lhs
             insertCast(binOp, lhsType, binOp.getRhs());
-        }else if ( (lhsType == DataType.TUPLE) &&
-                (rhsType == DataType.TUPLE) ) {
-            // good
+        }else if (isEquality){
+            
+            //in case of equality condition, allow tuples and maps as args
+            if((lhsType == DataType.TUPLE) &&
+                    (rhsType == DataType.TUPLE) ) {
+                // good
+            }
+            else if ( (lhsType == DataType.MAP) &&
+                    (rhsType == DataType.MAP) ) {
+                // good
+            }
+            else if (lhsType == DataType.BYTEARRAY && 
+                    (rhsType == DataType.MAP || rhsType == DataType.TUPLE)){
+                // Cast byte array to the type on lhs
+                insertCast(binOp, rhsType, binOp.getLhs());
+            }
+            else if(rhsType == DataType.BYTEARRAY &&
+                    (lhsType == DataType.MAP || lhsType == DataType.TUPLE)){
+                // Cast byte array to the type on lhs
+                insertCast(binOp, lhsType, binOp.getRhs());
+            }
+            else {
+                throwIncompatibleTypeError(binOp);
+            }
         }
-        else if ( (lhsType == DataType.MAP) &&
-                (rhsType == DataType.MAP) ) {
-            // good
-        }
-        // A constant null is always bytearray - so cast it
-        // to rhs type
-        else if (binOp.getLhs() instanceof ConstantExpression
-                && ((ConstantExpression) binOp.getLhs()).getValue() == null) {
-            insertCast(binOp, rhsType, binOp.getLhs());
-        } else if (binOp.getRhs() instanceof ConstantExpression
-                && ((ConstantExpression) binOp.getRhs()).getValue() == null) {
-            insertCast(binOp, lhsType, binOp.getRhs());
-        } 
         else {
-            int errCode = 1039;
-            String msg = generateIncompatibleTypesMessage(binOp);
-            msgCollector.collect(msg, MessageType.Error) ;
-            throw new TypeCheckerException(binOp, msg, errCode, PigException.INPUT) ;
+            throwIncompatibleTypeError(binOp);
         }
         //input types might have changed, regenerate field schema
         binOp.resetFieldSchema();
         binOp.getFieldSchema();
+    }
+
+    private void throwIncompatibleTypeError(BinaryExpression binOp)
+    throws FrontendException {
+        int errCode = 1039;
+        String msg = generateIncompatibleTypesMessage(binOp);
+        msgCollector.collect(msg, MessageType.Error) ;
+        throw new TypeCheckerException(binOp, msg, errCode, PigException.INPUT);
     }
 
     private void insertCastsForNullToBoolean(BinaryExpression binOp)

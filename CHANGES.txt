@@ -147,6 +147,10 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-1929:Type checker failed to catch invalid type comparison (thejas)
+
+PIG-1928: Type Checking, incorrect error message (thejas)
+
 PIG-1979: New logical plan failing with ERROR 2229: Couldn't find matching uid -1 (daijy)
 
 PIG-1897: multiple star projection in a statement does not produce 

@@ -481,13 +481,8 @@ public class Util {
              Util.registerMultiLineQuery(pig, query);
              pig.explain(alias, System.out);
          }catch(FrontendException e){
-             PigException pigEx = LogUtils.getPigException(e);
              foundEx = true;
-             if(!pigEx.getMessage().contains(expectedErr)){
-                 String msg = "Expected exception message matching '" 
-                     + expectedErr + "' but got '" + pigEx.getMessage() + "'" ;
-                 fail(msg);
-             }
+             checkMessageInException(e, expectedErr);
          }
 
          if(!foundEx)
@@ -495,7 +490,17 @@ public class Util {
 
      }
 
-	/**
+     public static void checkMessageInException(FrontendException e,
+             String expectedErr) {
+         PigException pigEx = LogUtils.getPigException(e);
+         if(!pigEx.getMessage().contains(expectedErr)){
+             String msg = "Expected exception message matching '" 
+                 + expectedErr + "' but got '" + pigEx.getMessage() + "'" ;
+             fail(msg);
+         }
+     }
+
+    /**
 	 * Utility method to copy a file form local filesystem to the dfs on
 	 * the minicluster for testing in mapreduce mode
 	 * @param cluster a reference to the minicluster
