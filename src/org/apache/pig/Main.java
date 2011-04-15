@@ -660,6 +660,9 @@ private static void configureLog4J(Properties properties, PigContext pigContext)
 
     PropertyConfigurator.configure(props);
     logLevel = Logger.getLogger("org.apache.pig").getLevel();
+    if (logLevel==null) {
+    	logLevel = Logger.getLogger("org.apache.pig").getEffectiveLevel();
+    }
     Properties backendProps = pigContext.getLog4jProperties();
     backendProps.setProperty("log4j.logger.org.apache.pig", logLevel.toString());
     pigContext.setLog4jProperties(backendProps);
