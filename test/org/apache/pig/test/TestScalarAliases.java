@@ -580,4 +580,25 @@ public class TestScalarAliases  {
 
         assertFalse(iter.hasNext());
     }
+
+    /**
+     * Test that a specific string is included in the error message when an 
+     * exception is thrown for using a relation in a 
+     * scalar context without projecting any columns out of it
+     */
+    // See PIG-1788
+    @Test
+    public void testScalarWithNoProjection() throws Exception{
+        String query = 
+            "  A = load 'table_testScalarWithNoProjection' as (x, y);" +
+            "  B = group A by x;" +
+            // B is unintentionally being used as scalar, 
+            // the user intends it to be COUNT(A)
+            "  C = foreach B generate COUNT(B);"; 
+
+        Util.checkExceptionMessage(query, "C", 
+                "A column needs to be projected from a relation" +
+                " for it to be used as a scalar"
+        );
+    }
 }

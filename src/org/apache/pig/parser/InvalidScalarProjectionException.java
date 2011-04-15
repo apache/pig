@@ -26,15 +26,30 @@ public class InvalidScalarProjectionException extends PigRecognitionException {
     private static final long serialVersionUID = 1L;
     
     private ScalarExpression scalarExpr;
+    private String msg;
     
-    public InvalidScalarProjectionException(IntStream input, SourceLocation loc, ScalarExpression expr) {
+    public InvalidScalarProjectionException(IntStream input, SourceLocation loc,
+            ScalarExpression expr) {
         super( input, loc );
         this.scalarExpr = expr;
+        this.msg = null;
+    }
+
+    /**
+     * Constructor that takes an additional string to be concatenated 
+     *  with the exception message 
+     */
+    public InvalidScalarProjectionException(IntStream input, SourceLocation loc,
+            ScalarExpression expr, String msg) {
+        super( input, loc );
+        this.scalarExpr = expr;
+        this.msg = new String(msg);
     }
     
     public String toString() {
         return msgHeader() + "Invalid scalar projection: " + 
-            ((LogicalRelationalOperator)scalarExpr.getImplicitReferencedOperator()).getAlias();
+            ((LogicalRelationalOperator)scalarExpr.getImplicitReferencedOperator()).getAlias() + 
+            ((msg!=null) ? msg : ""); 
     }
 
 }
