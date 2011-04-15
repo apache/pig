@@ -1261,4 +1261,30 @@ public class TestEvalPipeline2 extends TestCase {
         assertFalse(iter.hasNext());
         
     }
+    
+    // See PIG-1979
+    @Test
+    public void testDereferenceUidBug() throws Exception{
+        String[] input1 = {
+                "0\t0\t{(1,2)}\t1",
+        };
+        String[] input2 = {
+                "0\t0",
+        };
+        
+        Util.createInputFile(cluster, "table_testDereferenceUidBug1", input1);
+        Util.createInputFile(cluster, "table_testDereferenceUidBug2", input2);
+        pigServer.registerQuery("a = load 'table_testDereferenceUidBug1' as (a0:int, a1:int, a2:{t:(i0:int, i1:int)}, a3:int);");
+        pigServer.registerQuery("b = foreach a generate a0, a1, a0+a1 as sum, a2.i0 as a2, a3;");
+        pigServer.registerQuery("c = filter b by sum==0;");
+        pigServer.registerQuery("d = load 'table_testDereferenceUidBug2' as (d0:int, d1:int);");
+        pigServer.registerQuery("e = join c by a0, d by d0;");
+        pigServer.registerQuery("f = foreach e generate c::a2;");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("f");
+        
+        Tuple t = iter.next();
+        assertTrue(t.toString().equals("({(1)})"));
+        assertFalse(iter.hasNext());
+    }
 }

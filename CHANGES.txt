@@ -34,6 +34,8 @@ PIG-1886: Add zookeeper jar to list of jars shipped when HBaseStorage used (dvry
 
 BUG FIXES
 
+PIG-1979: New logical plan failing with ERROR 2229: Couldn't find matching uid -1 (daijy)
+
 PIG-1977: "Stream closed" error while reading Pig temp files (results of intermediate jobs) (rding)
 
 PIG-1911: Infinite loop with accumulator function in nested foreach (thejas)
@@ -41,6 +43,67 @@ PIG-1911: Infinite loop with accumulator function in nested foreach (thejas)
 PIG-1964: PigStorageSchema fails if a column value is null (thejas)
 
 PIG-1963: in nested foreach, accumutive udf taking input from order-by does not get results in order (thejas)
+
+PIG-1993: PigStorageSchema throw NPE with ColumnPruning (daijy)
+
+PIG-1935: New logical plan: Should not push up filter in front of Bincond (daijy)
+
+PIG-1861: The pig script stored in the Hadoop History logs is stored as a concatenated string without whitespace this causes problems when attempting to extract and execute the script (rding)
+
+PIG-1912: non-deterministic output when a file is loaded multiple times (daijy)
+
+PIG-1892: Bug in new logical plan : No output generated even though there are
+valid records (daijy)
+
+PIG-1808: Error message in 0.8 not much helpful as compared to 0.7 (daijy)
+
+PIG-1770: matches clause problem with chars that have special meaning in dk.brics - #, @ .. (thejas)
+
+PIG-1884: Change ReadToEndLoader.setLocation not throw UnsupportedOperationException (thejas)
+
+PIG-1858: UDF in nested plan results frontend exception (daijy)
+
+PIG-1862: Pig returns exit code 0 for the failed Pig script due to non-existing input directory (rding)
+
+PIG-1850: Order by is failing with ClassCastException if schema is undefined
+for new logical plan in 0.8 (daijy)
+
+PIG-1831: Indeterministic behavior in local mode due to static variable PigMapReduce.sJobConf (daijy)
+
+PIG-1841: TupleSize implemented incorrectly (laukik via daijy)
+
+PIG-1843: NPE in schema generation (daijy)
+
+PIG-1820: New logical plan: FilterLogicExpressionSimplifier fail to deal with UDF (daijy)
+
+PIG-1854: Pig returns exit code 0 for the failed Pig script (rding)
+
+PIG-1812: Problem with DID_NOT_FIND_LOAD_ONLY_MAP_PLAN (daijy)
+
+PIG-1813: Pig 0.8 throws ERROR 1075 while trying to refer a map in the result of eval udf.Works with 0.7 (daijy)
+
+PIG-1776: changing statement corresponding to alias after explain , then
+  doing dump gives incorrect result (thejas)
+
+PIG-1800: Missing Signature for maven staging release (rding)
+
+PIG-1815: pig task retains used instances of PhysicalPlan (thejas)
+
+PIG-1785: New logical plan: uid conflict in flattened fields (daijy)
+
+PIG-1787: Error in logical plan generated (daijy)
+
+PIG-1791: System property mapred.output.compress, but pig-cluster-hadoop-site.xml doesn't (daijy)
+
+PIG-1771: New logical plan: Merge schema fail if LoadFunc.getSchema return different schema with "Load...AS" (daijy)
+
+PIG-1766: New logical plan: ImplicitSplitInserter should before DuplicateForEachColumnRewrite (daijy)
+
+PIG-1762: Logical simplification fails on map key referenced values (yanz)
+
+PIG-1761: New logical plan: Exception when bag dereference in the middle of expression (daijy)
+
+PIG-1760: Need to report progress in all databags (rding)
 
 OPTIMIZATIONS
 
@@ -238,67 +301,6 @@ PIG-1353: Map-side joins (ashutoshc)
 PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
-
-PIG-1993: PigStorageSchema throw NPE with ColumnPruning (daijy)
-
-PIG-1935: New logical plan: Should not push up filter in front of Bincond (daijy)
-
-PIG-1861: The pig script stored in the Hadoop History logs is stored as a concatenated string without whitespace this causes problems when attempting to extract and execute the script (rding) 
-
-PIG-1912: non-deterministic output when a file is loaded multiple times (daijy)
-
-PIG-1892: Bug in new logical plan : No output generated even though there are
-valid records (daijy)
-
-PIG-1808: Error message in 0.8 not much helpful as compared to 0.7 (daijy)
-
-PIG-1770: matches clause problem with chars that have special meaning in dk.brics - #, @ .. (thejas)
-
-PIG-1884: Change ReadToEndLoader.setLocation not throw UnsupportedOperationException (thejas)
-
-PIG-1858: UDF in nested plan results frontend exception (daijy)
-
-PIG-1862: Pig returns exit code 0 for the failed Pig script due to non-existing input directory (rding)
-
-PIG-1850: Order by is failing with ClassCastException if schema is undefined
-for new logical plan in 0.8 (daijy)
-
-PIG-1831: Indeterministic behavior in local mode due to static variable PigMapReduce.sJobConf (daijy)
-
-PIG-1841: TupleSize implemented incorrectly (laukik via daijy)
-
-PIG-1843: NPE in schema generation (daijy)
-
-PIG-1820: New logical plan: FilterLogicExpressionSimplifier fail to deal with UDF (daijy)
-
-PIG-1854: Pig returns exit code 0 for the failed Pig script (rding)
-
-PIG-1812: Problem with DID_NOT_FIND_LOAD_ONLY_MAP_PLAN (daijy)
-
-PIG-1813: Pig 0.8 throws ERROR 1075 while trying to refer a map in the result of eval udf.Works with 0.7 (daijy)
-
-PIG-1776: changing statement corresponding to alias after explain , then
-  doing dump gives incorrect result (thejas)
-
-PIG-1800: Missing Signature for maven staging release (rding)
-
-PIG-1815: pig task retains used instances of PhysicalPlan (thejas)
-
-PIG-1785: New logical plan: uid conflict in flattened fields (daijy)
-
-PIG-1787: Error in logical plan generated (daijy)
-
-PIG-1791: System property mapred.output.compress, but pig-cluster-hadoop-site.xml doesn't (daijy)
-
-PIG-1771: New logical plan: Merge schema fail if LoadFunc.getSchema return different schema with "Load...AS" (daijy)
-
-PIG-1766: New logical plan: ImplicitSplitInserter should before DuplicateForEachColumnRewrite (daijy)
-
-PIG-1762: Logical simplification fails on map key referenced values (yanz)
-
-PIG-1761: New logical plan: Exception when bag dereference in the middle of expression (daijy)
-
-PIG-1760: Need to report progress in all databags (rding)
 
 PIG-1709: Skewed join use fewer reducer for extreme large key (daijy)
 

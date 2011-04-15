@@ -148,6 +148,7 @@ public class DereferenceExpression extends ColumnExpression {
                 }
                 fieldSchema = new LogicalSchema.LogicalFieldSchema(null, innerSchema, predFS.type, 
                         LogicalExpression.getNextUid());
+                uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
             }
             else { // Dereference a field out of a tuple
                 if (predFS.schema!=null)
