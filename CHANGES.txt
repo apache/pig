@@ -34,6 +34,8 @@ PIG-1886: Add zookeeper jar to list of jars shipped when HBaseStorage used (dvry
 
 BUG FIXES
 
+PIG-1870: HBaseStorage doesn't project correctly (dvryaboy)
+
 PIG-1979: New logical plan failing with ERROR 2229: Couldn't find matching uid -1 (daijy)
 
 PIG-1977: "Stream closed" error while reading Pig temp files (results of intermediate jobs) (rding)

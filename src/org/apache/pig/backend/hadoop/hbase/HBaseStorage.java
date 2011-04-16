@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -75,6 +76,8 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.util.ObjectSerializer;
+import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.impl.util.Utils;
 
 import com.google.common.collect.Lists;
@@ -99,6 +102,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
     private RecordReader reader;
     private RecordWriter writer;
     private Scan scan;
+    private String contextSignature = null;
 
     private final CommandLine configuredOptions_;
     private final static Options validOptions_ = new Options();
@@ -115,6 +119,10 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
     private LoadCaster caster_;
 
     private ResourceSchema schema_;
+
+    private RequiredFieldList requiredFieldList;
+
+    private boolean initialized = false;
 
     private static void populateValidOptions() { 
         validOptions_.addOption("loadKey", false, "Load Key");
@@ -240,6 +248,17 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
     @Override
     public Tuple getNext() throws IOException {
         try {
+            if (!initialized) {
+                Properties p = UDFContext.getUDFContext().getUDFProperties(this.getClass(),
+                        new String[] {contextSignature});
+
+                String projectedFields = p.getProperty(contextSignature+"_projectedFields");
+                if (projectedFields != null) {
+                    requiredFieldList = (RequiredFieldList) ObjectSerializer.deserialize(projectedFields);
+                    pushProjection(requiredFieldList);
+                }
+                initialized = true;
+            }
             if (reader.nextKeyValue()) {
                 ImmutableBytesWritable rowKey = (ImmutableBytesWritable) reader
                 .getCurrentKey();
@@ -289,8 +308,16 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
     }
 
     @Override
+    public void setUDFContextSignature(String signature) {
+        this.contextSignature = signature;
+    }
+
+    @Override
     public void setLocation(String location, Job job) throws IOException {
         job.getConfiguration().setBoolean("pig.noSplitCombination", true);
+        m_conf = job.getConfiguration();
+        HBaseConfiguration.addHbaseResources(m_conf);
+
         // Make sure the HBase, ZooKeeper, and Guava jars get shipped.
         TableMapReduceUtil.addDependencyJars(job.getConfiguration(), 
             org.apache.hadoop.hbase.client.HTable.class,
@@ -304,11 +331,21 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         if (m_table == null) {
             m_table = new HTable(m_conf, tablename);
         }
-        HBaseConfiguration.addHbaseResources(m_conf);
         m_table.setScannerCaching(caching_);
         m_conf.set(TableInputFormat.INPUT_TABLE, tablename);
+
+        // Set up scan if it is not already set up.
+        if (m_conf.get(TableInputFormat.SCAN) != null) {
+            return;
+        }
+
         for (byte[][] col : columnList_) {
             scan.addColumn(col[0], col[1]);
+        }
+        if (requiredFieldList != null) {
+            Properties p = UDFContext.getUDFContext().getUDFProperties(this.getClass(),
+                    new String[] {contextSignature});
+            p.setProperty(contextSignature + "_projectedFields", ObjectSerializer.serialize(requiredFieldList));
         }
         m_conf.set(TableInputFormat.SCAN, convertScanToString(scan));
     }
@@ -372,6 +409,15 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
     @SuppressWarnings("unchecked")
     @Override
     public void putNext(Tuple t) throws IOException {
+        if (!initialized) {
+            Properties p = UDFContext.getUDFContext().getUDFProperties(this.getClass(),
+                    new String[] {contextSignature});
+            String serializedSchema = p.getProperty(contextSignature + "_schema");
+            if (serializedSchema!= null) {
+                schema_ = (ResourceSchema) ObjectSerializer.deserialize(serializedSchema);
+            }
+            initialized = true;
+        }
         ResourceFieldSchema[] fieldSchemas = (schema_ == null) ? null : schema_.getFields();
         Put put=new Put(objToBytes(t.get(0), 
                 (fieldSchemas == null) ? DataType.findType(t.get(0)) : fieldSchemas[0].getType()));
@@ -391,6 +437,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
     @SuppressWarnings("unchecked")
     private byte[] objToBytes(Object o, byte type) throws IOException {
         LoadStoreCaster caster = (LoadStoreCaster) caster_;
+        if (o == null) return null;
         switch (type) {
         case DataType.BYTEARRAY: return ((DataByteArray) o).get();
         case DataType.BAG: return caster.toBytes((DataBag) o);
@@ -418,7 +465,9 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
     }
 
     @Override
-    public void setStoreFuncUDFContextSignature(String signature) { }
+    public void setStoreFuncUDFContextSignature(String signature) {
+        this.contextSignature = signature;
+    }
 
     @Override
     public void setStoreLocation(String location, Job job) throws IOException {
@@ -427,7 +476,11 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         }else{
             job.getConfiguration().set(TableOutputFormat.OUTPUT_TABLE, location);
         }
-        m_conf = HBaseConfiguration.create(job.getConfiguration());
+        Properties props = UDFContext.getUDFContext().getUDFProperties(getClass(), new String[]{contextSignature});
+        if (!props.containsKey(contextSignature + "_schema")) {
+            props.setProperty(contextSignature + "_schema",  ObjectSerializer.serialize(schema_));
+    }
+        m_conf = HBaseConfiguration.addHbaseResources(job.getConfiguration());
     }
 
     @Override
@@ -446,29 +499,33 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
     @Override
     public RequiredFieldResponse pushProjection(
             RequiredFieldList requiredFieldList) throws FrontendException {
+
+        // colOffset is the offset in our columnList that we need to apply to indexes we get from requiredFields
+        // (row key is not a real column)
+        int colOffset = loadRowKey_ ? 1 : 0;
+        // projOffset is the offset to the requiredFieldList we need to apply when figuring out which columns to prune.
+        // (if key is pruned, we should skip row key's element in this list when trimming colList)
+        int projOffset = colOffset;
+
+        this.requiredFieldList = requiredFieldList;
         List<RequiredField>  requiredFields = requiredFieldList.getFields();
+        if (requiredFieldList != null && requiredFields.size() > (columnList_.size() + colOffset)) {
+            throw new FrontendException("The list of columns to project from HBase is larger than HBaseStorage is configured to load.");
+        }
+
         List<byte[][]> newColumns = Lists.newArrayListWithExpectedSize(requiredFields.size());
         
         // HBase Row Key is the first column in the schema when it's loaded, 
         // and is not included in the columnList (since it's not a proper column).
-        int offset = loadRowKey_ ? 1 : 0;
-        
-        if (loadRowKey_) {
-            if (requiredFields.size() < 1 || requiredFields.get(0).getIndex() != 0) {
+        if (loadRowKey_ &&
+                ( requiredFields.size() < 1 || requiredFields.get(0).getIndex() != 0)) {
                 loadRowKey_ = false;
-            } else {
-                // We just processed the fact that the row key needs to be loaded.
-                requiredFields.remove(0);
+            projOffset = 0;
             }
-        }
         
-        for (RequiredField field : requiredFields) {
-            int fieldIndex = field.getIndex();
-            newColumns.add(columnList_.get(fieldIndex - offset));
-        }
-        LOG.debug("pushProjection After Projection: loadRowKey is " + loadRowKey_) ;
-        for (byte[][] col : newColumns) {
-            LOG.debug("pushProjection -- col: " + Bytes.toStringBinary(col[0]) + ":" + Bytes.toStringBinary(col[1]));
+        for (int i = projOffset; i < requiredFields.size(); i++) {
+            int fieldIndex = requiredFields.get(i).getIndex();
+            newColumns.add(columnList_.get(fieldIndex - colOffset));
         }
         columnList_ = newColumns;
         return new RequiredFieldResponse(true);
