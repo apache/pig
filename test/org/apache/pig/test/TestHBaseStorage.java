@@ -18,12 +18,14 @@ package org.apache.pig.test;
 
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.MiniHBaseCluster;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
+import org.apache.hadoop.hbase.MiniHBaseCluster;
+import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
@@ -40,6 +42,8 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import com.google.common.collect.Lists;
 
 public class TestHBaseStorage {
 
@@ -77,8 +81,7 @@ public class TestHBaseStorage {
         util.startMiniZKCluster();
         util.startMiniHBaseCluster(1, 1);
 
-
-        pig = new PigServer(ExecType.MAPREDUCE,
+        pig = new PigServer(ExecType.LOCAL,
                 ConfigurationUtil.toProperties(conf));
     }
 
@@ -98,12 +101,24 @@ public class TestHBaseStorage {
     @After
     public void tearDown() throws Exception {
         try {
-            util.deleteTable(Bytes.toBytesBinary(TESTTABLE_1));
+            deleteAllRows(TESTTABLE_1);
         } catch (IOException e) {}
         try {
-            util.deleteTable(Bytes.toBytesBinary(TESTTABLE_2));
+            deleteAllRows(TESTTABLE_2);
         } catch (IOException e) {}
         pig.shutdown();
+    }
+
+    // DVR: I've found that it is faster to delete all rows in small tables
+    // than to drop them.
+    private void deleteAllRows(String tableName) throws Exception {
+        HTable table = new HTable(conf, tableName);
+        ResultScanner scanner = table.getScanner(new Scan());
+        List<Delete> deletes = Lists.newArrayList();
+        for (Result row : scanner) {
+            deletes.add(new Delete(row.getRow()));
+        }
+        table.delete(deletes);
     }
 
     /**
@@ -123,7 +138,6 @@ public class TestHBaseStorage {
         LOG.info("LoadFromHBase Starting");
         while (it.hasNext()) {
             Tuple t = it.next();
-            LOG.info("LoadFromHBase " + t);
             String col_a = ((DataByteArray) t.get(0)).toString();
             String col_b = ((DataByteArray) t.get(1)).toString();
             String col_c = ((DataByteArray) t.get(2)).toString();
@@ -152,10 +166,9 @@ public class TestHBaseStorage {
                 + "') as (col_a, col_b, col_c);");
         Iterator<Tuple> it = pig.openIterator("a");
         int count = 0;
-        LOG.info("LoadFromHBase Starting");
+        LOG.info("BackwardsCompatibility Starting");
         while (it.hasNext()) {
             Tuple t = it.next();
-            LOG.info("LoadFromHBase " + t);
             String col_a = ((DataByteArray) t.get(0)).toString();
             String col_b = ((DataByteArray) t.get(1)).toString();
             String col_c = ((DataByteArray) t.get(2)).toString();
@@ -166,7 +179,7 @@ public class TestHBaseStorage {
             count++;
         }
         Assert.assertEquals(TEST_ROW_COUNT, count);
-        LOG.info("LoadFromHBase done");
+        LOG.info("BackwardsCompatibility done");
     }
 
     /**
@@ -183,10 +196,9 @@ public class TestHBaseStorage {
                 + "','-loadKey') as (rowKey,col_a, col_b, col_c);");
         Iterator<Tuple> it = pig.openIterator("a");
         int count = 0;
-        LOG.info("LoadFromHBase Starting");
+        LOG.info("LoadFromHBaseWithRowKey Starting");
         while (it.hasNext()) {
             Tuple t = it.next();
-            LOG.info("LoadFromHBase " + t);
             String rowKey = ((DataByteArray) t.get(0)).toString();
             String col_a = ((DataByteArray) t.get(1)).toString();
             String col_b = ((DataByteArray) t.get(2)).toString();
@@ -201,7 +213,7 @@ public class TestHBaseStorage {
             count++;
         }
         Assert.assertEquals(TEST_ROW_COUNT, count);
-        LOG.info("LoadFromHBase done");
+        LOG.info("LoadFromHBaseWithRowKey done");
     }
 
     /**
@@ -225,7 +237,7 @@ public class TestHBaseStorage {
         Iterator<Tuple> it = pig.openIterator("a");
         int count = 0;
         int next = 1;
-        LOG.info("LoadFromHBase Starting");
+        LOG.info("LoadFromHBaseWithParameters_1 Starting");
         while (it.hasNext()) {
             Tuple t = it.next();
             LOG.info("LoadFromHBase " + t);
@@ -244,11 +256,11 @@ public class TestHBaseStorage {
             next++;
         }
         Assert.assertEquals(TEST_ROW_COUNT - 2, count);
-        LOG.info("LoadFromHBase done");
+        LOG.info("LoadFromHBaseWithParameters_1 done");
     }
 
     /**
-     * Test Load from hbase with parameters lt and gt (00<key<99)
+     * Test Load from hbase with parameters lt and gt (00&lt;key&lt;99)
      */
     @Test
     public void testLoadWithParameters_2() throws IOException {
@@ -267,10 +279,9 @@ public class TestHBaseStorage {
         Iterator<Tuple> it = pig.openIterator("a");
         int count = 0;
         int next = 1;
-        LOG.info("LoadFromHBase Starting");
+        LOG.info("LoadFromHBaseWithParameters_2 Starting");
         while (it.hasNext()) {
             Tuple t = it.next();
-            LOG.info("LoadFromHBase " + t);
             String rowKey = ((DataByteArray) t.get(0)).toString();
             String col_a = ((DataByteArray) t.get(1)).toString();
             String col_b = ((DataByteArray) t.get(2)).toString();
@@ -286,7 +297,7 @@ public class TestHBaseStorage {
             next++;
         }
         Assert.assertEquals(TEST_ROW_COUNT - 2, count);
-        LOG.info("LoadFromHBase done");
+        LOG.info("LoadFromHBaseWithParameters_2 Starting");
     }
 
     /**
@@ -301,10 +312,9 @@ public class TestHBaseStorage {
                 + "','-loadKey -limit 10') as (rowKey,col_a, col_b, col_c);");
         Iterator<Tuple> it = pig.openIterator("a");
         int count = 0;
-        LOG.info("LoadFromHBase Starting");
+        LOG.info("LoadFromHBaseWithParameters_3 Starting");
         while (it.hasNext()) {
             Tuple t = it.next();
-            LOG.info("LoadFromHBase " + t);
             String rowKey = ((DataByteArray) t.get(0)).toString();
             String col_a = ((DataByteArray) t.get(1)).toString();
             String col_b = ((DataByteArray) t.get(2)).toString();
@@ -320,7 +330,56 @@ public class TestHBaseStorage {
         }
         // 'limit' apply for each region and here we have only one region
         Assert.assertEquals(10, count);
-        LOG.info("LoadFromHBase done");
+        LOG.info("LoadFromHBaseWithParameters_3 Starting");
+    }
+
+
+    /**
+     * Test Load from hbase with projection.
+     */
+    @Test
+    public void testLoadWithProjection_1() throws IOException {
+        prepareTable(TESTTABLE_1, true, DataFormat.HBaseBinary);
+        scanTable1(pig, DataFormat.HBaseBinary);
+        pig.registerQuery("b = FOREACH a GENERATE col_a, col_c;");
+        Iterator<Tuple> it = pig.openIterator("b");
+        int index = 0;
+        LOG.info("testLoadWithProjection_1 Starting");
+        while (it.hasNext()) {
+            Tuple t = it.next();
+            int col_a = (Integer) t.get(0);
+            String col_c = (String) t.get(1);
+            Assert.assertEquals(index, col_a);
+            Assert.assertEquals("Text_" + index, col_c);
+            Assert.assertEquals(2, t.size());
+            index++;
+        }
+        Assert.assertEquals(100, index);
+        LOG.info("testLoadWithProjection_1 done");
+    }
+
+    /**
+     * Test Load from hbase with projection and the default caster.
+     */
+    @Test
+    public void testLoadWithProjection_2() throws IOException {
+        prepareTable(TESTTABLE_1, true, DataFormat.UTF8PlainText);
+        scanTable1(pig, DataFormat.UTF8PlainText);
+        pig.registerQuery("b = FOREACH a GENERATE col_a, col_c;");
+        Iterator<Tuple> it = pig.openIterator("b");
+        int index = 0;
+        LOG.info("testLoadWithProjection_2 Starting");
+        while (it.hasNext()) {
+            Tuple t = it.next();
+            int col_a = (Integer) t.get(0);
+            String col_c = (String) t.get(1);
+            Assert.assertEquals(index, col_a);
+            Assert.assertEquals("Text_" + index, col_c);
+            Assert.assertEquals(2, t.size());
+            index++;
+        }
+        Assert.assertEquals(100, index);
+        LOG.info("testLoadWithProjection_2 done");
     }
 
     /**
@@ -330,22 +389,12 @@ public class TestHBaseStorage {
     public void testHBaseBinaryConverter() throws IOException {
         prepareTable(TESTTABLE_1, true, DataFormat.HBaseBinary);
 
-        pig.registerQuery("a = load 'hbase://"
-                + TESTTABLE_1
-                + "' using "
-                + "org.apache.pig.backend.hadoop.hbase.HBaseStorage('"
-                + TESTCOLUMN_A
-                + " "
-                + TESTCOLUMN_B
-                + " "
-                + TESTCOLUMN_C
-                + "','-loadKey -caster HBaseBinaryConverter') as (rowKey:chararray,col_a:int, col_b:double, col_c:chararray);");
+        scanTable1(pig, DataFormat.HBaseBinary);
         Iterator<Tuple> it = pig.openIterator("a");
         int index = 0;
-        LOG.info("LoadFromHBase Starting");
+        LOG.info("testHBaseBinaryConverter Starting");
         while (it.hasNext()) {
             Tuple t = it.next();
-            LOG.info("LoadFromHBase " + t);
             String rowKey = (String) t.get(0);
             int col_a = (Integer) t.get(1);
             double col_b = (Double) t.get(2);
@@ -358,7 +407,7 @@ public class TestHBaseStorage {
             Assert.assertEquals("Text_" + index, col_c);
             index++;
         }
-        LOG.info("LoadFromHBase done");
+        LOG.info("testHBaseBinaryConverter done");
     }
 
     /**
@@ -372,22 +421,12 @@ public class TestHBaseStorage {
         prepareTable(TESTTABLE_1, true, DataFormat.HBaseBinary);
         prepareTable(TESTTABLE_2, false, DataFormat.HBaseBinary);
 
-        pig.registerQuery("a = load 'hbase://"
-                + TESTTABLE_1
-                + "' using "
-                + "org.apache.pig.backend.hadoop.hbase.HBaseStorage('"
-                + TESTCOLUMN_A
-                + " "
-                + TESTCOLUMN_B
-                + " "
-                + TESTCOLUMN_C
-                + "','-loadKey -caster HBaseBinaryConverter') as (rowKey:chararray,col_a:int, col_b:double, col_c:chararray);");
-        pig.store("a", "hbase://" + TESTTABLE_2,
+        scanTable1(pig, DataFormat.HBaseBinary);
+        pig.store("a", TESTTABLE_2,
                 "org.apache.pig.backend.hadoop.hbase.HBaseStorage('"
                 + TESTCOLUMN_A + " " + TESTCOLUMN_B + " "
                 + TESTCOLUMN_C + "','-caster HBaseBinaryConverter')");
-
-        HTable table = new HTable(conf, TESTTABLE_2);
+        HTable table = new HTable(TESTTABLE_2);
         ResultScanner scanner = table.getScanner(new Scan());
         Iterator<Result> iter = scanner.iterator();
         int i = 0;
@@ -409,6 +448,42 @@ public class TestHBaseStorage {
 
     /**
      * load from hbase 'TESTTABLE_1' using HBaseBinary format, and store it into
+     * 'TESTTABLE_2' using HBaseBinaryFormat projecting out column c
+     *
+     * @throws IOException
+     */
+    @Test
+    public void testStoreToHBase_1_with_projection() throws IOException {
+        System.getProperties().setProperty("pig.usenewlogicalplan", "false");
+        prepareTable(TESTTABLE_1, true, DataFormat.HBaseBinary);
+        prepareTable(TESTTABLE_2, false, DataFormat.HBaseBinary);
+        scanTable1(pig, DataFormat.HBaseBinary);
+        pig.registerQuery("b = FOREACH a GENERATE rowKey, col_a, col_b;");
+        pig.store("b",  TESTTABLE_2,
+                "org.apache.pig.backend.hadoop.hbase.HBaseStorage('"
+                + TESTCOLUMN_A + " " + TESTCOLUMN_B +
+                "','-caster HBaseBinaryConverter')");
+
+        HTable table = new HTable(TESTTABLE_2);
+        ResultScanner scanner = table.getScanner(new Scan());
+        Iterator<Result> iter = scanner.iterator();
+        int i = 0;
+        for (i = 0; iter.hasNext(); ++i) {
+            Result result = iter.next();
+            String v = String.valueOf(i);
+            String rowKey = Bytes.toString(result.getRow());
+            int col_a = Bytes.toInt(getColValue(result, TESTCOLUMN_A));
+            double col_b = Bytes.toDouble(getColValue(result, TESTCOLUMN_B));
+
+            Assert.assertEquals("00".substring(v.length()) + v, rowKey);
+            Assert.assertEquals(i, col_a);
+            Assert.assertEquals(i + 0.0, col_b, 1e-6);
+        }
+        Assert.assertEquals(100, i);
+    }
+
+    /**
+     * load from hbase 'TESTTABLE_1' using HBaseBinary format, and store it into
      * 'TESTTABLE_2' using UTF-8 Plain Text format
      * 
      * @throws IOException
@@ -417,23 +492,13 @@ public class TestHBaseStorage {
     public void testStoreToHBase_2() throws IOException {
         prepareTable(TESTTABLE_1, true, DataFormat.HBaseBinary);
         prepareTable(TESTTABLE_2, false, DataFormat.HBaseBinary);
-
-        pig.registerQuery("a = load 'hbase://"
-                + TESTTABLE_1
-                + "' using "
-                + "org.apache.pig.backend.hadoop.hbase.HBaseStorage('"
-                + TESTCOLUMN_A
-                + " "
-                + TESTCOLUMN_B
-                + " "
-                + TESTCOLUMN_C
-                + "','-loadKey -caster HBaseBinaryConverter') as (rowKey:chararray,col_a:int, col_b:double, col_c:chararray);");
+        scanTable1(pig, DataFormat.HBaseBinary);
         pig.store("a", TESTTABLE_2,
                 "org.apache.pig.backend.hadoop.hbase.HBaseStorage('"
                 + TESTCOLUMN_A + " " + TESTCOLUMN_B + " "
                 + TESTCOLUMN_C + "')");
 
-        HTable table = new HTable(conf, TESTTABLE_2);
+        HTable table = new HTable(TESTTABLE_2);
         ResultScanner scanner = table.getScanner(new Scan());
         Iterator<Result> iter = scanner.iterator();
         int i = 0;
@@ -454,19 +519,114 @@ public class TestHBaseStorage {
     }
 
     /**
+     * load from hbase 'TESTTABLE_1' using HBaseBinary format, and store it into
+     * 'TESTTABLE_2' using UTF-8 Plain Text format projecting column c
+     *
+     * @throws IOException
+     */
+    @Test
+    public void testStoreToHBase_2_with_projection() throws IOException {
+        prepareTable(TESTTABLE_1, true, DataFormat.HBaseBinary);
+        prepareTable(TESTTABLE_2, false, DataFormat.UTF8PlainText);
+        scanTable1(pig, DataFormat.HBaseBinary);
+        pig.registerQuery("b = FOREACH a GENERATE rowKey, col_a, col_b;");
+        pig.store("b", TESTTABLE_2,
+                "org.apache.pig.backend.hadoop.hbase.HBaseStorage('"
+                + TESTCOLUMN_A + " " + TESTCOLUMN_B + "')");
+
+        HTable table = new HTable(TESTTABLE_2);
+        ResultScanner scanner = table.getScanner(new Scan());
+        Iterator<Result> iter = scanner.iterator();
+        int i = 0;
+        for (i = 0; iter.hasNext(); ++i) {
+            Result result = iter.next();
+            String v = i + "";
+            String rowKey = new String(result.getRow());
+            int col_a = Integer.parseInt(new String(getColValue(result, TESTCOLUMN_A)));
+            double col_b = Double.parseDouble(new String(getColValue(result, TESTCOLUMN_B)));
+
+            Assert.assertEquals("00".substring(v.length()) + v, rowKey);
+            Assert.assertEquals(i, col_a);
+            Assert.assertEquals(i + 0.0, col_b, 1e-6);
+        }
+        Assert.assertEquals(100, i);
+    }
+
+    /**
+     * load from hbase 'TESTTABLE_1' using UTF-8 Plain Text format, and store it
+     * into 'TESTTABLE_2' using UTF-8 Plain Text format projecting column c
+     *
+     * @throws IOException
+     */
+    @Test
+    public void testStoreToHBase_3_with_projection_no_caster() throws IOException {
+        prepareTable(TESTTABLE_1, true, DataFormat.UTF8PlainText);
+        prepareTable(TESTTABLE_2, false, DataFormat.UTF8PlainText);
+        scanTable1(pig, DataFormat.UTF8PlainText);
+        pig.registerQuery("b = FOREACH a GENERATE rowKey, col_a, col_b;");
+        pig.store("b", TESTTABLE_2,
+                "org.apache.pig.backend.hadoop.hbase.HBaseStorage('"
+                + TESTCOLUMN_A + " " + TESTCOLUMN_B + "')");
+
+        HTable table = new HTable(TESTTABLE_2);
+        ResultScanner scanner = table.getScanner(new Scan());
+        Iterator<Result> iter = scanner.iterator();
+        int i = 0;
+        for (i = 0; iter.hasNext(); ++i) {
+            Result result = iter.next();
+            String v = i + "";
+            String rowKey = new String(result.getRow());
+
+            String col_a = new String(getColValue(result, TESTCOLUMN_A));
+            String col_b = new String(getColValue(result, TESTCOLUMN_B));
+
+            Assert.assertEquals("00".substring(v.length()) + v, rowKey);
+            Assert.assertEquals(i + "", col_a);
+            Assert.assertEquals(i + 0.0 + "", col_b);
+        }
+        Assert.assertEquals(100, i);
+    }
+
+
+    private void scanTable1(PigServer pig, DataFormat dataFormat) throws IOException {
+        scanTable1(pig, dataFormat, "");
+    }
+
+    private void scanTable1(PigServer pig, DataFormat dataFormat, String extraParams) throws IOException {
+        pig.registerQuery("a = load 'hbase://"
+                + TESTTABLE_1
+                + "' using "
+                + "org.apache.pig.backend.hadoop.hbase.HBaseStorage('"
+                + TESTCOLUMN_A
+                + " "
+                + TESTCOLUMN_B
+                + " "
+                + TESTCOLUMN_C
+                + "','-loadKey "
+                + (dataFormat == DataFormat.HBaseBinary ? " -caster HBaseBinaryConverter" : "")
+                + " " + extraParams + " "
+                + "') as (rowKey:chararray,col_a:int, col_b:double, col_c:chararray);");
+    }
+
+    /**
      * Prepare a table in hbase for testing.
      * 
      */
     private void prepareTable(String tableName, boolean initData,
             DataFormat format) throws IOException {
         // define the table schema
+        HTable table = null;
         try {
-            util.deleteTable(Bytes.toBytesBinary(tableName));
-        } catch (IOException e) {
-            // It's ok, table might not exist.
+            deleteAllRows(tableName);
+        } catch (Exception e) {
+        // that's ok, table may not exist yet
         }
-        HTable table = util.createTable(Bytes.toBytesBinary(tableName),
+        try {
+        table = util.createTable(Bytes.toBytesBinary(tableName),
                 COLUMNFAMILY);
+        } catch (Exception e) {
+            table = new HTable(Bytes.toBytesBinary(tableName));
+        }
         if (initData) {
             for (int i = 0; i < TEST_ROW_COUNT; i++) {
                 String v = i + "";
@@ -512,6 +672,7 @@ public class TestHBaseStorage {
      */
     private static byte[] getColValue(Result result, String colName) {
         byte[][] colArray = Bytes.toByteArrays(colName.split(":"));
+        byte[] val = result.getValue(colArray[0], colArray[1]);
         return result.getValue(colArray[0], colArray[1]);
 
     }

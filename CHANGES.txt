@@ -149,6 +149,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-1870: HBaseStorage doesn't project correctly (dvryaboy)
+
 PIG-1788: relation-as-scalar error messages should indicate the field 
  being used as scalar (laukik via thejas)
 
