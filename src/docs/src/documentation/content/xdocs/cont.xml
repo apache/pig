@@ -33,6 +33,8 @@
    <title>Embedded Pig and Control Flow </title>
    
 <p>To enable control flow, you can embed Pig Latin scripts in a host scripting language via a JDBC-like compile, bind, run model.  Supported host languages include Python (via Jython) and JavaScript (via Rhino). You must make sure that the Jython jar and/or the Rhino jar are included in your class path if you want to used embedded Pig. At runtime Pig will automatically detect the usage of a scripting UDF in the Pig script and will ship the corresponding scripting jar to the backend.</p>  
+
+<p>Note: Currently, more Python than JavaScript examples are shown below.</p>
    
    <section>
    <title>Invocation Basics</title>
