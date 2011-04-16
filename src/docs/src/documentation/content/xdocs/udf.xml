@@ -1229,7 +1229,7 @@ public class IntMax extends EvalFunc&lt;Integer&gt; implements Algebraic, Accumu
  <title>Registering Scripts</title>
  <p>You can register JavaScript as shown here. This example uses org.apache.pig.scripting.js.JsScriptEngine to interpret JavaScript. You can develop and use custom script engines to support multiple programming languages and ways to interpret them. Currently, Pig identifies js as a keyword and ships the required scriptengine (js) to interpret it. </p>
  <source>
- Register 'test.js' using js as myfuncs;
+ register 'test.js' using javascript as myfuncs;
  </source>
  
  <p>The following syntax is also supported, where myfuncs is the namespace created for all the functions inside test.js.</p>
@@ -1275,7 +1275,6 @@ public class IntMax extends EvalFunc&lt;Integer&gt; implements Algebraic, Accumu
  <p>Currently, Pig does not support UDFs using inline scripts. </p>
  </section>
  </section>
-
 
 <!-- =============================================================== -->
 <section>
