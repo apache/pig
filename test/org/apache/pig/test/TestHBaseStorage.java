@@ -18,6 +18,7 @@ package org.apache.pig.test;
 
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
@@ -40,6 +41,7 @@ import org.apache.pig.data.Tuple;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -66,23 +68,19 @@ public class TestHBaseStorage {
     private static final String TESTCOLUMN_A = "pig:col_a";
     private static final String TESTCOLUMN_B = "pig:col_b";
     private static final String TESTCOLUMN_C = "pig:col_c";
+    private static final String TESTCOLUMN_D = "pig:prefixed_col_d";
+
     private static final int TEST_ROW_COUNT = 100;
 
     @BeforeClass
     public static void setUp() throws Exception {
-
         // This is needed by Pig
         cluster = MiniCluster.buildCluster();
-
         conf = cluster.getConfiguration();
-        conf.setInt("mapred.map.max.attempts", 1);
 
         util = new HBaseTestingUtility(conf);
         util.startMiniZKCluster();
         util.startMiniHBaseCluster(1, 1);
-
-        pig = new PigServer(ExecType.LOCAL,
-                ConfigurationUtil.toProperties(conf));
     }
 
     @AfterClass
@@ -96,6 +94,13 @@ public class TestHBaseStorage {
         }
         util.shutdownMiniZKCluster();
         cluster.shutDown();
+    }
+
+
+    @Before
+    public void beforeTest() throws Exception {
+        pig = new PigServer(ExecType.LOCAL,
+                ConfigurationUtil.toProperties(conf));
     }
 
     @After
@@ -122,6 +127,141 @@ public class TestHBaseStorage {
     }
 
     /**
+     * Test Load from hbase with map parameters
+     *
+     */
+    @Test
+    public void testLoadWithMap_1() throws IOException {
+        prepareTable(TESTTABLE_1, true, DataFormat.UTF8PlainText);
+
+        pig.registerQuery("a = load 'hbase://"
+                + TESTTABLE_1
+                + "' using "
+                + "org.apache.pig.backend.hadoop.hbase.HBaseStorage('"
+                + TESTCOLUMN_A
+                + " "
+                + TESTCOLUMN_B
+                + " "
+                + TESTCOLUMN_C
+                + " pig:"
+                + "','-loadKey') as (rowKey, col_a, col_b, col_c, pig_cf_map);");
+        Iterator<Tuple> it = pig.openIterator("a");
+        int count = 0;
+        LOG.info("LoadFromHBase Starting");
+        while (it.hasNext()) {
+            Tuple t = it.next();
+            LOG.info("LoadFromHBase " + t);
+            String rowKey = ((DataByteArray) t.get(0)).toString();
+            String col_a = ((DataByteArray) t.get(1)).toString();
+            String col_b = ((DataByteArray) t.get(2)).toString();
+            String col_c = ((DataByteArray) t.get(3)).toString();
+            Map pig_cf_map = (Map) t.get(4);
+
+            Assert.assertEquals("00".substring((count + "").length()) + count,
+                    rowKey);
+            Assert.assertEquals(count, Integer.parseInt(col_a));
+            Assert.assertEquals(count + 0.0, Double.parseDouble(col_b), 1e-6);
+            Assert.assertEquals("Text_" + count, col_c);
+
+            Assert.assertEquals(4, pig_cf_map.size());
+            Assert.assertEquals(count,
+                    Integer.parseInt(pig_cf_map.get("col_a").toString()));
+            Assert.assertEquals(count + 0.0,
+                    Double.parseDouble(pig_cf_map.get("col_b").toString()), 1e-6);
+            Assert.assertEquals("Text_" + count,
+                    ((DataByteArray) pig_cf_map.get("col_c")).toString());
+            Assert.assertEquals("PrefixedText_" + count,
+                    ((DataByteArray) pig_cf_map.get("prefixed_col_d")).toString());
+
+            count++;
+        }
+        Assert.assertEquals(TEST_ROW_COUNT, count);
+        LOG.info("LoadFromHBase done");
+    }
+
+    /**
+     *     * Test Load from hbase with map parameters and column prefix
+     *
+     */
+    @Test
+    public void testLoadWithMap_2_col_prefix() throws IOException {
+        prepareTable(TESTTABLE_1, true, DataFormat.UTF8PlainText);
+
+        pig.registerQuery("a = load 'hbase://"
+                + TESTTABLE_1
+                + "' using "
+                + "org.apache.pig.backend.hadoop.hbase.HBaseStorage('"
+                + "pig:prefixed_col_*"
+                + "','-loadKey') as (rowKey:chararray, pig_cf_map:map[]);");
+        Iterator<Tuple> it = pig.openIterator("a");
+        int count = 0;
+        LOG.info("LoadFromHBase Starting");
+        while (it.hasNext()) {
+            Tuple t = it.next();
+            LOG.info("LoadFromHBase " + t);
+            String rowKey = t.get(0).toString();
+            Map pig_cf_map = (Map) t.get(1);
+            Assert.assertEquals(2, t.size());
+
+            Assert.assertEquals("00".substring((count + "").length()) + count,
+                    rowKey);
+            Assert.assertEquals("PrefixedText_" + count,
+                    ((DataByteArray) pig_cf_map.get("prefixed_col_d")).toString());
+            Assert.assertEquals(1, pig_cf_map.size());
+
+            count++;
+        }
+        Assert.assertEquals(TEST_ROW_COUNT, count);
+        LOG.info("LoadFromHBase done");
+    }
+
+    /**
+     * Test Load from hbase with map parameters and multiple column prefixs
+     *
+     */
+    @Test
+    public void testLoadWithMap_3_col_prefix() throws IOException {
+        prepareTable(TESTTABLE_1, true, DataFormat.UTF8PlainText);
+
+        pig.registerQuery("a = load 'hbase://"
+                + TESTTABLE_1
+                + "' using "
+                + "org.apache.pig.backend.hadoop.hbase.HBaseStorage('"
+                + "pig:col_* pig:prefixed_col_*"
+                + "','-loadKey') as (rowKey:chararray, pig_cf_map:map[], pig_prefix_cf_map:map[]);");
+        Iterator<Tuple> it = pig.openIterator("a");
+        int count = 0;
+        LOG.info("LoadFromHBase Starting");
+        while (it.hasNext()) {
+            Tuple t = it.next();
+            LOG.info("LoadFromHBase " + t);
+            String rowKey = t.get(0).toString();
+            Map pig_cf_map = (Map) t.get(1);
+            Map pig_prefix_cf_map = (Map) t.get(2);
+            Assert.assertEquals(3, t.size());
+
+            Assert.assertEquals("00".substring((count + "").length()) + count,
+                    rowKey);
+            Assert.assertEquals("PrefixedText_" + count,
+                    ((DataByteArray) pig_prefix_cf_map.get("prefixed_col_d")).toString());
+            Assert.assertEquals(1, pig_prefix_cf_map.size());
+
+            Assert.assertEquals(count,
+                    Integer.parseInt(pig_cf_map.get("col_a").toString()));
+            Assert.assertEquals(count + 0.0,
+                    Double.parseDouble(pig_cf_map.get("col_b").toString()), 1e-6);
+            Assert.assertEquals("Text_" + count,
+                    ((DataByteArray) pig_cf_map.get("col_c")).toString());
+            Assert.assertEquals(3, pig_cf_map.size());
+
+            count++;
+        }
+        Assert.assertEquals(TEST_ROW_COUNT, count);
+        LOG.info("LoadFromHBase done");
+    }
+
+
+    /**
      * load from hbase test
      * 
      * @throws IOException
@@ -129,6 +269,10 @@ public class TestHBaseStorage {
     @Test
     public void testLoadFromHBase() throws IOException {
         prepareTable(TESTTABLE_1, true, DataFormat.UTF8PlainText);
+        LOG.info("QUERY: " + "a = load 'hbase://" + TESTTABLE_1 + "' using "
+                + "org.apache.pig.backend.hadoop.hbase.HBaseStorage('"
+                + TESTCOLUMN_A + " " + TESTCOLUMN_B + " " + TESTCOLUMN_C +" pig:col_d"
+                + "') as (col_a, col_b, col_c, col_d);");
         pig.registerQuery("a = load 'hbase://" + TESTTABLE_1 + "' using "
                 + "org.apache.pig.backend.hadoop.hbase.HBaseStorage('"
                 + TESTCOLUMN_A + " " + TESTCOLUMN_B + " " + TESTCOLUMN_C +" pig:col_d"
@@ -619,7 +763,7 @@ public class TestHBaseStorage {
         try {
             deleteAllRows(tableName);
         } catch (Exception e) {
-        // that's ok, table may not exist yet
+            // It's ok, table might not exist.
         }
         try {
         table = util.createTable(Bytes.toBytesBinary(tableName),
@@ -627,6 +771,7 @@ public class TestHBaseStorage {
         } catch (Exception e) {
             table = new HTable(Bytes.toBytesBinary(tableName));
         }
+
         if (initData) {
             for (int i = 0; i < TEST_ROW_COUNT; i++) {
                 String v = i + "";
@@ -643,6 +788,9 @@ public class TestHBaseStorage {
                     // col_c: string type
                     put.add(COLUMNFAMILY, Bytes.toBytes("col_c"),
                             Bytes.toBytes("Text_" + i));
+                    // prefixed_col_d: string type
+                    put.add(COLUMNFAMILY, Bytes.toBytes("prefixed_col_d"),
+                            Bytes.toBytes("PrefixedText_" + i));
                     table.put(put);
                 } else {
                     // row key: string type
@@ -657,6 +805,9 @@ public class TestHBaseStorage {
                     // col_c: string type
                     put.add(COLUMNFAMILY, Bytes.toBytes("col_c"),
                             ("Text_" + i).getBytes());
+                    // prefixed_col_d: string type
+                    put.add(COLUMNFAMILY, Bytes.toBytes("prefixed_col_d"),
+                            ("PrefixedText_" + i).getBytes());
                     table.put(put);
                 }
             }

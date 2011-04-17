@@ -32,6 +32,8 @@ PIG-1876: Typed map for Pig (daijy)
 
 IMPROVEMENTS
 
+PIG-1782: Add ability to load data by column family in HBaseStorage (billgraham via dvryaboy)
+
 PIG-1772: Pig 090 Documentation (chandec via olgan)
 
 PIG-1954: Design deployment interface for e2e test harness (gates)
