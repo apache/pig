@@ -41,6 +41,7 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.newplan.logical.LogicalPlanMigrationVistor;
 import org.apache.pig.newplan.logical.expression.LogicalExpression;
+import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
 import org.apache.pig.newplan.logical.relational.LOFilter;
 import org.apache.pig.newplan.logical.relational.LOLoad;
@@ -49,15 +50,20 @@ import org.apache.pig.newplan.logical.rules.PartitionFilterOptimizer;
 import org.apache.pig.newplan.logical.rules.LoadTypeCastInserter;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
+import org.apache.pig.newplan.OperatorSubPlan;
 import org.apache.pig.newplan.PColFilterExtractor;
 import org.apache.pig.newplan.optimizer.PlanOptimizer;
+import org.apache.pig.newplan.optimizer.PlanTransformListener;
 import org.apache.pig.newplan.optimizer.Rule;
+import org.apache.pig.newplan.optimizer.Transformer;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.PlanSetter;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.LogUtils;
+import org.apache.pig.test.TestPartitionFilterOptimization.TestLoader;
 import org.apache.pig.test.utils.LogicalPlanTester;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -244,6 +250,60 @@ public class TestPartitionFilterPushDown {
                 "((dstid == 30) and ((srcid == 10) or (mrkt == 'us')))", 
                 "(name == 'foo')");
     }
+    
+    @Test
+    public void test7() throws Exception {
+        LogicalPlanTester tester = new LogicalPlanTester(pc);
+        tester.buildPlan("a = load 'foo' using " + TestLoader.class.getName()
+                + "('srcid, mrkt, dstid, name, age', 'srcid, name');");
+        org.apache.pig.impl.logicalLayer.LogicalPlan lp = tester
+                .buildPlan("b = filter a by "
+                        + "(srcid < 20 and age < 30) or (name == 'foo' and age > 40);");
+        LogicalPlan plan = migratePlan(lp);
+        
+        Rule rule = new PartitionFilterOptimizer("test");
+        List<OperatorPlan> matches = rule.match(plan);
+        if (matches != null) {
+            Transformer transformer = rule.getNewTransformer();
+            for (OperatorPlan m : matches) {
+                if (transformer.check(m)) {
+                    transformer.transform(m);
+                }
+            }
+            OperatorSubPlan newPlan = (OperatorSubPlan)transformer.reportChanges();
+ 
+            Assert.assertTrue(newPlan.getBasePlan().isEqual(plan));
+        }
+  
+    }
+    
+    @Test
+    public void test8() throws Exception {
+        LogicalPlanTester tester = new LogicalPlanTester(pc);
+        tester.buildPlan("a = load 'foo' using " + TestLoader.class.getName()
+                + "('srcid, mrkt, dstid, name, age', 'srcid,name');");
+        org.apache.pig.impl.logicalLayer.LogicalPlan lp = tester
+                .buildPlan("b = filter a by "
+                        + "(srcid < 20) or (name == 'foo');");
+        LogicalPlan plan = migratePlan(lp);
+        
+        Rule rule = new PartitionFilterOptimizer("test");
+        List<OperatorPlan> matches = rule.match(plan);
+        if (matches != null) {
+            Transformer transformer = rule.getNewTransformer();
+            for (OperatorPlan m : matches) {
+                if (transformer.check(m)) {
+                    transformer.transform(m);
+                }
+            }
+            OperatorSubPlan newPlan = (OperatorSubPlan)transformer.reportChanges();
+
+            Assert.assertTrue(newPlan.getBasePlan().size() == 1);
+        }
+  
+    }
+    
+    
     /**
      * test case where filter has both conditions on partition cols and non
      * partition cols and the filter condition will be split to extract the
@@ -266,50 +326,85 @@ public class TestPartitionFilterPushDown {
         // same condition should fail
     	org.apache.pig.impl.logicalLayer.LogicalPlan lp = lpTester.buildPlan("b = filter a by " +
                     "srcid > age;");
-        negativeTest(lp, Arrays.asList("srcid"), 1111);
+        negativeTest(lp, Arrays.asList("srcid"));
         lp =  lpTester.buildPlan("b = filter a by " +
                     "srcid + age == 20;");
-        negativeTest(lp, Arrays.asList("srcid"), 1111);
+        negativeTest(lp, Arrays.asList("srcid"));
 
         // OR of partition column condition and non partiton col condition 
         // should fail
         lp = lpTester.buildPlan("b = filter a by " +
                     "srcid > 10 or name == 'foo';");
-        negativeTest(lp, Arrays.asList("srcid"), 1111);
+        negativeTest(lp, Arrays.asList("srcid"));
     }
     
     @Test
     public void testNegPColInWrongPlaces() throws Exception {
-        
-        int expectedErrCode = 1112;
+
         org.apache.pig.impl.logicalLayer.LogicalPlan lp = lpTester.buildPlan("b = filter a by " +
         "(srcid > 10 and name == 'foo') or dstid == 10;");
-        negativeTest(lp, Arrays.asList("srcid", "dstid"), expectedErrCode); 
-        
-        expectedErrCode = 1110;
+        negativeTest(lp, Arrays.asList("srcid", "dstid")); 
+
         lp = lpTester.buildPlan("b = filter a by " +
                 "CONCAT(mrkt, '_10') == 'US_10' and age == 20;");
-        negativeTest(lp, Arrays.asList("srcid", "dstid", "mrkt"), expectedErrCode);
+        negativeTest(lp, Arrays.asList("srcid", "dstid", "mrkt"));
         
         lp = lpTester.buildPlan("b = filter a by " +
                 "mrkt matches '.*us.*' and age < 15;");
-        negativeTest(lp, Arrays.asList("srcid", "dstid", "mrkt"), expectedErrCode);
+        negativeTest(lp, Arrays.asList("srcid", "dstid", "mrkt"));
         
         lp = lpTester.buildPlan("b = filter a by " +
                 "(int)mrkt == 10 and name matches '.*foo.*';");
-        negativeTest(lp, Arrays.asList("srcid", "dstid", "mrkt"),expectedErrCode);
+        negativeTest(lp, Arrays.asList("srcid", "dstid", "mrkt"));
         
         lp = lpTester.buildPlan("b = filter a by " +
             "(mrkt == 'us' ? age : age + 10) == 40 and name matches '.*foo.*';");
-        negativeTest(lp, Arrays.asList("srcid", "dstid", "mrkt"), expectedErrCode);
+        negativeTest(lp, Arrays.asList("srcid", "dstid", "mrkt"));
         
         lp = lpTester.buildPlan("b = filter a by " +
             "(mrkt is null) and name matches '.*foo.*';");
-        negativeTest(lp, Arrays.asList("srcid", "dstid", "mrkt"), expectedErrCode);
+        negativeTest(lp, Arrays.asList("srcid", "dstid", "mrkt"));
         
         lp = lpTester.buildPlan("b = filter a by " +
             "(mrkt is not null) and name matches '.*foo.*';");
-        negativeTest(lp, Arrays.asList("srcid", "dstid", "mrkt"), expectedErrCode);
+        negativeTest(lp, Arrays.asList("srcid", "dstid", "mrkt"));
+    }
+    
+    @Test
+    public void testNegPColInWrongPlaces2() throws Exception {
+        
+        LogicalPlanTester tester = new LogicalPlanTester(pc);
+        tester.buildPlan("a = load 'foo' using " + TestLoader.class.getName()
+                + "('srcid, mrkt, dstid, name, age', 'srcid,dstid,mrkt');");
+        
+        org.apache.pig.impl.logicalLayer.LogicalPlan lp = tester
+                .buildPlan("b = filter a by "
+                        + "(srcid > 10 and name == 'foo') or dstid == 10;");
+        negativeTest(lp); 
+        
+        lp = tester.buildPlan("b = filter a by " +
+                "CONCAT(mrkt, '_10') == 'US_10' and age == 20;");
+        negativeTest(lp);
+        
+        lp = tester.buildPlan("b = filter a by " +
+                "mrkt matches '.*us.*' and age < 15;");
+        negativeTest(lp);
+        
+        lp = tester.buildPlan("b = filter a by " +
+                "(int)mrkt == 10 and name matches '.*foo.*';");
+        negativeTest(lp);
+        
+        lp = tester.buildPlan("b = filter a by " +
+            "(mrkt == 'us' ? age : age + 10) == 40 and name matches '.*foo.*';");
+        negativeTest(lp);
+        
+        lp = tester.buildPlan("b = filter a by " +
+            "(mrkt is null) and name matches '.*foo.*';");
+        negativeTest(lp);
+        
+        lp = tester.buildPlan("b = filter a by " +
+            "(mrkt is not null) and name matches '.*foo.*';");
+        negativeTest(lp);
     }
     
     
@@ -335,7 +430,10 @@ public class TestPartitionFilterPushDown {
                     "((mrkt == 'us') and (srcid == 10))",
                     TestLoader.partFilter.toString());
         LOFilter filter = (LOFilter)newLogicalPlan.getSinks().get(0);
-        String actual = PColFilterExtractor.getExpression(
+        
+        PColFilterExtractor extractor = new PColFilterExtractor(filter.getFilterPlan(), new ArrayList<String>());
+        
+        String actual = extractor.getExpression(
                 (LogicalExpression)filter.getFilterPlan().getSources().get(0)).
                 toString().toLowerCase();
         Assert.assertEquals("checking trimmed filter expression:", 
@@ -374,7 +472,10 @@ public class TestPartitionFilterPushDown {
                     null,
                     TestLoader.partFilter);
         LOFilter filter = (LOFilter) newLogicalPlan.getSinks().get(0);
-        String actual = PColFilterExtractor.getExpression(
+        
+        PColFilterExtractor extractor = new PColFilterExtractor(filter.getFilterPlan(), new ArrayList<String>());
+        
+        String actual = extractor.getExpression(
                 (LogicalExpression) filter.getFilterPlan().
                 getSources().get(0)).
                 toString().toLowerCase();
@@ -439,7 +540,10 @@ public class TestPartitionFilterPushDown {
                     "((mrkt == 'us') and (srcid == 10))",
                     TestLoader.partFilter.toString());
         LOFilter filter = (LOFilter) newLogicalPlan.getSinks().get(0);
-        String actual = PColFilterExtractor.getExpression(
+        
+        PColFilterExtractor extractor = new PColFilterExtractor(filter.getFilterPlan(), new ArrayList<String>());
+        
+        String actual = extractor.getExpression(
                 (LogicalExpression) filter.getFilterPlan().getSources().get(0)).
                 toString().toLowerCase();
         Assert.assertEquals("checking trimmed filter expression:", 
@@ -508,7 +612,7 @@ public class TestPartitionFilterPushDown {
         	 Assert.assertTrue("Check that filter can be removed:", 
                     pColExtractor.isFilterRemovable());
         } else {
-            String actual = PColFilterExtractor.getExpression(
+            String actual = pColExtractor.getExpression(
                                 (LogicalExpression)filter.getFilterPlan().getSources().get(0)).
                                 toString().toLowerCase();
             Assert.assertEquals("checking trimmed filter expression:", expFilterString,
@@ -517,20 +621,43 @@ public class TestPartitionFilterPushDown {
         return pColExtractor;
     }
     
-    private void negativeTest(org.apache.pig.impl.logicalLayer.LogicalPlan lp, List<String> partitionCols,
-            int expectedErrorCode) throws VisitorException {
-    	LogicalPlan newLogicalPlan = migratePlan( lp );
-        LOFilter filter = (LOFilter)newLogicalPlan.getSinks().get(0);
-        PColFilterExtractor pColExtractor = new PColFilterExtractor(
-                filter.getFilterPlan(), partitionCols);
-        try {
-            pColExtractor.visit();
-        } catch(Exception e) {
-        	 Assert.assertEquals("Checking if exception has right error code", 
-                    expectedErrorCode, LogUtils.getPigException(e).getErrorCode());
-            return;
+    private void negativeTest(org.apache.pig.impl.logicalLayer.LogicalPlan lp,
+            List<String> partitionCols) throws FrontendException {
+        LogicalPlan newLogicalPlan = migratePlan(lp);
+        LOFilter filter = (LOFilter) newLogicalPlan.getSinks().get(0);
+
+        LogicalExpressionPlan plan = filter.getFilterPlan();
+
+        PColFilterExtractor pColExtractor = new PColFilterExtractor(plan,
+                partitionCols);
+
+        pColExtractor.visit();
+
+        Assert.assertTrue(!pColExtractor.canPushDown());
+    }
+    
+    private void negativeTest(org.apache.pig.impl.logicalLayer.LogicalPlan lp)
+            throws FrontendException {
+        LogicalPlan plan = migratePlan(lp);
+ 
+        LOFilter filter = (LOFilter) plan.getSinks().get(0);
+        
+        Rule rule = new PartitionFilterOptimizer("test");
+        List<OperatorPlan> matches = rule.match(plan);
+        if (matches != null) {
+            Transformer transformer = rule.getNewTransformer();
+            for (OperatorPlan m : matches) {
+                if (transformer.check(m)) {
+                    transformer.transform(m);
+                }
+            }
+            OperatorSubPlan newPlan = (OperatorSubPlan)transformer.reportChanges();
+
+            LOFilter filter2 = (LOFilter) newPlan.getBasePlan().getSinks().get(0);
+            
+            Assert.assertTrue(filter.isEqual(filter2));
+            Assert.assertTrue(newPlan.getBasePlan().isEqual(plan));
         }
-        Assert.fail("Exception expected!");
     }
     
     /**

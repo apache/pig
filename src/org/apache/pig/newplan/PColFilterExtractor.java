@@ -22,6 +22,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.Expression;
 import org.apache.pig.PigException;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -62,6 +64,9 @@ import org.apache.pig.newplan.DepthFirstWalker;
  *
  */
 public class PColFilterExtractor extends PlanVisitor {
+    
+    private static final Log LOG = LogFactory.getLog(PColFilterExtractor.class);
+    
 	/**
 	 * partition columns associated with the table
 	 * present in the load on which the filter whose
@@ -88,7 +93,9 @@ public class PColFilterExtractor extends PlanVisitor {
 	private Side replaceSide = Side.NONE;
 
 	private boolean filterRemovable = false;
-
+	
+    private boolean canPushDown = true;
+	
 	@Override
 	public void visit() throws FrontendException {
 		// we will visit the leaf and it will recursively walk the plan
@@ -136,52 +143,60 @@ public class PColFilterExtractor extends PlanVisitor {
 			// so the following cases should throw error until that changes.
 			List<Class<?>> opsToCheckFor = new ArrayList<Class<?>>();
 			opsToCheckFor.add(RegexExpression.class);
-			int errCode = 1110;
 			if(checkSuccessors(project, opsToCheckFor)) {
-				throw new FrontendException("Unsupported query: " +
-						"You have an partition column (" 
-						+ fieldName + ") inside a regexp operator in the " +
-						"filter condition.", errCode, PigException.INPUT);
+            LOG.warn("No partition filter push down: " +
+                "You have an partition column (" 
+                + fieldName + ") inside a regexp operator in the " +
+                "filter condition.");
+            canPushDown = false;
+            return;
 			} 
 			opsToCheckFor.set(0, UserFuncExpression.class);
 			if(checkSuccessors(project, opsToCheckFor)) {
-				throw new FrontendException("Unsupported query: " +
-						"You have an partition column (" 
-						+ fieldName + ") inside a function in the " +
-						"filter condition.", errCode, PigException.INPUT);
+            LOG.warn("No partition filter push down: " +
+                "You have an partition column (" 
+                + fieldName + ") inside a function in the " +
+                "filter condition.");
+            canPushDown = false;
+            return;
 			}
 			opsToCheckFor.set(0, CastExpression.class);
 			if(checkSuccessors(project, opsToCheckFor)) {
-				throw new FrontendException("Unsupported query: " +
-						"You have an partition column (" 
-						+ fieldName + ") inside a cast in the " +
-						"filter condition.", errCode, PigException.INPUT);
+            LOG.warn("No partition filter push down: " +
+                "You have an partition column (" 
+                + fieldName + ") inside a cast in the " +
+                "filter condition.");
+            canPushDown = false;
+            return;
 			}
-
 			opsToCheckFor.set(0, IsNullExpression.class);
 			if(checkSuccessors(project, opsToCheckFor)) {
-				throw new FrontendException("Unsupported query: " +
-						"You have an partition column (" 
-						+ fieldName + ") inside a null check operator in the " +
-						"filter condition.", errCode, PigException.INPUT);
+            LOG.warn("No partition filter push down: " +
+                "You have an partition column (" 
+                + fieldName + ") inside a null check operator in the " +
+                "filter condition.");
+            canPushDown = false;
+            return;
 			}
 			opsToCheckFor.set(0, BinCondExpression.class);
 			if(checkSuccessors(project, opsToCheckFor)) {
-				throw new FrontendException("Unsupported query: " +
-						"You have an partition column (" 
-						+ fieldName + ") inside a bincond operator in the " +
-						"filter condition.", errCode, PigException.INPUT);
+            LOG.warn("No partition filter push down: " +
+                "You have an partition column (" 
+                + fieldName + ") inside a bincond operator in the " +
+                "filter condition.");
+            canPushDown = false;
+            return;
 			}
 			opsToCheckFor.set(0, AndExpression.class);
 			opsToCheckFor.add(OrExpression.class);
 			if(checkSuccessors(project, opsToCheckFor)) {
-				errCode = 1112;
-				throw new FrontendException("Unsupported query: " +
-						"You have an partition column (" + fieldName +
-						" ) in a construction like: " +
-						"(pcond  and ...) or (pcond and ...) " +
-						"where pcond is a condition on a partition column.",
-						errCode, PigException.INPUT);
+            LOG.warn("No partition filter push down: " +
+                "You have an partition column (" + fieldName +
+                " ) in a construction like: " +
+                "(pcond  and ...) or (pcond and ...) " +
+                "where pcond is a condition on a partition column.");
+            canPushDown = false;
+            return;
 			}
 		} else {
 			sawNonKeyCol = true;
@@ -222,11 +237,11 @@ public class PColFilterExtractor extends PlanVisitor {
 				replaceSide = Side.RIGHT;
 			}
 		} else if(lhsSawKey && rhsSawNonKeyCol || rhsSawKey && lhsSawNonKeyCol){
-			int errCode = 1111;
-			String errMsg = "Use of partition column/condition with" +
-			" non partition column/condition in filter expression is not " +
-			"supported." ;
-			throw new FrontendException(errMsg, errCode, PigException.INPUT);
+        LOG.warn("No partition filter push down: " +
+            "Use of partition column/condition with" +
+            " non partition column/condition in filter expression is not " +
+            "supported.");
+        canPushDown = false;
 		}
 
 		sawKey = lhsSawKey || rhsSawKey;
@@ -239,8 +254,8 @@ public class PColFilterExtractor extends PlanVisitor {
 	 * @return the condition on partition columns extracted from filter
 	 */
 	public  Expression getPColCondition(){
-		if(pColConditions.size() == 0)
-			return null;
+    if(!canPushDown || pColConditions.size() == 0)
+        return null;
 		Expression cond =  pColConditions.get(0);
 		for(int i=1; i<pColConditions.size(); i++){
 			//if there is more than one condition expression
@@ -255,7 +270,7 @@ public class PColFilterExtractor extends PlanVisitor {
 	 * @return the filterRemovable
 	 */
 	public boolean isFilterRemovable() {
-		return filterRemovable;
+    return canPushDown && filterRemovable;
 	}
 
 	//////// helper methods /////////////////////////
@@ -299,7 +314,7 @@ public class PColFilterExtractor extends PlanVisitor {
 				}
 			}
 		} else {
-			throwException();
+		    logInternalErrorAndSetFlag();
 		}
 		return false; // more checking can be done
 	}
@@ -325,7 +340,8 @@ public class PColFilterExtractor extends PlanVisitor {
 		// Rt
 
 		if( !( childExpr instanceof BinaryExpression ) ) {
-			throwException();
+		     logInternalErrorAndSetFlag();
+	         return;
 		}
 		// child's lhs operand
 		LogicalExpression leftChild = 
@@ -346,7 +362,8 @@ public class PColFilterExtractor extends PlanVisitor {
 			remove(rightChild);
 			replace(childExpr, leftChild);
 		}else {
-			throwException();
+		     logInternalErrorAndSetFlag();
+	         return;
 		}
 		//reset 
 		replaceSide = Side.NONE;
@@ -403,7 +420,7 @@ public class PColFilterExtractor extends PlanVisitor {
 		plan.remove( op );
 	}
 
-	public static Expression getExpression(LogicalExpression op) throws FrontendException
+	public Expression getExpression(LogicalExpression op) throws FrontendException
 	 {
 		if(op instanceof ConstantExpression) {
 			ConstantExpression constExpr =(ConstantExpression)op ;
@@ -414,7 +431,8 @@ public class PColFilterExtractor extends PlanVisitor {
             return new Expression.Column(fieldName);
         } else {
 			if( !( op instanceof BinaryExpression ) ) {
-				throwException();
+            logInternalErrorAndSetFlag();
+            return null;
 			}
 			BinaryExpression binOp = (BinaryExpression)op;
 			if(binOp instanceof AddExpression) {
@@ -444,26 +462,24 @@ public class PColFilterExtractor extends PlanVisitor {
 			} else if(binOp instanceof LessThanEqualExpression) {
 				return getExpression(binOp, OpType.OP_LE);
 			} else {
-				throwException();
+            logInternalErrorAndSetFlag();
 			}
 		}
 		return null;
 	}
 
-    private static Expression getExpression(BinaryExpression binOp, OpType 
+    private Expression getExpression(BinaryExpression binOp, OpType 
             opType) throws FrontendException {
         return new Expression.BinaryExpression(getExpression(binOp.getLhs())
                 ,getExpression(binOp.getRhs()), opType);
     }
-	private static void throwException() throws FrontendException {
-		int errCode = 2209;
-		throw new FrontendException(
-				"Internal error while processing any partition filter " +
-				"conditions in the filter after the load" ,
-				errCode,
-				PigException.BUG
-		);
-	}
+    
+    private void logInternalErrorAndSetFlag() throws FrontendException {
+        LOG.warn("No partition filter push down: "
+                + "Internal error while processing any partition filter "
+                + "conditions in the filter after the load");
+        canPushDown = false;
+    }
 
 	// this might get called from some visit() - in that case, delegate to
 	// the other visit()s which we have defined here 
@@ -516,5 +532,9 @@ public class PColFilterExtractor extends PlanVisitor {
 	private void visit(IsNullExpression isNull) throws FrontendException {
 		visit(isNull.getExpression());
 	}
+
+    public boolean canPushDown() {
+        return canPushDown;
+    }
 
 }
