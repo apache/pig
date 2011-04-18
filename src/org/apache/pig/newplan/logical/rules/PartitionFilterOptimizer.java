@@ -30,19 +30,19 @@ import org.apache.pig.LoadFunc;
 import org.apache.pig.LoadMetadata;
 import org.apache.pig.Expression.BinaryExpression;
 import org.apache.pig.Expression.Column;
+import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.newplan.Operator;
+import org.apache.pig.newplan.OperatorPlan;
+import org.apache.pig.newplan.OperatorSubPlan;
+import org.apache.pig.newplan.PColFilterExtractor;
+import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.newplan.logical.relational.LOFilter;
 import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
-import org.apache.pig.newplan.Operator;
-import org.apache.pig.newplan.OperatorPlan;
-import org.apache.pig.newplan.OperatorSubPlan;
-import org.apache.pig.newplan.PColFilterExtractor;
 import org.apache.pig.newplan.optimizer.Rule;
 import org.apache.pig.newplan.optimizer.Transformer;
-import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.util.Pair;
 
 public class PartitionFilterOptimizer extends Rule {
     private String[] partitionKeys;
@@ -147,10 +147,19 @@ public class PartitionFilterOptimizer extends Rule {
         	subPlan = new OperatorSubPlan( currentPlan );
 
         	setupColNameMaps();
+        	
+        	// PIG-1871: Don't throw exception if partition filters cannot be pushed up. 
+        	// Perform transformation on a copy of the filter plan, and replace the 
+        	// original filter plan only if the transformation is successful 
+        	// (i.e. partition filter can be pushed down) 
+        	LogicalExpressionPlan filterExpr = loFilter.getFilterPlan();
+        	LogicalExpressionPlan filterExprCopy = filterExpr.deepCopy();
+        	
         	PColFilterExtractor pColFilterFinder = new PColFilterExtractor(
-        			loFilter.getFilterPlan(), getMappedKeys( partitionKeys ) );
+        	        filterExprCopy, getMappedKeys( partitionKeys ) );
         	pColFilterFinder.visit();
         	Expression partitionFilter = pColFilterFinder.getPColCondition();
+        	
         	if(partitionFilter != null) {
         		// the column names in the filter may be the ones provided by
         		// the user in the schema in the load statement - we may need
@@ -164,6 +173,8 @@ public class PartitionFilterOptimizer extends Rule {
 				}
         		if(pColFilterFinder.isFilterRemovable()) {  
         			currentPlan.removeAndReconnect( loFilter );
+        		} else {
+        		    loFilter.setFilterPlan(filterExprCopy);
         		}
         	}
         }
