@@ -18,7 +18,7 @@
 
 Pig Change Log
 
-Unreleased 0.8.1 (Unreleased)
+Released 0.8.1
 
 INCOMPATIBLE CHANGES
 

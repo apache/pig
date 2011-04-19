@@ -70,7 +70,7 @@ See http://forrest.apache.org/docs/linking.html for more info
  <external-refs> 
     <wiki      href="http://wiki.apache.org/pig/" />
     <faq       href="http://wiki.apache.org/pig/FAQ" />
-    <relnotes  href="http://hadoop.apache.org/pig/releases.html" />
+    <relnotes  href="http://pig.apache.org/releases.html" />
     <jdiff     href="jdiff/">
       <changes href="changes.html" />
     </jdiff>

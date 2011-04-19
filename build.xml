@@ -28,7 +28,7 @@
     <property name="Name" value="Pig" />
 	<property name="ant-task.version" value="2.0.10" />
 	<property name="pig.pom" value="${basedir}/ivy/pig.pom" />
-	<property name="version" value="0.8.0-SNAPSHOT" />
+	<property name="version" value="0.8.1-SNAPSHOT" />
     <property name="final.name" value="${name}-${version}" />
     <condition property="isWindows">
         <os family="windows"/>
