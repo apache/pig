@@ -1688,6 +1688,42 @@ public class TestMacroExpansion {
         verify(query, expected);
     }
     
+    // PIG-1987
+    @Test
+    public void test37() throws Exception {
+        String macro = "define group_and_count (A,group_key, reducers) returns B {\n" +
+        "    $B = distinct $A partition by org.apache.pig.test.utils.SimpleCustomPartitioner parallel $reducers;\n" +
+        "};\n";
+    
+        File f = new File("mytest.pig");
+        f.deleteOnExit();
+        
+        FileWriter fw = new FileWriter(f);
+        fw.append(macro);
+        fw.close();
+        
+        String script =
+            "set default_parallel 10\n" +
+            "import 'mytest.pig';\n" +
+            "alpha = load 'users' as (user, age, zip);\n" +
+            "ls\n" +
+            "gamma = group_and_count (alpha, user, 23);\n" +
+            "fs -copyFromLocal test test2\n" +
+            "store gamma into 'byuser';\n";
+        
+        String expected =
+            "set default_parallel 10\n" +
+            "alpha = load 'users' as (user, age, zip);\n" +
+            "ls\n" +
+            "gamma = distinct alpha partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 23;\n" +
+            "fs -copyFromLocal test test2\n" +
+            "store gamma INTO 'byuser';\n";
+            
+        verify(script, expected);
+    }
+    
+
+    
     @Test
     public void testCommentInMacro() throws Exception {
         String query = "a = load 'testComplexCast' as (m);\n" +
