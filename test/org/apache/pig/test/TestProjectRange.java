@@ -398,7 +398,7 @@ public class TestProjectRange  {
             + "f = foreach l1 generate  a .. b;"
             ; 
         Util.checkExceptionMessage(query, "f",
-                "Invalid field projection. Projected field [a] does not exist in schema");
+                "Invalid field projection. Projected field [a] does not exist.");
     }
     
     /**

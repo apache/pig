@@ -220,4 +220,21 @@ public class TestErrorHandling {
         Assert.fail( "Testcase should fail" );
     }
 
+    @Test // PIG-1921
+    public void tesNegative13() throws IOException {
+        String query = "A = load 'x' as (u:int, v);\n" +
+                       "B = load 'y';\n" +
+                       "C = join A by u, B by w;";
+        try {
+            pig.registerQuery( query );
+        } catch(FrontendException ex) {
+        	String msg = ex.getMessage();
+            System.out.println( msg );
+            Assert.assertTrue( !msg.contains( "null") );
+            Assert.assertTrue( msg.contains( "Projected field [w] does not exist.") );
+            return;
+        }
+        Assert.fail( "Testcase should fail" );
+    }
+
 }

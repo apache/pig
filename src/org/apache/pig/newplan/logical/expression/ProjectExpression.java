@@ -175,10 +175,11 @@ public class ProjectExpression extends ColumnExpression {
         if( alias != null ) {
             int colNum = inputSchema == null ? -1 : inputSchema.getFieldPosition( alias );
             if( colNum == -1 ) {
-                throw new PlanValidationException( this,
-                        "Invalid field projection. Projected field [" + 
-                        alias + "] does not exist in schema: " +
-                        (inputSchema!=null?inputSchema.toString(false):"") + ".", 1025 );
+            	String msg = "Invalid field projection. Projected field [" + alias + "] does not exist";
+                if( inputSchema != null )
+                	msg += " in schema: " + inputSchema.toString( false );
+                msg += ".";
+                throw new PlanValidationException( this, msg, 1025 );
             }
             return colNum;
         } else {
