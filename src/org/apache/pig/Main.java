@@ -35,7 +35,6 @@ import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -48,6 +47,7 @@ import jline.ConsoleReader;
 import jline.ConsoleReaderInputStream;
 import jline.History;
 
+import org.antlr.runtime.RecognitionException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -66,6 +66,7 @@ import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.parser.DryRunGruntParser;
 import org.apache.pig.parser.QueryParserDriver;
 import org.apache.pig.scripting.ScriptEngine;
 import org.apache.pig.scripting.ScriptEngine.SupportedScriptLang;
@@ -389,9 +390,7 @@ static int run(String args[], PigProgressNotificationListener listener) {
                 pin = runParamPreprocessor(properties, in, params, paramFiles,
                         substFile, debug || dryrun || checkScriptOnly);
             if (dryrun) {
-                QueryParserDriver driver = new QueryParserDriver(
-                        pigContext, "0", new HashMap<String, String>());
-                if (driver.dryrun(substFile)) {
+                if (dryrun(substFile, pigContext)) {
                     log.info("Dry run completed. Substituted pig script is at "
                             + substFile
                             + ". Expanded pig script is at "
@@ -518,9 +517,7 @@ static int run(String args[], PigProgressNotificationListener listener) {
             substFile = remainders[0] + ".substituted";
             pin = runParamPreprocessor(properties, in, params, paramFiles, substFile, debug || dryrun || checkScriptOnly);
             if (dryrun) {
-                QueryParserDriver driver = new QueryParserDriver(
-                        pigContext, "0", new HashMap<String, String>());
-                if (driver.dryrun(substFile)) {
+                if (dryrun(substFile, pigContext)) {
                     log.info("Dry run completed. Substituted pig script is at "
                             + substFile
                             + ". Expanded pig script is at "
@@ -603,6 +600,25 @@ private static int getReturnCodeForStats(int[] stats) {
     return (stats[1] == 0) ? ReturnCode.SUCCESS         // no failed jobs
                 : (stats[0] == 0) ? ReturnCode.FAILURE  // no succeeded jobs
                         : ReturnCode.PARTIAL_FAILURE;   // some jobs have failed
+}
+
+public static boolean dryrun(String scriptFile, PigContext pigContext)
+        throws RecognitionException, IOException {
+    BufferedReader rd = new BufferedReader(new FileReader(scriptFile));
+
+    DryRunGruntParser dryrun = new DryRunGruntParser(rd, scriptFile,
+            pigContext);
+
+    boolean hasMacro = dryrun.parseStopOnError();
+
+    if (hasMacro) {
+        String expandedFile = scriptFile.replace(".substituted",
+                ".expanded");
+        BufferedWriter fw = new BufferedWriter(new FileWriter(expandedFile));
+        fw.append(dryrun.getResult());
+        fw.close();
+    }
+    return hasMacro;
 }
 
 //TODO jz: log4j.properties should be used instead

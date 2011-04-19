@@ -43,6 +43,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
+import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.apache.pig.tools.pigstats.ScriptState;
 
 public class QueryParserDriver {
@@ -103,50 +104,12 @@ public class QueryParserDriver {
         
         return plan;
     }
-    
-    public boolean dryrun(String scriptFile) throws ParserException, IOException, RecognitionException {
-        BufferedReader rd = new BufferedReader(new FileReader(scriptFile));
-        StringBuilder sb = new StringBuilder();
-        String line = rd.readLine();
-        while (line != null) {
-            sb.append(line).append("\n");
-            line = rd.readLine();
-        }
         
-        CommonTokenStream tokenStream = tokenize(sb.toString(),  scriptFile);
-        Tree ast = null;
-            
-        try {
-            ast = parse( tokenStream );
-        } catch(RuntimeException ex) {
-            throw new ParserException( ex.getMessage() );
-        }          
-        
-        List<CommonTree> importNodes = new ArrayList<CommonTree>();
-        List<CommonTree> macroNodes = new ArrayList<CommonTree>();
-        List<CommonTree> inlineNodes = new ArrayList<CommonTree>();
-        
-        traverseImport(ast, importNodes);
-        traverse(ast, macroNodes, inlineNodes);
-        
-        if (importNodes.isEmpty() && macroNodes.isEmpty()
-                && inlineNodes.isEmpty()) {
-            return false;
-        }
-
-        ast = expandMacro(ast);
-
-        String expandedFile = scriptFile.replace(".substituted", ".expanded");
-        dryrun(ast, expandedFile);
-        
-        return true;
-    }
-    
     public Map<String, Operator> getOperators() {
         return operators;
     }
 
-    private static CommonTokenStream tokenize(String query, String source)
+    static CommonTokenStream tokenize(String query, String source)
             throws ParserException {
         CharStream input;
         try {
@@ -169,7 +132,7 @@ public class QueryParserDriver {
                     + " parsing errors in the query");
     }
 
-    private static Tree parse(CommonTokenStream tokens) throws ParserException {
+    static Tree parse(CommonTokenStream tokens) throws ParserException {
         QueryParser parser = QueryParserUtils.createParser(tokens);
 
         QueryParser.query_return result = null;
@@ -187,15 +150,6 @@ public class QueryParserDriver {
         return ast;
     }
     
-    private static void dryrun(Tree ast, String scriptFile) throws RecognitionException, IOException {
-        CommonTreeNodeStream nodes = new CommonTreeNodeStream( ast );
-        AstPrinter walker = new AstPrinter( nodes );
-        walker.query();
-        BufferedWriter fw = new BufferedWriter(new FileWriter(scriptFile));
-        fw.append(walker.getResult());
-        fw.close();
-    }
-    
     private static Tree validateAst(Tree ast) throws RecognitionException, ParserException {
         CommonTreeNodeStream nodes = new CommonTreeNodeStream( ast );
         AstValidator walker = new AstValidator( nodes );
@@ -207,7 +161,7 @@ public class QueryParserDriver {
         return newAst;
     }
     
-    private Tree expandMacro(Tree ast) throws ParserException {
+    Tree expandMacro(Tree ast) throws ParserException {
         LOG.debug("Original macro AST:\n" + ast.toStringTree() + "\n");
 
         // first insert the import files
@@ -277,7 +231,7 @@ public class QueryParserDriver {
         return true;
     }
     
-    private void traverseImport(Tree t, List<CommonTree> nodes) {
+    static void traverseImport(Tree t, List<CommonTree> nodes) {
         if (t.getText().equalsIgnoreCase(IMPORT_DEF)) {
             nodes.add((CommonTree)t);
         }
@@ -288,7 +242,7 @@ public class QueryParserDriver {
         }
     }
     
-    private void traverse(Tree t, List<CommonTree> macroNodes,
+    static void traverse(Tree t, List<CommonTree> macroNodes,
             List<CommonTree> inlineNodes) {
         if (t.getText().equals(MACRO_DEF)) {
             macroNodes.add((CommonTree) t.getParent());  
