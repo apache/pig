@@ -111,6 +111,7 @@ public class PigException extends IOException {
     protected byte errorSource = BUG;
     protected boolean retriable = false;
     protected String detailedMessage = null;
+    protected boolean markedAsShowToUser = false;
 
     /**
      * Create a new PigException with null as the error message.
@@ -314,7 +315,27 @@ public class PigException extends IOException {
     public void setDetailedMessage(String detailMsg) {
         detailedMessage = detailMsg;
     }
-
+    
+    /**
+     * Check if this PigException is marked as the ones whose message is to be 
+     * displayed to the user. This can be used to indicate if the corresponding 
+     * error message is a good candidate for displaying to the end user, instead
+     * of drilling down the stack trace further.
+     * @return true if this pig exception is marked as appropriate to be 
+     * displayed to the user
+     */
+    public boolean getMarkedAsShowToUser() {
+        return markedAsShowToUser;
+    }
+    
+    /**
+     * Mark this exception as a good candidate for showing its message to the 
+     * pig user 
+     */
+    public void setMarkedAsShowToUser(boolean showToUser) {
+        markedAsShowToUser = showToUser;
+    }
+    
     /**
      * Returns a short description of this throwable.
      * The result is the concatenation of:
