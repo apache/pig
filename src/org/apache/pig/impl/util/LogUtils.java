@@ -56,14 +56,23 @@ public class LogUtils {
         Throwable current = top;
         Throwable pigException = top;
 
+        if (current instanceof PigException && 
+                (((PigException)current).getErrorCode() != 0) && 
+                ((PigException) current).getMarkedAsShowToUser()) {
+            return (PigException) current;
+        }
         while (current != null && current.getCause() != null){
             current = current.getCause();
-            if((current instanceof PigException) && (((PigException)current).getErrorCode() != 0)) {
+            if((current instanceof PigException) && 
+                    (((PigException)current).getErrorCode() != 0)) {
                 pigException = current;
+                if (((PigException)pigException).getMarkedAsShowToUser()) {
+                    break;
+                }
             }
         }
-        return (pigException instanceof PigException? (PigException)pigException : null);
-        
+        return (pigException instanceof PigException? (PigException)pigException 
+        		: null);        
     }
     
     public static void writeLog(Throwable t, String logFileName, Log log, boolean verbose, String headerMessage) {

@@ -1663,7 +1663,10 @@ public class Schema implements Serializable, Cloneable {
                 String msg = "Error merging schema: ("  + sch + ") with " 
                 + "merged schema: (" + mergedSchema + ")" + " of schemas : "
                 + mergedSchemas;
-                throw new SchemaMergeException(msg, e);
+                SchemaMergeException sme = new SchemaMergeException(msg, 
+                        e.getErrorCode(), e);
+                sme.setMarkedAsShowToUser(true);
+                throw sme;
             }
         }
         return mergedSchema;
@@ -1833,7 +1836,7 @@ public class Schema implements Serializable, Cloneable {
         } catch (FrontendException e) {
             String msg = "Caught exception finding FieldSchema for alias " +
             alias;
-            throw new SchemaMergeException(msg, e);
+            throw new SchemaMergeException(msg, e.getErrorCode(), e);
         }
         return fs;
     }

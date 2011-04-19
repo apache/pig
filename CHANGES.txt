@@ -32,6 +32,9 @@ PIG-1876: Typed map for Pig (daijy)
 
 IMPROVEMENTS
 
+PIG-1612: error reporting: PigException needs to have a way to indicate that 
+ its message is appropriate for user (laukik via thejas)
+
 PIG-1782: Add ability to load data by column family in HBaseStorage (billgraham via dvryaboy)
 
 PIG-1772: Pig 090 Documentation (chandec via olgan)
