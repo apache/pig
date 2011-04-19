@@ -231,7 +231,7 @@ group_item
 ;
 
 rel : alias {  validateAliasRef( aliases, $alias.node, $alias.name ); }
-    | op_clause
+    | op_clause parallel_clause?
 ;
 
 flatten_generated_item : ( flatten_clause | col_range | expr | STAR) field_def_list?

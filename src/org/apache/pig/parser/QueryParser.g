@@ -337,7 +337,7 @@ group_item : rel ( join_group_by_clause | ALL | ANY ) ( INNER | OUTER )?
 ;
 
 rel : alias 
-    | LEFT_PAREN! ( op_clause | foreach_clause_complex | foreach_clause_simple ) RIGHT_PAREN!
+    | LEFT_PAREN! ( foreach_clause_complex | ( ( op_clause | foreach_clause_simple ) parallel_clause? ) ) RIGHT_PAREN!
 ;
 
 flatten_generated_item : flatten_clause ( AS! ( field_def | ( LEFT_PAREN! field_def_list RIGHT_PAREN! ) ) )?

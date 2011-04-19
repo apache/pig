@@ -217,7 +217,7 @@ group_item
 ;
 
 rel 
-    : alias | op_clause
+    : alias | ( op_clause parallel_clause? )
 ;
 
 flatten_generated_item 

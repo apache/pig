@@ -521,8 +521,10 @@ inline_op
 @after {
     $statement::alias = al;
 }
- : op_clause
+ : op_clause parallel_clause?
    {
+       Operator op = builder.lookupOperator( $op_clause.alias );
+       builder.setParallel( (LogicalRelationalOperator)op, $statement::parallel );
        $statement::inputAlias = $op_clause.alias;
    }
 ;
