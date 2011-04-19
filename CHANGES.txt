@@ -32,6 +32,8 @@ PIG-1876: Typed map for Pig (daijy)
 
 IMPROVEMENTS
 
+PIG-1996: Pig new parser fails to recognize PARALLEL keywords in a case (xuefu)
+
 PIG-1612: error reporting: PigException needs to have a way to indicate that 
  its message is appropriate for user (laukik via thejas)
 

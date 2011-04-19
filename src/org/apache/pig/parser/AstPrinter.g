@@ -214,7 +214,7 @@ group_item
 
 rel 
     : alias 
-    | { sb.append(" ("); } op_clause { sb.append(") "); }
+    | ( { sb.append(" ("); } op_clause parallel_clause? { sb.append(") "); } )
 ;
 
 flatten_generated_item 
