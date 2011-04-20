@@ -826,7 +826,7 @@ public class POCast extends ExpressionOperator {
         return res;
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({ "unchecked", "deprecation" })
     private Object convertWithSchema(Object obj, ResourceFieldSchema fs) throws IOException {
         Object result = null;
         
@@ -903,7 +903,14 @@ public class POCast extends ExpressionOperator {
                     result = obj;
             } else if (obj instanceof DataByteArray) {
                 if (null != caster) {
-                    result = caster.bytesToMap(((DataByteArray)obj).get(), fs);
+                    try {
+                        result = caster.bytesToMap(((DataByteArray)obj).get(), fs);
+                    }  catch(AbstractMethodError e) {
+                        // this is for backward compatibility wherein some old LoadCaster
+                        // which does not implement bytesToMap(byte[] b, ResourceFieldSchema fieldSchema)
+                        // In this case, we only cast bytes to map, but leave the value as bytearray
+                        result = caster.bytesToMap(((DataByteArray)obj).get());
+                    }
                 } else {
                     int errCode = 1075;
                     String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to tuple.";
@@ -1197,6 +1204,7 @@ public class POCast extends ExpressionOperator {
         return res;
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public Result getNext(Map m) throws ExecException {
         PhysicalOperator in = inputs.get(0);
@@ -1253,7 +1261,14 @@ public class POCast extends ExpressionOperator {
                 }
                 try {
                     if (null != caster) {
-                        res.result = caster.bytesToMap(dba.get(), fieldSchema);
+                        try {
+                            res.result = caster.bytesToMap(dba.get(), fieldSchema);
+                        } catch(AbstractMethodError e) {
+                            // this is for backward compatibility wherein some old LoadCaster
+                            // which does not implement bytesToMap(byte[] b, ResourceFieldSchema fieldSchema)
+                            // In this case, we only cast bytes to map, but leave the value as bytearray
+                            res.result = caster.bytesToMap(dba.get());
+                        }
                     } else {
                         int errCode = 1075;
                         String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to map.";
