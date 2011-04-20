@@ -168,6 +168,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-1978: Secondary sort fail when dereferencing two fields inside foreach (daijy)
+
 PIG-1962: Wrong alias assinged to store operator (daijy)
 
 PIG-1975: Need to provide backward compatibility for legacy LoadCaster (without bytesToMap(bytes, fieldSchema)) (daijy)
