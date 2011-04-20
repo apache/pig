@@ -81,10 +81,22 @@ import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.newplan.logical.LogicalPlanMigrationVistor;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanPrinter;
 import org.apache.pig.newplan.logical.optimizer.SchemaResetter;
+import org.apache.pig.newplan.logical.optimizer.UidResetter;
+import org.apache.pig.newplan.logical.rules.LoadStoreFuncDupSignatureValidator;
+import org.apache.pig.newplan.logical.visitor.CastLineageSetter;
+import org.apache.pig.newplan.logical.visitor.ColumnAliasConversionVisitor;
+import org.apache.pig.newplan.logical.visitor.ScalarVisitor;
+import org.apache.pig.newplan.logical.visitor.SchemaAliasVisitor;
+import org.apache.pig.newplan.logical.visitor.SortInfoSetter;
+import org.apache.pig.newplan.logical.visitor.StoreAliasSetter;
+import org.apache.pig.newplan.logical.visitor.TypeCheckingRelVisitor;
+import org.apache.pig.newplan.logical.visitor.UnionOnSchemaSetter;
+import org.apache.pig.parser.QueryParserDriver;
 import org.apache.pig.tools.grunt.GruntParser;
 
 import com.google.common.base.Function;
@@ -670,10 +682,26 @@ public class Util {
     public static  org.apache.pig.newplan.logical.relational.LogicalPlan optimizeNewLP( 
             org.apache.pig.newplan.logical.relational.LogicalPlan lp)
     throws FrontendException{
+        UidResetter uidResetter = new UidResetter( lp );
+        uidResetter.visit();
+        
+        SchemaResetter schemaResetter = new SchemaResetter( lp );
+        schemaResetter.visit();
+        
+        LoadStoreFuncDupSignatureValidator loadStoreFuncDupSignatureValidator = new LoadStoreFuncDupSignatureValidator(lp);
+        loadStoreFuncDupSignatureValidator.validate();
+        
+        StoreAliasSetter storeAliasSetter = new StoreAliasSetter( lp );
+        storeAliasSetter.visit();
+        
         // run optimizer
         org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer optimizer = 
             new org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer(lp, 100, null);
-        optimizer.optimize();        
+        optimizer.optimize();
+        
+        SortInfoSetter sortInfoSetter = new SortInfoSetter( lp );
+        sortInfoSetter.visit();
+        
         return lp;
     }
     
@@ -900,5 +928,23 @@ public class Util {
         catch (IOException e) {
             fail("caught exception while checking log message :" + e);
         }
+    }
+    
+    public static org.apache.pig.newplan.logical.relational.LogicalPlan parse(String query, PigContext pc) throws FrontendException {
+        Map<String, String> fileNameMap = new HashMap<String, String>();
+        QueryParserDriver parserDriver = new QueryParserDriver( pc, "test", fileNameMap );
+        org.apache.pig.newplan.logical.relational.LogicalPlan lp = parserDriver.parse( query );
+        
+        new ColumnAliasConversionVisitor( lp ).visit();
+        new SchemaAliasVisitor( lp ).visit();
+        new ScalarVisitor( lp, pc ).visit();
+        
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        
+        new TypeCheckingRelVisitor( lp, collector).visit();
+        
+        new UnionOnSchemaSetter( lp ).visit();
+        new CastLineageSetter(lp, collector).visit();
+        return lp;
     }
 }

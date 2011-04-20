@@ -59,6 +59,7 @@ import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.rules.InputOutputFileValidator;
 import org.apache.pig.newplan.logical.rules.LoadStoreFuncDupSignatureValidator;
 import org.apache.pig.newplan.logical.visitor.SortInfoSetter;
+import org.apache.pig.newplan.logical.visitor.StoreAliasSetter;
 import org.apache.pig.pen.POOptimizeDisabler;
 
 public class HExecutionEngine {
@@ -266,6 +267,9 @@ public class HExecutionEngine {
         // Check if we have duplicate signature
         LoadStoreFuncDupSignatureValidator loadStoreFuncDupSignatureValidator = new LoadStoreFuncDupSignatureValidator(plan);
         loadStoreFuncDupSignatureValidator.validate();
+        
+        StoreAliasSetter storeAliasSetter = new StoreAliasSetter( plan );
+        storeAliasSetter.visit();
         
         // run optimizer
         LogicalPlanOptimizer optimizer = new LogicalPlanOptimizer( plan, 100, optimizerRules );
