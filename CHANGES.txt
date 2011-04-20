@@ -22,6 +22,16 @@ Trunk (unreleased changes)
 
 INCOMPATIBLE CHANGES
 
+IMPROVEMENTS
+
+OPTIMIZATIONS
+
+BUG FIXES
+
+Release 0.9.0 - Unreleased
+
+INCOMPATIBLE CHANGES
+
 PIG-1680: HBaseStorage should work with HBase 0.90 (gstathis, billgraham, dvryaboy, tlipcon via dvryaboy)
 
 PIG-1745: Disable converting bytes loading from BinStorage (daijy)
