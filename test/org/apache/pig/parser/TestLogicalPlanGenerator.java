@@ -46,6 +46,7 @@ public class TestLogicalPlanGenerator {
                          };
         command = Util.createInputFile("script", "pl", script);
     }
+    
     @Test
     public void test1() {
         String query = "A = load 'x' as ( u:int, v:long, w:bytearray); " + 
@@ -230,9 +231,17 @@ public class TestLogicalPlanGenerator {
     }
 
     @Test
+    public void test19() {
+        String query = "A = load 'x' as (u:map[], v);\n" +
+                       "B = foreach A { T = (chararray)u#'hello'#'world'; generate T; };";
+        generateLogicalPlan( query );
+    }
+    
+    @Test
     public void testFilter() {
         String query = "A = load 'x' as ( u:int, v:long, w:bytearray); " + 
-                       "B = filter A by 2 > 1; ";
+                       "B = filter A by 2 > 1;\n" +
+                       "store B into 'y';";
         generateLogicalPlan( query );
     }
 

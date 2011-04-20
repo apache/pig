@@ -89,7 +89,7 @@ public class CastExpression extends UnaryExpression {
         LogicalExpression copy = new CastExpression(
                 lgExpPlan,
                 this.getExpression().deepCopy(lgExpPlan),
-                this.getFieldSchema().deepCopy());
+                castSchema.deepCopy());
         try {
             FuncSpec origFuncSpec = this.getFuncSpec();
             if (origFuncSpec != null ) {
