@@ -51,6 +51,7 @@ import org.apache.pig.newplan.logical.expression.BinCondExpression;
 import org.apache.pig.newplan.logical.expression.BinaryExpression;
 import org.apache.pig.newplan.logical.expression.CastExpression;
 import org.apache.pig.newplan.logical.expression.ConstantExpression;
+import org.apache.pig.newplan.logical.expression.DereferenceExpression;
 import org.apache.pig.newplan.logical.expression.DivideExpression;
 import org.apache.pig.newplan.logical.expression.EqualExpression;
 import org.apache.pig.newplan.logical.expression.GreaterThanEqualExpression;
@@ -645,6 +646,24 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             insertCast(map, DataType.MAP, map.getMap());
         }
         map.resetFieldSchema();
+    }
+    
+    @Override
+    public void visit(DereferenceExpression deref) throws FrontendException{
+        byte inputType = deref.getReferredExpression().getType();
+        switch(inputType){
+        case DataType.TUPLE:
+        case DataType.BAG:
+        case DataType.BYTEARRAY: // ideally determine type at runtime
+            //allowed types
+            break;
+        default:
+            int errCode = 1129;
+            String msg = "Referring to column(s) within a column of type " + 
+            DataType.findTypeName(inputType)
+            + " is not allowed";
+            throw new TypeCheckerException(deref, msg, errCode, PigException.INPUT);
+        }
     }
 
     @Override
