@@ -65,7 +65,6 @@ import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanVisitor;
 import org.apache.pig.newplan.PlanWalker;
 import org.apache.pig.newplan.ReverseDependencyOrderWalker;
-import org.apache.pig.newplan.logical.Util;
 import org.apache.pig.newplan.logical.expression.AddExpression;
 import org.apache.pig.newplan.logical.expression.AndExpression;
 import org.apache.pig.newplan.logical.expression.BinCondExpression;
@@ -527,7 +526,7 @@ public class TestTypeCheckingValidatorNewLP {
         ConstantExpression constant1 = new ConstantExpression(plan, innerTuple) ;
         ConstantExpression constant2 =  new ConstantExpression(plan, tuple) ;
         CastExpression cast1 = new CastExpression(plan, constant1,
-                Util.translateFieldSchema(new FieldSchema(null, castSchema, DataType.TUPLE))) ;
+                org.apache.pig.newplan.logical.Util.translateFieldSchema(new FieldSchema(null, castSchema, DataType.TUPLE))) ;
 
         EqualExpression equal1 = new EqualExpression(plan, cast1, constant2) ;
 
@@ -605,7 +604,7 @@ public class TestTypeCheckingValidatorNewLP {
         ConstantExpression constant1 = new ConstantExpression(plan, innerTuple) ;
         ConstantExpression constant2 =  new ConstantExpression(plan, tuple) ;
         CastExpression cast1 = new CastExpression(plan, constant1,
-                Util.translateFieldSchema(new FieldSchema(null, castSchema, DataType.TUPLE))) ;
+                org.apache.pig.newplan.logical.Util.translateFieldSchema(new FieldSchema(null, castSchema, DataType.TUPLE))) ;
 
         EqualExpression equal1 = new EqualExpression(plan, cast1, constant2) ;
         CompilationMessageCollector collector = new CompilationMessageCollector() ;
@@ -835,8 +834,8 @@ public class TestTypeCheckingValidatorNewLP {
             }
     
             // set schemas
-            load1.setScriptSchema(Util.translateSchema(inputSchema1));
-            load2.setScriptSchema(Util.translateSchema(inputSchema2));
+            load1.setScriptSchema(org.apache.pig.newplan.logical.Util.translateSchema(inputSchema1));
+            load2.setScriptSchema(org.apache.pig.newplan.logical.Util.translateSchema(inputSchema2));
     
             // create union operator
             ArrayList<LogicalRelationalOperator> inputList = new ArrayList<LogicalRelationalOperator>() ;
@@ -859,7 +858,7 @@ public class TestTypeCheckingValidatorNewLP {
             printMessageCollector(collector) ;
     
             // check end result schema
-            Schema outputSchema = Util.translateSchema(union.getSchema()) ;
+            Schema outputSchema = org.apache.pig.newplan.logical.Util.translateSchema(union.getSchema()) ;
     
             Schema expectedSchema = null ;
             {
@@ -957,8 +956,8 @@ public class TestTypeCheckingValidatorNewLP {
             }
     
             // set schemas
-            load1.setScriptSchema(Util.translateSchema(inputSchema1));
-            load2.setScriptSchema(Util.translateSchema(inputSchema2));
+            load1.setScriptSchema(org.apache.pig.newplan.logical.Util.translateSchema(inputSchema1));
+            load2.setScriptSchema(org.apache.pig.newplan.logical.Util.translateSchema(inputSchema2));
             
             
             
@@ -984,7 +983,7 @@ public class TestTypeCheckingValidatorNewLP {
             printMessageCollector(collector) ;
             
             // check end result schema
-            Schema outputSchema = Util.translateSchema(union.getSchema()) ;
+            Schema outputSchema = org.apache.pig.newplan.logical.Util.translateSchema(union.getSchema()) ;
     
             Schema expectedSchema = null ;
             {
@@ -1059,7 +1058,7 @@ public class TestTypeCheckingValidatorNewLP {
             }
     
             // set schemas
-            load1.setSchema(Util.translateSchema(inputSchema1)) ;
+            load1.setSchema(org.apache.pig.newplan.logical.Util.translateSchema(inputSchema1)) ;
     
             // create union operator
             LODistinct distinct1 = new LODistinct(plan) ;
@@ -1119,7 +1118,7 @@ public class TestTypeCheckingValidatorNewLP {
             }
 
             // set schemas
-            load1.setScriptSchema(Util.translateSchema(inputSchema1)) ;
+            load1.setScriptSchema(org.apache.pig.newplan.logical.Util.translateSchema(inputSchema1)) ;
 
             // Create inner plan
             LogicalExpressionPlan innerPlan = new LogicalExpressionPlan() ;
@@ -1183,7 +1182,7 @@ public class TestTypeCheckingValidatorNewLP {
             }
 
             // set schemas
-            load1.setScriptSchema(Util.translateSchema((inputSchema1))) ;
+            load1.setScriptSchema(org.apache.pig.newplan.logical.Util.translateSchema((inputSchema1))) ;
 
             // Create inner plan
             LogicalExpressionPlan innerPlan = new LogicalExpressionPlan() ;
@@ -1246,7 +1245,7 @@ public class TestTypeCheckingValidatorNewLP {
             }
     
             // set schemas
-            load1.setScriptSchema(Util.translateSchema((inputSchema1))) ; ;
+            load1.setScriptSchema(org.apache.pig.newplan.logical.Util.translateSchema((inputSchema1))) ; ;
     
             // Create project inner plan #1
             LogicalExpressionPlan innerPlan1 = new LogicalExpressionPlan() ;
@@ -1335,7 +1334,7 @@ public class TestTypeCheckingValidatorNewLP {
             }
     
             // set schemas
-            load1.setScriptSchema(Util.translateSchema((inputSchema1))) ; ;
+            load1.setScriptSchema(org.apache.pig.newplan.logical.Util.translateSchema((inputSchema1))) ; ;
     
             LOSort sort1 = new LOSort(plan) ;
 
@@ -1421,7 +1420,7 @@ public class TestTypeCheckingValidatorNewLP {
             }
     
             // set schemas
-            load1.setScriptSchema(Util.translateSchema((inputSchema1))) ; ;
+            load1.setScriptSchema(org.apache.pig.newplan.logical.Util.translateSchema((inputSchema1))) ; ;
     
             
             // Sort
@@ -1503,7 +1502,7 @@ public class TestTypeCheckingValidatorNewLP {
             }
 
             // set schemas
-            load1.setScriptSchema(Util.translateSchema((inputSchema1))) ; ;
+            load1.setScriptSchema(org.apache.pig.newplan.logical.Util.translateSchema((inputSchema1))) ; ;
 
             
             // split
@@ -1610,7 +1609,7 @@ public class TestTypeCheckingValidatorNewLP {
             }
 
             // set schemas
-            load1.setScriptSchema(Util.translateSchema((inputSchema1))) ; ;
+            load1.setScriptSchema(org.apache.pig.newplan.logical.Util.translateSchema((inputSchema1))) ; ;
 
             // split
             LOSplit split1 = new LOSplit(plan);
@@ -1708,9 +1707,9 @@ public class TestTypeCheckingValidatorNewLP {
             }
     
             // set schemas
-            load1.setScriptSchema(Util.translateSchema((inputSchema1))) ;
-            load2.setScriptSchema(Util.translateSchema((inputSchema2))) ;
-            load2.setScriptSchema(Util.translateSchema((inputSchema2))) ;
+            load1.setScriptSchema(org.apache.pig.newplan.logical.Util.translateSchema((inputSchema1))) ;
+            load2.setScriptSchema(org.apache.pig.newplan.logical.Util.translateSchema((inputSchema2))) ;
+            load2.setScriptSchema(org.apache.pig.newplan.logical.Util.translateSchema((inputSchema2))) ;
     
             LOCogroup cogroup1 = new LOCogroup(plan);
             
@@ -1845,8 +1844,8 @@ public class TestTypeCheckingValidatorNewLP {
             }
     
             // set schemas
-            load1.setScriptSchema(Util.translateSchema((inputSchema1))) ; ;
-            load2.setScriptSchema(Util.translateSchema((inputSchema2))) ;
+            load1.setScriptSchema(org.apache.pig.newplan.logical.Util.translateSchema((inputSchema1))) ; ;
+            load2.setScriptSchema(org.apache.pig.newplan.logical.Util.translateSchema((inputSchema2))) ;
     
             LOCogroup cogroup1 = new LOCogroup(plan);
                     
@@ -1965,8 +1964,8 @@ public class TestTypeCheckingValidatorNewLP {
             }
     
             // set schemas
-            load1.setScriptSchema(Util.translateSchema((inputSchema1))) ;
-            load2.setScriptSchema(Util.translateSchema((inputSchema2))) ;
+            load1.setScriptSchema(org.apache.pig.newplan.logical.Util.translateSchema((inputSchema1))) ;
+            load2.setScriptSchema(org.apache.pig.newplan.logical.Util.translateSchema((inputSchema2))) ;
     
             LOCogroup cogroup1 = new LOCogroup(plan);
             // Create expression inner plan #1
@@ -2061,7 +2060,7 @@ public class TestTypeCheckingValidatorNewLP {
             }
     
             // set schemas
-            load1.setScriptSchema(Util.translateSchema((inputSchema1))) ; ;
+            load1.setScriptSchema(org.apache.pig.newplan.logical.Util.translateSchema((inputSchema1))) ; ;
             
             LogicalPlan innerRelPlan = new LogicalPlan();
             LOForEach foreach1 = new LOForEach(plan);
@@ -2154,7 +2153,7 @@ public class TestTypeCheckingValidatorNewLP {
             }
     
             // set schemas
-            load1.setScriptSchema(Util.translateSchema((inputSchema1))) ; ;
+            load1.setScriptSchema(org.apache.pig.newplan.logical.Util.translateSchema((inputSchema1))) ; ;
     
             LogicalPlan innerRelPlan = new LogicalPlan();
             LOForEach foreach1 = new LOForEach(plan);
@@ -2251,7 +2250,7 @@ public class TestTypeCheckingValidatorNewLP {
             }
     
             // set schemas
-            load1.setScriptSchema(Util.translateSchema((inputSchema1))) ; ;
+            load1.setScriptSchema(org.apache.pig.newplan.logical.Util.translateSchema((inputSchema1))) ; ;
             LogicalPlan innerRelPlan = new LogicalPlan();
             LOForEach foreach1 = new LOForEach(plan);
             foreach1.setInnerPlan(innerRelPlan);
@@ -2351,8 +2350,8 @@ public class TestTypeCheckingValidatorNewLP {
             Schema schema2 = genFlatSchema(aliases2, types2) ;
     
             // set schemas
-            load1.setScriptSchema(Util.translateSchema(schema1)) ;
-            load2.setScriptSchema(Util.translateSchema(schema2));
+            load1.setScriptSchema(org.apache.pig.newplan.logical.Util.translateSchema(schema1)) ;
+            load2.setScriptSchema(org.apache.pig.newplan.logical.Util.translateSchema(schema2));
     
             LOCross cross = new LOCross(plan) ;
     
@@ -3738,7 +3737,7 @@ public class TestTypeCheckingValidatorNewLP {
             }
             
             Schema expectedSchema = new Schema(bagFs);
-            Schema foreachSch = Util.translateSchema(foreach.getSchema());
+            Schema foreachSch = org.apache.pig.newplan.logical.Util.translateSchema(foreach.getSchema());
             assertTrue(Schema.equals(foreachSch, expectedSchema, false, true));
         
         }
@@ -3758,7 +3757,7 @@ public class TestTypeCheckingValidatorNewLP {
             "A::gpa: float,B::name: chararray,B::age: int," +
             "B::registration: chararray,B::contributions: float";
             Schema expectedSchema =  org.apache.pig.test.Util.getSchemaFromString(expectedSchemaString);
-            Schema foreachSch = Util.translateSchema(foreach.getSchema());
+            Schema foreachSch = org.apache.pig.newplan.logical.Util.translateSchema(foreach.getSchema());
             assertTrue(Schema.equals(foreachSch, expectedSchema, false, true));
         
         }
@@ -3939,6 +3938,29 @@ public class TestTypeCheckingValidatorNewLP {
             
             LogicalPlan plan = createAndProcessLPlan(query);
             checkLoaderInCasts(plan, PigStorage.class.getName());
+        }
+
+        
+        @Test
+        public void testColumnWithinNonTupleBag() throws IOException {
+            {
+                String query =
+                    " l = load 'x' as (i : int);" +
+                    " f = foreach l generate i.$0; ";
+                Util.checkExceptionMessage(query, "f", 
+                        "Referring to column(s) within a column of type " +
+                        "int is not allowed"
+                );
+            }
+            {
+                String query =
+                    " l = load 'x' as (i : map[]);" +
+                    " f = foreach l generate i.$0; ";
+                Util.checkExceptionMessage(query, "f", 
+                        "Referring to column(s) within a column of type " +
+                        "map is not allowed"
+                );
+            }            
         }
         
         // See PIG-1929
