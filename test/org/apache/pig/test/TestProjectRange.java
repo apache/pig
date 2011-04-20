@@ -821,7 +821,7 @@ public class TestProjectRange  {
         query =
             "  l1 = load '" + INP_FILE_5FIELDS + 
                     "' as (a : int, b : long, c : int, d : int, e : int);"
-            + " o = order l1 by  b .. c,  a DESC, d .. DESC;"
+            + " o = order l1 by  b .. c, d .. DESC,  a DESC;"
             ; 
         compileAndCompareSchema("a : int, b : long, c : int, d : int, e : int", query, "o");
 
