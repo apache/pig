@@ -546,10 +546,8 @@ public class SecondaryKeyOptimizer extends MROpPlanVisitor {
         // Accumulate column info from nested project
         public boolean processForEach(POForEach fe) throws FrontendException {
             if (fe.getInputPlans().size() > 1) {
-                // I may be wrong, but for now let's assume foreach plan before
-                // sort/distinct only have one foreach plan
-                throw new FrontendException(
-                        "POForEach has more than 1 input plans");
+                // We don't optimize the case when POForEach has more than 1 input plan
+                return true;
             }
             boolean r = false;
             try {
