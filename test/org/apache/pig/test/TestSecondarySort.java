@@ -583,4 +583,31 @@ public class TestSecondarySort extends TestCase {
         FileLocalizer.delete("/tmp/output2", pigServer.getPigContext());
         Util.deleteFile(cluster, "testNestedSortMultiQueryEndToEnd1-input.txt");
     }
+    
+    // See PIG-1978
+    @Test
+    public void testForEachTwoInput() throws Exception {
+        File tmpFile1 = Util.createTempFileDelOnExit("test", "txt");
+        PrintStream ps1 = new PrintStream(new FileOutputStream(tmpFile1));
+        ps1.println("1\t2\t3");
+        ps1.println("1\t3\t4");
+        ps1.println("1\t2\t4");
+        ps1.println("1\t2\t4");
+        ps1.println("1\t2\t4");
+        ps1.println("2\t3\t4");
+        ps1.close();
+        Util.copyFromLocalToCluster(cluster, tmpFile1.getCanonicalPath(), tmpFile1.getCanonicalPath());
+        pigServer.registerQuery("A = LOAD '" + tmpFile1.getCanonicalPath() + "' AS (a0, a1, a2);");
+        pigServer.registerQuery("B = group A by (a0, a1);");
+        pigServer.registerQuery("C = foreach B { C1 = A.(a1,a2); generate group, C1;};");
+        Iterator<Tuple> iter = pigServer.openIterator("C");
+        assertTrue(iter.hasNext());
+        assertEquals("((1,2),{(2,3),(2,4),(2,4),(2,4)})", iter.next().toString());
+        assertTrue(iter.hasNext());
+        assertEquals("((1,3),{(3,4)})", iter.next().toString());
+        assertTrue(iter.hasNext());
+        assertEquals("((2,3),{(3,4)})", iter.next().toString());
+        assertFalse(iter.hasNext());
+        Util.deleteFile(cluster, tmpFile1.getCanonicalPath());
+    }
 }
