@@ -653,8 +653,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
 //        System.err.println("Entering Store");
         POStore store = new POStore(new OperatorKey(scope, nodeGen
                 .getNextNodeId(scope)));
-        store.setAlias(((LogicalRelationalOperator)loStore.getPlan().
-                getPredecessors(loStore).get(0)).getAlias());
+        store.setAlias(loStore.getAlias());
         store.setSFile(loStore.getOutputSpec());
         store.setInputSpec(loStore.getInputSpec());
         store.setSignature(loStore.getSignature());
