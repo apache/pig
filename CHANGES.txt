@@ -158,6 +158,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-1975: Need to provide backward compatibility for legacy LoadCaster (without bytesToMap(bytes, fieldSchema)) (daijy)
+
 PIG-1987: -dryrun does not work with set (rding)
 
 PIG-1871: Dont throw exception if partition filters cannot be pushed up. (rding)
