@@ -77,27 +77,7 @@ public class ProjectStarExpander extends LogicalRelationalNodesVisitor{
 
         if(expPlans.size() != ascOrder.size()){
             throw new AssertionError("Size of expPlans and ascorder should be same");
-        }
-
-        //check if there is a project-star-to-end followed by another sort plan
-        for(int i=0; i < expPlans.size(); i++){
-            ProjectExpression proj = getProjectStar(expPlans.get(i));
-            if(proj != null && 
-                    proj.isRangeProject() && proj.getEndCol() == -1 &&
-                    i != expPlans.size() -1
-            ){
-                //because of order by sampler logic limitation, this is not
-                //supported right now
-                String msg = "Project-range to end (eg. x..)" +
-                " is supported in order-by only as last sort column";
-                throw new FrontendException(
-                        msg,
-                        1128,
-                        PigException.INPUT
-                );
-            }
-        }
-            
+        }            
         
         for(int i=0; i < expPlans.size(); i++){
             //expand the plan
@@ -112,7 +92,25 @@ public class ProjectStarExpander extends LogicalRelationalNodesVisitor{
             }
         }
 
-        
+        //check if there is a project-star-to-end followed by another sort plan
+        // in the expanded plans (can happen if there is no input schema)
+        for(int i=0; i < newExpPlans.size(); i++){
+            ProjectExpression proj = getProjectStar(newExpPlans.get(i));
+            if(proj != null && 
+                    proj.isRangeProject() && proj.getEndCol() == -1 &&
+                    i != newExpPlans.size() -1
+            ){
+                //because of order by sampler logic limitation, this is not
+                //supported right now
+                String msg = "Project-range to end (eg. x..)" +
+                " is supported in order-by only as last sort column";
+                throw new FrontendException(
+                        msg,
+                        1128,
+                        PigException.INPUT
+                );
+            }
+        }
         
         sort.setSortColPlans(newExpPlans);
         sort.setAscendingCols(newAscOrder);

@@ -158,6 +158,9 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-1939: order-by statement should support project-range to-end in
+ any position among the sort columns if input schema is known (thejas)
+
 PIG-1978: Secondary sort fail when dereferencing two fields inside foreach (daijy)
 
 PIG-1962: Wrong alias assinged to store operator (daijy)
