@@ -753,38 +753,52 @@ var_expr[LogicalExpressionPlan plan] returns[LogicalExpression expr]
    ( dot_proj 
      {
          columns = $dot_proj.cols;
+         boolean processScalar = false;
          if( $expr instanceof ScalarExpression ) {
+             List<Operator> succs = plan.getSuccessors( $expr );
+             if( succs == null || succs.size() == 0 ) {
+                 // We haven't process this scalar projection yet. Set the flag so as to process it next.
+                 // This will handle a projection such as A.u.x, where we need to build ScalarExpression
+                 // for A.u, while for x, we need to treat it as a normal dereference (on the output of
+                 // the ScalarExpression.
+                 processScalar = true;
+             }
+         }
+         
+         if( processScalar ) {
              // This is a scalar projection.
              ScalarExpression scalarExpr = (ScalarExpression)$expr;
+             
              if( $dot_proj.cols.size() > 1 ) {
                  throw new InvalidScalarProjectionException( input, loc, scalarExpr );
-             } else {
-                 Object val = $dot_proj.cols.get( 0 );
-                 int pos = -1;
-                 LogicalRelationalOperator relOp = (LogicalRelationalOperator)scalarExpr.getImplicitReferencedOperator();
-                 LogicalSchema schema = null;
-                 try {
-                     schema = relOp.getSchema();
-                 } catch(FrontendException e) {
-                     throw new PlanGenerationFailureException( input, loc, e );
-                 }
-                 if( val instanceof Integer ) {
-                     pos = (Integer)val;
-                     if( schema != null && pos >= schema.size() ) {
-                         throw new InvalidScalarProjectionException( input, loc, scalarExpr );
-                     }
-                 } else {
-                     String colAlias = (String)val;
-                     pos = schema.getFieldPosition( colAlias );
-                     if( schema == null || pos == -1 ) {
-                         throw new InvalidScalarProjectionException( input, loc, scalarExpr );
-                     }
-                 }
-                 ConstantExpression constExpr = new ConstantExpression( $plan, pos);
-                 plan.connect( $expr, constExpr );
-                 constExpr = new ConstantExpression( $plan, "filename"); // place holder for file name.
-                 plan.connect( $expr, constExpr );
              }
+             
+             Object val = $dot_proj.cols.get( 0 );
+             int pos = -1;
+             LogicalRelationalOperator relOp = (LogicalRelationalOperator)scalarExpr.getImplicitReferencedOperator();
+             LogicalSchema schema = null;
+             try {
+                 schema = relOp.getSchema();
+             } catch(FrontendException e) {
+                 throw new PlanGenerationFailureException( input, loc, e );
+             }
+             if( val instanceof Integer ) {
+                 pos = (Integer)val;
+                 if( schema != null && pos >= schema.size() ) {
+                     throw new InvalidScalarProjectionException( input, loc, scalarExpr );
+                 }
+             } else {
+                 String colAlias = (String)val;
+                 pos = schema.getFieldPosition( colAlias );
+                 if( schema == null || pos == -1 ) {
+                     throw new InvalidScalarProjectionException( input, loc, scalarExpr );
+                 }
+             }
+             
+             ConstantExpression constExpr = new ConstantExpression( $plan, pos);
+             plan.connect( $expr, constExpr );
+             constExpr = new ConstantExpression( $plan, "filename"); // place holder for file name.
+             plan.connect( $expr, constExpr );
          } else {
              DereferenceExpression e = new DereferenceExpression( $plan );
              e.setRawColumns( $dot_proj.cols );
