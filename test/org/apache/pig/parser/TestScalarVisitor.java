@@ -57,6 +57,18 @@ public class TestScalarVisitor {
         System.out.println( "New Logical Plan after scalar processing: " + plan );
     }
 
+    @Test // PIG-2000
+    public void test3() throws Exception, ParsingFailureException, IOException {
+        String query = "A = load 'x' as ( u:tuple(x:int, y:chararray), v:long, w:bytearray);\n" + 
+                       "B = load 'y';\n" +
+                       "C = foreach B generate $0, A.u.x;\n" +
+                       "D = store C into 'output';";
+        LogicalPlan plan = visit( query );
+        Assert.assertEquals( 2, plan.getSources().size() ); // There should be two LOLoad op in the plan.
+        Assert.assertEquals( 2, plan.getSinks().size() ); // There should be also two LOStore op in the plan.
+        System.out.println( "New Logical Plan after scalar processing: " + plan );
+    }
+
     @Test
     public void testNegative1() throws RecognitionException, ParsingFailureException, IOException {
         String query = "A = load 'x'; " + 
