@@ -25,6 +25,7 @@ import java.util.Map;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
 import org.apache.pig.data.DataType;
+import org.apache.pig.impl.builtin.IdentityColumn;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.streaming.StreamingCommand;
@@ -45,6 +46,7 @@ import org.apache.pig.newplan.logical.expression.LogicalExpressionVisitor;
 import org.apache.pig.newplan.logical.expression.MapLookupExpression;
 import org.apache.pig.newplan.logical.expression.ProjectExpression;
 import org.apache.pig.newplan.logical.expression.ScalarExpression;
+import org.apache.pig.newplan.logical.expression.UserFuncExpression;
 import org.apache.pig.newplan.logical.relational.LOCogroup;
 import org.apache.pig.newplan.logical.relational.LOCross;
 import org.apache.pig.newplan.logical.relational.LODistinct;
@@ -207,26 +209,38 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
      */
     private FuncSpec getAssociatedLoadFunc(LogicalRelationalOperator relOp) throws FrontendException {
         LogicalSchema schema = relOp.getSchema();
+        FuncSpec funcSpec = null;
         if(schema != null){
             if(schema.size() == 0)
                 return null;
-            FuncSpec funcSpec = uid2LoadFuncMap.get(schema.getField(0).uid);
-            if(funcSpec == null)
-                return null;
-            for(int i=1; i<schema.size(); i++){
-                LogicalFieldSchema fs = schema.getField(i);
-                if(! funcSpec.equals(uid2LoadFuncMap.get(fs.uid))){
-                    //all uid are not associated with same func spec, there is no
-                    // single func spec that represents all the fields
-                    return null;
+            funcSpec = uid2LoadFuncMap.get(schema.getField(0).uid);
+            if(funcSpec != null) {
+                for(int i=1; i<schema.size(); i++){
+                    LogicalFieldSchema fs = schema.getField(i);
+                    if(! funcSpec.equals(uid2LoadFuncMap.get(fs.uid))){
+                        //all uid are not associated with same func spec, there is no
+                        // single func spec that represents all the fields
+                        funcSpec = null;
+                        break;
+                    }
                 }
             }
-            return funcSpec;
         }
-        else{
-            return rel2InputFuncMap.get(relOp);
+        
+        if(funcSpec == null){
+            // If relOp is LOForEach and contains UDF, byte field could come from UDF.
+            // We don't assume it share the LoadCaster with predecessor
+            if (relOp instanceof LOForEach) {
+                UDFFinder udfFinder = new UDFFinder(((LOForEach) relOp).getInnerPlan());
+                udfFinder.visit();
+                if (udfFinder.getUDFList().size()!=0)
+                    return null;
+            }
+            
+            funcSpec = rel2InputFuncMap.get(relOp);
         }
 
+        return funcSpec;
     }
 
     private void mapRelToPredLoadFunc(LogicalRelationalOperator relOp,
@@ -261,9 +275,16 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
         }
         
         LogicalSchema sch = group.getSchema();
+
         //if the group plans are associated with same load function , associate
         //same load fucntion with group column schema
-        mapMatchLoadFuncToUid(sch.getField(0), groupPlanSchemas);
+        if (getAssociatedLoadFunc(group)!=null) {
+            addUidLoadFuncToMap(sch.getField(0).uid, rel2InputFuncMap.get(group));
+            if (sch.getField(0).schema!=null)
+                setLoadFuncForUids(sch.getField(0).schema, rel2InputFuncMap.get(group));
+        }
+        else
+            mapMatchLoadFuncToUid(sch.getField(0), groupPlanSchemas);
         
         
         
@@ -467,6 +488,12 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
             return;
         }
 
+        // If schema of any input is null, we skip output schema
+        for (LogicalFieldSchema fs : inputFieldSchemas) {
+            if (fs==null)
+                return;
+        }
+        
         //if same non null load func is associated with all fieldschemas
         // asssociate that with the uid of outFS
         LogicalFieldSchema inpFS1 = inputFieldSchemas.get(0);
@@ -531,6 +558,9 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
             // with the relation 
             LogicalRelationalOperator inputRel = proj.findReferent();
 
+            if (proj.getFieldSchema()==null)
+                return;
+            
             long uid = proj.getFieldSchema().uid;
             if(uid2LoadFuncMap.get(uid) == null && (inputRel.getSchema() == null || inputRel instanceof LOInnerLoad)){
                 FuncSpec funcSpec = rel2InputFuncMap.get(inputRel);
@@ -538,7 +568,6 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
                     addUidLoadFuncToMap(uid, funcSpec);
                 }
             }
-            
         }
         
         @Override

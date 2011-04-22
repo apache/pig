@@ -103,7 +103,8 @@ public class LOCogroup extends LogicalRelationalOperator {
     private LogicalFieldSchema getPlanSchema( LogicalExpressionPlan exprPlan ) throws FrontendException {
         LogicalExpression sourceExp = (LogicalExpression) exprPlan.getSources().get(0);
         LogicalFieldSchema planSchema = null;
-        planSchema = sourceExp.getFieldSchema().deepCopy();
+        if (sourceExp.getFieldSchema()!=null)
+            planSchema = sourceExp.getFieldSchema().deepCopy();
         return planSchema;
     }
 
@@ -162,11 +163,11 @@ public class LOCogroup extends LogicalRelationalOperator {
                 Collection<LogicalExpressionPlan> plans = mExpressionPlans.get(key);
                 for( LogicalExpressionPlan plan : plans ) {
                     groupKeySchema = getPlanSchema(plan);
-                    // if any plan schema is null, that means we can't calculate
-                    // further schemas so we bail out
+                    // if any plan schema is null, that means we cannot figure out
+                    // the arity of keys, just give an empty tuple
                     if( groupKeySchema == null ) {
-                        schema = null;
-                        return schema;
+                        groupKeySchema = new LogicalSchema.LogicalFieldSchema("group", null, DataType.TUPLE);
+                        break;
                     }
                     groupKeySchema = new LogicalSchema.LogicalFieldSchema(groupKeySchema);
                     // Change the uid of this field
