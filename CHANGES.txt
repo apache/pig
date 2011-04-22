@@ -26,6 +26,8 @@ IMPROVEMENTS
 
 OPTIMIZATIONS
 
+PIG-2011: Speed up TestTypedMap.java (dvryaboy)
+
 BUG FIXES
 
 Release 0.9.0 - Unreleased
