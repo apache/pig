@@ -1082,6 +1082,25 @@ public class TestMacroExpansion {
         testMacro(macro, expected);
     }
     
+    @Test // PIG-2005
+    public void noSemiColonTest() throws Exception {
+        String macro = "define group_and_count (A) returns B {\n" +
+            "    $B = FILTER $A BY ($1 == 8) OR (NOT ($0+$2 > $1));\n" +
+            "}\n";
+        
+        String script = 
+            "alpha = load 'users' as (user, age, zip);\n" +
+            "gamma = group_and_count (alpha);\n" +
+            "store gamma into 'byuser';\n";
+        
+        String expected = 
+            "alpha = load 'users' as (user, age, zip);\n" +
+            "gamma = FILTER alpha BY (($1 == 8) OR ( NOT ($0 + $2 > $1)));\n" +
+            "store gamma INTO 'byuser';\n";
+        
+        verify(macro + script, expected);
+    }
+    
     @Test
     public void test1() throws Exception {
         String query = "A = load 'x' as ( u:int, v:long, w:bytearray); " + 
