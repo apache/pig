@@ -23,6 +23,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -598,6 +599,22 @@ public class TestPigRunner {
         } finally {
             new File(PIG_FILE).delete();
         }
+    }
+    
+    @Test // PIG-2006
+    public void testEmptyFile() throws IOException {
+        File f1 = new File("myscript.pig");
+        f1.deleteOnExit();
+        
+        FileWriter fw1 = new FileWriter(f1);
+        fw1.close();
+
+        String[] args = { "-x", "local", "-c", "myscript.pig" };
+        PigStats stats = PigRunner.run(args, null);
+       
+        Assert.assertTrue(stats.isSuccessful());
+        Assert.assertEquals( 0, stats.getReturnCode() );
+        Assert.assertEquals( null, stats.getErrorMessage() );
     }
     
     @Test
