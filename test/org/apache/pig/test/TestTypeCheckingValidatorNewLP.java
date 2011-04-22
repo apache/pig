@@ -4069,5 +4069,21 @@ public class TestTypeCheckingValidatorNewLP {
         }
         
         
+        public static class TestUDFTupleNullInnerSchema extends EvalFunc<Tuple> {
+            @Override
+            public Tuple exec(Tuple input) throws IOException {
+                return null;
+            }
+        }
+        
+        @Test
+        public void testUDFNoInnerSchema() throws FrontendException {
+            String query = "a= load '1.txt';"
+                + "b = foreach a generate "+TestUDFTupleNullInnerSchema.class.getName()+"($0);"
+                + "c = foreach b generate flatten($0);"
+                + "d = foreach c generate $0 + 1;";
+        
+            checkLastForeachCastLoadFunc(query, null, 0);
+        }
         
 }

@@ -257,7 +257,10 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
                 .getNextNodeId(DEFAULT_SCOPE)));
         }
         
-        exprOp.setResultType(op.getType());
+        if (op.getFieldSchema()==null && op.isRangeOrStarProject())
+            exprOp.setResultType(DataType.TUPLE);
+        else
+            exprOp.setResultType(op.getType());
         if(op.isProjectStar()){
             exprOp.setStar(op.isProjectStar());
         }

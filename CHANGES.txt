@@ -162,6 +162,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-1910: incorrect schema shown when project-star is used with other projections (daijy)
+
 PIG-2005: Discrepancy in the way dry run handles semicolon in macro definition (rding)
 
 PIG-1281: Detect org.apache.pig.data.DataByteArray cannot be cast to
