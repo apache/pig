@@ -238,6 +238,20 @@ public class TestLogicalPlanGenerator {
     }
     
     @Test
+    public void test20() {
+        String query = "A = load 'x' using PigStorage() as (a:int,b:chararray);\n" +
+                       "B = foreach A { C = TOMAP()#'key1'; generate C as C; };";
+        generateLogicalPlan( query );
+    }
+    
+    @Test
+    public void test21() {
+        String query = "A = load 'x' as (u, v);\n" +
+                       "B = foreach A { S = u; T = org.apache.pig.builtin.TOMAP(); generate S, T;};";
+        generateLogicalPlan( query );
+    }
+    
+    @Test
     public void testFilter() {
         String query = "A = load 'x' as ( u:int, v:long, w:bytearray); " + 
                        "B = filter A by 2 > 1;\n" +

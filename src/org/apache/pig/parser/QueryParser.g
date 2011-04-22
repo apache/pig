@@ -556,16 +556,15 @@ nested_command_list : ( nested_command SEMI_COLON )*
                     |
 ;
 
-nested_command : IDENTIFIER EQUAL func_eval
-              -> ^( NESTED_CMD_ASSI IDENTIFIER func_eval )
-               | IDENTIFIER EQUAL nested_op
-              -> ^( NESTED_CMD IDENTIFIER nested_op )
+nested_command : ( IDENTIFIER EQUAL col_ref PERIOD col_ref_list { input.LA( 1 ) == SEMI_COLON }? ) => ( IDENTIFIER EQUAL nested_proj )
+              -> ^( NESTED_CMD IDENTIFIER nested_proj )
                | IDENTIFIER EQUAL expr
               -> ^( NESTED_CMD_ASSI IDENTIFIER expr )
+               | IDENTIFIER EQUAL nested_op
+              -> ^( NESTED_CMD IDENTIFIER nested_op )
 ;
 
-nested_op : nested_proj
-          | nested_filter
+nested_op : nested_filter
           | nested_sort
           | nested_distinct
           | nested_limit
