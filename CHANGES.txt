@@ -44,6 +44,8 @@ PIG-1876: Typed map for Pig (daijy)
 
 IMPROVEMENTS
 
+PIG-2006: Regression: NPE when Pig processes an empty script file (xuefu)
+
 PIG-2007: Parsing error when map key referred directly from udf in nested foreach (xuefu)
 
 PIG-2000: Pig gives incorrect error message dealing with scalar projection (xuefu)
