@@ -32,6 +32,8 @@ PIG-1876: Typed map for Pig (daijy)
 
 IMPROVEMENTS
 
+PIG-2006: Regression: NPE when Pig processes an empty script file (xuefu)
+
 PIG-2000: Pig gives incorrect error message dealing with scalar projection (xuefu)
 
 PIG-2002: Regression: Pig gives error "Projection with nothing to reference!" for a valid query (xuefu)

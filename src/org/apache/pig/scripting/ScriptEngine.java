@@ -83,6 +83,8 @@ public abstract class ScriptEngine {
          * @param firstLine The first line of the file (possibly containing #!...)
          */
         public boolean accepts(String file, String firstLine) {
+            if( firstLine == null )
+            	return false;
             
             for (String shebang : shebangs) {
                 Pattern p = Pattern.compile("^#!.*/" + shebang + "\\s*$");
@@ -109,6 +111,8 @@ public abstract class ScriptEngine {
     private static final Pattern shebangPattern = Pattern.compile("^#!.+");
     
     private static boolean declaresShebang(String firstLine) {
+    	if( firstLine == null )
+    		return false;
         return shebangPattern.matcher(firstLine).matches();
     }
     
