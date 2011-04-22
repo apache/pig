@@ -292,39 +292,47 @@ public class ProjectExpression extends ColumnExpression {
                 fieldSchema.uid = innerLoads.get(0).getProjection().getFieldSchema().uid;
             }
             else {
+                // InnerLoad and source is not bag
                 if(schema == null){
-                    byte type = DataType.BYTEARRAY;
-                    if(findReferent() instanceof LOInnerLoad && 
-                            ((LOInnerLoad)findReferent()).getProjection().isRangeOrStarProject()){
-                        //if its project all from LOInnerLoad, consider it to be a tuple
-                        type = DataType.TUPLE;
+                    // if we get here, it is range or starProject, otherwise, innerLoad will convert schema to non-null
+                    if (isRangeProject && endCol!=-1){
+                        LogicalSchema innerSchema = new LogicalSchema();
+                        for(int i = startCol; i <= endCol; i++){
+                            //schema is null, so null alias
+                            innerSchema.addField(new LogicalFieldSchema(null, null, DataType.BYTEARRAY));
+                        }
+                        fieldSchema = new LogicalSchema.LogicalFieldSchema(null, innerSchema, DataType.TUPLE);
+                    } else {
+                        fieldSchema = null;
                     }
-                    fieldSchema = new LogicalSchema.LogicalFieldSchema(null, null, type);
                 }
                 else{
                     fieldSchema = schema.getField(0);
                 }
             }
-            uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
+            if (fieldSchema!=null)
+                uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
         }
         else {
             if (schema == null) {
-                byte type = DataType.BYTEARRAY;
-                LogicalSchema innerSchema = null;
-                if(isProjectStar()){
-                    type = DataType.TUPLE;
-                }else if(isRangeProject){
-                    type = DataType.TUPLE;
-                    if(endCol != -1){
-                        innerSchema = new LogicalSchema();
+                if(isRangeOrStarProject()) {
+                    if (isRangeProject && endCol!=-1){
+                        LogicalSchema innerSchema = new LogicalSchema();
                         for(int i = startCol; i <= endCol; i++){
                             //schema is null, so null alias
                             innerSchema.addField(new LogicalFieldSchema(null, null, DataType.BYTEARRAY));
                         }
+                        fieldSchema = new LogicalSchema.LogicalFieldSchema(null, innerSchema, DataType.TUPLE);
                     }
+                    else {
+                        fieldSchema = null;
+                    }
+                } else {
+                    fieldSchema = new LogicalSchema.LogicalFieldSchema(null, null, DataType.BYTEARRAY);
                 }
-                fieldSchema = new LogicalSchema.LogicalFieldSchema(null, innerSchema, type);
-                uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
+                
+                if (fieldSchema!=null)
+                    uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
             } 
             else {
                 int index = -1;

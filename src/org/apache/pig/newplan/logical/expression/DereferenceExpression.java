@@ -145,12 +145,15 @@ public class DereferenceExpression extends ColumnExpression {
                     // Get the tuple inner schema
                     LogicalSchema origSchema = predFS.schema.getField(0).schema;;
                     // Slice the tuple inner schema
-                    if (origSchema!=null && origSchema.size()!=0) {
-                        if (!rawColumns.isEmpty()) {
-                            columns = translateAliasToPos(origSchema, rawColumns);
-                        }
-                        for (int column:columns) {
+                    if (!rawColumns.isEmpty()) {
+                        columns = translateAliasToPos(origSchema, rawColumns);
+                    }
+                    for (int column:columns) {
+                        if (origSchema!=null && origSchema.size()!=0) {
                             innerSchema.addField(origSchema.getField(column));
+                        }
+                        else {
+                            innerSchema.addField(new LogicalFieldSchema(null, null, DataType.BYTEARRAY));
                         }
                     }
                 }
@@ -165,7 +168,13 @@ public class DereferenceExpression extends ColumnExpression {
                     if (!rawColumns.isEmpty()) {
                         columns = translateAliasToPos(predFS.schema, rawColumns);
                     }
-                    fieldSchema = predFS.schema.getField(columns.get(0));
+                    if (predFS.schema!=null && predFS.schema.size()!=0) {
+                        fieldSchema = predFS.schema.getField(columns.get(0));
+                    }
+                    else {
+                        fieldSchema = new LogicalSchema.LogicalFieldSchema(null, null, DataType.BYTEARRAY);
+                        uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
+                    }
                 } else{
                     fieldSchema = new LogicalFieldSchema(null, null, DataType.BYTEARRAY);
                     uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
@@ -179,7 +188,7 @@ public class DereferenceExpression extends ColumnExpression {
         List<Integer> columns = new ArrayList<Integer>();
         for( Object rawColumn : rawColumns ) {
             if( rawColumn instanceof Integer ) {
-            	if ((Integer)rawColumn>=schema.size() || (Integer)rawColumn<0) {
+            	if (schema!=null && ((Integer)rawColumn>=schema.size() || (Integer)rawColumn<0)) {
             	    throw new FrontendException("Index "+rawColumn + " out of range in schema:" + schema.toString(false), 1127);
             	}
                 columns.add( (Integer)rawColumn );

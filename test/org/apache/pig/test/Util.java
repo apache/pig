@@ -947,4 +947,22 @@ public class Util {
         new CastLineageSetter(lp, collector).visit();
         return lp;
     }
+    
+    public static org.apache.pig.newplan.logical.relational.LogicalPlan parseAndPreprocess(String query, PigContext pc) throws FrontendException {
+        Map<String, String> fileNameMap = new HashMap<String, String>();
+        QueryParserDriver parserDriver = new QueryParserDriver( pc, "test", fileNameMap );
+        org.apache.pig.newplan.logical.relational.LogicalPlan lp = parserDriver.parse( query );
+        
+        new ColumnAliasConversionVisitor( lp ).visit();
+        new SchemaAliasVisitor( lp ).visit();
+        new ScalarVisitor( lp, pc ).visit();
+        
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        
+        new TypeCheckingRelVisitor( lp, collector).visit();
+        
+        new UnionOnSchemaSetter( lp ).visit();
+        new CastLineageSetter(lp, collector).visit();
+        return lp;
+    }
 }

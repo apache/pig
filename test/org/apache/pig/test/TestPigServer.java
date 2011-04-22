@@ -510,7 +510,7 @@ public class TestPigServer {
         InputStream fileWithStdOutContents = new DataInputStream( new BufferedInputStream( new FileInputStream(stdOutRedirectedFile)));
         BufferedReader reader = new BufferedReader(new InputStreamReader(fileWithStdOutContents));
         while ((s = reader.readLine()) != null) {
-            Assert.assertTrue(s.equals("b: {(null)}"));
+            Assert.assertTrue(s.equals("Schema for b unknown."));
         }
         fileWithStdOutContents.close();
     }

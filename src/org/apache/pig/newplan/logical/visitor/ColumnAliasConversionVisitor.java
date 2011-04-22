@@ -80,7 +80,7 @@ public class ColumnAliasConversionVisitor extends AllExpressionVisitor {
                 for( Object rc : rawCols ) {
                     if( rc instanceof Integer ) {
                     	col = (Integer)rc;
-                    	if( schema != null && col >= schema.size() ) {
+                    	if( schema != null && schema.size()!=0 && col >= schema.size() ) {
                             throw new PlanValidationException( expr, "Out of bound access. Trying to access non-existent column: " + 
                                     col + ". Schema " + schema.toString(false) + " has " + schema.size() + " column(s).", 1000 );
                     	}

@@ -99,7 +99,7 @@ public class QueryParserDriver {
         } catch(RecognitionException ex) {
             throw new ParserException( ex );
         } catch(Exception ex) {
-            throw new ParserException( ex.getMessage() );
+            throw new ParserException( ex.getMessage(), ex );
         }
         
         return plan;
