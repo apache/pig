@@ -238,6 +238,13 @@ public class TestLogicalPlanGenerator {
     }
     
     @Test
+    public void test20() {
+        String query = "A = load 'test.txt' using PigStorage() as (a:int,b:chararray);\n" +
+                       "B = foreach A { C = TOMAP('key1',$1)#'key1'; generate C as C; };";
+        generateLogicalPlan( query );
+    }
+    
+    @Test
     public void testFilter() {
         String query = "A = load 'x' as ( u:int, v:long, w:bytearray); " + 
                        "B = filter A by 2 > 1;\n" +
