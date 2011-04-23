@@ -604,7 +604,6 @@ public class TestPigRunner {
     @Test // PIG-2006
     public void testEmptyFile() throws IOException {
         File f1 = new File("myscript.pig");
-        f1.deleteOnExit();
         
         FileWriter fw1 = new FileWriter(f1);
         fw1.close();
