@@ -700,7 +700,7 @@ F = filter E by C.t == 1;
 <source>
 A = load 'data' as (in: map[]);
 -- get key out of the map
-B = foreach A generate in#k1 as k1, in#k2 as k2;
+B = foreach A generate in#'k1' as k1, in#'k2' as k2;
 -- concatenate the keys
 C = foreach B generate CONCAT(k1, k2);
 .......
@@ -710,7 +710,7 @@ C = foreach B generate CONCAT(k1, k2);
 <source>
 A = load 'data' as (in: map[]);
 -- concatenate the keys from the map
-B = foreach A generate CONCAT(in#k1, in#k2);
+B = foreach A generate CONCAT(in#'k1', in#'k2');
 ....
 </source>
 
@@ -1106,20 +1106,17 @@ A = load 'data1' using org.apache.hadoop.zebra.pig.TableLoader('id:int', 'sorted
 B = load 'data2' using org.apache.hadoop.zebra.pig.TableLoader('id:int', 'sorted'); 
 C = join A by id left, B by id using 'merge'; 
 </source>
-
-<p></p>
-<p><strong>Both Conditions</strong></p>
-<p>
-For optimal performance, each part file of the left (sorted) input of the join should have a size of at least 
-1 hdfs block size (for example if the hdfs block size is 128 MB, each part file should be less than 128 MB). 
-If the total input size (including all part files) is greater than blocksize, then the part files should be uniform in size 
-(without large skews in sizes). The main idea is to eliminate skew in the amount of input the final map 
-job performing the merge-join will process. 
-</p>
-
 </section>
-</section><!-- END MERGE JOIN -->
-
+</section>
+<!-- END MERGE JOIN -->
+<section>
+<title>Performance Considerations</title>
+<p>Note the following:</p>
+<ul>
+<li>If one of the data sets is small enough to fit into memory, a Replicated Join is very likely to provide better performance.</li>
+<li>You will also see better performance if the data in the left table is partitioned evenly across part files (no significant skew and each part file contains at least one full block of data).</li>
+</ul>
+</section>
 <!-- END SPECIALIZED JOINS--> 
    
 	</section>
