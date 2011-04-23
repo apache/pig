@@ -239,11 +239,6 @@
             <td> <p>-- V, W, X, Y, Z </p> </td>
             <td> <p> </p> </td>
          </tr>  
-                    
-        <tr>
-            <td> <p>-- Symbols</p> </td>
-            <td> <p>= =   !=   &lt;  &gt;   &lt;=   &gt;=   +   -   *   /   %   ?   $   .   #   ::   ( )   [ ]   { } </p> </td>
-         </tr> 
             
    </table>
    </section>
@@ -1440,20 +1435,87 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 &gt; f1));
 
       <section id="sexp">
           <title>Star expression</title>
-          <p>The star symbol, *, can be used to represent all the fields of a tuple. It is equivalent to writing out the fields explicitly. In the following example the definition of B and C are exactly the same, and MyUDF will be invoked with exactly the same arguments in both cases.</p>
+          <p>Star expressions ( * ) can be used to represent all the fields of a tuple. It is equivalent to writing out the fields explicitly. In the following example the definition of B and C are exactly the same, and MyUDF will be invoked with exactly the same arguments in both cases.</p>
           <source>
 A = LOAD 'data' USING MyStorage() AS (name:chararray, age: int);
 B = FOREACH A GENERATE *, MyUDF(name, age);
 C = FOREACH A GENERATE name, age, MyUDF(*);
           </source>
-          <p>A common error when using the star expression is the following:</p>
+          <p>A common error when using the star expression is shown below. In this example, the programmer really wants to count the number of elements in the bag in the second field: COUNT($1).</p>
           <source>
 G = GROUP A BY $0;
 C = FOREACH G GENERATE COUNT(*)
           </source>
-          <p>In this example, the programmer really wants to count the number of elements in the bag in the second field: COUNT($1).</p>
+        
+<p>There are some restrictions on use of the star expression when the input schema is unknown (null):</p>
+<ul>
+<li>For GROUP/COGROUP, you can't include a star expression in a GROUP BY column. </li>
+<li>For ORDER BY, if you have project-star as ORDER BY column, you can’t have any other ORDER BY column in that statement. </li>
+</ul>
       </section>
 
+<section id="prexp">
+<title>Project-Range expressions</title>
+<p>Project-range ( .. ) expressions can be used to project a range of columns from input. For example:</p>
+<ul>
+<li>.. $x : projects columns $0 through $x, inclusive </li>
+<li>$x .. : projects columns through end, inclusive </li>
+<li>$x .. $y : projects columns through $y, inclusive </li>
+</ul>
+<p></p>
+
+<p>If the input relation has a schema, you can refer to columns by alias rather than by column position. You can also combine aliases and column positions in an expression; for example, "col1 .. $5" is valid. </p>
+
+<p>Project-range can be used in all cases where the <a href="#sexp">star expression</a> ( * ) is allowed, except as a UDF argument (support for this use case will be added in <a href="https://issues.apache.org/jira/browse/PIG-1938">PIG-1938</a>).</p>
+
+<p>Project-range can be used in the following statements:
+<a href="#FOREACH">FOREACH</a>, 
+<a href="#JOIN+%28inner%29">JOIN</a>,  
+<a href="#GROUP">GROUP</a>, 
+<a href="#COGROUP">COGROUP</a>, and  
+<a href="#ORDER+BY">ORDER BY</a> (also when ORDER BY is used within a nested FOREACH block).</p>
+
+<p>A few examples are shown here:</p>
+<source>
+..... 
+grunt> F = foreach IN generate (int)col0, col1 .. col3; 
+grunt> describe F; 
+F: {col0: int,col1: bytearray,col2: bytearray,col3: bytearray} 
+..... 
+..... 
+grunt> SORT = order IN by col2 .. col3, col0, col4 ..; 
+..... 
+..... 
+J = join IN1 by $0 .. $3, IN2 by $0 .. $3; 
+..... 
+..... 
+g = group l1 by b .. c; 
+..... 
+</source>
+
+<p>There are some restrictions on the use of project-to-end form of project-range (eg "x .. ") when the input schema is unknown (null): </p>
+<ul>
+<li>For GROUP/COGROUP, the project-to-end form of project-range is not allowed.</li>
+<li>For ORDER BY, the project-to-end form of project-range is supported only as the last sort column.
+<source>
+..... 
+grunt> describe IN; 
+Schema for IN unknown. 
+
+/* This statement is supported */
+SORT = order IN by $2 .. $3, $6 ..; 
+
+/* This statement is NOT supported */ 
+SORT = order IN by $2 .. $3, $6 ..; 
+..... 
+</source>
+
+
+</li>
+</ul>
+</section>
+      
+      
       <section id="bexp">
           <title>Boolean expressions</title>
           <p>Boolean expressions can be made up of UDFs that return a boolean value or boolean operators 
@@ -1485,13 +1547,7 @@ C = FOREACH G GENERATE COUNT(*)
    
    <p>Schemas are defined with the <a href="#LOAD">LOAD</a>, <a href="#STREAM">STREAM</a>, and <a href="#FOREACH">FOREACH</a> operators using the AS clause. If you define a schema using the LOAD operator, then it is the load function that enforces the schema 
    (see <a href="#LOAD">LOAD</a> and <a href="udf.html">User Defined Functions</a> for more information).</p>
-   
-   <p></p>
-   <p><strong>Known Schema Handling</strong></p>
-   <p>Schemas enable you to assign names to fields and declare types for fields. Schemas are optional but we encourage you to use them whenever possible; type declarations result in better parse-time error checking and more efficient code execution. </p>
-   <p>Schemas are defined for the <a href="#LOAD">LOAD</a>, <a href="#STREAM">STREAM</a>, and <a href="#FOREACH">FOREACH</a> operators using the AS clause. If you define a schema using the LOAD operator, then it is the load function that enforces the schema 
-   (see <a href="#LOAD">LOAD</a> and <a href="udf.html">User Defined Functions</a> for more information).</p>
-  
+
    <p></p>
    <p><strong>Known Schema Handling</strong></p>
    <p>Note the following:</p>
@@ -1506,11 +1562,40 @@ C = FOREACH G GENERATE COUNT(*)
    <p><strong>Unknown Schema Handling</strong></p>
       <p>Note the following:</p>
    <ul>
-      <li>When you JOIN/COGROUP/CROSS multiple relations, if any relation has a null schema (no defined schema), the schema for the resulting relation is null. </li>
+      <li>When you JOIN/COGROUP/CROSS multiple relations, if any relation has an unknown schema (or no defined schema, also referred to as a null schema), the schema for the resulting relation is null. </li>
       <li>If you FLATTEN a bag with empty inner schema, the schema for the resulting relation is null.</li>
       <li>If you UNION two relations with incompatible schema, the schema for resulting relation is null.</li>
       <li>If the schema is null, Pig treats all fields as bytearray (in the backend, Pig will determine the real type for the fields dynamically) </li>
     </ul>      
+    <p>See the examples below. If a field's data type is not specified, Pig will use bytearray to denote an unknown type. If the number of fields is not known, Pig will derive an unknown schema.</p>
+    
+ <source>
+/* The field data types are not specified ... */
+a = load '1.txt' as (a0, b0);
+a: {a0: bytearray,b0: bytearray}
+
+/* The number of fields is not known ... */
+a = load '1.txt';
+a: Schema for a unknown
+</source>
+
+   <p></p>
+   <p><strong>How Pig Handles Schema</strong></p>
+   
+   <p>As shown above, with a few exceptions Pig can infer the schema of a relationship up front. You can examine the schema of particular relation using <a href="test.html#DESCRIBE">DESCRIBE</a>. Pig enforces this computed schema during the actual execution by casting the input data to the expected data type. If the process is successful the results are returned to the user; otherwise, a warning is generated for each record that failed to convert.  Note that Pig does not know the actual types of the fields in the input data prior to the execution; rather, Pig determines the data types and performs the right conversions on the fly.</p>
+  
+<p>Having a deterministic schema is very powerful; however, sometimes it comes at the cost of performance. Consider the following example:</p>  
+  
+<source>
+A = load ‘input’ as (x, y, z);
+B = foreach A generate x+y;
+</source>
+
+ <p>If you do <a href="test.html#DESCRIBE">DESCRIBE</a> on B, you will see a single column of type double. This is because Pig makes the safest choice and uses the largest numeric type when the schema is not know. In practice, the input data could contain integer values; however, Pig will cast the data to double and make sure that a double result is returned.</p>
+
+ <p>If the schema of a relationship can’t be inferred, Pig will just use the runtime data as is and propagate it through the pipeline.</p>
+
+
     
    <section id="schema-load">
    <title>Schemas with LOAD and STREAM Statements</title>
@@ -4903,7 +4988,7 @@ DUMP X;
    <table>
       <tr> 
             <td>
-               <p>alias  = FOREACH { gen_blk | nested_gen_blk };</p>
+               <p>alias  = FOREACH { block | nested_block };</p>
             </td>
          </tr> 
    </table>
@@ -4922,10 +5007,10 @@ DUMP X;
          </tr>
          <tr>
             <td>
-               <p>gen_blk</p>
+               <p>block</p>
             </td>
             <td>
-               <p>FOREACH…GENERATE used with a relation (outer bag). Use this syntax:</p>
+               <p>FOREACH…GENERATE block used with a relation (outer bag). Use this syntax:</p>
                <p></p>
                <p>alias = FOREACH alias GENERATE expression [AS schema] [expression [AS schema]….];</p>
                <p>See <a href="#schemas">Schemas</a></p>
@@ -4934,13 +5019,13 @@ DUMP X;
          </tr>
          <tr>
             <td>
-               <p>nested_gen_blk</p>
+               <p>nested_block</p>
             </td>
             <td>
-               <p>FOREACH...GENERATE used with a inner bag. Use this syntax:</p>
+               <p>Nested FOREACH...GENERATE block used with a inner bag. Use this syntax:</p>
                <p></p>
                <p>alias = FOREACH nested_alias {</p>
-               <p>   alias = nested_op; [alias = nested_op; …]</p>
+               <p>   alias = {nested_op | nested_exp}; [{alias = {nested_op | nested_exp}; …]</p>
                <p>   GENERATE expression [AS schema] [expression [AS schema]….]</p>
                <p>};</p>
                <p></p>
@@ -4948,6 +5033,7 @@ DUMP X;
                <p>The nested block is enclosed in opening and closing brackets { … }. </p>
                <p>The GENERATE keyword must be the last statement within the nested block.</p>
                <p>See <a href="#schemas">Schemas</a></p>
+               <p>Macros are NOT alllowed inside a nested block.</p>
             </td>
          </tr>
          <tr>
@@ -4974,6 +5060,14 @@ DUMP X;
                <p>Allowed operations are DISTINCT, FILTER, LIMIT, and ORDER BY. </p>
                <p>The FOREACH…GENERATE operation itself is not allowed since this could lead to an arbitrary number of nesting levels.</p>
                <p>You can also perform projections (see <a href="#nestedblock">Example: Nested Block</a>).</p>
+            </td>
+         </tr>
+         <tr>
+            <td>
+               <p>nested_exp</p>
+            </td>
+            <td>
+               <p>Any arbitrary, supported expression.</p>
             </td>
          </tr>
          <tr>
@@ -5025,48 +5119,6 @@ X = FOREACH B {
       </li>
    </ul>
    </section>
-   
-   <section>
-   <title>Examples</title>
-   <p>Suppose we have relations A, B, and C (see the GROUP operator for information about the field names in relation C).</p>
-<source>
-A = LOAD 'data1' AS (a1:int,a2:int,a3:int);
-
-DUMP A;
-(1,2,3)
-(4,2,1)
-(8,3,4)
-(4,3,3)
-(7,2,5)
-(8,4,3)
-
-B = LOAD 'data2' AS (b1:int,b2:int);
-
-DUMP B;
-(2,4)
-(8,9)
-(1,3)
-(2,7)
-(2,9)
-(4,6)
-(4,9)
-
-C = COGROUP A BY a1 inner, B BY b1 inner;
-
-DUMP C;
-(1,{(1,2,3)},{(1,3)})
-(4,{(4,2,1),(4,3,3)},{(4,6),(4,9)})
-(8,{(8,3,4),(8,4,3)},{(8,9)})
-
-ILLUSTRATE C;
-<em>etc ... </em>
---------------------------------------------------------------------------------------
-| c     | group: int | a: bag({a1: int,a2: int,a3: int}) | B: bag({b1: int,b2: int}) |
---------------------------------------------------------------------------------------
-|       | 1          | {(1, 2, 3)}                       | {(1, 3)}                  |
--------------------------------------------------------------------------------------
-</source>
-</section>
    
    <section>
    <title>Example: Projection</title>
@@ -5407,7 +5459,7 @@ IMPORT 'my_macro.pig';
                <p>No other operations can be done between the LOAD and COGROUP statements.</p>
                </li>
                <li>
-               <p>Data must be sorted on the cogroup key for all tables in ascending (ASC) order.</p>
+               <p>Data must be sorted on the COGROUP key for all tables in ascending (ASC) order.</p>
                </li> 
                 <li>
                <p>Nulls are considered smaller than evertyhing. If data contains null keys, they should occur before anything else.</p>
@@ -5606,15 +5658,6 @@ X: {group: chararray,A: {owner: chararray,pet: chararray},b: {firend1: chararray
 (Jane,{},{(Paul,Jane)})
 </source>
    
-   <p>In this example tuples are co-grouped and the INNER keyword is used to ensure that only bags with at least one tuple are returned. </p>
-<source>
-X = COGROUP A BY owner INNER, B BY friend2 INNER;
-
-DUMP X;
-(Alice,{(Alice,turtle),(Alice,goldfish),(Alice,cat)},{(Cindy,Alice),(Mark,Alice)})
-(Bob,{(Bob,dog),(Bob,cat)},{(Paul,Bob)})
-</source>
-   
    <p>In this example tuples are co-grouped and the INNER keyword is used asymmetrically on only one of the relations.</p>
 <source>
 X = COGROUP A BY owner, B BY friend2 INNER;
@@ -5625,21 +5668,6 @@ DUMP X;
 (Alice,{(Alice,turtle),(Alice,goldfish),(Alice,cat)},{(Cindy,Alice),(Mark,Alice)})
 </source>
    </section>
-   
-   
- <section>
-   <title>Example</title>
-   <p>This example shows how to compute the number of tuples in an inner join between two relations.</p>   
-<source>
-A = LOAD …
-B = LOAD …
-C = COGROUP A BY f1 INNER, B BY f2 INNER;
-D = FOREACH C GENERATE group, COUNT(A)*COUNT(B) AS count;   -- cross product in each co-group
-E = GROUP D ALL;
-F = FOREACH E GENERATE SUM(D.count) AS sum;  -- sum of cross products
-DUMP F;
-</source>
-</section>
    
    <section>
    <title>Example</title>
@@ -5663,7 +5691,7 @@ DUMP F;
     
        <section>
    <title>Example</title>
-<p>This example shows how to cogroup using the merge keyword.</p>   
+<p>This example shows how to use COGROUP with the merge keyword.</p>   
 <source>
  register zebra.jar;
  A = LOAD 'data1' USING org.apahce.hadoop.zebra.pig.TableLoader('id:int', 'sorted');
@@ -7211,6 +7239,8 @@ DUMP U;
 <!-- +++++++++++++++++++++++++++++++++++++++++++++++ --> 
    <p><strong>Macro Definition</strong></p>
    <p>A macro definition can appear anywhere in a script as long as it appears prior to the first use. A macro definition can include references to other macros as long as the referenced macros are defined prior to the macro definition. Recursive references are not allowed. </p>
+   
+   <p>Note that Macros are NOT allowed inside a <a href="#FOREACH">FOREACH</a> nested block.</p>
 
 <p>In this example the macro is named my_macro. Note that only aliases A and C are visible from the outside; alias B is not visible from the outside.</p>
 <source>
