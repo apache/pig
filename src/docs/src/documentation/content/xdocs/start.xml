@@ -109,7 +109,7 @@ Test the Pig installation with this simple command: <code>$ pig -help</code>
     <td>yes</td>
 	</tr>
 	<tr>
-	<td>Embedded Programs (embed statements in a host language)</td>
+	<td>Embedded Pig (embed statements in a host language)</td>
     <td>yes</td>
     <td>yes</td>
 	</tr>
@@ -255,89 +255,8 @@ $ pig -x mapreduce id.pig
 
 <!-- ++++++++++++++++++++++++++++++++++ -->
 <section>
-<title>Embedded Programs</title>
-<p>Use the embedded option to embed Pig statements in a host language. Currently Java and Python are supported.</p>
-
-<section>
-<title>Java Example</title>
-
-<!-- ++++++++++++++++++++++++++++++++++ -->
-<p><strong>Local Mode</strong></p>
-<p>From your current working directory, compile the program. (Note that idlocal.class is written to your current working directory. Include “.” in the class path when you run the program.) </p>
-<source>
-$ javac -cp pig.jar idlocal.java
-</source>
-<p> </p>
-<p>From your current working directory, run the program. To view the results, check the output file, id.out.</p>
-<source>
-Unix:   $ java -cp pig.jar:. idlocal
-Cygwin: $ java –cp ‘.;pig.jar’ idlocal
-</source>
-
-<p>idlocal.java - The sample code is based on Pig Latin statements that extract all user IDs from the /etc/passwd file. 
-Copy the /etc/passwd file to your local working directory.</p>
-<source>
-import java.io.IOException;
-import org.apache.pig.PigServer;
-public class idlocal{ 
-public static void main(String[] args) {
-try {
-    PigServer pigServer = new PigServer("local");
-    runIdQuery(pigServer, "passwd");
-    }
-    catch(Exception e) {
-    }
- }
-public static void runIdQuery(PigServer pigServer, String inputFile) throws IOException {
-    pigServer.registerQuery("A = load '" + inputFile + "' using PigStorage(':');");
-    pigServer.registerQuery("B = foreach A generate $0 as id;");
-    pigServer.store("B", "id.out");
- }
-}
-</source>
-<p> </p>
-
-<!-- ++++++++++++++++++++++++++++++++++ -->
-<p><strong>Mapreduce Mode</strong></p>
-<p>Point $HADOOPDIR to the directory that contains the hadoop-site.xml file. Example: 
-</p>
-<source>
-$ export HADOOPDIR=/yourHADOOPsite/conf 
-</source>
-<p>From your current working directory, compile the program. (Note that idmapreduce.class is written to your current working directory. Include “.” in the class path when you run the program.)
-</p>
-<source>
-$ javac -cp pig.jar idmapreduce.java
-</source>
-<p></p>
-<p>From your current working directory, run the program. To view the results, check the idout directory on your Hadoop system. </p>
-<source>
-Unix:   $ java -cp pig.jar:.:$HADOOPDIR idmapreduce
-Cygwin: $ java –cp ‘.;pig.jar;$HADOOPDIR’ idmapreduce
-</source>
-
-<p>idmapreduce.java - The sample code is based on Pig Latin statements that extract all user IDs from the /etc/passwd file. 
-Copy the /etc/passwd file to your local working directory.</p>
-<source>
-import java.io.IOException;
-import org.apache.pig.PigServer;
-public class idmapreduce{
-   public static void main(String[] args) {
-   try {
-     PigServer pigServer = new PigServer("mapreduce");
-     runIdQuery(pigServer, "passwd");
-   }
-   catch(Exception e) {
-   }
-}
-public static void runIdQuery(PigServer pigServer, String inputFile) throws IOException {
-   pigServer.registerQuery("A = load '" + inputFile + "' using PigStorage(':');")
-   pigServer.registerQuery("B = foreach A generate $0 as id;");
-   pigServer.store("B", "idout");
-   }
-}
-</source>
-</section>
+<title>Embedded Pig</title>
+<p>You can embed Pig statements in a host language. Supported languages include Python, JavaScript, and Java (see <a href="cont.html">Control Structures</a>). </p>
 
 </section>
 </section>
@@ -465,11 +384,28 @@ However, in a production environment you always want to use the STORE operator t
 <!-- PIG PROPERTIES -->
 <section>
 <title>Pig Properties</title>
-   <p>
-The Pig "-propertyfile" option enables you to pass a set of Pig or Hadoop properties to a Pig job. If the value is present in both the property file passed from the command line as well as in default property file bundled into pig.jar, the properties passed from command line take precedence. This property, as well as all other properties defined in Pig, are available to your UDFs via UDFContext.getClientSystemProps()API call (see <a href="udf.html">User Defined Functions</a>.)  </p>
-
-<p>You can retrieve a list of all properties using the <a href="cmds.html#help">help properties</a> command.</p>
-<p>You can set properties using the <a href="cmds.html#set">set</a> command.</p>
+   <p>Pig supports a number of Java properties that you can use to customize Pig behavior. You can retrieve a list of the properties using the <a href="cmds.html#help">help properties</a> command. All of these properties are optional; none are required. </p>
+<p></p>
+<p>To specify Pig properties use one of these mechanisms:</p>
+<ul>
+	<li>The pig.properties file (add the directory that contains the pig.properties file to the classpath)</li>
+	<li>The -D command line option and a Pig property (pig -Dpig.tmpfilecompression=true)</li>
+	<li>The -P command line option and a properties file (pig -P mypig.properties)</li>
+	<li>The <a href="cmds.html#set">set</a> command (set pig.exec.nocombiner true)</li>
+</ul>
+<p><strong>Note:</strong> The properties file uses standard Java property file format.</p>
+<p>The following precedence order is supported: pig.properties &gt; -D Pig property &gt; -P properties file &gt; set command. This means that if the same property is provided using the –D command line option as well as the –P command line option and a properties file, the value of the property in the properties file will take precedence.</p>
+<p>To specify Hadoop properties you can use the same mechanisms:</p>
+<ul>
+	<li>The hadoop-site.xml file (add the directory that contains the hadoop-site.xml file to the classpath)</li>
+	<li>The -D command line option and a Hadoop property (pig –Dmapreduce.task.profile=true) </li>
+	<li>The -P command line option and a property file (pig -P property_file)</li>
+	<li>The <a href="cmds.html#set">set</a> command (set mapred.map.tasks.speculative.execution false)</li>
+</ul>
+<p></p>
+<p>The same precedence holds: hadoop-site.xml &gt; -D Hadoop property &gt; -P properties_file &gt; set command.</p>
+<p>Hadoop properties are not interpreted by Pig but are passed directly to Hadoop. Any Hadoop property can be passed this way. </p>
+<p>All properties that Pig collects, including Hadoop properties, are available to any UDF via the UDFContext. To get access to the properties, you can call the getJobConf method.</p>
 </section>  
 
 
