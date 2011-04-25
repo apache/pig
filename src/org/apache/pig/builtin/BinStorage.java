@@ -22,6 +22,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
@@ -359,16 +361,21 @@ implements StoreFuncInterface, LoadMetadata {
             throws IOException {
         Configuration conf = job.getConfiguration();
         Properties props = ConfigurationUtil.toProperties(conf);
-        // since local mode now is implemented as hadoop's local mode
-        // we can treat either local or hadoop mode as hadoop mode - hence
-        // we can use HDataStorage and FileLocalizer.openDFSFile below
-        HDataStorage storage = new HDataStorage(props);
         
         // At compile time in batch mode, the file may not exist
         // (such as intermediate file). Just return null - the
         // same way as we would if we did not get a valid record
         String[] locations = getPathStrings(location);
         for (String loc : locations) {
+            // since local mode now is implemented as hadoop's local mode
+            // we can treat either local or hadoop mode as hadoop mode - hence
+            // we can use HDataStorage and FileLocalizer.openDFSFile below
+            HDataStorage storage;
+            try {
+                storage = new HDataStorage(new URI(loc), props);
+            } catch (URISyntaxException e) {
+                throw new IOException(e);
+            }
             if (!FileLocalizer.fileExists(loc, storage)) {
                 return null;
             }
