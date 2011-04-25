@@ -25,6 +25,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import junit.framework.Assert;
+
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.SortColInfo;
 import org.apache.pig.SortInfo;
@@ -240,8 +242,12 @@ public class TestResourceSchema {
         Schema.FieldSchema fld0 = 
             new Schema.FieldSchema("f0", level0, DataType.BAG);
         Schema level1 = new Schema(fld0);
-        Schema genSchema = Schema.getPigSchema(new ResourceSchema(level1));
-        assertTrue(CheckTwoLevelAccess(genSchema));
+        try {
+            Schema.getPigSchema(new ResourceSchema(level1));
+            Assert.fail();
+        } catch(FrontendException e) {
+            assertTrue(e.getErrorCode()==2218);
+        }
     }
     
     /**
@@ -257,7 +263,11 @@ public class TestResourceSchema {
         Schema.FieldSchema fld0 = 
             new Schema.FieldSchema("f0", level0, DataType.BAG);
         Schema level1 = new Schema(fld0);
-        Schema genSchema = Schema.getPigSchema(new ResourceSchema(level1));
-        assertTrue(CheckTwoLevelAccess(genSchema));
+        try {
+            Schema.getPigSchema(new ResourceSchema(level1));
+            Assert.fail();
+        } catch (FrontendException e) {
+            assertTrue(e.getErrorCode()==2218);
+        }
     }
 }
