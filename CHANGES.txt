@@ -182,6 +182,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-1814: mapred.output.compress in SET statement does not work (daijy)
+
 PIG-1976: One more TwoLevelAccess to remove (daijy)
 
 PIG-1865: BinStorage/PigStorageSchema cannot load data from a different namenode (daijy)

@@ -18,16 +18,16 @@
 package org.apache.pig.test;
 
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotSame;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Properties;
@@ -53,6 +53,7 @@ import org.junit.AfterClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+
 @RunWith(JUnit4.class)
 public class TestBZip {
     static MiniCluster cluster = MiniCluster.buildCluster();
@@ -578,4 +579,40 @@ public class TestBZip {
     	out.close();
     }
     
+    // See PIG-1714
+    @Test
+    public void testBzipStoreInMultiQuery3() throws Exception {
+        String[] inputData = new String[] {
+                "1\t2\r3\t4"
+        };
+        
+        String inputFileName = "input3.txt";
+        Util.createInputFile(cluster, inputFileName, inputData);
+
+        String inputScript = "set mapred.output.compress true\n" +
+                "set mapred.output.compression.codec org.apache.hadoop.io.compress.BZip2Codec\n" +
+                "a = load '" + inputFileName + "';\n" +
+                "store a into 'output3.bz2';\n" +
+                "store a into 'output3';";
+        
+        String inputScriptName = "script3.txt";
+        PrintWriter pw = new PrintWriter(new FileWriter(inputScriptName));
+        pw.println(inputScript);
+        pw.close();
+        
+        PigServer pig = new PigServer(ExecType.MAPREDUCE, cluster
+                .getProperties());
+        
+        FileInputStream fis = new FileInputStream(inputScriptName);
+        pig.registerScript(fis);
+        
+        FileSystem fs = FileSystem.get(ConfigurationUtil.toConfiguration(
+                pig.getPigContext().getProperties()));
+        FileStatus stat = fs.getFileStatus(new Path("output3/part-m-00000.bz2"));        
+        assertTrue(stat.getLen() > 0);     
+        
+        stat = fs.getFileStatus(new Path("output3.bz2/part-m-00000.bz2"));
+        assertTrue(stat.getLen() > 0);     
+    }
+ 
 }
