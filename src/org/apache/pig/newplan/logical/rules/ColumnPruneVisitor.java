@@ -94,6 +94,7 @@ public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
             if( required.first != null && required.first.containsKey(i) ) {
                 requiredField = new RequiredField();
                 requiredField.setIndex(i);
+                requiredField.setAlias(s.getField(i).alias);
                 requiredField.setType(s.getField(i).type);
                 List<RequiredField> subFields = new ArrayList<RequiredField>();
                 for( String key : required.first.get(i) ) {
@@ -106,6 +107,7 @@ public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
             if( required.second != null && required.second.contains(i) ) {
                 requiredField = new RequiredField();
                 requiredField.setIndex(i);
+                requiredField.setAlias(s.getField(i).alias);
                 requiredField.setType(s.getField(i).type);      
                 requiredFields.add(requiredField);
             }

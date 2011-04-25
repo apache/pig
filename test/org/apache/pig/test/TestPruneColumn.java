@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -32,15 +33,30 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.InputFormat;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.RecordReader;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.SimpleLayout;
 import org.apache.pig.ExecType;
 import org.apache.pig.FilterFunc;
+import org.apache.pig.LoadFunc;
+import org.apache.pig.LoadPushDown;
 import org.apache.pig.PigServer;
+import org.apache.pig.LoadPushDown.RequiredFieldList;
+import org.apache.pig.LoadPushDown.RequiredFieldResponse;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigTextInputFormat;
+import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.util.ObjectSerializer;
+import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.newplan.logical.rules.ColumnPruneVisitor;
 import org.junit.After;
 import org.junit.Before;
@@ -1979,5 +1995,78 @@ public class TestPruneColumn extends TestCase {
         
         reader1.close();
         reader2.close();
+    }
+    
+    static public class PruneColumnEvalFunc extends LoadFunc implements LoadPushDown {
+        String[] aliases;
+        String signature;
+        public PruneColumnEvalFunc() {}
+        @Override
+        public RequiredFieldResponse pushProjection(RequiredFieldList requiredFieldList) throws FrontendException {
+            aliases = new String[requiredFieldList.getFields().size()];
+            for (int i=0; i<requiredFieldList.getFields().size(); i++) {
+                RequiredField fs = requiredFieldList.getFields().get(i);
+                aliases[i] = fs.getAlias();
+            }
+            try {
+                UDFContext.getUDFContext().getUDFProperties(this.getClass()).setProperty(signature, ObjectSerializer.serialize(aliases));
+            } catch (IOException e) {
+                throw new FrontendException(e);
+            }
+            return new RequiredFieldResponse(true);
+        }
+
+        @Override
+        public List<OperatorSet> getFeatures() {
+            return Arrays.asList(LoadPushDown.OperatorSet.PROJECTION);
+        }
+
+        @Override
+        public void setLocation(String location, Job job) throws IOException {
+            FileInputFormat.setInputPaths(job, location);
+        }
+
+        @Override
+        public InputFormat getInputFormat() throws IOException {
+            return new PigTextInputFormat();
+        }
+
+        @Override
+        public void prepareToRead(RecordReader reader, PigSplit split)
+                throws IOException {
+        }
+        
+        @Override
+        public void setUDFContextSignature(String signature) {
+            this.signature = signature;
+        }
+
+        @Override
+        public Tuple getNext() throws IOException {
+            if (aliases==null) {
+                aliases = (String[])ObjectSerializer.deserialize(UDFContext.getUDFContext().getUDFProperties(this.getClass()).getProperty(signature));
+                Tuple t = TupleFactory.getInstance().newTuple();
+                for (String s : aliases)
+                    t.append(s);
+                return t;
+            }
+            return null;
+        }
+    }
+    
+    public void testAliasInRequiredFieldList() throws Exception{
+        pigServer.registerQuery("A = load '"+ Util.generateURI(tmpFile1.toString(), pigServer.getPigContext()) + "' using "
+                + PruneColumnEvalFunc.class.getName() +"() as (a0, a1, a2);");
+        pigServer.registerQuery("B = foreach A generate a1, a2;");
+        Iterator<Tuple> iter = pigServer.openIterator("B");
+        
+        assertTrue(iter.hasNext());
+        Tuple t = iter.next();
+        
+        assertTrue(t.size()==2);
+        assertTrue(t.get(0).equals("a1"));
+        assertTrue(t.get(1).equals("a2"));
+        
+        assertFalse(iter.hasNext());
     }
 }
