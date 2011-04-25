@@ -356,6 +356,17 @@ public class JobControlCompiler{
         }else{
             log.info("mapred.job.reduce.markreset.buffer.percent is set to " + conf.get("mapred.job.reduce.markreset.buffer.percent"));
         }        
+        
+        // Convert mapred.output.* to output.compression.*, See PIG-1791
+        if( "true".equals( conf.get( "mapred.output.compress" ) ) ) {
+            conf.set( "output.compression.enabled",  "true" );
+            String codec = conf.get( "mapred.output.compression.codec" );
+            if( codec == null ) {
+                throw new JobCreationException("'mapred.output.compress' is set but no value is specified for 'mapred.output.compression.codec'." );
+            } else {
+                conf.set( "output.compression.codec", codec );
+            }
+        }
                 
         try{        
             //Process the POLoads
