@@ -75,6 +75,13 @@ throws UndefinedAliasException {
     }
 }
 
+private void checkDuplication(int count, CommonTree node) throws ParserValidationException {
+    if( count > 1 ) {
+        throw new ParserValidationException( input, new SourceLocation( (PigParserNode)node ),
+            "Duplicated command option" );
+    }
+}
+
 private Set<String> aliases = new HashSet<String>();
 
 } // End of @members
@@ -130,7 +137,21 @@ op_clause : define_clause
 define_clause : ^( DEFINE alias ( cmd | func_clause ) )
 ;
 
-cmd : ^( EXECCOMMAND ( ship_clause | cache_caluse | input_clause | output_clause | error_clause )* )
+cmd
+@init {
+    int ship = 0;
+    int cache = 0;
+    int in = 0;
+    int out = 0;
+    int error = 0;
+}
+ : ^( EXECCOMMAND ( ship_clause { checkDuplication( ++ship, $ship_clause.start ); }
+                  | cache_clause { checkDuplication( ++cache, $cache_clause.start ); }
+                  | input_clause { checkDuplication( ++in, $input_clause.start ); } 
+                  | output_clause { checkDuplication( ++out, $output_clause.start ); } 
+                  | error_clause { checkDuplication( ++error, $error_clause.start ); }
+                  )*
+   )
 ;
 
 ship_clause : ^( SHIP path_list? )
@@ -139,7 +160,7 @@ ship_clause : ^( SHIP path_list? )
 path_list : QUOTEDSTRING+
 ;
 
-cache_caluse : ^( CACHE path_list )
+cache_clause : ^( CACHE path_list )
 ;
 
 input_clause : ^( INPUT stream_cmd+ )

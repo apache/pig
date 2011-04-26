@@ -216,7 +216,7 @@ cmd[String alias] returns[StreamingCommand command]
     List<String> cachePaths = new ArrayList<String>();
     SourceLocation loc = new SourceLocation( (PigParserNode)$cmd.start );
 }
- : ^( EXECCOMMAND ( ship_clause[shipPaths] | cache_caluse[cachePaths] | input_clause | output_clause | error_clause )* )
+ : ^( EXECCOMMAND ( ship_clause[shipPaths] | cache_clause[cachePaths] | input_clause | output_clause | error_clause )* )
    {
        $command = builder.buildCommand( loc, builder.unquote( $EXECCOMMAND.text ), shipPaths,
            cachePaths, $input_clause.inputHandleSpecs, $output_clause.outputHandleSpecs,
@@ -232,7 +232,7 @@ path_list[List<String> paths]
  : ( QUOTEDSTRING { $paths.add( builder.unquote( $QUOTEDSTRING.text ) ); } )+
 ;
 
-cache_caluse[List<String> paths]
+cache_clause[List<String> paths]
  : ^( CACHE path_list[$paths] )
 ;
 
