@@ -24,6 +24,7 @@ import java.io.IOException;
 
 import junit.framework.Assert;
 
+import org.antlr.runtime.NoViableAltException;
 import org.apache.pig.test.Util;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -283,4 +284,17 @@ public class TestLogicalPlanGenerator {
         }
         Assert.fail( "Query is supposed to be failing." );
     }
+    
+    @Test
+    public void testNegative2() {
+    	String query = "ship = load 'x';";
+    	try {
+            ParserTestingUtils.generateLogicalPlan( query );
+        } catch(Exception ex) {
+            Assert.assertTrue( ex instanceof NoViableAltException );
+            return;
+        }
+        Assert.fail( "Query is supposed to be failing." );
+    }
+
 }

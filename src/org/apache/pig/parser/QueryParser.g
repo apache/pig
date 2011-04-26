@@ -136,8 +136,10 @@ catch(RecognitionException re) {
 }
 }
 
-query : statement* 
-     -> ^( QUERY statement* )
+query : statement+ 
+     -> ^( QUERY statement+ )
+      |
+     -> ^( QUERY )
 ;
 
 statement : SEMI_COLON!
