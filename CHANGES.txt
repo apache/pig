@@ -44,6 +44,8 @@ PIG-1876: Typed map for Pig (daijy)
 
 IMPROVEMENTS
 
+PIG-2003: Using keyward as alias doesn't either emit an error or produce a logical plan (xuefu)
+
 PIG-1981: LoadPushDown.pushProjection should pass alias in addition to position (daijy)
 
 PIG-2006: Regression: NPE when Pig processes an empty script file, fix test case (xuefu)
