@@ -34,6 +34,8 @@ Release 0.9.0 - Unreleased
 
 INCOMPATIBLE CHANGES
 
+PIG-1622: DEFINE streaming options are ill defined and not properly documented (xuefu)
+
 PIG-1680: HBaseStorage should work with HBase 0.90 (gstathis, billgraham, dvryaboy, tlipcon via dvryaboy)
 
 PIG-1745: Disable converting bytes loading from BinStorage (daijy)
@@ -43,8 +45,6 @@ PIG-1188: Padding nulls to the input tuple according to input schema (daijy)
 PIG-1876: Typed map for Pig (daijy)
 
 IMPROVEMENTS
-
-PIG-1622: DEFINE streaming options are ill defined and not properly documented (xuefu)
 
 PIG-2003: Using keyward as alias doesn't either emit an error or produce a logical plan (xuefu)
 
