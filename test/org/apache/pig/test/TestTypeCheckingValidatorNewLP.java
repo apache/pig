@@ -43,6 +43,7 @@ import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigServer;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
@@ -52,6 +53,7 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.impl.logicalLayer.validators.TypeCheckerException;
@@ -4068,6 +4070,24 @@ public class TestTypeCheckingValidatorNewLP {
                         
         }
         
+        // See PIG-2004
+        @Test
+        public void testDereferenceTypeSet() throws IOException, ParseException {
+            String query = "a = load 'a' as (i : int, j : int) ;"
+            + " b = foreach a generate i, j/10.1 as jd;" 
+            + " c = group b by i;" 
+            + " d = foreach c generate MAX(b.jd) as mx;";
+            
+            PigServer pig = new PigServer(ExecType.LOCAL);
+            Util.registerMultiLineQuery(pig, query);
+            
+            Schema expectedSch = 
+                Util.getSchemaFromString("mx: double");
+            Schema sch = pig.dumpSchema("d");
+            assertEquals("Checking expected schema", expectedSch, sch);
+     
+        }
+       
         
         public static class TestUDFTupleNullInnerSchema extends EvalFunc<Tuple> {
             @Override
@@ -4085,5 +4105,5 @@ public class TestTypeCheckingValidatorNewLP {
         
             checkLastForeachCastLoadFunc(query, null, 0);
         }
-        
+
 }
