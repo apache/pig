@@ -138,7 +138,7 @@ public class LogicalSchema {
             if (uidOnlyFieldSchema==null)
                 return false;
             if (this.schema==null && uidOnlyFieldSchema.schema!=null ||
-                    this.schema!=null && uidOnlyFieldSchema==null)
+                    this.schema!=null && uidOnlyFieldSchema.schema==null)
                 return false;
             if (this.schema!=null) {
                 if (this.schema.size()!=uidOnlyFieldSchema.schema.size())
