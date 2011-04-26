@@ -44,6 +44,8 @@ PIG-1876: Typed map for Pig (daijy)
 
 IMPROVEMENTS
 
+PIG-1622: DEFINE streaming options are ill defined and not properly documented (xuefu)
+
 PIG-2003: Using keyward as alias doesn't either emit an error or produce a logical plan (xuefu)
 
 PIG-1981: LoadPushDown.pushProjection should pass alias in addition to position (daijy)

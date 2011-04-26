@@ -121,7 +121,7 @@ define_clause
 
 cmd 
     : ^( EXECCOMMAND 
-        ( ship_clause | cache_caluse | input_clause | output_clause | error_clause )* )
+        ( ship_clause | cache_clause | input_clause | output_clause | error_clause )* )
 ;
 
 ship_clause 
@@ -132,7 +132,7 @@ path_list
     : QUOTEDSTRING+ 
 ;
 
-cache_caluse 
+cache_clause 
     : ^( CACHE path_list )
 ;
 

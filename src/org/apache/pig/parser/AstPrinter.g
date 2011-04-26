@@ -99,7 +99,7 @@ define_clause
 
 cmd 
     : ^( EXECCOMMAND { sb.append($EXECCOMMAND.text); }
-        ( ship_clause | cache_caluse | input_clause | output_clause | error_clause )* )
+        ( ship_clause | cache_clause | input_clause | output_clause | error_clause )* )
 ;
 
 ship_clause 
@@ -111,7 +111,7 @@ path_list
         (b=QUOTEDSTRING { sb.append(", ").append($b.text); } )*
 ;
 
-cache_caluse 
+cache_clause 
     : ^( CACHE { sb.append(" ").append($CACHE.text).append(" ("); } path_list { sb.append(")"); } )
 ;
 

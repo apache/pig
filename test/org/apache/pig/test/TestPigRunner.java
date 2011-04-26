@@ -603,17 +603,21 @@ public class TestPigRunner {
     
     @Test // PIG-2006
     public void testEmptyFile() throws IOException {
-        File f1 = new File("myscript.pig");
-        
+        File f1 = new File( PIG_FILE );
+ 
         FileWriter fw1 = new FileWriter(f1);
         fw1.close();
 
-        String[] args = { "-x", "local", "-c", "myscript.pig" };
-        PigStats stats = PigRunner.run(args, null);
+        try {
+           String[] args = { "-x", "local", "-c", PIG_FILE };
+           PigStats stats = PigRunner.run(args, null);
        
-        Assert.assertTrue(stats.isSuccessful());
-        Assert.assertEquals( 0, stats.getReturnCode() );
-        Assert.assertEquals( null, stats.getErrorMessage() );
+           Assert.assertTrue(stats.isSuccessful());
+           Assert.assertEquals( 0, stats.getReturnCode() );
+        } finally {
+            new File(PIG_FILE).delete();
+            Util.deleteFile(cluster, OUTPUT_FILE);
+        }
     }
     
     @Test
