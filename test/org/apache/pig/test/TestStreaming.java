@@ -33,6 +33,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.util.TupleFormat;
+import org.apache.pig.parser.ParserException;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -748,6 +749,40 @@ public class TestStreaming {
             // Run the query and check the results
             Util.checkQueryOutputs(pigServer.openIterator("OP"), expectedResults);
         }
+    }
+    
+    @Test
+    public void testNegativeMutipleInput() throws IOException {
+        // Perl script 
+        String[] script = 
+            new String[] {
+                          "#!/usr/bin/perl",
+                          "open(INFILE,  $ARGV[0]) or die \"Can't open \".$ARGV[0].\"!: $!\";",
+                          "while (<INFILE>) {",
+                          "  chomp $_;",
+                          "  print STDOUT \"$_\n\";",
+                          "  print STDERR \"STDERR: $_\n\";",
+                          "}",
+                         };
+        File command1 = Util.createInputFile("script", "pl", script);
+    	String query = 
+                "define CMD1 `" + command1.getName() + " foo` " +
+                "ship ('" + Util.encodeEscape(command1.toString()) + "') " +
+                "input('foo' using " + PigStreaming.class.getName() + "(',')) " +
+                "output(stdout using " + PigStreaming.class.getName() + "(',')) " +
+                "input('foo' using " + PigStreaming.class.getName() + "(',')) " +
+                "stderr();"; 
+    	
+    	try {
+    		pigServer.registerQuery( query );
+    	} catch(ParserException ex) {
+    		String expectedMsg = "pig script failed to validate: Duplicated command option";
+    	    System.out.println( ex.getMessage() );
+    		Assert.assertTrue( ex.getMessage().contains( expectedMsg ) );
+    		return;
+    	}
+    	
+    	Assert.fail( "Testcase is supposed to fail." );
     }
     
     public static class PigStreamDump implements PigToStream {

@@ -245,7 +245,7 @@ import_clause : IMPORT^ QUOTEDSTRING
 define_clause : DEFINE^ alias ( cmd | func_clause | macro_clause)
 ;
 
-cmd : EXECCOMMAND^ ( ship_clause | cache_caluse | input_clause | output_clause | error_clause )*
+cmd : EXECCOMMAND^ ( ship_clause | cache_clause | input_clause | output_clause | error_clause )*
 ;
 
 ship_clause : SHIP^ LEFT_PAREN! path_list? RIGHT_PAREN!
@@ -255,7 +255,7 @@ path_list : QUOTEDSTRING ( COMMA QUOTEDSTRING )*
          -> QUOTEDSTRING+
 ;
 
-cache_caluse : CACHE^ LEFT_PAREN! path_list RIGHT_PAREN!
+cache_clause : CACHE^ LEFT_PAREN! path_list RIGHT_PAREN!
 ;
 
 input_clause : INPUT^ LEFT_PAREN! stream_cmd_list RIGHT_PAREN!
