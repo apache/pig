@@ -32,7 +32,8 @@ public class CastExpression extends UnaryExpression {
 
     public CastExpression(OperatorPlan plan, LogicalExpression exp, LogicalSchema.LogicalFieldSchema fs) {
         super("Cast", plan, exp);
-        castSchema = fs;
+        castSchema = fs.deepCopy();
+        castSchema.resetUid();
     }
 
     @Override

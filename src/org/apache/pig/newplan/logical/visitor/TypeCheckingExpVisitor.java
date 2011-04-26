@@ -46,6 +46,7 @@ import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.ReverseDependencyOrderWalker;
 import org.apache.pig.newplan.logical.Util;
 import org.apache.pig.newplan.logical.expression.AddExpression;
+import org.apache.pig.newplan.logical.expression.AllSameExpressionVisitor;
 import org.apache.pig.newplan.logical.expression.AndExpression;
 import org.apache.pig.newplan.logical.expression.BinCondExpression;
 import org.apache.pig.newplan.logical.expression.BinaryExpression;
@@ -93,12 +94,11 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
         super(expPlan, new ReverseDependencyOrderWalker(expPlan));
         this.msgCollector = msgCollector;
         this.currentRelOp = relOp;
-    }
+        //reset field schema of all expression operators because
+        // it needs to be re-evaluated after correct types are set
+        FieldSchemaResetter sr = new FieldSchemaResetter(expPlan);
+        sr.visit();
 
-    @Override
-    public void visit(ProjectExpression proj) throws FrontendException{
-        proj.resetFieldSchema();
-        proj.getFieldSchema();
     }
 
     @Override
@@ -172,8 +172,6 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             throw new TypeCheckerException(binOp, msg, errCode, PigException.INPUT) ;
         }
 
-        binOp.resetFieldSchema();
-
     }
     
     @Override
@@ -214,7 +212,6 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             msgCollector.collect(msg, MessageType.Error);
             throw new TypeCheckerException(binOp, msg, errCode, PigException.INPUT) ;
         }
-        binOp.resetFieldSchema();
     }
 
     private String generateIncompatibleTypesMessage(BinaryExpression binOp)
@@ -251,15 +248,6 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             throw new TypeCheckerException(negExp, msg, errCode, PigException.INPUT) ;
         }
 
-        negExp.resetFieldSchema();
-        try {
-            negExp.getFieldSchema();
-        } catch (FrontendException fe) {
-            int errCode = 1040;
-            String msg = "Could not set Negative field schema";
-            msgCollector.collect(msg, MessageType.Error);
-            throw new TypeCheckerException(negExp, msg, errCode, PigException.INPUT, fe) ;
-        }
     }
     
     @Override
@@ -412,9 +400,6 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
         else {
             throwIncompatibleTypeError(binOp);
         }
-        //input types might have changed, regenerate field schema
-        binOp.resetFieldSchema();
-        binOp.getFieldSchema();
     }
 
     private void throwIncompatibleTypeError(BinaryExpression binOp)
@@ -526,7 +511,6 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
      */
     @Override
     public void visit(RegexExpression rg) throws FrontendException {
-        rg.resetFieldSchema();
         // We allow BYTEARRAY to be converted to CHARARRAY
         if (rg.getLhs().getType() == DataType.BYTEARRAY){
             insertCast(rg, DataType.CHARARRAY, rg.getLhs());
@@ -645,7 +629,6 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             // return map
             insertCast(map, DataType.MAP, map.getMap());
         }
-        map.resetFieldSchema();
     }
     
     @Override
@@ -801,17 +784,6 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             func.setFuncSpec(matchingSpec);
             insertCastsForUDF(func, currentArgSchema, matchingSpec.getInputArgsSchema());
             
-        }
-            
-        //Regenerate schema as there might be new additions
-        try {
-            func.resetFieldSchema();
-            func.getFieldSchema();
-        } catch (FrontendException fee) {
-            int errCode = 1040;
-            String msg = "Could not set UserFunc field schema";
-            msgCollector.collect(msg, MessageType.Error);
-            throw new TypeCheckerException(func, msg, errCode, PigException.INPUT, fee) ;
         }
     }
     
@@ -1368,5 +1340,17 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
 
     
 
+    static class FieldSchemaResetter extends AllSameExpressionVisitor {
+
+        protected FieldSchemaResetter(OperatorPlan p) throws FrontendException {
+            super(p, new ReverseDependencyOrderWalker(p));
+        }
+
+        @Override
+        protected void execute(LogicalExpression op) throws FrontendException {
+            op.resetFieldSchema();
+        }
+
+    }
 
 }
