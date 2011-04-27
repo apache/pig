@@ -7357,7 +7357,7 @@ STORE Y INTO 'byuser';
    <table>
       <tr> 
             <td>
-               <p>DEFINE alias {function | [`command` [input] [output] [ship] [cache]] };</p>
+               <p>DEFINE alias {function | [`command` [input] [output] [ship] [cache] [stderr] ] };</p>
             </td>
          </tr> 
    </table>
@@ -7390,6 +7390,12 @@ STORE Y INTO 'byuser';
             <td>
             <p>For use with streaming.</p>
                <p>A command, including the arguments, enclosed in back tics (where a command is anything that can be executed).</p>
+               <p>The clauses (input, output, ship, cache, stderr) are described below. Note the following:</p>
+               <ul>
+                  <li>All clauses are optional.</li>
+				  <li>The clauses can be specified in any order (for example, stderr can appear before input)</li>
+				  <li>Each clause can be specified at most once (for example, multiple inputs are not allowed)</li>
+				</ul>
             </td>
          </tr>
          <tr>
@@ -7476,6 +7482,18 @@ STORE Y INTO 'byuser';
                </ul>
             </td>
          </tr> 
+         <tr>
+            <td>
+               <p>stderr</p>
+            </td>
+           <td>
+            <p>For use with streaming.</p>
+            <p>STDERR( '/dir') or STDERR( '/dir' LIMIT n)</p>
+             <p>Where:</p>
+             <ul><li>'/dir' is the log directory, enclosed in single quotes.</li></ul>
+             <ul><li>(optional) LIMIT n is the error threshold where n is an integer value. If not specified, the default error threshold is unlimited.</li></ul>
+            </td>
+         </tr>
    </table></section>
    
    <section>
