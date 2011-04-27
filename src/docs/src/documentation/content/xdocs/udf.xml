@@ -199,6 +199,7 @@ public interface Algebraic{
 <section>
 <title> Filter Functions</title>
 <p>Filter functions are eval functions that return a <code>boolean</code> value. Filter functions can be used anywhere a Boolean expression is appropriate, including the <code>FILTER</code> operator or <code>bincond</code> expression. </p>
+
 <p>The example below uses the <code>IsEmpy</code> builtin filter function to implement joins. </p>
 
 <source>
@@ -220,7 +221,7 @@ A = LOAD 'student_data' AS (name: chararray, age: int, gpa: float);
 B = LOAD 'voter_data' AS (name: chararray, age: int, registration: chararay, contributions: float);
 C = COGROUP A BY name, B BY name;
 D = FOREACH C GENERATE group, flatten((IsEmpty(A) ? null : A)), flatten((IsEmpty(B) ? null : B));
-dump D
+dump D;
 </source>
 
 <p>The implementation of the <code>IsEmpty</code> function looks like this: </p>
@@ -228,32 +229,38 @@ dump D
 <source>
 import java.io.IOException;
 import java.util.Map;
+
 import org.apache.pig.FilterFunc;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.DataType;
 
+/**
+ * Determine whether a bag or map is empty.
+ */
 public class IsEmpty extends FilterFunc {
+
+    @Override
     public Boolean exec(Tuple input) throws IOException {
-        if (input == null || input.size() == 0)
-            return null;
         try {
             Object values = input.get(0);
             if (values instanceof DataBag)
                 return ((DataBag)values).size() == 0;
             else if (values instanceof Map)
                 return ((Map)values).size() == 0;
-            else{
-                throw new IOException("Cannot test a " +
-                    DataType.findTypeName(values) + " for emptiness.");
+            else {
+                int errCode = 2102;
+                String msg = "Cannot test a " +
+                DataType.findTypeName(values) + " for emptiness.";
+                throw new ExecException(msg, errCode, PigException.BUG);
             }
         } catch (ExecException ee) {
-            throw new IOException("Caught exception processing input row ", ee);   
+            throw ee;
         }
     }
-}
-
+} 
 </source>
 </section>
 
@@ -706,6 +713,31 @@ public class UPPER extends EvalFunc&lt;String&gt;
                 }
         }
 }
+</source>
+</section>
+
+<section>
+	<title>Using Distributed Cache</title>
+	<p>Use getCacheFiles, an EvalFunc method, to return a list of HDFS files that need to be shipped to distributed cache. Inside EvalFunc, you can assume that these files already exist in distributed cache. For example:</p>
+<source>
+public class Udfcachetest extends EvalFunc&lt;String&gt; { 
+
+    public String exec(Tuple input) throws IOException { 
+        FileReader fr = new FileReader("./smallfile"); 
+        BufferedReader d = new BufferedReader(fr); 
+        return d.readLine(); 
+    } 
+
+    public List&lt;String&gt; getCacheFiles() { 
+        List&lt;String&gt; list = new ArrayList&lt;String&gt;(1); 
+        list.add("/user/pig/tests/data/small#smallfile"); 
+        return list; 
+    } 
+} 
+
+a = load '1.txt'; 
+b = foreach a generate Udfcachetest(*); 
+dump b;
 </source>
 </section>
 

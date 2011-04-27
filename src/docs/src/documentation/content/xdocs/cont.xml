@@ -335,35 +335,42 @@ else:
 
 <section>
 <title>Convergence</title>
-<p>There is a whole class of problems that involve iterating over a pipeline an indeterminate number of times. Examples include running until values or error converge, graph traversal algorithms, etc. while and for loops in the host language along with the ability to test the output of a pipeline and either run it again or move to the next step will enable users to satisfy this use case. </p>
+<p>There is a class of problems that involve iterating over a data pipeline an indeterminate number of times until a certain value is reached. Examples arise in machine learning, graph traversal, and a host of numerical analysis problems which involve finding interpolations, extrapolations or regressions. The Python example below shows one way to achieve convergence using Pig scripts.</p>
 
 <source>
-P = Pig.compile("""A = load '$in’;
-                   C = group A by user;
-                   D = foreach C generate group, myUDF(A);
-                   store D into '$out’;
-                   F = group D all;
-                   G = foreach F generate MAX(D);
-                   store G into 'tmp’;
-                """)
-error = 100.0
-input = "original”
-output = "output-0”
-final = "final-output”
+#!/usr/bin/python
 
-for i in range(1, 100):
-    p.bind({'in':input, 'out':output}) # attaches $in, $out in Pig Latin to input, output Python variables
-    results = p.runSingle()
-    
-    if results.isSuccessful() = "FAILED":
+# explicitly import Pig class
+from org.apache.pig.scripting import Pig
+
+P = Pig.compile("""A = load '$input' as (user, age, gpa);
+                   B = group A all;
+                   C = foreach B generate AVG(A.gpa);
+                   store C into '$output';
+                """)
+# initial output
+input = "studenttab5"
+output = "output-5"
+final = "final-output"
+
+for i in range(1, 4):
+    Q = P.bind({'input':input, 'output':output}) # attaches $input, $output in Pig Latin to input, output Python variable
+    results = Q.runSingle()
+
+    if results.isSuccessful() == "FAILED":
         raise "Pig job failed"
-    iter = results.getResults("G")
-    if iter.next() > 1:
-        input = output
-        output = "output-" + i.to_s
-    else:
-        H = Pig.fs("mv " + output + " " + final)
-        break
+    iter = results.result("C").iterator()
+    if iter.hasNext():
+        tuple = iter.next()
+        value = tuple.get(0)
+        if float(str(value)) &lt; 3:
+            print "value: " + str(value)
+            input = "studenttab" + str(i+5)
+            output = "output-" + str(i+5)
+            print "output: " + output
+        else:
+           Pig.fs("mv " + output + " " + final)
+           break
 </source>
 </section>
 
