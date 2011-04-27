@@ -499,7 +499,7 @@ scalar : num_scalar
 
 num_scalar : ( MINUS { sb.append( "-" ); } )?
              ( INTEGER { sb.append($INTEGER.text); }
-             | LONGINEGER { sb.append($LONGINEGER.text); }
+             | LONGINTEGER { sb.append($LONGINTEGER.text); }
              | FLOATNUMBER { sb.append($FLOATNUMBER.text); }
              | DOUBLENUMBER { sb.append($DOUBLENUMBER.text); }
              )

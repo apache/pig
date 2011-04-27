@@ -24,8 +24,15 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.PrintWriter;
+import java.io.StringReader;
+import java.util.Properties;
 
+import org.apache.pig.ExecType;
 import org.apache.pig.PigRunner;
+import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.tools.grunt.Grunt;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -289,8 +296,8 @@ public class TestMacroExpansion {
         String expected =
             "alpha = load 'users' as (user, age, zip);\n" +
             "gamma = STREAM alpha THROUGH `stream.pl -n 5`;\n" + 
-            "DEFINE macro_group_and_count_mycmd_0 `stream.pl -n 5`;\n" + 
-            "gamma = STREAM alpha THROUGH macro_group_and_count_mycmd_0;\n" +
+            "DEFINE mycmd `stream.pl -n 5`;\n" + 
+            "gamma = STREAM alpha THROUGH mycmd;\n" +
             "store gamma INTO 'byuser';\n";
         
         verify(macro + script, expected);
@@ -314,12 +321,12 @@ public class TestMacroExpansion {
         
         String expected = 
             "alpha = load 'users' as (user, age, zip);\n" +
-            "DEFINE macro_group_and_count_CMD_0 `perl PigStreaming.pl - nameMap` input(stdin USING PigStreaming(',')) output (stdout USING PigStreaming(','));\n" +
-            "DEFINE macro_group_and_count_mycmd_0 `stream_cmd input file.dat`;\n" +
-            "DEFINE macro_group_and_count_Z_0 `stream.pl` stderr ('<dir>' LIMIT 100);\n" +
-            "gamma = STREAM alpha THROUGH macro_group_and_count_CMD_0;\n" +
-            "macro_group_and_count_D_0 = STREAM alpha THROUGH macro_group_and_count_mycmd_0;\n" +
-            "macro_group_and_count_F_0 = STREAM alpha THROUGH macro_group_and_count_Z_0;\n" +
+            "DEFINE CMD `perl PigStreaming.pl - nameMap` input(stdin USING PigStreaming(',')) output (stdout USING PigStreaming(','));\n" +
+            "DEFINE mycmd `stream_cmd input file.dat`;\n" +
+            "DEFINE Z `stream.pl` stderr ('<dir>' LIMIT 100);\n" +
+            "gamma = STREAM alpha THROUGH CMD;\n" +
+            "macro_group_and_count_D_0 = STREAM alpha THROUGH mycmd;\n" +
+            "macro_group_and_count_F_0 = STREAM alpha THROUGH Z;\n" +
             "store gamma INTO 'byuser';\n";
         
         verify(macro + script, expected);
@@ -651,8 +658,8 @@ public class TestMacroExpansion {
         verify(macro + script, expected);
     }
     
-    @Test(expected = java.lang.AssertionError.class)  
-    public void duplicationTest() throws Exception {
+    @Test
+    public void duplicationTest() throws Throwable {
         String macro = "define group_and_count (A,group_key, reducers) returns B {\n" +
             "    $B = distinct $A partition by org.apache.pig.test.utils.SimpleCustomPartitioner parallel $reducers;\n" +
             "};\n";
@@ -664,7 +671,9 @@ public class TestMacroExpansion {
             "store gamma into 'byuser';\n" +
             "store delta into 'byage';\n";
         
-        verify(macro + macro + script);
+        String expectedErr = "Reason: Duplicated macro name 'group_and_count'";
+        
+        validateFailure(macro + macro + script, expectedErr);
     }
     
     @Test
@@ -862,7 +871,7 @@ public class TestMacroExpansion {
             "};\n";
         
         String script = 
-            "dummy = group_and_count();\n";
+            "group_and_count();\n";
         
         String expected =
             "macro_group_and_count_D_0 = load 'myfile.txt' USING PigStorage() AS (a0:int, a1:int, a2:int);\n" +
@@ -879,7 +888,7 @@ public class TestMacroExpansion {
             "};\n";
         
         String script = 
-            "dummy = group_and_count('myfile.txt', '/tmp/myoutput');\n";
+            "group_and_count('myfile.txt', '/tmp/myoutput');\n";
         
         String expected =
             "macro_group_and_count_D_0 = load 'myfile.txt';\n" +
@@ -889,8 +898,8 @@ public class TestMacroExpansion {
     }
     
     // missing inline parameters
-    @Test(expected = java.lang.AssertionError.class)  
-    public void negativeTest() throws Exception {
+    @Test
+    public void negativeTest() throws Throwable {
         String macro = "define group_and_count (A,group_key, size) returns B {\n" +
             "    $B = limit $A $size;\n" +
             "};\n";
@@ -900,12 +909,14 @@ public class TestMacroExpansion {
             "gamma = group_and_count (alpha, 20);\n" +
             "store gamma into 'byuser';\n";
         
-        verify(macro + script);
+        String expectedErr = "Reason: Expected number of parameters: 3 actual number of inputs: 2";
+        
+        validateFailure(macro + script, expectedErr);
     }   
     
     // missing inline parameters 
-    @Test(expected = java.lang.AssertionError.class)  
-    public void negativeTest2() throws Exception {
+    @Test 
+    public void negativeTest2() throws Throwable {
         String macro = "define group_and_count (A,group_key, size) returns B {\n" +
             "    $B = limit $A $size;\n" +
             "};\n";
@@ -915,12 +926,14 @@ public class TestMacroExpansion {
             "gamma = group_and_count ();\n" +
             "store gamma into 'byuser';\n";
         
-        verify(macro + script);
+        String expectedErr = "Reason: Expected number of parameters: 3 actual number of inputs: 0";
+        
+        validateFailure(macro + script, expectedErr);
     }   
     
     // missing inline return values
-    @Test(expected = java.lang.AssertionError.class)
-    public void negativeTest3() throws Exception {
+    @Test
+    public void negativeTest3() throws Throwable {
         String macro = "define group_and_count (A,C) returns B, D {\n" +
             "    $B = JOIN $A BY user, $C BY user;\n" +
             "    $D = JOIN $A BY $0, $C BY $1 using 'skewed' parallel 5;\n" +
@@ -932,12 +945,14 @@ public class TestMacroExpansion {
             "gamma = group_and_count (alpha,beta);\n" +
             "store gamma into 'byuser';\n";
         
-        verify(macro + script);
+        String expectedErr = "Reason: Expected number of return aliases: 2 actual number of return values: 1";
+        
+        validateFailure(macro + script, expectedErr);
     }
     
     // macro contains another macro def
-    @Test(expected = java.lang.AssertionError.class)
-    public void negativeTest4() throws Exception {
+    @Test
+    public void negativeTest4() throws Throwable {
         String macro = "define group_and_count (A,C) returns B {\n" +
             "    $B = JOIN $A BY user, $C BY user;\n" +
             "    define test_macro() returns dummy { a = load '1.txt'; };\n" +
@@ -949,7 +964,49 @@ public class TestMacroExpansion {
             "gamma = group_and_count (alpha,beta);\n" +
             "store gamma into 'byuser';\n";
         
-        verify(macro + script);
+        String expectedErr 
+            = "Reason: macro 'group_and_count' contains macro definition.\n" +
+              "macro content: \n" +
+              "    $B = JOIN $A BY user, $C BY user;\n" +
+              "    define test_macro() returns dummy { a = load '1.txt'; };\n";
+        
+        validateFailure(macro + script, expectedErr);
+    }
+    
+    // macro doesn't contain return alias
+    @Test
+    public void negativeTest5() throws Throwable {
+        String macro = "define group_and_count (A,C) returns B {\n" +
+            "    B = JOIN $A BY user, $C BY user;\n" +
+            "};\n";
+        
+        String script = 
+            "alpha = load 'users' as (user, age, zip);\n" +
+            "beta = load 'links' as (user, link, view);\n" +
+            "gamma = group_and_count (alpha,beta);\n" +
+            "store gamma into 'byuser';\n";
+        
+        String expectedErr = "Reason: Macro 'group_and_count' missing return alias: B";
+        
+        validateFailure(macro + script, expectedErr);
+    }
+    
+    // macro doesn't contain return alias
+    @Test
+    public void negativeTest6() throws Throwable {
+        String macro = "define group_and_count (A,C) returns B {\n" +
+            "    B = JOIN $A BY $B, $C BY user;\n" +
+            "};\n";
+        
+        String script = 
+            "alpha = load 'users' as (user, age, zip);\n" +
+            "beta = load 'links' as (user, link, view);\n" +
+            "gamma = group_and_count (alpha,beta);\n" +
+            "store gamma into 'byuser';\n";
+        
+        String expectedErr = "Reason: Macro 'group_and_count' missing return alias: B";
+        
+        validateFailure(macro + script, expectedErr);
     }
     
     @Test
@@ -973,6 +1030,36 @@ public class TestMacroExpansion {
             "alpha = load 'users' as (user, age, zip);\n" +
             "macro_group_and_partition_C_0 = group alpha by (user) partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 23;\n" +
             "gamma = foreach macro_group_and_partition_C_0 generate group, COUNT(alpha);\n" +
+            "store gamma INTO 'byuser';\n";
+            
+        verify(script, expected);
+    }
+    
+    @Test
+    public void recursiveMacrosTest3() throws Exception {
+        String macro1 = "define group_and_partition (A, group_key, reducers) returns B, D  {\n" +
+            "    C = group $A by $group_key partition by org.apache.pig.test.utils.SimpleCustomPartitioner parallel $reducers;\n" +
+            "    $B, $D = foreach_count(C, $A);" +
+            "};\n";
+        
+        String macro2 = "define foreach_count(A, C) returns B, D {\n" +
+            "   $B = foreach $A generate group, COUNT($C);\n" +
+            "   $D = foreach $A generate group, COUNT($C);\n" +
+            "};\n";
+        
+        
+        String script = macro2 + macro1 +
+            "alpha = load 'users' as (user, age, zip);\n" +
+            "gamma, beta = group_and_partition (alpha, user, 23);\n" +
+            "store beta into 'byage';\n" +  
+            "store gamma into 'byuser';\n";
+
+        String expected =
+            "alpha = load 'users' as (user, age, zip);\n" +
+            "macro_group_and_partition_C_0 = group alpha by (user) partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 23;\n" + 
+            "gamma = foreach macro_group_and_partition_C_0 generate group, COUNT(alpha);\n" +
+            "beta = foreach macro_group_and_partition_C_0 generate group, COUNT(alpha);\n" +
+            "store beta INTO 'byage';\n" +
             "store gamma INTO 'byuser';\n";
             
         verify(script, expected);
@@ -1032,8 +1119,8 @@ public class TestMacroExpansion {
         verify(script, expected);
     }
     
-    @Test(expected = java.lang.AssertionError.class)
-    public void selfRecursiveTest() throws Exception {
+    @Test
+    public void selfRecursiveTest() throws Throwable {
         String macro1 = "define group_and_partition (A, group_key, reducers) returns B {\n" +
             "    C = group $A by $group_key partition by org.apache.pig.test.utils.SimpleCustomPartitioner parallel $reducers;\n" +
             "    $B = group_and_partition(C, age, 34);" +
@@ -1044,11 +1131,13 @@ public class TestMacroExpansion {
             "gamma = group_and_partition (alpha, user, 23);\n" +
             "store gamma into 'byuser';\n";
 
-        verify(script);
+        String expectedErr = "Reason: Macro can't be defined circularly.";
+        
+        validateFailure(script, expectedErr);
     }
     
-    @Test(expected = java.lang.AssertionError.class)
-    public void cyclicRecursiveTest() throws Exception {
+    @Test
+    public void cyclicRecursiveTest() throws Throwable {
         String macro1 = "define group_and_partition (A, group_key, reducers) returns B {\n" +
             "    C = group $A by $group_key partition by org.apache.pig.test.utils.SimpleCustomPartitioner parallel $reducers;\n" +
             "    $B = foreach_count(C, $A);" +
@@ -1064,7 +1153,9 @@ public class TestMacroExpansion {
             "gamma = group_and_partition (alpha, user, 23);\n" +
             "store gamma into 'byuser';\n";
 
-        verify(script);
+        String expectedErr = "Reason: Macro can't be defined circularly.";
+        
+        validateFailure(script, expectedErr);
     }
     
     @Test
@@ -1193,8 +1284,8 @@ public class TestMacroExpansion {
                        "store A into 'y';";
         
         String expected =
-            "define macro_mymacro_myudf_0 org.apache.pig.builtin.PigStorage(',');\n" +
-            "macro_mymacro_A_0 = load 'x' USING macro_mymacro_myudf_0;\n" +
+            "define myudf org.apache.pig.builtin.PigStorage(',');\n" +
+            "macro_mymacro_A_0 = load 'x' USING myudf;\n" +
             "store macro_mymacro_A_0 INTO 'y';\n";
             
         testMacro( query, expected );
@@ -1387,14 +1478,14 @@ public class TestMacroExpansion {
     
     @Test
     public void test18() throws Exception {
-        String macro = "define mymacro() returns dummy {" +
+        String macro = "define mymacro() returns void {" +
             "a = load '/user/pig/tests/data/singlefile/studenttab10k';" +
             "b = group a by $0;" +
             "c = foreach b {c1 = order $1 by *; generate flatten(c1); };" +
             "store c into '/user/pig/out/jianyong.1297305352/Order_15.out';};";
             
         String script = macro +
-            "dummy = mymacro();\n";
+            "mymacro();\n";
         
         String expected =
             "macro_mymacro_a_0 = load '/user/pig/tests/data/singlefile/studenttab10k';\n" +
@@ -1693,9 +1784,9 @@ public class TestMacroExpansion {
         fw.close();
 
         String query = "import 'mymacro.pig';" +
-            "define macro1() returns dummy {}; " + 
+            "define macro1() returns void {}; " + 
             "A = load '1.txt' as (a0:int, a1:chararray);" +
-            "dummy = macro1();" +
+            "macro1();" +
             "B = group A by a0;" + 
             "store B into 'output';";
         
@@ -1791,11 +1882,11 @@ public class TestMacroExpansion {
     }
     
     private void testMacro(String content, String expected) throws Exception {
-        String macro = "define mymacro() returns dummy {" +
+        String macro = "define mymacro() returns void {" +
             content + "};";
             
         String script = macro +
-            "dummy = mymacro();\n";
+            "mymacro();\n";
         
         verify(script, expected);
     }
@@ -1840,6 +1931,27 @@ public class TestMacroExpansion {
             Assert.assertEquals(expected, sb.toString());
         } else {
             System.out.println("Result:\n" + sb.toString());
+        }
+    }
+    
+    private void validateFailure(String piglatin, String expectedErr) throws Throwable {
+        String scriptFile = "mymacrotest.pig";
+        
+        try {
+            BufferedReader br = new BufferedReader(new StringReader(piglatin));
+            Grunt grunt = new Grunt(br, new PigContext(ExecType.LOCAL, new Properties()));
+            
+            PrintWriter w = new PrintWriter(new FileWriter(scriptFile));
+            w.print(piglatin);
+            w.close();
+            
+            grunt.checkScript(scriptFile);
+        } catch (FrontendException e) {  
+            String msg = e.getMessage();
+            int pos = msg.indexOf("Reason:");
+            Assert.assertEquals(expectedErr, msg.substring(pos));           
+        } finally {
+            new File(scriptFile).delete();
         }
     }
 }
