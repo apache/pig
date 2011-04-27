@@ -195,7 +195,8 @@ public class QueryParserDriver {
     private void inlineMacro(List<CommonTree> inlineNodes,
             List<PigMacro> macroDefs) throws ParserException {
         for (CommonTree t : inlineNodes) {
-            CommonTree newTree = PigMacro.macroInline(t, macroDefs);
+            Set<String> macroStack = new HashSet<String>();
+            CommonTree newTree = PigMacro.macroInline(t, macroDefs, macroStack);
             
             List<CommonTree> nodes = new ArrayList<CommonTree>();
             traverseInline(newTree, nodes);
@@ -266,8 +267,8 @@ public class QueryParserDriver {
         String mn = t.getChild(0).getText();
  
         if (!macroSeen.add(mn)) {
-            String msg = getErrorMessage(null, t,
-                    "Duplicated macro name '" + mn + "'", null);
+            String msg = getErrorMessage(null, t, null,
+                    "Duplicated macro name '" + mn + "'");
             throw new ParserException(msg);
         }
 
@@ -277,25 +278,24 @@ public class QueryParserDriver {
             }
         }
         
-        PigMacro pm = new PigMacro(mn);
-        
         String fname = ((PigParserNode)t).getFileName();
-        pm.setFile(fname);
 
         Tree defNode = t.getChild(1);
 
         // get parameter markers
         Tree paramNode = defNode.getChild(0);
         int n = paramNode.getChildCount();
+        ArrayList<String> params = new ArrayList<String>(); 
         for (int i = 0; i < n; i++) {
-            pm.addParam(paramNode.getChild(i).getText());
+            params.add(paramNode.getChild(i).getText());
         }
 
         // get return alias markers
         Tree retNode = defNode.getChild(1);
         int m = retNode.getChildCount();
+        ArrayList<String> returns = new ArrayList<String>(); 
         for (int i = 0; i < m; i++) {
-            pm.addReturn(retNode.getChild(i).getText());
+            returns.add(retNode.getChild(i).getText());
         }
 
         // get macro body
@@ -304,8 +304,16 @@ public class QueryParserDriver {
 
         body = body.substring(1, body.length() - 1);
 
-        pm.setBody(body, seen);
-
+        PigMacro pm = new PigMacro(mn, fname, params, returns, body, seen);
+        
+        try {
+            pm.validate();
+        } catch (IOException e) {
+            String msg = getErrorMessage(null, t,
+                    "Invalid macro definition: ", e.getMessage());
+            throw new ParserException(msg);
+        }
+        
         seen.put(mn, pm);
 
         // delete this node

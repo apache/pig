@@ -215,8 +215,11 @@ macro_param_clause : LEFT_PAREN ( alias (COMMA alias)* )? RIGHT_PAREN
     -> ^(PARAMS alias*)
 ;
 
-macro_return_clause : RETURNS alias (COMMA alias)*
-    -> ^(RETURN_VAL alias+)
+macro_return_clause 
+    : RETURNS alias (COMMA alias)*
+        -> ^(RETURN_VAL alias+)
+    | RETURNS VOID 
+        -> ^(RETURN_VAL VOID)
 ;
 
 macro_body_clause : content
@@ -227,15 +230,17 @@ macro_clause : macro_param_clause macro_return_clause macro_body_clause
     -> ^(MACRO_DEF macro_param_clause macro_return_clause macro_body_clause)
 ;
 
-inline_return_clause : alias (COMMA alias)*
-    -> ^(RETURN_VAL alias+)
+inline_return_clause 
+    : alias EQUAL -> ^(RETURN_VAL alias)
+	| alias (COMMA alias)+ EQUAL -> ^(RETURN_VAL alias+)
+	| -> ^(RETURN_VAL)  
 ;
 
 inline_param_clause : LEFT_PAREN ( parameter (COMMA parameter)* )? RIGHT_PAREN
     -> ^(PARAMS parameter*)
 ;
 
-inline_clause : inline_return_clause EQUAL alias inline_param_clause
+inline_clause : inline_return_clause alias inline_param_clause
     -> ^(MACRO_INLINE alias inline_return_clause inline_param_clause)
 ;
 

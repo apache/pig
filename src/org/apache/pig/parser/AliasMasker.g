@@ -116,7 +116,7 @@ op_clause : define_clause
 ;
 
 define_clause 
-    : ^( DEFINE alias  ( cmd | func_clause ) )
+    : ^( DEFINE IDENTIFIER  ( cmd | func_clause ) )
 ;
 
 cmd 
@@ -300,13 +300,7 @@ col_alias
 ;
 
 scoped_col_alias 
-    : ^( SCOPED_ALIAS (a=IDENTIFIER {          
-        if (aliasSeen.contains($a.text)) {
-             $a.getToken().setText(getMask($a.text));
-        } else {
-            $a.getToken().setText($a.text);
-        } 
-    })+ )
+    : ^( SCOPED_ALIAS IDENTIFIER+ )
 ;
 
 col_index 
@@ -445,7 +439,7 @@ nested_op_input : col_ref | nested_proj
 ;
 
 stream_clause 
-    : ^( STREAM rel ( EXECCOMMAND | alias ) as_clause? )
+    : ^( STREAM rel ( EXECCOMMAND | IDENTIFIER ) as_clause? )
 ;
 
 mr_clause 
@@ -488,7 +482,7 @@ literal : scalar | map | bag | tuple
 
 scalar 
     : INTEGER
-    | LONGINEGER
+    | LONGINTEGER
     | FLOATNUMBER
     | DOUBLENUMBER
     | QUOTEDSTRING
@@ -576,13 +570,7 @@ eid : rel_str_op
     | LEFT
     | RIGHT
     | FULL
-    | a = IDENTIFIER {
-        if (aliasSeen.contains($a.text)) {
-            $a.getToken().setText(getMask($a.text));
-        } else {
-            $a.getToken().setText($a.text);
-        }
-    }
+    | IDENTIFIER 
 ;
 
 // relational operator

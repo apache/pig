@@ -217,6 +217,7 @@ TOKEN_MGR_DECLS : {
 |	<"import"> : PIG_START
 | 	<(["a"-"z", "A"-"Z"])+(["a"-"z", "A"-"Z"] | ["0"-"9"] | "_")*(" " | "\t")*"="> : PIG_START
 | 	< <IDENTIFIER> (" " | "\t")* ("," (" " | "\t")* <IDENTIFIER> )* (" " | "\t")* "="> : PIG_START
+|   < <IDENTIFIER> (" " | "\t")* "(" > : PIG_START
 }
 
 <PIG_START> MORE :
