@@ -57,6 +57,9 @@ public String getErrorHeader(RecognitionException ex) {
 
 } // End of members.
 
+VOID    : 'VOID'
+;
+
 IMPORT  : 'IMPORT'
 ;
 
