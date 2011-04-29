@@ -340,6 +340,14 @@ public class TestConversions extends TestCase {
         s = "[#]";
         m = ps.getLoadCaster().bytesToMap(s.getBytes());
         assertTrue(m==null);
+
+        s = "[a#}";
+        m = ps.getLoadCaster().bytesToMap(s.getBytes());
+        assertTrue(m==null);
+
+        s = "[a#)";
+        m = ps.getLoadCaster().bytesToMap(s.getBytes());
+        assertTrue(m==null);
         
         s = "(a,b)";
         schema = Utils.getSchemaFromString("t:tuple()");
