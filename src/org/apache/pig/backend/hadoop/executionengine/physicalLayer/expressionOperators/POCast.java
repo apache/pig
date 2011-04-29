@@ -745,6 +745,7 @@ public class POCast extends ExpressionOperator {
                             "converted to type tuple, caught ParseException <" +
                             e.getMessage() + "> field discarded", 
                             PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, log);
+                    res.result = null;
                 }
             }
             return res;
@@ -866,6 +867,10 @@ public class POCast extends ExpressionOperator {
                 try {
                     Tuple t = (Tuple)obj;
                     ResourceSchema innerSchema = fs.getSchema();
+                    if (innerSchema==null)
+                        return t;
+                    if (innerSchema.getFields().length!=t.size())
+                        return null;
                     int i=0;
                     for (ResourceFieldSchema fieldSchema : innerSchema.getFields()) {
                         Object field = convertWithSchema(t.get(i), fieldSchema);
@@ -1123,6 +1128,7 @@ public class POCast extends ExpressionOperator {
                             "converted to type bag, caught ParseException <" +
                             e.getMessage() + "> field discarded", 
                             PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, log);
+                    res.result = null;
                 }
             }
             return res;
@@ -1222,6 +1228,7 @@ public class POCast extends ExpressionOperator {
                             "converted to type map, caught ParseException <" +
                             e.getMessage() + "> field discarded", 
                             PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, log);
+                    res.result = null;
                 }
             }
             return res;

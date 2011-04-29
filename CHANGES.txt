@@ -188,6 +188,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-1989: complex type casting should return null on casting failure (daijy)
+
 PIG-1826: Unexpected data type -1 found in stream error (daijy)
 
 PIG-2004: Incorrect input types passed on to eval function (thejas)
