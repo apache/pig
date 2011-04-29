@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Stack;
+import java.util.EmptyStackException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -228,10 +229,12 @@ public class Utf8StorageConverter implements LoadStoreCaster {
                     break;
                 else if (buf==']' ||buf=='}'||buf==')')
                 {
-                    if (level.peek()==findStartChar((char)buf))
-                        level.pop();
-                    else
+                    try {
+                        if (level.peek()==findStartChar((char)buf))
+                            level.pop();
+                    } catch (EmptyStackException e) {
                         throw new IOException("Malformed map");
+                    }
                 } else if (buf==','&&level.isEmpty()) { // Current map item complete
                     break;
                 }
