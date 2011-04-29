@@ -1045,7 +1045,6 @@ public class PigServer {
                 return;
             }
             PhysicalPlan pp = compilePp();
-            currDAG.lp.explain(lps, format, verbose);
 
             HashSet<String> optimizerRules = null;
             try {

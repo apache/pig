@@ -188,6 +188,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-2015: Explain writes out logical plan twice (alangates)
+
 PIG-2017: consumeMap() fails with EmptyStackException (thedatachef via daijy)
 
 PIG-1989: complex type casting should return null on casting failure (daijy)
