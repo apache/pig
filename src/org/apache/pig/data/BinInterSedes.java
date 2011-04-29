@@ -475,7 +475,8 @@ public class BinInterSedes implements InterSedes {
             break;
 
         default:
-            throw new RuntimeException("Unexpected data type " + type + " found in stream.");
+            throw new RuntimeException("Unexpected data type " + val.getClass().getName() + " found in stream. " +
+                    "Note only standard Pig type is supported when you output from UDF/LoadFunc");
         }
     }
 

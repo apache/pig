@@ -23,6 +23,7 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -1484,4 +1485,31 @@ public class TestEvalPipeline2 {
         Assert.assertTrue(t.toString().equals("({(1)})"));
         Assert.assertFalse(iter.hasNext());
     }    
+    
+    static public class UDFWithNonStandardType extends EvalFunc<Tuple>{
+        public Tuple exec(Tuple input) throws IOException {
+            Tuple t = TupleFactory.getInstance().newTuple();
+            t.append(new ArrayList<Integer>());
+            return t;
+        }
+    }
+
+    // See PIG-1826
+    @Test
+    public void testNonStandardData() throws Exception{
+        String[] input1 = {
+                "0",
+        };
+
+        Util.createInputFile(cluster, "table_testNonStandardData", input1);
+        pigServer.registerQuery("a = load 'table_testNonStandardData' as (a0);");
+        pigServer.registerQuery("b = foreach a generate " + UDFWithNonStandardType.class.getName() + "(a0);");
+        
+        try {
+            pigServer.openIterator("b");
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().contains(ArrayList.class.getName()));
+        }
+    }
 }
