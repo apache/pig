@@ -1343,7 +1343,7 @@ public class TestPOCast extends TestCase {
 	}
 	
 	@Test
-	public void testTupleToOther() throws IOException {
+	public void testTupleToOther() throws IOException, ParseException {
 		POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
 		op.setFuncSpec(new FuncSpec(PigStorage.class.getName()));
 		POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
@@ -1468,6 +1468,21 @@ public class TestPOCast extends TestCase {
 			res = op.getNext(i);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
+		
+        {
+            Tuple t = tf.newTuple();
+            Tuple wrappedTuple = tf.newTuple();
+            wrappedTuple.append(GenRandomData.genRandString(r));
+            wrappedTuple.append(GenRandomData.genRandString(r));
+            t.append(wrappedTuple);
+            Schema s = Utils.getSchemaFromString("t:tuple(a:chararray)}");
+            op.setFieldSchema(new ResourceSchema.ResourceFieldSchema(s.getField(0)));
+            plan.attachInput(t);
+            Tuple tup = null;
+            Result res = op.getNext(tup);
+            
+            assertTrue(res.result==null);
+        }
 	}
 	
 	@Test
