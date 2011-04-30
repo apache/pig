@@ -507,7 +507,6 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
                 //check if all func spec match
                 if(!funcSpec1.equals(uid2LoadFuncMap.get(fs.uid))){
                     allMatch = false;
-                    break;
                 }
                 //check if all inner schema match for use later
                 if(outFS.schema == null ||  !outFS.schema.isEqual(fs.schema)){

@@ -188,6 +188,9 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-2018: NPE for co-group with group-by column having complex schema and 
+ different load functions for each input (thejas)
+
 PIG-2015: Explain writes out logical plan twice (alangates)
 
 PIG-2017: consumeMap() fails with EmptyStackException (thedatachef via daijy)
@@ -845,7 +848,7 @@ PIG-1414: Problem with parameter substitution (rding)
 PIG-1407: Logging starts before being configured (azaroth via daijy)
 
 PIG-1391: pig unit tests leave behind files in temp directory because 
-MiniCluster files don't get deleted (tejas)
+ MiniCluster files don't get deleted (thejas)
 
 PIG-1211: Pig script runs half way after which it reports syntax error
 (pradeepkth)
