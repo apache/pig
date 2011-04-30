@@ -4106,4 +4106,17 @@ public class TestTypeCheckingValidatorNewLP {
             checkLastForeachCastLoadFunc(query, null, 0);
         }
 
+        //see PIG-2018
+        @Test
+        public void testCoGroupComplex(){
+            String query = 
+                "l1 = load 'x' using PigStorage(':') as (a : (i : int),b,c);"
+                + "l2 = load 'x' as (a,b,c);"
+                + "cg = cogroup l1 by a, l2 by a;";
+            try {
+                createAndProcessLPlan(query);
+            } catch (FrontendException e) {
+                fail("caught exception creating lp");
+            }
+        }
 }
