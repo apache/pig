@@ -174,6 +174,9 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-2018: NPE for co-group with group-by column having complex schema and
+ different load functions for each input (thejas)
+
 PIG-2015: Explain writes out logical plan twice (alangates)
 
 PIG-2017: consumeMap() fails with EmptyStackException (thedatachef via daijy)
