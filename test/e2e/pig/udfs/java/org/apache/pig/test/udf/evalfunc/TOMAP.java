@@ -15,6 +15,8 @@
  * limitations under the License.                                                      
  */
  
+package org.apache.pig.test.udf.evalfunc;
+
 import java.io.IOException;
 
 import org.apache.pig.EvalFunc;
@@ -28,7 +30,6 @@ import java.util.HashMap;
 
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
-
 
 public class TOMAP extends EvalFunc<HashMap<String,Object>> {
 
