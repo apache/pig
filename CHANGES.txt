@@ -30,6 +30,9 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 
 BUG FIXES
 
+PIG-2019: smoketest-jar target has to depend on pigunit-jar to guarantee
+inclusion of test classes (cos via gates)
+
 Release 0.9.0 - Unreleased
 
 INCOMPATIBLE CHANGES

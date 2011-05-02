@@ -559,7 +559,8 @@
         <copy file="${output.jarfile}" tofile="${output.jarfile.backcompat}"/>
     </target>
 
-    <target name="smoketests-jar" description="Creating jar file for smoke tests">
+    <target name="smoketests-jar" depends="pigunit-jar"
+        description="Creating jar file for smoke tests">
       <echo> *** Creating smoke tests jar for pigunit ***</echo>
       <jar jarfile="${smoke.tests.jarfile}" basedir="${test.build.classes}"
            includes="org/apache/pig/test/pigunit/**/*">
