@@ -219,7 +219,7 @@ macro_return_clause
     : RETURNS alias (COMMA alias)*
         -> ^(RETURN_VAL alias+)
     | RETURNS VOID 
-        -> ^(RETURN_VAL VOID)
+        -> ^(RETURN_VAL)
 ;
 
 macro_body_clause : content
