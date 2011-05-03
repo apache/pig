@@ -18,27 +18,18 @@
 package org.apache.pig.test;
 
 
-import static org.apache.pig.test.utils.TypeCheckingTestUtil.printMessageCollector;
 import static org.apache.pig.test.utils.TypeCheckingTestUtil.printTypeGraph;
 import static org.junit.Assert.*;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Iterator;
 
-import junit.framework.TestCase;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.logicalLayer.LogicalPlan;
-import org.apache.pig.impl.logicalLayer.PlanSetter;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.logicalLayer.validators.TypeCheckingValidator;
-import org.apache.pig.impl.plan.CompilationMessageCollector;
-import org.apache.pig.test.utils.LogicalPlanTester;
+import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
+import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -128,34 +119,23 @@ public class TestImplicitSplit {
     @Test
     public void testImplicitSplitInCoGroup2() throws Exception {
         // this query is similar to the one reported in JIRA - PIG-537
-        LogicalPlanTester planTester = new LogicalPlanTester();
-        planTester.buildPlan("a = load 'file1' using PigStorage(':') as (name:chararray, marks:int);");
-        planTester.buildPlan("b = load 'file2' using PigStorage(':') as (name:chararray, rank:chararray);");
-        planTester.buildPlan("c = cogroup a by name, b by name;");
-        planTester.buildPlan("d = foreach c generate group, FLATTEN(a.marks) as newmarks;");
-        planTester.buildPlan("e = cogroup a by marks, d by newmarks;");
-        LogicalPlan plan = planTester.buildPlan("f = foreach e generate group, flatten(a), flatten(d);");
+        String query = "a = load 'file1' using PigStorage(':') as (name:chararray, marks:int);" +
+                       "b = load 'file2' using PigStorage(':') as (name:chararray, rank:chararray);" +
+                       "c = cogroup a by name, b by name;" +
+                       "d = foreach c generate group, FLATTEN(a.marks) as newmarks;" +
+                       "e = cogroup a by marks, d by newmarks;" +
+                       "f = foreach e generate group, flatten(a), flatten(d);" +
+                       "store f into 'output';";
+        org.apache.pig.newplan.logical.relational.LogicalPlan plan = Util.buildLp(pigServer, query);
         
-        // Set the logical plan values correctly in all the operators
-        PlanSetter ps = new PlanSetter(plan);
-        ps.visit();
-        
-        // run through validator
-        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
-        typeValidator.validate(plan, collector) ;        
-        printMessageCollector(collector) ;
         printTypeGraph(plan) ;
         
-        if (collector.hasError()) {
-            throw new Exception("Error during type checking") ;
-        }
-
         // this will run ImplicitSplitInserter
-        TestLogicalOptimizer.optimizePlan(plan);
+        Util.optimizeNewLP(plan);
         
         // get Schema of leaf and compare:
-        Schema expectedSchema = Util.getSchemaFromString("grp: int,A::username: chararray,A::marks: int,AB::group: chararray,AB::newmarks: int");
-        assertTrue(Schema.equals(expectedSchema, plan.getLeaves().get(0).getSchema(),false, true));
+        String schema = "group:int,a::name:chararray,a::marks:int,d::group:chararray,d::newmarks:int";
+        LogicalSchema sch = ((LogicalRelationalOperator)plan.getSinks().get(0)).getSchema();
+        assertTrue( schema.equals( sch.toString( false ) ) );
     }
 }

@@ -37,25 +37,26 @@ import org.apache.pig.IndexableLoadFunc;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.LogicalToPhysicalTranslatorException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeCogroup;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.logicalLayer.LOCogroup;
-import org.apache.pig.impl.logicalLayer.LogicalPlan;
-import org.apache.pig.test.utils.LogicalPlanTester;
+import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.newplan.Operator;
+import org.apache.pig.newplan.logical.relational.LOCogroup;
+import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
-public class TestMapSideCogroup {
 
+public class TestMapSideCogroup {
     private static final String INPUT_FILE1 = "testCogrpInput1.txt";
     private static final String INPUT_FILE2 = "testCogrpInput2.txt";
     private static final String INPUT_FILE3 = "testCogrpInput3.txt";
@@ -144,21 +145,26 @@ public class TestMapSideCogroup {
     @Test
     public void testCompilation(){
         try{
-            LogicalPlanTester lpt = new LogicalPlanTester();
-            lpt.buildPlan("A = LOAD 'data1' using "+ DummyCollectableLoader.class.getName() +"() as (id, name, grade);");
-            lpt.buildPlan("B = LOAD 'data2' using "+ DummyIndexableLoader.class.getName() +"() as (id, name, grade);");
-            lpt.buildPlan("D = LOAD 'data2' using "+ DummyIndexableLoader.class.getName() +"() as (id, name, grade);");
-            LogicalPlan lp = lpt.buildPlan("C = cogroup A by id, B by id, D by id using 'merge';");
-            assertEquals(LOCogroup.GROUPTYPE.MERGE, ((LOCogroup)lp.getLeaves().get(0)).getGroupType());
+            PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+            String query = "A = LOAD 'data1' using "+ DummyCollectableLoader.class.getName() +"() as (id, name, grade);" + 
+            "B = LOAD 'data2' using "+ DummyIndexableLoader.class.getName() +"() as (id, name, grade);" +
+            "D = LOAD 'data2' using "+ DummyIndexableLoader.class.getName() +"() as (id, name, grade);" +
+            "C = cogroup A by id, B by id, D by id using 'merge';" +
+            "store C into 'output';";
+            LogicalPlan lp = Util.buildLp(pigServer, query);
+            Operator op = lp.getSinks().get(0);
+            LOCogroup cogrp = (LOCogroup)lp.getPredecessors(op).get(0);
+            assertEquals(LOCogroup.GROUPTYPE.MERGE, cogrp.getGroupType());
 
             PigContext pc = new PigContext(ExecType.MAPREDUCE,cluster.getProperties());
             pc.connect();
-            PhysicalPlan phyP = Util.buildPhysicalPlan(lp, pc);
+            PhysicalPlan phyP = Util.buildPp(pigServer, query);
             PhysicalOperator phyOp = phyP.getLeaves().get(0);
+            assertTrue(phyOp instanceof POStore);
+            phyOp = phyOp.getInputs().get(0);
             assertTrue(phyOp instanceof POMergeCogroup);
 
-            lp = lpt.buildPlan("store C into 'out';");
-            MROperPlan mrPlan = Util.buildMRPlan(Util.buildPhysicalPlan(lp, pc),pc);            
+            MROperPlan mrPlan = Util.buildMRPlan(phyP,pc);            
             assertEquals(2,mrPlan.size());
 
             Iterator<MapReduceOper> itr = mrPlan.iterator();
@@ -169,8 +175,6 @@ public class TestMapSideCogroup {
             oper = itr.next();
             assertFalse(oper.reducePlan.isEmpty());
             assertFalse(oper.mapPlan.isEmpty());
-
-
         } catch(Exception e){
             e.printStackTrace();
             fail("Compilation of merged cogroup failed.");
@@ -178,43 +182,52 @@ public class TestMapSideCogroup {
 
     }
 
-    @Test
-    public void testFailure1() throws Exception{
-        LogicalPlanTester lpt = new LogicalPlanTester();
-        lpt.buildPlan("A = LOAD 'data1' using "+ DummyCollectableLoader.class.getName() +"() as (id, name, grade);");
-        lpt.buildPlan("E = group A by id;");
-        lpt.buildPlan("B = LOAD 'data2' using "+ DummyIndexableLoader.class.getName() +"() as (id, name, grade);");
-        lpt.buildPlan("D = LOAD 'data2' using "+ DummyIndexableLoader.class.getName() +"() as (id, name, grade);");
-        LogicalPlan lp = lpt.buildPlan("C = cogroup E by A.id, B by id, D by id using 'merge';");
-        assertEquals(LOCogroup.GROUPTYPE.MERGE, ((LOCogroup)lp.getLeaves().get(0)).getGroupType());
-
-        PigContext pc = new PigContext(ExecType.MAPREDUCE,cluster.getProperties());
-        pc.connect();
-        boolean exceptionCaught = false;
-        try{
-            Util.buildPhysicalPlan(lp, pc);   
-        }catch (LogicalToPhysicalTranslatorException e){
-            assertEquals(1103,e.getErrorCode());
-            exceptionCaught = true;
-        }
-        assertTrue(exceptionCaught);
-    }
+//    @Test // PIG-2018
+//    public void testFailure1() throws Exception{
+//        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+//        String query = "A = LOAD 'data1' using "+ DummyCollectableLoader.class.getName() +"() as (id, name, grade);" +
+//        "E = group A by id;" +
+//        "B = LOAD 'data2' using "+ DummyIndexableLoader.class.getName() +"() as (id, name, grade);" +
+//        "D = LOAD 'data2' using "+ DummyIndexableLoader.class.getName() +"() as (id, name, grade);" +
+//        "C = cogroup E by A.id, B by id, D by id using 'merge';" +
+//        "store C into 'output';";
+//        LogicalPlan lp = Util.buildLp(pigServer, query);
+//        Operator op = lp.getSinks().get(0);
+//        LOCogroup cogrp = (LOCogroup)lp.getPredecessors(op).get(0);
+//        assertEquals(LOCogroup.GROUPTYPE.MERGE, cogrp.getGroupType());
+//
+//        PigContext pc = new PigContext(ExecType.MAPREDUCE,cluster.getProperties());
+//        pc.connect();
+//        boolean exceptionCaught = false;
+//        try{
+//            Util.buildPp(pigServer, query);   
+//        }catch (java.lang.reflect.InvocationTargetException e){
+//        	FrontendException ex = (FrontendException)e.getTargetException();
+//            assertEquals(1103,ex.getErrorCode());
+//            exceptionCaught = true;
+//        }
+//        assertTrue(exceptionCaught);
+//    }
     
     @Test
     public void testFailure2() throws Exception{
-        LogicalPlanTester lpt = new LogicalPlanTester();
-        lpt.buildPlan("A = LOAD 'data1' using "+ DummyCollectableLoader.class.getName() +"() as (id, name, grade);");
-        lpt.buildPlan("B = LOAD 'data2' using "+ DummyIndexableLoader.class.getName() +"() as (id, name, grade);");
-        lpt.buildPlan("D = LOAD 'data2' using "+ DummyIndexableLoader.class.getName() +"() as (id, name, grade);");
-        LogicalPlan lp = lpt.buildPlan("C = cogroup A by id inner, B by id, D by id inner using 'merge';");
-        assertEquals(LOCogroup.GROUPTYPE.MERGE, ((LOCogroup)lp.getLeaves().get(0)).getGroupType());
+        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        String query = "A = LOAD 'data1' using "+ DummyCollectableLoader.class.getName() +"() as (id, name, grade);" +
+        "B = LOAD 'data2' using "+ DummyIndexableLoader.class.getName() +"() as (id, name, grade);" +
+        "D = LOAD 'data2' using "+ DummyIndexableLoader.class.getName() +"() as (id, name, grade);" +
+        "C = cogroup A by id inner, B by id, D by id inner using 'merge';" +
+        "store C into 'output';";
+        LogicalPlan lp = Util.buildLp(pigServer, query);
+        Operator op = lp.getSinks().get(0);
+        LOCogroup cogrp = (LOCogroup)lp.getPredecessors(op).get(0);
+        assertEquals(LOCogroup.GROUPTYPE.MERGE, cogrp.getGroupType());
 
         PigContext pc = new PigContext(ExecType.MAPREDUCE,cluster.getProperties());
         pc.connect();
         boolean exceptionCaught = false;
         try{
-            Util.buildPhysicalPlan(lp, pc);   
-        }catch (LogicalToPhysicalTranslatorException e){
+            Util.buildPp(pigServer, query);   
+        }catch (java.lang.reflect.InvocationTargetException e){
             exceptionCaught = true;
         }
         assertTrue(exceptionCaught);

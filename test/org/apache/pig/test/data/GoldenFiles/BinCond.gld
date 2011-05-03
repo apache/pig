@@ -1,23 +1,35 @@
-New For Each(false)[bag] - Test-Plan-Builder-164
-|   |
-|   POBinCond[bytearray] - Test-Plan-Builder-163
-|   |
-|   |---Equal To[boolean] - Test-Plan-Builder-156
-|   |   |
-|   |   |---Project[bytearray][1] - Test-Plan-Builder-154
-|   |   |
-|   |   |---Constant(3) - Test-Plan-Builder-155
-|   |
-|   |---Add[bytearray] - Test-Plan-Builder-159
-|   |   |
-|   |   |---Project[bytearray][2] - Test-Plan-Builder-157
-|   |   |
-|   |   |---Project[bytearray][3] - Test-Plan-Builder-158
-|   |
-|   |---Subtract[bytearray] - Test-Plan-Builder-162
-|       |
-|       |---Project[bytearray][2] - Test-Plan-Builder-160
-|       |
-|       |---Project[bytearray][3] - Test-Plan-Builder-161
+test-16: Store()
 |
-|---130: Load(file:///homes/rding/apache-pig/trunk/a:org.apache.pig.builtin.PigStorage) - Test-Plan-Builder-153
+|---A: New For Each(false)[bag] - scope-106
+    |   |
+    |   POBinCond[double] - scope-100
+    |   |
+    |   |---Equal To[boolean] - scope-89
+    |   |   |
+    |   |   |---Cast[chararray] - scope-87
+    |   |   |   |
+    |   |   |   |---Project[bytearray][1] - scope-86
+    |   |   |
+    |   |   |---Constant(3) - scope-88
+    |   |
+    |   |---Add[double] - scope-94
+    |   |   |
+    |   |   |---Cast[double] - scope-91
+    |   |   |   |
+    |   |   |   |---Project[bytearray][2] - scope-90
+    |   |   |
+    |   |   |---Cast[double] - scope-93
+    |   |       |
+    |   |       |---Project[bytearray][3] - scope-92
+    |   |
+    |   |---Subtract[double] - scope-99
+    |       |
+    |       |---Cast[double] - scope-96
+    |       |   |
+    |       |   |---Project[bytearray][2] - scope-95
+    |       |
+    |       |---Cast[double] - scope-98
+    |           |
+    |           |---Project[bytearray][3] - scope-97
+    |
+    |---test-15: Load()

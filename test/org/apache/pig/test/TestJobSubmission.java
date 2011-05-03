@@ -29,11 +29,11 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobCreationException;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -43,10 +43,8 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.util.ConfigurationValidator;
 import org.apache.pig.test.utils.GenPhyOp;
-import org.apache.pig.test.utils.LogicalPlanTester;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -445,10 +443,9 @@ public class TestJobSubmission extends junit.framework.TestCase{
     
     @Test
     public void testJobControlCompilerErr() throws Exception {
-    	LogicalPlanTester planTester = new LogicalPlanTester() ;
-    	planTester.buildPlan("a = load 'input';");
-    	LogicalPlan lp = planTester.buildPlan("b = order a by $0;");
-    	PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+    	String query = "a = load 'input';" + "b = order a by $0;" + "store b into 'output';";
+    	PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+    	PhysicalPlan pp = Util.buildPp(pigServer, query);
     	POStore store = GenPhyOp.dummyPigStorageOp();
     	pp.addAsLeaf(store);
     	MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
@@ -477,12 +474,9 @@ public class TestJobSubmission extends junit.framework.TestCase{
     public void testDefaultParallel() throws Throwable {
         pc.defaultParallel = 100;
         
-        LogicalPlanTester planTester = new LogicalPlanTester() ;
-        planTester.buildPlan("a = load 'input';");
-        LogicalPlan lp = planTester.buildPlan("b = group a by $0;");
-        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
-        POStore store = GenPhyOp.dummyPigStorageOp();
-        pp.addAsLeaf(store);
+        String query = "a = load 'input';" + "b = group a by $0;" + "store b into 'output';";
+        PigServer ps = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PhysicalPlan pp = Util.buildPp(ps, query);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
 
         ConfigurationValidator.validatePigProperties(pc.getProperties());
@@ -502,12 +496,9 @@ public class TestJobSubmission extends junit.framework.TestCase{
     public void testDefaultParallelInSort() throws Throwable {
         pc.defaultParallel = 100;
         
-        LogicalPlanTester planTester = new LogicalPlanTester() ;
-        planTester.buildPlan("a = load 'input';");
-        LogicalPlan lp = planTester.buildPlan("b = order a by $0;");
-        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
-        POStore store = GenPhyOp.dummyPigStorageOp();
-        pp.addAsLeaf(store);
+        String query = "a = load 'input';" + "b = order a by $0;" + "store b into 'output';";
+        PigServer ps = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PhysicalPlan pp = Util.buildPp(ps, query);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
 
         // Get the sort job
@@ -529,13 +520,12 @@ public class TestJobSubmission extends junit.framework.TestCase{
     public void testDefaultParallelInSkewJoin() throws Throwable {
         pc.defaultParallel = 100;
         
-        LogicalPlanTester planTester = new LogicalPlanTester() ;
-        planTester.buildPlan("a = load 'input';");
-        planTester.buildPlan("b = load 'input';");
-        LogicalPlan lp = planTester.buildPlan("c = join a by $0, b by $0 using \"skewed\";");
-        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
-        POStore store = GenPhyOp.dummyPigStorageOp();
-        pp.addAsLeaf(store);
+        String query = "a = load 'input';" + 
+                       "b = load 'input';" + 
+                       "c = join a by $0, b by $0 using 'skewed';" +
+                       "store c into 'output';";
+        PigServer ps = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PhysicalPlan pp = Util.buildPp(ps, query);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
         
         // Get the skew join job
@@ -556,12 +546,11 @@ public class TestJobSubmission extends junit.framework.TestCase{
     @Test
     public void testReducerNumEstimation() throws Exception{
        // use the estimation
-        LogicalPlanTester planTester = new LogicalPlanTester(pc) ;
-        planTester.buildPlan("a = load '/passwd';");
-        LogicalPlan lp = planTester.buildPlan("b = group a by $0;");
-        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
-        POStore store = GenPhyOp.dummyPigStorageOp();
-        pp.addAsLeaf(store);
+        String query = "a = load '/passwd';" + 
+                       "b = group a by $0;" +
+                       "store b into 'output';";
+        PigServer ps = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PhysicalPlan pp = Util.buildPp(ps, query);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
                
         pc.getConf().setProperty("pig.exec.reducers.bytes.per.reducer", "100");
@@ -575,12 +564,10 @@ public class TestJobSubmission extends junit.framework.TestCase{
         assertEquals(job.getJobConf().getLong("mapred.reduce.tasks",10), reducer);
         
         // use the PARALLEL key word, it will override the estimated reducer number
-        planTester = new LogicalPlanTester(pc) ;
-        planTester.buildPlan("a = load '/passwd';");
-        lp = planTester.buildPlan("b = group a by $0 PARALLEL 2;");
-        pp = Util.buildPhysicalPlan(lp, pc);
-        store = GenPhyOp.dummyPigStorageOp();
-        pp.addAsLeaf(store);
+        query = "a = load '/passwd';" +
+                "b = group a by $0 PARALLEL 2;" +
+                "store b into 'output';";
+        pp = Util.buildPp(ps, query);
         mrPlan = Util.buildMRPlan(pp, pc);
                
         pc.getConf().setProperty("pig.exec.reducers.bytes.per.reducer", "100");
@@ -597,12 +584,10 @@ public class TestJobSubmission extends junit.framework.TestCase{
                 COLUMNFAMILY);
         
         // the estimation won't take effect when it apply to non-dfs or the files doesn't exist, such as hbase
-        planTester = new LogicalPlanTester(pc) ;
-        planTester.buildPlan("a = load 'hbase://passwd' using org.apache.pig.backend.hadoop.hbase.HBaseStorage('c:f1 c:f2');");
-        lp = planTester.buildPlan("b = group a by $0 ;");
-        pp = Util.buildPhysicalPlan(lp, pc);
-        store = GenPhyOp.dummyPigStorageOp();
-        pp.addAsLeaf(store);
+        query = "a = load 'hbase://passwd' using org.apache.pig.backend.hadoop.hbase.HBaseStorage('c:f1 c:f2');" +
+                "b = group a by $0 ;" +
+                "store b into 'output';";
+        pp = Util.buildPp(ps, query);
         mrPlan = Util.buildMRPlan(pp, pc);
                 
         pc.getConf().setProperty("pig.exec.reducers.bytes.per.reducer", "100");
@@ -623,13 +608,11 @@ public class TestJobSubmission extends junit.framework.TestCase{
         pc.getProperties().setProperty("pig.exec.reducers.bytes.per.reducer", "100");
         pc.getProperties().setProperty("pig.exec.reducers.max", "10");
         
-        LogicalPlanTester planTester = new LogicalPlanTester(pc) ;
-
-        planTester.buildPlan("a = load '/passwd';");
-        LogicalPlan lp = planTester.buildPlan("b = order a by $0;");
-        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
-        POStore store = GenPhyOp.dummyPigStorageOp();
-        pp.addAsLeaf(store);
+        String query = "a = load '/passwd';" + 
+                       "b = order a by $0;" +
+                       "store b into 'output';";
+        PigServer ps = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PhysicalPlan pp = Util.buildPp(ps, query);
 
         MROperPlan mrPlan = Util.buildMRPlanWithOptimizer(pp, pc);
         assertEquals(2, mrPlan.size());     
@@ -639,12 +622,9 @@ public class TestJobSubmission extends junit.framework.TestCase{
         assertEquals(reducer, sort.getRequestedParallelism());
         
         // use the PARALLEL key word, it will override the estimated reducer number
-        planTester = new LogicalPlanTester(pc) ;
-        planTester.buildPlan("a = load '/passwd';");
-        lp = planTester.buildPlan("b = order a by $0 PARALLEL 2;");
-        pp = Util.buildPhysicalPlan(lp, pc);
-        store = GenPhyOp.dummyPigStorageOp();
-        pp.addAsLeaf(store);
+        query = "a = load '/passwd';" + "b = order a by $0 PARALLEL 2;" +
+                "store b into 'output';";
+        pp = Util.buildPp(ps, query);
         
         mrPlan = Util.buildMRPlanWithOptimizer(pp, pc);               
         assertEquals(2, mrPlan.size());     
@@ -653,12 +633,10 @@ public class TestJobSubmission extends junit.framework.TestCase{
         assertEquals(2, sort.getRequestedParallelism());
         
         // the estimation won't take effect when it apply to non-dfs or the files doesn't exist, such as hbase
-        planTester = new LogicalPlanTester(pc) ;
-        planTester.buildPlan("a = load 'hbase://passwd' using org.apache.pig.backend.hadoop.hbase.HBaseStorage('c:f1 c:f2');");
-        lp = planTester.buildPlan("b = order a by $0 ;");
-        pp = Util.buildPhysicalPlan(lp, pc);
-        store = GenPhyOp.dummyPigStorageOp();
-        pp.addAsLeaf(store);
+        query = "a = load 'hbase://passwd' using org.apache.pig.backend.hadoop.hbase.HBaseStorage('c:f1 c:f2');" +
+                "b = order a by $0 ;" +
+                "store b into 'output';";
+        pp = Util.buildPp(ps, query);
  
         mrPlan = Util.buildMRPlanWithOptimizer(pp, pc);               
         assertEquals(2, mrPlan.size());     
@@ -668,24 +646,16 @@ public class TestJobSubmission extends junit.framework.TestCase{
         assertEquals(1, sort.getRequestedParallelism());
         
         // test order by with three jobs (after optimization)
-        planTester = new LogicalPlanTester(pc) ;
-        planTester.buildPlan("a = load '/passwd';");
-        planTester.buildPlan("b = foreach a generate $0, $1, $2;");
-        lp = planTester.buildPlan("c = order b by $0;");
-        pp = Util.buildPhysicalPlan(lp, pc);
-        store = GenPhyOp.dummyPigStorageOp();
-        pp.addAsLeaf(store);
+        query = "a = load '/passwd';" +
+                "b = foreach a generate $0, $1, $2;" +
+                "c = order b by $0;" +
+                "store c into 'output';";
+        pp = Util.buildPp(ps, query);
         
         mrPlan = Util.buildMRPlanWithOptimizer(pp, pc);
         assertEquals(3, mrPlan.size());     
         
         sort = mrPlan.getLeaves().get(0);       
         assertEquals(reducer, sort.getRequestedParallelism());
-    }
-    
-    private void submit() throws Exception{
-        assertEquals(true, FileLocalizer.fileExists(hadoopLdFile, pc));
-        MapReduceLauncher mrl = new MapReduceLauncher();
-        mrl.launchPig(php, grpName, pc);  
     }
 }

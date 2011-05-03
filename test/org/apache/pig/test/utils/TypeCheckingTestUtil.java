@@ -18,41 +18,21 @@
 
 package org.apache.pig.test.utils;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Properties;
 
-import org.apache.hadoop.mapred.lib.FieldSelectionMapReduce;
 import org.apache.pig.FuncSpec;
-import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.impl.io.FileSpec;
-import org.apache.pig.impl.logicalLayer.LOLoad;
-import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.parser.QueryParser.or_cond_return;
-import org.apache.pig.test.TypeGraphPrinter;
+import org.apache.pig.newplan.logical.relational.LogicalPlan;
 
 public class TypeCheckingTestUtil {
 
-    public static LOLoad genDummyLOLoad(LogicalPlan plan)  {
-        String pigStorage = PigStorage.class.getName() ;
-        try {
-            LOLoad load = new LOLoad(plan,
-                                      genNewOperatorKey(),
-                                      new FileSpec("pi", new FuncSpec(pigStorage)),
-                                      ConfigurationUtil.toConfiguration(new Properties())) ;
-            return load ;
-        } catch (IOException e) {
-            throw new AssertionError("This cannot happen") ;
-        }
-    }
-    
     public static org.apache.pig.newplan.logical.relational.LOLoad 
     genDummyLOLoadNewLP( org.apache.pig.newplan.logical.relational.LogicalPlan plan)  {
         String pigStorage = PigStorage.class.getName() ;
@@ -90,8 +70,7 @@ public class TypeCheckingTestUtil {
 
     public static void printTypeGraph(LogicalPlan plan) {
         System.out.println("*****Type Graph*******") ;
-        TypeGraphPrinter printer = new TypeGraphPrinter(plan) ;
-        String rep = printer.printToString() ;
+        String rep = plan.toString() ;
         System.out.println(rep) ;
     }
 

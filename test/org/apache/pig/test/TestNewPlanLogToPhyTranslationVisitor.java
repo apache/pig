@@ -24,6 +24,7 @@ import java.util.Properties;
 import junit.framework.TestCase;
 
 import org.apache.pig.ExecType;
+import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.Add;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
@@ -49,11 +50,8 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.logicalLayer.LogicalPlan;
-import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
-import org.apache.pig.newplan.logical.LogicalPlanMigrationVistor;
 import org.apache.pig.newplan.logical.expression.AddExpression;
 import org.apache.pig.newplan.logical.expression.BinCondExpression;
 import org.apache.pig.newplan.logical.expression.DereferenceExpression;
@@ -75,10 +73,10 @@ import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOGenerate;
 import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LogToPhyTranslationVisitor;
+import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
-import org.apache.pig.test.utils.LogicalPlanTester;
 
 public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
 
@@ -89,12 +87,10 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         return visitor.getPhysicalPlan();
     }
     
-    private org.apache.pig.newplan.logical.relational.LogicalPlan migratePlan(LogicalPlan lp) throws VisitorException{
-        LogicalPlanMigrationVistor visitor = new LogicalPlanMigrationVistor(lp);        
-        visitor.visit();
-        org.apache.pig.newplan.logical.relational.LogicalPlan newPlan = visitor.getNewLogicalPlan();
-        
-        return newPlan;
+    private LogicalPlan buildPlan(String query)
+    throws Exception{
+        PigServer pigServer = new PigServer( pc );
+    	return Util.buildLp(pigServer, query);
     }
     
     protected void setUp() throws Exception {    
@@ -102,12 +98,11 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
     }
     
     public void testSimplePlan() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'd.txt';");
-        lpt.buildPlan("b = filter a by $0==NULL;");        
-        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");  
+        String query = ("a = load 'd.txt';" +
+        "b = filter a by $0==NULL;" +        
+        "store b into 'empty';");  
         
-        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = buildPlan(query);
         PhysicalPlan phyPlan = translatePlan(newLogicalPlan);
         
         assertEquals( 3, phyPlan.size() );
@@ -128,10 +123,10 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         PhysicalOperator eq = filPlan.getLeaves().get(0);
         assertEquals( EqualToExpr.class, eq.getClass() );
         
-        PhysicalOperator prj1 = filPlan.getRoots().get(0);
+        PhysicalOperator prj1 = filPlan.getRoots().get(1);
         assertEquals( POProject.class, prj1.getClass() );
         assertEquals( 0, ((POProject)prj1).getColumn() );
-        PhysicalOperator constExp = filPlan.getRoots().get(1);
+        PhysicalOperator constExp = filPlan.getRoots().get(0);
         assertEquals( ConstantExpression.class, constExp.getClass() );
         assertEquals( null, ((ConstantExpression)constExp).getValue() );
         
@@ -142,21 +137,20 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
     }
     
     public void testJoinPlan() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'd1.txt' as (id, c);");
-        lpt.buildPlan("b = load 'd2.txt'as (id, c);");
-        lpt.buildPlan("c = join a by id, b by c;");
-        lpt.buildPlan("d = filter c by a::id==NULL AND b::c==NULL;");        
-        LogicalPlan plan = lpt.buildPlan("store d into 'empty';");
+        String query = ("a = load 'd1.txt' as (id, c);" +
+        "b = load 'd2.txt'as (id, c);" +
+        "c = join a by id, b by c;" +
+        "d = filter c by a::id==NULL AND b::c==NULL;" +        
+        "store d into 'empty';");
         
         // check basics
-        org.apache.pig.newplan.logical.relational.LogicalPlan newPlan = migratePlan(plan);
+        LogicalPlan newPlan = buildPlan(query);
         PhysicalPlan physicalPlan = translatePlan(newPlan);
         assertEquals(9, physicalPlan.size());
         assertEquals(physicalPlan.getRoots().size(), 2);
         
         // Check Load and LocalRearrange and GlobalRearrange
-        PhysicalOperator LoR = (PhysicalOperator)physicalPlan.getSuccessors(physicalPlan.getRoots().get(0)).get(0);
+        PhysicalOperator LoR = (PhysicalOperator)physicalPlan.getSuccessors(physicalPlan.getRoots().get(1)).get(0);
         assertEquals( POLocalRearrange.class, LoR.getClass() );
         POLocalRearrange Lor = (POLocalRearrange) LoR;
         PhysicalOperator prj3 = Lor.getPlans().get(0).getLeaves().get(0);
@@ -166,7 +160,7 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         assertEquals( POLoad.class, inp1.getClass() );
         assertTrue(  ((POLoad)inp1).getLFile().getFileName().contains("d1.txt") );
                 
-        PhysicalOperator LoR1 = (PhysicalOperator)physicalPlan.getSuccessors(physicalPlan.getRoots().get(1)).get(0);
+        PhysicalOperator LoR1 = (PhysicalOperator)physicalPlan.getSuccessors(physicalPlan.getRoots().get(0)).get(0);
         assertEquals( POLocalRearrange.class, LoR1.getClass() );
         POLocalRearrange Lor1 = (POLocalRearrange) LoR1;
         PhysicalOperator prj4 = Lor1.getPlans().get(0).getLeaves().get(0);
@@ -199,18 +193,18 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         PhysicalPlan filPlan = ((POFilter)fil).getPlan();
         List<PhysicalOperator> filRoots = filPlan.getRoots();
         
-        assertEquals( ConstantExpression.class, filRoots.get(1).getClass() );
-        ConstantExpression ce1 = (ConstantExpression) filRoots.get(1);
+        assertEquals( ConstantExpression.class, filRoots.get(2).getClass() );
+        ConstantExpression ce1 = (ConstantExpression) filRoots.get(2);
         assertEquals( null, ce1.getValue() ); 
         assertEquals( ConstantExpression.class, filRoots.get(3).getClass() );
         ConstantExpression ce2 = (ConstantExpression) filRoots.get(3);
         assertEquals( null, ce2.getValue() );
         assertEquals( POProject.class, filRoots.get(0).getClass() );
         POProject prj1 = (POProject) filRoots.get(0);
-        assertEquals( 3, prj1.getColumn() );
-        assertEquals( POProject.class, filRoots.get(2).getClass() );
-        POProject prj2 = (POProject) filRoots.get(2);
-        assertEquals( 0, prj2.getColumn() );
+        assertEquals( 0, prj1.getColumn() );
+        assertEquals( POProject.class, filRoots.get(1).getClass() );
+        POProject prj2 = (POProject) filRoots.get(1);
+        assertEquals( 3, prj2.getColumn() );
 
 
         // Check Store Operator
@@ -220,18 +214,17 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
     }
     
     public void testMultiStore() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'd1.txt' as (id, c);");
-        lpt.buildPlan("b = load 'd2.txt'as (id, c);");
-        lpt.buildPlan("c = load 'd3.txt' as (id, c);");
-        lpt.buildPlan("d = join a by id, b by c;");        
-        lpt.buildPlan("e = filter d by a::id==NULL AND b::c==NULL;");
-        lpt.buildPlan("f = join e by b::c, c by id;");
-        lpt.buildPlan("g = filter f by b::id==NULL AND c::c==NULL;");
-        LogicalPlan plan = lpt.buildPlan("store g into 'empty2';");        
+        String query = ("a = load 'd1.txt' as (id, c);" +
+        "b = load 'd2.txt'as (id, c);" +
+        "c = load 'd3.txt' as (id, c);" +
+        "d = join a by id, b by c;" +        
+        "e = filter d by a::id==NULL AND b::c==NULL;" +
+        "f = join e by b::c, c by id;" +
+        "g = filter f by b::id==NULL AND c::c==NULL;" +
+        "store g into 'empty2';");        
         
         // check basics
-        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        LogicalPlan newLogicalPlan = buildPlan(query);
         PhysicalPlan phyPlan = translatePlan(newLogicalPlan);
         assertEquals(16, phyPlan.size());
         assertEquals(phyPlan.getRoots().size(), 3);
@@ -253,10 +246,10 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         POLocalRearrange Lor1 = (POLocalRearrange) LoR1;
         PhysicalOperator prj2 = Lor1.getPlans().get(0).getLeaves().get(0);
         assertEquals( POProject.class, prj2.getClass() );
-        assertEquals(1, ((POProject)prj2).getColumn() );
+        assertEquals(0, ((POProject)prj2).getColumn() );
         PhysicalOperator inp2 = Lor1.getInputs().get(0);
         assertEquals( POLoad.class, inp2.getClass() );
-        assertTrue(  ((POLoad)inp2).getLFile().getFileName().contains("d2.txt") );
+        assertTrue(  ((POLoad)inp2).getLFile().getFileName().contains("d1.txt") );
         
         PhysicalOperator GoR = (PhysicalOperator)phyPlan.getSuccessors(LoR).get(0);
         assertEquals( POGlobalRearrange.class, GoR.getClass() );
@@ -269,10 +262,10 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         POLocalRearrange Lor2 = (POLocalRearrange) LoR2;
         PhysicalOperator prj3 = Lor2.getPlans().get(0).getLeaves().get(0);
         assertEquals( POProject.class, prj3.getClass() );
-        assertEquals(0, ((POProject)prj3).getColumn() );
+        assertEquals(1, ((POProject)prj3).getColumn() );
         PhysicalOperator inp3 = Lor2.getInputs().get(0);
         assertEquals( POLoad.class, inp3.getClass() );
-        assertTrue(  ((POLoad)inp3).getLFile().getFileName().contains("d1.txt") );
+        assertTrue(  ((POLoad)inp3).getLFile().getFileName().contains("d2.txt") );
         
         PhysicalOperator GoR2 = (PhysicalOperator)phyPlan.getSuccessors(LoR2).get(0);
         assertEquals( POGlobalRearrange.class, GoR2.getClass() );
@@ -354,13 +347,12 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
     }
     
     public void testPlanWithCast() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'd.txt' as (id, c);");
-        lpt.buildPlan("b = filter a by (int)id==10;");        
-        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");
+        String query = ("a = load 'd.txt' as (id, c);" +
+        "b = filter a by (int)id==10;" +        
+        "store b into 'empty';");
         
         // check basics
-        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        LogicalPlan newLogicalPlan = buildPlan(query);
         PhysicalPlan phyPlan = translatePlan(newLogicalPlan);
         assertEquals(3, phyPlan.size());
         assertEquals(phyPlan.getRoots().size(), 1);
@@ -396,13 +388,12 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
     }
     
     public void testPlanWithGreaterThan() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'd.txt' as (id, c);");
-        lpt.buildPlan("b = filter a by (int)id>10;");        
-        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");
+        String query = ("a = load 'd.txt' as (id, c);" +
+        "b = filter a by (int)id>10;" +        
+        "store b into 'empty';");
         
         // check basics
-        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        LogicalPlan newLogicalPlan = buildPlan(query);
         PhysicalPlan phyPlan = translatePlan(newLogicalPlan);
         assertEquals(3, phyPlan.size());
         assertEquals(phyPlan.getRoots().size(), 1);
@@ -438,13 +429,12 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
     }
     
     public void testPlanWithLessThan() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'd.txt' as (id, c);");
-        lpt.buildPlan("b = filter a by (int)id<10;");
-        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");
+        String query = ("a = load 'd.txt' as (id, c);" +
+        "b = filter a by (int)id<10;" +
+        "store b into 'empty';");
         
         // check basics
-        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        LogicalPlan newLogicalPlan = buildPlan(query);
         PhysicalPlan phyPlan = translatePlan(newLogicalPlan);
         assertEquals(3, phyPlan.size());
         assertEquals(phyPlan.getRoots().size(), 1);
@@ -480,12 +470,11 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
     }
 
     public void testForeachPlan() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'd.txt' as (id, c);");
-        lpt.buildPlan("b = foreach a generate id, c;");        
-        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");  
+        String query = ("a = load 'd.txt' as (id, c);" +
+        "b = foreach a generate id, c;" +        
+        "store b into 'empty';");  
         
-        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        LogicalPlan newLogicalPlan = buildPlan(query);
         PhysicalPlan phyPlan = translatePlan(newLogicalPlan);
         
         assertEquals(phyPlan.size(), 3);
@@ -511,12 +500,11 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
     }
     
     public void testForeachPlan2() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'd.txt' as (id, c:bag{t:(s,v)});");
-        lpt.buildPlan("b = foreach a generate id, flatten(c);");        
-        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");  
+        String query = ("a = load 'd.txt' as (id, c:bag{t:(s,v)});" +
+        "b = foreach a generate id, flatten(c);" +        
+        "store b into 'empty';");  
         
-        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        LogicalPlan newLogicalPlan = buildPlan(query);
         LogicalRelationalOperator ld =  (LogicalRelationalOperator)newLogicalPlan.getSources().get(0);
         LogicalRelationalOperator fe = (LogicalRelationalOperator)newLogicalPlan.getSuccessors(ld).get(0);
         LogicalSchema ls = fe.getSchema();
@@ -556,12 +544,11 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
     }
     
     public void testPlanwithPlus() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'd.txt' as (a:int, b:int);");
-        lpt.buildPlan("b = foreach a generate a+b;");        
-        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");  
+        String query = ("a = load 'd.txt' as (a:int, b:int);" +
+        "b = foreach a generate a+b;" +        
+        "store b into 'empty';");  
         
-        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        LogicalPlan newLogicalPlan = buildPlan(query);
         LogicalRelationalOperator ld =  (LogicalRelationalOperator)newLogicalPlan.getSources().get(0);
         assertEquals( LOLoad.class, ld.getClass() );
         LOLoad load = (LOLoad)ld;
@@ -582,7 +569,7 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         assertEquals( LOForEach.class, fe.getClass() );
         LOForEach forEach = (LOForEach)fe;
         
-        org.apache.pig.newplan.logical.relational.LogicalPlan innerPlan = 
+        LogicalPlan innerPlan = 
             forEach.getInnerPlan();
         
         assertEquals( 1, innerPlan.getSinks().size() );        
@@ -611,12 +598,11 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
     }
     
     public void testPlanwithSubtract() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'd.txt' as (a:int, b:int);");
-        lpt.buildPlan("b = foreach a generate a-b;");        
-        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");  
+        String query = ("a = load 'd.txt' as (a:int, b:int);" +
+        "b = foreach a generate a-b;" +        
+        "store b into 'empty';");  
         
-        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        LogicalPlan newLogicalPlan = buildPlan(query);
         LogicalRelationalOperator ld =  (LogicalRelationalOperator)newLogicalPlan.getSources().get(0);
         assertEquals( LOLoad.class, ld.getClass() );
         LOLoad load = (LOLoad)ld;
@@ -637,7 +623,7 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         assertEquals( LOForEach.class, fe.getClass() );
         LOForEach forEach = (LOForEach)fe;
         
-        org.apache.pig.newplan.logical.relational.LogicalPlan innerPlan = 
+        LogicalPlan innerPlan = 
             forEach.getInnerPlan();
         
         assertEquals( 1, innerPlan.getSinks().size() );        
@@ -665,12 +651,11 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
     }
     
     public void testPlanwithMultiply() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'd.txt' as (a:int, b:int);");
-        lpt.buildPlan("b = foreach a generate a*b;");        
-        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");  
+        String query = ("a = load 'd.txt' as (a:int, b:int);" +
+        "b = foreach a generate a*b;" +        
+        "store b into 'empty';");  
         
-        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        LogicalPlan newLogicalPlan = buildPlan(query);
         LogicalRelationalOperator ld =  (LogicalRelationalOperator)newLogicalPlan.getSources().get(0);
         assertEquals( LOLoad.class, ld.getClass() );
         LOLoad load = (LOLoad)ld;
@@ -691,7 +676,7 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         assertEquals( LOForEach.class, fe.getClass() );
         LOForEach forEach = (LOForEach)fe;
         
-        org.apache.pig.newplan.logical.relational.LogicalPlan innerPlan = 
+        LogicalPlan innerPlan = 
             forEach.getInnerPlan();
         
         assertEquals( 1, innerPlan.getSinks().size() );        
@@ -719,12 +704,11 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
     }
     
     public void testPlanwithDivide() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'd.txt' as (a:int, b:int);");
-        lpt.buildPlan("b = foreach a generate a/b;");        
-        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");  
+        String query = ("a = load 'd.txt' as (a:int, b:int);" +
+        "b = foreach a generate a/b;" +        
+        "store b into 'empty';");  
         
-        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        LogicalPlan newLogicalPlan = buildPlan(query);
         LogicalRelationalOperator ld =  (LogicalRelationalOperator)newLogicalPlan.getSources().get(0);
         assertEquals( LOLoad.class, ld.getClass() );
         LOLoad load = (LOLoad)ld;
@@ -745,7 +729,7 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         assertEquals( LOForEach.class, fe.getClass() );
         LOForEach forEach = (LOForEach)fe;
         
-        org.apache.pig.newplan.logical.relational.LogicalPlan innerPlan = 
+        LogicalPlan innerPlan = 
             forEach.getInnerPlan();
         
         assertEquals( 1, innerPlan.getSinks().size() );        
@@ -773,12 +757,11 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
     }
     
     public void testPlanwithMod() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'd.txt' as (a:int, b:int);");
-        lpt.buildPlan("b = foreach a generate a%b;");        
-        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");  
+        String query = ("a = load 'd.txt' as (a:int, b:int);" +
+        "b = foreach a generate a%b;" +        
+        "store b into 'empty';");  
         
-        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        LogicalPlan newLogicalPlan = buildPlan(query);
         LogicalRelationalOperator ld =  (LogicalRelationalOperator)newLogicalPlan.getSources().get(0);
         assertEquals( LOLoad.class, ld.getClass() );
         LOLoad load = (LOLoad)ld;
@@ -799,7 +782,7 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         assertEquals( LOForEach.class, fe.getClass() );
         LOForEach forEach = (LOForEach)fe;
         
-        org.apache.pig.newplan.logical.relational.LogicalPlan innerPlan = 
+        LogicalPlan innerPlan = 
             forEach.getInnerPlan();
         
         assertEquals( 1, innerPlan.getSinks().size() );        
@@ -827,12 +810,11 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
     }
     
     public void testPlanwithNegative() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'd.txt' as (a:int, b:int);");
-        lpt.buildPlan("b = foreach a generate -a;");        
-        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");  
+        String query = ("a = load 'd.txt' as (a:int, b:int);" +
+        "b = foreach a generate -a;" +        
+        "store b into 'empty';");  
         
-        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        LogicalPlan newLogicalPlan = buildPlan(query);
         LogicalRelationalOperator ld =  (LogicalRelationalOperator)newLogicalPlan.getSources().get(0);
         assertEquals( LOLoad.class, ld.getClass() );
         LOLoad load = (LOLoad)ld;
@@ -853,7 +835,7 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         assertEquals( LOForEach.class, fe.getClass() );
         LOForEach forEach = (LOForEach)fe;
         
-        org.apache.pig.newplan.logical.relational.LogicalPlan innerPlan = 
+        LogicalPlan innerPlan = 
             forEach.getInnerPlan();
         
         assertEquals( 1, innerPlan.getSinks().size() );        
@@ -879,12 +861,11 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
     }
     
     public void testPlanwithisNull() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'd.txt' as (a:int, b:int);");
-        lpt.buildPlan("b = filter a by a is null;");        
-        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");  
+        String query = ("a = load 'd.txt' as (a:int, b:int);" +
+        "b = filter a by a is null;" +        
+        "store b into 'empty';");  
         
-        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        LogicalPlan newLogicalPlan = buildPlan(query);
         LogicalRelationalOperator ld =  (LogicalRelationalOperator)newLogicalPlan.getSources().get(0);
         assertEquals( LOLoad.class, ld.getClass() );
         LOLoad load = (LOLoad)ld;
@@ -915,12 +896,11 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
     }
     
     public void testPlanwithisNotNull() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'd.txt' as (a:int, b:int);");
-        lpt.buildPlan("b = filter a by a is not null;");        
-        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");  
+        String query = ("a = load 'd.txt' as (a:int, b:int);" +
+        "b = filter a by a is not null;" +        
+        "store b into 'empty';");  
         
-        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        LogicalPlan newLogicalPlan = buildPlan(query);
         LogicalRelationalOperator ld =  (LogicalRelationalOperator)newLogicalPlan.getSources().get(0);
         assertEquals( LOLoad.class, ld.getClass() );
         LOLoad load = (LOLoad)ld;
@@ -955,12 +935,11 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
     }
     
     public void testPlanwithBinCond() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'd.txt' as (a:int, b:int);");
-        lpt.buildPlan("b = foreach a generate ( a < b ? b : a );");        
-        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");  
+        String query = ("a = load 'd.txt' as (a:int, b:int);" +
+        "b = foreach a generate ( a < b ? b : a );" +        
+        "store b into 'empty';");  
         
-        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        LogicalPlan newLogicalPlan = buildPlan(query);
         LogicalRelationalOperator ld =  (LogicalRelationalOperator)newLogicalPlan.getSources().get(0);
         assertEquals( LOLoad.class, ld.getClass() );
         LOLoad load = (LOLoad)ld;
@@ -981,7 +960,7 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         assertEquals( LOForEach.class, fe.getClass() );
         LOForEach forEach = (LOForEach)fe;
         
-        org.apache.pig.newplan.logical.relational.LogicalPlan innerPlan = 
+        LogicalPlan innerPlan = 
             forEach.getInnerPlan();
         
         assertEquals( 1, innerPlan.getSinks().size() );        
@@ -1037,12 +1016,11 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
     }
     
     public void testPlanwithUserFunc() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'd.txt' as (a:int, b:bag{t:tuple(b_a:int,b_b:int)});");
-        lpt.buildPlan("b = foreach a generate a,COUNT(b);");
-        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");  
+        String query = ("a = load 'd.txt' as (a:int, b:bag{t:tuple(b_a:int,b_b:int)});" +
+        "b = foreach a generate a,COUNT(b);" +
+        "store b into 'empty';");  
         
-        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        LogicalPlan newLogicalPlan = buildPlan(query);
         LogicalRelationalOperator ld =  (LogicalRelationalOperator)newLogicalPlan.getSources().get(0);
         assertEquals( LOLoad.class, ld.getClass() );
         LOLoad load = (LOLoad)ld;
@@ -1063,7 +1041,7 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         assertEquals( LOForEach.class, fe.getClass() );
         LOForEach forEach = (LOForEach)fe;
         
-        org.apache.pig.newplan.logical.relational.LogicalPlan innerPlan = 
+        LogicalPlan innerPlan = 
             forEach.getInnerPlan();
         
         assertEquals( 1, innerPlan.getSinks().size() );        
@@ -1099,12 +1077,11 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
     
     public void testPlanwithUserFunc2() throws Exception {
         // This one uses BagDereferenceExpression
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'd.txt' as (a:int, b:bag{t:tuple(b_a:int,b_b:int)});");
-        lpt.buildPlan("b = foreach a generate a,COUNT(b.b_a);");
-        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");  
+        String query = ("a = load 'd.txt' as (a:int, b:bag{t:tuple(b_a:int,b_b:int)});" +
+        "b = foreach a generate a,COUNT(b.b_a);" +
+        "store b into 'empty';");  
         
-        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        LogicalPlan newLogicalPlan = buildPlan(query);
         LogicalRelationalOperator ld =  (LogicalRelationalOperator)newLogicalPlan.getSources().get(0);
         assertEquals( LOLoad.class, ld.getClass() );
         LOLoad load = (LOLoad)ld;
@@ -1125,7 +1102,7 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         assertEquals( LOForEach.class, fe.getClass() );
         LOForEach forEach = (LOForEach)fe;
         
-        org.apache.pig.newplan.logical.relational.LogicalPlan innerPlan = 
+        LogicalPlan innerPlan = 
             forEach.getInnerPlan();
         
         assertEquals( 1, innerPlan.getSinks().size() );        
@@ -1166,12 +1143,11 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
     }    
     
     public void testCogroup() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'd.txt' as (name:chararray, age:int, gpa:float);");
-        lpt.buildPlan("b = group a by name;");
-        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");  
+        String query = ("a = load 'd.txt' as (name:chararray, age:int, gpa:float);" +
+        "b = group a by name;" +
+        "store b into 'empty';");  
         
-        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        LogicalPlan newLogicalPlan = buildPlan(query);
         
         PhysicalPlan phyPlan = translatePlan(newLogicalPlan);
         
@@ -1200,12 +1176,11 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
     }
     
     public void testCogroup2() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'd.txt' as (name:chararray, age:int, gpa:float);");
-        lpt.buildPlan("b = group a by ( name, age );");
-        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");  
+        String query = ("a = load 'd.txt' as (name:chararray, age:int, gpa:float);" +
+        "b = group a by ( name, age );" +
+        "store b into 'empty';");  
         
-        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        LogicalPlan newLogicalPlan = buildPlan(query);
         
         PhysicalPlan phyPlan = translatePlan(newLogicalPlan);
         
@@ -1239,13 +1214,12 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
     }
     
     public void testCogroup3() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'd.txt' as (name:chararray, age:int, gpa:float);");
-        lpt.buildPlan("b = load 'e.txt' as (name:chararray, age:int, gpa:float);");
-        lpt.buildPlan("c = group a by name, b by name;");
-        LogicalPlan plan = lpt.buildPlan("store c into 'empty';");  
+        String query = "a = load 'd.txt' as (name:chararray, age:int, gpa:float);" +
+        "b = load 'e.txt' as (name:chararray, age:int, gpa:float);" +
+        "c = group a by name, b by name;" +
+        "store c into 'empty';";  
         
-        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        LogicalPlan newLogicalPlan = buildPlan(query);
         
         PhysicalPlan phyPlan = translatePlan(newLogicalPlan);
         
@@ -1284,13 +1258,12 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
     }
     
     public void testCogroup4() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'd.txt' as (name:chararray, age:int, gpa:float);");
-        lpt.buildPlan("b = load 'e.txt' as (name:chararray, age:int, gpa:float);");
-        lpt.buildPlan("c = group a by ( name, age ), b by ( name, age );");
-        LogicalPlan plan = lpt.buildPlan("store c into 'empty';");  
+        String query = "a = load 'd.txt' as (name:chararray, age:int, gpa:float);" +
+        "b = load 'e.txt' as (name:chararray, age:int, gpa:float);" +
+        "c = group a by ( name, age ), b by ( name, age );" +
+        "store c into 'empty';";  
         
-        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        LogicalPlan newLogicalPlan = buildPlan(query);
         
         PhysicalPlan phyPlan = translatePlan(newLogicalPlan);
         
@@ -1342,12 +1315,11 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
     }
     
     public void testUserDefinedForEachSchema1() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'a.txt';");
-        lpt.buildPlan("b = foreach a generate $0 as a0, $1 as a1;");        
-        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");  
+        String query = ("a = load 'a.txt';" +
+        "b = foreach a generate $0 as a0, $1 as a1;" +        
+        "store b into 'empty';");  
         
-        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        LogicalPlan newLogicalPlan = buildPlan(query);
         Operator store = newLogicalPlan.getSinks().get(0);
         LOForEach foreach = (LOForEach)newLogicalPlan.getPredecessors(store).get(0);
         foreach.getSchema();
@@ -1358,12 +1330,11 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
     }
 
     public void testUserDefinedForEachSchema2() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'a.txt' as (b:bag{});");
-        lpt.buildPlan("b = foreach a generate flatten($0) as (a0, a1);");
-        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");  
+        String query = ("a = load 'a.txt' as (b:bag{});" +
+        "b = foreach a generate flatten($0) as (a0, a1);" +
+        "store b into 'empty';");  
         
-        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        LogicalPlan newLogicalPlan = buildPlan(query);
         Operator store = newLogicalPlan.getSinks().get(0);
         LOForEach foreach = (LOForEach)newLogicalPlan.getPredecessors(store).get(0);
         foreach.getSchema();
@@ -1375,12 +1346,11 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
     
     // See PIG-767
     public void testCogroupSchema1() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load '1.txt' as (a0, a1);");
-        lpt.buildPlan("b = group a by a0;");
-        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");  
+        String query = ("a = load '1.txt' as (a0, a1);" +
+        "b = group a by a0;" +
+        "store b into 'empty';");  
         
-        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        LogicalPlan newLogicalPlan = buildPlan(query);
         Operator store = newLogicalPlan.getSinks().get(0);
         LOCogroup cogroup = (LOCogroup)newLogicalPlan.getPredecessors(store).get(0);
         
@@ -1396,13 +1366,12 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
     
     // See PIG-767
     public void testCogroupSchema2() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load '1.txt' as (a0, a1);");
-        lpt.buildPlan("b = group a by a0;");
-        lpt.buildPlan("c = foreach b generate a.a1;");
-        LogicalPlan plan = lpt.buildPlan("store c into 'empty';");  
+        String query = "a = load '1.txt' as (a0, a1);" +
+        "b = group a by a0;" +
+        "c = foreach b generate a.a1;" +
+        "store c into 'empty';";  
         
-        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        LogicalPlan newLogicalPlan = buildPlan(query);
         Operator store = newLogicalPlan.getSinks().get(0);
         LOForEach foreach = (LOForEach)newLogicalPlan.getPredecessors(store).get(0);
         

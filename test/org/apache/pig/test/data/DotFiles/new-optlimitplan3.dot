@@ -7,4 +7,5 @@ digraph graph1 {
     LOLimit -> LOCross;
     LOCross -> LOLimit;
     LOLimit [limit="100"];
+    LOLimit -> LOStore;
 }

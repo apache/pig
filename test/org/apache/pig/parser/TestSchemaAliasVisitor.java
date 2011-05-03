@@ -39,7 +39,7 @@ public class TestSchemaAliasVisitor {
         validate( query );
     }
     
-   @Test
+    @Test
     public void testNegative1() throws RecognitionException, ParsingFailureException, IOException {
         String query = "A = load 'x' as ( u:int, v:long, w:bytearray); " + 
                        "B = foreach A generate $0, v, $0; " +
@@ -47,12 +47,40 @@ public class TestSchemaAliasVisitor {
         try {
             validate( query );
         } catch(PlanValidationException ex) {
-        Assert.assertTrue( ex.getMessage().contains( "Duplicate schema alias" ) );
+            Assert.assertTrue( ex.getMessage().contains( "Duplicate schema alias" ) );
             return;
         }
         Assert.fail( "Query should fail to validate." );
     }
-    
+
+    @Test
+    // See PIG-644
+    public void testNegative2() throws RecognitionException, ParsingFailureException, IOException {
+         String query = "a = load '1.txt' as (a0:int, a1:int);" + 
+                        "b = foreach a generate a0, a1 as a0;" +
+                        "c = store b into 'output';";
+         try {
+             validate( query );
+         } catch(PlanValidationException ex) {
+             Assert.assertTrue( ex.getMessage().contains( "Duplicate schema alias" ) );
+             return;
+         }
+         Assert.fail( "Query should fail to validate." );
+     }
+     
+    @Test
+    // See PIG-644
+    public void testNegative3() throws RecognitionException, ParsingFailureException, IOException {
+        String query = "a = load '1.txt' as (a0:int, a0:int);" + 
+                       "store a into 'output';";
+        try {
+            validate( query );
+        } catch(RecognitionException ex) {
+            Assert.assertTrue( ex.toString().contains( "Duplicated alias in schema" ) );
+            return;
+        }
+        Assert.fail( "Query should fail to validate." );
+    }
 
     private LogicalPlan validate(String query) throws RecognitionException, ParsingFailureException, IOException {
         LogicalPlan plan = ParserTestingUtils.generateLogicalPlan( query );

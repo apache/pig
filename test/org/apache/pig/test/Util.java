@@ -65,7 +65,6 @@ import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.LogToPhyTranslationVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.BagFactory;
@@ -77,15 +76,15 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.util.LogUtils;
-import org.apache.pig.newplan.logical.LogicalPlanMigrationVistor;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanPrinter;
 import org.apache.pig.newplan.logical.optimizer.SchemaResetter;
+import org.apache.pig.newplan.logical.relational.LogToPhyTranslationVisitor;
+import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.optimizer.UidResetter;
 import org.apache.pig.newplan.logical.rules.LoadStoreFuncDupSignatureValidator;
 import org.apache.pig.newplan.logical.visitor.CastLineageSetter;
@@ -649,38 +648,14 @@ public class Util {
         return f;
     }
     
-    public static PhysicalPlan buildPhysicalPlan(LogicalPlan lp, PigContext pc) throws Exception {
-    	LogToPhyTranslationVisitor visitor = new LogToPhyTranslationVisitor(lp);
-    	visitor.setPigContext(pc);
-    	visitor.visit();
-    	return visitor.getPhysicalPlan();
-    }
-
-    /**
-     * migrate old logical plan to new logical plan
-     * @param lp
-     * @return new logical plan
-     * @throws FrontendException
-     */
-    public static org.apache.pig.newplan.logical.relational.LogicalPlan migrateToNewLP(LogicalPlan lp)
-    throws FrontendException{
-        LogicalPlanMigrationVistor visitor = new LogicalPlanMigrationVistor(lp);        
-        visitor.visit();
-        org.apache.pig.newplan.logical.relational.LogicalPlan newPlan = visitor.getNewLogicalPlan();
-        
-        SchemaResetter schemaResetter = new SchemaResetter(newPlan);
-        schemaResetter.visit();
-        return newPlan;
-    }
-    
     /**
      * Run default set of optimizer rules on new logical plan
      * @param lp
      * @return optimized logical plan
      * @throws FrontendException
      */
-    public static  org.apache.pig.newplan.logical.relational.LogicalPlan optimizeNewLP( 
-            org.apache.pig.newplan.logical.relational.LogicalPlan lp)
+    public static  LogicalPlan optimizeNewLP( 
+            LogicalPlan lp)
     throws FrontendException{
         UidResetter uidResetter = new UidResetter( lp );
         uidResetter.visit();
@@ -714,18 +689,12 @@ public class Util {
      * @throws Exception
      */
     public static PhysicalPlan buildPhysicalPlanFromNewLP(
-            org.apache.pig.newplan.logical.relational.LogicalPlan lp, PigContext pc)
+            LogicalPlan lp, PigContext pc)
     throws Exception {
-         org.apache.pig.newplan.logical.relational.LogToPhyTranslationVisitor visitor =
-             new org.apache.pig.newplan.logical.relational.LogToPhyTranslationVisitor(lp);
+         LogToPhyTranslationVisitor visitor = new LogToPhyTranslationVisitor(lp);
         visitor.setPigContext(pc);
         visitor.visit();
         return visitor.getPhysicalPlan();
-    }
-    
-    public static PhysicalPlan getNewOptimizedPhysicalPlan(LogicalPlan lp, PigContext pc)
-    throws FrontendException, Exception{
-        return buildPhysicalPlanFromNewLP(optimizeNewLP(migrateToNewLP(lp)), pc);
     }
     
     public static MROperPlan buildMRPlan(PhysicalPlan pp, PigContext pc) throws Exception{
@@ -835,18 +804,11 @@ public class Util {
         return readOutput(FileSystem.get(conf), fileName); 
     }
     
-    public static void printPlan(org.apache.pig.newplan.logical.relational.LogicalPlan logicalPlan ) throws Exception {
+    public static void printPlan(LogicalPlan logicalPlan ) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         PrintStream ps = new PrintStream(out);
         LogicalPlanPrinter pp = new LogicalPlanPrinter(logicalPlan,ps);
         pp.visit();
-        System.err.println(out.toString());
-    }
-
-    public static void printPlan(LogicalPlan logicalPlan) throws Exception {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        PrintStream ps = new PrintStream(out);
-        logicalPlan.explain(ps, "text", true);
         System.err.println(out.toString());
     }
 
@@ -930,7 +892,26 @@ public class Util {
         }
     }
     
-    public static org.apache.pig.newplan.logical.relational.LogicalPlan parse(String query, PigContext pc) throws FrontendException {
+    public static LogicalPlan buildLp(PigServer pigServer, String query)
+    throws Exception {
+    	pigServer.setBatchOn();
+    	pigServer.registerQuery( query );
+        java.lang.reflect.Method buildLp = pigServer.getClass().getDeclaredMethod("buildLp");
+        buildLp.setAccessible(true);
+        return (LogicalPlan ) buildLp.invoke( pigServer );
+    }
+
+    public static PhysicalPlan buildPp(PigServer pigServer, String query)
+    throws Exception {
+    	buildLp( pigServer, query );
+        java.lang.reflect.Method compilePp = pigServer.getClass().getDeclaredMethod("compilePp" );
+        compilePp.setAccessible(true);
+        
+        return (PhysicalPlan)compilePp.invoke( pigServer );
+    	
+    }
+
+    public static LogicalPlan parse(String query, PigContext pc) throws FrontendException {
         Map<String, String> fileNameMap = new HashMap<String, String>();
         QueryParserDriver parserDriver = new QueryParserDriver( pc, "test", fileNameMap );
         org.apache.pig.newplan.logical.relational.LogicalPlan lp = parserDriver.parse( query );
@@ -948,7 +929,7 @@ public class Util {
         return lp;
     }
     
-    public static org.apache.pig.newplan.logical.relational.LogicalPlan parseAndPreprocess(String query, PigContext pc) throws FrontendException {
+    public static LogicalPlan parseAndPreprocess(String query, PigContext pc) throws FrontendException {
         Map<String, String> fileNameMap = new HashMap<String, String>();
         QueryParserDriver parserDriver = new QueryParserDriver( pc, "test", fileNameMap );
         org.apache.pig.newplan.logical.relational.LogicalPlan lp = parserDriver.parse( query );
@@ -965,4 +946,5 @@ public class Util {
         new CastLineageSetter(lp, collector).visit();
         return lp;
     }
+    
 }

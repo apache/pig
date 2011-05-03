@@ -21,39 +21,27 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.SortColInfo;
 import org.apache.pig.SortInfo;
-import org.apache.pig.SortInfoSetter;
-import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.LogToPhyTranslationVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.logicalLayer.LODefine;
-import org.apache.pig.impl.logicalLayer.LOFilter;
-import org.apache.pig.impl.logicalLayer.LOLoad;
-import org.apache.pig.impl.logicalLayer.LOPrinter;
-import org.apache.pig.impl.logicalLayer.LogicalOperator;
-import org.apache.pig.impl.logicalLayer.LogicalPlan;
-import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
-import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.test.utils.LogicalPlanTester;
+import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
+import org.apache.pig.newplan.logical.relational.LOFilter;
+import org.apache.pig.newplan.logical.relational.LogToPhyTranslationVisitor;
+import org.apache.pig.newplan.logical.relational.LogicalPlan;
+
 import org.junit.Test;
 
 /**
@@ -68,9 +56,6 @@ import org.junit.Test;
  *
  */
 public class TestLogToPhyCompiler extends junit.framework.TestCase {
-
-    private final Log log = LogFactory.getLog(getClass());
-    
     File A;
     final int MAX_RANGE = 10;
     
@@ -79,23 +64,21 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
 
     private boolean generate = false;
     
-    
+    PigServer pigServer = null;
+   
     
     @Override
     protected void setUp() throws Exception {
+    	pigServer = new PigServer( ExecType.LOCAL, new Properties() );
         pc.connect();
     }
     
-    @Test
-    public void testComplexForeach() throws VisitorException, IOException {
-        /*String query = "foreach (load 'a') {" +
-                "B = FILTER $0 BY (($1 == $2) AND ('a' < 'b'));" +
-                "generate B;" +
-                "};";*/
-    	String query = "foreach (load 'a') {" +
+    @Test // Commented out due to PIG-2020
+    public void testComplexForeach() throws Exception {
+    	String query = "C = foreach (load 'a' as  (a:bag{} ) ) {" +
         "B = FILTER $0 BY ($1 == $2);" +
         "generate B;" +
-        "};";
+        "};" + "store C into 'output';";
         LogicalPlan plan = buildPlan(query);
     	PhysicalPlan pp = buildPhysicalPlan(plan); 
     	int MAX_SIZE = 100000;
@@ -103,7 +86,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         pp.explain(baos);
         baos.write((int)'\n');
         String compiledPlan = baos.toString();
-        compiledPlan = compiledPlan.replaceAll("Load(.*)","Load()");
+        compiledPlan = compiledPlan.replaceAll("Load(.*)","Load()").replaceAll("Store(.*)","Store()");
         
         if(generate){
             FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/ComplexForeach.gld");
@@ -119,13 +102,13 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
 
         System.out.println();
         System.out.println(compiledPlan);
-        System.out.println("-------------");
+        System.out.println("-------------testComplexForeach");
         //System.out.println(compiledPlan.compareTo(goldenPlan)==0);
         assertEquals(compiledPlan, goldenPlan);
     }
         
-    public void testSort() throws VisitorException, IOException {
-    	String query = "order (load 'a') by $0;";
+    public void testSort() throws Exception {
+    	String query = "store (order (load 'a') by $0) into 'output';";
     	LogicalPlan plan = buildPlan(query);
     	PhysicalPlan pp = buildPhysicalPlan(plan);
 
@@ -134,7 +117,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         pp.explain(baos);
         baos.write((int)'\n');
         String compiledPlan = baos.toString();
-        compiledPlan = compiledPlan.replaceAll("Load(.*)","Load()");
+        compiledPlan = compiledPlan.replaceAll("Load(.*)","Load()").replaceAll("Store(.*)","Store()");
 
         if(generate){
             FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/Sort.gld");
@@ -150,14 +133,13 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
 
         System.out.println();
         System.out.println(compiledPlan);
-        System.out.println("-------------");
+        System.out.println("-------------testSort");
         
-        //System.out.println(compiledPlan.compareTo(goldenPlan)==0);
         assertEquals(compiledPlan, goldenPlan);
     }
         
-    public void testDistinct() throws VisitorException, IOException {
-    	String query = "distinct (load 'a');";
+    public void testDistinct() throws Exception {
+    	String query = "store( distinct (load 'a') ) into 'output';";
     	LogicalPlan plan = buildPlan(query);
     	PhysicalPlan pp = buildPhysicalPlan(plan);
     	
@@ -166,7 +148,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         pp.explain(baos);
         baos.write((int)'\n');
         String compiledPlan = baos.toString();
-        compiledPlan = compiledPlan.replaceAll("Load(.*)","Load()");
+        compiledPlan = compiledPlan.replaceAll("Load(.*)","Load()").replaceAll("Store(.*)","Store()");
         
         if(generate){
             FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/Distinct.gld");
@@ -182,14 +164,15 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
 
         System.out.println();
         System.out.println(compiledPlan);
-        System.out.println("-------------");
+        System.out.println("-------------testDistinct");
         //System.out.println(compiledPlan.compareTo(goldenPlan)==0);
         assertEquals(compiledPlan, goldenPlan);
     }
     
-    public void testCogroup() throws VisitorException, IOException {
+    public void testCogroup() throws Exception {
         System.out.println("testCogroup");
-    	String query = "cogroup (load 'a') by ($0 + $1, $0 - $1), (load 'b') by ($0 + $1, $0 - $1);";
+    	String query = "A = cogroup (load 'a') by ($0 + $1, $0 - $1), (load 'b') by ($0 + $1, $0 - $1);"
+    		+ "store A into 'output';";
     	LogicalPlan plan = buildPlan(query);
     	PhysicalPlan pp = buildPhysicalPlan(plan);
     	
@@ -199,7 +182,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         pp.explain(baos);
         baos.write((int)'\n');
         String compiledPlan = baos.toString();
-        compiledPlan = compiledPlan.replaceAll("Load(.*)","Load()");
+        compiledPlan = compiledPlan.replaceAll("Load(.*)","Load()").replaceAll("Store(.*)","Store()");
         
         if(generate){
             FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/Cogroup.gld");
@@ -220,9 +203,10 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         assertEquals(compiledPlan, goldenPlan);
     }
     
-    public void testArithmetic() throws VisitorException, IOException, ExecException {
+    public void testArithmetic() throws Exception {
     	
-    	String query = "foreach (load 'A') generate $0 + $1 + '5', $0 - '5' - $1, 'hello';";
+    	String query = "A = foreach (load 'A') generate $0 + $1 + 5, $0 - 5 - $1, 'hello';" +
+    	"store A into 'output';";
     	LogicalPlan lp = buildPlan(query);
     	
     	PhysicalPlan pp = buildPhysicalPlan(lp);
@@ -236,7 +220,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         pp.explain(baos);
         baos.write((int)'\n');
         String compiledPlan = baos.toString();
-        compiledPlan = compiledPlan.replaceAll("Load(.*)","Load()");
+        compiledPlan = compiledPlan.replaceAll("Load(.*)","Load()").replaceAll("Store(.*)","Store()");
 
         if(generate){
             FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/Arithmetic.gld");
@@ -257,8 +241,9 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         assertEquals(compiledPlan, goldenPlan);
     }
     
-    public void testComparison() throws VisitorException, IOException {
-    	String query = "filter (load 'a' using " + PigStorage.class.getName() + "(':')) by $0 + $1 > ($0 - $1) * ('4' / '2');";
+    public void testComparison() throws Exception {
+    	String query = "A = filter (load 'a' using " + PigStorage.class.getName() + "(':')) by $0 + $1 > ($0 - $1) * (4 / 2);" +
+    	"store A into 'output';";
     	LogicalPlan lp = buildPlan(query);
     	PhysicalPlan pp = buildPhysicalPlan(lp);
     	
@@ -270,7 +255,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         pp.explain(baos);
         baos.write((int)'\n');
         String compiledPlan = baos.toString();
-        compiledPlan = compiledPlan.replaceAll("Load(.*)","Load()");
+        compiledPlan = compiledPlan.replaceAll("Load(.*)","Load()").replaceAll("Store(.*)","Store()");
         
         if(generate){
             FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/Comparison.gld");
@@ -286,14 +271,15 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
 
         System.out.println();
         System.out.println(compiledPlan);
-        System.out.println("-------------");
+        System.out.println("-------------testComparison");
         //System.out.println(compiledPlan.compareTo(goldenPlan)==0);
         assertEquals(compiledPlan, goldenPlan);
     }
 
     @Test
-    public void testBinCond() throws VisitorException, IOException {
-        String query = "foreach (load 'a') generate ($1 == '3'? $2 + $3 : $2 - $3) ;";
+    public void testBinCond() throws Exception {
+        String query = "A = foreach (load 'a') generate ($1 == '3'? $2 + $3 : $2 - $3) ;" +
+    	"store A into 'output';";
         LogicalPlan lp = buildPlan(query);
 
         PhysicalPlan pp = buildPhysicalPlan(lp);
@@ -304,7 +290,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         pp.explain(baos);
         baos.write((int)'\n');
         String compiledPlan = baos.toString();
-        compiledPlan = compiledPlan.replaceAll("Load(.*)","Load()");
+        compiledPlan = compiledPlan.replaceAll("Load(.*)","Load()").replaceAll("Store(.*)","Store()");
 
         if(generate){
             FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/BinCond.gld");
@@ -320,15 +306,16 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
 
         System.out.println();
         System.out.println(compiledPlan);
-        System.out.println("-------------");
+        System.out.println("-------------testBinCond");
         //System.out.println(compiledPlan.compareTo(goldenPlan)==0);
         assertEquals(compiledPlan, goldenPlan);
     }
     
     
     @Test
-    public void testGenerate() throws VisitorException, IOException {
-        String query = "foreach (load 'a') generate ($1+$2), ($1-$2), ($1*$2), ($1/$2), ($1%$2), -($1) ;";
+    public void testGenerate() throws Exception {
+        String query = "A = foreach (load 'a') generate ($1+$2), ($1-$2), ($1*$2), ($1/$2), ((int)$1%(int)$2), -($1) ;" +
+    	"store A into 'output';";
         LogicalPlan lp = buildPlan(query);
 
         PhysicalPlan pp = buildPhysicalPlan(lp);
@@ -339,7 +326,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         pp.explain(baos);
         baos.write((int)'\n');
         String compiledPlan = baos.toString();
-        compiledPlan = compiledPlan.replaceAll("Load(.*)","Load()");
+        compiledPlan = compiledPlan.replaceAll("Load(.*)","Load()").replaceAll("Store(.*)","Store()");
 
         if(generate){
             FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/Generate.gld");
@@ -355,14 +342,15 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
 
         System.out.println();
         System.out.println(compiledPlan);
-        System.out.println("-------------");
+        System.out.println("-------------testGenerate");
         
         assertEquals(compiledPlan, goldenPlan);
     }
 
     @Test
-    public void testUnion() throws VisitorException, IOException {
-    	String query = "union (load 'a'), (load 'b'), (load 'c');";
+    public void testUnion() throws Exception {
+    	String query = "A = union (load 'a'), (load 'b'), (load 'c');" +
+    	"store A into 'output';";
     	LogicalPlan lp = buildPlan(query);
     	PhysicalPlan pp = buildPhysicalPlan(lp);
     	
@@ -371,7 +359,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         pp.explain(baos);
         baos.write((int)'\n');
         String compiledPlan = baos.toString();
-        compiledPlan = compiledPlan.replaceAll("Load(.*)","Load()");
+        compiledPlan = compiledPlan.replaceAll("Load(.*)","Load()").replaceAll("Store(.*)","Store()");
 
         if(generate){
             FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/Union.gld");
@@ -387,14 +375,15 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
 
         System.out.println();
         System.out.println(compiledPlan);
-        System.out.println("-------------");
+        System.out.println("-------------testUnion");
         
         assertEquals(compiledPlan, goldenPlan);
     }
     
     @Test
-    public void testSplit() throws VisitorException, IOException {
-    	String query = "split (load 'a') into x if $0 < '7', y if $0 > '7';";
+    public void testSplit() throws Exception {
+    	String query = "split (load 'a') into x if $0 < '7', y if $0 > '7';"  +
+    	"store x into 'output';";
     	LogicalPlan plan = buildPlan(query);
     	
     	PhysicalPlan pp = buildPhysicalPlan(plan);
@@ -404,7 +393,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         pp.explain(baos);
         baos.write((int)'\n');
         String compiledPlan = baos.toString();
-        compiledPlan = compiledPlan.replaceAll("Load(.*)","Load()");
+        compiledPlan = compiledPlan.replaceAll("Load(.*)","Load()").replaceAll("Store(.*)","Store()");
 
         if(generate){
             FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/Split1.gld");
@@ -426,7 +415,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
 
         System.out.println();
         System.out.println(compiledPlan);
-        System.out.println("-------------");
+        System.out.println("-------------testSplit");
 
         if(compiledPlan.compareTo(goldenPlan1) == 0 || compiledPlan.compareTo(goldenPlan2) == 0) {
             // good
@@ -445,11 +434,12 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
     }
     
     @Test
-    public void testIsNull() throws VisitorException, IOException {
+    public void testIsNull() throws Exception {
         //TODO
         //PONot is not implemented. The query below translates to POIsNull istead
         //of PONOt(POIsNull)
-    	String query = "split (load 'a') into x if $0 IS NULL, y if $0 IS NOT NULL;";
+    	String query = "split (load 'a') into x if $0 IS NULL, y if $0 IS NOT NULL;" +
+    	"store x into 'output';";
     	LogicalPlan plan = buildPlan(query);
     	
     	PhysicalPlan pp = buildPhysicalPlan(plan);
@@ -459,7 +449,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         pp.explain(baos);
         baos.write((int)'\n');
         String compiledPlan = baos.toString();
-        compiledPlan = compiledPlan.replaceAll("Load(.*)","Load()");
+        compiledPlan = compiledPlan.replaceAll("Load(.*)","Load()").replaceAll("Store(.*)","Store()");
 
         if(generate){
             FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/IsNull1.gld");
@@ -481,7 +471,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
 
         System.out.println();
         System.out.println(compiledPlan);
-        System.out.println("-------------");
+        System.out.println("-------------testIsNull");
 
         if(compiledPlan.compareTo(goldenPlan1) == 0 || compiledPlan.compareTo(goldenPlan2) == 0)  {
             // good
@@ -500,8 +490,8 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
     }
 
     @Test
-    public void testLimit() throws VisitorException, IOException {
-        String query = "limit (load 'a') 5;";
+    public void testLimit() throws Exception {
+        String query = "store( limit (load 'a') 5 ) into 'output';";
         LogicalPlan plan = buildPlan(query);
         PhysicalPlan pp = buildPhysicalPlan(plan);
 
@@ -510,7 +500,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         pp.explain(baos);
         baos.write((int)'\n');
         String compiledPlan = baos.toString();
-        compiledPlan = compiledPlan.replaceAll("Load(.*)","Load()");
+        compiledPlan = compiledPlan.replaceAll("Load(.*)","Load()").replaceAll("Store(.*)","Store()");
 
         if(generate){
             FileOutputStream fos = new FileOutputStream("test/org/apache/pig/test/data/GoldenFiles/Limit.gld");
@@ -526,64 +516,10 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
 
         System.out.println();
         System.out.println(compiledPlan);
-        System.out.println("-------------");
+        System.out.println("-------------testLimit");
 
         //System.out.println(compiledPlan.compareTo(goldenPlan)==0);
         assertEquals(compiledPlan, goldenPlan);
-    }
-
-    @Test
-    public void testErrLimit() throws VisitorException, IOException {
-        String query = "limit (load 'a') 5;";
-        LogicalPlan plan = buildPlan(query);
-        plan.remove(plan.getRoots().get(0));
-        try {
-            buildPhysicalPlan(plan);
-            fail("Expected error.");
-        } catch(VisitorException ve) {
-            assertTrue(ve.getErrorCode() == 2051);
-        }
-    }
-
-    @Test
-    public void testErrFilter() throws VisitorException, IOException {
-        String query = "filter (load 'a') by $0 > 5;";
-        LogicalPlan plan = buildPlan(query);
-        plan.remove(plan.getRoots().get(0));
-        try {
-            buildPhysicalPlan(plan);
-            fail("Expected error.");
-        } catch(VisitorException ve) {
-            assertTrue(ve.getErrorCode() == 2051);
-        }
-    }
-
-    @Test
-    public void testErrSort() throws VisitorException, IOException {
-        String query = "order (load 'a') by $0 desc;";
-        LogicalPlan plan = buildPlan(query);
-        plan.remove(plan.getRoots().get(0));
-        try {
-            buildPhysicalPlan(plan);
-            fail("Expected error.");
-        } catch(VisitorException ve) {
-            assertTrue(ve.getErrorCode() == 2051);
-        }
-    }
-
-    @Test
-    public void testErrNull() throws VisitorException, IOException {
-        String query = "filter (load 'a') by $0 is null;";
-        LogicalPlan plan = buildPlan(query);
-        LOFilter filter = (LOFilter)plan.getLeaves().get(0);
-        LogicalPlan innerPlan = filter.getComparisonPlan();
-        innerPlan.remove(innerPlan.getRoots().get(0));
-        try {
-            buildPhysicalPlan(plan);
-            fail("Expected error.");
-        } catch(VisitorException ve) {
-            assertTrue(ve.getErrorCode() == 2051);
-        }
     }
 
     /**
@@ -592,13 +528,10 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
      */
     @Test
     public void testSortInfoAsc() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'bla' as (i:int, n:chararray, d:double);");
-        lpt.buildPlan("b = order a by i, d;");
-        LogicalPlan lp = lpt.buildPlan("store b into 'foo';");
-        SortInfoSetter siSetter = new SortInfoSetter(lp); 
-        siSetter.visit();
-        PhysicalPlan pp = buildPhysicalPlan(lp);
+        String query = "a = load 'bla' as (i:int, n:chararray, d:double);" +
+                       "b = order a by i, d;" +
+                       "store b into 'foo';";
+        PhysicalPlan pp = Util.buildPp( pigServer, query );
         SortInfo si = ((POStore)(pp.getLeaves().get(0))).getSortInfo();
         SortInfo expected = getSortInfo(
                 Arrays.asList(new String[] {"i", "d"}),
@@ -615,14 +548,11 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
      */
     @Test
     public void testSortInfoAscDesc() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'bla' as (i:int, n:chararray, d:double);");
-        lpt.buildPlan("b = filter a by i > 10;");
-        lpt.buildPlan("c = order b by i desc, d;");
-        LogicalPlan lp = lpt.buildPlan("store c into 'foo';");
-        SortInfoSetter siSetter = new SortInfoSetter(lp); 
-        siSetter.visit();
-        PhysicalPlan pp = buildPhysicalPlan(lp);
+        String query = "a = load 'bla' as (i:int, n:chararray, d:double);" +
+                       "b = filter a by i > 10;" +
+                       "c = order b by i desc, d;" + 
+                       "store c into 'foo';";
+        PhysicalPlan pp = Util.buildPp( pigServer, query );
         SortInfo si = ((POStore)(pp.getLeaves().get(0))).getSortInfo();
         SortInfo expected = getSortInfo(
                 Arrays.asList(new String[] {"i", "d"}), 
@@ -640,13 +570,10 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
      */
     @Test
     public void testSortInfoNoOrderBy1() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'bla' as (i:int, n:chararray, d:double);");
-        lpt.buildPlan("b = filter a by i > 10;");
-        LogicalPlan lp = lpt.buildPlan("store b into 'foo';");
-        SortInfoSetter siSetter = new SortInfoSetter(lp); 
-        siSetter.visit();
-        PhysicalPlan pp = buildPhysicalPlan(lp);
+        String query = "a = load 'bla' as (i:int, n:chararray, d:double);" + 
+                       "b = filter a by i > 10;" +
+                       "store b into 'foo';";
+        PhysicalPlan pp = Util.buildPp( pigServer, query );
         SortInfo si = ((POStore)(pp.getLeaves().get(0))).getSortInfo();
         assertEquals(null, si);
     }
@@ -658,14 +585,11 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
      */
     @Test
     public void testSortInfoNoOrderBy2() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'bla' as (i:int, n:chararray, d:double);");
-        lpt.buildPlan("b = order a by i, d;");
-        lpt.buildPlan("c = filter b by i > 10;");
-        LogicalPlan lp = lpt.buildPlan("store c into 'foo';");
-        PhysicalPlan pp = buildPhysicalPlan(lp);
-        SortInfoSetter siSetter = new SortInfoSetter(lp); 
-        siSetter.visit();
+        String query = "a = load 'bla' as (i:int, n:chararray, d:double);" +
+                       "b = order a by i, d;" +
+                       "c = distinct b;" +
+                       "store c into 'foo';";
+        PhysicalPlan pp = Util.buildPp( pigServer, query );
         SortInfo si = ((POStore)(pp.getLeaves().get(0))).getSortInfo();
         assertEquals(null, si);
     }
@@ -677,16 +601,11 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
      */
     @Test
     public void testSortInfoOrderByLimit() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'bla' as (i:int, n:chararray, d:double);");
-        lpt.buildPlan("b = order a by i, d desc;");
-        lpt.buildPlan("c = limit b 10;");
-        LogicalPlan lp = lpt.buildPlan("store c into 'foo';");
-        SortInfoSetter siSetter = new SortInfoSetter(lp); 
-        siSetter.visit();
-        LOPrinter lpr = new LOPrinter(System.err, lp);
-        lpr.visit();
-        PhysicalPlan pp = buildPhysicalPlan(lp);
+        String query = "a = load 'bla' as (i:int, n:chararray, d:double);" + 
+                       "b = order a by i, d desc;" +
+                       "c = limit b 10;" +
+                       "store c into 'foo';";
+        PhysicalPlan pp = Util.buildPp( pigServer, query );
         SortInfo si = ((POStore)(pp.getLeaves().get(0))).getSortInfo();
         SortInfo expected = getSortInfo(
                 Arrays.asList(new String[] {"i", "d"}), 
@@ -703,20 +622,12 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
      */
     @Test
     public void testSortInfoMultipleStore() throws Exception {
-        PigServer myPig = new PigServer(ExecType.LOCAL);
-        myPig.setBatchOn();
-        myPig.registerQuery("a = load 'bla' as (i:int, n:chararray, d:double);");
-        myPig.registerQuery("b = order a by i, d desc;");
-        myPig.registerQuery("store b into '1';");
-        myPig.registerQuery("store b into '2';");
-        java.lang.reflect.Method buildLp = myPig.getClass().getDeclaredMethod("buildLp");
-        buildLp.setAccessible(true);
-        org.apache.pig.newplan.logical.relational.LogicalPlan lp = (org.apache.pig.newplan.logical.relational.LogicalPlan ) buildLp.invoke( myPig );
-
-        java.lang.reflect.Method compilePp = myPig.getClass().getDeclaredMethod("compilePp");
-        compilePp.setAccessible(true);
+        String query = "a = load 'bla' as (i:int, n:chararray, d:double);" +
+                       "b = order a by i, d desc;" +
+                       "store b into '1';" + 
+                       "store b into '2';";
         
-        PhysicalPlan pp = (PhysicalPlan) compilePp.invoke(myPig);
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
         SortInfo si0 = ((POStore)(pp.getLeaves().get(0))).getSortInfo();
         SortInfo si1 = ((POStore)(pp.getLeaves().get(1))).getSortInfo();
         SortInfo expected = getSortInfo(
@@ -736,13 +647,10 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
      */
     @Test
     public void testSortInfoNoOrderBySchema() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'bla' ;");
-        lpt.buildPlan("b = order a by $0;");
-        LogicalPlan lp = lpt.buildPlan("store b into 'foo';");
-        SortInfoSetter siSetter = new SortInfoSetter(lp); 
-        siSetter.visit();
-        PhysicalPlan pp = buildPhysicalPlan(lp);
+        String query = "a = load 'bla' ;" +
+                       "b = order a by $0;" +
+                       "store b into 'foo';";
+        PhysicalPlan pp = Util.buildPp( pigServer, query );
         SortInfo si = ((POStore)(pp.getLeaves().get(0))).getSortInfo();
         SortInfo expected = getSortInfo(Arrays.asList(new String[] {null}),
                 Arrays.asList(new Integer[] {0}), 
@@ -786,81 +694,19 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         return new SortInfo(sortColInfoList);
     }
     
-    public PhysicalPlan buildPhysicalPlan(LogicalPlan lp) throws VisitorException {
+    public PhysicalPlan buildPhysicalPlan(LogicalPlan lp) throws FrontendException {
     	LogToPhyTranslationVisitor visitor = new LogToPhyTranslationVisitor(lp);
     	visitor.setPigContext(pc);
     	visitor.visit();
     	return visitor.getPhysicalPlan();
     }
     
-    public LogicalPlan buildPlan(String query) {
-        return buildPlan(query, LogicalPlanBuilder.class.getClassLoader());
+    public LogicalPlan buildPlan(String query) throws Exception {
+    	try {
+    		return Util.parse(query, pc);
+    	} catch(Throwable t) {
+    		throw new Exception("Catch exception: " + t.toString() );
+    	}
     }
 
-    public LogicalPlan buildPlan(String query, ClassLoader cldr) {
-        LogicalPlanBuilder.classloader = cldr;
-        PigContext pigContext = new PigContext(ExecType.LOCAL, new Properties());
-        try {
-
-            pigContext.connect();
-            
-            LogicalPlanBuilder builder = new LogicalPlanBuilder(pigContext); //
-
-
-            LogicalPlan lp = builder.parse("Test-Plan-Builder",
-                                           query,
-                                           aliases,
-                                           logicalOpTable,
-                                           aliasOp,
-                                           fileNameMap);
-            List<LogicalOperator> roots = lp.getRoots();
-            
-            
-            if(roots.size() > 0) {
-                for(LogicalOperator op: roots) {
-                    if (!(op instanceof LOLoad) && !(op instanceof LODefine)){
-                        throw new Exception("Cannot have a root that is not the load or define operator. Found " + op.getClass().getName());
-                    }
-                }
-            }
-            
-            System.err.println("Query: " + query);
-            
-            //Just the top level roots and their children
-            //Need a recursive one to travel down the tree
-            
-            for(LogicalOperator op: lp.getRoots()) {
-                System.err.println("Logical Plan Root: " + op.getClass().getName() + " object " + op);    
-
-                List<LogicalOperator> listOp = lp.getSuccessors(op);
-                
-                if(null != listOp) {
-                    Iterator<LogicalOperator> iter = listOp.iterator();
-                    while(iter.hasNext()) {
-                        LogicalOperator lop = iter.next();
-                        System.err.println("Successor: " + lop.getClass().getName() + " object " + lop);
-                    }
-                }
-            }
-            
-            assertTrue(lp != null);
-            return lp;
-        } catch (IOException e) {
-            // log.error(e);
-            //System.err.println("IOException Stack trace for query: " + query);
-            //e.printStackTrace();
-            fail("IOException: " + e.getMessage());
-        } catch (Exception e) {
-            log.error(e);
-            //System.err.println("Exception Stack trace for query: " + query);
-            //e.printStackTrace();
-            fail(e.getClass().getName() + ": " + e.getMessage() + " -- " + query);
-        }
-        return null;
-    }
-    
-    Map<LogicalOperator, LogicalPlan> aliases = new HashMap<LogicalOperator, LogicalPlan>();
-    Map<OperatorKey, LogicalOperator> logicalOpTable = new HashMap<OperatorKey, LogicalOperator>();
-    Map<String, LogicalOperator> aliasOp = new HashMap<String, LogicalOperator>();
-    Map<String, String> fileNameMap = new HashMap<String, String>();
 }

@@ -1,21 +1,23 @@
-x: Filter[tuple] - Test-Plan-Builder-258
+y: Filter[bag] - scope-170
 |   |
-|   POIsNull[tuple] - Test-Plan-Builder-260
+|   Not[boolean] - scope-173
 |   |
-|   |---Project[bytearray][0] - Test-Plan-Builder-259
-|
-|---Split - Test-Plan-Builder-257
-    |
-    |---248: Load(file:///homes/rding/apache-pig/trunk/a:org.apache.pig.builtin.PigStorage) - Test-Plan-Builder-256
-
-y: Filter[tuple] - Test-Plan-Builder-261
-|   |
-|   Not[boolean] - Test-Plan-Builder-264
-|   |
-|   |---POIsNull[tuple] - Test-Plan-Builder-263
+|   |---POIsNull[boolean] - scope-172
 |       |
-|       |---Project[bytearray][0] - Test-Plan-Builder-262
+|       |---Project[bytearray][0] - scope-171
 |
-|---Split - Test-Plan-Builder-257
+|---test-27: Split - scope-169
     |
-    |---248: Load(file:///homes/rding/apache-pig/trunk/a:org.apache.pig.builtin.PigStorage) - Test-Plan-Builder-256
+    |---test-26: Load()
+
+test-28: Store()
+|
+|---x: Filter[bag] - scope-174
+    |   |
+    |   POIsNull[boolean] - scope-176
+    |   |
+    |   |---Project[bytearray][0] - scope-175
+    |
+    |---test-27: Split - scope-169
+        |
+        |---test-26: Load()

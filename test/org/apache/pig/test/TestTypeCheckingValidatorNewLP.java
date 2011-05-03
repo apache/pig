@@ -115,7 +115,6 @@ import org.apache.pig.newplan.logical.visitor.TypeCheckingExpVisitor;
 import org.apache.pig.newplan.logical.visitor.TypeCheckingRelVisitor;
 import org.apache.pig.newplan.logical.visitor.UnionOnSchemaSetter;
 import org.apache.pig.parser.ParserTestingUtils;
-import org.apache.pig.test.utils.LogicalPlanTester;
 import org.junit.Before;
 import org.junit.Test;
 import static org.apache.pig.test.Util.*;
@@ -123,7 +122,6 @@ import static org.apache.pig.test.Util.*;
 public class TestTypeCheckingValidatorNewLP {
 
     PigContext pc = new PigContext(ExecType.LOCAL, new Properties());
-    LogicalPlanTester planTester;
     private static final String CAST_LOAD_NOT_FOUND = 
         "Cannot resolve load function to use for casting from bytearray";
     
@@ -133,10 +131,6 @@ public class TestTypeCheckingValidatorNewLP {
      */
     @Before
     public void setUp() throws Exception {
-        // create a new instance of the plan tester
-        // for each test so that different tests do not
-        // interact with each other's plans
-        planTester = new LogicalPlanTester(pc) ;
     }
 
     private static final String simpleEchoStreamingCommand;
