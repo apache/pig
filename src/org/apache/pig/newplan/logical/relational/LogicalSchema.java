@@ -289,10 +289,12 @@ public class LogicalSchema {
                 if(inType == DataType.BYTEARRAY) {
                     //good
                 } else if (inType == outType) {
-                    // Don't do the comparison if both embedded schemas are
+                    // Don't do the comparison if either input inner schema 
+                    // is null/empty or  both inner schemas are
                     // null.  That will cause Schema.equals to return false,
                     // even though we want to view that as true.
-                    if (!(outFs.schema == null && inFs.schema == null)) { 
+                    if (!(inFs.schema == null || inFs.schema.size() == 0 || 
+                            (outFs.schema == null && inFs.schema == null))) { 
                         // compare recursively using schema
                         if (!LogicalSchema.castable(inFs.schema, outFs.schema)) {
                             return false ;
