@@ -1009,6 +1009,44 @@ public class TestMacroExpansion {
         validateFailure(macro + script, expectedErr);
     }
     
+    @Test // macro doesn't contain return alias
+    public void checkReturnAliasTest1() throws Throwable {
+        String macro = "define group_and_count_1 (A,C) returns B {\n" +
+            "    /* this is a test $B and \n" +
+            "    $B = JOIN $A BY user, $C BY user; */\n" +
+            "    B = JOIN $A BY user, $C BY user;\n" +
+            "};\n";
+        
+        String script = 
+            "alpha = load 'users' as (user, age, zip);\n" +
+            "beta = load 'links' as (user, link, view);\n" +
+            "gamma = group_and_count_1 (alpha,beta);\n" +
+            "store gamma into 'byuser';\n";
+        
+        String expectedErr = "Reason: Macro 'group_and_count_1' missing return alias: B";
+        
+        validateFailure(macro + script, expectedErr);
+    }
+    
+    @Test // macro doesn't contain return alias
+    public void checkReturnAliasTest2() throws Throwable {
+        String macro = "define group_and_count_2 (A,C) returns B {\n" +
+            "    -- $B = JOIN $A BY user, $C BY user; \n" +
+            "    --$B = JOIN $A BY user, $C BY user; \n" +
+            "    B = JOIN $A BY user, $C BY user;\n" +
+            "};\n";
+        
+        String script = 
+            "alpha = load 'users' as (user, age, zip);\n" +
+            "beta = load 'links' as (user, link, view);\n" +
+            "gamma = group_and_count_2 (alpha,beta);\n" +
+            "store gamma into 'byuser';\n";
+        
+        String expectedErr = "Reason: Macro 'group_and_count_2' missing return alias: B";
+        
+        validateFailure(macro + script, expectedErr);
+    }
+    
     @Test
     public void recursiveMacrosTest() throws Exception {
         String macro1 = "define group_and_partition (A, group_key, reducers) returns B {\n" +
@@ -1946,6 +1984,8 @@ public class TestMacroExpansion {
             w.close();
             
             grunt.checkScript(scriptFile);
+            
+            Assert.fail("Expected exception isn't thrown");
         } catch (FrontendException e) {  
             String msg = e.getMessage();
             int pos = msg.indexOf("Reason:");
