@@ -44,8 +44,6 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import junit.framework.Assert;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.mapreduce.Job;
@@ -1406,9 +1404,9 @@ public class PigServer {
         private int processedStores = 0;
 
         private LogicalPlan lp;
-
-        private int currentLineNum = 0;
         
+        private int currentLineNum = 0;
+
         public Graph(boolean batchMode) {
             this.batchMode = batchMode;
             this.lp = new LogicalPlan();
@@ -1564,7 +1562,7 @@ public class PigServer {
         }
         
         /**
-         * Accumulate the given statement to previouis query statements and generate
+         * Accumulate the given statement to previous query statements and generate
          * an overall (raw) plan.
          */
         void registerQuery(String query, int startLine) throws IOException {

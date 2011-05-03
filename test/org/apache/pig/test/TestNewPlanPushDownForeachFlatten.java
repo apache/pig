@@ -18,7 +18,6 @@
 package org.apache.pig.test;
 
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -27,14 +26,15 @@ import java.util.Set;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.FilterFunc;
+import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.test.utils.Identity;
-import org.apache.pig.test.utils.LogicalPlanTester;
-import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
-import org.apache.pig.newplan.logical.LogicalPlanMigrationVistor;
+import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
+import org.apache.pig.newplan.optimizer.PlanOptimizer;
+import org.apache.pig.newplan.optimizer.Rule;
 import org.apache.pig.newplan.logical.relational.LOCross;
 import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOJoin;
@@ -42,13 +42,9 @@ import org.apache.pig.newplan.logical.relational.LOLimit;
 import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LOSort;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
-import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
-import org.apache.pig.newplan.optimizer.PlanOptimizer;
-import org.apache.pig.newplan.optimizer.Rule;
 import org.apache.pig.newplan.logical.rules.LoadTypeCastInserter;
 import org.apache.pig.newplan.logical.rules.OptimizerUtils;
 import org.apache.pig.newplan.logical.rules.PushDownForEachFlatten;
-import org.apache.pig.newplan.logical.rules.TypeCastInserter;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -59,11 +55,9 @@ import org.junit.Before;
  */
 public class TestNewPlanPushDownForeachFlatten {
     PigContext pc = new PigContext(ExecType.LOCAL, new Properties());
-    LogicalPlanTester planTester = new LogicalPlanTester(pc) ;
     
     @Before
     public void tearDown() {
-        planTester.reset();
     }
 
     /**
@@ -84,9 +78,7 @@ public class TestNewPlanPushDownForeachFlatten {
      */
     @Test
     public void testErrorEmptyInput() throws Exception {
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = 
-            new org.apache.pig.impl.logicalLayer.LogicalPlan();
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( "" );
         
         Assert.assertTrue( newLogicalPlan.getOperators().hasNext() ==  false );
     }
@@ -96,22 +88,23 @@ public class TestNewPlanPushDownForeachFlatten {
      */
     @Test
     public void testErrorNonForeachInput() throws Exception {
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        String query = "A = load 'myfile' as (name, age, gpa);" +
+                       "store A into 'output';";
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
 
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
         List<Operator> nexts = newLogicalPlan.getSuccessors( load );
-        Assert.assertTrue( nexts == null || nexts.size() == 0 );
+        Assert.assertTrue( nexts != null && nexts.size() == 1 );
 }
     
     @Test
     public void testForeachNoFlatten() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
-        planTester.buildPlan("B = foreach A generate $0, $1, $2;");
-        planTester.buildPlan("C = order B by $0, $1;");
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan( "D = store C into 'dummy';" );
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        String query = "A = load 'myfile' as (name, age, gpa);" +
+        "B = foreach A generate $0, $1, $2;" +
+        "C = order B by $0, $1;" +
+         "D = store C into 'dummy';";
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
         
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
@@ -125,9 +118,10 @@ public class TestNewPlanPushDownForeachFlatten {
     
     @Test
     public void testForeachNoSuccessors() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan("B = foreach A generate flatten($1);");
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        String query = "A = load 'myfile' as (name, age, gpa);" +
+                       "B = foreach A generate flatten($1);" +
+                       "Store B into 'output';";
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
         
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
@@ -137,10 +131,11 @@ public class TestNewPlanPushDownForeachFlatten {
     
     @Test
     public void testForeachStreaming() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
-        planTester.buildPlan("B = foreach A generate flatten($1);");
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan("C = stream B through `" + "pc -l" + "`;");
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        String query = "A = load 'myfile' as (name, age, gpa);" +
+        "B = foreach A generate flatten($1);" +
+        "C = stream B through `" + "pc -l" + "`;" +
+        "Store C into 'output';";
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
         
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
@@ -150,11 +145,12 @@ public class TestNewPlanPushDownForeachFlatten {
     
     @Test
     public void testForeachDistinct() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
-        planTester.buildPlan("B = foreach A generate flatten($1);");
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan("C = distinct B;");
+        String query = "A = load 'myfile' as (name, age, gpa);" +
+        "B = foreach A generate flatten($1);" +
+        "C = distinct B;" +
+        "store C into 'output';";
         
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
         
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
@@ -164,11 +160,12 @@ public class TestNewPlanPushDownForeachFlatten {
     
     @Test
     public void testForeachForeach() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
-        planTester.buildPlan("B = foreach A generate $0, $1, flatten(1);");        
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan("C = foreach B generate $0;");
+        String query = "A = load 'myfile' as (name, age, gpa);" +
+        "B = foreach A generate $0, $1, flatten(1);" +        
+        "C = foreach B generate $0;" +
+        "store C into 'output';";
         
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
         
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
@@ -185,11 +182,12 @@ public class TestNewPlanPushDownForeachFlatten {
 
     @Test
     public void testForeachFilter() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
-        planTester.buildPlan("B = foreach A generate $0, $1, flatten($2);");        
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan("C = filter B by $1 < 18;");
+        String query = "A = load 'myfile' as (name, age, gpa);" +
+        "B = foreach A generate $0, $1, flatten($2);" +        
+        "C = filter B by $1 < 18;" +
+        "store C into 'output';";
         
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
         
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
@@ -202,11 +200,13 @@ public class TestNewPlanPushDownForeachFlatten {
 
     @Test
     public void testForeachSplitOutput() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
-        planTester.buildPlan("B = foreach A generate $0, $1, flatten($2);");
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan("split B into C if $1 < 18, D if $1 >= 18;");
+        String query = "A = load 'myfile' as (name, age, gpa);" +
+        "B = foreach A generate $0, $1, flatten($2);" +
+        "split B into C if $1 < 18, D if $1 >= 18;" +
+        "store C into 'output1';" + 
+        "store D into 'output2';";
         
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
 
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
@@ -219,11 +219,12 @@ public class TestNewPlanPushDownForeachFlatten {
 
     @Test
     public void testForeachLimit() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
-        planTester.buildPlan("B = foreach A generate $0, $1, flatten($2);");
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan("B = limit B 10;");
+        String query = "A = load 'myfile' as (name, age, gpa);" +
+        "B = foreach A generate $0, $1, flatten($2);" +
+        "C = limit B 10;" +
+        "store C into 'output';";
         
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
         
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
@@ -236,12 +237,13 @@ public class TestNewPlanPushDownForeachFlatten {
 
     @Test
     public void testForeachUnion() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
-        planTester.buildPlan("B = foreach A generate $0, $1, flatten($2);");
-        planTester.buildPlan("C = load 'anotherfile' as (name, age, preference);");
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan("D = union B, C;");        
+        String query = "A = load 'myfile' as (name, age, gpa);" +
+        "B = foreach A generate $0, $1, flatten($2);" +
+        "C = load 'anotherfile' as (name, age, preference);" +
+        "D = union B, C;" +
+        "store D into 'output';";
         
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
         
         List<Operator> loads = newLogicalPlan.getSources();
         Assert.assertTrue( loads.size() == 2 );
@@ -262,12 +264,13 @@ public class TestNewPlanPushDownForeachFlatten {
     
     @Test
     public void testForeachCogroup() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
-        planTester.buildPlan("B = foreach A generate $0, $1, flatten($2);");
-        planTester.buildPlan("C = load 'anotherfile' as (name, age, preference);");
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan("D = cogroup B by $0, C by $0;");
+        String query = "A = load 'myfile' as (name, age, gpa);" +
+        "B = foreach A generate $0, $1, flatten($2);" +
+        "C = load 'anotherfile' as (name, age, preference);" +
+        "D = cogroup B by $0, C by $0;" +
+        "store D into 'output';";
         
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
 
         List<Operator> loads = newLogicalPlan.getSources();
         Assert.assertTrue( loads.size() == 2 );
@@ -288,11 +291,12 @@ public class TestNewPlanPushDownForeachFlatten {
     
     @Test
     public void testForeachGroupBy() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
-        planTester.buildPlan("B = foreach A generate $0, $1, flatten($2);");
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan("C = group B by $0;");
+        String query = "A = load 'myfile' as (name, age, gpa);" +
+        "B = foreach A generate $0, $1, flatten($2);" +
+        "C = group B by $0;" +
+        "store C into 'output';";
         
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
         
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
@@ -305,11 +309,11 @@ public class TestNewPlanPushDownForeachFlatten {
     
     @Test
     public void testForeachSort() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
-        planTester.buildPlan("B = foreach A generate $0, $1, flatten($2);");
-        planTester.buildPlan("C = order B by $0, $1;");
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan( "D = store C into 'dummy';" );
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        String query = "A = load 'myfile' as (name, age, gpa);" +
+        "B = foreach A generate $0, $1, flatten($2);" +
+        "C = order B by $0, $1;" +
+        "D = store C into 'dummy';";
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
         
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
@@ -326,11 +330,11 @@ public class TestNewPlanPushDownForeachFlatten {
      */
     @Test
     public void testForeachSortNegative1() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
-        planTester.buildPlan("B = foreach A generate $0 + 5, $1, flatten($2);");
-        planTester.buildPlan("C = order B by $0, $1;");
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan( "D = store C into 'dummy';" );
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        String query = "A = load 'myfile' as (name, age, gpa);" +
+        "B = foreach A generate $0 + 5, $1, flatten($2);" +
+        "C = order B by $0, $1;" +
+         "D = store C into 'dummy';";
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
         
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
@@ -348,11 +352,11 @@ public class TestNewPlanPushDownForeachFlatten {
      */
     @Test
     public void testForeachSortNegative2() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa:tuple(x,y));");
-        planTester.buildPlan("B = foreach A generate $0, $1, flatten($2);");
-        planTester.buildPlan("C = order B by $0, $3;");
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan( "D = store C into 'dummy';" );
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        String query = "A = load 'myfile' as (name, age, gpa:tuple(x,y));" +
+        "B = foreach A generate $0, $1, flatten($2);" +
+        "C = order B by $0, $3;" +
+        "D = store C into 'dummy';";
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
         
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
@@ -366,10 +370,12 @@ public class TestNewPlanPushDownForeachFlatten {
 
     @Test
     public void testForeachFlattenAddedColumnSort() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
-        planTester.buildPlan("B = foreach A generate $0, $1, flatten(1);");
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan("C = order B by $0, $1;");
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        String query = "A = load 'myfile' as (name, age, gpa);" +
+        "B = foreach A generate $0, $1, flatten(1);" +
+        "C = order B by $0, $1;" +
+        "store C into 'output';";
+
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
         
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
@@ -383,11 +389,12 @@ public class TestNewPlanPushDownForeachFlatten {
     
     @Test
     public void testForeachUDFSort() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
-        planTester.buildPlan("B = foreach A generate $0, $1, " + Identity.class.getName() + "($2) ;");
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan("C = order B by $0, $1;");
+        String query = "A = load 'myfile' as (name, age, gpa);" +
+        "B = foreach A generate $0, $1, " + Identity.class.getName() + "($2) ;" +
+        "C = order B by $0, $1;" +
+        "store C into 'output';";
         
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
         
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
@@ -401,11 +408,12 @@ public class TestNewPlanPushDownForeachFlatten {
     
     @Test
     public void testForeachCastSort() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
-        planTester.buildPlan("B = foreach A generate (chararray)$0, $1, flatten($2);");        
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan("C = order B by $0, $1;");
-        
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        String query = "A = load 'myfile' as (name, age, gpa);" +
+        "B = foreach A generate (chararray)$0, $1, flatten($2);" +        
+        "C = order B by $0, $1;" +
+        "store C into 'output';";
+
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
         
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
@@ -419,13 +427,14 @@ public class TestNewPlanPushDownForeachFlatten {
     
     @Test
     public void testForeachCross() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa:(letter_grade, point_score));");
-        planTester.buildPlan("B = foreach A generate $0, $1, flatten($2);");
-        planTester.buildPlan("C = load 'anotherfile' as (name, age, preference);");
-        planTester.buildPlan("D = cross B, C;");
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan("E = limit D 10;");
-        
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        String query = "A = load 'myfile' as (name, age, gpa:(letter_grade, point_score));" +
+        "B = foreach A generate $0, $1, flatten($2);" +
+        "C = load 'anotherfile' as (name, age, preference);" +
+        "D = cross B, C;" +
+        "E = limit D 10;" +
+        "store E into 'output';";
+
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
         
         List<Operator> loads = newLogicalPlan.getSources();
         Assert.assertTrue( loads.size() == 2 );
@@ -453,13 +462,14 @@ public class TestNewPlanPushDownForeachFlatten {
 
     @Test
     public void testForeachCross1() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa:(letter_grade, point_score));");
-        planTester.buildPlan("B = load 'anotherfile' as (name, age, preference:(course_name, instructor));");
-        planTester.buildPlan("C = foreach B generate $0, $1, flatten($2);");
-        planTester.buildPlan("D = cross A, C;");
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan("E = limit D 10;");
-        
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        String query = "A = load 'myfile' as (name, age, gpa:(letter_grade, point_score));" +
+        "B = load 'anotherfile' as (name, age, preference:(course_name, instructor));" +
+        "C = foreach B generate $0, $1, flatten($2);" +
+        "D = cross A, C;" +
+        "E = limit D 10;" +
+        "store E into 'output';";
+
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
 
         List<Operator> loads = newLogicalPlan.getSources();
         Assert.assertTrue( loads.size() == 2 );
@@ -490,17 +500,21 @@ public class TestNewPlanPushDownForeachFlatten {
     // A new rule should optimize this case
     @Test
     public void testForeachCross2() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa:(letter_grade, point_score));");
-        planTester.buildPlan("B = foreach A generate $0, $1, flatten($2);");
-        planTester.buildPlan("C = load 'anotherfile' as (name, age, preference:(course_name, instructor));");
-        planTester.buildPlan("D = foreach C generate $0, $1, flatten($2);");
-        planTester.buildPlan("E = cross B, D;");
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan("F = limit E 10;");
-        
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        String query = "A = load 'myfile' as (name, age, gpa:(letter_grade, point_score));" +
+        "B = foreach A generate $0, $1, flatten($2);" +
+        "C = load 'anotherfile' as (name, age, preference:(course_name, instructor));" +
+        "D = foreach C generate $0, $1, flatten($2);" +
+        "E = cross B, D;" +
+        "F = limit E 10;" +
+        "store F into 'output';";
+
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
         
         // No optimization about foreach flatten.
-        Assert.assertTrue( newLogicalPlan.getPredecessors( newLogicalPlan.getSinks().get( 0 ) ).get( 0 ) instanceof LOCross );
+        Operator store = newLogicalPlan.getSinks().get( 0 );
+        Operator limit = newLogicalPlan.getPredecessors(store).get(0);
+        Operator cross = newLogicalPlan.getPredecessors(limit).get(0);
+        Assert.assertTrue( cross instanceof LOCross );
     }
     
     /**
@@ -509,13 +523,14 @@ public class TestNewPlanPushDownForeachFlatten {
      */
     @Test
     public void testForeachFlattenAddedColumnCross() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa:(letter_grade, point_score));");
-        planTester.buildPlan("B = foreach A generate $0, $1, flatten(1);");
-        planTester.buildPlan("C = load 'anotherfile' as (name, age, preference:(course_name, instructor));");
-        planTester.buildPlan("D = cross B, C;");
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan("E = limit D 10;");
-        
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        String query = "A = load 'myfile' as (name, age, gpa:(letter_grade, point_score));" +
+        "B = foreach A generate $0, $1, flatten(1);" +
+        "C = load 'anotherfile' as (name, age, preference:(course_name, instructor));" +
+        "D = cross B, C;" +
+        "E = limit D 10;" +
+        "store E into 'output';";
+
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
         
         List<Operator> loads = newLogicalPlan.getSources();
         Assert.assertTrue( loads.size() == 2 );
@@ -546,13 +561,14 @@ public class TestNewPlanPushDownForeachFlatten {
      */
     @Test
     public void testForeachUDFCross() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa:(letter_grade, point_score));");
-        planTester.buildPlan("B = foreach A generate $0, flatten($1), " + Identity.class.getName() + "($2) ;");
-        planTester.buildPlan("C = load 'anotherfile' as (name, age, preference:(course_name, instructor));");
-        planTester.buildPlan("D = cross B, C;");
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan("E = limit D 10;");
-        
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        String query = "A = load 'myfile' as (name, age, gpa:(letter_grade, point_score));" +
+        "B = foreach A generate $0, flatten($1), " + Identity.class.getName() + "($2) ;" +
+        "C = load 'anotherfile' as (name, age, preference:(course_name, instructor));" +
+        "D = cross B, C;" +
+        "E = limit D 10;" +
+        "store E into 'output';";
+
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
         
         List<Operator> loads = newLogicalPlan.getSources();
         Assert.assertTrue( loads.size() == 2 );
@@ -583,13 +599,14 @@ public class TestNewPlanPushDownForeachFlatten {
      */
     @Test
     public void testForeachCastCross() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa:(letter_grade, point_score));");
-        planTester.buildPlan("B = foreach A generate $0, (int)$1, flatten( $2 );");
-        planTester.buildPlan("C = load 'anotherfile' as (name, age, preference:(course_name, instructor));");
-        planTester.buildPlan("D = cross B, C;");
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan("E = limit D 10;");
-        
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        String query = "A = load 'myfile' as (name, age, gpa:(letter_grade, point_score));" +
+        "B = foreach A generate $0, (int)$1, flatten( $2 );" +
+        "C = load 'anotherfile' as (name, age, preference:(course_name, instructor));" +
+        "D = cross B, C;" +
+        "E = limit D 10;" +
+        "store E into 'output';";
+
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
         
         List<Operator> loads = newLogicalPlan.getSources();
         Assert.assertTrue( loads.size() == 2 );
@@ -617,13 +634,15 @@ public class TestNewPlanPushDownForeachFlatten {
     
     @Test
     public void testForeachFRJoin() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa:(letter_grade, point_score));");
-        planTester.buildPlan("B = foreach A generate $0, $1, flatten($2);");
-        planTester.buildPlan("C = load 'anotherfile' as (name, age, preference);");
-        planTester.buildPlan("D = join B by $0, C by $0 using \"replicated\";");
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan("E = limit D 10;");
+        String query = "A = load 'myfile' as (name, age, gpa:(letter_grade, point_score));" +
+        "B = foreach A generate $0, $1, flatten($2);" +
+        "C = load 'anotherfile' as (name, age, preference);" +
+        "D = join B by $0, C by $0 using 'replicated';" +
+        "E = limit D 10;" +
+        "store E into 'output';";
+
         
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
 
         List<Operator> loads = newLogicalPlan.getSources();
         Assert.assertTrue( loads.size() == 2 );
@@ -651,13 +670,14 @@ public class TestNewPlanPushDownForeachFlatten {
 
     @Test
     public void testForeachFRJoin1() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa:(letter_grade, point_score));");
-        planTester.buildPlan("B = load 'anotherfile' as (name, age, preference:(course_name, instructor));");
-        planTester.buildPlan("C = foreach B generate $0, $1, flatten($2);");
-        planTester.buildPlan("D = join A by $0, C by $0 using \"replicated\";");
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan("E = limit D 10;");
-        
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        String query = "A = load 'myfile' as (name, age, gpa:(letter_grade, point_score));" +
+        "B = load 'anotherfile' as (name, age, preference:(course_name, instructor));" +
+        "C = foreach B generate $0, $1, flatten($2);" +
+        "D = join A by $0, C by $0 using 'replicated';" +
+        "E = limit D 10;" +
+        "store E into 'output';";
+
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
 
         List<Operator> loads = newLogicalPlan.getSources();
         Assert.assertTrue( loads.size() == 2 );
@@ -688,17 +708,21 @@ public class TestNewPlanPushDownForeachFlatten {
     // A new rule should optimize this case
     @Test
     public void testForeachFRJoin2() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa:(letter_grade, point_score));");
-        planTester.buildPlan("B = foreach A generate $0, $1, flatten($2);");
-        planTester.buildPlan("C = load 'anotherfile' as (name, age, preference:(course_name, instructor));");
-        planTester.buildPlan("D = foreach C generate $0, $1, flatten($2);");
-        planTester.buildPlan("E = join B by $0, D by $0 using \"replicated\";");
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan("F = limit E 10;");
+        String query = "A = load 'myfile' as (name, age, gpa:(letter_grade, point_score));" +
+        "B = foreach A generate $0, $1, flatten($2);" +
+        "C = load 'anotherfile' as (name, age, preference:(course_name, instructor));" +
+        "D = foreach C generate $0, $1, flatten($2);" +
+        "E = join B by $0, D by $0 using 'replicated';" +
+        "F = limit E 10;" +
+        "store F into 'output';";
         
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
 
         // No optimization about foreach flatten.
-        Assert.assertTrue( newLogicalPlan.getPredecessors( newLogicalPlan.getSinks().get( 0 ) ).get( 0 ) instanceof LOJoin );
+        Operator store = newLogicalPlan.getSinks().get( 0 );
+        Operator limit = newLogicalPlan.getPredecessors( store ).get( 0 );
+        Operator join = newLogicalPlan.getPredecessors( limit ).get( 0 );
+        Assert.assertTrue( join instanceof LOJoin );
     }
     
     /**
@@ -707,13 +731,14 @@ public class TestNewPlanPushDownForeachFlatten {
      */
     @Test
     public void testForeachFlattenAddedColumnFRJoin() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa:(letter_grade, point_score));");
-        planTester.buildPlan("B = foreach A generate $0, $1, flatten(1);");
-        planTester.buildPlan("C = load 'anotherfile' as (name, age, preference:(course_name, instructor));");
-        planTester.buildPlan("D = join B by $0, C by $0 using \"replicated\";");
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan("E = limit D 10;");
-        
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        String query = "A = load 'myfile' as (name, age, gpa:(letter_grade, point_score));" +
+        "B = foreach A generate $0, $1, flatten(1);" +
+        "C = load 'anotherfile' as (name, age, preference:(course_name, instructor));" +
+        "D = join B by $0, C by $0 using 'replicated';" +
+        "E = limit D 10;" +
+        "store E into 'output';";
+
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
         
         List<Operator> loads = newLogicalPlan.getSources();
         Assert.assertTrue( loads.size() == 2 );
@@ -745,13 +770,14 @@ public class TestNewPlanPushDownForeachFlatten {
      */
     @Test
     public void testForeachUDFFRJoin() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa:(letter_grade, point_score));");
-        planTester.buildPlan("B = foreach A generate $0, flatten($1), " + Identity.class.getName() + "($2) ;");
-        planTester.buildPlan("C = load 'anotherfile' as (name, age, preference:(course_name, instructor));");
-        planTester.buildPlan("D = join B by $0, C by $0 using \"replicated\";");
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan("E = limit D 10;");
-        
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        String query = "A = load 'myfile' as (name, age, gpa:(letter_grade, point_score));" +
+        "B = foreach A generate $0, flatten($1), " + Identity.class.getName() + "($2) ;" +
+        "C = load 'anotherfile' as (name, age, preference:(course_name, instructor));" +
+        "D = join B by $0, C by $0 using 'replicated';" +
+        "E = limit D 10;" +
+        "store E into 'output';";
+
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
         
         List<Operator> loads = newLogicalPlan.getSources();
         Assert.assertTrue( loads.size() == 2 );
@@ -783,13 +809,14 @@ public class TestNewPlanPushDownForeachFlatten {
      */
     @Test
     public void testForeachCastFRJoin() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa:(letter_grade, point_score));");
-        planTester.buildPlan("B = foreach A generate $0, (int)$1, flatten($2);");
-        planTester.buildPlan("C = load 'anotherfile' as (name, age, preference:(course_name, instructor));");
-        planTester.buildPlan("D = join B by $0, C by $0 using \"replicated\";");
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan("E = limit D 10;");
-        
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        String query = "A = load 'myfile' as (name, age, gpa:(letter_grade, point_score));" +
+        "B = foreach A generate $0, (int)$1, flatten($2);" +
+        "C = load 'anotherfile' as (name, age, preference:(course_name, instructor));" +
+        "D = join B by $0, C by $0 using 'replicated';" +
+        "E = limit D 10;" +
+        "store E into 'output';";
+
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
         
         List<Operator> loads = newLogicalPlan.getSources();
         Assert.assertTrue( loads.size() == 2 );
@@ -817,13 +844,14 @@ public class TestNewPlanPushDownForeachFlatten {
 
     @Test
     public void testForeachInnerJoin() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa:(letter_grade, point_score));");
-        planTester.buildPlan("B = foreach A generate $0, $1, flatten($2);");
-        planTester.buildPlan("C = load 'anotherfile' as (name, age, preference:(course_name, instructor));");
-        planTester.buildPlan("D = join B by $0, C by $0;");
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan("E = limit D 10;");
-        
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        String query = "A = load 'myfile' as (name, age, gpa:(letter_grade, point_score));" +
+        "B = foreach A generate $0, $1, flatten($2);" +
+        "C = load 'anotherfile' as (name, age, preference:(course_name, instructor));" +
+        "D = join B by $0, C by $0;" +
+        "E = limit D 10;" +
+        "store E into 'output';";
+
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
         
         List<Operator> loads = newLogicalPlan.getSources();
         Assert.assertTrue( loads.size() == 2 );
@@ -851,13 +879,14 @@ public class TestNewPlanPushDownForeachFlatten {
     
     @Test
     public void testForeachInnerJoin1() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa:(letter_grade, point_score));");
-        planTester.buildPlan("B = load 'anotherfile' as (name, age, preference:(course_name, instructor));");
-        planTester.buildPlan("C = foreach B generate $0, $1, flatten($2);");
-        planTester.buildPlan("D = join A by $0, C by $0;");
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan("E = limit D 10;");
-        
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        String query = "A = load 'myfile' as (name, age, gpa:(letter_grade, point_score));" +
+        "B = load 'anotherfile' as (name, age, preference:(course_name, instructor));" +
+        "C = foreach B generate $0, $1, flatten($2);" +
+        "D = join A by $0, C by $0;" +
+        "E = limit D 10;" +
+        "store E into 'output';";
+
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
         
         List<Operator> loads = newLogicalPlan.getSources();
         Assert.assertTrue( loads.size() == 2 );
@@ -888,17 +917,21 @@ public class TestNewPlanPushDownForeachFlatten {
     // A new rule should optimize this case
     @Test
     public void testForeachInnerJoin2() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa:(letter_grade, point_score));");
-        planTester.buildPlan("B = foreach A generate $0, $1, flatten($2);");
-        planTester.buildPlan("C = load 'anotherfile' as (name, age, preference:(course_name, instructor));");
-        planTester.buildPlan("D = foreach C generate $0, $1, flatten($2);");
-        planTester.buildPlan("E = join B by $0, D by $0;");
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan("F = limit E 10;");
-        
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        String query = "A = load 'myfile' as (name, age, gpa:(letter_grade, point_score));" +
+        "B = foreach A generate $0, $1, flatten($2);" +
+        "C = load 'anotherfile' as (name, age, preference:(course_name, instructor));" +
+        "D = foreach C generate $0, $1, flatten($2);" +
+        "E = join B by $0, D by $0;" +
+        "F = limit E 10;" +
+        "store F into 'output';";
+
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
 
         // No optimization about foreach flatten.
-        Assert.assertTrue( newLogicalPlan.getPredecessors( newLogicalPlan.getSinks().get( 0 ) ).get( 0 ) instanceof LOJoin );
+        Operator store = newLogicalPlan.getSinks().get( 0 );
+        Operator limit = newLogicalPlan.getPredecessors( store ).get( 0 );
+        Operator join = newLogicalPlan.getPredecessors( limit ).get( 0 );
+        Assert.assertTrue( join instanceof LOJoin );
     }
     
     /**
@@ -907,17 +940,14 @@ public class TestNewPlanPushDownForeachFlatten {
      */
     @Test
     public void testForeachFlattenAddedColumnInnerJoin() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa:(letter_grade, point_score));");
-        planTester.buildPlan("B = foreach A generate $0, $1, flatten(1);");
-        planTester.buildPlan("C = load 'anotherfile' as (name, age, preference:(course_name, instructor));");
-        planTester.buildPlan("D = join B by $0, C by $0;");
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan("E = limit D 10;");
-        
-        planTester.setPlan(lp);
-        planTester.setProjectionMap(lp);
-        planTester.rebuildSchema(lp);
-        
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        String query = "A = load 'myfile' as (name, age, gpa:(letter_grade, point_score));" +
+        "B = foreach A generate $0, $1, flatten(1);" +
+        "C = load 'anotherfile' as (name, age, preference:(course_name, instructor));" +
+        "D = join B by $0, C by $0;" +
+        "E = limit D 10;" +
+        "store E into 'output';";
+
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
         
         List<Operator> loads = newLogicalPlan.getSources();
         Assert.assertTrue( loads.size() == 2 );
@@ -948,13 +978,14 @@ public class TestNewPlanPushDownForeachFlatten {
      */
     @Test
     public void testForeachUDFInnerJoin() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa:(letter_grade, point_score));");
-        planTester.buildPlan("B = foreach A generate $0, flatten($1), " + Identity.class.getName() + "($2) ;");
-        planTester.buildPlan("C = load 'anotherfile' as (name, age, preference:(course_name, instructor));");
-        planTester.buildPlan("D = join B by $0, C by $0;");
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan("E = limit D 10;");
-        
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        String query = "A = load 'myfile' as (name, age, gpa:(letter_grade, point_score));" +
+        "B = foreach A generate $0, flatten($1), " + Identity.class.getName() + "($2) ;" +
+        "C = load 'anotherfile' as (name, age, preference:(course_name, instructor));" +
+        "D = join B by $0, C by $0;" +
+        "E = limit D 10;" +
+        "store E into 'output';";
+
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
         
         List<Operator> loads = newLogicalPlan.getSources();
         Assert.assertTrue( loads.size() == 2 );
@@ -985,13 +1016,14 @@ public class TestNewPlanPushDownForeachFlatten {
      */
     @Test
     public void testForeachCastInnerJoin() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa:(letter_grade, point_score));");
-        planTester.buildPlan("B = foreach A generate $0, (int)$1, flatten($2);");
-        planTester.buildPlan("C = load 'anotherfile' as (name, age, preference:(course_name, instructor));");
-        planTester.buildPlan("D = join B by $0, C by $0;");
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan("E = limit D 10;");
-        
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        String query = "A = load 'myfile' as (name, age, gpa:(letter_grade, point_score));" +
+        "B = foreach A generate $0, (int)$1, flatten($2);" +
+        "C = load 'anotherfile' as (name, age, preference:(course_name, instructor));" +
+        "D = join B by $0, C by $0;" +
+        "E = limit D 10;" +
+        "store E into 'output';";
+
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
         
         List<Operator> loads = newLogicalPlan.getSources();
         Assert.assertTrue( loads.size() == 2 );
@@ -1020,26 +1052,31 @@ public class TestNewPlanPushDownForeachFlatten {
     // See PIG-1172
     @Test
     public void testForeachJoinRequiredField() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (bg:bag{t:tuple(a0,a1)});");
-        planTester.buildPlan("B = FOREACH A generate flatten($0);");
-        planTester.buildPlan("C = load '3.txt' AS (c0, c1);");
-        planTester.buildPlan("D = JOIN B by a1, C by c1;");
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan("E = limit D 10;");
-        
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        String query = "A = load 'myfile' as (bg:bag{t:tuple(a0,a1)});" +
+        "B = FOREACH A generate flatten($0);" +
+        "C = load '3.txt' AS (c0, c1);" +
+        "D = JOIN B by a1, C by c1;" +
+        "E = limit D 10;" +
+        "store E into 'output';";
+
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
 
         // No optimization about foreach flatten.
-        Assert.assertTrue( newLogicalPlan.getPredecessors( newLogicalPlan.getSinks().get( 0 ) ).get( 0 ) instanceof LOJoin );
+        Operator store = newLogicalPlan.getSinks().get( 0 );
+        Operator limit = newLogicalPlan.getPredecessors( store ).get( 0 );
+        Operator join = newLogicalPlan.getPredecessors( limit ).get( 0 );
+        Assert.assertTrue( join instanceof LOJoin );
     }
     
     // See PIG-1374
     @Test
     public void testForeachRequiredField() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (b{t(a0:chararray,a1:int)});");
-        planTester.buildPlan("B = foreach A generate flatten($0);");
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan("C = order B by $1 desc;");
-        
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        String query = "A = load 'myfile' as (b:bag{t:tuple(a0:chararray,a1:int)});" +
+        "B = foreach A generate flatten($0);" +
+        "C = order B by $1 desc;" +
+        "store C into 'output';";
+
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
         
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
@@ -1054,14 +1091,16 @@ public class TestNewPlanPushDownForeachFlatten {
     // See PIG-1706
     @Test
     public void testForeachWithUserDefinedSchema() throws Exception {
-        planTester.buildPlan("a = load '1.txt' as (a0:int, a1, a2:bag{t:(i1:int, i2:int)});");
-        planTester.buildPlan("b = load '2.txt' as (b0:int, b1);");
-        planTester.buildPlan("c = foreach a generate a0, flatten(a2) as (q1, q2);");
-        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan("d = join c by a0, b by b0;");
+        String query = "a = load '1.txt' as (a0:int, a1, a2:bag{t:(i1:int, i2:int)});" +
+        "b = load '2.txt' as (b0:int, b1);" +
+        "c = foreach a generate a0, flatten(a2) as (q1, q2);" +
+        "d = join c by a0, b by b0;" +
+        "store d into 'output';";
+
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
         
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
-        
-        LOForEach foreach = (LOForEach)newLogicalPlan.getSinks().get( 0 );
+        Operator store = newLogicalPlan.getSinks().get( 0 );
+        LOForEach foreach = (LOForEach)newLogicalPlan.getPredecessors(store).get(0);
         Assert.assertTrue(foreach.getSchema().getField(1).alias.equals("q1"));
         Assert.assertTrue(foreach.getSchema().getField(2).alias.equals("q2"));
     }
@@ -1069,14 +1108,16 @@ public class TestNewPlanPushDownForeachFlatten {
     // See PIG-1751
     @Test
     public void testForeachWithUserDefinedSchema2() throws Exception {
-        planTester.buildPlan("a = load '1.txt' as (a0:chararray);");
-        planTester.buildPlan("b = load '2.txt' as (b0:chararray);");
-        planTester.buildPlan("c = foreach b generate flatten(STRSPLIT(b0)) as c0;");
-        org.apache.pig.impl.logicalLayer.LogicalPlan  lp = planTester.buildPlan("d = join c by (chararray)c0, a by a0;");
+        String query = "a = load '1.txt' as (a0:chararray);" +
+        "b = load '2.txt' as (b0:chararray);" +
+        "c = foreach b generate flatten(STRSPLIT(b0)) as c0;" +
+        "d = join c by (chararray)c0, a by a0;" +
+        "store d into 'output';";
+
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
         
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
-        
-        Operator op = newLogicalPlan.getSinks().get( 0 );
+        Operator store = newLogicalPlan.getSinks().get( 0 );
+        Operator op = newLogicalPlan.getPredecessors(store).get(0);
         Assert.assertTrue(op instanceof LOJoin);
     }
 
@@ -1103,18 +1144,13 @@ public class TestNewPlanPushDownForeachFlatten {
         }
     }    
 
-    private LogicalPlan migrateAndOptimizePlan(org.apache.pig.impl.logicalLayer.LogicalPlan plan) throws IOException {
-        LogicalPlan newLogicalPlan = migratePlan( plan );
+    private LogicalPlan migrateAndOptimizePlan(String query) throws Exception {
+    	PigServer pigServer = new PigServer( pc );
+        LogicalPlan newLogicalPlan = Util.buildLp(pigServer, query);
         PlanOptimizer optimizer = new MyPlanOptimizer( newLogicalPlan, 3 );
         optimizer.optimize();
         return newLogicalPlan;
     }
 
-    private LogicalPlan migratePlan(org.apache.pig.impl.logicalLayer.LogicalPlan lp) throws VisitorException{
-        LogicalPlanMigrationVistor visitor = new LogicalPlanMigrationVistor(lp);        
-        visitor.visit();
-        org.apache.pig.newplan.logical.relational.LogicalPlan newPlan = visitor.getNewLogicalPlan();
-        return newPlan;
-    }
 }
 

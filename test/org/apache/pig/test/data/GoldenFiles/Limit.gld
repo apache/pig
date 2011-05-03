@@ -1,3 +1,5 @@
-Limit - Test-Plan-Builder-268
+test-31: Store()
 |
-|---265: Load(file:///homes/rding/apache-pig/trunk/a:org.apache.pig.builtin.PigStorage) - Test-Plan-Builder-267
+|---test-30: Limit - scope-179
+    |
+    |---test-29: Load()

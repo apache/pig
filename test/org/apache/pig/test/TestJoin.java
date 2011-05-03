@@ -33,13 +33,13 @@ import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.logicalLayer.LOJoin;
-import org.apache.pig.impl.logicalLayer.LogicalPlan;
-import org.apache.pig.impl.logicalLayer.LOJoin.JOINTYPE;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.LogUtils;
-import org.apache.pig.test.utils.LogicalPlanTester;
+import org.apache.pig.newplan.Operator;
+import org.apache.pig.newplan.logical.relational.LOJoin;
+import org.apache.pig.newplan.logical.relational.LogicalPlan;
+import org.apache.pig.newplan.logical.relational.LOJoin.JOINTYPE;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
@@ -98,7 +98,6 @@ public class TestJoin extends TestCase {
     }
     
     private void deleteInputFile(ExecType execType, String fileName) throws IOException {
-    
         if(execType == ExecType.MAPREDUCE) {
             Util.deleteFile(cluster, fileName);
         } else if(execType == ExecType.LOCAL){
@@ -109,7 +108,6 @@ public class TestJoin extends TestCase {
 
     @Test
     public void testJoinWithMissingFieldsInTuples() throws IOException{
-        
         setUp(ExecType.MAPREDUCE);
         String[] input1 = {
                 "ff ff ff",
@@ -257,14 +255,11 @@ public class TestJoin extends TestCase {
             deleteInputFile(execType, firstInput);
             deleteInputFile(execType, secondInput);
         }
-        
-        
     }
     
     @Test
     public void testJoinSchema2() throws Exception {
         // test join where one load does not have schema
-        
         ExecType execType = ExecType.LOCAL;
         setUp(execType );
         String[] input1 = {
@@ -307,7 +302,7 @@ public class TestJoin extends TestCase {
     }
     
     @Test
-    public void testLeftOuterJoin() throws IOException, ParseException {
+    public void testLeftOuterJoin() throws Exception {
         for (ExecType execType : execTypes) {
             setUp(execType);
             String[] input1 = {
@@ -343,8 +338,7 @@ public class TestJoin extends TestCase {
                 }
                 script += "d = order c by $1;";
                 // ensure we parse correctly
-                LogicalPlanTester lpt = new LogicalPlanTester(pigServer.getPigContext());
-                lpt.buildPlan(script);
+                Util.buildLp(pigServer, script);
                 
                 // run query and test results only once
                 if(i == 0) {
@@ -378,7 +372,7 @@ public class TestJoin extends TestCase {
     }
 
     @Test
-    public void testRightOuterJoin() throws IOException, ParseException {
+    public void testRightOuterJoin() throws Exception {
         for (ExecType execType : execTypes) {
             setUp(execType);
             String[] input1 = {
@@ -413,8 +407,7 @@ public class TestJoin extends TestCase {
                 }
                 script += "d = order c by $3;";
                 // ensure we parse correctly
-                LogicalPlanTester lpt = new LogicalPlanTester(pigServer.getPigContext());
-                lpt.buildPlan(script);
+                Util.buildLp(pigServer, script);
                 
                 // run query and test results only once
                 if(i == 0) {
@@ -448,7 +441,7 @@ public class TestJoin extends TestCase {
     }
     
     @Test
-    public void testFullOuterJoin() throws IOException, ParseException {
+    public void testFullOuterJoin() throws Exception {
         for (ExecType execType : execTypes) {
             setUp(execType);
             String[] input1 = {
@@ -485,8 +478,7 @@ public class TestJoin extends TestCase {
                 }
                 script += "d = order c by $1, $3;";
                 // ensure we parse correctly
-                LogicalPlanTester lpt = new LogicalPlanTester(pigServer.getPigContext());
-                lpt.buildPlan(script);
+                Util.buildLp(pigServer, script);
                 
                 // run query and test results only once
                 if(i == 0) {
@@ -520,20 +512,22 @@ public class TestJoin extends TestCase {
     }
     
     @Test
-    public void testMultiOuterJoinFailure() {
-        LogicalPlanTester lpt = new LogicalPlanTester();
-        lpt.buildPlan("a = load 'a.txt' as (n:chararray, a:int); ");
-        lpt.buildPlan("b = load 'b.txt' as (n:chararray, m:chararray); ");
-        lpt.buildPlan("c = load 'c.txt' as (n:chararray, m:chararray); ");
+    public void testMultiOuterJoinFailure() throws ExecException {
+    	setUp(ExecType.LOCAL);
         String[] types = new String[] { "left", "right", "full" };
+        String query = "a = load 'a.txt' as (n:chararray, a:int);\n" +
+        "b = load 'b.txt' as (n:chararray, m:chararray);\n"+
+        "c = load 'c.txt' as (n:chararray, m:chararray);\n";
         for (int i = 0; i < types.length; i++) {
             boolean errCaught = false;
             try {
-                lpt.buildPlanThrowExceptionOnError("d = join a by $0 " + types[i] + " outer, b by $0, c by $0;") ;
-                
+            	String q = query + 
+            	           "d = join a by $0 " + types[i] + " outer, b by $0, c by $0;" +
+            	           "store d into 'output';";
+            	Util.buildLp(pigServer, q);
             } catch(Exception e) {
                 errCaught = true;
-                assertEquals("(left|right|full) outer joins are only supported for two inputs", e.getMessage());
+                assertTrue(e.getMessage().contains("mismatched input ',' expecting SEMI_COLON"));
             }
             assertEquals(true, errCaught);
             
@@ -542,18 +536,20 @@ public class TestJoin extends TestCase {
     }
     
     @Test
-    public void testNonRegularOuterJoinFailure() {
-        LogicalPlanTester lpt = new LogicalPlanTester();
-        lpt.buildPlan("a = load 'a.txt' as (n:chararray, a:int); ");
-        lpt.buildPlan("b = load 'b.txt' as (n:chararray, m:chararray); ");
+    public void testNonRegularOuterJoinFailure() throws ExecException {
+    	setUp(ExecType.LOCAL);
+        String query = "a = load 'a.txt' as (n:chararray, a:int); "+
+        "b = load 'b.txt' as (n:chararray, m:chararray); ";
         String[] types = new String[] { "left", "right", "full" };
         String[] joinTypes = new String[] { "replicated", "repl"};
         for (int i = 0; i < types.length; i++) {
             for(int j = 0; j < joinTypes.length; j++) {
                 boolean errCaught = false;
                 try {
-                    lpt.buildPlanThrowExceptionOnError("d = join a by $0 " + 
-                     types[i] + " outer, b by $0 using '" + joinTypes[j] +"';");
+                	String q = query + "d = join a by $0 " + 
+                    types[i] + " outer, b by $0 using '" + joinTypes[j] +"';" +
+                    "store d into 'output';";
+                    Util.buildLp(pigServer, q);
                     
                 } catch(Exception e) {
                     errCaught = true;
@@ -634,52 +630,67 @@ public class TestJoin extends TestCase {
     }
     
     @Test
-    public void testLiteralsForJoinAlgoSpecification1() {
-        
-        LogicalPlanTester lpt = new LogicalPlanTester();
-        lpt.buildPlan("a = load 'A'; ");
-        lpt.buildPlan("b = load 'B'; ");
-        LogicalPlan lp = lpt.buildPlan("c = Join a by $0, b by $0 using 'merge'; ");
-        assertEquals(JOINTYPE.MERGE, ((LOJoin)lp.getLeaves().get(0)).getJoinType());
+    public void testLiteralsForJoinAlgoSpecification1() throws Exception {
+    	setUp(ExecType.LOCAL);
+        String query = "a = load 'A'; " +
+                       "b = load 'B'; " +
+                       "c = Join a by $0, b by $0 using 'merge';" +
+                       "store c into 'output';";
+        LogicalPlan lp = Util.buildLp(pigServer, query);
+        Operator store = lp.getSinks().get(0);
+        LOJoin join = (LOJoin)lp.getPredecessors( store ).get(0);
+        assertEquals(JOINTYPE.MERGE, join.getJoinType());
     }
     
     @Test
-    public void testLiteralsForJoinAlgoSpecification2() {
-        
-        LogicalPlanTester lpt = new LogicalPlanTester();
-        lpt.buildPlan("a = load 'A'; ");
-        lpt.buildPlan("b = load 'B'; ");
-        LogicalPlan lp = lpt.buildPlan("c = Join a by $0, b by $0 using 'hash'; ");
-        assertEquals(JOINTYPE.HASH, ((LOJoin)lp.getLeaves().get(0)).getJoinType());
+    public void testLiteralsForJoinAlgoSpecification2() throws Exception {
+    	setUp(ExecType.LOCAL);
+        String query = "a = load 'A'; " +
+                       "b = load 'B'; " +
+                       "c = Join a by $0, b by $0 using 'hash'; "+
+                       "store c into 'output';";
+        LogicalPlan lp = Util.buildLp(pigServer, query);
+        Operator store = lp.getSinks().get(0);
+        LOJoin join = (LOJoin) lp.getPredecessors( store ).get(0);
+        assertEquals(JOINTYPE.HASH, join.getJoinType());
     }
     
     @Test
-    public void testLiteralsForJoinAlgoSpecification5() {
-        
-        LogicalPlanTester lpt = new LogicalPlanTester();
-        lpt.buildPlan("a = load 'A'; ");
-        lpt.buildPlan("b = load 'B'; ");
-        LogicalPlan lp = lpt.buildPlan("c = Join a by $0, b by $0 using 'default'; ");
-        assertEquals(JOINTYPE.HASH, ((LOJoin)lp.getLeaves().get(0)).getJoinType());
+    public void testLiteralsForJoinAlgoSpecification5() throws Exception {
+    	setUp(ExecType.LOCAL);
+        String query = "a = load 'A'; " +
+                       "b = load 'B'; " + 
+                       "c = Join a by $0, b by $0 using 'default'; "+
+                       "store c into 'output';";
+        LogicalPlan lp = Util.buildLp(pigServer, query);
+        Operator store = lp.getSinks().get(0);
+        LOJoin join = (LOJoin) lp.getPredecessors( store ).get(0);
+       assertEquals(JOINTYPE.HASH, join.getJoinType());
     }
     
     @Test
-    public void testLiteralsForJoinAlgoSpecification3() {
-        
-        LogicalPlanTester lpt = new LogicalPlanTester();
-        lpt.buildPlan("a = load 'A'; ");
-        lpt.buildPlan("b = load 'B'; ");
-        LogicalPlan lp = lpt.buildPlan("c = Join a by $0, b by $0 using 'repl'; ");
-        assertEquals(JOINTYPE.REPLICATED, ((LOJoin)lp.getLeaves().get(0)).getJoinType());
+    public void testLiteralsForJoinAlgoSpecification3() throws Exception {
+    	setUp(ExecType.LOCAL);
+        String query = "a = load 'A'; " +
+                       "b = load 'B'; " +
+                       "c = Join a by $0, b by $0 using 'repl'; "+
+                       "store c into 'output';";
+        LogicalPlan lp = Util.buildLp(pigServer, query);
+        Operator store = lp.getSinks().get(0);
+        LOJoin join = (LOJoin) lp.getPredecessors( store ).get(0);
+        assertEquals(JOINTYPE.REPLICATED, join.getJoinType());
     }
     
     @Test
-    public void testLiteralsForJoinAlgoSpecification4() {
-        
-        LogicalPlanTester lpt = new LogicalPlanTester();
-        lpt.buildPlan("a = load 'A'; ");
-        lpt.buildPlan("b = load 'B'; ");
-        LogicalPlan lp = lpt.buildPlan("c = Join a by $0, b by $0 using 'replicated'; ");
-        assertEquals(JOINTYPE.REPLICATED, ((LOJoin)lp.getLeaves().get(0)).getJoinType());
+    public void testLiteralsForJoinAlgoSpecification4() throws Exception {
+    	setUp(ExecType.LOCAL);
+        String query = "a = load 'A'; " + 
+                       "b = load 'B'; " +
+                       "c = Join a by $0, b by $0 using 'replicated'; "+
+                       "store c into 'output';";
+        LogicalPlan lp = Util.buildLp(pigServer, query);
+        Operator store = lp.getSinks().get(0);
+        LOJoin join = (LOJoin) lp.getPredecessors( store ).get(0);
+       assertEquals(JOINTYPE.REPLICATED, join.getJoinType());
     }
 }

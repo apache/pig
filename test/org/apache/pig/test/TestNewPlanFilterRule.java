@@ -21,14 +21,13 @@ package org.apache.pig.test;
 import java.util.*;
 
 import org.apache.pig.ExecType;
+import org.apache.pig.PigServer;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
-import org.apache.pig.newplan.logical.LogicalPlanMigrationVistor;
 import org.apache.pig.newplan.logical.expression.*;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
 import org.apache.pig.newplan.logical.optimizer.ProjectionPatcher;
@@ -42,7 +41,6 @@ import org.apache.pig.newplan.logical.relational.LOStore;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
-import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
 import org.apache.pig.newplan.logical.rules.LoadTypeCastInserter;
 import org.apache.pig.newplan.logical.rules.MergeFilter;
 import org.apache.pig.newplan.logical.rules.PushUpFilter;
@@ -50,13 +48,11 @@ import org.apache.pig.newplan.logical.rules.SplitFilter;
 import org.apache.pig.newplan.optimizer.PlanOptimizer;
 import org.apache.pig.newplan.optimizer.PlanTransformListener;
 import org.apache.pig.newplan.optimizer.Rule;
-import org.apache.pig.test.utils.LogicalPlanTester;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class TestNewPlanFilterRule {
     PigContext pc = new PigContext(ExecType.LOCAL, new Properties());
-    LogicalPlanTester planTester = new LogicalPlanTester(pc) ;
 
     LogicalPlan plan = null;
     LogicalRelationalOperator load1 = null;
@@ -473,12 +469,11 @@ public class TestNewPlanFilterRule {
     // See pig-1639
     @Test
     public void testFilterUDFNegative() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
-        planTester.buildPlan("B = group A by age;");        
-        planTester.buildPlan("C = filter B by COUNT(A) < 18;");
-        org.apache.pig.impl.logicalLayer.LogicalPlan plan = planTester.buildPlan( "D = STORE C INTO 'empty';" ); 
+        String query = "A = load 'myfile' as (name, age, gpa);" +
+        "B = group A by age;"+        
+        "C = filter B by COUNT(A) < 18;" + "D = STORE C INTO 'empty';" ; 
 
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( plan );
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
 
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
@@ -492,20 +487,14 @@ public class TestNewPlanFilterRule {
         Assert.assertTrue( store instanceof LOStore );
     }
 
-    private LogicalPlan migrateAndOptimizePlan(org.apache.pig.impl.logicalLayer.LogicalPlan plan) throws FrontendException {
-        LogicalPlan newLogicalPlan = migratePlan( plan );
+    private LogicalPlan migrateAndOptimizePlan(String query) throws Exception {
+    	PigServer pigServer = new PigServer(pc);
+        LogicalPlan newLogicalPlan = Util.buildLp(pigServer, query);
         PlanOptimizer optimizer = new NewPlanOptimizer( newLogicalPlan, 3 );
         optimizer.optimize();
         return newLogicalPlan;
     }
     
-    private LogicalPlan migratePlan(org.apache.pig.impl.logicalLayer.LogicalPlan lp) throws VisitorException{
-        LogicalPlanMigrationVistor visitor = new LogicalPlanMigrationVistor(lp);        
-        visitor.visit();
-        org.apache.pig.newplan.logical.relational.LogicalPlan newPlan = visitor.getNewLogicalPlan();
-        return newPlan;
-    }
-
     public class NewPlanOptimizer extends LogicalPlanOptimizer {
         protected NewPlanOptimizer(OperatorPlan p,  int iterations) {
             super(p, iterations, new HashSet<String>());

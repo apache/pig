@@ -37,8 +37,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.logicalLayer.LogicalPlan;
-import org.apache.pig.test.utils.LogicalPlanTester;
+
 import org.junit.AfterClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -48,10 +47,12 @@ import org.junit.runners.JUnit4;
 public class TestSampleOptimizer {
 
     static PigContext pc;
+    static PigServer pigServer;
     static{
         pc = new PigContext(ExecType.MAPREDUCE,MiniCluster.buildCluster().getProperties());
         try {
             pc.connect();
+            pigServer = new PigServer( pc );
         } catch (ExecException e) {
             e.printStackTrace();
         }
@@ -64,12 +65,9 @@ public class TestSampleOptimizer {
     
     @Test
     public void testOptimizerFired() throws Exception{
-
-        LogicalPlanTester planTester = new LogicalPlanTester() ;
-        planTester.buildPlan(" A = load 'input' using PigStorage('\t');");
-        planTester.buildPlan(" B = order A by $0;");
-        LogicalPlan lp = planTester.buildPlan("store B into '/tmp';");
-        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+        String query = " A = load 'input' using PigStorage('\t');" +
+        " B = order A by $0;" + "store B into 'output';";
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
 
         int count = 1;
@@ -111,13 +109,9 @@ public class TestSampleOptimizer {
 
     @Test
     public void testOptimizerNotFired() throws Exception{
-
-        LogicalPlanTester planTester = new LogicalPlanTester() ;
-        planTester.buildPlan(" A = load 'input' using PigStorage('\t');");
-        planTester.buildPlan("B = group A by $0;");
-        planTester.buildPlan(" C = order B by $0;");
-        LogicalPlan lp = planTester.buildPlan("store C into 'output';");
-        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+        String query = " A = load 'input' using PigStorage('\t');" + "B = group A by $0;" +
+        " C = order B by $0;" + "store C into 'output';";
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
 
         int count = 1;
@@ -194,12 +188,11 @@ public class TestSampleOptimizer {
     
     @Test
     public void testPoissonSampleOptimizer() throws Exception {
-        LogicalPlanTester planTester = new LogicalPlanTester() ;
-        planTester.buildPlan(" A = load 'input' using PigStorage('\t');");
-        planTester.buildPlan("B = load 'input' using PigStorage('\t');");
-        planTester.buildPlan(" C = join A by $0, B by $0 using \"skewed\";");
-        LogicalPlan lp = planTester.buildPlan("store C into 'output';");
-        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+        String query = " A = load 'input' using PigStorage('\t');" + 
+        "B = load 'input' using PigStorage('\t');" + 
+        " C = join A by $0, B by $0 using 'skewed';" +
+        "store C into 'output';";
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
 
         int count = 1;
@@ -226,12 +219,10 @@ public class TestSampleOptimizer {
     
     @Test
     public void testOrderByUDFSet() throws Exception {
-        LogicalPlanTester planTester = new LogicalPlanTester() ;
-        planTester.buildPlan("a = load 'input1' using BinStorage();");
-        planTester.buildPlan("b = order a by $0;");
-        LogicalPlan lp = planTester.buildPlan("store b into '/tmp';");
+        String query = "a = load 'input1' using BinStorage();" + 
+        "b = order a by $0;" + "store b into 'output';";
         
-        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
         
         int count = 1;

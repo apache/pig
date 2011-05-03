@@ -1,35 +1,53 @@
-Package[tuple]{tuple} - Test-Plan-Builder-51
+test-10: Store()
 |
-|---Global Rearrange[tuple] - Test-Plan-Builder-50
+|---A: Package[tuple]{tuple} - scope-19
     |
-    |---Local Rearrange[tuple]{tuple}(false) - Test-Plan-Builder-52
-    |   |   |
-    |   |   Add[bytearray] - Test-Plan-Builder-55
-    |   |   |
-    |   |   |---Project[bytearray][0] - Test-Plan-Builder-53
-    |   |   |
-    |   |   |---Project[bytearray][1] - Test-Plan-Builder-54
-    |   |   |
-    |   |   Subtract[bytearray] - Test-Plan-Builder-58
-    |   |   |
-    |   |   |---Project[bytearray][0] - Test-Plan-Builder-56
-    |   |   |
-    |   |   |---Project[bytearray][1] - Test-Plan-Builder-57
-    |   |
-    |   |---33: Load(file:///homes/rding/apache-pig/trunk/a:org.apache.pig.builtin.PigStorage) - Test-Plan-Builder-48
-    |
-    |---Local Rearrange[tuple]{tuple}(false) - Test-Plan-Builder-59
-        |   |
-        |   Add[bytearray] - Test-Plan-Builder-62
-        |   |
-        |   |---Project[bytearray][0] - Test-Plan-Builder-60
-        |   |
-        |   |---Project[bytearray][1] - Test-Plan-Builder-61
-        |   |
-        |   Subtract[bytearray] - Test-Plan-Builder-65
-        |   |
-        |   |---Project[bytearray][0] - Test-Plan-Builder-63
-        |   |
-        |   |---Project[bytearray][1] - Test-Plan-Builder-64
+    |---A: Global Rearrange[tuple] - scope-18
         |
-        |---40: Load(file:///homes/rding/apache-pig/trunk/b:org.apache.pig.builtin.PigStorage) - Test-Plan-Builder-49
+        |---A: Local Rearrange[tuple]{tuple}(false) - scope-20
+        |   |   |
+        |   |   Add[double] - scope-25
+        |   |   |
+        |   |   |---Cast[double] - scope-22
+        |   |   |   |
+        |   |   |   |---Project[bytearray][0] - scope-21
+        |   |   |
+        |   |   |---Cast[double] - scope-24
+        |   |       |
+        |   |       |---Project[bytearray][1] - scope-23
+        |   |   |
+        |   |   Subtract[double] - scope-30
+        |   |   |
+        |   |   |---Cast[double] - scope-27
+        |   |   |   |
+        |   |   |   |---Project[bytearray][0] - scope-26
+        |   |   |
+        |   |   |---Cast[double] - scope-29
+        |   |       |
+        |   |       |---Project[bytearray][1] - scope-28
+        |   |
+        |   |---test-8: Load()
+        |
+        |---A: Local Rearrange[tuple]{tuple}(false) - scope-31
+            |   |
+            |   Add[double] - scope-36
+            |   |
+            |   |---Cast[double] - scope-33
+            |   |   |
+            |   |   |---Project[bytearray][0] - scope-32
+            |   |
+            |   |---Cast[double] - scope-35
+            |       |
+            |       |---Project[bytearray][1] - scope-34
+            |   |
+            |   Subtract[double] - scope-41
+            |   |
+            |   |---Cast[double] - scope-38
+            |   |   |
+            |   |   |---Project[bytearray][0] - scope-37
+            |   |
+            |   |---Cast[double] - scope-40
+            |       |
+            |       |---Project[bytearray][1] - scope-39
+            |
+            |---test-9: Load()

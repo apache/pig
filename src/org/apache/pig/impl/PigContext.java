@@ -50,10 +50,10 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.backend.hadoop.streaming.HadoopExecutableManager;
-import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
 import org.apache.pig.impl.streaming.ExecutableManager;
 import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.util.JarManager;
+import org.apache.pig.parser.QueryParserDriver;
 
 public class PigContext implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -226,7 +226,7 @@ public class PigContext implements Serializable {
     public void addJar(URL resource) throws MalformedURLException{
         if (resource != null) {
             extraJars.add(resource);
-            LogicalPlanBuilder.classloader = createCl(null);
+            QueryParserDriver.classloader = createCl(null);
         }
     }
 
@@ -422,7 +422,7 @@ public class PigContext implements Serializable {
         for(String prefix: getPackageImportList()) {
             Class c;
             try {
-                c = Class.forName(prefix+name,true, LogicalPlanBuilder.classloader);
+                c = Class.forName(prefix+name,true, QueryParserDriver.classloader);
                 return c;
             } 
             catch (ClassNotFoundException e) {

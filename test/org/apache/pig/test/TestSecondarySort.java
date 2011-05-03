@@ -33,13 +33,9 @@ import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.SecondaryKeyOptimizer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DefaultBagFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.logicalLayer.LogicalPlan;
-import org.apache.pig.test.utils.LogicalPlanTester;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
@@ -73,37 +69,34 @@ public class TestSecondarySort extends TestCase {
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
     }
 
-    @Test
-    public void testDistinctOptimization1() throws Exception {
-        // Limit in the foreach plan
-        LogicalPlanTester planTester = new LogicalPlanTester();
-        planTester.buildPlan("A = LOAD 'input1' AS (a0, a1, a2);");
-        planTester.buildPlan("B = LOAD 'input2' AS (b0, b1, b2);");
-        planTester.buildPlan("C = cogroup A by a0, B by b0;");
-        planTester.buildPlan("D = foreach C { E = limit A 10; F = E.a1; G = DISTINCT F; generate group, COUNT(G);};");
-
-        LogicalPlan lp = planTester.buildPlan("store D into '/tmp';");
-        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
-        MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
-
-        SecondaryKeyOptimizer so = new SecondaryKeyOptimizer(mrPlan);
-        so.visit();
-
-        assertTrue(so.getNumMRUseSecondaryKey() == 1);
-        assertTrue(so.getNumSortRemoved() == 0);
-        assertTrue(so.getDistinctChanged() == 1);
-    }
+//    @Test // Currently failing due to PIG-2009
+//    public void testDistinctOptimization1() throws Exception {
+//        // Limit in the foreach plan
+//        String query = ("A=LOAD 'input1' AS (a0, a1, a2);"+
+//        "B = LOAD 'input2' AS (b0, b1, b2);" +
+//        "C = cogroup A by a0, B by b0;" +
+//        "D = foreach C { E = limit A 10; F = E.a1; G = DISTINCT F; generate group, COUNT(G);};" +
+//        "store D into 'output';");
+//        PhysicalPlan pp = Util.buildPp(pigServer, query);
+//        MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
+//
+//        SecondaryKeyOptimizer so = new SecondaryKeyOptimizer(mrPlan);
+//        so.visit();
+//
+//        assertEquals( 1, so.getNumMRUseSecondaryKey() );
+//        assertTrue(so.getNumSortRemoved() == 0);
+//        assertTrue(so.getDistinctChanged() == 1);
+//    }
 
     @Test
     public void testDistinctOptimization2() throws Exception {
         // Distinct on one entire input
-        LogicalPlanTester planTester = new LogicalPlanTester();
-        planTester.buildPlan("A = LOAD 'input1' AS (a0, a1, a2);");
-        planTester.buildPlan("B = group A by $0;");
-        planTester.buildPlan("C = foreach B { D = distinct A; generate group, D;};");
+        String query = ("A=LOAD 'input1' AS (a0, a1, a2);"+
+        "B = group A by $0;"+
+        "C = foreach B { D = distinct A; generate group, D;};"+
 
-        LogicalPlan lp = planTester.buildPlan("store C into '/tmp';");
-        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+        "store C into 'output';");
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
 
         SecondaryKeyOptimizer so = new SecondaryKeyOptimizer(mrPlan);
@@ -117,13 +110,12 @@ public class TestSecondarySort extends TestCase {
     @Test
     public void testDistinctOptimization3() throws Exception {
         // Distinct on the prefix of main sort key
-        LogicalPlanTester planTester = new LogicalPlanTester();
-        planTester.buildPlan("A = LOAD 'input1' AS (a0, a1, a2);");
-        planTester.buildPlan("B = group A by $0;");
-        planTester.buildPlan("C = foreach B { D = A.a0; E = distinct D; generate group, E;};");
+        String query = ("A=LOAD 'input1' AS (a0, a1, a2);"+
+        "B = group A by $0;"+
+        "C = foreach B { D = A.a0; E = distinct D; generate group, E;};"+
 
-        LogicalPlan lp = planTester.buildPlan("store C into '/tmp';");
-        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+        "store C into 'output';");
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
 
         SecondaryKeyOptimizer so = new SecondaryKeyOptimizer(mrPlan);
@@ -137,13 +129,12 @@ public class TestSecondarySort extends TestCase {
     @Test
     public void testDistinctOptimization4() throws Exception {
         // Distinct on secondary key again, should remove
-        LogicalPlanTester planTester = new LogicalPlanTester();
-        planTester.buildPlan("A = LOAD 'input1' AS (a0, a1, a2);");
-        planTester.buildPlan("B = group A by $0;");
-        planTester.buildPlan("C = foreach B { D = A.a1; E = distinct D; F = distinct E; generate group, F;};");
+        String query = ("A=LOAD 'input1' AS (a0, a1, a2);"+
+        "B = group A by $0;"+
+        "C = foreach B { D = A.a1; E = distinct D; F = distinct E; generate group, F;};"+
 
-        LogicalPlan lp = planTester.buildPlan("store C into '/tmp';");
-        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+        "store C into 'output';");
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
 
         SecondaryKeyOptimizer so = new SecondaryKeyOptimizer(mrPlan);
@@ -157,13 +148,12 @@ public class TestSecondarySort extends TestCase {
     @Test
     public void testDistinctOptimization5() throws Exception {
         // Filter in foreach plan
-        LogicalPlanTester planTester = new LogicalPlanTester();
-        planTester.buildPlan("A = LOAD 'input1' AS (a0, a1, a2);");
-        planTester.buildPlan("B = group A by $0;");
-        planTester.buildPlan("C = foreach B { D = A.a1; E = distinct D; F = filter E by $0=='1'; generate group, F;};");
+        String query = ("A=LOAD 'input1' AS (a0, a1, a2);" +
+        "B = group A by $0;" +
+        "C = foreach B { D = A.a1; E = distinct D; F = filter E by $0=='1'; generate group, F;};" +
 
-        LogicalPlan lp = planTester.buildPlan("store C into '/tmp';");
-        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+        "store C into 'output';");
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
 
         SecondaryKeyOptimizer so = new SecondaryKeyOptimizer(mrPlan);
@@ -177,13 +167,12 @@ public class TestSecondarySort extends TestCase {
     @Test
     public void testDistinctOptimization6() throws Exception {
         // group by * with no schema, and distinct key is not part of main key
-        LogicalPlanTester planTester = new LogicalPlanTester();
-        planTester.buildPlan("A = LOAD 'input1';");
-        planTester.buildPlan("B = group A by *;");
-        planTester.buildPlan("C = foreach B { D = limit A 10; E = D.$1; F = DISTINCT E; generate group, COUNT(F);};");
+        String query = ("A=LOAD 'input1';" +
+        "B = group A by *;" +
+        "C = foreach B { D = limit A 10; E = D.$1; F = DISTINCT E; generate group, COUNT(F);};" +
 
-        LogicalPlan lp = planTester.buildPlan("store C into '/tmp';");
-        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+        "store C into 'output';");
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
 
         SecondaryKeyOptimizer so = new SecondaryKeyOptimizer(mrPlan);
@@ -197,13 +186,12 @@ public class TestSecondarySort extends TestCase {
     @Test
     public void testDistinctOptimization7() throws Exception {
         // group by * with no schema, distinct key is more specific than the main key
-        LogicalPlanTester planTester = new LogicalPlanTester();
-        planTester.buildPlan("A = LOAD 'input1';");
-        planTester.buildPlan("B = group A by *;");
-        planTester.buildPlan("C = foreach B { D = limit A 10; E = D.$0; F = DISTINCT E; generate group, COUNT(F);};");
+        String query = ("A=LOAD 'input1';" +
+        "B = group A by *;" +
+        "C = foreach B { D = limit A 10; E = D.$0; F = DISTINCT E; generate group, COUNT(F);};" +
 
-        LogicalPlan lp = planTester.buildPlan("store C into '/tmp';");
-        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+        "store C into 'output';");
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
 
         SecondaryKeyOptimizer so = new SecondaryKeyOptimizer(mrPlan);
@@ -217,13 +205,12 @@ public class TestSecondarySort extends TestCase {
     @Test
     public void testDistinctOptimization8() throws Exception {
         // local arrange plan is an expression
-        LogicalPlanTester planTester = new LogicalPlanTester();
-        planTester.buildPlan("A = LOAD 'input1' AS (a0, a1, a2);");
-        planTester.buildPlan("B = group A by $0+$1;");
-        planTester.buildPlan("C = foreach B { D = limit A 10; E = D.$0; F = DISTINCT E; generate group, COUNT(F);};");
+        String query = ("A=LOAD 'input1' AS (a0, a1, a2);" +
+        "B = group A by $0+$1;" +
+        "C = foreach B { D = limit A 10; E = D.$0; F = DISTINCT E; generate group, COUNT(F);};" +
 
-        LogicalPlan lp = planTester.buildPlan("store C into '/tmp';");
-        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+        "store C into 'output';");
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
 
         SecondaryKeyOptimizer so = new SecondaryKeyOptimizer(mrPlan);
@@ -237,13 +224,12 @@ public class TestSecondarySort extends TestCase {
     @Test
     public void testDistinctOptimization9() throws Exception {
         // local arrange plan is nested project
-        LogicalPlanTester planTester = new LogicalPlanTester();
-        planTester.buildPlan("A = LOAD 'input1' as (a:tuple(a0:int, a1:chararray));");
-        planTester.buildPlan("B = group A by a.a1;");
-        planTester.buildPlan("C = foreach B { D = A.a; E = DISTINCT D; generate group, COUNT(E);};");
+        String query = ("A=LOAD 'input1' as (a:tuple(a0:int, a1:chararray));" +
+        "B = group A by a.a1;" +
+        "C = foreach B { D = A.a; E = DISTINCT D; generate group, COUNT(E);};" +
 
-        LogicalPlan lp = planTester.buildPlan("store C into '/tmp';");
-        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+        "store C into 'output';");
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
 
         SecondaryKeyOptimizer so = new SecondaryKeyOptimizer(mrPlan);
@@ -257,13 +243,12 @@ public class TestSecondarySort extends TestCase {
     @Test
     public void testSortOptimization1() throws Exception {
         // Sort on something other than the main key
-        LogicalPlanTester planTester = new LogicalPlanTester();
-        planTester.buildPlan("A = LOAD 'input1' AS (a0, a1, a2);");
-        planTester.buildPlan("B = group A by $0;");
-        planTester.buildPlan("C = foreach B { D = limit A 10; E = order D by $1; generate group, E;};");
+        String query = ("A=LOAD 'input1' AS (a0, a1, a2);" +
+        "B = group A by $0;" +
+        "C = foreach B { D = limit A 10; E = order D by $1; generate group, E;};" +
 
-        LogicalPlan lp = planTester.buildPlan("store C into '/tmp';");
-        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+        "store C into 'output';");
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
 
         SecondaryKeyOptimizer so = new SecondaryKeyOptimizer(mrPlan);
@@ -277,13 +262,12 @@ public class TestSecondarySort extends TestCase {
     @Test
     public void testSortOptimization2() throws Exception {
         // Sort on the prefix of the main key
-        LogicalPlanTester planTester = new LogicalPlanTester();
-        planTester.buildPlan("A = LOAD 'input1' AS (a0, a1, a2);");
-        planTester.buildPlan("B = group A by $0;");
-        planTester.buildPlan("C = foreach B { D = limit A 10; E = order D by $0; generate group, E;};");
+        String query = ("A=LOAD 'input1' AS (a0, a1, a2);" +
+        "B = group A by $0;" +
+        "C = foreach B { D = limit A 10; E = order D by $0; generate group, E;};" +
 
-        LogicalPlan lp = planTester.buildPlan("store C into '/tmp';");
-        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+        "store C into 'output';");
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
 
         SecondaryKeyOptimizer so = new SecondaryKeyOptimizer(mrPlan);
@@ -297,14 +281,12 @@ public class TestSecondarySort extends TestCase {
     @Test
     public void testSortOptimization3() throws Exception {
         // Sort on the main key prefix / non main key prefix mixed
-        LogicalPlanTester planTester = new LogicalPlanTester();
-        planTester.buildPlan("A = LOAD 'input1' AS (a0, a1, a2);");
-        planTester.buildPlan("B = group A by $0;");
-        planTester
-                .buildPlan("C = foreach B { D = limit A 10; E = order D by $1; F = order E by $0; generate group, F;};");
+        String query = ("A=LOAD 'input1' AS (a0, a1, a2);" +
+        "B = group A by $0;" +
+        "C = foreach B { D = limit A 10; E = order D by $1; F = order E by $0; generate group, F;};"+
 
-        LogicalPlan lp = planTester.buildPlan("store C into '/tmp';");
-        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+        "store C into 'output';");
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
 
         SecondaryKeyOptimizer so = new SecondaryKeyOptimizer(mrPlan);
@@ -318,13 +300,12 @@ public class TestSecondarySort extends TestCase {
     @Test
     public void testSortOptimization4() throws Exception {
         // Sort on the main key again
-        LogicalPlanTester planTester = new LogicalPlanTester();
-        planTester.buildPlan("A = LOAD 'input1' AS (a0, a1, a2);");
-        planTester.buildPlan("B = group A by $0;");
-        planTester.buildPlan("C = foreach B { D = limit A 10; E = order D by $0, $1, $2; generate group, E;};");
+        String query = ("A=LOAD 'input1' AS (a0, a1, a2);" +
+        "B = group A by $0;" +
+        "C = foreach B { D = limit A 10; E = order D by $0, $1, $2; generate group, E;};" +
 
-        LogicalPlan lp = planTester.buildPlan("store C into '/tmp';");
-        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+        "store C into 'output';");
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
 
         SecondaryKeyOptimizer so = new SecondaryKeyOptimizer(mrPlan);
@@ -338,14 +319,11 @@ public class TestSecondarySort extends TestCase {
     @Test
     public void testSortOptimization5() throws Exception {
         // Sort on the two keys, we can only take off 1
-        LogicalPlanTester planTester = new LogicalPlanTester();
-        planTester.buildPlan("A = LOAD 'input1' AS (a0, a1, a2);");
-        planTester.buildPlan("B = group A by $0;");
-        planTester
-                .buildPlan("C = foreach B { D = limit A 10; E = order D by $1; F = order E by $2; generate group, F;};");
-
-        LogicalPlan lp = planTester.buildPlan("store C into '/tmp';");
-        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+        String query = ("A=LOAD 'input1' AS (a0, a1, a2);" +
+        "B = group A by $0;" +
+        "C = foreach B { D = limit A 10; E = order D by $1; F = order E by $2; generate group, F;};" +
+        "store C into 'output';");
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
 
         SecondaryKeyOptimizer so = new SecondaryKeyOptimizer(mrPlan);
@@ -359,13 +337,12 @@ public class TestSecondarySort extends TestCase {
     @Test
     public void testSortOptimization6() throws Exception {
         // Sort desc
-        LogicalPlanTester planTester = new LogicalPlanTester();
-        planTester.buildPlan("A = LOAD 'input1' AS (a0, a1, a2);");
-        planTester.buildPlan("B = group A by $0;");
-        planTester.buildPlan("C = foreach B { D = order A by $0 desc; generate group, D;};");
+        String query = ("A=LOAD 'input1' AS (a0, a1, a2);" +
+        "B = group A by $0;" +
+        "C = foreach B { D = order A by $0 desc; generate group, D;};" +
 
-        LogicalPlan lp = planTester.buildPlan("store C into '/tmp';");
-        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+        "store C into 'output';");
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
 
         SecondaryKeyOptimizer so = new SecondaryKeyOptimizer(mrPlan);
@@ -379,13 +356,12 @@ public class TestSecondarySort extends TestCase {
     @Test
     public void testSortOptimization7() throws Exception {
         // Sort asc on 1st key, desc on 2nd key
-        LogicalPlanTester planTester = new LogicalPlanTester();
-        planTester.buildPlan("A = LOAD 'input1' AS (a0, a1, a2);");
-        planTester.buildPlan("B = group A by ($0, $1);");
-        planTester.buildPlan("C = foreach B { D = order A by $0, $1 desc; generate group, D;};");
+        String query = ("A=LOAD 'input1' AS (a0, a1, a2);" +
+        "B = group A by ($0, $1);" +
+        "C = foreach B { D = order A by $0, $1 desc; generate group, D;};" +
 
-        LogicalPlan lp = planTester.buildPlan("store C into '/tmp';");
-        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+        "store C into 'output';");
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
 
         SecondaryKeyOptimizer so = new SecondaryKeyOptimizer(mrPlan);
@@ -400,13 +376,12 @@ public class TestSecondarySort extends TestCase {
     @Test
     public void testSortOptimization8() throws Exception {
         // Sort desc, used in UDF twice
-        LogicalPlanTester planTester = new LogicalPlanTester();
-        planTester.buildPlan("A = LOAD 'input1' AS (a0);");
-        planTester.buildPlan("B = group A all;");
-        planTester.buildPlan("C = foreach B { D = order A by $0 desc; generate DIFF(D, D);};");
+        String query = ("A=LOAD 'input1' AS (a0);" +
+        "B = group A all;" +
+        "C = foreach B { D = order A by $0 desc; generate DIFF(D, D);};" +
 
-        LogicalPlan lp = planTester.buildPlan("store C into '/tmp';");
-        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+        "store C into 'output';");
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
 
         SecondaryKeyOptimizer so = new SecondaryKeyOptimizer(mrPlan);

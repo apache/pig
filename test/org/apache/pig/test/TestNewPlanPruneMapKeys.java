@@ -30,13 +30,12 @@ import java.util.Set;
 import junit.framework.TestCase;
 
 import org.apache.pig.ExecType;
+import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
-import org.apache.pig.newplan.logical.LogicalPlanMigrationVistor;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanPrinter;
 import org.apache.pig.newplan.logical.optimizer.ProjectionPatcher;
 import org.apache.pig.newplan.logical.optimizer.SchemaPatcher;
@@ -46,15 +45,14 @@ import org.apache.pig.newplan.logical.rules.MapKeysPruneHelper;
 import org.apache.pig.newplan.optimizer.PlanOptimizer;
 import org.apache.pig.newplan.optimizer.PlanTransformListener;
 import org.apache.pig.newplan.optimizer.Rule;
-import org.apache.pig.test.utils.LogicalPlanTester;
 
 public class TestNewPlanPruneMapKeys extends TestCase {
     PigContext pc = new PigContext(ExecType.LOCAL, new Properties());
     
-    private org.apache.pig.newplan.logical.relational.LogicalPlan migratePlan(LogicalPlan lp) throws VisitorException{
-        LogicalPlanMigrationVistor visitor = new LogicalPlanMigrationVistor(lp);        
-        visitor.visit();
-        org.apache.pig.newplan.logical.relational.LogicalPlan newPlan = visitor.getNewLogicalPlan();
+    private org.apache.pig.newplan.logical.relational.LogicalPlan migratePlan(String query) throws Exception{
+        PigServer pigServer = new PigServer( pc );
+    	org.apache.pig.newplan.logical.relational.LogicalPlan newPlan = 
+            Util.buildLp(pigServer, query);
         
         try {
             // run filter rule
@@ -94,12 +92,11 @@ public class TestNewPlanPruneMapKeys extends TestCase {
         
     @SuppressWarnings("unchecked")
     public void testSimplePlan() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'd.txt' as (a:map[], b:int, c:float);");
-        lpt.buildPlan("b = filter a by a#'name' == 'hello';");
-        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");        
+        String query = "a =load 'd.txt' as (a:map[], b:int, c:float);" +
+        "b = filter a by a#'name' == 'hello';" +
+        "store b into 'empty';";        
         
-        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(query);
         
         List<Operator> sources = newLogicalPlan.getSources();
         assertEquals( 1, sources.size() );
@@ -112,13 +109,12 @@ public class TestNewPlanPruneMapKeys extends TestCase {
     
     @SuppressWarnings("unchecked")
     public void testSimplePlan2() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'd.txt' as (a:map[], b:int, c:float);");
-        lpt.buildPlan("b = filter a by a#'name' == 'hello';");
-        lpt.buildPlan("c = foreach b generate b,c;" );
-        LogicalPlan plan = lpt.buildPlan("store c into 'empty';");        
+        String query = "a =load 'd.txt' as (a:map[], b:int, c:float);" +
+        "b = filter a by a#'name' == 'hello';" +
+        "c = foreach b generate b,c;" +
+        "store c into 'empty';";        
         
-        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(query);
         
         assertEquals( 1, newLogicalPlan.getSources().size() );
         LOLoad load = (LOLoad) newLogicalPlan.getSources().get(0);
@@ -135,13 +131,12 @@ public class TestNewPlanPruneMapKeys extends TestCase {
     
     @SuppressWarnings("unchecked")
     public void testSimplePlan3() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'd.txt' as (a:map[], b:int, c:float);");
-        lpt.buildPlan("b = filter a by a#'name' == 'hello';");
-        lpt.buildPlan("c = foreach b generate a#'age',b,c;" );
-        LogicalPlan plan = lpt.buildPlan("store c into 'empty';");        
+        String query = "a =load 'd.txt' as (a:map[], b:int, c:float);" +
+        "b = filter a by a#'name' == 'hello';" +
+        "c = foreach b generate a#'age',b,c;" +
+        "store c into 'empty';";        
         
-        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(query);
         
         assertEquals( 1, newLogicalPlan.getSources().size() );
         LOLoad load = (LOLoad) newLogicalPlan.getSources().get(0);
@@ -159,13 +154,12 @@ public class TestNewPlanPruneMapKeys extends TestCase {
     
     @SuppressWarnings("unchecked")
     public void testSimplePlan4() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'd.txt' as (a:map[], b:int, c:float);");
-        lpt.buildPlan("b = filter a by a#'name' == 'hello';");
-        lpt.buildPlan("c = foreach b generate a#'age',a,b,c;" );
-        LogicalPlan plan = lpt.buildPlan("store c into 'empty';");        
+        String query = "a =load 'd.txt' as (a:map[], b:int, c:float);" +
+        "b = filter a by a#'name' == 'hello';" +
+        "c = foreach b generate a#'age',a,b,c;" +
+        "store c into 'empty';";        
         
-        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(query);
         
         List<Operator> sources = newLogicalPlan.getSources();
         assertEquals( 1, sources.size() );
@@ -178,13 +172,12 @@ public class TestNewPlanPruneMapKeys extends TestCase {
     
     @SuppressWarnings("unchecked")
     public void testSimplePlan5() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'd.txt' as (a:chararray, b:int, c:float);");
-        lpt.buildPlan("b = filter a by a == 'hello';");
-        lpt.buildPlan("c = foreach b generate a,b,c;" );
-        LogicalPlan plan = lpt.buildPlan("store c into 'empty';");        
+        String query = "a =load 'd.txt' as (a:chararray, b:int, c:float);" +
+        "b = filter a by a == 'hello';" +
+        "c = foreach b generate a,b,c;" +
+        "store c into 'empty';";        
         
-        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(query);
         
         List<Operator> sources = newLogicalPlan.getSources();
         assertEquals( 1, sources.size() );
@@ -197,13 +190,12 @@ public class TestNewPlanPruneMapKeys extends TestCase {
     
     @SuppressWarnings("unchecked")
     public void testSimplePlan6() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'd.txt';");
-        lpt.buildPlan("b = filter a by $0 == 'hello';");
-        lpt.buildPlan("c = foreach b generate $0,$1,$2;" );
-        LogicalPlan plan = lpt.buildPlan("store c into 'empty';");        
+        String query = "a =load 'd.txt';" +
+        "b = filter a by $0 == 'hello';" +
+        "c = foreach b generate $0,$1,$2;" +
+        "store c into 'empty';";        
         
-        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(query);
         
         List<Operator> sources = newLogicalPlan.getSources();
         assertEquals( 1, sources.size() );
@@ -216,16 +208,14 @@ public class TestNewPlanPruneMapKeys extends TestCase {
     
     @SuppressWarnings("unchecked")
     public void testSimplePlan7() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'd.txt';");
-        lpt.buildPlan("a1 = load 'b.txt' as (a:map[],b:int, c:float);" );
-        lpt.buildPlan("b = join a by $0, a1 by a#'name';");
-        lpt.buildPlan("c = foreach b generate $0,$1,$2;" );
-        LogicalPlan plan = lpt.buildPlan("store c into 'empty';");        
+        String query = "a =load 'd.txt';" +
+        "a1 = load 'b.txt' as (a:map[],b:int, c:float);" +
+        "b = join a by $0, a1 by a#'name';" +
+        "c = foreach b generate $0,$1,$2;" +
+        "store c into 'empty';";        
         
-        printPlan(plan);
-        
-        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(query);
+        printPlan( newLogicalPlan );
         
         List<Operator> sources = newLogicalPlan.getSources();
         assertEquals( 2, sources.size() );
@@ -238,16 +228,14 @@ public class TestNewPlanPruneMapKeys extends TestCase {
 
     @SuppressWarnings("unchecked")
     public void testSimplePlan8() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester(pc);
-        lpt.buildPlan("a = load 'd.txt';");
-        lpt.buildPlan("a1 = load 'b.txt' as (a:chararray,b:int, c:float);" );
-        lpt.buildPlan("b = join a by $0, a1 by a;");
-        lpt.buildPlan("c = foreach b generate $0,$1,$2;" );
-        LogicalPlan plan = lpt.buildPlan("store c into 'empty';");        
+        String query = "a =load 'd.txt';" +
+        "a1 = load 'b.txt' as (a:chararray,b:int, c:float);" +
+        "b = join a by $0, a1 by a;" +
+        "c = foreach b generate $0,$1,$2;" +
+        "store c into 'empty';";        
         
-        printPlan(plan);
-        
-        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(query);
+        printPlan(newLogicalPlan);
         
         List<Operator> sources = newLogicalPlan.getSources();
         assertEquals( 2, sources.size() );
@@ -263,13 +251,6 @@ public class TestNewPlanPruneMapKeys extends TestCase {
         PrintStream ps = new PrintStream(out);
         LogicalPlanPrinter pp = new LogicalPlanPrinter(logicalPlan,ps);
         pp.visit();
-        System.err.println(out.toString());
-    }
-    
-    public void printPlan(LogicalPlan logicalPlan) throws Exception {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        PrintStream ps = new PrintStream(out);
-        logicalPlan.explain(ps, "text", true);
         System.err.println(out.toString());
     }
     

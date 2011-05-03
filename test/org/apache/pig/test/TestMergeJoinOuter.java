@@ -32,18 +32,20 @@ import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.LogicalToPhysicalTranslatorException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeCogroup;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.logicalLayer.LOJoin;
-import org.apache.pig.impl.logicalLayer.LogicalPlan;
+import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.newplan.Operator;
+import org.apache.pig.newplan.logical.relational.LOJoin;
+import org.apache.pig.newplan.logical.relational.LOStore;
+import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.test.TestMapSideCogroup.DummyCollectableLoader;
 import org.apache.pig.test.TestMapSideCogroup.DummyIndexableLoader;
-import org.apache.pig.test.utils.LogicalPlanTester;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -93,22 +95,26 @@ public class TestMergeJoinOuter {
     @Test
     public void testCompilation(){
         try{
-            LogicalPlanTester lpt = new LogicalPlanTester();
-            lpt.buildPlan("A = LOAD 'data1' using "+ DummyCollectableLoader.class.getName() +"() as (id, name, grade);");
-            lpt.buildPlan("B = LOAD 'data2' using "+ DummyIndexableLoader.class.getName() +"() as (id, name, grade);");
-            LogicalPlan lp = lpt.buildPlan("C = join A by id left, B by id using 'merge';");
-            assertEquals(LOJoin.JOINTYPE.MERGE, ((LOJoin)lp.getLeaves().get(0)).getJoinType());
+            String query = "A = LOAD 'data1' using "+ DummyCollectableLoader.class.getName() +"() as (id, name, grade);" + 
+            "B = LOAD 'data2' using "+ DummyIndexableLoader.class.getName() +"() as (id, name, grade);" +
+            "C = join A by id left, B by id using 'merge';" +
+            "store C into 'out';";
+            LogicalPlan lp = Util.buildLp(pigServer, query);
+            LOStore store = (LOStore)lp.getSinks().get(0);
+            LOJoin join = (LOJoin)lp.getPredecessors(store).get(0);
+            assertEquals(LOJoin.JOINTYPE.MERGE, join.getJoinType());
 
             PigContext pc = new PigContext(ExecType.MAPREDUCE,cluster.getProperties());
             pc.connect();
-            PhysicalPlan phyP = Util.buildPhysicalPlan(lp, pc);
+            PhysicalPlan phyP = Util.buildPp(pigServer, query);
             PhysicalOperator phyOp = phyP.getLeaves().get(0);
+            assertTrue(phyOp instanceof POStore);
+            phyOp = phyOp.getInputs().get(0);
             assertTrue(phyOp instanceof POForEach);
             assertEquals(1,phyOp.getInputs().size());
             assertTrue(phyOp.getInputs().get(0) instanceof POMergeCogroup);
             
-            lp = lpt.buildPlan("store C into 'out';");
-            MROperPlan mrPlan = Util.buildMRPlan(Util.buildPhysicalPlan(lp, pc),pc);            
+            MROperPlan mrPlan = Util.buildMRPlan(phyP,pc);            
             assertEquals(2,mrPlan.size());
 
             Iterator<MapReduceOper> itr = mrPlan.iterator();
@@ -130,20 +136,24 @@ public class TestMergeJoinOuter {
 
     @Test
     public void testFailure() throws Exception{
-        LogicalPlanTester lpt = new LogicalPlanTester();
-        lpt.buildPlan("A = LOAD 'data1' using "+ DummyCollectableLoader.class.getName() +"() as (id, name, grade);");
-        lpt.buildPlan("E = group A by id;");
-        lpt.buildPlan("B = LOAD 'data2' using "+ DummyIndexableLoader.class.getName() +"() as (id, name, grade);");
-        LogicalPlan lp = lpt.buildPlan("C = join E by A.id, B by id using 'merge';");
-        assertEquals(LOJoin.JOINTYPE.MERGE, ((LOJoin)lp.getLeaves().get(0)).getJoinType());
+        String query = "A = LOAD 'data1' using "+ DummyCollectableLoader.class.getName() +"() as (id, name, grade);" +
+        "E = group A by id;" +
+        "B = LOAD 'data2' using "+ DummyIndexableLoader.class.getName() +"() as (id, name, grade);" +
+        "C = join E by A.id, B by id using 'merge';" +
+        "store C into 'output';";
+        LogicalPlan lp = Util.buildLp(pigServer, query);
+        Operator op = lp.getSinks().get(0);
+        LOJoin join = (LOJoin)lp.getPredecessors(op).get(0);
+        assertEquals(LOJoin.JOINTYPE.MERGE, join.getJoinType());
 
         PigContext pc = new PigContext(ExecType.MAPREDUCE,cluster.getProperties());
         pc.connect();
         boolean exceptionCaught = false;
         try{
-            Util.buildPhysicalPlan(lp, pc);   
-        }catch (LogicalToPhysicalTranslatorException e){
-            assertEquals(1103,e.getErrorCode());
+            Util.buildPp(pigServer, query);   
+        }catch (java.lang.reflect.InvocationTargetException e){
+        	FrontendException ex = (FrontendException)e.getTargetException();
+            assertEquals(1103,ex.getErrorCode());
             exceptionCaught = true;
         }
         assertTrue(exceptionCaught);

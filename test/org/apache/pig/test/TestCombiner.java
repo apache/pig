@@ -38,11 +38,11 @@ import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
+import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DefaultDataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.logicalLayer.LogicalPlan;
-import org.apache.pig.test.utils.LogicalPlanTester;
 import org.junit.AfterClass;
 import org.junit.Test;
 
@@ -58,28 +58,26 @@ public class TestCombiner {
     
     @Test
     public void testSuccessiveUserFuncs1() throws Exception{
-        
-        LogicalPlanTester tester = new LogicalPlanTester();
-        tester.buildPlan( "a = load 'students.txt' as (c1,c2,c3,c4); ");
-        tester.buildPlan("c = group a by c2; ");
-        tester.buildPlan("f = foreach c generate COUNT(org.apache.pig.builtin.Distinct($1.$2)); ");
-        LogicalPlan lp = tester.buildPlan("store f into 'out';");
-        PigContext pc = new PigServer(ExecType.MAPREDUCE, cluster.getProperties()).getPigContext();
-        assertTrue((Util.buildMRPlan(Util.buildPhysicalPlan(lp,pc),pc).getRoots().get(0).combinePlan.isEmpty()));
+        String query = "a = load 'students.txt' as (c1,c2,c3,c4); " +
+                       "c = group a by c2; " +
+                       "f = foreach c generate COUNT(org.apache.pig.builtin.Distinct($1.$2)); " +
+                       "store f into 'out';";
+        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigContext pc = pigServer.getPigContext();
+        assertTrue((Util.buildMRPlan(Util.buildPp(pigServer,query),pc).getRoots().get(0).combinePlan.isEmpty()));
     }
 
     @Test
-    public void testSuccessiveUserFuncs2() throws Exception{
-        
-        LogicalPlanTester tester = new LogicalPlanTester();
-        tester.buildPlan( "a = load 'students.txt' as (c1,c2,c3,c4); ");
-        tester.buildPlan("c = group a by c2; ");
+    public void testSuccessiveUserFuncs2() throws Exception {
         String dummyUDF = JiraPig1030.class.getName();
-        tester.buildPlan("f = foreach c generate COUNT("+dummyUDF+"" +
-        		"(org.apache.pig.builtin.Distinct($1.$2),"+dummyUDF+"())); ");
-        LogicalPlan lp = tester.buildPlan("store f into 'out';");
-        PigContext pc = new PigServer(ExecType.MAPREDUCE, cluster.getProperties()).getPigContext();
-        assertTrue((Util.buildMRPlan(Util.buildPhysicalPlan(lp,pc),pc).getRoots().get(0).combinePlan.isEmpty()));
+    	String query = "a = load 'students.txt' as (c1,c2,c3,c4); " +
+                       "c = group a by c2; " +
+                       "f = foreach c generate COUNT(" + dummyUDF + "" +
+               		   "(org.apache.pig.builtin.Distinct($1.$2),"+dummyUDF+"())); " +
+               		   "store f into 'out';";
+        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigContext pc = pigServer.getPigContext();
+        assertTrue((Util.buildMRPlan(Util.buildPp(pigServer,query),pc).getRoots().get(0).combinePlan.isEmpty()));
     }
     
     @Test
@@ -516,10 +514,10 @@ public class TestCombiner {
         }
     }
 
-    public static class JiraPig1030 extends EvalFunc<String> {
+    public static class JiraPig1030 extends EvalFunc<DataBag> {
         
-        public String exec(Tuple input) throws IOException {
-            return "";
+        public DataBag exec(Tuple input) throws IOException {
+            return new DefaultDataBag();
         }
     }
    

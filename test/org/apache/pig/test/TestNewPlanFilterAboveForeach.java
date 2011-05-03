@@ -25,12 +25,12 @@ import java.util.Properties;
 import java.util.Set;
 
 import org.apache.pig.ExecType;
+import org.apache.pig.PigServer;
+import org.apache.pig.builtin.COUNT;
+import org.apache.pig.builtin.SIZE;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
-import org.apache.pig.newplan.logical.LogicalPlanMigrationVistor;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
 import org.apache.pig.newplan.logical.relational.LOFilter;
 import org.apache.pig.newplan.logical.relational.LOForEach;
@@ -42,24 +42,21 @@ import org.apache.pig.newplan.logical.rules.LoadTypeCastInserter;
 import org.apache.pig.newplan.optimizer.PlanOptimizer;
 import org.apache.pig.newplan.optimizer.PlanTransformListener;
 import org.apache.pig.newplan.optimizer.Rule;
-import org.apache.pig.test.utils.Identity;
-import org.apache.pig.test.utils.LogicalPlanTester;
+import org.apache.pig.test.TestNewPlanPushDownForeachFlatten.MyFilterFunc;
 import org.junit.Assert;
 import org.junit.Test;
 
 
 public class TestNewPlanFilterAboveForeach {
     PigContext pc = new PigContext(ExecType.LOCAL, new Properties());
-    LogicalPlanTester planTester = new LogicalPlanTester(pc) ;
     
     @Test
     public void testSimple() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester( pc );
-        lpt.buildPlan( "A = LOAD 'file.txt' AS (name, cuisines:bag{ t : ( cuisine ) } );" );
-        lpt.buildPlan( "B = FOREACH A GENERATE name, flatten(cuisines);" );
-        lpt.buildPlan( "C = FILTER B BY name == 'joe';" );
-        org.apache.pig.impl.logicalLayer.LogicalPlan plan = lpt.buildPlan( "D = STORE C INTO 'empty';" );  
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( plan );
+        String query = "A =LOAD 'file.txt' AS (name, cuisines:bag{ t : ( cuisine ) } );" +
+        "B = FOREACH A GENERATE name, flatten(cuisines);" +
+        "C = FILTER B BY name == 'joe';" +
+        "D = STORE C INTO 'empty';" ;  
+        LogicalPlan newLogicalPlan = buildPlan( query );
 
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
@@ -73,13 +70,12 @@ public class TestNewPlanFilterAboveForeach {
     
     @Test
     public void testMultipleFilter() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester( pc );
-        lpt.buildPlan( "A = LOAD 'file.txt' AS (name, cuisines : bag{ t : ( cuisine ) } );" );
-        lpt.buildPlan( "B = FOREACH A GENERATE name, flatten(cuisines);" );
-        lpt.buildPlan( "C = FILTER B BY $1 == 'french';" );
-        lpt.buildPlan( "D = FILTER C BY name == 'joe';" );
-        org.apache.pig.impl.logicalLayer.LogicalPlan plan = lpt.buildPlan( "E = STORE D INTO 'empty';" );  
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( plan );
+        String query = "A =LOAD 'file.txt' AS (name, cuisines : bag{ t : ( cuisine ) } );" +
+        "B = FOREACH A GENERATE name, flatten(cuisines);" +
+        "C = FILTER B BY $1 == 'french';" +
+        "D = FILTER C BY name == 'joe';" +
+        "E = STORE D INTO 'empty';";  
+        LogicalPlan newLogicalPlan = buildPlan( query );
         
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
@@ -95,13 +91,12 @@ public class TestNewPlanFilterAboveForeach {
     
     @Test
     public void testMultipleFilter2() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester( pc );
-        lpt.buildPlan( "A = LOAD 'file.txt' AS (name, age, cuisines : bag{ t : ( cuisine ) } );" );
-        lpt.buildPlan( "B = FOREACH A GENERATE name, age, flatten(cuisines);" );
-        lpt.buildPlan( "C = FILTER B BY name == 'joe';" );
-        lpt.buildPlan( "D = FILTER C BY age == 30;" );
-        org.apache.pig.impl.logicalLayer.LogicalPlan plan = lpt.buildPlan( "E = STORE D INTO 'empty';" );  
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( plan );
+        String query = "A =LOAD 'file.txt' AS (name, age, cuisines : bag{ t : ( cuisine ) } );" +
+        "B = FOREACH A GENERATE name, age, flatten(cuisines);" +
+        "C = FILTER B BY name == 'joe';" +
+        "D = FILTER C BY age == 30;" +
+        "E = STORE D INTO 'empty';";  
+        LogicalPlan newLogicalPlan = buildPlan( query );
         
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
@@ -117,13 +112,12 @@ public class TestNewPlanFilterAboveForeach {
     
     @Test
     public void testMultipleFilterNotPossible() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester( pc );
-        lpt.buildPlan( "A = LOAD 'file.txt' AS (name, cuisines : bag{ t : ( cuisine, region ) } );" );
-        lpt.buildPlan( "B = FOREACH A GENERATE name, flatten(cuisines);" );
-        lpt.buildPlan( "C = FILTER B BY $1 == 'French';" );
-        lpt.buildPlan( "D = FILTER C BY $2 == 'Europe';" );
-        org.apache.pig.impl.logicalLayer.LogicalPlan plan = lpt.buildPlan( "E = STORE D INTO 'empty';" );  
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( plan );
+        String query = "A =LOAD 'file.txt' AS (name, cuisines : bag{ t : ( cuisine, region ) } );" +
+        "B = FOREACH A GENERATE name, flatten(cuisines);" +
+        "C = FILTER B BY $1 == 'French';" +
+        "D = FILTER C BY $2 == 'Europe';" +
+        "E = STORE D INTO 'empty';";  
+        LogicalPlan newLogicalPlan = buildPlan( query );
 
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
@@ -139,12 +133,11 @@ public class TestNewPlanFilterAboveForeach {
     
     @Test
     public void testNotPossibleFilter() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester( pc );
-        lpt.buildPlan( "A = LOAD 'file.txt' AS (name, cuisines:bag{ t : ( cuisine ) } );" );
-        lpt.buildPlan( "B = FOREACH A GENERATE name, flatten(cuisines);" );
-        lpt.buildPlan( "C = FILTER B BY cuisine == 'French';" );
-        org.apache.pig.impl.logicalLayer.LogicalPlan plan = lpt.buildPlan( "D = STORE C INTO 'empty';" );  
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( plan );
+        String query = "A =LOAD 'file.txt' AS (name, cuisines:bag{ t : ( cuisine ) } );" +
+        "B = FOREACH A GENERATE name, flatten(cuisines);" +
+        "C = FILTER B BY cuisine == 'French';" +
+        "D = STORE C INTO 'empty';";  
+        LogicalPlan newLogicalPlan = buildPlan( query );
 
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
@@ -158,12 +151,11 @@ public class TestNewPlanFilterAboveForeach {
     
     @Test
     public void testSimple2() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester( pc );
-        lpt.buildPlan( "A = LOAD 'file.txt' AS (name, cuisines:bag{ t : ( cuisine ) } );" );
-        lpt.buildPlan( "B = FOREACH A GENERATE name, cuisines;" );
-        lpt.buildPlan( "C = FILTER B BY name == 'joe';" );
-        org.apache.pig.impl.logicalLayer.LogicalPlan plan = lpt.buildPlan( "D = STORE C INTO 'empty';" );  
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( plan );
+        String query = "A =LOAD 'file.txt' AS (name, cuisines:bag{ t : ( cuisine ) } );" +
+        "B = FOREACH A GENERATE name, cuisines;" +
+        "C = FILTER B BY name == 'joe';" +
+        "D = STORE C INTO 'empty';";  
+        LogicalPlan newLogicalPlan = buildPlan( query );
 
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
@@ -178,15 +170,15 @@ public class TestNewPlanFilterAboveForeach {
     /**
      * Normal test case: all fields from Foreach are used by exhaustive list.
      * Optimization should kick in.
+     * @throws Exception 
      */
     @Test
-    public void test1() throws FrontendException {
-        LogicalPlanTester lpt = new LogicalPlanTester( pc );
-        lpt.buildPlan( "A = LOAD 'file.txt' AS (a(u,v), b, c);" );
-        lpt.buildPlan( "B = FOREACH A GENERATE $0, b;" );
-        lpt.buildPlan( "C = FILTER B BY " + Identity.class.getName() +"($0, $1) > 5;" );
-        org.apache.pig.impl.logicalLayer.LogicalPlan plan = lpt.buildPlan( "STORE C INTO 'empty';" );  
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( plan );
+    public void test1() throws Exception {
+        String query = "A =LOAD 'file.txt' AS (a:bag{(u,v)}, b, c);" +
+        "B = FOREACH A GENERATE $0, b;" +
+        "C = FILTER B BY " + COUNT.class.getName() +"($0) > 5;" +
+        "STORE C INTO 'empty';";  
+        LogicalPlan newLogicalPlan = buildPlan( query );
 
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
@@ -200,15 +192,15 @@ public class TestNewPlanFilterAboveForeach {
     
     /**
      * Identical to test1() except that it use project *.
+     * @throws Exception 
      */
     @Test
-    public void test2() throws FrontendException {
-        LogicalPlanTester lpt = new LogicalPlanTester( pc );
-        lpt.buildPlan( "A = LOAD 'file.txt' AS (a(u,v), b, c);" );
-        lpt.buildPlan( "B = FOREACH A GENERATE $0, b;" );
-        lpt.buildPlan( "C = FILTER B BY " + Identity.class.getName() +"(*) > 5;" );
-        org.apache.pig.impl.logicalLayer.LogicalPlan plan = lpt.buildPlan( "STORE C INTO 'empty';" );  
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( plan );
+    public void test2() throws Exception {
+        String query = "A =LOAD 'file.txt' AS (a:(u,v), b, c);" +
+        "B = FOREACH A GENERATE $0, b;" +
+        "C = FILTER B BY " + SIZE.class.getName() +"(*) > 5;" +
+        "STORE C INTO 'empty';";  
+        LogicalPlan newLogicalPlan = buildPlan( query );
 
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
@@ -222,15 +214,15 @@ public class TestNewPlanFilterAboveForeach {
 
     /**
      * No fields are used in filter condition at all.
+     * @throws Exception 
      */
     @Test
-    public void test3() throws FrontendException {
-        LogicalPlanTester lpt = new LogicalPlanTester( pc );
-        lpt.buildPlan( "A = LOAD 'file.txt' AS (a(u,v), b, c);" );
-        lpt.buildPlan( "B = FOREACH A GENERATE $0, b;" );
-        lpt.buildPlan( "C = FILTER B BY 8 > 5;" );
-        org.apache.pig.impl.logicalLayer.LogicalPlan plan = lpt.buildPlan( "STORE C INTO 'empty';" );  
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( plan );
+    public void test3() throws Exception {
+        String query = "A =LOAD 'file.txt' AS (a:(u,v), b, c);" +
+        "B = FOREACH A GENERATE $0, b;" +
+        "C = FILTER B BY 8 > 5;" +
+        "STORE C INTO 'empty';";  
+        LogicalPlan newLogicalPlan = buildPlan( query );
 
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
@@ -245,15 +237,15 @@ public class TestNewPlanFilterAboveForeach {
     /**
      * Similar to test2, but not all fields are available from the operator before foreach.
      * Optimziation doesn't kick in.
+     * @throws Exception 
      */
     @Test
-    public void test4() throws FrontendException {
-        LogicalPlanTester lpt = new LogicalPlanTester( pc );
-        lpt.buildPlan( "A = LOAD 'file.txt' AS (a(u,v), b, c);" );
-        lpt.buildPlan( "B = FOREACH A GENERATE $0, b, flatten(1);" );
-        lpt.buildPlan( "C = FILTER B BY " + Identity.class.getName() +"(*) > 5;" );
-        org.apache.pig.impl.logicalLayer.LogicalPlan plan = lpt.buildPlan( "STORE C INTO 'empty';" );  
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( plan );
+    public void test4() throws Exception {
+        String query = "A =LOAD 'file.txt' AS (a:(u,v), b, c);" +
+        "B = FOREACH A GENERATE $0, b, flatten(1);" +
+        "C = FILTER B BY " + SIZE.class.getName() +"(*) > 5;" +
+        "STORE C INTO 'empty';";  
+        LogicalPlan newLogicalPlan = buildPlan( query );
 
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
@@ -267,12 +259,12 @@ public class TestNewPlanFilterAboveForeach {
 
     @Test
     public void testFilterForeach() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
-        planTester.buildPlan("B = foreach A generate $1, $2;");        
-        planTester.buildPlan("C = filter B by $0 < 18;");
-        org.apache.pig.impl.logicalLayer.LogicalPlan plan = planTester.buildPlan( "D = STORE C INTO 'empty';" ); 
+        String query = "A =load 'myfile' as (name, age, gpa);" +
+        "B = foreach A generate $1, $2;" +        
+        "C = filter B by $0 < 18;" +
+         "D = STORE C INTO 'empty';"; 
 
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( plan );
+        LogicalPlan newLogicalPlan = buildPlan( query );
 
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
@@ -288,12 +280,12 @@ public class TestNewPlanFilterAboveForeach {
 
     @Test
     public void testFilterForeachAddedField() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
-        planTester.buildPlan("B = foreach A generate $1, $2, COUNT({(1)});");        
-        planTester.buildPlan("C = filter B by $2 < 18;");
-        org.apache.pig.impl.logicalLayer.LogicalPlan plan = planTester.buildPlan( "D = STORE C INTO 'empty';" ); 
+        String query = "A =load 'myfile' as (name, age, gpa);" +
+        "B = foreach A generate $1, $2, COUNT({(1)});" +        
+        "C = filter B by $2 < 18;" +
+         "D = STORE C INTO 'empty';"; 
 
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( plan );
+        LogicalPlan newLogicalPlan = buildPlan( query );
 
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
@@ -309,12 +301,12 @@ public class TestNewPlanFilterAboveForeach {
 
     @Test
     public void testFilterForeachCast() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
-        planTester.buildPlan("B = foreach A generate (int)$1, $2;");        
-        planTester.buildPlan("C = filter B by $0 < 18;");
-        org.apache.pig.impl.logicalLayer.LogicalPlan plan = planTester.buildPlan( "D = STORE C INTO 'empty';" ); 
+        String query = "A =load 'myfile' as (name, age, gpa);" +
+        "B = foreach A generate (int)$1, $2;" +        
+        "C = filter B by $0 < 18;" +
+         "D = STORE C INTO 'empty';"; 
 
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( plan );
+        LogicalPlan newLogicalPlan = buildPlan( query );
 
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
@@ -330,12 +322,12 @@ public class TestNewPlanFilterAboveForeach {
 
     @Test
     public void testFilterCastForeach() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
-        planTester.buildPlan("B = foreach A generate $1, $2;");        
-        planTester.buildPlan("C = filter B by (int)$0 < 18;");
-        org.apache.pig.impl.logicalLayer.LogicalPlan plan = planTester.buildPlan( "D = STORE C INTO 'empty';" ); 
+        String query = "A =load 'myfile' as (name, age, gpa);" +
+        "B = foreach A generate $1, $2;" +        
+        "C = filter B by (int)$0 < 18;" +
+         "D = STORE C INTO 'empty';"; 
 
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( plan );
+        LogicalPlan newLogicalPlan = buildPlan( query );
 
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
@@ -352,12 +344,12 @@ public class TestNewPlanFilterAboveForeach {
 
     @Test
     public void testFilterConstantConditionForeach() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
-        planTester.buildPlan("B = foreach A generate $1, $2;");        
-        planTester.buildPlan("C = filter B by 1 == 1;");
-        org.apache.pig.impl.logicalLayer.LogicalPlan plan = planTester.buildPlan( "D = STORE C INTO 'empty';" ); 
+        String query = "A =load 'myfile' as (name, age, gpa);" +
+        "B = foreach A generate $1, $2;" +        
+        "C = filter B by 1 == 1;" +
+         "D = STORE C INTO 'empty';"; 
 
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( plan );
+        LogicalPlan newLogicalPlan = buildPlan( query );
 
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
@@ -373,12 +365,12 @@ public class TestNewPlanFilterAboveForeach {
 
     @Test
     public void testFilterUDFForeach() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
-        planTester.buildPlan("B = foreach A generate $1, $2;");        
-        planTester.buildPlan("C = filter B by " + Identity.class.getName() + "($1) ;");
-        org.apache.pig.impl.logicalLayer.LogicalPlan plan = planTester.buildPlan( "D = STORE C INTO 'empty';" ); 
+        String query = "A =load 'myfile' as (name, age, gpa);" +
+        "B = foreach A generate $1, $2;" +        
+        "C = filter B by " + MyFilterFunc.class.getName() + "($1) ;" +
+         "D = STORE C INTO 'empty';"; 
 
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( plan );
+        LogicalPlan newLogicalPlan = buildPlan( query );
 
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
@@ -394,12 +386,12 @@ public class TestNewPlanFilterAboveForeach {
     
     @Test
     public void testFilterForeachFlatten() throws Exception {
-        planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
-        planTester.buildPlan("B = foreach A generate $1, flatten($2);");        
-        planTester.buildPlan("C = filter B by $0 < 18;");
-        org.apache.pig.impl.logicalLayer.LogicalPlan plan = planTester.buildPlan( "D = STORE C INTO 'empty';" ); 
+        String query = "A =load 'myfile' as (name, age, gpa);" +
+        "B = foreach A generate $1, flatten($2);" +        
+        "C = filter B by $0 < 18;" +
+         "D = STORE C INTO 'empty';"; 
 
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( plan );
+        LogicalPlan newLogicalPlan = buildPlan( query );
 
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
@@ -416,14 +408,14 @@ public class TestNewPlanFilterAboveForeach {
     // See PIG-1669
     @Test
     public void testPushUpFilterWithScalar() throws Exception {
-        planTester.buildPlan("a = load 'studenttab10k' as (name, age, gpa);");
-        planTester.buildPlan("b = group a all;");
-        planTester.buildPlan("c = foreach b generate AVG(a.age) as age;");
-        planTester.buildPlan("d = foreach a generate name, age;");
-        planTester.buildPlan("e = filter d by age > c.age;");
-        org.apache.pig.impl.logicalLayer.LogicalPlan plan = planTester.buildPlan("f = store e into 'empty';");
+        String query = "a = load 'studenttab10k' as (name, age, gpa);" +
+        "b = group a all;" +
+        "c = foreach b generate AVG(a.age) as age;" +
+        "d = foreach a generate name, age;" +
+        "e = filter d by age > c.age;" +
+        "f = store e into 'empty';";
 
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( plan );
+        LogicalPlan newLogicalPlan = buildPlan( query );
 
         Operator store = newLogicalPlan.getSinks().get( 0 );
         Operator foreach = newLogicalPlan.getPredecessors(store).get(0);
@@ -433,32 +425,26 @@ public class TestNewPlanFilterAboveForeach {
     // See PIG-1935
     @Test
     public void testPushUpFilterAboveBinCond() throws Exception {
-        planTester.buildPlan("data = LOAD 'data.txt' as (referrer:chararray, canonical_url:chararray, ip:chararray);");
-        planTester.buildPlan("best_url = FOREACH data GENERATE ((canonical_url != '' and canonical_url is not null) ? canonical_url : referrer) AS url, ip;");
-        planTester.buildPlan("filtered = FILTER best_url BY url == 'badsite.com';");
-        org.apache.pig.impl.logicalLayer.LogicalPlan plan = planTester.buildPlan("store filtered into 'empty';");
+        String query = "data = LOAD 'data.txt' as (referrer:chararray, canonical_url:chararray, ip:chararray);" +
+        "best_url = FOREACH data GENERATE ((canonical_url != '' and canonical_url is not null) ? canonical_url : referrer) AS url, ip;" +
+        "filtered = FILTER best_url BY url == 'badsite.com';" +
+        "store filtered into 'empty';";
 
-        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( plan );
+        LogicalPlan newLogicalPlan = buildPlan( query );
 
         Operator store = newLogicalPlan.getSinks().get( 0 );
         Operator filter = newLogicalPlan.getPredecessors(store).get(0);
         Assert.assertTrue( filter instanceof LOFilter );
     }
 
-    private LogicalPlan migrateAndOptimizePlan(org.apache.pig.impl.logicalLayer.LogicalPlan plan) throws FrontendException {
-        LogicalPlan newLogicalPlan = migratePlan( plan );
+    private LogicalPlan buildPlan(String query) throws Exception {
+        PigServer pigServer = new PigServer( pc );
+        LogicalPlan newLogicalPlan = Util.buildLp(pigServer, query);
         PlanOptimizer optimizer = new MyPlanOptimizer( newLogicalPlan, 3 );
         optimizer.optimize();
         return newLogicalPlan;
     }
     
-    private LogicalPlan migratePlan(org.apache.pig.impl.logicalLayer.LogicalPlan lp) throws VisitorException{
-        LogicalPlanMigrationVistor visitor = new LogicalPlanMigrationVistor(lp);        
-        visitor.visit();
-        org.apache.pig.newplan.logical.relational.LogicalPlan newPlan = visitor.getNewLogicalPlan();
-        return newPlan;
-    }
-
     public class MyPlanOptimizer extends LogicalPlanOptimizer {
         protected MyPlanOptimizer(OperatorPlan p,  int iterations) {
             super(p, iterations, new HashSet<String>());

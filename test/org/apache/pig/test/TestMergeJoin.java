@@ -40,10 +40,8 @@ import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.LogUtils;
-import org.apache.pig.test.utils.LogicalPlanTester;
 import org.apache.pig.test.utils.TestHelper;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -458,15 +456,13 @@ public class TestMergeJoin {
 
     @Test
     public void testParallelism() throws Exception{
-
-        LogicalPlanTester tester = new LogicalPlanTester();
-        tester.buildPlan("A = LOAD '" + INPUT_FILE + "';");
-        tester.buildPlan("B = LOAD '" + INPUT_FILE + "';");
-        tester.buildPlan("C = join A by $0, B by $0 using 'merge' parallel 50;");
-        LogicalPlan lp = tester.buildPlan("store C into 'out';");
+        String query = "A = LOAD '" + INPUT_FILE + "';" +
+                       "B = LOAD '" + INPUT_FILE + "';" +
+                       "C = join A by $0, B by $0 using 'merge' parallel 50;" + 
+                       "store C into 'out';";
 	PigContext pc = new PigContext(ExecType.MAPREDUCE,cluster.getProperties());
-        pc.connect();
-	MROperPlan mro = Util.buildMRPlan(Util.buildPhysicalPlan(lp, pc),pc);
+    pc.connect();
+	MROperPlan mro = Util.buildMRPlan(Util.buildPp(pigServer, query),pc);
         Assert.assertEquals(1,mro.getRoots().get(0).getRequestedParallelism());
     }
 

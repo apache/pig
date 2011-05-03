@@ -28,7 +28,6 @@ import org.apache.pig.PigServer;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
-import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.builtin.PigStorage;
@@ -37,17 +36,12 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.logicalLayer.LOLoad;
-import org.apache.pig.impl.logicalLayer.LOStore;
-import org.apache.pig.impl.logicalLayer.LogicalPlan;
-import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.plan.NodeIdGenerator;
-import org.apache.pig.impl.plan.PlanValidationException;
-
-import org.apache.pig.impl.logicalLayer.validators.* ;
-import org.apache.pig.impl.plan.CompilationMessageCollector;
-import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType; 
 import org.apache.pig.impl.util.LogUtils;
+import org.apache.pig.newplan.logical.relational.LOLoad;
+import org.apache.pig.newplan.logical.relational.LOStore;
+import org.apache.pig.newplan.logical.relational.LogicalPlan;
+import org.apache.pig.newplan.logical.rules.InputOutputFileValidator;
+
 import org.junit.AfterClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -68,7 +62,6 @@ public class TestInputOutputFileValidator extends TestCase {
     
     @Test
     public void testLocalModeInputPositive() throws Throwable {
-        
         PigContext ctx = new PigContext(ExecType.LOCAL, new Properties()) ;
         ctx.connect() ;
         
@@ -76,20 +69,13 @@ public class TestInputOutputFileValidator extends TestCase {
         String outputfile = generateNonExistenceTempFile().getAbsolutePath() ;
 
         LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile, ctx.getFs()) ;        
-        
-        CompilationMessageCollector collector = new CompilationMessageCollector() ;        
-        boolean isBeforeOptimizer = false; // we are not optimizing in this testcase
-        LogicalPlanValidationExecutor executor = new LogicalPlanValidationExecutor(plan, ctx, isBeforeOptimizer) ;
-        executor.validate(plan, collector) ;
-        
-        assertFalse(collector.hasError()) ;
-
+        InputOutputFileValidator executor = new InputOutputFileValidator(plan, ctx) ;
+        executor.validate() ;
     }
     
        
     @Test
     public void testLocalModeNegative2() throws Throwable {
-        
         PigContext ctx = new PigContext(ExecType.LOCAL, new Properties()) ;
         ctx.connect() ;
         
@@ -98,26 +84,18 @@ public class TestInputOutputFileValidator extends TestCase {
 
         LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile, ctx.getDfs()) ;        
         
-        CompilationMessageCollector collector = new CompilationMessageCollector() ;        
-        boolean isBeforeOptimizer = false; // we are not optimizing in this testcase
-        LogicalPlanValidationExecutor executor = new LogicalPlanValidationExecutor(plan, ctx, isBeforeOptimizer) ;
+        InputOutputFileValidator executor = new InputOutputFileValidator(plan, ctx) ;
         try {
-            executor.validate(plan, collector) ;
+            executor.validate() ;
             fail("Expected to fail.");
         } catch (Exception pve) {
             //good
         }
         
-        assertEquals(collector.size(), 3) ;
-        for(int i = 0; i < collector.size(); ++i) {
-            assertEquals(collector.get(i).getMessageType(), MessageType.Error) ;
-        }        
-
     }
         
     @Test
     public void testMapReduceModeInputPositive() throws Throwable {
-        
         PigContext ctx = new PigContext(ExecType.MAPREDUCE, cluster.getProperties()) ;       
         ctx.connect() ;
         
@@ -126,18 +104,12 @@ public class TestInputOutputFileValidator extends TestCase {
 
         LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile, ctx.getDfs()) ;                     
         
-        CompilationMessageCollector collector = new CompilationMessageCollector() ;        
-        boolean isBeforeOptimizer = false; // we are not optimizing in this testcase
-        LogicalPlanValidationExecutor executor = new LogicalPlanValidationExecutor(plan, ctx, isBeforeOptimizer) ;
-        executor.validate(plan, collector) ;
-            
-        assertFalse(collector.hasError()) ;
-
+        InputOutputFileValidator executor = new InputOutputFileValidator(plan, ctx) ;
+        executor.validate() ;
     }
     
     @Test
     public void testMapReduceModeInputNegative2() throws Throwable {
-        
         PigContext ctx = new PigContext(ExecType.MAPREDUCE, cluster.getProperties()) ;       
         ctx.connect() ;
         
@@ -146,21 +118,13 @@ public class TestInputOutputFileValidator extends TestCase {
 
         LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile, ctx.getDfs()) ;                     
         
-        CompilationMessageCollector collector = new CompilationMessageCollector() ;        
-        boolean isBeforeOptimizer = false; // we are not optimizing in this testcase
-        LogicalPlanValidationExecutor executor = new LogicalPlanValidationExecutor(plan, ctx, isBeforeOptimizer) ;
+        InputOutputFileValidator executor = new InputOutputFileValidator(plan, ctx) ;
         try {
-            executor.validate(plan, collector) ;
+            executor.validate() ;
             fail("Excepted to fail.");
         } catch(Exception e) {
             //good
         }
-        
-        assertEquals(collector.size(), 3) ;
-        for(int i = 0; i < collector.size(); ++i) {
-            assertEquals(collector.get(i).getMessageType(), MessageType.Error) ;
-        }       
-
     }
     
     /**
@@ -279,9 +243,9 @@ public class TestInputOutputFileValidator extends TestCase {
             new FileSpec(inputFile, new FuncSpec("org.apache.pig.builtin.PigStorage")) ;
         FileSpec filespec2 =
             new FileSpec(outputFile, new FuncSpec("org.apache.pig.builtin.PigStorage"));
-        LOLoad load = new LOLoad(plan, genNewOperatorKeyId(), filespec1, 
+        LOLoad load = new LOLoad( filespec1, null, plan,
                 ConfigurationUtil.toConfiguration(dfs.getConfiguration())) ;       
-        LOStore store = new LOStore(plan, genNewOperatorKeyId(), filespec2, "new") ;
+        LOStore store = new LOStore(plan, filespec2) ;
         
         plan.add(load) ;
         plan.add(store) ;
@@ -291,11 +255,6 @@ public class TestInputOutputFileValidator extends TestCase {
         return plan ;    
     }
     
-    private OperatorKey genNewOperatorKeyId() {
-        long newId = NodeIdGenerator.getGenerator().getNextNodeId("scope") ;
-        return new OperatorKey("scope", newId) ;
-    }   
-
     private File generateTempFile() throws Throwable {
         File fp1 = File.createTempFile("file", ".txt") ;
         BufferedWriter bw = new BufferedWriter(new FileWriter(fp1)) ;

@@ -1,25 +1,37 @@
-Filter[bag] - Test-Plan-Builder-118
-|   |
-|   Greater Than[boolean] - Test-Plan-Builder-129
-|   |
-|   |---Add[bytearray] - Test-Plan-Builder-121
-|   |   |
-|   |   |---Project[bytearray][0] - Test-Plan-Builder-119
-|   |   |
-|   |   |---Project[bytearray][1] - Test-Plan-Builder-120
-|   |
-|   |---Multiply[chararray] - Test-Plan-Builder-128
-|       |
-|       |---Subtract[bytearray] - Test-Plan-Builder-124
-|       |   |
-|       |   |---Project[bytearray][0] - Test-Plan-Builder-122
-|       |   |
-|       |   |---Project[bytearray][1] - Test-Plan-Builder-123
-|       |
-|       |---Divide[chararray] - Test-Plan-Builder-127
-|           |
-|           |---Constant(4) - Test-Plan-Builder-125
-|           |
-|           |---Constant(2) - Test-Plan-Builder-126
+test-14: Store()
 |
-|---104: Load(file:///homes/rding/apache-pig/trunk/a:org.apache.pig.builtin.PigStorage(':')) - Test-Plan-Builder-117
+|---A: Filter[bag] - scope-67
+    |   |
+    |   Greater Than[boolean] - scope-83
+    |   |
+    |   |---Add[double] - scope-72
+    |   |   |
+    |   |   |---Cast[double] - scope-69
+    |   |   |   |
+    |   |   |   |---Project[bytearray][0] - scope-68
+    |   |   |
+    |   |   |---Cast[double] - scope-71
+    |   |       |
+    |   |       |---Project[bytearray][1] - scope-70
+    |   |
+    |   |---Multiply[double] - scope-82
+    |       |
+    |       |---Subtract[double] - scope-77
+    |       |   |
+    |       |   |---Cast[double] - scope-74
+    |       |   |   |
+    |       |   |   |---Project[bytearray][0] - scope-73
+    |       |   |
+    |       |   |---Cast[double] - scope-76
+    |       |       |
+    |       |       |---Project[bytearray][1] - scope-75
+    |       |
+    |       |---Cast[double] - scope-81
+    |           |
+    |           |---Divide[int] - scope-80
+    |               |
+    |               |---Constant(4) - scope-78
+    |               |
+    |               |---Constant(2) - scope-79
+    |
+    |---test-13: Load()
