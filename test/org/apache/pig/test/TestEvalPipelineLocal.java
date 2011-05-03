@@ -18,6 +18,7 @@
 package org.apache.pig.test;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -61,6 +62,8 @@ public class TestEvalPipelineLocal {
     
     private PigServer pigServer;
 
+    static final int MAX_SIZE = 100000;
+    
     TupleFactory mTf = TupleFactory.getInstance();
     
     @Before
@@ -1020,5 +1023,40 @@ public class TestEvalPipelineLocal {
 
         Assert.assertEquals((LOOP_COUNT * LOOP_COUNT)/2, numRows);
     }
-
+    
+    @Test
+    public void testExplainInDotGraph() throws Exception{
+        pigServer.registerQuery("a = load 'student' using " + PigStorage.class.getName() + "(':') as (name, age, gpa);");
+        pigServer.registerQuery("b = load 'voter' using " + PigStorage.class.getName() + "(',') as (name, age, registration, contributions);");
+        pigServer.registerQuery("c = filter a by age < 50;");
+        pigServer.registerQuery("d = filter b by age < 50;");
+        pigServer.registerQuery("e = cogroup c by (name, age), d by (name, age);");
+        pigServer.registerQuery("f = foreach e generate flatten(c), flatten(d);");
+        pigServer.registerQuery("g = group f by registration;");
+        pigServer.registerQuery("h = foreach g generate (chararray)group, SUM(f.d::contributions);");
+        pigServer.registerQuery("i = order h by $1;");
+        
+        File tmpFile = File.createTempFile("test", "txt");
+        PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+        pigServer.explain("i", "dot", true, true, ps, System.out, System.out);
+        ps.close();
+        
+        FileInputStream fis1 = new FileInputStream("test/org/apache/pig/test/data/DotFiles/explain1.dot");
+        byte[] b1 = new byte[MAX_SIZE];
+        fis1.read(b1);
+        String goldenPlan = new String(b1);
+        goldenPlan = goldenPlan.trim();
+        // Filter out the random number generated on hash
+        goldenPlan = goldenPlan.replaceAll("\\d{3,}", "");
+        
+        FileInputStream fis2 = new FileInputStream(tmpFile);
+        byte[] b2 = new byte[MAX_SIZE];
+        fis2.read(b2);
+        String realPlan = new String(b2);
+        realPlan = realPlan.trim();
+        // Filter out the random number generated on hash
+        realPlan = realPlan.replaceAll("\\d{3,}", "");
+        
+        Assert.assertEquals(realPlan, goldenPlan);
+    }
 }

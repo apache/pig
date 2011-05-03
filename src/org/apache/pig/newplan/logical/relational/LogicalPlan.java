@@ -25,9 +25,11 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.LOPrinter;
 import org.apache.pig.newplan.BaseOperatorPlan;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
+import org.apache.pig.newplan.logical.DotLOPrinter;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanPrinter;
 
 /**
@@ -76,8 +78,14 @@ public class LogicalPlan extends BaseOperatorPlan {
         ps.println("# New Logical Plan:");
         ps.println("#-----------------------------------------------");
 
-        LogicalPlanPrinter npp = new LogicalPlanPrinter(this, ps);
-        npp.visit();
+        if (format.equals("text")) {
+            LogicalPlanPrinter npp = new LogicalPlanPrinter(this, ps);
+            npp.visit();
+        } else if (format.equals("dot")) {
+            DotLOPrinter lpp = new DotLOPrinter(this, ps);
+            lpp.dump();
+            ps.println("");
+        }
     }
 
     public Operator findByAlias(String alias) {
