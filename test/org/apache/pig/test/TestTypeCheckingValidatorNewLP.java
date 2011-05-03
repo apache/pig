@@ -18,6 +18,7 @@
 
 package org.apache.pig.test;
 
+import static org.apache.pig.ExecType.LOCAL;
 import static org.apache.pig.test.utils.TypeCheckingTestUtil.genDummyLOLoadNewLP;
 import static org.apache.pig.test.utils.TypeCheckingTestUtil.genFlatSchema;
 import static org.apache.pig.test.utils.TypeCheckingTestUtil.genFlatSchemaInTuple;
@@ -31,7 +32,9 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -4106,6 +4109,34 @@ public class TestTypeCheckingValidatorNewLP {
             checkLastForeachCastLoadFunc(query, null, 0);
         }
 
+        //see PIG-1990
+        @Test
+        public void testCastEmptyInnerSchema() throws IOException, ParseException{
+            final String INP_FILE = "testCastEmptyInnerSchema.txt";
+            PrintWriter w = new PrintWriter(new FileWriter(INP_FILE));
+            w.println("(1,2)");
+            w.println("(2,3)");
+            w.close();
+            PigServer pigServer = new PigServer(LOCAL);
+            
+            String query = "a = load '" + INP_FILE + "' as (t:tuple());" +
+            "b = foreach a generate (tuple(int, long))t;" +
+            "c = foreach b generate t.$0 + t.$1;";
+
+            
+            Util.registerMultiLineQuery(pigServer, query);
+
+            List<Tuple> expectedRes = 
+                Util.getTuplesFromConstantTupleStrings(
+                        new String[] {
+                                "(3L)",
+                                "(5L)",
+                        });
+            Iterator<Tuple> it = pigServer.openIterator("c");
+            Util.checkQueryOutputs(it, expectedRes);
+            
+        }
+
         //see PIG-2018
         @Test
         public void testCoGroupComplex(){
@@ -4119,4 +4150,5 @@ public class TestTypeCheckingValidatorNewLP {
                 fail("caught exception creating lp");
             }
         }
+
 }
