@@ -24,14 +24,13 @@ import java.io.IOException;
 import java.util.*;
 
 import org.apache.pig.ExecType;
-import org.apache.pig.newplan.logical.LogicalPlanMigrationVistor;
+import org.apache.pig.PigServer;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
 import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOGenerate;
 import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
-import org.apache.pig.newplan.logical.relational.LogicalRelationalNodesVisitor;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.newplan.logical.rules.AddForEach;
 import org.apache.pig.newplan.logical.rules.LoadTypeCastInserter;
@@ -40,50 +39,41 @@ import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.optimizer.PlanOptimizer;
 import org.apache.pig.newplan.optimizer.Rule;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.test.utils.LogicalPlanTester;
 
 import junit.framework.Assert;
 
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 public class TestMergeForEachOptimization {
     LogicalPlan plan = null;
     PigContext pc = new PigContext( ExecType.LOCAL, new Properties() );
+    PigServer pigServer = null;
   
-    private LogicalPlan migratePlan(org.apache.pig.impl.logicalLayer.LogicalPlan lp) throws VisitorException{
-        LogicalPlanMigrationVistor visitor = new LogicalPlanMigrationVistor(lp);        
-        visitor.visit();
-        org.apache.pig.newplan.logical.relational.LogicalPlan newPlan = visitor.getNewLogicalPlan();
-        return newPlan;
+    @Before
+    public void setup() throws ExecException {
+        pigServer = new PigServer( pc );
     }
     
-    @BeforeClass
-    public static void setup() {
-        
-    }
-    
-    @AfterClass
-    public static void tearDown() {
+    @After
+    public void tearDown() {
         
     }
     
     /**
      * Basic test case. Two simple FOREACH statements can be merged to one.
-     * 
-     * @throws IOException
+     * @throws Exception 
      */
     @Test   
-    public void testSimple() throws IOException  {
-        LogicalPlanTester lpt = new LogicalPlanTester( pc );
-        lpt.buildPlan( "A = load 'file.txt' as (a, b, c);" );
-        lpt.buildPlan( "B = foreach A generate a+b, c-b;" );
-        lpt.buildPlan( "C = foreach B generate $0+5, $1;" );
-        org.apache.pig.impl.logicalLayer.LogicalPlan plan = lpt.buildPlan( "store C into 'empty';" );  
-        LogicalPlan newLogicalPlan = migratePlan( plan );
+    public void testSimple() throws Exception  {
+        String query = "A = load 'file.txt' as (a, b, c);" +
+         "B = foreach A generate a+b, c-b;" +
+         "C = foreach B generate $0+5, $1;" +
+         "store C into 'empty';";  
+        LogicalPlan newLogicalPlan = Util.buildLp(pigServer, query);
         
         int forEachCount1 = getForEachOperatorCount( newLogicalPlan );
         int outputExprCount1 = getOutputExprCount( newLogicalPlan );
@@ -103,17 +93,14 @@ public class TestMergeForEachOptimization {
     
     /**
      * Test more complex case where the first for each in the script has inner plan.
-     * 
-     * @throws IOException
+     * @throws Exception 
      */
     @Test
-    public void testComplex() throws IOException {
-        LogicalPlanTester lpt = new LogicalPlanTester( pc );
-        lpt.buildPlan( "A = load 'file.txt' as (a:int, b, c:bag{t:tuple(c0:int,c1:int)});" );
-        lpt.buildPlan( "B = foreach A { S = ORDER c BY $0; generate $0, COUNT(S), SUM(S); };" );
-        lpt.buildPlan( "C = foreach B generate $2+5 as x, $0-$1/2 as y;" );
-        org.apache.pig.impl.logicalLayer.LogicalPlan plan = lpt.buildPlan( "store C into 'empty';" );  
-        LogicalPlan newLogicalPlan = migratePlan( plan );
+    public void testComplex() throws Exception {
+        String query = "A = load 'file.txt' as (a:int, b, c:bag{t:tuple(c0:int,c1:int)});" +
+         "B = foreach A { S = ORDER c BY $0; generate $0, COUNT(S), SIZE(S); };" +
+         "C = foreach B generate $2+5 as x, $0-$1/2 as y;" + "store C into 'empty';" ;  
+        LogicalPlan newLogicalPlan = Util.buildLp(pigServer, query);
         
         int forEachCount1 = getForEachOperatorCount( newLogicalPlan );
         int outputExprCount1 = getOutputExprCount( newLogicalPlan );
@@ -138,19 +125,16 @@ public class TestMergeForEachOptimization {
     
     /**
      * One output of first foreach was referred more than once in the second foreach
-     * 
-     * @throws IOException
+     * @throws Exception 
      */
     @Test
-    public void testDuplicateInputs() throws IOException {
-        LogicalPlanTester lpt = new LogicalPlanTester( pc );
-        lpt.buildPlan( "A = load 'file.txt' as (a0:int, a1:double);" );
-        lpt.buildPlan( "A1 = foreach A generate (int)a0 as a0, (double)a1 as a1;" );
-        lpt.buildPlan( "B = group A1 all;" );
-        lpt.buildPlan( "C = foreach B generate A1;" );
-        lpt.buildPlan( "D = foreach C generate SUM(A1.a0), AVG(A1.a1);" );
-        org.apache.pig.impl.logicalLayer.LogicalPlan plan = lpt.buildPlan( "store D into 'empty';" );  
-        LogicalPlan newLogicalPlan = migratePlan( plan );
+    public void testDuplicateInputs() throws Exception {
+        String query = "A = load 'file.txt' as (a0:int, a1:double);" +
+         "A1 = foreach A generate (int)a0 as a0, (double)a1 as a1;" +
+         "B = group A1 all;" +
+         "C = foreach B generate A1;" +
+         "D = foreach C generate SUM(A1.a0), AVG(A1.a1);" + "store D into 'empty';" ;  
+        LogicalPlan newLogicalPlan = Util.buildLp(pigServer, query);
         
         Operator store = newLogicalPlan.getSinks().get(0);
         int forEachCount1 = getForEachOperatorCount( newLogicalPlan );
@@ -172,17 +156,15 @@ public class TestMergeForEachOptimization {
     /**
      * Not all consecutive FOREACHes can be merged. In this case, the second FOREACH statment
      * has inner plan, which cannot be merged with one before it.
-     * 
-     * @throws IOException
+     * @throws Exception 
      */
     @Test
-    public void testNegative1() throws IOException {
-        LogicalPlanTester lpt = new LogicalPlanTester( pc );
-        lpt.buildPlan( "A = LOAD 'file.txt' as (a, b, c, d:bag{t:tuple(c0:int,c1:int)});" );
-        lpt.buildPlan( "B = FOREACH A GENERATE a+5 AS u, b-c/2 AS v, d AS w;" );
-        lpt.buildPlan( "C = FOREACH B { S = ORDER w BY $0; GENERATE $0 as x, COUNT(S) as y; };" );
-        org.apache.pig.impl.logicalLayer.LogicalPlan plan = lpt.buildPlan( "store C into 'empty';" );  
-        LogicalPlan newLogicalPlan = migratePlan( plan );
+    public void testNegative1() throws Exception {
+        String query = "A = LOAD 'file.txt' as (a, b, c, d:bag{t:tuple(c0:int,c1:int)});" +
+         "B = FOREACH A GENERATE a+5 AS u, b-c/2 AS v, d AS w;" +
+         "C = FOREACH B { S = ORDER w BY $0; GENERATE $0 as x, COUNT(S) as y; };" +
+         "store C into 'empty';";  
+        LogicalPlan newLogicalPlan = Util.buildLp(pigServer, query);
         
         int forEachCount1 = getForEachOperatorCount( newLogicalPlan );
                
@@ -198,17 +180,14 @@ public class TestMergeForEachOptimization {
     
     /**
      * MergeForEach Optimization is off if the first statement has a FLATTEN operator.
-     * 
-     * @throws IOException
+     * @throws Exception 
      */
     @Test
-    public void testNegative2() throws IOException {
-        LogicalPlanTester lpt = new LogicalPlanTester( pc );
-        lpt.buildPlan( "A = LOAD 'file.txt' as (a, b, c);" );
-        lpt.buildPlan( "B = FOREACH A GENERATE FLATTEN(a), b, c;" );
-        lpt.buildPlan( "C = FOREACH B GENERATE $0, $1+$2;" );
-        org.apache.pig.impl.logicalLayer.LogicalPlan plan = lpt.buildPlan( "store C into 'empty';" );  
-        LogicalPlan newLogicalPlan = migratePlan( plan );
+    public void testNegative2() throws Exception {
+        String query = "A = LOAD 'file.txt' as (a, b, c);" +
+         "B = FOREACH A GENERATE FLATTEN(a), b, c;" +
+         "C = FOREACH B GENERATE $0, $1+$2;" + "store C into 'empty';" ;  
+        LogicalPlan newLogicalPlan = Util.buildLp(pigServer, query);
         
         int forEachCount1 = getForEachOperatorCount( newLogicalPlan );
                
@@ -223,20 +202,16 @@ public class TestMergeForEachOptimization {
     
     /**
      * Ensure that join input order does not get reversed (PIG-1672)
-     * 
-     * @throws IOException
+     * @throws Exception 
      */
     @Test   
-    public void testJoinInputOrder() throws IOException  {
-        LogicalPlanTester lpt = new LogicalPlanTester( pc );
-        lpt.buildPlan( "l1 = load 'y' as (a);" );
-        lpt.buildPlan( "l2 = load 'z' as (a1,b1,c1,d1);" );
-        lpt.buildPlan( "f1 = foreach l2 generate a1, b1, c1, d1;" );
-        lpt.buildPlan( "f2 = foreach f1 generate a1, b1, c1;" );
-        lpt.buildPlan( "j1 = join f2 by a1, l1 by a using 'replicated';" );
-        
-        org.apache.pig.impl.logicalLayer.LogicalPlan plan = lpt.buildPlan( "store j1 into 'empty';" );  
-        LogicalPlan newLogicalPlan = migratePlan( plan );
+    public void testJoinInputOrder() throws Exception  {
+        String query = "l1 = load 'y' as (a);" +
+         "l2 = load 'z' as (a1,b1,c1,d1);" +
+         "f1 = foreach l2 generate a1, b1, c1, d1;" +
+         "f2 = foreach f1 generate a1, b1, c1;" +
+         "j1 = join f2 by a1, l1 by a using 'replicated';" + "store j1 into 'empty';" ;  
+        LogicalPlan newLogicalPlan = Util.buildLp(pigServer, query);
 
         int forEachCount1 = getForEachOperatorCount( newLogicalPlan );
         List<Operator> loads = newLogicalPlan.getSources();

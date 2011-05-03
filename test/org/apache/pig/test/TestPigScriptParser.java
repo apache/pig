@@ -36,8 +36,13 @@ import org.apache.pig.ExecType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.logicalLayer.* ;
 import org.apache.pig.impl.logicalLayer.parser.* ;
+import org.apache.pig.newplan.Operator;
+import org.apache.pig.newplan.logical.expression.ConstantExpression;
+import org.apache.pig.newplan.logical.expression.LogicalExpression;
+import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
+import org.apache.pig.newplan.logical.relational.LOFilter;
+import org.apache.pig.newplan.logical.relational.LogicalPlan;
 
 public class TestPigScriptParser extends TestCase {
 
@@ -45,37 +50,30 @@ public class TestPigScriptParser extends TestCase {
     public void testParserWithEscapeCharacters() throws Exception {
 
         // All the needed variables
-        Map<LogicalOperator, LogicalPlan> aliases = new HashMap<LogicalOperator, LogicalPlan>();
-        Map<OperatorKey, LogicalOperator> opTable = new HashMap<OperatorKey, LogicalOperator>() ;
-        Map<String, LogicalOperator> aliasOp = new HashMap<String, LogicalOperator>() ;
-        Map<String, String> fileNameMap = new HashMap<String, String>();
         PigContext pigContext = new PigContext(ExecType.LOCAL, new Properties()) ;
+        PigServer pigServer = new PigServer( pigContext );
         pigContext.connect();
         
         String tempFile = this.prepareTempFile() ;
         
+    	String query = String.format("A = LOAD '%s' ;", Util.encodeEscape(tempFile)) ;
         // Start the real parsing job
         {
-
         	// Initial statement
-        	String query = String.format("A = LOAD '%s' ;", Util.encodeEscape(tempFile)) ;
-        	ByteArrayInputStream in = new ByteArrayInputStream(query.getBytes()); 
-        	QueryParser parser = new QueryParser(in, pigContext, "scope", aliases, opTable, aliasOp, fileNameMap) ;
-        	LogicalPlan lp = parser.Parse() ; 
+        	Util.buildLp(pigServer, query); 
         }
         
         {
         	// Normal condition
-        	String query = "B1 = filter A by $0 eq 'This is a test string' ;" ;
-        	checkParsedConstContent(aliases, opTable, pigContext, aliasOp, fileNameMap,
-        	                        query, "This is a test string") ;	
+        	String q = query + "B = filter A by $0 eq 'This is a test string' ;" ;
+        	checkParsedConstContent(pigServer, pigContext, q, "This is a test string") ;	
         }
         
         {
         	// single-quote condition
-        	String query = "B2 = filter A by $0 eq 'This is a test \\'string' ;" ;
-        	checkParsedConstContent(aliases, opTable, pigContext, aliasOp, fileNameMap,
-        	                        query, "This is a test 'string") ;	
+        	String q = query + "B = filter A by $0 eq 'This is a test \\'string' ;" ;
+        	checkParsedConstContent(pigServer, pigContext,
+        	                        q, "This is a test 'string") ;	
         }
         
         {
@@ -84,23 +82,23 @@ public class TestPigScriptParser extends TestCase {
             // since this is to be represented in a Java String, we escape each backslash with one more
             // backslash - hence 4. In a pig script in a file, this would be
             // \\.string
-            String query = "B2 = filter A by $0 eq 'This is a test \\\\.string' ;" ;
-            checkParsedConstContent(aliases, opTable, pigContext, aliasOp, fileNameMap,
-                                    query, "This is a test \\.string") ;  
+            String q = query + "B = filter A by $0 eq 'This is a test \\\\.string' ;" ;
+            checkParsedConstContent(pigServer, pigContext,
+                                    q, "This is a test \\.string") ;  
         }
         
         {
         	// newline condition
-        	String query = "B3 = filter A by $0 eq 'This is a test \\nstring' ;" ;
-        	checkParsedConstContent(aliases, opTable, pigContext, aliasOp, fileNameMap, 
-        	                        query, "This is a test \nstring") ;	
+        	String q = query + "B = filter A by $0 eq 'This is a test \\nstring' ;" ;
+        	checkParsedConstContent(pigServer, pigContext, 
+        	                        q, "This is a test \nstring") ;	
         }
         
         {
         	// Unicode
-        	String query = "B4 = filter A by $0 eq 'This is a test \\uD30C\\uC774string' ;" ;
-        	checkParsedConstContent(aliases, opTable, pigContext, aliasOp, fileNameMap,
-        	                        query, "This is a test \uD30C\uC774string") ;	
+        	String q = query + "B = filter A by $0 eq 'This is a test \\uD30C\\uC774string' ;" ;
+        	checkParsedConstContent(pigServer, pigContext,
+        	                        q, "This is a test \uD30C\uC774string") ;	
         }
     }
     
@@ -135,38 +133,31 @@ public class TestPigScriptParser extends TestCase {
         }
     }
     
-	private void checkParsedConstContent(Map<LogicalOperator, LogicalPlan> aliases,
-                                             Map<OperatorKey, LogicalOperator> opTable,
+	private void checkParsedConstContent(PigServer pigServer,
                                              PigContext pigContext,
-                                             Map<String, LogicalOperator> aliasOp,
-                                             Map<String, String> fileNameMap,
                                              String query,
                                              String expectedContent)
                                         throws Exception {
-        // Run the parser
-        ByteArrayInputStream in = new ByteArrayInputStream(query.getBytes()); 
-        QueryParser parser = new QueryParser(in, pigContext, "scope", aliases, opTable, aliasOp,
-                                             fileNameMap) ;
-        LogicalPlan lp = parser.Parse() ; 
-        
+        pigContext.connect();
+        LogicalPlan lp = Util.buildLp(pigServer, query + "store B into 'output';");
         // Digging down the tree
-        LogicalOperator root = lp.getRoots().get(0) ;
-        LogicalOperator filter = lp.getSuccessors(root).get(0);
-        LogicalPlan comparisonPlan = ((LOFilter)filter).getComparisonPlan();
-        List<LogicalOperator> comparisonPlanRoots = comparisonPlan.getRoots();
-        LogicalOperator compRootOne = comparisonPlanRoots.get(0);
-        LogicalOperator compRootTwo = comparisonPlanRoots.get(1);
+        Operator load = lp.getSources().get(0);
+        Operator filter = lp.getSuccessors( load ).get(0);
+        LogicalExpressionPlan comparisonPlan = ((LOFilter)filter).getFilterPlan();
+        List<Operator> comparisonPlanRoots = comparisonPlan.getSinks();
+        Operator compRootOne = comparisonPlanRoots.get(0);
+        Operator compRootTwo = comparisonPlanRoots.get(1);
 
         
         // Here is the actual check logic
-        if (compRootOne instanceof LOConst) {
+        if (compRootOne instanceof ConstantExpression) {
             assertTrue("Must be equal", 
-                        ((String)((LOConst)compRootOne).getValue()).equals(expectedContent)) ;
+                        ((String)((ConstantExpression)compRootOne).getValue()).equals(expectedContent)) ;
         } 
         // If not left, it must be right.
         else {
             assertTrue("Must be equal", 
-                        ((String)((LOConst)compRootTwo).getValue()).equals(expectedContent)) ;
+                        ((String)((ConstantExpression)compRootTwo).getValue()).equals(expectedContent)) ;
         }
     }
 

@@ -45,7 +45,6 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.builtin.BinStorage;
@@ -57,20 +56,17 @@ import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.logicalLayer.LOStore;
-import org.apache.pig.impl.logicalLayer.LogicalOperator;
-import org.apache.pig.impl.logicalLayer.LogicalPlan;
-import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.logicalLayer.validators.InputOutputFileVisitor;
-import org.apache.pig.impl.plan.CompilationMessageCollector;
-import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanValidationException;
+import org.apache.pig.newplan.Operator;
+import org.apache.pig.newplan.logical.relational.LOStore;
+import org.apache.pig.newplan.logical.relational.LogicalPlan;
+import org.apache.pig.newplan.logical.rules.InputOutputFileValidator;
+import org.apache.pig.parser.QueryParserDriver;
 import org.apache.pig.test.utils.GenRandomData;
-import org.apache.pig.test.utils.LogicalPlanTester;
 import org.apache.pig.test.utils.TestHelper;
-import org.apache.pig.tools.pigstats.PigStats;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -130,28 +126,15 @@ public class TestStore extends junit.framework.TestCase {
         cluster.shutDown();
     }
     
-    private PigStats store() throws Exception {
-        PhysicalPlan pp = new PhysicalPlan();
-        pp.add(proj);
-        pp.add(st);
-        //pp.connect(proj, st);
-        pp.connect(proj, st);
-        pc.setExecType(ExecType.LOCAL);
-        return new MapReduceLauncher().launchPig(pp, "TestStore", pc);
-    }
-
     @Test
     public void testValidation() throws Exception{
-        
         String outputFileName = "test-output.txt";
         try {
-            LogicalPlanTester lpt = new LogicalPlanTester();
-            lpt.buildPlan("a = load '" + inputFileName + "' as (c:chararray, " +
-                    "i:int,d:double);");
-            LogicalPlan lp = lpt.buildPlan("store a into '" + outputFileName + "' using " +
-                    "PigStorage();");
-            InputOutputFileVisitor visitor = new InputOutputFileVisitor(lp, null, pig.getPigContext());
-            visitor.visit();
+            String query = "a = load '" + inputFileName + "' as (c:chararray, " +
+                           "i:int,d:double);" +
+                           "store a into '" + outputFileName + "' using " + "PigStorage();";
+            org.apache.pig.newplan.logical.relational.LogicalPlan lp = Util.buildLp( pig, query );
+            new InputOutputFileValidator(lp, pig.getPigContext()).validate();
         } catch (PlanValidationException e){
                 // Since output file is not present, validation should pass
                 // and not throw this exception.
@@ -163,21 +146,17 @@ public class TestStore extends junit.framework.TestCase {
     
     @Test
     public void testValidationFailure() throws Exception{
-        
         String input[] = new String[] { "some data" };
         String outputFileName = "test-output.txt";
         boolean sawException = false;
         try {
             Util.createInputFile(pig.getPigContext(),outputFileName, input);
-            LogicalPlanTester lpt = new LogicalPlanTester(pig.getPigContext());
-            lpt.buildPlan("a = load '" + inputFileName + "' as (c:chararray, " +
-                    "i:int,d:double);");
-            LogicalPlan lp = lpt.buildPlan("store a into '" + outputFileName + 
-                    "' using PigStorage();");
-            InputOutputFileVisitor visitor = new InputOutputFileVisitor(lp, 
-                    new CompilationMessageCollector(), pig.getPigContext());
-            visitor.visit();
-        } catch (PlanValidationException pve){
+            String query = "a = load '" + inputFileName + "' as (c:chararray, " +
+                           "i:int,d:double);" +
+                           "store a into '" + outputFileName + "' using PigStorage();";
+            org.apache.pig.newplan.logical.relational.LogicalPlan lp = Util.buildLp( pig, query );
+            new InputOutputFileValidator(lp, pig.getPigContext()).validate();
+        } catch (FrontendException pve){
             // Since output file is present, validation should fail
             // and throw this exception 
             assertEquals(6000,pve.getErrorCode());
@@ -351,14 +330,6 @@ public class TestStore extends junit.framework.TestCase {
         }
     }
 
-    private static void randomizeBytes(byte[] data, int offset, int length) {
-        Random random = new Random();
-        for(int i=offset + length - 1; i >= offset; --i) {
-            data[i] = (byte) random.nextInt(256);
-        }
-    }
-
-    
     @Test
     public void testStoreRemoteRel() throws Exception {
         checkStorePath("test","/tmp/test");
@@ -800,35 +771,20 @@ public class TestStore extends junit.framework.TestCase {
 
         DataStorage dfs = pc.getDfs();
         dfs.setActiveContainer(dfs.asContainer("/tmp"));
-        Map<LogicalOperator, LogicalPlan> aliases = new HashMap<LogicalOperator, LogicalPlan>();
-        Map<OperatorKey, LogicalOperator> logicalOpTable = new HashMap<OperatorKey, LogicalOperator>();
-        Map<String, LogicalOperator> aliasOp = new HashMap<String, LogicalOperator>();
         Map<String, String> fileNameMap = new HashMap<String, String>();
         
-        LogicalPlanBuilder builder = new LogicalPlanBuilder(pc);
+        QueryParserDriver builder = new QueryParserDriver(pc, "Test-Store", fileNameMap);
         
-        String query = "a = load 'foo';";
-        LogicalPlan lp = builder.parse("Test-Store",
-                                       query,
-                                       aliases,
-                                       logicalOpTable,
-                                       aliasOp,
-                                       fileNameMap);
-        query = "store a into '"+orig+"';";
-        lp = builder.parse("Test-Store",
-                           query,
-                           aliases,
-                           logicalOpTable,
-                           aliasOp,
-                           fileNameMap);
+        String query = "a = load 'foo';" + "store a into '"+orig+"';";
+        LogicalPlan lp = builder.parse(query);
 
         Assert.assertTrue(lp.size()>1);
-        LogicalOperator op = lp.getLeaves().get(0);
+        Operator op = lp.getSinks().get(0);
         
         Assert.assertTrue(op instanceof LOStore);
         LOStore store = (LOStore)op;
 
-        String p = store.getOutputFile().getFileName();
+        String p = store.getFileSpec().getFileName();
         p = p.replaceAll("hdfs://[0-9a-zA-Z:\\.]*/","/");
         
         if (isTmp) {

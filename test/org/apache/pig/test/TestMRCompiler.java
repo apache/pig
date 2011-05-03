@@ -17,14 +17,9 @@
  */
 package org.apache.pig.test;
 
-import static org.junit.Assert.assertTrue;
-
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -34,6 +29,7 @@ import java.util.Random;
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.AVG;
 import org.apache.pig.builtin.COUNT;
@@ -42,7 +38,6 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.builtin.GFCross;
-import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompilerException;
@@ -54,13 +49,8 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PlanPri
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.*;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserComparisonFunc;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.impl.plan.NodeIdGenerator;
-import org.apache.pig.impl.plan.PlanException;
-import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.test.TestPOSort.WeirdComparator;
 import org.apache.pig.test.utils.GenPhyOp;
-import org.apache.pig.test.utils.LogicalPlanTester;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -99,8 +89,8 @@ public class TestMRCompiler extends junit.framework.TestCase {
         r = new Random(SEED);
     }
     
-    LogicalPlanTester planTester = new LogicalPlanTester(pc) ;
-    LogicalPlanTester planTesterMR = new LogicalPlanTester(pcMR) ;
+    PigServer pigServer = null;
+    PigServer pigServerMR = null;
 
     // if for some reason, the golden files need
     // to be regenerated, set this to true - THIS
@@ -116,6 +106,8 @@ public class TestMRCompiler extends junit.framework.TestCase {
         
         GenPhyOp.setPc(pc);
         NodeIdGenerator.getGenerator().reset("");
+        pigServer = new PigServer( pc );
+        pigServerMR = new PigServer( pcMR );
     }
 
     @Override
@@ -835,10 +827,11 @@ public class TestMRCompiler extends junit.framework.TestCase {
     
     @Test
     public void testMRCompilerErr() throws Exception {
-    	planTester.buildPlan("a = load 'input';");
-    	LogicalPlan lp = planTester.buildPlan("b = filter a by $0 > 5;");
+    	String query = "a = load 'input';" +
+    	"b = filter a by $0 > 5;" +
+    	"store b into 'output';";
     	
-    	PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+    	PhysicalPlan pp = Util.buildPp(pigServer, query);
     	pp.remove(pp.getRoots().get(0));
     	try {
     		Util.buildMRPlan(new PhysicalPlan(), pc);
@@ -873,12 +866,12 @@ public class TestMRCompiler extends junit.framework.TestCase {
      */
     @Test
     public void testNumReducersInLimit() throws Exception {
-    	planTester.buildPlan("a = load 'input';");
-    	planTester.buildPlan("b = order a by $0;");
-    	planTester.buildPlan("c = limit b 10;");
-    	LogicalPlan lp = planTester.buildPlan("store c into '/tmp';");
+    	String query = "a = load 'input';" +
+    	"b = order a by $0;" +
+    	"c = limit b 10;" +
+    	"store c into 'output';";
     	
-    	PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+    	PhysicalPlan pp = Util.buildPp(pigServer, query);
     	MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
     	MapReduceOper mrOper = mrPlan.getRoots().get(0);
     	int count = 1;
@@ -896,12 +889,11 @@ public class TestMRCompiler extends junit.framework.TestCase {
      */
     @Test
     public void testNumReducersInLimitWithParallel() throws Exception {
-    	planTesterMR.buildPlan("a = load 'input';");
-    	planTesterMR.buildPlan("b = order a by $0 parallel 2;");
-    	planTesterMR.buildPlan("c = limit b 10;");
-    	LogicalPlan lp = planTesterMR.buildPlan("store c into '/tmp';");
+    	String query = "a = load 'input';" + 
+    	"b = order a by $0 parallel 2;" +
+    	"c = limit b 10;" + "store c into 'output';";
     	
-    	PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+    	PhysicalPlan pp = Util.buildPp(pigServerMR, query);
     	MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
     	MapReduceOper mrOper = mrPlan.getRoots().get(0);
     	int count = 1;
@@ -915,12 +907,11 @@ public class TestMRCompiler extends junit.framework.TestCase {
 
     @Test
     public void testUDFInJoin() throws Exception {
-        planTester.buildPlan("a = load 'input1' using BinStorage();");
-        planTester.buildPlan("b = load 'input2';");
-        planTester.buildPlan("c = join a by $0, b by $0;");
-        LogicalPlan lp = planTester.buildPlan("store c into '/tmp';");
+        String query = "a = load 'input1' using BinStorage();" +
+        "b = load 'input2';" +
+        "c = join a by $0, b by $0;" + "store c into 'output';";
         
-        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
         MapReduceOper mrOper = mrPlan.getRoots().get(0);
         
@@ -932,14 +923,12 @@ public class TestMRCompiler extends junit.framework.TestCase {
 
     @Test
     public void testMergeJoin() throws Exception{
-
-        //generate = true;
-        planTester.buildPlan("a = load '/tmp/input1';");
-        planTester.buildPlan("b = load '/tmp/input2';");
-        planTester.buildPlan("c = join a by $0, b by $0 using \"merge\";");
-        LogicalPlan lp = planTester.buildPlan("store c into '/tmp';");
+        String query = "a = load '/tmp/input1';" +
+        "b = load '/tmp/input2';" +
+        "c = join a by $0, b by $0 using 'merge';" +
+        "store c into '/tmp/output1';";
         
-        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
         run(pp, "test/org/apache/pig/test/data/GoldenFiles/MRC18.gld");
     }
     
@@ -964,15 +953,12 @@ public class TestMRCompiler extends junit.framework.TestCase {
     
     @Test
     public void testMergeJoinWithIndexableLoadFunc() throws Exception{
-
-        //generate = true;
-        planTester.buildPlan("a = load '/tmp/input1';");
-        planTester.buildPlan("b = load '/tmp/input2' using " +
-            TestMergeJoin.DummyIndexableLoader.class.getName() + ";");
-        planTester.buildPlan("c = join a by $0, b by $0 using \"merge\";");
-        LogicalPlan lp = planTester.buildPlan("store c into '/tmp';");
+        String query = "a = load 'input1';" +
+        "b = load 'input2' using " +
+            TestMergeJoin.DummyIndexableLoader.class.getName() + ";" +
+        "c = join a by $0, b by $0 using 'merge';" + "store c into 'output';";
         
-        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
         MROperPlan mp = Util.buildMRPlan(pp, pc);
         assertEquals("Checking number of MR Jobs for merge join with " +
         		"IndexableLoadFunc:", 1, mp.size());
@@ -981,17 +967,14 @@ public class TestMRCompiler extends junit.framework.TestCase {
     
     @Test
     public void testCastFuncShipped() throws Exception{
-        
-        planTester.buildPlan("a = load '/tmp/input1' using " + PigStorageNoDefCtor.class.getName() + 
-                "('\t') as (a0, a1, a2);");
-        planTester.buildPlan("b = group a by a0;");
-        planTester.buildPlan("c = foreach b generate flatten(a);");
-        planTester.buildPlan("d = order c by a0;");
-        planTester.buildPlan("e = foreach d generate a1+a2;");
-        LogicalPlan lp = planTester.buildPlan("store e into '/tmp';");
-        planTester.typeCheckPlan(lp);
-        
-        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+        String query = "a = load 'input1' using " + PigStorageNoDefCtor.class.getName() + 
+                "('\t') as (a0, a1, a2);" +
+        "b = group a by a0;" +
+        "c = foreach b generate flatten(a);" +
+        "d = order c by a0;" +
+        "e = foreach d generate a1+a2;" +
+        "store e into 'output';";
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
         MROperPlan mp = Util.buildMRPlan(pp, pc);
         MapReduceOper op = mp.getLeaves().get(0);
         assertTrue(op.UDFs.contains(new FuncSpec(PigStorageNoDefCtor.class.getName())+"('\t')"));
@@ -999,14 +982,12 @@ public class TestMRCompiler extends junit.framework.TestCase {
     
     @Test
     public void testLimitAdjusterFuncShipped() throws Exception{
- 
-        planTesterMR.buildPlan("a = load 'input';");
-        planTesterMR.buildPlan("b = order a by $0 parallel 2;");
-        planTesterMR.buildPlan("c = limit b 7;");
-        LogicalPlan lp = planTesterMR.buildPlan("store c into '/tmp' using "
-                + PigStorageNoDefCtor.class.getName() + "('\t');");
+        String query = "a = load 'input';" + 
+        "b = order a by $0 parallel 2;" +
+        "c = limit b 7;" + "store c into 'output' using "
+                + PigStorageNoDefCtor.class.getName() + "('\t');";
          
-        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+        PhysicalPlan pp = Util.buildPp(pigServerMR, query);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
         MapReduceOper mrOper = mrPlan.getRoots().get(0);
         int count = 1;

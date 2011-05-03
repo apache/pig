@@ -343,6 +343,8 @@ PIG-1249: Safe-guards against misconfigured Pig scripts without PARALLEL keyword
 
 IMPROVEMENTS
 
+PIG-1775: Removal of old logical plan (xuefu)
+
 PIG-1998: Allow macro to return void (rding)
 
 PIG-1561: XMLLoader in Piggybank does not support bz2 or gzip compressed XML files (vivekp via daijy)

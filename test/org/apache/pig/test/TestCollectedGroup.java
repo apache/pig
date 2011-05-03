@@ -30,16 +30,16 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.test.utils.LogicalPlanTester;
 import org.apache.pig.test.utils.TestHelper;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompilerException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCollectedGroup;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.logicalLayer.LOCogroup;
-import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.newplan.logical.relational.LOCogroup;
+import org.apache.pig.newplan.logical.relational.LOStore;
+import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -87,13 +87,12 @@ public class TestCollectedGroup {
     
     @Test
     public void testNonCollectableLoader() throws Exception{
-        LogicalPlanTester lpt = new LogicalPlanTester();
-        lpt.buildPlan("A = LOAD '" + INPUT_FILE + "' as (id, name, grade);");
-        LogicalPlan lp = lpt.buildPlan("B = group A by id using 'collected';");
+        String query = "A = LOAD '" + INPUT_FILE + "' as (id, name, grade);" +
+                       "B = group A by id using 'collected';";
         PigContext pc = new PigContext(ExecType.MAPREDUCE,cluster.getProperties());
         pc.connect();
         try {
-            Util.buildMRPlan(Util.buildPhysicalPlan(lp, pc),pc);  
+            Util.buildMRPlan(Util.buildPp(pigServer, query),pc);  
             Assert.fail("Must throw MRCompiler Exception");
         } catch (Exception e) {
             Assert.assertTrue(e instanceof MRCompilerException);
@@ -101,21 +100,25 @@ public class TestCollectedGroup {
     }
 
     @Test
-    public void testCollectedGrpSpecifiedInSingleQuotes1(){
-        
-        LogicalPlanTester lpt = new LogicalPlanTester();
-        lpt.buildPlan("A = LOAD '" + INPUT_FILE + "' as (id, name, grade);");
-        LogicalPlan lp = lpt.buildPlan("B = group A by id using 'collected';");
-        Assert.assertEquals(LOCogroup.GROUPTYPE.COLLECTED, ((LOCogroup)lp.getLeaves().get(0)).getGroupType());
+    public void testCollectedGrpSpecifiedInSingleQuotes1() throws Exception {
+    	String query = "A = LOAD '" + INPUT_FILE + "' as (id, name, grade);" + 
+    	               "B = group A by id using 'collected';" +
+    	               "Store B into 'y';";
+        LogicalPlan lp = Util.buildLp(pigServer, query );
+        LOStore store = (LOStore)lp.getSinks().get(0);
+        LOCogroup grp = (LOCogroup)lp.getPredecessors( store ).get(0);
+        Assert.assertEquals( LOCogroup.GROUPTYPE.COLLECTED, grp.getGroupType() );
     }
     
     @Test
-    public void testCollectedGrpSpecifiedInSingleQuotes2(){
-        
-        LogicalPlanTester lpt = new LogicalPlanTester();
-        lpt.buildPlan("A = LOAD '" + INPUT_FILE + "' as (id, name, grade);");
-        LogicalPlan lp = lpt.buildPlan("B = group A all using 'regular';");
-        Assert.assertEquals(LOCogroup.GROUPTYPE.REGULAR, ((LOCogroup)lp.getLeaves().get(0)).getGroupType());
+    public void testCollectedGrpSpecifiedInSingleQuotes2() throws Exception{
+        String query = "A = LOAD '" + INPUT_FILE + "' as (id, name, grade);" +
+                       "B = group A all using 'regular';" +
+                       "Store B into 'y';";
+        LogicalPlan lp = Util.buildLp(pigServer, query );
+        LOStore store = (LOStore)lp.getSinks().get(0);
+        LOCogroup grp = (LOCogroup)lp.getPredecessors( store ).get(0);
+        Assert.assertEquals(LOCogroup.GROUPTYPE.REGULAR, grp.getGroupType());
     }
     
     @AfterClass

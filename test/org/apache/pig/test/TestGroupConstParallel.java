@@ -37,14 +37,12 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.util.ConfigurationValidator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
 import org.apache.pig.newplan.logical.rules.GroupByConstParallelSetter;
 import org.apache.pig.newplan.optimizer.Rule;
 import org.apache.pig.test.utils.GenPhyOp;
-import org.apache.pig.test.utils.LogicalPlanTester;
 import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
@@ -116,13 +114,10 @@ public class TestGroupConstParallel {
         pc.defaultParallel = 100;
         pc.connect();
         
-        LogicalPlanTester planTester = new LogicalPlanTester() ;
-        planTester.buildPlan("a = load 'input';");
-        LogicalPlan lp = planTester.buildPlan("b = group a by 1;");
+        String query = "a = load 'input';\n" + "b = group a by 1;" + "store b into 'output';";
+        PigServer pigServer = new PigServer( ExecType.MAPREDUCE, cluster.getProperties() );
+        PhysicalPlan pp = Util.buildPp( pigServer, query );
         
-        PhysicalPlan pp = Util.getNewOptimizedPhysicalPlan(lp, pc);
-        POStore store = GenPhyOp.dummyPigStorageOp();
-        pp.addAsLeaf(store);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
 
         ConfigurationValidator.validatePigProperties(pc.getProperties());
@@ -146,13 +141,10 @@ public class TestGroupConstParallel {
         pc.defaultParallel = 100;
         pc.connect();
         
-        LogicalPlanTester planTester = new LogicalPlanTester() ;
-        planTester.buildPlan("a = load 'input';");
-        LogicalPlan lp = planTester.buildPlan("b = group a by $0;");
+        PigServer pigServer = new PigServer( ExecType.MAPREDUCE, cluster.getProperties() );
+        String query =  "a = load 'input';\n" + "b = group a by $0;" + "store b into 'output';";
         
-        PhysicalPlan pp = Util.getNewOptimizedPhysicalPlan(lp, pc);
-        POStore store = GenPhyOp.dummyPigStorageOp();
-        pp.addAsLeaf(store);
+        PhysicalPlan pp = Util.buildPp( pigServer, query );
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
 
         ConfigurationValidator.validatePigProperties(pc.getProperties());

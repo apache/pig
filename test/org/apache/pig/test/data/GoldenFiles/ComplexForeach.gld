@@ -1,15 +1,17 @@
-New For Each(false)[bag] - Test-Plan-Builder-22
-|   |
-|   RelationToExpressionProject[bag][*] - Test-Plan-Builder-21
-|   |
-|   |---B: Filter[bag] - Test-Plan-Builder-17
-|       |   |
-|       |   Equal To[boolean] - Test-Plan-Builder-20
-|       |   |
-|       |   |---Project[Unknown][1] - Test-Plan-Builder-18
-|       |   |
-|       |   |---Project[Unknown][2] - Test-Plan-Builder-19
-|       |
-|       |---Project[tuple][0] - Test-Plan-Builder-16
+test-1: Store()
 |
-|---0: Load(file:///homes/rding/apache-pig/trunk/a:org.apache.pig.builtin.PigStorage) - Test-Plan-Builder-15
+|---C: New For Each(false)[bag] - scope-7
+    |   |
+    |   RelationToExpressionProject[bag][*] - scope-1
+    |   |
+    |   |---B: Filter[bag] - scope-3
+    |       |   |
+    |       |   Equal To[boolean] - scope-6
+    |       |   |
+    |       |   |---Project[bytearray][1] - scope-4
+    |       |   |
+    |       |   |---Project[bytearray][2] - scope-5
+    |       |
+    |       |---Project[bag][0] - scope-2
+    |
+    |---test-0: Load()

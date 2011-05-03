@@ -45,7 +45,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.newplan.Operator;
@@ -86,7 +85,6 @@ public class HExecutionEngine {
     // map from LOGICAL key to into about the execution
     protected Map<OperatorKey, MapRedResult> materializedResults;
     
-    protected Map<LogicalOperator, LogicalRelationalOperator> opsMap;
     protected Map<Operator, PhysicalOperator> newLogToPhyMap;
     private LogicalPlan newPreoptimizedPlan;
     

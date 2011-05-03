@@ -3,4 +3,5 @@ digraph graph1 {
     LOForEach [hasflat="true"];
     LOForEach -> LOLimit;
     LOLimit [limit="100"];
+    LOLimit -> LOStore;
 }

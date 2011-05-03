@@ -19,7 +19,6 @@ package org.apache.pig.test;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -30,7 +29,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.regex.Pattern;
 
 import junit.framework.Assert;
 
@@ -50,14 +48,12 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
-import org.apache.pig.impl.logicalLayer.LOLoad;
-import org.apache.pig.impl.logicalLayer.LogicalOperator;
-import org.apache.pig.impl.logicalLayer.LogicalPlan;
-import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
-import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.newplan.Operator;
+import org.apache.pig.newplan.logical.relational.LOLoad;
+import org.apache.pig.newplan.logical.relational.LogicalPlan;
+import org.apache.pig.parser.QueryParserDriver;
 import org.apache.pig.test.utils.GenPhyOp;
-import org.apache.pig.test.utils.LogicalPlanTester;
 import org.apache.pig.test.utils.TestHelper;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -262,12 +258,13 @@ public class TestLoad extends junit.framework.TestCase {
     
     @Test
     public void testNonDfsLocation() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester();
         String nonDfsUrl = "har://hdfs-namenode/user/foo/";
-        LogicalPlan lp = lpt.buildPlan("a = load '" + nonDfsUrl + "';");
-        LOLoad load = (LOLoad) lp.getRoots().get(0);
+        String query = "a = load '" + nonDfsUrl + "';" +
+                       "store a into 'output';";
+        LogicalPlan lp = Util.buildLp(servers[1], query);
+        LOLoad load = (LOLoad) lp.getSources().get(0);
         nonDfsUrl = nonDfsUrl.replaceFirst("/$", "");
-        Assert.assertEquals(nonDfsUrl, load.getInputFile().getFileName());
+        Assert.assertEquals(nonDfsUrl, load.getFileSpec().getFileName());
     }
     
     @SuppressWarnings("unchecked")
@@ -322,27 +319,19 @@ public class TestLoad extends junit.framework.TestCase {
                     
             DataStorage dfs = pc.getDfs();
             dfs.setActiveContainer(dfs.asContainer("/tmp"));
-            Map<LogicalOperator, LogicalPlan> aliases = new HashMap<LogicalOperator, LogicalPlan>();
-            Map<OperatorKey, LogicalOperator> logicalOpTable = new HashMap<OperatorKey, LogicalOperator>();
-            Map<String, LogicalOperator> aliasOp = new HashMap<String, LogicalOperator>();
             Map<String, String> fileNameMap = new HashMap<String, String>();
             
-            LogicalPlanBuilder builder = new LogicalPlanBuilder(pc);
+            QueryParserDriver builder = new QueryParserDriver(pc, "Test-Load", fileNameMap);
             
             String query = "a = load '"+orig+"';";
-            LogicalPlan lp = builder.parse("Test-Load",
-                                           query,
-                                           aliases,
-                                           logicalOpTable,
-                                           aliasOp,
-                                           fileNameMap);
+            LogicalPlan lp = builder.parse(query);
             Assert.assertTrue(lp.size()>0);
-            LogicalOperator op = lp.getRoots().get(0);
+            Operator op = lp.getSources().get(0);
             
             Assert.assertTrue(op instanceof LOLoad);
             LOLoad load = (LOLoad)op;
     
-            String p = load.getInputFile().getFileName();
+            String p = load.getFileSpec().getFileName();
             System.err.println("DEBUG: p:" + p + " expected:" + expected +", exectype:" + pc.getExecType());
             if(noConversionExpected) {
                 Assert.assertEquals(p, expected);
