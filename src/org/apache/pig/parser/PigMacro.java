@@ -23,7 +23,6 @@ import java.io.StreamTokenizer;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -103,7 +102,7 @@ class PigMacro {
             throw new RuntimeException(msg);
         }
         boolean isVoidReturn = false;
-        if (rets.size() == 1 && rets.get(0).equals("void")) {           
+        if (rets.isEmpty()) {           
             if (outputs != null && outputs.length > 0) {
                 String msg = getErrorMessage(file, line, "Cannot expand macro '"
                         + name + "'",
@@ -240,7 +239,7 @@ class PigMacro {
      * Validates that return alias exists in the macro body.
      */
     void validate() throws IOException {
-        if (rets.size() == 0 || (rets.size() == 1 && rets.get(0).equals("void"))) {
+        if (rets.isEmpty()) {
             return;
         }
         
@@ -254,61 +253,30 @@ class PigMacro {
         st.wordChars('$', '$');
         st.lowerCaseMode(false);
         st.ordinaryChar('/');
-        st.slashSlashComments(true);
         st.slashStarComments(true);
         
-        String prevWord = null;
-        int lookahead = st.nextToken();
-        while (lookahead != StreamTokenizer.TT_EOF) {
-            if (lookahead == StreamTokenizer.TT_WORD) {
-                if (st.sval.charAt(0) == '$' && st.sval.length() > 1) {
-                    // check if this is define statement
-                    if (prevWord != null && prevWord.equalsIgnoreCase("define")) {
-                        testSet.add(st.sval.substring(1));
-                        prevWord = st.sval; 
-                    } else {
-                        prevWord = st.sval;
-                        lookahead = st.nextToken();
-                        if (lookahead == StreamTokenizer.TT_EOF) { 
-                            break;
-                        } else if (lookahead == StreamTokenizer.TT_WORD
-                                && st.sval.equalsIgnoreCase("if")) { 
-                            // this is an alias for split statements
-                            testSet.add(prevWord.substring(1));
-                            prevWord = st.sval; 
-                        } else if (lookahead == '=') {
-                            // check if this is regular statement: alias = ...
-                            lookahead = st.nextToken();
-                            // check for pattern such as '=='
-                            if (lookahead == StreamTokenizer.TT_WORD) {
-                                testSet.add(prevWord.substring(1));
-                                prevWord = st.sval; 
-                            } else {
-                                st.pushBack();
-                            }
-                        } else if (lookahead == ',') {
-                            // possible mult-alias inlining of a macro
-                            ArrayList<String> mlist = new ArrayList<String>();
-                            mlist.add(prevWord);
-                            int n = isMultiValueReturn(st, mlist, true);
-                            if (n == StreamTokenizer.TT_EOF) break;    
-                            if (n == 0) {
-                                for (String s : mlist) {
-                                    testSet.add(s.substring(1));
-                                }
-                                prevWord = null;
-                            } else if (n == StreamTokenizer.TT_WORD) {
-                                prevWord = st.sval;
-                            }
+        while (st.nextToken() != StreamTokenizer.TT_EOF) {
+            if (matchWord(st, "define", false) && matchDollarAlias(st, true)) {
+                testSet.add(st.sval.substring(1));
+            } else if (matchDollarAlias(st, false)) {
+                String prevWord = st.sval;
+                if (matchWord(st, "if", true)) {
+                    testSet.add(prevWord.substring(1));
+                } else if (matchChar(st, '=', true) && !matchChar(st, '=', true)) {
+                     testSet.add(prevWord.substring(1)); 
+                } else if (matchChar(st, ',', true)) {
+                    // possible mult-alias inlining of a macro
+                    ArrayList<String> mlist = new ArrayList<String>();
+                    mlist.add(prevWord);
+                    if (isMultiValueReturn(st, mlist, true)) {    
+                        for (String s : mlist) {
+                            testSet.add(s.substring(1));
                         }
-                    }
-                } else {
-                    prevWord = st.sval;
-                }    
-            } else {
-                prevWord = null;
+                    } 
+                } 
+            } else if (matchChar(st, '-', false) && matchChar(st, '-', true)) {
+                skipSingleLineComment(st);
             }
-            lookahead = st.nextToken();
         }
         
         for (String s : rets) {
@@ -320,29 +288,60 @@ class PigMacro {
     }
     
     // check for multi-value return pattern: alias, alias, ..., alias =
-    private int isMultiValueReturn(StreamTokenizer st, List<String> mlist,
-            boolean comma) throws IOException {
+    private static boolean isMultiValueReturn(StreamTokenizer st,
+            List<String> mlist, boolean comma) throws IOException {
         int lookahead = st.nextToken();
-        if (lookahead != StreamTokenizer.TT_EOF) {
-            if ((comma && lookahead == StreamTokenizer.TT_WORD)
-                    || (!comma && lookahead == ',')) {
-                if (lookahead == StreamTokenizer.TT_WORD
-                        && st.sval.charAt(0) == '$' && st.sval.length() > 1) {
-                    mlist.add(st.sval);
-                }
-                return isMultiValueReturn(st, mlist, !comma);
+        if ((comma && lookahead == StreamTokenizer.TT_WORD)
+                || (!comma && matchChar(st, ',', false))) {
+            if (matchDollarAlias(st, false)) {
+                mlist.add(st.sval);
             }
-            if (!comma && lookahead == '=') {
-                lookahead = st.nextToken();
-                // check for pattern such as '=='
-                if (lookahead == StreamTokenizer.TT_WORD) {
-                    return 0;
-                } else {
-                    st.pushBack();
-                }
-            }
+            return isMultiValueReturn(st, mlist, !comma);
         }
-        return lookahead;
+        if (!comma && lookahead == '=' && !matchChar(st, '=', true)) {
+            return true;
+        }
+        return false;
+    }
+        
+    private static boolean matchDollarAlias(StreamTokenizer st, boolean next)
+            throws IOException {
+        int type = next ? st.nextToken() : st.ttype;
+        if (type == StreamTokenizer.TT_WORD && st.sval.charAt(0) == '$'
+                && st.sval.length() > 1) {
+            return true;
+        }
+        if (next) st.pushBack();
+        return false;
+    }
+
+    private static boolean matchWord(StreamTokenizer st, String word,
+            boolean next) throws IOException {
+        int type = next ? st.nextToken() : st.ttype;
+        if (type == StreamTokenizer.TT_WORD
+                && st.sval.equalsIgnoreCase(word)) {
+            return true;
+        }
+        if (next) st.pushBack();
+ 
+        return false;
+    }
+    
+    private static boolean matchChar(StreamTokenizer st, int c, boolean next)
+            throws IOException {
+        int type = next ? st.nextToken() : st.ttype;
+        if (type == c) return true;
+        if (next) st.pushBack();
+        return false;
+    }
+
+    private static void skipSingleLineComment(StreamTokenizer st)
+            throws IOException {
+        int lookahead = st.nextToken();
+        while (lookahead != StreamTokenizer.TT_EOF && lookahead != '\n') {
+            lookahead = st.nextToken();
+        }
+        st.pushBack();
     }
     
     private static void traverseMacro(Tree t, List<CommonTree> nodes,

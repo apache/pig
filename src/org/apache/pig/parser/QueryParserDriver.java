@@ -283,17 +283,17 @@ public class QueryParserDriver {
         Tree defNode = t.getChild(1);
 
         // get parameter markers
+        ArrayList<String> params = new ArrayList<String>(); 
         Tree paramNode = defNode.getChild(0);
         int n = paramNode.getChildCount();
-        ArrayList<String> params = new ArrayList<String>(); 
         for (int i = 0; i < n; i++) {
             params.add(paramNode.getChild(i).getText());
         }
 
         // get return alias markers
+        ArrayList<String> returns = new ArrayList<String>(); 
         Tree retNode = defNode.getChild(1);
         int m = retNode.getChildCount();
-        ArrayList<String> returns = new ArrayList<String>(); 
         for (int i = 0; i < m; i++) {
             returns.add(retNode.getChild(i).getText());
         }
