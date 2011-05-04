@@ -134,6 +134,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
     private Configuration m_conf;
     private RecordReader reader;
     private RecordWriter writer;
+    private TableOutputFormat outputFormat = null;
     private Scan scan;
     private String contextSignature = null;
 
@@ -509,9 +510,11 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
     
     @Override
     public OutputFormat getOutputFormat() throws IOException {
-        TableOutputFormat outputFormat = new TableOutputFormat();
-        HBaseConfiguration.addHbaseResources(m_conf);
-        outputFormat.setConf(m_conf);
+        if (outputFormat == null) {
+            this.outputFormat = new TableOutputFormat();
+            HBaseConfiguration.addHbaseResources(m_conf);
+            this.outputFormat.setConf(m_conf);            
+        }
         return outputFormat;
     }
 

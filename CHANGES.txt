@@ -30,6 +30,8 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 
 BUG FIXES
 
+PIG-2008: Cache outputFormat in HBaseStorage (thedatachef via gates)
+
 PIG-2025: org.apache.pig.test.udf.evalfunc.TOMAP is missing package
 declaration (azaroth via gates)
 
