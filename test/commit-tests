@@ -25,7 +25,6 @@
 **/TestLocalPOSplit.java
 **/TestLocalRearrange.java
 **/TestLogToPhyCompiler.java
-**/TestLogicalOptimizer.java
 **/TestLogicalPlanBuilder.java
 **/TestMRCompiler.java
 **/TestMod.java
@@ -50,11 +49,8 @@
 **/TestPoissonSampleLoader.java
 **/TestRegexp.java
 **/TestSchema.java
-**/TestSchemaParser.java
 **/TestSchemaUtil.java
 **/TestStore.java
 **/TestTextDataParse.java
 **/TestTupleFormat.java
-**/TestTypeChecking.java
-**/TestTypeCheckingValidatorNoSchema.java
 **/TestStringUDFs.java
