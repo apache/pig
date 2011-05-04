@@ -43,6 +43,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import junit.framework.Assert;
 
@@ -532,6 +533,24 @@ public class Util {
             throw new IOException(e);
         }
 	}
+	
+    static public void copyFromLocalToLocal(String fromLocalFileName,
+            String toLocalFileName) throws IOException {
+        PigServer ps = new PigServer(ExecType.LOCAL, new Properties());
+        String script = "fs -cp " + fromLocalFileName + " " + toLocalFileName;
+
+        new File(toLocalFileName).deleteOnExit();
+        
+        GruntParser parser = new GruntParser(new StringReader(script));
+        parser.setInteractive(false);
+        parser.setParams(ps);
+        try {
+            parser.parseStopOnError();
+        } catch (org.apache.pig.tools.pigscript.parser.ParseException e) {
+            throw new IOException(e);
+        }
+        
+    }
 	
 	static public void copyFromClusterToLocal(MiniCluster cluster, String fileNameOnCluster, String localFileName) throws IOException {
 	    PrintWriter writer = new PrintWriter(new FileWriter(localFileName));
