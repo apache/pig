@@ -1053,6 +1053,12 @@ public class TestEvalPipelineLocal {
         // Filter out the random number generated on hash
         realPlan = realPlan.replaceAll("\\d{3,}", "");
         
+        System.out.println("-----------golden");
+        System.out.println(goldenPlan);
+        System.out.println("-----------");
+        System.out.println(realPlan);
+        
+        
         Assert.assertEquals(realPlan, goldenPlan);
     }
 }

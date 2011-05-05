@@ -315,10 +315,7 @@ dot_proj : ^( PERIOD col_alias_or_index+ )
 col_alias_or_index : col_alias | col_index
 ;
 
-col_alias : GROUP | scoped_col_alias
-;
-
-scoped_col_alias : ^( SCOPED_ALIAS IDENTIFIER+ )
+col_alias : GROUP | IDENTIFIER
 ;
 
 col_index : DOLLARVAR
@@ -479,10 +476,7 @@ split_branch
 col_ref : alias_col_ref | dollar_col_ref
 ;
 
-alias_col_ref : GROUP | scoped_alias_col_ref
-;
-
-scoped_alias_col_ref : ^( SCOPED_ALIAS IDENTIFIER+ )
+alias_col_ref : GROUP | IDENTIFIER
 ;
 
 dollar_col_ref : DOLLARVAR

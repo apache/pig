@@ -295,14 +295,7 @@ col_alias_or_index : col_alias | col_index
 
 col_alias 
     : GROUP { sb.append($GROUP.text); }
-    | scoped_col_alias
-;
-
-scoped_col_alias 
-    : ^( SCOPED_ALIAS a=IDENTIFIER {          
-        sb.append($a.text);
-    }
-    (b=IDENTIFIER { sb.append("::").append($b.text); })* )
+    | IDENTIFIER { sb.append($IDENTIFIER.text); }
 ;
 
 col_index 
@@ -471,15 +464,7 @@ col_ref : alias_col_ref | dollar_col_ref
 
 alias_col_ref 
     : GROUP { sb.append($GROUP.text); }
-    | scoped_alias_col_ref
-;
-
-scoped_alias_col_ref 
-    : ^( SCOPED_ALIAS name=IDENTIFIER  {
-        sb.append($name.text);
-    }
-    (name1=IDENTIFIER { sb.append("::").append($name1.text); } 
-    )* )
+    | IDENTIFIER { sb.append($IDENTIFIER.text); }
 ;
 
 dollar_col_ref 

@@ -60,6 +60,7 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.PlanValidationException;
+import org.apache.pig.impl.util.Utils;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.logical.relational.LOStore;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
@@ -320,7 +321,7 @@ public class TestStore extends junit.framework.TestCase {
             ResourceSchema rs = new BinStorage().getSchema(outputFileName, 
                     new Job(ConfigurationUtil.toConfiguration(pig.getPigContext().
                             getProperties())));
-            Schema expectedSchema = Util.getSchemaFromString(
+            Schema expectedSchema = Utils.getSchemaFromString(
                     "c:chararray,i:int,d:double");
             Assert.assertTrue("Checking binstorage getSchema output", Schema.equals( 
                     expectedSchema, Schema.getPigSchema(rs), true, true));

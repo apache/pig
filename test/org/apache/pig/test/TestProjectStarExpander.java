@@ -32,6 +32,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.util.Utils;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -88,7 +89,7 @@ public class TestProjectStarExpander  {
 
         Util.registerMultiLineQuery(pig, query);
        
-        Schema expectedSch = Util.getSchemaFromString("aa : int, bb : int, cc : int, d : int, e : int");
+        Schema expectedSch = Utils.getSchemaFromString("aa : int, bb : int, cc : int, d : int, e : int");
         Schema sch = pig.dumpSchema("f");
         assertEquals("Checking expected schema", expectedSch, sch);
         
@@ -99,7 +100,7 @@ public class TestProjectStarExpander  {
         ; 
         Util.registerMultiLineQuery(pig, query);
         
-        expectedSch = Util.getSchemaFromString("aa : int, bb : int, cc : int, dd : int, ee : int");
+        expectedSch = Utils.getSchemaFromString("aa : int, bb : int, cc : int, dd : int, ee : int");
         sch = pig.dumpSchema("f");
         assertEquals("Checking expected schema", expectedSch, sch);
         Iterator<Tuple> it = pig.openIterator("f");
@@ -129,7 +130,7 @@ public class TestProjectStarExpander  {
 
         Util.registerMultiLineQuery(pig, query);
        
-        Schema expectedSch = Util.getSchemaFromString(
+        Schema expectedSch = Utils.getSchemaFromString(
                 "aa : int, bb : int, cc : int, a : int, b : int, c : int");
         Schema sch = pig.dumpSchema("f");
         assertEquals("Checking expected schema", expectedSch, sch);

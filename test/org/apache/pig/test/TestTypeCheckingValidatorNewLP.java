@@ -46,7 +46,6 @@ import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigServer;
-import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
@@ -64,6 +63,7 @@ import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.CompilationMessageCollector.Message;
 import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.util.MultiMap;
+import org.apache.pig.impl.util.Utils;
 import org.apache.pig.newplan.DependencyOrderWalker;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
@@ -3755,7 +3755,7 @@ public class TestTypeCheckingValidatorNewLP {
             String expectedSchemaString = "mygroup: chararray,A::name: chararray,A::age: int," +
             "A::gpa: float,B::name: chararray,B::age: int," +
             "B::registration: chararray,B::contributions: float";
-            Schema expectedSchema =  org.apache.pig.test.Util.getSchemaFromString(expectedSchemaString);
+            Schema expectedSchema = Utils.getSchemaFromString(expectedSchemaString);
             Schema foreachSch = org.apache.pig.newplan.logical.Util.translateSchema(foreach.getSchema());
             assertTrue(Schema.equals(foreachSch, expectedSchema, false, true));
         
@@ -4079,7 +4079,7 @@ public class TestTypeCheckingValidatorNewLP {
             Util.registerMultiLineQuery(pig, query);
             
             Schema expectedSch = 
-                Util.getSchemaFromString("mx: double");
+                Utils.getSchemaFromString("mx: double");
             Schema sch = pig.dumpSchema("d");
             assertEquals("Checking expected schema", expectedSch, sch);
      

@@ -27,14 +27,14 @@ import java.io.PrintWriter;
 import java.util.Iterator;
 import java.util.List;
 
+import junit.framework.Assert;
+
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.mapred.lib.FieldSelectionMapReduce;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
-import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
@@ -44,14 +44,12 @@ import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.impl.util.LogUtils;
+import org.apache.pig.impl.util.Utils;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-
-
 
 public class TestUnionOnSchema  {
     static MiniCluster cluster ;
@@ -122,7 +120,7 @@ public class TestUnionOnSchema  {
             + "u = union onschema l1, l2;"
         ; 
         Util.registerMultiLineQuery(pig, query);
-        Schema expectedSch = Util.getSchemaFromString("i: int, j: int");
+        Schema expectedSch = Utils.getSchemaFromString("i: int, j: int");
         Schema sch = pig.dumpSchema("u");
         assertEquals("Checking expected schema",sch, expectedSch);
         Iterator<Tuple> it = pig.openIterator("u");
@@ -157,7 +155,7 @@ public class TestUnionOnSchema  {
         Util.registerMultiLineQuery(pig, query);
         
         Schema sch = pig.dumpSchema("fil");
-        Schema expectedSch = Util.getSchemaFromString("i: int, x: int, j: int");
+        Schema expectedSch = Utils.getSchemaFromString("i: int, x: int, j: int");
         assertEquals("Checking expected schema",sch, expectedSch);
         
 
@@ -192,7 +190,7 @@ public class TestUnionOnSchema  {
         Util.registerMultiLineQuery(pig, query);        
         
         Schema sch = pig.dumpSchema("fil");
-        Schema expectedSch = Util.getSchemaFromString("i: int, x: int, y: int");
+        Schema expectedSch = Utils.getSchemaFromString("i: int, x: int, y: int");
         assertEquals("Checking expected schema",sch, expectedSch);
         
 
@@ -252,7 +250,7 @@ public class TestUnionOnSchema  {
         String query = query_prefix + "u = union onschema f, l2; " ; 
         Util.registerMultiLineQuery(pig, query);
         Schema sch = pig.dumpSchema("u");
-        Schema expectedSch = Util.getSchemaFromString("i: int, j: int");
+        Schema expectedSch = Utils.getSchemaFromString("i: int, j: int");
         assertEquals("Checking expected schema",sch, expectedSch);
         Iterator<Tuple> it = pig.openIterator("u");
 
@@ -270,7 +268,7 @@ public class TestUnionOnSchema  {
         query = query_prefix + "u = union onschema l2, f; " ; 
         Util.registerMultiLineQuery(pig, query);
         sch = pig.dumpSchema("u");
-        expectedSch = Util.getSchemaFromString("i: int, j: int");
+        expectedSch = Utils.getSchemaFromString("i: int, j: int");
         assertEquals("Checking expected schema",sch, expectedSch);
         it = pig.openIterator("u");
         Util.checkQueryOutputsAfterSort(it, expectedRes);
@@ -298,7 +296,7 @@ public class TestUnionOnSchema  {
         
         Schema sch = pig.dumpSchema("u");
         Schema expectedSch = 
-            Util.getSchemaFromString("gkey: int, l1::i: int, l1::j: int, l2::i: int, l2::x: chararray");
+            Utils.getSchemaFromString("gkey: int, l1::i: int, l1::j: int, l2::i: int, l2::x: chararray");
         assertEquals("Checking expected schema",sch, expectedSch);
 
         Iterator<Tuple> it = pig.openIterator("u");
@@ -334,7 +332,7 @@ public class TestUnionOnSchema  {
                 
         Schema sch = pig.dumpSchema("u");
         Schema expectedSch = 
-            Util.getSchemaFromString("gkey: int, l1::i: int, l1::j: int, l2::i: int, l2::x: chararray");
+            Utils.getSchemaFromString("gkey: int, l1::i: int, l1::j: int, l2::i: int, l2::x: chararray");
         assertEquals("Checking expected schema",sch, expectedSch);
 
         Iterator<Tuple> it = pig.openIterator("u");
@@ -677,7 +675,7 @@ public class TestUnionOnSchema  {
 
 
     private void checkSchemaEquals(String query, String schemaStr) throws IOException, ParseException {
-        Schema expectedSch = Util.getSchemaFromString(schemaStr);
+        Schema expectedSch = Utils.getSchemaFromString(schemaStr);
         checkSchemaEquals(query, expectedSch);       
     }
 
@@ -700,9 +698,8 @@ public class TestUnionOnSchema  {
         Util.registerMultiLineQuery(pig, query);
 
         Schema sch = pig.dumpSchema("u");
-        Schema expectedSch = 
-            Util.getSchemaFromString("i: int, cj: chararray, uo: Tuple(), j: chararray");
-        assertEquals("Checking expected schema",sch, expectedSch);
+        String expectedSch = "{i: int,cj: chararray,uo: (),j: chararray}";
+        Assert.assertTrue( expectedSch.equals( sch.toString() ) );
         
 
         Iterator<Tuple> it = pig.openIterator("u");
@@ -746,7 +743,7 @@ public class TestUnionOnSchema  {
         Util.registerMultiLineQuery(pig, query);
         Schema sch = pig.dumpSchema("u");
         Schema expectedSch = 
-            Util.getSchemaFromString("i: int, mx: long");
+            Utils.getSchemaFromString("i: int, mx: long");
         assertEquals("Checking expected schema",sch, expectedSch);
         
         // verify schema for reverse order of relations as well
@@ -754,7 +751,7 @@ public class TestUnionOnSchema  {
         Util.registerMultiLineQuery(pig, query);
         sch = pig.dumpSchema("u");
         expectedSch = 
-            Util.getSchemaFromString("i: int, mx: long");
+            Utils.getSchemaFromString("i: int, mx: long");
         assertEquals("Checking expected schema",sch, expectedSch);
         
         
@@ -800,7 +797,7 @@ public class TestUnionOnSchema  {
         Util.registerMultiLineQuery(pig, query);
         Schema sch = pig.dumpSchema("u");
         Schema expectedSch = 
-            Util.getSchemaFromString("i: int, mx: long");
+            Utils.getSchemaFromString("i: int, mx: long");
         assertEquals("Checking expected schema",sch, expectedSch);
         
         // verify schema for reverse order of relations as well
@@ -808,7 +805,7 @@ public class TestUnionOnSchema  {
         Util.registerMultiLineQuery(pig, query);
         sch = pig.dumpSchema("u");
         expectedSch = 
-            Util.getSchemaFromString("i: int, mx: long");
+            Utils.getSchemaFromString("i: int, mx: long");
         assertEquals("Checking expected schema",sch, expectedSch);
         
         
@@ -865,7 +862,7 @@ public class TestUnionOnSchema  {
 
         Schema sch = pig.dumpSchema("u");
         Schema expectedSch = 
-            Util.getSchemaFromString("gp: int,c::gp: int,i: int,j: int");
+            Utils.getSchemaFromString("gp: int,c::gp: int,i: int,j: int");
         assertEquals("Checking expected schema",sch, expectedSch);
         
         
@@ -874,7 +871,7 @@ public class TestUnionOnSchema  {
 
         sch = pig.dumpSchema("u");
         expectedSch = 
-            Util.getSchemaFromString("i: int,j: int, gp: int,c::gp: int");
+            Utils.getSchemaFromString("i: int,j: int, gp: int,c::gp: int");
         assertEquals("Checking expected schema",sch, expectedSch);
         
         

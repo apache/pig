@@ -359,9 +359,6 @@ simple_type returns[byte datatype]
 ;
 
 tuple_type returns[LogicalSchema logicalSchema]
-@init {
-    $logicalSchema = new LogicalSchema();
-}
  : ^( TUPLE_TYPE 
       ( field_def_list
         { 
@@ -850,20 +847,7 @@ col_alias_or_index returns[Object col]
 
 col_alias returns[Object col]
  : GROUP { $col = $GROUP.text; }
- | scoped_col_alias { $col = $scoped_col_alias.col; }
-;
-
-scoped_col_alias returns[Object col]
-@init {
-    StringBuilder sb = new StringBuilder();
-}
-@after {
-    $col = sb.toString();
-}
- : ^( SCOPED_ALIAS
-      id1 = IDENTIFIER { sb.append( $id1.text ); } 
-      ( id2 = IDENTIFIER { sb.append( "::" ); sb.append( $id2.text ); } )*
-    )
+ | IDENTIFIER { $col = $IDENTIFIER.text; }
 ;
 
 col_index returns[Integer col]
@@ -1320,10 +1304,10 @@ alias_col_ref[LogicalExpressionPlan plan] returns[LogicalExpression expr]
        $expr = builder.buildProjectExpr( new SourceLocation( (PigParserNode)$GROUP ), $plan, $GScope::currentOp, 
            $statement::inputIndex, $GROUP.text, 0 );
    }
- | scoped_alias_col_ref
+ | IDENTIFIER
    {
-       SourceLocation loc = new SourceLocation( (PigParserNode)$scoped_alias_col_ref.start );
-       String alias = $scoped_alias_col_ref.alias;
+       SourceLocation loc = new SourceLocation( (PigParserNode)$IDENTIFIER );
+       String alias = $IDENTIFIER.text;
        Operator inOp = builder.lookupOperator( $statement::inputAlias );
        LogicalSchema schema;
        try {
@@ -1347,19 +1331,6 @@ alias_col_ref[LogicalExpressionPlan plan] returns[LogicalExpression expr]
            }
        }
    }
-;
-
-scoped_alias_col_ref returns[String alias]
-@init {
-    StringBuilder sb = new StringBuilder();
-}
-@after {
-    $alias = sb.toString();
-}
- : ^( SCOPED_ALIAS
-      id1 = IDENTIFIER { sb.append( $id1.text ); } 
-      ( id2 = IDENTIFIER { sb.append( "::" ); sb.append( $id2.text ); } )*
-    )
 ;
 
 dollar_col_ref[LogicalExpressionPlan plan] returns[LogicalExpression expr]

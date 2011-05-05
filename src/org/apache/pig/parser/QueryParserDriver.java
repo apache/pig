@@ -19,10 +19,7 @@
 package org.apache.pig.parser;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -43,7 +40,9 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
-import org.apache.pig.tools.pigscript.parser.ParseException;
+import org.apache.pig.newplan.logical.relational.LogicalSchema;
+import org.apache.pig.parser.QueryParser.field_def_list_return;
+import org.apache.pig.parser.QueryParser.literal_return;
 import org.apache.pig.tools.pigstats.ScriptState;
 
 public class QueryParserDriver {
@@ -69,6 +68,94 @@ public class QueryParserDriver {
         importSeen = new HashSet<String>();
         macroSeen = new HashSet<String>();        
     }
+    
+    private static Tree parseSchema(CommonTokenStream tokens) throws ParserException {
+        QueryParser parser = QueryParserUtils.createParser(tokens);
+
+        field_def_list_return result = null;
+        try {
+            result = parser.field_def_list();
+        } catch (RecognitionException e) {
+            String msg = parser.getErrorHeader(e) + " "
+                    + parser.getErrorMessage(e, parser.getTokenNames());
+            throw new ParserException(msg);
+        } catch(RuntimeException ex) {
+            throw new ParserException( ex.getMessage() );
+        }
+
+        Tree ast = (Tree)result.getTree();
+        checkError( parser );
+
+        return ast;
+    }
+
+    public LogicalSchema parseSchema(String input) throws ParserException {
+        CommonTokenStream tokenStream = tokenize( input, null );
+        LogicalSchema schema = null;
+        Tree ast = parseSchema( tokenStream );
+        
+        try{       
+            CommonTreeNodeStream nodes = new CommonTreeNodeStream( ast );
+            AstValidator walker = new AstValidator( nodes );
+            ast = (Tree)walker.field_def_list().getTree();
+            checkError( walker );
+            
+            LogicalPlanGenerator planGenerator = 
+                new LogicalPlanGenerator( new CommonTreeNodeStream( ast ), pigContext, scope, fileNameMap );
+            schema = planGenerator.field_def_list().schema;
+            checkError( planGenerator );
+        } catch(RecognitionException ex) {
+            throw new ParserException( ex );
+        } catch(Exception ex) {
+            throw new ParserException( ex.getMessage(), ex );
+        }
+        
+        return schema;
+    }
+
+    private static Tree parseConstant(CommonTokenStream tokens) throws ParserException {
+        QueryParser parser = QueryParserUtils.createParser(tokens);
+
+        literal_return result = null;
+        try {
+            result = parser.literal();
+        } catch (RecognitionException e) {
+            String msg = parser.getErrorHeader(e) + " "
+                    + parser.getErrorMessage(e, parser.getTokenNames());
+            throw new ParserException(msg);
+        } catch(RuntimeException ex) {
+            throw new ParserException( ex.getMessage() );
+        }
+
+        Tree ast = (Tree)result.getTree();
+        checkError( parser );
+
+        return ast;
+    }
+
+    public Object parseConstant(String input) throws ParserException {
+        CommonTokenStream tokenStream = tokenize( input, null );
+        Object value = null;
+        Tree ast = parseConstant( tokenStream );
+        
+        try{       
+            CommonTreeNodeStream nodes = new CommonTreeNodeStream( ast );
+            AstValidator walker = new AstValidator( nodes );
+            ast = (Tree)walker.literal().getTree();
+            checkError( walker );
+
+            LogicalPlanGenerator planGenerator = 
+                new LogicalPlanGenerator( new CommonTreeNodeStream( ast ), pigContext, scope, fileNameMap );
+            value = planGenerator.literal().value;
+            checkError( planGenerator );
+        } catch(RecognitionException ex) {
+            throw new ParserException( ex );
+        } catch(Exception ex) {
+            throw new ParserException( ex.getMessage(), ex );
+        }
+        
+        return value;
+    }
 
     public LogicalPlan parse(String query) throws ParserException {
         LogicalPlan plan = null;
@@ -76,15 +163,8 @@ public class QueryParserDriver {
         ScriptState ss = ScriptState.get();
         CommonTokenStream tokenStream = tokenize(query, ss.getFileName());
         
-        Tree ast = null;
-            
-        try {
-            ast = parse( tokenStream );
-        } catch(RuntimeException ex) {
-            throw new ParserException( ex.getMessage() );
-        }          
-         
-        ast = expandMacro(ast);
+        Tree ast = parse( tokenStream );
+        ast = expandMacro( ast );
 
         try{       
             ast = validateAst( ast );
@@ -142,7 +222,9 @@ public class QueryParserDriver {
             String msg = parser.getErrorHeader(e) + " "
                     + parser.getErrorMessage(e, parser.getTokenNames());
             throw new ParserException(msg);
-        }
+        } catch(RuntimeException ex) {
+            throw new ParserException( ex.getMessage() );
+        }          
 
         Tree ast = (Tree) result.getTree();
         checkError(parser);

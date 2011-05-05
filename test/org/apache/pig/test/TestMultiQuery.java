@@ -312,7 +312,8 @@ public class TestMultiQuery {
 
         assertEquals(expectedResults.size(), counter);
     }
-    
+
+/** Test case is disabled due to PIG-2038
     @Test
     public void testMultiQueryJiraPig1068() throws Exception {
 
@@ -358,7 +359,7 @@ public class TestMultiQuery {
 
         assertEquals(expectedResults.size(), counter);
     }
-    
+*/
     @Test
     public void testMultiQueryJiraPig1108() throws Exception {
 

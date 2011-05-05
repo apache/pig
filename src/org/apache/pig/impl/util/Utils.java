@@ -20,6 +20,7 @@ package org.apache.pig.impl.util;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
@@ -38,9 +39,11 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.InterStorage;
 import org.apache.pig.impl.io.ReadToEndLoader;
 import org.apache.pig.impl.io.TFileStorage;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
-import org.apache.pig.impl.logicalLayer.parser.QueryParser;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.newplan.logical.Util;
+import org.apache.pig.newplan.logical.relational.LogicalSchema;
+import org.apache.pig.parser.ParserException;
+import org.apache.pig.parser.QueryParserDriver;
 
 import com.google.common.collect.Lists;
 
@@ -154,18 +157,26 @@ public class Utils {
         return new ResourceSchema(s);
     }
 
-    public static Schema getSchemaFromString(String schemaString) throws ParseException {
-        return Utils.getSchemaFromString(schemaString, DataType.BYTEARRAY);
+    /**
+     * @deprecated Use parseSchema() instead.
+     * @param schemaString
+     * @return Schema instance
+     * @throws ParserException
+     */
+    public static Schema getSchemaFromString(String schemaString) throws ParserException {
+        LogicalSchema schema = parseSchema(schemaString);
+        Schema result = org.apache.pig.newplan.logical.Util.translateSchema(schema);
+        Schema.setSchemaDefaultType(result, DataType.BYTEARRAY);
+        return result;
     }
 
-    public static Schema getSchemaFromString(String schemaString, byte defaultType) throws ParseException {
-        ByteArrayInputStream stream = new ByteArrayInputStream(schemaString.getBytes()) ;
-        QueryParser queryParser = new QueryParser(stream) ;
-        Schema schema = queryParser.TupleSchema() ;
-        Schema.setSchemaDefaultType(schema, defaultType);
-        return schema;
-    }
-
+	public static LogicalSchema parseSchema(String schemaString) throws ParserException {
+		QueryParserDriver queryParser = new QueryParserDriver( new PigContext(), 
+        		"util", new HashMap<String, String>() ) ;
+        LogicalSchema schema = queryParser.parseSchema(schemaString);
+		return schema;
+	}
+    
     public static String getTmpFileCompressorName(PigContext pigContext) {
         if (pigContext == null)
             return InterStorage.class.getName();

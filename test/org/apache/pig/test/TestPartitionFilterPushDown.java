@@ -55,10 +55,11 @@ import org.apache.pig.newplan.PColFilterExtractor;
 import org.apache.pig.newplan.optimizer.PlanOptimizer;
 import org.apache.pig.newplan.optimizer.Rule;
 import org.apache.pig.newplan.optimizer.Transformer;
+import org.apache.pig.parser.ParserException;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.LogUtils;
+import org.apache.pig.impl.util.Utils;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -634,8 +635,8 @@ public class TestPartitionFilterPushDown {
         static Expression partFilter = null;
 
         public TestLoader(String schemaString, String commaSepPartitionCols) 
-        throws ParseException {
-            schema = Util.getSchemaFromString(schemaString);
+        throws ParserException {
+            schema = Utils.getSchemaFromString(schemaString);
             partCols = commaSepPartitionCols.split(",");
         }
 

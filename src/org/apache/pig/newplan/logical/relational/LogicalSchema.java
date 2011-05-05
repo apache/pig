@@ -103,7 +103,7 @@ public class LogicalSchema {
                 return ( aliasToPrint + uidString + ":bag{" + schema.toString(verbose) + "}" );
             } else if( type == DataType.TUPLE ) {
                 if( schema == null ) {
-                    return ( aliasToPrint + uidString + ":tuple{}" );
+                    return ( aliasToPrint + uidString + ":tuple()" );
                 }
                 return ( aliasToPrint + uidString + ":tuple(" + schema.toString(verbose) + ")" );
             } else if (type == DataType.MAP) {
