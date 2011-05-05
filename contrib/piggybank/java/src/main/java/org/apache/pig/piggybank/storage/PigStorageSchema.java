@@ -32,7 +32,7 @@ import org.apache.pig.StoreMetadata;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import org.apache.pig.parser.ParserException;
 import org.apache.pig.impl.util.CastUtils;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.impl.util.Utils;
@@ -77,7 +77,7 @@ public class PigStorageSchema extends PigStorage implements LoadMetadata, StoreM
             if (serializedSchema == null) return tup;
             try {
                 schema = new ResourceSchema(Utils.getSchemaFromString(serializedSchema));
-            } catch (ParseException e) {
+            } catch (ParserException e) {
                 mLog.error("Unable to parse serialized schema " + serializedSchema, e);
             }
         }
