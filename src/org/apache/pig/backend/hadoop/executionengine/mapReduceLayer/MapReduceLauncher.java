@@ -63,7 +63,6 @@ import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.util.ConfigurationValidator;
 import org.apache.pig.impl.util.LogUtils;
-import org.apache.pig.parser.QueryParserDriver;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStatsUtil;
 import org.apache.pig.tools.pigstats.ScriptState;
@@ -222,7 +221,7 @@ public class MapReduceLauncher extends Launcher{
             Thread jcThread = new Thread(jc);
             jcThread.setUncaughtExceptionHandler(jctExceptionHandler);
             
-            jcThread.setContextClassLoader(QueryParserDriver.classloader);
+            jcThread.setContextClassLoader(PigContext.getClassLoader());
             
             //All the setup done, now lets launch the jobs.
             jcThread.start();
