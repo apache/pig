@@ -973,6 +973,8 @@ public class TestMacroExpansion {
         validateFailure(macro + script, expectedErr);
     }
     
+
+
     // macro doesn't contain return alias
     @Test
     public void negativeTest5() throws Throwable {
@@ -1047,6 +1049,46 @@ public class TestMacroExpansion {
         validateFailure(macro + script, expectedErr);
     }
     
+    // PIG-1999: macro contains schema name that conflicts with alias
+    @Test
+    public void negativeTest7() throws Throwable {
+        String macro = "define toBytearray(in, intermediate) returns e {\n"
+                + "b = load '$in' as (name:chararray, age:long, gpa: float);\n"
+                + "d = load '$intermediate' using BinStorage() as (b:bag{t:tuple(x,y,z)}, t2:tuple(a,b,c));\n"
+                + "$e = foreach d generate COUNT(b), t2.a, t2.b, t2.c;};\n";
+
+        String script = "f = toBytearray ('data', 'output1');\n";
+        
+        String expectedErr = "pig script failed to validate: Macro doesn't support user defined schema "
+                + "that contains name that conflicts with alias name: b\n"
+                + "macro content: \n"
+                + "b = load 'data' as (name:chararray, age:long, gpa: float);\n"
+                + "d = load 'output1' using BinStorage() as (b:bag{t:tuple(x,y,z)}, t2:tuple(a,b,c));\n"
+                + "f = foreach d generate COUNT(b), t2.a, t2.b, t2.c;\n";
+
+        validateFailure(macro + script, expectedErr, "pig script failed to validate:");
+    }
+    
+    // PIG-1999: macro contains schema name that conflicts with alias
+    @Test
+    public void negativeTest8() throws Throwable {
+        String macro = "define toBytearray(in, intermediate) returns e {\n"
+                + "b = load '$in' as (name:chararray, age:long, gpa: float);\n"
+                + "d = foreach b generate $0 as b:bag{t:tuple(x,y,z)};\n"
+                + "$e = foreach d generate COUNT(b), t2.a, t2.b, t2.c;};\n";
+
+        String script = "f = toBytearray ('data', 'output1');\n";
+        
+        String expectedErr = "pig script failed to validate: Macro doesn't support user defined schema "
+                + "that contains name that conflicts with alias name: b\n"
+                + "macro content: \n"
+                + "b = load 'data' as (name:chararray, age:long, gpa: float);\n"
+                + "d = foreach b generate $0 as b:bag{t:tuple(x,y,z)};\n"
+                + "f = foreach d generate COUNT(b), t2.a, t2.b, t2.c;\n";
+
+        validateFailure(macro + script, expectedErr, "pig script failed to validate:");
+    }
+   
     @Test
     public void recursiveMacrosTest() throws Exception {
         String macro1 = "define group_and_partition (A, group_key, reducers) returns B {\n" +
@@ -1972,7 +2014,7 @@ public class TestMacroExpansion {
         }
     }
     
-    private void validateFailure(String piglatin, String expectedErr) throws Throwable {
+    private void validateFailure(String piglatin, String expectedErr, String keyword) throws Throwable {
         String scriptFile = "mymacrotest.pig";
         
         try {
@@ -1988,10 +2030,14 @@ public class TestMacroExpansion {
             Assert.fail("Expected exception isn't thrown");
         } catch (FrontendException e) {  
             String msg = e.getMessage();
-            int pos = msg.indexOf("Reason:");
+            int pos = msg.indexOf(keyword);
             Assert.assertEquals(expectedErr, msg.substring(pos));           
         } finally {
             new File(scriptFile).delete();
         }
+    }
+    
+    private void validateFailure(String piglatin, String expectedErr) throws Throwable {
+        validateFailure(piglatin, expectedErr, "Reason:");
     }
 }
