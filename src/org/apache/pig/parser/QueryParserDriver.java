@@ -46,8 +46,6 @@ import org.apache.pig.parser.QueryParser.literal_return;
 import org.apache.pig.tools.pigstats.ScriptState;
 
 public class QueryParserDriver {
-    public static ClassLoader classloader = QueryParserDriver.class.getClassLoader();
-    
     private static final Log LOG = LogFactory.getLog(QueryParserDriver.class);
     
     private static final String MACRO_DEF = "MACRO_DEF";

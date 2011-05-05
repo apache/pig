@@ -67,7 +67,6 @@ import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.parser.DryRunGruntParser;
-import org.apache.pig.parser.QueryParserDriver;
 import org.apache.pig.scripting.ScriptEngine;
 import org.apache.pig.scripting.ScriptEngine.SupportedScriptLang;
 import org.apache.pig.tools.cmdline.CmdLineParser;
@@ -357,7 +356,7 @@ static int run(String args[], PigProgressNotificationListener listener) {
         if (properties.get("udf.import.list")!=null)
             PigContext.initializeImportList((String)properties.get("udf.import.list"));
 
-        QueryParserDriver.classloader = pigContext.createCl(null);
+        PigContext.setClassLoader(pigContext.createCl(null));
 
         // construct the parameter substitution preprocessor
         Grunt grunt = null;

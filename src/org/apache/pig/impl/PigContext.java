@@ -128,6 +128,8 @@ public class PigContext implements Serializable {
 
     // List of paths skipped for automatic shipping
     List<String> skippedShipPaths = new ArrayList<String>();
+
+    static private ClassLoader classloader = PigContext.class.getClassLoader();
     
     public PigContext() {
         this(ExecType.MAPREDUCE, new Properties());
@@ -226,7 +228,7 @@ public class PigContext implements Serializable {
     public void addJar(URL resource) throws MalformedURLException{
         if (resource != null) {
             extraJars.add(resource);
-            QueryParserDriver.classloader = createCl(null);
+            PigContext.classloader = createCl(null);
         }
     }
 
@@ -422,7 +424,7 @@ public class PigContext implements Serializable {
         for(String prefix: getPackageImportList()) {
             Class c;
             try {
-                c = Class.forName(prefix+name,true, QueryParserDriver.classloader);
+                c = Class.forName(prefix+name,true, PigContext.classloader);
                 return c;
             } 
             catch (ClassNotFoundException e) {
@@ -643,5 +645,11 @@ public class PigContext implements Serializable {
     public void setDefaultLogLevel(Level l)
     {
         defaultLogLevel = l;
+    }
+    public static ClassLoader getClassLoader() {
+        return classloader;
+    }
+    public static void setClassLoader(ClassLoader cl) {
+        classloader = cl;
     }
 }
