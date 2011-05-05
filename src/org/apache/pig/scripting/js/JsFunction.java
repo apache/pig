@@ -36,11 +36,11 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.impl.util.Utils;
+import org.apache.pig.parser.ParserException;
 
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.NativeJavaObject;
@@ -181,7 +181,7 @@ public class JsFunction extends EvalFunc<Object> {
         outputSchemaDef = jsScriptEngine.jsEval(this.getClass().getName()+"(String)", functionName+".outputSchema").toString();
         try {
             this.outputSchema = Utils.getSchemaFromString(outputSchemaDef);
-        } catch (ParseException e) {
+        } catch (ParserException e) {
             throw new IllegalArgumentException(functionName+".outputSchema is not a valid schema: "+e.getMessage(), e); 
         }
 

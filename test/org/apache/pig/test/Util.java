@@ -21,7 +21,6 @@ import static java.util.regex.Matcher.quoteReplacement;
 import static org.junit.Assert.fail;
 
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -77,9 +76,6 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
-import org.apache.pig.impl.logicalLayer.parser.QueryParser;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanPrinter;
@@ -96,6 +92,7 @@ import org.apache.pig.newplan.logical.visitor.SortInfoSetter;
 import org.apache.pig.newplan.logical.visitor.StoreAliasSetter;
 import org.apache.pig.newplan.logical.visitor.TypeCheckingRelVisitor;
 import org.apache.pig.newplan.logical.visitor.UnionOnSchemaSetter;
+import org.apache.pig.parser.ParserException;
 import org.apache.pig.parser.QueryParserDriver;
 import org.apache.pig.tools.grunt.GruntParser;
 
@@ -618,25 +615,13 @@ public class Util {
         }
     }
 
-    public static Schema getSchemaFromString(String schemaString) throws ParseException {
-        return Util.getSchemaFromString(schemaString, DataType.BYTEARRAY);
-    }
-
-    static Schema getSchemaFromString(String schemaString, byte defaultType) throws ParseException {
-        ByteArrayInputStream stream = new ByteArrayInputStream(schemaString.getBytes()) ;
-        QueryParser queryParser = new QueryParser(stream) ;
-        Schema schema = queryParser.TupleSchema() ;
-        Schema.setSchemaDefaultType(schema, defaultType);
-        return schema;
+    public static Object getPigConstant(String pigConstantAsString) throws ParserException {
+        QueryParserDriver queryParser = new QueryParserDriver( new PigContext(), 
+        		"util", new HashMap<String, String>() ) ;
+        return queryParser.parseConstant(pigConstantAsString);
     }
     
-    public static Object getPigConstant(String pigConstantAsString) throws ParseException {
-        ByteArrayInputStream stream = new ByteArrayInputStream(pigConstantAsString.getBytes()) ;
-        QueryParser queryParser = new QueryParser(stream) ;
-        return queryParser.Datum();
-    }
-    
-    public static List<Tuple> getTuplesFromConstantTupleStrings(String[] tupleConstants) throws ParseException {
+    public static List<Tuple> getTuplesFromConstantTupleStrings(String[] tupleConstants) throws ParserException {
         List<Tuple> result = new ArrayList<Tuple>(tupleConstants.length);
         for(int i = 0; i < tupleConstants.length; i++) {
             result.add((Tuple) getPigConstant(tupleConstants[i]));
@@ -645,7 +630,7 @@ public class Util {
     }
 
     public static List<Tuple> getTuplesFromConstantTupleStringAsByteArray(String[] tupleConstants)
-    throws ParseException, ExecException{
+    throws ParserException, ExecException {
         List<Tuple> tuples = getTuplesFromConstantTupleStrings(tupleConstants);
         for(Tuple t : tuples){
             for(int i=0; i<t.size(); i++){

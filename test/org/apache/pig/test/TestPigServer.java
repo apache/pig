@@ -51,6 +51,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.PropertiesUtil;
+import org.apache.pig.impl.util.Utils;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -624,8 +625,8 @@ public class TestPigServer {
             // the schema object from the schema string
             s = s.replaceAll("^.*\\{", "");
             s = s.replaceAll("\\}$", "");
-            Schema actual = Util.getSchemaFromString( s);
-            Schema expected = Util.getSchemaFromString(
+            Schema actual = Utils.getSchemaFromString( s);
+            Schema expected = Utils.getSchemaFromString(
                     "site: chararray,count: int," +
                     "itemCounts::type: chararray,itemCounts::typeCount: int," +
                     "itemCounts::f: float,itemCounts::m: map[ ]");
