@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2026: e2e tests in eclipse classpath (azaroth via hashutosh) 
+
 PIG-2024: Incorrect jar paths in .classpath template for eclipse (azaroth via hashutosh)
 
 OPTIMIZATIONS
