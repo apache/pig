@@ -41,6 +41,14 @@ import java.util.Set;
 
 @members {
 
+@Override
+public String getErrorMessage(RecognitionException e, String[] tokenNames) {
+	if (e instanceof ParserValidationException) {
+		return e.toString();
+	} 
+	return super.getErrorMessage(e, tokenNames);
+}
+
 public void setParams(Set ps, String macro, long idx) {
     params = ps; 
     macroName = macro;
@@ -60,6 +68,8 @@ private Set<String> aliasSeen = new HashSet<String>();
 private String macroName = "";
 
 private long index = 0;
+
+private boolean inAsOrGenClause = false;
 
 } // End of @members
 
@@ -163,11 +173,24 @@ filename
 ;
 
 as_clause
+@init { 
+	inAsOrGenClause = true;
+}
+@after { 
+	inAsOrGenClause = false; 
+}
     : ^( AS field_def_list )
 ;
 
 field_def
-    : ^( FIELD_DEF IDENTIFIER type? )
+    : ^( FIELD_DEF IDENTIFIER type? ) {
+	if (inAsOrGenClause) {
+		if (aliasSeen.contains($IDENTIFIER.text)) {
+			throw new ParserValidationException(input, new SourceLocation((PigParserNode)$field_def.start), 
+				"Macro doesn't support user defined schema that contains name that conflicts with alias name: " + $IDENTIFIER.text);
+		}
+	}
+}
 ;
 
 field_def_list
@@ -220,7 +243,13 @@ rel
     : alias | ( op_clause parallel_clause? )
 ;
 
-flatten_generated_item 
+flatten_generated_item
+@init {
+	inAsOrGenClause = true;
+} 
+@after {
+	inAsOrGenClause = false;
+}
     : ( flatten_clause | col_range | expr | STAR ) field_def_list?
 ;
 
