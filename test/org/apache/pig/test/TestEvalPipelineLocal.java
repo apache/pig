@@ -1026,19 +1026,15 @@ public class TestEvalPipelineLocal {
     
     @Test
     public void testExplainInDotGraph() throws Exception{
-        pigServer.registerQuery("a = load 'student' using " + PigStorage.class.getName() + "(':') as (name, age, gpa);");
-        pigServer.registerQuery("b = load 'voter' using " + PigStorage.class.getName() + "(',') as (name, age, registration, contributions);");
-        pigServer.registerQuery("c = filter a by age < 50;");
-        pigServer.registerQuery("d = filter b by age < 50;");
-        pigServer.registerQuery("e = cogroup c by (name, age), d by (name, age);");
-        pigServer.registerQuery("f = foreach e generate flatten(c), flatten(d);");
-        pigServer.registerQuery("g = group f by registration;");
-        pigServer.registerQuery("h = foreach g generate (chararray)group, SUM(f.d::contributions);");
-        pigServer.registerQuery("i = order h by $1;");
+        pigServer.registerQuery("a = load 'voter' using " + PigStorage.class.getName() + "(',') as (name, age, registration, contributions);");
+        pigServer.registerQuery("b = filter a by age < 50;");
+        pigServer.registerQuery("c = group b by registration;");
+        pigServer.registerQuery("d = foreach c generate (chararray)group, SUM(b.contributions);");
+        pigServer.registerQuery("e = order d by $1;");
         
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
-        pigServer.explain("i", "dot", true, true, ps, System.out, System.out);
+        pigServer.explain("e", "dot", true, true, ps, System.out, System.out);
         ps.close();
         
         FileInputStream fis1 = new FileInputStream("test/org/apache/pig/test/data/DotFiles/explain1.dot");
