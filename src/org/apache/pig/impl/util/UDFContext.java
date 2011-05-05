@@ -18,6 +18,8 @@
 package org.apache.pig.impl.util;
 
 import java.io.IOException;
+import java.io.Serializable;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Properties;
 
@@ -26,15 +28,15 @@ import org.apache.hadoop.conf.Configuration;
 public class UDFContext {
     
     private Configuration jconf = null;
-    private HashMap<Integer, Properties> udfConfs;
+    private HashMap<UDFContextKey, Properties> udfConfs;
     private Properties clientSysProps;
     private static final String CLIENT_SYS_PROPS = "pig.client.sys.props";
     private static final String UDF_CONTEXT = "pig.udf.context"; 
     
     private static ThreadLocal<UDFContext> tss = new ThreadLocal<UDFContext>();
-    
+   
     private UDFContext() {
-        udfConfs = new HashMap<Integer, Properties>();
+        udfConfs = new HashMap<UDFContextKey, Properties>();
     }
 
     public static UDFContext getUDFContext() {
@@ -109,7 +111,7 @@ public class UDFContext {
     
     @SuppressWarnings("rawtypes")
     public Properties getUDFProperties(Class c, String[] args) {
-        Integer k = generateKey(c, args);
+        UDFContextKey k = generateKey(c, args);
         Properties p = udfConfs.get(k);
         if (p == null) {
             p = new Properties();
@@ -117,8 +119,8 @@ public class UDFContext {
         }
         return p;
     }
-    
-     /**
+
+    /**
      * Get a properties object that is specific to this UDF.
      * Note that if a given UDF is called multiple times in a script, 
      * they will all be provided the same configuration object.  It
@@ -142,7 +144,7 @@ public class UDFContext {
      */
     @SuppressWarnings("rawtypes")
     public Properties getUDFProperties(Class c) {
-        Integer k = generateKey(c);
+        UDFContextKey k = generateKey(c, null);
         Properties p = udfConfs.get(k);
         if (p == null) {
             p = new Properties();
@@ -151,6 +153,8 @@ public class UDFContext {
         return p;
     }
     
+
+
     /**
      * Serialize the UDF specific information into an instance
      * of JobConf.  This function is intended to be called on
@@ -172,24 +176,13 @@ public class UDFContext {
      */
     @SuppressWarnings("unchecked")
     public void deserialize() throws IOException {  
-        udfConfs = (HashMap<Integer, Properties>)ObjectSerializer.deserialize(jconf.get(UDF_CONTEXT));
+        udfConfs = (HashMap<UDFContextKey, Properties>)ObjectSerializer.deserialize(jconf.get(UDF_CONTEXT));
         clientSysProps = (Properties)ObjectSerializer.deserialize(
                 jconf.get(CLIENT_SYS_PROPS));
     }
     
-    @SuppressWarnings("rawtypes")
-    private int generateKey(Class c) {
-        return c.getName().hashCode();
-    }
-    
-    @SuppressWarnings("rawtypes")
-    private int generateKey(Class c, String[] args) {
-        int hc = c.getName().hashCode();
-        for (int i = 0; i < args.length; i++) {
-            hc <<= 1;
-            hc ^= args[i].hashCode();
-        }
-        return hc;
+    private UDFContextKey generateKey(Class<?> c, String[] args) {
+        return new UDFContextKey(c, args);
     }
     
     public void reset() {
@@ -198,5 +191,61 @@ public class UDFContext {
     
     public boolean isUDFConfEmpty() {
         return udfConfs.isEmpty();
+    }
+    
+    /**
+     * Class that acts as key for hashmap in UDFContext, 
+     *  it holds the class and args of the udf, and 
+     *  implements equals() and hashCode()
+     */
+    private static class UDFContextKey implements Serializable{
+
+        private static final long serialVersionUID = 1;
+        private Class<?> udfClass;
+        private String[] args;
+        
+        UDFContextKey(){
+        }
+
+        UDFContextKey(Class<?> udfClass, String [] args){
+            setValue(udfClass, args);
+        }
+
+        void setValue(Class<?> udfClass, String [] args){
+            this.udfClass = udfClass;
+            this.args = args;
+        }
+        
+        /* (non-Javadoc)
+         * @see java.lang.Object#hashCode()
+         */
+        @Override
+        public int hashCode() {
+            final int prime = 31;
+            int result = 1;
+            result = prime * result + Arrays.hashCode(args);
+            result = prime * result
+                    + ((udfClass == null) ? 0 : udfClass.getName().hashCode());
+            return result;
+        }
+        
+        /* (non-Javadoc)
+         * @see java.lang.Object#equals(java.lang.Object)
+         */
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj)
+                return true;
+            if (obj == null)
+                return false;
+            if (getClass() != obj.getClass())
+                return false;
+            UDFContextKey other = (UDFContextKey) obj;
+            if (!Arrays.equals(args, other.args))
+                return false;
+            if(udfClass != other.udfClass)
+                return false;
+            return true;
+        }
     }
 }
