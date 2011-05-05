@@ -198,6 +198,9 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-1821: UDFContext.getUDFProperties does not handle collisions
+  in hashcode of udf classname (+ arg hashcodes) (thejas)
+
 PIG-2028: Speed up multiquery unit tests (rding)
 
 PIG-1990: support casting of complex types with empty inner schema
