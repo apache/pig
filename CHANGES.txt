@@ -200,6 +200,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-2041: Minicluster should make each run independent (daijy)
+
 PIG-2040: Move classloader from QueryParserDriver to PigContext (daijy)
 
 PIG-1999: Macro alias masker should consider schema context (rding)
