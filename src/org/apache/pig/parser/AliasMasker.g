@@ -325,11 +325,7 @@ col_alias_or_index : col_alias | col_index
 
 col_alias 
     : GROUP 
-    | scoped_col_alias
-;
-
-scoped_col_alias 
-    : ^( SCOPED_ALIAS IDENTIFIER+ )
+    | IDENTIFIER
 ;
 
 col_index 
@@ -488,15 +484,19 @@ col_ref : alias_col_ref | dollar_col_ref
 
 alias_col_ref 
     : GROUP 
-    | scoped_alias_col_ref
-;
-
-scoped_alias_col_ref 
-    : ^( SCOPED_ALIAS (name=IDENTIFIER  {
-        if (aliasSeen.contains($name.text)) {
-            $name.getToken().setText(getMask($name.text));
-        } 
-    } )+ )
+    | IDENTIFIER
+      {
+          String alias = $IDENTIFIER.text;
+          String[] names = alias.split( "::" );
+          StringBuilder sb = new StringBuilder();
+          for( int i = 0; i < names.length; i++ ) {
+              String name = names[i];
+              sb.append( aliasSeen.contains( name ) ? getMask( name ) : name );
+              if( i < names.length - 1 )
+                  sb.append( "::" );
+          }
+          $IDENTIFIER.token.setText( sb.toString() );
+      }
 ;
 
 dollar_col_ref 

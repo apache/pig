@@ -24,9 +24,9 @@ import org.apache.pig.EvalFunc;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.Utils;
+import org.apache.pig.parser.ParserException;
 import org.python.core.Py;
 import org.python.core.PyBaseCode;
 import org.python.core.PyException;
@@ -79,7 +79,7 @@ public class JythonFunction extends EvalFunc<Object> {
                 throw new ExecException(
                         "unregistered " + functionName);
             }
-        } catch (ParseException pe) {
+        } catch (ParserException pe) {
             throw new ExecException("Could not parse schema for script function " + pe, pe);
         } catch (IOException e) {
             throw new IllegalStateException("Could not initialize: " + filename, e);

@@ -41,6 +41,7 @@ import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
+import org.apache.pig.impl.util.Utils;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.newplan.logical.relational.LOCogroup;
 import org.apache.pig.newplan.logical.relational.LOJoin;
@@ -191,7 +192,7 @@ public class TestProjectRange  {
         Schema expectedSch = null;
         
         if(expectedSchStr != null)
-            expectedSch = Util.getSchemaFromString(expectedSchStr);
+            expectedSch = Utils.getSchemaFromString(expectedSchStr);
 
         compileAndCompareSchema(expectedSch, query, alias);
 
@@ -999,7 +1000,7 @@ public class TestProjectRange  {
      * @throws FrontendException
      */
     private Schema getCleanedGroupSchema(String expectedSchStr) throws ParseException, FrontendException {
-        Schema expectedSch = Util.getSchemaFromString(expectedSchStr);
+        Schema expectedSch = Utils.getSchemaFromString(expectedSchStr);
         expectedSch.getField(0).alias = "group";
         if(expectedSch.size() > 1)
             expectedSch.getField(1).schema.getField(0).alias = null;

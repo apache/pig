@@ -1074,10 +1074,7 @@ public class Schema implements Serializable, Cloneable {
         }
         // TODO: Map Support
 
-        if (schema == null) {
-            sb.append("null") ;
-        }
-        else {
+        if (schema != null) {
             boolean isFirst = true ;
             for (int i=0; i< schema.size() ;i++) {
 
@@ -1091,7 +1088,6 @@ public class Schema implements Serializable, Cloneable {
                 FieldSchema fs = schema.getField(i) ;
 
                 if(fs == null) {
-                    sb.append("null");
                     continue;
                 }
                 

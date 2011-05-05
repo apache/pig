@@ -36,8 +36,8 @@ import org.apache.pig.FuncSpec;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.util.Utils;
+import org.apache.pig.parser.ParserException;
 import org.apache.pig.scripting.ScriptEngine;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.python.core.Py;
@@ -151,7 +151,7 @@ public class JythonScriptEngine extends ScriptEngine {
                     LOG.info("Register scripting UDF: " + namespace + key);
                 }
             }
-        } catch (ParseException pe) {
+        } catch (ParserException pe) {
             throw new IOException(
                     "Error parsing schema for script function from the decorator",
                     pe);

@@ -285,7 +285,14 @@ fragment LETTER : 'A'..'Z'
 fragment SPECIALCHAR : '_'
 ;
 
-IDENTIFIER: LETTER ( DIGIT | LETTER | SPECIALCHAR )*
+fragment ID: LETTER ( DIGIT | LETTER | SPECIALCHAR )*
+;
+
+DCOLON : '::'
+;
+
+IDENTIFIER : ( ID DCOLON ) => ( ID DCOLON IDENTIFIER )
+           | ID
 ;
 
 fragment FLOATINGPOINT : INTEGER ( PERIOD INTEGER )? | PERIOD INTEGER 
@@ -330,9 +337,6 @@ EXECCOMMAND : '`' ( ~( '`' ) )* '`'
 ;
     
 STAR : '*'
-;
-
-DCOLON : '::'
 ;
 
 COLON : ':'

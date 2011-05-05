@@ -22,6 +22,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
 
+import junit.framework.Assert;
 import junit.framework.TestCase;
 
 import org.apache.pig.ExecType;
@@ -36,7 +37,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestScriptUDF extends TestCase {
+public class TestScriptUDF{
     static MiniCluster cluster = MiniCluster.buildCluster();
     private PigServer pigServer;
 
@@ -44,7 +45,6 @@ public class TestScriptUDF extends TestCase {
     BagFactory mBf = BagFactory.getInstance();
     
     @Before
-    @Override
     public void setUp() throws Exception{
         FileLocalizer.setR(new Random());
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
@@ -82,36 +82,36 @@ public class TestScriptUDF extends TestCase {
         pigServer.registerQuery("C = foreach A generate square(a0);");
 
         Iterator<Tuple> iter = pigServer.openIterator("B");
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertTrue(t.toString().equals("(1)"));
+        Assert.assertTrue(t.toString().equals("(1)"));
 
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.toString().equals("(4)"));
+        Assert.assertTrue(t.toString().equals("(4)"));
 
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.toString().equals("(9)"));
+        Assert.assertTrue(t.toString().equals("(9)"));
 
         iter = pigServer.openIterator("C");
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.toString().equals("(1)"));
+        Assert.assertTrue(t.toString().equals("(1)"));
 
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.toString().equals("(4)"));
+        Assert.assertTrue(t.toString().equals("(4)"));
 
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.toString().equals("(9)"));
+        Assert.assertTrue(t.toString().equals("(9)"));
     }
     
     @Test
@@ -141,20 +141,20 @@ public class TestScriptUDF extends TestCase {
         pigServer.registerQuery("B = foreach A generate myfuncs.helloworld(), myfuncs.complex($0);");
 
         Iterator<Tuple> iter = pigServer.openIterator("B");
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertEquals(((Tuple)t.get(1)).get(1), 3);
+        Assert.assertEquals(((Tuple)t.get(1)).get(1), 3);
 
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertEquals(((Tuple)t.get(1)).get(1), 3);
+        Assert.assertEquals(((Tuple)t.get(1)).get(1), 3);
 
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertEquals(((Tuple)t.get(1)).get(1), 5);
+        Assert.assertEquals(((Tuple)t.get(1)).get(1), 5);
 
     }
 
@@ -188,38 +188,38 @@ public class TestScriptUDF extends TestCase {
         pigServer.registerQuery("C = foreach A generate square(a1);");
 
         Iterator<Tuple> iter = pigServer.openIterator("B");
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertTrue(t.toString().equals("(1)"));
+        Assert.assertTrue(t.toString().equals("(1)"));
 
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.toString().equals("(4)"));
+        Assert.assertTrue(t.toString().equals("(4)"));
 
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.toString().equals("(9)"));
+        Assert.assertTrue(t.toString().equals("(9)"));
 
         // The same python function will operate on double and try to get square of double
         // Since these are small double numbers we do not need to use delta to test the results
         iter = pigServer.openIterator("C");
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.toString().equals("(9.0)"));
+        Assert.assertTrue(t.toString().equals("(9.0)"));
 
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.toString().equals("(16.0)"));
+        Assert.assertTrue(t.toString().equals("(16.0)"));
 
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.toString().equals("(25.0)"));
+        Assert.assertTrue(t.toString().equals("(25.0)"));
     }
 
     // See PIG-928
@@ -245,32 +245,32 @@ public class TestScriptUDF extends TestCase {
         pigServer.registerQuery("B = foreach A generate pig.concat(a0);");
 
         Iterator<Tuple> iter = pigServer.openIterator("B");
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
         // We need to check whether this is a DataByteArray or fail otherwise
         if(!(t.get(0) instanceof DataByteArray)) {
-            fail("Default return type should be bytearray");
+            Assert.fail("Default return type should be bytearray");
         }
 
-        assertTrue(t.get(0).toString().trim().equals("hellohello"));
+        Assert.assertTrue(t.get(0).toString().trim().equals("hellohello"));
 
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.get(0).toString().trim().equals("pigpig"));
+        Assert.assertTrue(t.get(0).toString().trim().equals("pigpig"));
 
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.get(0).toString().trim().equals("worldworld"));
+        Assert.assertTrue(t.get(0).toString().trim().equals("worldworld"));
     }
     
     @Test
     public void testPythonScriptUDFBagInput() throws Exception{
         String[] script = {
                 "#!/usr/bin/python",
-                "@outputSchema(\"bag:{(y:{t:(word:chararray)}}\")",
+                "@outputSchema(\"bag:{(y:{t:(word:chararray)})}\")",
                 "def collect(bag):" ,
                 "\toutBag = []",
                 "\tfor word in bag:",
@@ -296,7 +296,7 @@ public class TestScriptUDF extends TestCase {
         pigServer.registerQuery("C = foreach B generate pig.collect(A);");
 
         Iterator<Tuple> iter = pigServer.openIterator("C");
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         Tuple t = iter.next();
         
         DataBag bag; 
@@ -315,9 +315,9 @@ public class TestScriptUDF extends TestCase {
         tup.append("program");
         bag.add(tup);
     
-        assertTrue(t.get(0).toString().equals(bag.toString()));
+        Assert.assertTrue(t.get(0).toString().equals(bag.toString()));
         
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         t = iter.next();
         
         bag = BagFactory.getInstance().newDefaultBag();
@@ -330,14 +330,14 @@ public class TestScriptUDF extends TestCase {
         tup.append("hadoop");
         bag.add(tup);
         
-        assertTrue(t.get(0).toString().equals(bag.toString()));
+        Assert.assertTrue(t.get(0).toString().equals(bag.toString()));
     }
     
     @Test
     public void testPythonScriptUDFMapInput() throws Exception{
         String[] script = {
                 "#!/usr/bin/python",
-                "@outputSchema(\"bag:{(y:{t:(word:chararray)}}\")",
+                "@outputSchema(\"bag:{(y:{t:(word:chararray)})}\")",
                 "def maptobag(map):" ,
                 "\toutBag = []",
                 "\tfor k, v in map.iteritems():",
@@ -359,7 +359,7 @@ public class TestScriptUDF extends TestCase {
         pigServer.registerQuery("B = foreach A generate pig.maptobag(a0);");
 
         Iterator<Tuple> iter = pigServer.openIterator("B");
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         Tuple t = iter.next();
         
         DataBag bag; 
@@ -373,21 +373,21 @@ public class TestScriptUDF extends TestCase {
         tup.append(2);
         tup.append("world");
         bag.add(tup);
-        assertTrue(t.get(0).toString().equals(bag.toString()));
+        Assert.assertTrue(t.get(0).toString().equals(bag.toString()));
         
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         t = iter.next();
         tup = TupleFactory.getInstance().newTuple();
         tup.append(3);
         tup.append("pig");
-        assertTrue(t.toString().contains(tup.toString()));
+        Assert.assertTrue(t.toString().contains(tup.toString()));
         
         tup = TupleFactory.getInstance().newTuple();
         tup.append(4);
         tup.append("rocks");
-        assertTrue(t.toString().contains(tup.toString()));
+        Assert.assertTrue(t.toString().contains(tup.toString()));
         
-        assertFalse(iter.hasNext());
+        Assert.assertFalse(iter.hasNext());
         
     }
     
@@ -415,18 +415,18 @@ public class TestScriptUDF extends TestCase {
         pigServer.registerQuery("B = foreach A generate pig.maptomapint(a0);");
 
         Iterator<Tuple> iter = pigServer.openIterator("B");
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         Tuple t = iter.next();
         
-        assertEquals(5, ((Map<?,?>)t.get(0)).get("1"));
-        assertEquals(5, ((Map<?,?>)t.get(0)).get("2"));
+        Assert.assertEquals(5, ((Map<?,?>)t.get(0)).get("1"));
+        Assert.assertEquals(5, ((Map<?,?>)t.get(0)).get("2"));
         
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         t = iter.next();
-        assertEquals(3, ((Map<?,?>)t.get(0)).get("3"));
-        assertEquals(5, ((Map<?,?>)t.get(0)).get("4"));
+        Assert.assertEquals(3, ((Map<?,?>)t.get(0)).get("3"));
+        Assert.assertEquals(5, ((Map<?,?>)t.get(0)).get("4"));
         
-        assertFalse(iter.hasNext());
+        Assert.assertFalse(iter.hasNext());
         
     }
     
@@ -434,7 +434,7 @@ public class TestScriptUDF extends TestCase {
     public void testPythonScriptUDFNullInputOutput() throws Exception {
         String[] script = {
                 "#!/usr/bin/python",
-                "@outputSchema(\"bag:{(y:{t:(word:chararray)}}\")",
+                "@outputSchema(\"bag:{(y:{t:(word:chararray)})}\")",
                 "def multStr(cnt, str):" ,
                 "\tif cnt != None and str != None:",
                 "\t\treturn cnt * str",
@@ -455,16 +455,16 @@ public class TestScriptUDF extends TestCase {
         pigServer.registerQuery("B = foreach A generate pig.multStr(a0, a1);");
         
         Iterator<Tuple> iter = pigServer.openIterator("B");
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         Tuple t = iter.next();
         
-        assertTrue(t.get(0).toString().equals("hellohellohello"));
+        Assert.assertTrue(t.get(0).toString().equals("hellohellohello"));
         
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         t = iter.next();
         
         // UDF takes null and returns null
-        assertTrue(t.get(0) == null);
+        Assert.assertTrue(t.get(0) == null);
         
     }
     
@@ -492,22 +492,22 @@ public class TestScriptUDF extends TestCase {
         pigServer.registerQuery("B = foreach A generate pig.square(a0);");
 
         Iterator<Tuple> iter = pigServer.openIterator("B");
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         Tuple t = iter.next();
 
-        assertTrue(t.toString().equals("(1)"));
+        Assert.assertTrue(t.toString().equals("(1)"));
 
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.toString().equals("(4)"));
+        Assert.assertTrue(t.toString().equals("(4)"));
 
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         t = iter.next();
 
-        assertTrue(t.toString().equals("(9)"));
+        Assert.assertTrue(t.toString().equals("(9)"));
         
-        assertFalse(iter.hasNext());
+        Assert.assertFalse(iter.hasNext());
     }
 }
 
