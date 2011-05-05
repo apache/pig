@@ -52,25 +52,27 @@ public class MiniCluster {
         try {
             final int dataNodes = 4;     // There will be 4 data nodes
             final int taskTrackers = 4;  // There will be 4 task tracker nodes
-            Configuration config = new Configuration();
-            
-            // Builds and starts the mini dfs and mapreduce clusters
-            m_dfs = new MiniDFSCluster(config, dataNodes, true, null);
-            m_fileSys = m_dfs.getFileSystem();
-            m_mr = new MiniMRCluster(taskTrackers, m_fileSys.getUri().toString(), 1);
             
             // Create the configuration hadoop-site.xml file
             File conf_dir = new File(System.getProperty("user.home"), "pigtest/conf/");
             conf_dir.mkdirs();
             File conf_file = new File(conf_dir, "hadoop-site.xml");
             
+            conf_file.delete();
+            
+            // Builds and starts the mini dfs and mapreduce clusters
+            Configuration config = new Configuration();
+            m_dfs = new MiniDFSCluster(config, dataNodes, true, null);
+            m_fileSys = m_dfs.getFileSystem();
+            m_mr = new MiniMRCluster(taskTrackers, m_fileSys.getUri().toString(), 1);
+            
             // Write the necessary config info to hadoop-site.xml
             m_conf = m_mr.createJobConf();      
             m_conf.setInt("mapred.submit.replication", 2);
             m_conf.set("dfs.datanode.address", "0.0.0.0:0");
             m_conf.set("dfs.datanode.http.address", "0.0.0.0:0");
-            m_conf.set("mapred.map.max.attempts", "1");
-            m_conf.set("mapred.reduce.max.attempts", "1");
+            m_conf.set("mapred.map.max.attempts", "2");
+            m_conf.set("mapred.reduce.max.attempts", "2");
             m_conf.writeXml(new FileOutputStream(conf_file));
             
             // Set the system properties needed by Pig
