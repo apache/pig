@@ -85,7 +85,7 @@ public class JarManager {
     }
 
     final static String pigPackagesToSend[] = { "org/apache/pig","org/apache/tools/bzip2r",
-        "dk/brics/automaton" };
+        "dk/brics/automaton", "org/antlr/runtime" };
     
     /**
      * Create a jarfile in a temporary path, that is a merge of all the jarfiles containing the
