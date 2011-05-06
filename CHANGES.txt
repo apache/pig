@@ -202,6 +202,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-2049: Pig should display TokenMgrError message consistently across all parsers (rding)
+
 PIG-2041: Minicluster should make each run independent (daijy)
 
 PIG-2040: Move classloader from QueryParserDriver to PigContext (daijy)
