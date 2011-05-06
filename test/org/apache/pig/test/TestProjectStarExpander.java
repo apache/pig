@@ -30,17 +30,14 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.Utils;
+import org.apache.pig.parser.ParserException;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-
-
 
 /**
  * Test project of multiple fields
@@ -78,7 +75,7 @@ public class TestProjectStarExpander  {
 
 
     @Test
-    public void testProjectStarForeach() throws IOException, ParseException {
+    public void testProjectStarForeach() throws IOException, ParserException {
         PigServer pig = new PigServer(ExecType.LOCAL);
         
         //specifying the new aliases only for initial set of fields
@@ -121,7 +118,7 @@ public class TestProjectStarExpander  {
      * @throws ParseException
      */
     @Test
-    public void testProjectStarMulti() throws IOException, ParseException {
+    public void testProjectStarMulti() throws IOException, ParserException {
         PigServer pig = new PigServer(ExecType.LOCAL);
         String query =
             "  l1 = load '" + INP_FILE_5FIELDS + "' as (a : int, b : int, c : int);"

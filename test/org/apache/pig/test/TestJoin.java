@@ -33,13 +33,13 @@ import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LOJoin.JOINTYPE;
+import org.apache.pig.parser.ParserException;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
@@ -154,7 +154,7 @@ public class TestJoin extends TestCase {
     }
 
     @Test
-    public void testDefaultJoin() throws IOException, ParseException {
+    public void testDefaultJoin() throws IOException, ParserException {
         for (ExecType execType : execTypes) {
             setUp(execType);
             String[] input1 = {

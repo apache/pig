@@ -25,7 +25,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.streaming.StreamingCommand;
 
 // Check and set files to be automatically shipped for the given StreamingCommand
@@ -50,7 +49,7 @@ public class StreamingCommandUtils {
         this.pigContext = pigContext;
     }
     
-    static String[] splitArgs(String command) throws ParseException {
+    static String[] splitArgs(String command) throws ParserException {
         List<String> argv = new ArrayList<String>();
 
         int beginIndex = 0;
@@ -101,7 +100,7 @@ public class StreamingCommandUtils {
             endIndex = command.indexOf(delim, endIndex);
             if (endIndex == -1) {
                 // Didn't find the ending quote/double-quote
-                throw new ParseException("Illegal command: " + command);
+                throw new ParserException("Illegal command: " + command);
             }
             argv.add(arg + command.substring(beginIndex, endIndex+1));
 
@@ -111,7 +110,7 @@ public class StreamingCommandUtils {
     }
 
     void checkAutoShipSpecs(StreamingCommand command, String[] argv) 
-    throws ParseException {
+    throws ParserException {
         // Candidate for auto-ship
         String arg0 = argv[0];
         
@@ -131,7 +130,7 @@ public class StreamingCommandUtils {
     }
     
     private void checkAndShip(StreamingCommand command, String arg) 
-    throws ParseException {
+    throws ParserException {
         // Don't auto-ship if it is an absolute path...
         if (arg.startsWith("/")) {
             return;
@@ -143,7 +142,7 @@ public class StreamingCommandUtils {
             try {
                 command.addPathToShip(argPath);
             } catch(IOException e) {
-               ParseException pe = new ParseException(e.getMessage());
+               ParserException pe = new ParserException(e.getMessage());
                pe.initCause(e);
                throw pe;
            }

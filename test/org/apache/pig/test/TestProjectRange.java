@@ -37,7 +37,6 @@ import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
@@ -52,6 +51,7 @@ import org.apache.pig.newplan.logical.visitor.ColumnAliasConversionVisitor;
 import org.apache.pig.newplan.logical.visitor.SchemaAliasVisitor;
 import org.apache.pig.newplan.logical.visitor.TypeCheckingRelVisitor;
 import org.apache.pig.newplan.logical.visitor.UnionOnSchemaSetter;
+import org.apache.pig.parser.ParserException;
 import org.apache.pig.parser.ParserTestingUtils;
 import org.apache.pig.test.utils.NewLogicalPlanUtil;
 import org.junit.After;
@@ -116,11 +116,11 @@ public class TestProjectRange  {
     /**
      * Test project-range in foreach with limits on both sides
      * @throws IOException
-     * @throws ParseException
+     * @throws ParserException
      */
 
     @Test
-    public void testFullRangeForeachWSchema() throws IOException, ParseException {
+    public void testFullRangeForeachWSchema() throws IOException, ParserException {
 
         String query;
         
@@ -187,7 +187,7 @@ public class TestProjectRange  {
 
 
     private void compileAndCompareSchema(String expectedSchStr, String query, String alias)
-    throws IOException, ParseException {
+    throws IOException, ParserException {
 
         Schema expectedSch = null;
         
@@ -209,10 +209,10 @@ public class TestProjectRange  {
     /**
      * Test project-range in foreach with starting limit
      * @throws IOException
-     * @throws ParseException
+     * @throws ParserException
      */
     @Test
-    public void testEndRangeForeachWSchema() throws IOException, ParseException {
+    public void testEndRangeForeachWSchema() throws IOException, ParserException {
 
         //specifying the new aliases 
         String query;
@@ -265,10 +265,10 @@ public class TestProjectRange  {
     /**
      * Test project-range in foreach with start limit
      * @throws IOException
-     * @throws ParseException
+     * @throws ParserException
      */
     @Test
-    public void testStartRangeForeachWSchema() throws IOException, ParseException {
+    public void testStartRangeForeachWSchema() throws IOException, ParserException {
 
         //specifying the new aliases 
         String query =
@@ -323,10 +323,10 @@ public class TestProjectRange  {
     /**
      * Test multiple different types of range-project with foreach
      * @throws IOException
-     * @throws ParseException
+     * @throws ParserException
      */
    @Test
-    public void testMixRangeForeachWSchema() throws IOException, ParseException {
+    public void testMixRangeForeachWSchema() throws IOException, ParserException {
 
         //specifying the new aliases 
         String query;
@@ -358,10 +358,10 @@ public class TestProjectRange  {
     /**
      * -ve test cases
      * @throws IOException
-     * @throws ParseException
+     * @throws ParserException
      */
     @Test
-    public void testNegativeForeachWSchema() throws IOException, ParseException {
+    public void testNegativeForeachWSchema() throws IOException, ParserException {
         String query;
         query =
             "  l1 = load '" + INP_FILE_5FIELDS + "' as (a : int, b : float, c : int, d : int, e : int);"
@@ -382,10 +382,10 @@ public class TestProjectRange  {
     /**
      * -ve test cases
      * @throws IOException
-     * @throws ParseException
+     * @throws ParserException
      */
     @Test
-    public void testNegativeForeachNOSchema() throws IOException, ParseException {
+    public void testNegativeForeachNOSchema() throws IOException, ParserException {
         String query;
         query =
             "  l1 = load '" + INP_FILE_5FIELDS + "';"
@@ -405,10 +405,10 @@ public class TestProjectRange  {
     /**
      * Test foreach without schema
      * @throws IOException
-     * @throws ParseException
+     * @throws ParserException
      */
     @Test
-    public void testStartRangeForeachNOSchema() throws IOException, ParseException {
+    public void testStartRangeForeachNOSchema() throws IOException, ParserException {
 
         String query;
         
@@ -441,10 +441,10 @@ public class TestProjectRange  {
     /**
      * Test foreach without schema
      * @throws IOException
-     * @throws ParseException
+     * @throws ParserException
      */
     @Test
-    public void testMixRangeForeachNOSchema() throws IOException, ParseException {
+    public void testMixRangeForeachNOSchema() throws IOException, ParserException {
 
         String query;
         
@@ -476,10 +476,10 @@ public class TestProjectRange  {
     /**
      * Test foreach without schema - with some operations after the foreach
      * @throws IOException
-     * @throws ParseException
+     * @throws ParserException
      */
     //@Test
-    public void testRangeForeachWFilterNOSchema() throws IOException, ParseException {
+    public void testRangeForeachWFilterNOSchema() throws IOException, ParserException {
         //TODO: fix depends on PIG-1910
         //fails with - In alias fil, incompatible types in GreaterThan 
         //         Operator left hand side:Unknown right hand side:Unknown
@@ -506,7 +506,7 @@ public class TestProjectRange  {
     }
     
     @Test
-    public void testRangeOrderByWSchema() throws IOException, ParseException{
+    public void testRangeOrderByWSchema() throws IOException, ParserException{
         String query;
         
         {
@@ -601,10 +601,10 @@ public class TestProjectRange  {
     /**
      * Test nested order-by with schema
      * @throws IOException
-     * @throws ParseException
+     * @throws ParserException
      */
     @Test
-    public void testRangeOrderByNestedWSchema() throws IOException, ParseException{
+    public void testRangeOrderByNestedWSchema() throws IOException, ParserException{
         String query;
         
         {
@@ -693,10 +693,10 @@ public class TestProjectRange  {
     /**
      * Test nested order-by without schema
      * @throws IOException
-     * @throws ParseException
+     * @throws ParserException
      */
     @Test
-    public void testRangeOrderByNestedNOSchema() throws IOException, ParseException{
+    public void testRangeOrderByNestedNOSchema() throws IOException, ParserException{
         String query;
         
         {
@@ -816,7 +816,7 @@ public class TestProjectRange  {
     }
 
     @Test
-    public void testRangeOrderByMixWSchema() throws IOException, ParseException{
+    public void testRangeOrderByMixWSchema() throws IOException, ParserException{
         String query;
 
         query =
@@ -847,7 +847,7 @@ public class TestProjectRange  {
 
 
     @Test
-    public void testRangeOrderByMixNOSchema() throws IOException, ParseException{
+    public void testRangeOrderByMixNOSchema() throws IOException, ParserException{
         String query;
 
         query =
@@ -877,7 +877,7 @@ public class TestProjectRange  {
     }
     
     @Test
-    public void testRangeOrderByStartNOSchema() throws IOException, ParseException{
+    public void testRangeOrderByStartNOSchema() throws IOException, ParserException{
         String query;
 
         query =
@@ -907,7 +907,7 @@ public class TestProjectRange  {
     }
     
     @Test
-    public void testRangeOrderByStartNegNOSchema() throws IOException, ParseException{
+    public void testRangeOrderByStartNegNOSchema() throws IOException, ParserException{
         String query;
 
         query =
@@ -919,7 +919,7 @@ public class TestProjectRange  {
     }
     
     @Test
-    public void testRangeGroupWSchema() throws IOException, ParseException{
+    public void testRangeGroupWSchema() throws IOException, ParserException{
         String query;
 
         {
@@ -996,10 +996,10 @@ public class TestProjectRange  {
      * group as a column name in schema, and to add tuple within bag schema
      * @param expectedSchStr
      * @return
-     * @throws ParseException
+     * @throws ParserException
      * @throws FrontendException
      */
-    private Schema getCleanedGroupSchema(String expectedSchStr) throws ParseException, FrontendException {
+    private Schema getCleanedGroupSchema(String expectedSchStr) throws ParserException, FrontendException {
         Schema expectedSch = Utils.getSchemaFromString(expectedSchStr);
         expectedSch.getField(0).alias = "group";
         if(expectedSch.size() > 1)
@@ -1023,7 +1023,7 @@ public class TestProjectRange  {
     }
     
     @Test
-    public void testRangeCoGroupMixWSchema() throws IOException, ParseException{
+    public void testRangeCoGroupMixWSchema() throws IOException, ParserException{
         String query;
 
         query =
@@ -1059,7 +1059,7 @@ public class TestProjectRange  {
     }
     
     @Test
-    public void testRangeGroupMixWSchema() throws IOException, ParseException{
+    public void testRangeGroupMixWSchema() throws IOException, ParserException{
         String query;
 
         {
@@ -1111,7 +1111,7 @@ public class TestProjectRange  {
     
     
     @Test
-    public void testRangeGroupMixNOSchema() throws IOException, ParseException{
+    public void testRangeGroupMixNOSchema() throws IOException, ParserException{
         String query;
 
         {
@@ -1178,7 +1178,7 @@ public class TestProjectRange  {
     }
 
     @Test
-    public void testRangeJoinMixWSchema() throws IOException, ParseException{
+    public void testRangeJoinMixWSchema() throws IOException, ParserException{
         String query;
 
         query =
@@ -1211,7 +1211,7 @@ public class TestProjectRange  {
     }
     
     @Test
-    public void testRangeJoinMixNOSchema() throws IOException, ParseException{
+    public void testRangeJoinMixNOSchema() throws IOException, ParserException{
         String query;
 
         query =
@@ -1239,7 +1239,7 @@ public class TestProjectRange  {
     }
     
     @Test
-    public void testRangeCoGroupNegNoSchema() throws IOException, ParseException{
+    public void testRangeCoGroupNegNoSchema() throws IOException, ParserException{
         String query;
         //cogroup
         query =

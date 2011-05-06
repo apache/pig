@@ -28,7 +28,7 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import org.apache.pig.parser.ParserException;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -675,7 +675,7 @@ public class TestAccumulator extends TestCase{
      * @throws ParseException
      */
     @Test
-    public void testAccumAfterNestedOp() throws IOException, ParseException{
+    public void testAccumAfterNestedOp() throws IOException, ParserException{
         // test group by
         pigServer.registerQuery("A = load '" + INPUT_FILE + "' as (id:int, fruit);");
         pigServer.registerQuery("B = group A by id;");

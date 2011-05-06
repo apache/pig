@@ -57,7 +57,6 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.PlanValidationException;
 import org.apache.pig.impl.util.Utils;
@@ -65,6 +64,7 @@ import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.logical.relational.LOStore;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.rules.InputOutputFileValidator;
+import org.apache.pig.parser.ParserException;
 import org.apache.pig.parser.QueryParserDriver;
 import org.apache.pig.test.utils.GenRandomData;
 import org.apache.pig.test.utils.TestHelper;
@@ -305,7 +305,7 @@ public class TestStore extends junit.framework.TestCase {
         }
     }
     @Test
-    public void testBinStorageGetSchema() throws IOException, ParseException {
+    public void testBinStorageGetSchema() throws IOException, ParserException {
         String input[] = new String[] { "hello\t1\t10.1", "bye\t2\t20.2" };
         String inputFileName = "testGetSchema-input.txt";
         String outputFileName = "testGetSchema-output.txt";
