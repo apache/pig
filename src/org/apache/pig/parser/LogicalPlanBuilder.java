@@ -46,7 +46,6 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanValidationException;
@@ -628,7 +627,7 @@ public class LogicalPlanBuilder {
             StreamingCommandUtils validator = new StreamingCommandUtils( pigContext );
             validator.checkAutoShipSpecs( command, args );
             return command;
-        } catch (ParseException e) {
+        } catch (ParserException e) {
             throw new InvalidCommandException( intStream, loc, cmd );
         }
     }
@@ -659,7 +658,7 @@ public class LogicalPlanBuilder {
             LOLoad load = (LOLoad)operators.get( loadAlias );
             plan.connect( op, load );
             return load.getAlias();
-        } catch (ParseException e) {
+        } catch (ParserException e) {
             throw new InvalidCommandException( input, loc, cmd );
         } catch (MalformedURLException e) {
             throw new InvalidPathException( input, loc, e);

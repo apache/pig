@@ -34,8 +34,8 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.parser.ParserException;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -82,7 +82,7 @@ public class TestTypedMap  {
     }
 
     @Test
-    public void testSimpleLoad() throws IOException, ParseException {
+    public void testSimpleLoad() throws IOException, ParserException {
         PigServer pig = new PigServer(ExecType.LOCAL, cluster.getProperties());
         String[] input = {
                 "[key#1,key2#2]",
@@ -119,7 +119,7 @@ public class TestTypedMap  {
     }
 
     @Test
-    public void testSimpleMapKeyLookup() throws IOException, ParseException {
+    public void testSimpleMapKeyLookup() throws IOException, ParserException {
         PigServer pig = new PigServer(ExecType.LOCAL, cluster.getProperties());
         String[] input = {
                 "[key#1,key2#2]",
@@ -150,7 +150,7 @@ public class TestTypedMap  {
     }
 
     @Test
-    public void testSimpleMapCast() throws IOException, ParseException {
+    public void testSimpleMapCast() throws IOException, ParserException {
         PigServer pig = new PigServer(ExecType.LOCAL, cluster.getProperties());
         String[] input = {
                 "[key#1,key2#2]",
@@ -188,7 +188,7 @@ public class TestTypedMap  {
     }
 
     @Test
-    public void testComplexLoad() throws IOException, ParseException {
+    public void testComplexLoad() throws IOException, ParserException {
         PigServer pig = new PigServer(ExecType.LOCAL, cluster.getProperties());
         String[] input = {
                 "[key#{(1,2),(1,3)},134#]",
@@ -222,7 +222,7 @@ public class TestTypedMap  {
     }
 
     @Test
-    public void testComplexCast() throws IOException, ParseException {
+    public void testComplexCast() throws IOException, ParserException {
         PigServer pig = new PigServer(ExecType.LOCAL, cluster.getProperties());
         String[] input = {
                 "[key#{(1,2),(1,3)},134#]",
@@ -257,7 +257,7 @@ public class TestTypedMap  {
     }
 
     @Test
-    public void testComplexCast2() throws IOException, ParseException {
+    public void testComplexCast2() throws IOException, ParserException {
         PigServer pig = new PigServer(ExecType.LOCAL, cluster.getProperties());
         String[] input = {
                 "[key#1,key2#2]",
@@ -287,7 +287,7 @@ public class TestTypedMap  {
     }
 
     @Test
-    public void testUnTypedMap() throws IOException, ParseException {
+    public void testUnTypedMap() throws IOException, ParserException {
         PigServer pig = new PigServer(ExecType.LOCAL, cluster.getProperties());
         String[] input = {
                 "[key#1,key2#2]",
@@ -316,7 +316,7 @@ public class TestTypedMap  {
     }
 
     @Test
-    public void testOrderBy() throws IOException, ParseException {
+    public void testOrderBy() throws IOException, ParserException {
         PigServer pig = new PigServer(ExecType.LOCAL, cluster.getProperties());
         String[] input = {
                 "[key#1,key1#2]",

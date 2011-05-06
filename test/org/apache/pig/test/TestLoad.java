@@ -48,10 +48,10 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
+import org.apache.pig.parser.ParserException;
 import org.apache.pig.parser.QueryParserDriver;
 import org.apache.pig.test.utils.GenPhyOp;
 import org.apache.pig.test.utils.TestHelper;
@@ -269,7 +269,7 @@ public class TestLoad extends junit.framework.TestCase {
     
     @SuppressWarnings("unchecked")
     private void testLoadingMultipleFiles(String[] inputFileNames, 
-            String loadLocationString) throws IOException, ParseException {
+            String loadLocationString) throws IOException, ParserException {
         
         String[][] inputStrings = new String[][] {
                 new String[] { "hello\tworld"},

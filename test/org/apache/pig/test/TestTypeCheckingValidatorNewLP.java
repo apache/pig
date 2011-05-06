@@ -55,7 +55,6 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.impl.logicalLayer.validators.TypeCheckerException;
@@ -114,6 +113,7 @@ import org.apache.pig.newplan.logical.visitor.ColumnAliasConversionVisitor;
 import org.apache.pig.newplan.logical.visitor.TypeCheckingExpVisitor;
 import org.apache.pig.newplan.logical.visitor.TypeCheckingRelVisitor;
 import org.apache.pig.newplan.logical.visitor.UnionOnSchemaSetter;
+import org.apache.pig.parser.ParserException;
 import org.apache.pig.parser.ParserTestingUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -4069,7 +4069,7 @@ public class TestTypeCheckingValidatorNewLP {
         
         // See PIG-2004
         @Test
-        public void testDereferenceTypeSet() throws IOException, ParseException {
+        public void testDereferenceTypeSet() throws IOException, ParserException {
             String query = "a = load 'a' as (i : int, j : int) ;"
             + " b = foreach a generate i, j/10.1 as jd;" 
             + " c = group b by i;" 
@@ -4105,7 +4105,7 @@ public class TestTypeCheckingValidatorNewLP {
 
         //see PIG-1990
         @Test
-        public void testCastEmptyInnerSchema() throws IOException, ParseException{
+        public void testCastEmptyInnerSchema() throws IOException, ParserException{
             final String INP_FILE = "testCastEmptyInnerSchema.txt";
             PrintWriter w = new PrintWriter(new FileWriter(INP_FILE));
             w.println("(1,2)");

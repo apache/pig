@@ -28,8 +28,8 @@ execution framework.
 <p>
 <h3> High Level Architecture </h3>
 Pig is split between the front and back ends of the engine.  In the front end,
-the parser transforms a Pig Latin script into a
-{@link org.apache.pig.impl.logicalLayer.LogicalPlan}.  Semantic checks (such
+the parser transforms a Pig Latin script into a logical plan.
+Semantic checks (such
 as type checking) and some optimizations (such as determining which fields in the data need
 to be read to satisfy the script) are done on this Logical Plan.  The Logical
 Plan is than transformed into a

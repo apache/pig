@@ -32,7 +32,6 @@
 **/TestMultiply.java
 **/TestNotEqualTo.java
 **/TestNull.java
-**/TestOperatorPlan.java
 **/TestPOBinCond.java
 **/TestPOCast.java
 **/TestPOCogroup.java

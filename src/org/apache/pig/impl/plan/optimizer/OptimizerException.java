@@ -17,7 +17,6 @@
  */
 package org.apache.pig.impl.plan.optimizer;
 
-import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.plan.VisitorException;
 
 public class OptimizerException extends VisitorException {
