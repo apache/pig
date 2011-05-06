@@ -106,7 +106,8 @@ public class LogUtils {
         } else {
             if((t instanceof ParseException 
                     || t instanceof org.apache.pig.tools.pigscript.parser.TokenMgrError 
-                    || t instanceof org.apache.pig.impl.logicalLayer.parser.TokenMgrError)) {
+                    || t instanceof org.apache.pig.impl.logicalLayer.parser.TokenMgrError
+                    || t instanceof org.apache.pig.tools.parameters.TokenMgrError)) {
                 message = "ERROR 1000: Error during parsing. " + t.getMessage();
             } else if (t instanceof IOException) {
                 message = "ERROR 2997: Encountered IOException. " + t.getMessage();
