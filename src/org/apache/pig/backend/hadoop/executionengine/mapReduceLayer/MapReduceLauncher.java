@@ -354,6 +354,10 @@ public class MapReduceLauncher extends Launcher{
         // stats collection is done, log the results
         PigStatsUtil.stopCollection(true); 
         
+        // PigStatsUtil.stopCollection also computes the return code based on
+        // total jobs to run, jobs successful and jobs failed
+        failed = failed || !PigStats.get().isSuccessful();
+        
         Map<Enum, Long> warningAggMap = new HashMap<Enum, Long>();
                 
         if (succJobs != null) {
