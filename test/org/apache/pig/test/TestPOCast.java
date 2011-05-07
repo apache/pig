@@ -46,7 +46,6 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -56,6 +55,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.util.Utils;
+import org.apache.pig.parser.ParserException;
 import org.apache.pig.test.utils.GenRandomData;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.builtin.BinStorage;
@@ -1343,7 +1343,7 @@ public class TestPOCast extends TestCase {
 	}
 	
 	@Test
-	public void testTupleToOther() throws IOException, ParseException {
+	public void testTupleToOther() throws IOException, ParserException {
 		POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
 		op.setFuncSpec(new FuncSpec(PigStorage.class.getName()));
 		POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
@@ -1486,7 +1486,7 @@ public class TestPOCast extends TestCase {
 	}
 	
 	@Test
-	public void testBagToOther() throws IOException, ParseException {
+	public void testBagToOther() throws IOException, ParserException {
 		POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
 		op.setFuncSpec(new FuncSpec(PigStorage.class.getName()));
 		POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);

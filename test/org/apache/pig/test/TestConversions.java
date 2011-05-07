@@ -26,6 +26,7 @@ import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.builtin.Utf8StorageConverter;
+import org.apache.pig.parser.ParserException;
 import org.apache.pig.test.utils.GenRandomData;
 import org.apache.pig.test.utils.TestHelper;
 import org.apache.pig.data.Tuple;
@@ -33,7 +34,6 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.Utils;
 
@@ -304,7 +304,7 @@ public class TestConversions extends TestCase {
     }
     
     @Test
-    public void testBytesToComplexTypeMisc() throws IOException, ParseException {
+    public void testBytesToComplexTypeMisc() throws IOException, ParserException {
         String s = "(a,b";
         Schema schema = Utils.getSchemaFromString("t:tuple(a:chararray, b:chararray)");
         ResourceFieldSchema rfs = new ResourceSchema(schema).getFields()[0];
@@ -386,7 +386,7 @@ public class TestConversions extends TestCase {
     }
     
     @Test
-    public void testOverflow() throws IOException, ParseException {
+    public void testOverflow() throws IOException, ParserException {
     	Schema schema;
     	ResourceFieldSchema rfs;
     	Tuple tuple, convertedTuple;

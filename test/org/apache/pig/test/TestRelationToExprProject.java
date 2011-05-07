@@ -26,12 +26,10 @@ import java.util.Map;
 
 import org.apache.pig.PigServer;
 import org.apache.pig.data.BagFactory;
-import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
-import org.apache.pig.impl.util.LogUtils;
+import org.apache.pig.parser.ParserException;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -91,7 +89,7 @@ public class TestRelationToExprProject extends TestCase {
     // for a group, an empty bag is still provided to udfs whose
     // input is the filter
     @Test
-    public void testFilterCount1() throws IOException, ParseException {
+    public void testFilterCount1() throws IOException, ParserException {
         
         String[] inputData = new String[] {"1\t1\t3","1\t2\t3", "2\t1\t3", "2\t1\t3"};
         Util.createInputFile(cluster, "test.txt", inputData);
@@ -132,7 +130,7 @@ public class TestRelationToExprProject extends TestCase {
     // for a group, an empty bag is still provided to udfs whose
     // input is the filter
     @Test
-    public void testFilterCount2() throws IOException, ParseException {
+    public void testFilterCount2() throws IOException, ParserException {
         Util.createInputFile(cluster, "filterbug.data", new String[] {
                 "a\thello" ,
                 "a\tgoodbye" ,
@@ -176,7 +174,7 @@ public class TestRelationToExprProject extends TestCase {
     // for a group, an empty bag is still provided to udfs whose
     // input is the filter
     @Test
-    public void testFilterCount3() throws IOException, ParseException {
+    public void testFilterCount3() throws IOException, ParserException {
         Util.copyFromLocalToCluster(cluster, TEST_FILTER_COUNT3_INPUT, "testdata");
         String query = "TESTDATA =  load 'testdata' using PigStorage() as (timestamp:chararray, testid:chararray, userid: chararray, sessionid:chararray, value:long, flag:int);" +
         		"TESTDATA_FILTERED = filter TESTDATA by (timestamp gte '1230800400000' and timestamp lt '1230804000000' and value != 0);" +
@@ -205,7 +203,7 @@ public class TestRelationToExprProject extends TestCase {
     // single inner plan of foreach - this will test that it does
     // send an EOP eventually for each input of the foreach
     @Test
-    public void testFilter1() throws IOException, ParseException {
+    public void testFilter1() throws IOException, ParserException {
         
         String[] inputData = new String[] {"1\t1\t3","1\t2\t3", "2\t1\t3", "2\t1\t3", "3\t4\t4"};
         Util.createInputFile(cluster, "test.txt", inputData);
@@ -246,7 +244,7 @@ public class TestRelationToExprProject extends TestCase {
     // the state that empty bags need to be sent on EOP if no non-EOP
     // input has been seen on a fresh input from foreach.
     @Test
-    public void testFilter2() throws IOException, ParseException {
+    public void testFilter2() throws IOException, ParserException {
         
         String[] inputData = new String[] {"1\t1\t3","1\t2\t3", "2\t1\t3", "2\t1\t3", "3\t4\t4"};
         Util.createInputFile(cluster, "test.txt", inputData);

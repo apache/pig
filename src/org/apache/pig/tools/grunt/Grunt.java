@@ -17,16 +17,10 @@
  */
 package org.apache.pig.tools.grunt;
 
-import java.io.File;
 import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
-import java.io.IOException;
-import java.io.FileOutputStream;
 import java.util.ArrayList;
 
 import jline.ConsoleReader;
-import jline.Completor;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -35,10 +29,7 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.tools.grunt.GruntParser;
 import org.apache.pig.tools.grunt.PigCompletor;
 import org.apache.pig.tools.grunt.PigCompletorAliases;
-import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.tools.pigscript.parser.*;
-import org.apache.pig.impl.logicalLayer.parser.TokenMgrError;
 import org.apache.pig.impl.util.LogUtils;
 
 public class Grunt 

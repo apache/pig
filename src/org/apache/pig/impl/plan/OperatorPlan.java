@@ -1043,13 +1043,6 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
         }
     }
     
-    public void explain(
-            OutputStream out,
-            PrintStream ps) throws VisitorException, IOException {
-        PlanPrinter pp = new PlanPrinter(ps, this);
-        pp.print(out);
-    }
-
     /**
      * Swap two operators in a plan.  Both of the operators must have single
      * inputs and single outputs.

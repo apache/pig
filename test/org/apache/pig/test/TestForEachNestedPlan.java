@@ -36,7 +36,7 @@ import org.apache.pig.PigServer;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import org.apache.pig.parser.ParserException;
 import org.apache.pig.test.utils.TestHelper;
 import org.junit.AfterClass;
 import org.junit.Test;
@@ -147,7 +147,7 @@ public class TestForEachNestedPlan {
    
     @Test
     public void testAlgebricFuncWithoutGroupBy() 
-    throws IOException, ParseException {
+    throws IOException, ParserException {
         String INPUT_FILE = "test-sum.txt";
 
         PrintWriter w = new PrintWriter(new FileWriter(INPUT_FILE));
@@ -195,7 +195,7 @@ public class TestForEachNestedPlan {
 
     @Test
     public void testInnerDistinct() 
-    throws IOException, ParseException {
+    throws IOException, ParserException {
         String INPUT_FILE = "test-distinct.txt";
 
         PrintWriter w = new PrintWriter(new FileWriter(INPUT_FILE));

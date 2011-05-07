@@ -26,9 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Collection;
-import java.util.Map.Entry;
 
-import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
@@ -38,7 +36,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.CanonicalNamer;
 
 /**
@@ -92,33 +89,6 @@ public class Schema implements Serializable, Cloneable {
          */
         public String canonicalName = null;
 
-        /*
-         * Map of canonical names used for this field in other sections of the
-         * plan.  It can occur that a single field will have different
-         * canonical names in different branches of a plan.  For example, 
-         * C = cogroup A by x, B by y.  In subsequent statements, the grouping
-         * column will have canonical name, say, of 'r'.  But in branches
-         * above the cogroup it may have been known as 's' in the A branch and
-         * 't' in the B branch.  This map preserves that.  The key is a
-         * logical operator, and the value is the canonical name
-         * associated with the field for that operator.
-         */
-        // marking transient since this data structure is only used in front-end
-        // query planning to figure out lineage for casts on bytearrays and need
-        // not be serialized to the backend
-        transient private Map<String, LogicalOperator> canonicalMap = null;
-
-        /**
-         * A reverse lookup of canonical names to logical operators. The reverse
-         * lookup serves cases where the canonical name of the predecessor
-         * cannot be determined. In such cases the keys of the reverse lookup
-         * can be used to navigate the plan
-         */
-        // marking transient since this data structure is only used in front-end
-        // query planning to figure out lineage for casts on bytearrays and need
-        // not be serialized to the backend
-        transient private MultiMap<LogicalOperator, String> reverseCanonicalMap = null;
-        
         /**
          * Canonical namer object to generate new canonical names on
          * request. In order to ensure unique and consistent names, across
@@ -141,9 +111,7 @@ public class Schema implements Serializable, Cloneable {
             alias = a;
             type = t;
             schema = null;            
-            canonicalName = canonicalNamer.getNewName();
-            canonicalMap = new HashMap<String, LogicalOperator>();
-            reverseCanonicalMap = new MultiMap<LogicalOperator, String>();
+            canonicalName = CanonicalNamer.getNewName();
         }
 
         /**
@@ -158,9 +126,7 @@ public class Schema implements Serializable, Cloneable {
             alias = a;
             type = DataType.TUPLE;
             schema = s;
-            canonicalName = canonicalNamer.getNewName();
-            canonicalMap = new HashMap<String, LogicalOperator>();
-            reverseCanonicalMap = new MultiMap<LogicalOperator, String>();
+            canonicalName = CanonicalNamer.getNewName();
         }
 
         /**
@@ -187,9 +153,7 @@ public class Schema implements Serializable, Cloneable {
             }
             
             type = t;
-            canonicalName = canonicalNamer.getNewName();
-            canonicalMap = new HashMap<String, LogicalOperator>();
-            reverseCanonicalMap = new MultiMap<LogicalOperator, String>();
+            canonicalName = CanonicalNamer.getNewName();
         }
 
         /**
@@ -213,53 +177,7 @@ public class Schema implements Serializable, Cloneable {
                 schema = null;
                 type = DataType.UNKNOWN;
             }
-            canonicalName = canonicalNamer.getNewName();
-            canonicalMap = new HashMap<String, LogicalOperator>();
-            reverseCanonicalMap = new MultiMap<LogicalOperator, String>();
-        }
-
-        /**
-         * Make a copy of the FieldSchema instance and link the new one to the old one with canonical map.
-         * 
-         * @param fs FieldSchema instance to be copied.
-         * @param op The operator to which the old FieldSchema instance belongs.
-         * @return a new copy
-         * @throws FrontendException
-         */
-        public static FieldSchema copyAndLink(FieldSchema fs, LogicalOperator op) {
-        	String alias = null;
-        	Schema schema = null;
-        	byte type = DataType.UNKNOWN;
-            if( null != fs ) {
-                alias = fs.alias;
-                if( null != fs.schema ) {
-                    schema = Schema.copyAndLink( fs.schema, op );
-                } else {
-                    schema = null;
-                }
-                type = fs.type;
-            }
-            
-            FieldSchema fieldSchema = new FieldSchema( alias, schema );
-            fieldSchema.type = type;
-            fieldSchema.setParent( fs == null ? null : fs.canonicalName, op );
-            
-            return fieldSchema;
-        }
-        
-        public void setParent(String parentCanonicalName, LogicalOperator parent) {
-            if(null != parentCanonicalName) {
-                canonicalMap.put(parentCanonicalName, parent);
-            }
-            reverseCanonicalMap.put(parent, parentCanonicalName);
-        }
-
-        public Map<String, LogicalOperator> getCanonicalMap() {
-            return canonicalMap;
-        }
-
-        public MultiMap<LogicalOperator, String> getReverseCanonicalMap() {
-            return reverseCanonicalMap;
+            canonicalName = CanonicalNamer.getNewName();
         }
 
         /**
@@ -450,11 +368,7 @@ public class Schema implements Serializable, Cloneable {
             try {
                 FieldSchema fs = new FieldSchema(alias,
                     (schema == null ? null : schema.clone()), type);
-                fs.canonicalName = canonicalNamer.getNewName();
-                if (canonicalMap != null) {
-                    fs.canonicalMap =
-                        new HashMap<String, LogicalOperator>(canonicalMap);
-                }
+                fs.canonicalName = CanonicalNamer.getNewName();
                 return fs;
             } catch (FrontendException fe) {
                 throw new RuntimeException(
@@ -719,42 +633,6 @@ public class Schema implements Serializable, Cloneable {
             mAliases = new HashMap<String, FieldSchema>();
             mFieldSchemas = new MultiMap<String, String>();
         }
-    }
-
-    /**
-     * Make a copy of the given schema object and link the original with the copy using 
-     * canonical name map.
-     * 
-     * @param s The original schema
-     * @param op The operator to which the original belongs
-     * @return a new copy
-     */
-    public static Schema copyAndLink(Schema s, LogicalOperator op) {
-    	Schema result = new Schema();
-        if(null != s) {
-            result.twoLevelAccessRequired = s.twoLevelAccessRequired;
-            try {
-                for( int i = 0; i < s.size(); ++i ) {
-                    FieldSchema fs = FieldSchema.copyAndLink( s.getField(i), op );
-                    result.mFields.add(fs);
-                    if(null != fs) {
-                        if (fs.alias != null) {
-                            result.mAliases.put(fs.alias, fs);
-                            result.mFieldSchemas.put(fs.canonicalName, fs.alias);
-                        }
-                    }
-                }
-            } catch (FrontendException pe) {
-            	result.mFields = new ArrayList<FieldSchema>();
-            	result.mAliases = new HashMap<String, FieldSchema>();
-            	result.mFieldSchemas = new MultiMap<String, String>();
-            }
-        } else {
-        	result.mFields = new ArrayList<FieldSchema>();
-        	result.mAliases = new HashMap<String, FieldSchema>();
-        	result.mFieldSchemas = new MultiMap<String, String>();
-        }
-	    return result;
     }
 
     /**

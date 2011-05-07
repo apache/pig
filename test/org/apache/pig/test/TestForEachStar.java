@@ -30,25 +30,18 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import org.apache.pig.parser.ParserException;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-
 /**
  * Test "foreach alias generate *"
  */
 public class TestForEachStar {
-    
-
-    
-    
     private static final String INPUT_FILE = "TestForEachStarInput";
-
-
 
     @BeforeClass
     public static void oneTimeSetup() throws Exception{
@@ -72,7 +65,7 @@ public class TestForEachStar {
     }
 
     @Test
-    public void testForeachStarSchemaUnkown() throws IOException, ParseException{
+    public void testForeachStarSchemaUnkown() throws IOException, ParserException{
         PigServer pig = new PigServer(ExecType.LOCAL);
         String query =
             "  l1 = load '" + INPUT_FILE + "' ;"

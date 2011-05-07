@@ -41,7 +41,6 @@
 **/TestMultiQueryLocal.java
 **/TestNotEqualTo.java
 **/TestNull.java
-**/TestOperatorPlan.java
 **/TestPackage.java
 **/TestParamSubPreproc.java
 **/TestPhyOp.java

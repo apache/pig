@@ -41,7 +41,7 @@ import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import org.apache.pig.parser.ParserException;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -98,7 +98,7 @@ public class TestStoreInstances  {
      * @throws ParseException
      */
     @Test
-    public void testBackendStoreCommunication() throws IOException, ParseException {
+    public void testBackendStoreCommunication() throws IOException, ParserException {
         ExecType[] execTypes = { ExecType.MAPREDUCE, ExecType.LOCAL};
         PigServer pig = null;
         for(ExecType execType : execTypes){
