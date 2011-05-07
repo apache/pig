@@ -158,7 +158,6 @@ public class Utils {
     }
 
     /**
-     * @deprecated Use parseSchema() instead.
      * @param schemaString
      * @return Schema instance
      * @throws ParserException
