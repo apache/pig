@@ -182,7 +182,7 @@ public class UDFContext {
     }
     
     private UDFContextKey generateKey(Class<?> c, String[] args) {
-        return new UDFContextKey(c, args);
+        return new UDFContextKey(c.getName(), args);
     }
     
     public void reset() {
@@ -201,21 +201,17 @@ public class UDFContext {
     private static class UDFContextKey implements Serializable{
 
         private static final long serialVersionUID = 1;
-        private Class<?> udfClass;
+        private String className;
         private String[] args;
         
         UDFContextKey(){
         }
 
-        UDFContextKey(Class<?> udfClass, String [] args){
-            setValue(udfClass, args);
+        UDFContextKey(String className, String [] args){
+            this.className = className;
+            this.args = args;        
         }
 
-        void setValue(Class<?> udfClass, String [] args){
-            this.udfClass = udfClass;
-            this.args = args;
-        }
-        
         /* (non-Javadoc)
          * @see java.lang.Object#hashCode()
          */
@@ -225,10 +221,10 @@ public class UDFContext {
             int result = 1;
             result = prime * result + Arrays.hashCode(args);
             result = prime * result
-                    + ((udfClass == null) ? 0 : udfClass.getName().hashCode());
+                    + ((className == null) ? 0 : className.hashCode());
             return result;
         }
-        
+
         /* (non-Javadoc)
          * @see java.lang.Object#equals(java.lang.Object)
          */
@@ -243,7 +239,10 @@ public class UDFContext {
             UDFContextKey other = (UDFContextKey) obj;
             if (!Arrays.equals(args, other.args))
                 return false;
-            if(udfClass != other.udfClass)
+            if (className == null) {
+                if (other.className != null)
+                    return false;
+            } else if (!className.equals(other.className))
                 return false;
             return true;
         }
