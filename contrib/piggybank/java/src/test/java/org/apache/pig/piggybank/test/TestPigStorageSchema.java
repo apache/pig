@@ -33,10 +33,7 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.logicalLayer.LogicalOperator;
-import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.test.MiniCluster;
 import org.apache.pig.test.Util;
 import org.apache.pig.test.utils.TypeCheckingTestUtil;
@@ -52,9 +49,6 @@ public class TestPigStorageSchema {
     static PigServer pig;
 
     PigContext pigContext = new PigContext(ExecType.MAPREDUCE, new Properties());
-    Map<LogicalOperator, LogicalPlan> aliases = new HashMap<LogicalOperator, LogicalPlan>();
-    Map<OperatorKey, LogicalOperator> logicalOpTable = new HashMap<OperatorKey, LogicalOperator>();
-    Map<String, LogicalOperator> aliasOp = new HashMap<String, LogicalOperator>();
     Map<String, String> fileNameMap = new HashMap<String, String>();
 
     @Before
