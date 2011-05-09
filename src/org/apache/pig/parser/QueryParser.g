@@ -222,7 +222,7 @@ macro_return_clause
 ;
 
 macro_body_clause : content
-    -> ^(MACRO_BODY { new PigParserNode(new CommonToken(1, $content.text), this.getSourceName()) } )
+    -> ^(MACRO_BODY { new PigParserNode(new CommonToken(1, $content.text), this.getSourceName(), $content.start) } )
 ;
 
 macro_clause : macro_param_clause macro_return_clause macro_body_clause

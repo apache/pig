@@ -394,6 +394,10 @@ public class QueryParserDriver {
             throw new ParserException(msg);
         }
         
+        // set the starting line number of the macro 
+        PigParserNode pnode = (PigParserNode)bodyNode.getChild(0);
+        pm.setStartLine(pnode.getStartLine());
+        
         seen.put(mn, pm);
 
         // delete this node
@@ -469,5 +473,5 @@ public class QueryParserDriver {
             sb.append(". Reason: ").append(reason);
         }
         return sb.toString();
-    }
+    }   
 }

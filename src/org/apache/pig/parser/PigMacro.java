@@ -36,6 +36,7 @@ import org.antlr.runtime.tree.CommonTreeNodeStream;
 import org.antlr.runtime.tree.Tree;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.parser.PigParserNode.InvocationPoint;
 import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
 
 class PigMacro {
@@ -50,6 +51,9 @@ class PigMacro {
     private Map<String, PigMacro> seen;
     private Set<String> macroStack;
     private long idx = 0;
+    
+    // The start line number of this macro in the script
+    private int startLine = 0;
 
     PigMacro(String name, String file, List<String> params,
             List<String> returns, String body, Map<String, PigMacro> seen) {
@@ -71,9 +75,17 @@ class PigMacro {
 
     Set<String> getStack() { return macroStack; }
     
-    private CommonTree inline(String[] inputs, String[] outputs, int lineNumber,
+    void setStartLine(int start) {
+        this.startLine = start;
+    }
+    
+    int getStartLine() {
+        return startLine;
+    }
+    
+    private CommonTree inline(String[] inputs, String[] outputs, CommonTree t,
             String file) throws ParserException {
-        String in = substituteParams(inputs, outputs, lineNumber, file);
+        String in = substituteParams(inputs, outputs, t.getLine(), file);
         
         Set<String> masks = new HashSet<String>();
         if (inputs != null) {
@@ -86,7 +98,7 @@ class PigMacro {
             masks.add(s);
         }
  
-        return maskAlias(in, masks, lineNumber, file);
+        return maskAlias(in, masks, t, file);
     }
     
     
@@ -155,8 +167,13 @@ class PigMacro {
         return writer.toString();
     }
         
-    private CommonTree maskAlias(String in, Set<String> masks, int line,
+    private CommonTree maskAlias(String in, Set<String> masks, CommonTree tree,
             String file) throws ParserException {
+        
+        // this is the MACRO_INLINE node. the real line number is in the 
+        // macro name node
+        int line = tree.getChild(0).getLine();
+
         CharStream input = null;
         try {
             // parse macro body into ast 
@@ -171,8 +188,8 @@ class PigMacro {
         CommonTokenStream tokens = new  CommonTokenStream(lex);
             
         QueryParser.query_return result = null;
-        QueryParser parser = QueryParserUtils.createParser(tokens);
-        
+        QueryParser parser = QueryParserUtils.createParser(tokens, startLine-1);
+
         try {
             result = parser.query();
         } catch (RecognitionException e) {
@@ -198,7 +215,17 @@ class PigMacro {
                             + body);
             throw new ParserException(msg);
         }
-         
+        
+        // add macro invocation points to the expanded macro tree
+        PigParserNode pnode = (PigParserNode)tree;
+        List<InvocationPoint> invStack = pnode.getInvocationStack();
+        List<InvocationPoint> newInvStack = (invStack == null) ? new ArrayList<InvocationPoint>()
+                : new ArrayList<InvocationPoint>(invStack);
+
+        InvocationPoint pt = new InvocationPoint(line, file, name);
+        newInvStack.add(pt);
+        setInvocationStack(ast, newInvStack);
+        
         // recursively expand the inline macros
         List<CommonTree> inlineNodes = new ArrayList<CommonTree>();
         traverseMacro(ast, inlineNodes, "MACRO_INLINE");
@@ -233,6 +260,15 @@ class PigMacro {
                 + commonTree.toStringTree());
  
         return commonTree;
+    }
+    
+    private static void setInvocationStack(Tree ast, List<InvocationPoint> stack) {        
+        PigParserNode node = (PigParserNode)ast;
+        node.setInvocationStack(stack);
+        int n = node.getChildCount();
+        for (int i = 0; i < n; i++) {
+            setInvocationStack(node.getChild(i), stack);
+        }
     }
     
     /*
@@ -412,7 +448,7 @@ class PigMacro {
             params[i] = t.getChild(2).getChild(i).getText();
         }
 
-        return macro.inline(params, rets, t.getLine(), file);
+        return macro.inline(params, rets, t, file);
     }
   
     private static String getErrorMessage(String file, int line, String header,

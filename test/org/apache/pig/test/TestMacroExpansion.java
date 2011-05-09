@@ -34,6 +34,7 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.tools.grunt.Grunt;
 import org.apache.pig.tools.pigstats.PigStats;
+import org.apache.pig.tools.pigstats.ScriptState;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -1115,6 +1116,70 @@ public class TestMacroExpansion {
         verify(script, expected);
     }
     
+    @Test // PIG-2012
+    public void lineNumberTest1() throws Throwable {
+        StringBuilder sb = new StringBuilder();
+        sb.append("-- Given daily input and a particular year, analyze how\n") 
+            .append("-- stock prices changed on days dividends were paid out.\n");
+        
+        sb.append("define dividend_analysis (daily, year, daily_symbol, daily_open, daily_close)\n" +
+            "returns analyzed {\n" +
+            "divs          = load 'NYSE_dividends' as (exchange:chararray,\n" +
+            "            symbol:chararray, date:chararray, dividends:float);\n" +
+            "divsthisyear  = filter divs by date matches '$year-.*';\n" +
+            "dailythisyear = filter $daily by date matches '$year-.*';\n" +
+            "jnd           = join divsthisyear by symbol, dailythisyear by $daily_symbol;\n" +
+            "$analyzed     = foreach jnd generate $daily_symbol, $daily_close - $daily_open;\n" +
+            "};\n");
+        
+        sb.append("daily   = load 'NYSE_daily' as (exchange:chararray, symbol:chararray,\n" +
+            "date:chararray, open:float, high:float, low:float, close:float,\n" +
+            "volume:int, adj_close:float);\n" +
+            "results = dividend_analysis(daily, '2009', 'symbol', 'open', 'close');\n" +
+            "store results into 'output';\n");
+        
+        String expectedErr = "at expanding macro 'dividend_analysis' (myscript.pig:15)\n" +
+            "<file myscript.pig, line 10, column 35> Invalid field projection. Projected field [symbol] " +
+            "does not exist in schema:";
+        
+        validateFailure(sb.toString(), expectedErr, "at");
+    }
+    
+    @Test // PIG-2012
+    public void lineNumberTest2() throws Throwable {
+        StringBuilder sb = new StringBuilder();
+        sb.append("-- Given daily input and a particular year, analyze how\n") 
+            .append("-- stock prices changed on days dividends were paid out.\n");
+        
+        sb.append("define dividend_analysis (daily, year, daily_symbol, daily_open, daily_close)\n" +
+            "returns analyzed {\n" +
+            "divs          = load 'NYSE_dividends' as (exchange:chararray,\n" +
+            "            symbol:chararray, date:chararray, dividends:float);\n" +
+            "divsthisyear  = filter divs by date matches '$year-.*';\n" +
+            "dailythisyear = filter $daily by date matches '$year-.*';\n" +
+            "jnd           = join divsthisyear by symbol, dailythisyear by $daily_symbol;\n" +
+            "$analyzed     = foreach jnd generate $daily_symbol, $daily_close - $daily_open;\n" +
+            "};\n");
+        
+        sb.append("define addition_macro (daily, year, daily_symbol, daily_open, daily_close) returns B {\n" +
+            "$B = dividend_analysis($daily, '$year', '$daily_symbol', '$daily_open', '$daily_close');\n" +
+            "};\n");
+        
+        sb.append("daily   = load 'NYSE_daily' as (exchange:chararray, symbol:chararray,\n" +
+            "date:chararray, open:float, high:float, low:float, close:float,\n" +
+            "volume:int, adj_close:float);\n" +
+            "results = addition_macro(daily, '2009', 'symbol', 'open', 'close');\n" +
+            "store results into 'output';\n");
+        
+        String expectedErr = 
+            "at expanding macro 'addition_macro' (myscript.pig:18)\n" +
+            "at expanding macro 'dividend_analysis' (myscript.pig:13)\n" +
+            "<file myscript.pig, line 10, column 35> Invalid field projection. Projected field [symbol] " +
+            "does not exist in schema:";
+        
+        validateFailure(sb.toString(), expectedErr, "at");
+    }
+    
     @Test
     public void recursiveMacrosTest3() throws Exception {
         String macro1 = "define group_and_partition (A, group_key, reducers) returns B, D  {\n" +
@@ -2015,7 +2080,10 @@ public class TestMacroExpansion {
     }
     
     private void validateFailure(String piglatin, String expectedErr, String keyword) throws Throwable {
-        String scriptFile = "mymacrotest.pig";
+        String scriptFile = "myscript.pig";
+        
+        ScriptState ss = ScriptState.get();
+        ss.setFileName(scriptFile);
         
         try {
             BufferedReader br = new BufferedReader(new StringReader(piglatin));
@@ -2028,10 +2096,17 @@ public class TestMacroExpansion {
             grunt.checkScript(scriptFile);
             
             Assert.fail("Expected exception isn't thrown");
-        } catch (FrontendException e) {  
+        } catch (FrontendException e) { 
             String msg = e.getMessage();
             int pos = msg.indexOf(keyword);
-            Assert.assertEquals(expectedErr, msg.substring(pos));           
+            if (pos < 0) {
+                Throwable cause = e.getCause();
+                if (cause != null) {
+                    msg = cause.getMessage();
+                    pos = msg.indexOf(keyword);
+                }
+            }
+            Assert.assertEquals(expectedErr, msg.substring(pos, pos+expectedErr.length()));        
         } finally {
             new File(scriptFile).delete();
         }
