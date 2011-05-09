@@ -1575,8 +1575,13 @@ public class PigServer {
                         scriptCache.add( "" );
                         currentLineNum++;
                     }
-                    scriptCache.add( query );
-                    currentLineNum = startLine;
+                    BufferedReader br = new BufferedReader(new StringReader(query));
+                    String line = br.readLine();
+                    while (line != null) {
+                        scriptCache.add(line);
+                        currentLineNum++;
+                        line = br.readLine();
+                    }
                 }
             } else {
                 scriptCache.add( query );
