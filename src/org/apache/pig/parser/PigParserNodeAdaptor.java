@@ -24,13 +24,16 @@ public class PigParserNodeAdaptor extends CommonTreeAdaptor {
     
     private String source;
     
-    PigParserNodeAdaptor(String source) {
+    private int lineOffset;
+    
+    PigParserNodeAdaptor(String source, int lineOffset) {
         this.source = source;
+        this.lineOffset = lineOffset;
     }
     
     @Override
     public Object create(Token t) {
-        return new PigParserNode(t, source);
+        return new PigParserNode(t, source, lineOffset);
     }
     
 }

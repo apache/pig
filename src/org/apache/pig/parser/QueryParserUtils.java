@@ -229,9 +229,13 @@ public class QueryParserUtils {
     }
     
     static QueryParser createParser(CommonTokenStream tokens) {
+        return createParser(tokens, 0);
+    }
+    
+    static QueryParser createParser(CommonTokenStream tokens, int lineOffset) {
         QueryParser parser = new QueryParser(tokens);
         PigParserNodeAdaptor adaptor = new PigParserNodeAdaptor(
-                tokens.getSourceName());
+                tokens.getSourceName(), lineOffset);
         parser.setTreeAdaptor(adaptor);
         return parser;
     }

@@ -18,10 +18,14 @@
 
 package org.apache.pig.parser;
 
+import org.apache.pig.parser.PigParserNode.InvocationPoint;
+
 public class SourceLocation {
     private String file = null; // Name of the source, null if unknown.
     private int line = -1; // line number, -1 if unknown.
     private int offset = -1; // offset, -f if unknown.
+    
+    private PigParserNode node; // corresponding parser tree node
     
     public SourceLocation() {
     }
@@ -36,12 +40,14 @@ public class SourceLocation {
         this.file = tree.getFileName();
         this.line = tree.getLine();
         this.offset = tree.getCharPositionInLine();
+        this.node = tree;
     }
     
     public SourceLocation(SourceLocation location) {
         this.file = location.file;
         this.line = location.line;
         this.offset = location.offset;
+        this.node = location.node;
     }
     
     public String file() {
@@ -56,12 +62,27 @@ public class SourceLocation {
         return offset;
     }
     
+    public PigParserNode node() {
+        return node;
+    }
+    
     @Override
     public String toString() {
         if( line == -1 )
             return "";
         
-        StringBuilder sb = new StringBuilder( "<" );
+        StringBuilder sb = new StringBuilder();
+        if (node != null) {
+            InvocationPoint pt = node.getNextInvocationPoint();
+            while (pt != null) {
+                sb.append("\n");
+                sb.append("at expanding macro '" + pt.getMacro() + "' ("
+                        + pt.getFile() + ":" + pt.getLine() + ")");
+                pt = node.getNextInvocationPoint();
+            }
+            sb.append("\n");
+        }
+        sb.append( "<" );
         if( file != null )
             sb.append( "file " + file + ", " );
         sb.append( "line " + line +", column " + offset + "> " );
