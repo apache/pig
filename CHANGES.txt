@@ -24,6 +24,9 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1949: e2e test harness should use bin/pig rather than calling java
+directly (gates)
+
 PIG-2026: e2e tests in eclipse classpath (azaroth via hashutosh) 
 
 PIG-2024: Incorrect jar paths in .classpath template for eclipse (azaroth via hashutosh)

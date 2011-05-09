@@ -159,13 +159,6 @@ sub globalSetup
     $globalHash->{'outpath'} = $globalHash->{'outpathbase'} . "/" . $globalHash->{'runid'} . "/";
     $globalHash->{'localpath'} = $globalHash->{'localpathbase'} . "/" . $globalHash->{'runid'} . "/";
 
-    # extract the current zebra.jar file path from the classpath
-    # and enter it in the hash for use in the substitution of :ZEBRAJAR:
-    my $zebrajar = $globalHash->{'cp'};
-    $zebrajar =~ s/zebra.jar.*/zebra.jar/;
-    $zebrajar =~ s/.*://;
-    $globalHash->{'zebrajar'} = $zebrajar;
-
     # add libexec location to the path
     if (defined($ENV{'PATH'})) {
         $ENV{'PATH'} = $globalHash->{'scriptPath'} . ":" . $ENV{'PATH'};
@@ -174,7 +167,7 @@ sub globalSetup
         $ENV{'PATH'} = $globalHash->{'scriptPath'};
     }
 
-    my @cmd = (Util::getBasePigCmd($globalHash), '-e', 'mkdir', $globalHash->{'outpath'});
+    my @cmd = ($self->getPigCmd($globalHash, $log), '-e', 'mkdir', $globalHash->{'outpath'});
 
     if($self->{'exectype'} eq "local")
     {
@@ -201,16 +194,16 @@ sub globalSetup
 
 sub runTest
 {
-    my ($self, $testCmd, $log, $copyResults) = @_;
+    my ($self, $testCmd, $log) = @_;
     my $subName  = (caller(0))[3];
 
     # Handle the various methods of running used in 
     # the original TestDrivers
 
     if ( $testCmd->{'pig'} && $self->hasCommandLineVerifications( $testCmd, $log) ) {
-       return $self->runPigCmdLine( $testCmd, $log, $copyResults );
+       return $self->runPigCmdLine( $testCmd, $log, 1);
     } elsif( $testCmd->{'pig'} ){
-       return $self->runPig( $testCmd, $log, $copyResults );
+       return $self->runPig( $testCmd, $log, 1);
    #} elsif(  $testCmd->{'pigsql'} ){
    #   return $self->runPigSql( $testCmd, $log, $copyResults );
     } elsif(  $testCmd->{'script'} ){
@@ -249,7 +242,7 @@ sub runPigCmdLine
     close(FH);
 
     # Build the command
-    my @baseCmd = Util::getBasePigCmd($testCmd);
+    my @baseCmd = $self->getPigCmd($testCmd, $log);
     my @cmd = @baseCmd;
 
     # Add option -l giving location for secondary logs
@@ -341,6 +334,41 @@ sub runScript
 }
 
 
+sub getPigCmd($$$)
+{
+    my ($self, $testCmd, $log) = @_;
+
+    my @pigCmd;
+
+    # set the PIG_CLASSPATH environment variable
+	my $pcp .= $testCmd->{'jythonjar'} if (defined($testCmd->{'jythonjar'}));
+    $pcp .= ":" . $testCmd->{'classpath'} if (defined($testCmd->{'classpath'}));
+    $pcp .= ":" . $testCmd->{'testconfigpath'} if ($testCmd->{'exectype'} ne "local");
+
+    # Set it in our current environment.  It will get inherited by the IPC::Run
+    # command.
+    $ENV{'PIG_CLASSPATH'} = $pcp;
+
+    @pigCmd = ("$testCmd->{'pigpath'}/bin/pig");
+
+    if (defined($testCmd->{'additionaljars'})) {
+        push(@pigCmd, '-Dpig.additional.jars='.$testCmd->{'additionaljars'});
+    }
+
+    if ($testCmd->{'exectype'} eq "local") {
+		push(@{$testCmd->{'java_params'}}, "-Xmx1024m");
+        push(@pigCmd, ("-x", "local"));
+    }
+
+    if (defined($testCmd->{'java_params'})) {
+		$ENV{'PIG_OPTS'} = join(" ", @{$testCmd->{'java_params'}});
+    }
+
+
+    return @pigCmd;
+}
+
+
 
 sub runPig
 {
@@ -361,7 +389,7 @@ sub runPig
 
 
     # Build the command
-    my @baseCmd = Util::getBasePigCmd($testCmd);
+    my @baseCmd = $self->getPigCmd($testCmd, $log);
     my @cmd = @baseCmd;
 
     # Add option -l giving location for secondary logs
@@ -382,6 +410,7 @@ sub runPig
 
 
     # Run the command
+    print $log "Setting PIG_CLASSPATH to $ENV{'PIG_CLASSPATH'}\n";
     print $log "$0::$className::$subName INFO: Going to run pig command: @cmd\n";
 
     IPC::Run::run(\@cmd, \undef, $log, $log) or
@@ -392,6 +421,7 @@ sub runPig
     # Get results from the command locally
     my $localoutfile;
     my $localdir = $testCmd->{'localpath'} . $testCmd->{'group'} . "_" . $testCmd->{'num'} . ".out";
+    $self->parseSqlQueries($testCmd);
     my @SQLQuery = @{$testCmd->{'queries'}}; # here only used to determine if single-guery of multi-query
        
     # mapreduce
@@ -515,6 +545,7 @@ sub generateBenchmark
 
     my %result;
 
+    $self->parseSqlQueries($testCmd);
     my @SQLQuery = @{$testCmd->{'queries'}};
  
     if ($#SQLQuery == 0) {
@@ -663,7 +694,7 @@ sub compareScript
       print $log "$0::$subName INFO Checking test stdout' " .
               "as exact match against expected <$testCmd->{'expected_out'}>\n";
       if ($testResult->{'stdout'} ne $testCmd->{'expected_out'}) {
-        print $log "$0::$subName INFO Check failed: exact match of <$testCmd->{'expected_out'}> expected in stdout: $testResult->{'output'}\n";
+        print $log "$0::$subName INFO Check failed: exact match of <$testCmd->{'expected_out'}> expected in stdout: $testResult->{'stdout'}\n";
         $result = 0;
       }
     } 
@@ -672,7 +703,7 @@ sub compareScript
       print $log "$0::$subName INFO Checking test stdout " .
               "as NOT exact match against expected <$testCmd->{'expected_out'}>\n";
       if ($testResult->{'stdout'} eq $testCmd->{'not_expected_out'}) {
-        print $log "$0::$subName INFO Check failed: NON-match of <$testCmd->{'expected_out'}> expected to stdout: $testResult->{'output'}\n";
+        print $log "$0::$subName INFO Check failed: NON-match of <$testCmd->{'expected_out'}> expected to stdout: $testResult->{'stdout'}\n";
         $result = 0;
       }
     } 
@@ -681,7 +712,7 @@ sub compareScript
       print $log "$0::$subName INFO Checking test stdout " .
               "for regular expression <$testCmd->{'expected_out_regex'}>\n";
       if ($testResult->{'stdout'} !~ $testCmd->{'expected_out_regex'}) {
-        print $log "$0::$subName INFO Check failed: regex match of <$testCmd->{'expected_out_regex'}> expected in stdout: $testResult->{'output'}\n";
+        print $log "$0::$subName INFO Check failed: regex match of <$testCmd->{'expected_out_regex'}> expected in stdout: $testResult->{'stdout'}\n";
         $result = 0;
       }
     } 
@@ -690,7 +721,7 @@ sub compareScript
       print $log "$0::$subName INFO Checking test stdout " .
               "for NON-match of regular expression <$testCmd->{'not_expected_out_regex'}>\n";
       if ($testResult->{'stdout'} =~ $testCmd->{'not_expected_out_regex'}) {
-        print $log "$0::$subName INFO Check failed: regex NON-match of <$testCmd->{'not_expected_out_regex'}> expected in stdout: $testResult->{'output'}\n";
+        print $log "$0::$subName INFO Check failed: regex NON-match of <$testCmd->{'not_expected_out_regex'}> expected in stdout: $testResult->{'stdout'}\n";
         $result = 0;
       }
     } 
@@ -752,6 +783,7 @@ sub comparePig
     my $subName  = (caller(0))[3];
 
     my $result;
+    $self->parseSqlQueries($testCmd);
     my @SQLQuery = @{$testCmd->{'queries'}};
     
     if ($#SQLQuery == 0) {
@@ -775,6 +807,8 @@ sub comparePig
 sub compareSingleOutput
 {
     my ($self, $testResult, $testOutput, $benchmarkOutput, $log) = @_;
+
+print $log "testResult: $testResult testOutput: $testOutput benchmarkOutput: $benchmarkOutput\n";
 
     # cksum the the two files to see if they are the same
     my ($testChksm, $benchmarkChksm);
@@ -815,6 +849,26 @@ sub compareSingleOutput
     return $result;
 }
 
+##############################################################################
+# Parse the SQL queries from a string into an array
+#
+sub parseSqlQueries($$)
+{
+    my ($self, $testCmd) = @_;
+
+    my @SQLQuery = split /;/, $testCmd->{'sql'};
+
+    # Throw out the last one if it is just space
+    if ($SQLQuery[$#SQLQuery] =~ /^\s*$/) { $#SQLQuery--; }
+
+    # If the last one is a comment, decrement the count
+    if ($#SQLQuery > 0 && $SQLQuery[$#SQLQuery] !~ /select/i && $SQLQuery[$#SQLQuery] =~ /--/) {
+        $#SQLQuery--;
+    }
+
+    $testCmd->{'queries'} = \@SQLQuery;
+}
+
 ###############################################################################
 # This method has been copied over from TestDriver to make changes to
 # support skipping tests which do not match current execution mode
@@ -833,6 +887,7 @@ sub compareSingleOutput
 # @returns nothing
 # failed.
 #
+=begin
 sub run
 {
     my ($self, $testsToRun, $testsToMatch, $cfg, $log, $dbh, $testStatuses,
@@ -1108,6 +1163,7 @@ sub run
     # Do the global cleanup
     $self->globalCleanup(\%globalHash, $log);
 }
+=cut
 
 ##############################################################################
 #  Sub: printGroupResultsXml
