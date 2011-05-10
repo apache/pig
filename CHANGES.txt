@@ -61,6 +61,8 @@ PIG-1876: Typed map for Pig (daijy)
 
 IMPROVEMENTS
 
+PIG-2038: Pig fails to parse empty tuple/map/bag constant (xuefu)
+
 PIG-1775: Removal of old logical plan (xuefu)
 
 PIG-1998: Allow macro to return void (rding)
