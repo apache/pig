@@ -1859,8 +1859,6 @@ public class TestLogicalPlanBuilder {
         Assert.assertTrue( s.equals("bag_of_tokenTuples:bag{tuple_of_tokens:tuple(token:chararray)}"));
     }
 
-/** The following test cases are disabled due to PIG-2038
-
     @Test
     public void testEmptyTupleConst() throws Exception{
         String query = "a = foreach (load 'b') generate ();" + "store a into 'output';";
@@ -1877,17 +1875,16 @@ public class TestLogicalPlanBuilder {
         Assert.assertTrue(loConst.getValue() instanceof Tuple);
         Assert.assertTrue(loConst.getValue().equals(TupleFactory.getInstance().newTuple()));
  
-        Schema.FieldSchema tupleFs = new Schema.FieldSchema(null, null, DataType.TUPLE);
-        Schema expectedSchema = new Schema(tupleFs);
-       
-        Assert.assertTrue( foreach.getSchema().toString(false).equals(""));
+        String s = foreach.getSchema().toString(false);
+        Assert.assertTrue( s.equals(":tuple()"));
     }
 
     @Test
     public void testEmptyMapConst() throws Exception{
         String query = "a = foreach (load 'b') generate [];" + "store a into 'output';";
         LogicalPlan lp = buildPlan(query);
-        LOForEach foreach = (LOForEach) lp.getSinks().get(0);
+        Operator store = lp.getSinks().get(0);
+        LOForEach foreach = (LOForEach) lp.getPredecessors(store).get(0);
         LOGenerate gen = (LOGenerate)foreach.getInnerPlan().getSinks().get(0);
         LogicalExpressionPlan exprPlan = gen.getOutputPlans().get(0);
         Operator logOp = exprPlan.getSources().get(0);
@@ -1898,7 +1895,8 @@ public class TestLogicalPlanBuilder {
         Assert.assertTrue(loConst.getValue() instanceof Map);
         Assert.assertTrue(loConst.getValue().equals(new HashMap<String,Object>()));
 	
-        Assert.assertTrue( foreach.getSchema().toString(false).equals(""));
+        String s = foreach.getSchema().toString(false);
+        Assert.assertTrue( s.equals(":map"));
     }
    
     @Test
@@ -1906,7 +1904,8 @@ public class TestLogicalPlanBuilder {
         String query = "a = foreach (load 'b') generate {};" +
                        "store a into 'output';";
         LogicalPlan lp = buildPlan(query);
-        LOForEach foreach = (LOForEach) lp.getSinks().get(0);
+        Operator store = lp.getSinks().get(0);
+        LOForEach foreach = (LOForEach) lp.getPredecessors(store).get(0);
         LOGenerate gen = (LOGenerate)foreach.getInnerPlan().getSinks().get(0);
         LogicalExpressionPlan exprPlan = gen.getOutputPlans().get(0);
         Operator logOp = exprPlan.getSources().get(0);
@@ -1917,7 +1916,8 @@ public class TestLogicalPlanBuilder {
         Assert.assertTrue(loConst.getValue() instanceof DataBag);
         Assert.assertTrue(loConst.getValue().equals(BagFactory.getInstance().newDefaultBag()));
         
-        Assert.assertTrue( foreach.getSchema().toString(false).equals(""));
+        String s = foreach.getSchema().toString(false);
+        Assert.assertTrue( s.equals(":bag{}") );
     }
 
     @Test
@@ -1925,9 +1925,11 @@ public class TestLogicalPlanBuilder {
         String query = "a = foreach (load 'b') generate (());" +
                       "store a into 'output';";
         LogicalPlan lp = buildPlan(query);
-        LOForEach foreach = (LOForEach) lp.getSinks().get(0);
+        Operator store = lp.getSinks().get(0);
+        LOForEach foreach = (LOForEach) lp.getPredecessors(store).get(0);
        
-        Assert.assertTrue( foreach.getSchema().toString(false).equals(""));
+        String s = foreach.getSchema().toString(false);
+        Assert.assertTrue( s.equals(":tuple(:tuple())") );
     }
    
     @Test
@@ -1935,9 +1937,11 @@ public class TestLogicalPlanBuilder {
         String query = "a = foreach (load 'b') generate ([]);" +
                        "store a into 'output';";
         LogicalPlan lp = buildPlan( query );
-        LOForEach foreach = (LOForEach) lp.getSinks().get(0);
+        Operator store = lp.getSinks().get(0);
+        LOForEach foreach = (LOForEach) lp.getPredecessors(store).get(0);
 
-        Assert.assertTrue( foreach.getSchema().toString(false).equals(""));
+        String s = foreach.getSchema().toString(false);
+        Assert.assertTrue( s.equals(":tuple(:map)") );
     }
    
     @Test
@@ -1948,7 +1952,8 @@ public class TestLogicalPlanBuilder {
         Operator op = lp.getSinks().get(0);
         LOForEach foreach = (LOForEach)lp.getPredecessors(op).get(0);
  
-        Assert.assertTrue( foreach.getSchema().toString(false).equals(""));
+        String s = foreach.getSchema().toString(false);
+        Assert.assertTrue( s.equals(":tuple(:bag{})") );
     }
    
     @Test
@@ -1959,7 +1964,8 @@ public class TestLogicalPlanBuilder {
         Operator op = lp.getSinks().get(0);
         LOForEach foreach = (LOForEach)lp.getPredecessors(op).get(0);
         
-        Assert.assertTrue( foreach.getSchema().toString(false).equals(""));
+        String s = foreach.getSchema().toString(false);
+        Assert.assertTrue( s.equals(":bag{:tuple()}") );
     }
    
     @Test
@@ -1977,7 +1983,6 @@ public class TestLogicalPlanBuilder {
         buildPlan("a = foreach (load 'b') generate (({},{})); store a into 'output';");
         buildPlan("a = foreach (load 'b') generate (([],[])); store a into 'output';");
     }
-*/
     
 /** The following test is disabled due to PIG-2039
     @Test
