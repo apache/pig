@@ -34,6 +34,8 @@ PIG-1876: Typed map for Pig (daijy)
 
 IMPROVEMENTS
 
+PIG-2039: IndexOutOfBounException for a case (xuefu)
+
 PIG-2038: Pig fails to parse empty tuple/map/bag constant (xuefu)
 
 PIG-2003: Using keyward as alias doesn't either emit an error or produce a logical plan (xuefu)
