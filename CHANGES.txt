@@ -24,6 +24,9 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1994: e2e test harness deployment implementation for existing cluster
+(gates)
+
 PIG-2036: [piggybank] Set header delimiter in PigStorageSchema (mmoeller via dvryaboy)
 
 PIG-1949: e2e test harness should use bin/pig rather than calling java
