@@ -20,19 +20,24 @@ package org.apache.pig.test;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
 import java.util.Random;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.pig.CollectableLoadFunc;
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.IndexableLoadFunc;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.AVG;
 import org.apache.pig.builtin.COUNT;
+import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.builtin.SUM;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
@@ -1063,7 +1068,54 @@ public class TestMRCompiler extends junit.framework.TestCase {
         assertEquals(goldenPlan, compiledPlan);
     }
 
-
+    public static class TestCollectableLoadFunc extends PigStorage implements CollectableLoadFunc {
+        @Override
+        public void ensureAllKeyInstancesInSameSplit() throws IOException {
+        }
+    }
     
+    public static class TestIndexableLoadFunc extends PigStorage implements IndexableLoadFunc {
+        @Override
+        public void initialize(Configuration conf) throws IOException {
+        }
 
+        @Override
+        public void seekNear(Tuple keys) throws IOException {
+        }
+
+        @Override
+        public void close() throws IOException {
+        }
+    }
+    
+    @Test
+    public void testUDFInMergedCoGroup() throws Exception {
+        String query = "a = load 'input1' using " + TestCollectableLoadFunc.class.getName() + "();" +
+            "b = load 'input2' using " + TestIndexableLoadFunc.class.getName() + "();" +
+            "c = cogroup a by $0, b by $0 using 'merge';" +
+            "store c into 'output';";
+        
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
+        MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
+        MapReduceOper mrOper = mrPlan.getRoots().get(0);
+        
+        assertTrue(mrOper.UDFs.contains(TestCollectableLoadFunc.class.getName()));
+        mrOper = mrPlan.getSuccessors(mrOper).get(0);
+        assertTrue(mrOper.UDFs.contains(TestCollectableLoadFunc.class.getName()));
+        assertTrue(mrOper.UDFs.contains(TestIndexableLoadFunc.class.getName()));
+    }
+    
+    @Test
+    public void testUDFInMergedJoin() throws Exception {
+        String query = "a = load 'input1';" + 
+            "b = load 'input2' using " + TestIndexableLoadFunc.class.getName() + "();" +
+            "c = join a by $0, b by $0 using 'merge';" +
+            "store c into 'output';";
+        
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
+        MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
+        MapReduceOper mrOper = mrPlan.getRoots().get(0);
+        
+        assertTrue(mrOper.UDFs.contains(TestIndexableLoadFunc.class.getName()));
+    }
 }

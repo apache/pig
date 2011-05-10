@@ -1472,6 +1472,8 @@ public class MRCompiler extends PhyPlanVisitor {
             poCoGrp.setIndexFileName(idxFileSpec.getFileName());
             
             baseMROp.mapPlan.addAsLeaf(poCoGrp);
+            for (FuncSpec funcSpec : funcSpecs)
+                baseMROp.UDFs.add(funcSpec.toString());
             MRPlan.add(indexerMROp);
             MRPlan.connect(indexerMROp, baseMROp);
 
@@ -1548,6 +1550,7 @@ public class MRCompiler extends PhyPlanVisitor {
         idxJobLoader.setLFile(new FileSpec(origLoaderFileSpec.getFileName(),
                 new FuncSpec(MergeJoinIndexer.class.getName(), indexerArgs)));
         indexerMROp.mapPlan.add(idxJobLoader);
+        indexerMROp.UDFs.add(baseLoader.getLFile().getFuncSpec().toString());
         
         // Loader of mro will return a tuple of form - 
         // (key1, key2, .. , WritableComparable, splitIndex). See MergeJoinIndexer for details.
@@ -1692,9 +1695,11 @@ public class MRCompiler extends PhyPlanVisitor {
             POLoad rightLoader = (POLoad)rightMROpr.mapPlan.getRoots().get(0);
             joinOp.setSignature(rightLoader.getSignature());
             LoadFunc rightLoadFunc = rightLoader.getLoadFunc();
+            List<String> udfs = new ArrayList<String>();
             if(IndexableLoadFunc.class.isAssignableFrom(rightLoadFunc.getClass())) {
                 joinOp.setRightLoaderFuncSpec(rightLoader.getLFile().getFuncSpec());
                 joinOp.setRightInputFileName(rightLoader.getLFile().getFileName());
+                udfs.add(rightLoader.getLFile().getFuncSpec().toString());
                 
                 // we don't need the right MROper since
                 // the right loader is an IndexableLoadFunc which can handle the index
@@ -1777,6 +1782,7 @@ public class MRCompiler extends PhyPlanVisitor {
                 joinOp.setRightInputFileName(origRightLoaderFileSpec.getFileName());  
                 
                 joinOp.setIndexFile(strFile.getFileName());
+                udfs.add(origRightLoaderFileSpec.getFuncSpec().toString());
             }
             
             // We are done with right side. Lets work on left now.
@@ -1807,6 +1813,7 @@ public class MRCompiler extends PhyPlanVisitor {
             // no combination of small splits as there is currently no way to guarantee the sortness
             // of the combined splits.
             curMROp.noCombineSmallSplits();
+            curMROp.UDFs.addAll(udfs);
         }
         catch(PlanException e){
             int errCode = 2034;
