@@ -631,7 +631,7 @@ scalar : num_scalar | QUOTEDSTRING | NULL
 num_scalar : MINUS? ( INTEGER | LONGINTEGER | FLOATNUMBER | DOUBLENUMBER )
 ;
 
-map : LEFT_BRACKET ( keyvalue ( COMMA keyvalue )* )? RIGHT_BRACKET
+map : LEFT_BRACKET keyvalue ( COMMA keyvalue )* RIGHT_BRACKET
    -> ^( MAP_VAL keyvalue+ )
     | LEFT_BRACKET RIGHT_BRACKET
    -> ^( MAP_VAL )
@@ -644,13 +644,13 @@ keyvalue : map_key POUND const_expr
 map_key : QUOTEDSTRING
 ;
 
-bag : LEFT_CURLY ( tuple ( COMMA tuple )* )? RIGHT_CURLY
+bag : LEFT_CURLY tuple ( COMMA tuple )* RIGHT_CURLY
    -> ^( BAG_VAL tuple+ )
     | LEFT_CURLY RIGHT_CURLY
    -> ^( BAG_VAL )
 ;
 
-tuple : LEFT_PAREN ( literal ( COMMA literal )* )? RIGHT_PAREN
+tuple : LEFT_PAREN literal ( COMMA literal )* RIGHT_PAREN
      -> ^( TUPLE_VAL literal+ )
       | LEFT_PAREN RIGHT_PAREN
      -> ^( TUPLE_VAL )

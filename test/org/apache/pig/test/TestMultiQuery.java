@@ -425,7 +425,6 @@ public class TestMultiQuery {
         }
     }
 
-/** Test case is disabled due to PIG-2038
     @Test
     public void testMultiQueryJiraPig1113() throws Exception {
 
@@ -711,7 +710,7 @@ public class TestMultiQuery {
             assertTrue(job.getStatus() == ExecJob.JOB_STATUS.COMPLETED);
         }
     }
-*/
+
     @Test
     public void testMultiQueryJiraPig976_6() throws Exception {
 
