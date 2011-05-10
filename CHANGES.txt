@@ -214,6 +214,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-2030: Merged join/cogroup does not automatically ship loader (daijy)
+
 PIG-2052: Ship guava.jar to backend (daijy)
 
 PIG-2012: Comments at the begining of the file throws off line numbers in errors (rding)
