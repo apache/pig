@@ -19,6 +19,7 @@ package org.apache.pig.newplan.logical.relational;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Stack;
 
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
@@ -79,13 +80,33 @@ public class LOForEach extends LogicalRelationalOperator {
         List<LOInnerLoad> innerLoads = new ArrayList<LOInnerLoad>();
         for (Operator src:srcs) {
             if (src instanceof LOInnerLoad) {
-                Operator succ = src;
-                while (succ!=null) {
-                    if (succ==referred)
+            	if( src == referred ) {
+            		innerLoads.add( (LOInnerLoad)src );
+            		continue;
+            	}
+            	
+                Stack<Operator> stack = new Stack<Operator>();
+                List<Operator> succs = referred.getPlan().getSuccessors( src );
+                if( succs != null ) {
+                	for( Operator succ : succs ) {
+                		stack.push( succ );
+                	}
+                }
+                
+                while( !stack.isEmpty() ) {
+                	Operator op = stack.pop();
+                    if( op == referred ) {
                         innerLoads.add((LOInnerLoad)src);
-                    if (referred.getPlan().getSuccessors(succ)==null)
                         break;
-                    succ = referred.getPlan().getSuccessors(succ).get(0);
+                    }
+                    else {
+                    	List<Operator> ops = referred.getPlan().getSuccessors( op );
+                    	if( ops != null ) {
+                        	for( Operator o : ops ) {
+                        		stack.push( o );
+                        	}
+                    	}
+                    }
                 }
             }
         }
