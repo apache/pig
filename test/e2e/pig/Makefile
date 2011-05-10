@@ -18,6 +18,10 @@ DRIVER_DIR = ./drivers
 
 DRIVERS = $(DRIVER_DIR)/TestDriverPig.pm $(DRIVER_DIR)/Util.pm
 
+DEPLOYER_DIR = ./deployers
+
+DEPLOYERS = $(DEPLOYER_DIR)/ExistingClusterDeployer.pm
+
 TEST_DIR = ./tests
 
 TESTS = $(TEST_DIR)/bigdata.conf  $(TEST_DIR)/cmdline.conf \
@@ -28,7 +32,7 @@ TESTS = $(TEST_DIR)/bigdata.conf  $(TEST_DIR)/cmdline.conf \
 
 CONF_DIR = ./conf
 
-CONF_FILES = $(CONF_DIR)/default.conf
+CONF_FILES = $(CONF_DIR)/default.conf $(CONF_DIR)/existing_deployer.conf
 
 TOOL_DIR = ./tools
 
@@ -36,7 +40,8 @@ TEST_TOOL_DIR = $(TOOL_DIR)/test
 
 GEN_TOOL_DIR = $(TOOL_DIR)/generate
 
-TOOLS = $(TEST_TOOL_DIR)/explainchk.pl  $(TEST_TOOL_DIR)/floatpostprocessor.pl 
+TOOLS = $(TEST_TOOL_DIR)/explainchk.pl  $(TEST_TOOL_DIR)/floatpostprocessor.pl \
+        $(GEN_TOOL_DIR)/generate_data.pl
 
 ARCHIVE = pigtests.tar
 
@@ -100,8 +105,8 @@ LIB_DIR      = lib
 
 STREAMING_DIR = streaming
 
-$(ARCHIVE): $(TESTS) $(DRIVERS) $(CONF_FILES) $(TOOLS)
-	tar cf $(ARCHIVE) $(DRIVERS) $(TESTS) $(CONF_FILES) $(TOOLS)
+$(ARCHIVE): $(TESTS) $(DRIVERS) $(DEPLOYERS) $(CONF_FILES) $(TOOLS)
+	tar cf $(ARCHIVE) $(DRIVERS) $(DEPLOYERS) $(TESTS) $(CONF_FILES) $(TOOLS)
 
 # Note, you must set PH_PIG_JARFILE environment variable
 build_udfs: 
@@ -111,7 +116,7 @@ build_udfs:
 		"before building the UDFs"; 1; fi)
 	(cd $(JAVA_UDF_DIR); ant -Dpig.jarfile=$${PH_PIG}/pig.jar)
 
-test: $(ARCHIVE) build_udfs
+pretest: $(ARCHIVE) build_udfs
 	@(if [ "$${PH_CLUSTER}x" == "x" ] ; then echo \
 	 	"You must set the environment variable PH_CLUSTER" \
 		"to the directory that contains your hadoop-site.xml" \
@@ -126,6 +131,7 @@ test: $(ARCHIVE) build_udfs
 	(cd $(TEST_DIST_DIR); tar xf $(ARCHIVE))
 	(cd $(TEST_DIST_DIR); tar xf pigharness.tar)
 	(cd $(TEST_DIST_DIR); mv drivers/*.pm .)
+	(cd $(TEST_DIST_DIR); mv deployers/*.pm .)
 	mkdir -p $(TEST_DIST_DIR)/libexec/PigTest
 	(cd $(TEST_DIST_DIR); cp $(TOOLS) libexec/PigTest)
 	chmod +x $(TEST_DIST_DIR)/libexec/PigTest/*
@@ -139,8 +145,19 @@ test: $(ARCHIVE) build_udfs
 	cp $(LIB_DIR)/* $(TEST_DIST_DIR)/lib
 	cp $(STREAMING_DIR)/* $(TEST_DIST_DIR)/libexec
 	chmod +x $(TEST_DIST_DIR)/libexec/*.pl
+
+test: pretest
 	(cd $(TEST_DIST_DIR); PIG_HARNESS_ROOT=. PH_LOCAL=. PH_OUT=. PH_ROOT=. \
 		./pig_test_harness.pl $(TESTS_TO_RUN) $(TESTS))
+
+deployandtest: pretest
+	(if [ "$${DEPLOYCFG}x" == "x" ] ; then echo \
+	 	"You must set the environment variable DEPLOYCFG to the config file " \
+		"for your deployment before running deploy"; 1; fi)
+	(cd $(TEST_DIST_DIR); PIG_HARNESS_ROOT=. PH_LOCAL=. PH_OUT=. PH_ROOT=. \
+		./pig_test_harness.pl -deploycfg $(DEPLOYCFG) -deploy $(TESTS_TO_RUN) \
+		$(TESTS))
+
 
 clean:
 	rm -f $(ARCHIVE)

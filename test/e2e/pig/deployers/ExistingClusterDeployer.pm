@@ -1,0 +1,354 @@
+############################################################################           
+#  Licensed to the Apache Software Foundation (ASF) under one or more                  
+#  contributor license agreements.  See the NOTICE file distributed with               
+#  this work for additional information regarding copyright ownership.                 
+#  The ASF licenses this file to You under the Apache License, Version 2.0             
+#  (the "License"); you may not use this file except in compliance with                
+#  the License.  You may obtain a copy of the License at                               
+#                                                                                      
+#      http://www.apache.org/licenses/LICENSE-2.0                                      
+#                                                                                      
+#  Unless required by applicable law or agreed to in writing, software                 
+#  distributed under the License is distributed on an "AS IS" BASIS,                   
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.            
+#  See the License for the specific language governing permissions and                 
+#  limitations under the License.                                                      
+                                                                                       
+package ExistingClusterDeployer;
+
+use IPC::Run qw(run);
+use TestDeployer;
+
+use strict;
+use English;
+
+###########################################################################
+# Class: ExistingClusterDeployer
+# Deploy the Pig harness to a cluster and database that already exists.
+
+##############################################################################
+# Sub: new
+# Constructor
+#
+# Paramaters:
+# None
+#
+# Returns:
+# None.
+sub new
+{
+    my $proto = shift;
+    my $class = ref($proto) || $proto;
+    my $self = {};
+
+    bless($self, $class);
+
+    return $self;
+}
+
+##############################################################################
+# Sub: checkPrerequisites
+# Check any prerequisites before a deployment is begun.  For example if a 
+# particular deployment required the use of a database system it could
+# check here that the db was installed and accessible.
+#
+# Paramaters:
+# globalHash - hash from config file, including deployment config
+# log - log file handle
+#
+# Returns:
+# None
+#
+sub checkPrerequisites
+{
+    my ($self, $cfg, $log) = @_;
+
+    # They must have declared the directory for their Hadoop installation
+    if (! defined $cfg->{'hadoopdir'} || $cfg->{'hadoopdir'} eq "") {
+        print $log "You must set the key 'hadoopdir' to your Hadoop directory "
+            . "in existing.conf\n";
+        die "hadoopdir is not set in existing.conf\n";
+    }
+
+    # Run a quick and easy Hadoop command to make sure we can
+    $self->runHadoopCmd($cfg, $log, "fs -ls /");
+
+    # Make sure the database is installed and set up
+    $self->runDbCmd($cfg, $log, 0, "create table test_table(test_col int);");
+    $self->runDbCmd($cfg, $log, 0, "drop table test_table;");
+    
+}
+
+##############################################################################
+# Sub: deploy
+# Deploy any required packages
+# This is a no-op in this case because we're assuming both the cluster and the
+# database already exist
+#
+# Paramaters:
+# globalHash - hash from config file, including deployment config
+# log - log file handle
+#
+# Returns:
+# None
+#
+sub deploy
+{
+}
+
+##############################################################################
+# Sub: start
+# Start any software modules that are needed.
+# This is a no-op in this case because we're assuming both the cluster and the
+# database already exist
+#
+# Paramaters:
+# globalHash - hash from config file, including deployment config
+# log - log file handle
+#
+# Returns:
+# None
+#
+sub start
+{
+}
+
+##############################################################################
+# Sub: generateData
+# Generate any data needed for this test run.
+#
+# Paramaters:
+# globalHash - hash from config file, including deployment config
+# log - log file handle
+#
+# Returns:
+# None
+#
+sub generateData
+{
+    my ($self, $cfg, $log) = @_;
+    my @tables = (
+        {
+            'name' => "studenttab10k",
+            'filetype' => "studenttab",
+            'rows' => 10000,
+            'hdfs' => "singlefile/studenttab10k",
+        }, {
+            'name' => "votertab10k",
+            'filetype' => "votertab",
+            'rows' => 10000,
+            'hdfs' => "singlefile/votertab10k",
+        }, {
+            'name' => "studentcolon10k",
+            'filetype' => "studentcolon",
+            'rows' => 10000,
+            'hdfs' => "singlefile/studentcolon10k",
+        }, {
+            'name' => "textdoc",
+            'filetype' => "textdoc",
+            'rows' => 10000,
+            'hdfs' => "singlefile/textdoc",
+        }, {
+            'name' => "reg1459894",
+            'filetype' => "reg1459894",
+            'rows' => 1000,
+            'hdfs' => "singlefile/reg1459894",
+        }, {
+            'name' => "studenttabdir10k",
+            'filetype' => "studenttab",
+            'rows' => 10000,
+            'hdfs' => "dir/studenttab10k",
+        }, {
+            'name' => "studenttabsomegood",
+            'filetype' => "studenttab",
+            'rows' => 1000,
+            'hdfs' => "glob/star/somegood/studenttab",
+        }, {
+            'name' => "studenttabmoregood",
+            'filetype' => "studenttab",
+            'rows' => 1001,
+            'hdfs' => "glob/star/moregood/studenttab",
+        }, {
+            'name' => "studenttabbad",
+            'filetype' => "studenttab",
+            'rows' => 1002,
+            'hdfs' => "glob/star/bad/studenttab",
+        }, {
+            'name' => "fileexists",
+            'filetype' => "studenttab",
+            'rows' => 1,
+            'hdfs' => "singlefile/fileexists",
+        }, {
+            'name' => "studenttab20m",
+            'filetype' => "studenttab",
+            'rows' => 20000000,
+            'hdfs' => "singlefile/studenttab20m",
+        }, {
+            'name' => "unicode100",
+            'filetype' => "unicode",
+            'rows' => 100,
+            'hdfs' => "singlefile/unicode100",
+        }, {
+            'name' => "studentctrla10k",
+            'filetype' => "studentctrla",
+            'rows' => 10000,
+            'hdfs' => "singlefile/studentctrla10k",
+        }, {
+            'name' => "studentcomplextab10k",
+            'filetype' => "studentcomplextab",
+            'rows' => 10000,
+            'hdfs' => "singlefile/studentcomplextab10k",
+        }, {
+            'name' => "studentnulltab10k",
+            'filetype' => "studentnulltab",
+            'rows' => 10000,
+            'hdfs' => "singlefile/studentnulltab10k",
+        }, {
+            'name' => "voternulltab10k",
+            'filetype' => "voternulltab",
+            'rows' => 10000,
+            'hdfs' => "singlefile/voternulltab10k",
+        },
+    );
+
+	# Create the HDFS directories
+	$self->runHadoopCmd($cfg, $log, "fs -mkdir $cfg->{'inpathbase'}");
+
+    foreach my $table (@tables) {
+		print "Generating data for $table->{'name'}\n";
+		# Generate the data
+        my @cmd = ($cfg->{'gentool'}, $table->{'filetype'}, $table->{'rows'},
+            $table->{'name'});
+		$self->runCmd($log, \@cmd);
+
+		# Copy the data to HDFS
+		my $hadoop = "fs -copyFromLocal $table->{'name'} ".
+			"$cfg->{'inpathbase'}/$table->{'hdfs'}";
+		$self->runHadoopCmd($cfg, $log, $hadoop);
+
+		# Load the data in the database
+		my $sql = "-f $table->{'name'}.sql";
+		$self->runDbCmd($cfg, $log, 1, $sql);
+    }
+}
+
+##############################################################################
+# Sub: confirmDeployment
+# Run checks to confirm that the deployment was successful.  When this is 
+# done the testing environment should be ready to run.
+#
+# Paramaters:
+# globalHash - hash from config file, including deployment config
+# log - log file handle
+#
+# Returns:
+# Nothing
+# This method should die with an appropriate error message if there is 
+# an issue.
+#
+sub confirmDeployment
+{
+}
+
+##############################################################################
+# Sub: deleteData
+# Remove any data created that will not be removed by undeploying.
+#
+# Paramaters:
+# globalHash - hash from config file, including deployment config
+# log - log file handle
+#
+# Returns:
+# None
+#
+sub deleteData
+{
+}
+
+##############################################################################
+# Sub: stop
+# Stop any servers or systems that are no longer needed once testing is
+# completed.
+#
+# Paramaters:
+# globalHash - hash from config file, including deployment config
+# log - log file handle
+#
+# Returns:
+# None
+#
+sub stop
+{
+}
+
+##############################################################################
+# Sub: undeploy
+# Remove any packages that were installed as part of the deployment.
+#
+# Paramaters:
+# globalHash - hash from config file, including deployment config
+# log - log file handle
+#
+# Returns:
+# None
+#
+sub undeploy
+{
+}
+
+##############################################################################
+# Sub: confirmUndeployment
+# Run checks to confirm that the undeployment was successful.  When this is 
+# done anything that must be turned off or removed should be turned off or
+# removed.
+#
+# Paramaters:
+# globalHash - hash from config file, including deployment config
+# log - log file handle
+#
+# Returns:
+# Nothing
+# This method should die with an appropriate error message if there is 
+# an issue.
+#
+sub confirmUndeployment
+{
+    die "$0 INFO : confirmUndeployment is a virtual function!";
+}
+
+sub runHadoopCmd($$$$)
+{
+    my ($self, $cfg, $log, $c) = @_;
+
+    # set the PIG_CLASSPATH environment variable
+    $ENV{'HADOOP_CLASSPATH'} = "$cfg->{'hadoopdir'}/conf";
+                          
+    my @cmd = ("$cfg->{'hadoopdir'}/bin/hadoop");
+    push(@cmd, split(' ', $c));
+
+    $self->runCmd($log, \@cmd);
+}
+
+sub runDbCmd($$$$)
+{
+    my ($self, $cfg, $log, $isfile, $sql) = @_;
+
+	my $switch = $isfile ? 'f' : 'c';
+
+    my @cmd = ('psql', '-U', $cfg->{'dbuser'}, '-d', $cfg->{'dbdb'},
+		"-$switch", $sql);
+
+    $self->runCmd($log, \@cmd);
+}
+
+sub runCmd($$$)
+{
+    my ($self, $log, $cmd) = @_;
+
+    print $log "Going to run " . join(" ", @$cmd) . "\n";
+
+    run($cmd, \undef, $log, $log) or
+        die "Failed running " . join(" ", @$cmd) . "\n";
+}
+
+1;

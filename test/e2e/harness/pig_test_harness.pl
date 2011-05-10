@@ -383,6 +383,12 @@ if ($deploy) {
     print $log "INFO: $0 at ".__LINE__." : Loading configuration file $deploycfg\n";
     my $cfg = readCfg($deploycfg);
 
+	# Copy the global config into our cfg
+	foreach(keys(%$globalCfg)) {
+		next if $_ eq 'file';
+		$cfg->{$_} = $globalCfg->{$_}; #foreach(keys(%$globalCfg));
+	}
+
     # Instantiate the TestDeployer
     my $deployer = TestDeployerFactory::getTestDeployer($cfg);
     die "FATAL: $0: Deployer does not exist\n" if ( !$deployer );
@@ -467,7 +473,7 @@ foreach my $arg (@ARGV) {
 	# Copy contents of global config file into hash.
 	foreach(keys(%$globalCfg)) {
 		next if $_ eq 'file';
-		$cfg->{$_} = $globalCfg->{$_} foreach(keys(%$globalCfg));
+		$cfg->{$_} = $globalCfg->{$_}; # foreach(keys(%$globalCfg));
 		print $log "\nINFO $0: $_=".$cfg->{$_};
 	}
 	print $log "\n"; 
