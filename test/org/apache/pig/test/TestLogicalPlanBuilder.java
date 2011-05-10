@@ -1984,7 +1984,6 @@ public class TestLogicalPlanBuilder {
         buildPlan("a = foreach (load 'b') generate (([],[])); store a into 'output';");
     }
     
-/** The following test is disabled due to PIG-2039
     @Test
     // See PIG-1024, shall not throw exception
     public void testLimitMultipleOutput() throws Exception {
@@ -1994,7 +1993,6 @@ public class TestLogicalPlanBuilder {
                        " store c into 'output';";
         buildPlan( query );
     }
-*/
 
     @Test
     public void testCogroupByStarFailure1() throws Exception {

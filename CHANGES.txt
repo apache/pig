@@ -66,6 +66,8 @@ PIG-1876: Typed map for Pig (daijy)
 
 IMPROVEMENTS
 
+PIG-2039: IndexOutOfBounException for a case (xuefu)
+
 PIG-2038: Pig fails to parse empty tuple/map/bag constant (xuefu)
 
 PIG-1775: Removal of old logical plan (xuefu)
