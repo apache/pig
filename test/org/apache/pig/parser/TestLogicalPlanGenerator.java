@@ -239,8 +239,15 @@ public class TestLogicalPlanGenerator {
     
     @Test
     public void test20() {
-        String query = "A = load 'test.txt' using PigStorage() as (a:int,b:chararray);\n" +
-                       "B = foreach A { C = TOMAP('key1',$1)#'key1'; generate C as C; };";
+        String query = "A = load 'x' using PigStorage() as (a:int,b:chararray);\n" +
+                       "B = foreach A { C = TOMAP()#'key1'; generate C as C; };";
+        generateLogicalPlan( query );
+    }
+    
+    @Test
+    public void test21() {
+        String query = "A = load 'x' as (u, v);\n" +
+                       "B = foreach A { S = u; T = org.apache.pig.builtin.TOMAP(); generate S, T;};";
         generateLogicalPlan( query );
     }
     
