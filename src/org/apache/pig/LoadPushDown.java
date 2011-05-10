@@ -59,6 +59,7 @@ public interface LoadPushDown {
      * the input are required. If the loader function cannot make use of this 
      * information, it is free to ignore it by returning an appropriate Response
      * @param requiredFieldList RequiredFieldList indicating which columns will be needed.
+     * This structure is read only. User cannot make change to it inside pushProjection.
      * @return Indicates which fields will be returned
      * @throws FrontendException
      */
