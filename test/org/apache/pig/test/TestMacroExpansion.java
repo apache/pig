@@ -1239,6 +1239,40 @@ public class TestMacroExpansion {
         verify(script, expected);
     }
     
+    @Test // PIG-2035
+    public void nestedMacrosTest() throws Exception {
+        String macro1 = "define test ( in, out, x ) returns void {\n" +
+            "a = load '$in' as (name, age, gpa);\n" +
+            "b = group a by gpa;\n" +
+            "c = foreach b generate group, COUNT(a.$x);\n" +
+            "store c into '$out';\n" +
+            "};\n";
+        
+        String macro2 = "define test2( in, out ) returns void {\n" +
+            "test( '$in', '$out', 'name' );\n" +
+            "test( '$in', '$out.1', 'age' );\n" +
+            "test( '$in', '$out.2', 'gpa' );\n" +
+            "};\n";
+        
+        String script = "test2('studenttab10k', 'myoutput');";
+        
+        String expected =
+            "macro_test2_macro_test_a_0_0 = load 'studenttab10k' as (name, age, gpa);\n" +
+            "macro_test2_macro_test_b_0_0 = group macro_test2_macro_test_a_0_0 by (gpa);\n" +
+            "macro_test2_macro_test_c_0_0 = foreach macro_test2_macro_test_b_0_0 generate group, COUNT(macro_test2_macro_test_a_0_0.(name));\n" +
+            "store macro_test2_macro_test_c_0_0 INTO 'myoutput';\n" +
+            "macro_test2_macro_test_a_1_0 = load 'studenttab10k' as (name, age, gpa);\n" +
+            "macro_test2_macro_test_b_1_0 = group macro_test2_macro_test_a_1_0 by (gpa);\n" +
+            "macro_test2_macro_test_c_1_0 = foreach macro_test2_macro_test_b_1_0 generate group, COUNT(macro_test2_macro_test_a_1_0.(age));\n" +
+            "store macro_test2_macro_test_c_1_0 INTO 'myoutput.1';\n" +
+            "macro_test2_macro_test_a_2_0 = load 'studenttab10k' as (name, age, gpa);\n" +
+            "macro_test2_macro_test_b_2_0 = group macro_test2_macro_test_a_2_0 by (gpa);\n" +
+            "macro_test2_macro_test_c_2_0 = foreach macro_test2_macro_test_b_2_0 generate group, COUNT(macro_test2_macro_test_a_2_0.(gpa));\n" +
+            "store macro_test2_macro_test_c_2_0 INTO 'myoutput.2';\n";
+            
+        verify(macro1 + macro2 + script, expected);
+    }
+    
     @Test
     public void sequenceMacrosTest() throws Exception {
         String macro1 = "define foreach_count(A, C) returns B {\n" +
@@ -2115,4 +2149,5 @@ public class TestMacroExpansion {
     private void validateFailure(String piglatin, String expectedErr) throws Throwable {
         validateFailure(piglatin, expectedErr, "Reason:");
     }
+    
 }
