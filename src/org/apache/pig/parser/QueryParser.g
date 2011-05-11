@@ -215,10 +215,8 @@ macro_param_clause : LEFT_PAREN ( alias (COMMA alias)* )? RIGHT_PAREN
 ;
 
 macro_return_clause 
-    : RETURNS alias (COMMA alias)*
-        -> ^(RETURN_VAL alias+)
-    | RETURNS VOID 
-        -> ^(RETURN_VAL)
+    : RETURNS ((alias (COMMA alias)*) | VOID)
+        -> ^(RETURN_VAL alias*)
 ;
 
 macro_body_clause : content
