@@ -214,6 +214,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-2035: Macro expansion doesn't handle multiple expansions of same macro inside another macro (rding)
+
 PIG-2030: Merged join/cogroup does not automatically ship loader (daijy)
 
 PIG-2052: Ship guava.jar to backend (daijy)

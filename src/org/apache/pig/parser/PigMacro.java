@@ -425,14 +425,17 @@ class PigMacro {
             throw new ParserException(msg);
         }
 
-        if (!macroStack.add(macro.name)) {
+        if (macroStack.contains(macro.name)) {
             String msg = getErrorMessage(file, t.getLine(),
                     "Cannot expand macro '" + mn + "'",
                       "Macro can't be defined circularly.");
             throw new ParserException(msg);
         }
         
-        macro.setStack(macroStack);
+        // set nested macro call stack
+        Set<String> newStack = new HashSet<String>(macroStack);
+        newStack.add(macro.name);
+        macro.setStack(newStack);
         
         // get return values
         int n = t.getChild(1).getChildCount();
