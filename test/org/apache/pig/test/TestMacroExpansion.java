@@ -1090,6 +1090,16 @@ public class TestMacroExpansion {
         validateFailure(macro + script, expectedErr, "pig script failed to validate:");
     }
    
+    // PIG-2058
+    @Test
+    public void negativeTest9() throws Throwable {
+        String macro = "define test( out1,out2 ){ A = load 'x' as (u:int, v:int); $B = filter A by u < 3 and v < 20; }";
+        
+        String expectedErr = "Error during parsing. <file myscript.pig, line 1, column 24>  mismatched input '{' expecting RETURNS";
+
+        validateFailure(macro, expectedErr, "Error");
+    }
+    
     @Test
     public void recursiveMacrosTest() throws Exception {
         String macro1 = "define group_and_partition (A, group_key, reducers) returns B {\n" +
