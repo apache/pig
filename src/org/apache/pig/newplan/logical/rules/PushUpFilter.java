@@ -58,13 +58,13 @@ import org.apache.pig.newplan.optimizer.Rule;
 import org.apache.pig.newplan.optimizer.Transformer;
 
 public class PushUpFilter extends Rule {
-    
+
     public PushUpFilter(String n) {
-        super(n, false);       
+        super(n, false);
     }
 
     @Override
-    public Transformer getNewTransformer() {        
+    public Transformer getNewTransformer() {
         return new PushUpFilterTransformer();
     }
 
@@ -72,38 +72,42 @@ public class PushUpFilter extends Rule {
         private OperatorSubPlan subPlan;
 
         @Override
-        public boolean check(OperatorPlan matched) throws FrontendException {   
+        public boolean check(OperatorPlan matched) throws FrontendException {
             // check if it is inner join
             Operator current = matched.getSources().get(0);
-            
+
             Operator pred = findNonFilterPredecessor( current );
             if( pred == null )
                 return false;
-            
+
             // sort, distinct, or sort by is always okay.
             if( pred instanceof LOSort || pred instanceof LODistinct || pred instanceof LOUnion ) {
                 return true;
             }
-            
+
             // if the predecessor is one of LOLoad/LOStore/LOStream/LOLimit/LONative
             // if predecessor is LOForEach, it is optimized by rule FilterAboveForeach
             // return false
             if( pred instanceof LOLoad   || pred instanceof LOStore || pred instanceof LOStream      ||
-                pred instanceof LOFilter || pred instanceof LOSplit || pred instanceof LOSplitOutput || 
+                pred instanceof LOFilter || pred instanceof LOSplit || pred instanceof LOSplitOutput ||
                 pred instanceof LOLimit  || pred instanceof LONative || pred instanceof LOForEach) {
                 return false;
             }
-            
-            LOFilter filter = (LOFilter)current;            
+
+            LOFilter filter = (LOFilter)current;
             List<Operator> preds = currentPlan.getPredecessors( pred );
             LogicalExpressionPlan filterPlan = filter.getFilterPlan();
-                
+
+            if (OptimizerUtils.planHasNonDeterministicUdf(filterPlan)) {
+                return false;
+            }
+
             // collect all uids used in the filter plan
             Set<Long> uids = collectUidFromExpPlan(filterPlan);
-                                
+
             if( pred instanceof LOCogroup ) {
                 LOCogroup cogrp = (LOCogroup)pred;
-                if( preds.size() == 1 ) { 
+                if( preds.size() == 1 ) {
                     if( hasAll( (LogicalRelationalOperator)preds.get( 0 ), uids )    ) {
                         // Order by is ok if all UIDs can be found from previous operator.
                         return true;
@@ -115,7 +119,7 @@ public class PushUpFilter extends Rule {
                     return true;
                 }
             }
-            
+
             // if the predecessor is a multi-input operator then detailed
             // checks are required
             if( pred instanceof LOCross || pred instanceof LOJoin ) {
@@ -135,7 +139,7 @@ public class PushUpFilter extends Rule {
                     if (isFullOuter)
                         return false;
                 }
-                
+
 
                 for(int j=0; j<preds.size(); j++) {
                     if (hasAll((LogicalRelationalOperator)preds.get(j), uids)) {
@@ -144,12 +148,12 @@ public class PushUpFilter extends Rule {
                         if (pred instanceof LOCross || pred instanceof LOJoin && (isInner || innerFlags[j]))
                             return true;
                     }
-                }                       
+                }
             }
-            
+
             return false;
         }
-        
+
         private boolean containUDF(LogicalExpressionPlan filterPlan) {
             Iterator<Operator> it = filterPlan.getOperators();
             while( it.hasNext() ) {
@@ -171,9 +175,9 @@ public class PushUpFilter extends Rule {
             }
             return uids;
         }
-        
+
         /**
-         * Starting from current operator (which is a filter), search its successors until 
+         * Starting from current operator (which is a filter), search its successors until
          * locating a non-filter operator. Null is returned if none is found.
          */
         private Operator findNonFilterPredecessor(Operator current) {
@@ -194,7 +198,7 @@ public class PushUpFilter extends Rule {
                     return pred;
                 }
             } while( true );
-                
+
         }
 
         @Override
@@ -202,32 +206,32 @@ public class PushUpFilter extends Rule {
             subPlan = new OperatorSubPlan(currentPlan);
 
             LOFilter filter = (LOFilter)matched.getSources().get(0);
-            
+
             // This is the one that we will insert filter btwn it and it's input.
             Operator predecessor = this.findNonFilterPredecessor( filter );
             subPlan.add( predecessor) ;
-            
+
             // Disconnect the filter in the plan without removing it from the plan.
             Operator predec = currentPlan.getPredecessors( filter ).get( 0 );
             Operator succed;
-            
+
             if (currentPlan.getSuccessors(filter)!=null)
                 succed = currentPlan.getSuccessors(filter).get(0);
             else
                 succed = null;
-            
+
             Pair<Integer, Integer> p1 = currentPlan.disconnect(predec, filter);
             if (succed!=null) {
                 subPlan.add(succed);
                 Pair<Integer, Integer> p2 = currentPlan.disconnect(filter, succed);
                 currentPlan.connect(predec, p1.first, succed, p2.second);
             }
-            
+
             if( predecessor instanceof LOSort || predecessor instanceof LODistinct ||
                 ( predecessor instanceof LOCogroup && currentPlan.getPredecessors( predecessor ).size() == 1 ) ) {
                 // For sort, put the filter in front of it.
                 Operator prev = currentPlan.getPredecessors( predecessor ).get( 0 );
-                
+
                 insertFilter( prev, predecessor, filter );
                 return;
             }
@@ -236,12 +240,12 @@ public class PushUpFilter extends Rule {
             LogicalExpressionPlan filterPlan = filter.getFilterPlan();
             List<Operator> preds = currentPlan.getPredecessors( predecessor );
             Map<Integer, Operator> inputs = findInputsToAddFilter( filterPlan, predecessor, preds );
-            
-            LOFilter newFilter = null;                
+
+            LOFilter newFilter = null;
             for( Entry<Integer, Operator> entry : inputs.entrySet() ) {
                 int inputIndex = entry.getKey();
                 Operator pred = entry.getValue();
-                
+
                 // Find projection field offset
                 int columnOffset = 0;
                 if( predecessor instanceof LOJoin || predecessor instanceof LOCross ) {
@@ -249,11 +253,11 @@ public class PushUpFilter extends Rule {
                         columnOffset += ( (LogicalRelationalOperator)preds.get( i ) ).getSchema().size();
                     }
                 }
-                
+
                 // Reuse the filter for the first match. For others, need to make a copy of the filter
                 // and add it between input and predecessor.
                 newFilter = newFilter == null ? filter : new LOFilter( (LogicalPlan)currentPlan );
-                
+
                 currentPlan.add( newFilter );
                 subPlan.add( newFilter );
                 subPlan.add( pred );
@@ -264,7 +268,7 @@ public class PushUpFilter extends Rule {
                     if( sink instanceof ProjectExpression )
                         projExprs.add( (ProjectExpression)sink );
                 }
-                
+
                 if( predecessor instanceof LOCogroup ) {
                     for( ProjectExpression projExpr : projExprs ) {
                         // Need to merge filter condition and cogroup by expression;
@@ -284,7 +288,7 @@ public class PushUpFilter extends Rule {
                         }
                     }
                 }
-                
+
                 // Now, reset the projection expressions in the new filter plan.
                 sinks = fPlan.getSinks();
                 for( Operator sink : sinks ) {
@@ -296,11 +300,11 @@ public class PushUpFilter extends Rule {
                     }
                  }
                 newFilter.setFilterPlan( fPlan );
-                
+
                 insertFilter( pred, predecessor, newFilter );
             }
         }
-        
+
         // check if a relational operator contains all of the specified uids
         private boolean hasAll(LogicalRelationalOperator op, Set<Long> uids) throws FrontendException {
             LogicalSchema schema = op.getSchema();
@@ -311,14 +315,14 @@ public class PushUpFilter extends Rule {
                     return false;
                 }
             }
-            
+
             return true;
         }
-           
+
         @Override
-        public OperatorPlan reportChanges() {            
+        public OperatorPlan reportChanges() {
             return currentPlan;
-        }          
+        }
 
         // Insert the filter in between the given two operators.
         private void insertFilter(Operator prev, Operator predecessor, LOFilter filter)
@@ -327,19 +331,19 @@ public class PushUpFilter extends Rule {
             currentPlan.connect( prev, p3.first, filter, 0 );
             currentPlan.connect( filter, 0, predecessor, p3.second );
         }
-        
+
         // Identify those among preds that will need to have a filter between it and the predecessor.
-        private Map<Integer, Operator> findInputsToAddFilter(LogicalExpressionPlan filterPlan, Operator predecessor, 
+        private Map<Integer, Operator> findInputsToAddFilter(LogicalExpressionPlan filterPlan, Operator predecessor,
                 List<Operator> preds) throws FrontendException {
             Map<Integer, Operator> inputs = new HashMap<Integer, Operator>();
-            
+
             if( predecessor instanceof LOUnion || predecessor instanceof LOCogroup ) {
                 for( int i = 0; i < preds.size(); i++ ) {
                     inputs.put( i, preds.get( i ) );
                 }
                 return inputs;
             }
-            
+
             // collect all uids used in the filter plan
             Set<Long> uids = collectUidFromExpPlan(filterPlan);
             boolean[] innerFlags = null;
@@ -353,13 +357,13 @@ public class PushUpFilter extends Rule {
                     }
                 }
             }
-            
+
             // Find the predecessor of join that contains all required uids.
             for(int j=0; j<preds.size(); j++) {
                 // Filter can push to LOJoin outer branch, but no inner branch
-                if( hasAll((LogicalRelationalOperator)preds.get(j), uids) && 
+                if( hasAll((LogicalRelationalOperator)preds.get(j), uids) &&
                         (predecessor instanceof LOCross || predecessor instanceof LOJoin && (isInner || innerFlags[j]))) {
-                    Operator input = preds.get(j);   
+                    Operator input = preds.get(j);
                     subPlan.add(input);
                     inputs.put( j, input );
                 }
@@ -369,11 +373,11 @@ public class PushUpFilter extends Rule {
     }
 
     @Override
-    protected OperatorPlan buildPattern() {        
+    protected OperatorPlan buildPattern() {
         LogicalPlan plan = new LogicalPlan();
         LogicalRelationalOperator op1 = new LOFilter(plan);
         plan.add( op1 );
-        
+
         return plan;
     }
 

@@ -1152,5 +1152,23 @@ public class TestNewPlanPushDownForeachFlatten {
         return newLogicalPlan;
     }
 
+    @Test
+    public void testNonDeterministicUdf() throws Exception {
+        String query = "A = load 'myfile' as (name, age, gpa);" +
+        "B = foreach A generate $0, RANDOM(), flatten($2);" +
+        "C = order B by $0, $1;" +
+        "D = store C into 'dummy';";
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
+        
+        Operator load = newLogicalPlan.getSources().get( 0 );
+        Assert.assertTrue( load instanceof LOLoad );
+        Operator foreach = newLogicalPlan.getSuccessors( load ).get( 0 );
+        Assert.assertTrue( foreach instanceof LOForEach );
+        foreach = newLogicalPlan.getSuccessors( foreach ).get( 0 );
+        Assert.assertTrue( foreach instanceof LOForEach );
+        Operator sort = newLogicalPlan.getSuccessors( foreach ).get( 0 );
+        Assert.assertTrue( sort instanceof LOSort );
+        
+    }
 }
 

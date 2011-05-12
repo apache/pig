@@ -29,8 +29,10 @@ import org.apache.pig.data.DataType;
  * Return a random double value.  Whatever arguments are passed to this UDF
  * are ignored.
  */
+@Nondeterministic
 public class RANDOM extends EvalFunc<Double>{
 
+	@Override
 	public Double exec(Tuple input) throws IOException {
 		return Math.random();
 	}
