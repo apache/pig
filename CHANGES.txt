@@ -178,6 +178,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-2056: Jython error messages should show script name (rding)
+
 PIG-2014: SAMPLE shouldn't be pushed up (dvryaboy)
 
 PIG-2058: Macro missing returns clause doesn't give a good error message (rding)

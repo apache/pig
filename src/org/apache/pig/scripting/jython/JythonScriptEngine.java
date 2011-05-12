@@ -91,7 +91,7 @@ public class JythonScriptEngine extends ScriptEngine {
                 
                 InputStream is = getScriptAsStream(path);
                 try {
-                    execfile(is);
+                    execfile(is, path);
                     filesLoaded.add(path);
                 } finally {
                     is.close();
@@ -99,9 +99,9 @@ public class JythonScriptEngine extends ScriptEngine {
             }           
         }        
         
-        static void execfile(InputStream script) throws ExecException {
+        static void execfile(InputStream script, String path) throws ExecException {
             try {
-                interpreter.execfile(script);
+                interpreter.execfile(script, path);
             } catch (PyException e) {
                 String message = "Python Error. "+e.toString();
                 throw new ExecException(message, 1121, e);
@@ -199,16 +199,15 @@ public class JythonScriptEngine extends ScriptEngine {
         Interpreter.setMain(true);       
         FileInputStream fis = new FileInputStream(scriptFile);
         try {
-            load(fis);
+            load(fis, scriptFile);
         } finally {
             fis.close();
         }   
         return getPigStatsMap();
     }
    
-//    @Override
-    public void load(InputStream script) throws IOException {
-        Interpreter.execfile(script);
+    public void load(InputStream script, String scriptFile) throws IOException {
+        Interpreter.execfile(script, scriptFile);
     }
 
     @Override
