@@ -99,21 +99,22 @@ public class TOBAG extends EvalFunc<DataBag> {
      * 
      */
     @Override
-    public Schema outputSchema(Schema input) {
+    public Schema outputSchema(Schema inputSch) {
         byte type = DataType.ERROR;
         Schema innerSchema = null;
-        
-        for(FieldSchema fs : input.getFields()){
-         if(type == DataType.ERROR){
-             type = fs.type;
-             innerSchema = fs.schema;
-         }else{
-             if( type != fs.type || !nullEquals(innerSchema, fs.schema)){
-                 // invalidate the type
-                 type = DataType.ERROR;
-                 break;
-             }
-         }
+        if(inputSch != null){
+            for(FieldSchema fs : inputSch.getFields()){
+                if(type == DataType.ERROR){
+                    type = fs.type;
+                    innerSchema = fs.schema;
+                }else{
+                    if( type != fs.type || !nullEquals(innerSchema, fs.schema)){
+                        // invalidate the type
+                        type = DataType.ERROR;
+                        break;
+                    }
+                }
+            }
         }
         try {
             if(type == DataType.ERROR){

@@ -90,6 +90,7 @@ import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.newplan.logical.visitor.CastLineageSetter;
 import org.apache.pig.newplan.logical.visitor.ColumnAliasConversionVisitor;
+import org.apache.pig.newplan.logical.visitor.ProjStarInUdfExpander;
 import org.apache.pig.newplan.logical.visitor.ScalarVisitor;
 import org.apache.pig.newplan.logical.visitor.SchemaAliasVisitor;
 import org.apache.pig.newplan.logical.visitor.TypeCheckingRelVisitor;
@@ -1665,6 +1666,7 @@ public class PigServer {
         }
         
         private void compile(LogicalPlan lp) throws FrontendException  {
+            new ProjStarInUdfExpander(lp).visit();
             new ColumnAliasConversionVisitor( lp ).visit();
             new SchemaAliasVisitor( lp ).visit();
             new ScalarVisitor( lp, pigContext ).visit();

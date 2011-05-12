@@ -653,6 +653,7 @@ real_arg [LogicalExpressionPlan plan] returns[LogicalExpression expr]
        $expr = builder.buildProjectExpr( new SourceLocation( (PigParserNode)$STAR ), $plan, $GScope::currentOp, 
            $statement::inputIndex, null, -1 );
    }
+ | cr = col_range[$plan] { $expr = $cr.expr;}
 ;
 
 expr[LogicalExpressionPlan plan] returns[LogicalExpression expr]

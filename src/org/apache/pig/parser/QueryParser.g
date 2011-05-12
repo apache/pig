@@ -386,7 +386,7 @@ real_arg_list : real_arg ( COMMA real_arg )*
              -> real_arg+
 ;
 
-real_arg : expr | STAR
+real_arg : expr | STAR | col_range
 ;
 
 null_check_cond : expr IS! NOT? NULL^
