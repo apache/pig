@@ -552,6 +552,7 @@
             <zipgroupfileset dir="${ivy.lib.dir}" includes="commons*.jar"/>
             <zipgroupfileset dir="${ivy.lib.dir}" includes="log4j*.jar"/>
             <zipgroupfileset dir="${ivy.lib.dir}" includes="jsp-api*.jar"/>
+            <zipgroupfileset dir="${ivy.lib.dir}" includes="zookeeper*.jar"/>
             <fileset file="${basedir}/conf/pig-default.properties" />
         </jar>
         <copy file="${output.jarfile}" tofile="${output.jarfile.backcompat}"/>
