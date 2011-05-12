@@ -278,7 +278,7 @@ cond : ^( OR cond cond )
 func_eval: ^( FUNC_EVAL func_name real_arg* )
 ;
 
-real_arg : expr | STAR
+real_arg : expr | STAR | col_range
 ;
 
 expr : ^( PLUS expr expr )

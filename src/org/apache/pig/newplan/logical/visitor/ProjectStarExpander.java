@@ -27,6 +27,7 @@ import org.apache.pig.PigException;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.MultiMap;
+import org.apache.pig.impl.util.Pair;
 import org.apache.pig.newplan.DependencyOrderWalker;
 import org.apache.pig.newplan.DepthFirstWalker;
 import org.apache.pig.newplan.Operator;
@@ -488,46 +489,22 @@ public class ProjectStarExpander extends LogicalRelationalNodesVisitor{
     private List<LogicalExpressionPlan> expandPlan(
             LogicalExpressionPlan expPlan, ProjectExpression proj, int inputNum)
             throws FrontendException {
-        LogicalRelationalOperator relOp = proj.getAttachedRelationalOp();
-
-        // list of inputs of attached relation
-        List<Operator> inputRels = relOp.getPlan().getPredecessors(relOp);
-
-        //the relation that is input to this project 
-        LogicalRelationalOperator inputRel =
-            (LogicalRelationalOperator) inputRels.get(proj.getInputNum());
-
+        
+        Pair<Integer, Integer> startAndEndProjs =
+            ProjectStarExpanderUtil.getProjectStartEndCols(expPlan, proj);  
         List<LogicalExpressionPlan> newPlans = new ArrayList<LogicalExpressionPlan>();
 
-        LogicalSchema inputSchema = inputRel.getSchema();
-        if(inputSchema == null && 
-                (proj.isProjectStar() || (proj.isRangeProject() && proj.getEndCol() == -1))
-        ){
-            // can't expand if input schema is null and it is a project-star
-            // or project-range-until-end
+        if(startAndEndProjs == null){
+            // can't expand this project
             newPlans.add(expPlan);
             return newPlans;
         }
 
-        //expand from firstProjCol to lastProjCol after setting their values
-        int firstProjCol;
-        int lastProjCol;
+        //expand from firstProjCol to lastProjCol 
+        int firstProjCol = startAndEndProjs.first;
+        int lastProjCol = startAndEndProjs.second;
 
-        //the range values are set in the project in LOInnerLoad
-        if(proj.isRangeProject()){
-            proj.setColumnNumberFromAlias();
-            firstProjCol = proj.getStartCol();
-            
-            if(proj.getEndCol() >= 0)
-                lastProjCol = proj.getEndCol();
-            else
-                lastProjCol = inputSchema.size() - 1;
-        }else{
-            //project-star
-            firstProjCol = 0;
-            lastProjCol = inputSchema.size() - 1;
-        }
-        
+        LogicalRelationalOperator relOp = proj.getAttachedRelationalOp();
         for(int i = firstProjCol; i <= lastProjCol; i++){
             newPlans.add(createExpPlanWithProj(relOp, inputNum, i));
         }

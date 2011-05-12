@@ -22,6 +22,7 @@ import static org.apache.pig.ExecType.LOCAL;
 import static org.apache.pig.ExecType.MAPREDUCE;
 import static org.junit.Assert.assertEquals;
 
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -80,10 +81,8 @@ public class TestProjectRange  {
             execType = PigServer.parseExecType(execTypeString);
         }
 
-        PrintWriter w = new PrintWriter(new FileWriter(INP_FILE_5FIELDS));
-        w.println("10\t20\t30\t40\t50");
-        w.println("11\t21\t31\t41\t51");
-        w.close();
+        String[] input = {"10\t20\t30\t40\t50", "11\t21\t31\t41\t51"};
+        Util.createLocalInputFile(INP_FILE_5FIELDS, input);
 
         if(execType == MAPREDUCE) {
             cluster = MiniCluster.buildCluster();
@@ -107,7 +106,7 @@ public class TestProjectRange  {
 
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
-
+        new File(INP_FILE_5FIELDS).delete();
         if(cluster != null)
             cluster.shutDown();
     }
@@ -415,11 +414,9 @@ public class TestProjectRange  {
         // without aliases
         query =
             "  l1 = load '" + INP_FILE_5FIELDS + "';"
-            + "f = foreach l1 generate ..$3  ;"
+            + "f = foreach l1 generate ..$3  as (a,b,c,d);"
             ; 
-        // the schema should be null, but that is not the case
-        // see - PIG-1910
-        //compileAndCompareSchema(null, query, "f");
+        compileAndCompareSchema("a : bytearray,b : bytearray,c : bytearray,d : bytearray", query, "f");
         
         
         Util.registerMultiLineQuery(pigServer, query);
@@ -430,8 +427,8 @@ public class TestProjectRange  {
         List<Tuple> expectedRes = 
             Util.getTuplesFromConstantTupleStringAsByteArray(
                     new String[] {
-                            "(10,20,30,40)",
-                            "(11,21,31,41)",
+                            "('10','20','30','40')",
+                            "('11','21','31','41')",
                     });
         Util.checkQueryOutputsAfterSort(it, expectedRes);
 
@@ -453,9 +450,7 @@ public class TestProjectRange  {
             "  l1 = load '" + INP_FILE_5FIELDS + "';"
             + "f = foreach l1 generate ..$0 as (first), $4.. as (last), $3 ..,  .. $1 ;"
             ; 
-        // the schema should be null, but that is not the case
-        // see - PIG-1910
-        //compileAndCompareSchema(null, query, "f");
+        compileAndCompareSchema((Schema)null, query, "f");
         
         
         Util.registerMultiLineQuery(pigServer, query);
@@ -466,8 +461,8 @@ public class TestProjectRange  {
         List<Tuple> expectedRes = 
             Util.getTuplesFromConstantTupleStringAsByteArray(
                     new String[] {
-                            "(10,50,40,50,10,20)",
-                            "(11,51,41,51,11,21)",
+                            "('10','50','40','50','10','20')",
+                            "('11','51','41','51','11','21')",
                     });
         Util.checkQueryOutputsAfterSort(it, expectedRes);
 
@@ -478,11 +473,8 @@ public class TestProjectRange  {
      * @throws IOException
      * @throws ParserException
      */
-    //@Test
+    @Test
     public void testRangeForeachWFilterNOSchema() throws IOException, ParserException {
-        //TODO: fix depends on PIG-1910
-        //fails with - In alias fil, incompatible types in GreaterThan 
-        //         Operator left hand side:Unknown right hand side:Unknown
         String query;
         
         query =
@@ -494,12 +486,12 @@ public class TestProjectRange  {
         Util.registerMultiLineQuery(pigServer, query);
 
         pigServer.explain("fil", System.err);
-        Iterator<Tuple> it = pigServer.openIterator("f");
+        Iterator<Tuple> it = pigServer.openIterator("fil");
 
         List<Tuple> expectedRes = 
             Util.getTuplesFromConstantTupleStringAsByteArray(
                     new String[] {
-                            "(11,51,41,51,11,21)",
+                            "('11','51','41','51','11','21')",
                     });
         Util.checkQueryOutputsAfterSort(it, expectedRes);
 

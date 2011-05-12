@@ -164,7 +164,7 @@ public class POUserFunc extends ExpressionOperator {
                 if(op instanceof POProject &&
                         op.getResultType() == DataType.TUPLE){
                     POProject projOp = (POProject)op;
-                    if(projOp.isStar()){
+                    if(projOp.isProjectToEnd()){
                         Tuple trslt = (Tuple) temp.result;
                         Tuple rslt = (Tuple) res.result;
                         for(int i=0;i<trslt.size();i++) {

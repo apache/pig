@@ -178,6 +178,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-1938: support project-range as udf argument (thejas)
+
 PIG-2056: Jython error messages should show script name (rding)
 
 PIG-2014: SAMPLE shouldn't be pushed up (dvryaboy)

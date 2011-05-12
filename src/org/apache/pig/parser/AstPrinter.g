@@ -218,7 +218,7 @@ rel
 ;
 
 flatten_generated_item 
-    : ( flatten_clause | expr | STAR { sb.append(" ").append($STAR.text); } ) ( { sb.append(" AS "); } field_def_list)?
+    : ( flatten_clause | col_range | expr | STAR { sb.append(" ").append($STAR.text); } ) ( { sb.append(" AS "); } field_def_list)?
 ;
 
 flatten_clause 
@@ -248,7 +248,7 @@ func_eval
 ;
 
 real_arg 
-    : expr | STAR { sb.append($STAR.text); }
+    : expr | STAR { sb.append($STAR.text); } | col_range
 ;
 
 expr 
@@ -302,6 +302,9 @@ col_index
     : DOLLARVAR { sb.append($DOLLARVAR.text); }
 ;
 
+col_range :  ^(COL_RANGE col_ref? { sb.append(".."); } DOUBLE_PERIOD col_ref?)
+;
+
 pound_proj 
     : ^( POUND { sb.append($POUND.text); }
         ( QUOTEDSTRING { sb.append($QUOTEDSTRING.text); } | NULL { sb.append($NULL.text); } ) )
@@ -332,7 +335,7 @@ order_by_clause
 ;
 
 order_col 
-    : col_ref ( ASC { sb.append(" ").append($ASC.text); } | DESC { sb.append(" ").append($DESC.text); } )?    
+    : (col_range | col_ref) ( ASC { sb.append(" ").append($ASC.text); } | DESC { sb.append(" ").append($DESC.text); } )?    
 ;
 
 distinct_clause 
@@ -377,7 +380,7 @@ join_group_by_clause
 ;
 
 join_group_by_expr 
-    : expr | STAR { sb.append($STAR.text); }
+    : col_range | expr | STAR { sb.append($STAR.text); }
 ;
 
 union_clause 

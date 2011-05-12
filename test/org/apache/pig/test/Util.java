@@ -76,6 +76,8 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanPrinter;
@@ -621,6 +623,12 @@ public class Util {
         return queryParser.parseConstant(pigConstantAsString);
     }
     
+    /**
+     * Parse list of strings in to list of tuples, convert quoted strings into
+     * @param tupleConstants
+     * @return
+     * @throws ParserException
+     */
     public static List<Tuple> getTuplesFromConstantTupleStrings(String[] tupleConstants) throws ParserException {
         List<Tuple> result = new ArrayList<Tuple>(tupleConstants.length);
         for(int i = 0; i < tupleConstants.length; i++) {
@@ -629,19 +637,52 @@ public class Util {
         return result;
     }
 
+    /**
+     * Parse list of strings in to list of tuples, convert quoted strings into
+     * DataByteArray
+     * @param tupleConstants
+     * @return
+     * @throws ParserException
+     * @throws ExecException
+     */
     public static List<Tuple> getTuplesFromConstantTupleStringAsByteArray(String[] tupleConstants)
     throws ParserException, ExecException {
         List<Tuple> tuples = getTuplesFromConstantTupleStrings(tupleConstants);
         for(Tuple t : tuples){
-            for(int i=0; i<t.size(); i++){
-                DataByteArray dba = (t.get(i) == null) ? 
-                        null : new DataByteArray(t.get(i).toString().getBytes());
-                t.set(i, dba);
-            }
+            convertStringToDataByteArray(t);
         }
         return tuples;
     }
     
+    /**
+     * Convert String objects in argument t to DataByteArray objects
+     * @param t
+     * @throws ExecException
+     */
+    private static void convertStringToDataByteArray(Tuple t) throws ExecException {
+        if(t == null)
+            return;
+        for(int i=0; i<t.size(); i++){
+            Object col = t.get(i);
+            if(col == null)
+                continue;
+            if(col instanceof String){
+                DataByteArray dba = (col == null) ? 
+                        null : new DataByteArray((String)col);                
+                t.set(i, dba);
+            }else if(col instanceof Tuple){
+                convertStringToDataByteArray((Tuple)col);
+            }else if(col instanceof DataBag){
+                Iterator<Tuple> it = ((DataBag)col).iterator();
+                while(it.hasNext()){
+                    convertStringToDataByteArray((Tuple)it.next());
+                }
+            }
+
+            
+        }        
+    }
+
     public static File createFile(String[] data) throws Exception{
         File f = File.createTempFile("tmp", "");
         PrintWriter pw = new PrintWriter(f);
@@ -950,5 +991,24 @@ public class Util {
         new CastLineageSetter(lp, collector).visit();
         return lp;
     }
+    
+    
+    /**
+     * Replaces any alias in given schema that has name that starts with 
+     *  "NullAlias" with null . it does  a case insensitive comparison of
+     *  the alias name
+     * @param sch
+     */
+    public static void schemaReplaceNullAlias(Schema sch){
+        if(sch == null)
+            return ;
+        for(FieldSchema fs : sch.getFields()){
+            if(fs.alias != null && fs.alias.toLowerCase().startsWith("nullalias")){
+                fs.alias = null;
+            }
+            schemaReplaceNullAlias(fs.schema);
+        }
+    }
+
     
 }
