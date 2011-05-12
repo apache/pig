@@ -483,4 +483,31 @@ public class TestScriptLanguage {
         assertTrue(stats.getErrorCode() == 1121);
         assertTrue(stats.getReturnCode() == PigRunner.ReturnCode.PIG_EXCEPTION);
     }
+    
+    @Test // PIG-2056
+    public void NegativeTest3() throws Exception {
+        String[] script = {
+                "#!/usr/bin/python",
+                "from org.apache.pig.scripting import Pig",
+                "P = Pig.compile(\"\"\"",
+                "    #TEST PIG COMMENTS",
+                "    A = load 'studenttab10k' as (name, age, gpa);",
+                "    store A into 'CompileBindRun_2.out';\"\"\")",
+                "result = P.bind().runSingle()"
+        };
+
+        Util.createLocalInputFile( "testScript.py", script);
+        
+        String[] args = { "-x", "local", "testScript.py"};
+        PigStats stats = PigRunner.run(args, null);
+        assertFalse(stats.isSuccessful());
+        assertTrue(stats.getErrorCode() == 1121);
+        assertTrue(stats.getReturnCode() == PigRunner.ReturnCode.PIG_EXCEPTION);
+        
+        String expected = "Python Error. Traceback (most recent call last):\n" +
+            "  File \"testScript.py\", line 7";
+
+        String msg = stats.getErrorMessage();
+        assertEquals(expected, msg.substring(0, expected.length()));
+    }
 }
