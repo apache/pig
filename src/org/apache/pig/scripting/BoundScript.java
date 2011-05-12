@@ -277,7 +277,7 @@ public class BoundScript {
         try {
             grunt.parseStopOnError(true);
         } catch (ParseException e) {
-            throw new IOException("Failed to parse script", e);
+            throw new IOException("Failed to parse script " + e.getMessage(), e);
         }
         pigServer.executeBatch();
         return PigStats.get();
