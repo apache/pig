@@ -68,6 +68,34 @@ public class TestNewPlanFilterAboveForeach {
         Assert.assertTrue( fe2 instanceof LOForEach );
     }
     
+    /**
+     * Non-deterministic filters should not be pushed up (see PIG-2014).
+     * In the example below, if Filter gets pushed above flatten, we might remove
+     * whole bags of cuisines of random gets pushed up, while the intent is to sample from each bag.
+     * @throws Exception
+     */
+    @Test
+    public void testNondeterministicFilter() throws Exception {
+        String query = "A =LOAD 'file.txt' AS (name, cuisines:bag{ t : ( cuisine ) }, num:int );" +
+        "B = FOREACH A GENERATE name, flatten(cuisines), num;" +
+        "C = FILTER B BY RANDOM(num) > 5;" +
+        "D = STORE C INTO 'empty';" ;
+
+        LogicalPlan newLogicalPlan = buildPlan( query );
+
+        newLogicalPlan.explain(System.out, "text", true);
+
+        // Expect Filter to not be pushed, so it should be load->foreach-> filter
+        Operator load = newLogicalPlan.getSources().get( 0 );
+        Assert.assertTrue( load instanceof LOLoad );
+        Operator fe1 = newLogicalPlan.getSuccessors( load ).get( 0 );
+        Assert.assertTrue( fe1 instanceof LOForEach );
+        Operator fe2 = newLogicalPlan.getSuccessors( fe1 ).get( 0 );
+        Assert.assertTrue( fe2 instanceof LOForEach );
+        Operator filter = newLogicalPlan.getSuccessors( fe2 ).get( 0 );
+        Assert.assertTrue( filter instanceof LOFilter );
+    }
+
     @Test
     public void testMultipleFilter() throws Exception {
         String query = "A =LOAD 'file.txt' AS (name, cuisines : bag{ t : ( cuisine ) } );" +
@@ -450,10 +478,12 @@ public class TestNewPlanFilterAboveForeach {
             super(p, iterations, new HashSet<String>());
         }
         
+        @Override
         public void addPlanTransformListener(PlanTransformListener listener) {
             super.addPlanTransformListener(listener);
         }
         
+       @Override
        protected List<Set<Rule>> buildRuleSets() {            
             List<Set<Rule>> ls = new ArrayList<Set<Rule>>();
             
