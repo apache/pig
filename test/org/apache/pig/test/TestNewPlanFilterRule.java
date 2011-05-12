@@ -487,6 +487,33 @@ public class TestNewPlanFilterRule {
         Assert.assertTrue( store instanceof LOStore );
     }
 
+    /**
+     * Test that SAMPLE doesn't get pushed up (see PIG-2014)
+     */
+    @Test
+    public void testSample() throws Exception {
+        String query = "A = LOAD 'file.txt' AS (name, cuisines:bag{ t : ( cuisine ) } );" +
+        "B = GROUP A by name;" +
+        "C = FOREACH B GENERATE group, A;" +
+        "D = SAMPLE C 0.1 ; " +
+        "E = STORE D INTO 'empty';";
+        // expect loload -> foreach -> cogroup -> filter
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
+        newLogicalPlan.explain(System.out, "text", true);
+
+        Operator load = newLogicalPlan.getSources().get( 0 );
+        Assert.assertTrue( load instanceof LOLoad );
+        Operator fe1 = newLogicalPlan.getSuccessors( load ).get( 0 );
+        Assert.assertTrue( fe1 instanceof LOForEach );
+        Operator cg = newLogicalPlan.getSuccessors( fe1 ).get( 0 );
+        Assert.assertTrue( cg instanceof LOCogroup );
+        Operator fe2 = newLogicalPlan.getSuccessors( cg ).get( 0 );
+        Assert.assertTrue( fe1 instanceof LOForEach );
+        Operator filter = newLogicalPlan.getSuccessors( fe2 ).get( 0 );
+        Assert.assertTrue( filter instanceof LOFilter );
+
+    }
+
     private LogicalPlan migrateAndOptimizePlan(String query) throws Exception {
     	PigServer pigServer = new PigServer(pc);
         LogicalPlan newLogicalPlan = Util.buildLp(pigServer, query);
@@ -500,10 +527,12 @@ public class TestNewPlanFilterRule {
             super(p, iterations, new HashSet<String>());
         }
         
+        @Override
         public void addPlanTransformListener(PlanTransformListener listener) {
             super.addPlanTransformListener(listener);
         }
         
+       @Override
        protected List<Set<Rule>> buildRuleSets() {            
             List<Set<Rule>> ls = new ArrayList<Set<Rule>>();
             
@@ -531,6 +560,7 @@ public class TestNewPlanFilterRule {
             addPlanTransformListener(new ProjectionPatcher());
         }
         
+        @Override
         public void addPlanTransformListener(PlanTransformListener listener) {
             super.addPlanTransformListener(listener);
         }

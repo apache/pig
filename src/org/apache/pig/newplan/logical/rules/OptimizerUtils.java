@@ -19,7 +19,11 @@ package org.apache.pig.newplan.logical.rules;
 
 import java.util.Iterator;
 
+import org.apache.pig.builtin.Nondeterministic;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.newplan.Operator;
+import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
+import org.apache.pig.newplan.logical.expression.UserFuncExpression;
 import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOGenerate;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
@@ -62,5 +66,27 @@ public class OptimizerUtils {
     public static boolean hasFlatten(LOForEach foreach) {
         LOGenerate gen = findGenerate( foreach );
         return hasFlatten( gen );
+    }
+
+    /**
+     * Helper method to determine if the logical expression plan for a Filter contains
+     * non-deterministic operations and should therefore be treated extra carefully
+     * during optimization.
+     *
+     * @param filterPlan
+     * @return true of the filter plan contains a non-deterministic UDF
+     */
+    public static boolean planHasNonDeterministicUdf(LogicalExpressionPlan filterPlan) {
+        Iterator<Operator> it = filterPlan.getOperators();
+        while( it.hasNext() ) {
+            Operator op = it.next();
+            if( op instanceof UserFuncExpression ) {
+                Object udf = PigContext.instantiateFuncFromSpec(((UserFuncExpression) op).getFuncSpec());
+                if (udf.getClass().getAnnotation(Nondeterministic.class) != null) {
+                    return true;
+}
+            }
+        }
+        return false;
     }
 }

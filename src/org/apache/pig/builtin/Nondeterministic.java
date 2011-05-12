@@ -18,27 +18,24 @@
 
 package org.apache.pig.builtin;
 
-import java.io.IOException;
+import java.lang.annotation.Documented;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 
-import org.apache.pig.EvalFunc;
-import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.data.DataType;
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
 
 /**
- * Return a random double value.  Whatever arguments are passed to this UDF
- * are ignored.
+ * <p>A non-deterministic UDF is one that can produce different results when
+ * invoked on the same input. Examples of non-deterministic behavior might be,
+ * for example, getCurrentTime() or random().</p>
+ * <p>Certain Pig optimizations depend on UDFs being deterministic. It is therefore
+ * very important for correctness that non-deterministic UDFs be annotated as such.</p>
  */
-@Nondeterministic
-public class RANDOM extends EvalFunc<Double>{
+@InterfaceAudience.Public
+@InterfaceStability.Unstable
+@Documented
+@Retention(value=RetentionPolicy.RUNTIME)
+public @interface Nondeterministic {
 
-	@Override
-	public Double exec(Tuple input) throws IOException {
-		return Math.random();
-	}
-
-    @Override
-    public Schema outputSchema(Schema input) {
-        return new Schema(new Schema.FieldSchema(getSchemaName(this.getClass().getName().toLowerCase(), input), DataType.DOUBLE));
-    }
 }

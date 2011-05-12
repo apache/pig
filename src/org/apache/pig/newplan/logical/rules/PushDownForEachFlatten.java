@@ -91,8 +91,15 @@ public class PushDownForEachFlatten extends Rule {
             
             LOForEach foreach = (LOForEach)matched.getSources().get(0);
             LOGenerate gen = OptimizerUtils.findGenerate( foreach );
+            
             if( !OptimizerUtils.hasFlatten( gen ) )
                 return false;
+            
+            // If a foreach contains a nondeterministic udf, we shouldn't push it down.
+            for (LogicalExpressionPlan p : gen.getOutputPlans()) {
+                if (OptimizerUtils.planHasNonDeterministicUdf(p))
+                    return false;
+            }
             
             List<Operator> succs = currentPlan.getSuccessors( foreach );
             if( succs == null || succs.size() != 1 )
