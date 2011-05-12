@@ -56,8 +56,10 @@ public class ProjectionPatcher implements PlanTransformListener {
         
         @Override
         public void visit(ProjectExpression p) throws FrontendException {
-            // if projection is for everything, just return
-            if (p.isProjectStar()) {
+            // if project is a project-star or range, ie it could not be expanded
+            // then its not possible to determine the matching input columns
+            // before runtime
+            if (p.isRangeOrStarProject()) {
                 return;
             }
             

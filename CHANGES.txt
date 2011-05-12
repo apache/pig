@@ -42,6 +42,8 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 
 BUG FIXES
 
+PIG-1938: support project-range as udf argument (thejas)
+
 PIG-2048: Add zookeeper to pig jar (gbowyer via gates)
 
 PIG-2008: Cache outputFormat in HBaseStorage (thedatachef via gates)

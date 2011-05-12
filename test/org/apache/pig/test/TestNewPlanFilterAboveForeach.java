@@ -226,7 +226,7 @@ public class TestNewPlanFilterAboveForeach {
     public void test2() throws Exception {
         String query = "A =LOAD 'file.txt' AS (a:(u,v), b, c);" +
         "B = FOREACH A GENERATE $0, b;" +
-        "C = FILTER B BY " + SIZE.class.getName() +"(*) > 5;" +
+        "C = FILTER B BY " + SIZE.class.getName() +"(TOTUPLE(*)) > 5;" +
         "STORE C INTO 'empty';";  
         LogicalPlan newLogicalPlan = buildPlan( query );
 
@@ -271,7 +271,7 @@ public class TestNewPlanFilterAboveForeach {
     public void test4() throws Exception {
         String query = "A =LOAD 'file.txt' AS (a:(u,v), b, c);" +
         "B = FOREACH A GENERATE $0, b, flatten(1);" +
-        "C = FILTER B BY " + SIZE.class.getName() +"(*) > 5;" +
+        "C = FILTER B BY " + SIZE.class.getName() +"(TOTUPLE(*)) > 5;" +
         "STORE C INTO 'empty';";  
         LogicalPlan newLogicalPlan = buildPlan( query );
 
