@@ -96,7 +96,7 @@ public class TestQueryParser {
        
         Assert.assertFalse(stats.isSuccessful());
         
-        String expected = "Error during parsing. <file myscript.pig, line 1, column 10>";
+        String expected = "<file myscript.pig, line 1, column 10>";
         String msg = stats.getErrorMessage();
         
         Assert.assertFalse(msg == null);

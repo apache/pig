@@ -82,6 +82,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.ReadToEndLoader;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.impl.logicalLayer.validators.TypeCheckerException;
@@ -992,8 +993,8 @@ public class TestBuiltin {
              pigServer.registerQuery("C = foreach B generate COUNT(A.$0, A.$0);");
              pigServer.openIterator("C");
              Assert.fail("COUNT is suppose to run with one argument of type BAG, however it ran with couple of arguments.");
-         }catch(TypeCheckerException e) {
-
+         }catch(FrontendException e) {
+             Assert.assertTrue( e.getCause() instanceof TypeCheckerException );
          }finally {
              Util.deleteFile(cluster, inputFileName);
          }
@@ -1008,8 +1009,8 @@ public class TestBuiltin {
              pigServer.registerQuery("C = foreach B generate COUNT(A.$0, A.$0);");
              pigServer.openIterator("C");
              Assert.fail("COUNT is suppose to run with one argument of type BAG, however it ran with couple of arguments.");
-         }catch(TypeCheckerException e) {
-             
+         }catch(FrontendException e) {
+             Assert.assertTrue( e.getCause() instanceof TypeCheckerException );
          }finally {
              Util.deleteFile(cluster, inputFileName);
          }
@@ -1024,8 +1025,8 @@ public class TestBuiltin {
              pigServer.registerQuery("C = foreach B generate COUNT('data');");
              pigServer.openIterator("C");
              Assert.fail("COUNT is suppose to run with one argument of type BAG, however it ran with an argument of type chararray.");
-         }catch(TypeCheckerException e) {
-             
+         }catch(FrontendException e) {
+             Assert.assertTrue( e.getCause() instanceof TypeCheckerException );
          }finally {
              Util.deleteFile(cluster, inputFileName);
          }
