@@ -222,6 +222,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-2075: Bring back TestNewPlanPushUpFilter (daijy)
+
 PIG-1827: When passing a parameter to Pig, if the value contains $ it has to be escaped for no apparent reason (rding)
 
 PIG-2056: Jython error messages should show script name (rding)
