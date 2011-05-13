@@ -24,6 +24,7 @@ import java.io.LineNumberReader;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -276,7 +277,8 @@ public class Pig {
             throws IOException {
         ArrayList<String> plist = new ArrayList<String>();
         for (Entry<String, Object> entry : vars.entrySet()) {
-            plist.add(entry.getKey() + "=" + entry.getValue().toString());
+            plist.add(entry.getKey() + "="
+                    + fixNonEscapedDollarSign(entry.getValue().toString()));
         }
         
         ParameterSubstitutionPreprocessor psp = 
@@ -292,6 +294,31 @@ public class Pig {
             throw new IOException("Param substitution failed", e);            
         } 
         return writer.toString();
+    }
+    
+    // Escape the $ so that we can use the parameter substitution 
+    // to perform bind operation. Parameter substitution will un-escape $
+    private static String fixNonEscapedDollarSign(String s) {
+        String[] tkns = s.split("\\$", -1);
+
+        if (tkns.length == 1) return s;
+        
+        StringBuilder sb = new StringBuilder();
+        
+        for (int i = 0; i < tkns.length -1; i++) {
+            if (tkns[i].isEmpty()) {
+                sb.append("\\\\");
+            } else {
+                sb.append(tkns[i]);
+                if (tkns[i].charAt(tkns[i].length()-1) != '\\') {
+                    sb.append("\\\\");
+                }
+            }
+            sb.append("$");
+        }
+        sb.append(tkns[tkns.length - 1]);
+
+        return sb.toString();
     }
     
     //-------------------------------------------------------------------------

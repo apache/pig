@@ -21,6 +21,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -29,7 +30,11 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigRunner;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.PigContext;
+import org.apache.pig.scripting.BoundScript;
+import org.apache.pig.scripting.Pig;
 import org.apache.pig.scripting.ScriptEngine;
+import org.apache.pig.scripting.ScriptPigContext;
 import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
@@ -357,6 +362,11 @@ public class TestScriptLanguage {
                 "Pig.fs(\"rmr simple_out\")",
                 "input = 'simple_table_5'",
                 "output = 'simple_out'",
+                "testvar = 'abcd$py'",
+                "testvar2 = '$'",
+                "testvar3 = '\\\\\\\\$'",
+                "testvar4 = 'abcd\\$py$'",
+                "testvar5 = 'abcd\\$py'",
                 "P = Pig.compile(\"\"\"a = load '$input';store a into '$output';\"\"\")",
                 "Q = P.bind()",
                 "stats = Q.runSingle()",
@@ -386,7 +396,46 @@ public class TestScriptLanguage {
         assertEquals(12, stats.getBytesWritten());
         assertEquals(3, stats.getRecordWritten());     
     }
-
+    
+    @Test
+    public void bindLocalVariableTest2() throws Exception {
+        String[] script = {
+                "#!/usr/bin/python",
+                "from org.apache.pig.scripting import *",
+                "Pig.fs(\"rmr simple_out\")",
+                "input = 'bindLocalVariableTest2'",
+                "output = 'simple_out'",
+                "separator = '$'",
+                "P = Pig.compile(\"\"\"a = load '$input' using PigStorage('$separator');store a into '$output';\"\"\")",
+                "Q = P.bind()",
+                "stats = Q.runSingle()",
+                "if stats.isSuccessful():",
+                "\tprint 'success!'",
+                "else:",
+                "\traise 'failed'"
+        };
+        String[] input = {
+                "1$3",
+                "2$4",
+                "3$5"
+        };
+        
+        Util.createInputFile(cluster, "bindLocalVariableTest2", input);
+        Util.createLocalInputFile("testScript.py", script);
+        
+        ScriptEngine scriptEngine = ScriptEngine.getInstance("jython");
+        Map<String, List<PigStats>> statsMap = scriptEngine.run(pigServer.getPigContext(), "testScript.py");
+        assertEquals(1, statsMap.size());        
+        Iterator<List<PigStats>> it = statsMap.values().iterator();      
+        PigStats stats = it.next().get(0);
+        assertTrue(stats.isSuccessful());
+        assertEquals(1, stats.getNumberJobs());
+        String name = stats.getOutputNames().get(0);
+        assertEquals("simple_out", name);
+        assertEquals(12, stats.getBytesWritten());
+        assertEquals(3, stats.getRecordWritten());     
+    }
+    
     @Test
     public void bindNonStringVariableTest() throws Exception {
         String[] script = {
@@ -510,4 +559,26 @@ public class TestScriptLanguage {
         String msg = stats.getErrorMessage();
         assertEquals(expected, msg.substring(0, expected.length()));
     }
+    
+    @Test
+    public void testFixNonEscapedDollarSign() throws Exception {
+        java.lang.reflect.Method fixNonEscapedDollarSign = Class.forName(
+                "org.apache.pig.scripting.Pig").getDeclaredMethod(
+                "fixNonEscapedDollarSign", new Class[] { String.class });
+
+        fixNonEscapedDollarSign.setAccessible(true);
+        
+        String s = (String)fixNonEscapedDollarSign.invoke(null, "abc$py$");
+        assertEquals("abc\\\\$py\\\\$", s);
+
+        s = (String)fixNonEscapedDollarSign.invoke(null, "$abc$py");
+        assertEquals("\\\\$abc\\\\$py", s);
+        
+        s = (String)fixNonEscapedDollarSign.invoke(null, "$");
+        assertEquals("\\\\$", s);
+        
+        s = (String)fixNonEscapedDollarSign.invoke(null, "$$abc");
+        assertEquals("\\\\$\\\\$abc", s);
+    }
+       
 }
