@@ -198,7 +198,7 @@ public class TestProjectStarRangeInUdf  {
             + "f1 = foreach l1 generate a, b, c, '1' as num;"
             + "l2 = load '" + INP_FILE_5FIELDS + "' as (a : chararray, b : chararray, c : chararray, d);"
             + "f2 = foreach l1 generate c, a, b, '2' as num;" 
-            + "j = join f1 by CONCAT(c, $0 .. $1), f2 by CONCAT($0, a .. b);"
+            + "j = join f1 by CONCAT($0 .. $1), f2 by CONCAT(a .. b);"
             ; 
         String schStr =
             "f1::a : chararray, f1::b : chararray, f1::c : chararray, f1::num : chararray," + 
