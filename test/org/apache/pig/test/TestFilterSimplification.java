@@ -479,6 +479,28 @@ public class TestFilterSimplification extends TestCase {
         expected = Util.buildLp(pigServer, query);;
 
         assertTrue(expected.isEqual(newLogicalPlan));
+        
+        // case 31: See PIG-2067
+        query = "A = load 'a.dat' as (cookie);" +
+                "B = load 'b.dat' as (cookie);" +
+                "C = cogroup A by cookie, B by cookie;" +
+                "E = filter C by COUNT(B)>0 AND COUNT(A)>0;" +
+                "store E into 'empty';";
+        newLogicalPlan = Util.buildLp(pigServer, query);;
+
+        optimizer = new MyPlanOptimizer(newLogicalPlan, 10);
+        optimizer.optimize();
+
+        // Make sure in this case, we don't optimize
+        query = "A = load 'a.dat' as (cookie);" +
+            "B = load 'b.dat' as (cookie);" +
+            "C = cogroup A by cookie, B by cookie;" +
+            "E = filter C by COUNT(B)>0 AND COUNT(A)>0;" +
+            "store E into 'empty';";
+        
+        expected = Util.buildLp(pigServer, query);;
+
+        assertTrue(expected.isEqual(newLogicalPlan));
 
     }
 

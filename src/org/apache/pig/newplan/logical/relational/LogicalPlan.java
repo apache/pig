@@ -76,13 +76,12 @@ public class LogicalPlan extends BaseOperatorPlan {
         ps.println("# New Logical Plan:");
         ps.println("#-----------------------------------------------");
 
-        if (format.equals("text")) {
-            LogicalPlanPrinter npp = new LogicalPlanPrinter(this, ps);
-            npp.visit();
-        } else if (format.equals("dot")) {
+        if (format.equals("dot")) {
             DotLOPrinter lpp = new DotLOPrinter(this, ps);
             lpp.dump();
-            ps.println("");
+        } else {
+            LogicalPlanPrinter npp = new LogicalPlanPrinter(this, ps);
+            npp.visit();
         }
     }
 
