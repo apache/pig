@@ -586,7 +586,7 @@ public class TestMacroExpansion {
             "    C = group $A by $0;\n" +
             "    X = FOREACH C GENERATE group, SUM ($A.$1);\n" +
             "    Y = FOREACH C GENERATE group, FLATTEN($A);\n" +
-            "    Z = FOREACH C GENERATE FLATTEN($A.($1, $2)), FLATTEN($A.age);\n" +
+            "    Z = FOREACH C GENERATE FLATTEN($A.($0, $2)), FLATTEN($A.age);\n" +
             "    X = FOREACH $A GENERATE $1+$2 AS f1:int;\n" +
             "};\n";
         
@@ -601,7 +601,7 @@ public class TestMacroExpansion {
             "macro_group_and_count_C_0 = group alpha by ($0);\n" +
             "macro_group_and_count_X_0 = FOREACH macro_group_and_count_C_0 GENERATE group, SUM(alpha.($1));\n" +
             "macro_group_and_count_Y_0 = FOREACH macro_group_and_count_C_0 GENERATE group, FLATTEN(alpha) ;\n" +
-            "macro_group_and_count_Z_0 = FOREACH macro_group_and_count_C_0 GENERATE FLATTEN(alpha.($1, $2)) , FLATTEN(alpha.(age)) ;\n" +
+            "macro_group_and_count_Z_0 = FOREACH macro_group_and_count_C_0 GENERATE FLATTEN(alpha.($0, $2)) , FLATTEN(alpha.(age)) ;\n" +
             "macro_group_and_count_X_0 = FOREACH alpha GENERATE $1 + $2 AS f1:int;\n" +
             "store gamma INTO 'byuser';\n";
             
@@ -637,20 +637,20 @@ public class TestMacroExpansion {
     @Test
     public void bincondTest() throws Exception {
         String macro = "define group_and_count (A) returns B {\n" +
-            "    X = FOREACH $A GENERATE f1, f2, f1%f2;\n" +
+            "    X = FOREACH $A GENERATE f1, f2, f0%f2;\n" +
             "    Y = FOREACH $A GENERATE f2, (f2==1?1:COUNT(B));\n" +
             "    Z = FILTER $A BY f1 is not null;\n" +
             "    $B = FILTER $A BY (f1 matches '.*apache.*');\n" +
             "};\n";
         
         String script = 
-            "alpha = LOAD 'data' AS (f1:chararray, f2:int, B:bag{T:tuple(t1:int,t2:int)});\n" +
+            "alpha = LOAD 'data' AS (f0:long, f1:chararray, f2:int, B:bag{T:tuple(t1:int,t2:int)});\n" +
             "gamma = group_and_count (alpha);\n" +
             "store gamma into 'byuser';\n";
         
         String expected = 
-            "alpha = LOAD 'data' AS (f1:chararray, f2:int, B:bag{T:(t1:int, t2:int)});\n" +
-            "macro_group_and_count_X_0 = FOREACH alpha GENERATE f1, f2, f1 % f2;\n" +
+            "alpha = LOAD 'data' AS (f0:long, f1:chararray, f2:int, B:bag{T:(t1:int, t2:int)});\n" +
+            "macro_group_and_count_X_0 = FOREACH alpha GENERATE f1, f2, f0 % f2;\n" +
             "macro_group_and_count_Y_0 = FOREACH alpha GENERATE f2,  (f2 == 1 ? 1 : COUNT(B)) ;\n" +
             "macro_group_and_count_Z_0 = FILTER alpha BY (f1 IS not null);\n" +
             "gamma = FILTER alpha BY (f1 matches '.*apache.*');\n" +
@@ -1722,11 +1722,11 @@ public class TestMacroExpansion {
     @Test
     public void test21() throws Exception {
         String macro = 
-            "a = load '1.txt' as ( u, v, w : int );" +
+            "a = load '1.txt' as ( u:tuple(p, q), v, w : int );" +
             "b = foreach a generate * as ( x, y, z ), flatten( u ) as ( r, s ), flatten( v ) as d, w + 5 as e:int;";
             
         String expected =
-            "macro_mymacro_a_0 = load '1.txt' as (u, v, w:int);\n" +
+            "macro_mymacro_a_0 = load '1.txt' as (u:(p, q), v, w:int);\n" +
             "macro_mymacro_b_0 = foreach macro_mymacro_a_0 generate  * AS (x, y, z), flatten(u)  AS (r, s), flatten(v)  AS d, w + 5 AS e:int;\n";
         
         testMacro(macro, expected);
@@ -1750,11 +1750,11 @@ public class TestMacroExpansion {
     @Test
     public void test23() throws Exception {
         String macro = 
-            "a = load '1.txt' as ( u, v, w : int );" +
+            "a = load '1.txt' as ( u:tuple(p, q), v, w : int );" +
             "b = foreach a generate * as ( x, y, z ), flatten( u ) as ( r, s ), flatten( v ) as d, w + 5 as e:int;";
             
         String expected =
-            "macro_mymacro_a_0 = load '1.txt' as (u, v, w:int);\n" +
+            "macro_mymacro_a_0 = load '1.txt' as (u:(p, q), v, w:int);\n" +
             "macro_mymacro_b_0 = foreach macro_mymacro_a_0 generate  * AS (x, y, z), flatten(u)  AS (r, s), flatten(v)  AS d, w + 5 AS e:int;\n";
         
         testMacro(macro, expected);
@@ -2140,7 +2140,7 @@ public class TestMacroExpansion {
             grunt.checkScript(scriptFile);
             
             Assert.fail("Expected exception isn't thrown");
-        } catch (FrontendException e) { 
+        } catch (Exception e) { 
             String msg = e.getMessage();
             int pos = msg.indexOf(keyword);
             if (pos < 0) {

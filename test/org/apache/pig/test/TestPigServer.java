@@ -778,4 +778,17 @@ public class TestPigServer {
         Assert.assertTrue(s==null);
     }
 
+    @Test // PIG-2059
+    public void test1() throws Throwable {
+    	pig.setBatchOn();
+        pig.registerQuery("A = load 'x' as (u, v);") ;
+        try {
+            pig.registerQuery("B = foreach A generate $2;") ;
+        } catch(Exception ex) {
+        	Assert.assertTrue( ex.getMessage().contains("<line 1, column 46> Out of bound access. Trying to access non-existent column: 2") );
+        	return;
+        }
+        Assert.fail( "Query is supposed to fail." );
+    }
+
 }
