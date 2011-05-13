@@ -70,6 +70,8 @@ PIG-1876: Typed map for Pig (daijy)
 
 IMPROVEMENTS
 
+PIG-2062: Script silently ended (xuefu)
+
 PIG-2039: IndexOutOfBounException for a case (xuefu)
 
 PIG-2038: Pig fails to parse empty tuple/map/bag constant (xuefu)

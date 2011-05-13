@@ -884,7 +884,7 @@ public class TestLogicalPlanBuilder {
     @Test
     public void testQuery75() throws Exception {
         String q = "a = union (load 'a'), (load 'b'), (load 'c');";
-        buildPlan( q + "b = foreach a {generate $0;} parallel 10;");
+        buildPlan( q + "b = foreach a {generate $0;};");
     }
     
     @Test
@@ -2027,6 +2027,21 @@ public class TestLogicalPlanBuilder {
         }
         Assert.assertEquals("An exception was expected but did " +
                 "not occur", true, exceptionThrown);
+    }
+    
+    @Test
+    public void testMissingSemicolon() throws Exception {
+        try {
+            String query = "A = load '1.txt' \n" +
+                           "B = load '2.txt' as (b0:int, b1:int);\n" +
+                           "C = union A, B;\n" +
+                           "store C into 'output';";
+            buildPlan( query );
+        } catch (AssertionFailedError e) {
+            Assert.assertTrue(e.getMessage().contains("mismatched input 'B' expecting SEMI_COLON"));
+           return;
+        }
+        Assert.fail("An exception was expected but did not occur");
     }
     
     @Test
