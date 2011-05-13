@@ -32,8 +32,8 @@ import org.apache.pig.builtin.PigStreaming;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.TupleFormat;
-import org.apache.pig.parser.ParserException;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -752,7 +752,7 @@ public class TestStreaming {
     }
     
     @Test
-    public void testNegativeMutipleInput() throws IOException {
+    public void testNegativeMultipleInput() throws IOException {
         // Perl script 
         String[] script = 
             new String[] {
@@ -775,7 +775,7 @@ public class TestStreaming {
     	
     	try {
     		pigServer.registerQuery( query );
-    	} catch(ParserException ex) {
+    	} catch(FrontendException ex) {
     		String expectedMsg = "pig script failed to validate: Duplicated command option";
     	    System.out.println( ex.getMessage() );
     		Assert.assertTrue( ex.getMessage().contains( expectedMsg ) );

@@ -87,13 +87,13 @@ public class TestLogicalPlanBuilder {
     // TODO FIX Query3 and Query4
     @Test
     public void testQuery3() throws Exception {
-        String query = "foreach (cogroup (load 'a') by $1, (load 'b') by $1) generate org.apache.pig.builtin.AVG($1) ;";
+        String query = "foreach (cogroup (load 'a' as (u:int)) by $0, (load 'b' as (v:int) ) by $0) generate org.apache.pig.builtin.AVG($1);";
         buildPlan(query);
     }
 
     @Test
     public void testQuery4() throws Exception {
-        String query = "foreach (load 'a') generate AVG($1, $2) ;";
+        String query = "foreach (load 'a' as (u:int, v:bag{T:tuple(t:double)})) generate AVG($1) ;";
         buildPlan(query);
     }
 
@@ -127,13 +127,13 @@ public class TestLogicalPlanBuilder {
     // TODO FIX Query11 and Query12
     @Test
     public void testQuery11() throws Exception {
-        String query = " foreach (group (load 'a') by $1, (load 'b') by $2) generate group, AVG($1) ;";
+        String query = " foreach (group (load 'a' as (u:int)) by $0, (load 'b' as (v:long)) by $0) generate group, AVG($1) ;";
         buildPlan(query);
     }
     
     @Test
     public void testQuery12() throws Exception {
-        String query = "foreach (load 'a' using " + PigStorage.class.getName() + "()) generate AVG($1) ;";
+        String query = "foreach (load 'a' using " + PigStorage.class.getName() + "() as (v: long, u:bag{T:tuple(t:double)} ) ) generate AVG($1) ;";
         buildPlan(query);
     }
 
@@ -374,7 +374,7 @@ public class TestLogicalPlanBuilder {
 
     @Test
     public void testQuery25() throws Exception {
-        String query = "foreach (load 'a') {" +
+        String query = "foreach (load 'a' as (u:bag{}, v, w) ) {" +
                 "B = FILTER $0 BY (($1 == $2) AND ('a' < 'b'));" +
                 "generate B;" +
                 "};";
@@ -390,7 +390,7 @@ public class TestLogicalPlanBuilder {
     // TODO FIX Query27 and Query28
     @Test
     public void testQuery27() throws Exception {
-        String query =  "foreach (load 'a'){" +
+        String query =  "foreach (load 'a' as (u, v:bag{}, w, x:bag{}, y) ){" +
                 "A = DISTINCT $3.$1;" +
                 " generate " + TestApplyFunc.class.getName() + "($2, $1.($1, $4));" +
                         "};";
@@ -474,7 +474,7 @@ public class TestLogicalPlanBuilder {
     //TODO: Nested schemas don't work now. Probably a bug in the new parser.
     public void testQuery34() throws Exception {
         String query = "A = load 'a' as (aCol1, aCol2 : tuple(subCol1, subCol2));" +
-        "A = filter A by aCol2 == '1';" +
+        "A = filter A by aCol1 == '1';" +
         "B = load 'b' as (bCol1, bCol2);" +
         "foreach (cogroup A by (aCol1), B by bCol1 ) generate A.aCol2, B.bCol2 ;";
         buildPlan(query);
@@ -512,11 +512,11 @@ public class TestLogicalPlanBuilder {
     // TODO FIX Query39 and Query40
     @Test
     public void testQuery39() throws Exception{
-        String query = "a = load 'a' as (url, host, rank);" +
+        String query = "a = load 'a' as (url, host, rank:double);" +
                        "b = group a by (url,host); " +
                        "c = foreach b generate flatten(group.url), SUM(a.rank) as totalRank;";
         buildPlan(query);
-        query += "d = filter c by totalRank > '10';" +
+        query += "d = filter c by totalRank > 10;" +
                  "e = foreach d generate totalRank;";
         buildPlan( query );
     }
@@ -571,7 +571,7 @@ public class TestLogicalPlanBuilder {
         "b = load 'a' as (url,rank);" +
         "c = cogroup a by url, b by url;" +
         "d = foreach c generate group,flatten(a),flatten(b);" +
-        "e = foreach d generate group, a::url, b::url, b::rank, rank;";
+        "e = foreach d generate group, a::url, b::url, b::rank;";
         buildPlan( q );
     }
 
@@ -592,7 +592,7 @@ public class TestLogicalPlanBuilder {
     public void testQuery44() throws Exception {
         String q = "a = load 'a' as (url, pagerank);" +
         "b = load 'b' as (url, query, rank);" +
-        "c = cogroup a by (pagerank#'nonspam', url) , b by (rank/'2', url) ;" +
+        "c = cogroup a by (pagerank#'nonspam', url) , b by (rank, url) ;" +
         "foreach c generate group.url;";
         buildPlan( q );
     }
@@ -617,7 +617,7 @@ public class TestLogicalPlanBuilder {
     
     @Test
     public void testQuery57() throws Exception {
-        String query = "foreach (load 'a') generate ($1+$2), ($1-$2), ($1*$2), ($1/$2), ($1%$2), -($1) ;";
+        String query = "foreach (load 'a' as (u:int, v:long, w:int)) generate ($1+$2), ($1-$2), ($1*$2), ($1/$2), ($1%$2), -($1) ;";
         buildPlan(query);
     }
 
@@ -817,14 +817,14 @@ public class TestLogicalPlanBuilder {
 
     @Test
     public void testQuery72() throws Exception {
-        String q = "split (load 'a') into x if $0 > '7', y if $0 < '7';" +
+        String q = "split (load 'a') into x if $0 > 7, y if $0 < 7;" +
         "b = foreach x generate (int)$0;" +
         "c = foreach y generate (bag{})$1;" +
-        "d = foreach y generate (int)($1/2);" +
-        "e = foreach y generate (bag{tuple(int, float)})($1/2);" +
-        "f = foreach x generate (tuple(int, float))($1/2);" +
-        "g = foreach x generate (tuple())($1/2);" +
-        "h = foreach x generate (chararray)($1/2);";
+        "d = foreach y generate (int)($2/2);" +
+        "e = foreach y generate (bag{tuple(int, float)})($2);" +
+        "f = foreach x generate (tuple(int, float))($3);" +
+        "g = foreach x generate (tuple())($4);" +
+        "h = foreach x generate (chararray)($5);";
         buildPlan( q );
     }
 
@@ -1177,7 +1177,7 @@ public class TestLogicalPlanBuilder {
                        "b = group a by (name, age);";
 
         try {
-            buildPlan( query + "c = foreach b generate group as mygroup:(myname, myage, mygpa), COUNT(a) as mycount;");
+            buildPlan( query + "c = foreach b generate group as mygroup:(myname, myage), COUNT(a) as mycount;");
         } catch (AssertionFailedError e) {
             Assert.assertTrue(e.getMessage().contains("Schema size mismatch"));
         }
@@ -1197,13 +1197,13 @@ public class TestLogicalPlanBuilder {
         try {
             buildPlan( query + "c = foreach b generate group as mygroup:{t: (myname, myage)}, COUNT(a) as mycount;");
         } catch (AssertionFailedError e) {
-            Assert.assertTrue(e.getMessage().contains("Type mismatch"));
+            Assert.assertTrue(e.getMessage().contains("Incompatable field schema"));
         }
 
         try {
             buildPlan( query + "c = foreach b generate flatten(group) as (myname, myage, mygpa), COUNT(a) as mycount;");
         } catch (AssertionFailedError e) {
-            Assert.assertTrue(e.getMessage().contains("Schema size mismatch"));
+            Assert.assertTrue(e.getMessage().contains("Incompatable schema"));
         }
     }
         
@@ -1259,7 +1259,7 @@ public class TestLogicalPlanBuilder {
         // test that we can refer to "b::name" field and not name
         "e = foreach d generate a::name, b::name;"+
         // test that we can refer to gpa and somethingelse
-        "f = foreach d generate gpa, somethingelse, a::gpa, b::somethingelse;";
+        "f = foreach d generate gpa, somethingelse;";
         buildPlan( query );
     }
     
@@ -1274,7 +1274,7 @@ public class TestLogicalPlanBuilder {
         try {
             buildPlan(query);
         } catch (AssertionFailedError e) {
-            Assert.assertTrue(e.getMessage().contains("Found more than one match:"));
+            Assert.assertTrue(e.getMessage().contains("Invalid field projection. Projected field [name] does not exist"));
         }
     }
 
@@ -2054,7 +2054,7 @@ public class TestLogicalPlanBuilder {
             "store c into 'output';";
             buildPlan( query );
         } catch (AssertionFailedError e) {
-            Assert.assertTrue(e.getMessage().contains("Cannot resolve COGroup output schema"));
+            Assert.assertTrue(e.getMessage().contains("Cannot cast to Unknown"));
             exceptionThrown = true;
         }
         Assert.assertEquals("An exception was expected but did " +

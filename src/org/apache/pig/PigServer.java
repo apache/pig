@@ -1588,10 +1588,7 @@ public class PigServer {
                 scriptCache.add( query );
             }
            
-            if( !batchMode ) {
-                validateQuery();
-            }
-            
+            validateQuery();
             parseQuery();
             
             if( !batchMode ) {

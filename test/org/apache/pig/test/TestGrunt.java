@@ -125,7 +125,7 @@ public class TestGrunt extends TestCase {
         try {
             grunt.exec();
         } catch (Exception e) {
-            assertTrue(e.getMessage().contains("Error during parsing"));
+            assertTrue(e.getMessage().contains("<line 1, column 62>  mismatched input ';' expecting RIGHT_PAREN"));
         }
     }
 
