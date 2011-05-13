@@ -794,7 +794,7 @@ The Pig "-propertyfile " option enables you to pass a set of Pig or Hadoop prope
 
 <p>Several new public classes make it easier for external tools such as Oozie to integrate with Pig statistics. </p>
 
-<p>The Pig statistics are available here: <a href="http://pig.apache.org/docs/r0.8.0/api/">http://pig.apache.org/docs/r0.8.0/api/</a></p>
+<p>The Pig statistics are available here: <a href="http://pig.apache.org/docs/r0.8.1/api/">http://pig.apache.org/docs/r0.8.1/api/</a></p>
 
 <p>The stats classes are in the package: org.apache.pig.tools.pigstats</p>
 <ul>

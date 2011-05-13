@@ -34,6 +34,8 @@ PIG-1886: Add zookeeper jar to list of jars shipped when HBaseStorage used (dvry
 
 BUG FIXES
 
+PIG-2067: FilterLogicExpressionSimplifier removed some branches in some cases (daijy)
+
 PIG-2033: Pig returns sucess for the failed Pig script (rding)
 
 PIG-1870: HBaseStorage doesn't project correctly (dvryaboy)

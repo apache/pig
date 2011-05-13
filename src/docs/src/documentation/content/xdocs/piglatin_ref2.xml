@@ -12027,8 +12027,8 @@ grunt&gt; exec –param p1=myparam1 –param p2=myparam2 myscript.pig
 <programlisting>
 $ pig -help
 
-Apache Pig version 0.8.0-dev (r987348)
-compiled Aug 19 2010, 16:38:44
+Apache Pig version 0.8.1-dev (r1094835)
+compiled Apr 18 2011, 19:26:53
 
 USAGE: Pig [options] [-] : Run interactively in grunt shell.
        Pig [options] -e[xecute] cmd [cmd ...] : Run cmd(s).

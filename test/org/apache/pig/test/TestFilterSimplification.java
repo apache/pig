@@ -546,6 +546,29 @@ public class TestFilterSimplification extends TestCase {
         expected = migratePlan(plan);
 
         assertTrue(expected.isEqual(newLogicalPlan));
+        
+        // case 31: See PIG-2067
+        lpt = new LogicalPlanTester(pc);
+        lpt.buildPlan("A = load 'a.dat' as (cookie);");
+        lpt.buildPlan("B = load 'b.dat' as (cookie);");
+        lpt.buildPlan("C = cogroup A by cookie, B by cookie;");
+        lpt.buildPlan("E = filter C by COUNT(B)>0 AND COUNT(A)>0;");
+        plan = lpt.buildPlan("store E into 'empty';");
+        newLogicalPlan = migratePlan(plan);
+
+        optimizer = new MyPlanOptimizer(newLogicalPlan, 10);
+        optimizer.optimize();
+
+        // Make sure in this case, we don't optimize
+        lpt = new LogicalPlanTester(pc);
+        lpt.buildPlan("A = load 'a.dat' as (cookie);");
+        lpt.buildPlan("B = load 'b.dat' as (cookie);");
+        lpt.buildPlan("C = cogroup A by cookie, B by cookie;");
+        lpt.buildPlan("E = filter C by COUNT(B)>0 AND COUNT(A)>0;");
+        plan = lpt.buildPlan("store E into 'empty';");
+        expected = migratePlan(plan);
+
+        assertTrue(expected.isEqual(newLogicalPlan));
 
     }
 

@@ -215,7 +215,18 @@ public class ProjectExpression extends ColumnExpression {
     public boolean isEqual(Operator other) throws FrontendException {
         if (other != null && other instanceof ProjectExpression) {
             ProjectExpression po = (ProjectExpression)other;
-            return po.input == input && po.col == col;
+            if (po.input != input || po.col != col)
+                return false;
+            
+            Operator mySucc = getPlan().getSuccessors(this)!=null?
+                    getPlan().getSuccessors(this).get(0):null;
+            Operator theirSucc = other.getPlan().getSuccessors(other)!=null?
+                    other.getPlan().getSuccessors(other).get(0):null;
+            if (mySucc!=null && theirSucc!=null)
+                return mySucc.isEqual(theirSucc);
+            if (mySucc==null && theirSucc==null)
+                return true;
+            return false;
         } else {
             return false;
         }

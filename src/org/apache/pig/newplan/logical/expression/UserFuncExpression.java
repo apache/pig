@@ -66,7 +66,18 @@ public class UserFuncExpression extends LogicalExpression {
     public boolean isEqual(Operator other) throws FrontendException {
         if( other instanceof UserFuncExpression ) {
             UserFuncExpression exp = (UserFuncExpression)other;
-            return mFuncSpec.equals(exp.mFuncSpec );
+            if (!mFuncSpec.equals(exp.mFuncSpec ))
+                return false;
+            
+            List<Operator> mySuccs = getPlan().getSuccessors(this);
+            List<Operator> theirSuccs = other.getPlan().getSuccessors(other);
+            if (mySuccs.size()!=theirSuccs.size())
+                return false;
+            for (int i=0;i<mySuccs.size();i++) {
+                if (!mySuccs.get(i).isEqual(theirSuccs.get(i)))
+                    return false;
+            }
+            return true;
         } else {
             return false;
         }

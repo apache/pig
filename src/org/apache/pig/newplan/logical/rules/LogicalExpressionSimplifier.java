@@ -18,6 +18,7 @@
 
 package org.apache.pig.newplan.logical.rules;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Iterator;
 
@@ -41,6 +42,8 @@ import org.apache.pig.newplan.optimizer.Transformer;
 
 public class LogicalExpressionSimplifier extends Rule {
 
+    private List<LOFilter> processedFilters = new ArrayList<LOFilter>();
+    
     enum DNFExpressionType {
         AND, OR
     }
@@ -51,15 +54,27 @@ public class LogicalExpressionSimplifier extends Rule {
 
     @Override
     public Transformer getNewTransformer() {
-        return new LogicalExpressionSimplifierTransformer();
+        return new LogicalExpressionSimplifierTransformer(processedFilters);
     }
 
     public static class LogicalExpressionSimplifierTransformer extends Transformer {
         private static final String dnfCountAnnotationKey = "dnfSplitCount";
         private OperatorPlan plan;
+        
+        private List<LOFilter> processedFilters;
 
+        public LogicalExpressionSimplifierTransformer(List<LOFilter> processedFilters) {
+            this.processedFilters = processedFilters;
+        }
         @Override
         public boolean check(OperatorPlan matched) throws FrontendException {
+            LOFilter filter = (LOFilter)matched.getOperators().next();
+            
+            // If the filter is already processed, we quit.
+            if (processedFilters.contains(filter))
+                return false;
+            
+            processedFilters.add(filter);
             return true;
         }
 
