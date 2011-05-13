@@ -561,6 +561,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-2067: FilterLogicExpressionSimplifier removed some branches in some cases (daijy)
+
 PIG-2033: Pig returns sucess for the failed Pig script (rding)
 
 PIG-1993: PigStorageSchema throw NPE with ColumnPruning (daijy)
