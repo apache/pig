@@ -486,8 +486,7 @@ public class TestCombiner {
             PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
             pigServer.registerQuery("a = load 'forEachNoCombinerInput.txt' as (name:chararray, age:int, gpa:double);");
             pigServer.registerQuery("b = group a by name;");
-            pigServer.registerQuery("c = foreach b " +
-                    "        generate group, SUM(a.age), a;};");
+            pigServer.registerQuery("c = foreach b generate group, SUM(a.age), a;");
             
             // make sure there isn't a combine plan in the explain output
             ByteArrayOutputStream baos = new ByteArrayOutputStream();

@@ -23,6 +23,7 @@ import java.io.IOException;
 
 import junit.framework.Assert;
 
+import org.antlr.runtime.MismatchedTokenException;
 import org.antlr.runtime.NoViableAltException;
 import org.apache.pig.test.Util;
 import org.junit.BeforeClass;
@@ -297,7 +298,23 @@ public class TestLogicalPlanGenerator {
     	try {
             ParserTestingUtils.generateLogicalPlan( query );
         } catch(Exception ex) {
-            Assert.assertTrue( ex instanceof NoViableAltException );
+            Assert.assertTrue( ex instanceof MismatchedTokenException );
+            MismatchedTokenException mex = (MismatchedTokenException)ex;
+            Assert.assertTrue( mex.token.getText().equals("ship") );
+            return;
+        }
+        Assert.fail( "Query is supposed to be failing." );
+    }
+
+    @Test
+    public void testNegative3() {
+    	String query = "A = load 'y'; all = load 'x';";
+    	try {
+            ParserTestingUtils.generateLogicalPlan( query );
+        } catch(Exception ex) {
+            Assert.assertTrue( ex instanceof MismatchedTokenException );
+            MismatchedTokenException mex = (MismatchedTokenException)ex;
+            Assert.assertTrue( mex.token.getText().equals("all") );
             return;
         }
         Assert.fail( "Query is supposed to be failing." );

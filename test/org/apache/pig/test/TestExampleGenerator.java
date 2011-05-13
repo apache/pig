@@ -242,7 +242,7 @@ public class TestExampleGenerator extends TestCase {
         PigServer pigServer = new PigServer(pigContext);
         pigServer.registerQuery("A = load " + A.toString() + " as (x:int, y:int);");
         pigServer.registerQuery("B = group A by x;");
-        pigServer.registerQuery("C = foreach B generate group, COUNT(A);};");
+        pigServer.registerQuery("C = foreach B generate group, COUNT(A);");
         Map<Operator, DataBag> derivedData = pigServer.getExamples("C");
 
         assertTrue(derivedData != null);
@@ -255,7 +255,7 @@ public class TestExampleGenerator extends TestCase {
         pigServer.registerQuery("A = load " + A.toString() + " as (x:int, y:int);");
         pigServer.registerQuery("B = FILTER A by x  > 3;");
         pigServer.registerQuery("C = group B by y;");
-        pigServer.registerQuery("D = foreach C generate group, COUNT(B);};");
+        pigServer.registerQuery("D = foreach C generate group, COUNT(B);");
         Map<Operator, DataBag> derivedData = pigServer.getExamples("D");
 
         assertTrue(derivedData != null);
