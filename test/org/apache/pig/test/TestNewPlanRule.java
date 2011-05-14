@@ -364,5 +364,55 @@ public class TestNewPlanRule extends TestCase {
         m2 = l.get(0).getSinks().get(1);
         assertTrue(m2.getName().equals("f3") || m2.getName().equals("f4"));    
     }
+    public void testThreeNodeMatch() throws FrontendException {
+        // load --|                                |- filter - store
+        // load --|-join - filter - filter - split |- filter - store
+        //               | filter - store
+        //               | filter - store
+        Operator f5 = new OP_Filter("f5", plan);
+        Operator f6 = new OP_Filter("f6", plan);
+        Operator s5 = new OP_Store("s5", plan);
+        Operator s6 = new OP_Store("s6", plan);
+        plan.add(f5);
+        plan.add(f6);
+        plan.add(s5);
+        plan.add(s6);
+        plan.connect(f5, s5);
+        plan.connect(f6, s6);
+        plan.connect(join, f5);
+        plan.connect(join, f6);
+
+        OperatorPlan pattern = new SillyPlan();
+        Operator s1 = new OP_Join("mmm1", pattern);
+        Operator s2 = new OP_Filter("mmm2", pattern);
+        Operator s3 = new OP_Filter("mmm3", pattern);
+        Operator s4 = new OP_Filter("mmm4", pattern);
+        pattern.add(s1);
+        pattern.add(s2);        
+        pattern.add(s3);
+        pattern.add(s4);
+        pattern.connect(s1, s2);
+        pattern.connect(s1, s3);
+        pattern.connect(s1, s4);
+        
+        Rule r = new SillyRule("basic", pattern);
+        List<OperatorPlan> l = r.match(plan);
+        assertEquals(1, l.size());
+        
+        assertEquals(1, l.get(0).getSources().size());
+        assertEquals(3, l.get(0).getSinks().size());
+        assertEquals(4, l.get(0).size());
+        
+        Operator m1,m2;
+        m1 = l.get(0).getSources().get(0);
+        assertTrue(m1.getName().equals("j1"));
+        for( int i=0; i < 3; i++ ) {
+          m2 = l.get(0).getSinks().get(i);
+          assertTrue(m2.getName().equals("f1") 
+                   || m2.getName().equals("f5") 
+                   || m2.getName().equals("f6") 
+          );    
+        }
+    }
    
 }
