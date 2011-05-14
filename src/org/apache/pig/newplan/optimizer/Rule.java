@@ -176,7 +176,6 @@ public abstract class Rule {
                         if (matched) {
                             for(int j=1; j<leaves.size(); j++) {
                                 planOps.add(siblings.get(index+j));
-                                break;
                             }
                         }
                     
