@@ -149,7 +149,7 @@ D = foreach B generate group, MIN (A.gpa). MAX(A.gpa);
 
 <p>Pig allocates a fix amount of memory to store bags and spills to disk as soon as the memory limit is reached. This is very similar to how Hadoop decides when to spill data accumulated by the combiner. </p>
 
-<p>The amount of memory allocated to bags is determined by pig.cachedbag.memusage; the default is set to 10% of available memory. Note that this memory is shared across all large bags used by the application.</p>
+<p>The amount of memory allocated to bags is determined by pig.cachedbag.memusage; the default is set to 20% (0.2) of available memory. Note that this memory is shared across all large bags used by the application.</p>
 
 </section> 
 
