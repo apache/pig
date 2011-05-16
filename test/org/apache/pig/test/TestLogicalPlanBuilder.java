@@ -2054,7 +2054,11 @@ public class TestLogicalPlanBuilder {
             "store c into 'output';";
             buildPlan( query );
         } catch (AssertionFailedError e) {
-            Assert.assertTrue(e.getMessage().contains("Cannot cast to Unknown"));
+            String msg =
+                "group column no. 2 in relation no. 2 of  group statement" +
+                " has datatype chararray which is incompatible with type of" +
+                " corresponding column in earlier relation(s) in the statement";
+            Assert.assertTrue(e.getMessage().contains(msg));
             exceptionThrown = true;
         }
         Assert.assertEquals("An exception was expected but did " +
