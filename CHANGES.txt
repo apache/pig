@@ -224,6 +224,9 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-2076: update documentation, help command with correct default value 
+ of pig.cachedbag.memusage (thejas)
+
 PIG-2072: NPE when udf has project-star argument and input schema is null (thejas)
 
 PIG-2075: Bring back TestNewPlanPushUpFilter (daijy)

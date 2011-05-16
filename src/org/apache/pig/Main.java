@@ -785,7 +785,7 @@ public static void printProperties(){
         System.out.println("        aggregate.warning=true|false; default is true. If true, prints count of warnings");
         System.out.println("            of each type rather than logging each warning.");
         System.out.println("    Performance tuning:");
-        System.out.println("        pig.cachedbag.memusage=<mem fraction>; default is 0.1 (10% of all memory).");
+        System.out.println("        pig.cachedbag.memusage=<mem fraction>; default is 0.2 (20% of all memory).");
 	System.out.println("            Note that this memory is shared across all large bags used by the application.");     	
         System.out.println("        pig.skewedjoin.reduce.memusagea=<mem fraction>; default is 0.3 (30% of all memory).");
         System.out.println("            Specifies the fraction of heap available for the reducer to perform the join.");
