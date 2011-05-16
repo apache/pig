@@ -4144,5 +4144,18 @@ public class TestTypeCheckingValidatorNewLP {
                 fail("caught exception creating lp");
             }
         }
+        
+        @Test //PIG-2070
+        public void testJoinIncompatType() throws IOException{
+            String query = "a = load '1.txt' as (a0:map [], a1:int);" +
+                "b = load '2.txt' as (a0:int, a1:int);" +
+                "c = join a by (a0, a1), b by (a0,a1);";
+            String msg =
+                "join column no. 1 in relation no. 2 of  join statement" +
+                " has datatype int which is incompatible with type of" +
+                " corresponding column in earlier relation(s) in the statement";
+            Util.checkExceptionMessage(query, "c", msg);
+
+        }
 
 }

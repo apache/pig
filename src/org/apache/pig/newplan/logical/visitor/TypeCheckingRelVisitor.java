@@ -134,13 +134,12 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
     }
     
     private void throwTypeCheckerException(Operator op, String msg,
-			int errCode, byte input, FrontendException fe) throws TypeCheckerException {
-    	if( fe == null ) {
-		    throw new TypeCheckerException(op, msg, errCode, PigException.INPUT);
-    	}
-		throw new TypeCheckerException(op, msg, errCode, PigException.INPUT, fe);
-		
-	}
+            int errCode, byte input, FrontendException fe) throws TypeCheckerException {
+        if( fe == null ) {
+            throw new TypeCheckerException(op, msg, errCode, PigException.INPUT);
+        }
+        throw new TypeCheckerException(op, msg, errCode, PigException.INPUT, fe);
+    }
 
 	@Override
     public void visit(LOGenerate gen) throws FrontendException {
@@ -614,7 +613,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
             }
             else {
                 //schema of the group-by key
-                LogicalSchema groupBySchema = getSchemaFromInnerPlans(join.getExpressionPlans()) ;
+                LogicalSchema groupBySchema = getSchemaFromInnerPlans(join.getExpressionPlans(), join) ;
 
                 // go through all inputs again to add cast if necessary
                 for(int i=0;i < inputs.size(); i++) {
@@ -811,7 +810,11 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
      * @return
      * @throws FrontendException
      */
-    private LogicalSchema getSchemaFromInnerPlans(MultiMap<Integer, LogicalExpressionPlan> exprPlans) throws FrontendException {
+    private LogicalSchema getSchemaFromInnerPlans(
+            MultiMap<Integer, LogicalExpressionPlan> exprPlans,
+            LogicalRelationalOperator op
+    )
+    throws FrontendException {
         // this fsList represents all the columns in group tuple
         List<LogicalFieldSchema> fsList = new ArrayList<LogicalFieldSchema>() ;
 
@@ -840,7 +843,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
                         int errCode = 1013;
                         String msg = "Grouping attributes can either be star (*) " +
                         "or a list of expressions, but not both.";
-
+                        msgCollector.collect(msg, MessageType.Error) ;
                         throw new FrontendException(
                                 msg, errCode, PigException.INPUT, false, null
                         );         
@@ -849,6 +852,23 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
                 //merge the type
                 LogicalFieldSchema groupFs = fsList.get(j);
                 groupFs.type = DataType.mergeType(groupFs.type, innerType) ;
+                if(groupFs.type == DataType.ERROR){
+                    String colType = "join";
+                    if(op instanceof LOCogroup){
+                        colType = "group";
+                    }
+                    String msg =
+                        colType + " column no. " +
+                        (j+1) + " in relation no. " + (i+1) + " of  " + colType + 
+                        " statement has datatype " + DataType.findTypeName(innerType) +
+                        " which is incompatible with type of corresponding column" +
+                        " in earlier relation(s) in the statement";
+                    msgCollector.collect(msg, MessageType.Error) ;
+                    TypeCheckerException ex =
+                        new TypeCheckerException(op, msg, 1130, PigException.INPUT);
+                    ex.setMarkedAsShowToUser(true);
+                    throw ex;
+                }
             }
 
         }
@@ -927,7 +947,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
             }
             else {
 
-                LogicalSchema groupBySchema = getSchemaFromInnerPlans(cg.getExpressionPlans());
+                LogicalSchema groupBySchema = getSchemaFromInnerPlans(cg.getExpressionPlans(), cg);
 
                 // go through all inputs again to add cast if necessary
                 for(int i=0;i < inputs.size(); i++) {
