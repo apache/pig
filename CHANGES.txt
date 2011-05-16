@@ -74,7 +74,7 @@ gates)
 
 PIG-1947: Incorrect line number is reported during parsing(xuefu)
 
-PIG1918: Line number should be give for logical plan failures (xuefu)
+PIG-1918: Line number should be give for logical plan failures (xuefu)
 
 PIG-1961: Pig prints "null" as file name in case of grammar error (xuefu)
 
@@ -181,6 +181,9 @@ OPTIMIZATIONS
 PIG-1696: Performance: Use System.arraycopy() instead of manually copying the bytes while reading the data (hashutosh)
 
 BUG FIXES
+
+PIG-2076: update documentation, help command with correct default value 
+ of pig.cachedbag.memusage (thejas)
 
 PIG-2072: NPE when udf has project-star argument and input schema is null (thejas)
 
