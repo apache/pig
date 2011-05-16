@@ -1095,9 +1095,9 @@ public class TestMacroExpansion {
     public void negativeTest9() throws Throwable {
         String macro = "define test( out1,out2 ){ A = load 'x' as (u:int, v:int); $B = filter A by u < 3 and v < 20; }";
         
-        String expectedErr = "Error during parsing. <file myscript.pig, line 1, column 24>  mismatched input '{' expecting RETURNS";
+        String expectedErr = "<file myscript.pig, line 1, column 24>  mismatched input '{' expecting RETURNS";
 
-        validateFailure(macro, expectedErr, "Error");
+        validateFailure(macro, expectedErr, "<file");
     }
     
     @Test

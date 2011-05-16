@@ -224,6 +224,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-2069: LoadFunc jar does not ship to backend in MultiQuery case (rding)
+
 PIG-2076: update documentation, help command with correct default value 
  of pig.cachedbag.memusage (thejas)
 
