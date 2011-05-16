@@ -44,8 +44,6 @@ BUG FIXES
 
 PIG-2044: Patten match bug in org.apache.pig.newplan.optimizer.Rule (knoguchi via daijy)
 
-PIG-1938: support project-range as udf argument (thejas)
-
 PIG-2048: Add zookeeper to pig jar (gbowyer via gates)
 
 PIG-2008: Cache outputFormat in HBaseStorage (thedatachef via gates)
@@ -71,6 +69,8 @@ PIG-1188: Padding nulls to the input tuple according to input schema (daijy)
 PIG-1876: Typed map for Pig (daijy)
 
 IMPROVEMENTS
+
+PIG-1938: support project-range as udf argument (thejas)
 
 PIG-2059: PIG doesn't validate incomplete query in batch mode even if -c option is given (xuefu)
 
@@ -223,6 +223,8 @@ OPTIMIZATIONS
 PIG-1696: Performance: Use System.arraycopy() instead of manually copying the bytes while reading the data (hashutosh)
 
 BUG FIXES
+
+PIG-2072: NPE when udf has project-star argument and input schema is null (thejas)
 
 PIG-2075: Bring back TestNewPlanPushUpFilter (daijy)
 
