@@ -329,6 +329,11 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
                     }                
                 }
             }
+            
+            // PIG-2069: LoadFunc jar does not ship to backend in MultiQuery case
+            if (!mr.UDFs.isEmpty()) {
+                succ.UDFs.addAll(mr.UDFs);
+            }
         }
         
         // finally, remove the splitter from the MR plan
