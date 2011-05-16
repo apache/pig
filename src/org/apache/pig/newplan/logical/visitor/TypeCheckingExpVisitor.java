@@ -973,6 +973,8 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
         for(int i=0;i<s.size();i++){
             try {
                 FieldSchema fs=s.getField(i);
+                if(fs == null)
+                    return false;
                 if(fs.type==DataType.BYTEARRAY){
                     return true;
                 }
@@ -1098,7 +1100,10 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
 
             FieldSchema inputFieldSchema = i.next();
             FieldSchema udfFieldSchema = j.next();
-
+            if(inputFieldSchema == null)
+                return false;
+            
+            
             if(ignoreByteArrays && inputFieldSchema.type == DataType.BYTEARRAY) {
                 continue;
             }
@@ -1249,6 +1254,9 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
         int castCnt=0;
         for(int i=0;i<sFields.size();i++){
             FieldSchema sFS = sFields.get(i);
+            if(sFS == null){
+                return INF;
+            }
 
             // if we have a byte array do not include it
             // in the computation of the score - bytearray
