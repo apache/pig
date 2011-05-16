@@ -76,7 +76,7 @@ public class TestUnionOnSchemaSetter {
 
     @Test
     public void testMergeCompatibleSchema() throws FrontendException {
-        String query = "A = load 'x' as ( u:int, v:long, w:chararray); " + 
+        String query = "A = load 'x' as ( u:int, v:long, w:int); " + 
                        "B = load 'y' as ( u:int, v:long, w:long); " +
                        "C = union onschema A, B; " +
                        "D = store C into 'output';";

@@ -182,6 +182,9 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-2071: casting numeric type to chararray during schema merge for union
+ is inconsistent with other schema merge cases (thejas)
+
 PIG-2070: "Unknown" appears in error message for an error case (thejas)
 
 PIG-2069: LoadFunc jar does not ship to backend in MultiQuery case (rding)

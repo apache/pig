@@ -730,7 +730,7 @@ public class TestSchema {
         
         LogicalSchema mergedSchema = LogicalSchema.merge(a, b, LogicalSchema.MergeMode.Union);
         LogicalSchema expected = org.apache.pig.newplan.logical.Util.translateSchema(Utils.getSchemaFromString(
-            "a1:(a11:chararray, a12:float), b1:(), c1:chararray"));
+            "a1:(a11:chararray, a12:float), b1:(), c1:bytearray"));
         expected.getField(1).schema = new LogicalSchema();
         Assert.assertTrue(LogicalSchema.equals(mergedSchema, expected, false, false));
         
