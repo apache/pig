@@ -100,6 +100,30 @@ public class TestProjectStarRangeInUdf  {
     }
     
     @Test
+    public void testProjStarExpandInForeach1NegativeNoSchema() throws IOException{
+        
+        String query;
+
+        query =
+            "  l1 = load '" + INP_FILE_5FIELDS + "' ;"
+            + "f = foreach l1 generate CONCAT(*) as ct;"
+            ; 
+        Util.checkExceptionMessage(query, "f",
+                "Could not infer the matching function for " +
+                "org.apache.pig.builtin.CONCAT");
+
+
+        query =
+            "  l1 = load '" + INP_FILE_5FIELDS + "' ;"
+            + "f = foreach l1 generate SIZE(*) as ct;"
+            ; 
+        Util.checkExceptionMessage(query, "f",
+                "Could not infer the matching function for " +
+                "org.apache.pig.builtin.SIZE");
+        
+    }
+    
+    @Test
     public void testProjStarExpandInForeach2() throws IOException {
 
         String query;
