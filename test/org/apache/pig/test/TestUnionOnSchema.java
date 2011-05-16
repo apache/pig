@@ -21,16 +21,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.Iterator;
 import java.util.List;
 
 import junit.framework.Assert;
 
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
@@ -52,8 +48,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestUnionOnSchema  {
-    static MiniCluster cluster ;
-    private static final String EMPTY_DIR = "emptydir";
     private static final String INP_FILE_2NUMS = "TestUnionOnSchemaInput1";
     private static final String INP_FILE_2NUM_1CHAR_1BAG = "TestUnionOnSchemaInput2";
     private static final String INP_FILE_EMPTY= "TestUnionOnSchemaInput3";
@@ -70,39 +64,26 @@ public class TestUnionOnSchema  {
     
     @BeforeClass
     public static void oneTimeSetup() throws IOException, Exception {
-        cluster = MiniCluster.buildCluster();
-        FileSystem fs = cluster.getFileSystem();
-        if (!fs.mkdirs(new Path(EMPTY_DIR))) {
-            throw new Exception("failed to create empty dir");
-        }
         // first input file
-        PrintWriter w = new PrintWriter(new FileWriter(INP_FILE_2NUMS));
-        w.println("1\t2");
-        w.println("5\t3");
-        w.close();
-        Util.copyFromLocalToCluster(cluster, INP_FILE_2NUMS, INP_FILE_2NUMS);
+        String[] input1 = {"1\t2","5\t3"};
+        Util.createLocalInputFile(INP_FILE_2NUMS, input1);
         
         // 2nd input file
-        w = new PrintWriter(new FileWriter(INP_FILE_2NUM_1CHAR_1BAG));
-        w.println("1\tabc\t2\t{(1,a),(1,b)}\t(1,c)");
-        w.println("5\tdef\t3\t{(2,a),(2,b)}\t(2,c)");
-        w.close();
-        Util.copyFromLocalToCluster(cluster, INP_FILE_2NUM_1CHAR_1BAG, INP_FILE_2NUM_1CHAR_1BAG);
+        String[] input2 = {
+                "1\tabc\t2\t{(1,a),(1,b)}\t(1,c)",
+                "5\tdef\t3\t{(2,a),(2,b)}\t(2,c)"
+        };
+        Util.createLocalInputFile(INP_FILE_2NUM_1CHAR_1BAG, input2);
 
         //3rd input - empty file
-        w = new PrintWriter(new FileWriter(INP_FILE_EMPTY));
-        w.close();
-        Util.copyFromLocalToCluster(cluster, INP_FILE_EMPTY, INP_FILE_EMPTY);
-        
+        Util.createLocalInputFile(INP_FILE_EMPTY, new String[0]);
     }
     
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
-
         new File(INP_FILE_2NUMS).delete();
         new File(INP_FILE_2NUM_1CHAR_1BAG).delete();
         new File(INP_FILE_EMPTY).delete();
-        cluster.shutDown();
     }
  
 
@@ -441,8 +422,7 @@ public class TestUnionOnSchema  {
      */
     @Test
     public void testUnionOnSchemaAdditionalColumn() throws IOException, ParserException {
-        PigServer pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-        //PigServer pig = new PigServer(ExecType.LOCAL);
+        PigServer pig = new PigServer(ExecType.LOCAL);
         String query =
             "  l1 = load '" + INP_FILE_2NUMS + "' as (i : int, j : int);"
             + "l2 = load '" + INP_FILE_2NUM_1CHAR_1BAG + "' as " 
@@ -613,7 +593,7 @@ public class TestUnionOnSchema  {
     
 
     /**
-     * negative test - test error on incompatible types in schema
+     * test union with incompatible types in schema
      * @throws IOException
      * @throws ParserException
      */
@@ -624,7 +604,7 @@ public class TestUnionOnSchema  {
             + "l2 = load '" + INP_FILE_2NUMS + "' as (x : long, y : float);"
             + "u = union onschema l1, l2;";
 
-        checkSchemaEquals(query, "x : long, y : chararray");
+        checkSchemaEquals(query, "x : long, y : bytearray");
 
 
         
@@ -724,8 +704,7 @@ public class TestUnionOnSchema  {
      */
     @Test
     public void testUnionOnSchemaUdfTypeEvolution() throws IOException, ParserException {
-        PigServer pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-        //PigServer pig = new PigServer(ExecType.LOCAL);
+        PigServer pig = new PigServer(ExecType.LOCAL);
         String query_prefix =
             "  l1 = load '" + INP_FILE_2NUM_1CHAR_1BAG + "' as " 
             + "  (i : int, c : chararray, j : int " 

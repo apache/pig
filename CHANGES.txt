@@ -42,6 +42,9 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 
 BUG FIXES
 
+PIG-2071: casting numeric type to chararray during schema merge for union 
+ is inconsistent with other schema merge cases (thejas)
+
 PIG-2044: Patten match bug in org.apache.pig.newplan.optimizer.Rule (knoguchi via daijy)
 
 PIG-2048: Add zookeeper to pig jar (gbowyer via gates)

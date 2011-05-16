@@ -385,14 +385,8 @@ public class LogicalSchema {
                     // Take the more specific type
                     mergedType = DataType.mergeType(fs1.type, fs2.type);
                     if (mergedType == DataType.ERROR) {
-                        // Another possibility is one side is numeric, the other side is string, in this case, we take string
-                        if (DataType.isNumberType(fs1.type) && fs2.type==DataType.CHARARRAY ||
-                                DataType.isNumberType(fs2.type) && fs1.type==DataType.CHARARRAY)
-                            mergedType = DataType.CHARARRAY;
-                        else {
-                            // True incompatible, set to bytearray
-                            mergedType = DataType.BYTEARRAY;
-                        }
+                        // True incompatible, set to bytearray
+                        mergedType = DataType.BYTEARRAY;
                     }
                 }
             }
