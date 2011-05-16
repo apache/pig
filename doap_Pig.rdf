@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl"?>
+<rdf:RDF xml:lang="en"
+         xmlns="http://usefulinc.com/ns/doap#" 
+         xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" 
+         xmlns:asfext="http://projects.apache.org/ns/asfext#"
+         xmlns:foaf="http://xmlns.com/foaf/0.1/">
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one or more
+    contributor license agreements.  See the NOTICE file distributed with
+    this work for additional information regarding copyright ownership.
+    The ASF licenses this file to You under the Apache License, Version 2.0
+    (the "License"); you may not use this file except in compliance with
+    the License.  You may obtain a copy of the License at
+   
+         http://www.apache.org/licenses/LICENSE-2.0
+   
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+-->
+  <Project rdf:about="http://pig.apache.org">
+    <created>2011-05-16</created>
+    <license rdf:resource="http://usefulinc.com/doap/licenses/asl20" />
+    <name>Apache Pig</name>
+    <homepage rdf:resource="http://pig.apache.org" />
+    <asfext:pmc rdf:resource="http://pig.apache.org" />
+    <shortdesc>Apache Pig is a platform for analyzing large data sets on Hadoop.  It provides a high-level language for expressing data analysis programs, coupled with infrastructure for evaluating these programs.
+</shortdesc>
+    <description>Apache Pig is a platform for analyzing large data sets that consists of a high-level language for expressing data analysis programs, coupled with infrastructure for evaluating these programs. The salient property of Pig programs is that their structure is amenable to substantial parallelization, which in turns enables them to handle very large data sets.
+
+Pig's infrastructure layer consists of a compiler that produces sequences of Map-Reduce programs. Pig's language layer consists of a textual language called Pig Latin, which has the following key properties:
+
+* Ease of programming. It is trivial to achieve parallel execution of simple, "embarrassingly parallel" data analysis tasks. Complex tasks comprised of multiple interrelated data transformations are explicitly encoded as data flow sequences, making them easy to write, understand, and maintain.
+ * Optimization opportunities. The way in which tasks are encoded permits the system to optimize their execution automatically, allowing the user to focus on semantics rather than efficiency.
+ * Extensibility. Users can create their own functions to do special-purpose processing.
+</description>
+    <bug-database rdf:resource="https://issues.apache.org/jira/browse/PIG" />
+    <mailing-list rdf:resource="http://pig.apache.org/mailing_lists.html" />
+    <download-page rdf:resource="http://pig.apache.org/releases.html" />
+    <programming-language>Java</programming-language>
+    <category rdf:resource="http://projects.apache.org/category/database" />
+    <repository>
+      <SVNRepository>
+        <location rdf:resource="http://svn.apache.org/repos/asf/pig/"/>
+        <browse rdf:resource="http://svn.apache.org/viewcvs.cgi/pig/"/>
+      </SVNRepository>
+    </repository>
+    <maintainer>
+      <foaf:Person>
+        <foaf:name>Alan Gates</foaf:name>
+          <foaf:mbox rdf:resource="mailto:gates@apache.org"/>
+      </foaf:Person>
+    </maintainer>
+  </Project>
+</rdf:RDF>
