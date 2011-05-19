@@ -324,7 +324,7 @@ public abstract class PigStatsUtil {
         } else {                
             js.setSuccessful(true);
                            
-            js.addMapReduceStatistics(ps.getJobClient());
+            js.addMapReduceStatistics(ps.getJobClient(), job.getJobConf());
             
             JobClient client = ps.getJobClient();
             RunningJob rjob = null;
