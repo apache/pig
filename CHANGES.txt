@@ -227,6 +227,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-2029: Inconsistency in Pig Stats reports (rding)
+
 PIG-2070: "Unknown" appears in error message for an error case (thejas)
 
 PIG-2069: LoadFunc jar does not ship to backend in MultiQuery case (rding)

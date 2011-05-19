@@ -302,14 +302,22 @@ public final class JobStats extends Operator {
         } else if (state == JobState.SUCCESS) {
             sb.append(id).append("\t")
                 .append(numberMaps).append("\t")
-                .append(numberReduces).append("\t")
-                .append(maxMapTime/1000).append("\t")
-                .append(minMapTime/1000).append("\t")
-                .append(avgMapTime/1000).append("\t")
-                .append(maxReduceTime/1000).append("\t")
-                .append(minReduceTime/1000).append("\t")
-                .append(avgReduceTime/1000).append("\t")
-                .append(getAlias()).append("\t")
+                .append(numberReduces).append("\t");
+            if (maxMapTime < 0) {
+                sb.append("n/a\t").append("n/a\t").append("n/a\t");
+            } else { 
+                sb.append(maxMapTime/1000).append("\t")
+                    .append(minMapTime/1000).append("\t")
+                    .append(avgMapTime/1000).append("\t");
+            }
+            if (maxReduceTime < 0) {
+                sb.append("n/a\t").append("n/a\t").append("n/a\t");
+            } else {
+                sb.append(maxReduceTime/1000).append("\t")
+                    .append(minReduceTime/1000).append("\t")
+                    .append(avgReduceTime/1000).append("\t");
+            }
+            sb.append(getAlias()).append("\t")
                 .append(getFeature()).append("\t");
         }
         for (OutputStats os : outputs) {
@@ -374,7 +382,7 @@ public final class JobStats extends Operator {
         }              
     }
     
-    void addMapReduceStatistics(JobClient client) {
+    void addMapReduceStatistics(JobClient client, Configuration conf) {
         TaskReport[] maps = null;
         try {
             maps = client.getMapTaskReports(jobId);
@@ -394,7 +402,13 @@ public final class JobStats extends Operator {
             }
             long avg = total / size;
             setMapStat(size, max, min, avg);
+        } else {
+            int m = conf.getInt("mapred.map.tasks", 1);
+            if (m > 0) {
+                setMapStat(m, -1, -1, -1);
+            }
         }
+        
         TaskReport[] reduces = null;
         try {
             reduces = client.getReduceTaskReports(jobId);
@@ -414,7 +428,12 @@ public final class JobStats extends Operator {
             }
             long avg = total / size;
             setReduceStat(size, max, min, avg);
-        }       
+        } else {
+            int m = conf.getInt("mapred.reduce.tasks", 1);
+            if (m > 0) {
+                setReduceStat(m, -1, -1, -1);
+            }
+        }
     }
     
     void setAlias(MapReduceOper mro) {       
