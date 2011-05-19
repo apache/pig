@@ -111,7 +111,7 @@ class PigMacro {
                     "Expected number of parameters: " + params.size()
                             + " actual number of inputs: "
                             + ((inputs == null) ? 0 : inputs.length));
-            throw new RuntimeException(msg);
+            throw new ParserException(msg);
         }
         boolean isVoidReturn = false;
         if (rets.isEmpty()) {           
