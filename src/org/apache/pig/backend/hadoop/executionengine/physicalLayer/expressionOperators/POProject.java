@@ -256,15 +256,17 @@ public class POProject extends ExpressionOperator {
      * @throws ExecException 
      */
     protected Result consumeInputBag(Result input) throws ExecException {
+        if(isInputAttached() || isStar()){
+            Result retVal = new Result();
+            retVal.result = input.result;
+            retVal.returnStatus = POStatus.STATUS_OK;
+            detachInput();
+            return retVal;
+        }
+        
         if (input.result instanceof DataBag) {
             DataBag inpBag = (DataBag) input.result;
             Result retVal = new Result();
-            if(isInputAttached() || isStar()){
-                retVal.result = inpBag;
-                retVal.returnStatus = POStatus.STATUS_OK;
-                detachInput();
-                return retVal;
-            }
             
             DataBag outBag;
             if(resultSingleTupleBag) {
@@ -305,6 +307,11 @@ public class POProject extends ExpressionOperator {
             Result retVal = new Result();
             retVal.result = ((Tuple)input.result).get(columns.get(0));
             retVal.returnStatus = POStatus.STATUS_OK;
+            return retVal;
+        } else if (input.result==null) {
+            Result retVal = new Result();
+            retVal.result = null;
+            retVal.returnStatus = POStatus.STATUS_NULL;
             return retVal;
         } else {
             throw new ExecException("Cannot dereference a bag from " + input.result.getClass().getName(), 1129);
