@@ -49,6 +49,7 @@ import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.LogUtils;
+import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.test.utils.Identity;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -1511,5 +1512,34 @@ public class TestEvalPipeline2 {
         } catch (Exception e) {
             Assert.assertTrue(e.getMessage().contains(ArrayList.class.getName()));
         }
+    }
+    
+    // See PIG-2078
+    @Test
+    public void testProjectNullBag() throws Exception{
+        String[] input1 = {
+                "{(1)}\t2",
+                "\t3"
+        };
+        
+        HashSet<String> optimizerRules = new HashSet<String>();
+        optimizerRules.add("MergeForEach");
+        pigServer.getPigContext().getProperties().setProperty("pig.optimizer.rules", ObjectSerializer.serialize(optimizerRules));
+        
+        Util.createInputFile(cluster, "table_testProjectNullBag", input1);
+        pigServer.registerQuery("a = load 'table_testProjectNullBag' as (a0:bag{}, a1:int);");
+        pigServer.registerQuery("b = foreach a generate a0;");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("b");
+        
+        Tuple t = iter.next();
+        Assert.assertTrue(t.toString().equals("({(1)})"));
+        
+        t = iter.next();
+        Assert.assertTrue(t.toString().equals("()"));
+        
+        Assert.assertFalse(iter.hasNext());
+        
+        pigServer.getPigContext().getProperties().remove("pig.optimizer.rules");
     }
 }
