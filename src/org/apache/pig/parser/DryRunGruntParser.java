@@ -228,9 +228,19 @@ public class DryRunGruntParser extends PigScriptParser {
     @Override
     protected void processPig(String cmd) throws IOException {
         
+        int start = getLineNumber();
+       
+        StringBuilder blder = new StringBuilder();
+        for (int i = 1; i < start; i++) {
+            blder.append("\n");            
+        }
+        
         if (cmd.charAt(cmd.length() - 1) != ';') {
             cmd += ";";
         }
+        
+        blder.append(cmd);
+        cmd = blder.toString();
         
         CommonTokenStream tokenStream = QueryParserDriver.tokenize(cmd, source);
         Tree ast = null;
