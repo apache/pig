@@ -509,5 +509,110 @@ public class TestScriptUDF{
         
         Assert.assertFalse(iter.hasNext());
     }
-}
 
+    /** See Pig-1824
+     * test import of wildcarded java classes, this will not work unless
+     * jython is configured with a valid cachedir, which is what this tests.
+     * @throws Exception
+     */
+    @Test
+    public void testPythonWilcardImport() throws Exception {
+        // hadoop.fs.Path is in the classpath (always)
+        String[] script = {
+                "#!/usr/bin/python",
+                "from org.apache.hadoop.fs import *",
+                "p = Path('foo')",
+                "@outputSchema(\"word:chararray\")",
+                "def first(content):",
+                " return content.split(' ')[0]"
+        };
+        String[] input = {
+                "words words words",
+                "talk talk talk"
+        };
+
+        Util.createInputFile(cluster, "table_testPythonWildcardImport", input);
+        File scriptFile = Util.createLocalInputFile( "script.py", script);
+
+        // Test the namespace
+        pigServer.registerCode(scriptFile.getAbsolutePath(), "jython", "pig");
+        pigServer.registerQuery("A = LOAD 'table_testPythonWildcardImport' as (a:chararray);");
+        pigServer.registerQuery("B = foreach A generate pig.first(a);");
+
+        Iterator<Tuple> iter = pigServer.openIterator("B");
+        Assert.assertTrue(iter.hasNext());
+        Tuple t = iter.next();
+
+        Assert.assertTrue(t.toString().equals("(words)"));
+
+        Assert.assertTrue(iter.hasNext());
+        t = iter.next();
+
+        Assert.assertTrue(t.toString().equals("(talk)"));
+
+        Assert.assertFalse(iter.hasNext());
+    }
+
+    /** See Pig-1824
+     * test importing a second module/file from the local fs from within
+     * the first module.
+     *
+     * NOTE: this unit test also covers the "import re" test case.
+     * not all users have a jython install, so there is no explicit unit test
+     * for "import re".
+     * to use a jython install, the Lib dir must be in the jython search path
+     * via env variable JYTHON_HOME=jy_home or JYTHON_PATH=jy_home/Lib:...
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testPythonNestedImport() throws Exception {
+        String[] scriptA = {
+                "#!/usr/bin/python",
+                "def square(number):" ,
+                " return (number * number)"
+        };
+        String[] scriptB = {
+                "#!/usr/bin/python",
+                "import scriptA",
+                "@outputSchema(\"x:{t:(num:double)}\")",
+                "def sqrt(number):" ,
+                " return (number ** .5)",
+                "@outputSchema(\"x:{t:(num:long)}\")",
+                "def square(number):" ,
+                " return long(scriptA.square(number))"
+        };
+        String[] input = {
+                "1\t3",
+                "2\t4",
+                "3\t5"
+        };
+
+        Util.createInputFile(cluster, "table_testPythonNestedImport", input);
+        Util.createLocalInputFile("scriptA.py", scriptA);
+        File scriptFileB = Util.createLocalInputFile("scriptB.py", scriptB);
+
+        // Test the namespace: import B, which, in turn, imports A
+        pigServer.registerCode(scriptFileB.getAbsolutePath(), "jython", "pig");
+        pigServer.registerQuery("A = LOAD 'table_testPythonNestedImport' as (a0:long, a1:long);");
+        pigServer.registerQuery("B = foreach A generate pig.square(a0);");
+
+        Iterator<Tuple> iter = pigServer.openIterator("B");
+        Assert.assertTrue(iter.hasNext());
+        Tuple t = iter.next();
+
+        Assert.assertTrue(t.toString().equals("(1)"));
+
+        Assert.assertTrue(iter.hasNext());
+        t = iter.next();
+
+        Assert.assertTrue(t.toString().equals("(4)"));
+
+        Assert.assertTrue(iter.hasNext());
+        t = iter.next();
+
+        Assert.assertTrue(t.toString().equals("(9)"));
+        
+        Assert.assertFalse(iter.hasNext());
+    }
+}

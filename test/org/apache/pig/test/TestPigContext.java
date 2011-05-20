@@ -23,7 +23,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -33,7 +32,6 @@ import java.util.Random;
 import junit.framework.TestCase;
 
 import org.apache.hadoop.mapred.FileAlreadyExistsException;
-import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
@@ -164,11 +162,11 @@ public class TestPigContext extends TestCase {
                               " -C " + tmpDir.getAbsolutePath() + " " + "com");
         assertTrue(status==0);
         Properties properties = cluster.getProperties();
-        PigContext pigContext = new PigContext(ExecType.MAPREDUCE, properties);
+        PigContext localPigContext = new PigContext(ExecType.MAPREDUCE, properties);
         
         //register jar using properties
-        pigContext.getProperties().setProperty("pig.additional.jars", jarFile);
-        PigServer pigServer = new PigServer(pigContext);
+        localPigContext.getProperties().setProperty("pig.additional.jars", jarFile);
+        PigServer pigServer = new PigServer(localPigContext);
 
         PigContext.initializeImportList("com.xxx.udf1:com.xxx.udf2.");
         ArrayList<String> importList = PigContext.getPackageImportList();
@@ -185,14 +183,14 @@ public class TestPigContext extends TestCase {
         int LOOP_COUNT = 40;
         File tmpFile = File.createTempFile("test", "txt");
         tmpFile.deleteOnExit();
-        String input[] = new String[LOOP_COUNT];
+        String localInput[] = new String[LOOP_COUNT];
         Random r = new Random(1);
         int rand;
         for(int i = 0; i < LOOP_COUNT; i++) {
             rand = r.nextInt(100);
-            input[i] = Integer.toString(rand);
+            localInput[i] = Integer.toString(rand);
         }
-        Util.createInputFile(cluster, tmpFile.getCanonicalPath(), input);        
+        Util.createInputFile(cluster, tmpFile.getCanonicalPath(), localInput);        
         FileLocalizer.deleteTempFiles();
         pigServer.registerQuery("A = LOAD '" + tmpFile.getCanonicalPath() + "' using TestUDF2() AS (num:chararray);");
         pigServer.registerQuery("B = foreach A generate TestUDF1(num);");
@@ -205,6 +203,30 @@ public class TestPigContext extends TestCase {
         }
         Util.deleteFile(cluster, tmpFile.getCanonicalPath());
         Util.deleteDirectory(tmpDir);
+    }
+
+    // See PIG-1824
+    @SuppressWarnings("deprecation")
+    @Test
+    public void testScriptFiles() throws Exception {
+        PigContext pc = new PigContext(ExecType.LOCAL, getProperties());
+        final int n = pc.scriptFiles.size();
+        pc.addScriptFile("test/path-1824");
+        assertEquals("test/path-1824", pc.getScriptFiles().get("test/path-1824").toString());
+        assertEquals("script files should not be populated", n, pc.scriptFiles.size());
+
+        pc.addScriptFile("path-1824", "test/path-1824");
+        assertEquals("test/path-1824", pc.getScriptFiles().get("path-1824").toString());
+        assertEquals("script files should not be populated", n, pc.scriptFiles.size());
+        
+        // last add wins when using an alias
+        pc.addScriptFile("path-1824", "test/some/other/path-1824");
+        assertEquals("test/some/other/path-1824", pc.getScriptFiles().get("path-1824").toString());
+        assertEquals("script files should not be populated", n, pc.scriptFiles.size());
+
+        // clean up
+        pc.getScriptFiles().remove("path-1824");
+        pc.getScriptFiles().remove("test/path-1824");
     }
 
     @After
