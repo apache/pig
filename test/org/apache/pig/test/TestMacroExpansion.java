@@ -31,7 +31,7 @@ import java.util.Properties;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigRunner;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.parser.DryRunGruntParser;
 import org.apache.pig.tools.grunt.Grunt;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.ScriptState;
@@ -1190,6 +1190,29 @@ public class TestMacroExpansion {
         validateFailure(sb.toString(), expectedErr, "at");
     }
     
+    @Test // PIG-2081
+    public void lineNumberTest3() throws Throwable {
+        StringBuilder sb = new StringBuilder();
+        
+        sb.append("DEFINE my_macro (X,key) returns Y\n" +
+            "{\n" +   
+            "tmp1 = foreach  $X generate TOKENIZE((chararray)$key) as tokens;\n" +
+            "tmp2 = foreach tmp1 generate flatten(tokens);\n" +
+            "tmp3 = order tmp2 by $0;\n" + 
+            "$Y = distinct tmp3;\n" +
+            "};\n");
+        
+        sb.append("A3 = load 'sometext3' using TextLoader() as (row3);\n");
+        
+        sb.append("E3 = my_macro(A3,$0);\n");
+
+        
+        String expectedErr = 
+            "<file myscript.pig, line 9, column 17>  mismatched input '$0' expecting set null";
+        
+        validateDryrunFailure(sb.toString(), expectedErr, "<file");
+    }
+    
     @Test
     public void recursiveMacrosTest3() throws Exception {
         String macro1 = "define group_and_partition (A, group_key, reducers) returns B, D  {\n" +
@@ -2151,6 +2174,39 @@ public class TestMacroExpansion {
                 }
             }
             Assert.assertEquals(expectedErr, msg.substring(pos, pos+expectedErr.length()));        
+        } finally {
+            new File(scriptFile).delete();
+        }
+    }
+    
+    private void validateDryrunFailure(String piglatin, String expectedErr,
+            String keyword) throws Throwable {
+        String scriptFile = "myscript.pig";
+
+        try {
+            BufferedReader br = new BufferedReader(new StringReader(piglatin));
+            DryRunGruntParser parser = new DryRunGruntParser(br, scriptFile,
+                    new PigContext(ExecType.LOCAL, new Properties()));
+
+            PrintWriter w = new PrintWriter(new FileWriter(scriptFile));
+            w.print(piglatin);
+            w.close();
+
+            parser.parseStopOnError();
+
+            Assert.fail("Expected exception isn't thrown");
+        } catch (Exception e) {
+            String msg = e.getMessage();
+            int pos = msg.indexOf(keyword);
+            if (pos < 0) {
+                Throwable cause = e.getCause();
+                if (cause != null) {
+                    msg = cause.getMessage();
+                    pos = msg.indexOf(keyword);
+                }
+            }
+            Assert.assertEquals(expectedErr,
+                    msg.substring(pos, pos + expectedErr.length()));
         } finally {
             new File(scriptFile).delete();
         }
