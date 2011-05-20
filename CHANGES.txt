@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1824: Support import modules in Jython UDF (woody via rding)
+
 PIG-1994: e2e test harness deployment implementation for existing cluster
 (gates)
 

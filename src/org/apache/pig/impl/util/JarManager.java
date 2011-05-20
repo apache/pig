@@ -97,6 +97,7 @@ public class JarManager {
      * @throws ClassNotFoundException
      * @throws IOException
      */
+    @SuppressWarnings("deprecation")
     public static void createJar(OutputStream os, Set<String> funcs, PigContext pigContext) throws ClassNotFoundException, IOException {
         Vector<JarListEntry> jarList = new Vector<JarListEntry>();
         for(String toSend: pigPackagesToSend) {
@@ -124,9 +125,11 @@ public class JarManager {
             // log.error("Adding extra " + pigContext.extraJars.get(i));
             mergeJar(jarFile, extraJar, null, contents);
         }
-        for (int i = 0; i < pigContext.scriptFiles.size(); i++) {
-        	String path = pigContext.scriptFiles.get(i);
+        for (String path: pigContext.scriptFiles) {
         	addStream(jarFile, path, new FileInputStream(new File(path)),contents);
+        }
+        for (Map.Entry<String, File> entry : pigContext.getScriptFiles().entrySet()) {
+        	addStream(jarFile, entry.getKey(), new FileInputStream(entry.getValue()),contents);
         }
         
         jarFile.putNextEntry(new ZipEntry("pigContext"));
