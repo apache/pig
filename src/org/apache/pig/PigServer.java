@@ -183,6 +183,8 @@ public class PigServer {
     private boolean isMultiQuery = true;
     private boolean aggregateWarning = true;
 
+    private boolean validateEachStatement = false;
+
     private String constructScope() {
         // scope servers for now as a session id
 
@@ -578,7 +580,7 @@ public class PigServer {
      * @throws IOException
      */
     public void registerQuery(String query, int startLine) throws IOException {
-        currDAG.registerQuery(query, startLine);
+        currDAG.registerQuery(query, startLine, validateEachStatement);
     }
 
     /**
@@ -1566,7 +1568,8 @@ public class PigServer {
          * Accumulate the given statement to previous query statements and generate
          * an overall (raw) plan.
          */
-        void registerQuery(String query, int startLine) throws IOException {
+        void registerQuery(String query, int startLine, boolean validateEachStatement)
+        throws IOException {
             if( batchMode ) {
                 if( startLine == currentLineNum ) {
                     String line = scriptCache.remove( scriptCache.size() - 1 );
@@ -1588,7 +1591,9 @@ public class PigServer {
                 scriptCache.add( query );
             }
            
-            validateQuery();
+            if(validateEachStatement){
+                validateQuery();
+            }
             parseQuery();
             
             if( !batchMode ) {
@@ -1763,10 +1768,11 @@ public class PigServer {
 
             try {
                 for (Iterator<String> it = scriptCache.iterator(); it.hasNext(); lineNumber++) {
-                	// always doing registerQuery irrespective of the batch mode
-                	// TODO: Need to figure out if anything different needs to happen if batch 
-                	// mode is not on
-                    graph.registerQuery(it.next(), lineNumber);
+                    // always doing registerQuery irrespective of the batch mode
+                    // TODO: Need to figure out if anything different needs to happen if batch 
+                    // mode is not on
+                    // Don't have to do the validation again, so set validateEachStatement param to false
+                    graph.registerQuery(it.next(), lineNumber, false);
                 }
                 graph.postProcess();
             } catch (IOException ioe) {
@@ -1775,5 +1781,15 @@ public class PigServer {
             }
             return graph;
         }
+    }
+
+    /**
+     * This can be called to indicate if the query is being parsed/compiled
+     * in a mode that expects each statement to be validated as it is 
+     * entered, instead of just doing it once for whole script.
+     * @param validateEachStatement
+     */
+    public void setValidateEachStatement(boolean validateEachStatement) {
+        this.validateEachStatement = validateEachStatement;
     }
 }

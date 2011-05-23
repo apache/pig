@@ -120,6 +120,7 @@ public class TestDataBagAccess extends TestCase {
         File input = Util.createInputFile("tmp", "", 
                 new String[] {"sampledata\tnot_used"});
         boolean exceptionOccured = false;
+        pigServer.setValidateEachStatement(true);
         try {
             pigServer.registerQuery("a = load '" 
                     + Util.generateURI(Util.encodeEscape(input.toString()), pigServer.getPigContext()) + "';");

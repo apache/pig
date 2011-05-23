@@ -36,6 +36,7 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.builtin.PigStorage;
@@ -47,6 +48,7 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.ExecType;
 import org.apache.pig.impl.builtin.GFAny;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.data.DataType;
 import org.apache.pig.newplan.Operator;
@@ -2104,9 +2106,15 @@ public class TestLogicalPlanBuilder {
     	try {
             return Util.buildLp(pigServer, query);
     	} catch(Throwable t) {
-    		Throwable cause = t.getCause();
-    		String msg = cause != null ? cause.toString() : t.toString();
-    		throw new AssertionFailedError( msg );
+    	    PigException pigEx = LogUtils.getPigException(t);
+    	    Throwable cause = null;
+    	    if(pigEx != null){
+    	        cause = pigEx;
+    	    }else{
+    	        cause = t.getCause();
+    	    }
+    	    String msg = cause != null ? cause.toString() : t.toString();
+    	    throw new AssertionFailedError( msg );
     	}
     }
     

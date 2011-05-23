@@ -184,6 +184,9 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-2084: pig is running validation for a statement at a time batch mode,
+ instead of running it for whole script (thejas)
+
 PIG-2088: Return alias validation failed when there is single line comment in the macro (rding)
 
 PIG-2081: Dryrun gives wrong line numbers in error message for scripts containing macro (rding)

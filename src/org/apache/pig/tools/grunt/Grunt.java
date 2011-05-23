@@ -90,6 +90,7 @@ public class Grunt
         boolean verbose = "true".equalsIgnoreCase(pig.getPigContext().getProperties().getProperty("verbose"));
         try {
             parser.setInteractive(false);
+            parser.setValidateEachStatement(true);
             boolean dontPrintOutput = true;
             parser.processExplain(null, scriptFile, false, "text", null, 
                     new ArrayList<String>(), new ArrayList<String>(),
