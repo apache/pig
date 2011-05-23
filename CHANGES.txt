@@ -184,6 +184,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-2088: Return alias validation failed when there is single line comment in the macro (rding)
+
 PIG-2081: Dryrun gives wrong line numbers in error message for scripts containing macro (rding)
 
 PIG-2078: POProject.getNext(DataBag) does not handle null (daijy)

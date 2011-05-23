@@ -373,8 +373,10 @@ class PigMacro {
 
     private static void skipSingleLineComment(StreamTokenizer st)
             throws IOException {
+        int lineNo = st.lineno();
         int lookahead = st.nextToken();
         while (lookahead != StreamTokenizer.TT_EOF && lookahead != '\n') {
+            if (st.lineno() > lineNo) break;
             lookahead = st.nextToken();
         }
         st.pushBack();
