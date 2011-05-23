@@ -23,8 +23,8 @@
   </header>
   <body>
   
-<section>
-<title>About Built In Functions</title>
+<section id="built-in-functions">
+<title>Introduction</title>
 <p>
 Pig comes with a set of built in functions (the eval, load/store, math, string, bag and tuple functions). Two main properties differentiate built in functions from <a href="udf.html">user defined  functions</a> (UDFs). First, built in functions don't need to be registered because Pig knows where they are. Second, built in functions don't need to be qualified when they are used because Pig knows where to find them. 
 </p>	
@@ -32,8 +32,8 @@ Pig comes with a set of built in functions (the eval, load/store, math, string, 
 
 <!-- ================================================================== -->
 <!-- DYNAMIC INVOKERS -->
-<section>
-<title>About Dynamic Invokers</title>
+<section id="dynamic-invokers">
+<title>Dynamic Invokers</title>
 
 <p>Often you may need to use a simple function that is already provided by standard Java libraries, but for which a <a href="udf.html">user defined  functions</a> (UDF) has not been written. Dynamic invokers allow you to refer to Java functions without having to wrap them in custom UDFs, at the cost of doing some Java reflection on every function call. 
 </p>
@@ -60,10 +60,12 @@ decoded_strings = FOREACH encoded_strings GENERATE UrlDecode(encoded, 'UTF-8');
   
 <!-- ======================================================== -->  
 <!-- EVAL FUNCTIONS -->    
-<section>
+<section id="eval-functions">
 <title>Eval Functions</title>
 
-<section>
+
+<!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->  
+<section id="avg">
 <title>AVG</title>
    <p>Computes the average of the numeric values in a single-column bag. </p>
    <section>
@@ -180,7 +182,8 @@ DUMP C;
    </table>
    </section></section>
    
-   <section>
+   <!-- ++++++++++++++++++++++++++++++++++++++++++++++ --> 
+   <section id="concat">
    <title>CONCAT</title>
    <p>Concatenates two expressions of identical type.</p>
    
@@ -213,7 +216,7 @@ DUMP C;
    <title>Usage</title>
    <p>Use the CONCAT function to concatenate two expressions. The result values of the two expressions must have identical types.</p>
    </section>
-  </section>
+
    
    <section>
    <title>Example</title>
@@ -234,8 +237,11 @@ DUMP X;
 (piglatin)
 </source>
 </section>
-   
-   <section >
+</section>
+  
+  
+  <!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->  
+   <section id="count">
    <title>COUNT</title>
    <p>Computes the number of elements in a bag. </p>
    <section>
@@ -270,7 +276,7 @@ DUMP X;
     The COUNT function follows syntax semantics and ignores nulls. 
     What this means is that a tuple in the bag will not be counted if the FIRST FIELD in this tuple is NULL. 
     If you want to include NULL values in the count computation, use 
-    <a href="#COUNT_STAR">COUNT_STAR</a>.
+    <a href="#COUNT-STAR">COUNT_STAR</a>.
    </p>   
    
    <p>
@@ -363,7 +369,8 @@ DUMP X;
    </table>
    </section></section>
    
- <section>
+     <!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->
+ <section id="count-star">
    <title>COUNT_STAR</title>
    <p>Computes the number of elements in a bag. </p>
    <section>
@@ -408,8 +415,9 @@ X = FOREACH B GENERATE COUNT_STAR(A);
 </source>
    </section>
     </section>
-   
-   <section>
+  
+    <!-- ++++++++++++++++++++++++++++++++++++++++++++++ --> 
+   <section id="diff">
    <title>DIFF</title>
    <p>Compares two fields in a tuple.</p>
    
@@ -471,8 +479,10 @@ grunt> dump x;
 ({(6,7),(2,2)})
 </source>
    </section></section>
-   
-<section>
+
+
+  <!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->   
+<section id="isempty">
    <title>IsEmpty</title>
    <p>Checks if a bag or map is empty.</p>
    
@@ -519,8 +529,9 @@ Y = filter X by IsEmpty(SSN_NAME);
 </source>
    </section></section>    
    
-   
-   <section>
+
+  <!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->   
+   <section id="max">
    <title>MAX</title>
    <p>Computes the maximum of the numeric values or chararrays in a single-column bag. MAX requires a preceding GROUP ALL statement for global maximums and a GROUP BY statement for group maximums.</p>
    
@@ -632,8 +643,10 @@ DUMP X;
          </tr> 
    </table>
    </section></section>
-   
-   <section>
+ 
+ 
+   <!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->  
+   <section id="min">
    <title>MIN</title>
    <p>Computes the minimum of the numeric values or chararrays in a single-column bag. MIN requires a preceding GROUP… ALL statement for global minimums and a GROUP … BY statement for group minimums.</p>
    
@@ -747,7 +760,9 @@ DUMP X;
    </table>
    </section></section>
    
-   <section>
+   
+     <!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->
+   <section id="size">
    <title>SIZE</title>
    <p>Computes the number of elements based on any Pig data type. </p>
    
@@ -874,8 +889,10 @@ DUMP X;
             </td>
          </tr> 
    </table></section></section>
-   
-   <section>
+
+
+  <!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->   
+   <section id="sum">
    <title>SUM</title>
    <p>Computes the sum of the numeric values in a single-column bag. SUM requires a preceding GROUP ALL statement for global sums and a GROUP BY statement for group sums.</p>
    
@@ -984,7 +1001,8 @@ DUMP X;
    </table>
    </section></section>
    
-   <section>
+     <!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->
+   <section id="tokenize">
    <title>TOKENIZE</title>
    <p>Splits a string and outputs a bag of words. </p>
    
@@ -1037,14 +1055,15 @@ DUMP X;
    
    </section></section></section>
    
-   <section>
+   <!-- ======================================================================== -->
+   <section id="load-store-functions">
    <title>Load/Store Functions</title>
    <p>Load/store functions determine how data goes into Pig and comes out of Pig. 
    Pig provides a set of built-in load/store functions, described in the sections below. 
    You can also write your own load/store functions  (see <a href="udf.html">User Defined Functions</a>).</p>
    
-
-   <section>
+  <!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->
+   <section id="handling-compression">
    <title>Handling Compression</title>
 
 <p>Support for compression is determined by the load/store function. PigStorage and TextLoader support gzip and bzip compression for both read (load) and write (store). BinStorage does not support compression.</p>
@@ -1081,7 +1100,8 @@ store A into ‘myoutput.bz’;
 
 </section>
 
-   <section>
+  <!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->
+   <section id="binstorage">
    <title>BinStorage</title>
    <p>Loads and stores data in machine-readable format.</p>
    
@@ -1114,7 +1134,7 @@ store A into ‘myoutput.bz’;
    <p>Pig uses BinStorage to load and store the temporary data that is generated between multiple MapReduce jobs.</p>
    <ul>
    <li>BinStorage works with data that is represented on disk in machine-readable format. 
-   BinStorage does NOT support <a href="#Handling+Compression">compression</a>.</li>
+   BinStorage does NOT support <a href="#Handling-Compression">compression</a>.</li>
    <li>BinStorage supports multiple locations (files, directories, globs) as input.</li>
    </ul>
     <p></p>
@@ -1199,69 +1219,12 @@ dump X;
 <title>More Examples</title>
 </section>
 </section>
-   
-   <section>
-   <title>PigStorage</title>
-   <p>Loads and stores data in UTF-8 format.</p>
-   
-   <section>
-   <title>Syntax</title>
-   <table>
-       <tr>
-            <td>
-               <p>PigStorage(field_delimiter) </p>
-            </td>
-         </tr> 
-   </table></section>
-   
-   <section>
-   <title>Terms</title>
-   <table>
-       <tr>
-            <td>
-               <p>field_delimiter</p>
-            </td>
-            <td>
-               <p>Parameter. </p>
-               <p>The default field delimiter is tab ('\t'). </p>
-               <p>You can specify other characters as field delimiters; however, be sure to encase the characters in single quotes.</p>
-            </td>
-         </tr> 
-   </table></section>
-   
-   <section>
-   <title>Usage</title>
-   <p>PigStorage is the default function for the LOAD and STORE operators and works with both simple and complex data types. </p>
-   
-   <p>PigStorage supports structured text files (in human-readable UTF-8 format). PigStorage also supports <a href="#Handling+Compression">compression</a>.</p>
-   
-    <p>PigStorage supports multiple locations (files, directories, globs) as input.</p>
+ 
+ 
 
-  <p>Load statements – PigStorage expects data to be formatted using field delimiters, either the tab character  ('\t') or other specified character.</p>
-
-   <p>Store statements – PigStorage outputs data using field deliminters, either the tab character  ('\t') or other specified character, and the line feed record delimiter ('\n').  </p>
-
-   <p>Field Delimiters – For load and store statements the default field delimiter is the tab character ('\t'). You can use other characters as field delimiters, but separators such as ^A or Ctrl-A should be represented in Unicode (\u0001) using UTF-16 encoding (see Wikipedia <a href="http://en.wikipedia.org/wiki/ASCII">ASCII</a>, <a href="http://en.wikipedia.org/wiki/Unicode">Unicode</a>, and <a href="http://en.wikipedia.org/wiki/UTF-16">UTF-16</a>).</p>
    
-   <p>Record Deliminters – For load statements Pig interprets the line feed ( '\n' ), carriage return ( '\r' or CTRL-M) and combined CR + LF ( '\r\n' ) characters as record delimiters (do not use these characters as field delimiters). For store statements Pig uses the line feed ('\n') character as the record delimiter.</p>
-   </section>
-   
-   <section>
-   <title>Example</title>
-   <p>In this example PigStorage expects input.txt to contain tab-separated fields and newline-separated records. The statements are equivalent.</p>
-<source>
-A = LOAD 'student' USING PigStorage('\t') AS (name: chararray, age:int, gpa: float); 
-
-A = LOAD 'student' AS (name: chararray, age:int, gpa: float);
-</source>
-   
-   <p>In this example PigStorage stores the contents of X into files with fields that are delimited with an asterisk ( * ). The STORE function specifies that the files will be located in a directory named output and that the files will be named part-nnnnn (for example, part-00000).</p>
-<source>
-STORE X INTO  'output' USING PigStorage('*');
-</source>
-   </section></section>
-   
-   <section>
+     <!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->
+   <section id="pigdump">
    <title>PigDump</title>
    <p>Stores data in UTF-8 format.</p>
    
@@ -1300,7 +1263,72 @@ STORE X INTO 'output' USING PigDump();
 </source>
    </section></section>
    
+   
+      <!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->  
+   <section id="pigstorage">
+   <title>PigStorage</title>
+   <p>Loads and stores data in UTF-8 format.</p>
+   
    <section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>PigStorage(field_delimiter) </p>
+            </td>
+         </tr> 
+   </table></section>
+   
+   <section>
+   <title>Terms</title>
+   <table>
+       <tr>
+            <td>
+               <p>field_delimiter</p>
+            </td>
+            <td>
+               <p>Parameter. </p>
+               <p>The default field delimiter is tab ('\t'). </p>
+               <p>You can specify other characters as field delimiters; however, be sure to encase the characters in single quotes.</p>
+            </td>
+         </tr> 
+   </table></section>
+   
+   <section>
+   <title>Usage</title>
+   <p>PigStorage is the default function for the LOAD and STORE operators and works with both simple and complex data types. </p>
+   
+   <p>PigStorage supports structured text files (in human-readable UTF-8 format). PigStorage also supports <a href="#Handling-Compression">compression</a>.</p>
+   
+    <p>PigStorage supports multiple locations (files, directories, globs) as input.</p>
+
+  <p>Load statements – PigStorage expects data to be formatted using field delimiters, either the tab character  ('\t') or other specified character.</p>
+
+   <p>Store statements – PigStorage outputs data using field deliminters, either the tab character  ('\t') or other specified character, and the line feed record delimiter ('\n').  </p>
+
+   <p>Field Delimiters – For load and store statements the default field delimiter is the tab character ('\t'). You can use other characters as field delimiters, but separators such as ^A or Ctrl-A should be represented in Unicode (\u0001) using UTF-16 encoding (see Wikipedia <a href="http://en.wikipedia.org/wiki/ASCII">ASCII</a>, <a href="http://en.wikipedia.org/wiki/Unicode">Unicode</a>, and <a href="http://en.wikipedia.org/wiki/UTF-16">UTF-16</a>).</p>
+   
+   <p>Record Deliminters – For load statements Pig interprets the line feed ( '\n' ), carriage return ( '\r' or CTRL-M) and combined CR + LF ( '\r\n' ) characters as record delimiters (do not use these characters as field delimiters). For store statements Pig uses the line feed ('\n') character as the record delimiter.</p>
+   </section>
+   
+   <section>
+   <title>Example</title>
+   <p>In this example PigStorage expects input.txt to contain tab-separated fields and newline-separated records. The statements are equivalent.</p>
+<source>
+A = LOAD 'student' USING PigStorage('\t') AS (name: chararray, age:int, gpa: float); 
+
+A = LOAD 'student' AS (name: chararray, age:int, gpa: float);
+</source>
+   
+   <p>In this example PigStorage stores the contents of X into files with fields that are delimited with an asterisk ( * ). The STORE function specifies that the files will be located in a directory named output and that the files will be named part-nnnnn (for example, part-00000).</p>
+<source>
+STORE X INTO  'output' USING PigStorage('*');
+</source>
+   </section></section>
+   
+   
+  <!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->
+   <section id="textloader">
    <title>TextLoader</title>
    <p>Loads unstructured data in UTF-8 format.</p>
    
@@ -1330,7 +1358,7 @@ STORE X INTO 'output' USING PigDump();
    
    <section>
    <title>Usage</title>
-   <p>TextLoader works with unstructured data in UTF8 format. Each resulting tuple contains a single field with one line of input text. TextLoader also supports <a href="#Handling+Compression">compression</a>.</p>
+   <p>TextLoader works with unstructured data in UTF8 format. Each resulting tuple contains a single field with one line of input text. TextLoader also supports <a href="#Handling-Compression">compression</a>.</p>
    <p>Currently, TextLoader support for compression is limited.</p>  
    <p>TextLoader cannot be used to store data.</p>
    </section>
@@ -1347,7 +1375,7 @@ A = LOAD 'data' USING TextLoader();
 <!-- ======================================================== -->  
 <!-- ======================================================== -->  
 <!-- Math Functions -->
-<section>
+<section id="math-functions">
 <title>Math Functions</title>
 
 <p>For general information about these functions, see the <a href="http://download.oracle.com/javase/6/docs/api/">Java API Specification</a>, 
@@ -1373,7 +1401,9 @@ A = LOAD 'data' USING TextLoader();
 	</li>
 </ul> 
  
-<section>
+ 
+   <!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->
+<section id="abs">
    <title>ABS</title>
    <p>Returns the absolute value of an expression.</p>
 
@@ -1412,9 +1442,9 @@ A = LOAD 'data' USING TextLoader();
    
 </section>
 
-<!-- ======================================================== --> 
+  <!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->
     
-<section>
+<section id="acos">
    <title>ACOS</title>
    <p>Returns the arc cosine of an expression.</p>
 
@@ -1453,7 +1483,7 @@ Use the ACOS function to return the arc cosine of an expression.
 </section>    
    
   <!-- ======================================================== -->     
-    <section>
+    <section id="asin">
    <title>ASIN</title>
    <p>Returns the arc sine of an expression.</p>
 
@@ -1494,7 +1524,7 @@ Use the ASIN function to return the arc sine of an expression.
    
   <!-- ======================================================== -->  
   
- <section>
+ <section id="atan">
    <title>ATAN</title>
    <p>Returns the arc tangent of an expression.</p>
 
@@ -1534,7 +1564,7 @@ Use the ATAN function to return the arc tangent of an expression.
 
   <!-- ======================================================== -->  
   
- <section>
+ <section id="cbrt">
    <title>CBRT</title>
    <p>Returns the cube root of an expression.</p>
 
@@ -1574,7 +1604,7 @@ Use the CBRT function to return the cube root of an expression.
 
  <!-- ======================================================== -->  
   
- <section>
+ <section id="ceil">
    <title>CEIL</title>
    <p>Returns the value of an expression rounded up to the nearest integer.
 </p>
@@ -1696,50 +1726,10 @@ This function never decreases the result value.
 
    </section>
 </section>    
-  
-<!-- ======================================================== -->  
-  
- <section>
-   <title>COSH</title>
-   <p>Returns the hyperbolic cosine of an expression.
-</p>
 
-<section>
-   <title>Syntax</title>
-   <table>
-       <tr>
-            <td>
-               <p>COSH(expression)</p>
-            </td>
-         </tr> 
-   </table></section>
-   
-<section>
-   <title>Terms</title>
-   <table>
-       <tr>
-            <td>
-               <p>expression</p>
-            </td>
-            <td>
-               <p>An expression whose result is type double.</p>
-            </td>
-         </tr>
-        
-   </table>
-</section>
-   
-<section>
-     <title>Usage</title>
-     <p>
-Use the COSH function to return the hyperbolic cosine of an expression. 
-     </p>
-   </section>
-</section>    
-  
   <!-- ======================================================== -->  
   
- <section>
+ <section id="cos">
    <title>COS</title>
    <p>Returns the trigonometric cosine of an expression.
 </p>
@@ -1777,10 +1767,52 @@ Use the COS function to return the trigonometric cosine of an expression.
    </section>
    
 </section>    
+  
+<!-- ======================================================== -->  
+  
+ <section id="cosh">
+   <title>COSH</title>
+   <p>Returns the hyperbolic cosine of an expression.
+</p>
+
+<section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>COSH(expression)</p>
+            </td>
+         </tr> 
+   </table></section>
+   
+<section>
+   <title>Terms</title>
+   <table>
+       <tr>
+            <td>
+               <p>expression</p>
+            </td>
+            <td>
+               <p>An expression whose result is type double.</p>
+            </td>
+         </tr>
+        
+   </table>
+</section>
+   
+<section>
+     <title>Usage</title>
+     <p>
+Use the COSH function to return the hyperbolic cosine of an expression. 
+     </p>
+   </section>
+</section>    
+  
+
 
 <!-- ======================================================== -->  
   
- <section>
+ <section id="exp">
    <title>EXP</title>
    <p>Returns Euler's number e raised to the power of x.
 </p>
@@ -1820,7 +1852,7 @@ Use the EXP function to return the value of Euler's number e raised to the power
   
 <!-- ======================================================== -->  
   
- <section>
+ <section id="floor">
    <title>FLOOR</title>
    <p>Returns the value of an expression rounded down to the nearest integer. 
 </p>
@@ -1945,7 +1977,7 @@ This function never increases the result value.
 </section>      
 <!-- ======================================================== -->  
   
- <section>
+ <section id="log">
    <title>LOG</title>
    <p>Returns the natural logarithm (base e) of an expression.</p>
 
@@ -1984,7 +2016,7 @@ Use the LOG function to return the natural logarithm (base e) of an expression.
   
   <!-- ======================================================== -->  
   
- <section>
+ <section id="log10">
    <title>LOG10</title>
    <p>Returns the base 10 logarithm of an expression.</p>
 
@@ -2023,7 +2055,7 @@ Use the LOG10 function to return the base 10 logarithm of an expression.
 
   <!-- ======================================================== -->  
   
- <section>
+ <section id="random">
    <title>RANDOM</title>
    <p>Returns a pseudo random number.</p>
 
@@ -2062,7 +2094,7 @@ Use the RANDOM function to return a pseudo random number (type double) greater t
   
 <!-- ======================================================== -->  
   
- <section>
+ <section id="round">
    <title>ROUND</title>
    <p>Returns the value of an expression rounded to an integer.</p>
 
@@ -2183,7 +2215,7 @@ Use the ROUND function to return the value of an expression rounded to an intege
 </section>       
   
 <!-- ======================================================== -->  
- <section>
+ <section id="sin">
    <title>SIN</title>
    <p>Returns the sine of an expression.</p>
 
@@ -2221,7 +2253,7 @@ Use the SIN function to return the sine of an expession.
 </section>       
   
 <!-- ======================================================== -->  
- <section>
+ <section id="sinh">
    <title>SINH</title>
    <p>Returns the hyperbolic sine of an expression.</p>
 
@@ -2260,7 +2292,7 @@ Use the SINH function to return the hyperbolic sine of an expression.
 
 
 <!-- ======================================================== -->  
- <section>
+ <section id="sqrt">
    <title>SQRT</title>
    <p>Returns the positive square root of an expression.</p>
 
@@ -2298,7 +2330,7 @@ Use the SQRT function to return the positive square root of an expression.
 </section>
 
 <!-- ======================================================== -->  
- <section>
+ <section id="tan">
    <title>TAN</title>
    <p>Returns the trignometric tangent of an angle.</p>
 
@@ -2337,7 +2369,7 @@ Use the TAN function to return the trignometric tangent of an angle.
 </section>
 
 <!-- ======================================================== -->  
- <section>
+ <section id="tanh">
    <title>TANH</title>
    <p>Returns the hyperbolic tangent of an expression. </p>
 
@@ -2381,7 +2413,7 @@ Use the TANH function to return the hyperbolic tangent of an expression.
 <!-- ======================================================== -->   
 
 <!-- String Functions -->
-<section>
+<section id="string-functions">
 <title>String Functions</title>
 
 <p>For general information about these functions, see the <a href="http://download.oracle.com/javase/6/docs/api/">Java API Specification</a>, 
@@ -2400,7 +2432,8 @@ Use the TANH function to return the hyperbolic tangent of an expression.
 
 </ul>
  
- <section>
+   <!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->
+ <section id="indexof">
    <title>INDEXOF</title>
    <p>Returns the index of the first occurrence of a character in a string, searching forward from a start index. </p>
 
@@ -2456,7 +2489,7 @@ Use the INDEXOF function to determine the index of the first occurrence of a cha
 </section> 
 
 <!-- ======================================================== -->  
- <section>
+ <section id="last-index-of">
    <title>LAST_INDEX_OF</title>
    <p>Returns the index of the last occurrence of a character in a string, searching backward from a start index. </p>
 
@@ -2512,7 +2545,7 @@ Use the LAST_INDEX_OF function to determine the index of the last occurrence of 
 
 
 <!-- ======================================================== -->  
- <section>
+ <section id="lcfirst">
    <title>LCFIRST</title>
    <p>Converts the first character in a string to lower case. </p>
 
@@ -2550,7 +2583,7 @@ Use the LCFIRST function to convert only the first character in a string to lowe
 </section> 
 
 <!-- ======================================================== -->  
- <section>
+ <section id="lower">
    <title>LOWER</title>
    <p>Converts all characters in a string to lower case. </p>
 
@@ -2589,7 +2622,7 @@ Use the LOWER function to convert all characters in a string to lower case.
 
 
 <!-- ======================================================== -->
- <section>
+ <section id="regex-extract">
    <title>REGEX_EXTRACT </title>
    <p>Performs regular expression matching and extracts the matched group defined by an index parameter. </p>
 
@@ -2659,7 +2692,7 @@ REGEX_EXTRACT('192.168.1.5:8020', '(.*)\:(.*)', 1);
 </section>
 
 <!-- ======================================================== -->
- <section>
+ <section id="regex-extract-all">
    <title>REGEX_EXTRACT_ALL </title>
    <p>Performs regular expression matching and extracts all matched groups.</p>
 
@@ -2722,7 +2755,7 @@ REGEX_EXTRACT_ALL('192.168.1.5:8020', '(.*)\:(.*)');
 
 
 <!-- ======================================================== -->  
- <section>
+ <section id="replace">
    <title>REPLACE</title>
    <p>Replaces existing characters in a string with new characters.</p>
 
@@ -2780,7 +2813,7 @@ REPLACE(string,'software','wiki');
 </section> 
 
 <!-- ======================================================== -->  
- <section>
+ <section id="strsplit">
    <title>STRSPLIT</title>
    <p>Splits a string around matches of a given regular expression. </p>
 
@@ -2837,7 +2870,7 @@ For example, given the string (open:source:software), STRSPLIT (string, ':',2) w
 </section> 
 
 <!-- ======================================================== -->  
- <section>
+ <section id="substring">
    <title>SUBSTRING</title>
    <p>Returns a substring from a given string. </p>
 
@@ -2895,7 +2928,7 @@ Given a field named alpha whose value is ABCDEF, to return substring BCD use thi
 </section> 
 
 <!-- ======================================================== -->  
- <section>
+ <section id="trim">
    <title>TRIM</title>
    <p>Returns a copy of a string with leading and trailing white space removed.</p>
 
@@ -2933,7 +2966,7 @@ Use the TRIM function to remove leading and trailing white space from a string.
 </section> 
 
 <!-- ======================================================== -->  
- <section>
+ <section id="ucfirst">
    <title>UCFIRST</title>
    <p>Returns a string with the first character converted to upper case. </p>
 
@@ -2971,7 +3004,7 @@ Use the UCFIRST function to convert only the first character in a string to uppe
 </section>
 
 <!-- ======================================================== -->  
- <section>
+ <section id="upper">
    <title>UPPER</title>
    <p>Returns a string converted to upper case. </p>
 
@@ -3015,12 +3048,12 @@ Use the UPPER function to convert all characters in a string to upper case.
 <!-- ======================================================== -->
 <!-- ======================================================== -->
 <!-- Other Functions -->
-<section>
+<section id="bag-tuple-functions">
 <title>Bag and Tuple Functions</title>
 
 
 <!-- ======================================================== -->
- <section>
+ <section id="tobag">
    <title>TOBAG</title>
    <p>Converts one or more expressions to type bag. </p>
 
@@ -3085,7 +3118,7 @@ DUMP b;
 </section>
 
  <!-- ======================================================== -->  
- <section>
+ <section id="topx">
    <title>TOP</title>
    <p>Returns the top-n tuples from a bag of tuples.</p>
 
@@ -3158,7 +3191,7 @@ topResults = FOREACH D {
 
 </section>
 <!-- ======================================================== -->  
- <section>
+ <section id="totuple">
    <title>TOTUPLE</title>
    <p>Converts one or more expressions to type tuple. </p>
 
