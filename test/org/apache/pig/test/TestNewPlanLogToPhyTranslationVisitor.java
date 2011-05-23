@@ -508,9 +508,9 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         LogicalRelationalOperator ld =  (LogicalRelationalOperator)newLogicalPlan.getSources().get(0);
         LogicalRelationalOperator fe = (LogicalRelationalOperator)newLogicalPlan.getSuccessors(ld).get(0);
         LogicalSchema ls = fe.getSchema();
-        assertEquals(6, ls.getField(0).uid);
-        assertEquals(9, ls.getField(1).uid);
-        assertEquals(10, ls.getField(2).uid);
+        assertEquals(1, ls.getField(0).uid);
+        assertEquals(4, ls.getField(1).uid);
+        assertEquals(5, ls.getField(2).uid);
         
         LogicalSchema expected = new LogicalSchema();
         expected.addField(new LogicalFieldSchema("id", null, DataType.BYTEARRAY));
@@ -561,8 +561,8 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         POForEach pForEach = (POForEach)pFE;
         PhysicalPlan inputPln = pForEach.getInputPlans().get(0);
         
-        assertEquals(4, ls.getField(0).uid);
-        assertEquals(5, ls.getField(1).uid);
+        assertEquals(1, ls.getField(0).uid);
+        assertEquals(2, ls.getField(1).uid);
         
         LogicalRelationalOperator fe = 
             (LogicalRelationalOperator) newLogicalPlan.getSuccessors(load).get(0);
@@ -615,8 +615,8 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         POForEach pForEach = (POForEach)pFE;
         PhysicalPlan inputPln = pForEach.getInputPlans().get(0);
         
-        assertEquals(4, ls.getField(0).uid);
-        assertEquals(5, ls.getField(1).uid);
+        assertEquals(1, ls.getField(0).uid);
+        assertEquals(2, ls.getField(1).uid);
         
         LogicalRelationalOperator fe = 
             (LogicalRelationalOperator) newLogicalPlan.getSuccessors(load).get(0);
@@ -668,8 +668,8 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         POForEach pForEach = (POForEach)pFE;
         PhysicalPlan inputPln = pForEach.getInputPlans().get(0);
         
-        assertEquals(4, ls.getField(0).uid);
-        assertEquals(5, ls.getField(1).uid);
+        assertEquals(1, ls.getField(0).uid);
+        assertEquals(2, ls.getField(1).uid);
         
         LogicalRelationalOperator fe = 
             (LogicalRelationalOperator) newLogicalPlan.getSuccessors(load).get(0);
@@ -721,8 +721,8 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         POForEach pForEach = (POForEach)pFE;
         PhysicalPlan inputPln = pForEach.getInputPlans().get(0);
         
-        assertEquals(4, ls.getField(0).uid);
-        assertEquals(5, ls.getField(1).uid);
+        assertEquals(1, ls.getField(0).uid);
+        assertEquals(2, ls.getField(1).uid);
         
         LogicalRelationalOperator fe = 
             (LogicalRelationalOperator) newLogicalPlan.getSuccessors(load).get(0);
@@ -774,8 +774,8 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         POForEach pForEach = (POForEach)pFE;
         PhysicalPlan inputPln = pForEach.getInputPlans().get(0);
         
-        assertEquals(4, ls.getField(0).uid);
-        assertEquals(5, ls.getField(1).uid);
+        assertEquals(1, ls.getField(0).uid);
+        assertEquals(2, ls.getField(1).uid);
         
         LogicalRelationalOperator fe = 
             (LogicalRelationalOperator) newLogicalPlan.getSuccessors(load).get(0);
@@ -827,8 +827,8 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         POForEach pForEach = (POForEach)pFE;
         PhysicalPlan inputPln = pForEach.getInputPlans().get(0);
         
-        assertEquals(4, ls.getField(0).uid);
-        assertEquals(5, ls.getField(1).uid);
+        assertEquals(1, ls.getField(0).uid);
+        assertEquals(2, ls.getField(1).uid);
         
         LogicalRelationalOperator fe = 
             (LogicalRelationalOperator) newLogicalPlan.getSuccessors(load).get(0);
@@ -871,8 +871,8 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         LOLoad load = (LOLoad)ld;
         LogicalSchema ls = load.getSchema();
         
-        assertEquals(4, ls.getField(0).uid);
-        assertEquals(5, ls.getField(1).uid);
+        assertEquals(1, ls.getField(0).uid);
+        assertEquals(2, ls.getField(1).uid);
         
         LogicalRelationalOperator fil = (LogicalRelationalOperator)
         newLogicalPlan.getSuccessors( newLogicalPlan.getSources().get(0) ).get(0);
@@ -906,8 +906,8 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         LOLoad load = (LOLoad)ld;
         LogicalSchema ls = load.getSchema();
         
-        assertEquals(5, ls.getField(0).uid);
-        assertEquals(6, ls.getField(1).uid);
+        assertEquals(1, ls.getField(0).uid);
+        assertEquals(2, ls.getField(1).uid);
         
         LogicalRelationalOperator fil = (LogicalRelationalOperator)
         newLogicalPlan.getSuccessors( newLogicalPlan.getSources().get(0) ).get(0);
@@ -952,8 +952,8 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         POForEach pForEach = (POForEach)pFE;
         PhysicalPlan inputPln = pForEach.getInputPlans().get(0);
         
-        assertEquals(5, ls.getField(0).uid);
-        assertEquals(6, ls.getField(1).uid);
+        assertEquals(1, ls.getField(0).uid);
+        assertEquals(2, ls.getField(1).uid);
         
         LogicalRelationalOperator fe = 
             (LogicalRelationalOperator) newLogicalPlan.getSuccessors(load).get(0);
@@ -1033,8 +1033,8 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         POForEach pForEach = (POForEach)pFE;
         PhysicalPlan inputPln1 = pForEach.getInputPlans().get(0);
         
-        assertEquals(7, ls.getField(0).uid);
-        assertEquals(8, ls.getField(1).uid);
+        assertEquals(1, ls.getField(0).uid);
+        assertEquals(2, ls.getField(1).uid);
         
         LogicalRelationalOperator fe = 
             (LogicalRelationalOperator) newLogicalPlan.getSuccessors(load).get(0);
@@ -1094,8 +1094,8 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         POForEach pForEach = (POForEach)pFE;
         PhysicalPlan inputPln = pForEach.getInputPlans().get(0);
         
-        assertEquals(11, ls.getField(0).uid);
-        assertEquals(12, ls.getField(1).uid);
+        assertEquals(1, ls.getField(0).uid);
+        assertEquals(2, ls.getField(1).uid);
         
         LogicalRelationalOperator fe = 
             (LogicalRelationalOperator) newLogicalPlan.getSuccessors(load).get(0);

@@ -49,7 +49,9 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.util.Utils;
 import org.junit.After;
@@ -780,13 +782,15 @@ public class TestPigServer {
 
     @Test // PIG-2059
     public void test1() throws Throwable {
-    	pig.setBatchOn();
+    	pig.setValidateEachStatement(true);
         pig.registerQuery("A = load 'x' as (u, v);") ;
         try {
             pig.registerQuery("B = foreach A generate $2;") ;
-        } catch(Exception ex) {
-        	Assert.assertTrue( ex.getMessage().contains("<line 1, column 46> Out of bound access. Trying to access non-existent column: 2") );
-        	return;
+        } catch(FrontendException ex) {
+            String msg = "Out of bound access. " +
+            "Trying to access non-existent column: 2";
+            Util.checkMessageInException(ex, msg);
+            return;
         }
         Assert.fail( "Query is supposed to fail." );
     }

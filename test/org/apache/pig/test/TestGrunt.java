@@ -33,18 +33,29 @@ import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.test.Util.ProcessReturnInfo;
 import org.apache.pig.tools.grunt.Grunt;
+import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
 import org.apache.pig.tools.pigscript.parser.ParseException;
+import org.apache.pig.tools.pigstats.ScriptState;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.InputStreamReader;
 import java.io.BufferedReader;
+import java.io.PrintWriter;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.Properties;
 
 @RunWith(JUnit4.class)
 public class TestGrunt extends TestCase {
+ 
     static MiniCluster cluster = MiniCluster.buildCluster();
     private String basedir = "test/org/apache/pig/test/data";
 
@@ -473,6 +484,33 @@ public class TestGrunt extends TestCase {
         
         String strCmd = "a = load 'foo' as (foo, fast, regenerate); explain -script "
                 + basedir + "/testsubnested_run.pig;";
+        
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+    
+        grunt.exec();
+    }
+    
+    /**
+     * PIG-2084
+     * Check if only statements used in query are validated, in non-interactive
+     * /non-check mode. There is an  'unused' statement in query that would otherise
+     * fail the validation. 
+     * Primary purpose of test is to verify that check not happening for 
+     *  every statement. 
+     * @throws Throwable
+     */
+    @Test
+    public void testExplainScriptIsEachStatementValidated() throws Throwable {
+        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigContext context = server.getPigContext();
+        
+        String strCmd = "a = load 'foo' as (foo, fast, regenerate);" +
+        		"b = foreach a generate foo + 'x' + 1;" +
+        		"c = foreach a generate foo, fast;" +
+        		"explain c; ";
         
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
@@ -1136,7 +1174,7 @@ public class TestGrunt extends TestCase {
         assertTrue(context.getFuncSpecFromAlias("pig.square") != null);
 
     }
-    /*
+    
     @Test    
     public void testScriptMissingLastNewLine() throws Throwable {   
         PigServer server = new PigServer(ExecType.LOCAL);
@@ -1157,8 +1195,10 @@ public class TestGrunt extends TestCase {
         }
     }
     
+    /*
     // Test case for PIG-740 to report an error near the double quotes rather
     // than an unrelated EOF error message
+    @Test
     public void testBlockErrMessage() throws Throwable {
         PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         PigContext context = server.getPigContext();
@@ -1179,6 +1219,7 @@ public class TestGrunt extends TestCase {
         }
     }
     
+    @Test
     public void testCheckScript() throws Throwable {
         // a query which has grunt commands intermixed with pig statements - this
         // should pass through successfully with the check and all the grunt commands
@@ -1202,6 +1243,7 @@ public class TestGrunt extends TestCase {
         validate(query, true, msgs.toArray(new String[0]));
     }
     
+    @Test
     public void testCheckScriptSyntaxErr() throws Throwable {
         // a query which has grunt commands intermixed with pig statements - this
         // should fail with the -check option with a syntax error
@@ -1221,6 +1263,7 @@ public class TestGrunt extends TestCase {
         validate(query, false, msgs.toArray(new String[0]));
     }
     
+    @Test
     public void testCheckScriptTypeCheckErr() throws Throwable {
         // a query which has grunt commands intermixed with pig statements - this
         // should fail with the -check option with a type checking error
@@ -1239,6 +1282,8 @@ public class TestGrunt extends TestCase {
         msgs.add("In alias b, incompatible types in EqualTo Operator");
         validate(query, false, msgs.toArray(new String[0]));
     }
+    
+
     
     private void validate(String query, boolean syntaxOk, 
             String[] logMessagesToCheck) throws Throwable {
@@ -1262,15 +1307,42 @@ public class TestGrunt extends TestCase {
                     pri.stderrContents.contains("syntax OK"));
         }
     }
-    
+    */
     @Test
     public void testSet() throws Throwable {
 
-    	String strCmd = "set my.arbitrary.key my.arbitrary.value\n";
-    	PigContext pc = new PigServer(ExecType.MAPREDUCE, cluster.getProperties()).getPigContext();
-    	InputStreamReader reader = new InputStreamReader(new ByteArrayInputStream(strCmd.getBytes()));
+        String strCmd = "set my.arbitrary.key my.arbitrary.value\n";
+        PigContext pc = new PigServer(ExecType.LOCAL).getPigContext();
+        InputStreamReader reader = new InputStreamReader(new ByteArrayInputStream(strCmd.getBytes()));
         new Grunt(new BufferedReader(reader), pc).exec();
-        
-        assertEquals("my.arbitrary.value",  pc.getExecutionEngine().getConfiguration().getProperty("my.arbitrary.key"));
-    }*/
+
+        assertEquals("my.arbitrary.value",  pc.getProperties().getProperty("my.arbitrary.key"));
+    }
+
+    @Test
+    public void testCheckScriptTypeCheckErrNoStoreDump() throws Throwable {
+        //the query has not store or dump, but in when -check is used
+        // all statements should be validated
+        String query = "a = load 'foo.pig' as (s:chararray); " +
+        "b = foreach a generate $1;";
+
+        String msg = "Trying to access non-existent column";
+        validateGruntCheckFail(query, msg);
+    }
+
+    private void validateGruntCheckFail(String piglatin, String errMsg) throws Throwable{
+        String scriptFile = "myscript.pig";
+        try {
+            BufferedReader br = new BufferedReader(new StringReader(piglatin));
+            Grunt grunt = new Grunt(br, new PigContext(ExecType.LOCAL, new Properties()));
+            String [] inp = {piglatin};
+            Util.createLocalInputFile(scriptFile, inp);
+
+            grunt.checkScript(scriptFile);
+
+            Assert.fail("Expected exception isn't thrown");
+        } catch (FrontendException e) { 
+            Util.checkMessageInException(e, errMsg);
+        }
+    }
 }
