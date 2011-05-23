@@ -76,7 +76,7 @@
             </td>
             <td>
                <p>Two items, one required:</p>
-               <p>{ gen_blk | nested_gen_blk }</p>
+               <p>{ block | nested_block }</p>
               <p></p>
             </td>
          </tr>
@@ -102,7 +102,7 @@
                <p>In general, uppercase type indicates elements the system supplies.</p>
                <p>In general, lowercase type indicates elements that you supply.</p>
                <p>(These conventions are not strictly adherered to in all examples.)</p>
-               <p>See <a href="#Case+Sensitivity">Case Sensitivity</a></p>
+               <p>See <a href="#Case-Sensitivity">Case Sensitivity</a></p>
             </td>
             <td>
                <p>Pig Latin statement:</p>
@@ -126,7 +126,7 @@
 
 
  <!-- KEYWORDS -->
-   <section>
+   <section id="reserved-keywords">
    <title>Reserved Keywords</title>
    <p>Pig reserved keywords are listed here.</p>
    <table>
@@ -246,10 +246,10 @@
    
  <!-- ++++++++++++++++++++++++++++++++++ --> 
  <!-- CASE SENSITIVITY -->
-   <section>
+   <section id="case-sensitivity">
    <title>Case Sensitivity</title>
    <p>The names (aliases) of relations and fields are case sensitive. The names of Pig Latin functions are case sensitive. 
-   The names of parameters (see <a href="cont.html#Parameter+Substitution">Parameter Substitution</a>) and all other Pig Latin keywords (see <a href="#Reserved+Keywords">Reserved Keywords</a>) are case insensitive.</p>
+   The names of parameters (see <a href="cont.html#Parameter-Sub">Parameter Substitution</a>) and all other Pig Latin keywords (see <a href="#Reserved-Keywords">Reserved Keywords</a>) are case insensitive.</p>
    <p>In the example below, note the following:</p>
    <ul>
       <li>
@@ -285,7 +285,7 @@ grunt> DUMP C;
 <title>Data Types and More</title>
 
 <!-- IDENTIFIERS-->
-<section>
+<section id="identifiers">
 <title>Identifiers</title>
 <p>Identifiers include the names of relations (aliases), fields, variables, and so on. 
 In Pig, identifiers start with a letter and can be followed by any number of letters, digits, or underscores.</p>
@@ -311,7 +311,7 @@ A!B
 <!-- RELATIONS, BAGS, TUPLES, FIELDS-->
    <section id="relations">
    <title>Relations, Bags, Tuples, Fields</title>
-      <p><a href="start.html#Pig+Latin+Statements">Pig Latin statements</a> work with relations. A relation can be defined as follows:</p>
+      <p><a href="start.html#pl-Statements">Pig Latin statements</a> work with relations. A relation can be defined as follows:</p>
    <ul>
       <li>
          <p>A relation is a bag (more specifically, an outer bag).</p>
@@ -330,7 +330,8 @@ A!B
    <p>A Pig relation is a bag of tuples. A Pig relation is similar to a table in a relational database, where the tuples in the bag correspond to the rows in a table. Unlike a relational table, however, Pig relations don't require that every tuple contain the same number of fields or that the fields in the same position (column) have the same type.</p>
    <p>Also note that relations are unordered which means there is no guarantee that tuples are processed in any particular order. Furthermore, processing may be parallelized in which case tuples are not processed according to any total ordering.</p>
    
-   <section><title>Referencing Relations</title>
+   <section id="ref-relation">
+   <title>Referencing Relations</title>
    <p>Relations are referred to by name (or alias). Names are assigned by you as part of the Pig Latin statement. In this example the name (alias) of the relation is A.</p>
    
    <source>
@@ -345,7 +346,7 @@ DUMP A;
    
    
    <!-- +++++++++++++++++++++++++++++++++++++++++++++++ -->
-   <section>
+   <section id="ref-field">
    <title>Referencing Fields</title>
    <p>Fields are referred to by positional notation or by name (alias). </p>
    <ul>
@@ -454,7 +455,7 @@ Out of bound access. Trying to access non-existent  : 3. Schema {f1: bytearray,f
    
    
    <!-- +++++++++++++++++++++++++++++++++++++++++++++++ -->
-   <section>
+   <section id="ref-field-complex">
    <title>Referencing Fields that are Complex Data Types</title>
    <p>As noted, the fields in a tuple can be any data type, including the complex data types: bags, tuples, and maps. </p>
    <ul>
@@ -492,7 +493,7 @@ DUMP X;
 </section>   
 
 <!-- ++++++++++++++++++++++++++++++++++ --> 
-<section>
+<section id="data-types">
 <title>Data Types</title>
 
 <section>
@@ -693,7 +694,7 @@ This will cause an error …</source>
    </ul>
    </section>
    
-   <section>
+   <section id ="tuple">
    <title>Tuple</title>
    <p>A tuple is an ordered set of fields.</p>
    
@@ -749,7 +750,7 @@ This will cause an error …</source>
    <source>(John,18,4.0F)</source>
    </section></section>
    
-   <section>
+   <section id="bag">
    <title>Bag</title>
    <p>A bag is a collection of tuples.</p>
    
@@ -896,9 +897,9 @@ DUMP X;
    
    <!-- ++++++++++++++++++++++++++++++++++ --> 
    <section id="nulls">
-   <title>Nulls</title>
+   <title>Nulls and Pig Latin</title>
    <p>In Pig Latin, nulls are implemented using the SQL definition of null as unknown or non-existent. Nulls can occur naturally in data or can be the result of an operation. </p>
-   <section>
+   <section id="nulls-ops">
    <title>Nulls, Operators, and Functions</title>
    <p>Pig Latin operators and functions interact with nulls as shown in this table.</p>
    <table>
@@ -1039,7 +1040,7 @@ DUMP X;
    
    
    <!-- ++++++++++++++++++++++++++++++++++ --> 
-   <section>
+   <section id="nulls-constants">
    <title>Nulls and Constants</title>
    <p>Nulls can be used as constant expressions in place of expressions of any type.</p>
    <p>In this example a and null are projected.</p>
@@ -1070,7 +1071,7 @@ B = FOREACH A GENERATE a + (int)null;
 </source>
    </section>
    
-   <section>
+   <section id="nulls-ops-produce">
    <title>Operations That Produce Nulls</title>
    <p>As noted, nulls can be the result of an operation. These operations can produce null values: </p>
    <ul>
@@ -1117,7 +1118,7 @@ DUMP B;
    
    </section></section>
    
-   <section>
+   <section id="nulls-load">
    <title>Nulls and Load Functions</title>
    <p>As noted, nulls can occur naturally in the data. If nulls are part of the data, it is the responsibility of the load function to handle them correctly. Keep in mind that what is considered a null value is loader-specific; however, the load function should always communicate null values to Pig by producing Java nulls.</p>
    <p>The Pig Latin load functions (for example, PigStorage and TextLoader) produce null values wherever data is missing. For example, empty strings (chararrays) are not loaded; instead, they are replaced by nulls.</p>
@@ -1167,7 +1168,7 @@ dump X;
    <section id="nulls_join">
    <title>Nulls and JOIN Operator</title>
    <p>The JOIN operator - when performing inner joins - adheres to the SQL standard and disregards (filters out) null values. 
-   (See also <a href="perf.html#Drop+Nulls+Before+a+Join">Drop Nulls Before a Join</a>.)</p>
+   (See also <a href="perf.html#nulls">Drop Nulls Before a Join</a>.)</p>
 <source>
 A = load 'student' as (name:chararray, age:int, gpa:float);
 B = load 'student' as (name:chararray, age:int, gpa:float);
@@ -1186,7 +1187,7 @@ dump X;
   
   
    <!-- ++++++++++++++++++++++++++++++++++ -->  
-   <section>
+   <section id="constants">
    <title>Constants</title>
    <p>Pig provides constant representations for all data types except bytearrays.</p>
    <table>
@@ -1383,7 +1384,7 @@ D = FOREACH B GENERATE T.name, [25#5.6], {(1, 5, 18)};
    
    
     <!-- ++++++++++++++++++++++++++++++++++ --> 
-   <section>
+   <section id="expressions">
    <title>Expressions</title>
    <p>In Pig Latin, expressions are language constructs used with the FILTER, FOREACH, GROUP, and SPLIT operators as well as the eval functions.</p>
    <p>Expressions are written in conventional mathematical infix notation and are adapted to the UTF-8 character set. Depending on the context, expressions can include:</p>
@@ -1466,7 +1467,7 @@ C = FOREACH G GENERATE COUNT(*)
 
 <p>If the input relation has a schema, you can refer to columns by alias rather than by column position. You can also combine aliases and column positions in an expression; for example, "col1 .. $5" is valid. </p>
 
-<p>Project-range can be used in all cases where the <a href="#sexp">star expression</a> ( * ) is allowed, except as a UDF argument (support for this use case will be added in <a href="https://issues.apache.org/jira/browse/PIG-1938">PIG-1938</a>).</p>
+<p>Project-range can be used in all cases where the <a href="#sexp">star expression</a> ( * ) is allowed.</p>
 
 <p>Project-range can be used in the following statements:
 <a href="#FOREACH">FOREACH</a>, 
@@ -1559,7 +1560,7 @@ SORT = order IN by $2 .. $3, $6 ..;
    <p>If you assign a name to a field, you can refer to that field using the name or by positional notation. If you don't assign a name to a field (the field is un-named) you can only refer to the field using positional notation.</p>
    <p>If you assign a type to a field, you can subsequently change the type using the cast operators. If you don't assign a type to a field, the field defaults to bytearray; you can change the default type using the cast operators.</p>
       <p></p>
-   <p><strong>Unknown Schema Handling</strong></p>
+   <p id="unknown-schema"><strong>Unknown Schema Handling</strong></p>
       <p>Note the following:</p>
    <ul>
       <li>When you JOIN/COGROUP/CROSS multiple relations, if any relation has an unknown schema (or no defined schema, also referred to as a null schema), the schema for the resulting relation is null. </li>
@@ -1716,7 +1717,7 @@ DUMP A;
    <title>Schemas for Complex Data Types</title>
    <p>Complex data types include tuples, bags, and maps.</p></section>
    
-   <section>
+   <section id="tuple-schema">
    <title>Tuple Schema</title>
    <p>A tuple is an ordered set of fields.</p>
    
@@ -1818,7 +1819,7 @@ DUMP A;
 </source>
    </section></section>
    
-   <section>
+   <section id="bag-schema">
    <title>Bag Schema</title>
    <p>A bag is a collection of tuples.</p>
    
@@ -1893,7 +1894,7 @@ DUMP A;
 </source>
    </section></section>
    
-   <section>
+   <section id="map-schema">
    <title>Map Schema</title>
    <p>A map is a set of key value pairs.</p>
    
@@ -1968,7 +1969,7 @@ b: {int}
 </source>
  </section></section>
    
-   <section>
+   <section id="schema-multi">
    <title>Schemas for Multiple Types</title>
    <p>You can define schemas for data that includes multiple types.</p>
    
@@ -1981,18 +1982,14 @@ A = LOAD 'mydata' AS (T1:tuple(f1:int, f2:int), B:bag{T2:tuple(t1:float,t2:float
 A = LOAD 'mydata' AS (T1:(f1:int, f2:int), B:{T2:(t1:float,t2:float)}, M:[] );
 </source>
 </section></section></section>
-
-
-
-   
    </section>
    
-   
+<!-- =================================================================== -->    
 <!-- ARITHMETIC OPERATORS, ETC -->
-<section>
+<section id="artichmetic-ops">
 	<title>Arithmetic Operators and More</title>
 
-<section>
+<section id="arithmetic">
 <title>Arithmetic Operators</title>
 
 <section>
@@ -2114,7 +2111,7 @@ DUMP X;
 </source>
    </section>
    
-   <section>
+   <section id="types-table-add">
    <title> Types Table: addition (+) and subtraction (-) operators</title>
    <p>* bytearray cast as this data type</p>
    <table>
@@ -2441,7 +2438,7 @@ DUMP X;
    </table>
    </section>
    
-   <section>
+   <section id="types-table-mult">
    <title>Types Table: multiplication (*) and division (/) operators</title>
    <p>* bytearray cast as this data type</p>
    <table>
@@ -2830,7 +2827,8 @@ DUMP X;
    </table>
    </section></section></section>
    
-   <section>
+   <!-- =================================================================== --> 
+   <section id="comparison">
    <title>Comparison Operators</title>
       
     <section><title>Description</title>
@@ -2920,7 +2918,10 @@ DUMP X;
                <p>matches</p>
             </td>
             <td>
-               <p>Regular expression matching.  Use the Java <a href="http://java.sun.com/j2se/1.5.0/docs/api/java/util/regex/Pattern.html">format</a> for regular expressions.</p>
+            <p>Takes an expression on the left and a string constant on the right.</p>
+            <p><em>expression</em> matches <em>string-constant</em></p>
+            <p>Use the Java <a href="http://java.sun.com/j2se/1.5.0/docs/api/java/util/regex/Pattern.html">format</a> for regular expressions.</p>
+
             </td>
          </tr>
    </table>
@@ -2947,7 +2948,7 @@ X = FILTER A BY (f1 matches '.*apache.*');
 </source>
    </section>
    
-   <section>
+   <section id="types-table-equal">
    <title>Types Table: equal (==) and not equal (!=) operators</title>
    <p>* bytearray cast as this data type</p>
    <table>
@@ -3603,7 +3604,7 @@ X = FILTER A BY (f1 matches '.*apache.*');
    </table>
    </section>
    
-   <section>
+   <section id="types-table-matches">
    <title>Types Table: matches operator</title>
    <p>*Cast as chararray (the second argument must be chararray)</p>
    <table>
@@ -3662,7 +3663,7 @@ X = FILTER A BY (f1 matches '.*apache.*');
          </tr>
          <tr>
             <td>
-               <p>is null        </p>
+               <p>is null </p>
             </td>
             <td>
                <p>is null</p>
@@ -3683,7 +3684,8 @@ X = FILTER A BY (f1 matches '.*apache.*');
             </td>
          </tr>
    </table>
-   
+   <p></p>
+   <p>For a detailed discussion of nulls see <a href="#nulls">Nulls and Pig Latin</a>.</p>
    <section>
    <title>Example</title>
 <source>
@@ -3691,12 +3693,13 @@ X = FILTER A BY f1 is not null;
 </source>
    </section></section>
    
-   <section>
+   <section id="types-table-nulls">
    <title>Types Table</title>
-   <p>The null operators can be applied to all data types (see <a  href="#nulls">Nulls</a>). </p>
+   <p>The null operators can be applied to all data types (see <a  href="#nulls">Nulls and Pig Latin</a>). </p>
    </section>
    </section>
    
+  <!-- =================================================================== --> 
    <section id="boolops">
    <title>Boolean Operators</title>
       
@@ -3757,7 +3760,9 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 > f1));
 </source>
    
    </section></section></section>
-   
+
+
+  <!-- =================================================================== -->    
    <section id="deref">
    <title>Dereference Operators</title>
    
@@ -3956,7 +3961,8 @@ DUMP X;
 </source>
   </section></section></section>
    
-   <section>
+  <!-- =================================================================== -->    
+   <section id="sign">
    <title>Sign Operators</title>
    
    <section>
@@ -4007,8 +4013,8 @@ B = FOREACH A GENERATE -x, y;
    
    </section>
    
-   <section>
-   <title>Types Table: negation ( - ) operator</title>
+   <section id="types-table-negative">
+   <title>Types Table: negative ( - ) operator</title>
    <table>
       <tr>
             <td>
@@ -4084,8 +4090,9 @@ B = FOREACH A GENERATE -x, y;
          </tr>
    </table>
    </section></section></section>
-   
-   <section>
+  
+    <!-- =================================================================== -->  
+   <section  id="flatten">
    <title>Flatten Operator</title>
    <p>The FLATTEN operator looks like a UDF syntactically, but it is actually an operator that changes the structure of tuples 
    and bags in a way that a UDF cannot. Flatten un-nests tuples as well as bags. The idea is the same, but the operation and 
@@ -4101,7 +4108,7 @@ B = FOREACH A GENERATE -x, y;
    If we apply the expression GENERATE $0, flatten($1) to this tuple, we will create new tuples: (a, b, c) and (a, d, e).</p>
    
    <p>Also note that the flatten of empty bag will result in that row being discarded; no output is generated. 
-   (See also <a href="perf.html#Drop+Nulls+Before+a+Join">Drop Nulls Before a Join</a>.) </p>
+   (See also <a href="perf.html#nulls">Drop Nulls Before a Join</a>.) </p>
    
    <source>
 grunt> cat empty.bag
@@ -4115,7 +4122,9 @@ grunt>
    <p>For examples using the FLATTEN operator, see <a href="#FOREACH">FOREACH</a>.</p>
    </section>
 
-   <section>
+
+   <!-- =================================================================== -->
+   <section id="cast">
    <title>Cast Operators</title>
    
    <section>
@@ -4667,7 +4676,8 @@ DUMP B;
    
 </section></section></section> 
 
-   <section>
+<!-- =================================================================== -->
+   <section id="cast-relations">
    <title>Casting Relations to Scalars</title>
 <p>Pig allows you to cast the elements of a single-tuple relation into a scalar value. 
 The tuple can be a single-field or multi-field tulple. 
@@ -4701,16 +4711,19 @@ dump E;
 </section>
 </section>   
 
-
+<!-- =================================================================== -->
 <!-- RELATIONAL OPERATORS, ETC -->
 <section>
 <title>Relational Operators</title>
 
+<!-- =================================================================== -->
  <section id="COGROUP">
 <title>COGROUP</title>
    <p>See the <a href="#GROUP">GROUP</a> operator.</p>
 </section>
-   <section>
+
+<!-- =================================================================== -->
+   <section id="cross">
    <title>CROSS</title>
    <p>Computes the cross product of two or more relations.</p>
    
@@ -4738,7 +4751,7 @@ dump E;
          </tr>
                <tr>
             <td>
-               <p>PARTITION BY partitioner</p>
+               <p id="partition-by-cross">PARTITION BY partitioner</p>
             </td>
             <td>
              <p>Use this feature to specify the Hadoop Partitioner. The partitioner controls the partitioning of the keys of the intermediate map-outputs. </p>
@@ -4758,7 +4771,7 @@ dump E;
             </td>
             <td>
                <p>Increase the parallelism of a job by specifying the number of reduce tasks, n. </p>
-               <p>For more information, see <a href="perf.html#Use+the+Parallel+Features">Use the Parallel Features</a>.</p>
+               <p>For more information, see <a href="perf.html#Parallel">Use the Parallel Features</a>.</p>
             </td>
          </tr> 
    </table></section>
@@ -4802,7 +4815,19 @@ DUMP X;
    
    </section></section>
    
-   <section>
+<!-- =================================================================== -->    
+   <section id="define">
+   <title>DEFINE</title>
+   
+   <p>See:</p>
+   <ul>
+   <li><a href="basic.html#define-udfs">DEFINE (UDFs, streaming)</a></li>
+   <li><a href="cont.html#define-macros">DEFINE (macros)</a></li>
+   </ul>
+   </section>
+ 
+ <!-- =================================================================== -->  
+   <section id="distinct">
    <title>DISTINCT </title>
    <p>Removes duplicate tuples in a relation.</p>
    
@@ -4831,7 +4856,7 @@ DUMP X;
       
       <tr>      
          <td>
-               <p>PARTITION BY partitioner</p>
+               <p id="partition-by-distinct">PARTITION BY partitioner</p>
             </td>
             <td>
              <p>Use this feature to specify the Hadoop Partitioner. The partitioner controls the partitioning of the keys of the intermediate map-outputs. </p>
@@ -4852,7 +4877,7 @@ DUMP X;
             </td>
             <td>
                <p>Increase the parallelism of a job by specifying the number of reduce tasks, n.</p>
-               <p>For more information, see <a href="perf.html#Use+the+Parallel+Features">Use the Parallel Features</a>.</p>
+               <p>For more information, see <a href="perf.html#Parallel">Use the Parallel Features</a>.</p>
             </td>
          </tr> 
    </table>
@@ -4890,8 +4915,8 @@ DUMP X;
  </section></section>
    
   
-   
-   <section>
+<!-- =================================================================== -->   
+   <section id="filter">
    <title>FILTER </title>
    <p>Selects tuples from a relation based on some condition.</p>
    
@@ -4978,8 +5003,9 @@ DUMP X;
 </source>
 
 </section></section>
-   
-   <section>
+ 
+ <!-- =================================================================== -->  
+   <section id="foreach">
    <title>FOREACH</title>
    <p>Generates data transformations based on columns of data.</p>
    
@@ -5086,7 +5112,7 @@ DUMP X;
                <p>A schema using the AS keyword (see <a href="#schemas">Schemas</a>).</p>
                <ul>
                   <li>
-                     <p>If the <a href="#Flatten+Operator">FLATTEN</a> operator is used, enclose the schema in parentheses.</p>
+                     <p>If the <a href="#Flatten">FLATTEN</a> operator is used, enclose the schema in parentheses.</p>
                   </li>
                   <li>
                      <p>If the FLATTEN operator is not used, don't enclose the schema in parentheses.</p>
@@ -5215,7 +5241,7 @@ DUMP X;
    
    <section>
    <title>Example: Flattening</title>
-   <p>In this example the <a href="#Flatten+Operator">FLATTEN</a> operator is used to eliminate nesting. </p>
+   <p>In this example the <a href="#Flatten">FLATTEN</a> operator is used to eliminate nesting. </p>
 <source>
 X = FOREACH C GENERATE group, FLATTEN(A);
 
@@ -5307,55 +5333,11 @@ DUMP X;
    
 </section></section>
    
-   
-   <section id="IMPORT">
-   <title>IMPORT</title>   
-   <p>Import macros defined in another Pig script.</p>
-    <section>
-   <title>Syntax</title>
-   <table>
-      <tr> 
-            <td>
-               <p>IMPORT 'pig_script';</p>
-            </td>
-      </tr> 
-   </table>
-   </section>
-     
-   <section>
-   <title>Terms</title>
-   <table>
-      <tr>
-            <td>
-               <p>pig_script </p>
-            </td>
-            <td>
-               <p>The file name of a Pig script containing the macro, enclosed in single quotes; for example, 'mypath/my_macro.pig'.</p>
-               <p></p>
-               <p>Files are imported based on either (1) the given file path or (2) the import path specified via the Pig property pig.import.search.path. If a file path is given, whether absolute or relative to the current directory (starting with . or ..), the import path will be ignored. </p>
-            </td>
-         </tr>
-      </table>   
-   </section>
-      
-   <section>
-   <title>Usage</title>
-   <p>IMPORT adds the macros defined in the Pig script to the Pig Latin namespace; these macros can then be invoked as if they were defined in the same file.</p>
-   
-   <p>See also: <a href="#define-macros">DEFINE (macros)</a></p>
-     </section> 
-     
-   <section>
-   <title>Example</title>
-   <p>In this example, because a path is not given, Pig will use the import path specified in <code>pig.import.search.path</code>.</p>
-<source>
-IMPORT 'my_macro.pig';
-</source>
-   
-    </section> 
-   </section> 
+ 
+ 
             
-
+            
+<!-- =================================================================== -->
    <section id="GROUP">
    <title>GROUP</title>
    <p>Groups the data in one or more relations.</p>
@@ -5505,7 +5487,7 @@ IMPORT 'my_macro.pig';
             </td>
             <td>
                <p>Increase the parallelism of a job by specifying the number of reduce tasks, n.</p>
-               <p>For more information, see <a href="perf.html#Use+the+Parallel+Features">Use the Parallel Features</a>.</p>
+               <p>For more information, see <a href="perf.html#Parallel">Use the Parallel Features</a>.</p>
             </td>
          </tr> 
    </table></section>
@@ -5725,10 +5707,17 @@ public class SimpleCustomPartitioner extends Partitioner &lt;PigNullableWritable
    </section>
    </section>
    
+   <!-- =================================================================== -->    
+   <section id="import">
+   <title>IMPORT</title>
+   
+   <p>See <a href="cont.html#import-macros">IMPORT (macros)</a></p>
+
+   </section>
    
 <!-- =========================================================================== -->     
    
-   <section>
+   <section id="join-inner">
    <title>JOIN (inner) </title>
    <p>Performs an inner join of two or more relations based on common field values.</p>
    
@@ -5783,7 +5772,7 @@ public class SimpleCustomPartitioner extends Partitioner &lt;PigNullableWritable
                <p>'replicated'</p>
             </td>
             <td>
-               <p>Use to perform replicated joins (see <a href="perf.html#Replicated+Joins">Replicated Joins</a>).</p>
+               <p>Use to perform replicated joins (see <a href="perf.html#Replicated-Joins">Replicated Joins</a>).</p>
             </td>
          </tr>
          
@@ -5792,7 +5781,7 @@ public class SimpleCustomPartitioner extends Partitioner &lt;PigNullableWritable
                <p>'skewed'</p>
             </td>
             <td>
-               <p>Use to perform skewed joins (see <a href="perf.html#Skewed+Joins">Skewed Joins</a>).</p>
+               <p>Use to perform skewed joins (see <a href="perf.html#Skewed-Joins">Skewed Joins</a>).</p>
             </td>
          </tr>
          
@@ -5801,13 +5790,13 @@ public class SimpleCustomPartitioner extends Partitioner &lt;PigNullableWritable
                <p>'merge'</p>
             </td>
             <td>
-               <p>Use to perform merge joins (see <a href="perf.html#Merge+Joins">Merge Joins</a>).</p>
+               <p>Use to perform merge joins (see <a href="perf.html#Merge-Joins">Merge Joins</a>).</p>
             </td>
          </tr>
          
               <tr>      
          <td>
-               <p>PARTITION BY partitioner</p>
+               <p id="partition-by-join-inner">PARTITION BY partitioner</p>
             </td>
             <td>
              <p>Use this feature to specify the Hadoop Partitioner. The partitioner controls the partitioning of the keys of the intermediate map-outputs. </p>
@@ -5830,7 +5819,7 @@ public class SimpleCustomPartitioner extends Partitioner &lt;PigNullableWritable
             </td>
             <td>
                <p>Increase the parallelism of a job by specifying the number of reduce tasks, n. </p>
-               <p>For more information, see <a href="perf.html#Use+the+Parallel+Features">Use the Parallel Features</a>.</p>
+               <p>For more information, see <a href="perf.html#Parallel">Use the Parallel Features</a>.</p>
             </td>
          </tr> 
    </table></section>
@@ -5906,7 +5895,7 @@ DUMP X;
    
 <!-- =========================================================================== -->  
 
-<section>
+<section id="join-outer">
    <title>JOIN (outer) </title>
    <p>Performs an outer join of two or more relations based on common field values.</p>
    
@@ -6000,7 +5989,7 @@ DUMP X;
                <p>'replicated'</p>
             </td>
             <td>
-               <p>Use to perform replicated joins (see <a href="perf.html#Replicated+Joins">Replicated Joins</a>).</p>
+               <p>Use to perform replicated joins (see <a href="perf.html#Replicated-Joins">Replicated Joins</a>).</p>
                <p>Only left outer join is supported for replicated joins.</p>
             </td>
          </tr>
@@ -6010,7 +5999,7 @@ DUMP X;
                <p>'skewed'</p>
             </td>
             <td>
-               <p>Use to perform skewed joins (see <a href="perf.html#Skewed+Joins">Skewed Joins</a>).</p>
+               <p>Use to perform skewed joins (see <a href="perf.html#Skewed-Joins">Skewed Joins</a>).</p>
             </td>
          </tr>
 
@@ -6019,13 +6008,13 @@ DUMP X;
                <p>'merge'</p>
             </td>
             <td>
-               <p>Use to perform merge joins (see <a href="perf.html#Merge+Joins">Merge Joins</a>).</p>
+               <p>Use to perform merge joins (see <a href="perf.html#Merge-Joins">Merge Joins</a>).</p>
             </td>
          </tr>
          
       <tr>      
          <td>
-               <p>PARTITION BY partitioner</p>
+               <p id="partition-by-join-outer">PARTITION BY partitioner</p>
             </td>
             <td>
              <p>Use this feature to specify the Hadoop Partitioner. The partitioner controls the partitioning of the keys of the intermediate map-outputs. </p>
@@ -6048,7 +6037,7 @@ DUMP X;
             </td>
             <td>
                <p>Increase the parallelism of a job by specifying the number of reduce tasks, n. </p>
-               <p>For more information, see <a href="perf.html#Use+the+Parallel+Features">Use the Parallel Features</a>.</p>
+               <p>For more information, see <a href="perf.html#Parallel">Use the Parallel Features</a>.</p>
             </td>
          </tr>
     
@@ -6108,7 +6097,7 @@ C = JOIN A BY name FULL, B BY name USING 'skewed';
   
 <!-- =========================================================================== -->
 
-   <section>
+   <section id="limit">
    <title>LIMIT </title>
    <p>Limits the number of output tuples.</p>
    
@@ -6200,7 +6189,7 @@ DUMP X;
    
    <!-- =========================================================================== -->
    
-   <section>
+   <section id="load">
    <title>LOAD </title>
    <p>Loads data from the file system.</p>
    
@@ -6224,8 +6213,13 @@ DUMP X;
             <td>
                <p>The name of the file or directory, in single quotes.</p>
                <p>If you specify a directory name, all the files in the directory are loaded. </p>
-               <p>You can use Hadoop-supported globing to specify files at the file system or directory levels (see Hadoop
-                  <a href="http://hadoop.apache.org/common/docs/current/api/org/apache/hadoop/fs/FileSystem.html#globStatus(org.apache.hadoop.fs.Path)">gobStatus</a> for details on globing syntax).</p>
+               <p>You can use Hadoop globing to specify files at the file system or directory levels (see Hadoop
+                  <a href="http://hadoop.apache.org/common/docs/current/api/org/apache/hadoop/fs/FileSystem.html#globStatus(org.apache.hadoop.fs.Path)">globStatus</a> for details on globing syntax).</p>
+                  <p><strong>Note:</strong> Pig uses Hadoop globbing so the functionality is IDENTICAL. However, when you run from the command line using the Hadoop fs command (rather than the Pig LOAD operator), the Unix shell may do some of the substitutions; this could alter the outcome giving the impression that globing works differently for Pig and Hadoop. For example:</p>
+                <ul>
+					<li>This works <br></br>hadoop fs -ls /mydata/20110423{00,01,02,03,04,05,06,07,08,09,{10..23}}00//<strong>part </strong></li>
+					<li>This does not work <br></br>LOAD '/mydata/20110423{00,01,02,03,04,05,06,07,08,09,{10..23}}00//<strong>part </strong>'</li>
+				</ul>
             </td>
          </tr>
          <tr>
@@ -6247,7 +6241,7 @@ DUMP X;
                   <li>
                   
                   
-                     <p>You can use a built in function (see the <a href="func.html#Load%2FStore+Functions">Load/Store Functions</a>). PigStorage is the default load function and does not need to be specified (simply omit the USING clause).</p>
+                     <p>You can use a built in function (see <a href="func.html#Load-Store-Functions">Load/Store Functions</a>). PigStorage is the default load function and does not need to be specified (simply omit the USING clause).</p>
                   </li>
                   <li>
                      <p>You can write your own load function  
@@ -6328,7 +6322,8 @@ ILLUSTRATE A;
       </p></section></section>
       
 
-<section>
+<!-- =================================================================== -->
+<section id="mapreduce">
    <title>MAPREDUCE</title>
    <p>Executes native MapReduce jobs inside a Pig script.</p>      
    
@@ -6420,8 +6415,9 @@ B = MAPREDUCE 'wordcount.jar' STORE A INTO 'inputDir' LOAD 'outputDir'
 </section>
 
 </section>
-      
-      <section>
+ 
+ <!-- =================================================================== -->     
+      <section id="order-by">
       <title>ORDER BY</title>
    <p>Sorts a relation based on one or more fields.</p>
    
@@ -6485,7 +6481,7 @@ B = MAPREDUCE 'wordcount.jar' STORE A INTO 'inputDir' LOAD 'outputDir'
             </td>
             <td>
                <p>Increase the parallelism of a job by specifying the number of reduce tasks, n.</p>
-               <p>For more information, see <a href="perf.html#Use+the+Parallel+Features">Use the Parallel Features</a>.</p>
+               <p>For more information, see <a href="perf.html#Parallel">Use the Parallel Features</a>.</p>
             </td>
          </tr> 
    </table></section>
@@ -6549,8 +6545,7 @@ DUMP X;
 
 
 <!-- =========================================================================== -->
-   
-   <section>
+   <section id="sample">
    <title>SAMPLE</title>
    <p>Partitions a relation into two or more relations.</p>
    
@@ -6711,7 +6706,7 @@ output_var = FILTER input_var BY (field1 is not null);
 
 <!-- =========================================================================== -->   
 
-   <section>
+   <section id="store">
    <title>STORE </title>
    <p>Stores or saves results to the file system.</p>
    
@@ -6773,7 +6768,7 @@ output_var = FILTER input_var BY (field1 is not null);
                   <li>
                   
                   
-                     <p>You can use a built in function (see the <a href="func.html#Load%2FStore+Functions">Load/Store Functions</a>). PigStorage is the default store function and does not need to be specified (simply omit the USING clause).</p>
+                     <p>You can use a built in function (see the <a href="func.html#Load-Store-Functions">Load/Store Functions</a>). PigStorage is the default store function and does not need to be specified (simply omit the USING clause).</p>
                   </li>
                   <li>
                      <p>You can write your own store function  
@@ -6854,7 +6849,7 @@ a:8,b:4,c:3
    
    <!-- =========================================================================== -->
    
-   <section>
+   <section id="stream">
    <title>STREAM</title>
    <p>Sends data to an external script or program.</p>
       
@@ -6900,7 +6895,7 @@ a:8,b:4,c:3
                <p>cmd_alias</p>
             </td>
             <td>
-               <p>The name of a command created using the <a href="#DEFINE">DEFINE</a> operator (see the DEFINE operator for additional  streaming examples).</p>
+               <p>The name of a command created using the DEFINE operator (see <a href="#define-udfs">DEFINE (UDFs, streaming)</a>  for additional  streaming examples).</p>
             </td>
          </tr>
          <tr>
@@ -7004,7 +6999,7 @@ X = STREAM A THROUGH `stream.pl` as (f1:int, f2:int, f3:int);
    
    <!-- =========================================================================== -->
    
-   <section>
+   <section id="union">
    <title>UNION</title>
    <p>Computes the union of two or more relations.</p>
    
@@ -7037,19 +7032,7 @@ X = STREAM A THROUGH `stream.pl` as (f1:int, f2:int, f3:int);
             </td>
             <td>
                <p>Use the ONSCHEMA clause to base the union on named fields (rather than positional notation). 
-               If the following requirements are not met, the statement will throw an error:</p>
-          <ul>
-             <li>All inputs to the union should have a non null schema.</li>
-             <li>The data type for columns with same name in different input schemas should be compatible:  
-             <ul>
-             <li>Numeric types are compatible, and if column having same name in different input schemas have different numeric types, an implicit conversion will happen.</li>
-             <li>Bytearray type is considered compatible with all other types, a cast will be added to convert to other type. </li>
-             <li>Bags or tuples having different inner schema are considered incompatible. </li>
-             </ul>
-             </li>
-           </ul>
-           <p></p>
-           <p>See also: <a href="#schemas">Schemas</a></p>
+               All inputs to the union must have a non-unknown (non-null) <a href="#schemas">schema</a>.</p>
             </td>
          </tr>
    </table>
@@ -7088,9 +7071,13 @@ A union B: (a1:bytearray, a2:long)
 </source>
 
 <p>Union columns of compatible type will produce an "escalate" type. 
-The priority is chararray &gt; double &gt; float &gt; long &gt; int &gt; bytearray,  tuple|bag|map &gt; bytearray:</p>
+The priority is:</p>
+<ul>
+<li>double &gt; float &gt; long &gt; int &gt; bytearray</li>
+<li>tuple|bag|map|chararray &gt; bytearray</li>
+</ul>
 <source>
-A: (a1:int, a2:double, a3:int) 
+A: (a1:int, a2:bytearray, a3:int) 
 B: (b1:float, b2:chararray, b3:bytearray) 
 A union B: (a1:float, a2:chararray, a3:int) 
 </source>
@@ -7169,186 +7156,11 @@ DUMP U;
    <!-- =========================================================================== -->
    
     <!-- UDF STATEMENTS --> 
-   <section>
+   <section id="udf-statements">
    <title>UDF Statements</title>
-
-  <section id="define-macros">
-   <title>DEFINE (macros)</title>
-   <p>Defines a Pig macro.</p>
    
- <section>
-   <title>Syntax</title>
-   <p>Define Macro</p>
-   <table>
-      <tr> 
-            <td>
-               <p>DEFINE macro_name (param [, param ...]) RETURNS alias [, alias ...] { pig_latin_fragment }; </p>
-            </td>
-      </tr> 
-   </table>
-    <p>Expand Macro</p>
-      <table>
-      <tr> 
-            <td>
-               <p>alias [, alias ...] = macro_name (param [, param ...]) ; </p>
-            </td>
-      </tr> 
-   </table>
- </section>   
-   
-<section>
-   <title>Terms</title>
-   <table>
-      <tr>
-            <td>
-               <p>macro_name</p>
-            </td>
-            <td>
-               <p>The name of the macro. Macro names are global.</p>
-            </td>
-      </tr>
-            <tr>
-            <td>
-               <p>param</p>
-            </td>
-            <td>
-               <p>(optional) A comma-separated list of one or more parameters, including IN aliases (Pig relations), enclosed in parentheses, that are referenced in the Pig Latin fragment.</p>
-            </td>
-      </tr>
-            <tr>
-            <td>
-               <p>alias</p>
-            </td>
-            <td>
-               <p>A comma-separated list of one or more OUT aliases (Pig relations) that are referenced in the Pig Latin fragment.</p>
-            </td>
-      </tr>
-      <tr>
-            <td>
-               <p>pig_latin_fragment</p>
-            </td>
-            <td>
-               <p>One or more Pig Latin statements, enclosed in curly brackets.</p>
-            </td>
-      </tr>
-    </table>
-   </section>
-    
-   <section>
-   <title>Usage</title>
-<!-- +++++++++++++++++++++++++++++++++++++++++++++++ --> 
-   <p><strong>Macro Definition</strong></p>
-   <p>A macro definition can appear anywhere in a script as long as it appears prior to the first use. A macro definition can include references to other macros as long as the referenced macros are defined prior to the macro definition. Recursive references are not allowed. </p>
-   
-   <p>Note that Macros are NOT allowed inside a <a href="#FOREACH">FOREACH</a> nested block.</p>
-
-<p>In this example the macro is named my_macro. Note that only aliases A and C are visible from the outside; alias B is not visible from the outside.</p>
-<source>
- DEFINE my_macro(A, sortkey) RETURNS C {
-    B = FILTER $A BY my_filter(*);
-    $C = ORDER B BY $sortkey;
-}
-</source>
-<p></p>
-
-<!-- +++++++++++++++++++++++++++++++++++++++++++++++ -->
-<p><strong>Macro Expansion</strong></p>
-
-<p>A macro can be expanded inline using the macro expansion syntax. Note the following:</p>
-<ul>
-<li>Any alias in the macro which isn't visible from the outside will be prefixed with a macro name and suffixed with an instance id to avoid namespace collision. </li>
-<li>Macro expansion is not a complete replacement for function calls. Recursive expansions are not supported. </li>
-</ul>
-<p></p>
-<p>In this example my_macro (defined above) is expanded. Because alias B is not visible from the outside it is renamed macro_my_macro_B_0.</p>
-
-<source>
-/* These statements ... */
-
-X = LOAD 'users' AS (user, address, phone);
-Y = my_macro(X, user);
-STORE Y into 'bar';
-
-/* Are expanded into these statements ... */
-
-X = LOAD 'users' AS (user, address, phone);
-macro_my_macro_B_0 = FILTER X BY my_filter(*);
-Y = ORDER macro_my_macro_B_0  BY user;
-STORE Y INTO 'output';
-</source>
-
-<!-- +++++++++++++++++++++++++++++++++++++++++++++++ -->
-<p><strong>Macro Import</strong></p>
-<p>A macro can be imported from another Pig script (see <a href="#IMPORT">IMPORT</a>).</p>
-</section> 
-
-
- <section>
- <title>Examples</title>
-<p>In this example no parameters are passed to the macro.</p>
-<source>
-DEFINE my_macro() returns B {
-   D = LOAD 'data' AS (a0:int, a1:int, a2:int);   
-   $B = FILTER D BY ($1 == 8) OR (NOT ($0+$2 > $1));
-};
-
-X = my_macro();
-STORE X INTO 'output';
-</source>
-
-<p>In this example parameters are passed and returned.</p>
-<source>
-DEFINE group_and_count (A, group_key, reducers) RETURNS B {
-   D = GROUP $A BY $group_key PARALLEL $reducers;
-   $B = FOREACH D GENERATE group, COUNT($A);
-};
-
-X = LOAD 'users' AS (user, age, zip);
-Y = group_and_count (X, user, 20);
-Z = group_and_count (X, age, 30);
-STORE Y into 'byuser';
-STORE Z into 'byage';
-</source>
-
-<p>In this example a dummy alias is returned.</p>
-<source>
-DEFINE my_macro(input, output) RETURNS dummy {
-  D = LOAD '$input';   
-  STORE D INTO '$output';
-};
-dummy = my_macro('input.dat', '/tmp/output');
-</source>
-
-<p>In this example a macro (group_with_parallel) refers to another macro (foreach_count).</p>
-<source>
-DEFINE foreach_count(A, C) RETURNS B {
-   $B = FOREACH $A GENERATE group, COUNT($C);
-};
-
-DEFINE group_with_parallel (A, group_key, reducers) RETURNS B {
-   C = GROUP $A BY $group_key PARALLEL $reducers;
-   $B = foreach_count(C, $A);
-};
-       
-/* These statements ... */
- 
-X = LOAD 'users' AS (user, age, zip);
-Y = group_with_parallel (X, user, 23);
-STORE Y INTO 'byuser';
-
-/* Are expanded into these statements ... */
-
-X = LOAD 'users' AS (user, age, zip);
-macro_group_with_parallel_C_0 = GROUP X by (user) PARALLEL 23;
-Y = FOREACH macro_group_with_parallel_C_0 GENERATE group, COUNT(X);
-STORE Y INTO 'byuser';
-</source>
-</section> 
-   
-  </section> 
-   
-
-   <section id="define">
+<!-- ======================================================== -->
+   <section id="define-udfs">
    <title>DEFINE (UDFs, streaming)</title>
    <p>Assigns an alias to a UDF or streaming command.</p>
    
@@ -7601,7 +7413,7 @@ OP = stream IP through 'CMD';
             <p>If the first word on the streaming command is perl or python, Pig assumes that the binary is the first non-quoted string it encounters that does not start with dash.</p>
 		</li>
 		<li>
-			<p>Otherwise, Pig will attempt to ship the first string from the command line as long as it does not come from <code>/bin, /usr/bin, /usr/local/bin</code>. Pig will determine this by scanning the path if an absolute path is provided or by executing  <code>which</code>. The paths can be made configurable using the <a href="func.html#set">set stream.skippath</a> option (you can use multiple set commands to specify more than one path to skip). </p>
+			<p>Otherwise, Pig will attempt to ship the first string from the command line as long as it does not come from <code>/bin, /usr/bin, /usr/local/bin</code>. Pig will determine this by scanning the path if an absolute path is provided or by executing  <code>which</code>. The paths can be made configurable using the <a href="cmds.html#set">set stream.skippath</a> option (you can use multiple set commands to specify more than one path to skip). </p>
 		</li>
 	</ul>
 	<p>If you don't supply a DEFINE for a given streaming command, then auto-shipping is turned off.</p>
@@ -7705,8 +7517,10 @@ B = FOREACH A GENERATE myFunc($0);
 </section>
   </section>   
    
+   
+   
    <!-- =========================================================================== -->
-   <section>
+   <section id="register">
    <title>REGISTER</title>
    <p>Registers a JAR file so that the UDFs in the file can be used.</p>
    
@@ -7739,7 +7553,7 @@ B = FOREACH A GENERATE myFunc($0);
    <title>Usage</title>
    <p><strong>Pig Scripts</strong></p>
    
-   <p>Use the REGISTER statement inside a Pig script to specify a JAR file or a Python/JavaScript module. Pig supports JAR files and modules stored in local file systems as well as remote, distributed file systems such as HDFS and Amazon S3 (see <a href="start.html#Pig+Scripts">Pig Scripts</a>).</p>
+   <p>Use the REGISTER statement inside a Pig script to specify a JAR file or a Python/JavaScript module. Pig supports JAR files and modules stored in local file systems as well as remote, distributed file systems such as HDFS and Amazon S3 (see <a href="start.html#Pig-Scripts">Pig Scripts</a>).</p>
    
    <p>Additionally, JAR files stored in local file systems can be specified as a glob pattern using “*”. Pig will search for matching jars in the local file system, either the relative path (relative to your working directory) or the absolute path. Pig will pick up all JARs that match the glob.</p>
    
