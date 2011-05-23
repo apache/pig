@@ -1050,6 +1050,29 @@ public class TestMacroExpansion {
         validateFailure(macro + script, expectedErr);
     }
     
+    @Test // PIG-2088
+    public void checkReturnAliasTest3() throws Throwable {
+        String macro = "define group_and_count_2 (A,C) returns B {\n" +
+            "    -- D = JOIN $A BY user, $C BY user; \n" +
+            "    --D = JOIN $A BY user, $C BY user; \n" +
+            "    $B = JOIN $A BY user, $C BY user;\n" +
+            "};\n";
+        
+        String script = 
+            "alpha = load 'users' as (user, age, zip);\n" +
+            "beta = load 'links' as (user, link, view);\n" +
+            "gamma = group_and_count_2 (alpha,beta);\n" +
+            "store gamma into 'byuser';\n";
+        
+        String expected = 
+            "alpha = load 'users' as (user, age, zip);\n" +
+            "beta = load 'links' as (user, link, view);\n" +
+            "gamma = JOIN alpha BY (user), beta BY (user);\n" +
+            "store gamma INTO 'byuser';\n";
+
+        verify(macro + script, expected);
+    }
+    
     // PIG-1999: macro contains schema name that conflicts with alias
     @Test
     public void negativeTest7() throws Throwable {
