@@ -21,25 +21,19 @@
   </header>
   <body>
   
- <!-- ============================================ -->    
-   <section>
-   <title>Pig Macros</title> 
-   <p>Pig Latin supports the definition, expansion, and import of macros.</p>
-   <p>See <a href="basic.html#define-macros">DEFINE (macros)</a> and <a href="/basic.html#IMPORT">IMPORT</a>.</p>
-   </section> 
-  
-  <!-- ============================================ -->       
-   <section id="embed-python">
-   <title>Embedded Pig - Python and JavaScript </title>
-   
-<p>To enable control flow, you can embed Pig Latin scripts in a host scripting language via a JDBC-like compile, bind, run model. This section discusses Python (via Jython) and JavaScript (via Rhino). You must make sure that the Jython jar and/or the Rhino jar are included in your class path if you want to used embedded Pig. At runtime Pig will automatically detect the usage of a scripting UDF in the Pig script and will ship the corresponding scripting jar to the backend.</p>  
 
-<p>Note: Currently, more Python than JavaScript examples are shown below.</p>
+<!-- ============================================ -->       
+<section id="embed-python">
+<title>Embedded Pig - Python and JavaScript </title>
    
-   <section>
-   <title>Invocation Basics</title>
-<p>Embedded Pig Latin is supported in batch mode only, not interactive mode. You can request that embedded Pig Latin be used by adding the <code>--embedded</code> option to the Pig command line. If this option is passed as an argument, that argument will refer to the language Pig Latin is embedded in, either Python or JavaScript. If no argument is specified, it is taken to refer to the reference implementation for Python.</p>
+<p>To enable control flow, you can embed Pig Latin statements and Pig commands in the Python and JavaScript scripting languages using a JDBC-like compile, bind, run model. For Python, make sure the Jython jar is included in your class path. For JavaScript, make sure the Rhino jar is included in your classpath.</p>
 
+<p>(In addition to the discussion here, also see the Advanced Topics for Python and JavaScript in <a href="udf.html">User Defined Functions</a>.)</p>
+
+<!-- ============================================== -->
+<section id="invocation-basics">
+<title>Invocation Basics</title>
+<p>Embedded Pig is supported in batch mode only, not interactive mode. You can request that embedded Pig be used by adding the <code>--embedded</code> option to the Pig command line. If this option is passed as an argument, that argument will refer to the language Pig  is embedded in, either Python or JavaScript. If no argument is specified, it is taken to refer to the reference implementation for Python.</p>
 
  <p><strong>Python</strong></p>
  <source>
@@ -102,7 +96,7 @@ function main() {
 
 <p><strong>Invocation Process</strong></p>
 
-<p>You invoke Pig Latin in the host scripting language through an embedded <a href="#pig-Object">Pig object</a>. </p>  
+<p>You invoke Pig in the host scripting language through an embedded <a href="#pig-Object">Pig object</a>. </p>  
 
 <p><strong>Compile:</strong> Compile is a static function on the Pig object and in its simplest form takes a fragment of Pig Latin that defines the pipeline as its input:</p>  
 
@@ -185,30 +179,30 @@ else:
 </source>
 </section> 
 
-
-<section>
+<!-- ============================================== -->
+<section id="invocation-details">
 <title>Invocation Details</title>
 <p>All three APIs (compile, bind, run) discussed in the previous section have several versions depending on what you are trying to do.</p>
 
 <section>
 <title>Compile</title>
-<p>In its basic form, compile just takes a Pig Latin Fragment that defines the pipeline as described in the previous section. Additionally, the pipeline can be given a name. This name is only used when the embedded script is invoked via the PigRunner Java API (as discussed later in this document).</p>
+<p>In its basic form, compile just takes a Pig Latin fragment that defines the pipeline as described in the previous section. Additionally, the pipeline can be given a name. This name is only used when the embedded script is invoked via the PigRunner Java API (as discussed later in this document).</p>
 
 <source>
 
- P = Pig.compile(“P1”, """A = load '$in’; store A into '$out’;""")
+ P = Pig.compile("P1", """A = load '$in'; store A into '$out';""")
 </source>
 
 <p>In addition to providing Pig script via a string, you can store it in a file and pass the file to the compile call:</p>
 <source>
 
-P = Pig.compileFromFile("myscript.pig”)
+P = Pig.compileFromFile("myscript.pig")
 </source>
 
 <p>You can also name a pipeline stored in the script:</p>
 <source>
 
-P = Pig.compileFromFile(“P2”, "myscript.pig”)
+P = Pig.compileFromFile("P2", "myscript.pig")
 </source>
 </section>
 
@@ -271,49 +265,30 @@ Pig.compile(...).bind(...).runSingle(props)
 
 </section> 
 
-<section>
-<title>Embedded Pig and Pig Runner API</title>
+<section id="pig-run-api">
+<title>PigRunner API</title>
 
-<p>Starting with Pig 0.8, some applications such as Oozie workflow invoke Pig using the PigRunner Java class rather than through the command line. For these applications, the PigRunner interface has been expanded to accommodate embedding. PigRunner now can accept a Jython script as input. This script can potentially contain multiple Pig pipelines; therefore, we need a way to return results for all of them.</p>
+<p>Starting with Pig 0.8, some applications such as Oozie workflow invoke Pig using the PigRunner Java class rather than through the command line. For these applications, the PigRunner interface has been expanded to accommodate embedded Pig. PigRunner accepts Python and JavaScript scripts as input. These scripts can potentially contain multiple Pig pipelines; therefore, we need a way to return results for all of them.</p>
 
-<p>To do this and to preserve backward compatibility PigStats and related objects were expanded as shown below:</p>
+<p id="pigstats">To do this and to preserve backward compatibility PigStats and related objects were expanded as shown below:</p>
 <ul>
-<li>getAllStats() and List getAllErrorMessages() were added to the PigStats class. The map returned from getAllStats is keyed on the name of the pipeline provided in the compile call. If the name was not compiled an internally generated id would be used. </li>
+<li>getAllStats() and List&lt; &gt; getAllErrorMessages() were added to the PigStats class. The map returned from getAllStats is keyed on the name of the pipeline provided in the compile call. If the name was not compiled an internally generated id would be used. </li>
 <li>PigStats is now an abstract class with a new abstract method isEmbedded().   </li>
 <li>Two new classes that extend PigStats were created: SimplePigStats and EmbeddedPigStats. PigStats as it is today will become SimplePigStats. SimplePigStats.getAllStats() will return null. EmbeddedPigStats will return null for methods not listed in the proposal below. </li>
 <li>The PigProgressNotificationListener interface was modified to add script id to all its methods.  </li>
 </ul>
-
-<p>For more details of the changes, see <a href="#Java+Objects">Java Objects</a>.</p>
-
-</section> 
-
-
-<section>
-<title>Embedded Pig and Scripting UDFs</title>
-
-<p>Pig 0.8 introduced support for user defined functions (UDFs) written in Python. An example of adding those UDFs in Pig Latin is:</p>
-<p><code>Register 'test.py' using jython as myfuncs;</code></p>
-
-<p>An embedded Pig script (written in a scripting language such as Jython) contains definitions of Pig pipelines as well as control flow code to run these pipelines. There are two ways you can support UDFs (written in the same scripting language) in an embedded Pig script: </p>
-
-<ul>
-<li>Register the UDFs as part of pipeline definition -  In this case, the UDFs are only available to the pipeline. </li>
-<li>Use the registerUDF method on Pig object - In this case, the UDFs are available for all the pipelines defined in the script file. </li>
-</ul>
 <p></p>
-<p>Example:</p>
-<p><code>Pig.registerUDF('test.py', 'myfuncs')</code></p>
-</section> 
+<p>For more details, see <a href="#Java-Objects">Java Objects</a>.</p>
 
+</section> 
 
 
 <section>
 <title>Usage Examples</title>
 
-<section>
-<title>Pig Script Files in Scripting Language</title>
-<p>Rather than specifying individual Pig Latin statements, you can import an entire Pig script. </p>
+<section id="pig-files">
+<title>Passing a Pig Script </title>
+<p>This example shows you how to pass an entire Pig script to the compile call.</p>
 
 <source>
 #! /usr/bin/python
@@ -322,8 +297,8 @@ from org.apache.pig.scripting import Pig
 
 P = Pig.compileFromFile("""myscript.pig""")
 
-input = "original”
-output = "output”
+input = "original"
+output = "output"
 
 result = p.bind({'in':input, 'out':output}).runSingle()
 if result.isSuccessful():
@@ -431,10 +406,13 @@ for i in [0, 1, 2]:
 
 </section> 
    
- <section>
+   
+<!-- ====================================================================== -->
+ <section id="java-objects">
 <title>Java Objects</title>
 
- <section id="pig-Object">
+<!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->
+ <section id="pig-object">
 <title>pig.java Object</title>
 <source>
 public class Pig {    
@@ -578,6 +556,7 @@ public class Pig {
 </source>
 </section>
 
+<!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->
 <section id="BoundScript-Object">
 <title>BoundScript.java Object</title>
 <source>
@@ -665,6 +644,7 @@ public class BoundScript {
 </source>
 </section>  
 
+<!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->
 <section id="PigStats-Object">
 <title>PigStats.java Object</title>
 <source>
@@ -683,7 +663,8 @@ public abstract class PigStats {
 </source>
 </section>  
 
-<section id="PigProgressNotificationListener-Object">
+<!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->
+<section id="PigProgressNotificationListener">
 <title>PigProgressNotificationListener.java Object</title>
 <source>
 
@@ -752,9 +733,16 @@ public abstract class PigStats {
  <!-- ============================================ -->    
 <section id="embed-java">
 <title>Embedded Pig - Java </title>
-<p>Currently, <a href="http://pig.apache.org/docs/r0.9.0/api/org/apache/pig/PigServer.html">PigServer</a> is the main interface point for embedding Pig in Java. PigServer can now be instantiated from multiple threads. (In the past, PigServer contained references to static data that prevented multiple instances of the object to be created from different threads within your application.) Please note that PigServer is not thread safe; the same object can't be shared across multiple threads. </p>
 
+<p>To enable control flow, you can embed Pig Latin statements and Pig commands in the Java programming language. </p>
 
+<section id="pigserver">
+<title>PigServer Interface</title>
+<p>Currently, <a href="http://pig.apache.org/docs/r0.9.0/api/org/apache/pig/PigServer.html">PigServer</a> is the main interface for embedding Pig in Java. PigServer can now be instantiated from multiple threads. (In the past, PigServer contained references to static data that prevented multiple instances of the object to be created from different threads within your application.) Please note that PigServer is NOT thread safe; the same object can't be shared across multiple threads. </p>
+</section>
+
+<section>
+<title>Usage Examples</title>
 <!-- ++++++++++++++++++++++++++++++++++ -->
 <p><strong>Local Mode</strong></p>
 <p>From your current working directory, compile the program. (Note that idlocal.class is written to your current working directory. Include “.” in the class path when you run the program.) </p>
@@ -765,7 +753,7 @@ $ javac -cp pig.jar idlocal.java
 <p>From your current working directory, run the program. To view the results, check the output file, id.out.</p>
 <source>
 Unix:   $ java -cp pig.jar:. idlocal
-Cygwin: $ java –cp ‘.;pig.jar’ idlocal
+Cygwin: $ java –cp '.;pig.jar' idlocal
 </source>
 
 <p>idlocal.java - The sample code is based on Pig Latin statements that extract all user IDs from the /etc/passwd file. 
@@ -807,7 +795,7 @@ $ javac -cp pig.jar idmapreduce.java
 <p>From your current working directory, run the program. To view the results, check the idout directory on your Hadoop system. </p>
 <source>
 Unix:   $ java -cp pig.jar:.:$HADOOPDIR idmapreduce
-Cygwin: $ java –cp ‘.;pig.jar;$HADOOPDIR’ idmapreduce
+Cygwin: $ java –cp '.;pig.jar;$HADOOPDIR' idmapreduce
 </source>
 
 <p>idmapreduce.java - The sample code is based on Pig Latin statements that extract all user IDs from the /etc/passwd file. 
@@ -832,18 +820,323 @@ public static void runIdQuery(PigServer pigServer, String inputFile) throws IOEx
 }
 </source>
 </section>
+</section>
 
+
+ <!-- ============================================ -->    
+   <section id="macros">
+   <title>Pig Macros</title> 
+   <p>Pig Latin supports the definition, expansion, and import of macros.</p>
+
+  <!-- ========================== -->
+  <section id="define-macros">
+   <title>DEFINE (macros)</title>
+   <p>Defines a Pig macro.</p>
+   
+ <section>
+   <title>Syntax</title>
+   <p>Define Macro</p>
+   <table>
+      <tr> 
+            <td>
+               <p>DEFINE macro_name (param [, param ...]) RETURNS {void | alias [, alias ...]} { pig_latin_fragment }; </p>
+            </td>
+      </tr> 
+   </table>
+    <p id="expand-macros">Expand Macro</p>
+      <table>
+      <tr> 
+            <td>
+               <p>alias [, alias ...] = macro_name (param [, param ...]) ; </p>
+            </td>
+      </tr> 
+   </table>
+ </section>   
+   
+<section>
+   <title>Terms</title>
+   <table>
+      <tr>
+            <td>
+               <p>macro_name</p>
+            </td>
+            <td>
+               <p>The name of the macro. Macro names are global.</p>
+            </td>
+      </tr>
+            <tr>
+            <td>
+               <p>param</p>
+            </td>
+            <td>
+               <p>(optional) A comma-separated list of one or more parameters, including IN aliases (Pig relations), enclosed in parentheses, that are referenced in the Pig Latin fragment.</p>
+               <p>Unlike user defined functions (UDFs), which only allow quoted strings as its parameters, Pig macros support four types of parameters:</p>
+               <ul>
+               <li>alias (IDENTIFIER)</li>
+               <li>integer </li>
+               <li>float</li>
+               <li>string literal (quoted string)</li>
+               </ul>
+               <p>Note that  type is NOT part of parameter definition. It is your responsibility to document the types of the parameters in a macro.</p>
+            </td>
+      </tr>
+      <tr>
+            <td>
+               <p>void</p>
+            </td>
+            <td>
+               <p>If the macro has no return alias, then void must be specified.</p>
+            </td>
+      </tr>
+            <tr>
+            <td>
+               <p>alias</p>
+            </td>
+            <td>
+               <p>(optional) A comma-separated list of one or more return aliases (Pig relations) that are referenced in the Pig Latin fragment. The alias must exist in the macro in the form $&lt;alias&gt;.</p>
+               <p>If the macro has no return alias, then void must be specified.</p>
+            </td>
+      </tr>
+      <tr>
+            <td>
+               <p>pig_latin_fragment</p>
+            </td>
+            <td>
+               <p>One or more Pig Latin statements, enclosed in curly brackets.</p>
+            </td>
+      </tr>
+    </table>
+   </section>
+    
+   <section>
+   <title>Usage</title>
+<!-- +++++++++++++++++++++++++++++++++++++++++++++++ --> 
+   <p><strong>Macro Definition</strong></p>
+   <p>A macro definition can appear anywhere in a Pig script as long as it appears prior to the first use. A macro definition can include references to other macros as long as the referenced macros are defined prior to the macro definition. Recursive references are not allowed. </p>
+   
+   <p>Note the following:</p>
+   <ul>
+   <li>Macros are NOT allowed inside a <a href="basic.html#FOREACH">FOREACH</a> nested block.</li>
+   <li>Macros can only contain Pig Latin statements. Grunt shell commands are not supported.</li>
+   <li>Macros cannot include user-defined schema that has a name collision with an alias in the macro.</li>
+   <li><a href="#Parameter-Sub">Parameter substitution</a> CANNOT be used inside of macros. Parameters should be explicitly passed to macros and parameter substitution used only at the top level.</li>
+   </ul>
+   <p></p>
+
+<p>In this example the macro is named my_macro. Note that only aliases A and C are visible from the outside; alias B is not visible from the outside.</p>
+<source>
+ DEFINE my_macro(A, sortkey) RETURNS C {
+    B = FILTER $A BY my_filter(*);
+    $C = ORDER B BY $sortkey;
+}
+</source>
+<p></p>
+
+<!-- +++++++++++++++++++++++++++++++++++++++++++++++ -->
+<p><strong>Macro Expansion</strong></p>
+
+<p>A macro can be expanded inline using the macro expansion syntax. Note the following:</p>
+<ul>
+<li>Any alias in the macro which isn't visible from the outside will be prefixed with a macro name and suffixed with an instance id to avoid namespace collision. </li>
+<li>Macro expansion is not a complete replacement for function calls. Recursive expansions are not supported. </li>
+</ul>
+<p></p>
+<p>In this example my_macro (defined above) is expanded. Because alias B is not visible from the outside it is renamed macro_my_macro_B_0.</p>
+
+<source>
+/* These statements ... */
+
+X = LOAD 'users' AS (user, address, phone);
+Y = my_macro(X, user);
+STORE Y into 'bar';
+
+/* Are expanded into these statements ... */
+
+X = LOAD 'users' AS (user, address, phone);
+macro_my_macro_B_0 = FILTER X BY my_filter(*);
+Y = ORDER macro_my_macro_B_0  BY user;
+STORE Y INTO 'output';
+</source>
+
+<!-- +++++++++++++++++++++++++++++++++++++++++++++++ -->
+<p><strong>Macro Import</strong></p>
+<p>A macro can be imported from another Pig script (see <a href="#import-macros">IMPORT (macros)</a>).</p>
+</section> 
+
+
+ <section>
+ <title>Examples</title>
+<p>In this example no parameters are passed to the macro.</p>
+<source>
+DEFINE my_macro() returns B {
+   D = LOAD 'data' AS (a0:int, a1:int, a2:int);   
+   $B = FILTER D BY ($1 == 8) OR (NOT ($0+$2 > $1));
+};
+
+X = my_macro();
+STORE X INTO 'output';
+</source>
+
+<p>In this example parameters are passed and returned.</p>
+<source>
+DEFINE group_and_count (A, group_key, reducers) RETURNS B {
+   D = GROUP $A BY $group_key PARALLEL $reducers;
+   $B = FOREACH D GENERATE group, COUNT($A);
+};
+
+X = LOAD 'users' AS (user, age, zip);
+Y = group_and_count (X, user, 20);
+Z = group_and_count (X, age, 30);
+STORE Y into 'byuser';
+STORE Z into 'byage';
+</source>
+
+<p>In this example the macro does not have a return alias; thus, void must be specified.</p>
+<source>
+DEFINE my_macro(A, sortkey) RETURNS void {     
+      B = FILTER $A BY my_filter(*);     
+      C = ORDER B BY $sortkey;
+      STORE C INTO ‘my_output’;  
+};
+
+/* To expand this macro, use the following */
+
+my_macro(alpha, ‘user’);
+</source>
+
+<p>
+In this example a name collision will occur. Here letter B is used as alias name and as name in user-defined schema. Pig will throw an exception when name collision is detected.</p>
+<source>
+DEFINE my_macro(A, sortkey) RETURNS E {     
+      B = FILTER $A BY my_filter(*);     
+      C = ORDER B BY $sortkey;
+      D = LOAD ‘in’ as (B:bag{});
+   $E = FOREACH D GENERATE COUNT(B); 
+   };
+</source>
+
+<p>This example demonstrates the importance of knowing parameter types before using them in a macro script. Notice that when pass parameter $outfile to my_macro1 inside  my_macro2, it must be quoted.</p>
+<source>
+-- A: an alias
+-- outfile: output file path (quoted string)
+DEFINE my_macro1(A, outfile) RETURNS void {     
+       STORE $A INTO ‘$outfile’; 
+   };
+
+-- A: an alias
+-- sortkey: column name (quoted string)
+-- outfile: output file path (quoted string)
+DEFINE my_macro2(A, sortkey, outfile) RETURNS void {     
+      B = FILTER $A BY my_filter(*);     
+      C = ORDER B BY $sortkey;
+      my_macro1(C, ‘$outfile’);
+   };
+
+   alpha = Load ‘input’ as (user, age, gpa);
+   my_macro2(alpha, ‘age’, ‘order_by_age.txt’);
+</source>
+
+
+<p>In this example a macro (group_with_parallel) refers to another macro (foreach_count).</p>
+<source>
+DEFINE foreach_count(A, C) RETURNS B {
+   $B = FOREACH $A GENERATE group, COUNT($C);
+};
+
+DEFINE group_with_parallel (A, group_key, reducers) RETURNS B {
+   C = GROUP $A BY $group_key PARALLEL $reducers;
+   $B = foreach_count(C, $A);
+};
+       
+/* These statements ... */
+ 
+X = LOAD 'users' AS (user, age, zip);
+Y = group_with_parallel (X, user, 23);
+STORE Y INTO 'byuser';
+
+/* Are expanded into these statements ... */
+
+X = LOAD 'users' AS (user, age, zip);
+macro_group_with_parallel_C_0 = GROUP X by (user) PARALLEL 23;
+Y = FOREACH macro_group_with_parallel_C_0 GENERATE group, COUNT(X);
+STORE Y INTO 'byuser';
+</source>
+</section> 
+   
+  </section>    
+   
+   
+  <!-- ========================== -->
+   <section id="import-macros">
+   <title>IMPORT (macros)</title>   
+   <p>Import macros defined in a separate file.</p>
+    <section>
+   <title>Syntax</title>
+   <table>
+      <tr> 
+            <td>
+               <p>IMPORT 'file-with-macro';</p>
+            </td>
+      </tr> 
+   </table>
+   </section>
+     
+   <section>
+   <title>Terms</title>
+   <table>
+      <tr>
+            <td>
+               <p>file-with-macro</p>
+            </td>
+            <td>
+               <p>The name of a file (enclosed in single quotes) that contains one or more macro definitions; for example, 'my_macro.pig' or  'mypath/my_macro.pig'.</p>
+               <p></p>
+               <p>Macro names are global and all macros share the same name space. While the file can contain more than one macro definition, having two macros with the same name in your execution context will result in an error.</p>
+               <p></p>
+               <p>Files are imported based on either (1) the given file path or (2) the import path specified via the Pig property pig.import.search.path. If a file path is given, whether absolute or relative to the current directory (starting with . or ..), the import path will be ignored. </p>
+               <p></p>
+            </td>
+         </tr>
+      </table>   
+   </section>
+      
+   <section>
+   <title>Usage</title>
+   <p>Use the IMPORT command to import a macro defined in a separate file into your Pig script. </p>
+   <p>IMPORT adds the macro definitions to the Pig Latin namespace; these macros can then be invoked as if they were defined in the same file.</p>
+   <p>Macros can only contain Pig Latin statements; Grunt shell commands are not supported.</p>
+   
+   <p>See also: <a href="#define-macros">DEFINE (macros)</a></p>
+     </section> 
+     
+   <section>
+   <title>Example</title>
+   <p>In this example, because a path is not given, Pig will use the import path specified in <code>pig.import.search.path</code>.</p>
+<source>
+/* myscript.pig */
+...
+...
+IMPORT 'my_macro.pig';
+...
+...
+</source>
+   
+    </section> 
+   </section>   
+   </section> 
 
   
  <!-- =========================================== -->    
-   <section>
+   <section id="parameter-sub">
    <title>Parameter Substitution</title>
    <section>
+   
+   <!-- ++++++++++++++++++++++++++++++++++ -->
    <title>Description</title>
    <p>Substitute values for parameters at run time.</p>
    
    <section>
-   <title>Syntax: Specifying parameters using the Pig command line</title>
+   <title>Syntax: Specifying Parameters Using the Pig Command Line</title>
    <table>
       <tr>
             <td>
@@ -854,7 +1147,7 @@ public static void runIdQuery(PigServer pigServer, String inputFile) throws IOEx
    </section>
    
    <section>
-   <title>Syntax: Specifying parameters using preprocessor statements in a Pig script</title>
+   <title>Syntax: Specifying Parameters Using Preprocessor Statements in a Pig Script</title>
    <table>
       <tr>
             <td>
@@ -993,8 +1286,9 @@ public static void runIdQuery(PigServer pigServer, String inputFile) throws IOEx
             </td>
          </tr>
    </table>
-   </section>
+   </section></section>
    
+   <!-- ++++++++++++++++++++++++++++++++++ -->
    <section>
    <title>Usage</title>
    <p>Parameter substitution enables you to write Pig scripts that include parameters and to supply values for these parameters at run time. For instance, suppose you have a job that needs to run every day using the current day's data. You can create a Pig script that includes a parameter for the date. Then, when you run this script you can specify or supply a value for the date parameter using one of the supported methods. </p>
@@ -1016,6 +1310,8 @@ public static void runIdQuery(PigServer pigServer, String inputFile) throws IOEx
          <p>With default statement, as part of a Pig script.</p>
       </li>
    </ul>
+   <p></p>
+   <p>Parameter substitution CANNOT be used inside of macros.  Parameters should be explicitly passed to macros and parameter substitution used only at the top level (see <a href="#define-macros">DEFINE (macros)</a>).</p>
    </section>
    
    <section>
@@ -1049,9 +1345,13 @@ public static void runIdQuery(PigServer pigServer, String inputFile) throws IOEx
       </li>
    </ul>
    </section></section>
-   
+  
+  
+    <!-- ++++++++++++++++++++++++++++++++++ --> 
+     <section>
+   <title>Examples</title> 
    <section>
-   <title>Example: Specifying parameters in the command line</title>
+   <title>Specifying Parameters in the Command Line</title>
    <p>Suppose we have a data file called 'mydata' and a pig script called 'myscript.pig'.</p>
 
 <p>mydata </p>
@@ -1075,11 +1375,11 @@ $ pig –param data=mydata myscript.pig
 (4,2,1)
 (8,3,4)
 </source>
+ </section> 
    
-   </section>
-   
+<!-- ++++++++++++++++++++++++++++++++++ --> 
    <section>
-   <title>Example: Specifying parameters using a parameter file</title>
+   <title>Specifying parameters Using a Parameter File</title>
    <p>Suppose we have a parameter file called 'myparams.'</p>
 <source>
 # my parameters
@@ -1094,9 +1394,10 @@ $ pig –param_file myparams script2.pig
 </source>
    
    </section>
-   
+ 
+ <!-- ++++++++++++++++++++++++++++++++++ -->   
    <section>
-   <title>Example: Specifying parameters using the declare statement</title>
+   <title>Specifying Parameters Using the Declare Statement</title>
    <p>In this example the command is executed and its stdout is used as the parameter value.</p>
 <source>
 %declare CMD 'generate_date';
@@ -1107,9 +1408,10 @@ B = FILTER A BY $0>'5';
 </source>
    
    </section>
-   
+
+<!-- ++++++++++++++++++++++++++++++++++ -->    
    <section>
-   <title>Example: Specifying parameters using the default statement</title>
+   <title>Specifying Parameters Using the Default Statement</title>
    <p>In this example the parameter (DATE) and value ('20090101') are specified in the Pig script using the default statement. If a value for DATE is not specified elsewhere, the default value 20090101 is used.</p>
 <source>
 %default DATE '20090101';
@@ -1120,8 +1422,9 @@ A = load '/data/mydata/$DATE';
 
    </section>
    
+   <!-- ++++++++++++++++++++++++++++++++++ --> 
    <section>
-   <title>Examples: Specifying parameter values as a sequence of characters</title>
+   <title>Specifying Parameter Values as a sequence of Characters</title>
    <p>In this example the characters (in this case, Joe's URL) can be enclosed in single or double quotes, and quotes within the sequence of characters can be escaped. </p>
 <source>
 %declare DES 'Joe\'s URL';
@@ -1137,8 +1440,9 @@ $ pig –param data=mydata myscript.pig
 </source>   
 </section>
    
+   <!-- ++++++++++++++++++++++++++++++++++ --> 
    <section>
-   <title>Example: Specifying parameter values as a command</title>
+   <title>Specifying Parameter Values as a Command</title>
    <p>In this example the command is enclosed in back ticks. First, the parameters mycmd and date are substituted when the declare statement is encountered. Then the resulting command is executed and its stdout is placed in the path before the load statement is run.</p>
 <source>
 %declare CMD '$mycmd $date';
@@ -1150,6 +1454,7 @@ B = FILTER A BY $0>'5';
    </section>
    </section>
    </section>
+
 
 </body>
 </document>
