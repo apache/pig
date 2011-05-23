@@ -157,6 +157,7 @@ public class TestBuiltin {
     public void setUp() throws Exception {
        
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        pigServer.setValidateEachStatement(true);
         // First set up data structs for "base" SUM, MIN and MAX and AVG.
         // The allowed input and expected output data structs for 
         // the "Intermediate" and "Final" stages can be based on the 

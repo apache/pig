@@ -36,6 +36,7 @@ public class TestErrorHandling {
     @Before
     public void setUp() throws Exception{
         pig = new PigServer(ExecType.LOCAL, new Properties());
+        pig.setValidateEachStatement(true);
     }
 
     @Test // Error from SchemaAliasVisitor

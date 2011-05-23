@@ -105,6 +105,18 @@ public class GruntParser extends PigScriptParser {
         mScriptIllustrate = false;
     }
 
+    @Override
+    public void setInteractive(boolean isInteractive){
+        super.setInteractive(isInteractive);
+        if(isInteractive){
+            setValidateEachStatement(true);
+        }
+    }
+    
+    public void setValidateEachStatement(boolean b) {
+        mPigServer.setValidateEachStatement(b);
+    }
+
     private void setBatchOn() {
         mPigServer.setBatchOn();
     }
