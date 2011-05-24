@@ -176,7 +176,7 @@ public class ResourceSchema implements Serializable {
         }
 
         /**
-         * Get the schema for this field.  Only fields of type tuple should have a schema.
+         * Get the schema for this field. Type tuple/bag/map may have a schema.
          * @return schema
          */
         public ResourceSchema getSchema() {
@@ -184,7 +184,7 @@ public class ResourceSchema implements Serializable {
         }
 
         /**
-         * Set the schema for this field.  Only fields of type tuple should have a schema.
+         * Set the schema for this field. Type tuple/bag/map may have a schema.
          * @param schema new schema
          * @return this
          */
