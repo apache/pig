@@ -124,7 +124,7 @@ public class TestNullConstant extends TestCase {
         pigServer.registerQuery("a = load '" + inputFileName1 + "' as (x:int, y:chararray);");
         pigServer.registerQuery("b = load '" + inputFileName2 + "' as (u:int, v:chararray);");
         pigServer.registerQuery("c = cogroup a by x, b by u;");
-        pigServer.registerQuery("d = foreach c generate flatten((SIZE(a) == 0 ? null : a)), flatten((SIZE(b) == 0 ? null : b));");
+        pigServer.registerQuery("d = foreach c generate flatten((SIZE(a) == 0 ? null: a)), flatten((SIZE(b) == 0 ? null : b));");
         Iterator<Tuple> it = pigServer.openIterator("d");
         Object[][] results = new Object[][]{{10, "will_join", 10, "will_join"}, {11, "will_not_join", null}, {null, 12, "will_not_join"}};
         int i = 0;

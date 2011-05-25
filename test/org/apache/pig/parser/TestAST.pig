@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
- A = LOAD 'source.txt' USING org.apache.pig.TextLoader() AS (a:int, b:long, c:chararray);
+ A = LOAD 'source.txt' USING org.apache.pig.builtin.TextLoader() AS (a:int, b:long, c:chararray);
  B = FOREACH A generate $0 * 5, b, $2;
  C = FILTER B by a > 100;
  D = LIMIT C 400;

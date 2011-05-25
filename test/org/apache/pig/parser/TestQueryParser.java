@@ -29,7 +29,11 @@ import org.antlr.runtime.CommonTokenStream;
 import org.antlr.runtime.RecognitionException;
 import org.antlr.runtime.tree.CommonTree;
 import org.antlr.runtime.tree.Tree;
+import org.apache.pig.ExecType;
 import org.apache.pig.PigRunner;
+import org.apache.pig.PigServer;
+import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.test.Util;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.junit.Test;
 
@@ -200,6 +204,15 @@ public class TestQueryParser {
             "b = foreach a generate * as ( x, y, z ), flatten( u ) as ( r, s ), flatten( v ) as d, w + 5 as e:int;";
         int errorCount = parse( query );
         Assert.assertTrue( errorCount == 0 );
+    }
+    
+    @Test //PIG-2083
+    public void testNullInBinCondNoSpace() throws IOException{
+        String query = "a = load '1.txt' as (a0, a1);" +
+        "b = foreach a generate (a0==0?null:2);"; //no space around the null keyword
+        PigServer pig = new PigServer(ExecType.LOCAL);
+        Util.registerMultiLineQuery(pig, query);
+        pig.explain("b", System.out);
     }
 
     @Test
