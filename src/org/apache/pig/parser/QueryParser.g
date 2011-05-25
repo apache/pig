@@ -65,6 +65,8 @@ tokens {
     MACRO_DEF;
     MACRO_BODY;
     MACRO_INLINE;
+    NULL;
+    IDENTIFIER;
 }
 
 @header {
@@ -179,11 +181,11 @@ foreach_simple_statement : ( alias EQUAL )? foreach_clause_simple parallel_claus
                         -> ^( STATEMENT alias? foreach_clause_simple parallel_clause? )
 ;
 
-alias : IDENTIFIER
+alias : identifier
 ;
 
 parameter 
-    : IDENTIFIER 
+    : identifier 
     | INTEGER 
     | DOUBLENUMBER
     | QUOTEDSTRING
@@ -283,8 +285,8 @@ filename : QUOTEDSTRING
 as_clause: AS^ ( field_def | ( LEFT_PAREN! field_def_list RIGHT_PAREN! ) )
 ;
 
-field_def : IDENTIFIER ( COLON type )?
-         -> ^( FIELD_DEF IDENTIFIER type? )
+field_def : identifier ( COLON type )?
+         -> ^( FIELD_DEF identifier type? )
 ;
 
 field_def_list : field_def ( COMMA field_def )*
@@ -301,7 +303,7 @@ tuple_type : TUPLE? LEFT_PAREN field_def_list? RIGHT_PAREN
           -> ^( TUPLE_TYPE field_def_list? )
 ;
 
-bag_type : BAG? LEFT_CURLY ( ( IDENTIFIER COLON )? tuple_type )? RIGHT_CURLY
+bag_type : BAG? LEFT_CURLY ( ( identifier COLON )? tuple_type )? RIGHT_CURLY
         -> ^( BAG_TYPE tuple_type? )
 ;
 
@@ -387,7 +389,7 @@ real_arg_list : real_arg ( COMMA real_arg )*
 real_arg : expr | STAR | col_range
 ;
 
-null_check_cond : expr IS! NOT? NULL^
+null_check_cond : expr IS! NOT? null_keyword^
 ;
 
 expr : add_expr
@@ -438,7 +440,7 @@ dot_proj : PERIOD ( col_alias_or_index
 col_alias_or_index : col_alias | col_index
 ;
 
-col_alias : GROUP | IDENTIFIER
+col_alias : GROUP | identifier
 ;
 
 col_index : DOLLARVAR
@@ -451,7 +453,7 @@ col_range : c1 = col_ref DOUBLE_PERIOD c2 = col_ref?
 
 ;
 
-pound_proj : POUND^ ( QUOTEDSTRING | NULL )
+pound_proj : POUND^ ( QUOTEDSTRING | null_keyword )
 ;
 
 bin_expr : LEFT_PAREN cond QMARK exp1 = expr COLON exp2 = expr RIGHT_PAREN
@@ -554,12 +556,12 @@ nested_command_list : ( nested_command SEMI_COLON )*
                     |
 ;
 
-nested_command : ( IDENTIFIER EQUAL col_ref PERIOD col_ref_list { input.LA( 1 ) == SEMI_COLON }? ) => ( IDENTIFIER EQUAL nested_proj )
-              -> ^( NESTED_CMD IDENTIFIER nested_proj )
-               | IDENTIFIER EQUAL expr
-              -> ^( NESTED_CMD_ASSI IDENTIFIER expr )
-               | IDENTIFIER EQUAL nested_op
-              -> ^( NESTED_CMD IDENTIFIER nested_op )
+nested_command : ( identifier EQUAL col_ref PERIOD col_ref_list { input.LA( 1 ) == SEMI_COLON }? ) => ( identifier EQUAL nested_proj )
+              -> ^( NESTED_CMD identifier nested_proj )
+               | identifier EQUAL expr
+              -> ^( NESTED_CMD_ASSI identifier expr )
+               | identifier EQUAL nested_op
+              -> ^( NESTED_CMD identifier nested_op )
 ;
 
 nested_op : nested_filter
@@ -608,7 +610,7 @@ split_branch : alias IF cond
 col_ref : alias_col_ref | dollar_col_ref
 ;
 
-alias_col_ref : GROUP | IDENTIFIER
+alias_col_ref : GROUP | identifier
 ;
 
 dollar_col_ref : DOLLARVAR
@@ -621,7 +623,7 @@ literal : scalar | map | bag | tuple
 ;
 
 
-scalar : num_scalar | QUOTEDSTRING | NULL
+scalar : num_scalar | QUOTEDSTRING | null_keyword
 ;
 
 num_scalar : MINUS? ( INTEGER | LONGINTEGER | FLOATNUMBER | DOUBLENUMBER )
@@ -697,7 +699,6 @@ eid : rel_str_op
     | TUPLE
     | MAP
     | IS
-    | NULL
     | STREAM
     | THROUGH
     | STORE
@@ -714,7 +715,8 @@ eid : rel_str_op
     | LEFT
     | RIGHT
     | FULL
-    | IDENTIFIER
+    | identifier
+    | null_keyword
 ;
 
 // relational operator
@@ -754,3 +756,10 @@ rel_str_op : STR_OP_EQ
            | STR_OP_MATCHES
 ;
 
+null_keyword : {input.LT(1).getText().equalsIgnoreCase("NULL")}? IDENTIFIER_L
+     -> NULL[$IDENTIFIER_L]
+;
+
+identifier : {!input.LT(1).getText().equalsIgnoreCase("NULL")}? IDENTIFIER_L
+    -> IDENTIFIER[$IDENTIFIER_L]
+;
