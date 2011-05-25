@@ -44,8 +44,6 @@ import org.junit.Test;
 
 public class TestMacroExpansion {
     
-    private static final MiniCluster cluster = MiniCluster.buildCluster();
-    
     static File command;
     
     @BeforeClass
@@ -66,7 +64,6 @@ public class TestMacroExpansion {
 
     @AfterClass
     public static void tearDownAfterClass() throws Exception {
-        cluster.shutDown();
     }
 
     @Before
@@ -1231,7 +1228,7 @@ public class TestMacroExpansion {
 
         
         String expectedErr = 
-            "<file myscript.pig, line 9, column 17>  mismatched input '$0' expecting set null";
+            "<file myscript.pig, line 9, column 17>  Syntax error, unexpected symbol at or near '$0'";
         
         validateDryrunFailure(sb.toString(), expectedErr, "<file");
     }

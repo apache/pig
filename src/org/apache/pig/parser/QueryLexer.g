@@ -186,9 +186,6 @@ MAP : 'MAP'
 IS : 'IS'
 ;
 
-NULL : 'NULL'
-;
-
 STREAM : 'STREAM'
 ;
 
@@ -291,7 +288,7 @@ fragment ID: LETTER ( DIGIT | LETTER | SPECIALCHAR )*
 DCOLON : '::'
 ;
 
-IDENTIFIER : ( ID DCOLON ) => ( ID DCOLON IDENTIFIER )
+IDENTIFIER_L : ( ID DCOLON ) => ( ID DCOLON IDENTIFIER_L )
            | ID
 ;
 

@@ -184,6 +184,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-2083: bincond ERROR 1025: Invalid field projection when null is used (thejas)
+
 PIG-2089: Javadoc for ResourceFieldSchema.getSchema() is wrong (daijy)
 
 PIG-2084: pig is running validation for a statement at a time batch mode,
