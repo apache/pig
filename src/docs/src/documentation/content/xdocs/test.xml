@@ -273,20 +273,20 @@ DUMP B;
          </tr>
    </table></section>
    
-   <section>
+   <section id="execution-plans">
    <title>Usage</title>
    <p>Use the EXPLAIN operator to review the logical, physical, and map reduce execution plans that are used to compute the specified relationship. </p>
    <p>If no script is given:</p>
 
    <ul>	
-      <li>
-         <p>The logical plan shows a pipeline of operators to be executed to build the relation. Type checking and backend-independent optimizations (such as applying filters early on) also apply.</p>
+      <li id="logical-plan">
+         <p >The logical plan shows a pipeline of operators to be executed to build the relation. Type checking and backend-independent optimizations (such as applying filters early on) also apply.</p>
       </li>
-      <li>
-         <p>The physical plan shows how the logical operators are translated to backend-specific physical operators. Some backend optimizations also apply.</p>
+      <li id="physical-plan">
+         <p >The physical plan shows how the logical operators are translated to backend-specific physical operators. Some backend optimizations also apply.</p>
       </li>
-      <li>
-         <p>The map reduce plan shows how the physical operators are grouped into map reduce jobs.</p>
+      <li id="mapreduce-plan">
+         <p >The mapreduce plan shows how the physical operators are grouped into map reduce jobs.</p>
       </li>
   </ul> 
   <p></p>
@@ -381,10 +381,10 @@ Local Rearrange[tuple]{chararray}(false) - xxx-Fri Dec 05 19:42:29 UTC 2008-34
    <p>Use the ILLUSTRATE operator to review how data is transformed through a sequence of Pig Latin statements.
    ILLUSTRATE allows you to test your programs on small datasets and get faster turnaround times. </p>
 
-<p>ILLUSTRATE is based on an example generator 
+<p id="example-generator">ILLUSTRATE is based on an example generator 
 (see <a href="http://research.yahoo.com/files/paper_5.pdf">Generating Example Data for Dataflow Programs</a>).
 
-The algorithm works by retrieving a small sample of the input data and then propagating this data through the pipeline. However, some operators, such as JOIN or FILTER, can eliminate tuples from the data - and this could result in no data following through the pipeline. To address this issue, the algorithm will automatically generate example data, in near real-time. Thus, you might see data propagating through the pipeline that was not found in the original input data, but this data changes nothing and ensures that you will be able to examine the semantics of your Pig Latin statements.</p>    
+The algorithm works by retrieving a small sample of the input data and then propagating this data through the pipeline. However, some operators, such as JOIN and FILTER, can eliminate tuples from the data - and this could result in no data following through the pipeline. To address this issue, the algorithm will automatically generate example data, in near real-time. Thus, you might see data propagating through the pipeline that was not found in the original input data, but this data changes nothing and ensures that you will be able to examine the semantics of your Pig Latin statements.</p>    
    
      <p>As shown in the examples below, you can use ILLUSTRATE to review a relation or an entire Pig script.</p>
  </section>

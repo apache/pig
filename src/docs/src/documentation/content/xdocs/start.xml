@@ -350,7 +350,7 @@ DUMP B;
    
 <!-- ++++++++++++++++++++++++++++++++++ --> 
       <section id="data-store">
-   <title>Storing Intermediate Data</title>
+   <title>Storing Intermediate Results</title>
 
       <p>Pig stores the intermediate data generated between MapReduce jobs in a temporary location on HDFS. 
    This location must already exist on HDFS prior to use. 
@@ -359,7 +359,7 @@ DUMP B;
       </section>
    
     <section id="data-results">
-   <title>Storing Results</title>
+   <title>Storing Final Results</title>
    <p>Use the  <a href="basic.html#STORE">STORE</a> operator and the <a href="udf.html#load-store-functions">load/store functions</a> 
    to write results to the file system (PigStorage is the default store function). </p>
 <p><strong>Note:</strong> During the testing/debugging phase of your implementation, you can use DUMP to display results to your terminal screen. 
@@ -394,7 +394,7 @@ However, in a production environment you always want to use the STORE operator t
 <title>Pig Properties</title>
    <p>Pig supports a number of Java properties that you can use to customize Pig behavior. You can retrieve a list of the properties using the <a href="cmds.html#help">help properties</a> command. All of these properties are optional; none are required. </p>
 <p></p>
-<p>To specify Pig properties use one of these mechanisms:</p>
+<p id="pig-properties">To specify Pig properties use one of these mechanisms:</p>
 <ul>
 	<li>The pig.properties file (add the directory that contains the pig.properties file to the classpath)</li>
 	<li>The -D command line option and a Pig property (pig -Dpig.tmpfilecompression=true)</li>
@@ -403,7 +403,8 @@ However, in a production environment you always want to use the STORE operator t
 </ul>
 <p><strong>Note:</strong> The properties file uses standard Java property file format.</p>
 <p>The following precedence order is supported: pig.properties &gt; -D Pig property &gt; -P properties file &gt; set command. This means that if the same property is provided using the –D command line option as well as the –P command line option and a properties file, the value of the property in the properties file will take precedence.</p>
-<p>To specify Hadoop properties you can use the same mechanisms:</p>
+
+<p id="hadoop-properties">To specify Hadoop properties you can use the same mechanisms:</p>
 <ul>
 	<li>The hadoop-site.xml file (add the directory that contains the hadoop-site.xml file to the classpath)</li>
 	<li>The -D command line option and a Hadoop property (pig –Dmapreduce.task.profile=true) </li>
@@ -413,7 +414,7 @@ However, in a production environment you always want to use the STORE operator t
 <p></p>
 <p>The same precedence holds: hadoop-site.xml &gt; -D Hadoop property &gt; -P properties_file &gt; set command.</p>
 <p>Hadoop properties are not interpreted by Pig but are passed directly to Hadoop. Any Hadoop property can be passed this way. </p>
-<p>All properties that Pig collects, including Hadoop properties, are available to any UDF via the UDFContext. To get access to the properties, you can call the getJobConf method.</p>
+<p>All properties that Pig collects, including Hadoop properties, are available to any UDF via the UDFContext object. To get access to the properties, you can call the getJobConf method.</p>
 </section>  
 
 

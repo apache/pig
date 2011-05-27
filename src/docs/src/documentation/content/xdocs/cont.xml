@@ -28,7 +28,8 @@
    
 <p>To enable control flow, you can embed Pig Latin statements and Pig commands in the Python and JavaScript scripting languages using a JDBC-like compile, bind, run model. For Python, make sure the Jython jar is included in your class path. For JavaScript, make sure the Rhino jar is included in your classpath.</p>
 
-<p>(In addition to the discussion here, also see the Advanced Topics for Python and JavaScript in <a href="udf.html">User Defined Functions</a>.)</p>
+<p>Note that host languages and the languages of UDFs (included as part of the embedded Pig) are completely orthogonal. For example, a Pig Latin statement that registers a Python UDF may be embedded in Python, JavaScript, or Java. The exception to this rule is "combined" scripts – here the languages must match (see the <a href="udf.html#python-advanced">Advanced Topics for Python</a> and <a href="udf.html#js-advanced">Advanced Topics for JavaScript</a>). </p>
+
 
 <!-- ============================================== -->
 <section id="invocation-basics">
@@ -265,17 +266,27 @@ Pig.compile(...).bind(...).runSingle(props)
 
 </section> 
 
-<section id="pig-run-api">
+<section id="pigrunner-api">
 <title>PigRunner API</title>
 
 <p>Starting with Pig 0.8, some applications such as Oozie workflow invoke Pig using the PigRunner Java class rather than through the command line. For these applications, the PigRunner interface has been expanded to accommodate embedded Pig. PigRunner accepts Python and JavaScript scripts as input. These scripts can potentially contain multiple Pig pipelines; therefore, we need a way to return results for all of them.</p>
 
-<p id="pigstats">To do this and to preserve backward compatibility PigStats and related objects were expanded as shown below:</p>
+<p>To do this and to preserve backward compatibility PigStats and related objects were expanded as shown below:</p>
 <ul>
-<li>getAllStats() and List&lt; &gt; getAllErrorMessages() were added to the PigStats class. The map returned from getAllStats is keyed on the name of the pipeline provided in the compile call. If the name was not compiled an internally generated id would be used. </li>
-<li>PigStats is now an abstract class with a new abstract method isEmbedded().   </li>
-<li>Two new classes that extend PigStats were created: SimplePigStats and EmbeddedPigStats. PigStats as it is today will become SimplePigStats. SimplePigStats.getAllStats() will return null. EmbeddedPigStats will return null for methods not listed in the proposal below. </li>
-<li>The PigProgressNotificationListener interface was modified to add script id to all its methods.  </li>
+
+<li id="PigStats">PigStats is now an abstract class. (PigStats as it is today will become SimplePigStats.)</li>
+
+
+<li id="SimplePigStats">SimplePigStats is a new class that extends PigStats. SimplePigStats.getAllStats() will return null. </li>
+
+<li id="EmbeddedPigStats">EmbeddedPigStats is a new class that extends PigStats. EmbeddedPigStats will return null for methods not listed in the proposal below. </li>
+
+
+<li id="isembedded">isEmbedded() is a new abstract method that accommodates embedded Pig.</li>
+
+<li id="stats-messages">getAllStats() and List&lt; &gt; getAllErrorMessages() methods were added to the PigStats class. The map returned from getAllStats is keyed on the name of the pipeline provided in the compile call. If the name was not compiled an internally generated id would be used. </li>
+
+<li id="PigProgressNotificationListener2">The PigProgressNotificationListener interface was modified to add script id to all its methods.  </li>
 </ul>
 <p></p>
 <p>For more details, see <a href="#Java-Objects">Java Objects</a>.</p>
@@ -308,7 +319,7 @@ else:
 </source>
 </section> 
 
-<section>
+<section id="convergence">
 <title>Convergence</title>
 <p>There is a class of problems that involve iterating over a data pipeline an indeterminate number of times until a certain value is reached. Examples arise in machine learning, graph traversal, and a host of numerical analysis problems which involve finding interpolations, extrapolations or regressions. The Python example below shows one way to achieve convergence using Pig scripts.</p>
 
@@ -349,7 +360,7 @@ for i in range(1, 4):
 </source>
 </section>
 
-<section>
+<section id="automated-pig-latin">
 <title>Automated Pig Latin Generation</title>
 <p>A number of user frameworks do automated generation of Pig Latin, such as setting the proper date for data loads.</p>
 
@@ -736,6 +747,8 @@ public abstract class PigStats {
 
 <p>To enable control flow, you can embed Pig Latin statements and Pig commands in the Java programming language. </p>
 
+<p>Note that host languages and the languages of UDFs (included as part of the embedded Pig) are completely orthogonal. For example, a Pig Latin statement that registers a Java UDF may be embedded in Python, JavaScript, or Java. The exception to this rule is "combined" scripts – here the languages must match (see the <a href="udf.html#python-advanced">Advanced Topics for Python</a> and <a href="udf.html#js-advanced">Advanced Topics for JavaScript</a>). </p>
+
 <section id="pigserver">
 <title>PigServer Interface</title>
 <p>Currently, <a href="http://pig.apache.org/docs/r0.9.0/api/org/apache/pig/PigServer.html">PigServer</a> is the main interface for embedding Pig in Java. PigServer can now be instantiated from multiple threads. (In the past, PigServer contained references to static data that prevented multiple instances of the object to be created from different threads within your application.) Please note that PigServer is NOT thread safe; the same object can't be shared across multiple threads. </p>
@@ -914,12 +927,12 @@ public static void runIdQuery(PigServer pigServer, String inputFile) throws IOEx
    <p><strong>Macro Definition</strong></p>
    <p>A macro definition can appear anywhere in a Pig script as long as it appears prior to the first use. A macro definition can include references to other macros as long as the referenced macros are defined prior to the macro definition. Recursive references are not allowed. </p>
    
-   <p>Note the following:</p>
+   <p>Note the following restrictions:</p>
    <ul>
-   <li>Macros are NOT allowed inside a <a href="basic.html#FOREACH">FOREACH</a> nested block.</li>
-   <li>Macros can only contain Pig Latin statements. Grunt shell commands are not supported.</li>
-   <li>Macros cannot include user-defined schema that has a name collision with an alias in the macro.</li>
-   <li><a href="#Parameter-Sub">Parameter substitution</a> CANNOT be used inside of macros. Parameters should be explicitly passed to macros and parameter substitution used only at the top level.</li>
+   <li>Macros are not allowed inside a <a href="basic.html#nested-block">FOREACH</a> nested block.</li>
+   <li>Macros can only contain <a href="start.html#pl-statements">Pig Latin statements</a>. The <a href="basic.html#register">REGISTER</a>  statement is not supported. The <a href="cmds.html#shell-cmds">shell commands</a> (used with Grunt) are not supported.</li>
+   <li>Macros cannot include a user-defined schema that has a name collision with an alias in the macro.</li>
+   <li><a href="#Parameter-Sub">Parameter substitution</a> cannot be used inside of macros. Parameters should be explicitly passed to macros and parameter substitution used only at the top level.</li>
    </ul>
    <p></p>
 

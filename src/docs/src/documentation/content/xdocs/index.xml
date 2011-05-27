@@ -29,8 +29,11 @@
         become familiar with the Pig Latin operators and the supported data types.</p>
         
       <p>Functions can be a part of almost every operator in Pig. The <a href="func.html">Built In Functions</a> guide describes Pig's built in functions.  
-       The <a href="udf.html">User Defined Functions</a> manual shows you how to how to write your own functions and how to access functions 
-       contributed by other Pig users. </p>
+       The <a href="udf.html">User Defined Functions</a> manual shows you how to how to write your own functions and how to access/contribute functions using the Piggy Bank repository.</p>
+       
+       <p>The mechanisms featured in the <a href="cont.html">Control Structures</a> guide give you greater control over how your Pig scripts are structured and executed. The <a href="cont.html">Performance and Efficiency</a> guide provides valuable examples and suggestions for optimizing your code.</p>
+       
+       <p>Finally, use Pig's <a href="cmds.html">Shell and Utility Commands</a> to run your programs and Pig's expanded <a href="test.html">Testing and Diagnostics</a> tools to examine and/or debug your programs.</p>
       
       <p>If you have more questions, you can ask on the <a href="http://hadoop.apache.org/pig/mailing_lists.html">Pig Mailing Lists</a>.</p>
   </body>

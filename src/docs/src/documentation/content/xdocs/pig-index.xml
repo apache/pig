@@ -58,42 +58,43 @@
 <p></p>
 <p></p>
 
-<!-- ==== A ================================================================== -->
+<!-- ==== Symbols ================================================================== -->
 <p></p>
 <p id="sym-index"><strong>Symbols</strong></p>
 
-<p>+ <a href="basic.html#arithmetic">addition operator</a></p>
-<p>?: <a href="basic.html#arithmetic">bincond operator</a></p>
-<p>/* */ <a href="start.html#comments">multi-line comments</a></p>
-<p>-- <a href="start.html#comments">single-line comments</a></p>
-<p>#  <a href="basic.html#deref">deference operator (map)</a></p>
-<p>.   <a href="basic.html#deref">deference operator (tuple, bag)</a></p>
-<p>/  <a href="basic.html#arithmetic">division operator</a></p>
-<p>==   <a href="basic.html#comparison">equal operator</a></p>
-<p>&gt;   <a href="basic.html#comparison">greater than operator</a></p>
-<p>&gt;=  <a href="basic.html#comparison">greater than or equal to operator</a></p>
-<p>&lt;   <a href="basic.html#comparison">less than operator</a></p>
-<p>&lt;=   <a href="basic.html#comparison">less than or equal to operator</a></p>
-<p>..  <a href="basic.html#prexp">project-range expression</a></p>
-<p>% <a href="basic.html#arithmetic">modulo operator</a></p>
-<p>* <a href="basic.html#arithmetic">multiplication operator</a></p>
-<p>!=   <a href="basic.html#comparison">not equal operator</a></p>
-<p>+  <a href="basic.html#sign">sign operator (positive)</a></p>
-<p>-   <a href="basic.html#sign">sign operator (negative)</a></p>
-<p>*   <a href="basic.html#sexp">star expression</a></p>
-<p>- <a href="basic.html#arithmetic">subtraction operator</a></p>
+<p>&nbsp; +  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="basic.html#arithmetic">addition operator</a></p>
+<p>&nbsp; ?:  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="basic.html#arithmetic">bincond operator</a></p>
+<p>&nbsp; /* */  &nbsp;<a href="start.html#comments">comments - multi-line</a></p>
+<p>&nbsp; --  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="start.html#comments">comments - single-line</a></p>
+<p>&nbsp; #   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="basic.html#deref">deference operator (map)</a></p>
+<p>&nbsp; .  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="basic.html#deref">deference operator (tuple, bag)</a></p>
+<p>&nbsp; ::  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="basic.html#disambiguate">disambiguate operator</a></p>
+<p>&nbsp; /  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="basic.html#arithmetic">division operator</a></p>
+<p>&nbsp; ==  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="basic.html#comparison">equal operator</a></p>
+<p>&nbsp; &gt;  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="basic.html#comparison">greater than operator</a></p>
+<p>&nbsp; &gt;=  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="basic.html#comparison">greater than or equal to operator</a></p>
+<p>&nbsp; &lt;  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="basic.html#comparison">less than operator</a></p>
+<p>&nbsp; &lt;=  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="basic.html#comparison">less than or equal to operator</a></p>
+<p>&nbsp; %  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="basic.html#arithmetic">modulo operator</a></p>
+<p>&nbsp; *  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="basic.html#arithmetic">multiplication operator</a></p>
+<p>&nbsp; !=  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="basic.html#comparison">not equal operator</a></p>
+<p>&nbsp; ..  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="basic.html#prexp">project-range expression</a></p>
+<p>&nbsp; -  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="basic.html#sign">sign operator (negative)</a></p>
+<p>&nbsp; + &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="basic.html#sign">sign operator (positive)</a></p>
+<p>&nbsp; *  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="basic.html#sexp">star expression</a></p>
+<p>&nbsp; -  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="basic.html#arithmetic">subtraction operator</a></p>
 
 
 <!-- ==== A ================================================================== -->
 <p></p>
-<p id="a-index"><strong>A</strong> (<a href="#top">top</a>)</p>
+<p id="a-index"><strong>A</strong> (<a href="#top">top</a>) ----------------------------------------------</p>
 
 
-<p><a href="func.html#abs">ABS</a></p>
+<p><a href="func.html#abs">ABS</a> function</p>
 
 <p><a href="udf.html#accumulator-interface">accumulator interface</a></p>
 
-<p><a href="func.html#acos">ACOS</a></p>
+<p><a href="func.html#acos">ACOS</a> function</p>
 
 <p><a href="udf.html#aggregate-functions">aggregate functions</a></p>
 
@@ -102,101 +103,134 @@
 <p>aliases (for fields, relations). <em>See</em> referencing.</p>
 
 <p><a href="start.html#dfs">Amazon S3</a></p>
+
 <p><a href="basic.html#boolops">AND</a> (Boolean)</p>
+
 <p><a href="basic.html#arithmetic">arithmetic operators</a></p>
 
-<p><a href="func.html#asin">ASIN</a></p>
-<p><a href="func.html#atan">ATAN</a></p>
-<p><a href="func.html#avg">AVG</a></p>
+<p><a href="func.html#asin">ASIN</a> function</p>
+
+<p><a href="func.html#atan">ATAN</a> function</p>
+
+<p><a href="basic.html#autoship">autoship</a> (streaming). <em>See also</em> ship</p>
+
+<p><a href="func.html#avg">AVG</a> function</p>
 
 <!-- ==== B ================================================================== -->
 <p></p>
-<p id="b-index"><strong>B</strong> (<a href="#top">top</a>)</p>
+<p id="b-index"><strong>B</strong> (<a href="#top">top</a>) ----------------------------------------------</p>
 
 <p><a href="perf.html#backward-compatibility">backward compatibility</a> (multi-query execution)</p>
 
+<p><a href="func.html#bag-tuple-functions">bag functions</a></p>
+
 <p>bags (data type)
+<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#memory-bags">and memory allocation</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#relations">and relations</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#bag-schema">bag schema</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#bag-schema">and schemas</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#schema-multi">schemas for multiple types</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#bag">syntax</a>
 </p>
 
-<p><a href="start.html#batch-mode">batch mode</a></p>
+<p><a href="start.html#batch-mode">batch mode</a>. <em>See also</em> memory management</p>
 
 <p><a href="basic.html#arithmetic">bincond operator</a> ( ?: )</p>
 
-<p><a href="func.html#binstorage">BinStorage</a></p>
+<p><a href="func.html#binstorage">BinStorage</a> function</p>
 
-<p>Booleans
-<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#bexp">expressions</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#boolops">AND operator</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#boolops">OR operator</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#boolops">NOT operator</a>
+<p><a href="basic.html#bexp">Boolean expressions</a></p>
+
+<p>Boolean operators
+<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#boolops">AND</a> operator
+<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#boolops">OR</a> operator
+<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#boolops">NOT</a> operator
 </p>
 
-<p><a href="cont.html#boundscript-object">BoundScript.java object</a></p>
+<p><a href="cont.html#boundscript-object">BoundScript.java</a> object</p>
 
 <p><a href="start.html#build">building Pig</a></p>
 
+<p><a href="func.html#built-in-functions">built in functions</a></p>
 
 <!-- ==== C ================================================================== -->
 <p></p>
-<p id="c-index"><strong>C</strong> (<a href="#top">top</a>)</p>
+<p id="c-index"><strong>C</strong> (<a href="#top">top</a>) ----------------------------------------------</p>
+
+
+<p><a href="basic.html#cache-about">cache</a> (streaming)</p>
 
 <p><a href="basic.html#case-sensitivity">case sensitivity</a></p>
 
 <p>casting types
-<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#cast">operators</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#cast">cast operators</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="func.html#custom-converter">custom converters</a> (BinStorage)
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#cast-relations">relations to scalars</a>
 <br></br>&nbsp;&nbsp;&nbsp; <em>See also</em> types tables
 </p>
 
-<p><a href="func.html#cbrt">CBRT</a></p>
+<p><a href="func.html#cbrt">CBRT</a> function</p>
 
-<p><a href="func.html#ceil">CEIL</a></p>
+<p><a href="func.html#ceil">CEIL</a> function</p>
 
-<p><a href="udf.html#checkschema">checkSchema</a></p>
+<p><a href="udf.html#checkschema">checkSchema</a> method</p>
 
-<p><a href="basic.html#cogroup">COGROUP</a></p>
+<p><a href="basic.html#cogroup">COGROUP</a> operator</p>
 
 <p><a href="perf.html#combiner">combiner</a></p>
 
-<p><a href="basic.html#comparison">comparison operators</a></p>
-
 <p><a href="start.html#comments">comments</a> (in Pig Scripts)</p>
 
-<p><a href="func.html#handling-compression">compression</a> (of data)</p>
+<p><a href="basic.html#comparison">comparison operators</a></p>
 
-<p><a href="func.html#concat">CONCAT</a></p>
-<p><a href="basic.html#constants">constants</a></p>
-<p><a href="func.html#cosh">COS</a></p>
-<p><a href="func.html#cosh">COSH</a></p>
-<p><a href="func.html#count">COUNT</a></p>
-<p><a href="func.html#count-star">COUNT_STAR</a></p>
+<p>compression (of data)
+<br></br>&nbsp;&nbsp;&nbsp; <a href="func.html#handling-compression">handling compression</a> 
+<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#compression">compressing results of intermediate jobs</a> 
+</p>
 
-<p><a href="basic.html#cross">CROSS</a></p>
+<p><a href="func.html#concat">CONCAT</a> function</p>
+
+<p>constants
+<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#constants">and data types</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#nulls-constants">and nulls</a>
+</p>
+
+<p><a href="cont.html#convergence">convergence</a> (Python example)</p>
+
+<p><a href="func.html#cosh">COS</a> function</p>
+
+<p><a href="func.html#cosh">COSH</a> function </p>
+
+<p><a href="func.html#count">COUNT</a> function</p>
+
+<p><a href="func.html#count-star">COUNT_STAR</a> function</p>
+
+<p><a href="basic.html#cross">CROSS</a> operator</p>
 
 <!-- ==== D ================================================================== -->
 <p></p>
-<p id="d-index"><strong>D</strong> (<a href="#top">top</a>)</p>
+<p id="d-index"><strong>D</strong> (<a href="#top">top</a>) ----------------------------------------------</p>
+
+<p><a href="start.html#properties">-D</a> command line option</p>
 
 <p>data
-<br></br>&nbsp;&nbsp;&nbsp; <a href="func.html#handling-compression">compression</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#combine-files">combining input files</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="func.html#handling-compression">compression</a> (handling)
+<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#compression">compression</a> (results of intermediate jobs)
 <br></br>&nbsp;&nbsp;&nbsp; <a href="start.html#data-load">loading</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="func.html#load-store-functions">load/store functions</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="start.html#data-store">storing intermediate results</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="func.html#load-store-functions">load/store functions</a> (built in functions)
+<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#load-store-functions">load/store functions</a> (user defined functions)
 <br></br>&nbsp;&nbsp;&nbsp; <a href="start.html#data-results">storing final results</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="start.html#data-store">storing intermediate results</a> (and HDFS)
+<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#data-store-performance">storing intermediate results</a> (and performance)
 <br></br>&nbsp;&nbsp;&nbsp; <a href="start.html#data-work-with">working with</a>
 </p>
 
-<p>data types
-<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#data-types">in Pig Latin</a>
-</p>
+<p><a href="basic.html#data-types">data types</a> (Pig Latin)</p>
 
 <p>debugging
 <br></br>&nbsp;&nbsp;&nbsp; <a href="test.html#diagnostic-ops">diagnostic operators</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="test.html#penny">Penny </a> 
+<br></br>&nbsp;&nbsp;&nbsp; <a href="cmds.html#exec-debug">with exec and run commands</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="test.html#penny">and Penny </a> 
 <br></br>&nbsp;&nbsp;&nbsp; <a href="start.html#debug">and Pig Latin</a>
 </p>
 
@@ -207,19 +241,25 @@
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#deref">map</a> ( #  )
 </p>
 
-<p><a href="cont.html#define-macros">DEFINE (macros)</a> </p>
-<p><a href="basic.html#define-udfs">DEFINE (UDFs, streaming)</a> </p>
+<p><a href="cont.html#define-macros">DEFINE (macros)</a> operator</p>
 
-<p><a href="test.html#describe">DESCRIBE</a></p>
+<p><a href="basic.html#define-udfs">DEFINE (UDFs, streaming)</a> operator</p>
+
+<p><a href="test.html#describe">DESCRIBE</a> operator</p>
+
+<p><a href="func.html#diff">DIFF</a> function</p>
+
+<p><a href="basic.html#disambiguate">disambiguate operator</a> ( :: )</p>
 
 <p><a href="start.html#dfs">distributed file systems</a> (and Pig Scripts)</p>
 
-<p><a href="basic.html#distinct">DISTINCT</a></p>
+<p><a href="basic.html#distinct">DISTINCT</a> operator</p>
+
+<p><a href="perf.html#distinct">DISTINCT and optimization</a></p>
 
 <p><a href="udf.html#distributed-cache">distributed cache</a></p>
-<p><a href="start.html#download">downloading Pig</a></p>
 
-<p><a href="func.html#diff">DIFF</a></p>
+<p><a href="start.html#download">downloading Pig</a></p>
 
 <p><a href="test.html#dump">DUMP</a> <em>See also </em> Store vs. Dump</p>
 
@@ -227,54 +267,50 @@
 
 <!-- ==== E ================================================================== -->
 <p></p>
-<p id="e-index"><strong>E</strong> (<a href="#top">top</a>)</p>
+<p id="e-index"><strong>E</strong> (<a href="#top">top</a>) ----------------------------------------------</p>
 
 <p>embedded Pig
 <br></br>&nbsp;&nbsp;&nbsp; <a href="cont.html#invocation-basics">invocation basics</a> 
 <br></br>&nbsp;&nbsp;&nbsp; <a href="cont.html#invocation-details">invocation details</a> (compile, bind, run)
 <br></br>&nbsp;&nbsp;&nbsp; <a href="cont.html#embed-java">and Java</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="cont.html#embed-python">and JavaScript</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="cont.html#pig-run-api">and PigRunner API</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="cont.html#pigrunner-api">and PigRunner API</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="cont.html#pigserver">and PigServer Interface</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="cont.html#embed-python">and Python</a>
 </p>
 
-<p><a href="cont.html#pigstats">EmbeddedPigStats</a></p>
+<p><a href="cont.html#EmbeddedPigStats">EmbeddedPigStats</a> class</p>
 
 <p><a href="perf.html#error-handling">error handling</a> (multi-query execution)</p>
 
-<p><a href="func.html#eval-functions">eval functions</a> (built in)</p>
+<p><a href="func.html#eval-functions">eval functions</a> (built in functions)</p>
 
-<p><a href="udf.html#eval-functions">eval functions</a> (UDFs)
-<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#aggregate-functions">aggregate functions</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#distributed-cache">and distributed cache</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#error-handling">and error handling</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#function-overloading">and function overloading</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#filter-functions">filter functions</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#import-lists">and import lists</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#pig-types">and Pig types</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#reporting-progress">reporting progress of</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#schemas">and schemas</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#eval-functions-use">using, how to</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#eval-functions-write">writing, how to</a>
-</p>
+<p><a href="udf.html#eval-functions">eval functions</a> (user defined functions). <em>See also</em> Java UDFs</p>
 
-<p><a href="cmds.html#exec">exec</a></p>
+<p><a href="cmds.html#exec">exec</a> command</p>
+
+<p>executing Pig. <em>See</em> running Pig</p>
 
 <p>exectution modes
 <br></br>&nbsp;&nbsp;&nbsp; <a href="start.html#execution-modes">local mode</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="start.html#execution-modes">mapreduce mode</a>
 </p>
 
-<p><a href="func.html#exp">EXP</a></p>
+<p>execution plans
+<br></br>&nbsp;&nbsp;&nbsp; <a href="test.html#logical-plan">logical plan</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="test.html#mapreduce-plan">mapreduce plan</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="test.html#physical-plan">physical plan</a>
+</p>
 
-<p><a href="test.html#explain">EXPLAIN</a></p>
+<p><a href="func.html#exp">EXP</a> function</p>
+
+<p><a href="test.html#explain">EXPLAIN</a> operator</p>
 
 <p>expressions
-<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#expressions">and Pig Latin</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#bexp">Boolean expressions</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#fexp">field expressions</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#gexp">general expressions</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#expressions">and Pig Latin</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#prexp">project-range expressions</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#sexp">star  expressions</a> ( * )
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#texp">tuple expressions</a>
@@ -282,81 +318,90 @@
 
 <!-- ==== F ================================================================== -->
 <p></p>
-<p id="f-index"><strong>F</strong> (<a href="#top">top</a>)</p>
+<p id="f-index"><strong>F</strong> (<a href="#top">top</a>) ----------------------------------------------</p>
 
 <p><a href="basic.html#fexp">field expressions</a></p>
 
 <p>fields
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#relations">definition of</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="func.html#field-delimiter">field delimiters</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#ref-field">referencing</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#ref-field-complex">referencing and complex types</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#ref-field-complex">referencing complex types</a>
 </p>
 
-<p><a href="basic.html#filter">FILTER</a></p>
+<p><a href="basic.html#filter">FILTER</a> operator</p>
+
+<p><a href="perf.html#filter">FILTER and performance</a></p>
 
 <p> <a href="udf.html#filter-functions">filter functions</a></p>
 
-<p><a href="basic.html#foreach">FOREACH</a></p>
-
 <p><a href="basic.html#flatten">flatten operator</a></p>
 
-<p><a href="func.html#floor">FLOOR</a></p>
+<p><a href="func.html#floor">FLOOR</a> function</p>
 
-<p><a href="cmds.html#fs">fs</a></p>
+<p><a href="basic.html#foreach">FOREACH</a> operator</p>
+
+<p><a href="cmds.html#fs">fs</a> command</p>
+
+<p><a href="cmds.html#fs">FsShell commands</a></p>
 
 <!-- ==== G ================================================================== -->
 <p></p>
-<p id="g-index"><strong>G</strong> (<a href="#top">top</a>)</p>
+<p id="g-index"><strong>G</strong> (<a href="#top">top</a>) ----------------------------------------------</p>
 
 <p><a href="basic.html#gexp">general expressions</a></p>
 
-<p><a href="udf.html#loadfunc-abstract">getInputFormat</a></p>
+<p><a href="cont.html#stats-messages">getAllErrorMessages</a> method</p>
 
-<p><a href="func.html#pigstats">getAllErrorMessages</a></p>
-<p><a href="cont.html#pigstats">getAllStats</a></p>
+<p><a href="cont.html#stats-messages">getAllStats</a> method</p>
 
-<p><a href="udf.html#loadfunc-abstract">getNext</a></p>
-<p><a href="udf.html#storefunc-override">getOutputFormat</a></p>
+<p><a href="udf.html#getInputFormat">getInputFormat</a> method</p>
 
-<p><a href="basic.html#group">GROUP</a></p>
+<p><a href="udf.html#getNext">getNext</a> method</p>
+
+<p><a href="udf.html#getOutputFormat">getOutputFormat</a> method</p>
+
+<p>globs
+<br></br>&nbsp;&nbsp;&nbsp; <a href="func.html#binstorage">and BinStorage function</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#load-glob">and LOAD operator</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#register-glob">and REGISTER statement</a>
+</p>
+
+<p><a href="basic.html#group">GROUP</a> operator</p>
+
 <p><a href="start.html#interactive-mode">grunt shell</a></p>
 
 <!-- ==== H ================================================================== -->
 <p></p>
-<p id="h-index"><strong>H</strong> (<a href="#top">top</a>)</p>
+<p id="h-index"><strong>H</strong> (<a href="#top">top</a>) ----------------------------------------------</p>
 
 <p>Hadoop
+<br></br>&nbsp;&nbsp;&nbsp; <a href="cmds.html#fs">FsShell commands</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#load-glob">Hadoop globbing</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="test.html#hadoop-job-history-loader">HadoopJobHistoryLoader</a>
-<br></br>&nbsp;&nbsp;&nbsp; hadoop partitioner. <em>See </em> PARTITION BY
-<br></br>&nbsp;&nbsp;&nbsp; <a href="start.html#properties">properties</a>
-
+<br></br>&nbsp;&nbsp;&nbsp; hadoop partitioner. <em>See</em> PARTITION BY
+<br></br>&nbsp;&nbsp;&nbsp; <a href="start.html#hadoop-properties">Hadoop properties</a>
 </p>
 
 <p><a href="start.html#dfs">HDFS</a></p>
-<p><a href="cmds.html#help">help</a> (command)</p>
+
+<p><a href="cmds.html#help">help</a> command</p>
 
 <p></p>
 
 <!-- ==== I ================================================================== -->
 <p></p>
-<p id="i-index"><strong>I</strong> (<a href="#top">top</a>)</p>
+<p id="i-index"><strong>I</strong> (<a href="#top">top</a>) ----------------------------------------------</p>
 
-<p><a href="basic.html#identifiers">identifiers</a></p>
+<p><a href="basic.html#identifiers">identifiers</a> <em>See also</em> referencing</p>
 
-<p><a href="test.html#illustrate">ILLUSTRATE</a></p>
+<p><a href="test.html#illustrate">ILLUSTRATE</a> operator</p>
 
-<p><a href="cont.html#import-macros">IMPORT (macros)</a></p>
+<p><a href="perf.html#ImplicitSplitInserter">ImplicitSplitInserter</a> optimization rule</p>
 
+<p><a href="cont.html#import-macros">IMPORT (macros)</a> operator</p>
 
-<p><a href="perf.html#ImplicitSplitInserter">ImplicitSplitInserter </a></p>
-
-
-
-<p><a href="func.html#indexof">INDEXOF</a></p>
-
-
-<p><a href="cont.html#pigstats">isEmbedded</a></p>
-<p><a href="func.html#isempty">IsEmpty</a></p>
+<p><a href="func.html#indexof">INDEXOF</a> function</p>
 
 <p>installing Pig
 <br></br>&nbsp;&nbsp;&nbsp; <a href="start.html#build">builds</a>
@@ -366,73 +411,130 @@
 
 <p><a href="start.html#interactive-mode">interactive mode</a></p>
 
+<p><a href="cont.html#isEmbedded">isEmbedded</a> method</p>
+
+<p><a href="func.html#isempty">IsEmpty</a> function</p>
+
+<p><a href="basic.html#is-not-null">is not null</a> operator</p>
+
+<p><a href="basic.html#is-null">is null</a> operator</p>
+
+
 <!-- ==== J ================================================================== -->
 <p></p>
-<p id="j-index"><strong>J</strong> (<a href="#top">top</a>)</p>
+<p id="j-index"><strong>J</strong> (<a href="#top">top</a>) ----------------------------------------------</p>
 
 
-<p> <a href="cont.html#java-objects">Java objects</a></p>
+<p> <a href="cont.html#embed-java">Java and embedded Pig</a></p>
 
-<p> <a href="udf.html#js-udfs">Javascript UDFs</a></p>
+<p>Java objects
+<br></br>&nbsp;&nbsp;&nbsp; <a href="cont.html#boundscript-object">BoundScript.java</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="cont.html#pig-object">pig.java</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="cont.html#PigProgressNotificationListener">PigProgressNotificationListener.java</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="cont.html#pigstats-object">PigStats.java</a>
+</p>
 
-<p><a href="basic.html#join-inner">JOIN (inner)</a> </p>
-<p><a href="basic.html#join-outer">JOIN (outer)</a></p>
+<p><a href="cont.html#embed-python">JavaScript and embedded Pig</a></p>
+
+<p><a href="udf.html#js-udfs">JavaScript UDFs</a>. <em>See also</em> UDFs</p>
+
+<p><a href="udf.html#udf-java">Java UDFs</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#eval-functions">eval functions</a>
+<br></br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <a href="udf.html#accumulator-interface">accumulator interface</a>
+<br></br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <a href="udf.html#aggregate-functions">aggregate functions</a>
+<br></br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <a href="udf.html#algebraic-interface">algebraic interface</a>
+<br></br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <a href="udf.html#distributed-cache">and distributed cache</a>
+<br></br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <a href="udf.html#error-handling">and error handling</a>
+<br></br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <a href="udf.html#filter-functions">filter functions</a>
+<br></br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <a href="udf.html#function-overloading">and function overloading</a>
+<br></br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <a href="udf.html#import-lists">and import lists</a>
+<br></br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <a href="udf.html#pig-types">and Pig types</a>
+<br></br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <a href="udf.html#reporting-progress">and reporting progress</a>
+<br></br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <a href="udf.html#schemas">and schemas</a>
+<br></br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <a href="udf.html#eval-functions-use">using the functions</a>
+<br></br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <a href="udf.html#eval-functions-write">writing the functions</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#load-store-functions">load/store functions</a>
+<br></br>&nbsp;&nbsp;&nbsp; <em>See also</em> UDFs
+</p>
+
+<p><a href="basic.html#join-inner">JOIN (inner)</a> operator</p>
+
+<p><a href="basic.html#join-outer">JOIN (outer)</a> operator</p>
+
+<p>joins
+<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#join-inner">inner joins</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#join-optimizations">join optimizations</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#merge-joins">merge joins</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#join-outer">outer joins </a> 
+<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#replicated-joins">replicated joins</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#self-joins">self joins</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#skewed-joins">skewed joins</a>
+</p>
 
 
 <!-- ==== K ================================================================== -->
 <p></p>
-<p id="k-index"><strong>K</strong> (<a href="#top">top</a>)</p>
+<p id="k-index"><strong>K</strong> (<a href="#top">top</a>) ----------------------------------------------</p>
 
 <p>keywords. <em>See </em>reserved keywords</p>
 
-<p><a href="cmds.html#kill">kill</a> (command)</p>
+<p><a href="cmds.html#kill">kill</a> command</p>
 
 <!-- ==== L ================================================================== -->
 <p></p>
-<p id="l-index"><strong>L</strong> (<a href="#top">top</a>)</p>
+<p id="l-index"><strong>L</strong> (<a href="#top">top</a>) ----------------------------------------------</p>
 
-<p><a href="func.html#last-index-of">LAST_INDEX_OF</a></p>
-<p><a href="func.html#lcfirst">LCFIRST</a></p>
-<p><a href="basic.html#limit">LIMIT</a></p>
-<p><a href="basic.html#load">LOAD</a></p>
+<p><a href="func.html#last-index-of">LAST_INDEX_OF</a> function</p>
 
-<p><a href="udf.html#load-store-functions">LoadCaster</a>. <em>See also</em> LoadFunc</p>
+<p><a href="func.html#lcfirst">LCFIRST</a> function</p>
 
-<p><a href="udf.html#load-store-functions">LoadFunc</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#loadfunc-abstract">getInputFormat</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#loadfunc-abstract">getNext</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#load-store-functions">LoadCaster</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#load-store-functions">LoadMetadata</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#load-store-functions">LoadPushDown</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#loadfunc-abstract">prepareToRead</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#load-store-functions">pushProjection</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#loadfunc-default">relativeToAbsolutePath</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#loadfunc-abstract">setLocation</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#loadfunc-default">setUdfContextSignature</a>
+<p><a href="basic.html#limit">LIMIT</a> operator</p>
+
+<p><a href="perf.html#limit">LIMIT and optimization</a></p>
+
+<p><a href="basic.html#load">LOAD</a> operator</p>
+
+<p><a href="udf.html#LoadCaster">LoadCaster</a> interface</p>
+
+<p><a href="udf.html#loadfunc">LoadFunc</a> class
+<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#getInputFormat">getInputFormat</a> method
+<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#getNext">getNext</a> method
+<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#LoadCaster">LoadCaster</a> ubterface
+<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#LoadMetadata">LoadMetadata</a> interface
+<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#LoadPushDown">LoadPushDown</a> interface
+<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#prepareToRead">prepareToRead</a> method
+<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#pushProjection">pushProjection</a> method
+<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#relativeToAbsolutePath">relativeToAbsolutePath</a> method
+<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#setLocation">setLocation</a> method
+<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#setUdfContextSignature">setUdfContextSignature</a> method
 </p>
 
-<p><a href="udf.html#load-functions">Load Functions</a> (UDFs)</p>
+<p>Load Functions. <em>See</em> load/store functions</p>
 
-<p><a href="udf.html#load-store-functions">LoadMetadata</a></p>
-<p><a href="udf.html#load-store-functions">LoadPushDown</a></p>
+<p><a href="udf.html#LoadMetadata">LoadMetadata</a> interface</p>
+
+<p><a href="udf.html#LoadPushDown">LoadPushDown</a> interface</p>
 
 <p>load/store functions
 <br></br>&nbsp;&nbsp;&nbsp; <a href="func.html#load-store-functions">built in functions</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#load-store-functions">UDFs</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#load-store-functions">user defined functions (UDFs)</a>
 </p>
 
 <p><a href="start.html#execution-modes">local mode</a></p>
-<p><a href="func.html#log">LOG</a></p>
-<p><a href="func.html#log10">LOG10</a></p>
 
+<p><a href="func.html#log">LOG</a> function</p>
 
-<p> <a href="perf.html#LogicalExpressionSimplifier">LogicalExpressionSimplifier </a></p>
+<p><a href="func.html#log10">LOG10</a> function</p>
 
-<p><a href="func.html#lower">LOWER</a></p>
+<p><a href="test.html#logical-plan">logical execution plan</a></p>
+
+<p> <a href="perf.html#LogicalExpressionSimplifier">LogicalExpressionSimplifier</a> optimization rule</p>
+
+<p><a href="func.html#lower">LOWER</a> function</p>
 
 <!-- ==== M ================================================================== -->
 <p></p>
-<p id="m-index"><strong>M</strong> (<a href="#top">top</a>)</p>
+<p id="m-index"><strong>M</strong> (<a href="#top">top</a>) ----------------------------------------------</p>
 
 
 <p>macros
@@ -441,33 +543,36 @@
 <br></br>&nbsp;&nbsp;&nbsp; <a href="cont.html#import-macros">importing macros</a>
 </p>
 
-<p><a href="basic.html#mapreduce">MAPREDUCE</a> (operator)</p>
-
 <p>MapReduce
-<br></br>&nbsp;&nbsp;&nbsp;<a href="test.html#mapreduce-job-ids">MapReduce job ids and Pig scripts</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="test.html#mapreduce-job-ids">MapReduce job ids and Pig scripts</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#Parallel">setting the number of reduce tasks</a>
 </p>
 
+<p><a href="test.html#mapreduce-plan">mapreduce execution plan</a></p>
+
 <p><a href="start.html#execution-modes">mapreduce mode</a></p>
 
+<p><a href="basic.html#mapreduce">MAPREDUCE</a> operator</p>
+
 <p>maps (data type)
-<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#map-schema">map schema</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#map-schema">and schemas</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#schema-multi">schemas for multiple types</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#map">syntax</a>
 </p>
 
 <p>matches. <em>See</em> pattern matching</p>
 
-<p><a href="func.html#max">MAX</a></p>
+<p><a href="func.html#math-functions">math functions</a></p>
 
-<p><a href="perf.html#memory-management">memory management</a></p>
+<p><a href="func.html#max">MAX</a> function</p>
+
+<p><a href="perf.html#memory-management">memory management</a>. <em>See also</em> batch mode</p>
+
+<p><a href="perf.html#MergeForEach">MergeForEach</a> optimization rule</p>
 
 <p><a href="perf.html#merge-joins">merge joins</a></p>
 
-
-<p><a href="perf.html#MergeForEach">MergeForEach</a></p>
-
-<p><a href="func.html#min">MIN</a></p>
+<p><a href="func.html#min">MIN</a> function</p>
 
 <p><a href="basic.html#arithmetic">modulo operator</a> ( % )</p>
 
@@ -475,26 +580,31 @@
 
 <!-- ==== N ================================================================== -->
 <p></p>
-<p id="n-index"><strong>N</strong> (<a href="#top">top</a>)</p>
+<p id="n-index"><strong>N</strong> (<a href="#top">top</a>) ----------------------------------------------</p>
 
 <p>names (for fields, relations). <em>See</em> referencing.</p>
 
+<p><a href="basic.html#nested-block">nested blocks</a> (FOREACH operator) </p>
+
 <p><a href="basic.html#boolops">NOT</a> (Boolean)</p>
 
-<p>nulls
-<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#nulls">and  Pig Latin</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#nulls-ops-produce">operations that produce</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#null_operators">null operators</a>
-</p>
+<p><a href="basic.html#null_operators">null operators</a></p>
 
+<p>nulls
+<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#nulls-constants">and constants</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#nulls">dropping before a join</a> (performance)
+<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#nulls_join">and JOIN operator</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#nulls-load">and load functions</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#nulls-ops-produce">operations that produce</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#nulls">and Pig Latin</a>
+</p>
 
 <!-- ==== O ================================================================== -->
 <p></p>
-<p id="o-index"><strong>O</strong> (<a href="#top">top</a>)</p>
+<p id="o-index"><strong>O</strong> (<a href="#top">top</a>) ----------------------------------------------</p>
 
 
-<p> <a href="perf.html#OpLimitOptimizer">OpLimitOptimizer</a></p>
-
+<p> <a href="perf.html#OpLimitOptimizer">OpLimitOptimizer</a> optimization rule</p>
 
 <p><a href="perf.html#optimization-rules">optimization rules</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#ImplicitSplitInserter">ImplicitSplitInserter </a>
@@ -507,21 +617,23 @@
 <br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#TypeCastInserter">TypeCastInserter</a>
 </p>
 
-
 <p><a href="basic.html#boolops">OR</a> (Boolean)</p>
-<p><a href="basic.html#order-by">ORDER BY</a></p>
 
-<p><a href="udf.html#outputfunctionschema">outputFunctionSchema</a></p>
-<p><a href="udf.html#outputschema">outputSchema</a></p>
+<p><a href="basic.html#order-by">ORDER BY</a> operator</p>
+
+<p><a href="udf.html#outputfunctionschema">outputFunctionSchema</a> Python decorator</p>
+
+<p><a href="udf.html#outputschema">outputSchema</a> Python decorator</p>
 
 <!-- ==== P ================================================================== -->
 <p></p>
-<p id="p-index"><strong>P</strong> (<a href="#top">top</a>)</p>
+<p id="p-index"><strong>P</strong> (<a href="#top">top</a>) ----------------------------------------------</p>
 
+<p><a href="start.html#properties">-P</a> command line option</p>
 
 <p>PARALLEL
-<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#Use+the+Parallel+Features">and performance</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="cmds.html#set">setting defalt_parallel</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#Parallel">and performance</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="cmds.html#set">setting default_parallel</a>
 </p>
 
 <p><a href="cont.html#parameter-sub">parameter substitution</a></p>
@@ -529,63 +641,45 @@
 <p>PARTITION BY
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#partition-by-cross">and CROSS</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#partition-by-distinct">and DISTINCT</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#partitionby">and GROUP</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#partition-by-group">and GROUP</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#partition-by-join-inner">and JOIN (inner)</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#partition-by-join-inner">and JOIN (outer)</a>
 </p>
 
 <p><a href="basic.html#comparison">pattern matching</a></p>
 
-<p>Performance
-<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#specialized-joins-performance">and merge joins</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#optimiztion-rules">optimization rules for</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#performance-enhancers">performance enhancers</a>
-</p>
-
 <p><a href="test.html#penny">Penny</a> (monitoring and debugging)</p>
 
-<p><a href="test.html#pig-alias">pig.alias</a></p>
+<p>performance (writing efficient code)
+<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#optimization-rules">optimization rules for</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#performance-enhancers">performance enhancers</a>
+<br></br>&nbsp;&nbsp;&nbsp; <em>See also</em> Pig Latin
+</p>
 
-<p><a href="test.html#pig-command-line">pig.command.line</a></p>
+<p><a href="test.html#physical-plan">physical execution plan</a></p>
 
-<p><a href="func.html#pigdump">PigDUMP</a></p>
+<p><a href="perf.html#memory-bags">pig.cachedbag.memusage</a> property</p>
 
-<p><a href="test.html#pig-hadoop-version">pig.hadoop.version</a></p>
+<p><a href="func.html#pigdump">PigDump</a> function</p>
 
 <p><a href="udf.html#piggybank">Piggy Bank</a></p>
 
-<p><a href="test.html#pig-job-feature">pig.job.feature</a></p>
 
 <p>Pig Latin
-<br></br>&nbsp;&nbsp;&nbsp; <a href="start.html#comments">comments</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="start.html#pig-scripts">scripts</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="start.html#pl-statements">statements</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="cont.html#automated-pig-latin">automated generation of</a> (Python example)
+<br></br>&nbsp;&nbsp;&nbsp; <a href="start.html#pl-statements">Pig Latin statements</a>
+<br></br>&nbsp;&nbsp;&nbsp; <em>See also</em> performance (writing efficient code)
 </p>
 
 <p>Pig macros. <em>See</em> macros</p>
 
-<p><a href="cont.html#pig-object">pig.java object</a></p>
+<p><a href="cont.html#pig-object">pig.java</a> object</p>
 
-<p><a href="test.html#pig-input-dirs">pig.input.dirs</a></p>
+<p><a href="cont.html#pigstats">PigProgressNotificationListener</a> interface</p>
 
-<p><a href="test.html#pig-map-output-dirs">pig.map.output.dirs</a></p>
+<p><a href="cont.html#PigProgressNotificationListener">PigProgressNotificationListener.java</a> object</p>
 
-<p><a href="test.html#pig-parent-jobid">pig.parent.jobid</a></p>
-
-<p><a href="cont.html#pigstats">PigProgressNotificationListener interface</a></p>
-<p><a href="cont.html#PigProgressNotificationListener">PigProgressNotificationListener.java</a></p>
-
-<p><a href="test.html#pig-reduce-output-dirs">pig.reduce.output.dirs</a></p>
-
-<p><a href="cont.html#pig-run-api">PigRunner API</a></p>
-
-<p><a href="cont.html#pigserver">PigServer Interface</a></p>
-
-<p><a href="test.html#pig-script">pig.script</a></p>
-
-<p><a href="test.html#pig-script-features">pig.script.features</a></p>
-
-<p><a href="test.html#pig-script-id">pig.script.id</a></p>
+<p><a href="cont.html#pigrunner-api">PigRunner API</a>.  <em>See also</em> PigStats class</p>
 
 <p>Pig Scripts
 <br></br>&nbsp;&nbsp;&nbsp; <a href="start.html#batch-mode">and batch mode</a>
@@ -596,14 +690,25 @@
 <br></br>&nbsp;&nbsp;&nbsp; <a href="cmds.html#run">and run command</a>
 </p>
 
-<p><a href="cont.html#pigstats">PigStats</a> (function)</p>
+<p><a href="cont.html#pigserver">PigServer</a> interface</p>
+
+<p><a href="cont.html#pigstats">PigStats</a> class
+<br></br>&nbsp;&nbsp;&nbsp; <a href="cont.html#EmbeddedPigStats">EmbeddedPigStats</a> class
+<br></br>&nbsp;&nbsp;&nbsp; <a href="cont.html#stats-messages">getAllErrorMessages</a> method
+<br></br>&nbsp;&nbsp;&nbsp; <a href="cont.html#stats-messages">getAllStats</a> method
+<br></br>&nbsp;&nbsp;&nbsp; <a href="cont.html#isembedded">isEmbedded</a> method
+<br></br>&nbsp;&nbsp;&nbsp; <a href="cont.html#SimplePigStats">SimplePigStats</a> class
+<br></br>&nbsp;&nbsp;&nbsp; <em>See also</em> PigRunner API
+</p>
+
+<p><a href="cont.html#pigstats-object">PigStats.java</a> object</p>
 
 <p><a href="test.html#pig-statistics">Pig Statistics</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="test.html#pig-alias">pig.alias</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="test.html#pig-command-line">pig.command.line</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="test.html#pig-hadoop-version">pig.hadoop.version</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="test.html#pig-job-feature">pig.job.feature</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="test.html#pig-input-dirs">pig.input.dirs</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="test.html#pig-job-feature">pig.job.feature</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="test.html#pig-map-output-dirs">pig.map.output.dirs</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="test.html#pig-parent-jobid">pig.parent.jobid</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="test.html#pig-reduce-output-dirs">pig.reduce.output.dirs</a>
@@ -613,131 +718,156 @@
 <br></br>&nbsp;&nbsp;&nbsp; <a href="test.html#pig-version">pig.version</a>
 </p>
 
-<p><a href="func.html#binstorage">PigStats.java object</a></p>
 
-<p><a href="func.html#pigstorage">PigStorage</a> (function)</p>
+<p><a href="func.html#pigstorage">PigStorage</a> function</p>
 
 <p><a href="start.html#tutorial">Pig tutorial</a></p>
 
 <p>Pig types. <em>See</em> data types</p>
 
-<p><a href="test.html#pig-unit">PigUnit</a></p>
-
-<p><a href="test.html#pig-version">pig.version</a></p>
+<p><a href="test.html#pigunit">PigUnit</a></p>
 
 <p><a href="basic.html#ref-field">positional notation</a></p>
 
-<p><a href="udf.html#loadfunc-abstract">prepareToRead</a></p>
-<p><a href="udf.html#storefunc-override">prepareToWrite</a></p>
+<p><a href="udf.html#prepareToRead">prepareToRead</a> method</p>
 
-<p><a href="basic.html#prexp">project-range expression</a></p>
+<p><a href="udf.html#prepareToWrite">prepareToWrite</a> method</p>
 
-<p>properties
-<br></br>&nbsp;&nbsp;&nbsp; <a href="start.html#properties">specifying Hadoop properties</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="start.html#properties">specifying Pig properties</a>
+<p>projection
+<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#projection">example of</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#projection">and performance</a>
 </p>
 
-<p><a href="udf.html#load-store-functions">pushProjection</a></p>
-<p><a href="udf.html#storefunc-override">putNext</a></p>
-<p> <a href="udf.html#python-udfs">Python UDFs</a></p>
+<p><a href="basic.html#prexp">project-range expressions</a></p>
 
-<p> <a href="perf.html#PushDownExplodes">PushDownExplodes</a></p>
+<p>properties
+<br></br>&nbsp;&nbsp;&nbsp; <a href="start.html#hadoop-properties">specifying Hadoop properties</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="start.html#pig-properties">specifying Pig properties</a>
+</p>
 
-<p><a href="perf.html#PushUpFilters">PushUpFilters </a></p>
+<p> <a href="perf.html#PushDownExplodes">PushDownExplodes</a> optimization rule</p>
+
+<p><a href="udf.html#pushprojection">pushProjection</a> method</p>
+
+<p><a href="perf.html#PushUpFilters">PushUpFilters</a> optimization rule</p>
+
+<p><a href="udf.html#putNext">putNext</a> method</p>
+
+<p><a href="cont.html#embed-python">Python and embedded Pig</a></p>
+
+<p><a href="udf.html#python-udfs">Python UDFs</a>. <em>See also</em> UDFs</p>
+
 
 <!-- ==== Q ================================================================== -->
 <p></p>
-<p id="q-index"><strong>Q</strong> (<a href="#top">top</a>)</p>
+<p id="q-index"><strong>Q</strong> (<a href="#top">top</a>) ----------------------------------------------</p>
 
 <p><a href="cmds.html#quit">quit</a> (command)</p>
 
 <!-- ==== R ================================================================== -->
 <p></p>
-<p id="r-index"><strong>R</strong> (<a href="#top">top</a>)</p>
+<p id="r-index"><strong>R</strong> (<a href="#top">top</a>) ----------------------------------------------</p>
 
-<p><a href="func.html#random">RANDOM</a></p>
+<p><a href="func.html#random">RANDOM</a> function</p>
 
 <p>referencing
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#ref-field">fields</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#ref-field-complex">fields and complex types</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#ref-relation">relations</a>
+<br></br>&nbsp;&nbsp;&nbsp; <em>See also</em> identifiers
 </p>
 
-<p><a href="func.html#regex-extract">REGEX_EXTRACT</a></p>
-<p><a href="func.html#regex-extract-all">REGEX_EXTRACT_ALL</a></p>
-<p><a href="basic.html#register">REGISTER</a></p>
+<p><a href="func.html#regex-extract">REGEX_EXTRACT</a> function</p>
+
+<p><a href="func.html#regex-extract-all">REGEX_EXTRACT_ALL</a> function</p>
+
+<p><a href="basic.html#register">REGISTER</a> statement</p>
+
 <p>regular expressions. <em>See</em> pattern matching</p>
 
 <p>relations
-<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#relations">and Pig Latin</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#cast-relations">casting to scalars</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#relations">and Pig Latin</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#ref-relation">referencing</a>
 </p>
 
-<p><a href="udf.html#loadfunc-default">relativeToAbsolutePath</a></p> 
-<p><a href="udf.html#storefunc-default">relToAbsPathForStoreLocation</a></p>
+<p><a href="udf.html#relativeToAbsolutePath">relativeToAbsolutePath</a> method</p> 
 
-<p><a href="func.html#replace">REPLACE</a></p>
+<p><a href="udf.html#relToAbsPathForStoreLocation">relToAbsPathForStoreLocation</a> method</p>
+
+<p><a href="func.html#replace">REPLACE</a> function</p>
 
 <p><a href="perf.html#replicated-joins">replicated joins</a></p>
-
 
 <p><a href="start.html#req">requirements</a> (for Pig)</p>
 
 <p id="reserved-keywords"><a href="basic.html#reserved-keywords">reserved keywords</a></p>
 
-<p><a href="func.html#round">ROUND</a></p>
+<p><a href="func.html#round">ROUND</a> function</p>
 
-<p><a href="cmds.html#run">run</a> (command)</p>
+<p><a href="cmds.html#run">run</a> command</p>
 
-
+<p><a href="start.html#run">running Pig</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="cmds.html#exec">exec</a> command
+<br></br>&nbsp;&nbsp;&nbsp; <a href="start.html#execution-modes">execution modes</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#Implicit-Dependencies">execution order</a> 
+<br></br>&nbsp;&nbsp;&nbsp; <a href="test.html#execution-plans">execution plans</a> 
+<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#multi-query-execution">multi-query execution</a> 
+<br></br>&nbsp;&nbsp;&nbsp; <a href="cmds.html#run">run</a> command
+</p>
 
 <!-- ==== S ================================================================== -->
 <p></p>
-<p id="s-index"><strong>S</strong> (<a href="#top">top</a>)</p>
+<p id="s-index"><strong>S</strong> (<a href="#top">top</a>) ----------------------------------------------</p>
 
-<p><a href="basic.html#sample">SAMPLE</a></p>
+<p><a href="basic.html#sample">SAMPLE</a> operator</p>
 
-<p><a href="udf.html#schemafunction">schemaFunction</a></p>
+<p><a href="udf.html#schemafunction">schemaFunction</a> Python decorator</p>
 
 <p>schemas
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#schema-complex">for complex data types</a> (tuples, bags, maps)
 <br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#decorators">and decorators</a> (Python UDFs)
+<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#schemaforeach">and FOREACH</a> 
+<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#schema-load">and LOAD, STREAM</a> 
+<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#onschema">ONSCHEMA clause</a> (UNION operator)
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#schemas">and Pig Latin</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#schema-return-types">and return types</a> (JavaScript UDFs)
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#schema-simple">for simple data types</a> (int, long, float, double, chararray, bytearray)
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#unknown-schema">unknown (null) schemas</a> 
 </p>
 
+<p><a href="cmds.html#set">set</a> command</p>
 
+<p><a href="udf.html#setLocation">setLocation</a> method</p>
 
-<p><a href="cmds.html#set">set</a></p>
+<p><a href="udf.html#setStoreFuncUDFContextSignature">setStoreFuncUDFContextSignature</a> method</p>
 
-<p><a href="udf.html#loadfunc-abstract">setLocation</a></p>
-<p><a href="udf.html#storefunc-default">setStoreFuncUDFContextSignature</a></p>
-<p><a href="udf.html#storefunc-override">setStoreLocation</a></p>
-<p><a href="udf.html#loadfunc-default">setUdfContextSignature</a></p>
+<p><a href="udf.html#setStoreLocation">setStoreLocation</a> method</p>
 
-<p><a href="cmds.html#sh">sh</a></p>
+<p><a href="udf.html#setUdfContextSignature">setUdfContextSignature</a> method</p>
+
+<p><a href="cmds.html#sh">sh</a> command</p>
 
 <p><a href="cmds.html#shell-cmds">shell commands</a></p>
 
+<p><a href="basic.html#ship-about">ship</a> (streaming). <em>See also</em> autoship</p>
+
 <p>sign operators
-<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#sign">positive</a> ( + )
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#sign">negative</a> ( - )
+<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#sign">positive</a> ( + )
 </p>
+
+<p><a href="cont.html#SimplePigStats">SimplePigStats</a> class</p>
+
+<p><a href="func.html#sin">SIN</a> function</p>
+
+<p><a href="func.html#sinh">SINH</a> function</p>
+
+<p><a href="func.html#size">SIZE</a> function</p>
 
 <p><a href="perf.html#skewed-joins">skewed joins</a></p>
 
-<p><a href="func.html#pigstats">SimplePigStats</a></p>
-
-<p><a href="func.html#sin">SIN</a></p>
-<p><a href="func.html#sinh">SINH</a></p>
-<p><a href="func.html#size">SIZE</a></p>
-
 <p>software requirements. <em>See</em> requirements</p>
-
-<p><a href="basic.html#split">SPLIT</a></p>
 
 <p>specialized joins
 <br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#merge-joins">merge joins</a>
@@ -746,99 +876,121 @@
 <br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#skewed-joins">skewed joins</a>
 </p>
 
+<p><a href="basic.html#split">SPLIT</a> operator</p>
 
+<p><a href="perf.html#splits">splits</a> (implicit, explicit)</p>
 
+<p><a href="func.html#sqrt">SQRT</a> function</p>
 
-<p><a href="func.html#sqrt">SQRT</a></p>
 <p><a href="basic.html#sexp">star expression</a> ( * )</p>
+
 <p><a href="start.html#pl-statements">statements</a> (Pig Latin)</p>
 
-<p><a href="basic.html#store">STORE</a> <em>See also </em> Store vs. Dump</p>
+<p>statistics. <em>See</em> Pig statistics</p>
 
+<p><a href="basic.html#store">STORE</a> operator. <em>See also </em> Store vs. Dump</p>
 
-<p><a href="udf.html#storefunc">StoreFunc</a></p>
+<p>Store functions. <em>See</em> load/store functions</p>
 
-<p><a href="udf.html#store-functions">Store Functions</a> (UDFs)</p>
+<p><a href="udf.html#storefunc">StoreFunc</a> class
+<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#checkSchema">checkSchema</a> method
+<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#getOutputFormat">getOutputFormat</a> method
+<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#prepareToWrite">prepareToWrite</a> method
+<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#putNext">putNext</a> method
+<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#relToAbsPathForStoreLocation">relToAbsPathForStoreLocation</a> method
+<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#setStoreFuncUDFContextSignature">setStoreFuncUDFContextSignature</a> method
+<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#setStoreLocation">setStoreLocation</a> method
+<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#StoreMetadata">StoreMetadata</a> interface
+</p>
 
-<p><a href="udf.html#storemetadata">StoreMetadata</a></p>
+<p><a href="udf.html#storemetadata">StoreMetadata</a> interface</p>
 
 <p><a href="perf.html#store-dump">Store vs. Dump</a> </p>
 
-<p><a href="basic.html#stream">STREAM</a></p>
+<p><a href="basic.html#stream">STREAM</a> operator</p>
 
-<p> <a href="perf.html#StreamOptimizer">StreamOptimizer</a></p>
+<p><a href="basic.html#define-udfs">streaming</a> (DEFINE operator)</p>
 
-
-
-<p><a href="func.html#strsplit">STRSPLIT</a></p>
+<p> <a href="perf.html#StreamOptimizer">StreamOptimizer</a> optimization rule</p>
 
 <p><a href="func.html#string-functions">string functions</a></p>
-<p><a href="func.html#substring">SUBSTRING</a></p>
-<p><a href="func.html#sum">SUM</a></p>
+
+<p><a href="func.html#strsplit">STRSPLIT</a> function</p>
+
+<p><a href="func.html#substring">SUBSTRING</a> function</p>
+
+<p><a href="func.html#sum">SUM</a> function</p>
 
 <!-- ==== T ================================================================== -->
 <p></p>
-<p id="t-index"><strong>T</strong> (<a href="#top">top</a>)</p>
+<p id="t-index"><strong>T</strong> (<a href="#top">top</a>) ----------------------------------------------</p>
 
-<p><a href="func.html#tan">TAN</a></p>
-<p><a href="func.html#tanh">TANH</a></p>
-<p><a href="func.html#textloader">TextLoader</a></p>
+<p><a href="func.html#tan">TAN</a> function</p>
 
-<p><a href="func.html#tobag">TOBAG</a></p>
+<p><a href="func.html#tanh">TANH</a> function</p>
 
-<p><a href="func.html#tokenize">TOKENIZE</a></p>
+<p><a href="func.html#textloader">TextLoader</a> function</p>
 
-<p><a href="func.html#topx">TOP</a></p>
+<p><a href="func.html#tobag">TOBAG</a> function</p>
 
-<p><a href="func.html#totuple">TOTUPLE</a></p>
+<p><a href="func.html#tokenize">TOKENIZE</a> function</p>
 
-<p><a href="func.html#trim">TRIM</a></p>
+<p><a href="func.html#topx">TOP</a> function</p>
 
-<p><a href="basic.html#texp">tuple expression</a></p>
+<p><a href="func.html#totuple">TOTUPLE</a> function</p>
+
+<p><a href="func.html#trim">TRIM</a> function</p>
+
+<p><a href="basic.html#texp">tuple expressions</a></p>
+
+<p><a href="func.html#bag-tuple-functions">tuple functions</a></p>
 
 <p>tuples
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#relations">and relations</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#tuple-schema">and schemas</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#tuple">syntax</a>
 </p>
 
-<p> <a href="perf.html#TypeCastInserter">TypeCastInserter</a></p>
-
+<p> <a href="perf.html#TypeCastInserter">TypeCastInserter</a> optimiztion rule</p>
 
 <p>type conversions. <em>See</em> casting types, types tables</p>
 
+<p><a href="perf.html#types">types and performance</a></p>
+
 <p>types tables
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#types-table-add">for addition, subtraction</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#types-table-mult">for multiplication, division</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#types-table-equal">for equal, not equal</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#types-table-matches">for matches</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#types-table-mult">for multiplication, division</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#types-table-negative">for negative (negation)</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#types-table-nulls">for nulls</a>
 <br></br>&nbsp;&nbsp;&nbsp; <em>See also</em> casting types
 </p>
 
 
-<p><a href="start.html#tutorial">tutorial</a></p>
+
+<p><a href="start.html#tutorial">tutorial</a> (for Pig)</p>
 
 <!-- ==== U ================================================================== -->
 <p></p>
-<p id="u-index"><strong>U</strong> (<a href="#top">top</a>)</p>
+<p id="u-index"><strong>U</strong> (<a href="#top">top</a>) ----------------------------------------------</p>
 
-<p><a href="func.html#ucfirst">UCFIRST</a></p>
+<p><a href="func.html#ucfirst">UCFIRST</a> function</p>
 
 <p>UDFs 
-<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#accumulator-interface">accumulator interface</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#algebraic-interface">algebraic interface</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#udf-configurations">configurations, passing to </a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#function-instantiation">function instantiation</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#function-instantiation">and function instantiation</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#udf-monitoring">and monitoring</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#udf-configurations">passing configurations to </a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#accumulator-interface">and performance</a> (Accumulator Interface)
+<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#algebraic-interface">and performance</a> (Algebraic Interface)
+<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#piggybank">Piggy Bank</a> (repository)
 <br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#udf-interfaces">UDF interfaces</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#load-store-functions">load/store functions</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#udf-monitoring">monitoring</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#piggybank">Piggy Bank</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#udf-configurations">UDFContext class</a>
+<br></br>&nbsp;&nbsp;&nbsp; <em>See also</em> Java UDFs, JavaScript UDFs, Python UDFs
 </p>
 
-<p><a href="basic.html#union">UNION</a></p>
-<p><a href="func.html#upper">UPPER</a></p>
+<p><a href="basic.html#union">UNION</a> operator</p>
+
+<p><a href="func.html#upper">UPPER</a> function</p>
 
 <p>user defined functions. <em>See</em> UDFs</p>
 
