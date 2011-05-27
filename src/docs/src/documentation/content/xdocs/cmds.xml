@@ -31,7 +31,7 @@
 <!-- +++++++++++++++++++++++++++++++++++++++ -->
       <section id="fs">
    <title>fs</title>
-   <p>Invokes any FSShell command from within a Pig script or the Grunt shell.</p>
+   <p>Invokes any FsShell command from within a Pig script or the Grunt shell.</p>
    
    <section>
    <title>Syntax </title>
@@ -51,7 +51,7 @@
                <p>subcommand</p>
             </td>
             <td>
-               <p>The FSShell command.</p>
+               <p>The FsShell command.</p>
             </td>
          </tr>
                <tr>
@@ -59,7 +59,7 @@
                <p>subcommand_parameters</p>
             </td>
             <td>
-               <p>The FSShell command parameters.</p>
+               <p>The FsShell command parameters.</p>
             </td>
          </tr>
    </table>
@@ -68,10 +68,10 @@
    
    <section>
    <title>Usage</title>
-   <p>Use the fs command to invoke any FSShell command from within a Pig script or Grunt shell. 
+   <p>Use the fs command to invoke any FsShell command from within a Pig script or Grunt shell. 
    The fs command greatly extends the set of supported file system commands and the capabilities
    supported for existing commands such as ls that will now support globing. For a complete list of
-   FSShell commands, see 
+   FsShell commands, see 
    <a href="http://hadoop.apache.org/common/docs/current/file_system_shell.html">File System Shell Guide</a></p>
    </section>
    
@@ -208,7 +208,7 @@ grunt>
    <title>Usage</title>
    <p>Use the exec command to run a Pig script with no interaction between the script and the Grunt shell (batch mode). Aliases defined in the script are not available to the shell; however, the files produced as the output of the script and stored on the system are visible after the script is run. Aliases defined via the shell are not available to the script. </p>
    <p>With the exec command, store statements will not trigger execution; rather, the entire script is parsed before execution starts. Unlike the run command, exec does not change the command history or remembers the handles used inside the script. Exec without any parameters can be used in scripts to force execution up to the point in the script where the exec occurs. </p>
-   <p>For comparison, see the run command. Both the exec and run commands are useful for debugging because you can modify a Pig script in an editor and then rerun the script in the Grunt shell without leaving the shell. Also, both commands promote Pig script modularity as they allow you to reuse existing components.</p>
+   <p id="exec-debug">For comparison, see the run command. Both the exec and run commands are useful for debugging because you can modify a Pig script in an editor and then rerun the script in the Grunt shell without leaving the shell. Also, both commands promote Pig script modularity as they allow you to reuse existing components.</p>
    </section>
    
    <section>
