@@ -36,6 +36,8 @@ IMPROVEMENTS
 
 PIG-1772: Pig 090 Documentation (chandec via olgan)
 
+PIG-1772: Pig 090 Documentation (chandec via olgan)
+
 PIG-2059: PIG doesn't validate incomplete query in batch mode even if -c option is given (xuefu)
 
 PIG-2062: Script silently ended (xuefu)

@@ -55,7 +55,7 @@ decoded_strings = FOREACH encoded_strings GENERATE UrlDecode(encoded, 'UTF-8');
 
 <p>The <a href="basic.html#define">DEFINE</a> statement is used to bind a keyword to a Java method, as above. The first argument to the InvokeFor* constructor is the full path to the desired method. The second argument is a space-delimited ordered list of the classes of the method arguments. This can be omitted or an empty string if the method takes no arguments. Valid class names are string, long, float, double, and int. Invokers can also work with array arguments, represented in Pig as DataBags of single-tuple elements. Simply refer to string[], for example. Class names are not case sensitive. </p>
 
-<p>The ability to use invokers on methods that take array arguments makes methods like those in org.apache.commons.math.stat.StatUtils available (for processing the results of grouping your datasets, for example). This is helpful, but a word of caution: the resulting UDF will not be optimized for Hadoop, and the very significant benefits one gains from implementing the Algebraic and Accumulative interfaces are lost here. Be careful if you use invokers this way.</p>
+<p>The ability to use invokers on methods that take array arguments makes methods like those in org.apache.commons.math.stat.StatUtils available (for processing the results of grouping your datasets, for example). This is helpful, but a word of caution: the resulting UDF will not be optimized for Hadoop, and the very significant benefits one gains from implementing the Algebraic and Accumulator interfaces are lost here. Be careful if you use invokers this way.</p>
 </section>
   
 <!-- ======================================================== -->  
@@ -1159,7 +1159,7 @@ dump b;
 
 <ul>
 <li>Sends an error message when the second script is executed: "ERROR 1118: Cannot cast bytes loaded from BinStorage. Please provide a custom converter."</li>
-<li>Allows you to use a custom converter to perform the casting. <br></br>
+<li id="custom-converter">Allows you to use a custom converter to perform the casting. <br></br>
 <source>
 a = load 'g/part*' using BinStorage('Utf8StorageConverter') as (id, d:bag{t:(v, s)});
 b = foreach a generate (double)id, flatten(d);
@@ -1284,7 +1284,7 @@ STORE X INTO 'output' USING PigDump();
    <table>
        <tr>
             <td>
-               <p>field_delimiter</p>
+               <p id="field-delimiter">field_delimiter</p>
             </td>
             <td>
                <p>Parameter. </p>
