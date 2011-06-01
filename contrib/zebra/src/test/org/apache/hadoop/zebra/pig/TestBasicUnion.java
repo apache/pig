@@ -811,6 +811,7 @@ public class TestBasicUnion extends BaseTestCase {
   // should throw exception
   public void testNeg3() throws ExecException, IOException {
     try {
+      pigServer.setValidateEachStatement(true);
       pigServer.registerQuery(constructQuery(path1, path3, "'a, b'"));
       Assert.fail("should throw exception");
     } catch (Exception e) {
@@ -822,6 +823,7 @@ public class TestBasicUnion extends BaseTestCase {
   // should throw excepiton in union
   public void testNeg4() throws ExecException, IOException {
       try {
+      pigServer.setValidateEachStatement(true);
       pigServer.registerQuery(constructQuery(path1, path4, "'a, b, c'"));
       Assert.fail("should throw exception");
     } catch (Exception e) {
