@@ -23,6 +23,7 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.MiniHBaseCluster;
@@ -36,8 +37,10 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.hbase.HBaseStorage;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.DataType;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -660,6 +663,34 @@ public class TestHBaseStorage {
             Assert.assertEquals("Text_" + i, col_c);
         }
         Assert.assertEquals(100, i);
+    }
+
+    /**
+     * Assert that -noWAL actually disables the WAL
+     * @throws IOException
+     * @throws ParseException
+     */
+    @Test
+    public void testNoWAL() throws IOException, ParseException {
+        HBaseStorage hbaseStorage = new HBaseStorage(TESTCOLUMN_A, "-noWAL");
+
+        Object key = "somekey";
+        byte type = DataType.CHARARRAY;
+        Assert.assertFalse(hbaseStorage.createPut(key, type).getWriteToWAL());
+    }
+
+    /**
+     * Assert that without -noWAL, the WAL is enabled the WAL
+     * @throws IOException
+     * @throws ParseException
+     */
+    @Test
+    public void testWIthWAL() throws IOException, ParseException {
+        HBaseStorage hbaseStorage = new HBaseStorage(TESTCOLUMN_A);
+
+        Object key = "somekey";
+        byte type = DataType.CHARARRAY;
+        Assert.assertTrue(hbaseStorage.createPut(key, type).getWriteToWAL());
     }
 
     /**

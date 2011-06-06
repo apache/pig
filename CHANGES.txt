@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1825: ability to turn off the write ahead log for pig's HBaseStorage (billgraham via dvryaboy)
+
 PIG-1772: Pig 090 Documentation (chandec via olgan)
 
 PIG-1772: Pig 090 Documentation (chandec via olgan)

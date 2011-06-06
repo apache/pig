@@ -144,6 +144,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
     private boolean loadRowKey_;
     private final long limit_;
     private final int caching_;
+    private final boolean noWAL_;
 
     protected transient byte[] gt_;
     protected transient byte[] gte_;
@@ -167,6 +168,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         validOptions_.addOption("limit", true, "Per-region limit");
         validOptions_.addOption("caster", true, "Caster to use for converting values. A class name, " +
                 "HBaseBinaryConverter, or Utf8StorageConverter. For storage, casters must implement LoadStoreCaster.");
+        validOptions_.addOption("noWAL", false, "Sets the write ahead to false for faster loading. To be used with extreme caution since this could result in data loss (see http://hbase.apache.org/book.html#perf.hbase.client.putwal).");
     }
 
     /**
@@ -202,6 +204,9 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
      * <li>-lte=maxKeyVal
      * <li>-limit=numRowsPerRegion max number of rows to retrieve per region
      * <li>-caching=numRows  number of rows to cache (faster scans, more memory).
+     * <li>-noWAL=(true|false) Sets the write ahead to false for faster loading.
+     * To be used with extreme caution, since this could result in data loss
+     * (see http://hbase.apache.org/book.html#perf.hbase.client.putwal).
      * </ul>
      * @throws ParseException 
      * @throws IOException 
@@ -214,7 +219,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
             configuredOptions_ = parser_.parse(validOptions_, optsArr);
         } catch (ParseException e) {
             HelpFormatter formatter = new HelpFormatter();
-            formatter.printHelp( "[-loadKey] [-gt] [-gte] [-lt] [-lte] [-columnPrefix] [-caching] [-caster] [-limit]", validOptions_ );
+            formatter.printHelp( "[-loadKey] [-gt] [-gte] [-lt] [-lte] [-columnPrefix] [-caching] [-caster] [-noWAL] [-limit]", validOptions_ );
             throw e;
         }
 
@@ -244,6 +249,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
 
         caching_ = Integer.valueOf(configuredOptions_.getOptionValue("caching", "100"));
         limit_ = Long.valueOf(configuredOptions_.getOptionValue("limit", "-1"));
+        noWAL_ = configuredOptions_.hasOption("noWAL");
         initScan();	    
     }
 
@@ -547,11 +553,13 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
             initialized = true;
         }
         ResourceFieldSchema[] fieldSchemas = (schema_ == null) ? null : schema_.getFields();
-        Put put=new Put(objToBytes(t.get(0), 
-                (fieldSchemas == null) ? DataType.findType(t.get(0)) : fieldSchemas[0].getType()));
+        byte type = (fieldSchemas == null) ? DataType.findType(t.get(0)) : fieldSchemas[0].getType();
         long ts=System.currentTimeMillis();
-        
+
+        Put put = createPut(t.get(0), type);
+
         if (LOG.isDebugEnabled()) {
+            LOG.debug("putNext -- WAL disabled: " + noWAL_);
             for (ColumnInfo columnInfo : columnInfo_) {
                 LOG.debug("putNext -- col: " + columnInfo);
             }
@@ -588,6 +596,25 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         } catch (InterruptedException e) {
             throw new IOException(e);
         }
+    }
+
+    /**
+     * Public method to initialize a Put. Used to allow assertions of how Puts
+     * are initialized by unit tests.
+     *
+     * @param key
+     * @param type
+     * @return
+     * @throws IOException
+     */
+    public Put createPut(Object key, byte type) throws IOException {
+        Put put = new Put(objToBytes(key, type));
+
+        if(noWAL_) {
+            put.setWriteToWAL(false);
+        }
+
+        return put;
     }
     
     @SuppressWarnings("unchecked")
