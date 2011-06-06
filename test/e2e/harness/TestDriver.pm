@@ -368,18 +368,26 @@ sub run
 			foreach (keys(%$test)) {
 				$testHash{$_} = $test->{$_};
 			}
+
 			my $testName = $testHash{'group'} . "_" . $testHash{'num'};
-                        if ( $groupExecuted{ $group->{'name'} }== 0 ){
-                           $groupExecuted{ $group->{'name'} }=1;
-               
-                           my $xmlDir= $globalHash{'localxmlpathbase'}."/run".$globalHash->{'UID'};
-                           mkpath( [ $xmlDir ] , 1, 0777) if ( ! -e $xmlDir );
 
-                           my $filename = $group->{'name'}.".xml";
-                           $report = new TestReport ( $properties, "$xmlDir/$filename" );
-                           $report->purge();
+#            if ( $groupExecuted{ $group->{'name'} }== 0 ){
+#                $groupExecuted{ $group->{'name'} }=1;
+#               
+#                my $xmlDir= $globalHash{'localxmlpathbase'}."/run".$globalHash->{'UID'};
+#                mkpath( [ $xmlDir ] , 1, 0777) if ( ! -e $xmlDir );
+#
+#                my $filename = $group->{'name'}.".xml";
+#                $report = new TestReport ( $properties, "$xmlDir/$filename" );
+#                $report->purge();
+#            }
 
-                        }
+			# Check that ignore isn't set for this file, group, or test
+			if (defined $testHash{'ignore'}) {
+				print $log "Ignoring test $testName, ignore message: " .
+					$testHash{'ignore'} . "\n";
+				next;
+			}
 
 			# Have we not reached the starting point yet?
 			if (!$sawstart) {
