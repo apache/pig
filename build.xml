@@ -302,7 +302,7 @@
 	    unless="lexerGrammarProcessed"
 	    description="generates lexer class from an ANTLR grammar">
 	    <java classname="org.antlr.Tool"
-	      classpathref="classpath" fork="true">
+	      classpathref="classpath" fork="true" failonerror="true">
 	      <arg line="-o ${src.gen.dir}/${grammar.package.dir} ${src.dir}/${grammar.package.dir}/${grammar.name}Lexer.g"/>
 	    </java>
 	  </target>
@@ -311,7 +311,7 @@
 	    unless="parserGrammarProcessed"
 	    description="generates token parser class from an ANTLR grammar">
 	    <java classname="org.antlr.Tool"
-	      classpathref="classpath" fork="true">
+	      classpathref="classpath" fork="true" failonerror="true">
 		      <arg line="-o ${src.gen.dir}/${grammar.package.dir} ${src.dir}/${grammar.package.dir}/${grammar.name}Parser.g"/>
 	    </java>
 	  </target>
@@ -320,7 +320,7 @@
 	    unless="treeGrammarProcessed"
 	    description="generates tree parser class from an ANTLR grammar">
 	    <java classname="org.antlr.Tool"
-	      classpathref="classpath" fork="true">
+	      classpathref="classpath" fork="true" failonerror="true">
 	      <arg line="-o ${src.gen.dir}/${grammar.package.dir} ${src.dir}/${grammar.package.dir}/AstPrinter.g ${src.dir}/${grammar.package.dir}/AliasMasker.g ${src.dir}/${grammar.package.dir}/AstValidator.g ${src.dir}/${grammar.package.dir}/LogicalPlanGenerator.g"/>
 	    </java>
 	  </target>
