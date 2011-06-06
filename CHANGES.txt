@@ -50,6 +50,8 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 
 BUG FIXES
 
+PIG-2109: Ant build continues even if the parser classes fail to be generated. (zjshen via daijy)
+
 PIG-2071: casting numeric type to chararray during schema merge for union 
  is inconsistent with other schema merge cases (thejas)
 
