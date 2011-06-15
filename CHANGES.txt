@@ -24,6 +24,9 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1950: e2e test harness needs to be able to compare to previous version of
+Pig (gates)
+
 PIG-536: the shell script 'pig' does not work if PIG_HOME has the word 'hadoop' in it's directory (miguno via olgan)
 
 PIG-2108 e2e test harness needs to be able to mark certain tests as ignored

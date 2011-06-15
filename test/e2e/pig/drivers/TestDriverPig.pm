@@ -175,7 +175,7 @@ sub globalSetup
     }
 
 
-    print $log join(" ", @cmd);
+	# print $log join(" ", @cmd);
 
     if($self->{'exectype'} eq "mapred")
     {
@@ -365,6 +365,8 @@ sub getPigCmd($$$)
     }
 
 
+	print $log "Returning Pig command " . join(" ", @pigCmd) . "\n";
+	print $log "With PIG_CLASSPATH set to " . $ENV{'PIG_CLASSPATH'} . "\n";
     return @pigCmd;
 }
 
@@ -545,23 +547,44 @@ sub generateBenchmark
 
     my %result;
 
-    $self->parseSqlQueries($testCmd);
-    my @SQLQuery = @{$testCmd->{'queries'}};
+	if (defined $testCmd->{'verify_with_pig'}) {
+		# Verify against an old version of Pig instead of against the database
+		my %modifiedTestCmd = %{$testCmd};
+		# They can either test against a previous version of pig or against the
+		# current version
+		if ($testCmd->{'verify_pig_version'} == "old") {
+			# Change so we're looking at the old version of Pig
+			$modifiedTestCmd{'pigpath'} = $testCmd->{'oldpigpath'};
+		}
+		if (defined $testCmd->{'verify_pig_script'}) {
+			$modifiedTestCmd{'pig'} = $testCmd->{'verify_pig_script'};
+		}
+		# Modify the test number so we don't run over the actual test output
+		# and logs
+		$modifiedTestCmd{'num'} = $testCmd->{'num'} . "_benchmark";
+		return $self->runPig(\%modifiedTestCmd, $log, 1);
+	} else {
+		# Verify against the database
+    	$self->parseSqlQueries($testCmd);
+    	my @SQLQuery = @{$testCmd->{'queries'}};
  
-    if ($#SQLQuery == 0) {
-        my $outfile = $self->generateSingleSQLBenchmark($testCmd, $SQLQuery[0], undef, $log);
-        $result{'output'} = $outfile;
-    } else {
-        my @outfiles = ();
-        for (my $id = 0; $id < ($#SQLQuery + 1); $id++) {
-            my $sql = $SQLQuery[$id];
-            my $outfile = $self->generateSingleSQLBenchmark($testCmd, $sql, ($id+1), $log); 
-            push(@outfiles, $outfile);
-        }
-        $result{'outputs'} = \@outfiles;
-    }
+    	if ($#SQLQuery == 0) {
+        	my $outfile = $self->generateSingleSQLBenchmark($testCmd,
+				$SQLQuery[0], undef, $log);
+        	$result{'output'} = $outfile;
+    	} else {
+        	my @outfiles = ();
+        	for (my $id = 0; $id < ($#SQLQuery + 1); $id++) {
+            	my $sql = $SQLQuery[$id];
+            	my $outfile = $self->generateSingleSQLBenchmark($testCmd,
+					$sql, ($id+1), $log); 
+            	push(@outfiles, $outfile);
+        	}
+        	$result{'outputs'} = \@outfiles;
+    	}
 
-    return \%result;
+    	return \%result;
+	}
 }
 
 sub generateSingleSQLBenchmark
