@@ -34,6 +34,8 @@ PIG-1876: Typed map for Pig (daijy)
 
 IMPROVEMENTS
 
+PIG-536: the shell script 'pig' does not work if PIG_HOME has the word 'hadoop' in it's directory (miguno via olgan)
+
 PIG-1772: Pig 090 Documentation (chandec via olgan)
 
 PIG-1772: Pig 090 Documentation (chandec via olgan)

@@ -144,7 +144,8 @@ PIG_HADOOP_VERSION="${PIG_HADOOP_VERSION:-20}"
 # libraries in the lib dir, so don't blindly add them all.    Only add the one
 # that matche PIG_HADOOP_VERSION.
 for f in $PIG_HOME/lib/*.jar; do
-    IS_HADOOP=`echo $f | grep hadoop`
+    filename=`basename $f`
+    IS_HADOOP=`echo $filename | grep hadoop`
     if [ "${IS_HADOOP}x" == "x" ]; then
         CLASSPATH=${CLASSPATH}:$f;
     else 
