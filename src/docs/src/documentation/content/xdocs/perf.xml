@@ -741,14 +741,18 @@ C = foreach B generate group, MyUDF(A);
 </source>
 
 <p>If <code>MyUDF</code> is algebraic, the query will use combiner and run much faster. You can run <code>explain</code> command on your query to make sure that combiner is used. </p>
+
+
 </section>
 
 <!-- +++++++++++++++++++++++++++++++ -->
 <section id="accumulator-interface">
 <title>Use the Accumulator Interface</title>
 <p>
-If your UDF can't be made Algebraic but is able to deal with getting input in chunks rather than all at once, consider implementing the Accumulator  interface to reduce the amount of memory used by your script.If your function <em>is</em> Algebraic and can be used on conjunction with Accumulator functions, you will need to implement the Accumulator interface as well as the Algebraic interface. For more information, see <a href="udf.html#Accumulator-Interface">Accumulator Interface</a>.
-</p>
+If your UDF can't be made Algebraic but is able to deal with getting input in chunks rather than all at once, consider implementing the Accumulator  interface to reduce the amount of memory used by your script. If your function <em>is</em> Algebraic and can be used on conjunction with Accumulator functions, you will need to implement the Accumulator interface as well as the Algebraic interface. For more information, see <a href="udf.html#Accumulator-Interface">Accumulator Interface</a>.</p>
+
+<p><strong>Note:</strong> Pig automatically chooses the interface that it expects to provide the best performance: Algebraic &gt; Accumulator &gt; Default. </p>
+
 </section>
 
 <!-- +++++++++++++++++++++++++++++++ -->

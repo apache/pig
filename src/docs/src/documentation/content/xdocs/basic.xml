@@ -503,7 +503,7 @@ DUMP X;
    <table>
       <tr>
             <td>
-               <p>Simple Data Types</p>
+               <p><strong>Simple Data Types</strong></p>
             </td>
             <td>
                <p>Description</p>
@@ -605,7 +605,7 @@ DUMP X;
          </tr>
          <tr>
             <td>
-               <p>Complex Data Types</p>
+               <p><strong>Complex Data Types</strong></p>
             </td>
             <td>
                <p></p>
@@ -692,6 +692,8 @@ B = FOREACH A GENERATE name + gpa;
 This will cause an error …</source>
       </li>
    </ul>
+   <p></p>
+   <p>All data types have corresponding <a href="#schemas">schemas</a>.</p>
    </section>
    
    <section id ="tuple">
@@ -742,6 +744,8 @@ This will cause an error …</source>
          <p>In a non-load statement, if a requested field is missing from a tuple, Pig will inject null.</p>
       </li>
    </ul>
+   <p></p>
+   <p>Also see <a href="#tuple-schema">tuple schemas</a>.</p>
    </section>
    
    <section>
@@ -803,6 +807,8 @@ This will cause an error …</source>
          <p>Bags have two forms: outer bag (or relation) and inner bag.</p>
       </li>
    </ul>
+   <p></p>
+   <p>Also see <a href="#bag-schema">bag schemas</a>.</p>
    </section>
    
    <section>
@@ -887,7 +893,10 @@ DUMP X;
    
    <section>
    <title>Usage</title>
-   <p>Key values within a relation must be unique.</p></section>
+   <p>Key values within a relation must be unique.</p>
+
+   <p>Also see <a href="#map-schema">map schemas</a>.</p>
+   </section>
    
    <section>
    <title>Example</title>
@@ -1731,7 +1740,7 @@ DUMP A;
    
       <!-- ++++++++++++++++++++++++++++++++++ --> 
    <section id="tuple-schema">
-   <title>Tuple Schema</title>
+   <title>Tuple Schemas</title>
    <p>A tuple is an ordered set of fields.</p>
    
    <section>
@@ -1834,7 +1843,7 @@ DUMP A;
 
    <!-- ++++++++++++++++++++++++++++++++++ -->    
    <section id="bag-schema">
-   <title>Bag Schema</title>
+   <title>Bag Schemas</title>
    <p>A bag is a collection of tuples.</p>
    
    <section>
@@ -1910,7 +1919,7 @@ DUMP A;
    
       <!-- ++++++++++++++++++++++++++++++++++ --> 
    <section id="map-schema">
-   <title>Map Schema</title>
+   <title>Map Schemas</title>
    <p>A map is a set of key value pairs.</p>
    
    <section>

@@ -225,7 +225,7 @@
 <br></br>&nbsp;&nbsp;&nbsp; <a href="start.html#data-work-with">working with</a>
 </p>
 
-<p><a href="basic.html#data-types">data types</a> (Pig Latin)</p>
+<p><a href="basic.html#data-types">data types</a> (simple and complex)</p>
 
 <p>debugging
 <br></br>&nbsp;&nbsp;&nbsp; <a href="test.html#diagnostic-ops">diagnostic operators</a>
@@ -945,7 +945,7 @@
 
 <p><a href="func.html#bag-tuple-functions">tuple functions</a></p>
 
-<p>tuples
+<p>tuples (data type)
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#relations">and relations</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#tuple-schema">and schemas</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#tuple">syntax</a>

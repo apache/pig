@@ -33,6 +33,8 @@ PIG-1772: Pig 090 Documentation (chandec via olgan)
 
 PIG-1772: Pig 090 Documentation (chandec via olgan)
 
+PIG-1772: Pig 090 Documentation (chandec via olgan)
+
 PIG-1824: Support import modules in Jython UDF (woody via rding)
 
 PIG-1994: e2e test harness deployment implementation for existing cluster
