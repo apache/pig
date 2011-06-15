@@ -24,11 +24,12 @@ DEPLOYERS = $(DEPLOYER_DIR)/ExistingClusterDeployer.pm
 
 TEST_DIR = ./tests
 
-TESTS = $(TEST_DIR)/bigdata.conf  $(TEST_DIR)/cmdline.conf \
-		$(TEST_DIR)/grunt.conf \
+TESTS = $(TEST_DIR)/cmdline.conf \
 		$(TEST_DIR)/multiquery.conf  $(TEST_DIR)/negative.conf \
 		$(TEST_DIR)/nightly.conf  $(TEST_DIR)/streaming.conf \
 		$(TEST_DIR)/turing_jython.conf
+
+# TODO Add in bigdata and macro tests.  bigdata should be in separate target
 
 CONF_DIR = ./conf
 
@@ -45,50 +46,15 @@ TOOLS = $(TEST_TOOL_DIR)/explainchk.pl  $(TEST_TOOL_DIR)/floatpostprocessor.pl \
 
 ARCHIVE = pigtests.tar
 
-TEST_DIST_DIR = testdist
+TEST_DIST_DIR ?= testdist
 
-TESTS_TO_RUN ?= -t Checkin -t LoaderDefaultDir -t LoaderPigStorageArg \
-			    -t FilterBoolean -t FilterEq -t FilterMatches -t FilterUdf \
-			    -t CoGroupFlatten -t Join -t Distinct -t Cross -t Union \
-			    -t Glob -t Arithmetic -t Regression -t Unicode -t Parameters \
-			    -t ImplicitSplit -t describe -t MissingColumns -t Aliases \
-				-t Lineage -t Casts -t ClassResolution \
-			    -t MergeJoin -t SkewedJoin -t CollectedGroup -t Accumulator \
-			    -t PruneColumns -t Bzip -t Scalar -t Scripting -t NestedDescribe \
-				-t UdfDistributedCache -t Describe_cmdline -t Unicode_cmdline \
-				-t Warning -t NoSuchFile -t BadFunc -t FileExists \
-				-t NegForeach -t NotAllowed -t UdfException \
-				-t LineageErrors -t ComputeSpec -t JobManagement \
-				-t StreamingIO -t NonStreaming -t StreamingPerformance \
-				-t RaceConditions -t StreamingLocal -t Jython_Checkin
+# TODO
+# Make grunt tests works
+# Make Jython tests work, since we don't have an old version for some of them
+# to work aginst
+# Make Macro tests work, can hand expand and test
 
-
-			   
 # Not yet working:
-# LoaderBinStorage - results doctored
-# LoaderTestLoader - results doctored
-# GroupAggFunc     - results doctored
-# EvalFunc         - results doctored
-# CoGroup          - results doctored
-# Foreach          - results doctored
-# Order            - results doctored
-# Bincond          - results doctored
-# Types            - results doctored
-# Limit            - results doctored
-# Split            - results doctored
-# SecondarySort    - results doctored
-# Native           - results doctored
-# Partitioner      - issues unclear
-# CastScalar       - issues unclear
-# udf_TOBAGandTOTUPLE -results doctored
-# MergeOperator    - issues unclear
-# Grunt            - needs reworked with different inputs
-# MultiQuery       - results doctored
-# SyntaxErrors     - needs streaming resources
-# CmdErrors        - needs streaming resources
-# StreamingErrors  - needs streaming resources
-# IOErrors         - needs streaming resources
-# StreamingLocalErrors - needs streaming resources
 # Jython_*         - needs switch from java to bin/pig
 
 UDF_DIR      = udfs
@@ -117,6 +83,10 @@ build_udfs:
 	(cd $(JAVA_UDF_DIR); ant -Dpig.jarfile=$${PH_PIG}/pig.jar)
 
 pretest: $(ARCHIVE) build_udfs
+	@(if [ "$${PH_OLDPIG}x" == "x" ] ; then echo \
+	 	"You must set the environment variable PH_OLDPIG" \
+		"to the directory your old version of Pig is installed in" \
+		"before running the tests"; 1; fi)
 	@(if [ "$${PH_CLUSTER}x" == "x" ] ; then echo \
 	 	"You must set the environment variable PH_CLUSTER" \
 		"to the directory that contains your hadoop-site.xml" \
