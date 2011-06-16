@@ -18,7 +18,7 @@
 
 Pig Change Log
 
-Trunk (unreleased changes)
+Release 0.9.0 - Unreleased
 
 INCOMPATIBLE CHANGES
 
@@ -417,7 +417,7 @@ PIG-1801: Need better error message for Jython errors (rding)
 PIG-1742: org.apache.pig.newplan.optimizer.Rule.java does not work
   with plan patterns where leaves/sinks are not siblings (thejas)
 
-Release 0.8.0 - Unreleased
+Release 0.8.0
 
 INCOMPATIBLE CHANGES
 
