@@ -29,8 +29,12 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
+import org.apache.hadoop.mapreduce.MapContext;
+import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
 import org.apache.pig.impl.streaming.ExecutableManager;
@@ -193,11 +197,18 @@ public class HadoopExecutableManager extends ExecutableManager {
         processError("\nCommand: " + command);
         processError("\nStart time: " + new Date(System.currentTimeMillis()));
         if (job.getBoolean("mapred.task.is.map", false)) {
-            processError("\nInput-split file: " + job.get("map.input.file"));
-            processError("\nInput-split start-offset: " + 
-                         job.getLong("map.input.start", -1));
-            processError("\nInput-split length: " + 
-                         job.getLong("map.input.length", -1));
+            MapContext context = (MapContext)PigMapReduce.sJobContext;
+            PigSplit pigSplit = (PigSplit)context.getInputSplit();
+            InputSplit wrappedSplit = pigSplit.getWrappedSplit();
+            if (wrappedSplit instanceof FileSplit) {
+                FileSplit mapInputFileSplit = (FileSplit)wrappedSplit;
+                processError("\nInput-split file: " + 
+                             mapInputFileSplit.getPath().toString());
+                processError("\nInput-split start-offset: " + 
+                             Long.toString(mapInputFileSplit.getStart()));
+                processError("\nInput-split length: " + 
+                             Long.toString(mapInputFileSplit.getLength()));
+            }
         }
         processError("\n=====          * * *          =====\n");
     }
