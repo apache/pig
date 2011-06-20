@@ -60,6 +60,8 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 
 BUG FIXES
 
+PIG-2131: Add back test for PIG-1769 (qwertymaniac via gates)
+
 PIG-2112: ResourceSchema.toString does not properly handle maps in the schema (gates)
 
 PIG-1702: Streaming debug output outputs null input-split information (awarring via daijy)

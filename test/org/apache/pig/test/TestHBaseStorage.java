@@ -569,7 +569,7 @@ public class TestHBaseStorage {
         prepareTable(TESTTABLE_2, false, DataFormat.HBaseBinary);
 
         scanTable1(pig, DataFormat.HBaseBinary);
-        pig.store("a", TESTTABLE_2,
+        pig.store("a", "hbase://" +  TESTTABLE_2,
                 "org.apache.pig.backend.hadoop.hbase.HBaseStorage('"
                 + TESTCOLUMN_A + " " + TESTCOLUMN_B + " "
                 + TESTCOLUMN_C + "','-caster HBaseBinaryConverter')");
