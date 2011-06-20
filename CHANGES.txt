@@ -60,6 +60,8 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 
 BUG FIXES
 
+PIG-2112: ResourceSchema.toString does not properly handle maps in the schema (gates)
+
 PIG-1702: Streaming debug output outputs null input-split information (awarring via daijy)
 
 PIG-2109: Ant build continues even if the parser classes fail to be generated. (zjshen via daijy)
