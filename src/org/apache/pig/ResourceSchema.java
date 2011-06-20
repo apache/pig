@@ -225,12 +225,12 @@ public class ResourceSchema implements Serializable {
         
         private String getDescription(boolean printAlias) {
             StringBuilder sb = new StringBuilder();
-            if (printAlias)
+            if (printAlias && this.name != null)
                 sb.append(this.name).append(":");
             if (DataType.isAtomic(this.type)) {
                 sb.append(DataType.findTypeName(this.type));
             } else {
-                if (this.schema!=null)
+                //if (this.schema!=null)
                     stringifyResourceSchema(sb, this.schema, this.type, printAlias);
             }
             return sb.toString();
@@ -485,10 +485,12 @@ public class ResourceSchema implements Serializable {
             sb.append("[");
         }
         
-        for (int i=0; i<rs.getFields().length; i++) {
-            sb.append(rs.getFields()[i].getDescription(printAlias));
-            if (i < rs.getFields().length - 1) {
-                sb.append(",");
+        if (rs != null) {
+            for (int i=0; i<rs.getFields().length; i++) {
+                sb.append(rs.getFields()[i].getDescription(printAlias));
+                if (i < rs.getFields().length - 1) {
+                    sb.append(",");
+                }
             }
         }
                 
