@@ -47,9 +47,11 @@ public class UDFContext {
         return tss.get();
     }
 
-    // internal pig use only - should NOT be called from user code
-    public void setClientSystemProps() {
-        clientSysProps = System.getProperties();        
+    /*
+     *  internal pig use only - should NOT be called from user code
+     */
+    public void setClientSystemProps(Properties properties) {
+        clientSysProps = properties;
     }
     
     /**
@@ -247,4 +249,5 @@ public class UDFContext {
             return true;
         }
     }
+
 }
