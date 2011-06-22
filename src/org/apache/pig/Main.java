@@ -765,7 +765,7 @@ public static void usage()
         System.out.println("            LimitOptimizer - Limit as early as possible");
         System.out.println("            AddForEach - Add ForEach to remove unneeded columns");
         System.out.println("            MergeForEach - Merge adjacent ForEach");
-        System.out.println("            LogicalExpressionSimplifier - Combine multiple expressions");
+        System.out.println("            FilterLogicExpressionSimplifier - Combine multiple expressions");
         System.out.println("            All - Disable all optimizations");
         System.out.println("        All optimizations are enabled by default. Optimization values are case insensitive.");
         System.out.println("    -v, -verbose - Print all error messages to screen");
