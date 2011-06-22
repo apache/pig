@@ -192,6 +192,9 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-2140: Usage printed from Main.java gives wrong option for disabling
+  LogicalExpressionSimplifier (thejas)
+
 PIG-2106: Fix Zebra unit test TestBasicUnion.testNeg3, TestBasicUnion.testNeg4 (daijy)
 
 PIG-2083: bincond ERROR 1025: Invalid field projection when null is used (thejas)
