@@ -60,6 +60,9 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 
 BUG FIXES
 
+PIG-2140: Usage printed from Main.java gives wrong option for disabling
+  LogicalExpressionSimplifier (thejas)
+
 PIG-2120: UDFContext.getClientSystemProps() does not respect pig.properties (dvryaboy)
 
 PIG-2129: NOTICE file needs updates (gates)
