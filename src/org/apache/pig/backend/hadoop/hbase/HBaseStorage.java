@@ -605,7 +605,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
      *
      * @param key
      * @param type
-     * @return
+     * @return new put
      * @throws IOException
      */
     public Put createPut(Object key, byte type) throws IOException {
