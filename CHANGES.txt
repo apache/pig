@@ -60,6 +60,9 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 
 BUG FIXES
 
+PIG-2136: Implementation of Sample should use LessThanExpression 
+ instead of LessThanEqualExpression (azaroth via thejas)
+
 PIG-2140: Usage printed from Main.java gives wrong option for disabling
   LogicalExpressionSimplifier (thejas)
 
