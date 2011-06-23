@@ -255,7 +255,7 @@ public class PigContext implements Serializable {
 
     /**
      * script files as name/file pairs to be added to the job jar
-     * @return
+     * @return name/file pairs
      */
     public Map<String,File> getScriptFiles() {
         return aliasedScriptFiles;
