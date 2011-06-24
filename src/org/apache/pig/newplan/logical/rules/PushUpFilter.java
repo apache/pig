@@ -80,8 +80,8 @@ public class PushUpFilter extends Rule {
             if( pred == null )
                 return false;
 
-            // sort, distinct, or sort by is always okay.
-            if( pred instanceof LOSort || pred instanceof LODistinct || pred instanceof LOUnion ) {
+            // sort and union are always okay.
+            if( pred instanceof LOSort || pred instanceof LOUnion ) {
                 return true;
             }
 
@@ -100,6 +100,12 @@ public class PushUpFilter extends Rule {
 
             if (OptimizerUtils.planHasNonDeterministicUdf(filterPlan)) {
                 return false;
+            }
+
+            //if there is no nondeterministic udf, filter can be pushed above 
+            // Distinct
+            if(pred instanceof LODistinct){
+                return true;
             }
 
             // collect all uids used in the filter plan

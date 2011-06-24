@@ -60,6 +60,8 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 
 BUG FIXES
 
+PIG-2137: SAMPLE should not be pushed above DISTINCT (dvryaboy and thejas)
+
 PIG-2136: Implementation of Sample should use LessThanExpression 
  instead of LessThanEqualExpression (azaroth via thejas)
 

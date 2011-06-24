@@ -18,7 +18,11 @@
 
 package org.apache.pig.test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Properties;
+import java.util.Set;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
@@ -28,11 +32,17 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
-import org.apache.pig.newplan.logical.expression.*;
+import org.apache.pig.newplan.logical.expression.AndExpression;
+import org.apache.pig.newplan.logical.expression.ConstantExpression;
+import org.apache.pig.newplan.logical.expression.EqualExpression;
+import org.apache.pig.newplan.logical.expression.LogicalExpression;
+import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
+import org.apache.pig.newplan.logical.expression.ProjectExpression;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
 import org.apache.pig.newplan.logical.optimizer.ProjectionPatcher;
 import org.apache.pig.newplan.logical.optimizer.SchemaPatcher;
 import org.apache.pig.newplan.logical.relational.LOCogroup;
+import org.apache.pig.newplan.logical.relational.LODistinct;
 import org.apache.pig.newplan.logical.relational.LOFilter;
 import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOJoin;
@@ -511,7 +521,55 @@ public class TestNewPlanFilterRule {
         Assert.assertTrue( fe1 instanceof LOForEach );
         Operator filter = newLogicalPlan.getSuccessors( fe2 ).get( 0 );
         Assert.assertTrue( filter instanceof LOFilter );
+    }
 
+    /**
+     * Test that SAMPLE doesn't get pushed up over Distinct (see PIG-2137)
+     */
+    @Test
+    public void testSampleDistinct() throws Exception {
+        String query = "A = LOAD 'file.txt' AS (name, cuisines:bag{ t : ( cuisine ) } );" +
+        "B = DISTINCT A;" +
+        "C = SAMPLE B 0.1 ; " +
+        "D = STORE C INTO 'empty';";
+        // expect loload -> foreach -> distinct -> filter
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
+        newLogicalPlan.explain(System.out, "text", true);
+
+        Operator load = newLogicalPlan.getSources().get( 0 );
+        Assert.assertTrue( load instanceof LOLoad );
+        Operator fe1 = newLogicalPlan.getSuccessors( load ).get( 0 );
+        Assert.assertTrue( fe1 instanceof LOForEach );
+        Operator dist = newLogicalPlan.getSuccessors( fe1 ).get( 0 );
+        Assert.assertTrue( dist instanceof LODistinct );
+        Operator filter = newLogicalPlan.getSuccessors( dist ).get( 0 );
+        Assert.assertTrue( filter instanceof LOFilter );
+    }
+    
+    /**
+     * Test that deterministic filter gets get pushed up over Distinct (see PIG-2137)
+     */
+    @Test
+    public void testFilterAfterDistinct() throws Exception {
+        String query = "A = LOAD 'file.txt' AS (name : chararray, cuisines:bag{ t : ( cuisine ) } );" +
+        "B = DISTINCT A;" +
+        "C = filter B by SIZE(name) > 10;" +
+        "D = STORE C INTO 'long_name';";
+        // filter should be pushed above distinct,
+        //ie expect - loload -> foreach -> filter -> distinct 
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
+        newLogicalPlan.explain(System.out, "text", true);
+
+        Operator load = newLogicalPlan.getSources().get( 0 );
+        Assert.assertTrue( load instanceof LOLoad );
+        Operator fe1 = newLogicalPlan.getSuccessors( load ).get( 0 );
+        Assert.assertTrue( fe1 instanceof LOForEach );
+        Operator filter = newLogicalPlan.getSuccessors(fe1).get( 0 );
+        Assert.assertTrue( filter instanceof LOFilter );
+   
+        Operator dist = newLogicalPlan.getSuccessors(filter).get( 0 );
+        Assert.assertTrue( dist instanceof LODistinct );
+        
     }
 
     private LogicalPlan migrateAndOptimizePlan(String query) throws Exception {
