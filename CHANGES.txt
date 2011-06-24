@@ -192,6 +192,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-2137: SAMPLE should not be pushed above DISTINCT (dvryaboy and thejas)
+
 PIG-2140: Usage printed from Main.java gives wrong option for disabling
   LogicalExpressionSimplifier (thejas)
 
