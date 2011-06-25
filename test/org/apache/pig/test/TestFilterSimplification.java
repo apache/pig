@@ -23,8 +23,11 @@ import java.util.*;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
+import org.apache.pig.newplan.logical.relational.LOFilter;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
+import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.rules.LogicalExpressionSimplifier;
+import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.optimizer.PlanOptimizer;
 import org.apache.pig.newplan.optimizer.Rule;
@@ -737,7 +740,33 @@ public class TestFilterSimplification extends TestCase {
 
         assertTrue(expected.isEqual(newLogicalPlan));
     }
-    
+
+
+    @Test
+    // PIG-2137
+    public void testSimiplificationNonDeterministicUdf() throws Exception {
+        String query = "b = filter (load 'd.txt' as (a0, a1)) by RANDOM() > 0.1 and RANDOM() > 0.1;" + 
+                       "store b into 'empty';";
+        LogicalPlan newLogicalPlan = Util.buildLp(pigServer, query);;
+
+        PlanOptimizer optimizer = new MyPlanOptimizer(newLogicalPlan, 10);
+        optimizer.optimize();
+        LOFilter optimizedFilt = (LOFilter) newLogicalPlan.getSuccessors(newLogicalPlan.getSources().get(0)).get(0);
+        
+        //expected query is same as original query, optimizer should not combine 
+        // conditions involving non deterministic udfs
+        query = "b = filter (load 'd.txt' as (a0, a1)) by RANDOM() > 0.1 and RANDOM() > 0.1;" + 
+            "store b into 'empty';";
+        LogicalPlan expected = Util.buildLp(pigServer, query);;
+        LOFilter expectedFilt = (LOFilter) expected.getSuccessors(expected.getSources().get(0)).get(0);
+        assertEquals(
+                "size of filter expression plans",
+                optimizedFilt.getFilterPlan().size(), 
+                expectedFilt.getFilterPlan().size()
+        );
+
+    }
+
     public class MyPlanOptimizer extends LogicalPlanOptimizer {
 
         protected MyPlanOptimizer(OperatorPlan p, int iterations) {
