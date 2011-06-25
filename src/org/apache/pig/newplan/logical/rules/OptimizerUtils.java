@@ -21,6 +21,7 @@ import java.util.Iterator;
 
 import org.apache.pig.builtin.Nondeterministic;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.newplan.logical.expression.UserFuncExpression;
@@ -75,16 +76,17 @@ public class OptimizerUtils {
      *
      * @param filterPlan
      * @return true of the filter plan contains a non-deterministic UDF
+     * @throws FrontendException 
      */
-    public static boolean planHasNonDeterministicUdf(LogicalExpressionPlan filterPlan) {
+    public static boolean planHasNonDeterministicUdf(LogicalExpressionPlan filterPlan)
+    throws FrontendException {
         Iterator<Operator> it = filterPlan.getOperators();
         while( it.hasNext() ) {
             Operator op = it.next();
             if( op instanceof UserFuncExpression ) {
-                Object udf = PigContext.instantiateFuncFromSpec(((UserFuncExpression) op).getFuncSpec());
-                if (udf.getClass().getAnnotation(Nondeterministic.class) != null) {
+                if(! ((UserFuncExpression)op).isDeterministic() ){
                     return true;
-}
+                }
             }
         }
         return false;

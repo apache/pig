@@ -59,6 +59,7 @@ public class LogicalPlan extends BaseOperatorPlan {
      * graph has no correctness implications, whereas reversing the inputs
      * of join can.  This method of doing equals will detect predecessors
      * in different orders but not successors in different orders.
+     * It will return false if either plan has non deterministic EvalFunc. 
      */
     @Override
     public boolean isEqual(OperatorPlan other) throws FrontendException {
