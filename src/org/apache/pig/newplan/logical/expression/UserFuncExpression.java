@@ -18,10 +18,12 @@
 
 package org.apache.pig.newplan.logical.expression;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.builtin.Nondeterministic;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -67,6 +69,16 @@ public class UserFuncExpression extends LogicalExpression {
 
     @Override
     public boolean isEqual(Operator other) throws FrontendException {
+        
+        //For the purpose of optimization rules (specially LogicalExpressionSimplifier)
+        // a non deterministic udf is not equal to another. So returning false for
+        //such cases.
+        // Note that the function is also invoked by implementations of OperatorPlan.isEqual
+        // that function is called from test cases to compare logical plans, and
+        // it will return false even if the plans are clones. 
+        if(!this.isDeterministic())
+            return false;
+        
         if( other instanceof UserFuncExpression ) {
             UserFuncExpression exp = (UserFuncExpression)other;
             if (!mFuncSpec.equals(exp.mFuncSpec ))
@@ -74,6 +86,14 @@ public class UserFuncExpression extends LogicalExpression {
             
             List<Operator> mySuccs = getPlan().getSuccessors(this);
             List<Operator> theirSuccs = other.getPlan().getSuccessors(other);
+            if(mySuccs == null || theirSuccs == null){
+                if(mySuccs == null && theirSuccs == null){
+                    return true;
+                }else{
+                    //only one of the udfs has null successors
+                    return false;
+                }
+            }
             if (mySuccs.size()!=theirSuccs.size())
                 return false;
             for (int i=0;i<mySuccs.size();i++) {
@@ -85,6 +105,22 @@ public class UserFuncExpression extends LogicalExpression {
             return false;
         }
     }
+    
+    public boolean isDeterministic() throws FrontendException{
+        Class<?> udfClass;
+        try {
+            udfClass = PigContext.resolveClassName(getFuncSpec().getClassName());
+        }catch(IOException ioe) {
+            throw new FrontendException("Cannot instantiate: " + getFuncSpec(), ioe) ;
+        }
+
+        if (udfClass.getAnnotation(Nondeterministic.class) == null) {
+            return true;
+        }
+        return false;
+        
+    }
+    
 
     public List<LogicalExpression> getArguments() throws FrontendException {
         List<Operator> successors = null;
