@@ -1046,20 +1046,6 @@ public class PigServer {
                 return;
             }
             PhysicalPlan pp = compilePp();
-
-            HashSet<String> optimizerRules = null;
-            try {
-                optimizerRules = (HashSet<String>) ObjectSerializer.deserialize(
-                        pigContext.getProperties().getProperty("pig.optimizer.rules") );
-            } catch (IOException ioe) {
-                int errCode = 2110;
-                String msg = "Unable to deserialize optimizer rules.";
-                throw new FrontendException(msg, errCode, PigException.BUG, ioe);
-            }
-
-            LogicalPlanOptimizer optimizer = new LogicalPlanOptimizer( currDAG.lp, 3, optimizerRules );
-            optimizer.optimize();
-
             currDAG.lp.explain(lps, format, verbose);
 
             pp.explain(pps, format, verbose);

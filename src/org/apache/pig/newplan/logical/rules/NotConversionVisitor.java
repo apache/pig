@@ -265,8 +265,16 @@ class NOTConversionVisitor extends LogicalExpressionVisitor {
                 if (seen.add(suc)) {
                     if (suc instanceof NotExpression)
                         ((NOTConversionVisitor) visitor).flip();
-                    Collection<Operator> newSuccessors = Utils.mergeCollection(plan.getSuccessors(suc), plan.getSoftLinkSuccessors(suc));
-                    depthFirst(suc, newSuccessors, seen, visitor);
+                    if(suc instanceof AndExpression
+                            || suc instanceof NotExpression
+                            || suc instanceof OrExpression
+                    ){
+                        //visit successors of suc only if they are the boolean operators
+                        // the NOT conversion should be propagated only for 
+                        // their successors 
+                        Collection<Operator> newSuccessors = Utils.mergeCollection(plan.getSuccessors(suc), plan.getSoftLinkSuccessors(suc));
+                        depthFirst(suc, newSuccessors, seen, visitor);
+                    }
                     suc.accept(visitor);
                     if (suc instanceof NotExpression)
                         ((NOTConversionVisitor) visitor).flip();
