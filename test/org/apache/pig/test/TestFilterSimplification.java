@@ -21,6 +21,7 @@ package org.apache.pig.test;
 import java.util.*;
 
 import org.apache.pig.ExecType;
+import org.apache.pig.FilterFunc;
 import org.apache.pig.PigServer;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
 import org.apache.pig.newplan.logical.relational.LOFilter;
@@ -31,6 +32,8 @@ import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.optimizer.PlanOptimizer;
 import org.apache.pig.newplan.optimizer.Rule;
+import org.apache.pig.test.TestPruneColumn.MyFilterFunc;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 
 import junit.framework.TestCase;
@@ -766,7 +769,33 @@ public class TestFilterSimplification extends TestCase {
         );
 
     }
+    
+    static public class MyFilterFunc extends FilterFunc {
+        
+        @Override
+        public Boolean exec(Tuple input) {
+            return true;
+        }
+    }
 
+    //PIG-2144
+    @Test
+    public void testNotConversionUdfArg() throws Exception{
+        //udf arg should not be changed
+        String query = "b = filter (load 'd.txt' as (a0, a1)) by " +
+        " NOT IsEmpty( " +  MyFilterFunc.class.getName() + "(a0,a1));" + 
+        "store b into 'empty';";
+        LogicalPlan newLogicalPlan = Util.buildLp(pigServer, query);;
+
+        PlanOptimizer optimizer = new MyPlanOptimizer(newLogicalPlan, 10);
+        optimizer.optimize();
+        
+        //expected plan is same as original plan
+        LogicalPlan expected = Util.buildLp(pigServer, query);;
+
+        assertTrue(expected.isEqual(newLogicalPlan));
+    }
+    
     public class MyPlanOptimizer extends LogicalPlanOptimizer {
 
         protected MyPlanOptimizer(OperatorPlan p, int iterations) {
