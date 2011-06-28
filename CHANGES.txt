@@ -192,6 +192,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-2144: ClassCastException when using IsEmpty(DIFF()) (thejas)
+
 PIG-2139: LogicalExpressionSimplifier optimizer rule should check if udf is
  deterministic while checking if they are equal (thejas)
 
