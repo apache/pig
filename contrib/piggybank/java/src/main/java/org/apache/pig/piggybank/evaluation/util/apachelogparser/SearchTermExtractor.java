@@ -167,6 +167,7 @@ public class SearchTermExtractor extends EvalFunc<String> {
       if (HOSTS.containsKey(host) || host.contains("google.co")
           || host.contains("search.yahoo")) {
         String queryString = urlObject.getQuery();
+        if (queryString == null) { return null; }
         TERM_MATCHER.reset(queryString);
         if (TERM_MATCHER.find()) {
           String terms = TERM_MATCHER.group(1);
