@@ -164,6 +164,11 @@ public class SchemaResetter extends LogicalRelationalNodesVisitor {
     @Override
     public void visit(LOLimit loLimit) throws FrontendException {
         loLimit.resetSchema();
+        if (loLimit.getLimitPlan() != null) {
+            FieldSchemaResetter fsResetter = new FieldSchemaResetter(
+                    loLimit.getLimitPlan());
+            fsResetter.visit();
+        }
         loLimit.getSchema();
     }
     

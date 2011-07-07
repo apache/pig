@@ -26,6 +26,7 @@ public class LOFilter extends LogicalRelationalOperator {
 
     private static final long serialVersionUID = 2L;
     private LogicalExpressionPlan filterPlan;
+    private boolean isSample;
         
     public LOFilter(LogicalPlan plan) {
         super("LOFilter", plan);       
@@ -36,12 +37,26 @@ public class LOFilter extends LogicalRelationalOperator {
         this.filterPlan = filterPlan;
     }
     
+    public LOFilter(LogicalPlan plan, boolean sample) {
+        this(plan);
+        isSample = sample;
+    }
+
+    public LOFilter(LogicalPlan plan, LogicalExpressionPlan filterPlan, boolean sample) {
+        this(plan, filterPlan);
+        isSample = sample;
+    }
+    
     public LogicalExpressionPlan getFilterPlan() {
         return filterPlan;
     }
     
     public void setFilterPlan(LogicalExpressionPlan filterPlan) {
         this.filterPlan = filterPlan;
+    }
+    
+    public boolean isSample() {
+        return isSample;
     }
     
     @Override

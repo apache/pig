@@ -381,8 +381,10 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
     }
     
     @Override
-    public void visit(LOLimit relOp) throws FrontendException{
-        mapToPredLoadFunc(relOp);
+    public void visit(LOLimit loLimit) throws FrontendException{
+        mapToPredLoadFunc(loLimit);
+        if (loLimit.getLimitPlan() != null)
+            visitExpression(loLimit.getLimitPlan());
     }
     
     @Override

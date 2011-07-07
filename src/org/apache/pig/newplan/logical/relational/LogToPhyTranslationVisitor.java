@@ -48,13 +48,13 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PONative;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage.PackageType;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSkewedJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage.PackageType;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
@@ -70,6 +70,7 @@ import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.CompilerUtils;
 import org.apache.pig.impl.util.LinkedMultiMap;
 import org.apache.pig.impl.util.MultiMap;
+import org.apache.pig.impl.util.Utils;
 import org.apache.pig.newplan.DependencyOrderWalker;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
@@ -80,7 +81,6 @@ import org.apache.pig.newplan.logical.Util;
 import org.apache.pig.newplan.logical.expression.ExpToPhyTranslationVisitor;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.newplan.logical.expression.ProjectExpression;
-import org.apache.pig.impl.util.Utils;
 
 public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
     
@@ -146,7 +146,6 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
         }
 //        System.err.println("Exiting Load");
     }
-    
     
     @Override
     public void visit(LONative loNative) throws FrontendException{     
@@ -331,8 +330,6 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                 ce1.setValue(ce1val);
                 ce1.setResultType(DataType.TUPLE);*/
                 
-                
-
                 POUserFunc gfc = new POUserFunc(new OperatorKey(scope, nodeGen.getNextNodeId(scope)),cross.getRequestedParallelisam(), Arrays.asList((PhysicalOperator)ce1,(PhysicalOperator)ce2), new FuncSpec(GFCross.class.getName()));
                 gfc.setAlias(cross.getAlias());
                 gfc.setResultType(DataType.BAG);
@@ -607,6 +604,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
     /**
      * This function takes in a List of LogicalExpressionPlan and converts them to 
      * a list of PhysicalPlans
+     * 
      * @param plans
      * @return
      * @throws FrontendException 
@@ -1240,22 +1238,39 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
     @Override
     public void visit(LOLimit loLimit) throws FrontendException {
         String scope = DEFAULT_SCOPE;
-        POLimit physOp = new POLimit(new OperatorKey(scope,nodeGen.getNextNodeId(scope)), loLimit.getRequestedParallelisam());
-        physOp.setLimit(loLimit.getLimit());
-        physOp.setAlias(loLimit.getAlias());
-        currentPlan.add(physOp);
-        physOp.setResultType(DataType.BAG);
-        logToPhyMap.put(loLimit, physOp);
+        POLimit poLimit = new POLimit(new OperatorKey(scope, nodeGen.getNextNodeId(scope)),
+                loLimit.getRequestedParallelisam());
+        poLimit.setLimit(loLimit.getLimit());
+        poLimit.setAlias(loLimit.getAlias());
+        poLimit.setResultType(DataType.BAG);
+        currentPlan.add(poLimit);
+        logToPhyMap.put(loLimit, poLimit);
+
+        if (loLimit.getLimitPlan() != null) {
+            // add expression plan to POLimit
+            currentPlans.push(currentPlan);
+            currentPlan = new PhysicalPlan();
+            PlanWalker childWalker = new ReverseDependencyOrderWalkerWOSeenChk(loLimit.getLimitPlan());
+            pushWalker(childWalker);
+            currentWalker.walk(new ExpToPhyTranslationVisitor(currentWalker.getPlan(), childWalker, loLimit,
+                    currentPlan, logToPhyMap));
+            poLimit.setLimitPlan(currentPlan);
+            popWalker();
+            currentPlan = currentPlans.pop();
+        }
+
         Operator op = loLimit.getPlan().getPredecessors(loLimit).get(0);
 
         PhysicalOperator from = logToPhyMap.get(op);
         try {
-            currentPlan.connect(from, physOp);
+            currentPlan.connect(from, poLimit);
         } catch (PlanException e) {
             int errCode = 2015;
             String msg = "Invalid physical operators in the physical plan" ;
             throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
         }
+        
+        translateSoftLinks(loLimit);
     }
     
     @Override
@@ -1359,7 +1374,6 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
         translateSoftLinks(loSplitOutput);
 //        System.err.println("Exiting Filter");
     }
-
     /**
      * updates plan with check for empty bag and if bag is empty to flatten a bag
      * with as many null's as dictated by the schema
@@ -1372,7 +1386,6 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
         try {
             inputSchema = ((LogicalRelationalOperator) joinInput).getSchema();
          
-          
             if(inputSchema == null) {
                 int errCode = 1109;
                 String msg = "Input (" + ((LogicalRelationalOperator) joinInput).getAlias() + ") " +

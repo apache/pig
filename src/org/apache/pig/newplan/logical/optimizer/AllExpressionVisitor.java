@@ -32,6 +32,7 @@ import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOGenerate;
 import org.apache.pig.newplan.logical.relational.LOInnerLoad;
 import org.apache.pig.newplan.logical.relational.LOJoin;
+import org.apache.pig.newplan.logical.relational.LOLimit;
 import org.apache.pig.newplan.logical.relational.LOSort;
 import org.apache.pig.newplan.logical.relational.LOSplitOutput;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalNodesVisitor;
@@ -70,6 +71,15 @@ public abstract class AllExpressionVisitor extends LogicalRelationalNodesVisitor
         v.visit();
     }
     
+    @Override
+    public void visit(LOLimit limit) throws FrontendException {
+        currentOp = limit;
+        if (limit.getLimitPlan() != null) {
+            LogicalExpressionVisitor v = getVisitor(limit.getLimitPlan());
+            v.visit();
+        }
+    }
+ 
     @Override
     public void visit(LOJoin join) throws FrontendException {
         currentOp = join;

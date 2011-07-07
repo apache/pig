@@ -79,6 +79,7 @@ import org.apache.pig.newplan.logical.relational.LOCogroup;
 import org.apache.pig.newplan.logical.relational.LOFilter;
 import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOGenerate;
+import org.apache.pig.newplan.logical.relational.LOLimit;
 import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.apache.pig.newplan.logical.relational.LOSort;
 import org.apache.pig.newplan.logical.relational.LOSplitOutput;
@@ -882,25 +883,47 @@ bin_expr[LogicalExpressionPlan plan] returns[LogicalExpression expr]
 ;
 
 limit_clause returns[String alias]
- : ^( LIMIT rel INTEGER  )
+scope GScope;
+@init { 
+    $GScope::currentOp = builder.createLimitOp();
+    LogicalExpressionPlan exprPlan = new LogicalExpressionPlan();
+}
+ :  ^( LIMIT rel ( INTEGER
    {
-       $alias = builder.buildLimitOp( new SourceLocation( (PigParserNode)$LIMIT ), $statement::alias,
-           $statement::inputAlias, Long.valueOf( $INTEGER.text ) );
+       $alias = builder.buildLimitOp( new SourceLocation( (PigParserNode)$LIMIT ), 
+         $statement::alias, $statement::inputAlias, Long.valueOf( $INTEGER.text ) );
    }
- | ^( LIMIT rel LONGINTEGER )
+ | LONGINTEGER
    {
-       $alias = builder.buildLimitOp( new SourceLocation( (PigParserNode)$LIMIT ), $statement::alias,
-           $statement::inputAlias, builder.parseLong( $LONGINTEGER.text ) );
+       $alias = builder.buildLimitOp( new SourceLocation( (PigParserNode)$LIMIT ),
+         $statement::alias, $statement::inputAlias, builder.parseLong( $LONGINTEGER.text ) );
    }
+ | expr[exprPlan]
+   {
+       $alias = builder.buildLimitOp( new SourceLocation( (PigParserNode)$LIMIT ),
+           (LOLimit)$GScope::currentOp, $statement::alias, $statement::inputAlias, exprPlan);
+   }
+ ) )
 ;
 
 sample_clause returns[String alias]
- : ^( SAMPLE rel DOUBLENUMBER )
+scope GScope;
+@init { 
+    $GScope::currentOp = builder.createSampleOp();
+    LogicalExpressionPlan exprPlan = new LogicalExpressionPlan();
+}
+ : ^( SAMPLE rel ( DOUBLENUMBER
    {
        $alias = builder.buildSampleOp( new SourceLocation( (PigParserNode)$SAMPLE ), $statement::alias,
            $statement::inputAlias, Double.valueOf( $DOUBLENUMBER.text ),
            new SourceLocation( (PigParserNode)$DOUBLENUMBER ) );
    }
+ | expr[exprPlan]
+   {
+       $alias = builder.buildSampleOp( new SourceLocation( (PigParserNode)$SAMPLE ),
+           (LOFilter)$GScope::currentOp, $statement::alias, $statement::inputAlias, exprPlan, $expr.expr);
+   }
+  ) )
 ;
 
 order_clause returns[String alias]
@@ -1203,15 +1226,25 @@ nested_distinct[String alias] returns[Operator op]
 ;
 
 nested_limit[String alias] returns[Operator op]
+scope GScope;
 @init {
     Operator inputOp = null;
+    LogicalExpressionPlan exprPlan = new LogicalExpressionPlan();
+    $GScope::currentOp = builder.createNestedLimitOp( $foreach_plan::innerPlan );
 }
- : ^( LIMIT nested_op_input INTEGER )
+ : ^( LIMIT nested_op_input ( INTEGER 
    {
        SourceLocation loc = new SourceLocation( (PigParserNode)$LIMIT );
        $op = builder.buildNestedLimitOp( loc, $foreach_plan::innerPlan, $alias, $nested_op_input.op, 
            Integer.valueOf( $INTEGER.text ) );
    }
+ | expr[exprPlan] 
+   {
+       SourceLocation loc = new SourceLocation( (PigParserNode)$LIMIT );
+       $op = builder.buildNestedLimitOp( loc, (LOLimit)$GScope::currentOp, $foreach_plan::innerPlan, $alias,
+           $nested_op_input.op, exprPlan);
+   }
+  ) )
 ;
 
 nested_op_input returns[Operator op]

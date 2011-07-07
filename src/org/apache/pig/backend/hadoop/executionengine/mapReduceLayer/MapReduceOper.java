@@ -125,6 +125,9 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
     // to add additional map reduce operator with 1 reducer after this
     long limit = -1;
 
+    // POLimit can also have an expression. See PIG-1926
+    PhysicalPlan limitPlan = null;
+    
     // Indicates that this MROper is a splitter MROper. 
     // That is, this MROper ends due to a POSPlit operator.
     private boolean splitter = false;

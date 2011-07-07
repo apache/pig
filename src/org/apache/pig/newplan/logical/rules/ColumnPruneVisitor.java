@@ -46,6 +46,7 @@ import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOGenerate;
 import org.apache.pig.newplan.logical.relational.LOInnerLoad;
 import org.apache.pig.newplan.logical.relational.LOJoin;
+import org.apache.pig.newplan.logical.relational.LOLimit;
 import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LOSort;
 import org.apache.pig.newplan.logical.relational.LOSplit;
@@ -217,6 +218,10 @@ public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
 
     @Override
     public void visit(LOFilter filter) throws FrontendException {
+    }
+    
+    @Override
+    public void visit(LOLimit limit) throws FrontendException {
     }
     
     @Override
