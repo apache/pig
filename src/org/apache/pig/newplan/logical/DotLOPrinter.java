@@ -19,9 +19,12 @@ package org.apache.pig.newplan.logical;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.LinkedList;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.newplan.BaseOperatorPlan;
 import org.apache.pig.newplan.DotPlanDumper;
@@ -33,13 +36,11 @@ import org.apache.pig.newplan.logical.relational.LOFilter;
 import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOGenerate;
 import org.apache.pig.newplan.logical.relational.LOJoin;
+import org.apache.pig.newplan.logical.relational.LOLimit;
 import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LOSort;
 import org.apache.pig.newplan.logical.relational.LOSplitOutput;
 import org.apache.pig.newplan.logical.relational.LOStore;
-
-import java.util.HashSet;
-import java.util.Set;
 
 /**
  * This class can print a logical plan in the DOT format. It uses
@@ -132,6 +133,9 @@ public class DotLOPrinter extends DotPlanDumper {
 
         if(op instanceof LOFilter){
             plans.add(((LOFilter)op).getFilterPlan());
+        }
+        else if(op instanceof LOLimit){
+            plans.add(((LOLimit)op).getLimitPlan());
         }
         else if(op instanceof LOForEach){
             plans.add(((LOForEach)op).getInnerPlan());

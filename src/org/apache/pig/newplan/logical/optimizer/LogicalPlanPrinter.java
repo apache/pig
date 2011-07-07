@@ -17,31 +17,28 @@
  */
 package org.apache.pig.newplan.logical.optimizer;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
-import java.io.OutputStream;
-import java.io.IOException;
 
-import org.apache.pig.newplan.DepthFirstWalker;
+import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanVisitor;
-import org.apache.pig.newplan.PlanWalker;
-import org.apache.pig.newplan.ReverseDependencyOrderWalker;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.newplan.logical.relational.LOCogroup;
 import org.apache.pig.newplan.logical.relational.LOFilter;
 import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOGenerate;
 import org.apache.pig.newplan.logical.relational.LOJoin;
+import org.apache.pig.newplan.logical.relational.LOLimit;
 import org.apache.pig.newplan.logical.relational.LOSort;
 import org.apache.pig.newplan.logical.relational.LOSplitOutput;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
-import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.impl.util.MultiMap;
 
 /**
  * A visitor mechanism printing out the logical plan.
@@ -168,6 +165,9 @@ public class LogicalPlanPrinter extends PlanVisitor {
         
         if(node instanceof LOFilter){
             sb.append(planString(((LOFilter)node).getFilterPlan()));
+        }
+        else if(node instanceof LOLimit){
+            sb.append(planString(((LOLimit)node).getLimitPlan()));
         }
         else if(node instanceof LOForEach){
             sb.append(planString(((LOForEach)node).getInnerPlan()));        

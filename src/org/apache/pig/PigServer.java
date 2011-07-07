@@ -90,6 +90,7 @@ import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.newplan.logical.visitor.CastLineageSetter;
 import org.apache.pig.newplan.logical.visitor.ColumnAliasConversionVisitor;
+import org.apache.pig.newplan.logical.visitor.ScalarVariableValidator;
 import org.apache.pig.newplan.logical.visitor.ProjStarInUdfExpander;
 import org.apache.pig.newplan.logical.visitor.ScalarVisitor;
 import org.apache.pig.newplan.logical.visitor.SchemaAliasVisitor;
@@ -1677,6 +1678,7 @@ public class PigServer {
             
             new UnionOnSchemaSetter( lp ).visit();
             new CastLineageSetter(lp, collector).visit();
+            new ScalarVariableValidator(lp).visit();
         }
 
         private void postProcess() throws IOException {

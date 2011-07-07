@@ -152,6 +152,11 @@ public class UidResetter extends LogicalRelationalNodesVisitor {
     @Override
     public void visit(LOLimit loLimit) throws FrontendException {
         loLimit.resetUid();
+        if (loLimit.getLimitPlan() != null) {
+            ExpressionUidResetter uidResetter = new ExpressionUidResetter(
+                    loLimit.getLimitPlan());
+            uidResetter.visit();
+    }
     }
     
     @Override

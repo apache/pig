@@ -22,7 +22,8 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.util.Pair;
+import org.apache.pig.newplan.Operator;
+import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.logical.relational.LOCogroup;
 import org.apache.pig.newplan.logical.relational.LOCross;
 import org.apache.pig.newplan.logical.relational.LODistinct;
@@ -38,8 +39,6 @@ import org.apache.pig.newplan.logical.relational.LOSplitOutput;
 import org.apache.pig.newplan.logical.relational.LOUnion;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
-import org.apache.pig.newplan.Operator;
-import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.optimizer.Rule;
 import org.apache.pig.newplan.optimizer.Transformer;
 
@@ -124,7 +123,9 @@ public class LimitOptimizer extends Rule {
                     .get(0);
                 currentPlan.removeAndReconnect(limit);
                 currentPlan.insertBetween(prepredecessor, limit, pred);
-            } else if (pred instanceof LOCross || pred instanceof LOUnion) {
+            } else if (limit.getLimitPlan() == null) {
+                // TODO selectively enable optimizations for variable limit
+                if (pred instanceof LOCross || pred instanceof LOUnion) {
                 // Limit can be duplicated, and the new instance pushed in front
                 // of an operator for the following operators
                 // (that is, if you have X->limit, you can transform that to
@@ -188,4 +189,5 @@ public class LimitOptimizer extends Rule {
             }
         }
     }
+}
 }

@@ -344,11 +344,11 @@ bin_expr
 ;
 
 limit_clause 
-    : ^( LIMIT rel ( INTEGER | LONGINTEGER ) )
+    : ^( LIMIT rel ( INTEGER | LONGINTEGER | expr ) )
 ;
 
 sample_clause 
-    : ^( SAMPLE rel DOUBLENUMBER )    
+    :	 ^( SAMPLE rel ( DOUBLENUMBER | expr ) )
 ;
 
 order_clause 
@@ -457,7 +457,7 @@ nested_distinct
 ;
 
 nested_limit 
-    : ^( LIMIT nested_op_input INTEGER )
+    : ^( LIMIT nested_op_input ( INTEGER | expr ) )
 ;
 
 nested_op_input : col_ref | nested_proj

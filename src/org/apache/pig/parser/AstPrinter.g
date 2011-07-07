@@ -316,11 +316,11 @@ bin_expr
 
 limit_clause 
     : ^( LIMIT { sb.append($LIMIT.text).append(" "); } rel 
-        ( INTEGER { sb.append(" ").append($INTEGER.text); } | LONGINTEGER { sb.append(" ").append($LONGINTEGER.text); } ) )
+        ( INTEGER { sb.append(" ").append($INTEGER.text); } | LONGINTEGER { sb.append(" ").append($LONGINTEGER.text); } | expr ) )
 ;
 
 sample_clause 
-    : ^( SAMPLE { sb.append($SAMPLE.text).append(" "); } rel DOUBLENUMBER { sb.append(" ").append($DOUBLENUMBER.text); } )    
+    : ^( SAMPLE { sb.append($SAMPLE.text).append(" "); } rel ( DOUBLENUMBER { sb.append(" ").append($DOUBLENUMBER.text); } | expr ) )    
 ;
 
 order_clause 
@@ -435,7 +435,7 @@ nested_distinct
 ;
 
 nested_limit 
-    : ^( LIMIT { sb.append($LIMIT.text).append(" "); }  nested_op_input INTEGER { sb.append(" ").append($INTEGER.text); } )
+    : ^( LIMIT { sb.append($LIMIT.text).append(" "); }  nested_op_input ( INTEGER { sb.append(" ").append($INTEGER.text); } | expr ) )
 ;
 
 nested_op_input : col_ref | nested_proj

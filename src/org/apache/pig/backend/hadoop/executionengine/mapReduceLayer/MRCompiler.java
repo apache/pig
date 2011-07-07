@@ -1023,9 +1023,12 @@ public class MRCompiler extends PhyPlanVisitor {
     @Override
     public void visitLimit(POLimit op) throws VisitorException{
         try{
-        	
             MapReduceOper mro = compiledInputs[0];
             mro.limit = op.getLimit();
+            if (op.getLimitPlan() != null) {
+                processUDFs(op.getLimitPlan());
+                mro.limitPlan = op.getLimitPlan();
+            }
             if (!mro.isMapDone()) {
             	// if map plan is open, add a limit for optimization, eventually we
             	// will add another limit to reduce plan
@@ -1042,6 +1045,7 @@ public class MRCompiler extends PhyPlanVisitor {
                     if (!pigContext.inIllustrator) {
                         POLimit pLimit2 = new POLimit(new OperatorKey(scope,nig.getNextNodeId(scope)));
                         pLimit2.setLimit(op.getLimit());
+                        pLimit2.setLimitPlan(op.getLimitPlan());
                         mro.reducePlan.addAsLeaf(pLimit2);
                     } else {
                         mro.reducePlan.addAsLeaf(op);
@@ -2843,7 +2847,7 @@ public class MRCompiler extends PhyPlanVisitor {
             // Look for map reduce operators which contains limit operator.
             // If so and the requestedParallelism > 1, add one additional map-reduce
             // operator with 1 reducer into the original plan
-            if (mr.limit!=-1 && mr.requestedParallelism!=1)
+            if ((mr.limit!=-1 || mr.limitPlan!=null) && mr.requestedParallelism!=1)
             {
                 opsToAdjust.add(mr);
             }
@@ -2886,6 +2890,7 @@ public class MRCompiler extends PhyPlanVisitor {
                 }
                 POLimit pLimit2 = new POLimit(new OperatorKey(scope,nig.getNextNodeId(scope)));
                 pLimit2.setLimit(mr.limit);
+                pLimit2.setLimitPlan(mr.limitPlan);
                 limitAdjustMROp.reducePlan.addAsLeaf(pLimit2);
 
                 // If the operator we're following has global sort set, we

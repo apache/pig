@@ -148,6 +148,14 @@ public class LogicalPlanBuilder {
         return new LOFilter( plan );
     }
 
+    LOLimit createLimitOp() {
+        return new LOLimit( plan );
+    }
+    
+    LOFilter createSampleOp() {
+        return new LOFilter( plan, true );
+    }
+    
     String buildFilterOp(SourceLocation loc, LOFilter op, String alias, String inputAlias, LogicalExpressionPlan expr) {
         op.setFilterPlan( expr );
         return buildOp( loc, op, alias, inputAlias, null );
@@ -163,6 +171,11 @@ public class LogicalPlanBuilder {
         return buildOp( loc, op, alias, inputAlias, null );
     }
     
+    String buildLimitOp(SourceLocation loc, LOLimit op, String alias, String inputAlias, LogicalExpressionPlan expr) {
+        op.setLimitPlan(expr);
+        return buildOp(loc, op, alias, inputAlias, null);
+    }
+    
     String buildSampleOp(SourceLocation loc, String alias, String inputAlias, double value,
             SourceLocation valLoc) {
         LogicalExpressionPlan filterPlan = new LogicalExpressionPlan();
@@ -171,8 +184,15 @@ public class LogicalPlanBuilder {
         konst.setLocation( valLoc );
         UserFuncExpression udf = new UserFuncExpression( filterPlan, new FuncSpec( RANDOM.class.getName() ) );
         new LessThanExpression( filterPlan, udf, konst );
-        LOFilter filter = new LOFilter( plan );
+        LOFilter filter = new LOFilter( plan, true );
         return buildFilterOp( loc, filter, alias, inputAlias, filterPlan );
+    }
+    
+    String buildSampleOp(SourceLocation loc, LOFilter filter, String alias, String inputAlias,
+            LogicalExpressionPlan samplePlan, LogicalExpression expr) {
+        UserFuncExpression udf = new UserFuncExpression( samplePlan, new FuncSpec( RANDOM.class.getName() ) );
+        new LessThanExpression( samplePlan, udf, expr );
+        return buildFilterOp( loc, filter, alias, inputAlias, samplePlan );
     }
     
     String buildUnionOp(SourceLocation loc, String alias, List<String> inputAliases, boolean onSchema) {
@@ -907,6 +927,10 @@ public class LogicalPlanBuilder {
         return new LOFilter( plan );
     }
     
+    static LOLimit createNestedLimitOp(LogicalPlan plan) {
+        return new LOLimit ( plan );
+    }
+    
     // Build operator for foreach inner plan.
     Operator buildNestedFilterOp(SourceLocation loc, LOFilter op, LogicalPlan plan, String alias, 
             Operator inputOp, LogicalExpressionPlan expr) {
@@ -923,6 +947,13 @@ public class LogicalPlanBuilder {
 
     Operator buildNestedLimitOp(SourceLocation loc, LogicalPlan plan, String alias, Operator inputOp, long limit) {
         LOLimit op = new LOLimit( plan, limit );
+        buildNestedOp( loc, plan, op, alias, inputOp );
+        return op;
+    }
+    
+    Operator buildNestedLimitOp(SourceLocation loc, LOLimit op, LogicalPlan plan, String alias, 
+            Operator inputOp, LogicalExpressionPlan expr) {
+        op.setLimitPlan( expr );
         buildNestedOp( loc, plan, op, alias, inputOp );
         return op;
     }

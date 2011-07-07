@@ -20,18 +20,27 @@ package org.apache.pig.newplan.logical.relational;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.PlanVisitor;
+import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 
 public class LOLimit extends LogicalRelationalOperator {
-
-    private long mLimit;
-    
     private static final long serialVersionUID = 2L;
-    //private static Log log = LogFactory.getLog(LOFilter.class);
+    private static final long NULL_LIMIT = -1;
 
-        
+    private long mLimit = NULL_LIMIT;
+    private LogicalExpressionPlan mlimitPlan;
+    
+    public LOLimit(LogicalPlan plan) {
+        super("LOLimit", plan);
+    }
+
     public LOLimit(LogicalPlan plan, long limit) {
         super("LOLimit", plan);
-        mLimit = limit;
+        this.setLimit(limit);
+    }
+
+    public LOLimit(LogicalPlan plan, LogicalExpressionPlan limitPlan) {
+        super("LOLimit", plan);
+        this.setLimitPlan(limitPlan);
     }
 
     public long getLimit() {
@@ -39,7 +48,15 @@ public class LOLimit extends LogicalRelationalOperator {
     }
 
     public void setLimit(long limit) {
-        mLimit = limit;
+        this.mLimit = limit;
+    }
+    
+    public LogicalExpressionPlan getLimitPlan() {
+        return mlimitPlan;
+    }
+
+    public void setLimitPlan(LogicalExpressionPlan mlimitPlan) {
+        this.mlimitPlan = mlimitPlan;
     }
     
     @Override
@@ -64,9 +81,12 @@ public class LOLimit extends LogicalRelationalOperator {
     
     @Override
     public boolean isEqual(Operator other) throws FrontendException{
-        if (other != null && other instanceof LOLimit && ((LOLimit)other).getLimit() == mLimit)
-            return checkEquality((LogicalRelationalOperator)other);
-        else
+        if (other != null && other instanceof LOLimit) {
+            LOLimit otherLimit = (LOLimit) other;
+            if (this.getLimit() != NULL_LIMIT && this.getLimit() == otherLimit.getLimit()
+                    || this.getLimitPlan() != null && this.getLimitPlan().isEqual(otherLimit.getLimitPlan()))
+                return checkEquality(otherLimit);
+        }
             return false;
     }
     

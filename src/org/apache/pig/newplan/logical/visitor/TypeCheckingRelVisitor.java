@@ -447,18 +447,44 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
     }
 
     @Override
-    public void visit(LOLimit op) throws VisitorException {
-        op.resetSchema();
+    public void visit(LOLimit limit) throws FrontendException {
+        limit.resetSchema();
+        LogicalExpressionPlan expressionPlan = limit.getLimitPlan();
+        if (expressionPlan != null) {
+            // Check that the inner plan has only 1 output port
+            if (expressionPlan.getSources().size() > 1) {
+                int errCode = 1057;
+                String msg = "Limit's expression plan can only have one output";
+                msgCollector.collect(msg, MessageType.Error);
+                throwTypeCheckerException(limit, msg, errCode, PigException.INPUT, null);
+            }
+
+            // visit the limit expression
+            visitExpressionPlan(expressionPlan, limit);
+
+            // check limit expression type
+            byte innerCondType = ((LogicalExpression) expressionPlan.getSources().get(0))
+                    .getType();
+            // cast to long if it is a bytearray
+            if (innerCondType == DataType.BYTEARRAY)
+                insertAtomicCastForInnerPlan(expressionPlan, limit, DataType.LONG);
+            // else it must be an int or a long
+            else if (innerCondType != DataType.LONG && innerCondType != DataType.INTEGER) {
+                int errCode = 1058;
+                String msg = "Limit's expression must evaluate to Long or Integer. Found: "
+                        + DataType.findTypeName(innerCondType);
+                msgCollector.collect(msg, MessageType.Error);
+                throwTypeCheckerException(limit, msg, errCode, PigException.INPUT, null);
+            }
+        }
         try {
             // Compute the schema
-            op.getSchema() ;
-        }
-        catch (FrontendException fe) {
+            limit.getSchema();
+        } catch (FrontendException fe) {
             int errCode = 1055;
-            String msg = "Problem while reading"
-                + " schemas from inputs of Limit" ;
+            String msg = "Problem while reading schemas from inputs of Limit";
             msgCollector.collect(msg, MessageType.Error) ;
-            throwTypeCheckerException(op, msg, errCode, PigException.INPUT, fe) ;
+            throwTypeCheckerException(limit, msg, errCode, PigException.INPUT, fe);
         }
     }
 

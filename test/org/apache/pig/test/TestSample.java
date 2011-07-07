@@ -20,11 +20,14 @@ package org.apache.pig.test;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Iterator;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.newplan.logical.visitor.ScalarVariableValidator;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -102,5 +105,45 @@ public class TestSample {
     throws Exception
     {
         verify("myid = sample (load '"+ tmpfilepath + "') 0.5;", DATALEN/3, DATALEN*2/3);
+    }
+    
+    @Test
+    public void testSample_VariableNone() throws Exception {
+        verify("a = LOAD '" + tmpfilepath + "'; " +
+                "b = GROUP a all;" +
+                "c = FOREACH b GENERATE COUNT(a) AS count;" +
+        		"myid = SAMPLE a (c.count - c.count);", 0, 0);
+}
+    
+    @Test
+    public void testSample_VariableAll() throws Exception {
+        verify("a = LOAD '" + tmpfilepath + "'; " +
+                "b = GROUP a all;" +
+                "c = FOREACH b GENERATE COUNT(a) AS count;" +
+                "myid = SAMPLE a (c.count / c.count);", DATALEN, DATALEN);
+    }
+    
+    @Test
+    public void testSample_VariableSome() throws Exception {
+        verify("a = LOAD '" + tmpfilepath + "'; " +
+                "b = GROUP a all;" +
+                "c = FOREACH b GENERATE COUNT(a) AS count;" +
+                "myid = SAMPLE a (c.count / (2.0 * c.count) );", DATALEN/3, DATALEN*2/3);
+    }
+    
+    @Test(expected=FrontendException.class)
+    public void testSampleScalarException() throws IOException {
+        String query = 
+            "a = load '" + tmpfilepath + "';" + 
+            "b = sample a $0;" // reference to non scalar context is not allowed
+            ;
+
+        Util.registerMultiLineQuery(pig, query);
+        try {
+            pig.openIterator("b");
+        } catch (FrontendException fe) {
+            Util.checkMessageInException(fe, ScalarVariableValidator.ERR_MSG_SCALAR);
+            throw fe;
+        }
     }
 }

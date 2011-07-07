@@ -17,23 +17,20 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators;
 
-import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.data.DataType;
-import org.apache.pig.data.Tuple;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ComparisonOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.data.DataType;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.impl.util.IdentityHashSet;
 import org.apache.pig.pen.util.ExampleTuple;
-import org.apache.pig.pen.util.LineageTracer;
 
 public class POLimit extends PhysicalOperator {
 	   /**
@@ -46,6 +43,9 @@ public class POLimit extends PhysicalOperator {
     
     // Number of limited outputs
     long mLimit;
+
+    // The expression plan
+    PhysicalPlan expressionPlan;
 
     public POLimit(OperatorKey k) {
         this(k, -1, null);
@@ -63,14 +63,20 @@ public class POLimit extends PhysicalOperator {
         super(k, rp, inputs);
     }
     
-    public void setLimit(long limit)
-    {
+    public void setLimit(long limit) {
     	mLimit = limit;
     }
     
-    public long getLimit()
-    {
+    public long getLimit() {
     	return mLimit;
+    }
+
+    public PhysicalPlan getLimitPlan() {
+        return expressionPlan;
+    }
+
+    public void setLimitPlan(PhysicalPlan expressionPlan) {
+        this.expressionPlan = expressionPlan;
     }
 
     /**
@@ -79,12 +85,37 @@ public class POLimit extends PhysicalOperator {
      */
     @Override
     public Result getNext(Tuple t) throws ExecException {
-        Result res = null;
+        // if it is the first time, evaluate the expression. Otherwise reuse the computed value.
+        if (this.getLimit() < 0 && expressionPlan != null) {
+            PhysicalOperator expression = expressionPlan.getLeaves().get(0);
+            long variableLimit;
+            Result returnValue;
+            switch (expression.getResultType()) {
+            case DataType.LONG:
+                returnValue = expression.getNext(dummyLong);
+                if (returnValue.returnStatus != POStatus.STATUS_OK || returnValue.result == null)
+                    throw new RuntimeException("Unable to evaluate Limit expression: "
+                            + returnValue);
+                variableLimit = (Long) returnValue.result;
+                break;
+            case DataType.INTEGER:
+                returnValue = expression.getNext(dummyInt);
+                if (returnValue.returnStatus != POStatus.STATUS_OK || returnValue.result == null)
+                    throw new RuntimeException("Unable to evaluate Limit expression: "
+                            + returnValue);
+                variableLimit = (Integer) returnValue.result;
+                break;
+            default:
+                throw new RuntimeException("Limit requires an integer parameter");
+            }
+            if (variableLimit <= 0)
+                throw new RuntimeException("Limit requires a positive integer parameter");
+            this.setLimit(variableLimit);
+        }
         Result inp = null;
         while (true) {
             inp = processInput();
-            if (inp.returnStatus == POStatus.STATUS_EOP
-                    || inp.returnStatus == POStatus.STATUS_ERR)
+            if (inp.returnStatus == POStatus.STATUS_EOP || inp.returnStatus == POStatus.STATUS_ERR)
                 break;
             
             illustratorMarkup(inp.result, null, 0);
@@ -130,6 +161,7 @@ public class POLimit extends PhysicalOperator {
             NodeIdGenerator.getGenerator().getNextNodeId(this.mKey.scope)),
             this.requestedParallelism, this.inputs);
         newLimit.mLimit = this.mLimit;
+        newLimit.expressionPlan = this.expressionPlan.clone();
         newLimit.setAlias(alias);
         return newLimit;
     }

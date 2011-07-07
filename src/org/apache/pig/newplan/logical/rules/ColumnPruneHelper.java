@@ -49,12 +49,11 @@ import org.apache.pig.newplan.logical.relational.LOSplitOutput;
 import org.apache.pig.newplan.logical.relational.LOStore;
 import org.apache.pig.newplan.logical.relational.LOStream;
 import org.apache.pig.newplan.logical.relational.LOUnion;
-import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalNodesVisitor;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
-import org.apache.pig.newplan.logical.relational.SchemaNotDefinedException;
 import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
+import org.apache.pig.newplan.logical.relational.SchemaNotDefinedException;
 
 /**
  * Helper class used by ColumnMapKeyPrune to figure out what columns can be pruned.
@@ -296,7 +295,16 @@ public class ColumnPruneHelper {
         @Override
         public void visit(LOLimit limit) throws FrontendException {
             Set<Long> output = setOutputUids(limit);
-            limit.annotate(INPUTUIDS, output);
+                                    
+            // the input uids contains all the output uids and
+            // projections in limit expression
+            Set<Long> input = new HashSet<Long>(output);
+            
+            LogicalExpressionPlan exp = limit.getLimitPlan();
+            if (exp != null)
+                collectUids(limit, exp, input);
+            
+            limit.annotate(INPUTUIDS, input);
         }
         
         @Override
@@ -417,8 +425,7 @@ public class ColumnPruneHelper {
         public void visit(LOForEach foreach) throws FrontendException {
             Set<Long> output = setOutputUids(foreach);
             
-            LogicalPlan innerPlan = foreach.getInnerPlan();
-            LOGenerate gen = (LOGenerate)innerPlan.getSinks().get(0);
+            LOGenerate gen = OptimizerUtils.findGenerate(foreach);
             gen.annotate(OUTPUTUIDS, output);
             
             visit(gen);
