@@ -26,6 +26,7 @@ import org.junit.Test;
 public class TestSearchTermExtractor extends TestCase {
     private static HashMap<String, String> tests = new HashMap<String, String>();
     static {
+        tests.put("http://www.google.com/search", null);
         tests.put("http://www.google.com/search?hl=en&q=a+simple+test&btnG=Google+Search", "a simple test");
         tests.put("http://www.google.co.uk/search?hl=en&q=a+simple+test&btnG=Google+Search&meta=", "a simple test");
         tests.put("http://www.google.co.jp/search?hl=ja&q=a+simple+test&btnG=Google+%E6%A4%9C%E7%B4%A2&lr=", "a simple test");
