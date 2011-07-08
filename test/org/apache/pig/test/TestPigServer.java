@@ -42,6 +42,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.pig.impl.PigContext;
 
 
@@ -119,14 +122,19 @@ public class TestPigServer {
     
     // creates an empty jar file
     private static void createFakeJarFile(String location, String name) 
-            throws IOException {
-        Assert.assertFalse((new File(name)).canRead());
-        
-        System.err. println("Location: " + location);
-        new File(location).mkdirs();
-        
-        Assert.assertTrue((new File(location + FILE_SEPARATOR + name)).
-                    createNewFile());
+                                          throws IOException {
+        createFakeJarFile(location, name,
+                FileSystem.getLocal(cluster.getConfiguration()).getRaw());
+    }
+
+    // creates an empty jar file
+    private static void createFakeJarFile(String location, String name, FileSystem fs)
+                                          throws IOException {
+        System.err. println("Location: " + location + " name: " + name);
+        Path dir = new Path(location);
+        fs.mkdirs(dir);
+
+        Assert.assertTrue(fs.createNewFile(new Path(dir, name)));
     }
     
     // dynamically add more resources to the system class loader
@@ -357,6 +365,37 @@ public class TestPigServer {
         Assert.assertTrue((new File(jarLocation + jar1Name)).delete());
         Assert.assertTrue((new File(jarLocation + jar2Name)).delete());
         (new File(dir)).delete();
+    }
+
+    @Test
+    public void testRegisterRemoteGlobbingJar() throws Throwable {
+        String dir = "test1_register_remote_jar_globbing";
+        String jarLocation = dir + FILE_SEPARATOR;
+        String jar1Name = "TestRegisterRemoteJarGlobbing1.jar";
+        String jar2Name = "TestRegisterRemoteJarGlobbing2.jar";
+
+        FileSystem fs = cluster.getFileSystem();
+        createFakeJarFile(jarLocation, jar1Name, fs);
+        createFakeJarFile(jarLocation, jar2Name, fs);
+
+        // find the absolute path for the directory so that it does not
+        // depend on configuration
+        String absPath = fs.getFileStatus(new Path(jarLocation)).getPath().toString();
+
+        boolean exceptionRaised = false;
+        try {
+            pig.registerJar(absPath + FILE_SEPARATOR + "TestRegister{Remote}Jar*.jar");
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+            exceptionRaised = true;
+        }
+        Assert.assertFalse(exceptionRaised);
+        verifyStringContained(pig.getPigContext().extraJars, jar1Name, true);
+        verifyStringContained(pig.getPigContext().extraJars, jar2Name, true);
+
+        // clean-up
+        Assert.assertTrue(fs.delete(new Path(jarLocation), true));
     }
 
     @Test
