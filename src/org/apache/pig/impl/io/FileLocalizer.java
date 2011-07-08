@@ -26,7 +26,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +36,7 @@ import java.util.Stack;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.pig.ExecType;
@@ -734,37 +734,92 @@ public class FileLocalizer {
      * directory.
      */
     public static FetchFileRet fetchFile(Properties properties, String filePath) throws IOException {
-        // Create URI from String.
-        URI fileUri = null;
-        try {
-            fileUri = new URI(filePath);
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
-        // If URI is a local file, verify it exists and return.
-        if (((!"true".equals(properties.getProperty("pig.jars.relative.to.dfs"))) && (fileUri.getScheme() == null))
-                || "file".equalsIgnoreCase(fileUri.getScheme())
-                || "local".equalsIgnoreCase(fileUri.getScheme())) {
-            File res = new File(fileUri.getPath());
-            if (!res.exists()) {
-                throw new ExecException("Local file '" + filePath + "' does not exist.", 101, PigException.INPUT);
-            }
-            return new FetchFileRet(res, false);
+        return fetchFilesInternal(properties, filePath, false)[0];
+    }
+
+    /**
+     * Ensures that the passed files pointed to by path are on the local file system,
+     * fetching them to the java.io.tmpdir if necessary. If pig.jars.relative.to.dfs is true
+     * and dfs is not null, then a relative path is assumed to be relative to the passed
+     * dfs active directory. Else they are assumed to be relative to the local working
+     * directory.
+     */
+    public static FetchFileRet[] fetchFiles(Properties properties, String filePath) throws IOException {
+        return fetchFilesInternal(properties, filePath, true);
+    }
+
+    /**
+     * Copies the files from remote to local filesystem.
+     * When 'multipleFiles' is set the path could point to multiple files
+     * through globs or a directory. In this case, return array contains multiple
+     * files, otherwise a single file is returned.
+     *
+     * If pig.jars.relative.to.dfs is true then a relative path is assumed to be
+     * relative to the default filesystem's active directory.
+     * Else they are assumed to be relative to the local working directory.
+     *
+     * @param properties
+     * @param filePath
+     * @param multipleFiles
+     * @return
+     */
+    private static FetchFileRet[] fetchFilesInternal(Properties properties,
+                                            String filePath,
+                                            boolean multipleFiles) throws IOException {
+
+        Path path = new Path(filePath);
+        URI uri = path.toUri();
+        Configuration conf = new Configuration();
+        ConfigurationUtil.mergeConf(conf, ConfigurationUtil.toConfiguration(properties));
+
+        // if there is no schema or if the schema is "local", then it is
+        // expected to be a local path.
+
+        FileSystem localFs = FileSystem.getLocal(conf);
+        FileSystem srcFs;
+        if ( (!"true".equals(properties.getProperty("pig.jars.relative.to.dfs"))
+                && uri.getScheme() == null )||
+                uri.getScheme().equals("local") ) {
+            srcFs = localFs;
         } else {
-            
-            Path src = new Path(fileUri.getPath());
-            File parent = (localTempDir != null) ? localTempDir : new File(System.getProperty("java.io.tmpdir")); 
-            File dest = new File(parent, src.getName());
-            dest.deleteOnExit();
-            try {
-                Configuration configuration = new Configuration();
-                ConfigurationUtil.mergeConf(configuration, ConfigurationUtil.toConfiguration(properties));
-                FileSystem srcFs = FileSystem.get(fileUri, configuration);
-                srcFs.copyToLocalFile(src, new Path(dest.getAbsolutePath()));
-            } catch (IOException e) {
-                throw new ExecException("Could not copy " + filePath + " to local destination " + dest, 101, PigException.INPUT, e);
-            }
-            return new FetchFileRet(dest, true);
+            srcFs = path.getFileSystem(conf);
         }
+
+        FileStatus[] files;
+
+        if (multipleFiles) {
+            files = srcFs.globStatus(path);
+        } else {
+            files = new FileStatus[]{ srcFs.getFileStatus(path) };
+        }
+        if (files == null || files.length == 0) {
+            throw new ExecException("file '" + filePath + "' does not exist.", 101, PigException.INPUT);
+        }
+
+        FetchFileRet[] fetchFiles = new FetchFileRet[files.length];
+        int idx = 0;
+
+        for(FileStatus file : files) {
+            // should throw an exception if this is not a file?
+
+            String pathname = file.getPath().toUri().getPath();
+            String filename = file.getPath().getName();
+
+            if (srcFs == localFs) {
+                fetchFiles[idx++] = new FetchFileRet(new File(pathname), false);
+            } else {
+                // fetch from remote:
+                File dest = new File(localTempDir, filename);
+                dest.deleteOnExit();
+                try {
+                    srcFs.copyToLocalFile(file.getPath(), new Path(dest.getAbsolutePath()));
+                } catch (IOException e) {
+                    throw new ExecException("Could not copy " + filePath + " to local destination " + dest, 101, PigException.INPUT, e);
+                }
+                fetchFiles[idx++] = new FetchFileRet(dest, true);
+            }
+        }
+
+        return fetchFiles;
     }
 }

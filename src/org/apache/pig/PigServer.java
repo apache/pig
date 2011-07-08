@@ -67,6 +67,7 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.io.FileLocalizer.FetchFileRet;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
@@ -437,92 +438,29 @@ public class PigServer {
         pigContext.registerStreamCmd(commandAlias, command);
     }
 
-    private void collectMatchedFiles(File startDir, String patten, List<URL> matchedFiles) {
-        File[] files = startDir.listFiles();
-        for (File file : files) {
-            if(file.isFile() && file.getName().matches(patten) ){
-                try {
-                    if(!matchedFiles.contains(file.toURI().toURL()))
-                        matchedFiles.add(file.toURI().toURL());
-                } catch (MalformedURLException e) {
-                    // Should never happen
-                }
-            }
+    private URL locateJarFromResources(String jarName) throws IOException {
+        Enumeration<URL> urls = ClassLoader.getSystemResources(jarName);
+        URL resourceLocation = null;
+
+        if (urls.hasMoreElements()) {
+            resourceLocation = urls.nextElement();
         }
-    }
-    
-    private List<URL> locateJarFromResources(String jarName) throws IOException {
-        // If jarName is a globbing, Pig only locate jars in local file system:
-        // * if user give an absolute path, Pig only search the given path
-        // * if user give a relative path, Pig search path relative to user working directory
-        // If jarName is not globbing:
-        // * first, if it is absolute path, Pig return the given path if exists
-        // * second, Pig use getSystemResources to locate
-        // * third, Pig search working directory
-        // * next, Pig use FileLocalizer.fetchFile to try to locate external resource
-        
-        String workingDir = System.getProperty("user.dir");
-        List<URL> matchedFiles = new ArrayList<URL>();
-        if(jarName.contains("*") ){
-            File givenPath = new File(jarName);
-            // If relative path, make it relative to working directory
-            if (!givenPath.isAbsolute()) {
-                givenPath = new File(workingDir, jarName);
+
+        if (urls.hasMoreElements()) {
+            StringBuffer sb = new StringBuffer("Found multiple resources that match ");
+            sb.append(jarName);
+            sb.append(": ");
+            sb.append(resourceLocation);
+
+            while (urls.hasMoreElements()) {
+                sb.append(urls.nextElement());
+                sb.append("; ");
             }
-            File parentDir = givenPath.getParentFile();
-            String matchPatten = givenPath.getName();
-            matchPatten = matchPatten.replaceAll("\\*", ".*");
-            if (parentDir!=null) {
-                collectMatchedFiles(parentDir, matchPatten, matchedFiles);
-            } else if (workingDir!=null) {
-                collectMatchedFiles(new File(workingDir), matchPatten, matchedFiles);
-            }
+
+            log.debug(sb.toString());
         }
-        else {
-            if (new File(jarName).isAbsolute()) {
-                File absoluteFile = new File(jarName);
-                if (absoluteFile.exists())
-                    matchedFiles.add(absoluteFile.toURI().toURL());
-            }
-            // getSystemResources
-            if (matchedFiles.size()==0) {
-                Enumeration<URL> urls = ClassLoader.getSystemResources(jarName);
-                while (urls.hasMoreElements()) {
-                    matchedFiles.add(urls.nextElement());
-                }
-            }
-            // Search working directory
-            if (matchedFiles.size()==0) {
-                File file = new File(workingDir, jarName);
-                if (file.exists())
-                    matchedFiles.add(file.toURI().toURL());
-            }
-            // Try FileLocalizer.fetchFile
-            if (matchedFiles.size()==0) {
-                File file = FileLocalizer.fetchFile(pigContext.getProperties(), jarName).file;
-                if (!file.canRead()) {
-                    int errCode = 4002;
-                    String msg = "Can't read jar file: " + jarName;
-                    throw new FrontendException(msg, errCode, PigException.USER_ENVIRONMENT);
-                }
-                matchedFiles.add(file.toURI().toURL());
-            }
-            // Check error condition
-            if (matchedFiles.size()>1) {
-                StringBuffer sb = new StringBuffer("Found multiple resources that match ");
-                for (int i=1;i<matchedFiles.size();i++) {
-                    sb.append(matchedFiles.get(i));
-                    if (i!=matchedFiles.size()-1)
-                        sb.append(":");
-                }
-                log.debug(sb.toString());
-                // remove extras
-                for (int i=0;i<matchedFiles.size();i++) {
-                    matchedFiles.remove(1);
-                }
-            }
-        }
-        return matchedFiles;
+
+        return resourceLocation;
     }
     
     /**
@@ -537,10 +475,28 @@ public class PigServer {
      * @throws IOException
      */
     public void registerJar(String name) throws IOException {
+        // first try to locate jar via system resources
+        // if this fails, try by using "name" as File (this preserves
+        // compatibility with case when user passes absolute path or path
+        // relative to current working directory.)
         if (name != null) {
-            List<URL> resource = locateJarFromResources(name);
-            for(int i=0; i< resource.size(); i++ ){
-                pigContext.addJar(resource.get(i)); 
+            URL resource = locateJarFromResources(name);
+
+            if (resource == null) {
+                FetchFileRet[] files = FileLocalizer.fetchFiles(pigContext.getProperties(), name);
+
+                for(FetchFileRet file : files) {
+                  File f = file.file;
+                  if (!f.canRead()) {
+                    int errCode = 4002;
+                    String msg = "Can't read jar file: " + name;
+                    throw new FrontendException(msg, errCode, PigException.USER_ENVIRONMENT);
+                  }
+
+                  pigContext.addJar(f.toURI().toURL());
+                }
+            } else {
+              pigContext.addJar(resource);
             }
         }
     }
