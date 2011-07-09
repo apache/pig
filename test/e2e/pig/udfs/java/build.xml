@@ -35,6 +35,7 @@
 
     <target name="clean">
         <delete dir="${build.dir}" />
+        <delete file="${udf.jarfile}" />
     </target>
 
     <target name="udf-compile" depends="init, pig.jar.check">
