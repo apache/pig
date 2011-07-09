@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2121: e2e test harness should use ant instead of make (gates)
+
 PIG-2142: Allow registering multiple jars from DFS via single statement (rangadi via dvryaboy)
 
 PIG-1926: Sample/Limit should take scalar (azaroth via thejas)
