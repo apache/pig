@@ -18,7 +18,6 @@ import static org.apache.pig.ExecType.LOCAL;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.regex.Pattern;
 
 import junit.framework.TestCase;
 
@@ -28,7 +27,6 @@ import org.apache.pig.data.Tuple;
 
 public class TestXMLLoader extends TestCase {
   private static String patternString = "(\\d+)!+(\\w+)~+(\\w+)";
-  private final static Pattern pattern = Pattern.compile(patternString);
   public static ArrayList<String[]> data = new ArrayList<String[]>();
   static {
     data.add(new String[] { "<configuration>"});
@@ -44,7 +42,39 @@ public class TestXMLLoader extends TestCase {
     data.add(new String[] { "</property>"});
     data.add(new String[] { "</configuration>"});
   }
-
+  
+  public static ArrayList<String[]> nestedTags = new ArrayList<String[]>();
+  static {
+     nestedTags.add(new String[] { "<events>"});
+     nestedTags.add(new String[] { "<event id='116913365'>"});
+     nestedTags.add(new String[] { "<eventRank>1.000000000000</eventRank>"});
+     nestedTags.add(new String[] { "<name>XY</name>"});   
+     nestedTags.add(new String[] { "<relatedEvents>"});
+     nestedTags.add(new String[] { "<event id='116913365'>x</event>"});
+     nestedTags.add(new String[] { "<event id='116913365'>y</event>"});
+     nestedTags.add(new String[] { "</relatedEvents>"});
+     nestedTags.add(new String[] { "</event>"});
+    
+     nestedTags.add(new String[] { "<event id='116913365'>"});
+     nestedTags.add(new String[] { "<eventRank>3.0000</eventRank>"});
+     nestedTags.add(new String[] { "<name>AB</name>"});   
+     nestedTags.add(new String[] { "<relatedEvents>"});
+     nestedTags.add(new String[] { "<event id='116913365'>a</event>"});
+     nestedTags.add(new String[] { "<event id='116913365'>b</event>"});
+     nestedTags.add(new String[] { "</relatedEvents>"});
+     nestedTags.add(new String[] { "</event>"});
+     
+     nestedTags.add(new String[] { "<event>"});
+     nestedTags.add(new String[] { "<eventRank>4.0000</eventRank>"});
+     nestedTags.add(new String[] { "<name>CD</name>"});   
+     nestedTags.add(new String[] { "<relatedEvents>"});
+     nestedTags.add(new String[] { "<event>c</event>"});
+     nestedTags.add(new String[] { "<event>d</event>"});
+     nestedTags.add(new String[] { "</relatedEvents>"});
+     nestedTags.add(new String[] { "</event>"});
+     nestedTags.add(new String[] { "</events>"});
+  }
+  
   public void testShouldReturn0TupleCountIfSearchTagIsNotFound () throws Exception
   {
     String filename = TestHelper.createTempFile(data, "");
@@ -83,7 +113,6 @@ public class TestXMLLoader extends TestCase {
       if (tuple == null)
         break;
       else {
-        //TestHelper.examineTuple(expected, tuple, tupleCount);
         if (tuple.size() > 0) {
             tupleCount++;
         }
@@ -254,6 +283,7 @@ public class TestXMLLoader extends TestCase {
       }
       assertEquals(0, tupleCount);  
    }
+   
    public void testShouldReturn0TupleCountIfEmptyFileIsPassed() throws Exception
    {
       // modify the data content to avoid end tag for </ignoreProperty>
@@ -279,5 +309,29 @@ public class TestXMLLoader extends TestCase {
       }
       assertEquals(0, tupleCount);  
    }
+   
+   public void testXMLLoaderShouldSupportNestedTagWithSameName() throws Exception {
+      
+      String filename = TestHelper.createTempFile(nestedTags, "");
+      PigServer pig = new PigServer(LOCAL);
+      filename = filename.replace("\\", "\\\\");
+      patternString = patternString.replace("\\", "\\\\");
+      String query = "A = LOAD 'file:" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('event') as (doc:chararray);";
+      pig.registerQuery(query);
+      Iterator<?> it = pig.openIterator("A");
+      int tupleCount = 0;
+      while (it.hasNext()) {
+        Tuple tuple = (Tuple) it.next();
+        if (tuple == null)
+          break;
+        else {
+          if (tuple.size() > 0) {
+              tupleCount++;
+          }
+        }
+      }
+      assertEquals(3, tupleCount);  
+   }
+   
    
 }
