@@ -54,15 +54,10 @@ public class PigSchema2Avro {
         ResourceFieldSchema[] pigFields = pigSchema.getFields();
 
         /* remove the pig tuple wrapper */
-        if (pigFields.length == 1 && AvroStorageUtils.isTupleWrapper(pigFields[0])) {
+        if (pigFields.length == 1) {
 
             AvroStorageLog.details("Ignore the pig tuple wrapper.");
-            ResourceFieldSchema[] listSchemas = pigFields[0].getSchema()
-                                            .getFields();
-            if (listSchemas.length != 1)
-                throw new IOException("Expect one subfield from " + pigFields);
-
-            return convert(listSchemas[0], nullable);
+            return convert(pigFields[0], nullable);
         } else
             return convertRecord(pigFields, nullable);
     }

@@ -66,6 +66,8 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 
 BUG FIXES
 
+PIG-1890: Fix piggybank unit test TestAvroStorage (kengoodhope via daijy)
+
 PIG-2110: NullPointerException in piggybank.evaluation.util.apachelogparser.SearchTermExtractor (dale_jin via daijy)
 
 PIG-2144: ClassCastException when using IsEmpty(DIFF()) (thejas)
