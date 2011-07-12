@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
+import java.util.HashSet;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
 import org.apache.avro.file.DataFileStream;
@@ -42,6 +43,7 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.pig.Expression;
 import org.apache.pig.FileInputLoadFunc;
 import org.apache.pig.LoadFunc;
@@ -128,7 +130,9 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
      */
     @Override
     public void setLocation(String location, Job job) throws IOException {
-        if(AvroStorageUtils.addInputPaths(location, job) && inputAvroSchema == null) {
+        HashSet<Path> paths = new HashSet<Path>();
+    	if(AvroStorageUtils.getAllSubDirs(new Path(location), job, paths) && inputAvroSchema == null) {
+            FileInputFormat.setInputPaths(job, paths.toArray(new Path[0]));
             inputAvroSchema = getAvroSchema(location, job);
         }
     }
@@ -188,6 +192,8 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
         
         if (schema == null)
             System.err.println("Cannot get avro schema! Input path " + path + " might be empty.");
+        
+        System.err.println(schema.toString());
         return schema;
     }
 
@@ -211,6 +217,7 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
         DataFileStream<Object> avroDataStream = new DataFileStream<Object>(hdfsInputStream, avroReader);
         Schema ret = avroDataStream.getSchema();
         avroDataStream.close();
+
         return ret;
     }
 
@@ -267,6 +274,9 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
             /* convert to pig schema */
             ResourceSchema pigSchema = AvroSchema2Pig.convert(inputAvroSchema);
             AvroStorageLog.details("pig input schema:" + pigSchema);
+            if (pigSchema.getFields().length == 1){
+            	pigSchema = pigSchema.getFields()[0].getSchema();
+            }
             return pigSchema;
         } else
             return null;
@@ -567,7 +577,7 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
     @Override
     public void putNext(Tuple t) throws IOException {
         try {
-            this.writer.write(NullWritable.get(), t);
+            this.writer.write(NullWritable.get(), t.getAll().size() == 1 ? t.get(0) : t);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
