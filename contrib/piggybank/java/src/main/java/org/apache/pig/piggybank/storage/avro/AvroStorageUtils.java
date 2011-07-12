@@ -17,8 +17,11 @@
 
 package org.apache.pig.piggybank.storage.avro;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -35,6 +38,8 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.data.DataType;
+import org.apache.pig.piggybank.storage.avro.AvroStorageLog;
+
 
 /**
  * This is utility class for this package
@@ -87,54 +92,51 @@ public class AvroStorageUtils {
     }
 
     /**
-     * get input paths to job config 
+     * get input paths to job config
      */
     public static boolean addInputPaths(String pathString, Job job)
-                                    throws IOException {
-        Configuration conf = job.getConfiguration();
-        FileSystem fs = FileSystem.get(conf);
-        
-        Path path = new Path(pathString);
-        FileStatus pathStatus = fs.getFileStatus(path);
-        
-        List<FileStatus> input = new LinkedList<FileStatus>();
-        if (PATH_FILTER.accept(path)) { // remove input path with leading "." or "_"
-            input.add(pathStatus);
-        }
+        throws IOException
+    {
+      Configuration conf = job.getConfiguration();
+      FileSystem fs = FileSystem.get(conf);
+      HashSet<Path> paths = new  HashSet<Path>();
+      if (getAllSubDirs(new Path(pathString), job, paths))
+      {
+        paths.addAll(Arrays.asList(FileInputFormat.getInputPaths(job)));
+        FileInputFormat.setInputPaths(job, paths.toArray(new Path[0]));
+        return true;
+      }
+      return false;
 
-        boolean ret = false;
-        while (!input.isEmpty()) {
-
-            FileStatus status = input.remove(0);
-            Path p = status.getPath();
-            
-            if (!status.isDir() ) {
-                AvroStorageLog.details("Add input path:" + p);
-                FileInputFormat.addInputPath(job, p);
-                ret = true;
-            } 
-            else {
-                /*list all sub-dirs*/
-                FileStatus[] ss = fs.listStatus(p, PATH_FILTER); 
-            
-                if (ss.length > 0) {
-                    if (noDir(ss) ) {
-                        AvroStorageLog.details("Add input path:" + p);
-                        FileInputFormat.addInputPath(job, p);
-                        ret = true;
-                    }
-                    else {
-                        input.addAll(Arrays.asList(ss));
-                        ret = true;
-                    }
-
-                }
-            }
-        }
-
-        return ret;
     }
 
+    /**
+     * Adds all non-hidden directories and subdirectories to set param
+     * 
+     * @throws IOException
+     */
+     static boolean getAllSubDirs(Path path, Job job, Set<Path> paths) throws IOException {
+  		FileSystem fs = FileSystem.get(job.getConfiguration());
+  		if (PATH_FILTER.accept(path)) {
+  			try {
+  				FileStatus file = fs.getFileStatus(path);
+  				if (file.isDir()) {
+  					for (FileStatus sub : fs.listStatus(path)) {
+  						getAllSubDirs(sub.getPath(), job, paths);
+  					}
+  				} else {
+  					AvroStorageLog.details("Add input file:" + file);
+  					paths.add(file.getPath());
+  				}
+  			} catch (FileNotFoundException e) {
+  				AvroStorageLog.details("Input path does not exist: " + path);
+  				return false;
+  			}
+  			return true;
+  		}
+  		return false;
+  	}
+     
     /** check whether there is NO directory in the input file (status) list*/
     public static boolean noDir(FileStatus [] ss) {
         for (FileStatus s : ss) {
