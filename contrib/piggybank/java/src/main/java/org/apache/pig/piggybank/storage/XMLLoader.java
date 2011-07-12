@@ -201,16 +201,29 @@ class XMLLoaderBufferedPositionedInputStream extends BufferedPositionedInputStre
         tag[2+i] = tmp[i];
       }
       tag[tmp.length+2] = (byte)'>';
+      
+      
+      // Create a start tag bytes to handle nested tags
+      byte[] startTag = new byte[tmp.length + 1];
+      startTag[0] = (byte)'<';
+      for (int i = 0; i < tmp.length; ++i) {
+         startTag[1+i] = tmp[i];
+       }
+      //startTag[tmp.length+1] = (byte)'>';
+      
+      
 
       ByteArrayOutputStream collectBuf = new ByteArrayOutputStream(1024);
       int idxTagChar = 0;
-      
+      int idxStartTagChar = 0;
+      boolean startTagMatched = false;
       /*
        * Read till an end tag is found.It need not check for any condition since it 
        * tries to read it till end.One issue that may happen is that if the xml 
        * content is very huge; or if the end tag is not there in a huge file, 
        * then it may blow up the memory. 
        */
+      int nestedTags = 0;
       while (true) {
         int b = -1;
         try {
@@ -223,15 +236,38 @@ class XMLLoaderBufferedPositionedInputStream extends BufferedPositionedInputStre
           }
           collectBuf.write((byte)(b));
 
+          // Check if the start tag has matched except for the last char
+          if(startTagMatched )
+          {
+             startTagMatched = false;
+             idxStartTagChar = 0;
+             if (b == ' ' || b == '\t' || b == '>')
+                ++nestedTags;// increment the nesting count
+          }
+          
+          if (b == startTag[idxStartTagChar]){
+             ++idxStartTagChar;
+             if(idxStartTagChar == startTag.length)
+                startTagMatched = true ; // Set the flag as true if start tag matches
+          }else
+             idxStartTagChar = 0;
+            
+          
+          
           // start to match the target close tag
           if (b == tag[idxTagChar]) {
             ++idxTagChar;
             if (idxTagChar == tag.length) {
-              break;
+               if(nestedTags==0) // Break the loop if there were no nested tags
+                  break;
+               else{
+                  --nestedTags; // Else decrement the count
+                  idxTagChar = 0; // Reset the index
+               }
             }
-          } else {
-            idxTagChar = 0;
-          }
+          } else 
+            idxTagChar = 0; 
+          
         }
         catch (IOException e) {
           this.setReadable(false);
