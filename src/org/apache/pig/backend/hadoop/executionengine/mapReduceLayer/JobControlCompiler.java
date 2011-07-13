@@ -401,15 +401,16 @@ public class JobControlCompiler{
                 }
             }
 
-            if (!pigContext.inIllustrator) 
+            if (!pigContext.inIllustrator && pigContext.getExecType() != ExecType.LOCAL) 
             {
                 //Create the jar of all functions and classes required
                 File submitJarFile = File.createTempFile("Job", ".jar");
+                log.info("creating jar file "+submitJarFile.getName());
                 // ensure the job jar is deleted on exit
                 submitJarFile.deleteOnExit();
                 FileOutputStream fos = new FileOutputStream(submitJarFile);
                 JarManager.createJar(fos, mro.UDFs, pigContext);
-            
+                log.info("jar file "+submitJarFile.getName()+" created");
                 //Start setting the JobConf properties
                 conf.set("mapred.jar", submitJarFile.getPath());
             }
