@@ -54,6 +54,7 @@ public class DefaultTuple implements Tuple {
     /**
      * Default constructor. This constructor is public so that hadoop can call it directly. However, inside pig you
      * should never be calling this function. Use TupleFactory instead.
+     * <br>Time complexity: O(1), after allocation
      */
     public DefaultTuple() {
         mFields = new ArrayList<Object>();
@@ -61,6 +62,7 @@ public class DefaultTuple implements Tuple {
 
     /**
      * Construct a tuple with a known number of fields. Package level so that callers cannot directly invoke it.
+     * <br>Resulting tuple is filled pre-filled with null elements. Time complexity: O(N), after allocation
      * 
      * @param size
      *            Number of fields to allocate in the tuple.
@@ -73,21 +75,17 @@ public class DefaultTuple implements Tuple {
 
     /**
      * Construct a tuple from an existing list of objects. Package level so that callers cannot directly invoke it.
-     * 
+     * <br>Time complexity: O(N) plus running time of input object iteration, after allocation
      * @param c
      *            List of objects to turn into a tuple.
      */
     DefaultTuple(List<Object> c) {
-        mFields = new ArrayList<Object>(c.size());
-
-        Iterator<Object> i = c.iterator();
-        int field;
-        for (field = 0; i.hasNext(); field++)
-            mFields.add(field, i.next());
+        mFields = new ArrayList<Object>(c);
     }
 
     /**
      * Construct a tuple from an existing list of objects. Package level so that callers cannot directly invoke it.
+     * <br>Time complexity: O(1)
      * 
      * @param c
      *            List of objects to turn into a tuple. This list will be kept as part of the tuple.

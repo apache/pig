@@ -24,6 +24,11 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2001: DefaultTuple(List) constructor is inefficient, causes List.size()
+ System.arraycopy() calls (though they are 0 byte copies), 
+ DefaultTuple(int) constructor is a bit misleading wrt time 
+ complexity (woody via thejas)
+
 PIG-1916: Nested cross (zjshen via daijy)
 
 PIG-2128: Generating the jar file takes a lot of time and is unnecessary when running Pig local mode (julien)
