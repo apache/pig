@@ -247,6 +247,10 @@ public class PhyPlanVisitor extends PlanVisitor<PhysicalOperator,PhysicalPlan> {
         //do nothing
     }
     
+    public void visitCross(POCross cross) throws VisitorException{
+        //do nothing
+    }
+    
     public void visitFRJoin(POFRJoin join) throws VisitorException {
         //do nothing
     }

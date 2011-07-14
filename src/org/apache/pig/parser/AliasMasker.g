@@ -438,6 +438,7 @@ nested_op : nested_proj
           | nested_sort
           | nested_distinct
           | nested_limit
+          | nested_cross
 ;
 
 nested_proj 
@@ -458,6 +459,12 @@ nested_distinct
 
 nested_limit 
     : ^( LIMIT nested_op_input ( INTEGER | expr ) )
+;
+
+nested_cross : ^( CROSS nested_op_input_list )
+;
+
+nested_op_input_list : nested_op_input+
 ;
 
 nested_op_input : col_ref | nested_proj

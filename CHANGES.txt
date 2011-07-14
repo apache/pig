@@ -23,6 +23,9 @@ Trunk (unreleased changes)
 INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
+
+PIG-1916: Nested cross (zjshen via daijy)
+
 PIG-2128: Generating the jar file takes a lot of time and is unnecessary when running Pig local mode (julien)
 
 PIG-2121: e2e test harness should use ant instead of make (gates)
