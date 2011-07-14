@@ -99,6 +99,23 @@ public class TestLimitVariable {
         Util.checkQueryOutputs(itE, expectedResE);
     }
     
+    @Test
+    public void testLimitVariable3() throws IOException {
+        String query =
+            "a = load '" + inputFile.getName() + "' ;" +
+            "b = group a all;" + 
+            "c = foreach b generate COUNT(a) as sum;" + 
+            "d = order a by $0 ASC;" + 
+            "e = limit d 1 * c.sum;" // return all the tuples, test for PIG-2156
+            ;
+
+        Util.registerMultiLineQuery(pigServer, query);
+        Iterator<Tuple> itE = pigServer.openIterator("e");
+        List<Tuple> expectedResE = Util.getTuplesFromConstantTupleStrings(new String[] {
+                "(1,11)", "(2,3)", "(3,10)", "(4,11)", "(5,10)", "(6,15)" });
+        Util.checkQueryOutputs(itE, expectedResE);
+    }
+
     @Test(expected=FrontendException.class)
     public void testLimitVariableException1() throws Throwable {
         String query = 

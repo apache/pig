@@ -75,6 +75,9 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 
 BUG FIXES
 
+PIG-2156: Limit/Sample with variable does not work if the expression starts 
+ with an integer/double (azaroth via thejas)
+
 PIG-2130: Piggybank:MultiStorage is not compressing output files (vivekp via daijy)
 
 PIG-2147: Support nested tags for XMLLoader (vivekp via daijy)

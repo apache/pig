@@ -464,10 +464,10 @@ neg_expr : MINUS cast_expr
         -> ^( NEG cast_expr )
 ;
 
-limit_clause : LIMIT^ rel ( INTEGER | LONGINTEGER | expr )
+limit_clause : LIMIT^ rel ( (INTEGER SEMI_COLON) => INTEGER | (LONGINTEGER SEMI_COLON) => LONGINTEGER | expr )
 ;
 
-sample_clause : SAMPLE^ rel ( DOUBLENUMBER | expr )
+sample_clause : SAMPLE^ rel ( (DOUBLENUMBER SEMI_COLON) => DOUBLENUMBER | expr )
 ;
 
 order_clause : ORDER^ rel BY! order_by_clause ( USING! func_clause )?
@@ -588,7 +588,7 @@ nested_sort : ORDER^ nested_op_input BY!  order_by_clause ( USING! func_clause )
 nested_distinct : DISTINCT^ nested_op_input
 ;
 
-nested_limit : LIMIT^ nested_op_input ( INTEGER | expr )
+nested_limit : LIMIT^ nested_op_input ( (INTEGER SEMI_COLON) => INTEGER | expr )
 ;
 
 nested_cross : CROSS^ nested_op_input_list

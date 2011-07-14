@@ -120,7 +120,7 @@ public class TestSample {
         verify("a = LOAD '" + tmpfilepath + "'; " +
                 "b = GROUP a all;" +
                 "c = FOREACH b GENERATE COUNT(a) AS count;" +
-                "myid = SAMPLE a (c.count / c.count);", DATALEN, DATALEN);
+                "myid = SAMPLE a 1.0 * (c.count / c.count) PARALLEL 2;", DATALEN, DATALEN); // test for PIG-2156
     }
     
     @Test
