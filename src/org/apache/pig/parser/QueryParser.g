@@ -568,6 +568,7 @@ nested_op : nested_filter
           | nested_sort
           | nested_distinct
           | nested_limit
+          | nested_cross
 ;
 
 nested_proj : col_ref PERIOD col_ref_list
@@ -590,7 +591,14 @@ nested_distinct : DISTINCT^ nested_op_input
 nested_limit : LIMIT^ nested_op_input ( INTEGER | expr )
 ;
 
+nested_cross : CROSS^ nested_op_input_list
+;
+
 nested_op_input : col_ref | nested_proj
+;
+
+nested_op_input_list : nested_op_input ( COMMA nested_op_input )*
+        -> nested_op_input+
 ;
 
 stream_clause : STREAM^ rel THROUGH! ( EXECCOMMAND | alias ) as_clause?

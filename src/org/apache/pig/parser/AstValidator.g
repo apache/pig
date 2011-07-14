@@ -436,6 +436,7 @@ nested_op : nested_proj
           | nested_sort
           | nested_distinct
           | nested_limit
+          | nested_cross
 ;
 
 nested_proj : ^( NESTED_PROJ col_ref col_ref+ )
@@ -454,7 +455,13 @@ nested_distinct : ^( DISTINCT nested_op_input )
 nested_limit : ^( LIMIT nested_op_input ( INTEGER | expr ) )
 ;
 
+nested_cross : ^( CROSS nested_op_input_list )
+;
+
 nested_op_input : col_ref | nested_proj
+;
+
+nested_op_input_list : nested_op_input+
 ;
 
 stream_clause : ^( STREAM rel ( EXECCOMMAND | IDENTIFIER ) as_clause? )

@@ -1163,6 +1163,7 @@ nested_op[String alias] returns[Operator op]
  | nested_sort [$alias] { $op = $nested_sort.op; }
  | nested_distinct[$alias] { $op = $nested_distinct.op; }
  | nested_limit[$alias] { $op = $nested_limit.op; }
+ | nested_cross[$alias] { $op = $nested_cross.op; }
 ;
 
 nested_proj[String alias] returns[Operator op]
@@ -1247,6 +1248,17 @@ scope GScope;
   ) )
 ;
 
+nested_cross[String alias] returns[Operator op]
+@init {
+    Operator inputOp = null;
+}
+ : ^( CROSS nested_op_input_list )
+   {
+       SourceLocation loc = new SourceLocation( (PigParserNode)$CROSS );
+       $op = builder.buildNestedCrossOp( loc, $foreach_plan::innerPlan, $alias, $nested_op_input_list.opList );
+   }
+;
+
 nested_op_input returns[Operator op]
 @init {
     LogicalExpressionPlan plan = new LogicalExpressionPlan();
@@ -1261,6 +1273,11 @@ nested_op_input returns[Operator op]
    { 
        $op = $nested_proj.op;
    }
+;
+
+nested_op_input_list returns[List<Operator> opList]
+@init { $opList = new ArrayList<Operator>(); }
+ : ( nested_op_input { $opList.add( $nested_op_input.op ); } )+
 ;
 
 stream_clause returns[String alias]

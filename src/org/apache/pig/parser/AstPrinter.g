@@ -415,6 +415,7 @@ nested_op : nested_proj
           | nested_sort
           | nested_distinct
           | nested_limit
+          | nested_cross
 ;
 
 nested_proj 
@@ -438,7 +439,15 @@ nested_limit
     : ^( LIMIT { sb.append($LIMIT.text).append(" "); }  nested_op_input ( INTEGER { sb.append(" ").append($INTEGER.text); } | expr ) )
 ;
 
+nested_cross
+    : ^( CROSS { sb.append($CROSS.text).append(" "); }  nested_op_input_list )
+;
+
 nested_op_input : col_ref | nested_proj
+;
+
+nested_op_input_list 
+    : nested_op_input ( { sb.append(", "); } nested_op_input)*
 ;
 
 stream_clause 

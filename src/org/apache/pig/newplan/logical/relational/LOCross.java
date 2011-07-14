@@ -28,10 +28,19 @@ public class LOCross extends LogicalRelationalOperator {
     
     private static final long serialVersionUID = 2L;
     //private static Log log = LogFactory.getLog(LOFilter.class);
-
+    
+    protected boolean nested = false;
         
     public LOCross(LogicalPlan plan) {
         super("LOCross", plan);       
+    }
+
+    public boolean isNested() {
+        return nested;
+    }
+
+    public void setNested(boolean nested) {
+        this.nested = nested;
     }
 
     @Override

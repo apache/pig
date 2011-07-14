@@ -958,12 +958,29 @@ public class LogicalPlanBuilder {
         return op;
     }
     
+    Operator buildNestedCrossOp(SourceLocation loc, LogicalPlan plan, String alias, List<Operator> inputOpList) {
+        LOCross op = new LOCross( plan );
+        op.setNested(true);
+        buildNestedOp( loc, plan, op, alias, inputOpList );
+        return op;
+    }
+    
     private void buildNestedOp(SourceLocation loc, LogicalPlan plan, LogicalRelationalOperator op,
             String alias, Operator inputOp) {
         op.setLocation( loc );
         setAlias( op, alias );
         plan.add( op );
         plan.connect( inputOp, op );
+    }
+    
+    private void buildNestedOp(SourceLocation loc, LogicalPlan plan, LogicalRelationalOperator op,
+            String alias, List<Operator> inputOpList) {
+        op.setLocation( loc );
+        setAlias( op, alias );
+        plan.add( op );
+        for (Operator inputOp : inputOpList) {
+            plan.connect( inputOp, op );
+        }
     }
 
     static LOSort createNestedSortOp(LogicalPlan plan) {
