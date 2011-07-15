@@ -578,7 +578,7 @@ eid : rel_str_op
     | CACHE     { sb.append($CACHE.text); }
     | INPUT     { sb.append($INPUT.text); }
     | OUTPUT    { sb.append($OUTPUT.text); }
-    | ERROR     { sb.append($ERROR.text); }
+    | STDERROR  { sb.append($STDERROR.text); }
     | STDIN     { sb.append($STDIN.text); }
     | STDOUT    { sb.append($STDOUT.text); }
     | LIMIT     { sb.append($LIMIT.text); }
