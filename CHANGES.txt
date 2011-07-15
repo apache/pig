@@ -75,6 +75,8 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 
 BUG FIXES
 
+PIG-2060: Fix errors in pig grammars reported by ANTLRWorks (azaroth via thejas)
+
 PIG-2156: Limit/Sample with variable does not work if the expression starts 
  with an integer/double (azaroth via thejas)
 

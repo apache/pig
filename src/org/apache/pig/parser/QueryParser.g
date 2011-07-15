@@ -67,6 +67,7 @@ tokens {
     MACRO_INLINE;
     NULL;
     IDENTIFIER;
+    ANY;
 }
 
 @header {
@@ -670,7 +671,6 @@ eid : rel_str_op
     | LOAD
     | FILTER
     | FOREACH
-    | MATCHES
     | ORDER
     | DISTINCT
     | COGROUP
@@ -694,7 +694,6 @@ eid : rel_str_op
     | NOT
     | GENERATE
     | FLATTEN
-    | EVAL
     | ASC
     | DESC
     | INT

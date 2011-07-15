@@ -598,7 +598,7 @@ eid : rel_str_op
     | CACHE
     | INPUT
     | OUTPUT
-    | ERROR
+    | STDERROR
     | STDIN
     | STDOUT
     | LIMIT
