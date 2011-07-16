@@ -21,6 +21,8 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.DataInput;
 import java.io.DataOutput;
+import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -142,6 +144,8 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
     private final static Options validOptions_ = new Options();
     private final static CommandLineParser parser_ = new GnuParser();
     private boolean loadRowKey_;
+    private String delimiter_;
+    private boolean ignoreWhitespace_;
     private final long limit_;
     private final int caching_;
     private final boolean noWAL_;
@@ -166,6 +170,8 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         validOptions_.addOption("lte", true, "Records must be less than or equal to this value");
         validOptions_.addOption("caching", true, "Number of rows scanners should cache");
         validOptions_.addOption("limit", true, "Per-region limit");
+        validOptions_.addOption("delim", true, "Column delimiter");
+        validOptions_.addOption("ignoreWhitespace", true, "Ignore spaces when parsing columns");
         validOptions_.addOption("caster", true, "Caster to use for converting values. A class name, " +
                 "HBaseBinaryConverter, or Utf8StorageConverter. For storage, casters must implement LoadStoreCaster.");
         validOptions_.addOption("noWAL", false, "Sets the write ahead to false for faster loading. To be used with extreme caution since this could result in data loss (see http://hbase.apache.org/book.html#perf.hbase.client.putwal).");
@@ -176,17 +182,17 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
      * provided columns.
      * 
      * @param columnList
-     *        columnlist that is a presented string delimited by space. To
-     *        retreive all columns in a column family <code>Foo</code>, specify
-     *        a column as either <code>Foo:</code> or <code>Foo:*</code>. To fetch
-     *        only columns in the CF that start with <I>bar</I>, specify
+     *        columnlist that is a presented string delimited by space and/or
+     *        commas. To retreive all columns in a column family <code>Foo</code>,
+     *        specify a column as either <code>Foo:</code> or <code>Foo:*</code>.
+     *        To fetch only columns in the CF that start with <I>bar</I>, specify
      *        <code>Foo:bar*</code>. The resulting tuple will always be the size
      *        of the number of tokens in <code>columnList</code>. Items in the
      *        tuple will be scalar values when a full column descriptor is
      *        specified, or a map of column descriptors to values when a column
      *        family is specified.
      *
-     * @throws ParseException when unale to parse arguments
+     * @throws ParseException when unable to parse arguments
      * @throws IOException 
      */
     public HBaseStorage(String columnList) throws ParseException, IOException {
@@ -203,6 +209,8 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
      * <li>-gte=minKeyVal
      * <li>-lte=maxKeyVal
      * <li>-limit=numRowsPerRegion max number of rows to retrieve per region
+     * <li>-delim=char delimiter to use when parsing column names (default is space or comma)
+     * <li>-ignoreWhitespace=(true|false) ignore spaces when parsing column names (default true)
      * <li>-caching=numRows  number of rows to cache (faster scans, more memory).
      * <li>-noWAL=(true|false) Sets the write ahead to false for faster loading.
      * To be used with extreme caution, since this could result in data loss
@@ -213,20 +221,31 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
      */
     public HBaseStorage(String columnList, String optString) throws ParseException, IOException {
         populateValidOptions();
-        String[] colNames = columnList.split(" ");
         String[] optsArr = optString.split(" ");
         try {
             configuredOptions_ = parser_.parse(validOptions_, optsArr);
         } catch (ParseException e) {
             HelpFormatter formatter = new HelpFormatter();
-            formatter.printHelp( "[-loadKey] [-gt] [-gte] [-lt] [-lte] [-columnPrefix] [-caching] [-caster] [-noWAL] [-limit]", validOptions_ );
+            formatter.printHelp( "[-loadKey] [-gt] [-gte] [-lt] [-lte] [-columnPrefix] [-caching] [-caster] [-noWAL] [-limit] [-delim] [-ignoreWhitespace]", validOptions_ );
             throw e;
         }
 
-        loadRowKey_ = configuredOptions_.hasOption("loadKey");  
-        for (String colName : colNames) {
-            columnInfo_.add(new ColumnInfo(colName));
+        loadRowKey_ = configuredOptions_.hasOption("loadKey");
+
+        delimiter_ = ",";
+        if (configuredOptions_.getOptionValue("delim") != null) {
+          delimiter_ = configuredOptions_.getOptionValue("delim");
         }
+
+        ignoreWhitespace_ = true;
+        if (configuredOptions_.hasOption("ignoreWhitespace")) {
+          String value = configuredOptions_.getOptionValue("ignoreWhitespace");
+          if (!"true".equalsIgnoreCase(value)) {
+            ignoreWhitespace_ = false;
+          }
+        }
+
+        columnInfo_ = parseColumnList(columnList, delimiter_, ignoreWhitespace_);
 
         m_conf = HBaseConfiguration.create();
         String defaultCaster = UDFContext.getUDFContext().getClientSystemProps().getProperty(CASTER_PROPERTY, STRING_CASTER);
@@ -239,7 +258,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
             try {
               caster_ = (LoadCaster) PigContext.instantiateFuncFromSpec(casterOption);
             } catch (ClassCastException e) {
-                LOG.error("Congifured caster does not implement LoadCaster interface.");
+                LOG.error("Configured caster does not implement LoadCaster interface.");
                 throw new IOException(e);
             } catch (RuntimeException e) {
                 LOG.error("Configured caster class not found.", e);
@@ -252,6 +271,44 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         limit_ = Long.valueOf(configuredOptions_.getOptionValue("limit", "-1"));
         noWAL_ = configuredOptions_.hasOption("noWAL");
         initScan();	    
+    }
+
+    /**
+     *
+     * @param columnList
+     * @param delimiter
+     * @param ignoreWhitespace
+     * @return
+     */
+    private List<ColumnInfo> parseColumnList(String columnList,
+                                             String delimiter,
+                                             boolean ignoreWhitespace) {
+        List<ColumnInfo> columnInfo = new ArrayList<ColumnInfo>();
+
+        // Default behavior is to allow combinations of spaces and delimiter
+        // which defaults to a comma. Setting to not ignore whitespace will
+        // include the whitespace in the columns names
+        String[] colNames = columnList.split(delimiter);
+        if(ignoreWhitespace) {
+            List<String> columns = new ArrayList<String>();
+
+            for (String colName : colNames) {
+                String[] subColNames = colName.split(" ");
+
+                for (String subColName : subColNames) {
+                    subColName = subColName.trim();
+                    if (subColName.length() > 0) columns.add(subColName);
+                }
+            }
+
+            colNames = columns.toArray(new String[columns.size()]);
+        }
+
+        for (String colName : colNames) {
+            columnInfo.add(new ColumnInfo(colName));
+        }
+
+        return columnInfo;
     }
 
     private void initScan() {
@@ -282,13 +339,13 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
                 // all column family filters roll up to one parent OR filter
                 if (allColumnFilters == null) {
                     allColumnFilters = new FilterList(FilterList.Operator.MUST_PASS_ONE);
-        }
+                }
 
                 if (LOG.isInfoEnabled()) {
                     LOG.info("Adding family:prefix filters with values " +
                         Bytes.toString(colInfo.getColumnFamily()) + COLON +
                         Bytes.toString(colInfo.getColumnPrefix()));
-    }
+                }
 
                 // each column family filter consists of a FamilyFilter AND a PrefixFilter
                 FilterList thisColumnFilter = new FilterList(FilterList.Operator.MUST_PASS_ALL);
@@ -321,6 +378,17 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         }
         scanFilter.addFilter(filter);
         scan.setFilter(scanFilter);
+    }
+
+  /**
+   * Returns the ColumnInfo list for so external objects can inspect it. This
+   * is available for unit testing. Ideally, the unit tests and the main source
+   * would each mirror the same package structure and this method could be package
+   * private.
+   * @return
+   */
+    public List<ColumnInfo> getColumnInfoList() {
+      return columnInfo_;
     }
 
     @Override
@@ -749,7 +817,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
      * Map being added to the tuple, while the last results in a scalar. The 3rd
      * form results in a prefix-filtered Map.
      */
-    private class ColumnInfo {
+    public class ColumnInfo {
 
         final String originalColumnName;  // always set
         final byte[] columnFamily; // always set
