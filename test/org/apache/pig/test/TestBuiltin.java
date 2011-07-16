@@ -1742,7 +1742,6 @@ public class TestBuiltin {
         }
 
         Tuple output = tt.exec(input);
-        assertTrue(!(input == output));
         assertEquals(input, output);
 
 	// TOMAP - construct a map from input fields

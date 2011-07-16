@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2161: TOTUPLE should use no-copy tuple creation (dvryaboy)
+
 PIG-1946: HBaseStorage constructor syntax is error prone (billgraham via dvryaboy)
 
 PIG-2001: DefaultTuple(List) constructor is inefficient, causes List.size()
