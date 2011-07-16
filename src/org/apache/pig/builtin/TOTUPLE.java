@@ -18,13 +18,9 @@
 package org.apache.pig.builtin;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
 import org.apache.pig.EvalFunc;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 /**
@@ -36,15 +32,7 @@ public class TOTUPLE extends EvalFunc<Tuple> {
 
     @Override
     public Tuple exec(Tuple input) throws IOException {
-        try {
-            List<Object> items = new ArrayList<Object>();
-            for (int i = 0; i < input.size(); ++i) {
-                items.add(input.get(i));
-            }
-            return TupleFactory.getInstance().newTuple(items);
-        } catch (Exception e) {
-            throw new RuntimeException("Error while creating a tuple", e);
-        }
+       return input;
     }
 
     @Override
