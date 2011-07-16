@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1946: HBaseStorage constructor syntax is error prone (billgraham via dvryaboy)
+
 PIG-2001: DefaultTuple(List) constructor is inefficient, causes List.size()
  System.arraycopy() calls (though they are 0 byte copies), 
  DefaultTuple(int) constructor is a bit misleading wrt time 
