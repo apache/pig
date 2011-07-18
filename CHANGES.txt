@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2143: Make PigStorage optionally store schema; improve docs. (dvryaboy) 
+
 PIG-1973: UDFContext.getUDFContext usage of ThreadLocal pattern 
  is not typical (woody via thejas)
 

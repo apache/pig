@@ -23,13 +23,18 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.GnuParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.compress.BZip2Codec;
 import org.apache.hadoop.io.compress.CompressionCodec;
-import org.apache.hadoop.io.compress.GzipCodec;
+import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.OutputFormat;
@@ -37,13 +42,19 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.pig.Expression;
 import org.apache.pig.FileInputLoadFunc;
+import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.LoadMetadata;
 import org.apache.pig.LoadPushDown;
 import org.apache.pig.PigException;
 import org.apache.pig.ResourceSchema;
+import org.apache.pig.ResourceSchema.ResourceFieldSchema;
+import org.apache.pig.ResourceStatistics;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.StoreFuncInterface;
+import org.apache.pig.StoreMetadata;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigTextInputFormat;
@@ -53,46 +64,123 @@ import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.util.CastUtils;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.StorageUtil;
 import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.impl.util.Utils;
+import org.apache.pig.parser.ParserException;
 
 /**
- * A load function that parses a line of input into fields using a delimiter to
- * set the fields. The delimiter is given as a regular expression. See
- * {@link java.lang.String#split(String)} and {@link java.util.regex.Pattern}
- * for more information.
+ * A load function that parses a line of input into fields using a character delimiter.
+ * The default delimiter is a tab. You can specify any character as a literal ("a"),
+ * a known escape character ("\\t"), or a dec or hex value ("\\u001", "\\x0A").
+ * <p>
+ * An optional second constructor argument is provided that allows one to customize
+ * advanced behaviors. A list of available options is below:
+ * <ul>
+ * <li><code>-schema</code> Stores the schema of the relation using a hidden JSON file.
+ * <li><code>-noschema</code> Ignores a stored schema during loading.
+ * </ul>
+ * <p>
+ * <h3>Schemas</h3>
+ * If <code>-schema</code> is specified, a hidden ".pig_schema" file is created in the output directory
+ * when storing data. It is used by PigStorage (with or without -schema) during loading to determine the
+ * field names and types of the data without the need for a user to explicitly provide the schema in an
+ * <code>as</code> clause, unless <code>-noschema</code> is specified. No attempt to merge conflicting
+ * schemas is made during loading. The first schema encountered during a file system scan is used.
+ * <p>
+ * In addition, using <code>-schema</code> drops a ".pig_headers" file in the output directory.
+ * This file simply lists the delimited aliases. This is intended to make export to tools that can read
+ * files with header lines easier (just cat the header to your data).
+ * <p>
+ * Note that regardless of whether or not you store the schema, you <b>always</b> need to specify
+ * the correct delimiter to read your data. If you store reading delimiter "#" and then load using
+ * the default delimiter, your data will not be parsed correctly.
+ *
+ * <h3>Compression</h3>
+ * Storing to a directory whose name ends in ".bz2" or ".gz" or ".lzo" (if you have installed support
+ * for LZO compression in Hadoop) will automatically use the corresponding compression codec.<br>
+ * <code>output.compression.enabled</code> and <code>output.compression.codec</code> job properties
+ * also work.
+ * <p>
+ * Loading from directories ending in .bz2 or .bz works automatically; other compression formats are not
+ * auto-detected on loading.
+ *
  */
 @SuppressWarnings("unchecked")
-public class PigStorage extends FileInputLoadFunc implements StoreFuncInterface, 
-LoadPushDown {
-    protected RecordReader in = null;    
+public class PigStorage extends FileInputLoadFunc implements StoreFuncInterface,
+LoadPushDown, LoadMetadata, StoreMetadata {
+    protected RecordReader in = null;
     protected RecordWriter writer = null;
     protected final Log mLog = LogFactory.getLog(getClass());
     protected String signature;
-        
+
     private byte fieldDel = '\t';
     private ArrayList<Object> mProtoTuple = null;
     private TupleFactory mTupleFactory = TupleFactory.getInstance();
     private String loadLocation;
-    
-    public PigStorage() {
-    }
-    
+
+    boolean storeSchema = false;
+    boolean dontLoadSchema = false;
+    protected ResourceSchema schema;
+    protected LoadCaster caster;
+
+    private final CommandLine configuredOptions;
+    private final Options validOptions = new Options();
+    private final static CommandLineParser parser = new GnuParser();
+
     protected boolean[] mRequiredColumns = null;
-    
     private boolean mRequiredColumnsInitialized = false;
 
+    private void populateValidOptions() {
+        validOptions.addOption("schema", false, "Loads / Stores the schema of the relation using a hidden JSON file.");
+        validOptions.addOption("noschema", false, "Disable attempting to load data schema from the filesystem.");
+    }
+
+    public PigStorage() {
+        this("\t", "");
+    }
+
     /**
-     * Constructs a Pig loader that uses specified regex as a field delimiter.
-     * 
+     * Constructs a Pig loader that uses specified character as a field delimiter.
+     *
      * @param delimiter
      *            the single byte character that is used to separate fields.
      *            ("\t" is the default.)
+     * @throws ParseException
      */
     public PigStorage(String delimiter) {
-        this();
-        fieldDel = StorageUtil.parseFieldDel(delimiter);        
+        this(delimiter, "");
+    }
+
+    /**
+     * Constructs a Pig loader that uses specified character as a field delimiter.
+     * <p>
+     * Understands the following options, which can be specified in the second paramter:
+     * <ul>
+     * <li><code>-schema</code> Loads / Stores the schema of the relation using a hidden JSON file.
+     * <li><code>-noschema</code> Ignores a stored schema during loading.
+     * </ul>
+     * @param delimiter the single byte character that is used to separate fields.
+     * @param options a list of options that can be used to modify PigStorage behavior
+     * @throws ParseException
+     */
+    public PigStorage(String delimiter, String options) {
+        populateValidOptions();
+        fieldDel = StorageUtil.parseFieldDel(delimiter);
+        String[] optsArr = options.split(" ");
+        try {
+            configuredOptions = parser.parse(validOptions, optsArr);
+            storeSchema = configuredOptions.hasOption("schema");
+            dontLoadSchema = configuredOptions.hasOption("noschema");
+        } catch (ParseException e) {
+            HelpFormatter formatter = new HelpFormatter();
+            formatter.printHelp( "PigStorage(',', '[options]')", validOptions);
+            // We wrap this exception in a Runtime exception so that
+            // existing loaders that extend PigStorage don't break
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -109,7 +197,7 @@ LoadPushDown {
             boolean notDone = in.nextKeyValue();
             if (!notDone) {
                 return null;
-            }                                                                                           
+            }
             Text value = (Text) in.getCurrentValue();
             byte[] buf = value.getBytes();
             int len = value.getLength();
@@ -128,20 +216,60 @@ LoadPushDown {
                 readField(buf, start, len);
             }
             Tuple t =  mTupleFactory.newTupleNoCopy(mProtoTuple);
-            return t;
+
+            return dontLoadSchema ? t : applySchema(t);
         } catch (InterruptedException e) {
             int errCode = 6018;
             String errMsg = "Error while reading input";
-            throw new ExecException(errMsg, errCode, 
+            throw new ExecException(errMsg, errCode,
                     PigException.REMOTE_ENVIRONMENT, e);
         }
-      
+    }
+
+    private Tuple applySchema(Tuple tup) throws IOException {
+        if ( caster == null) {
+            caster = getLoadCaster();
+        }
+        if (signature != null && schema == null) {
+            Properties p = UDFContext.getUDFContext().getUDFProperties(this.getClass(),
+                    new String[] {signature});
+            String serializedSchema = p.getProperty(signature+".schema");
+            if (serializedSchema == null) return tup;
+            try {
+                schema = new ResourceSchema(Utils.getSchemaFromString(serializedSchema));
+            } catch (ParserException e) {
+                mLog.error("Unable to parse serialized schema " + serializedSchema, e);
+            }
+        }
+
+        if (schema != null) {
+
+            ResourceFieldSchema[] fieldSchemas = schema.getFields();
+            int tupleIdx = 0;
+            // If some fields have been projected out, the tuple
+            // only contains required fields.
+            // We walk the requiredColumns array to find required fields,
+            // and cast those.
+            for (int i = 0; i < fieldSchemas.length; i++) {
+                if (mRequiredColumns == null || (mRequiredColumns.length>i && mRequiredColumns[i])) {
+                    Object val = null;
+                    if(tup.get(tupleIdx) != null){
+                        byte[] bytes = ((DataByteArray) tup.get(tupleIdx)).get();
+                        val = CastUtils.convertToType(caster, bytes,
+                                fieldSchemas[i], fieldSchemas[i].getType());
+                    }
+                    tup.set(tupleIdx, val);
+                    tupleIdx++;
+                }
+            }
+        }
+        return tup;
     }
 
     @Override
     public void putNext(Tuple f) throws IOException {
         try {
-            writer.write(null, f);            
+            writer.write(null, f);
         } catch (InterruptedException e) {
             throw new IOException(e);
         }
@@ -185,7 +313,7 @@ LoadPushDown {
         }
         return new RequiredFieldResponse(true);
     }
-    
+
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof PigStorage)
@@ -214,7 +342,7 @@ LoadPushDown {
 
     @Override
     public void setLocation(String location, Job job)
-            throws IOException {
+    throws IOException {
         loadLocation = location;
         FileInputFormat.setInputPaths(job, location);
     }
@@ -226,13 +354,14 @@ LoadPushDown {
 
     @Override
     public void prepareToWrite(RecordWriter writer) {
-        this.writer = writer;        
+        this.writer = writer;
     }
 
     @Override
     public void setStoreLocation(String location, Job job) throws IOException {
         job.getConfiguration().set("mapred.textoutputformat.separator", "");
         FileOutputFormat.setOutputPath(job, new Path(location));
+
         if( "true".equals( job.getConfiguration().get( "output.compression.enabled" ) ) ) {
             FileOutputFormat.setCompressOutput( job, true );
             String codec = job.getConfiguration().get( "output.compression.codec" );
@@ -242,15 +371,17 @@ LoadPushDown {
                 throw new RuntimeException("Class not found: " + codec );
             }
         } else {
-            if (location.endsWith(".bz2") || location.endsWith(".bz")) {
-                FileOutputFormat.setCompressOutput(job, true);
-                FileOutputFormat.setOutputCompressorClass(job,  BZip2Codec.class);
-            }  else if (location.endsWith(".gz")) {
-                FileOutputFormat.setCompressOutput(job, true);
-                FileOutputFormat.setOutputCompressorClass(job, GzipCodec.class);
-            } else {
-                FileOutputFormat.setCompressOutput( job, false);
-            }
+            // This makes it so that storing to a directory ending with ".gz" or ".bz2" works.
+            setCompression(new Path(location), job);
+        }
+    }
+
+    private void setCompression(Path path, Job job) {
+        CompressionCodecFactory codecFactory = new CompressionCodecFactory(job.getConfiguration());
+        CompressionCodec codec = codecFactory.getCodec(path);
+        if (codec != null) {
+            FileOutputFormat.setCompressOutput(job, true);
+            FileOutputFormat.setOutputCompressorClass(job, codec.getClass());
         }
     }
 
@@ -261,7 +392,7 @@ LoadPushDown {
 
     @Override
     public String relToAbsPathForStoreLocation(String location, Path curDir)
-            throws IOException {
+    throws IOException {
         return LoadFunc.getAbsolutePath(location, curDir);
     }
 
@@ -270,10 +401,10 @@ LoadPushDown {
         return fieldDel;
     }
 
-    
+
     @Override
     public void setUDFContextSignature(String signature) {
-        this.signature = signature; 
+        this.signature = signature;
     }
 
     @Override
@@ -287,8 +418,64 @@ LoadPushDown {
 
     @Override
     public void cleanupOnFailure(String location, Job job)
-            throws IOException {
+    throws IOException {
         StoreFunc.cleanupOnFailureImpl(location, job);
     }
 
+
+    //------------------------------------------------------------------------
+    // Implementation of LoadMetaData interface
+
+    @Override
+    public ResourceSchema getSchema(String location,
+            Job job) throws IOException {
+        if (!dontLoadSchema) {
+            schema = (new JsonMetadata()).getSchema(location, job);
+
+            if (signature != null && schema != null) {
+                Properties p = UDFContext.getUDFContext().getUDFProperties(this.getClass(),
+                        new String[] {signature});
+                p.setProperty(signature + ".schema", schema.toString());
+            }
+        }
+        return schema;
+    }
+
+    @Override
+    public ResourceStatistics getStatistics(String location,
+            Job job) throws IOException {
+        return null;
+    }
+
+    @Override
+    public void setPartitionFilter(Expression partitionFilter)
+    throws IOException {
+    }
+
+    @Override
+    public String[] getPartitionKeys(String location, Job job)
+    throws IOException {
+        return null;
+    }
+
+    //------------------------------------------------------------------------
+    // Implementation of StoreMetadata
+
+    @Override
+    public void storeSchema(ResourceSchema schema, String location,
+            Job job) throws IOException {
+        if (storeSchema) {
+            JsonMetadata metadataWriter = new JsonMetadata();
+            byte recordDel = '\n';
+            metadataWriter.setFieldDel(fieldDel);
+            metadataWriter.setRecordDel(recordDel);
+            metadataWriter.storeSchema(schema, location, job);
+        }
+    }
+
+    @Override
+    public void storeStatistics(ResourceStatistics stats, String location,
+            Job job) throws IOException {
+
+    }
 }

@@ -18,25 +18,9 @@
 
 package org.apache.pig.piggybank.storage;
 
-import java.io.IOException;
-import java.util.Properties;
-
-import org.apache.hadoop.mapreduce.Job;
-import org.apache.pig.Expression;
-import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadMetadata;
-import org.apache.pig.ResourceSchema;
-import org.apache.pig.ResourceSchema.ResourceFieldSchema;
-import org.apache.pig.ResourceStatistics;
 import org.apache.pig.StoreMetadata;
 import org.apache.pig.builtin.PigStorage;
-import org.apache.pig.data.DataByteArray;
-import org.apache.pig.data.Tuple;
-import org.apache.pig.parser.ParserException;
-import org.apache.pig.impl.util.CastUtils;
-import org.apache.pig.impl.util.StorageUtil;
-import org.apache.pig.impl.util.UDFContext;
-import org.apache.pig.impl.util.Utils;
 
 /**
  *  This Load/Store Func reads/writes metafiles that allow the schema and
@@ -46,115 +30,15 @@ import org.apache.pig.impl.util.Utils;
  *  It also creates a ".pig_headers" file that simply lists the delimited aliases.
  *  This is intended to make export to tools that can read files with header
  *  lines easier (just cat the header to your data).
- *
+ * @deprecated Use PigStorage with a -schema option instead
  */
+@Deprecated
 public class PigStorageSchema extends PigStorage implements LoadMetadata, StoreMetadata {
-
-    private byte delim = '\t';
-    private ResourceSchema schema;
-    LoadCaster caster;
-
     public PigStorageSchema() {
-        super();
+        this("\t");
     }
 
     public PigStorageSchema(String delim) {
-        super(delim);
-        this.delim = StorageUtil.parseFieldDel(delim);
-    }
-
-    @Override
-    public Tuple getNext() throws IOException {
-        Tuple tup = super.getNext();
-        if (tup == null) return null;
-
-        if ( caster == null) {
-            caster = getLoadCaster();
-        }
-        if (signature != null) {
-            Properties p = UDFContext.getUDFContext().getUDFProperties(this.getClass(),
-                    new String[] {signature});
-            String serializedSchema = p.getProperty(signature+".schema");
-            if (serializedSchema == null) return tup;
-            try {
-                schema = new ResourceSchema(Utils.getSchemaFromString(serializedSchema));
-            } catch (ParserException e) {
-                mLog.error("Unable to parse serialized schema " + serializedSchema, e);
-            }
-        }
-
-        if (schema != null) {
-
-            ResourceFieldSchema[] fieldSchemas = schema.getFields();
-            int tupleIdx = 0;
-            // If some fields have been projected out, the tuple
-            // only contains required fields.
-            // We walk the requiredColumns array to find required fields,
-            // and cast those.
-            for (int i = 0; i < fieldSchemas.length; i++) {
-                if (mRequiredColumns == null || (mRequiredColumns.length>i && mRequiredColumns[i])) {
-                    Object val = null;
-                    if(tup.get(tupleIdx) != null){
-                        byte[] bytes = ((DataByteArray) tup.get(tupleIdx)).get();
-                        val = CastUtils.convertToType(caster, bytes,
-                                fieldSchemas[i], fieldSchemas[i].getType());
-                    }
-                    tup.set(tupleIdx, val);
-                    tupleIdx++;
-                }
-            }
-        }
-        return tup;
-    }
-
-    //------------------------------------------------------------------------
-    // Implementation of LoadMetaData interface
-
-    @Override
-    public ResourceSchema getSchema(String location,
-            Job job) throws IOException {
-        schema = (new JsonMetadata()).getSchema(location, job);
-        if (signature != null && schema != null) {
-            Properties p = UDFContext.getUDFContext().getUDFProperties(this.getClass(),
-                    new String[] {signature});
-            p.setProperty(signature + ".schema", schema.toString());
-    }
-        return schema;
-    }
-
-    @Override
-    public ResourceStatistics getStatistics(String location,
-            Job job) throws IOException {
-        return null;
-    }
-
-    @Override
-    public void setPartitionFilter(Expression partitionFilter)
-            throws IOException {
-    }
-
-    @Override
-    public String[] getPartitionKeys(String location, Job job)
-            throws IOException {
-        return null;
-    }
-
-    //------------------------------------------------------------------------
-    // Implementation of StoreMetadata
-
-    @Override
-    public void storeSchema(ResourceSchema schema, String location,
-            Job job) throws IOException {
-        JsonMetadata metadataWriter = new JsonMetadata();
-        byte recordDel = '\n';
-        metadataWriter.setFieldDel(delim);
-        metadataWriter.setRecordDel(recordDel);
-        metadataWriter.storeSchema(schema, location, job);
-    }
-
-    @Override
-    public void storeStatistics(ResourceStatistics stats, String location,
-            Job job) throws IOException {
-
+        super(delim, "-schema");
     }
 }
