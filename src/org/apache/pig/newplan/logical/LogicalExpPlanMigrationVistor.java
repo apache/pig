@@ -134,7 +134,7 @@ public class LogicalExpPlanMigrationVistor extends LOVisitor {
         
         LogicalExpression pe;
         if (project.getPlan().getPredecessors(project)!=null && project.getPlan().getPredecessors(project).get(0)
-                instanceof LOProject) {
+                instanceof ExpressionOperator) {
             List<Integer> columnNums = new ArrayList<Integer>();
             columnNums.add(col);
             pe = new DereferenceExpression(exprPlan, columnNums);

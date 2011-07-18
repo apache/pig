@@ -1287,4 +1287,26 @@ public class TestEvalPipeline2 extends TestCase {
         assertTrue(t.toString().equals("({(1)})"));
         assertFalse(iter.hasNext());
     }
+    
+    @Test
+    public void testDereferenceUDFNonForEach() throws Exception {
+        String[] input1 = {
+                "1\t2011/3/2"
+        };
+        String[] input2 = {
+                "1\t2011/3/2 12:32"
+        };
+        
+        Util.createInputFile(cluster, "table_testDereferenceUDFNonForEach1", input1);
+        Util.createInputFile(cluster, "table_testDereferenceUDFNonForEach2", input2);
+        pigServer.registerQuery("A = load 'table_testDereferenceUDFNonForEach1' as (tracking_id, day:chararray);");
+        pigServer.registerQuery("B = load 'table_testDereferenceUDFNonForEach2' as (tracking_id, timestamp:chararray);");
+        pigServer.registerQuery("C = JOIN A by (tracking_id, day) LEFT OUTER, B by (tracking_id,  STRSPLIT(timestamp, ' ').$0);");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("C");
+        
+        Tuple t = iter.next();
+        assertTrue(t.toString().equals("(1,2011/3/2,1,2011/3/2 12:32)"));
+        assertFalse(iter.hasNext());
+    }
 }

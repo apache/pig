@@ -36,6 +36,8 @@ PIG-1886: Add zookeeper jar to list of jars shipped when HBaseStorage used (dvry
 
 BUG FIXES
 
+PIG-2077: Project UDF output inside a non-foreach statement fail on 0.8 (daijy)
+
 PIG-2067: FilterLogicExpressionSimplifier removed some branches in some cases (daijy)
 
 PIG-2033: Pig returns sucess for the failed Pig script (rding)
