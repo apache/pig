@@ -192,6 +192,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-2159: New logical plan uses incorrect class for SUM causing for ClassCastException (daijy)
+
 PIG-1890: Fix piggybank unit test TestAvroStorage (kengoodhope via daijy)
 
 PIG-2144: ClassCastException when using IsEmpty(DIFF()) (thejas)
