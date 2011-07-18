@@ -248,10 +248,9 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
                 FuncSpec loadFuncSpec = inputs.get(i).getFuncSpec();
                 LoadFunc loadFunc = (LoadFunc) PigContext.instantiateFuncFromSpec(
                         loadFuncSpec);
-                boolean combinable = !(loadFunc instanceof MergeJoinIndexer) &&
-                !(IndexableLoadFunc.class.isAssignableFrom(loadFunc.getClass())) &&
-                !(CollectableLoadFunc.class.isAssignableFrom(loadFunc.getClass()) &&
-                    OrderedLoadFunc.class.isAssignableFrom(loadFunc.getClass()));
+                boolean combinable = !(loadFunc instanceof MergeJoinIndexer
+                                    || loadFunc instanceof IndexableLoadFunc
+                                    || (loadFunc instanceof CollectableLoadFunc && loadFunc instanceof OrderedLoadFunc));
                 if (combinable)
                     combinable = !conf.getBoolean("pig.noSplitCombination", false);
                 Configuration confClone = new Configuration(conf);
