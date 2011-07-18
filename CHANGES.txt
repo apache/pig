@@ -24,6 +24,9 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1973: UDFContext.getUDFContext usage of ThreadLocal pattern 
+ is not typical (woody via thejas)
+
 PIG-2053: PigInputFormat uses class.isAssignableFrom() where 
  instanceof is more appropriate (woody via thejas)
 
