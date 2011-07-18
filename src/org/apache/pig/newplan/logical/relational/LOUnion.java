@@ -97,30 +97,48 @@ public class LOUnion extends LogicalRelationalOperator {
                 if (mergedSchema == null)
                     return null;
             }
-            
-            // Bring back cached uid if any; otherwise, cache uid generated
-            for (int i=0;i<s0.size();i++)
-            {
-                LogicalSchema.LogicalFieldSchema fs = mergedSchema.getField(i);
-                long uid = -1;
-                for (Pair<Long, Long> pair : uidMapping) {
-                    if (pair.second==s0.getField(i).uid) {
-                        uid = pair.first;
-                        break;
-                    }
-                }
-                if (uid==-1) {
-                    uid = LogicalExpression.getNextUid();
-                    for (Operator input : inputs) {
-                        long inputUid = ((LogicalRelationalOperator)input).getSchema().getField(i).uid;
-                        uidMapping.add(new Pair<Long, Long>(uid, inputUid));
-                    }
-                }
-
-                fs.uid = uid;
-            }
         }
 
+        // Bring back cached uid if any; otherwise, cache uid generated
+        for (int i=0;i<s0.size();i++)
+        {
+            LogicalSchema.LogicalFieldSchema outputFieldSchema;
+            if (onSchema) {
+                outputFieldSchema = mergedSchema.getFieldSubNameMatch(s0.getField(i).alias);
+            } else {
+                outputFieldSchema = mergedSchema.getField(i);
+            }
+            long uid = -1;
+            for (Pair<Long, Long> pair : uidMapping) {
+                if (pair.second==s0.getField(i).uid) {
+                    uid = pair.first;
+                    break;
+                }
+            }
+            if (uid==-1) {
+                uid = LogicalExpression.getNextUid();
+                for (Operator input : inputs) {
+                    long inputUid;
+                    LogicalFieldSchema matchedInputFieldSchema;
+                	if (onSchema) {
+                	    matchedInputFieldSchema = ((LogicalRelationalOperator)input).getSchema().getFieldSubNameMatch(s0.getField(i).alias);
+                        if (matchedInputFieldSchema!=null) {
+                            inputUid = matchedInputFieldSchema.uid;
+                            uidMapping.add(new Pair<Long, Long>(uid, inputUid));
+                        }
+                    }
+                    else {
+                        matchedInputFieldSchema = mergedSchema.getField(i);
+	                	inputUid = ((LogicalRelationalOperator)input).getSchema().getField(i).uid;
+	                	uidMapping.add(new Pair<Long, Long>(uid, inputUid));
+                    }
+                	
+                }
+            }
+
+            outputFieldSchema.uid = uid;
+        }
+        
         return schema = mergedSchema;
     }
 
