@@ -45,12 +45,13 @@ CYGWIN*) cygwin=true;;
 esac
 debug=false
 
+remaining=()
 # filter command line parameter
-for f in $@; do
+for f in "$@"; do
      if [[ $f = "-secretDebugCmd" ]]; then
         debug=true
      else
-        remaining="${remaining} $f"
+        remaining+=("$f")
      fi
 done
 
@@ -195,8 +196,8 @@ PIG_OPTS="$PIG_OPTS -Dpig.root.logger=${PIG_ROOT_LOGGER:-INFO,console,DRFA}"
 # run it
 if [ "$debug" == "true" ]; then
     echo "dry run:"
-    echo "$JAVA" $JAVA_HEAP_MAX $PIG_OPTS -classpath "$CLASSPATH" $CLASS ${remaining}
+    echo "$JAVA" $JAVA_HEAP_MAX $PIG_OPTS -classpath "$CLASSPATH" $CLASS "${remaining[@]}"
     echo
 else
-    exec "$JAVA" $JAVA_HEAP_MAX $PIG_OPTS -classpath "$CLASSPATH" $CLASS ${remaining}
+    exec "$JAVA" $JAVA_HEAP_MAX $PIG_OPTS -classpath "$CLASSPATH" $CLASS "${remaining[@]}"
 fi
