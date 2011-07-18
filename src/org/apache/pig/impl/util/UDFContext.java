@@ -33,17 +33,21 @@ public class UDFContext {
     private static final String CLIENT_SYS_PROPS = "pig.client.sys.props";
     private static final String UDF_CONTEXT = "pig.udf.context"; 
     
-    private static ThreadLocal<UDFContext> tss = new ThreadLocal<UDFContext>();
-   
+    private static ThreadLocal<UDFContext> tss = new ThreadLocal<UDFContext>() {                                                                                                                         
+        @Override                                                                                                                                                                                        
+        public UDFContext initialValue() {                                                                                                                                                               
+            return new UDFContext();                                                                                                                                                                     
+        }                                                                                                                                                                                                
+    };           
+    
     private UDFContext() {
         udfConfs = new HashMap<UDFContextKey, Properties>();
     }
 
+    /**
+     * @return a Thread Local {@link UDFContext}
+     */
     public static UDFContext getUDFContext() {
-        if (tss.get() == null) {
-            UDFContext ctx = new UDFContext();
-            tss.set(ctx);
-        }
         return tss.get();
     }
 
