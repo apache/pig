@@ -24,6 +24,9 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2053: PigInputFormat uses class.isAssignableFrom() where 
+ instanceof is more appropriate (woody via thejas)
+
 PIG-2161: TOTUPLE should use no-copy tuple creation (dvryaboy)
 
 PIG-1946: HBaseStorage constructor syntax is error prone (billgraham via dvryaboy)
