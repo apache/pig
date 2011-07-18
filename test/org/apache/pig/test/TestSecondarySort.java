@@ -17,6 +17,8 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.*;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
@@ -42,8 +44,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
-public class TestSecondarySort extends TestCase {
+public class TestSecondarySort {
     static MiniCluster cluster = MiniCluster.buildCluster();
     private PigServer pigServer;
 
@@ -63,7 +64,6 @@ public class TestSecondarySort extends TestCase {
     }
 
     @Before
-    @Override
     public void setUp() throws Exception {
         FileLocalizer.setR(new Random());
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());

@@ -87,6 +87,8 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 
 BUG FIXES
 
+PIG-2172: Fix test failure for ant 1.8.x (daijy)
+
 PIG-2162: bin/pig should not modify user args (rangadi via thejas)
 
 PIG-2060: Fix errors in pig grammars reported by ANTLRWorks (azaroth via thejas)
