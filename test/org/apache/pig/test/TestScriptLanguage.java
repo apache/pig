@@ -21,6 +21,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -545,7 +546,7 @@ public class TestScriptLanguage {
                 "result = P.bind().runSingle()"
         };
 
-        Util.createLocalInputFile( "testScript.py", script);
+        File pyFile = Util.createLocalInputFile( "testScript.py", script);
         
         String[] args = { "-x", "local", "testScript.py"};
         PigStats stats = PigRunner.run(args, null);
@@ -554,10 +555,11 @@ public class TestScriptLanguage {
         assertTrue(stats.getReturnCode() == PigRunner.ReturnCode.PIG_EXCEPTION);
         
         String expected = "Python Error. Traceback (most recent call last):\n" +
-            "  File \"testScript.py\", line 7";
+            "  File \"" + pyFile.getAbsolutePath() + "\", line 7";
 
         String msg = stats.getErrorMessage();
-        assertEquals(expected, msg.substring(0, expected.length()));
+        Util.checkErrorMessageContainsExpected(msg, expected);
+        
     }
     
     @Test
