@@ -32,6 +32,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
@@ -192,7 +193,7 @@ public class PigOutputFormat extends OutputFormat<WritableComparable, Tuple> {
         for (POStore store : stores) {
             // make a copy of the original JobContext so that
             // each OutputFormat get a different copy 
-            JobContext jobContextCopy = new JobContext(
+            JobContext jobContextCopy = HadoopShims.createJobContext(
                     jobcontext.getConfiguration(), jobcontext.getJobID());
             
             // set output location

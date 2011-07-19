@@ -20,6 +20,8 @@
 	xmlns:ivy="antlib:org.apache.ivy.ant">
     <!-- Load all the default properties, and any the user wants    -->
     <!-- to contribute (without having to type -D or edit this file -->
+    <taskdef resource="net/sf/antcontrib/antcontrib.properties"/>
+
     <property file="${user.home}/build.properties" />
     <property file="${basedir}/build.properties" />
 
@@ -145,6 +147,16 @@
 	<property name="ivy.repo.dir" value="${user.home}/ivyrepo" />
     <property name="ivy.dir" location="ivy" />
     <loadproperties srcfile="${ivy.dir}/libraries.properties"/>
+
+    <!--propertyregex property="hadoopversion"
+           input="${hadoop-core.version}"
+           regexp="\d+\.(\d+)\.\d+"
+           select="\1" /-->
+    <property name="hadoopversion" value="20" />
+
+    <property name="src.shims.dir" value="${basedir}/shims/src/hadoop${hadoopversion}" />
+    <property name="src.shims.test.dir" value="${basedir}/shims/test/hadoop${hadoopversion}" />
+
     <property name="hadoop.jar" value="hadoop-core-${hadoop-core.version}.jar" />
 	<property name="asfrepo" value="https://repository.apache.org"/>
 	<property name="asfsnapshotrepo" value="${asfrepo}/content/repositories/snapshots"/>
@@ -194,7 +206,7 @@
     <!-- setup the classpath -->
     <path id="classpath">
 	<path refid="compile.classpath"/>	
-        <fileset file="${lib.dir}/${automaton.jarfile}" />
+        <fileset dir="${lib.dir}" includes="*.jar"/>
         <fileset file="${ivy.lib.dir}/${zookeeper.jarfile}"/>
     </path>
 
@@ -349,13 +361,13 @@
         <echo>*** Else, compile-sources (which only warns about deprecations) target will be executed ***</echo>
                 
         <antcall target="compile-sources" inheritRefs="true" inheritall="true">
-            <param name="sources" value="${src.dir};${src.gen.dir};${src.lib.dir}/shock;${src.lib.dir}/bzip2" />
+            <param name="sources" value="${src.dir};${src.gen.dir};${src.lib.dir}/shock;${src.lib.dir}/bzip2;${src.shims.dir}" />
             <param name="dist" value="${build.classes}" />
             <param name="cp" value="classpath" />
         </antcall>
     
         <antcall target="compile-sources-all-warnings" inheritRefs="true" inheritall="true">
-            <param name="sources" value="${src.dir};${src.gen.dir};${src.lib.dir}/shock;${src.lib.dir}/bzip2" />
+            <param name="sources" value="${src.dir};${src.gen.dir};${src.lib.dir}/shock;${src.lib.dir}/bzip2;${src.shims.dir}" />
             <param name="dist" value="${build.classes}" />
             <param name="cp" value="classpath" />
         </antcall>
@@ -369,7 +381,7 @@
         <echo>*** Else, compile-sources (which only warns about deprecations) target will be executed ***</echo>
         
         <antcall target="compile-sources" inheritRefs="true" inheritall="true">
-            <param name="sources" value="${test.src.dir}" />
+            <param name="sources" value="${test.src.dir};${src.shims.test.dir}" />
             <param name="dist" value="${test.build.classes}" />
             <param name="cp" value="test.classpath" />
             <!-- don't compile PigTestLoader -->
@@ -377,7 +389,7 @@
         </antcall>
 
         <antcall target="compile-sources-all-warnings" inheritRefs="true" inheritall="true">
-            <param name="sources" value="${test.src.dir}" />
+            <param name="sources" value="${test.src.dir};${src.shims.test.dir}" />
             <param name="dist" value="${test.build.classes}" />
             <param name="cp" value="test.classpath" />
             <!-- don't compile PigTestLoader -->
@@ -665,7 +677,7 @@
         <mkdir dir="${test.log.dir}"/>
         <tempfile property="junit.tmp.dir" prefix="pig_junit_tmp" destDir="${java.io.tmpdir}" />
         <mkdir dir="${junit.tmp.dir}/"/>
-        <junit showoutput="${test.output}" printsummary="yes" haltonfailure="no" fork="yes" maxmemory="512m" dir="${basedir}" timeout="${test.timeout}" errorProperty="tests.failed" failureProperty="tests.failed">
+        <junit showoutput="${test.output}" printsummary="yes" haltonfailure="no" fork="yes" maxmemory="1024m" dir="${basedir}" timeout="${test.timeout}" errorProperty="tests.failed" failureProperty="tests.failed">
             <sysproperty key="ssh.gateway" value="${ssh.gateway}" />
             <sysproperty key="hod.server" value="${hod.server}" />
             <sysproperty key="java.io.tmpdir" value="${junit.tmp.dir}" />

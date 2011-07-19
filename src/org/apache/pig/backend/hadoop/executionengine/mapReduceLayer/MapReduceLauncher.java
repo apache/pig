@@ -55,6 +55,8 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.POPack
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POJoinPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
+import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
@@ -563,7 +565,7 @@ public class MapReduceLauncher extends Launcher{
      * @throws IOException 
      */
     private void storeSchema(Job job, POStore st) throws IOException {
-        JobContext jc = new JobContext(job.getJobConf(), 
+        JobContext jc = HadoopShims.createJobContext(job.getJobConf(), 
                 new org.apache.hadoop.mapreduce.JobID());
         JobContext updatedJc = PigOutputCommitter.setUpContext(jc, st);
         PigOutputCommitter.storeCleanup(st, updatedJc.getConfiguration());

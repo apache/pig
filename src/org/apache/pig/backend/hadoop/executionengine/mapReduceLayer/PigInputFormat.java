@@ -47,6 +47,7 @@ import org.apache.pig.CollectableLoadFunc;
 import org.apache.pig.OrderedLoadFunc;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
@@ -267,7 +268,7 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
                 // get the InputFormat from it and ask for splits
                 InputFormat inpFormat = loadFunc.getInputFormat();
                 List<InputSplit> oneInputSplits = inpFormat.getSplits(
-                        new JobContext(inputSpecificJob.getConfiguration(), 
+                        HadoopShims.createJobContext(inputSpecificJob.getConfiguration(), 
                                 jobcontext.getJobID()));
                 List<InputSplit> oneInputPigSplits = getPigSplits(
                         oneInputSplits, i, inpTargets.get(i), fs.getDefaultBlockSize(), combinable, confClone);

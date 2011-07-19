@@ -97,6 +97,9 @@ public class QueryParserUtils {
     static void setHdfsServers(String absolutePath, PigContext pigContext) throws URISyntaxException {
         // Get native host
         String defaultFS = (String)pigContext.getProperties().get("fs.default.name");
+        if (defaultFS==null)
+            defaultFS = (String)pigContext.getProperties().get("fs.defaultFS");
+        
         URI defaultFSURI = new URI(defaultFS);
         String defaultHost = defaultFSURI.getHost();
         if (defaultHost == null) defaultHost = "";
