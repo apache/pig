@@ -142,6 +142,7 @@ public class PigContext implements Serializable {
         this.execType = execType;
         this.properties = properties;   
 
+        this.properties.setProperty("exectype", this.execType.name());
         String pigJar = JarManager.findContainingJar(Main.class);
         String hadoopJar = JarManager.findContainingJar(FileSystem.class);
         if (pigJar != null) {

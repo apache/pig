@@ -425,4 +425,8 @@
         <Method name = "mergeCollection" />
         <Bug pattern = "NP_GUARANTEED_DEREF_ON_EXCEPTION_PATH" />
     </Match>
+    <Match>
+        <Class name = "org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigGenericMapReduce" />
+        <Bug pattern = "MS_CANNOT_BE_FINAL" />
+    </Match>
 </FindBugsFilter>

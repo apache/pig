@@ -17,6 +17,7 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -30,6 +31,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.Partitioner;
+import org.apache.pig.ExecType;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
@@ -37,6 +39,7 @@ import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.InternalMap;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.builtin.FindQuantiles;
 import org.apache.pig.impl.io.NullableBytesWritable;
 import org.apache.pig.impl.io.NullableDoubleWritable;
@@ -47,12 +50,14 @@ import org.apache.pig.impl.io.NullableText;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.io.ReadToEndLoader;
+import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.Utils;
 
 public class WeightedRangePartitioner extends Partitioner<PigNullableWritable, Writable>   
                                       implements Configurable {
     PigNullableWritable[] quantiles;
     RawComparator<PigNullableWritable> comparator;
+    PigContext pigContext;
     final public static Map<PigNullableWritable,DiscreteProbabilitySampleGenerator> weightedParts 
         = new HashMap<PigNullableWritable, DiscreteProbabilitySampleGenerator>();
     
@@ -85,6 +90,13 @@ public class WeightedRangePartitioner extends Partitioner<PigNullableWritable, W
     public void setConf(Configuration configuration) {
         job = configuration;
         
+        try {
+            pigContext = (PigContext)ObjectSerializer.deserialize(job.get("pig.pigContext"));
+        } catch (IOException e1) {
+            // should not happen
+            e1.printStackTrace();
+        }
+
         String quantilesFile = configuration.get("pig.quantilesFile", "");
 
         if (quantilesFile.length() == 0) {
@@ -96,7 +108,12 @@ public class WeightedRangePartitioner extends Partitioner<PigNullableWritable, W
             
             
             // use local file system to get the quantilesFile
-            Configuration conf = new Configuration(false);
+            Configuration conf;
+            if (pigContext.getExecType()==ExecType.MAPREDUCE) {
+                conf = new Configuration(true);
+            } else {
+                conf = new Configuration(false);
+            }
             if (configuration.get("fs.file.impl")!=null)
                 conf.set("fs.file.impl", configuration.get("fs.file.impl"));
             if (configuration.get("fs.hdfs.impl")!=null)

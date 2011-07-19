@@ -25,6 +25,8 @@ import java.util.Properties;
 import java.util.Map.Entry;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.pig.ExecType;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 
 public class ConfigurationUtil {
@@ -65,8 +67,13 @@ public class ConfigurationUtil {
     }
     
     public static Properties getLocalFSProperties() {
-        Configuration localConf = new Configuration(false);
-        localConf.addResource("core-default.xml");
+        Configuration localConf;
+        if (PigMapReduce.sJobContext!=null && PigMapReduce.sJobContext.getConfiguration().get("exectype").equals(ExecType.LOCAL.toString())) {
+            localConf = new Configuration(false);
+            localConf.addResource("core-default.xml");
+        } else {
+            localConf = new Configuration(true);
+        }
         Properties props = ConfigurationUtil.toProperties(localConf);
         props.setProperty(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
         return props;

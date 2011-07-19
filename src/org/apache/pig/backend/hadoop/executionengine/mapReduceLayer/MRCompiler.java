@@ -84,6 +84,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
+import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
@@ -1354,8 +1355,7 @@ public class MRCompiler extends PhyPlanVisitor {
                             Job job = new Job(conf);
                             loader.setLocation(location, job);
                             InputFormat inf = loader.getInputFormat();
-                            List<InputSplit> splits = inf.getSplits(new JobContext(
-                                    job.getConfiguration(), job.getJobID()));
+                            List<InputSplit> splits = inf.getSplits(HadoopShims.cloneJobContext(job));
                             List<List<InputSplit>> results = MapRedUtil
                             .getCombinePigSplits(splits, fs
                                     .getDefaultBlockSize(), conf);

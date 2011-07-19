@@ -33,6 +33,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
+import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.plan.OperatorKey;
 
@@ -150,7 +151,7 @@ public class ReadToEndLoader extends LoadFunc {
         conf = job.getConfiguration();
         inputFormat = wrappedLoadFunc.getInputFormat();
         try {
-            inpSplits = inputFormat.getSplits(new JobContext(conf,
+            inpSplits = inputFormat.getSplits(HadoopShims.createJobContext(conf,
                     new JobID()));
         } catch (InterruptedException e) {
             throw new IOException(e);
@@ -167,7 +168,7 @@ public class ReadToEndLoader extends LoadFunc {
             reader.close();
         }
         InputSplit curSplit = inpSplits.get(curSplitIndex);
-        TaskAttemptContext tAContext = new TaskAttemptContext(conf, 
+        TaskAttemptContext tAContext = HadoopShims.createTaskAttemptContext(conf, 
                 new TaskAttemptID());
         reader = inputFormat.createRecordReader(curSplit, tAContext);
         reader.initialize(curSplit, tAContext);

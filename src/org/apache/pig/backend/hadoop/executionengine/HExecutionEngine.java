@@ -64,10 +64,11 @@ import org.apache.pig.pen.POOptimizeDisabler;
 public class HExecutionEngine {
     
     public static final String JOB_TRACKER_LOCATION = "mapred.job.tracker";
-    private static final String FILE_SYSTEM_LOCATION = "fs.default.name";
+    private static final String FILE_SYSTEM_LOCATION = "fs.defaultFS";
     
     private static final String HADOOP_SITE = "hadoop-site.xml";
     private static final String CORE_SITE = "core-site.xml";
+    private static final String YARN_SITE = "yarn-site.xml";
     private final Log log = LogFactory.getLog(getClass());
     public static final String LOCAL = "local";
     
@@ -155,6 +156,7 @@ public class HExecutionEngine {
 
             jc = new JobConf();
             jc.addResource("pig-cluster-hadoop-site.xml");
+            jc.addResource(YARN_SITE);
             
             // Trick to invoke static initializer of DistributedFileSystem to add hdfs-default.xml 
             // into configuration
