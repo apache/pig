@@ -89,6 +89,8 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 
 BUG FIXES
 
+PIG-2171: TestScriptLanguage is broken on trunk (daijy and thejas)
+
 PIG-2172: Fix test failure for ant 1.8.x (daijy)
 
 PIG-2162: bin/pig should not modify user args (rangadi via thejas)

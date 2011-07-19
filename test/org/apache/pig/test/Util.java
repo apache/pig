@@ -504,13 +504,20 @@ public class Util {
      public static void checkMessageInException(FrontendException e,
              String expectedErr) {
          PigException pigEx = LogUtils.getPigException(e);
-         if(!pigEx.getMessage().contains(expectedErr)){
-             String msg = "Expected exception message matching '" 
-                 + expectedErr + "' but got '" + pigEx.getMessage() + "'" ;
-             fail(msg);
-         }
+         String message = pigEx.getMessage();
+         checkErrorMessageContainsExpected(message, expectedErr);
+        
      }
 
+     public static void checkErrorMessageContainsExpected(String message, String expectedMessage){
+         if(!message.contains(expectedMessage)){
+             String msg = "Expected error message containing '" 
+                 + expectedMessage + "' but got '" + message + "'" ;
+             fail(msg);
+         } 
+     }
+     
+     
     /**
 	 * Utility method to copy a file form local filesystem to the dfs on
 	 * the minicluster for testing in mapreduce mode
