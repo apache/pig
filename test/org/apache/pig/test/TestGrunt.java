@@ -522,7 +522,7 @@ public class TestGrunt extends TestCase {
 
     @Test
     public void testIllustrateScript() throws Throwable {
-        PigServer server = new PigServer(ExecType.LOCAL, cluster.getProperties());
+        PigServer server = new PigServer(ExecType.LOCAL, new Properties());
         PigContext context = server.getPigContext();
         
         String strCmd = "illustrate -script "
@@ -538,7 +538,7 @@ public class TestGrunt extends TestCase {
 
     @Test
     public void testIllustrateScript2() throws Throwable {
-        PigServer server = new PigServer(ExecType.LOCAL, cluster.getProperties());
+        PigServer server = new PigServer(ExecType.LOCAL, new Properties());
         PigContext context = server.getPigContext();
         
         String strCmd = "illustrate -script "
@@ -554,7 +554,7 @@ public class TestGrunt extends TestCase {
     
     @Test
     public void testIllustrateScript3() throws Throwable {
-        PigServer server = new PigServer(ExecType.LOCAL, cluster.getProperties());
+        PigServer server = new PigServer(ExecType.LOCAL, new Properties());
         PigContext context = server.getPigContext();
         
         String strCmd = "illustrate -script "
@@ -571,7 +571,7 @@ public class TestGrunt extends TestCase {
     @Test
     public void testIllustrateScript4() throws Throwable {
         // empty line/field test
-        PigServer server = new PigServer(ExecType.LOCAL, cluster.getProperties());
+        PigServer server = new PigServer(ExecType.LOCAL, new Properties());
         PigContext context = server.getPigContext();
         
         String strCmd = "illustrate -script "
@@ -588,7 +588,7 @@ public class TestGrunt extends TestCase {
     @Test
     public void testIllustrateScript5() throws Throwable {
         // empty line/field test
-        PigServer server = new PigServer(ExecType.LOCAL, cluster.getProperties());
+        PigServer server = new PigServer(ExecType.LOCAL, new Properties());
         PigContext context = server.getPigContext();
         
         String strCmd = "illustrate -script "
@@ -605,7 +605,7 @@ public class TestGrunt extends TestCase {
     @Test
     public void testIllustrateScript6() throws Throwable {
         // empty line/field test
-        PigServer server = new PigServer(ExecType.LOCAL, cluster.getProperties());
+        PigServer server = new PigServer(ExecType.LOCAL, new Properties());
         PigContext context = server.getPigContext();
         
         String strCmd = "illustrate -script "
@@ -622,7 +622,7 @@ public class TestGrunt extends TestCase {
     @Test
     public void testIllustrateScript7() throws Throwable {
         // empty line/field test
-        PigServer server = new PigServer(ExecType.LOCAL, cluster.getProperties());
+        PigServer server = new PigServer(ExecType.LOCAL, new Properties());
         PigContext context = server.getPigContext();
         
         String strCmd = "illustrate -script "

@@ -34,12 +34,12 @@ import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigOutputFormat;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.OperatorKey;
-
 
 
 public class PigFile {
@@ -70,7 +70,7 @@ public class PigFile {
     public void store(DataBag data, FuncSpec storeFuncSpec, PigContext pigContext) throws IOException {
         Configuration conf = ConfigurationUtil.toConfiguration(pigContext.getProperties());
         // create a simulated JobContext
-        JobContext jc = new JobContext(conf, new JobID());
+        JobContext jc = HadoopShims.createJobContext(conf, new JobID());
         StoreFuncInterface sfunc = (StoreFuncInterface)PigContext.instantiateFuncFromSpec(
                 storeFuncSpec);
         OutputFormat<?,?> of = sfunc.getOutputFormat();
@@ -80,7 +80,7 @@ public class PigFile {
         PigOutputFormat.setLocation(jc, store);
         OutputCommitter oc;
         // create a simulated TaskAttemptContext
-        TaskAttemptContext tac = new TaskAttemptContext(conf, new TaskAttemptID());
+        TaskAttemptContext tac = HadoopShims.createTaskAttemptContext(conf, new TaskAttemptID());
         PigOutputFormat.setLocation(tac, store);
         RecordWriter<?,?> rw ;
         try {
