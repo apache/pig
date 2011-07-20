@@ -55,6 +55,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserComparisonFunc;
 import org.apache.pig.impl.plan.NodeIdGenerator;
+import org.apache.pig.impl.util.Utils;
 import org.apache.pig.test.utils.GenPhyOp;
 import org.junit.After;
 import org.junit.Before;
@@ -1117,5 +1118,26 @@ public class TestMRCompiler extends junit.framework.TestCase {
         MapReduceOper mrOper = mrPlan.getRoots().get(0);
         
         assertTrue(mrOper.UDFs.contains(TestIndexableLoadFunc.class.getName()));
+    }
+    
+    //PIG-2146
+    @Test
+    public void testSchemaInStoreForDistinctLimit() throws Exception {
+        //test if the POStore in the 2nd mr plan (that stores the actual output)
+        // has a schema 
+        String query = "a = load 'input1' as (a : int,b :float ,c : int);" + 
+            "b  = distinct a;" +
+            "c = limit b 10;" +
+            "store c into 'output';";
+        
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
+        MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
+        MapReduceOper secondMrOper = mrPlan.getLeaves().get(0);
+        POStore store = (POStore)secondMrOper.reducePlan.getLeaves().get(0);
+        assertEquals(
+                "compare load and store schema", 
+                store.getSchema(), 
+                Utils.getSchemaFromString("a : int,b :float ,c : int")
+        );
     }
 }
