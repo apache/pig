@@ -2920,6 +2920,7 @@ public class MRCompiler extends PhyPlanVisitor {
                 POStore st = getStore();
                 st.setSFile(oldSpec);
                 st.setIsTmpStore(oldIsTmpStore);
+                st.setSchema(((POStore)mpLeaf).getSchema());
                 limitAdjustMROp.reducePlan.addAsLeaf(st);
                 limitAdjustMROp.requestedParallelism = 1;
                 limitAdjustMROp.setLimitOnly(true);
