@@ -69,8 +69,8 @@ See http://forrest.apache.org/docs/linking.html for more info
     </docs>
      
  <external-refs> 
-    <wiki      href="http://wiki.apache.org/pig/" />
-    <faq       href="http://wiki.apache.org/pig/FAQ" />
+    <wiki      href="https://cwiki.apache.org/confluence/display/PIG" />
+    <faq       href="https://cwiki.apache.org/confluence/display/PIG/FAQ" />
     <relnotes  href="http://hadoop.apache.org/pig/releases.html" />
     <jdiff     href="jdiff/">
     <changes href="changes.html" />
