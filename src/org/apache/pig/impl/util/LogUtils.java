@@ -169,7 +169,8 @@ public class LogUtils {
             log.error(bs.toString());
         } finally {
             try {
-                fos.close();
+                if (fos!=null)
+                    fos.close();
             } catch (IOException e) {
             }
         }
