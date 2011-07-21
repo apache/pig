@@ -23,7 +23,7 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.eclipse.jdt.internal.core.Assert;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -54,7 +54,7 @@ public class TestLimitSchemaStore{
         pigServer.registerQuery("b = LOAD '" + outFile + "' using PigStorage('\\t', '-schema');");
         Schema genSchema = pigServer.dumpSchema("b");
         System.err.println(genSchema);
-        Assert.isNotNull(genSchema);
+        Assert.assertNotNull(genSchema);
         
     } 
   
