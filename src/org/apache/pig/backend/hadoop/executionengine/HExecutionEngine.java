@@ -64,7 +64,8 @@ import org.apache.pig.pen.POOptimizeDisabler;
 public class HExecutionEngine {
     
     public static final String JOB_TRACKER_LOCATION = "mapred.job.tracker";
-    private static final String FILE_SYSTEM_LOCATION = "fs.defaultFS";
+    private static final String FILE_SYSTEM_LOCATION = "fs.default.name";
+    private static final String ALTERNATIVE_FILE_SYSTEM_LOCATION = "fs.defaultFS";
     
     private static final String HADOOP_SITE = "hadoop-site.xml";
     private static final String CORE_SITE = "core-site.xml";
@@ -175,10 +176,14 @@ public class HExecutionEngine {
             
             properties.setProperty(JOB_TRACKER_LOCATION, LOCAL );
             properties.setProperty(FILE_SYSTEM_LOCATION, "file:///");
+            properties.setProperty(ALTERNATIVE_FILE_SYSTEM_LOCATION, "file:///");
         }
         
         cluster = properties.getProperty(JOB_TRACKER_LOCATION);
         nameNode = properties.getProperty(FILE_SYSTEM_LOCATION);
+        if (nameNode==null)
+            nameNode = (String)pigContext.getProperties().get(ALTERNATIVE_FILE_SYSTEM_LOCATION);
+
 
         if (cluster != null && cluster.length() > 0) {
             if(!cluster.contains(":") && !cluster.equalsIgnoreCase(LOCAL)) {
