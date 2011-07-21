@@ -21,6 +21,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -40,7 +41,7 @@ public class TestCSVStorage {
     
     public TestCSVStorage() throws ExecException, IOException {
         cluster = MiniCluster.buildCluster();
-        pigServer = new PigServer(ExecType.LOCAL, cluster.getProperties());
+        pigServer = new PigServer(ExecType.LOCAL, new Properties());
         pigServer.getPigContext().getProperties()
                 .setProperty("mapred.map.max.attempts", "1");
         pigServer.getPigContext().getProperties()
