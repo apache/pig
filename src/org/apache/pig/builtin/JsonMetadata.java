@@ -20,6 +20,8 @@ package org.apache.pig.builtin;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -29,6 +31,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.Expression;
+import org.apache.pig.LoadFunc;
 import org.apache.pig.LoadMetadata;
 import org.apache.pig.StoreMetadata;
 import org.apache.pig.ResourceSchema;
@@ -70,9 +73,10 @@ public class JsonMetadata implements LoadMetadata, StoreMetadata {
     }
 
     /**.
-     * Given a path, which may represent a glob pattern, a directory, or a file, this method
-     * finds the set of relevant metadata files on the storage system. The algorithm for finding the
-     * metadata file is as follows:
+     * Given a path, which may represent a glob pattern, a directory, 
+     * comma separated files/glob patterns or a file, this method
+     * finds the set of relevant metadata files on the storage system. 
+     * The algorithm for finding the metadata file is as follows:
      * <p>
      * For each file represented by the path (either directly, or via a glob):
      *   If parentPath/prefix.fileName exists, use that as the metadata file.
@@ -90,38 +94,47 @@ public class JsonMetadata implements LoadMetadata, StoreMetadata {
      */
     protected Set<ElementDescriptor> findMetaFile(String path, String prefix, Configuration conf)
         throws IOException {
-        DataStorage storage = new HDataStorage(ConfigurationUtil.toProperties(conf));
-        String fullPath = FileLocalizer.fullPath(path, storage);
         Set<ElementDescriptor> metaFileSet = new HashSet<ElementDescriptor>();
-        if(storage.isContainer(fullPath)) {
-            ElementDescriptor metaFilePath = storage.asElement(fullPath, prefix);
-            if (metaFilePath.exists()) {
-                metaFileSet.add(metaFilePath);
+        String[] locations = LoadFunc.getPathStrings(path);
+        for (String loc : locations) {
+            DataStorage storage;
+            try {
+                storage = new HDataStorage(new URI(loc), ConfigurationUtil.toProperties(conf));
+            } catch (URISyntaxException e) {
+                throw new IOException("Unable to read " + loc, e);
             }
-        } else {
-            ElementDescriptor[] descriptors = storage.asCollection(path);
-            for(ElementDescriptor descriptor : descriptors) {
-                String fileName = null, parentName = null;
-                ContainerDescriptor parentContainer = null;
-                if (descriptor instanceof HFile) {
-                    Path descriptorPath = ((HFile) descriptor).getPath();
-                    fileName = descriptorPath.getName();
-                    Path parent = descriptorPath.getParent();
-                    parentName = parent.toString();
-                    parentContainer = new HDirectory((HDataStorage)storage,parent);
-                }
-                ElementDescriptor metaFilePath = storage.asElement(parentName, prefix+"."+fileName);
+            String fullPath = FileLocalizer.fullPath(loc, storage);
 
-                // if the file has a custom schema, use it
+            if(storage.isContainer(fullPath)) {
+                ElementDescriptor metaFilePath = storage.asElement(fullPath, prefix);
                 if (metaFilePath.exists()) {
                     metaFileSet.add(metaFilePath);
-                    continue;
                 }
+            } else {
+                ElementDescriptor[] descriptors = storage.asCollection(loc);
+                for(ElementDescriptor descriptor : descriptors) {
+                    String fileName = null, parentName = null;
+                    ContainerDescriptor parentContainer = null;
+                    if (descriptor instanceof HFile) {
+                        Path descriptorPath = ((HFile) descriptor).getPath();
+                        fileName = descriptorPath.getName();
+                        Path parent = descriptorPath.getParent();
+                        parentName = parent.toString();
+                        parentContainer = new HDirectory((HDataStorage)storage,parent);
+                    }
+                    ElementDescriptor metaFilePath = storage.asElement(parentName, prefix+"."+fileName);
 
-                // if no custom schema, try the parent directory
-                metaFilePath = storage.asElement(parentContainer, prefix);
-                if (metaFilePath.exists()) {
-                    metaFileSet.add(metaFilePath);
+                    // if the file has a custom schema, use it
+                    if (metaFilePath.exists()) {
+                        metaFileSet.add(metaFilePath);
+                        continue;
+                    }
+
+                    // if no custom schema, try the parent directory
+                    metaFilePath = storage.asElement(parentContainer, prefix);
+                    if (metaFilePath.exists()) {
+                        metaFileSet.add(metaFilePath);
+                    }
                 }
             }
         }

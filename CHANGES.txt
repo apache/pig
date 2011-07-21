@@ -89,6 +89,8 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 
 BUG FIXES
 
+PIG-2179: tests in TestLoad are failing (thejas)
+
 PIG-2146: POStore.getSchema() returns null because of which PigOutputCommitter 
  is not storing schema while cleanup (thejas)
 

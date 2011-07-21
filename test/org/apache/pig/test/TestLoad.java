@@ -258,8 +258,8 @@ public class TestLoad extends junit.framework.TestCase {
     
     @Test
     public void testNonDfsLocation() throws Exception {
-        String nonDfsUrl = "har://hdfs-namenode/user/foo/";
-        String query = "a = load '" + nonDfsUrl + "';" +
+        String nonDfsUrl = "har:///user/foo/f.har";
+        String query = "a = load '" + nonDfsUrl + "' using PigStorage('\t','-noschema');" +
                        "store a into 'output';";
         LogicalPlan lp = Util.buildLp(servers[1], query);
         LOLoad load = (LOLoad) lp.getSources().get(0);
