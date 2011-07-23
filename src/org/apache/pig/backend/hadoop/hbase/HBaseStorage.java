@@ -385,7 +385,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
    * is available for unit testing. Ideally, the unit tests and the main source
    * would each mirror the same package structure and this method could be package
    * private.
-   * @return
+   * @return ColumnInfo
    */
     public List<ColumnInfo> getColumnInfoList() {
       return columnInfo_;
