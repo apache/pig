@@ -105,6 +105,9 @@ INTO : 'INTO'
 IF : 'IF'
 ;
 
+OTHERWISE : 'OTHERWISE'
+;
+
 ALL : 'ALL'
 ;
 

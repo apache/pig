@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1904: Default split destination (azaroth via thejas)
+
 PIG-2125: Make Pig work with hadoop .NEXT (daijy)
 
 PIG-2143: Make PigStorage optionally store schema; improve docs. (dvryaboy) 

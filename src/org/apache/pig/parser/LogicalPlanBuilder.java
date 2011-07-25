@@ -60,6 +60,8 @@ import org.apache.pig.newplan.logical.expression.ConstantExpression;
 import org.apache.pig.newplan.logical.expression.LessThanExpression;
 import org.apache.pig.newplan.logical.expression.LogicalExpression;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
+import org.apache.pig.newplan.logical.expression.NotExpression;
+import org.apache.pig.newplan.logical.expression.OrExpression;
 import org.apache.pig.newplan.logical.expression.ProjectExpression;
 import org.apache.pig.newplan.logical.expression.UserFuncExpression;
 import org.apache.pig.newplan.logical.relational.LOCogroup;
@@ -85,6 +87,7 @@ import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
+import org.apache.pig.newplan.logical.rules.OptimizerUtils;
 import org.apache.pig.newplan.logical.visitor.ProjectStarExpander;
 
 public class LogicalPlanBuilder {
@@ -213,6 +216,48 @@ public class LogicalPlanBuilder {
             LogicalExpressionPlan filterPlan) {
         op.setFilterPlan( filterPlan );
         return buildOp ( loc, op, alias, inputAlias, null );
+    }
+    
+    String buildSplitOtherwiseOp(SourceLocation loc, LOSplitOutput op, String alias, String inputAlias)
+            throws ParserValidationException, PlanGenerationFailureException {
+        LogicalExpressionPlan splitPlan = new LogicalExpressionPlan();
+        Operator losplit = lookupOperator(inputAlias);
+        LogicalExpression currentExpr = null;
+        for (Operator losplitoutput : plan.getSuccessors(losplit)) {
+            // take all the LOSplitOutput and negate their filter plans
+            LogicalExpressionPlan fragment = ((LOSplitOutput) losplitoutput)
+                    .getFilterPlan();
+            try {
+                if (OptimizerUtils.planHasNonDeterministicUdf(fragment))
+                    throw new ParserValidationException(
+                            intStream, loc, new FrontendException(op,
+                                    "Can not use Otherwise in Split with an expression containing a @Nondeterministic UDF", 1131));
+            } catch (FrontendException e) {
+                e.printStackTrace();
+                throw new PlanGenerationFailureException(intStream, loc, e);
+            }
+            LogicalExpression root = null;
+            try {
+                // get the root expression of the filter plan in LOSplitOutput and copy it
+                root = ((LogicalExpression) fragment.getSources().get(0))
+                        .deepCopy(splitPlan);
+            } catch (FrontendException e) {
+                e.printStackTrace();
+                throw new PlanGenerationFailureException(intStream, loc, e);
+            }
+            if (root == null)
+                throw new PlanGenerationFailureException(intStream, loc,
+                        new FrontendException(op,
+                                "Could not retrieve LogicalExpression for LOSplitOutput " + losplitoutput, 2048));
+            if (currentExpr == null)
+                currentExpr = root;
+            else
+                currentExpr = new OrExpression(splitPlan, currentExpr, root);
+        }
+        // using De Morgan's law (!A && !B) == !(A || B)
+        currentExpr = new NotExpression(splitPlan, currentExpr);
+        op.setFilterPlan(splitPlan);
+        return buildOp(loc, op, alias, inputAlias, null);
     }
     
     String buildCrossOp(SourceLocation loc, String alias, List<String> inputAliases, String partitioner) {

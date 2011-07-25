@@ -1326,7 +1326,7 @@ split_clause
           SourceLocation loc = new SourceLocation( (PigParserNode)$SPLIT );
           $statement::inputAlias = builder.buildSplitOp( loc, $statement::inputAlias );
       } 
-      split_branch+
+      split_branch+ split_otherwise?
     )
 ;
 
@@ -1342,6 +1342,19 @@ scope GScope;
        builder.buildSplitOutputOp( loc, (LOSplitOutput)$GScope::currentOp, $alias.name,
            $statement::inputAlias, splitPlan );
    }
+;
+
+split_otherwise throws PlanValidationException, PlanGenerationFailureException
+scope GScope;
+@init {
+    $GScope::currentOp = builder.createSplitOutputOp();
+}
+ : ^( OTHERWISE alias ) 
+  {
+       SourceLocation loc = new SourceLocation( (PigParserNode)$alias.start );
+       builder.buildSplitOtherwiseOp( loc, (LOSplitOutput)$GScope::currentOp, $alias.name,
+           $statement::inputAlias);
+  }
 ;
 
 col_ref[LogicalExpressionPlan plan] returns[LogicalExpression expr]
