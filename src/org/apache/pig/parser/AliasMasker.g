@@ -479,11 +479,15 @@ mr_clause
 ;
 
 split_clause 
-    : ^( SPLIT rel split_branch split_branch+ )
+    : ^( SPLIT rel split_branch+ split_otherwise? )
 ;
 
 split_branch
     : ^( SPLIT_BRANCH alias cond )
+;
+
+split_otherwise 
+    : ^( OTHERWISE alias ) 
 ;
 
 col_ref : alias_col_ref | dollar_col_ref

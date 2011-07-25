@@ -608,12 +608,16 @@ stream_clause : STREAM^ rel THROUGH! ( EXECCOMMAND | alias ) as_clause?
 mr_clause : MAPREDUCE^ QUOTEDSTRING ( LEFT_PAREN! path_list RIGHT_PAREN! )? store_clause load_clause EXECCOMMAND?
 ;
 
-split_clause : SPLIT rel INTO split_branch ( COMMA split_branch )+
-            -> ^( SPLIT rel split_branch+ )
+split_clause : SPLIT rel INTO split_branch ( ( COMMA split_branch )+ | ( ( COMMA split_branch )* COMMA split_otherwise ) )
+            -> ^( SPLIT rel split_branch+ split_otherwise?)
 ;
 
 split_branch : alias IF cond
             -> ^( SPLIT_BRANCH alias cond )
+;
+
+split_otherwise : alias OTHERWISE
+            -> ^( OTHERWISE alias )
 ;
 
 col_ref : alias_col_ref | dollar_col_ref

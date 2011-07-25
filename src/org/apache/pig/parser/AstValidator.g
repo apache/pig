@@ -470,11 +470,17 @@ stream_clause : ^( STREAM rel ( EXECCOMMAND | IDENTIFIER ) as_clause? )
 mr_clause : ^( MAPREDUCE QUOTEDSTRING path_list? store_clause load_clause EXECCOMMAND? )
 ;
 
-split_clause : ^( SPLIT rel split_branch+ )
+split_clause : ^( SPLIT rel split_branch+ split_otherwise? )
 ;
 
 split_branch
  : ^( SPLIT_BRANCH alias cond )
+   {
+       aliases.add( $alias.name );
+   }
+;
+
+split_otherwise 	: ^( OTHERWISE alias )
    {
        aliases.add( $alias.name );
    }
