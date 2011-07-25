@@ -17,11 +17,18 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.Properties;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.data.DataType;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.newplan.logical.expression.AndExpression;
@@ -39,6 +46,7 @@ import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.newplan.logical.relational.LOJoin.JOINTYPE;
 import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
+import org.junit.Before;
 import org.junit.Test;
 
 import junit.framework.TestCase;
@@ -46,7 +54,18 @@ import junit.framework.TestCase;
 /**
  * Test end to end logical optimizations.
  */
-public class TestNewPlanLogicalOptimizer extends TestCase {
+public class TestNewPlanLogicalOptimizer {
+    
+    Configuration conf = null;
+    
+    @Before
+    public void setUp() throws Exception {
+        PigContext pc = new PigContext(ExecType.LOCAL, new Properties());
+        pc.connect();
+        conf = new Configuration(
+                ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration())
+                );
+    }
     
     @Test
     public void testFilterPushDown() throws IOException {
@@ -65,7 +84,7 @@ public class TestNewPlanLogicalOptimizer extends TestCase {
             	"x", null, DataType.BYTEARRAY));
         	aschema.addField(new LogicalSchema.LogicalFieldSchema(
             	"y", null, DataType.BYTEARRAY));
-        	LOLoad A = new LOLoad(new FileSpec("bla", new FuncSpec("PigStorage", "\t")), aschema, lp, null);
+        	LOLoad A = new LOLoad(new FileSpec("bla", new FuncSpec("PigStorage", "\t")), aschema, lp, conf);
         	A.setAlias("A");
         	lp.add(A);
 	        
@@ -75,7 +94,7 @@ public class TestNewPlanLogicalOptimizer extends TestCase {
             	"a", null, DataType.BYTEARRAY));
         	bschema.addField(new LogicalSchema.LogicalFieldSchema(
             	"b", null, DataType.BYTEARRAY));
-        	LOLoad B = new LOLoad(new FileSpec("morebla", new FuncSpec("PigStorage", "\t")), bschema, lp, null);
+        	LOLoad B = new LOLoad(new FileSpec("morebla", new FuncSpec("PigStorage", "\t")), bschema, lp, conf);
         	B.setAlias("B");
         	lp.add(B);
 	        
@@ -141,7 +160,7 @@ public class TestNewPlanLogicalOptimizer extends TestCase {
             	"x", null, DataType.BYTEARRAY));
         	aschema.addField(new LogicalSchema.LogicalFieldSchema(
             	"y", null, DataType.BYTEARRAY));
-        	LOLoad A = new LOLoad(new FileSpec("bla", new FuncSpec("PigStorage", "\t")), aschema, expected, null);
+        	LOLoad A = new LOLoad(new FileSpec("bla", new FuncSpec("PigStorage", "\t")), aschema, expected, conf);
         	expected.add(A);
         	
         	// DA = filter
@@ -167,7 +186,7 @@ public class TestNewPlanLogicalOptimizer extends TestCase {
             	"a", null, DataType.BYTEARRAY));
         	bschema.addField(new LogicalSchema.LogicalFieldSchema(
             	"b", null, DataType.BYTEARRAY));
-        	LOLoad B = new LOLoad(new FileSpec("morebla", new FuncSpec("PigStorage", "\t")), bschema, expected, null);
+        	LOLoad B = new LOLoad(new FileSpec("morebla", new FuncSpec("PigStorage", "\t")), bschema, expected, conf);
         	expected.add(B);
         	
         	// DB = filter
@@ -246,7 +265,6 @@ public class TestNewPlanLogicalOptimizer extends TestCase {
         
         
         assertTrue( lp.isEqual(expected) );
-        // assertEquals(lp, expected);
     }
 
 }

@@ -79,7 +79,8 @@ import org.apache.pig.parser.ParserException;
  * An optional second constructor argument is provided that allows one to customize
  * advanced behaviors. A list of available options is below:
  * <ul>
- * <li><code>-schema</code> Stores the schema of the relation using a hidden JSON file.
+ * <li><code>-schema</code> Reads/Stores the schema of the relation using a 
+ *  hidden JSON file.
  * <li><code>-noschema</code> Ignores a stored schema during loading.
  * </ul>
  * <p>
@@ -89,6 +90,8 @@ import org.apache.pig.parser.ParserException;
  * field names and types of the data without the need for a user to explicitly provide the schema in an
  * <code>as</code> clause, unless <code>-noschema</code> is specified. No attempt to merge conflicting
  * schemas is made during loading. The first schema encountered during a file system scan is used.
+ * If the schema file is not present while '-schema' option is used during loading, 
+ * it results in an error.
  * <p>
  * In addition, using <code>-schema</code> drops a ".pig_headers" file in the output directory.
  * This file simply lists the delimited aliases. This is intended to make export to tools that can read
@@ -121,7 +124,7 @@ LoadPushDown, LoadMetadata, StoreMetadata {
     private TupleFactory mTupleFactory = TupleFactory.getInstance();
     private String loadLocation;
 
-    boolean storeSchema = false;
+    boolean isSchemaOn = false;
     boolean dontLoadSchema = false;
     protected ResourceSchema schema;
     protected LoadCaster caster;
@@ -172,7 +175,7 @@ LoadPushDown, LoadMetadata, StoreMetadata {
         String[] optsArr = options.split(" ");
         try {
             configuredOptions = parser.parse(validOptions, optsArr);
-            storeSchema = configuredOptions.hasOption("schema");
+            isSchemaOn = configuredOptions.hasOption("schema");
             dontLoadSchema = configuredOptions.hasOption("noschema");
         } catch (ParseException e) {
             HelpFormatter formatter = new HelpFormatter();
@@ -382,6 +385,8 @@ LoadPushDown, LoadMetadata, StoreMetadata {
         if (codec != null) {
             FileOutputFormat.setCompressOutput(job, true);
             FileOutputFormat.setOutputCompressorClass(job, codec.getClass());
+        }else {
+            FileOutputFormat.setCompressOutput(job, false);  
         }
     }
 
@@ -430,7 +435,7 @@ LoadPushDown, LoadMetadata, StoreMetadata {
     public ResourceSchema getSchema(String location,
             Job job) throws IOException {
         if (!dontLoadSchema) {
-            schema = (new JsonMetadata()).getSchema(location, job);
+            schema = (new JsonMetadata()).getSchema(location, job, isSchemaOn);
 
             if (signature != null && schema != null) {
                 Properties p = UDFContext.getUDFContext().getUDFProperties(this.getClass(),
@@ -464,7 +469,7 @@ LoadPushDown, LoadMetadata, StoreMetadata {
     @Override
     public void storeSchema(ResourceSchema schema, String location,
             Job job) throws IOException {
-        if (storeSchema) {
+        if (isSchemaOn) {
             JsonMetadata metadataWriter = new JsonMetadata();
             byte recordDel = '\n';
             metadataWriter.setFieldDel(fieldDel);

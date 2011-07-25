@@ -33,6 +33,7 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.Expression;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.LoadMetadata;
+import org.apache.pig.PigException;
 import org.apache.pig.StoreMetadata;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceStatistics;
@@ -44,6 +45,7 @@ import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.backend.hadoop.datastorage.HDirectory;
 import org.apache.pig.backend.hadoop.datastorage.HFile;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.JsonMappingException;
@@ -154,6 +156,7 @@ public class JsonMetadata implements LoadMetadata, StoreMetadata {
             throws IOException {
     }
 
+    
     /**
      * For JsonMetadata schema is considered optional
      * This method suppresses (and logs) errors if they are encountered.
@@ -161,13 +164,26 @@ public class JsonMetadata implements LoadMetadata, StoreMetadata {
      */
     @Override
     public ResourceSchema getSchema(String location, Job job) throws IOException {
+        return getSchema(location, job, false);
+    }
+    
+    /**
+     * Read the schema from json metadata file
+     * If isSchemaOn parameter is false, the errors are suppressed and logged
+     * @param location
+     * @param job
+     * @param isSchemaOn
+     * @return schema
+     * @throws IOException
+     */
+    public ResourceSchema getSchema(String location, Job job, boolean isSchemaOn) throws IOException {
         Configuration conf = job.getConfiguration();
         Set<ElementDescriptor> schemaFileSet = null;
         try {
             schemaFileSet = findMetaFile(location, schemaFileName, conf);
         } catch (IOException e) {
-            log.warn("Could not find schema file for "+ location);
-            return null;
+            String msg = "Could not find schema file for "+ location;
+            return nullOrException(isSchemaOn, msg, e);
         }
 
         // TODO we assume that all schemas are the same. The question of merging schemas is left open for now.
@@ -175,24 +191,35 @@ public class JsonMetadata implements LoadMetadata, StoreMetadata {
         if (!schemaFileSet.isEmpty()) {
             schemaFile = schemaFileSet.iterator().next();
         } else {
-            log.warn("Could not find schema file for "+location);
-            return null;
+            String msg = "Could not find schema file for "+location;
+            return nullOrException(isSchemaOn, msg, null);
         }
         log.debug("Found schema file: "+schemaFile.toString());
         ResourceSchema resourceSchema = null;
         try {
             resourceSchema = new ObjectMapper().readValue(schemaFile.open(), ResourceSchema.class);
         } catch (JsonParseException e) {
-            log.warn("Unable to load Resource Schema for "+location);
-            e.printStackTrace();
+            String msg = "Unable to load Resource Schema for "+location;
+            return nullOrException(isSchemaOn, msg, e);
         } catch (JsonMappingException e) {
-            log.warn("Unable to load Resource Schema for "+location);
-            e.printStackTrace();
+            String msg = "Unable to load Resource Schema for "+location;
+            return nullOrException(isSchemaOn, msg, e);
         } catch (IOException e) {
-            log.warn("Unable to load Resource Schema for "+location);
-            e.printStackTrace();
+            String msg = "Unable to load Resource Schema for "+location;
+            return nullOrException(isSchemaOn, msg, e);
         }
         return resourceSchema;
+    }
+
+    private ResourceSchema nullOrException(boolean isSchemaOn, String msg,
+            IOException e) throws FrontendException {
+        if(isSchemaOn){
+            throw  new FrontendException(msg, 1131, PigException.INPUT, e);
+        }
+        //a valid schema file was probably not expected, so just log a 
+        //debug message and return null
+        log.debug(msg);
+        return null;
     }
 
     /**

@@ -42,10 +42,12 @@ import java.util.Properties;
 
 import junit.framework.Assert;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigServer;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
@@ -131,6 +133,7 @@ public class TestTypeCheckingValidatorNewLP {
      */
     @Before
     public void setUp() throws Exception {
+        pc.connect();
     }
 
     private static final String simpleEchoStreamingCommand;
@@ -793,12 +796,12 @@ public class TestTypeCheckingValidatorNewLP {
             
             LOLoad load1 = new LOLoad(
                     new FileSpec("pi", new FuncSpec(pigStorage)),
-                    null, plan, null
+                    null, plan, new Configuration(ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration()))
             );
                 
             LOLoad load2 = new LOLoad(
                     new FileSpec("pi", new FuncSpec(pigStorage)),
-                    null, plan, null
+                    null, plan, new Configuration(ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration()))
             );
 //                
 //                new LOLoad(plan,
@@ -928,12 +931,12 @@ public class TestTypeCheckingValidatorNewLP {
             
             LOLoad load1 = new LOLoad(
                     new FileSpec("pi", new FuncSpec(pigStorage)),
-                    null, plan, null
+                    null, plan, new Configuration(ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration()))
             );
                 
             LOLoad load2 = new LOLoad(
                     new FileSpec("pi", new FuncSpec(pigStorage)),
-                    null, plan, null
+                    null, plan, new Configuration(ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration()))
             );
   
             // schema for input#1
@@ -1036,7 +1039,7 @@ public class TestTypeCheckingValidatorNewLP {
     
             LOLoad load1 = new LOLoad(
                     new FileSpec("pi", new FuncSpec(pigStorage)),
-                    null, plan, null
+                    null, plan, new Configuration(ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration()))
             );
     
             // schema for input#1
@@ -1104,7 +1107,7 @@ public class TestTypeCheckingValidatorNewLP {
 
             LOLoad load1 = new LOLoad(
                     new FileSpec("pi", new FuncSpec(pigStorage)),
-                    null, plan, null
+                    null, plan, new Configuration(ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration()))
             );
             // schema for input#1
             Schema inputSchema1 = null ;
@@ -1167,7 +1170,7 @@ public class TestTypeCheckingValidatorNewLP {
 
             LOLoad load1 = new LOLoad(
                     new FileSpec("pi", new FuncSpec(pigStorage)),
-                    null, plan, null
+                    null, plan, new Configuration(ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration()))
             );
             
             // schema for input#1
@@ -1229,7 +1232,7 @@ public class TestTypeCheckingValidatorNewLP {
     
             LOLoad load1 = new LOLoad(
                     new FileSpec("pi", new FuncSpec(pigStorage)),
-                    null, plan, null
+                    null, plan, new Configuration(ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration()))
             );
 
     
@@ -1319,7 +1322,7 @@ public class TestTypeCheckingValidatorNewLP {
     
             LOLoad load1 =  new LOLoad(
                     new FileSpec("pi", new FuncSpec(pigStorage)),
-                    null, plan, null
+                    null, plan, new Configuration(ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration()))
             );
 
             // schema for input#1
@@ -1404,7 +1407,7 @@ public class TestTypeCheckingValidatorNewLP {
     
             LOLoad load1 =  new LOLoad(
                     new FileSpec("pi", new FuncSpec(pigStorage)),
-                    null, plan, null
+                    null, plan, new Configuration(ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration()))
             );
 
     
@@ -1487,7 +1490,7 @@ public class TestTypeCheckingValidatorNewLP {
 
             LOLoad load1 =  new LOLoad(
                     new FileSpec("pi", new FuncSpec(pigStorage)),
-                    null, plan, null
+                    null, plan, new Configuration(ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration()))
             );
 
             // schema for input#1
@@ -1594,7 +1597,7 @@ public class TestTypeCheckingValidatorNewLP {
 
             LOLoad load1 =  new LOLoad(
                     new FileSpec("pi", new FuncSpec(pigStorage)),
-                    null, plan, null
+                    null, plan, new Configuration(ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration()))
             );
 
             // schema for input#1
@@ -1679,12 +1682,12 @@ public class TestTypeCheckingValidatorNewLP {
     
             LOLoad load1 =  new LOLoad(
                     new FileSpec("pi", new FuncSpec(pigStorage)),
-                    null, plan, null
+                    null, plan, new Configuration(ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration()))
             );
             
             LOLoad load2 =  new LOLoad(
                     new FileSpec("pi", new FuncSpec(pigStorage)),
-                    null, plan, null
+                    null, plan, new Configuration(ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration()))
             );
               
             // schema for input#1
@@ -1817,12 +1820,12 @@ public class TestTypeCheckingValidatorNewLP {
             String pigStorage = PigStorage.class.getName() ;
             LOLoad load1 =  new LOLoad(
                     new FileSpec("pi", new FuncSpec(pigStorage)),
-                    null, plan, null
+                    null, plan, new Configuration(ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration()))
             );
             
             LOLoad load2 =  new LOLoad(
                     new FileSpec("pi", new FuncSpec(pigStorage)),
-                    null, plan, null
+                    null, plan, new Configuration(ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration()))
             );
             // schema for input#1
             Schema inputSchema1 = null ;
@@ -1932,16 +1935,16 @@ public class TestTypeCheckingValidatorNewLP {
             printCurrentMethodName();
             LogicalPlan plan = new LogicalPlan() ;
     
-            String pigStorage = PigStorage.class.getName() ;
+            String pigStorage = PigStorage.class.getName() + "('\\t','-noschema')" ;
     
             LOLoad load1 =  new LOLoad(
                     new FileSpec("pi", new FuncSpec(pigStorage)),
-                    null, plan, null
+                    null, plan, new Configuration(ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration()))
             );
             
             LOLoad load2 =  new LOLoad(
                     new FileSpec("pi", new FuncSpec(pigStorage)),
-                    null, plan, null
+                    null, plan, new Configuration(ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration()))
             );
     
             // schema for input#1
