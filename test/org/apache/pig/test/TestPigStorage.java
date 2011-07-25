@@ -22,6 +22,7 @@ import static org.apache.pig.ExecType.MAPREDUCE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -45,6 +46,7 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.test.utils.TypeCheckingTestUtil;
 import org.junit.After;
@@ -182,11 +184,27 @@ public class TestPigStorage  {
         assertFalse(it.hasNext());
 
     }
+    
+    @Test
+    public void testPigStorageNoSchema() throws Exception {
+        //if the schema file does not exist, and '-schema' option is used
+        // it should result in an error
+        pigContext.connect();
+        String query = "a = LOAD '" + datadir + "originput' using PigStorage('\\t', '-schema') " +
+        "as (f1:chararray, f2:int);";
+        pig.registerQuery(query);
+        try{
+            pig.dumpSchema("a");
+        }catch(FrontendException ex){
+            return;
+        }
+        fail("no exception caught");
+    }
 
     @Test
     public void testPigStorageSchema() throws Exception {
         pigContext.connect();
-        String query = "a = LOAD '" + datadir + "originput' using PigStorage('\\t', '-schema') " +
+        String query = "a = LOAD '" + datadir + "originput' using PigStorage('\\t') " +
         "as (f1:chararray, f2:int);";
         pig.registerQuery(query);
         Schema origSchema = pig.dumpSchema("a");
@@ -227,7 +245,7 @@ public class TestPigStorage  {
                               "5", "5", "8", "8",
                               "8", "9"});
 
-        pig.registerQuery("A = LOAD '" + datadir + "originput2' using PigStorage('\\t', '-schema') " +
+        pig.registerQuery("A = LOAD '" + datadir + "originput2' using PigStorage('\\t') " +
         "as (f:int);");
         pig.registerQuery("B = group A by f;");
         Schema origSchema = pig.dumpSchema("B");
@@ -264,7 +282,7 @@ public class TestPigStorage  {
     @Test
     public void testSchemaConversion2() throws Exception {
 
-        pig.registerQuery("A = LOAD '" + datadir + "originput' using PigStorage(',', '-schema') " +
+        pig.registerQuery("A = LOAD '" + datadir + "originput' using PigStorage(',') " +
         "as (f1:chararray, f2:int);");
         pig.registerQuery("B = group A by f1;");
         Schema origSchema = pig.dumpSchema("B");
@@ -355,7 +373,7 @@ public class TestPigStorage  {
     @Test
     public void testPigStorageSchemaHeaderDelimiter() throws Exception {
         pigContext.connect();
-        String query = "a = LOAD '" + datadir + "originput' using PigStorage(',', '-schema') " +
+        String query = "a = LOAD '" + datadir + "originput' using PigStorage(',') " +
                 "as (foo:chararray, bar:int);";
         pig.registerQuery(query);
         pig.registerQuery("STORE a into '" + datadir + "dout' using PigStorage('#', '-schema');");

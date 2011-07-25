@@ -21,9 +21,15 @@ package org.apache.pig.test.utils;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Properties;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.builtin.PigStorage;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
@@ -34,12 +40,14 @@ import org.apache.pig.newplan.logical.relational.LogicalPlan;
 public class TypeCheckingTestUtil {
 
     public static org.apache.pig.newplan.logical.relational.LOLoad 
-    genDummyLOLoadNewLP( org.apache.pig.newplan.logical.relational.LogicalPlan plan)  {
+    genDummyLOLoadNewLP( org.apache.pig.newplan.logical.relational.LogicalPlan plan) throws ExecException  {
         String pigStorage = PigStorage.class.getName() ;
+        PigContext pc = new PigContext(ExecType.LOCAL, new Properties());
+        pc.connect();
         org.apache.pig.newplan.logical.relational.LOLoad load =
         new org.apache.pig.newplan.logical.relational.LOLoad(
                 new FileSpec("pi", new FuncSpec(pigStorage)),
-                null, plan, null
+                null, plan, new Configuration(ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration()))
         );
         return load ;
     }
