@@ -73,10 +73,6 @@ sub checkPrerequisites
     # Run a quick and easy Hadoop command to make sure we can
     $self->runHadoopCmd($cfg, $log, "fs -ls /");
 
-    # Make sure the database is installed and set up
-    $self->runDbCmd($cfg, $log, 0, "create table test_table(test_col int);");
-    $self->runDbCmd($cfg, $log, 0, "drop table test_table;");
-    
 }
 
 ##############################################################################
@@ -226,9 +222,6 @@ sub generateData
 			"$cfg->{'inpathbase'}/$table->{'hdfs'}";
 		$self->runHadoopCmd($cfg, $log, $hadoop);
 
-		# Load the data in the database
-		my $sql = "-f $table->{'name'}.sql";
-		$self->runDbCmd($cfg, $log, 1, $sql);
     }
 }
 
@@ -325,18 +318,6 @@ sub runHadoopCmd($$$$)
                           
     my @cmd = ("$cfg->{'hadoopdir'}/bin/hadoop");
     push(@cmd, split(' ', $c));
-
-    $self->runCmd($log, \@cmd);
-}
-
-sub runDbCmd($$$$)
-{
-    my ($self, $cfg, $log, $isfile, $sql) = @_;
-
-	my $switch = $isfile ? 'f' : 'c';
-
-    my @cmd = ('psql', '-U', $cfg->{'dbuser'}, '-d', $cfg->{'dbdb'},
-		"-$switch", $sql);
 
     $self->runCmd($log, \@cmd);
 }
