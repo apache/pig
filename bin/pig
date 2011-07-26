@@ -57,20 +57,10 @@ done
 
 # resolve links - $0 may be a softlink
 this="${BASH_SOURCE-$0}"
-while [ -h "$this" ]; do
-    ls=`ls -ld "$this"`
-    link=`expr "$ls" : '.*-> \(.*\)$'`
-    if expr "$link" : '.*/.*' > /dev/null; then
-        this="$link"
-    else
-        this=`dirname "$this"`/"$link"
-    fi
-done
 
 # convert relative path to absolute path
-bin=`dirname "$this"`
-script=`basename "$this"`
-bin=`unset CDPATH; cd "$bin"; pwd`
+bin=$(cd -P -- "$(dirname -- "$this")" && pwd -P)
+script="$(basename -- "$this")"
 this="$bin/$script"
 
 # the root of the Pig installation
@@ -87,9 +77,9 @@ then
         PIG_CONF_DIR=$confdir
     fi
 fi
- 
+
 # Allow alternate conf dir location.
-PIG_CONF_DIR="${PIG_CONF_DIR:-$PIG_HOME/conf}"
+PIG_CONF_DIR="${PIG_CONF_DIR:-$PIG_HOME/etc/pig}"
 
 if [ -f "${PIG_CONF_DIR}/pig-env.sh" ]; then
     . "${PIG_CONF_DIR}/pig-env.sh"
@@ -118,6 +108,11 @@ fi
 CLASSPATH="${PIG_CONF_DIR}"
 CLASSPATH=${CLASSPATH}:$JAVA_HOME/lib/tools.jar
 
+# add user-specified CLASSPATH
+if [ "$PIG_CLASSPATH" != "" ]; then
+    CLASSPATH=${CLASSPATH}:${PIG_CLASSPATH}
+fi
+ 
 # for developers, add Pig classes to CLASSPATH
 if [ -d "$PIG_HOME/build/classes" ]; then
     CLASSPATH=${CLASSPATH}:$PIG_HOME/build/classes
@@ -130,7 +125,7 @@ fi
 IFS=
 
 # for releases, add core pig to CLASSPATH
-for f in $PIG_HOME/pig-*-core.jar; do
+for f in $PIG_HOME/share/pig/pig-*-core.jar; do
     CLASSPATH=${CLASSPATH}:$f;
 done
 
@@ -139,7 +134,58 @@ for f in $PIG_HOME/build/pig-*-SNAPSHOT.jar; do
     CLASSPATH=${CLASSPATH}:$f;
 done
 
-# Set the version for Hadoop, default to 17
+# locate Hadoop
+# For Hadoop 0.20.203+
+#
+if [ -d "${PIG_HOME}/share/hadoop" ]; then
+    for f in ${PIG_HOME}/share/hadoop/hadoop*.jar; do
+        CLASSPATH=${CLASSPATH}:$f;
+    done
+    for f in ${PIG_HOME}/share/hadoop/lib/*.jar; do
+        CLASSPATH=${CLASSPATH}:$f;
+    done
+fi
+
+
+# For Hadoop 0.23.0+
+#
+#if [ -d "${PIG_HOME}/share/hadoop/common" ]; then
+#    for f in ${PIG_HOME}/share/hadoop/common/hadoop*.jar; do
+#        CLASSPATH=${CLASSPATH}:$f;
+#    done
+#fi
+#
+#if [ -d "${PIG_HOME}/share/hadoop/hdfs" ]; then
+#    for f in ${PIG_HOME}/share/hadoop/hdfs/hadoop*.jar; do
+#        CLASSPATH=${CLASSPATH}:$f;
+#    done
+#fi
+#
+#if [ -d "${PIG_HOME}/share/hadoop/mapreduce" ]; then
+#    for f in ${PIG_HOME}/share/hadoop/mapreduce/hadoop*.jar; do
+#        CLASSPATH=${CLASSPATH}:$f;
+#    done
+#fi
+
+if [ -d "${PIG_HOME}/etc/hadoop" ]; then
+    CLASSPATH=${CLASSPATH}:${PIG_HOME}/etc/hadoop;
+fi
+
+# locate ZooKeeper
+if [ -d "${PIG_HOME}/share/zookeeper" ]; then
+    for f in ${PIG_HOME}/share/zookeeper/zookeeper-*.jar; do
+        CLASSPATH=${CLASSPATH}:$f
+    done
+fi
+
+# locate HBase
+if [ -d "${PIG_HOME}/share/hbase" ]; then
+    for f in ${PIG_HOME}/share/hbase/hbase-*.jar; do
+        CLASSPATH=${CLASSPATH}:$f
+    done
+fi
+
+# Set the version for Hadoop, default to 20
 PIG_HADOOP_VERSION="${PIG_HADOOP_VERSION:-20}"
 # add libs to CLASSPATH.    There can be more than one version of the hadoop
 # libraries in the lib dir, so don't blindly add them all.    Only add the one
@@ -160,12 +206,7 @@ done
 # if using HBase, likely want to include HBase config
 HBASE_CONF_DIR=${HBASE_CONF_DIR:-/etc/hbase}
 if [ -n "$HBASE_CONF_DIR" ] && [ -d "$HBASE_CONF_DIR" ]; then
-  CLASSPATH=$HBASE_CONF_DIR:$CLASSPATH
-fi
-
-# add user-specified CLASSPATH last
-if [ "$PIG_CLASSPATH" != "" ]; then
-    CLASSPATH=${CLASSPATH}:${PIG_CLASSPATH}
+    CLASSPATH=$HBASE_CONF_DIR:$CLASSPATH
 fi
 
 # default log directory & file
