@@ -62,7 +62,7 @@ sub printResults
 	my $msg = "$prefix, PASSED: $pass FAILED: $fail SKIPPED: $skipped ABORTED: $abort "
 		. "FAILED DEPENDENCY: $depend";
 	print $log "$msg\n";
- 	print "$msg\r";
+ 	print "$msg\n";
          
 }
 
