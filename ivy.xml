@@ -126,5 +126,8 @@
 
     <dependency org="hsqldb" name="hsqldb" rev="${hsqldb.version}"
       conf="test->default" />
+    <dependency org="org.vafer" name="jdeb" rev="${jdeb.version}"
+      conf="compile->master">
+    </dependency>
     </dependencies>
 </ivy-module>

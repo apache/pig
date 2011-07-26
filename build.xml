@@ -28,11 +28,12 @@
     <!-- name and version properties -->
     <property name="name" value="pig" />
     <property name="Name" value="Pig" />
-	<property name="ant-task.version" value="2.0.10" />
-	<property name="pig.pom" value="${basedir}/ivy/pig.pom" />
-  	<property name="pigsmoke.pom" value="${basedir}/ivy/pigsmoke.pom" />
-  	<property name="pigunit.pom" value="${basedir}/ivy/pigunit.pom" />
-	<property name="version" value="0.10.0-SNAPSHOT" />
+    <property name="ant-task.version" value="2.0.10" />
+    <property name="pig.pom" value="${basedir}/ivy/pig.pom" />
+    <property name="pigsmoke.pom" value="${basedir}/ivy/pigsmoke.pom" />
+    <property name="pigunit.pom" value="${basedir}/ivy/pigunit.pom" />
+    <property name="pig.version" value="0.10.0" />
+    <property name="version" value="${pig.version}-SNAPSHOT" />
     <property name="final.name" value="${name}-${version}" />
 
     <!-- source properties -->
@@ -199,6 +200,14 @@
     <property name="jdiff.xml.dir" value="${lib.dir}/jdiff"/>	
     <property name="jdiff.stable" value="0.8.0"/>
     <property name="jdiff.stable.javadoc" value="http://hadoop.apache.org/${name}/docs/r${jdiff.stable}/api/"/>	
+
+    <!-- Packaging properties -->
+    <property name="package.release" value="1"/>
+    <property name="package.prefix" value="/usr"/>
+    <property name="package.conf.dir" value="/etc/pig"/>
+    <property name="package.log.dir" value="/var/log/pig"/>
+    <property name="package.buildroot" value="/tmp/pig_package_build_${user.name}"/>
+    <property name="package.build.dir" value="/tmp/pig_package_build_${user.name}/BUILD"/>
 
     <!-- ====================================================== -->
     <!-- Stuff needed by all targets                            -->
@@ -426,7 +435,7 @@
     <!-- ================================================================== -->
     <!-- Documentation                                                      -->
     <!-- ================================================================== -->
-    <target name="javadoc" depends="jar, ivy-javadoc" description="Create documentation">
+    <target name="javadoc" depends="jar-withouthadoop, ivy-javadoc" description="Create documentation">
         <mkdir dir="${build.javadoc}" />
         <javadoc overview="${src.dir}/overview.html" packagenames="org.apache.pig.*" destdir="${build.javadoc}" author="true" version="true" use="true" windowtitle="${Name} ${version} API" doctitle="${Name} ${version} API" bottom="Copyright &amp;copy; ${year} The Apache Software Foundation">
             <packageset dir="${src.dir}" />
@@ -759,78 +768,83 @@
     <!-- ================================================================== -->
     <target name="package" depends="docs, api-report" description="Create a Pig release">
         <mkdir dir="${dist.dir}" />
-        <mkdir dir="${dist.dir}/lib" />
-        <mkdir dir="${dist.dir}/conf" />
-        <mkdir dir="${dist.dir}/scripts" />
-        <mkdir dir="${dist.dir}/docs" />
-        <mkdir dir="${dist.dir}/docs/api" />
-        <mkdir dir="${dist.dir}/docs/jdiff"/>
-        <mkdir dir="${dist.dir}/license" />
+        <mkdir dir="${dist.dir}/etc/pig" />
+        <mkdir dir="${dist.dir}/share/pig/scripts" />
+        <mkdir dir="${dist.dir}/share/pig/templates/conf" />
+        <mkdir dir="${dist.dir}/share/doc/pig" />
+        <mkdir dir="${dist.dir}/share/doc/pig/api" />
+        <mkdir dir="${dist.dir}/share/doc/pig/jdiff"/>
+        <mkdir dir="${dist.dir}/share/doc/pig/license" />
 
-        <copy todir="${dist.dir}/lib" includeEmptyDirs="false">
+        <copy todir="${dist.dir}/share/pig/lib" includeEmptyDirs="false">
             <!--fileset dir="${ivy.lib.dir}"/-->
             <fileset dir="${lib.dir}"/>
         </copy>
 
-        <copy file="${output.jarfile.backcompat}" tofile="${dist.dir}/${final.name}-core.jar" />
-
-        <copy todir="${dist.dir}/" file="ivy.xml" />
-
-        <copy todir="${dist.dir}/ivy">
-            <fileset dir="ivy" />
-        </copy>
+        <copy file="${output.jarfile.backcompat}" tofile="${dist.dir}/share/pig/${final.name}-core.jar" />
 
         <copy todir="${dist.dir}/bin">
             <fileset dir="bin" />
         </copy>
 
-        <copy todir="${dist.dir}/docs">
+        <copy todir="${dist.dir}/share/doc/pig">
             <fileset dir="${build.docs}" />
         </copy>
 
-		<copy todir="${dist.dir}/conf" file="conf/pig.properties"/>
+        <copy todir="${dist.dir}/etc/pig" file="conf/pig.properties"/>
 
-        <copy todir="${dist.dir}/src" includeEmptyDirs="true">
-            <fileset dir="${src.dir}" />
-        </copy>
-
-        <copy todir="${dist.dir}/lib-src" includeEmptyDirs="true">
-            <fileset dir="${src.lib.dir}" />
-        </copy>
-
-        <copy todir="${dist.dir}/test" includeEmptyDirs="true">
+        <copy todir="${dist.dir}/share/pig/test" includeEmptyDirs="true">
             <fileset dir="${test.src.dir}" />
         </copy>
 
-        <copy todir="${dist.dir}/tutorial" includeEmptyDirs="true">
+        <copy todir="${dist.dir}/share/pig/tutorial" includeEmptyDirs="true">
             <fileset dir="tutorial" />
         </copy>
 
-        <copy todir="${dist.dir}/contrib" includeEmptyDirs="true">
+        <copy todir="${dist.dir}/share/pig/contrib" includeEmptyDirs="true">
             <fileset dir="contrib" />
         </copy>
 
-        <copy todir="${dist.dir}/" file="build.xml" />
-
-        <copy todir="${dist.dir}">
+        <copy todir="${dist.dir}/share/doc/pig">
             <fileset dir=".">
                 <include name="*.txt" />
             </fileset>
         </copy>
 
-        <copy todir="${dist.dir}/license">
+        <copy todir="${dist.dir}/share/doc/pig/license">
             <fileset dir="license" />
+        </copy>
+
+        <copy todir="${dist.dir}/share/pig/templates/conf">
+            <fileset dir="src/packages/templates/conf"/>
         </copy>
 
         <chmod perm="ugo+x" type="file">
             <fileset dir="${dist.dir}/bin" />
         </chmod>
 
+        <copy file="${basedir}/src/packages/update-pig-env.sh" tofile="${dist.dir}/sbin/update-pig-env.sh"/>
+
     </target>
 
     <!-- ================================================================== -->
-    <!-- Make release tarball                                               -->
+    <!-- Make release packages                                              -->
     <!-- ================================================================== -->
+    <target name="source" description="Source distribution">
+      <mkdir dir="${build.dir}"/>
+      <tar compression="gzip" longfile="gnu" destfile="${build.dir}/${name}-source-${version}.tar.gz">
+          <tarfileset dir="${basedir}" mode="644">
+              <exclude name="bin/*"/>
+              <exclude name="build/**"/>
+              <exclude name="pig.jar"/>
+              <exclude name="src-gen/**"/>
+          </tarfileset>
+          <tarfileset dir="${basedir}" mode="755">
+              <include name="bin/*"/>
+          </tarfileset> 
+      </tar>
+    </target>
+
     <target name="tar" depends="package" description="Create release tarball">
         <tar compression="gzip" longfile="gnu" destfile="${build.dir}/${final.name}.tar.gz">
             <tarfileset dir="${build.dir}" mode="664">
@@ -842,7 +856,94 @@
             </tarfileset>
         </tar>
     </target>
+
+    <target name="rpm" depends="jar-withouthadoop, tar" description="Make rpm package">
+        <mkdir dir="${package.buildroot}/BUILD" />
+        <mkdir dir="${package.buildroot}/RPMS" />
+        <mkdir dir="${package.buildroot}/SRPMS" />
+        <mkdir dir="${package.buildroot}/SOURCES" />
+        <mkdir dir="${package.buildroot}/SPECS" />
+        <copy todir="${package.buildroot}/SOURCES">
+            <fileset dir="${build.dir}">
+                <include name="${final.name}.tar.gz" />
+                <include name="${final.name}-withouthadoop.jar" />
+            </fileset>
+        </copy>
+        <copy file="${src.dir}/packages/rpm/spec/pig.spec" todir="${package.buildroot}/SPECS">
+            <filterchain>
+                <replacetokens>
+                    <token key="final.name" value="${final.name}" />
+                    <token key="version" value="${pig.version}" />
+                    <token key="package.release" value="${package.release}" />
+                    <token key="package.build.dir" value="${package.build.dir}" />
+                    <token key="package.prefix" value="${package.prefix}" />
+                    <token key="package.conf.dir" value="${package.conf.dir}" />
+                    <token key="package.log.dir" value="${package.log.dir}" />
+                </replacetokens>
+            </filterchain>
+        </copy>
+        <rpm specFile="pig.spec" command="-bb" topDir="${package.buildroot}" cleanBuildDir="true" failOnError="true"/>
+        <copy todir="${build.dir}/" flatten="true">
+            <fileset dir="${package.buildroot}/RPMS">
+                <include name="**/${name}*.rpm" />
+            </fileset>
+            <fileset dir="${package.buildroot}/SRPMS">
+                <include name="**/${name}*.rpm" />
+            </fileset>
+        </copy>
+        <delete dir="${package.buildroot}" quiet="true" verbose="false"/>
+    </target>
    
+    <target name="deb" depends="jar-withouthadoop, tar" description="Make deb package">
+        <taskdef name="deb"
+            classname="org.vafer.jdeb.ant.DebAntTask">
+            <classpath refid="classpath" />
+        </taskdef>
+        <mkdir dir="${package.build.dir}/pig.control" />
+        <copy todir="${package.build.dir}/pig.control">
+            <fileset dir="${src.dir}/packages/deb/pig.control">
+                <exclude name="control" />
+            </fileset>
+        </copy>
+        <copy file="${build.dir}/${final.name}-withouthadoop.jar" tofile="${build.dir}/${final.name}/share/pig/${final.name}-core.jar" overwrite="true" />
+        <copy file="${src.dir}/packages/deb/pig.control/control" todir="${package.build.dir}/pig.control">
+            <filterchain>
+                <replacetokens>
+                    <token key="final.name" value="${final.name}" />
+                    <token key="version" value="${pig.version}" />
+                    <token key="package.release" value="${package.release}" />
+                    <token key="package.build.dir" value="${package.build.dir}" />
+                    <token key="package.prefix" value="${package.prefix}" />
+                    <token key="package.conf.dir" value="${package.conf.dir}" />
+                    <token key="package.log.dir" value="${package.log.dir}" />
+                </replacetokens>
+            </filterchain>
+        </copy>
+        <deb destfile="${package.buildroot}/${name}_${pig.version}-${package.release}_${os.arch}.deb" control="${package.build.dir}/pig.control">
+            <tarfileset dir="${build.dir}/${final.name}" filemode="644" prefix="/usr">
+                <exclude name="bin/*" />
+                <exclude name="conf" />
+                <exclude name="conf/*" />
+                <exclude name="etc/**" />
+                <include name="**" />
+            </tarfileset>
+            <tarfileset dir="${build.dir}/${final.name}" filemode="755" prefix="/usr">
+                <include name="bin/*" />
+                <include name="sbin/*" />
+            </tarfileset>
+            <tarfileset dir="${build.dir}/${final.name}/etc/pig" filemode="644" prefix="/etc/pig">
+                <include name="**" />
+            </tarfileset>
+        </deb>
+
+        <copy todir="${build.dir}/" flatten="true">
+            <fileset dir="${package.buildroot}">
+                <include name="**/${name}*.deb" />
+            </fileset>
+        </copy>
+        <delete dir="${package.buildroot}" quiet="true" verbose="false"/>
+    </target>
+
     <!-- ================================================================== -->
     <!-- Findbugs                                                           -->
     <!-- ================================================================== -->
