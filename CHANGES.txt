@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2168: CubeDimensions UDF (dvryaboy)
+
 PIG-2189: e2e test harness needs to use Pig as a source of truth (gates via daijy)
 
 PIG-1857: Create an package integration project (eyang via daijy)
