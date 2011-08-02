@@ -192,6 +192,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-2013: Penny gets a null pointer when no properties are set (breed via daijy)
+
 PIG-2146: POStore.getSchema() returns null because of which PigOutputCommitter
  is not storing schema while cleanup (thejas)
 
