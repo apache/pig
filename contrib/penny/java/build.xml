@@ -95,6 +95,7 @@
         <echo> *** Creating penny.jar ***</echo>
       <jar destfile="${pennyjar}">
         <fileset dir="build/classes"/>
+        <zipfileset src="${netty.jar}" />
       </jar>
     </target>
     <target depends="compile" name="compile-test">
