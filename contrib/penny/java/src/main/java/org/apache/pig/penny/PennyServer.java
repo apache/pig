@@ -28,7 +28,7 @@ public class PennyServer {
     
     private final PigContext pigContext;
     private static ExecType execType = ExecType.MAPREDUCE;
-    private static Properties properties;
+    private static Properties properties = new Properties();
     public static void setExecType(ExecType execType) {
         PennyServer.execType = execType;
     }

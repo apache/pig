@@ -97,6 +97,8 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 
 BUG FIXES
 
+PIG-2013: Penny gets a null pointer when no properties are set (breed via daijy)
+
 PIG-2186: PigStorage new warnings about missing schema file 
  can be confusing (thejas)
 
