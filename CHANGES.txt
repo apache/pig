@@ -97,8 +97,6 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 
 BUG FIXES
 
-PIG-2013: Penny gets a null pointer when no properties are set (breed via daijy)
-
 PIG-2186: PigStorage new warnings about missing schema file 
  can be confusing (thejas)
 
@@ -337,6 +335,10 @@ OPTIMIZATIONS
 PIG-1696: Performance: Use System.arraycopy() instead of manually copying the bytes while reading the data (hashutosh)
 
 BUG FIXES
+
+PIG-2013: Penny gets a null pointer when no properties are set (breed via daijy)
+
+PIG-2199: Penny throws Exception when netty classes are missing (ddaniels888 via daijy)
 
 PIG-2159: New logical plan uses incorrect class for SUM causing for ClassCastException (daijy)
 
