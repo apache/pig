@@ -24,7 +24,10 @@ import java.util.List;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.mapreduce.Counter;
+import org.apache.hadoop.mapred.Counters;
 import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.hadoop.mapreduce.StatusReporter;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigGenericMapBase;
 import org.apache.pig.data.DataBag;
@@ -34,7 +37,7 @@ import org.apache.pig.impl.util.Pair;
 
 abstract public class PigMapBase extends PigGenericMapBase {
     /**
-     * 
+     *  
      * Get mapper's illustrator context
      * 
      * @param conf  Configuration
@@ -52,6 +55,40 @@ abstract public class PigMapBase extends PigGenericMapBase {
         return new IllustratorContext(conf, input, output, split);
     }
     
+    
+
+    /**
+     * Dummy implementation of StatusReporter for illustrate mode
+     *
+     */
+    @SuppressWarnings("deprecation")
+    public static class IllustrateDummyReporter extends StatusReporter{
+
+
+        Counters countGen = new Counters();
+        
+        @Override
+        public Counter getCounter(Enum<?> arg0) {
+            return countGen.findCounter(arg0);
+        }
+
+        @Override
+        public Counter getCounter(String group, String name) {
+            return countGen.findCounter(group, name);
+        }
+
+        @Override
+        public void progress() {
+            //no-op
+        }
+
+        @Override
+        public void setStatus(String arg0) {
+            //no-op
+        }
+        
+    }
+    
     public class IllustratorContext extends Context {
         private DataBag input;
         List<Pair<PigNullableWritable, Writable>> output;
@@ -62,12 +99,12 @@ abstract public class PigMapBase extends PigGenericMapBase {
         public IllustratorContext(Configuration conf, DataBag input,
               List<Pair<PigNullableWritable, Writable>> output,
               InputSplit split) throws IOException, InterruptedException {
-              super(conf, new TaskAttemptID(), null, null, null, null, split);
-              if (output == null)
-                  throw new IOException("Null output can not be used");
-              this.input = input; this.output = output;
+            super(conf, new TaskAttemptID(), null, null, null, new IllustrateDummyReporter(), split);
+            if (output == null)
+                throw new IOException("Null output can not be used");
+            this.input = input; this.output = output;
         }
-        
+
         @Override
         public boolean nextKeyValue() throws IOException, InterruptedException {
             if (input == null) {
