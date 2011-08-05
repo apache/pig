@@ -20,6 +20,7 @@ package org.apache.pig.piggybank.evaluation.string;
 import java.io.IOException;
 
 import org.apache.pig.EvalFunc;
+import org.apache.pig.PigWarning;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
@@ -44,7 +45,7 @@ public class LENGTH extends EvalFunc<Integer> {
             String str = (String) input.get(0);
             return (str == null) ? null : str.length();
         } catch (ExecException e) {
-            log.warn("Error reading input: " + e.getMessage());
+            warn("Error reading input: " + e.getMessage(), PigWarning.UDF_WARNING_1);
             return null;
         }
     }

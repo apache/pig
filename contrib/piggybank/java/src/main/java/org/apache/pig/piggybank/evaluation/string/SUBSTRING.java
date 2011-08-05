@@ -46,36 +46,4 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
  * @deprecated Use {@link org.apache.pig.builtin.SUBSTRING}
  */
 @Deprecated 
-
-public class SUBSTRING extends EvalFunc<String> {
-
-    /**
-     * Method invoked on every tuple during foreach evaluation
-     * @param input tuple; first column is assumed to have the column to convert
-     * @exception java.io.IOException
-     */
-    public String exec(Tuple input) throws IOException {
-        if (input == null || input.size() < 3) {
-            log.warn("invalid number of arguments to SUBSTRING");
-            return null;
-        }
-        try {
-            String source = (String)input.get(0);
-            Integer beginindex = (Integer)input.get(1);
-            Integer endindex = (Integer)input.get(2);
-            return source.substring(beginindex, Math.min(source.length(), endindex));
-        } catch (NullPointerException npe) {
-            log.warn(npe.toString());
-            return null;
-        } catch (ClassCastException e) {
-            log.warn(e.toString());
-            return null;
-        }
-    }
-
-    @Override
-    public Schema outputSchema(Schema input) {
-        return new Schema(new Schema.FieldSchema(null, DataType.CHARARRAY));
-    }
-
-}
+public class SUBSTRING extends org.apache.pig.builtin.SUBSTRING {}

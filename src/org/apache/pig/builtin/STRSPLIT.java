@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.regex.PatternSyntaxException;
 
 import org.apache.pig.EvalFunc;
+import org.apache.pig.PigWarning;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 
@@ -48,6 +49,7 @@ public class STRSPLIT extends EvalFunc<Tuple> {
      * If limit is not provided, 0 is assumed, as per Java's split().
      * @exception java.io.IOException
      */
+    @Override
     public Tuple exec(Tuple input) throws IOException {
         if (input == null || input.size() < 1)
             return null;
@@ -58,12 +60,12 @@ public class STRSPLIT extends EvalFunc<Tuple> {
             if (source == null || delim == null) {
                 return null;
             }
-            String[] splits = source.split(delim, length); 
+            String[] splits = source.split(delim, length);
             return tupleFactory.newTuple(Arrays.asList(splits));
         } catch (ClassCastException e) {
-            log.warn("class cast exception at "+e.getStackTrace()[0]);
+            warn("class cast exception at "+e.getStackTrace()[0], PigWarning.UDF_WARNING_1);
         } catch (PatternSyntaxException e) {
-            log.warn(e.getMessage());
+            warn(e.getMessage(), PigWarning.UDF_WARNING_1);
         }
         // this only happens if the try block did not complete normally
         return null;

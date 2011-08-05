@@ -44,45 +44,4 @@ import org.apache.pig.FuncSpec;
  */
 @Deprecated 
 
-public class LOWER extends EvalFunc<String> {
-
-    /**
-     * Method invoked on every tuple during foreach evaluation
-     * @param input tuple; first column is assumed to have the column to convert
-     * @exception java.io.IOException
-     */
-    public String exec(Tuple input) throws IOException {
-        if (input == null || input.size() == 0)
-            return null;
-
-        try {
-            String str = (String)input.get(0);
-            return str.toLowerCase();
-        } catch(Exception e){
-            log.warn("Failed to process input; error - " + e.getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * This method gives a name to the column.
-     * @param input - schema of the input data
-     * @return schema of the input data
-     */
-    @Override
-    public Schema outputSchema(Schema input) {
-        return new Schema(new Schema.FieldSchema(getSchemaName(this.getClass().getName().toLowerCase(), input), DataType.CHARARRAY));
-    }
-
-     /* (non-Javadoc)
-      * @see org.apache.pig.EvalFunc#getArgToFuncMapping()
-      */
-     @Override
-     public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
-        List<FuncSpec> funcList = new ArrayList<FuncSpec>();
-        funcList.add(new FuncSpec(this.getClass().getName(), new Schema(new Schema.FieldSchema(null, DataType.CHARARRAY))));
-
-        return funcList;
-     }
-
-}
+public class LOWER extends org.apache.pig.builtin.LOWER {}

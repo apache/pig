@@ -75,9 +75,9 @@ public class JsonMetadata implements LoadMetadata, StoreMetadata {
     }
 
     /**.
-     * Given a path, which may represent a glob pattern, a directory, 
+     * Given a path, which may represent a glob pattern, a directory,
      * comma separated files/glob patterns or a file, this method
-     * finds the set of relevant metadata files on the storage system. 
+     * finds the set of relevant metadata files on the storage system.
      * The algorithm for finding the metadata file is as follows:
      * <p>
      * For each file represented by the path (either directly, or via a glob):
@@ -156,7 +156,7 @@ public class JsonMetadata implements LoadMetadata, StoreMetadata {
             throws IOException {
     }
 
-    
+
     /**
      * For JsonMetadata schema is considered optional
      * This method suppresses (and logs) errors if they are encountered.
@@ -166,7 +166,7 @@ public class JsonMetadata implements LoadMetadata, StoreMetadata {
     public ResourceSchema getSchema(String location, Job job) throws IOException {
         return getSchema(location, job, false);
     }
-    
+
     /**
      * Read the schema from json metadata file
      * If isSchemaOn parameter is false, the errors are suppressed and logged
@@ -216,7 +216,7 @@ public class JsonMetadata implements LoadMetadata, StoreMetadata {
         if(isSchemaOn){
             throw  new FrontendException(msg, 1131, PigException.INPUT, e);
         }
-        //a valid schema file was probably not expected, so just log a 
+        //a valid schema file was probably not expected, so just log a
         //debug message and return null
         log.debug(msg);
         return null;
@@ -234,7 +234,7 @@ public class JsonMetadata implements LoadMetadata, StoreMetadata {
         try {
             statFileSet = findMetaFile(location, statFileName, conf);
         } catch (IOException e) {
-            log.warn("could not fine stat file for "+location);
+            log.warn("could not fine stat file for " + location);
             return null;
         }
         ElementDescriptor statFile = null;
