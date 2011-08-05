@@ -2069,4 +2069,32 @@ public class TestPruneColumn extends TestCase {
         
         assertFalse(iter.hasNext());
     }
+    
+    @Test
+    public void testCogroup10() throws Exception {
+        pigServer.registerQuery("A = load '"+ Util.generateURI(tmpFile2.toString(), pigServer.getPigContext()) + "' AS (a0, a1:double);");
+        pigServer.registerQuery("B = foreach A generate a0, a1, 0 as joinField;");
+        pigServer.registerQuery("C = group B all;");
+        pigServer.registerQuery("D = foreach C generate 0 as joinField, SUM(B.a1) as total;");
+        pigServer.registerQuery("E = join B by joinField, D by joinField;");
+        pigServer.registerQuery("F = foreach E generate a0;");
+        Iterator<Tuple> iter = pigServer.openIterator("F");
+        
+        assertTrue(iter.hasNext());
+        Tuple t = iter.next();
+        
+        assertTrue(t.size()==1);
+        assertTrue(t.toString().equals("(1)"));
+        
+        assertTrue(iter.hasNext());
+        t = iter.next();
+        
+        assertTrue(t.size()==1);
+        assertTrue(t.toString().equals("(2)"));
+
+        assertFalse(iter.hasNext());
+        
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1"}));
+    }
+
 }

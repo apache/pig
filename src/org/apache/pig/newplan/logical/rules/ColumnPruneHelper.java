@@ -278,15 +278,22 @@ public class ColumnPruneHelper {
             // Now check for the case where the output uid is a generated one
             // If that is the case we need to add the uids which generated it in 
             // the input
+            long firstUid=-1;
             Map<Integer,Long> generatedInputUids = cg.getGeneratedInputUids();
             for( Map.Entry<Integer, Long> entry : generatedInputUids.entrySet() ) {
                 Long uid = entry.getValue();
+                LogicalRelationalOperator pred =
+                    (LogicalRelationalOperator) cg.getPlan().getPredecessors(cg).get(entry.getKey());
                 if( output.contains(uid) ) {
                     // Hence we need to all the full schema of the bag
-                    LogicalRelationalOperator pred =
-                        (LogicalRelationalOperator) cg.getPlan().getPredecessors(cg).get(entry.getKey());
                     input.addAll( getAllUids( pred.getSchema() ) );
                 }
+                if (pred.getSchema()!=null)
+                    firstUid = pred.getSchema().getField(0).uid;
+            }
+            
+            if (input.isEmpty() && firstUid!=-1) {
+                input.add(firstUid);
             }
             
             cg.annotate(INPUTUIDS, input);
