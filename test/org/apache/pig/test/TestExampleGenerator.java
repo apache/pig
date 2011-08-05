@@ -18,13 +18,14 @@
 
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Random;
-
-import junit.framework.TestCase;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
@@ -34,22 +35,20 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.newplan.Operator;
 import org.junit.AfterClass;
-import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
-public class TestExampleGenerator extends TestCase {
 
-    static MiniCluster cluster = MiniCluster.buildCluster();
-    PigContext pigContext = new PigContext(ExecType.MAPREDUCE, cluster
-            .getProperties());
+public class TestExampleGenerator {
 
-    Random rand = new Random();
-    int MAX = 100;
-    String A, B;
+    
+    static PigContext pigContext = new PigContext(ExecType.LOCAL, new Properties());
 
+   
+    static int MAX = 100;
+    static String A, B;
+    static  File fileA, fileB;
+    
     {
         try {
             pigContext.connect();
@@ -59,32 +58,26 @@ public class TestExampleGenerator extends TestCase {
         }
     }
 
-    @Before
-    public void setUp() throws Exception {
-        File fileA, fileB;
+    @BeforeClass
+    public static void oneTimeSetup() throws Exception {
+       
 
         fileA = File.createTempFile("dataA", ".dat");
         fileB = File.createTempFile("dataB", ".dat");
 
         writeData(fileA);
         writeData(fileB);
+     
 
-        A = "'" + FileLocalizer.hadoopify(fileA.toString(), pigContext) + "'";
-        B = "'" + FileLocalizer.hadoopify(fileB.toString(), pigContext) + "'";
-        System.out.println("A : " + A + "\n" + "B : " + B);
-        System.out.println("Test data created.");
         fileA.deleteOnExit();
         fileB.deleteOnExit();
-          
+        A = "'" + fileA.getPath() + "'";
+        B = "'" + fileB.getPath() + "'";
+        System.out.println("A : " + A + "\n" + "B : " + B);
+        System.out.println("Test data created.");
     }
 
-    
-    @AfterClass
-    public static void oneTimeTearDown() throws Exception {
-        cluster.shutDown();
-    }
-
-    private void writeData(File dataFile) throws Exception {
+    private static void writeData(File dataFile) throws Exception {
         // File dataFile = File.createTempFile(name, ".dat");
         FileOutputStream dat = new FileOutputStream(dataFile);
 
@@ -171,6 +164,34 @@ public class TestExampleGenerator extends TestCase {
         pigServer.registerQuery("A = load " + A
                 + " using PigStorage() as (x : int, y : int);");
         pigServer.registerQuery("B = foreach A generate x + y as sum;");
+
+        Map<Operator, DataBag> derivedData = pigServer.getExamples("B");
+
+        assertTrue(derivedData != null);
+    }
+    
+    //see PIG-2170
+    @Test
+    public void testForeachBinCondWithBooleanExp() throws ExecException, IOException {
+        PigServer pigServer = new PigServer(pigContext);
+
+        pigServer.registerQuery("A = load " + A
+                + " using PigStorage() as (x : int, y : int);");
+        pigServer.registerQuery("B = foreach A generate  (x + 1 > y ? 0 : 1);");
+
+        Map<Operator, DataBag> derivedData = pigServer.getExamples("B");
+
+        assertTrue(derivedData != null);
+    }
+    
+    @Test
+    public void testForeachWithTypeCastCounter() throws ExecException, IOException {
+        PigServer pigServer = new PigServer(pigContext);
+        //cast error results in counter being incremented and was resulting
+        // in a NPE exception in illustrate
+        pigServer.registerQuery("A = load " + A
+                + " using PigStorage() as (x : int, y : int);");
+        pigServer.registerQuery("B = foreach A generate x, (int)'InvalidInt';");
 
         Map<Operator, DataBag> derivedData = pigServer.getExamples("B");
 

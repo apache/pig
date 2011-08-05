@@ -283,56 +283,56 @@ public class IllustratorAttacher extends PhyPlanVisitor {
     @Override
     public void visitGreaterThan(GreaterThanExpr grt) throws VisitorException{
         setIllustrator(grt, 0);
-        if (!revisit)
+        if (!revisit && subExpResults != null)
             subExpResults.add(grt.getIllustrator().getSubExpResult());
     }
     
     @Override
     public void visitLessThan(LessThanExpr lt) throws VisitorException{
         setIllustrator(lt, 0);
-        if (!revisit)
+        if (!revisit && subExpResults != null)
             subExpResults.add(lt.getIllustrator().getSubExpResult());
     }
     
     @Override
     public void visitGTOrEqual(GTOrEqualToExpr gte) throws VisitorException{
         setIllustrator(gte, 0);
-        if (!revisit)
+        if (!revisit && subExpResults != null)
             subExpResults.add(gte.getIllustrator().getSubExpResult());
     }
     
     @Override
     public void visitLTOrEqual(LTOrEqualToExpr lte) throws VisitorException{
         setIllustrator(lte, 0);
-        if (!revisit)
+        if (!revisit && subExpResults != null)
             subExpResults.add(lte.getIllustrator().getSubExpResult());
     }
     
     @Override
     public void visitEqualTo(EqualToExpr eq) throws VisitorException{
         setIllustrator(eq, 0);
-        if (!revisit)
+        if (!revisit && subExpResults != null)
             subExpResults.add(eq.getIllustrator().getSubExpResult());
     }
     
     @Override
     public void visitNotEqualTo(NotEqualToExpr eq) throws VisitorException{
         setIllustrator(eq, 0);
-        if (!revisit)
+        if (!revisit && subExpResults != null)
             subExpResults.add(eq.getIllustrator().getSubExpResult());
     }
     
     @Override
     public void visitRegexp(PORegexp re) throws VisitorException{
         setIllustrator(re, 0);
-        if (!revisit)
+        if (!revisit && subExpResults != null)
             subExpResults.add(re.getIllustrator().getSubExpResult());
     }
 
     @Override
     public void visitIsNull(POIsNull isNull) throws VisitorException {
         setIllustrator(isNull, 0);
-        if (!revisit)
+        if (!revisit && subExpResults != null)
             subExpResults.add(isNull.getIllustrator().getSubExpResult());
     }
     
@@ -349,15 +349,13 @@ public class IllustratorAttacher extends PhyPlanVisitor {
     @Override
     public void visitNot(PONot not) throws VisitorException {
         setIllustrator(not, 0);
-        if (!revisit)
+        if (!revisit && subExpResults != null)
             subExpResults.add(not.getIllustrator().getSubExpResult());
     }
 
     @Override
     public void visitBinCond(POBinCond binCond) {
-        setIllustrator(binCond, 0);
-        if (!revisit)
-            subExpResults.add(binCond.getIllustrator().getSubExpResult());
+
     }
 
     @Override
