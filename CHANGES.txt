@@ -99,6 +99,8 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 
 BUG FIXES
 
+PIG-2124: Script never ending when joining from the same source (daijy)
+
 PIG-2170: NPE thrown during illustrate (thejas)
 
 PIG-2186: PigStorage new warnings about missing schema file 
