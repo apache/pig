@@ -2083,6 +2083,19 @@ public class TestLogicalPlanBuilder {
         load = (LOLoad)plan.getPredecessors(op).get(0);
         Assert.assertTrue(((PigStorageWithSchema)(load).getLoadFunc()).getUDFContextSignature().equals("b"));
     }
+    
+    @Test
+    public void testLastAlias() throws Exception {
+        try {
+            String query = "B = load '2.txt' as (b0:int, b1:int);\n" +
+            		"C = ORDER B by b0;" ;
+            buildPlan( query );
+            
+        } catch (AssertionFailedError e) {
+            // Ignore the exception
+        }
+        Assert.assertEquals("C", pigServer.getPigContext().getLastAlias());
+    }
 
     private void printPlan(LogicalExpressionPlan lp) {
         System.err.println( lp.toString() );
