@@ -22,10 +22,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.EvalFunc;
+import org.apache.pig.PigWarning;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -41,7 +40,6 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
  * </code>
  */
 public class LAST_INDEX_OF extends EvalFunc<Integer> {
-    private static final Log log = LogFactory.getLog(LAST_INDEX_OF.class);
 
     /**
      * Finds the last location of a substring in a given string.
@@ -52,6 +50,7 @@ public class LAST_INDEX_OF extends EvalFunc<Integer> {
      * @exception java.io.IOException
      * @return last location of substring, or null in case of processing errors.
      */
+    @Override
     public Integer exec(Tuple input) throws IOException {
         if (input == null || input.size() < 2)
             return null;
@@ -61,7 +60,7 @@ public class LAST_INDEX_OF extends EvalFunc<Integer> {
             String search = (String)input.get(1);
             return str.lastIndexOf(search);
         } catch(Exception e) {
-            log.warn("Failed to process input; error - " + e.getMessage());
+            warn("Failed to process input; error - " + e.getMessage(), PigWarning.UDF_WARNING_1);
             return null;
         }
     }

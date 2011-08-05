@@ -24,6 +24,7 @@ import java.util.ArrayList;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.PigWarning;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -47,9 +48,10 @@ public class SUBSTRING extends EvalFunc<String> {
      * @param input tuple; first column is assumed to have the column to convert
      * @exception java.io.IOException
      */
+    @Override
     public String exec(Tuple input) throws IOException {
         if (input == null || input.size() < 3) {
-            log.warn("invalid number of arguments to SUBSTRING");
+            warn("invalid number of arguments to SUBSTRING", PigWarning.UDF_WARNING_1);
             return null;
         }
         try {
@@ -58,13 +60,13 @@ public class SUBSTRING extends EvalFunc<String> {
             Integer endindex = (Integer)input.get(2);
             return source.substring(beginindex, Math.min(source.length(), endindex));
         } catch (NullPointerException npe) {
-            log.warn(npe.toString());
+            warn(npe.toString(), PigWarning.UDF_WARNING_2);
             return null;
         } catch (StringIndexOutOfBoundsException npe) {
-            log.warn(npe.toString());
+            warn(npe.toString(), PigWarning.UDF_WARNING_3);
             return null;
         } catch (ClassCastException e) {
-            log.warn(e.toString());
+            warn(e.toString(), PigWarning.UDF_WARNING_4);
             return null;
         }
     }

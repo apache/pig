@@ -44,32 +44,4 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
  * @deprecated Use {@link org.apache.pig.builtin.REPLACE}
  */
 @Deprecated 
-
-public class REPLACE extends EvalFunc<String>
-{
-    /**
-     * Method invoked on every tuple during foreach evaluation
-     * @param input tuple; first column is assumed to have the column to convert
-     * @exception java.io.IOException
-     */
-    public String exec(Tuple input) throws IOException {
-        if (input == null || input.size() < 3)
-            return null;
-
-        try{
-            String source = (String)input.get(0);
-            String target = (String)input.get(1);
-            String replacewith = (String)input.get(2);
-            return source.replaceAll(target, replacewith);
-        }catch(Exception e){
-            log.warn("Failed to process input; error - " + e.getMessage());
-            return null;
-        }
-    }
-
-    @Override
-    public Schema outputSchema(Schema input) {
-        return new Schema(new Schema.FieldSchema(null, DataType.CHARARRAY));
-    }
-
-}
+public class REPLACE extends org.apache.pig.builtin.REPLACE {}

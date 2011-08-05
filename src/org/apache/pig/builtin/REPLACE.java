@@ -24,6 +24,7 @@ import java.util.List;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.PigWarning;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -37,7 +38,7 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
  * The first argument is a string on which to perform the operation. The second argument
  * is treated as a regular expression. The third argument is the replacement string.
  * This is a wrapper around Java's String.replaceAll(String, String);
- * 
+ *
  */
 public class REPLACE extends EvalFunc<String>
 {
@@ -46,6 +47,7 @@ public class REPLACE extends EvalFunc<String>
      * @param input tuple; first column is assumed to have the column to convert
      * @exception java.io.IOException
      */
+    @Override
     public String exec(Tuple input) throws IOException {
         if (input == null || input.size() < 3)
             return null;
@@ -56,7 +58,7 @@ public class REPLACE extends EvalFunc<String>
             String replacewith = (String)input.get(2);
             return source.replaceAll(target, replacewith);
         }catch(Exception e){
-            log.warn("Failed to process input; error - " + e.getMessage());
+            warn("Failed to process input; error - " + e.getMessage(), PigWarning.UDF_WARNING_1);
             return null;
         }
     }

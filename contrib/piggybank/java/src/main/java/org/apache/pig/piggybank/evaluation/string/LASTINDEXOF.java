@@ -26,6 +26,7 @@ import org.apache.pig.EvalFunc;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.builtin.LAST_INDEX_OF;
 
 /**
  * string.INSTR implements eval function to search for the last occurrence of a string<br>
@@ -43,36 +44,4 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
  * @deprecated Use {@link org.apache.pig.builtin.LAST_INDEX_OF}
  */
 @Deprecated 
-
-public class LASTINDEXOF extends EvalFunc<Integer> {
-    private static final Log log = LogFactory.getLog(LASTINDEXOF.class);
-
-    /**
-     * Finds the last location of a substring in a given string.
-     * @param input tuple:<ol>
-     * <li>the string to process
-     * <li>the substring to find
-     * </ol>
-     * @exception java.io.IOException
-     * @return last location of substring, or null in case of processing errors.
-     */
-    public Integer exec(Tuple input) throws IOException {
-        if (input == null || input.size() < 2)
-            return null;
-
-        try {
-            String str = (String)input.get(0);
-            String search = (String)input.get(1);
-            return str.lastIndexOf(search);
-        } catch(Exception e) {
-            log.warn("Failed to process input; error - " + e.getMessage());
-            return null;
-        }
-    }
-
-    @Override
-    public Schema outputSchema(Schema input) {
-        return new Schema(new Schema.FieldSchema(null, DataType.INTEGER));
-    }
-
-}
+public class LASTINDEXOF extends LAST_INDEX_OF {}

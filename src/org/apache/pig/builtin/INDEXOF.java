@@ -24,6 +24,7 @@ import java.io.IOException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.EvalFunc;
+import org.apache.pig.PigWarning;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -36,7 +37,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
  *      B = foreach A generate INDEXOF(name, ",");
  */
 public class INDEXOF extends EvalFunc<Integer> {
-    
+
     private static final Log log = LogFactory.getLog(INDEXOF.class);
 
     /**
@@ -47,9 +48,10 @@ public class INDEXOF extends EvalFunc<Integer> {
      * @exception java.io.IOException
      * @return index of first occurrence, or null in case of processing error
      */
+    @Override
     public Integer exec(Tuple input) throws IOException {
         if (input == null || input.size() < 2) {
-            log.warn("invalid input tuple: "+input);
+            warn("invalid input tuple: "+input, PigWarning.UDF_WARNING_1);
             return null;
         }
         try {
@@ -60,7 +62,7 @@ public class INDEXOF extends EvalFunc<Integer> {
                 fromIndex = (Integer)input.get(2);
             return str.indexOf(search, fromIndex);
         } catch(Exception e){
-            log.warn("Failed to process input; error - " + e.getMessage());
+            warn("Failed to process input; error - " + e.getMessage(), PigWarning.UDF_WARNING_1);
             return null;
         }
     }

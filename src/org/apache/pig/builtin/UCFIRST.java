@@ -20,13 +20,14 @@ package org.apache.pig.builtin;
 import java.io.IOException;
 
 import org.apache.pig.EvalFunc;
+import org.apache.pig.PigWarning;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
-/** 
- * upper-case the first character of a string 
+/**
+ * upper-case the first character of a string
  */
 public class UCFIRST extends EvalFunc<String> {
     @Override
@@ -40,7 +41,7 @@ public class UCFIRST extends EvalFunc<String> {
             if (str.length() == 0) return str;
             return Character.toUpperCase(str.charAt(0))+str.substring(1);
         } catch (ExecException e) {
-            log.warn("Error reading input: " + e.getMessage());
+            warn("Error reading input: " + e.getMessage(), PigWarning.UDF_WARNING_1);
             return null;
         }
     }

@@ -25,6 +25,7 @@ import java.util.regex.PatternSyntaxException;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.builtin.STRSPLIT;
 
 /**
  * Wrapper around Java's String.split<br>
@@ -40,37 +41,4 @@ import org.apache.pig.data.TupleFactory;
  */
 @Deprecated 
 
-public class Split extends EvalFunc<Tuple> {
-
-    private final static TupleFactory tupleFactory = TupleFactory.getInstance();
-
-    /**
-     * Wrapper around Java's String.split
-     * @param input tuple; first column is assumed to have a string to split;
-     * the optional second column is assumed to have the delimiter or regex to split on;<br>
-     * if not provided, it's assumed to be '\s' (space)
-     * the optional third column may provide a limit to the number of results.<br>
-     * If limit is not provided, 0 is assumed, as per Java's split().
-     * @exception java.io.IOException
-     */
-    public Tuple exec(Tuple input) throws IOException {
-        if (input == null || input.size() < 1)
-            return null;
-        try {
-            String source = (String) input.get(0);
-            String delim = (input.size() > 1 ) ? (String) input.get(1) : "\\s";
-            int length = (input.size() > 2) ? (Integer) input.get(2) : 0;
-            if (source == null || delim == null) {
-                return null;
-            }
-            String[] splits = source.split(delim, length); 
-            return tupleFactory.newTuple(Arrays.asList(splits));
-        } catch (ClassCastException e) {
-            log.warn("class cast exception at "+e.getStackTrace()[0]);
-        } catch (PatternSyntaxException e) {
-            log.warn(e.getMessage());
-        }
-        // this only happens if the try block did not complete normally
-        return null;
-    }
-}
+public class Split extends STRSPLIT {}

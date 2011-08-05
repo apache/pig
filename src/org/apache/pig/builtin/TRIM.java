@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.ArrayList;
 
 import org.apache.pig.EvalFunc;
+import org.apache.pig.PigWarning;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
@@ -29,9 +30,9 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 
-/** 
- * Returns a string, with leading and trailing whitespace omitted. 
- * Implements a binding to the Java function {@link java.lang.String#trim() String.trim()}. 
+/**
+ * Returns a string, with leading and trailing whitespace omitted.
+ * Implements a binding to the Java function {@link java.lang.String#trim() String.trim()}.
  */
 public class TRIM extends EvalFunc<String> {
     @Override
@@ -45,7 +46,7 @@ public class TRIM extends EvalFunc<String> {
             if (str.length() == 0) return str;
             return str.trim();
         } catch (ExecException e) {
-            log.warn("Error reading input: " + e.getMessage());
+            warn("Error reading input: " + e.getMessage(), PigWarning.UDF_WARNING_1);
             return null;
         }
     }

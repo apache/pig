@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.ArrayList;
 
 import org.apache.pig.EvalFunc;
+import org.apache.pig.PigWarning;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -41,6 +42,7 @@ public class LOWER extends EvalFunc<String> {
      * @param input tuple; first column is assumed to have the column to convert
      * @exception java.io.IOException
      */
+    @Override
     public String exec(Tuple input) throws IOException {
         if (input == null || input.size() == 0)
             return null;
@@ -49,7 +51,7 @@ public class LOWER extends EvalFunc<String> {
             String str = (String)input.get(0);
             return str.toLowerCase();
         } catch(Exception e){
-            log.warn("Failed to process input; error - " + e.getMessage());
+            warn("Failed to process input; error - " + e.getMessage(), PigWarning.UDF_WARNING_1);
             return null;
         }
     }
