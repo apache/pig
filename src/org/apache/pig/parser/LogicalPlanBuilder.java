@@ -441,6 +441,7 @@ public class LogicalPlanBuilder {
             plan.connect( pred, op );
         }
         operators.put( op.getAlias(), op );
+        pigContext.setLastAlias(op.getAlias());	
         return op.getAlias();
     }
 
