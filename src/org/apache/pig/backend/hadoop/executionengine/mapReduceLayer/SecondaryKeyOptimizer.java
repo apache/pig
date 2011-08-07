@@ -628,9 +628,7 @@ public class SecondaryKeyOptimizer extends MROpPlanVisitor {
     static private boolean collectColumnChain(PhysicalPlan plan,
             ColumnChainInfo columnChainInfo) throws PlanException {
         if (plan.getRoots().size() != 1) {
-            int errorCode = 2207;
-            throw new PlanException(
-                    "POForEach inner plan has more than 1 root", errorCode);
+        	return true;
         }
 
         PhysicalOperator currentNode = plan.getRoots().get(0);

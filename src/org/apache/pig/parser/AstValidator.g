@@ -437,6 +437,7 @@ nested_op : nested_proj
           | nested_distinct
           | nested_limit
           | nested_cross
+          | nested_foreach
 ;
 
 nested_proj : ^( NESTED_PROJ col_ref col_ref+ )
@@ -456,6 +457,9 @@ nested_limit : ^( LIMIT nested_op_input ( INTEGER | expr ) )
 ;
 
 nested_cross : ^( CROSS nested_op_input_list )
+;
+
+nested_foreach : ^( FOREACH nested_op_input generate_clause )
 ;
 
 nested_op_input : col_ref | nested_proj

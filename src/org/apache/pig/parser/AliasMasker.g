@@ -439,6 +439,7 @@ nested_op : nested_proj
           | nested_distinct
           | nested_limit
           | nested_cross
+          | nested_foreach
 ;
 
 nested_proj 
@@ -462,6 +463,9 @@ nested_limit
 ;
 
 nested_cross : ^( CROSS nested_op_input_list )
+;
+
+nested_foreach : ^( FOREACH nested_op_input generate_clause )
 ;
 
 nested_op_input_list : nested_op_input+

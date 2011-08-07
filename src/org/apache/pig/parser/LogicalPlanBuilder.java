@@ -1048,6 +1048,10 @@ public class LogicalPlanBuilder {
         }
     }
     
+    static LOForEach createNestedForeachOp(LogicalPlan plan) {
+    	return new LOForEach(plan);
+    }
+    
     Operator buildNestedSortOp(SourceLocation loc, LOSort op, LogicalPlan plan, String alias, Operator inputOp,
             List<LogicalExpressionPlan> plans, 
             List<Boolean> ascFlags, FuncSpec fs) {
@@ -1060,6 +1064,15 @@ public class LogicalPlanBuilder {
         op.setUserFunc( fs );
         buildNestedOp( loc, plan, op, alias, inputOp );
         return op;
+    }
+    
+    Operator buildNestedForeachOp(SourceLocation loc, LOForEach op, LogicalPlan plan, String alias, 
+    		Operator inputOp, LogicalPlan innerPlan)
+    throws ParserValidationException
+    {
+    	op.setInnerPlan(innerPlan);
+    	buildNestedOp(loc, plan, op, alias, inputOp);
+    	return op;
     }
     
     Operator buildNestedProjectOp(SourceLocation loc, LogicalPlan innerPlan, LOForEach foreach, 

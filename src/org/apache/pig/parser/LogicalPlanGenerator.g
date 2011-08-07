@@ -104,6 +104,8 @@ private LogicalPlanBuilder builder = null;
 
 private boolean inForeachPlan = false;
 
+private boolean inNestedCommand = false;
+
 public LogicalPlan getLogicalPlan() {
     return builder.getPlan();
 }
@@ -1119,32 +1121,13 @@ scope {
 nested_blk : nested_command* generate_clause
 ;
 
-generate_clause
-scope GScope;
-@init {
-    $GScope::currentOp = builder.createGenerateOp( $foreach_plan::innerPlan );
-    List<LogicalExpressionPlan> plans = new ArrayList<LogicalExpressionPlan>();
-    List<Boolean> flattenFlags = new ArrayList<Boolean>();
-    List<LogicalSchema> schemas = new ArrayList<LogicalSchema>();
-}
- : ^( GENERATE ( flatten_generated_item
-                 {
-                     plans.add( $flatten_generated_item.plan );
-                     flattenFlags.add( $flatten_generated_item.flattenFlag );
-                     schemas.add( $flatten_generated_item.schema );
-                 }
-               )+
-    )
-   {   
-       builder.buildGenerateOp( new SourceLocation( (PigParserNode)$GENERATE ), $foreach_clause::foreachOp, 
-           (LOGenerate)$GScope::currentOp, $foreach_plan::operators,
-           plans, flattenFlags, schemas );
-   }
-;
-
 nested_command
 @init {
     LogicalExpressionPlan exprPlan = new LogicalExpressionPlan();
+    inNestedCommand = true;
+}
+@after {
+	inNestedCommand = false;
 }
  : ^( NESTED_CMD IDENTIFIER nested_op[$IDENTIFIER.text] )
    {
@@ -1164,6 +1147,7 @@ nested_op[String alias] returns[Operator op]
  | nested_distinct[$alias] { $op = $nested_distinct.op; }
  | nested_limit[$alias] { $op = $nested_limit.op; }
  | nested_cross[$alias] { $op = $nested_cross.op; }
+ | nested_foreach[$alias] { $op = $nested_foreach.op; }
 ;
 
 nested_proj[String alias] returns[Operator op]
@@ -1256,6 +1240,48 @@ nested_cross[String alias] returns[Operator op]
    {
        SourceLocation loc = new SourceLocation( (PigParserNode)$CROSS );
        $op = builder.buildNestedCrossOp( loc, $foreach_plan::innerPlan, $alias, $nested_op_input_list.opList );
+   }
+;
+
+nested_foreach[String alias] returns[Operator op]
+scope {
+    LogicalPlan innerPlan;
+    LOForEach foreachOp;
+}
+@init {
+	Operator inputOp = null;
+	$nested_foreach::innerPlan = new LogicalPlan();
+	$nested_foreach::foreachOp = builder.createNestedForeachOp( $foreach_plan::innerPlan );
+}
+ : ^( FOREACH nested_op_input generate_clause )
+   {
+   		SourceLocation loc = new SourceLocation( (PigParserNode)$FOREACH );
+   		$op = builder.buildNestedForeachOp( loc, (LOForEach)$nested_foreach::foreachOp, $foreach_plan::innerPlan,
+   							$alias, $nested_op_input.op, $nested_foreach::innerPlan);
+   }
+;
+
+generate_clause
+scope GScope;
+@init {
+	$GScope::currentOp = builder.createGenerateOp(inNestedCommand ? $nested_foreach::innerPlan : $foreach_plan::innerPlan );
+    List<LogicalExpressionPlan> plans = new ArrayList<LogicalExpressionPlan>();
+    List<Boolean> flattenFlags = new ArrayList<Boolean>();
+    List<LogicalSchema> schemas = new ArrayList<LogicalSchema>();
+}
+ : ^( GENERATE ( flatten_generated_item
+                 {
+                     plans.add( $flatten_generated_item.plan );
+                     flattenFlags.add( $flatten_generated_item.flattenFlag );
+                     schemas.add( $flatten_generated_item.schema );
+                 }
+               )+
+    )
+   {   
+       builder.buildGenerateOp( new SourceLocation( (PigParserNode)$GENERATE ), 
+       	   inNestedCommand ? $nested_foreach::foreachOp : $foreach_clause::foreachOp, 
+           (LOGenerate)$GScope::currentOp, $foreach_plan::operators,
+           plans, flattenFlags, schemas );
    }
 ;
 

@@ -416,6 +416,7 @@ nested_op : nested_proj
           | nested_distinct
           | nested_limit
           | nested_cross
+          | nested_foreach
 ;
 
 nested_proj 
@@ -441,6 +442,10 @@ nested_limit
 
 nested_cross
     : ^( CROSS { sb.append($CROSS.text).append(" "); }  nested_op_input_list )
+;
+
+nested_foreach
+	: ^( FOREACH { sb.append($FOREACH.text).append(" "); }  nested_op_input generate_clause )
 ;
 
 nested_op_input : col_ref | nested_proj
