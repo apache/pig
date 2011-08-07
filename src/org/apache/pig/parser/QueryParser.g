@@ -570,6 +570,7 @@ nested_op : nested_filter
           | nested_distinct
           | nested_limit
           | nested_cross
+          | nested_foreach
 ;
 
 nested_proj : col_ref PERIOD col_ref_list
@@ -593,6 +594,9 @@ nested_limit : LIMIT^ nested_op_input ( (INTEGER SEMI_COLON) => INTEGER | expr )
 ;
 
 nested_cross : CROSS^ nested_op_input_list
+;
+
+nested_foreach: FOREACH^ nested_op_input generate_clause
 ;
 
 nested_op_input : col_ref | nested_proj
