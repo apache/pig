@@ -103,6 +103,9 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 
 BUG FIXES
 
+PIG-1907: replace use of TupleFactory.newTupleNoCopy(List) with 
+ newTuple(List) in some of the physical operators (thejas)
+
 PIG-2181: Improvement : for error message when describe misses alias (vivekp via daijy)
 
 PIG-2124: Script never ending when joining from the same source (daijy)
