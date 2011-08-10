@@ -447,7 +447,7 @@
         </javadoc>
     </target>
 
-    <target name="javadoc-all" depends="jar, ivy-javadoc" description="Create documentation including all contrib projects">
+    <target name="javadoc-all" depends="jar-withouthadoop, ivy-javadoc" description="Create documentation including all contrib projects">
         <mkdir dir="${build.javadoc}" />
         <javadoc overview="${src.dir}/overview.html" packagenames="org.apache.pig*,org.apache.hadoop.zebra*" destdir="${build.javadoc}" author="true" version="true" use="true" windowtitle="${Name} ${version} API" doctitle="${Name} ${version} API" bottom="Copyright &amp;copy; ${year} The Apache Software Foundation">
             <packageset dir="${src.dir}" />
@@ -763,7 +763,7 @@
     <!-- ================================================================== -->
     <!-- D I S T R I B U T I O N                                            -->
     <!-- ================================================================== -->
-    <target name="package" depends="docs, api-report" description="Create a Pig release">
+    <target name="package-release" depends="docs, api-report" description="Create a Pig release for rpm/deb distribution">
         <mkdir dir="${dist.dir}" />
         <mkdir dir="${dist.dir}/etc/pig" />
         <mkdir dir="${dist.dir}/share/pig/scripts" />
@@ -773,12 +773,13 @@
         <mkdir dir="${dist.dir}/share/doc/pig/jdiff"/>
         <mkdir dir="${dist.dir}/share/doc/pig/license" />
 
-        <copy todir="${dist.dir}/share/pig/lib" includeEmptyDirs="false">
-            <!--fileset dir="${ivy.lib.dir}"/-->
-            <fileset dir="${lib.dir}"/>
+        <copy file="${ivy.lib.dir}/hadoop-core-${hadoop-core.version}.jar" todir="${dist.dir}/lib"/>
+
+        <copy todir="${dist.dir}/lib/jdiff" includeEmptyDirs="false">
+            <fileset dir="${lib.dir}/jdiff"/>
         </copy>
 
-        <copy file="${output.jarfile.backcompat}" tofile="${dist.dir}/share/pig/${final.name}-core.jar" />
+        <copy file="${output.jarfile.backcompat.withouthadoop}" tofile="${dist.dir}/share/pig/${final.name}-withouthadoop.jar" />
 
         <copy todir="${dist.dir}/bin">
             <fileset dir="bin" />
@@ -824,25 +825,85 @@
 
     </target>
 
+    <target name="package" depends="docs, api-report" description="Create a Pig release">
+            <mkdir dir="${dist.dir}" />
+        <mkdir dir="${dist.dir}/lib" />
+        <mkdir dir="${dist.dir}/conf" />
+        <mkdir dir="${dist.dir}/scripts" />
+        <mkdir dir="${dist.dir}/docs" />
+        <mkdir dir="${dist.dir}/docs/api" />
+        <mkdir dir="${dist.dir}/docs/jdiff"/>
+        <mkdir dir="${dist.dir}/license" />
+
+        <copy file="${ivy.lib.dir}/hadoop-core-${hadoop-core.version}.jar" todir="${dist.dir}/lib"/>
+
+        <copy todir="${dist.dir}/lib" includeEmptyDirs="false">
+            <fileset dir="${lib.dir}"/>
+        </copy>
+
+        <copy file="${output.jarfile.backcompat.withouthadoop}" tofile="${dist.dir}/${final.name}-withouthadoop.jar" />
+
+        <copy todir="${dist.dir}/" file="ivy.xml" />
+
+        <copy todir="${dist.dir}/ivy">
+            <fileset dir="ivy" />
+        </copy>
+
+        <copy todir="${dist.dir}/bin">
+            <fileset dir="bin" />
+        </copy>
+
+        <copy todir="${dist.dir}/docs">
+            <fileset dir="${build.docs}" />
+        </copy>
+
+		<copy todir="${dist.dir}/conf" file="conf/pig.properties"/>
+
+        <copy todir="${dist.dir}/src" includeEmptyDirs="true">
+            <fileset dir="${src.dir}" />
+        </copy>
+
+        <copy todir="${dist.dir}/shims" includeEmptyDirs="true">
+            <fileset dir="${basedir}/shims" />
+        </copy>
+
+        <copy todir="${dist.dir}/lib-src" includeEmptyDirs="true">
+            <fileset dir="${src.lib.dir}" />
+        </copy>
+
+        <copy todir="${dist.dir}/test" includeEmptyDirs="true">
+            <fileset dir="${test.src.dir}" />
+        </copy>
+
+        <copy todir="${dist.dir}/tutorial" includeEmptyDirs="true">
+            <fileset dir="tutorial" />
+        </copy>
+
+        <copy todir="${dist.dir}/contrib" includeEmptyDirs="true">
+            <fileset dir="contrib" />
+        </copy>
+
+        <copy todir="${dist.dir}/" file="build.xml" />
+
+        <copy todir="${dist.dir}">
+            <fileset dir=".">
+                <include name="*.txt" />
+            </fileset>
+        </copy>
+
+        <copy todir="${dist.dir}/license">
+            <fileset dir="license" />
+        </copy>
+
+        <chmod perm="ugo+x" type="file">
+            <fileset dir="${dist.dir}/bin" />
+        </chmod>
+    </target>
+
     <!-- ================================================================== -->
     <!-- Make release packages                                              -->
     <!-- ================================================================== -->
-    <target name="source" description="Source distribution">
-      <mkdir dir="${build.dir}"/>
-      <tar compression="gzip" longfile="gnu" destfile="${build.dir}/${name}-source-${version}.tar.gz">
-          <tarfileset dir="${basedir}" mode="644">
-              <exclude name="bin/*"/>
-              <exclude name="build/**"/>
-              <exclude name="pig.jar"/>
-              <exclude name="src-gen/**"/>
-          </tarfileset>
-          <tarfileset dir="${basedir}" mode="755">
-              <include name="bin/*"/>
-          </tarfileset> 
-      </tar>
-    </target>
-
-    <target name="tar" depends="package" description="Create release tarball">
+    <target name="tar" depends="package" description="Source distribution">
         <tar compression="gzip" longfile="gnu" destfile="${build.dir}/${final.name}.tar.gz">
             <tarfileset dir="${build.dir}" mode="664">
                 <exclude name="${final.name}/bin/*" />
@@ -854,7 +915,19 @@
         </tar>
     </target>
 
-    <target name="rpm" depends="jar-withouthadoop, tar" description="Make rpm package">
+    <target name="tar-release" depends="package-release" description="Create release tarball">
+        <tar compression="gzip" longfile="gnu" destfile="${build.dir}/${final.name}.tar.gz">
+            <tarfileset dir="${build.dir}" mode="664">
+                <exclude name="${final.name}/bin/*" />
+                <include name="${final.name}/**" />
+            </tarfileset>
+            <tarfileset dir="${build.dir}" mode="755">
+                <include name="${final.name}/bin/*" />
+            </tarfileset>
+        </tar>
+    </target>
+
+    <target name="rpm" depends="tar-release" description="Make rpm package">
         <mkdir dir="${package.buildroot}/BUILD" />
         <mkdir dir="${package.buildroot}/RPMS" />
         <mkdir dir="${package.buildroot}/SRPMS" />
@@ -891,7 +964,7 @@
         <delete dir="${package.buildroot}" quiet="true" verbose="false"/>
     </target>
    
-    <target name="deb" depends="jar-withouthadoop, tar" description="Make deb package">
+    <target name="deb" depends="tar-release" description="Make deb package">
         <taskdef name="deb"
             classname="org.vafer.jdeb.ant.DebAntTask">
             <classpath refid="classpath" />

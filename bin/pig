@@ -25,6 +25,8 @@
 #
 #     PIG_CLASSPATH Extra Java CLASSPATH entries.
 #
+#     HADOOP_HOME     Environment HADOOP_HOME
+#
 #     PIG_HEAPSIZE    The maximum amount of heap to use, in MB. 
 #                                        Default is 1000.
 #
@@ -112,39 +114,36 @@ if [ "$PIG_CLASSPATH" != "" ]; then
     CLASSPATH=${CLASSPATH}:${PIG_CLASSPATH}
 fi
  
-# for developers, add Pig classes to CLASSPATH
-if [ -d "$PIG_HOME/build/classes" ]; then
-    CLASSPATH=${CLASSPATH}:$PIG_HOME/build/classes
-fi
-if [ -d "$PIG_HOME/build/test/classes" ]; then
-    CLASSPATH=${CLASSPATH}:$PIG_HOME/build/test/classes
-fi
-
 # so that filenames w/ spaces are handled correctly in loops below
 IFS=
 
-# for releases, add core pig to CLASSPATH
-for f in $PIG_HOME/share/pig/pig-*-core.jar; do
-    CLASSPATH=${CLASSPATH}:$f;
+shopt -s nullglob
+# for releases tarball, add core pig to CLASSPATH
+for f in $PIG_HOME/pig-*-core.jar; do
+    PIG_JAR=$f;
 done
 
-# during development pig jar might be in build
-for f in $PIG_HOME/build/pig-*-SNAPSHOT.jar; do
-    CLASSPATH=${CLASSPATH}:$f;
-done
-
-# locate Hadoop
-# For Hadoop 0.20.203+
-#
-if [ -d "${PIG_HOME}/share/hadoop" ]; then
-    for f in ${PIG_HOME}/share/hadoop/hadoop*.jar; do
-        CLASSPATH=${CLASSPATH}:$f;
-    done
-    for f in ${PIG_HOME}/share/hadoop/lib/*.jar; do
-        CLASSPATH=${CLASSPATH}:$f;
+# for development/source release, add pig-withouthadoop.jar
+if [ ${#PIG_JAR} -eq 0 ]; then
+    for f in $PIG_HOME/pig-*withouthadoop.jar; do
+        PIG_JAR=$f;
     done
 fi
 
+# for deb/rpm package, add pig jar in /usr/share/pig
+if [ ${#PIG_JAR} -eq 0 ]; then
+    for f in $PIG_HOME/share/pig/pig-*withouthadoop.jar; do
+        PIG_JAR=$f;
+    done
+fi
+shopt -u nullglob
+
+if [ ${#PIG_JAR} -ne 0 ]; then
+    CLASSPATH=${CLASSPATH}:$PIG_JAR
+else
+    echo "Cannot locate pig jar. do 'ant jar-withouthadoop', and try again"
+    exit 1
+fi
 
 # For Hadoop 0.23.0+
 #
@@ -166,6 +165,55 @@ fi
 #    done
 #fi
 
+# Set the version for Hadoop, default to 20
+PIG_HADOOP_VERSION="${PIG_HADOOP_VERSION:-20}"
+# add libs to CLASSPATH.    There can be more than one version of the hadoop
+# libraries in the lib dir, so don't blindly add them all.    Only add the one
+# that matche PIG_HADOOP_VERSION.
+if [[ ${#HADOOP_HOME} -ne 0 && -d ${HADOOP_HOME} ]]; then
+    HADOOP_LIB_DIR=$HADOOP_HOME
+    if [ -f $HADOOP_HOME/bin/hadoop ]; then
+        HADOOP_BIN=$HADOOP_HOME/bin/hadoop
+    fi
+elif [ -d "$PIG_HOME/build/ivy/lib/Pig" ]; then
+    HADOOP_LIB_DIR=$PIG_HOME/build/ivy/lib/Pig
+else
+    HADOOP_LIB_DIR=$PIG_HOME/lib
+fi
+
+if [ ${#HADOOP_BIN} -eq 0 ]; then
+    if [ -f /usr/bin/hadoop ]; then
+        HADOOP_BIN=/usr/bin/hadoop
+    fi
+fi
+
+HADOOP_CLASSPATH=`$HADOOP_BIN classpath 2>/dev/null`
+if [ ${#HADOOP_CLASSPATH} -eq 0 ]; then
+    for f in $HADOOP_LIB_DIR/*.jar; do
+        filename=`basename $f`
+        IS_HADOOP=`echo $filename | grep hadoop`
+        if [ ${#IS_HADOOP} -ne 0 ]; then
+            HADOOP_CLASSPATH=${HADOOP_CLASSPATH}:$f;
+        else
+            IS_RIGHT_VER=`echo $f | grep hadoop-0\.${PIG_HADOOP_VERSION}\.*.jar | grep core`
+            if [ ${#IS_RIGHT_VER} -ne 0 ]; then
+                HADOOP_CLASSPATH=${HADOOP_CLASSPATH}:$f;
+            fi
+        fi
+    done
+    if [ -d ${HADOOP_HOME} ]; then
+        HADOOP_CLASSPATH=${HADOOP_HOME}/conf:${HADOOP_CLASSPATH}
+    fi
+fi
+
+CLASSPATH=${CLASSPATH}:$HADOOP_CLASSPATH
+
+# if using HBase, likely want to include HBase config
+HBASE_CONF_DIR=${HBASE_CONF_DIR:-/etc/hbase}
+if [ -n "$HBASE_CONF_DIR" ] && [ -d "$HBASE_CONF_DIR" ]; then
+    CLASSPATH=$HBASE_CONF_DIR:$CLASSPATH
+fi
+
 if [ -d "${PIG_HOME}/etc/hadoop" ]; then
     CLASSPATH=${CLASSPATH}:${PIG_HOME}/etc/hadoop;
 fi
@@ -182,30 +230,6 @@ if [ -d "${PIG_HOME}/share/hbase" ]; then
     for f in ${PIG_HOME}/share/hbase/hbase-*.jar; do
         CLASSPATH=${CLASSPATH}:$f
     done
-fi
-
-# Set the version for Hadoop, default to 20
-PIG_HADOOP_VERSION="${PIG_HADOOP_VERSION:-20}"
-# add libs to CLASSPATH.    There can be more than one version of the hadoop
-# libraries in the lib dir, so don't blindly add them all.    Only add the one
-# that matche PIG_HADOOP_VERSION.
-for f in $PIG_HOME/lib/*.jar; do
-    filename=`basename $f`
-    IS_HADOOP=`echo $filename | grep hadoop`
-    if [ "${IS_HADOOP}x" == "x" ]; then
-        CLASSPATH=${CLASSPATH}:$f;
-    else 
-        IS_RIGHT_VER=`echo $f | grep hadoop${PIG_HADOOP_VERSION}.jar`
-        if [ "${IS_RIGHT_VER}x" != "x" ]; then
-            CLASSPATH=${CLASSPATH}:$f;
-        fi
-    fi
-done
-
-# if using HBase, likely want to include HBase config
-HBASE_CONF_DIR=${HBASE_CONF_DIR:-/etc/hbase}
-if [ -n "$HBASE_CONF_DIR" ] && [ -d "$HBASE_CONF_DIR" ]; then
-    CLASSPATH=$HBASE_CONF_DIR:$CLASSPATH
 fi
 
 # default log directory & file

@@ -194,6 +194,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-2183: Pig not working with Hadoop 0.20.203.0 (daijy)
+
 PIG-2199: Penny throws Exception when netty classes are missing (ddaniels888 via daijy)
 
 PIG-2013: Penny gets a null pointer when no properties are set (breed via daijy)
