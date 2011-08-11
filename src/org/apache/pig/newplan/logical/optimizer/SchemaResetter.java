@@ -18,9 +18,13 @@
 package org.apache.pig.newplan.logical.optimizer;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
+import org.apache.pig.PigException;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.plan.PlanValidationException;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.newplan.DependencyOrderWalker;
 import org.apache.pig.newplan.OperatorPlan;
@@ -46,17 +50,29 @@ import org.apache.pig.newplan.logical.relational.LOStore;
 import org.apache.pig.newplan.logical.relational.LOStream;
 import org.apache.pig.newplan.logical.relational.LOUnion;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalNodesVisitor;
+import org.apache.pig.newplan.logical.relational.LogicalSchema;
+import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
 
 public class SchemaResetter extends LogicalRelationalNodesVisitor {
 
+    // uid duplicates are removed only after optimizer rule 
+    // DuplicateForEachColumnRewrite has run. So disable it in calls before that
+    boolean skipDuplicateUidCheck = true;
+    
     public SchemaResetter(OperatorPlan plan) throws FrontendException {
+        this(plan, false);
+    }
+
+    public SchemaResetter(OperatorPlan plan, boolean skipDuplicateUidCheck) 
+            throws FrontendException {
         super(plan, new DependencyOrderWalker(plan));
+        this.skipDuplicateUidCheck = skipDuplicateUidCheck;
     }
 
     @Override
     public void visit(LOLoad load) throws FrontendException {
         load.resetSchema();
-        load.getSchema();
+        validate(load.getSchema());
     }
 
     @Override
@@ -64,13 +80,13 @@ public class SchemaResetter extends LogicalRelationalNodesVisitor {
         filter.resetSchema();
         FieldSchemaResetter fsResetter = new FieldSchemaResetter(filter.getFilterPlan());
         fsResetter.visit();
-        filter.getSchema();
+        validate(filter.getSchema());
     }
     
     @Override
     public void visit(LOStore store) throws FrontendException {
         store.resetSchema();
-        store.getSchema();
+        validate(store.getSchema());
     }
     
     @Override
@@ -81,7 +97,7 @@ public class SchemaResetter extends LogicalRelationalNodesVisitor {
             FieldSchemaResetter fsResetter = new FieldSchemaResetter(joinPlan);
             fsResetter.visit();
         }
-        join.getSchema();
+        validate(join.getSchema());
     }
     
     @Override
@@ -92,7 +108,7 @@ public class SchemaResetter extends LogicalRelationalNodesVisitor {
         pushWalker(newWalker);
         currentWalker.walk(this);
         popWalker();
-        foreach.getSchema();
+        validate(foreach.getSchema());
     }
     
     @Override
@@ -103,7 +119,7 @@ public class SchemaResetter extends LogicalRelationalNodesVisitor {
             FieldSchemaResetter fsResetter = new FieldSchemaResetter(genPlan);
             fsResetter.visit();
         }
-        gen.getSchema();
+        validate(gen.getSchema());
     }
     
     @Override
@@ -121,13 +137,13 @@ public class SchemaResetter extends LogicalRelationalNodesVisitor {
             FieldSchemaResetter fsResetter = new FieldSchemaResetter(expPlan);
             fsResetter.visit();
         }
-        loCogroup.getSchema();
+        validate(loCogroup.getSchema());
     }
     
     @Override
     public void visit(LOSplit loSplit) throws FrontendException {
         loSplit.resetSchema();
-        loSplit.getSchema();
+        validate(loSplit.getSchema());
     }
     
     @Override
@@ -135,13 +151,13 @@ public class SchemaResetter extends LogicalRelationalNodesVisitor {
         loSplitOutput.resetSchema();
         FieldSchemaResetter fsResetter = new FieldSchemaResetter(loSplitOutput.getFilterPlan());
         fsResetter.visit();
-        loSplitOutput.getSchema();
+        validate(loSplitOutput.getSchema());
     }
     
     @Override
     public void visit(LOUnion loUnion) throws FrontendException {
         loUnion.resetSchema();
-        loUnion.getSchema();
+        validate(loUnion.getSchema());
     }
     
     @Override
@@ -152,13 +168,13 @@ public class SchemaResetter extends LogicalRelationalNodesVisitor {
             FieldSchemaResetter fsResetter = new FieldSchemaResetter(sortPlan);
             fsResetter.visit();
         }
-        loSort.getSchema();
+        validate(loSort.getSchema());
     }
     
     @Override
     public void visit(LODistinct loDistinct) throws FrontendException {
         loDistinct.resetSchema();
-        loDistinct.getSchema();
+        validate(loDistinct.getSchema());
     }
     
     @Override
@@ -169,20 +185,64 @@ public class SchemaResetter extends LogicalRelationalNodesVisitor {
                     loLimit.getLimitPlan());
             fsResetter.visit();
         }
-        loLimit.getSchema();
+        validate(loLimit.getSchema());
     }
     
     @Override
     public void visit(LOCross loCross) throws FrontendException {
         loCross.resetSchema();
-        loCross.getSchema();
+        validate(loCross.getSchema());
     }
     
     @Override
     public void visit(LOStream loStream) throws FrontendException {
         loStream.resetSchema();
-        loStream.getSchema();
+        validate(loStream.getSchema());
     }
+
+
+    /**
+     * Check if schema is valid (ready to be part of a final logical plan)
+     * @param schema
+     * @throws PlanValidationException if the if any field in schema has uid -1
+     * or (skipDuplicateUidCheck is true and there are duplicate uids in schema) 
+     */
+    public void validate(LogicalSchema schema)
+            throws PlanValidationException{
+        
+        if(schema == null)
+            return;
+        
+        Set<Long> uidsSeen = new HashSet<Long>();
+        for(LogicalFieldSchema fs : schema.getFields()){
+            
+            if(!skipDuplicateUidCheck){
+                //check duplicate uid
+                if(!uidsSeen.add(fs.uid)){
+                    // uid already seen
+                    String msg = "Logical plan invalid state: duplicate uid in " +
+                            "schema : " + schema;
+                    throw new PlanValidationException(
+                            msg,
+                            2270,
+                            PigException.BUG
+                            );
+                }
+            }
+            
+            if(fs.uid < 0){
+                String msg = "Logical plan invalid state: invalid uid " + fs.uid + 
+                        " in schema : " + schema;
+                throw new PlanValidationException(
+                        msg,
+                        2271,
+                        PigException.BUG
+                        );
+                
+            }
+        }
+    }
+
 }
 
 class FieldSchemaResetter extends AllSameExpressionVisitor {

@@ -712,7 +712,8 @@ public class Util {
         UidResetter uidResetter = new UidResetter( lp );
         uidResetter.visit();
         
-        SchemaResetter schemaResetter = new SchemaResetter( lp );
+        SchemaResetter schemaResetter = 
+                new SchemaResetter( lp, true /*disable duplicate uid check*/ );
         schemaResetter.visit();
         
         LoadStoreFuncDupSignatureValidator loadStoreFuncDupSignatureValidator = new LoadStoreFuncDupSignatureValidator(lp);

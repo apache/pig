@@ -167,7 +167,9 @@ public class DuplicateForEachColumnRewrite extends Rule {
             uidResetter.visit();
             
             // Manually regenerate schema since we skip listener
-            SchemaResetter schemaResetter = new SchemaResetter(currentPlan);
+            // skip duplicate uid check in schema as it would be fixed in 
+            // only portion of the plan
+            SchemaResetter schemaResetter = new SchemaResetter(currentPlan, true);
             schemaResetter.visit();
         }
     }

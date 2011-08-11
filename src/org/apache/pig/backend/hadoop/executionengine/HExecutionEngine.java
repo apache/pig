@@ -239,7 +239,7 @@ public class HExecutionEngine {
         UidResetter uidResetter = new UidResetter( plan );
         uidResetter.visit();
         
-        SchemaResetter schemaResetter = new SchemaResetter( plan );
+        SchemaResetter schemaResetter = new SchemaResetter( plan, true /*skip duplicate uid check*/ );
         schemaResetter.visit();
         
         HashSet<String> optimizerRules = null;
