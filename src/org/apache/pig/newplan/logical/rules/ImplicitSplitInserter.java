@@ -139,7 +139,7 @@ public class ImplicitSplitInserter extends Rule {
         uidResetter.visit();
 
         // Manually regenerate schema since we skip listener
-        SchemaResetter schemaResetter = new SchemaResetter(currentPlan);
+        SchemaResetter schemaResetter = new SchemaResetter(currentPlan, true);
         schemaResetter.visit();
       }
       
