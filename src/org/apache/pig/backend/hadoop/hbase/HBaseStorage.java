@@ -48,6 +48,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.BinaryComparator;
 import org.apache.hadoop.hbase.filter.CompareFilter.CompareOp;
 import org.apache.hadoop.hbase.filter.FilterList;
+import org.apache.hadoop.hbase.filter.QualifierFilter;
 import org.apache.hadoop.hbase.filter.RowFilter;
 import org.apache.hadoop.hbase.filter.FamilyFilter;
 import org.apache.hadoop.hbase.filter.ColumnPrefixFilter;
@@ -334,12 +335,17 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         // apply any column filters
         FilterList allColumnFilters = null;
         for (ColumnInfo colInfo : columnInfo_) {
-            if (colInfo.isColumnMap() && colInfo.getColumnPrefix() != null) {
+            // all column family filters roll up to one parent OR filter
+            if (allColumnFilters == null) {
+                allColumnFilters = new FilterList(FilterList.Operator.MUST_PASS_ONE);
+            }
 
-                // all column family filters roll up to one parent OR filter
-                if (allColumnFilters == null) {
-                    allColumnFilters = new FilterList(FilterList.Operator.MUST_PASS_ONE);
-                }
+            // and each filter contains a column family filter
+            FilterList thisColumnFilter = new FilterList(FilterList.Operator.MUST_PASS_ALL);
+            thisColumnFilter.addFilter(new FamilyFilter(CompareOp.EQUAL,
+                    new BinaryComparator(colInfo.getColumnFamily())));
+
+            if (colInfo.isColumnMap()) {
 
                 if (LOG.isInfoEnabled()) {
                     LOG.info("Adding family:prefix filters with values " +
@@ -347,15 +353,28 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
                         Bytes.toString(colInfo.getColumnPrefix()));
                 }
 
-                // each column family filter consists of a FamilyFilter AND a PrefixFilter
-                FilterList thisColumnFilter = new FilterList(FilterList.Operator.MUST_PASS_ALL);
-                thisColumnFilter.addFilter(new FamilyFilter(CompareOp.EQUAL,
-                        new BinaryComparator(colInfo.getColumnFamily())));
-                thisColumnFilter.addFilter(new ColumnPrefixFilter(
+                // each column map filter consists of a FamilyFilter AND
+                // optionally a PrefixFilter
+                if (colInfo.getColumnPrefix() != null) {
+                    thisColumnFilter.addFilter(new ColumnPrefixFilter(
                         colInfo.getColumnPrefix()));
-
-                allColumnFilters.addFilter(thisColumnFilter);
+                }
             }
+            else {
+
+                if (LOG.isInfoEnabled()) {
+                    LOG.info("Adding family:descriptor filters with values " +
+                        Bytes.toString(colInfo.getColumnFamily()) + COLON +
+                        Bytes.toString(colInfo.getColumnName()));
+                }
+
+                // each column value filter consists of a FamilyFilter AND
+                // a QualifierFilter
+                thisColumnFilter.addFilter(new QualifierFilter(CompareOp.EQUAL,
+                        new BinaryComparator(colInfo.getColumnName())));
+            }
+
+            allColumnFilters.addFilter(thisColumnFilter);
         }
 
         if (allColumnFilters != null) {
@@ -374,7 +393,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
     private void addFilter(Filter filter) {
         FilterList scanFilter = (FilterList) scan.getFilter();
         if (scanFilter == null) {
-            scanFilter = new FilterList();
+            scanFilter = new FilterList(FilterList.Operator.MUST_PASS_ALL);
         }
         scanFilter.addFilter(filter);
         scan.setFilter(scanFilter);
