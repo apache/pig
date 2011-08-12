@@ -105,6 +105,8 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 
 BUG FIXES
 
+PIG-2102: MonitoredUDF does not work (dvryaboy)
+
 PIG-2174: HBaseStorage column filters miss some fields (billgraham via dvryaboy)
 
 PIG-2183: Pig not working with Hadoop 0.20.203.0 (daijy)
