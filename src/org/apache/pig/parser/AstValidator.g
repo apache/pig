@@ -222,7 +222,10 @@ func_clause : ^( FUNC_REF func_name )
 func_name : eid ( ( PERIOD | DOLLAR ) eid )*
 ;
 
-func_args : QUOTEDSTRING+
+func_args_string : QUOTEDSTRING | MULTILINE_QUOTEDSTRING
+;
+
+func_args : func_args_string+
 ;
 
 group_clause

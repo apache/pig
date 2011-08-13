@@ -320,4 +320,11 @@ public class TestLogicalPlanGenerator {
         Assert.fail( "Query is supposed to be failing." );
     }
 
+    @Test
+    public void testMultilineFunctionArgument() {
+        String query = "LOAD 'testIn' \n" +
+            "USING PigStorage ('\n');";
+        generateLogicalPlan( query );
+    }
+
 }

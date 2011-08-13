@@ -432,7 +432,9 @@ func_name returns[String funcName]
 
 func_args returns[List<String> args]
 @init { $args = new ArrayList<String>(); }
-: ( QUOTEDSTRING { $args.add( builder.unquote( $QUOTEDSTRING.text ) ); } )+
+: ( QUOTEDSTRING { $args.add( builder.unquote( $QUOTEDSTRING.text ) ); } 
+    | MULTILINE_QUOTEDSTRING { $args.add( builder.unquote( $MULTILINE_QUOTEDSTRING.text ) ); }
+  )+
 ;
 
 group_clause returns[String alias]

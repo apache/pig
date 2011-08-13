@@ -121,4 +121,12 @@ public class TestAstValidator {
     }
     
     // TODO: need a test similar to above but for foreach inner plan.
+
+    @Test
+    public void testMultilineFunctionArgument() throws RecognitionException, ParsingFailureException, IOException {
+        String query = "LOAD 'testIn' \n" +
+            "USING PigStorage ('\n');";
+        ParserTestingUtils.validateAst(query);
+    }
+
 }
