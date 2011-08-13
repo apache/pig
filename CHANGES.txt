@@ -105,6 +105,8 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 
 BUG FIXES
 
+PIG-2214: InternalSortedBag two-arg constructor doesn't pass bagCount (sallen via gates)
+
 PIG-2102: MonitoredUDF does not work (dvryaboy)
 
 PIG-2174: HBaseStorage column filters miss some fields (billgraham via dvryaboy)
