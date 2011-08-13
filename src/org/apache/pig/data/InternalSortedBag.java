@@ -93,7 +93,7 @@ public class InternalSortedBag extends SortedSpillBag{
     }
 
     public InternalSortedBag(int bagCount, Comparator<Tuple> comp) {
-    	this(1, -1.0, comp);
+    	this(bagCount, -1.0, comp);
     }
     
     public InternalSortedBag(int bagCount, double percent, Comparator<Tuple> comp) {
