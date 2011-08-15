@@ -1,0 +1,20 @@
+{"type":"record","name":"TUPLE_1","fields":[
+  {"name":"act_content","type":
+    ["null",
+     {"type":"array","items":
+      {"type":"record","name":"TUPLE_2","fields":
+        [{"name":"key","type":"string"},
+         {"name":"val","type":"string"}]
+      }
+     }
+    ]
+  },
+  {"name":"action_type","type":["null","string"]},
+  {"name":"browser_id","type":["null","string"]},
+  {"name":"component_version","type":"int"},
+  {"name":"member_id","type":"int"},
+  {"name":"page_key","type":["null","string"]},
+  {"name":"session_id","type":"long"},
+  {"name":"tracking_time","type":"long"},
+  {"name":"type","type":["null","string"]}]
+}

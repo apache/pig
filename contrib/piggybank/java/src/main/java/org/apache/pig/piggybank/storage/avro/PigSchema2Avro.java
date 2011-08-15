@@ -166,6 +166,15 @@ public class PigSchema2Avro {
 
     }
 
+  /**
+   * This is a painful hack to make unit tests pass. The static counter holds
+   * state between unit tests, so it needs to be reset. Otherwise tests will
+   * fail if their order is swapped or a new test is added.
+   *
+   * @param index
+   */
+    public static void setTupleIndex(int index) { tupleIndex = index; }
+
     private static String getRecordName() {
         String name = TUPLE_NAME + "_" + tupleIndex;
         tupleIndex++;
