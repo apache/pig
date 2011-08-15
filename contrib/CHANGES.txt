@@ -54,6 +54,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2195 AvroStorage fails to STORE when LOADing via PigStorage (billgraham via gates)
+
 PIG-1839 XMLLoader will always add an extra empty tuple even if no tags are
 matched (vikekp via gates)
 

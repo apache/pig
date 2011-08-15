@@ -180,7 +180,7 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
                 if (schema == null) {
                     schema = newSchema;
                     if(!checkSchema) {
-                        System.out.println("Do not check shema; use schema of " + s.getPath());
+                        System.out.println("Do not check schema; use schema of " + s.getPath());
                         return schema;
                     }
                 } else if (!schema.equals(newSchema)) {
@@ -217,6 +217,29 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
         DataFileStream<Object> avroDataStream = new DataFileStream<Object>(hdfsInputStream, avroReader);
         Schema ret = avroDataStream.getSchema();
         avroDataStream.close();
+
+        return ret;
+    }
+
+    /**
+     * This method is called to return the schema of an avro schema file. This
+     * method is different than {@link #getSchema}, which returns the schema
+     * from a data file.
+     *
+     * @param path  path of a file or first level directory
+     * @param fs  file system
+     * @return avro schema
+     * @throws IOException
+     */
+    protected Schema getSchemaFromFile(Path path, FileSystem fs) throws IOException {
+        /* get path of the last file */
+        Path lastFile = AvroStorageUtils.getLast(path, fs);
+
+        /* read in file and obtain schema */
+        GenericDatumReader<Object> avroReader = new GenericDatumReader<Object>();
+        InputStream hdfsInputStream = fs.open(lastFile);
+        Schema ret = Schema.parse(hdfsInputStream);
+        hdfsInputStream.close();
 
         return ret;
     }
@@ -387,6 +410,13 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
             Schema schema = getAvroSchema(path, fs);
             schemaManager = new AvroSchemaManager(schema);
         }
+        else if (inputs.containsKey("schema_file")) {
+            Path path = new Path((String) inputs.get("schema_file"));
+            AvroStorageLog.details("schemaFile path=" + path.toUri().toString());
+            FileSystem fs = FileSystem.get(path.toUri(), new Configuration());
+            Schema schema = getSchemaFromFile(path, fs);
+            schemaManager = new AvroSchemaManager(schema);
+        }
 
         /* iterate input property map */
         for (Entry<String, Object> entry : inputs.entrySet()) {
@@ -406,7 +436,7 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
                 nullable = (Boolean) value;
             } else if (name.equalsIgnoreCase("schema")) {
                 outputAvroSchema = Schema.parse((String) value);
-            } else if (name.matches("field\\d+")) { 
+            } else if (name.matches("field\\d+")) {
                 /*set schema of dth field */
                 if (fields == null)
                     fields = new ArrayList<Field>();
@@ -443,7 +473,8 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
 
                 fields.add(field);
             } else if (!name.equalsIgnoreCase("data")
-                                  && !name.equalsIgnoreCase("debug")) { 
+                                  && !name.equalsIgnoreCase("schema_file")
+                                  && !name.equalsIgnoreCase("debug")) {
                 throw new IOException("Invalid parameter:" + name);
             }
         }
