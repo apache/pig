@@ -16,10 +16,10 @@
 <project name="Pig-internal" default="udf-jar">
 
     <property name="udf.jarfile" value="testudf.jar" />
-    <property name="build.dir" value="${basedir}/build" />
+    <property name="udf.build.dir" value="${basedir}/build" />
     <!-- <property name="lib.dir" value="${basedir}/lib" />
     <property name="pig.jarfile" value="${lib.dir}/pig.jar" /> -->
-    <property name="src.dir" value="${basedir}/org/" />
+    <property name="udf.src.dir" value="${basedir}/org/" />
 
 
     <path id="udf-classpath">
@@ -30,17 +30,17 @@
     </path>
 
     <target name="init">
-        <mkdir dir="${build.dir}" />
+        <mkdir dir="${udf.build.dir}" />
     </target>
 
     <target name="clean">
-        <delete dir="${build.dir}" />
+        <delete dir="${udf.build.dir}" />
         <delete file="${udf.jarfile}" />
     </target>
 
     <target name="udf-compile" depends="init, pig.jar.check">
         <echo>*** Compiling UDFs ***</echo>
-        <javac srcdir="${src.dir}" destdir="${build.dir}" debug="on">
+        <javac srcdir="${udf.src.dir}" destdir="${udf.build.dir}" debug="on">
             <classpath refid="udf-classpath" />
         </javac>
     </target>

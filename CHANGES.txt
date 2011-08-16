@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2218: Pig end-to-end tests should be accessible from top level build.xml (gates)
+
 PIG-2176: add logical plan assumption checker  (thejas)
 
 PIG-1631: Support to 2 level nested foreach (aniket486 via daijy)
