@@ -155,7 +155,7 @@
     <!-- If they have not specified tests to run then null it out -->
     <property name="tests.to.run" value=""/>
 
-    <exec executable="./pig_test_harness.pl" dir="${test.location}">
+    <exec executable="./pig_test_harness.pl" dir="${test.location}" failonerror="true">
       <env key="PIG_HARNESS_ROOT" value="."/>
       <env key="PH_LOCAL" value="."/>
       <env key="PH_OUT" value="."/>
@@ -183,7 +183,7 @@
   </target>
 
   <target name="deploy-base" depends="property-check, tar, init-test, init-deploy">
-    <exec executable="./pig_test_harness.pl" dir="${test.location}">
+    <exec executable="./pig_test_harness.pl" dir="${test.location}" failonerror="true">
       <env key="PIG_HARNESS_ROOT" value="."/>
       <env key="PH_LOCAL" value="."/>
       <env key="PH_OUT" value="."/>
