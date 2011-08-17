@@ -165,7 +165,7 @@ grunt>
    <table>
        <tr>
             <td>
-               <p>exec [–param param_name = param_value] [–param_file file_name] script  </p>
+               <p>exec [–param param_name = param_value] [–param_file file_name] [script]  </p>
             </td>
          </tr> 
    </table></section>
@@ -208,7 +208,7 @@ grunt>
    <title>Usage</title>
    <p>Use the exec command to run a Pig script with no interaction between the script and the Grunt shell (batch mode). Aliases defined in the script are not available to the shell; however, the files produced as the output of the script and stored on the system are visible after the script is run. Aliases defined via the shell are not available to the script. </p>
    <p>With the exec command, store statements will not trigger execution; rather, the entire script is parsed before execution starts. Unlike the run command, exec does not change the command history or remembers the handles used inside the script. Exec without any parameters can be used in scripts to force execution up to the point in the script where the exec occurs. </p>
-   <p id="exec-debug">For comparison, see the run command. Both the exec and run commands are useful for debugging because you can modify a Pig script in an editor and then rerun the script in the Grunt shell without leaving the shell. Also, both commands promote Pig script modularity as they allow you to reuse existing components.</p>
+   <p id="exec-debug">For comparison, see the <a href="#run">run</a> command. Both the exec and run commands are useful for debugging because you can modify a Pig script in an editor and then rerun the script in the Grunt shell without leaving the shell. Also, both commands promote Pig script modularity as they allow you to reuse existing components.</p>
    </section>
    
    <section>
@@ -442,7 +442,7 @@ grunt&gt; quit
    <title>Usage</title>
    <p>Use the run command to run a Pig script that can interact with the Grunt shell (interactive mode). The script has access to aliases defined externally via the Grunt shell. The Grunt shell has access to aliases defined within the script. All commands from the script are visible in the command history. </p>   
 	<p>With the run command, every store triggers execution. The statements from the script are put into the command history and all the aliases defined in the script can be referenced in subsequent statements after the run command has completed. Issuing a run command on the grunt command line has basically the same effect as typing the statements manually. </p>   
-   <p>For comparison, see the exec command. Both the run and exec commands are useful for debugging because you can modify a Pig script in an editor and then rerun the script in the Grunt shell without leaving the shell. Also, both commands promote Pig script modularity as they allow you to reuse existing components.</p>
+   <p>For comparison, see the <a href="#exec">exec</a> command. Both the run and exec commands are useful for debugging because you can modify a Pig script in an editor and then rerun the script in the Grunt shell without leaving the shell. Also, both commands promote Pig script modularity as they allow you to reuse existing components.</p>
   </section>
    
    <section>

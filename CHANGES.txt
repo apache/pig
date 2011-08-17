@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2213: Pig 0.9.1 Documentation (chandec via daijy)
+
 PIG-2218: Pig end-to-end tests should be accessible from top level build.xml (gates)
 
 PIG-2176: add logical plan assumption checker  (thejas)
