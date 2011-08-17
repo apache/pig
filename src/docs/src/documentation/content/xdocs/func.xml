@@ -1267,7 +1267,7 @@ STORE X INTO 'output' USING PigDump();
       <!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->  
    <section id="pigstorage">
    <title>PigStorage</title>
-   <p>Loads and stores data in UTF-8 format.</p>
+   <p>Loads and stores data as structured text files.</p>
    
    <section>
    <title>Syntax</title>
@@ -1296,11 +1296,7 @@ STORE X INTO 'output' USING PigDump();
    
    <section>
    <title>Usage</title>
-   <p>PigStorage is the default function for the LOAD and STORE operators and works with both simple and complex data types. </p>
-   
-   <p>PigStorage supports structured text files (in human-readable UTF-8 format). PigStorage also supports <a href="#Handling-Compression">compression</a>.</p>
-   
-    <p>PigStorage supports multiple locations (files, directories, globs) as input.</p>
+   <p>PigStorage is the default function used by Pig to load/store the data. PigStorage supports structured text files (in human-readable UTF-8 format) in compressed or uncompressed form (see <a href="#Handling-Compression">Handling Compression</a>). All Pig <a href="basic.html#data-types">data types</a> (both simple and complex) can be read/written using this function. The input data to the load can be a file, a directory or a glob.</p>
 
   <p>Load statements – PigStorage expects data to be formatted using field delimiters, either the tab character  ('\t') or other specified character.</p>
 
@@ -1309,10 +1305,36 @@ STORE X INTO 'output' USING PigDump();
    <p>Field Delimiters – For load and store statements the default field delimiter is the tab character ('\t'). You can use other characters as field delimiters, but separators such as ^A or Ctrl-A should be represented in Unicode (\u0001) using UTF-16 encoding (see Wikipedia <a href="http://en.wikipedia.org/wiki/ASCII">ASCII</a>, <a href="http://en.wikipedia.org/wiki/Unicode">Unicode</a>, and <a href="http://en.wikipedia.org/wiki/UTF-16">UTF-16</a>).</p>
    
    <p>Record Deliminters – For load statements Pig interprets the line feed ( '\n' ), carriage return ( '\r' or CTRL-M) and combined CR + LF ( '\r\n' ) characters as record delimiters (do not use these characters as field delimiters). For store statements Pig uses the line feed ('\n') character as the record delimiter.</p>
+   
+  <p><strong>Complex Data Types</strong></p>   
+  <p>The formats for complex data types are shown here:</p>
+ <ul>
+		<li><a href="basic.html#tuple">Tuple</a>: enclosed by (), items separated by ","
+		<ul>
+			<li>Non-empty tuple: (item1,item2,item3)</li>
+		    <li>Empty tuple is valid: ()</li>
+		</ul>
+		</li>
+		<li><a href="basic.html#bag">Bag</a>: enclosed by {}, tuples separated by ","
+		<ul>
+			<li>Non-empty bag: {code}{(tuple1),(tuple2),(tuple3)}{code}</li>
+		    <li>Empty bag is valid: {}</li>
+		</ul>		
+		</li>
+		<li><a href="basic.html#map">Map</a>: enclosed by [], items separated by ",", key and value separated by "#"
+		<ul>
+			<li>Non-empty map: [key1#value1,key2#value2]</li>
+		    <li>Empty map is valid: []</li>
+		</ul>		
+		</li>
+</ul>
+   <p>If load statement specify a schema, Pig will convert the complex type according to schema. If conversion fails, the affected item will be null (see <a href="basic.html#nulls">Nulls and Pig Latin</a>). </p>
+   
+
    </section>
    
    <section>
-   <title>Example</title>
+   <title>Examples</title>
    <p>In this example PigStorage expects input.txt to contain tab-separated fields and newline-separated records. The statements are equivalent.</p>
 <source>
 A = LOAD 'student' USING PigStorage('\t') AS (name: chararray, age:int, gpa: float); 
@@ -1324,7 +1346,17 @@ A = LOAD 'student' AS (name: chararray, age:int, gpa: float);
 <source>
 STORE X INTO  'output' USING PigStorage('*');
 </source>
-   </section></section>
+
+<p>In this example, PigStorage loads data with complex data type, a bag of map and double.</p>
+<source>
+a = load '1.txt' as (a0:{t:(m:map[int],d:double)});
+
+{([foo#1,bar#2],34.0),([white#3,yellow#4],45.0)} : valid
+{([foo#badint],baddouble)} : conversion fail for badint/baddouble, get {([foo#],)}
+{} : valid, empty bag
+</source>
+</section>
+</section>
    
    
   <!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->
