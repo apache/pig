@@ -43,6 +43,8 @@ public interface StoreCaster extends LoadCaster {
     public byte[] toBytes(Float f) throws IOException;
 
     public byte[] toBytes(Integer i) throws IOException;
+    
+    public byte[] toBytes(Boolean b) throws IOException;
 
     public byte[] toBytes(Long l) throws IOException;
 

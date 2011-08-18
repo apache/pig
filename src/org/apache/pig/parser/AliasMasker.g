@@ -201,7 +201,7 @@ type : simple_type | tuple_type | bag_type | map_type
 ;
 
 simple_type 
-    : INT | LONG | FLOAT | DOUBLE | CHARARRAY | BYTEARRAY 
+    : BOOLEAN | INT | LONG | FLOAT | DOUBLE | CHARARRAY | BYTEARRAY 
 ;
 
 tuple_type 
@@ -530,7 +530,9 @@ scalar
     | FLOATNUMBER
     | DOUBLENUMBER
     | QUOTEDSTRING
-    | NULL    
+    | NULL
+    | TRUE
+    | FALSE
 ;
 
 map 
@@ -587,6 +589,7 @@ eid : rel_str_op
     | EVAL
     | ASC
     | DESC
+    | BOOLEAN
     | INT
     | LONG
     | FLOAT
@@ -598,6 +601,8 @@ eid : rel_str_op
     | MAP
     | IS
     | NULL
+    | TRUE
+    | FALSE
     | STREAM
     | THROUGH
     | STORE

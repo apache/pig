@@ -429,4 +429,12 @@
         <Class name = "org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigGenericMapReduce" />
         <Bug pattern = "MS_CANNOT_BE_FINAL" />
     </Match>
+    <Match>
+        <Class name = "org.apache.pig.data.DataType" />
+        <Bug pattern = "NP_BOOLEAN_RETURN_NULL" />
+    </Match>
+    <Match>
+        <Class name = "org.apache.pig.impl.util.CastUtils" />
+        <Bug pattern = "NP_BOOLEAN_RETURN_NULL" />
+    </Match>
 </FindBugsFilter>

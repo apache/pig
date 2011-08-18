@@ -38,6 +38,14 @@ import org.apache.pig.data.Tuple;
 public interface LoadCaster {
 
     /**
+     * Cast data from bytearray to boolean value.  
+     * @param b bytearray to be cast.
+     * @return Boolean value.
+     * @throws IOException if the value cannot be cast.
+     */
+    public Boolean bytesToBoolean(byte[] b) throws IOException;
+
+    /**
      * Cast data from bytearray to long value.  
      * @param b bytearray to be cast.
      * @return Long value.

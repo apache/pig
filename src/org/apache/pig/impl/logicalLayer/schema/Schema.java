@@ -233,7 +233,7 @@ public class Schema implements Serializable, Cloneable {
     
             if (DataType.isSchemaType(castFs.type)) {
                 if(inputType == DataType.BYTEARRAY) {
-                    //good
+                    // good
                 } else if (inputType == castType) {
                     // Don't do the comparison if both embedded schemas are
                     // null.  That will cause Schema.equals to return false,
@@ -249,25 +249,25 @@ public class Schema implements Serializable, Cloneable {
                 }
             } else {
                 if (inputType == castType) {
-                    //good
+                    // good
                 }
-                else if (DataType.isNumberType(inputType) &&
-                    DataType.isNumberType(castType) ) {
-                    //good
+                else if (inputType == DataType.BOOLEAN && (castType == DataType.CHARARRAY
+                        || castType == DataType.BYTEARRAY || DataType.isNumberType(castType))) {
+                    // good
                 }
+                else if (DataType.isNumberType(inputType) && (castType == DataType.CHARARRAY
+                        || castType == DataType.BYTEARRAY || DataType.isNumberType(castType)
+                        || castType == DataType.BOOLEAN)) {
+                    // good
+                }
+                else if (inputType == DataType.CHARARRAY && (castType == DataType.BYTEARRAY
+                        || DataType.isNumberType(castType) || castType == DataType.BOOLEAN)) {
+                    // good
+                } 
                 else if (inputType == DataType.BYTEARRAY) {
-                    //good
+                    // good
                 }
-                else if (  ( DataType.isNumberType(inputType) || 
-                             inputType == DataType.CHARARRAY 
-                           )  &&
-                           (  (castType == DataType.CHARARRAY) ||
-                              (castType == DataType.BYTEARRAY) ||
-                              (DataType.isNumberType(castType))
-                           ) 
-                        ) {
-                    //good
-                } else {
+                else {
                     return false;
                 }
             }

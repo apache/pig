@@ -72,6 +72,7 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.io.NullableBooleanWritable;
 import org.apache.pig.impl.io.NullableBytesWritable;
 import org.apache.pig.impl.io.NullableDoubleWritable;
 import org.apache.pig.impl.io.NullableFloatWritable;
@@ -863,6 +864,12 @@ public class JobControlCompiler{
         }
     }
 
+    public static class PigBooleanWritableComparator extends PigWritableComparator {
+        public PigBooleanWritableComparator() {
+            super(NullableBooleanWritable.class);
+        }
+    }
+
     public static class PigIntWritableComparator extends PigWritableComparator {
         public PigIntWritableComparator() {
             super(NullableIntWritable.class);
@@ -913,6 +920,12 @@ public class JobControlCompiler{
     
     // XXX hadoop 20 new API integration: we need to explicitly set the Grouping 
     // Comparator
+    public static class PigGroupingBooleanWritableComparator extends WritableComparator {
+        public PigGroupingBooleanWritableComparator() {
+            super(NullableBooleanWritable.class, true);
+        }
+    }
+
     public static class PigGroupingIntWritableComparator extends WritableComparator {
         public PigGroupingIntWritableComparator() {
             super(NullableIntWritable.class, true);
@@ -992,6 +1005,10 @@ public class JobControlCompiler{
         }
         if (hasOrderBy) {
             switch (keyType) {
+            case DataType.BOOLEAN:
+                job.setSortComparatorClass(PigBooleanRawComparator.class);
+                break;
+
             case DataType.INTEGER:            	
                 job.setSortComparatorClass(PigIntRawComparator.class);               
                 break;
@@ -1037,6 +1054,11 @@ public class JobControlCompiler{
         }
 
         switch (keyType) {
+        case DataType.BOOLEAN:
+            job.setSortComparatorClass(PigBooleanWritableComparator.class);
+            job.setGroupingComparatorClass(PigGroupingBooleanWritableComparator.class);
+            break;
+
         case DataType.INTEGER:
             job.setSortComparatorClass(PigIntWritableComparator.class);
             job.setGroupingComparatorClass(PigGroupingIntWritableComparator.class);

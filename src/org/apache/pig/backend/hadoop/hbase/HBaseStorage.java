@@ -717,6 +717,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         case DataType.FLOAT: return caster.toBytes((Float) o);
         case DataType.INTEGER: return caster.toBytes((Integer) o);
         case DataType.LONG: return caster.toBytes((Long) o);
+        case DataType.BOOLEAN: return caster.toBytes((Boolean) o);
         
         // The type conversion here is unchecked. 
         // Relying on DataType.findType to do the right thing.

@@ -162,7 +162,8 @@ type : simple_type | tuple_type | bag_type | map_type
 ;
 
 simple_type 
-    : INT { sb.append($INT.text); }
+    : BOOLEAN { sb.append($BOOLEAN.text); }
+    | INT { sb.append($INT.text); }
     | LONG { sb.append($LONG.text); }
     | FLOAT { sb.append($FLOAT.text); }
     | DOUBLE { sb.append($DOUBLE.text); }
@@ -500,7 +501,9 @@ literal : scalar | map | bag | tuple
 
 scalar : num_scalar
        | QUOTEDSTRING { sb.append($QUOTEDSTRING.text); }
-       | NULL { sb.append($NULL.text); }    
+       | NULL { sb.append($NULL.text); } 
+       | TRUE { sb.append($TRUE.text); }
+       | FALSE { sb.append($FALSE.text); }   
 ;
 
 num_scalar : ( MINUS { sb.append( "-" ); } )?
@@ -568,6 +571,7 @@ eid : rel_str_op
     | EVAL      { sb.append($EVAL.text); }
     | ASC       { sb.append($ASC.text); }
     | DESC      { sb.append($DESC.text); }
+    | BOOLEAN   { sb.append($BOOLEAN.text); }
     | INT       { sb.append($INT.text); }
     | LONG      { sb.append($LONG.text); }
     | FLOAT     { sb.append($FLOAT.text); }
@@ -579,6 +583,8 @@ eid : rel_str_op
     | MAP       { sb.append($MAP.text); }
     | IS        { sb.append($IS.text); }
     | NULL      { sb.append($NULL.text); }
+    | TRUE      { sb.append($TRUE.text); }
+    | FALSE     { sb.append($FALSE.text); }
     | STREAM    { sb.append($STREAM.text); }
     | THROUGH   { sb.append($THROUGH.text); }
     | STORE     { sb.append($STORE.text); }

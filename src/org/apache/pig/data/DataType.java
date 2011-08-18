@@ -41,7 +41,7 @@ import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
 
 /**
  * A class of static final values used to encode data type and a number of
- * static helper funcitons for manipulating data objects.  The data type
+ * static helper functions for manipulating data objects.  The data type
  * values could be
  * done as an enumeration, but it is done as byte codes instead to save
  * creating objects.
@@ -57,7 +57,7 @@ public class DataType {
     // values or creating order issues.
     public static final byte UNKNOWN   =   0;
     public static final byte NULL      =   1;
-    public static final byte BOOLEAN   =   5; // internal use only
+    public static final byte BOOLEAN   =   5;
     public static final byte BYTE      =   6; // internal use only
     public static final byte INTEGER   =  10;
     public static final byte LONG      =  15;
@@ -493,7 +493,8 @@ public class DataType {
     public static byte[] toBytes(Object o, byte type) throws ExecException {
         switch (type) {
         case BOOLEAN:
-            return ((Boolean) o).booleanValue() ? new byte[] {1} : new byte[] {0};
+            //return ((Boolean) o).booleanValue() ? new byte[] {1} : new byte[] {0};
+            return ((Boolean) o).toString().getBytes();
         case BYTE:
             return new byte[] {((Byte) o)};
 
@@ -522,6 +523,84 @@ public class DataType {
             throw new ExecException(msg, errCode, PigException.INPUT);
 
         }
+    }
+
+    /**
+     * Force a data object to a Boolean, if possible. Any numeric type can be
+     * forced to a Boolean, as well as CharArray, ByteArray. Complex types
+     * cannot be forced to a Boolean. This isn't particularly efficient, so if
+     * you already <b>know</b> that the object you have is a Boolean you should
+     * just cast it.
+     * 
+     * @param o
+     *            object to cast
+     * @param type
+     *            of the object you are casting
+     * @return The object as a Boolean.
+     * @throws ExecException
+     *             if the type can't be forced to a Boolean.
+     */
+    public static Boolean toBoolean(Object o, byte type) throws ExecException {
+        try {
+            switch (type) {
+            case NULL:
+                return null;
+            case BOOLEAN:
+                return (Boolean) o;
+            case BYTE:
+                return Boolean.valueOf(((Byte) o).byteValue() != 0);
+            case INTEGER:
+                return Boolean.valueOf(((Integer) o).intValue() != 0);
+            case LONG:
+                return Boolean.valueOf(((Long) o).longValue() != 0L);
+            case FLOAT:
+                return Boolean.valueOf(((Float) o).floatValue() != 0.0F);
+            case DOUBLE:
+                return Boolean.valueOf(((Double) o).doubleValue() != 0.0D);
+            case BYTEARRAY:
+                String str = ((DataByteArray) o).toString();
+                if (str.equalsIgnoreCase("true")) {
+                    return Boolean.TRUE;
+                } else if (str.equalsIgnoreCase("false")) {
+                    return Boolean.FALSE;
+                } else {
+                    return null;
+                }
+            case CHARARRAY:
+                if (((String) o).equalsIgnoreCase("true")) {
+                    return Boolean.TRUE;
+                } else if (((String) o).equalsIgnoreCase("false")) {
+                    return Boolean.FALSE;
+                } else {
+                    return null;
+                }
+            case MAP:
+            case INTERNALMAP:
+            case TUPLE:
+            case BAG:
+            case UNKNOWN:
+            default:
+                int errCode = 1071;
+                String msg = "Cannot convert a " + findTypeName(o) + " to a Boolean";
+                throw new ExecException(msg, errCode, PigException.INPUT);
+            }
+        } catch (ClassCastException cce) {
+            throw cce;
+        } catch (ExecException ee) {
+            throw ee;
+        } catch (NumberFormatException nfe) {
+            int errCode = 1074;
+            String msg = "Problem with formatting. Could not convert " + o + " to Float.";
+            throw new ExecException(msg, errCode, PigException.INPUT, nfe);
+        } catch (Exception e) {
+            int errCode = 2054;
+            String msg = "Internal error. Could not convert " + o + " to Float.";
+            throw new ExecException(msg, errCode, PigException.BUG);
+        }
+    }
+    
+    public static Boolean toBoolean(Object o) throws ExecException {
+        return toBoolean(o, findType(o));
     }
 
     /**
@@ -718,6 +797,9 @@ public class DataType {
     public static Float toFloat(Object o,byte type) throws ExecException {
         try {
 			switch (type) {
+			case BOOLEAN:
+			    return (Boolean) o ? Float.valueOf(1.0F) : Float.valueOf(0.0F);
+
 			case INTEGER:
 			    return new Float(((Integer)o).floatValue());
 
@@ -739,7 +821,6 @@ public class DataType {
 			case NULL:
 			    return null;
 
-			case BOOLEAN:
 			case BYTE:
 			case MAP:
 			case INTERNALMAP:
@@ -799,6 +880,9 @@ public class DataType {
     public static Double toDouble(Object o,byte type) throws ExecException {
         try {
 			switch (type) {
+			case BOOLEAN:
+			    return (Boolean) o ? Double.valueOf(1.0D) : Double.valueOf(0.0D);
+
 			case INTEGER:
 			    return new Double(((Integer)o).doubleValue());
 
@@ -820,7 +904,6 @@ public class DataType {
 			case NULL:
 			    return null;
 
-			case BOOLEAN:
 			case BYTE:
 			case MAP:
 			case INTERNALMAP:

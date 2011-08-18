@@ -65,7 +65,18 @@ public class TextLoader extends LoadFunc implements LoadCaster {
             throw new IOException("Error getting input");
         }
     }
-    
+
+    /**
+     * TextLoader does not support conversion to Boolean
+     * @throws IOException if the value cannot be cast.
+     */
+    @Override
+    public Boolean bytesToBoolean(byte[] b) throws IOException {
+        int errCode = 2109;
+        String msg = "TextLoader does not support conversion to Boolean.";
+        throw new ExecException(msg, errCode, PigException.BUG);
+    }
+
     /**
      * TextLoader does not support conversion to Integer
      * @throws IOException if the value cannot be cast.
@@ -177,6 +188,12 @@ public class TextLoader extends LoadFunc implements LoadCaster {
     public byte[] toBytes(Float f) throws IOException {
         int errCode = 2109;
         String msg = "TextLoader does not support conversion from Float.";
+        throw new ExecException(msg, errCode, PigException.BUG);
+    }
+
+    public byte[] toBytes(Boolean b) throws IOException {
+        int errCode = 2109;
+        String msg = "TextLoader does not support conversion from Boolean.";
         throw new ExecException(msg, errCode, PigException.BUG);
     }
 

@@ -378,17 +378,19 @@ public class Utf8StorageConverter implements LoadStoreCaster {
         }
     }
     
-    /**
-     * Note: NOT part of the LoadCaster interface.
-     * @param b
-     * @return boolean value represented by the byte array
-     * @throws IOException
-     */
+
+    @Override
     public Boolean bytesToBoolean(byte[] b) throws IOException {
         if(b == null)
             return null;
         String s = new String(b);
-        return Boolean.valueOf(s);
+        if (s.equalsIgnoreCase("true")) {
+            return Boolean.TRUE;
+        } else if (s.equalsIgnoreCase("false")) {
+            return Boolean.FALSE;
+        } else {
+            return null;
+        }
     }
 
     @Override
@@ -537,6 +539,11 @@ public class Utf8StorageConverter implements LoadStoreCaster {
     @Override
     public byte[] toBytes(Long l) throws IOException {
         return l.toString().getBytes();
+    }
+
+    @Override
+    public byte[] toBytes(Boolean b) throws IOException {
+        return b.toString().getBytes();
     }
 
     @Override

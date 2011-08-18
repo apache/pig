@@ -107,11 +107,11 @@ public class TestProject extends  junit.framework.TestCase {
         assertEquals(true, contains);
 
         proj.attachInput(t);
-        proj.setColumn(9);
+        proj.setColumn(8);
         proj.setOverloaded(false);
         res = proj.getNext(t);
         assertEquals(POStatus.STATUS_OK, res.returnStatus);
-        assertEquals(t.get(9), res.result);
+        assertEquals(t.get(8), res.result);
     }
 
 
@@ -170,11 +170,11 @@ public class TestProject extends  junit.framework.TestCase {
         }
 
         proj.attachInput(t);
-        proj.setColumn(9);
+        proj.setColumn(8);
         proj.setOverloaded(false);
         res = proj.getNext(t);
         assertEquals(POStatus.STATUS_OK, res.returnStatus);
-        assertEquals(t.get(9), res.result);
+        assertEquals(t.get(8), res.result);
     }
     
     @Test
@@ -215,11 +215,11 @@ public class TestProject extends  junit.framework.TestCase {
         assertEquals(true, contains);
 
         proj.attachInput(t);
-        proj.setColumn(9);
+        proj.setColumn(8);
         proj.setOverloaded(false);
         res = proj.getNext(t);
         assertEquals(POStatus.STATUS_OK, res.returnStatus);
-        assertEquals(t.get(9), res.result);
+        assertEquals(t.get(8), res.result);
     }
 
 
@@ -278,11 +278,11 @@ public class TestProject extends  junit.framework.TestCase {
         }
 
         proj.attachInput(t);
-        proj.setColumn(9);
+        proj.setColumn(8);
         proj.setOverloaded(false);
         res = proj.getNext(t);
         assertEquals(POStatus.STATUS_OK, res.returnStatus);
-        assertEquals(t.get(9), res.result);
+        assertEquals(t.get(8), res.result);
     }
     
     @Test
