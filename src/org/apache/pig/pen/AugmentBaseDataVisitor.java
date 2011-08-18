@@ -1231,7 +1231,13 @@ public class AugmentBaseDataVisitor extends LogicalRelationalNodesVisitor {
     Object generateData(byte type, String data) {
         switch (type) {
         case DataType.BOOLEAN:
-            return Boolean.valueOf(data);
+            if (data.equalsIgnoreCase("true")) {
+                return Boolean.TRUE;
+            } else if (data.equalsIgnoreCase("false")) {
+                return Boolean.FALSE;
+            } else {
+                return null;
+            }
         case DataType.BYTEARRAY:
             return new DataByteArray(data.getBytes());
         case DataType.DOUBLE:

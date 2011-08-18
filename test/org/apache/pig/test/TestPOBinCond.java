@@ -190,6 +190,22 @@ public class TestPOBinCond extends TestCase {
     }
   */
     
+    public void testPOBinCondWithBoolean() throws ExecException, PlanException {
+        bag = getBag(DataType.BOOLEAN);
+        TestPoBinCondHelper testHelper = new TestPoBinCondHelper(
+                DataType.BOOLEAN, Boolean.TRUE);
+
+        for (Iterator<Tuple> it = bag.iterator(); it.hasNext();) {
+            Tuple t = it.next();
+            testHelper.getPlan().attachInput(t);
+            Boolean value = (Boolean) t.get(0);
+            int expected = (value.booleanValue() == true) ? 1 : 0;
+            Integer dummy = new Integer(0);
+            Integer result = (Integer) testHelper.getOperator().getNext(dummy).result;
+            int actual = result.intValue();
+            assertEquals(expected, actual);
+        }
+    }
 
     public void testPOBinCondWithInteger() throws  ExecException, PlanException {
     	
@@ -421,6 +437,9 @@ public class TestPOBinCond extends TestCase {
         for(int i = 0; i < 10; i ++) {
             Tuple t = TupleFactory.getInstance().newTuple();
             switch(type) {
+                case DataType.BOOLEAN:
+                    t.append(r.nextBoolean());
+                    break;
                 case DataType.INTEGER:
                     t.append(r.nextInt(2));
                     break;
@@ -449,6 +468,9 @@ public class TestPOBinCond extends TestCase {
                 t.append(null);                
             }else{
                 switch(type) {
+                    case DataType.BOOLEAN:
+                        t.append(r.nextBoolean());
+                        break;
                     case DataType.INTEGER:
                         t.append(r.nextInt(2));
                         break;

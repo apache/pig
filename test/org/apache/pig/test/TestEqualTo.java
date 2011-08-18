@@ -48,6 +48,43 @@ public class TestEqualTo extends junit.framework.TestCase {
     @After
     public void tearDown() throws Exception {
     }
+    
+    @Test
+    public void testBooleanNe() throws Exception {
+        ConstantExpression lt = GenPhyOp.exprConst();
+        lt.setValue(Boolean.TRUE);
+        ConstantExpression rt = GenPhyOp.exprConst();
+        rt.setValue(Boolean.FALSE);
+        EqualToExpr g = GenPhyOp.compEqualToExpr();
+        g.setLhs(lt);
+        g.setRhs(rt);
+        g.setOperandType(DataType.BOOLEAN);
+        Result r = g.getNext(new Boolean(true));
+        assertEquals(POStatus.STATUS_OK, r.returnStatus);
+        assertFalse((Boolean)r.result);
+    }
+    
+    @Test
+    public void testBooleanEq() throws Exception {
+        ConstantExpression lt = GenPhyOp.exprConst();
+        lt.setValue(Boolean.TRUE);
+        ConstantExpression rt = GenPhyOp.exprConst();
+        rt.setValue(Boolean.TRUE);
+        EqualToExpr g = GenPhyOp.compEqualToExpr();
+        g.setLhs(lt);
+        g.setRhs(rt);
+        g.setOperandType(DataType.BOOLEAN);
+        Result r = g.getNext(new Boolean(true));
+        assertEquals(POStatus.STATUS_OK, r.returnStatus);
+        assertTrue((Boolean)r.result);
+    }
+    
+    @Test
+    public void testBooleanAndNullValues() throws Exception {
+
+        checkNullValues(DataType.BOOLEAN, Boolean.TRUE);
+
+    }
 
     @Test
     public void testIntegerNe() throws Exception {

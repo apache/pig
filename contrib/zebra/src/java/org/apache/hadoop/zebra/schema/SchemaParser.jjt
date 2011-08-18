@@ -53,7 +53,7 @@ SKIP : {
 }
 
 TOKEN : { <INT : "int"> }
-TOKEN : { <BOOL : "bool"> }
+TOKEN : { <BOOL : "boolean"> }
 TOKEN : { <LONG : "long"> }
 TOKEN : { <FLOAT : "float"> }
 TOKEN : { <DOUBLE : "double"> }

@@ -626,6 +626,76 @@ public class TestTypeCheckingValidatorNewLP {
             throw new Exception("Error expected") ;
         }   
     }
+    
+    @Test
+    public void testExpressionTypeChecking10() throws Throwable {
+        // test whether the equal and not equal operators can accept two boolean operands
+        LogicalExpressionPlan plan = new LogicalExpressionPlan();
+        ConstantExpression constant1 = new ConstantExpression(plan, 10);
+        ConstantExpression constant2 = new ConstantExpression(plan, 20L);
+        ConstantExpression constant3 = new ConstantExpression(plan, Boolean.TRUE);
+
+        GreaterThanExpression gt1 = new GreaterThanExpression(plan, constant1, constant2);
+        EqualExpression equal1 = new EqualExpression(plan, gt1, constant3);
+        NotEqualExpression nq1 = new NotEqualExpression(plan, gt1, constant3);
+
+        CompilationMessageCollector collector = new CompilationMessageCollector();
+        TypeCheckingExpVisitor expTypeChecker = new TypeCheckingExpVisitor(
+                plan, collector, null);
+        expTypeChecker.visit();
+
+        plan.explain(System.out, "text", true);
+
+        printMessageCollector(collector);
+        // printTypeGraph(plan) ;
+
+        if (collector.hasError()) {
+            throw new Exception("Error during type checking");
+        }
+
+        // Induction check
+        assertEquals(DataType.BOOLEAN, gt1.getType());
+        assertEquals(DataType.BOOLEAN, equal1.getType());
+        assertEquals(DataType.BOOLEAN, nq1.getType());
+
+        // Cast insertion check
+        assertEquals(DataType.LONG, gt1.getLhs().getType());
+        assertEquals(DataType.BOOLEAN, equal1.getRhs().getType());
+        assertEquals(DataType.BOOLEAN, nq1.getRhs().getType());
+    }
+    
+    @Test
+    public void testExpressionTypeCheckingFail10() throws Throwable {
+        // test whether the equal and not equal operators will reject the comparison between
+        // a boolean value with a value of other type
+        LogicalExpressionPlan plan = new LogicalExpressionPlan();
+        ConstantExpression constant1 = new ConstantExpression(plan, 10);
+        ConstantExpression constant2 = new ConstantExpression(plan, 20L);
+        ConstantExpression constant3 = new ConstantExpression(plan, "true");
+
+        GreaterThanExpression gt1 = new GreaterThanExpression(plan, constant1,
+                constant2);
+        CastExpression cast1 = new CastExpression(plan,  constant3, createFS(DataType.BYTEARRAY)) ;
+        EqualExpression equal1 = new EqualExpression(plan, gt1, cast1);
+        NotEqualExpression nq1 = new NotEqualExpression(plan, gt1, cast1);
+
+        CompilationMessageCollector collector = new CompilationMessageCollector();
+        TypeCheckingExpVisitor expTypeChecker = new TypeCheckingExpVisitor(
+                plan, collector, null);
+
+        try {
+            expTypeChecker.visit();
+            fail("Exception expected");
+        } catch (TypeCheckerException pve) {
+            // good
+        }
+        printMessageCollector(collector);
+        // printTypeGraph(plan) ;
+
+        if (!collector.hasError()) {
+            throw new Exception("Error during type checking");
+        }
+    }
 
     @Test
     public void testArithmeticOpCastInsert1() throws Throwable {

@@ -159,6 +159,9 @@ ASC : 'ASC'
 DESC : 'DESC'
 ;
 
+BOOLEAN : 'BOOLEAN'
+;
+
 INT : 'INT'
 ;
 
@@ -256,6 +259,12 @@ STR_OP_NE : 'NEQ'
 ;
 
 STR_OP_MATCHES : 'MATCHES'
+;
+
+TRUE : 'TRUE'
+;
+
+FALSE : 'FALSE'
 ;
     
 NUM_OP_EQ : '=='

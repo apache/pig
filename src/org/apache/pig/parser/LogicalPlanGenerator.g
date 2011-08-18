@@ -353,7 +353,8 @@ type returns[Byte datatype, LogicalSchema logicalSchema]
 ;
 
 simple_type returns[byte datatype]
- : INT { $datatype = DataType.INTEGER; }
+ : BOOLEAN { $datatype = DataType.BOOLEAN; }
+ | INT { $datatype = DataType.INTEGER; }
  | LONG { $datatype = DataType.LONG; }
  | FLOAT { $datatype = DataType.FLOAT; }
  | DOUBLE { $datatype = DataType.DOUBLE; }
@@ -1480,6 +1481,16 @@ scalar returns[Object value, byte type]
    { 
        $type = DataType.NULL;
    }
+ | TRUE
+   {
+       $type = DataType.BOOLEAN;
+       $value = Boolean.TRUE;
+   }
+ | FALSE
+   {
+       $type = DataType.BOOLEAN;
+       $value = Boolean.FALSE;
+   }
 ;
 
 num_scalar returns[Object value, byte type]
@@ -1581,6 +1592,7 @@ eid returns[String id] : rel_str_op { $id = $rel_str_op.id; }
     | EVAL { $id = $EVAL.text; }
     | ASC { $id = $ASC.text; }
     | DESC { $id = $DESC.text; }
+    | BOOLEAN { $id = $BOOLEAN.text; }
     | INT { $id = $INT.text; }
     | LONG { $id = $LONG.text; }
     | FLOAT { $id = $FLOAT.text; }
@@ -1592,6 +1604,8 @@ eid returns[String id] : rel_str_op { $id = $rel_str_op.id; }
     | MAP { $id = $MAP.text; }
     | IS { $id = $IS.text; }
     | NULL { $id = $NULL.text; }
+    | TRUE { $id = $TRUE.text; }
+    | FALSE { $id = $FALSE.text; }
     | STREAM { $id = $STREAM.text; }
     | THROUGH { $id = $THROUGH.text; }
     | STORE { $id = $STORE.text; }

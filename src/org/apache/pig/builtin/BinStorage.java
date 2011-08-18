@@ -110,6 +110,11 @@ implements StoreFuncInterface, LoadMetadata {
         }
 
         @Override
+        public Boolean bytesToBoolean(byte[] b) throws IOException {
+            throw new ExecException(unImplementedErrorMessage, 1118);
+        }
+
+        @Override
         public Map<String, Object> bytesToMap(byte[] b) throws IOException {
             return bytesToMap(b, null);
         }
@@ -239,6 +244,19 @@ implements StoreFuncInterface, LoadMetadata {
         } catch (Exception ee) {
             int errCode = 2105;
             String msg = "Error while converting long to bytes.";
+            throw new ExecException(msg, errCode, PigException.BUG, ee);
+        }
+        return baos.toByteArray();
+    }
+    
+    public byte[] toBytes(Boolean b) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(baos);
+        try {
+            DataReaderWriter.writeDatum(dos, b);
+        } catch (Exception ee) {
+            int errCode = 2105;
+            String msg = "Error while converting boolean to bytes.";
             throw new ExecException(msg, errCode, PigException.BUG, ee);
         }
         return baos.toByteArray();

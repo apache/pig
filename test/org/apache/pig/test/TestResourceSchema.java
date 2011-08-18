@@ -280,16 +280,16 @@ public class TestResourceSchema {
     @Test
     public void testToStringAndParse() throws Exception {
         ResourceSchema rs = new ResourceSchema();
-        ResourceFieldSchema[] fields = new ResourceFieldSchema[11];
+        ResourceFieldSchema[] fields = new ResourceFieldSchema[12];
 
         byte[] types = {DataType.INTEGER, DataType.LONG, DataType.FLOAT,
             DataType.DOUBLE, DataType.BYTEARRAY, DataType.CHARARRAY,
             DataType.MAP, DataType.TUPLE, DataType.TUPLE, DataType.BAG,
-            DataType.BAG};
+            DataType.BAG, DataType.BOOLEAN};
         String[] names = {"i", "l", "f",
             "d", "b", "s",
             "m", "tschema", "tnull", "bschema",
-            "bnull"};
+            "bnull", "bb"};
         
         for (int i = 0; i < fields.length; i++) {
             fields[i] = new ResourceFieldSchema();
@@ -334,14 +334,14 @@ public class TestResourceSchema {
 
         assertEquals("i:int,l:long,f:float,d:double,b:bytearray,s:" +
             "chararray,m:[],tschema:(i:int,l:long,f:float)," +
-            "tnull:(),bschema:{t:(d:double,b:bytearray,s:chararray)},bnull:{}",
+            "tnull:(),bschema:{t:(d:double,b:bytearray,s:chararray)},bnull:{},bb:boolean",
             strSchema);
 
         ResourceSchema after =
             new ResourceSchema(Utils.getSchemaFromString(strSchema));
         ResourceFieldSchema[] afterFields = after.getFields();
 
-        assertEquals(11, afterFields.length);
+        assertEquals(12, afterFields.length);
         assertEquals("i", afterFields[0].getName());
         assertEquals(DataType.INTEGER, afterFields[0].getType());
         assertEquals("l", afterFields[1].getName());
@@ -364,6 +364,8 @@ public class TestResourceSchema {
         assertEquals(DataType.BAG, afterFields[9].getType());
         assertEquals("bnull", afterFields[10].getName());
         assertEquals(DataType.BAG, afterFields[10].getType());
+        assertEquals("bb", afterFields[11].getName());
+        assertEquals(DataType.BOOLEAN, afterFields[11].getType());
 
         assertNotNull(afterFields[7].getSchema());
         ResourceFieldSchema[] tAfterFields =

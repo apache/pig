@@ -52,6 +52,27 @@ public class TestConversions extends TestCase {
 	Random r = new Random();
 	final int MAX = 10;
 
+    @Test
+    public void testBytesToBoolean() throws IOException {
+        // valid booleans
+        String[] a = { "true", "True", "TRUE", "false", "False", "FALSE" };
+        Boolean[] b = { Boolean.TRUE, Boolean.TRUE, Boolean.TRUE,
+                Boolean.FALSE, Boolean.FALSE, Boolean.FALSE };
+
+        for (int i = 0; i < b.length; ++i) {
+            byte[] bytes = a[i].getBytes();
+            assertEquals(b[i], ps.getLoadCaster().bytesToBoolean(bytes));
+        }
+
+        // invalid booleans
+        // the string that is neither "true" nor "false" cannot be converted to a boolean value
+        a = new String[] { "neither true nor false" };
+        for (String s : a) {
+            byte[] bytes = s.getBytes();
+            Boolean bool = ps.getLoadCaster().bytesToBoolean(bytes);
+            assertEquals(null, bool);
+        }
+    }
     
     @Test
     public  void testBytesToInteger() throws IOException
@@ -193,6 +214,12 @@ public class TestConversions extends TestCase {
             assertTrue(TestHelper.mapEquals(m, convertedMap));
         }
         
+    }
+    
+    @Test
+    public void testBooleanToBytes() throws IOException {
+        assertTrue(DataType.equalByteArrays(Boolean.TRUE.toString().getBytes(), ((Utf8StorageConverter)ps.getLoadCaster()).toBytes(Boolean.TRUE)));
+        assertTrue(DataType.equalByteArrays(Boolean.FALSE.toString().getBytes(), ((Utf8StorageConverter)ps.getLoadCaster()).toBytes(Boolean.FALSE)));
     }
 
     @Test

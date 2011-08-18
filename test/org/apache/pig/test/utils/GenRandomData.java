@@ -179,7 +179,6 @@ public class GenRandomData {
         }
         Tuple t = new DefaultTuple();
         t.append(genRandSmallTupDataBag(r, num, limit));
-        t.append(r.nextBoolean());
         t.append(genRandDBA(r));
         t.append(genRandString(r));
         t.append(r.nextDouble());
@@ -188,10 +187,14 @@ public class GenRandomData {
         t.append(r.nextLong());
         t.append(genRandMap(r, num));
         t.append(genRandSmallTuple(r, 100));
+        t.append(new Boolean(r.nextBoolean()));
         return t;
     }
     
     public static ResourceFieldSchema getSmallBagTextTupleFieldSchema() throws IOException{
+        ResourceFieldSchema dbafs = new ResourceFieldSchema();
+        dbafs.setType(DataType.BYTEARRAY);
+        
         ResourceFieldSchema stringfs = new ResourceFieldSchema();
         stringfs.setType(DataType.CHARARRAY);
         
@@ -213,10 +216,13 @@ public class GenRandomData {
         mapfs.setType(DataType.MAP);
         
         ResourceFieldSchema tuplefs = getSmallTupleFieldSchema();
+
+        ResourceFieldSchema boolfs = new ResourceFieldSchema();
+        boolfs.setType(DataType.BOOLEAN);
         
         ResourceSchema outSchema = new ResourceSchema();
-        outSchema.setFields(new ResourceFieldSchema[]{bagfs, stringfs, stringfs, doublefs, floatfs,
-                intfs, longfs, mapfs, tuplefs});
+        outSchema.setFields(new ResourceFieldSchema[]{bagfs, dbafs, stringfs, doublefs, floatfs,
+                intfs, longfs, mapfs, tuplefs, boolfs});
         ResourceFieldSchema outfs = new ResourceFieldSchema();
         outfs.setSchema(outSchema);
         outfs.setType(DataType.TUPLE);
@@ -232,12 +238,11 @@ public class GenRandomData {
         }
         Tuple t = new DefaultTuple();
         t.append(genRandSmallTupDataBag(r, num, limit));
-        t.append(new Boolean(r.nextBoolean()).toString());
         //TODO Fix
         //The text representation of byte array and char array
         //cannot be disambiguated without annotation. For now,
         //the tuples will not contain byte array
-        //t.append(genRandTextDBA(r));
+        t.append(genRandTextDBA(r));
         t.append(genRandString(r));
         t.append(r.nextDouble());
         t.append(r.nextFloat());
@@ -245,6 +250,7 @@ public class GenRandomData {
         t.append(r.nextLong());
         t.append(genRandMap(r, num));
         t.append(genRandSmallTuple(r, 100));
+        t.append(new Boolean(r.nextBoolean()));
         return t;
     }
     
@@ -298,7 +304,6 @@ public class GenRandomData {
         }
         Tuple t = new DefaultTuple();
         t.append(genRandSmallTupDataBag(r, num, limit));
-        t.append(r.nextBoolean());
         t.append(genRandDBA(r));
         t.append(genRandString(r));
         t.append(r.nextDouble());
@@ -307,6 +312,7 @@ public class GenRandomData {
         t.append(r.nextLong());
         t.append(genRandMap(r, num));
         t.append(genRandSmallTuple(r, 100));
+        t.append(new Boolean(r.nextBoolean()));
         t.append(null);
         return t;
     }
@@ -319,12 +325,11 @@ public class GenRandomData {
         }
         Tuple t = new DefaultTuple();
         t.append(genRandSmallTupDataBag(r, num, limit));
-        t.append(new Boolean(r.nextBoolean()).toString());
         //TODO Fix
         //The text representation of byte array and char array
         //cannot be disambiguated without annotation. For now,
         //the tuples will not contain byte array
-        //t.append(genRandTextDBA(r));
+        t.append(genRandTextDBA(r));
         t.append(genRandString(r));
         t.append(r.nextDouble());
         t.append(r.nextFloat());
@@ -332,6 +337,7 @@ public class GenRandomData {
         t.append(r.nextLong());
         t.append(genRandMap(r, num));
         t.append(genRandSmallTuple(r, 100));
+        t.append(new Boolean(r.nextBoolean()));
         t.append(null);
         return t;
     }
@@ -403,11 +409,11 @@ public class GenRandomData {
         floatfs.setType(DataType.FLOAT);
         ResourceFieldSchema doublefs = new ResourceFieldSchema();
         doublefs.setType(DataType.DOUBLE);
-        ResourceFieldSchema booleanfs = new ResourceFieldSchema();
-        booleanfs.setType(DataType.BOOLEAN);
+        ResourceFieldSchema boolfs = new ResourceFieldSchema();
+        boolfs.setType(DataType.BOOLEAN);
         
         ResourceSchema tupleSchema = new ResourceSchema();
-        tupleSchema.setFields(new ResourceFieldSchema[]{stringfs, longfs, intfs, doublefs, floatfs, stringfs, intfs, doublefs, floatfs, booleanfs});
+        tupleSchema.setFields(new ResourceFieldSchema[]{stringfs, longfs, intfs, doublefs, floatfs, stringfs, intfs, doublefs, floatfs, boolfs});
         ResourceFieldSchema tuplefs = new ResourceFieldSchema();
         tuplefs.setSchema(tupleSchema);
         tuplefs.setType(DataType.TUPLE);

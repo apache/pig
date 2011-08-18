@@ -55,6 +55,7 @@ public class CastUtils {
 	    case (DataType.FLOAT): return caster.bytesToFloat(bytes);
 	    case (DataType.INTEGER): return caster.bytesToInteger(bytes);
 	    case (DataType.LONG): return caster.bytesToLong(bytes);
+	    case (DataType.BOOLEAN): return caster.bytesToBoolean(bytes);
 	    case (DataType.MAP): return caster.bytesToMap(bytes);
 	    case (DataType.TUPLE): return caster.bytesToTuple(bytes, fieldSchema);
 	    default: throw new IOException("Unknown type " + dataType);
@@ -184,5 +185,19 @@ public class CastUtils {
 			}
 		}
 	}
+	
+	public static Boolean stringToBoolean(String str) {
+        if (str == null) {
+            return null;
+        } else {
+            if (str.equalsIgnoreCase("true")) {
+                return Boolean.TRUE;
+            } else if (str.equalsIgnoreCase("false")) {
+                return Boolean.FALSE;
+            } else {
+                return null;
+            }
+        }
+    }
 
 }

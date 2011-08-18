@@ -41,6 +41,7 @@ import org.apache.pig.data.InternalMap;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.builtin.FindQuantiles;
+import org.apache.pig.impl.io.NullableBooleanWritable;
 import org.apache.pig.impl.io.NullableBytesWritable;
 import org.apache.pig.impl.io.NullableDoubleWritable;
 import org.apache.pig.impl.io.NullableFloatWritable;
@@ -204,6 +205,8 @@ public class WeightedRangePartitioner extends Partitioner<PigNullableWritable, W
             quantiles = quantilesList.toArray(new NullableDoubleWritable[0]);
         } else if (quantilesList.get(0).getClass().equals(NullableFloatWritable.class)) {
             quantiles = quantilesList.toArray(new NullableFloatWritable[0]);
+        } else if (quantilesList.get(0).getClass().equals(NullableBooleanWritable.class)) {
+            quantiles = quantilesList.toArray(new NullableBooleanWritable[0]);
         } else if (quantilesList.get(0).getClass().equals(NullableIntWritable.class)) {
             quantiles = quantilesList.toArray(new NullableIntWritable[0]);
         } else if (quantilesList.get(0).getClass().equals(NullableLongWritable.class)) {

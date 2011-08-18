@@ -203,7 +203,7 @@ scope{
 type : simple_type | tuple_type | bag_type | map_type
 ;
 
-simple_type : INT | LONG | FLOAT | DOUBLE | CHARARRAY | BYTEARRAY
+simple_type : BOOLEAN | INT | LONG | FLOAT | DOUBLE | CHARARRAY | BYTEARRAY
 ;
 
 tuple_type : ^( TUPLE_TYPE field_def_list? )
@@ -508,7 +508,7 @@ const_expr : literal
 literal : scalar | map | bag | tuple
 ;
 
-scalar : num_scalar | QUOTEDSTRING | NULL
+scalar : num_scalar | QUOTEDSTRING | NULL | TRUE | FALSE
 ;
 
 num_scalar : MINUS? ( INTEGER | LONGINTEGER | FLOATNUMBER | DOUBLENUMBER )
@@ -564,6 +564,7 @@ eid : rel_str_op
     | EVAL
     | ASC
     | DESC
+    | BOOLEAN
     | INT
     | LONG
     | FLOAT
@@ -575,6 +576,8 @@ eid : rel_str_op
     | MAP
     | IS
     | NULL
+    | TRUE
+    | FALSE
     | STREAM
     | THROUGH
     | STORE

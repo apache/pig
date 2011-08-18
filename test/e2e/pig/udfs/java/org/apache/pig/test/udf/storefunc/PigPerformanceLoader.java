@@ -154,6 +154,11 @@ public class PigPerformanceLoader extends PigStorage {
         public Long bytesToLong(byte[] arg0) throws IOException {
             return helper.bytesToLong(arg0);
         }
+        
+        @Override
+        public Boolean bytesToBoolean(byte[] arg0) throws IOException {
+            return helper.bytesToBoolean(arg0);
+        }
 
         @Override
         public Tuple bytesToTuple(byte[] arg0, ResourceFieldSchema fs) throws IOException {

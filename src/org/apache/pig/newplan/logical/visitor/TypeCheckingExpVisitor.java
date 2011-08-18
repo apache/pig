@@ -374,8 +374,12 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             insertCast(binOp, lhsType, binOp.getRhs());
         }else if (isEquality){
             
-            //in case of equality condition, allow tuples and maps as args
-            if((lhsType == DataType.TUPLE) &&
+            //in case of equality condition, allow boolean, tuples and maps as args
+            if((lhsType == DataType.BOOLEAN) &&
+                    (rhsType == DataType.BOOLEAN) ) {
+                // good
+            }
+            else if((lhsType == DataType.TUPLE) &&
                     (rhsType == DataType.TUPLE) ) {
                 // good
             }
@@ -1193,6 +1197,15 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
         //over conversion to a bigger type where ordering of types is:
         //INTEGER, LONG, FLOAT, DOUBLE, CHARARRAY, TUPLE, BAG, MAP
         //from small to big
+        
+        List<Byte> boolToTypes = Arrays.asList(
+                DataType.INTEGER,
+                DataType.LONG,
+                DataType.FLOAT,
+                DataType.DOUBLE
+                // maybe more bigger types
+        );
+        castLookup.put(DataType.BOOLEAN, boolToTypes);
 
         List<Byte> intToTypes = Arrays.asList(
                 DataType.LONG, 
@@ -1213,6 +1226,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
         castLookup.put(DataType.FLOAT, floatToTypes);
 
         List<Byte> byteArrayToTypes = Arrays.asList(
+                DataType.BOOLEAN,
                 DataType.INTEGER,
                 DataType.LONG,
                 DataType.FLOAT,
@@ -1333,6 +1347,9 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             break;
         case DataType.LONG:
             kind = PigWarning.IMPLICIT_CAST_TO_LONG;
+            break;
+        case DataType.BOOLEAN:
+            kind = PigWarning.IMPLICIT_CAST_TO_BOOLEAN;
             break;
         case DataType.MAP:
             kind = PigWarning.IMPLICIT_CAST_TO_MAP;

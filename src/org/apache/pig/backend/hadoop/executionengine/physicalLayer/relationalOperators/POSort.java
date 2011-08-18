@@ -189,6 +189,7 @@ public class POSort extends PhysicalOperator {
             case DataType.CHARARRAY:
             case DataType.DOUBLE:
             case DataType.FLOAT:
+            case DataType.BOOLEAN:
             case DataType.INTEGER:
             case DataType.LONG:
             case DataType.TUPLE:

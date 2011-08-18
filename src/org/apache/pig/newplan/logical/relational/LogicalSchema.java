@@ -287,7 +287,7 @@ public class LogicalSchema {
     
             if (DataType.isSchemaType(outFs.type)) {
                 if(inType == DataType.BYTEARRAY) {
-                    //good
+                    // good
                 } else if (inType == outType) {
                     // Don't do the comparison if either input inner schema 
                     // is null/empty or  both inner schemas are
@@ -305,25 +305,25 @@ public class LogicalSchema {
                 }
             } else {
                 if (inType == outType) {
-                    //good
+                    // good
                 }
-                else if (DataType.isNumberType(inType) &&
-                    DataType.isNumberType(outType) ) {
-                    //good
+                else if (inType == DataType.BOOLEAN && (outType == DataType.CHARARRAY
+                        || outType == DataType.BYTEARRAY || DataType.isNumberType(outType))) {
+                    // good
+                }
+                else if (DataType.isNumberType(inType) && (outType == DataType.CHARARRAY
+                        || outType == DataType.BYTEARRAY || DataType.isNumberType(outType))
+                        || outType == DataType.BOOLEAN) {
+                    // good
+                }
+                else if (inType == DataType.CHARARRAY && (outType == DataType.BYTEARRAY
+                        || DataType.isNumberType(outType)) || outType == DataType.BOOLEAN) {
+                    // good
                 }
                 else if (inType == DataType.BYTEARRAY) {
-                    //good
+                    // good
                 }
-                else if (  ( DataType.isNumberType(inType) || 
-                             inType == DataType.CHARARRAY 
-                           )  &&
-                           (  (outType == DataType.CHARARRAY) ||
-                              (outType == DataType.BYTEARRAY) ||
-                              (DataType.isNumberType(outType))
-                           ) 
-                        ) {
-                    //good
-                } else {
+                else {
                     return false;
                 }
             }

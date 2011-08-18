@@ -72,6 +72,15 @@ public class HBaseBinaryConverter implements LoadStoreCaster {
     }
 
     @Override
+    public Boolean bytesToBoolean(byte[] b) throws IOException {
+        if (Bytes.SIZEOF_BOOLEAN > b.length) {
+            return Bytes.toBoolean(Bytes.padHead(b, Bytes.SIZEOF_BOOLEAN - b.length));
+        } else {
+            return Bytes.toBoolean(Bytes.head(b, Bytes.SIZEOF_BOOLEAN));
+        }
+    }
+
+    @Override
     public Map<String, Object> bytesToMap(byte[] b) throws IOException {
         return bytesToMap(b, null);
     }
@@ -130,6 +139,11 @@ public class HBaseBinaryConverter implements LoadStoreCaster {
     @Override
     public byte[] toBytes(Long l) throws IOException {
         return Bytes.toBytes(l);
+    }
+
+    @Override
+    public byte[] toBytes(Boolean b) throws IOException {
+        return Bytes.toBytes(b);
     }
 
     /**

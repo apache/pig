@@ -74,6 +74,13 @@ public class TestTextDataParser extends junit.framework.TestCase {
         longfs.setType(DataType.LONG);
         return longfs;
     }
+
+    @Test
+    public void testBoolean() throws Exception{
+        String myBoolean = "true";
+        Boolean b = ps.getLoadCaster().bytesToBoolean(myBoolean.getBytes());
+        assertTrue(b.equals(Boolean.TRUE));
+    }
     
     @Test
     public void testInteger() throws Exception{

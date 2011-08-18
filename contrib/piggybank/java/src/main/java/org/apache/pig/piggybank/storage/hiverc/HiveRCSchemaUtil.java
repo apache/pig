@@ -195,7 +195,7 @@ public class HiveRCSchemaUtil {
 	else if (hiveType.equals("double"))
 	    return DataType.DOUBLE;
 	else if (hiveType.equals("boolean"))
-	    return DataType.INTEGER;
+	    return DataType.BOOLEAN;
 	else if (hiveType.equals("byte"))
 	    return DataType.INTEGER;
 	else if (hiveType.contains("array"))

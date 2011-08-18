@@ -104,6 +104,7 @@ public class SequenceFileLoader extends FileInputLoadFunc {
     switch(dataType) {
       case DataType.CHARARRAY: return ((Text) w).toString();
       case DataType.BYTEARRAY: return((DataByteArray) w).get();
+      case DataType.BOOLEAN: return ((BooleanWritable) w).get();
       case DataType.INTEGER: return ((IntWritable) w).get();
       case DataType.LONG: return ((LongWritable) w).get();
       case DataType.FLOAT: return ((FloatWritable) w).get();
