@@ -1585,4 +1585,34 @@ public class TestEvalPipeline2 {
         Assert.assertFalse(iter.hasNext());
         
     }
+    
+    // See PIG-2185
+    @Test
+    public void testProjectEmptyBag() throws Exception{
+        String[] input = {
+                "{(12)}",
+                "{(23)}",
+                ""
+        };
+        
+        Util.createInputFile(cluster, "table_testProjectEmptyBag", input);
+        
+        pigServer.registerQuery("A = load 'table_testProjectEmptyBag' as (bg:bag{});");
+        pigServer.registerQuery("B = FOREACH A { x = FILTER bg BY $0 == '12'; GENERATE x; };");
+
+        Iterator<Tuple> iter = pigServer.openIterator("B");
+        
+        Tuple t = iter.next();
+        Assert.assertTrue(t.toString().equals("({(12)})"));
+        
+        t = iter.next();
+        Assert.assertTrue(t.toString().equals("({})"));
+        
+        Assert.assertTrue(iter.hasNext());
+        
+        t = iter.next();
+        Assert.assertTrue(t.toString().equals("({})"));
+        
+        Assert.assertFalse(iter.hasNext());
+    }
 }
