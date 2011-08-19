@@ -279,7 +279,7 @@ sub getPropertyValuesByFilter(){
 #
 #sub main() {
 #
-#my $properties= new Properties( 1, "$ENV{'PIG_HARNESS_ROOT'}/conf/pig_test.conf" );
+#my $properties= new Properties( 1, "$ENV{'HARNESS_ROOT'}/conf/test.conf" );
 #}
 
 #&main();

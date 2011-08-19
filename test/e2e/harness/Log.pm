@@ -90,9 +90,9 @@ sub new() {
  
    my $usage=  "USAGE: $class.new( Properties )" 
              . "\nMust set the following properties:" 
-             . "\tpigharness.log"
-             . "\tpigharness.log.level"
-             . "\tpigharness.console.level"
+             . "\tharness.log"
+             . "\tharness.log.level"
+             . "\tharness.console.level"
              ;
 
    #################
@@ -106,7 +106,7 @@ sub new() {
    #################
    # Verify Log File
 
-   my $logName = $self->{Properties}{'pigharness.log'};
+   my $logName = $self->{Properties}{'harness.log'};
    die "FATAL ERROR $class.new()  at ".__LINE__." : no log name specified in properties file\n$usage\n"  if ( !$logName );
    
    open( LOG, ">>$logName" ) 
@@ -118,7 +118,7 @@ sub new() {
    #################
    # Set Logging level
 
-   my $logLevel= $self->{Properties}{'pigharness.log.level'};
+   my $logLevel= $self->{Properties}{'harness.log.level'};
    if ( ! $logLevel ){
      $logLevel = 'DEBUG';
    } else {
@@ -128,7 +128,7 @@ sub new() {
 
    # Set Console level
 
-   my $consoleLevel = $self->{Properties}{'pigharness.console.level'};
+   my $consoleLevel = $self->{Properties}{'harness.console.level'};
 
    if ( !$consoleLevel ){ 
      $consoleLevel = 'ERROR';

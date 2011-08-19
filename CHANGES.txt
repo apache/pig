@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2196: Test harness should be independent of Pig (hashutosh)
+
 PIG-1429: Add Boolean Data Type to Pig (zjshen via daijy)
 
 PIG-2218: Pig end-to-end tests should be accessible from top level build.xml (gates)
