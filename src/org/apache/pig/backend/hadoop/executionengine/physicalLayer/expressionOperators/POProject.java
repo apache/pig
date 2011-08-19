@@ -444,15 +444,19 @@ public class POProject extends ExpressionOperator {
             }
 
             if(overloaded){
-                DataBag retBag = (DataBag)ret;
-                bagIterator = retBag.iterator();
-                if(bagIterator.hasNext()){
-                    processingBagOfTuples = true;
-                    res.result = bagIterator.next();
-                }
-                // If the bag contains no tuple, set the returnStatus to STATUS_EOP
-                if (!processingBagOfTuples)
+                if (ret!=null) {
+                    DataBag retBag = (DataBag)ret;
+                    bagIterator = retBag.iterator();
+                    if(bagIterator.hasNext()){
+                        processingBagOfTuples = true;
+                        res.result = bagIterator.next();
+                    }
+                    // If the bag contains no tuple, set the returnStatus to STATUS_EOP
+                    if (!processingBagOfTuples)
+                        res.returnStatus = POStatus.STATUS_EOP;
+                } else {
                     res.returnStatus = POStatus.STATUS_EOP;
+                }
             }
             else {
                 res.result = (Tuple)ret;
