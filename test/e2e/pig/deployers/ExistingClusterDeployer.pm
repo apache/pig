@@ -63,11 +63,18 @@ sub checkPrerequisites
 {
     my ($self, $cfg, $log) = @_;
 
-    # They must have declared the directory for their Hadoop installation
-    if (! defined $cfg->{'hadoopdir'} || $cfg->{'hadoopdir'} eq "") {
-        print $log "You must set the key 'hadoopdir' to your Hadoop directory "
+    # They must have declared the conf directory for their Hadoop installation
+    if (! defined $cfg->{'hadoopconfdir'} || $cfg->{'hadoopconfdir'} eq "") {
+        print $log "You must set the key 'hadoopconfdir' to your Hadoop conf directory "
             . "in existing.conf\n";
-        die "hadoopdir is not set in existing.conf\n";
+        die "hadoopconfdir is not set in existing.conf\n";
+    }
+    
+    # They must have declared the executable path for their Hadoop installation
+    if (! defined $cfg->{'hadoopbin'} || $cfg->{'hadoopbin'} eq "") {
+        print $log "You must set the key 'hadoopbin' to your Hadoop bin path"
+            . "in existing.conf\n";
+        die "hadoopbin is not set in existing.conf\n";
     }
 
     # Run a quick and easy Hadoop command to make sure we can
@@ -314,9 +321,9 @@ sub runHadoopCmd($$$$)
     my ($self, $cfg, $log, $c) = @_;
 
     # set the PIG_CLASSPATH environment variable
-    $ENV{'HADOOP_CLASSPATH'} = "$cfg->{'hadoopdir'}/conf";
+    $ENV{'HADOOP_CLASSPATH'} = "$cfg->{'hadoopconfdir'}";
                           
-    my @cmd = ("$cfg->{'hadoopdir'}/bin/hadoop");
+    my @cmd = ("$cfg->{'hadoopbin'}");
     push(@cmd, split(' ', $c));
 
     $self->runCmd($log, \@cmd);

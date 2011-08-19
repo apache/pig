@@ -41,7 +41,7 @@
   <property name="tool.src" value="${basedir}/tools"/>
 
   <property name="harness.dir" value="${basedir}/../harness"/>
-  <property name="harness.tar" value="${harness.dir}/pigharness.tar"/>
+  <property name="harness.tar" value="${harness.dir}/harness.tar"/>
 
   <property name="test.location" value="${basedir}/testdist"/>
   <property name="benchmark.location" value="${test.location}/benchmarks"/>
@@ -129,10 +129,12 @@
 
   <!-- Check that the necessary properties are setup -->
   <target name="property-check">
-    <fail message="Please set the property pig.harness.old.pig to the directory where your old version of Pig is installed"
-      unless="pig.harness.old.pig"/>
-    <fail message="Please set the property pig.harness.cluster to the directory of your hadoop installation"
-      unless="pig.harness.cluster"/>
+    <fail message="Please set the property harness.old.pig to the directory where your old version of Pig is installed"
+      unless="harness.old.pig"/>
+     <fail message="Please set the property harness.cluster.conf to the conf directory of your hadoop installation"
+      unless="harness.cluster.conf"/>
+    <fail message="Please set the property harness.cluster.bin to the binary executable of your hadoop installation"
+      unless="harness.cluster.bin"/>
   </target>
 
   <!-- Prep the test area -->
@@ -145,7 +147,7 @@
 
     <chmod perm="ugo+x" type="file">
       <fileset dir="${test.location}/libexec" />
-      <fileset file="${test.location}/pig_test_harness.pl"/>
+      <fileset file="${test.location}/test_harness.pl"/>
     </chmod>
 
   </target>
@@ -155,14 +157,15 @@
     <!-- If they have not specified tests to run then null it out -->
     <property name="tests.to.run" value=""/>
 
-    <exec executable="./pig_test_harness.pl" dir="${test.location}" failonerror="true">
-      <env key="PIG_HARNESS_ROOT" value="."/>
+    <exec executable="./test_harness.pl" dir="${test.location}" failonerror="true">
+      <env key="HARNESS_ROOT" value="."/>
       <env key="PH_LOCAL" value="."/>
       <env key="PH_OUT" value="."/>
       <env key="PH_ROOT" value="."/>
       <env key="PH_PIG" value="${pig.dir}"/>
-      <env key="PH_OLDPIG" value="${pig.harness.old.pig}"/>
-      <env key="PH_CLUSTER" value="${pig.harness.cluster}"/>
+      <env key="PH_OLDPIG" value="${harness.old.pig}"/>
+      <env key="PH_CLUSTER_CONF" value="${harness.cluster.conf}"/>
+      <env key="PH_CLUSTER_BIN" value="${harness.cluster.bin}"/>
       <env key="PH_JYTHON_JAR" value="${jython.jar}"/>
       <arg line="${tests.to.run}"/>
       <arg value="${test.location}/tests/cmdline.conf"/>
@@ -183,14 +186,15 @@
   </target>
 
   <target name="deploy-base" depends="property-check, tar, init-test, init-deploy">
-    <exec executable="./pig_test_harness.pl" dir="${test.location}" failonerror="true">
-      <env key="PIG_HARNESS_ROOT" value="."/>
+    <exec executable="./test_harness.pl" dir="${test.location}" failonerror="true">
+      <env key="HARNESS_ROOT" value="."/>
       <env key="PH_LOCAL" value="."/>
       <env key="PH_OUT" value="."/>
       <env key="PH_ROOT" value="."/>
       <env key="PH_PIG" value="${pig.dir}"/>
-      <env key="PH_OLDPIG" value="${pig.harness.old.pig}"/>
-      <env key="PH_CLUSTER" value="${pig.harness.cluster}"/>
+      <env key="PH_OLDPIG" value="${harness.old.pig}"/>
+      <env key="PH_CLUSTER_CONF" value="${harness.cluster.conf}"/>
+      <env key="PH_CLUSTER_BIN" value="${harness.cluster.bin}"/>
       <env key="PH_JYTHON_JAR" value="${jython.jar}"/>
 
       <arg value="-deploycfg"/>

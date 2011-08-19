@@ -32,7 +32,7 @@ use English;
 
 our $className= "TestDriver";
 our @ISA = "$className";
-our $ROOT = (defined $ENV{'PIG_HARNESS_ROOT'} ? $ENV{'PIG_HARNESS_ROOT'} : die "ERROR: You must set environment variable PIG_HARNESS_ROOT\n");
+our $ROOT = (defined $ENV{'HARNESS_ROOT'} ? $ENV{'HARNESS_ROOT'} : die "ERROR: You must set environment variable HARNESS_ROOT\n");
 our $toolpath = "$ROOT/libexec/PigTest";
 
 my $passedStr  = 'passed';
@@ -102,7 +102,7 @@ sub replaceParameters
     $cmd =~ s/:OUTPATH:/$outfile/g;
 
     # $ENV
-    $cmd =~ s/:PIGHARNESS:/$ENV{PIG_HARNESS_ROOT}/g;
+    $cmd =~ s/:PIGHARNESS:/$ENV{HARNESS_ROOT}/g;
 
     # $testCmd
     $cmd =~ s/:INPATH:/$testCmd->{'inpathbase'}/g;

@@ -42,11 +42,11 @@ use IO::Handle;
 #
 
 my $ROOT=undef;
-if (defined $ENV{'PIG_HARNESS_ROOT'} ){
-   $ROOT= $ENV{'PIG_HARNESS_ROOT'};
+if (defined $ENV{'HARNESS_ROOT'} ){
+   $ROOT= $ENV{'HARNESS_ROOT'};
 
 } else {
-  die "FATAL ERROR: $0 - You must set PIG_HARNESS_ROOT to the root directory of the pig_harness";
+  die "FATAL ERROR: $0 - You must set HARNESS_ROOT to the root directory of the harness";
 }
 
 unshift( @INC, "$ROOT/libexec" );
