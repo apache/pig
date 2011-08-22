@@ -19,16 +19,16 @@
 
 
 ###########################################################################
-# Package: pig_test_harness
+# Package: test_harness
 #
-# This is the top level bootstraping script for the pig test harness, 
+# This is the top level bootstraping script for the test harness, 
 #
 #
 #
 # SYNOPSIS:
 #
-# pig_test_harness  -help | -c <cluster> |  -h <dir> | (-testjar <jar> -testconfigpath <path>) [-r <retention_days>] [-latest yes] [-x local] [-cleanuponly] [-secretDebugCmd] [-t <testcase>] <configfile>
-# pig_test_harness [OPTIONS] conffile [... confile]
+# test_harness  -help | -c <cluster> |  -h <dir> | (-testjar <jar> -testconfigpath <path>) [-r <retention_days>] [-latest yes] [-x local] [-cleanuponly] [-secretDebugCmd] [-t <testcase>] <configfile>
+# test_harness [OPTIONS] conffile [... confile]
 #
 # - OPTIONS:
 # -conf <harness config file> - set name of global harness config file
@@ -43,9 +43,9 @@
 #  Dependencies:
 #
 #  The main program relies on three configuration/properties files
-#  - pig_deploy.properties
-#  - pigtest.properties
-#  - pig_test_harness/test_harness.conf
+#  - deploy.properties
+#  - test.properties
+#  - test_harness/test_harness.conf
 #
 #  It will look for the properties file under: $ROOT/conf
 #
@@ -68,15 +68,15 @@ use Cwd;
 
 
 #  Var: $ROOT
-#  The root directory for the pig harness.
+#  The root directory for the harness.
 #
 #  The main pogram relies on the top level directory $ROOT to be set
 #  to the root directory of the harness, it sets it as follows:
 #
 
 
-our $ROOT = (defined($ENV{'PIG_HARNESS_ROOT'}) ? $ENV{'PIG_HARNESS_ROOT'} :
-  die "FATAL ERROR: $0 - You must set PIG_HARNESS_ROOT to the root directory of the pig_harness");
+our $ROOT = (defined($ENV{'HARNESS_ROOT'}) ? $ENV{'HARNESS_ROOT'} :
+  die "FATAL ERROR: $0 - You must set HARNESS_ROOT to the root directory of the harness");
 
 unshift( @INC, "$ROOT/libexec" );
 unshift( @INC, ".");
@@ -215,8 +215,8 @@ sub exitStatus
 # The test run log name.
 # If no logfile is specified , then it is configured as follows  :
 # The file name for the test result log. The location of the log directory
-# is obtained from the pig configuration value . The filename
-# is stored as $globalCfg{localoutpathbase}/pig_test_harness_log_{time}
+# is obtained from the configuration value . The filename
+# is stored as $globalCfg{localoutpathbase}/test_harness_log_{time}
 #
 # Var: $testrun_desc
 # A description of the test run to be recorded in the logs.
@@ -231,11 +231,11 @@ sub exitStatus
 # All values to be shared globally. The $harnessCfg values are stored in the globalConfig
 #
 # Var: $harnessCfg
-#  The pig configuration file. It assumes it is located at
-# $ROOT/conf/pig_test_harness/test_harness.conf. 
+#  The configuration file. It assumes it is located at
+# $ROOT/conf/test_harness/test_harness.conf. 
 #
 # Var: $log
-# The pig test log.
+# The test log.
 #
 # Var: $dbh
 # Instance of Insert2Mysal, this object provides database access subroutines.
@@ -276,8 +276,8 @@ for (my $i = 0; $i < @ARGV; $i++) {
   }
 }
 if ($harnessCfg eq "") {
-  if (defined($ENV{'PIG_HARNESS_CONF'})) {
-    $harnessCfg = $ENV{'PIG_HARNESS_CONF'};
+  if (defined($ENV{'HARNESS_CONF'})) {
+    $harnessCfg = $ENV{'HARNESS_CONF'};
   } else {
     $harnessCfg = "$ROOT/conf/default.conf";
   }
@@ -362,7 +362,7 @@ while ($ARGV[0] =~ /^-/) {
 
 mkpath( [  $globalCfg->{'localoutpathbase'} ] , 1, 0777) if ( ! -e  $globalCfg->{'localoutpathbase'} );
 $globalCfg->{'UID'}= time;
-$logfile = $globalCfg->{'localoutpathbase'} . "/pig_test_harnesss_" . $globalCfg->{'UID'} if $logfile eq "";
+$logfile = $globalCfg->{'localoutpathbase'} . "/test_harnesss_" . $globalCfg->{'UID'} if $logfile eq "";
 $globalCfg->{'logfile'} = $logfile;
 
 
