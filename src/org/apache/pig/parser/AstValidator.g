@@ -186,11 +186,11 @@ filename : QUOTEDSTRING
 as_clause: ^( AS field_def_list )
 ;
 
-field_def[Set<String> fieldNames] throws Exception
+field_def[Set<String> fieldNames] throws DuplicatedSchemaAliasException
  : ^( FIELD_DEF IDENTIFIER { validateSchemaAliasName( fieldNames, $IDENTIFIER, $IDENTIFIER.text ); } type? )
 ;
 
-field_def_list
+field_def_list throws DuplicatedSchemaAliasException
 scope{
     Set<String> fieldNames;
 }

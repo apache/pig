@@ -111,6 +111,8 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 
 BUG FIXES
 
+PIG-2055: inconsistent behavior in parser generated during build (thejas)
+
 PIG-2185: NullPointerException while Accessing Empty Bag in FOREACH { FILTER } (daijy)
 
 PIG-2227: Wrong jars copied into lib directory in e2e tests when invoked from top level (gates)

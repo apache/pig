@@ -48,7 +48,6 @@ import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.plan.PlanValidationException;
 import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.streaming.StreamingCommand.Handle;
 import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
@@ -870,7 +869,7 @@ public class LogicalPlanBuilder {
      * @param endExpr the last expression to be projected, null 
      *        if everything to the end is to be projected
      * @return project expression
-     * @throws PlanValidationException 
+     * @throws ParserValidationException 
      */
     LogicalExpression buildRangeProjectExpr(SourceLocation loc, LogicalExpressionPlan plan, LogicalRelationalOperator relOp,
             int input, LogicalExpression startExpr, LogicalExpression endExpr)
