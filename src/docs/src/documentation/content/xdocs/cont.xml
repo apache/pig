@@ -1413,7 +1413,7 @@ $ pig –param_file myparams script2.pig
    <title>Specifying Parameters Using the Declare Statement</title>
    <p>In this example the command is executed and its stdout is used as the parameter value.</p>
 <source>
-%declare CMD 'generate_date';
+%declare CMD `generate_date`;
 A = LOAD '/data/mydata/$CMD';
 B = FILTER A BY $0>'5';
 

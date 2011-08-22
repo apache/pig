@@ -114,6 +114,8 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 
 BUG FIXES
 
+PIG-2232: "declare" document contains a typo (daijy)
+
 PIG-2055: inconsistent behavior in parser generated during build (thejas)
 
 PIG-2185: NullPointerException while Accessing Empty Bag in FOREACH { FILTER } (daijy)
