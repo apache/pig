@@ -47,6 +47,7 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
 import org.apache.pig.impl.util.MultiMap;
+import org.apache.pig.impl.plan.PlanValidationException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.logical.expression.AddExpression;
 import org.apache.pig.newplan.logical.expression.AndExpression;
@@ -1373,7 +1374,7 @@ scope GScope;
    }
 ;
 
-split_otherwise throws PlanValidationException, PlanGenerationFailureException
+split_otherwise throws PlanGenerationFailureException
 scope GScope;
 @init {
     $GScope::currentOp = builder.createSplitOutputOp();

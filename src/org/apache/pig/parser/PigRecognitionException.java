@@ -34,7 +34,7 @@ public abstract class PigRecognitionException extends RecognitionException {
     private SourceLocation location;
     
     public PigRecognitionException(IntStream input, SourceLocation loc) {
-        super( input );
+        super( );
         this.line = loc.line();
         this.charPositionInLine = loc.offset();
         this.location = loc;

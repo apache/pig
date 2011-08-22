@@ -564,7 +564,7 @@
             <zipfileset src="${ivy.lib.dir}/hadoop-core-${hadoop-core.version}.jar" />
             <zipfileset src="${lib.dir}/${automaton.jarfile}" />
             <zipfileset src="${ivy.lib.dir}/antlr-runtime-${antlr.version}.jar" />
-            <zipfileset src="${ivy.lib.dir}/stringtemplate-${antlr.version}.jar" />
+            <zipfileset src="${ivy.lib.dir}/ST4-${stringtemplate.version}.jar" />
             <zipfileset src="${ivy.lib.dir}/junit-${junit.version}.jar" />
             <zipfileset src="${ivy.lib.dir}/jsch-${jsch.version}.jar" />
             <zipfileset src="${ivy.lib.dir}/jline-${jline.version}.jar" />
@@ -649,7 +649,7 @@
             </manifest>
             <zipfileset src="${lib.dir}/${automaton.jarfile}" />
             <zipfileset src="${ivy.lib.dir}/antlr-runtime-${antlr.version}.jar" />
-            <zipfileset src="${ivy.lib.dir}/stringtemplate-${antlr.version}.jar" />
+            <zipfileset src="${ivy.lib.dir}/ST4-${stringtemplate.version}.jar" />
             <zipfileset src="${ivy.lib.dir}/junit-${junit.version}.jar" />
             <zipfileset src="${ivy.lib.dir}/jsch-${jsch.version}.jar" />
             <zipfileset src="${ivy.lib.dir}/jline-${jline.version}.jar" />
