@@ -76,8 +76,6 @@
 
     <copy todir="${tar.dir}/tests">
         <fileset dir="${test.src}">
-          <exclude name="bigdata.conf"/>
-          <exclude name="grunt.conf"/>
           <exclude name="streaming_local.conf"/>
         </fileset>
     </copy>
@@ -174,6 +172,8 @@
       <arg value="${test.location}/tests/nightly.conf"/>
       <arg value="${test.location}/tests/streaming.conf"/>
       <arg value="${test.location}/tests/turing_jython.conf"/>
+      <arg value="${test.location}/tests/bigdata.conf"/>
+      <arg value="${test.location}/tests/grunt.conf"/>
     </exec>
   </target>
 

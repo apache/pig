@@ -26,6 +26,7 @@ use IPC::Run; # don't do qw(run), it screws up TestDriver which also has a run m
 use Digest::MD5 qw(md5_hex);
 use Util;
 use File::Path;
+use Cwd;
 
 use strict;
 use English;
@@ -188,6 +189,20 @@ sub globalSetup
 
     IPC::Run::run(['mkdir', '-p', $globalHash->{'localpath'}], \undef, $log, $log) or 
         die "Cannot create localpath directory " . $globalHash->{'localpath'} .
+        " " . "$ERRNO\n";
+
+    # Create the temporary directory
+    IPC::Run::run(['mkdir', '-p', $globalHash->{'tmpPath'}], \undef, $log, $log) or 
+        die "Cannot create temporary directory " . $globalHash->{'tmpPath'} .
+        " " . "$ERRNO\n";
+}
+
+sub globalCleanup
+{
+    my ($self, $globalHash, $log) = @_;
+
+    IPC::Run::run(['rm', '-rf', $globalHash->{'tmpPath'}], \undef, $log, $log) or 
+        warn "Cannot remove temporary directory " . $globalHash->{'tmpPath'} .
         " " . "$ERRNO\n";
 }
 
@@ -763,7 +778,7 @@ print $log "testResult: $testResult testOutput: $testOutput benchmarkOutput: $be
         print $log "Test output checksum does not match benchmark checksum\n";
         print $log "Test checksum = <$testChksm>\n";
         print $log "Expected checksum = <$benchmarkChksm>\n";
-        print $log "RESULTS DIFFER: vimdiff $testOutput $benchmarkOutput\n";
+        print $log "RESULTS DIFFER: vimdiff " . cwd . "/$testOutput " . cwd . "/$benchmarkOutput\n";
     } else {
         $result = 1;
     }
