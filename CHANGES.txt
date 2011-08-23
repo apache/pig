@@ -114,6 +114,8 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 
 BUG FIXES
 
+PIG-2193: Using HBaseStorage to scan 2 tables in the same Map job produces bad data (rangadi via dvryaboy)
+
 PIG-2232: "declare" document contains a typo (daijy)
 
 PIG-2055: inconsistent behavior in parser generated during build (thejas)

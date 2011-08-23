@@ -843,6 +843,43 @@ public class TestHBaseStorage {
         Assert.assertEquals(100, i);
     }
 
+    /**
+     * Test to if HBaseStorage handles different scans in a single MR job.
+     * This can happen PIG loads two different aliases (as in a join or
+     * union).
+     */
+    @Test
+    public void testHeterogeneousScans() throws IOException {
+        prepareTable(TESTTABLE_1, true, DataFormat.HBaseBinary);
+        prepareTable(TESTTABLE_2, true, DataFormat.UTF8PlainText);
+        scanTable1(pig, DataFormat.HBaseBinary);
+        pig.registerQuery(String.format(
+              " b = load 'hbase://%s' using %s('%s %s') as (col_a:int, col_c);",
+              TESTTABLE_2, "org.apache.pig.backend.hadoop.hbase.HBaseStorage",
+              TESTCOLUMN_A, TESTCOLUMN_C));
+        pig.registerQuery(" c = join a by col_a, b by col_a; ");
+        // this results in a single job with mappers loading
+        // different HBaseStorage specs.
+
+        Iterator<Tuple> it = pig.openIterator("c");
+        int index = 0;
+        while (it.hasNext()) {
+            Tuple t = it.next();
+            String rowKey = (String) t.get(0);
+            int col_a = (Integer) t.get(1);
+            Assert.assertNotNull(t.get(2));
+            double col_b = (Double) t.get(2);
+            String col_c = (String) t.get(3);
+
+            Assert.assertEquals("00".substring((index + "").length()) + index,
+                    rowKey);
+            Assert.assertEquals(index, col_a);
+            Assert.assertEquals(index + 0.0, col_b, 1e-6);
+            Assert.assertEquals("Text_" + index, col_c);
+            index++;
+        }
+        Assert.assertEquals(index, TEST_ROW_COUNT);
+    }
 
     private void scanTable1(PigServer pig, DataFormat dataFormat) throws IOException {
         scanTable1(pig, dataFormat, "");
