@@ -200,6 +200,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-2193: Using HBaseStorage to scan 2 tables in the same Map job produces bad data (rangadi via dvryaboy)
+
 PIG-2102: MonitoredUDF does not work (dvryaboy)
 
 PIG-2183: Pig not working with Hadoop 0.20.203.0 (daijy)
