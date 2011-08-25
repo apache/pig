@@ -200,6 +200,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-2231: Limit produce wrong number of records after foreach flatten (daijy)
+
 PIG-2193: Using HBaseStorage to scan 2 tables in the same Map job produces bad data (rangadi via dvryaboy)
 
 PIG-2102: MonitoredUDF does not work (dvryaboy)
