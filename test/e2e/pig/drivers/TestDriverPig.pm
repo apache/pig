@@ -49,46 +49,9 @@ sub new
     my $class = ref($proto) || $proto;
     my $self = $class->SUPER::new;
 
-    $self->{'exectype'} = "mapred"; # till we know better (in globalSetup())!
-    $self->{'ignore'} = "true";     # till we know better (in globalSetup())!
-
     bless($self, $class);
     return $self;
 }
-
-###############################################################################
-# This method has been copied over from TestDriver to make changes to
-# support skipping tests which do not match current execution mode
-# or which were marked as 'ignore'
-#
-#
-# Static function, can be used by test_harness.pl
-# Print the results so far, given the testStatuses hash.
-# @param testStatuses - reference to hash of test status results.
-# @param log - reference to file handle to print results to.
-# @param prefix - A title to prefix to the results
-# @returns nothing.
-#
-sub printResults
-{
-    my ($testStatuses, $log, $prefix) = @_;
-
-    my ($pass, $fail, $abort, $depend, $skipped) = (0, 0, 0, 0, 0);
-
-    foreach (keys(%$testStatuses)) {
-        ($testStatuses->{$_} eq $passedStr)  && $pass++;
-        ($testStatuses->{$_} eq $failedStr)  && $fail++;
-        ($testStatuses->{$_} eq $abortedStr) && $abort++;
-        ($testStatuses->{$_} eq $dependStr)  && $depend++;
-        ($testStatuses->{$_} eq $skippedStr) && $skipped++;
-    }   
-
-    my $msg = "$prefix, PASSED: $pass FAILED: $fail SKIPPED: $skipped ABORTED: $abort " .
-        "FAILED DEPENDENCY: $depend";
-    print $log "$msg\n";
-	print "$msg\r";
-}
-
 
 sub replaceParameters
 {
@@ -115,9 +78,9 @@ sub replaceParameters
     $cmd =~ s/:SCRIPTHOMEPATH:/$testCmd->{'scriptPath'}/g;
     $cmd =~ s/:DBUSER:/$testCmd->{'dbuser'}/g;
     $cmd =~ s/:DBNAME:/$testCmd->{'dbdb'}/g;
-    $cmd =~ s/:LOCALINPATH:/$testCmd->{'localinpathbase'}/g;
-    $cmd =~ s/:LOCALOUTPATH:/$testCmd->{'localoutpathbase'}/g;
-    $cmd =~ s/:LOCALTESTPATH:/$testCmd->{'localpathbase'}/g;
+#    $cmd =~ s/:LOCALINPATH:/$testCmd->{'localinpathbase'}/g;
+#    $cmd =~ s/:LOCALOUTPATH:/$testCmd->{'localoutpathbase'}/g;
+#    $cmd =~ s/:LOCALTESTPATH:/$testCmd->{'localpathbase'}/g;
     $cmd =~ s/:BMPATH:/$testCmd->{'benchmarkPath'}/g;
     $cmd =~ s/:TMP:/$testCmd->{'tmpPath'}/g;
 
@@ -148,15 +111,6 @@ sub globalSetup
         $self->{'ignore'} = 'false';
     }
 
-    # if "-x local" was provided on the command line,
-    # it implies pig should be run in "local" mode -so 
-    # change input and output paths 
-    if(defined($globalHash->{'x'}) && $globalHash->{'x'} eq 'local')
-    {
-        $self->{'exectype'} = "local";
-        $globalHash->{'inpathbase'} = $globalHash->{'localinpathbase'};
-        $globalHash->{'outpathbase'} = $globalHash->{'localoutpathbase'};
-    }
     $globalHash->{'outpath'} = $globalHash->{'outpathbase'} . "/" . $globalHash->{'runid'} . "/";
     $globalHash->{'localpath'} = $globalHash->{'localpathbase'} . "/" . $globalHash->{'runid'} . "/";
 
@@ -170,22 +124,9 @@ sub globalSetup
 
     my @cmd = ($self->getPigCmd($globalHash, $log), '-e', 'mkdir', $globalHash->{'outpath'});
 
-    if($self->{'exectype'} eq "local")
-    {
-        @cmd = ('mkdir', '-p', $globalHash->{'outpath'});
-    }
 
-
-	# print $log join(" ", @cmd);
-
-    if($self->{'exectype'} eq "mapred")
-    {
-       IPC::Run::run(\@cmd, \undef, $log, $log) or die "Cannot create HDFS directory " . $globalHash->{'outpath'} . ": $? - $!\n";
-    }
-    else
-    {
-       IPC::Run::run(\@cmd, \undef, $log, $log) or die "Cannot create directory " . $globalHash->{'outpath'} . "\n";
-    }
+	print $log "Going to run " . join(" ", @cmd) . "\n";
+    IPC::Run::run(\@cmd, \undef, $log, $log) or die "Cannot create HDFS directory " . $globalHash->{'outpath'} . ": $? - $!\n";
 
     IPC::Run::run(['mkdir', '-p', $globalHash->{'localpath'}], \undef, $log, $log) or 
         die "Cannot create localpath directory " . $globalHash->{'localpath'} .
@@ -211,6 +152,17 @@ sub runTest
 {
     my ($self, $testCmd, $log) = @_;
     my $subName  = (caller(0))[3];
+
+    # Check that we should run this test.  If the current execution type
+    # doesn't match the execonly flag, then skip this one.
+    if ($self->wrongExecutionMode($testCmd)) {
+        print $log "Skipping test $testCmd->{'group'}" . "_" .
+            $testCmd->{'num'} . " since it is executed only in " .
+            $testCmd->{'execonly'} . " mode and we are executing in " .
+            $testCmd->{'exectype'} . " mode.\n";
+        my %result;
+        return \%result;
+    }
 
     # Handle the various methods of running used in 
     # the original TestDrivers
@@ -438,64 +390,33 @@ sub runPig
     my $localdir = $testCmd->{'localpath'} . $testCmd->{'group'} . "_" . $testCmd->{'num'} . ".out";
     my $stores = $self->countStores($testCmd);
        
-    # mapreduce
-    if($self->{'exectype'} eq "mapred")
-    {
-        # single query
-        if ($stores == 1) {
-            if ($copyResults) {
-              $result{'output'} = $self->postProcessSingleOutputFile($outfile, $localdir, \@baseCmd, $testCmd, $log);
-              $result{'originalOutput'} = "$localdir/out_original"; # populated by postProcessSingleOutputFile
-            } else {
-              $result{'output'} = "NO_COPY";
-            }
-        }
-        # multi query
-        else {
-            my @outfiles = ();
-            for (my $id = 1; $id <= ($stores); $id++) {
-                $localdir = $testCmd->{'localpath'} . $testCmd->{'group'} . "_" . $testCmd->{'num'} . ".out/$id";
-                $localoutfile = $outfile . ".$id";
-
-                # Copy result file out of hadoop
-                my $testOut;
-                if ($copyResults) {
-                  $testOut = $self->postProcessSingleOutputFile($localoutfile, $localdir, \@baseCmd, $testCmd, $log);
-                } else {
-                  $testOut = "NO_COPY";
-                }
-                push(@outfiles, $testOut);
-            }
-            ##!!! originalOutputs not set! Needed?
-            $result{'outputs'} = \@outfiles;
-        }
-    }
-    # local mode
-    else 
-    {
-        # single query
-        if ($stores == 1) {
-            $localdir = $testCmd->{'localpath'} . $testCmd->{'group'} . "_" . $testCmd->{'num'} . ".dir";
-            mkdir $localdir;
+    # single query
+    if ($stores == 1) {
+        if ($copyResults) {
             $result{'output'} = $self->postProcessSingleOutputFile($outfile, $localdir, \@baseCmd, $testCmd, $log);
             $result{'originalOutput'} = "$localdir/out_original"; # populated by postProcessSingleOutputFile
-        } 
-        # multi query
-        else {
-            my @outfiles = ();
-            for (my $id = 1; $id <= ($stores); $id++) {
-                $localdir = $testCmd->{'localpath'} . $testCmd->{'group'} . "_" . $testCmd->{'num'} . ".out";
-                mkdir $localdir;
-                $localdir = $testCmd->{'localpath'} . $testCmd->{'group'} . "_" . $testCmd->{'num'} . ".out/$id";
-                mkdir $localdir;
-                $localoutfile = $outfile . ".$id";
-
-                my $testRes = $self->postProcessSingleOutputFile($localoutfile, $localdir, \@baseCmd, $testCmd, $log);
-                push(@outfiles, $testRes);
-            }
-            ##!!! originalOutputs not set!
-            $result{'outputs'} = \@outfiles;
+        } else {
+            $result{'output'} = "NO_COPY";
         }
+    }
+    # multi query
+    else {
+        my @outfiles = ();
+        for (my $id = 1; $id <= ($stores); $id++) {
+            $localdir = $testCmd->{'localpath'} . $testCmd->{'group'} . "_" . $testCmd->{'num'} . ".out/$id";
+            $localoutfile = $outfile . ".$id";
+
+            # Copy result file out of hadoop
+            my $testOut;
+            if ($copyResults) {
+              $testOut = $self->postProcessSingleOutputFile($localoutfile, $localdir, \@baseCmd, $testCmd, $log);
+            } else {
+              $testOut = "NO_COPY";
+            }
+            push(@outfiles, $testOut);
+        }
+        ##!!! originalOutputs not set! Needed?
+        $result{'outputs'} = \@outfiles;
     }
 
     # Compare doesn't get the testCmd hash, so I need to stuff the necessary
@@ -513,15 +434,12 @@ sub postProcessSingleOutputFile
     my ($self, $outfile, $localdir, $baseCmd, $testCmd, $log) = @_;
     my $subName  = (caller(0))[3];
 
-    # Copy to local if results on HDFS
-    if ($self->{'exectype'} eq "mapred") {
-        my @baseCmd = @{$baseCmd};
-        my @copyCmd = @baseCmd;
-        push(@copyCmd, ('-e', 'copyToLocal', $outfile, $localdir)); 
-        print $log "$0::$className::$subName INFO: Going to run pig command: @copyCmd\n";
+    my @baseCmd = @{$baseCmd};
+    my @copyCmd = @baseCmd;
+    push(@copyCmd, ('-e', 'copyToLocal', $outfile, $localdir)); 
+    print $log "$0::$className::$subName INFO: Going to run pig command: @copyCmd\n";
  
-       IPC::Run::run(\@copyCmd, \undef, $log, $log) or die "Cannot copy results from HDFS $outfile to $localdir\n";
-    }
+    IPC::Run::run(\@copyCmd, \undef, $log, $log) or die "Cannot copy results from HDFS $outfile to $localdir\n";
 
 
     # Sort the result if necessary.  Keep the original output in one large file.
@@ -529,14 +447,13 @@ sub postProcessSingleOutputFile
     
     # Build command to:
     # 1. Combine part files
-    my $fppCmd = 
-            ($self->{'exectype'} eq "mapred") ? "cat $localdir/map* $localdir/part* 2>/dev/null" : 
-            (-d $outfile )                    ? "cat $outfile/part* 2>/dev/null" :
-                                                "cat $outfile";
+    my $fppCmd = "cat $localdir/map* $localdir/part* 2>/dev/null";
     
     # 2. Standardize float precision
-    if (defined $testCmd->{'floatpostprocess'} && defined $testCmd->{'delimiter'}) {
-        $fppCmd .= " | $toolpath/floatpostprocessor.pl '" . $testCmd->{'delimiter'} . "'";
+    if (defined $testCmd->{'floatpostprocess'} &&
+            defined $testCmd->{'delimiter'}) {
+        $fppCmd .= " | $toolpath/floatpostprocessor.pl '" .
+            $testCmd->{'delimiter'} . "'";
     }
     
     $fppCmd .= " > $localdir/out_original";
@@ -558,6 +475,12 @@ sub generateBenchmark
     my ($self, $testCmd, $log) = @_;
 
     my %result;
+
+    # Check that we should run this test.  If the current execution type
+    # doesn't match the execonly flag, then skip this one.
+    if ($self->wrongExecutionMode($testCmd)) {
+        return \%result;
+    }
 
     if ($self->hasCommandLineVerifications($testCmd, $log)) {
         # Do nothing, no benchmark to geneate
@@ -599,6 +522,13 @@ sub compare
     my ($self, $testResult, $benchmarkResult, $log, $testCmd) = @_;
     my $subName  = (caller(0))[3];
 
+    # Check that we should run this test.  If the current execution type
+    # doesn't match the execonly flag, then skip this one.
+    if ($self->wrongExecutionMode($testCmd)) {
+        # Special magic value
+        return $self->{'wrong_execution_mode'}; 
+    }
+
     # For now, if the test has 
     # - testCmd pig, and 'sql' for benchmark, then use comparePig, i.e. using benchmark
     # - any verification directives formerly used by CmdLine or Script drivers (rc, regex on out and err...)
@@ -626,6 +556,7 @@ sub compareScript
 {
     my ($self, $testResult, $log, $testCmd) = @_;
     my $subName  = (caller(0))[3];
+
 
     # IMPORTANT NOTES:
     #
@@ -821,10 +752,23 @@ sub countStores($$)
     # also note that this won't work if you comment out a store
     my @q = split(/\n/, $testCmd->{'pig'});
         for (my $i = 0; $i < @q; $i++) {
-        $count += $q[$i] =~ /store\s+[a-zA-Z][a-zA-Z0-9_]*\s+into/i;
+            $count += $q[$i] =~ /store\s+[a-zA-Z][a-zA-Z0-9_]*\s+into/i;
     }
 
     return $count;
+}
+
+##############################################################################
+# Check whether we should be running this test or not.
+#
+sub wrongExecutionMode($$)
+{
+    my ($self, $testCmd) = @_;
+
+    # Check that we should run this test.  If the current execution type
+    # doesn't match the execonly flag, then skip this one.
+    return (defined $testCmd->{'execonly'} &&
+            $testCmd->{'execonly'} ne $testCmd->{'exectype'});
 }
 
 ##############################################################################

@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2229: Pig end-to-end tests should test local mode as well as mr mode (gates)
+
 PIG-2235: Several files in e2e tests aren't being run (gates)
 
 PIG-2196: Test harness should be independent of Pig (hashutosh) -- Missed few

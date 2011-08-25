@@ -756,6 +756,22 @@
         <ant dir="${test.e2e.dir}"/>
     </target>
 
+    <target name="test-e2e-deploy" depends="jar, jar-withouthadoop" description="deploy end-to-end tests to existing cluster">
+        <ant dir="${test.e2e.dir}" target="deploy"/>
+    </target>
+
+    <target name="test-e2e-undeploy" depends="jar, jar-withouthadoop" description="undeploy end-to-end tests from existing cluster">
+        <ant dir="${test.e2e.dir}" target="undeploy"/>
+    </target>
+
+    <target name="test-e2e-local" depends="jar, jar-withouthadoop" description="run end-to-end tests in local mode">
+        <ant dir="${test.e2e.dir}" target="test-local"/>
+    </target>
+
+    <target name="test-e2e-deploy-local" depends="jar, jar-withouthadoop" description="create files needed by local mode end-to-end tests">
+        <ant dir="${test.e2e.dir}" target="deploy-local"/>
+    </target>
+
     <!-- ================================================================== -->
     <!-- Pigunit                                                            -->
     <!-- ================================================================== -->
