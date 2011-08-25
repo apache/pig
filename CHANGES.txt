@@ -116,6 +116,8 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 
 BUG FIXES
 
+PIG-2231: Limit produce wrong number of records after foreach flatten (daijy)
+
 PIG-2193: Using HBaseStorage to scan 2 tables in the same Map job produces bad data (rangadi via dvryaboy)
 
 PIG-2232: "declare" document contains a typo (daijy)
