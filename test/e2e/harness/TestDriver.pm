@@ -117,6 +117,8 @@ sub new
 
 	bless($self, $class);
 
+    $self->{'wrong_execution_mode'} = "_xyz_wrong_execution_mode_zyx_";
+
 	return $self;
 }
 
@@ -441,7 +443,10 @@ sub run
 					$self->compare($testResult, $benchmarkResult, $log, \%testHash);
 				$msg = "INFO: $subName() at ".__LINE__.":Test $testName";
 
-				if ($result) {
+                if ($result eq $self->{'wrong_execution_mode'}) {
+					$msg .= " SKIPPED";
+					$testStatuses->{$testName} = $skippedStr;
+                } elsif ($result) {
 					$msg .= " SUCCEEDED";
 					$testStatuses->{$testName} = $passedStr;
 

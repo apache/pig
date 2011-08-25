@@ -486,8 +486,7 @@ foreach my $arg (@ARGV) {
 $dbh->endTestRun($globalCfg->{'trid'}) if ($dblog);
 
 # don't remove the space after Final results, it matters.
-TestDriver::printResults(\%testStatuses, \*STDOUT, "Final results ");
-TestDriver::printResults(\%testStatuses, $log, "Final results");
+TestDriver::printResults(\%testStatuses, $log, "Final results ");
 print $log  "Finished test run at " . time . "\n";
 
 # If they have requested undeployment, do it now

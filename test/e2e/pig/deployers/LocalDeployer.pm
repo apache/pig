@@ -14,7 +14,7 @@
 #  See the License for the specific language governing permissions and                 
 #  limitations under the License.                                                      
                                                                                        
-package ExistingClusterDeployer;
+package LocalDeployer;
 
 use IPC::Run qw(run);
 use TestDeployer;
@@ -25,7 +25,7 @@ use English;
 our @ISA = "TestDeployer";
 
 ###########################################################################
-# Class: ExistingClusterDeployer
+# Class: LocalDeployer
 # Deploy the Pig harness to a cluster and database that already exists.
 
 ##############################################################################
@@ -63,25 +63,6 @@ sub new
 #
 sub checkPrerequisites
 {
-    my ($self, $cfg, $log) = @_;
-
-    # They must have declared the conf directory for their Hadoop installation
-    if (! defined $cfg->{'hadoopconfdir'} || $cfg->{'hadoopconfdir'} eq "") {
-        print $log "You must set the key 'hadoopconfdir' to your Hadoop conf directory "
-            . "in existing.conf\n";
-        die "hadoopconfdir is not set in existing.conf\n";
-    }
-    
-    # They must have declared the executable path for their Hadoop installation
-    if (! defined $cfg->{'hadoopbin'} || $cfg->{'hadoopbin'} eq "") {
-        print $log "You must set the key 'hadoopbin' to your Hadoop bin path"
-            . "in existing.conf\n";
-        die "hadoopbin is not set in existing.conf\n";
-    }
-
-    # Run a quick and easy Hadoop command to make sure we can
-    $self->runHadoopCmd($cfg, $log, "fs -ls /");
-
 }
 
 ##############################################################################
@@ -137,87 +118,86 @@ sub generateData
             'name' => "studenttab10k",
             'filetype' => "studenttab",
             'rows' => 10000,
-            'hdfs' => "singlefile/studenttab10k",
+            'outfile' => "singlefile/studenttab10k",
         }, {
             'name' => "votertab10k",
             'filetype' => "votertab",
             'rows' => 10000,
-            'hdfs' => "singlefile/votertab10k",
+            'outfile' => "singlefile/votertab10k",
         }, {
             'name' => "studentcolon10k",
             'filetype' => "studentcolon",
             'rows' => 10000,
-            'hdfs' => "singlefile/studentcolon10k",
+            'outfile' => "singlefile/studentcolon10k",
         }, {
             'name' => "textdoc",
             'filetype' => "textdoc",
             'rows' => 10000,
-            'hdfs' => "singlefile/textdoc",
+            'outfile' => "singlefile/textdoc",
         }, {
             'name' => "reg1459894",
             'filetype' => "reg1459894",
             'rows' => 1000,
-            'hdfs' => "singlefile/reg1459894",
+            'outfile' => "singlefile/reg1459894",
         }, {
             'name' => "studenttabdir10k",
             'filetype' => "studenttab",
             'rows' => 10000,
-            'hdfs' => "dir/studenttab10k",
+            'outfile' => "dir/studenttab10k",
         }, {
             'name' => "studenttabsomegood",
             'filetype' => "studenttab",
             'rows' => 1000,
-            'hdfs' => "glob/star/somegood/studenttab",
+            'outfile' => "glob/star/somegood/studenttab",
         }, {
             'name' => "studenttabmoregood",
             'filetype' => "studenttab",
             'rows' => 1001,
-            'hdfs' => "glob/star/moregood/studenttab",
+            'outfile' => "glob/star/moregood/studenttab",
         }, {
             'name' => "studenttabbad",
             'filetype' => "studenttab",
             'rows' => 1002,
-            'hdfs' => "glob/star/bad/studenttab",
+            'outfile' => "glob/star/bad/studenttab",
         }, {
             'name' => "fileexists",
             'filetype' => "studenttab",
             'rows' => 1,
-            'hdfs' => "singlefile/fileexists",
-        }, {
-            'name' => "studenttab20m",
-            'filetype' => "studenttab",
-            'rows' => 20000000,
-            'hdfs' => "singlefile/studenttab20m",
+            'outfile' => "singlefile/fileexists",
         }, {
             'name' => "unicode100",
             'filetype' => "unicode",
             'rows' => 100,
-            'hdfs' => "singlefile/unicode100",
+            'outfile' => "singlefile/unicode100",
         }, {
             'name' => "studentctrla10k",
             'filetype' => "studentctrla",
             'rows' => 10000,
-            'hdfs' => "singlefile/studentctrla10k",
+            'outfile' => "singlefile/studentctrla10k",
         }, {
             'name' => "studentcomplextab10k",
             'filetype' => "studentcomplextab",
             'rows' => 10000,
-            'hdfs' => "singlefile/studentcomplextab10k",
+            'outfile' => "singlefile/studentcomplextab10k",
         }, {
             'name' => "studentnulltab10k",
             'filetype' => "studentnulltab",
             'rows' => 10000,
-            'hdfs' => "singlefile/studentnulltab10k",
+            'outfile' => "singlefile/studentnulltab10k",
         }, {
             'name' => "voternulltab10k",
             'filetype' => "voternulltab",
             'rows' => 10000,
-            'hdfs' => "singlefile/voternulltab10k",
+            'outfile' => "singlefile/voternulltab10k",
         },
     );
 
-	# Create the HDFS directories
-	$self->runHadoopCmd($cfg, $log, "fs -mkdir $cfg->{'inpathbase'}");
+	# Create the target directories
+    for my $dir ("singlefile", "dir", "glob/star/somegood",
+            "glob/star/moregood", "glob/star/bad") {
+        my @cmd = ("mkdir", "-p", "$cfg->{'inpathbase'}/$dir");
+	    $self->runCmd($log, \@cmd);
+    }
 
     foreach my $table (@tables) {
 		print "Generating data for $table->{'name'}\n";
@@ -226,10 +206,10 @@ sub generateData
             $table->{'name'});
 		$self->runCmd($log, \@cmd);
 
-		# Copy the data to HDFS
-		my $hadoop = "fs -copyFromLocal $table->{'name'} ".
-			"$cfg->{'inpathbase'}/$table->{'hdfs'}";
-		$self->runHadoopCmd($cfg, $log, $hadoop);
+		# Move the data to its desitination
+        my @cmd = ('mv', $table->{'name'},
+            $cfg->{'inpathbase'} . "/" . $table->{'outfile'});
+		$self->runCmd($log, \@cmd);
 
     }
 }
@@ -315,25 +295,6 @@ sub undeploy
 #
 sub confirmUndeployment
 {
-    die "$0 INFO : confirmUndeployment is a virtual function!";
-}
-
-# TODO
-# Need to rework this to take the Pig command instead of Hadoop.  That way
-# it can use the existing utilities to build Pig commands and switch
-# naturally to local mode with everything else.
-
-sub runHadoopCmd($$$$)
-{
-    my ($self, $cfg, $log, $c) = @_;
-
-    # set the PIG_CLASSPATH environment variable
-    $ENV{'HADOOP_CLASSPATH'} = "$cfg->{'hadoopconfdir'}";
-                          
-    my @cmd = ("$cfg->{'hadoopbin'}");
-    push(@cmd, split(' ', $c));
-
-    $self->runCmd($log, \@cmd);
 }
 
 sub runCmd($$$)
@@ -346,4 +307,4 @@ sub runCmd($$$)
         die "Failed running " . join(" ", @$cmd) . "\n";
 }
 
-1;
+1
