@@ -1615,4 +1615,39 @@ public class TestEvalPipeline2 {
         
         Assert.assertFalse(iter.hasNext());
     }
+    
+    // See PIG-2231
+    @Test
+    public void testLimitFlatten() throws Exception{
+        String[] input = {
+                "1\tA",
+                "1\tB",
+                "2\tC",
+                "3\tD",
+                "3\tE",
+                "3\tF"
+        };
+        
+        Util.createInputFile(cluster, "table_testLimitFlatten", input);
+        
+        pigServer.registerQuery("data = load 'table_testLimitFlatten' as (k,v);");
+        pigServer.registerQuery("grouped = GROUP data BY k;");
+        pigServer.registerQuery("selected = LIMIT grouped 2;");
+        pigServer.registerQuery("flattened = FOREACH selected GENERATE FLATTEN (data);");
+
+        Iterator<Tuple> iter = pigServer.openIterator("flattened");
+        
+        Tuple t = iter.next();
+        Assert.assertTrue(t.toString().equals("(1,A)"));
+        
+        t = iter.next();
+        Assert.assertTrue(t.toString().equals("(1,B)"));
+        
+        Assert.assertTrue(iter.hasNext());
+        
+        t = iter.next();
+        Assert.assertTrue(t.toString().equals("(2,C)"));
+        
+        Assert.assertFalse(iter.hasNext());
+    }
 }

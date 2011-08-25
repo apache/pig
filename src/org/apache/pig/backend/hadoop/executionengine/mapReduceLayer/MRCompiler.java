@@ -2901,18 +2901,22 @@ public class MRCompiler extends PhyPlanVisitor {
                 } else {
                     simpleConnectMapToReduce(limitAdjustMROp);
                 }
-                POLimit pLimit2 = new POLimit(new OperatorKey(scope,nig.getNextNodeId(scope)));
-                pLimit2.setLimit(mr.limit);
-                pLimit2.setLimitPlan(mr.limitPlan);
-                limitAdjustMROp.reducePlan.addAsLeaf(pLimit2);
+                // Need to split the original reduce plan into two mapreduce job:
+                // 1st: From the root(POPackage) to POLimit
+                // 2nd: From POLimit to leaves(POStore), duplicate POLimit
+                // The reason for doing that:
+                // 1. We need to have two map-reduce job, otherwise, we will end up with
+                //    N*M records, N is number of reducer, M is limit constant. We need 
+                //    one extra mapreduce job with 1 reducer
+                // 2. We don't want to move operator after POLimit into the first mapreduce
+                //    job, because:
+                //    * Foreach will shift the key type for second mapreduce job, see PIG-461
+                //    * Foreach flatten may generating more than M records, which get cut 
+                //      by POLimit, see PIG-2231
+                splitReducerForLimit(limitAdjustMROp, mr);
 
-                // If the operator we're following has global sort set, we
-                // need to indicate that this is a limit after a sort.
-                // This will assure that we get the right sort comparator
-                // set.  Otherwise our order gets wacked (PIG-461).
                 if (mr.isGlobalSort()) 
                 {
-                    fixProjectionAfterLimit(limitAdjustMROp, mr);
                     limitAdjustMROp.setLimitAfterSort(true);
                     limitAdjustMROp.setSortOrder(mr.getSortOrder());
                 }
@@ -2964,38 +2968,39 @@ public class MRCompiler extends PhyPlanVisitor {
         }
         
         // Move all operators between POLimit and POStore in reducer plan 
-        // from sortMROp to the new MROp so that the sort keys aren't lost by 
-        // projection in sortMROp.
-        private void fixProjectionAfterLimit(MapReduceOper mro,
-                MapReduceOper sortMROp) throws PlanException, VisitorException {
+        // from firstMROp to the secondMROp
+        private void splitReducerForLimit(MapReduceOper secondMROp,
+                MapReduceOper firstMROp) throws PlanException, VisitorException {
                         
-            PhysicalOperator op = sortMROp.reducePlan.getRoots().get(0);
+            PhysicalOperator op = firstMROp.reducePlan.getRoots().get(0);
             assert(op instanceof POPackage);
             
-            op = sortMROp.reducePlan.getSuccessors(op).get(0);
-            assert(op instanceof POForEach);
-            
             while (true) {
-                List<PhysicalOperator> succs = sortMROp.reducePlan
+                List<PhysicalOperator> succs = firstMROp.reducePlan
                         .getSuccessors(op);
                 if (succs==null) break;
                 op = succs.get(0);
                 if (op instanceof POLimit) {
                     // find operator after POLimit
-                    op = sortMROp.reducePlan.getSuccessors(op).get(0);
+                    op = firstMROp.reducePlan.getSuccessors(op).get(0);
                     break;
                 }
             }
             
+            POLimit pLimit2 = new POLimit(new OperatorKey(scope,nig.getNextNodeId(scope)));
+            pLimit2.setLimit(firstMROp.limit);
+            pLimit2.setLimitPlan(firstMROp.limitPlan);
+            secondMROp.reducePlan.addAsLeaf(pLimit2);
+
             while (true) {
                 if (op instanceof POStore) break;
                 PhysicalOperator opToMove = op;
-                List<PhysicalOperator> succs = sortMROp.reducePlan
+                List<PhysicalOperator> succs = firstMROp.reducePlan
                         .getSuccessors(op);
                 op = succs.get(0);
                 
-                sortMROp.reducePlan.removeAndReconnect(opToMove);
-                mro.reducePlan.addAsLeaf(opToMove);
+                firstMROp.reducePlan.removeAndReconnect(opToMove);
+                secondMROp.reducePlan.addAsLeaf(opToMove);
                 
             }
         }
