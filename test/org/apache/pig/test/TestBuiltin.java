@@ -2309,6 +2309,20 @@ public class TestBuiltin {
         rt = i.next();
         assertTrue(rt.get(0).equals("789"));
         
+        // Check when delim specified
+        Tuple t4 = tf.newTuple(2);
+        t4.set(0, "123|456|78\"9");
+        t4.set(1, "|");        
+        b = f.exec(t4);
+        assertTrue(b.size()==3);
+        i = b.iterator();
+        rt = i.next();
+        assertTrue(rt.get(0).equals("123"));
+        rt = i.next();
+        assertTrue(rt.get(0).equals("456"));
+        rt = i.next();
+        assertTrue(rt.get(0).equals("78\"9"));
+
         b = f.exec(t2);
         assertTrue(b==null);
         

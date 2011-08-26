@@ -61,7 +61,20 @@ public class TOKENIZE extends EvalFunc<DataBag> {
                 " got " + o.getClass().getName();
                 throw new ExecException(msg, errCode, PigException.BUG);
             }
-            StringTokenizer tok = new StringTokenizer((String)o, " \",()*", false);
+            
+            String delim = " \",()*";
+            if (input.size()==2) {
+                Object d = input.get(1);
+                if (!(d instanceof String)) {
+                    int errCode = 2114;
+                    String msg = "Expected delim to be chararray, but" +
+                        " got " + d.getClass().getName();
+                    throw new ExecException(msg, errCode, PigException.BUG);
+                }
+                delim = (String)d;
+            }
+
+            StringTokenizer tok = new StringTokenizer((String)o, delim, false);
             while (tok.hasMoreTokens()) {
                 output.add(mTupleFactory.newTuple(tok.nextToken()));
             }
@@ -104,6 +117,10 @@ public class TOKENIZE extends EvalFunc<DataBag> {
     public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
         List<FuncSpec> funcList = new ArrayList<FuncSpec>();
         Schema s = new Schema();
+        s.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
+        funcList.add(new FuncSpec(this.getClass().getName(), s));
+        s = new Schema();
+        s.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
         s.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
         funcList.add(new FuncSpec(this.getClass().getName(), s));
         return funcList;
