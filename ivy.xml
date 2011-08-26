@@ -68,7 +68,7 @@
       conf="checkstyle->master"/>
     
     <dependency org="org.apache.avro" name="avro" rev="${avro.version}"
-      conf="compile->master;checkstyle->master"/>
+      conf="compile->default;checkstyle->master"/>
     <dependency org="com.googlecode.json-simple" name="json-simple" rev="${json-simple.version}"
       conf="compile->master;checkstyle->master"/>
 
