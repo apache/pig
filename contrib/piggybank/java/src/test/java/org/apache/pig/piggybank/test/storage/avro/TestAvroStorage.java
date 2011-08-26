@@ -36,6 +36,7 @@ import org.junit.Test;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.Properties;
 import java.util.Set;
 
 import static junit.framework.Assert.assertEquals;
@@ -137,6 +138,29 @@ public class TestAvroStorage {
             };
         testAvroStorage(queries);
         verifyResults(output, expected);
+    }
+
+    @Test
+    public void testArrayWithSnappyCompression() throws IOException {
+        String output= outbasedir + "testArrayWithSnappyCompression";
+        String expected = basedir + "expected_testArrayDefault.avro";
+      
+        deleteDirectory(new File(output));
+      
+        Properties properties = new Properties();
+        properties.setProperty("mapred.output.compress", "true");
+        properties.setProperty("avro.output.codec", "snappy");
+        PigServer pigServer = new PigServer(ExecType.LOCAL, properties);
+        pigServer.setBatchOn();
+        String [] queries = {
+           " in = LOAD '" + testArrayFile + " ' USING org.apache.pig.piggybank.storage.avro.AvroStorage ();",
+           " STORE in INTO '" + output + "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ();"
+            };
+        for (String query: queries){
+            pigServer.registerQuery(query);
+        }
+        pigServer.executeBatch();
+        verifyResults(output, expected, "snappy");
     }
 
     @Test
@@ -280,7 +304,6 @@ public class TestAvroStorage {
     
     private void testAvroStorage(String ...queries) throws IOException {
         pigServerLocal.setBatchOn();
-
         for (String query: queries){
             if (query != null && query.length() > 0)
                 pigServerLocal.registerQuery(query);
@@ -289,6 +312,10 @@ public class TestAvroStorage {
     }
     
     private void verifyResults(String outPath, String expectedOutpath) throws IOException {
+      verifyResults(outPath, expectedOutpath, null);
+    }
+
+    private void verifyResults(String outPath, String expectedOutpath, String expectedCodec) throws IOException {
         FileSystem fs = FileSystem.getLocal(new Configuration()) ; 
         
         /* read in expected results*/
@@ -313,6 +340,7 @@ public class TestAvroStorage {
             
             DataFileStream<Object> in = new DataFileStream<Object>(
                                             fs.open(filePath), reader);
+            assertEquals("codec", expectedCodec, in.getMetaString("avro.codec"));
             int count = 0;
             while (in.hasNext()) {
                 Object obj = in.next();
