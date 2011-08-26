@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2242: Allow the delimiter to be specified when calling TOKENIZE (markroddy via hashutosh)
+
 PIG-2240: Allow any compression codec to be specified in AvroStorage (tomwhite via dvryaboy)
 
 PIG-2229: Pig end-to-end tests should test local mode as well as mr mode (gates)
