@@ -31,6 +31,7 @@
   <property name="params.dir" value="${basedir}/paramfiles"/>
   <property name="e2e.lib.dir" value="${basedir}/lib"/>
   <property name="streaming.dir" value="${basedir}/streaming"/>
+  <property name="macro.dir" value="${basedir}/macros"/>
 
   <property name="tar.name" value="${basedir}/pigtests.tar"/>
   <property name="tar.dir" value="${basedir}/tar"/>
@@ -106,6 +107,7 @@
 
     <copy todir="${tar.dir}/libexec">
       <fileset dir="${streaming.dir}"/>
+      <fileset dir="${macro.dir}"/>
     </copy>
 
     <copy todir="${tar.dir}/libexec/python">
@@ -178,6 +180,7 @@
       <arg value="${test.location}/tests/turing_jython.conf"/>
       <arg value="${test.location}/tests/bigdata.conf"/>
       <arg value="${test.location}/tests/grunt.conf"/>
+      <arg value="${test.location}/tests/macro.conf"/>
     </exec>
   </target>
 
