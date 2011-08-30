@@ -89,6 +89,33 @@ public class MapReduceLauncher extends Launcher{
     public static final String SUCCESSFUL_JOB_OUTPUT_DIR_MARKER =
         "mapreduce.fileoutputcommitter.marksuccessfuljobs";
     
+    private JobControl jc=null;
+    
+    private class HangingJobKiller extends Thread {
+        public HangingJobKiller() {
+        }
+        @Override
+        public void run() {
+            try {
+                log.debug("Receive kill signal");
+                if (jc!=null) {
+                    for (Job job : jc.getRunningJobs()) {
+                        RunningJob runningJob = job.getJobClient().getJob(job.getAssignedJobID());
+                        if (runningJob!=null)
+                            runningJob.killJob();
+                        log.info("Job " + job.getJobID() + " killed");
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Encounter exception on cleanup:" + e);
+            }
+        }
+    }
+
+    public MapReduceLauncher() {
+        Runtime.getRuntime().addShutdownHook(new HangingJobKiller());
+    }
+    
     /**
      * Get the exception that caused a failure on the backend for a
      * store location (if any).
@@ -132,7 +159,6 @@ public class MapReduceLauncher extends Launcher{
         List<NativeMapReduceOper> failedNativeMR = new LinkedList<NativeMapReduceOper>();
         List<Job> completeFailedJobsInThisRun = new LinkedList<Job>();
         List<Job> succJobs = new LinkedList<Job>();
-        JobControl jc;
         int totalMRJobs = mrp.size();
         int numMRJobsCompl = 0;
         double lastProg = -1;

@@ -23,6 +23,9 @@ Trunk (unreleased changes)
 INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
+
+PIG-604: Kill the Pig job should kill all associated Hadoop Jobs (daijy)
+
 PIG-2096: End to end tests for new Macro feature (gates)
 
 PIG-2242: Allow the delimiter to be specified when calling TOKENIZE (markroddy via hashutosh)
