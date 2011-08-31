@@ -430,6 +430,7 @@ STORE Gtab INTO '/user/vxj/finalresult2';
  <!-- OPTIMIZATION RULES -->
 <section id="optimization-rules">
 <title>Optimization Rules</title>
+
 <p>Pig supports various optimization rules. By default optimization, and all optimization rules, are turned on. 
 To turn off optimiztion, use:</p>
 
@@ -440,28 +441,9 @@ pig -optimizer_off [opt_rule | all ]
 <p>Note that some rules are mandatory and cannot be turned off.</p>
 
 <!-- +++++++++++++++++++++++++++++++ -->
-<section id="ImplicitSplitInserter">
-<title>ImplicitSplitInserter</title>
-<p>Status: Mandatory</p>
-<p>
-<a href="basic.html#SPLIT">SPLIT</a> is the only operator that models multiple outputs in Pig. 
-To ease the process of building logical plans, all operators are allowed to have multiple outputs. As part of the 
-optimization, all non-split operators that have multiple outputs are altered to have a SPLIT operator as the output 
-and the outputs of the operator are then made outputs of the SPLIT operator. An example will illustrate the point. 
-Here, a split will be inserted after the LOAD and the split outputs will be connected to the FILTER (b) and the COGROUP (c).
-</p>
-<source>
-A = LOAD 'input';
-B = FILTER A BY $1 == 1;
-C = COGROUP A BY $0, B BY $0;
-</source>
-</section>
-
-<!-- +++++++++++++++++++++++++++++++ -->
-<section id="LogicalExpressionSimplifier">
-<title>LogicalExpressionSimplifier</title>
-<p>This rule contains several types of simplifications.</p>
-
+<section id="FilterLogicExpressionSimplifier">
+<title>FilterLogicExpressionSimplifier</title>
+<p>This rule simplifies the expression in filter statement.</p>
 <source>
 1) Constant pre-calculation 
 
@@ -505,15 +487,111 @@ is simplified to non-filtering
 </source>
 </section>
 
+<!-- +++++++++++++++++++++++++++++++ -->
+<section id="SplitFilter">
+<title>SplitFilter</title>
+<p>Split filter conditions so that we can push filter more aggressively.</p>
+<source>
+A = LOAD 'input1' as (a0, a1);
+B = LOAD 'input2' as (b0, b1);
+C = JOIN A by a0, B by b0;
+D = FILTER C BY a1&gt;0 and b1&gt;0;
+</source>
+<p>Here D will be splitted into:</p>
+<source>
+X = FILTER C BY a1&gt;0;
+D = FILTER X BY b1&gt;0;
+</source>
+<p>So "a1&gt;0" and "b1&gt;0" can be pushed up individually.</p>
+</section>
+
+<!-- +++++++++++++++++++++++++++++++ -->
+<section id="PushUpFilter">
+<title>PushUpFilter</title>
+<p>The objective of this rule is to push the FILTER operators up the data flow graph. As a result, the number of records that flow through the pipeline is reduced. </p>
+<source>
+A = LOAD 'input';
+B = GROUP A BY $0;
+C = FILTER B BY $0 &lt; 10;
+</source>
+</section>
+
+<!-- +++++++++++++++++++++++++++++++ -->
+<section id="MergeFilter">
+<title>MergeFilter</title>
+<p>Merge filter conditions after PushUpFilter rule to decrease the number of filter statements.</p>
+</section>
+
+<!-- +++++++++++++++++++++++++++++++ -->
+<section id="PushDownForEachFlatten">
+<title>PushDownForEachFlatten</title>
+<p>The objective of this rule is to reduce the number of records that flow through the pipeline by moving FOREACH operators with a FLATTEN down the data flow graph. In the example shown below, it would be more efficient to move the foreach after the join to reduce the cost of the join operation.</p>
+<source>
+A = LOAD 'input' AS (a, b, c);
+B = LOAD 'input2' AS (x, y, z);
+C = FOREACH A GENERATE FLATTEN($0), B, C;
+D = JOIN C BY $1, B BY $1;
+</source>
+</section>
+
+<!-- +++++++++++++++++++++++++++++++ -->
+<section id="LimitOptimizer">
+<title>LimitOptimizer</title>
+<p>The objective of this rule is to push the LIMIT operator up the data flow graph (or down the tree for database folks). In addition, for top-k (ORDER BY followed by a LIMIT) the LIMIT is pushed into the ORDER BY.</p>
+<source>
+A = LOAD 'input';
+B = ORDER A BY $0;
+C = LIMIT B 10;
+</source>
+</section>
+
+<!-- +++++++++++++++++++++++++++++++ -->
+<section id="ColumnMapKeyPrune">
+<title>ColumnMapKeyPrune</title>
+<p>Prune the loader to only load necessary columns. The performance gain is more significant if the corresponding loader support column pruning and only load necessary columns (See LoadPushDown.pushProjection). Otherwise, ColumnMapKeyPrune will insert a ForEach statement right after loader.</p>
+<source>
+A = load 'input' as (a0, a1, a2);
+B = ORDER A by a0;
+C = FOREACH B GENERATE a0, a1;
+</source>
+<p>a2 is irrelevant in this query, so we can prune it earlier. The loader in this query is PigStorage and it supports column pruning. So we only load a0 and a1 from the input file.</p>
+<p>ColumnMapKeyPrune also prunes unused map keys:</p>
+<source>
+A = load 'input' as (a0:map[]);
+B = FOREACH A generate a0#'key1';
+</source>
+</section>
+
+<!-- +++++++++++++++++++++++++++++++ -->
+<section id="AddForEach">
+<title>AddForEach</title>
+<p>Prune unused column as soon as possible. In addition to prune the loader in ColumnMapKeyPrune, we can prune a column as soon as it is not used in the rest of the script</p>
+<source>
+-- Original code: 
+
+A = LOAD 'input' AS (a0, a1, a2); 
+B = ORDER A BY a0;
+C = FILTER B BY a1&gt;0;
+</source>
+<p>We can only prune a2 from the loader. However, a0 is never used after "ORDER BY". So we can drop a0 right after "ORDER BY" statement.</p>
+<source>
+-- Optimized code: 
+
+A = LOAD 'input' AS (a0, a1, a2); 
+B = ORDER A BY a0;
+B1 = FOREACH B GENERATE a1;  -- drop a0
+C = FILTER B1 BY a1&gt;0;
+</source>
+</section>
 
 <!-- +++++++++++++++++++++++++++++++ -->
 <section id="MergeForEach">
 <title>MergeForEach</title>
 <p>The objective of this rule is to merge together two feach statements, if these preconditions are met:</p>
 <ul>
-	<li>The foreach statements are consecutive. </li>
-	<li>The first foreach statement does not contain flatten. </li>
-	<li>The second foreach is not nested. </li>
+<li>The foreach statements are consecutive.</li>
+<li>The first foreach statement does not contain flatten.</li>
+<li>The second foreach is not nested.</li>
 </ul>
 <source>
 -- Original code: 
@@ -525,86 +603,20 @@ C = FOREACH B GENERATE $0+5, v;
 -- Optimized code: 
 
 A = LOAD 'file.txt' AS (a, b, c); 
-C = FOREACH A GENERATE a+b+5, c-b; 
+C = FOREACH A GENERATE a+b+5, c-b;
 </source>
 </section>
 
 <!-- +++++++++++++++++++++++++++++++ -->
-<section id="OpLimitOptimizer">
-<title>OpLimitOptimizer</title>
-<p>
-The objective of this rule is to push the <a href="basic.html#LIMIT">LIMIT</a> operator up the data flow graph 
-(or down the tree for database folks). In addition, for top-k (ORDER BY followed by a LIMIT) the LIMIT is pushed into the ORDER BY.
-</p>
+<section id="GroupByConstParallelSetter">
+<title>GroupByConstParallelSetter</title>
+<p>Force parallel "1" for "group all" statement. That's because even if we set parallel to N, only 1 reducer will be used in this case and all other reducer produce empty result.</p>
 <source>
 A = LOAD 'input';
-B = ORDER A BY $0;
-C = LIMIT B 10;
+B = GROUP A all PARALLEL 10;
 </source>
 </section>
 
-<!-- +++++++++++++++++++++++++++++++ -->
-<section id="PushDownExplodes">
-<title>PushDownExplodes</title>
-<p>
-The objective of this rule is to reduce the number of records that flow through the pipeline by moving 
-<a href="basic.html#FOREACH">FOREACH</a> operators with a 
-<a href="basic.html#Flatten">FLATTEN</a> down the data flow graph. 
-In the example shown below, it would be more efficient to move the foreach after the join to reduce the cost of the join operation.
-</p>
-<source>
-A = LOAD 'input' AS (a, b, c);
-B = LOAD 'input2' AS (x, y, z);
-C = FOREACH A GENERATE FLATTEN($0), B, C;
-D = JOIN C BY $1, B BY $1;
-</source>
-</section>
-
-<!-- +++++++++++++++++++++++++++++++ -->
-<section id="pushupfilters">
-<title>PushUpFilters</title>
-<p>
-The objective of this rule is to push the <a href="basic.html#FILTER">FILTER</a> operators up the data flow graph. 
-As a result, the number of records that flow through the pipeline is reduced. 
-</p>
-<source>
-A = LOAD 'input';
-B = GROUP A BY $0;
-C = FILTER B BY $0 &lt; 10;
-</source>
-</section>
-
-
-
-<!-- +++++++++++++++++++++++++++++++ -->
-<section id="StreamOptimizer">
-<title>StreamOptimizer</title>
-<p>
-Optimize when <a href="basic.html#LOAD">LOAD</a> precedes <a href="basic.html#STREAM">STREAM</a> 
-and the loader class is the same as the serializer for the stream. Similarly, optimize when STREAM is followed by 
-<a href="basic.html#STORE">STORE</a> and the deserializer class is same as the storage class. 
-For both of these cases the optimization is to replace the loader/serializer with BinaryStorage which just moves bytes 
-around and to replace the storer/deserializer with BinaryStorage.
-</p>
-</section>
-
-<!-- +++++++++++++++++++++++++++++++ -->
-<section id="TypeCastInserter">
-<title>TypeCastInserter</title>
-<p>Status: Mandatory</p>
-<p>
-If you specify a <a href="basic.html#Schemas">schema</a> with the 
-<a href="basic.html#LOAD">LOAD</a> statement, the optimizer will perform a pre-fix projection of the columns 
-and <a href="basic.html#Cast">cast</a> the columns to the appropriate types. An example will illustrate the point. 
-The LOAD statement (a) has a schema associated with it. The optimizer will insert a FOREACH operator that will project columns 0, 1 and 2 
-and also cast them to chararray, int and float respectively. 
-</p>
-<source>
-A = LOAD 'input' AS (name: chararray, age: int, gpa: float);
-B = FILER A BY $1 == 1;
-C = GROUP A By $0;
-</source>
-</section>
 </section>
 
   
