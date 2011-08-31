@@ -96,6 +96,8 @@
 
 <p><a href="func.html#acos">ACOS</a> function</p>
 
+<p> <a href="perf.html#AddForEach">AddForEach</a> optimization rule</p>
+
 <p><a href="udf.html#aggregate-functions">aggregate functions</a></p>
 
 <p><a href="udf.html#algebraic-interface">algebraic interface</a></p>
@@ -175,6 +177,8 @@
 <p><a href="udf.html#checkschema">checkSchema</a> method</p>
 
 <p><a href="basic.html#cogroup">COGROUP</a> operator</p>
+
+<p> <a href="perf.html#ColumnMapKeyPrune">ColumnMapKeyPrune</a> optimization rule</p>
 
 <p><a href="perf.html#combiner">combiner</a></p>
 
@@ -335,6 +339,8 @@
 
 <p> <a href="udf.html#filter-functions">filter functions</a></p>
 
+<p> <a href="perf.html#FilterLogicExpressionSimplifier">FilterLogicExpressionSimplifier</a> optimization rule</p>
+
 <p><a href="basic.html#flatten">flatten operator</a></p>
 
 <p><a href="func.html#floor">FLOOR</a> function</p>
@@ -369,6 +375,8 @@
 
 <p><a href="basic.html#group">GROUP</a> operator</p>
 
+<p> <a href="perf.html#GroupByConstParallelSetter">GroupByConstParallelSetter</a> optimization rule</p>
+
 <p><a href="start.html#interactive-mode">grunt shell</a></p>
 
 <!-- ==== H ================================================================== -->
@@ -397,7 +405,6 @@
 
 <p><a href="test.html#illustrate">ILLUSTRATE</a> operator</p>
 
-<p><a href="perf.html#ImplicitSplitInserter">ImplicitSplitInserter</a> optimization rule</p>
 
 <p><a href="cont.html#import-macros">IMPORT (macros)</a> operator</p>
 
@@ -492,6 +499,8 @@
 
 <p><a href="perf.html#limit">LIMIT and optimization</a></p>
 
+<p> <a href="perf.html#LimitOptimizer">LimitOptimizer</a> optimization rule</p>
+
 <p><a href="basic.html#load">LOAD</a> operator</p>
 
 <p><a href="udf.html#LoadCaster">LoadCaster</a> interface</p>
@@ -528,7 +537,6 @@
 
 <p><a href="test.html#logical-plan">logical execution plan</a></p>
 
-<p> <a href="perf.html#LogicalExpressionSimplifier">LogicalExpressionSimplifier</a> optimization rule</p>
 
 <p><a href="func.html#lower">LOWER</a> function</p>
 
@@ -568,7 +576,9 @@
 
 <p><a href="perf.html#memory-management">memory management</a>. <em>See also</em> batch mode</p>
 
-<p><a href="perf.html#MergeForEach">MergeForEach</a> optimization rule</p>
+<p> <a href="perf.html#MergeFilter">MergeFilter</a> optimization rule</p>
+
+<p> <a href="perf.html#MergeForEach">MergeForEach</a> optimization rule</p>
 
 <p><a href="perf.html#merge-joins">merge joins</a></p>
 
@@ -603,18 +613,17 @@
 <p></p>
 <p id="o-index"><strong>O</strong> (<a href="#top">top</a>) ----------------------------------------------</p>
 
-
-<p> <a href="perf.html#OpLimitOptimizer">OpLimitOptimizer</a> optimization rule</p>
-
 <p><a href="perf.html#optimization-rules">optimization rules</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#ImplicitSplitInserter">ImplicitSplitInserter </a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#LogicalExpressionSimplifier">LogicalExpressionSimplifier </a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#AddForEach">AddForEach </a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#ColumnMapKeyPrune">ColumnMapKeyPrune</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#FilterLogicExpressionSimplifier">FilterLogicExpressionSimplifier</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#GroupByConstParallelSetter">GroupByConstParallelSetter</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#LimitOptimizer">LimitOptimizer</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#MergeFilter">MergeFilter </a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#MergeForEach">MergeForEach</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#OpLimitOptimizer">OpLimitOptimizer</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#PushDownExplodes">PushDownExplodes</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#PushUpFilters">PushUpFilters </a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#StreamOptimizer">StreamOptimizer</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#TypeCastInserter">TypeCastInserter</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#PushDownForEachFlatten">PushDownForEachFlatten</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#PushUpFilter">PushUpFilter</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#SplitFilter">SplitFilter</a>
 </p>
 
 <p><a href="basic.html#boolops">OR</a> (Boolean)</p>
@@ -745,11 +754,12 @@
 <br></br>&nbsp;&nbsp;&nbsp; <a href="start.html#pig-properties">specifying Pig properties</a>
 </p>
 
-<p> <a href="perf.html#PushDownExplodes">PushDownExplodes</a> optimization rule</p>
+<p> <a href="perf.html#PushDownForEachFlatten">PushDownForEachFlatten</a> optimization rule</p>
+
 
 <p><a href="udf.html#pushprojection">pushProjection</a> method</p>
 
-<p><a href="perf.html#PushUpFilters">PushUpFilters</a> optimization rule</p>
+<p> <a href="perf.html#PushUpFilter">PushUpFilter</a> optimization rule</p>
 
 <p><a href="udf.html#putNext">putNext</a> method</p>
 
@@ -878,6 +888,8 @@
 
 <p><a href="basic.html#split">SPLIT</a> operator</p>
 
+<p> <a href="perf.html#SplitFilter">SplitFilter</a> optimization rule</p>
+
 <p><a href="perf.html#splits">splits</a> (implicit, explicit)</p>
 
 <p><a href="func.html#sqrt">SQRT</a> function</p>
@@ -911,7 +923,7 @@
 
 <p><a href="basic.html#define-udfs">streaming</a> (DEFINE operator)</p>
 
-<p> <a href="perf.html#StreamOptimizer">StreamOptimizer</a> optimization rule</p>
+
 
 <p><a href="func.html#string-functions">string functions</a></p>
 
@@ -951,7 +963,7 @@
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#tuple">syntax</a>
 </p>
 
-<p> <a href="perf.html#TypeCastInserter">TypeCastInserter</a> optimiztion rule</p>
+
 
 <p>type conversions. <em>See</em> casting types, types tables</p>
 
