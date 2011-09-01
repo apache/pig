@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2249: Enable pig e2e testing on EC2 (gates)
+
 PIG-2256: Upgrade Avro dependency to 1.5.3 (tucu00 via dvryaboy)
 
 PIG-604: Kill the Pig job should kill all associated Hadoop Jobs (daijy)
