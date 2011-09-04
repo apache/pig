@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2163: Improve nested cross to stream one relation (zjshen via daijy)
+
 PIG-2249: Enable pig e2e testing on EC2 (gates)
 
 PIG-2256: Upgrade Avro dependency to 1.5.3 (tucu00 via dvryaboy)
