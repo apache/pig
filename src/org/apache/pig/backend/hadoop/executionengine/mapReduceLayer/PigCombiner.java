@@ -254,7 +254,6 @@ public class PigCombiner {
             super.cleanup(context);
             leaf = null;
             pack = null;
-            pigReporter.setRep(null);
             pigReporter = null;
             pigContext = null;
             roots = null;

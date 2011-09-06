@@ -202,6 +202,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-2152: Null pointer exception while reporting progress (thejas)
+
 PIG-2258: ant rpm doesn't work (daijy)
 
 PIG-2231: Limit produce wrong number of records after foreach flatten (daijy)
