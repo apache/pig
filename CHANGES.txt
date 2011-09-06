@@ -132,6 +132,8 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 
 BUG FIXES
 
+PIG-2152: Null pointer exception while reporting progress (thejas)
+
 PIG-2115: Fix Pig HBaseStorage configuration and setup issues (gbowyer@fastmail.co.uk via dvryaboy)
 
 PIG-2193: Using HBaseStorage to scan 2 tables in the same Map job produces bad data (rangadi via dvryaboy)
