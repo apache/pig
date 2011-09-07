@@ -34,10 +34,6 @@
 #
 #     PIG_CONF_DIR    Alternate conf dir. Default is ${PIG_HOME}/conf.
 #
-#     PIG_ROOT_LOGGER The root appender. Default is INFO,console
-#
-#     PIG_HADOOP_VERSION Version of hadoop to run with.    Default is 20 (0.20).
-#
 #     HBASE_CONF_DIR - Optionally, the HBase configuration to run against
 #                      when using HBaseStorage
 
@@ -68,20 +64,18 @@ this="$bin/$script"
 # the root of the Pig installation
 export PIG_HOME=`dirname "$this"`/..
 
-#check to see if the conf dir is given as an optional argument
-if [ $# -gt 1 ]
-then
-    if [ "--config" = "$1" ]
-    then
-        shift
-        confdir=$1
-        shift
-        PIG_CONF_DIR=$confdir
+if [ ${#PIG_CONF_DIR} -eq 0 ]; then
+    if [ -d ${PIG_HOME}/conf ]; then
+        PIG_CONF_DIR=${PIG_HOME}/conf
     fi
 fi
 
-# Allow alternate conf dir location.
-PIG_CONF_DIR="${PIG_CONF_DIR:-$PIG_HOME/etc/pig}"
+if [ ${#PIG_CONF_DIR} -eq 0 ]; then
+    if [ -d /etc/pig ]; then
+        # if installed with rpm/deb package
+        PIG_CONF_DIR="/etc/pig}"
+    fi
+fi
 
 if [ -f "${PIG_CONF_DIR}/pig-env.sh" ]; then
     . "${PIG_CONF_DIR}/pig-env.sh"
@@ -118,34 +112,9 @@ fi
 # so that filenames w/ spaces are handled correctly in loops below
 IFS=
 
+
 shopt -s nullglob
-# for releases tarball, add core pig to CLASSPATH
-for f in $PIG_HOME/pig-*-core.jar; do
-    PIG_JAR=$f;
-done
-
-# for development/source release, add pig-withouthadoop.jar
-if [ ${#PIG_JAR} -eq 0 ]; then
-    for f in $PIG_HOME/pig-*withouthadoop.jar; do
-        PIG_JAR=$f;
-    done
-fi
-
-# for deb/rpm package, add pig jar in /usr/share/pig
-if [ ${#PIG_JAR} -eq 0 ]; then
-    for f in $PIG_HOME/share/pig/pig-*withouthadoop.jar; do
-        PIG_JAR=$f;
-    done
-fi
-shopt -u nullglob
-
-if [ ${#PIG_JAR} -ne 0 ]; then
-    CLASSPATH=${CLASSPATH}:$PIG_JAR
-else
-    echo "Cannot locate pig jar. do 'ant jar-withouthadoop', and try again"
-    exit 1
-fi
-
+shopt -s extglob
 # For Hadoop 0.23.0+
 #
 #if [ -d "${PIG_HOME}/share/hadoop/common" ]; then
@@ -166,20 +135,10 @@ fi
 #    done
 #fi
 
-# Set the version for Hadoop, default to 20
-PIG_HADOOP_VERSION="${PIG_HADOOP_VERSION:-20}"
-# add libs to CLASSPATH.    There can be more than one version of the hadoop
-# libraries in the lib dir, so don't blindly add them all.    Only add the one
-# that matche PIG_HADOOP_VERSION.
 if [[ ${#HADOOP_HOME} -ne 0 && -d ${HADOOP_HOME} ]]; then
-    HADOOP_LIB_DIR=$HADOOP_HOME
     if [ -f $HADOOP_HOME/bin/hadoop ]; then
         HADOOP_BIN=$HADOOP_HOME/bin/hadoop
     fi
-elif [ -d "$PIG_HOME/build/ivy/lib/Pig" ]; then
-    HADOOP_LIB_DIR=$PIG_HOME/build/ivy/lib/Pig
-else
-    HADOOP_LIB_DIR=$PIG_HOME/lib
 fi
 
 if [ ${#HADOOP_BIN} -eq 0 ]; then
@@ -187,27 +146,6 @@ if [ ${#HADOOP_BIN} -eq 0 ]; then
         HADOOP_BIN=/usr/bin/hadoop
     fi
 fi
-
-HADOOP_CLASSPATH=`$HADOOP_BIN classpath 2>/dev/null`
-if [ ${#HADOOP_CLASSPATH} -eq 0 ]; then
-    for f in $HADOOP_LIB_DIR/*.jar; do
-        filename=`basename $f`
-        IS_HADOOP=`echo $filename | grep hadoop`
-        if [ ${#IS_HADOOP} -ne 0 ]; then
-            HADOOP_CLASSPATH=${HADOOP_CLASSPATH}:$f;
-        else
-            IS_RIGHT_VER=`echo $f | grep hadoop-0\.${PIG_HADOOP_VERSION}\.*.jar | grep core`
-            if [ ${#IS_RIGHT_VER} -ne 0 ]; then
-                HADOOP_CLASSPATH=${HADOOP_CLASSPATH}:$f;
-            fi
-        fi
-    done
-    if [ -d ${HADOOP_HOME} ]; then
-        HADOOP_CLASSPATH=${HADOOP_HOME}/conf:${HADOOP_CLASSPATH}
-    fi
-fi
-
-CLASSPATH=${CLASSPATH}:$HADOOP_CLASSPATH
 
 # if using HBase, likely want to include HBase config
 HBASE_CONF_DIR=${HBASE_CONF_DIR:-/etc/hbase}
@@ -251,18 +189,77 @@ fi
 # restore ordinary behaviour
 unset IFS
 
-CLASS=org.apache.pig.Main
-
 PIG_OPTS="$PIG_OPTS -Dpig.log.dir=$PIG_LOG_DIR"
 PIG_OPTS="$PIG_OPTS -Dpig.log.file=$PIG_LOGFILE"
 PIG_OPTS="$PIG_OPTS -Dpig.home.dir=$PIG_HOME"
-PIG_OPTS="$PIG_OPTS -Dpig.root.logger=${PIG_ROOT_LOGGER:-INFO,console,DRFA}"
 
 # run it
-if [ "$debug" == "true" ]; then
-    echo "dry run:"
-    echo "$JAVA" $JAVA_HEAP_MAX $PIG_OPTS -classpath "$CLASSPATH" $CLASS "${remaining[@]}"
-    echo
+if [ ${#HADOOP_BIN} -ne 0 ]; then
+    if [ "$debug" == "true" ]; then
+        echo "Find hadoop at $HADOOP_BIN"
+    fi
+    for f in $PIG_HOME/pig-*withouthadoop.jar; do
+        PIG_JAR=$f;
+    done
+
+    # for deb/rpm package, add pig jar in /usr/share/pig
+    if [ ${#PIG_JAR} -eq 0 ]; then
+        for f in $PIG_HOME/share/pig/pig-*withouthadoop.jar; do
+            PIG_JAR=$f;
+        done
+    fi
+
+    if [ ${#PIG_JAR} -ne 0 ]; then
+        CLASSPATH=${CLASSPATH}:$PIG_JAR
+    else
+        echo "Cannot locate pig-withouthadoop.jar. do 'ant jar-withouthadoop', and try again"
+        exit 1
+    fi
+
+    HADOOP_CLASSPATH=$CLASSPATH:$HADOOP_CLASSPATH
+    HADOOP_OPTS="$JAVA_HEAP_MAX $PIG_OPTS $HADOOP_OPTS"
+    COMMAND_LINE="$HADOOP_BIN jar $PIG_JAR ${remaining[@]}"
+    if [ "$debug" == "true" ]; then
+        echo "dry run:"
+        echo "HADOOP_CLASSPATH: $HADOOP_CLASSPATH"
+        echo "HADOOP_OPTS: $HADOOP_OPTS"
+        echo "$COMMAND_LINE"
+        echo
+    else
+        exec $COMMAND_LINE
+    fi
 else
-    exec "$JAVA" $JAVA_HEAP_MAX $PIG_OPTS -classpath "$CLASSPATH" $CLASS "${remaining[@]}"
+    # fall back to use fat pig.jar
+    if [ "$debug" == "true" ]; then
+        echo "Cannot find local hadoop installation, using bundled hadoop 20.2"
+    fi
+    for f in $PIG_HOME/pig-!(*withouthadoop).jar; do
+        PIG_JAR=$f;
+    done
+
+    if [ ${#PIG_JAR} -ne 0 ]; then
+        CLASSPATH=${CLASSPATH}:$PIG_JAR
+    else
+        echo "Cannot locate pig-all.jar. do 'ant jar', and try again"
+        exit 1
+    fi
+
+    if [ -d "$PIG_HOME/build/ivy/lib/Pig" ]; then
+        HADOOP_LIB_DIR=$PIG_HOME/build/ivy/lib/Pig
+    else
+        HADOOP_LIB_DIR=$PIG_HOME/lib
+    fi
+    for f in $HADOOP_LIB_DIR/*.jar; do
+        CLASSPATH=${CLASSPATH}:$f;
+    done
+    CLASS=org.apache.pig.Main
+    if [ "$debug" == "true" ]; then
+        echo "dry run:"
+        echo "$JAVA" $JAVA_HEAP_MAX $PIG_OPTS -classpath "$CLASSPATH" $CLASS "${remaining[@]}"
+        echo
+    else
+        exec "$JAVA" $JAVA_HEAP_MAX $PIG_OPTS -classpath "$CLASSPATH" $CLASS "${remaining[@]}"
+    fi
 fi
+shopt -u nullglob
+shopt -u extglob
