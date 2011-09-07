@@ -15,7 +15,7 @@
    limitations under the License.
 -->
 
-<project name="Pig" default="jar" 
+<project name="Pig" default="jar-withouthadoop" 
 	xmlns:artifact="urn:maven-artifact-ant"
 	xmlns:ivy="antlib:org.apache.ivy.ant">
     <!-- Load all the default properties, and any the user wants    -->
@@ -73,7 +73,7 @@
     <property name="output.jarfile.javadoc" value="${build.dir}/${final.name}-javadoc.jar" />
     <!-- Maintain old pig.jar in top level directory. -->
     <property name="output.jarfile.backcompat.withouthadoop" value="${basedir}/${name}-withouthadoop.jar" />
-    <property name="output.jarfile.backcompat" value="${basedir}/${name}.jar" />
+    <property name="output.jarfile.backcompat" value="${basedir}/${name}-all.jar" />
 
     <!-- test properties -->
     <property name="test.src.dir" value="${basedir}/test" />
@@ -277,6 +277,8 @@
         <delete file="${jdiff.xml.dir}\${name}_${version}.xml" />
         <delete dir="${build.dir}" />
         <delete dir="${src.gen.dot.parser.dir}" />
+        <delete file="${output.jarfile.backcompat}" />
+        <delete file="${output.jarfile.backcompat.withouthadoop}" />
     </target>
     
     <target name="eclipse-files" depends="compile, ivy-buildJar"
@@ -513,7 +515,7 @@
     <!-- ================================================================== -->
     <!-- TODO we should also exclude test here...                           -->
     <!-- ================================================================== -->
-    <target name="jar" depends="compile" description="Create pig jar">
+    <target name="jar" depends="compile" description="Create pig-all.jar">
         <antcall target="jarWithSvn" inheritRefs="true" inheritall="true"/>
         <antcall target="jarWithOutSvn" inheritRefs="true" inheritall="true"/>
     </target>
@@ -644,16 +646,10 @@
             <zipfileset src="${lib.dir}/${automaton.jarfile}" />
             <zipfileset src="${ivy.lib.dir}/antlr-runtime-${antlr.version}.jar" />
             <zipfileset src="${ivy.lib.dir}/stringtemplate-${antlr.version}.jar" />
-            <zipfileset src="${ivy.lib.dir}/junit-${junit.version}.jar" />
-            <zipfileset src="${ivy.lib.dir}/jsch-${jsch.version}.jar" />
             <zipfileset src="${ivy.lib.dir}/jline-${jline.version}.jar" />
             <zipfileset src="${ivy.lib.dir}/jackson-mapper-asl-${jackson.version}.jar" />
             <zipfileset src="${ivy.lib.dir}/jackson-core-asl-${jackson.version}.jar" />
-            <zipfileset src="${ivy.lib.dir}/joda-time-${joda-time.version}.jar" />
             <zipfileset src="${ivy.lib.dir}/${guava.jar}" />
-            <zipgroupfileset dir="${ivy.lib.dir}" includes="commons*.jar"/>
-            <zipgroupfileset dir="${ivy.lib.dir}" includes="log4j*.jar"/>
-            <zipgroupfileset dir="${ivy.lib.dir}" includes="jsp-api*.jar"/>
             <fileset file="${basedir}/conf/pig-default.properties" />
         </jar>
         <copy file="${output.jarfile.withouthadoop}" tofile="${output.jarfile.backcompat.withouthadoop}"/>
@@ -773,8 +769,6 @@
         <mkdir dir="${dist.dir}/share/doc/pig/jdiff"/>
         <mkdir dir="${dist.dir}/share/doc/pig/license" />
 
-        <copy file="${ivy.lib.dir}/hadoop-core-${hadoop-core.version}.jar" todir="${dist.dir}/lib"/>
-
         <copy todir="${dist.dir}/lib/jdiff" includeEmptyDirs="false">
             <fileset dir="${lib.dir}/jdiff"/>
         </copy>
@@ -825,7 +819,7 @@
 
     </target>
 
-    <target name="package" depends="docs, api-report" description="Create a Pig release">
+    <target name="package" depends="docs, api-report, jar" description="Create a Pig release">
             <mkdir dir="${dist.dir}" />
         <mkdir dir="${dist.dir}/lib" />
         <mkdir dir="${dist.dir}/conf" />
@@ -835,13 +829,13 @@
         <mkdir dir="${dist.dir}/docs/jdiff"/>
         <mkdir dir="${dist.dir}/license" />
 
-        <copy file="${ivy.lib.dir}/hadoop-core-${hadoop-core.version}.jar" todir="${dist.dir}/lib"/>
-
         <copy todir="${dist.dir}/lib" includeEmptyDirs="false">
             <fileset dir="${lib.dir}"/>
         </copy>
 
         <copy file="${output.jarfile.backcompat.withouthadoop}" tofile="${dist.dir}/${final.name}-withouthadoop.jar" />
+
+        <copy file="${output.jarfile.backcompat}" tofile="${dist.dir}/${final.name}-all.jar" />
 
         <copy todir="${dist.dir}/" file="ivy.xml" />
 
