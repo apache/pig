@@ -24,8 +24,6 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
-PIG-2239: Pig should use "bin/hadoop jar pig-withouthadoop.jar" in bin/pig instead of forming java command itself (daijy)
-
 PIG-2163: Improve nested cross to stream one relation (zjshen via daijy)
 
 PIG-2249: Enable pig e2e testing on EC2 (gates)
@@ -240,6 +238,8 @@ inclusion of test classes (cos via gates)
 Release 0.9.1 - Unreleased
 
 IMPROVEMENTS
+
+PIG-2239: Pig should use "bin/hadoop jar pig-withouthadoop.jar" in bin/pig instead of forming java command itself (daijy)
 
 PIG-2213: Pig 0.9.1 Documentation (chandec via daijy)
 
