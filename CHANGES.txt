@@ -204,6 +204,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-2264: Change conf/log4j.properties to conf/log4j.properties.template (daijy)
+
 PIG-2152: Null pointer exception while reporting progress (thejas)
 
 PIG-2258: ant rpm doesn't work (daijy)
