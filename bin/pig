@@ -244,14 +244,6 @@ else
         exit 1
     fi
 
-    if [ -d "$PIG_HOME/build/ivy/lib/Pig" ]; then
-        HADOOP_LIB_DIR=$PIG_HOME/build/ivy/lib/Pig
-    else
-        HADOOP_LIB_DIR=$PIG_HOME/lib
-    fi
-    for f in $HADOOP_LIB_DIR/*.jar; do
-        CLASSPATH=${CLASSPATH}:$f;
-    done
     CLASS=org.apache.pig.Main
     if [ "$debug" == "true" ]; then
         echo "dry run:"
