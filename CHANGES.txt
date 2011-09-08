@@ -247,6 +247,8 @@ PIG-2221: Couldnt find documentation for ColumnMapKeyPrune optimization rule (ch
 
 BUG FIXES
 
+PIG-2264: Change conf/log4j.properties to conf/log4j.properties.template (daijy)
+
 PIG-2231: Limit produce wrong number of records after foreach flatten (daijy)
 
 Release 0.9.0 - Unreleased
