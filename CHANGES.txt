@@ -28,6 +28,9 @@ PIG-2213: Pig 0.9.1 Documentation (chandec via daijy)
 
 PIG-2221: Couldnt find documentation for ColumnMapKeyPrune optimization rule (chandec via daijy)
 
+BUG FIXES
+PIG-2274: remove pig deb package dependency on sun-java6-jre (gkesavan via daijy)
+
 Release 0.9.0 - Unreleased
 
 INCOMPATIBLE CHANGES
