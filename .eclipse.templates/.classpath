@@ -10,16 +10,16 @@
 	<classpathentry excluding="e2e/pig/udfs/java/" kind="src" path="test"/>
 	<classpathentry kind="src" path="tutorial/src"/>
 	<classpathentry exported="true" kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/jackson-core-asl-1.6.0.jar"/>
-	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/jackson-mapper-asl-1.6.0.jar"/>
+	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/jackson-core-asl-1.7.3.jar"/>
+	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/jackson-mapper-asl-1.7.3.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/javacc-4.2.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/javacc.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/jline-0.9.94.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/joda-time-1.6.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/jsch-0.1.38.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/junit-4.5.jar"/>
-	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/antlr-3.2.jar"/>
-	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/antlr-runtime-3.2.jar"/>
+	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/antlr-3.4.jar"/>
+	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/antlr-runtime-3.4.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/hbase-0.90.0.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/hbase-0.90.0-tests.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/js-1.7R2.jar"/>
@@ -52,10 +52,10 @@
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/mina-core-2.0.0-M5.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/oro-2.0.8.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/servlet-api-2.5-6.1.14.jar"/>
-	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/slf4j-api-1.5.2.jar"/>
+	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/slf4j-api-1.6.1.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/slf4j-log4j12-1.4.3.jar"/>
   <classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/xmlenc-0.52.jar"/>
-  <classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/avro-1.4.1.jar" />
+  <classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/avro-1.5.3.jar" />
   <classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/json-simple-1.1.jar" />
 	<classpathentry exported="true" kind="lib" path="lib/automaton.jar"/>
 	<classpathentry kind="output" path="build/classes"/>
