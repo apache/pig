@@ -239,6 +239,8 @@ Release 0.9.1 - Unreleased
 
 IMPROVEMENTS
 
+PIG-2272: e2e test harness should be able to set HADOOP_HOME (gates via daijy)
+
 PIG-2239: Pig should use "bin/hadoop jar pig-withouthadoop.jar" in bin/pig instead of forming java command itself (daijy)
 
 PIG-2213: Pig 0.9.1 Documentation (chandec via daijy)
