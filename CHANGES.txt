@@ -132,6 +132,8 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 
 BUG FIXES
 
+PIG-2278: Wrong version numbers for libraries in eclipse template classpath (azaroth)
+
 PIG-2152: Null pointer exception while reporting progress (thejas)
 
 PIG-2115: Fix Pig HBaseStorage configuration and setup issues (gbowyer@fastmail.co.uk via dvryaboy)
