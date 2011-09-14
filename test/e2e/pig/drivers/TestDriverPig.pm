@@ -74,7 +74,7 @@ sub replaceParameters
     $cmd =~ s/:FUNCPATH:/$testCmd->{'funcjarPath'}/g;
     $cmd =~ s/:RUNID:/$testCmd->{'UID'}/g;
     $cmd =~ s/:USRHOMEPATH:/$testCmd->{'userhomePath'}/g;
-    $cmd =~ s/:HADOOPHOME:/$testCmd->{'hadoopHome'}/g;
+    $cmd =~ s/:MAPREDJARS:/$testCmd->{'mapredjars'}/g;
     $cmd =~ s/:SCRIPTHOMEPATH:/$testCmd->{'scriptPath'}/g;
     $cmd =~ s/:DBUSER:/$testCmd->{'dbuser'}/g;
     $cmd =~ s/:DBNAME:/$testCmd->{'dbdb'}/g;
@@ -308,7 +308,8 @@ sub getPigCmd($$$)
     # set the PIG_CLASSPATH environment variable
 	my $pcp .= $testCmd->{'jythonjar'} if (defined($testCmd->{'jythonjar'}));
     $pcp .= ":" . $testCmd->{'classpath'} if (defined($testCmd->{'classpath'}));
-    $pcp .= ":" . $testCmd->{'testconfigpath'} if ($testCmd->{'exectype'} ne "local");
+    # Only add testconfigpath to PIG_CLASSPATH if HADOOP_HOME isn't defined
+    $pcp .= ":" . $testCmd->{'testconfigpath'} if ($testCmd->{'exectype'} ne "local"); #&& (! defined $ENV{'HADOOP_HOME'});
 
     # Set it in our current environment.  It will get inherited by the IPC::Run
     # command.
