@@ -61,8 +61,8 @@ sub printResults
 
 	my $msg = "$prefix, PASSED: $pass FAILED: $fail SKIPPED: $skipped ABORTED: $abort "
 		. "FAILED DEPENDENCY: $depend";
-	print $log "\n$msg\n";
-#	print "$msg\n";
+	print $log "$msg\n";
+ 	print "$msg\n";
          
 }
 
@@ -116,6 +116,8 @@ sub new
 	my $self = {};
 
 	bless($self, $class);
+
+    $self->{'wrong_execution_mode'} = "_xyz_wrong_execution_mode_zyx_";
 
 	return $self;
 }
@@ -200,6 +202,7 @@ sub generateBenchmark
 # testResult - reference to hash returned by runTest.
 # benchmarkResult - reference to hash returned by generateBenchmark.
 # log - reference to a stream pointer for the logs
+# testHash - reference to hash with meta tags and commands
 #
 # Returns:
 # @returns reference true if results are the same, false otherwise.  "the
@@ -300,7 +303,7 @@ sub run
 	$self->globalSetup(\%globalHash, $log);
 
         my $report=0;
-        my $properties= new Properties( 1, $globalHash{'propertiesFile'} );
+        my $properties= new Properties(0, $globalHash{'propertiesFile'});
 
         my %groupExecuted;
 	foreach my $group (@{$cfg->{'groups'}}) {
@@ -367,18 +370,26 @@ sub run
 			foreach (keys(%$test)) {
 				$testHash{$_} = $test->{$_};
 			}
+
 			my $testName = $testHash{'group'} . "_" . $testHash{'num'};
-                        if ( $groupExecuted{ $group->{'name'} }== 0 ){
-                           $groupExecuted{ $group->{'name'} }=1;
-               
-                           my $xmlDir= $globalHash{'localxmlpathbase'}."/run".$globalHash->{'UID'};
-                           mkpath( [ $xmlDir ] , 1, 0777) if ( ! -e $xmlDir );
 
-                           my $filename = $group->{'name'}.".xml";
-                           $report = new TestReport ( $properties, "$xmlDir/$filename" );
-                           $report->purge();
+#            if ( $groupExecuted{ $group->{'name'} }== 0 ){
+#                $groupExecuted{ $group->{'name'} }=1;
+#               
+#                my $xmlDir= $globalHash{'localxmlpathbase'}."/run".$globalHash->{'UID'};
+#                mkpath( [ $xmlDir ] , 1, 0777) if ( ! -e $xmlDir );
+#
+#                my $filename = $group->{'name'}.".xml";
+#                $report = new TestReport ( $properties, "$xmlDir/$filename" );
+#                $report->purge();
+#            }
 
-                        }
+			# Check that ignore isn't set for this file, group, or test
+			if (defined $testHash{'ignore'}) {
+				print $log "Ignoring test $testName, ignore message: " .
+					$testHash{'ignore'} . "\n";
+				next;
+			}
 
 			# Have we not reached the starting point yet?
 			if (!$sawstart) {
@@ -429,20 +440,22 @@ sub run
 				$endTime = time;
 				$benchmarkResult = $self->generateBenchmark(\%testHash, $log);
 				my $result =
-					$self->compare($testResult, $benchmarkResult, $log);
-				print $log "INFO: $subName() at ".__LINE__.":Test $testName\n";
-				#print $log "Test $testName\n";
+					$self->compare($testResult, $benchmarkResult, $log, \%testHash);
+				$msg = "INFO: $subName() at ".__LINE__.":Test $testName";
 
-				if ($result) {
-					$msg=" SUCCEEDED";
+                if ($result eq $self->{'wrong_execution_mode'}) {
+					$msg .= " SKIPPED";
+					$testStatuses->{$testName} = $skippedStr;
+                } elsif ($result) {
+					$msg .= " SUCCEEDED";
 					$testStatuses->{$testName} = $passedStr;
 
 				} else {
-					$msg= " FAILED";
+					$msg .= " FAILED";
 					$testStatuses->{$testName} = $failedStr;
 
 				}
-				$msg= "$msg  at " . time . "\n";
+				$msg= "$msg at " . time . "\n";
 				#print $msg;
 				print $log $msg;
 				$duration = $endTime - $beginTime;

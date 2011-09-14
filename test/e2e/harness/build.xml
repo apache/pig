@@ -1,0 +1,99 @@
+<!--
+   Licensed to the Apache Software Foundation (ASF) under one or more
+   contributor license agreements.  See the NOTICE file distributed with
+   this work for additional information regarding copyright ownership.
+   The ASF licenses this file to You under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-->
+
+<project name="TestHarness" default="tar">
+
+  <property name="tar.dir" value="${basedir}/tar"/>
+  <property name="testharness.dir" value="${basedir}"/>
+  <property name="tar.name" value="harness.tar"/>
+  <property name="test.dist.dir" value="${basedir}/testdist"/>
+  <property name="test.dist.conf.dir" value="${test.dist.dir}/conf"/>
+  <property name="test.dir" value="${basedir}/test"/>
+  <property name="test.testfiles" value="${test.dir}/tests"/>
+  <property name="test.conf" value="${test.dir}/conf"/>
+  <property name="test.src" value="${basedir}"/>
+
+  <target name="tar"
+      description="Create tar file with test harness modules and script">
+    <mkdir dir="${tar.dir}"/>
+    <copy todir="${tar.dir}">
+        <fileset dir="${testharness.dir}">
+            <include name="Insert2Mysql.pm"/>
+            <include name="TestDeployerFactory.pm"/>
+            <include name="TestDeployer.pm"/>
+            <include name="TestDriverFactory.pm"/>
+            <include name="TestDriver.pm"/>
+            <include name="TestReport.pm"/>
+            <include name="Log.pm"/>
+            <include name="Properties.pm"/>
+            <include name="test_harness.pl"/>
+        </fileset>
+    </copy>
+
+    <tar destfile="${tar.name}" basedir="${tar.dir}"/>
+  </target>
+
+  <target name="test-init" depends="tar">
+    <mkdir dir="${test.dist.dir}"/>
+    <mkdir dir="${test.dist.conf.dir}"/>
+
+    <copy todir="${test.dist.dir}">
+      <fileset dir="${test.testfiles}">
+        <include name="*.conf"/>
+      </fileset>
+      <fileset dir="${test.src}">
+        <include name="TestDriverTest.pm"/>
+        <include name="TestDeployerTest.pm"/>
+      </fileset>
+    </copy>
+
+    <copy todir="${test.dist.conf.dir}">
+        <fileset file="${test.conf}/default.conf"/>
+    </copy>
+
+    <untar src="${tar.name}" dest="${test.dist.dir}"/>
+    <chmod file="${test.dist.dir}/test_harness.pl" perm="u+x"/>
+  </target>
+
+  <!-- Test the ability to run tests -->
+  <target name="test-test" depends="test-init">
+    <exec executable="./test_harness.pl" dir="${test.dist.dir}">
+        <env key="PIG_HARNESS_ROOT" value="."/>
+        <arg value="test.conf"/>
+    </exec>
+  </target>
+
+  <!-- Test the deployer interface -->
+  <target name="test-deploy" depends="test-init">
+    <exec executable="./test_harness.pl" dir="${test.dist.dir}">
+        <env key="PIG_HARNESS_ROOT" value="."/>
+        <arg value="-deploycfg"/>
+        <arg value="deploy.conf"/>
+        <arg value="-deploy"/>
+        <arg value="-undeploy"/>
+        <arg value="test.conf"/>
+    </exec>
+  </target>
+
+  <target name="test" depends="test-test, test-deploy"/>
+
+  <target name="clean">
+    <delete dir="${test.dist.dir}"/>
+    <delete file="${tar.name}"/>
+    <delete dir="${tar.dir}"/>
+  </target>
+</project>

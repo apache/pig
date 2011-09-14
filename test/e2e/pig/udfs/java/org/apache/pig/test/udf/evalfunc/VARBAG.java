@@ -60,6 +60,9 @@ public class VARBAG extends EvalFunc<DataBag> {
         } else if ( fieldType.equalsIgnoreCase( "FLOAT" )){ 
             this.fieldType = DataType.FLOAT; 
 
+        } else if ( fieldType.equalsIgnoreCase( "BOOLEAN" )) {
+            this.fieldType = DataType.BOOLEAN;
+            
         } else if ( fieldType.equalsIgnoreCase( "INTEGER" )){ 
             this.fieldType = DataType.INTEGER;
 
