@@ -329,6 +329,7 @@ public class Pig {
         String line = rd.readLine();
         while (line != null) {
             sb.append(line);
+            sb.append("\n");
             line = rd.readLine();
         }
         rd.close();

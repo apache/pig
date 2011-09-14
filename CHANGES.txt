@@ -132,6 +132,8 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 
 BUG FIXES
 
+PIG-2273: Pig.compileFromFile in embedded python fails when pig script starts with a comment (ddaniels888 via gates)
+
 PIG-2278: Wrong version numbers for libraries in eclipse template classpath (azaroth)
 
 PIG-2152: Null pointer exception while reporting progress (thejas)

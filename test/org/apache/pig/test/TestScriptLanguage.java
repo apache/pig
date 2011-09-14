@@ -132,6 +132,7 @@ public class TestScriptLanguage {
         };
         
         String[] pigLatin = {
+                "-- ensure comment parsed correctly",
                 "a = load '$input';",
                 "store a into '$output';"
         };
