@@ -156,6 +156,10 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends
           else if(node instanceof POLocalRearrange){
             sb.append(planString(((POLocalRearrange)node).getPlans()));
           }
+          else if(node instanceof POPartialAgg){
+              sb.append(planString(((POPartialAgg)node).getKeyPlan()));
+              sb.append(planString(((POPartialAgg)node).getValuePlans()));
+          }
           else if(node instanceof POCollectedGroup){
             sb.append(planString(((POCollectedGroup)node).getPlans()));
           }

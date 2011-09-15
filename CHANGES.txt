@@ -130,6 +130,8 @@ OPTIMIZATIONS
 
 PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 
+PIG-2228: support partial aggregation in map task (thejas)
+
 BUG FIXES
 
 PIG-2273: Pig.compileFromFile in embedded python fails when pig script starts with a comment (ddaniels888 via gates)

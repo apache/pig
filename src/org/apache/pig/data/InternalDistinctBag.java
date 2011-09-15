@@ -26,7 +26,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -37,9 +36,9 @@ import java.util.TreeSet;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.pig.PigCounters;
-import org.apache.pig.PigWarning;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
 
 
 
@@ -54,6 +53,8 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce
  * This bag spills pro-actively when the number of tuples in memory 
  * reaches a limit
  */
+@InterfaceAudience.Private
+@InterfaceStability.Evolving
 public class InternalDistinctBag extends SortedSpillBag {
 
     /**
@@ -65,21 +66,18 @@ public class InternalDistinctBag extends SortedSpillBag {
 
     private static TupleFactory gTupleFactory = TupleFactory.getInstance();
     
-    private transient boolean mReadStarted = false;
-    
-    private transient int cacheLimit;
-    private transient long maxMemUsage;
-    private transient long memUsage;    
+    private transient boolean mReadStarted = false; 
     
     public InternalDistinctBag() {
-        this(1, -1.0);
+        this(1, -1.0f);
     }
     
     public InternalDistinctBag(int bagCount) {        
-    	this(bagCount, -1.0);
+    	this(bagCount, -1.0f);
     }
     
-    public InternalDistinctBag(int bagCount, double percent) {        
+    public InternalDistinctBag(int bagCount, float percent) {        
+        super(bagCount, percent);
         if (percent < 0) {
         	percent = 0.2F;            
         	if (PigMapReduce.sJobConfInternal.get() != null) {
@@ -95,16 +93,6 @@ public class InternalDistinctBag extends SortedSpillBag {
 
     private void init(int bagCount, double percent) {
     	mContents = new HashSet<Tuple>();      
-    	 
-    	long max = Runtime.getRuntime().maxMemory();
-        maxMemUsage = (long)(((float)max * percent) / (float)bagCount);
-        cacheLimit = Integer.MAX_VALUE;
-        
-        // set limit to 0, if memusage is 0 or really really small.
-        // then all tuples are put into disk
-        if (maxMemUsage < 1) {
-        	cacheLimit = 0;
-        }        
     }
     
     public boolean isSorted() {
@@ -144,7 +132,7 @@ public class InternalDistinctBag extends SortedSpillBag {
             throw new IllegalStateException("InternalDistinctBag is closed for adding new tuples");
         }
                 
-    	if (mContents.size() > cacheLimit) {    		
+    	if (mContents.size() > memLimit.getCacheLimit()) {    		
     		proactive_spill(null);
     	}
     	            	
@@ -154,12 +142,7 @@ public class InternalDistinctBag extends SortedSpillBag {
         	 // check how many tuples memory can hold by getting average
             // size of first 100 tuples
             if(mSize < 100 && (mSpillFiles == null || mSpillFiles.isEmpty())) {
-                memUsage += t.getMemorySize();
-                long avgUsage = memUsage / (long)mContents.size();
-                if (avgUsage >0) {
-                	cacheLimit = (int)(maxMemUsage / avgUsage);
-                	log.debug("Memory can hold "+ cacheLimit + " records.");
-                }
+                memLimit.addNewObjSize(t.getMemorySize());
             }          
         }    	
     }

@@ -24,14 +24,22 @@ import java.util.Comparator;
 
 import org.apache.pig.PigCounters;
 import org.apache.pig.PigWarning;
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
 
 /**
  * Common functionality for proactively spilling bags that need to keep the data
  * sorted. 
  */
-public abstract class SortedSpillBag extends DefaultAbstractBag {
+@InterfaceAudience.Private
+@InterfaceStability.Evolving
+public abstract class SortedSpillBag extends SelfSpillBag {
 
     private static final long serialVersionUID = 1L;
+
+    SortedSpillBag(int bagCount, float percent){
+        super(bagCount, percent);
+    }
 
     /**
      * Sort contents of mContents and write them to disk

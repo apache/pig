@@ -900,7 +900,7 @@ public class TestDataBag extends junit.framework.TestCase {
         iter.next().equals(Util.createTuple(new String[] {"e", "f"}));
         
         // check bag with data written to disk
-        DataBag bg3 = new InternalSortedBag(1, 0.0, null);
+        DataBag bg3 = new InternalSortedBag(1, 0.0f, null);
         tupleContents = new String[][] {{ "e", "f"}, {"c", "d" }, {"a", "b"}};
         for (int i = 0; i < tupleContents.length; i++) {
             bg3.add(Util.createTuple(tupleContents[i]));
@@ -917,7 +917,7 @@ public class TestDataBag extends junit.framework.TestCase {
         assertTrue(iter.hasNext());
         assertTrue(iter.hasNext());
         
-        DataBag bg4 = new InternalSortedBag(1, 0.0, null);
+        DataBag bg4 = new InternalSortedBag(1, 0.0f, null);
         bg4.add(iter.next());
         bg4.add(iter.next());
         assertTrue(iter.hasNext());
@@ -1022,7 +1022,7 @@ public class TestDataBag extends junit.framework.TestCase {
         iter.next().equals(Util.createTuple(new String[] {"e", "f"}));
         
         // check bag with data written to disk
-        DataBag bg3 = new InternalDistinctBag(1, 0.0);
+        DataBag bg3 = new InternalDistinctBag(1, 0.0f);
         tupleContents = new String[][] {{ "e", "f"}, {"a", "b"}, {"e", "d" }, {"a", "b"}, {"e", "f"}};
         for (int i = 0; i < tupleContents.length; i++) {
             bg3.add(Util.createTuple(tupleContents[i]));
@@ -1036,7 +1036,7 @@ public class TestDataBag extends junit.framework.TestCase {
         assertTrue(iter.hasNext());
         assertTrue(iter.hasNext());
         
-        DataBag bg4 = new InternalDistinctBag(1, 0.0);
+        DataBag bg4 = new InternalDistinctBag(1, 0.0f);
         bg4.add(iter.next());
         bg4.add(iter.next());
         assertTrue(iter.hasNext());

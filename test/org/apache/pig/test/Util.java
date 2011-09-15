@@ -64,8 +64,10 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
@@ -82,6 +84,7 @@ import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanPrinter;
 import org.apache.pig.newplan.logical.optimizer.SchemaResetter;
+import org.apache.pig.newplan.logical.relational.LOStore;
 import org.apache.pig.newplan.logical.relational.LogToPhyTranslationVisitor;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.optimizer.UidResetter;
@@ -457,14 +460,23 @@ public class Util {
              actualResList.add(actualResultsIt.next());
          }
          
+         compareActualAndExpectedResults(actualResList, expectedResList);
+         
+     }
+
+     
+     
+     static public void compareActualAndExpectedResults(
+            List<Tuple> actualResList, List<Tuple> expectedResList) {
          Collections.sort(actualResList);
          Collections.sort(expectedResList);
 
          Assert.assertEquals("Comparing actual and expected results. ",
                  expectedResList, actualResList);
-     }
+        
+    }
 
-     /**
+    /**
       * Check if subStr is a subString of str . calls org.junit.Assert.fail if it is not 
       * @param str
       * @param subStr
@@ -770,6 +782,14 @@ public class Util {
         return (MROperPlan) compile.invoke(launcher, new Object[] { pp, pc });
     }
     
+    public static MROperPlan buildMRPlan(String query, PigContext pc) throws Exception {
+        LogicalPlan lp = Util.parse(query, pc);
+        Util.optimizeNewLP(lp);
+        PhysicalPlan pp = Util.buildPhysicalPlanFromNewLP(lp, pc);
+        MROperPlan mrp = Util.buildMRPlanWithOptimizer(pp, pc);
+        return mrp;
+    }
+    
     public static void registerMultiLineQuery(PigServer pigServer, String query) throws IOException {
         File f = File.createTempFile("tmp", "");
         PrintWriter pw = new PrintWriter(f);
@@ -1017,6 +1037,8 @@ public class Util {
             schemaReplaceNullAlias(fs.schema);
         }
     }
+
+  
 
     
 }

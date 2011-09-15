@@ -33,16 +33,16 @@ import java.util.NoSuchElementException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigCounters;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
 
+@InterfaceAudience.Private
+@InterfaceStability.Evolving
 
-public class InternalCachedBag extends DefaultAbstractBag {
+public class InternalCachedBag extends SelfSpillBag {
     private static final long serialVersionUID = 1L;
 
     private static final Log log = LogFactory.getLog(InternalCachedBag.class);
-    private transient int cacheLimit;
-    private transient long maxMemUsage;
-    private transient long memUsage;
     private transient DataOutputStream out;
     private transient boolean addDone;
     private transient TupleFactory factory;
@@ -51,42 +51,24 @@ public class InternalCachedBag extends DefaultAbstractBag {
     private transient int numTuplesSpilled = 0; 
  
     public InternalCachedBag() {
-        this(1);
+        this(1, -1f);
     }
 
     public InternalCachedBag(int bagCount) {       
-        float percent = 0.2F;
-        
-    	if (PigMapReduce.sJobConfInternal.get() != null) {
-    		String usage = PigMapReduce.sJobConfInternal.get().get("pig.cachedbag.memusage");
-    		if (usage != null) {
-    			percent = Float.parseFloat(usage);
-    		}
-    	}
-
-        init(bagCount, percent);
+        this(bagCount, -1f);
     }  
     
     public InternalCachedBag(int bagCount, float percent) {
-    	init(bagCount, percent);
+        super(bagCount, percent);
+    	init();
     }
     
-    private void init(int bagCount, float percent) {
-    	factory = TupleFactory.getInstance();        
-    	mContents = new ArrayList<Tuple>();             
-             	 
-    	long max = Runtime.getRuntime().maxMemory();
-        maxMemUsage = (long)(((float)max * percent) / (float)bagCount);
-        cacheLimit = Integer.MAX_VALUE;
-        
-        // set limit to 0, if memusage is 0 or really really small.
-        // then all tuples are put into disk
-        if (maxMemUsage < 1) {
-        	cacheLimit = 0;
-        }
-        
+    private void init() {
+        factory = TupleFactory.getInstance();        
+        mContents = new ArrayList<Tuple>();                    
         addDone = false;
     }
+
 
     public void add(Tuple t) {
     	
@@ -94,15 +76,11 @@ public class InternalCachedBag extends DefaultAbstractBag {
             throw new IllegalStateException("InternalCachedBag is closed for adding new tuples");
         }
                 
-        if(mContents.size() < cacheLimit)  {
+        if(mContents.size() < memLimit.getCacheLimit())  {
             mContents.add(t);           
             if(mContents.size() < 100)
             {
-                memUsage += t.getMemorySize();
-                long avgUsage = memUsage / (long)mContents.size();
-                if (avgUsage > 0) {
-                	cacheLimit = (int)(maxMemUsage / avgUsage);
-                }
+                memLimit.addNewObjSize(t.getMemorySize());
             }
         } else {
             // above cacheLimit, spill to disk

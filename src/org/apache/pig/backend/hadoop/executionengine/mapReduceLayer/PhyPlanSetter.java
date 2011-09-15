@@ -20,7 +20,6 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.*;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.*;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
@@ -278,6 +277,12 @@ public class PhyPlanSetter extends PhyPlanVisitor {
         lrfi.setParentPlan(parent);
     }
 */
+
+    @Override
+    public void visitPartialAgg(POPartialAgg poPartialAgg) {
+       poPartialAgg.setParentPlan(parent);
+    }
+
     @Override
     public void visitPOOptimizedForEach(POOptimizedForEach optimizedForEach) {
         optimizedForEach.setParentPlan(parent);

@@ -56,7 +56,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POJoinPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
-import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
@@ -75,6 +74,15 @@ import org.apache.pig.tools.pigstats.ScriptState;
  *
  */
 public class MapReduceLauncher extends Launcher{
+
+    public static final String SUCCEEDED_FILE_NAME = "_SUCCESS";
+    
+    public static final String SUCCESSFUL_JOB_OUTPUT_DIR_MARKER =
+        "mapreduce.fileoutputcommitter.marksuccessfuljobs";
+
+    public static final String PROP_EXEC_MAP_PARTAGG = "pig.exec.mapPartAgg";
+
+    
     private static final Log log = LogFactory.getLog(MapReduceLauncher.class);
  
     //used to track the exception thrown by the job control which is run in a separate thread
@@ -83,11 +91,6 @@ public class MapReduceLauncher extends Launcher{
     private boolean aggregateWarning = false;
 
     private Map<FileSpec, Exception> failureMap;
-
-    public static final String SUCCEEDED_FILE_NAME = "_SUCCESS";
-    
-    public static final String SUCCESSFUL_JOB_OUTPUT_DIR_MARKER =
-        "mapreduce.fileoutputcommitter.marksuccessfuljobs";
     
     private JobControl jc=null;
     
@@ -516,7 +519,9 @@ public class MapReduceLauncher extends Launcher{
         //String prop = System.getProperty("pig.exec.nocombiner");
         String prop = pc.getProperties().getProperty("pig.exec.nocombiner");
         if (!pc.inIllustrator && !("true".equals(prop)))  {
-            CombinerOptimizer co = new CombinerOptimizer(plan, lastInputChunkSize);
+            boolean doMapAgg = 
+                    Boolean.valueOf(pc.getProperties().getProperty(PROP_EXEC_MAP_PARTAGG,"false"));
+            CombinerOptimizer co = new CombinerOptimizer(plan, doMapAgg);
             co.visit();
             //display the warning message(s) from the CombinerOptimizer
             co.getMessageCollector().logMessages(MessageType.Warning, aggregateWarning, log);

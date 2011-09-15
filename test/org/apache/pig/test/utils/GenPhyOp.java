@@ -186,6 +186,11 @@ public class GenPhyOp{
         return ret;
     }
     
+    public static POPartialAgg topPOPartialAgg(){
+        POPartialAgg partAgg =  new POPartialAgg(getOK());
+        return partAgg;
+    }
+    
     /**
      * creates the PlansAndFlattens struct for 
      * generate grpCol, *.
@@ -899,7 +904,7 @@ public class GenPhyOp{
         return ep;
     }
     
-    private static OperatorKey getOK(){
+    public static OperatorKey getOK(){
         return new OperatorKey("",r.nextLong());
     }
     
