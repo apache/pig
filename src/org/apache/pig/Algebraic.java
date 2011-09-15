@@ -39,6 +39,7 @@ import org.apache.pig.classification.InterfaceStability;
  * whether the intermediate function is called 0, 1, or more times.  Hadoop makes no guarantees
  * about how many times the combiner will be called in a job.
  *
+ *
  */
 @InterfaceAudience.Public
 @InterfaceStability.Stable
@@ -47,12 +48,14 @@ public interface Algebraic{
     /**
      * Get the initial function. 
      * @return A function name of f_init. f_init should be an eval func.
+     * The return type of f_init.exec() has to be Tuple
      */
     public String getInitial();
 
     /**
      * Get the intermediate function. 
      * @return A function name of f_intermed. f_intermed should be an eval func.
+     * The return type of f_intermed.exec() has to be Tuple
      */
     public String getIntermed();
 

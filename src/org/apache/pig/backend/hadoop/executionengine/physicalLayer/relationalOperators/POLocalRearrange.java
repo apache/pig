@@ -354,6 +354,7 @@ public class POLocalRearrange extends PhysicalOperator {
         return inp;
     }
 
+
     private void detachPlans(List<PhysicalPlan> plans) {
         for (PhysicalPlan ep : plans) {
             ep.detachInput();

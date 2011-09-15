@@ -61,7 +61,8 @@ public class PhyPlanVisitor extends PlanVisitor<PhysicalOperator,PhysicalPlan> {
         visit();
         popWalker();
     }
- 
+
+
     public void visitCollectedGroup(POCollectedGroup mg) throws VisitorException{
         List<PhysicalPlan> inpPlans = mg.getPlans();
         for (PhysicalPlan plan : inpPlans) {
@@ -298,7 +299,9 @@ public class PhyPlanVisitor extends PlanVisitor<PhysicalOperator,PhysicalPlan> {
     public void visitPreCombinerLocalRearrange(
             POPreCombinerLocalRearrange preCombinerLocalRearrange) {
         // TODO Auto-generated method stub
-        
+    }
+
+    public void visitPartialAgg(POPartialAgg poPartialAgg) {
     }
 
 

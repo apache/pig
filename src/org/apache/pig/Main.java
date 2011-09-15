@@ -800,6 +800,12 @@ public static void printProperties(){
         System.out.println("            Used in conjunction with pig.tmpfilecompression. Defines compression type."); 
         System.out.println("        pig.noSplitCombination=true|false. Split combination is on by default.");
         System.out.println("            Determines if multiple small files are combined into a single map.");
+        System.out.println("        pig.exec.mapPartAgg=true|false. Default is false.");
+        System.out.println("            Determines if partial aggregation is done within map phase, ");
+        System.out.println("            before records are sent to combiner.");
+        System.out.println("        pig.exec.mapPartAgg.minReduction=<min aggregation factor>. Default is 10.");
+        System.out.println("            If the in-map partial aggregation does not reduce the output num records");
+        System.out.println("            by this factor, it gets disabled.");        
         System.out.println("    Miscellaneous:");
         System.out.println("        exectype=mapreduce|local; default is mapreduce. This property is the same as -x switch");
         System.out.println("        pig.additional.jars=<comma seperated list of jars>. Used in place of register command.");

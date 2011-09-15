@@ -24,12 +24,14 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 
 import org.apache.pig.PigException;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigWarning;
 import org.apache.pig.data.DataType;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROpPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -45,6 +47,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCombinerPackage;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPartialAgg;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPreCombinerLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
@@ -91,15 +94,18 @@ public class CombinerOptimizer extends MROpPlanVisitor {
 
     private CompilationMessageCollector messageCollector = null;
 
-    public CombinerOptimizer(MROperPlan plan, String chunkSize) {
-        super(plan, new DepthFirstWalker<MapReduceOper, MROperPlan>(plan));
-        messageCollector = new CompilationMessageCollector() ; 
+    private boolean doMapAgg;
+
+    public CombinerOptimizer(MROperPlan plan, boolean doMapAgg) {
+        this(plan, doMapAgg, new CompilationMessageCollector());
     }
 
-    public CombinerOptimizer(MROperPlan plan, String chunkSize, 
+    public CombinerOptimizer(MROperPlan plan, boolean doMapAgg, 
             CompilationMessageCollector messageCollector) {
+
         super(plan, new DepthFirstWalker<MapReduceOper, MROperPlan>(plan));
-        this.messageCollector = messageCollector ; 
+        this.messageCollector = messageCollector;
+        this.doMapAgg = doMapAgg;
     }
 
     public CompilationMessageCollector getMessageCollector() {
@@ -264,12 +270,17 @@ public class CombinerOptimizer extends MROpPlanVisitor {
                 mr.combinePlan.add(combinePack);
                 mr.combinePlan.add(cfe);
                 mr.combinePlan.connect(combinePack, cfe);
+
                 // No need to connect projections in cfe to cp, because
                 // PigCombiner directly attaches output from package to
                 // root of remaining plan.
 
                 POLocalRearrange mlr = getNewRearrange(rearrange);
 
+                POPartialAgg mapAgg = null;
+                if(doMapAgg){
+                    mapAgg = createPartialAgg(cfe);
+                }
 
                 // A specialized local rearrange operator will replace
                 // the normal local rearrange in the map plan. This behaves
@@ -284,7 +295,7 @@ public class CombinerOptimizer extends MROpPlanVisitor {
                 // it is added to the end (This is required so that we can 
                 // set up the inner plan of the new Local Rearrange leaf in the map
                 // and combine plan to contain just the project of the key).
-                patchUpMap(mr.mapPlan, getPreCombinerLR(rearrange), mfe, mlr);
+                patchUpMap(mr.mapPlan, getPreCombinerLR(rearrange), mfe, mapAgg, mlr);
                 POLocalRearrange clr = getNewRearrange(rearrange);
 
                 mr.combinePlan.add(clr);
@@ -315,6 +326,31 @@ public class CombinerOptimizer extends MROpPlanVisitor {
         }
     }
 
+
+    /**
+     * Translate POForEach in combiner into a POPartialAgg
+     * @param combineFE
+     * @return partial aggregate operator
+     * @throws CloneNotSupportedException 
+     */
+    private POPartialAgg createPartialAgg(POForEach combineFE)
+            throws CloneNotSupportedException {
+        String scope = combineFE.getOperatorKey().scope;
+        POPartialAgg poAgg = new POPartialAgg(new OperatorKey(scope, 
+                NodeIdGenerator.getGenerator().getNextNodeId(scope)));
+        poAgg.setAlias(combineFE.getAlias());
+        poAgg.setResultType(combineFE.getResultType());
+
+        //first plan in combine foreach is the group key
+        poAgg.setKeyPlan(combineFE.getInputPlans().get(0).clone());
+
+        List<PhysicalPlan> valuePlans = new ArrayList<PhysicalPlan>();
+        for(int i=1; i<combineFE.getInputPlans().size(); i++){
+            valuePlans.add(combineFE.getInputPlans().get(i).clone());
+        }
+        poAgg.setValuePlans(valuePlans);
+        return poAgg;
+    }
 
     /**
      * find algebraic operators and also check if the foreach statement
@@ -544,11 +580,13 @@ public class CombinerOptimizer extends MROpPlanVisitor {
      * @param mapPlan
      * @param preCombinerLR
      * @param mfe
+     * @param mapAgg 
      * @param mlr
      * @throws PlanException 
      */
     private void patchUpMap(PhysicalPlan mapPlan, POPreCombinerLocalRearrange preCombinerLR,
-            POForEach mfe, POLocalRearrange mlr) throws PlanException {
+            POForEach mfe, POPartialAgg mapAgg, POLocalRearrange mlr)
+                    throws PlanException {
 
         POLocalRearrange oldLR = (POLocalRearrange)mapPlan.getLeaves().get(0);
         mapPlan.replace(oldLR, preCombinerLR);
@@ -556,8 +594,17 @@ public class CombinerOptimizer extends MROpPlanVisitor {
         mapPlan.add(mfe);
         mapPlan.connect(preCombinerLR, mfe);
 
+        //the operator before local rearrange
+        PhysicalOperator opBeforeLR = mfe;
+
+        if(mapAgg != null){
+            mapPlan.add(mapAgg);
+            mapPlan.connect(mfe, mapAgg);
+            opBeforeLR = mapAgg;
+        }
+
         mapPlan.add(mlr);
-        mapPlan.connect(mfe, mlr);
+        mapPlan.connect(opBeforeLR, mlr);
     }
 
     /**

@@ -58,6 +58,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeCogroup;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPartialAgg;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSkewedJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
@@ -150,7 +151,8 @@ public class ScriptState {
         LIMIT,
         UNION,
         COMBINER,
-        NATIVE;
+        NATIVE,
+        MAP_PARTIALAGG;
     };
     
     /**
@@ -607,7 +609,13 @@ public class ScriptState {
         @Override
         public void visitDemux(PODemux demux) throws VisitorException {
             feature.set(PIG_FEATURE.MULTI_QUERY.ordinal());         
-        }        
+        }
+        
+        @Override
+        public void visitPartialAgg(POPartialAgg partAgg){
+            feature.set(PIG_FEATURE.MAP_PARTIALAGG.ordinal());
+        }
+        
     }    
     
     static class LogicalPlanFeatureVisitor extends LogicalRelationalNodesVisitor {

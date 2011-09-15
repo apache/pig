@@ -64,10 +64,6 @@ public class InternalSortedBag extends SortedSpillBag{
 
     private transient Comparator<Tuple> mComp;
     private transient boolean mReadStarted = false;
-    
-    private transient int cacheLimit;
-    private transient long maxMemUsage;
-    private transient long memUsage;    
 
     static private class DefaultComparator implements Comparator<Tuple> {
         @SuppressWarnings("unchecked")
@@ -93,20 +89,11 @@ public class InternalSortedBag extends SortedSpillBag{
     }
 
     public InternalSortedBag(int bagCount, Comparator<Tuple> comp) {
-    	this(bagCount, -1.0, comp);
+    	this(bagCount, -1.0f, comp);
     }
     
-    public InternalSortedBag(int bagCount, double percent, Comparator<Tuple> comp) {
-    	if (percent < 0) {
-        	percent = 0.2F;            
-        	if (PigMapReduce.sJobConfInternal.get() != null) {
-        		String usage = PigMapReduce.sJobConfInternal.get().get("pig.cachedbag.memusage");
-        		if (usage != null) {
-        			percent = Float.parseFloat(usage);
-        		}
-        	}
-        }
-           	
+    public InternalSortedBag(int bagCount, float percent, Comparator<Tuple> comp) {
+        super(bagCount, percent);
     	init(bagCount, percent, comp);
     }
     
@@ -116,19 +103,8 @@ public class InternalSortedBag extends SortedSpillBag{
      */
     private void init(int bagCount, double percent, Comparator<Tuple> comp) {
         mComp = (comp == null) ? new DefaultComparator() : comp;
-
-        
     	mContents = new ArrayList<Tuple>();             
-             	 
-    	long max = Runtime.getRuntime().maxMemory();
-        maxMemUsage = (long)(((float)max * percent) / (float)bagCount);
-        cacheLimit = Integer.MAX_VALUE;
-        
-        // set limit to 0, if memusage is 0 or really really small.
-        // then all tuples are put into disk
-        if (maxMemUsage < 1) {
-        	cacheLimit = 0;
-        }        
+     
     }
     
     public void add(Tuple t) {
@@ -136,7 +112,7 @@ public class InternalSortedBag extends SortedSpillBag{
             throw new IllegalStateException("InternalSortedBag is closed for adding new tuples");
         }
                 
-    	if (mContents.size() > cacheLimit) {    		
+    	if (mContents.size() > memLimit.getCacheLimit()) {    		
     		proactive_spill(mComp);
     	}
     	        
@@ -146,11 +122,7 @@ public class InternalSortedBag extends SortedSpillBag{
         // size of first 100 tuples
         if(mSize < 100 && (mSpillFiles == null || mSpillFiles.isEmpty())&&t!=null)
         {
-            memUsage += t.getMemorySize();
-            long avgUsage = memUsage / (long)mContents.size();
-            if (avgUsage >0) {
-            	cacheLimit = (int)(maxMemUsage / avgUsage);
-            }
+            memLimit.addNewObjSize(t.getMemorySize());
         }
                 
         mSize++;
