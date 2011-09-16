@@ -844,11 +844,16 @@
             <fileset dir="src/packages/templates/conf"/>
         </copy>
 
+        <copy todir="${dist.dir}/sbin">
+            <fileset dir="src/packages">
+                <include name="*.sh"/>
+            </fileset>
+        </copy>
+
         <chmod perm="ugo+x" type="file">
             <fileset dir="${dist.dir}/bin" />
+            <fileset dir="${dist.dir}/sbin" />
         </chmod>
-
-        <copy file="${basedir}/src/packages/update-pig-env.sh" tofile="${dist.dir}/sbin/update-pig-env.sh"/>
 
     </target>
 
