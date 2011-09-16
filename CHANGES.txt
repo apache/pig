@@ -22,6 +22,8 @@ Release 0.9.1 - Unreleased
 
 IMPROVEMENTS
 
+PIG-2284: Add pig-setup-conf.sh script (eyang via daijy)
+
 PIG-2272: e2e test harness should be able to set HADOOP_HOME (gates via daijy)
 
 PIG-2260: Make all pig e2e enhancements available to 0.9 branch (gates via daijy)
