@@ -14,3 +14,4 @@
 # limitations under the License.
 
 export JAVA_HOME=${JAVA_HOME}
+export PIG_CLASSPATH=${PIG_CLASSPATH}
