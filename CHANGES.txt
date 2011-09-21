@@ -257,6 +257,8 @@ PIG-2221: Couldnt find documentation for ColumnMapKeyPrune optimization rule (ch
 
 BUG FIXES
 
+PIG-2270: Put jython.jar in classpath (daijy)
+
 PIG-2274: remove pig deb package dependency on sun-java6-jre (gkesavan via daijy)
 
 PIG-2264: Change conf/log4j.properties to conf/log4j.properties.template (daijy)
