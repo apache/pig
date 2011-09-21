@@ -421,8 +421,16 @@ public class CombinerOptimizer extends MROpPlanVisitor {
                     }
                 }
 
-                algebraicOps.add(new Pair<PhysicalOperator, PhysicalPlan>(combineUdf, pplan));
-
+                // The algebraic udf can have more than one input. Add the udf only once
+                boolean exist = false;
+                for (Pair<PhysicalOperator, PhysicalPlan> pair : algebraicOps) {
+                    if (pair.first.equals(combineUdf)) {
+                        exist = true;
+                        break;
+                    }
+                }
+                if (!exist)
+                    algebraicOps.add(new Pair<PhysicalOperator, PhysicalPlan>(combineUdf, pplan));
             }
         }
 
