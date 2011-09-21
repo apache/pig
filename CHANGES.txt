@@ -38,6 +38,8 @@ PIG-2221: Couldnt find documentation for ColumnMapKeyPrune optimization rule (ch
 
 BUG FIXES
 
+PIG-2286: Using COR function in Piggybank results in ERROR 2018: Internal error. Unable to introduce the combiner for optimization (daijy)
+
 PIG-2274: remove pig deb package dependency on sun-java6-jre (gkesavan via daijy)
 
 Release 0.9.0 - Unreleased
