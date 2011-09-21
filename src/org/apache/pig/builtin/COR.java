@@ -142,15 +142,15 @@ public class COR extends EvalFunc<DataBag> implements Algebraic {
         public Tuple exec(Tuple input) throws IOException {
             if (input == null || input.size() == 0)
                 return null;
-            Tuple output = TupleFactory.getInstance().newTuple(input.size() * 2); 
+            Tuple output = TupleFactory.getInstance().newTuple(input.size()*(input.size()-1)); 
             try {
                 int k = -1;
                 for(int i=0;i<input.size();i++){
                     for(int j=i+1;j<input.size();j++){
                         DataBag first = (DataBag)input.get(i);
                         DataBag second = (DataBag)input.get(j);
-                        output.set(k++, computeAll(first, second));
-                        output.set(k++, (Long)first.size());
+                        output.set(++k, computeAll(first, second));
+                        output.set(++k, (Long)first.size());
                     }
                 }
             } catch(Exception t) {
@@ -222,7 +222,7 @@ public class COR extends EvalFunc<DataBag> implements Algebraic {
                             result.set(1, "var"+j);
                         }
                         Tuple tup = (Tuple)combined.get(count);
-                        double tempCount = (Double)combined.get(count+1);
+                        double tempCount = (Long)combined.get(count+1);
                         double sum_x_y = (Double)tup.get(0);
                         double sum_x = (Double)tup.get(1);
                         double sum_y = (Double)tup.get(2);
@@ -252,20 +252,19 @@ public class COR extends EvalFunc<DataBag> implements Algebraic {
     static protected Tuple combine(DataBag values) throws IOException {
         Tuple output = TupleFactory.getInstance().newTuple();
         Tuple tuple; // copy of DataBag values 
-        tuple =  TupleFactory.getInstance().newTuple(values.size());
-        int ct=0;
+        tuple =  TupleFactory.getInstance().newTuple();
 
         try{
-            for (Iterator<Tuple> it = values.iterator(); it.hasNext();ct++) {
+            for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
                 Tuple t = it.next();
-                tuple.set(ct, t);
+                tuple.append(t);
             }
         }catch(Exception e){}
 
         try{
             int size = ((Tuple)tuple.get(0)).size();
             for(int i=0;i<size;i=i+2){
-                double count = 0;
+                long count = 0;
                 double sum_x_y = 0.0;
                 double sum_x = 0.0;
                 double sum_y = 0.0;
@@ -274,7 +273,7 @@ public class COR extends EvalFunc<DataBag> implements Algebraic {
                 for(int j=0;j<tuple.size();j++){
                     Tuple temp = (Tuple)tuple.get(j);
                     Tuple tem = (Tuple)temp.get(i);
-                    count += (Double)temp.get(i+1);
+                    count += (Long)temp.get(i+1);
                     sum_x_y += (Double)tem.get(0);
                     sum_x += (Double)tem.get(1);
                     sum_y += (Double)tem.get(2);
