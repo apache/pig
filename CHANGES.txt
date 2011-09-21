@@ -22,6 +22,8 @@ Release 0.9.1 - Unreleased
 
 IMPROVEMENTS
 
+PIG-2270: Put jython.jar in classpath (daijy)
+
 PIG-2284: Add pig-setup-conf.sh script (eyang via daijy)
 
 PIG-2272: e2e test harness should be able to set HADOOP_HOME (gates via daijy)
@@ -35,6 +37,7 @@ PIG-2213: Pig 0.9.1 Documentation (chandec via daijy)
 PIG-2221: Couldnt find documentation for ColumnMapKeyPrune optimization rule (chandec via daijy)
 
 BUG FIXES
+
 PIG-2274: remove pig deb package dependency on sun-java6-jre (gkesavan via daijy)
 
 Release 0.9.0 - Unreleased

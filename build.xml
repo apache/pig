@@ -791,13 +791,14 @@
         <mkdir dir="${dist.dir}/etc/pig" />
         <mkdir dir="${dist.dir}/share/pig/scripts" />
         <mkdir dir="${dist.dir}/share/pig/templates/conf" />
+        <mkdir dir="${dist.dir}/share/pig/lib" />
         <mkdir dir="${dist.dir}/share/doc/pig" />
         <mkdir dir="${dist.dir}/share/doc/pig/api" />
         <mkdir dir="${dist.dir}/share/doc/pig/jdiff"/>
         <mkdir dir="${dist.dir}/share/doc/pig/license" />
 
-        <copy todir="${dist.dir}/lib/jdiff" includeEmptyDirs="false">
-            <fileset dir="${lib.dir}/jdiff"/>
+        <copy todir="${dist.dir}/share/pig/lib">
+            <fileset dir="${ivy.lib.dir}" includes="jython*.jar"/>
         </copy>
 
         <copy file="${output.jarfile.backcompat.withouthadoop}" tofile="${dist.dir}/share/pig/${final.name}-withouthadoop.jar" />
@@ -865,6 +866,10 @@
 
         <copy todir="${dist.dir}/lib" includeEmptyDirs="false">
             <fileset dir="${lib.dir}"/>
+        </copy>
+
+        <copy todir="${dist.dir}/lib">
+            <fileset dir="${ivy.lib.dir}" includes="jython*.jar"/>
         </copy>
 
         <copy file="${output.jarfile.backcompat.withouthadoop}" tofile="${dist.dir}/${final.name}-withouthadoop.jar" />

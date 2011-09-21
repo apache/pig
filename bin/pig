@@ -73,7 +73,7 @@ fi
 if [ ${#PIG_CONF_DIR} -eq 0 ]; then
     if [ -d /etc/pig ]; then
         # if installed with rpm/deb package
-        PIG_CONF_DIR="/etc/pig}"
+        PIG_CONF_DIR="/etc/pig"
     fi
 fi
 
@@ -112,6 +112,13 @@ fi
 # so that filenames w/ spaces are handled correctly in loops below
 IFS=
 
+for f in $PIG_HOME/lib/*.jar; do
+    CLASSPATH=${CLASSPATH}:$f;
+done
+
+for f in $PIG_HOME/share/pig/lib/*.jar; do
+    CLASSPATH=${CLASSPATH}:$f;
+done
 
 shopt -s nullglob
 shopt -s extglob
@@ -216,8 +223,8 @@ if [ ${#HADOOP_BIN} -ne 0 ]; then
         exit 1
     fi
 
-    HADOOP_CLASSPATH=$CLASSPATH:$HADOOP_CLASSPATH
-    HADOOP_OPTS="$JAVA_HEAP_MAX $PIG_OPTS $HADOOP_OPTS"
+    export HADOOP_CLASSPATH=$CLASSPATH:$HADOOP_CLASSPATH
+    export HADOOP_OPTS="$JAVA_HEAP_MAX $PIG_OPTS $HADOOP_OPTS"
     COMMAND_LINE="$HADOOP_BIN jar $PIG_JAR ${remaining[@]}"
     if [ "$debug" == "true" ]; then
         echo "dry run:"
