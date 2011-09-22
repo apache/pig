@@ -148,23 +148,23 @@ public class LogicalPlanBuilder {
         return new LOFilter( plan );
     }
 
-    String buildFilterOp(SourceLocation loc, LOFilter op, String alias, String inputAlias, LogicalExpressionPlan expr) {
+    String buildFilterOp(SourceLocation loc, LOFilter op, String alias, String inputAlias, LogicalExpressionPlan expr) throws ParserValidationException {
         op.setFilterPlan( expr );
         return buildOp( loc, op, alias, inputAlias, null );
     }
     
-    String buildDistinctOp(SourceLocation loc, String alias, String inputAlias, String partitioner) {
+    String buildDistinctOp(SourceLocation loc, String alias, String inputAlias, String partitioner) throws ParserValidationException {
         LODistinct op = new LODistinct( plan );
         return buildOp( loc, op, alias, inputAlias, partitioner );
     }
 
-    String buildLimitOp(SourceLocation loc, String alias, String inputAlias, long limit) {
+    String buildLimitOp(SourceLocation loc, String alias, String inputAlias, long limit) throws ParserValidationException {
         LOLimit op = new LOLimit( plan, limit );
         return buildOp( loc, op, alias, inputAlias, null );
     }
     
     String buildSampleOp(SourceLocation loc, String alias, String inputAlias, double value,
-            SourceLocation valLoc) {
+            SourceLocation valLoc) throws ParserValidationException {
         LogicalExpressionPlan filterPlan = new LogicalExpressionPlan();
         //  Generate a filter condition.
         LogicalExpression konst = new ConstantExpression( filterPlan, value);
@@ -175,12 +175,12 @@ public class LogicalPlanBuilder {
         return buildFilterOp( loc, filter, alias, inputAlias, filterPlan );
     }
     
-    String buildUnionOp(SourceLocation loc, String alias, List<String> inputAliases, boolean onSchema) {
+    String buildUnionOp(SourceLocation loc, String alias, List<String> inputAliases, boolean onSchema) throws ParserValidationException {
         LOUnion op = new LOUnion( plan, onSchema );
         return buildOp( loc, op, alias, inputAliases, null );
     }
 
-    String buildSplitOp(SourceLocation loc, String inputAlias) {
+    String buildSplitOp(SourceLocation loc, String inputAlias) throws ParserValidationException {
         LOSplit op = new LOSplit( plan );
         return buildOp( loc, op, null, inputAlias, null );
     }
@@ -190,12 +190,12 @@ public class LogicalPlanBuilder {
     }
     
     String buildSplitOutputOp(SourceLocation loc, LOSplitOutput op, String alias, String inputAlias,
-            LogicalExpressionPlan filterPlan) {
+            LogicalExpressionPlan filterPlan) throws ParserValidationException {
         op.setFilterPlan( filterPlan );
         return buildOp ( loc, op, alias, inputAlias, null );
     }
     
-    String buildCrossOp(SourceLocation loc, String alias, List<String> inputAliases, String partitioner) {
+    String buildCrossOp(SourceLocation loc, String alias, List<String> inputAliases, String partitioner) throws ParserValidationException {
         LOCross op = new LOCross( plan );
         return buildOp ( loc, op, alias, inputAliases, partitioner );
     }
@@ -358,7 +358,7 @@ public class LogicalPlanBuilder {
     }
     
     private String buildOp(SourceLocation loc, LogicalRelationalOperator op, String alias, 
-    		String inputAlias, String partitioner) {
+    		String inputAlias, String partitioner) throws ParserValidationException {
         List<String> inputAliases = new ArrayList<String>();
         if( inputAlias != null )
             inputAliases.add( inputAlias );
@@ -366,13 +366,16 @@ public class LogicalPlanBuilder {
     }
     
     private String buildOp(SourceLocation loc, LogicalRelationalOperator op, String alias, 
-    		List<String> inputAliases, String partitioner) {
+    		List<String> inputAliases, String partitioner) throws ParserValidationException {
         setAlias( op, alias );
         setPartitioner( op, partitioner );
         op.setLocation( loc );
         plan.add( op );
         for( String a : inputAliases ) {
             Operator pred = operators.get( a );
+            if (pred==null) {
+                throw new ParserValidationException( intStream, loc, "Unrecognized alias " + a );
+            }
             plan.connect( pred, op );
         }
         operators.put( op.getAlias(), op );
