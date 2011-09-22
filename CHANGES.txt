@@ -257,6 +257,8 @@ PIG-2221: Couldnt find documentation for ColumnMapKeyPrune optimization rule (ch
 
 BUG FIXES
 
+PIG-2238: Pig 0.9 error message not useful as compared to 0.8 (daijy)
+
 PIG-2286: Using COR function in Piggybank results in ERROR 2018: Internal error. Unable to introduce the combiner for optimization (daijy)
 
 PIG-2270: Put jython.jar in classpath (daijy)

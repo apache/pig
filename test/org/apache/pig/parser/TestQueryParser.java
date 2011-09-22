@@ -107,6 +107,19 @@ public class TestQueryParser {
         Assert.assertTrue(msg.startsWith(expected));
     }
     
+    // See PIG-2238
+    @Test
+    public void testDependentNullAlias() throws IOException, RecognitionException {
+        PigServer pigServer = new PigServer(ExecType.LOCAL);
+        try {
+            pigServer.registerQuery( "F = limit F 20;store F into 'out';" );
+        } catch(Exception ex) {
+            Assert.assertTrue(ex.getMessage().contains("Unrecognized alias F"));
+            return;
+        }
+        Assert.fail();
+    }
+    
     @Test
     public void test2() throws IOException, RecognitionException {
         shouldPass("A = load '/Users/gates/test/data/studenttab10'; B = foreach A generate ( $0 == 0 ? 1 : 0 );");
