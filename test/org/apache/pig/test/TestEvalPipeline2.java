@@ -1650,4 +1650,34 @@ public class TestEvalPipeline2 {
         
         Assert.assertFalse(iter.hasNext());
     }
+    
+    // See PIG-2237
+    @Test
+    public void testLimitAutoReducer() throws Exception{
+        String[] input = {
+                "1\tA",
+                "4\tB",
+                "2\tC",
+                "3\tD",
+                "6\tE",
+                "5\tF"
+        };
+        
+        Util.createInputFile(cluster, "table_testLimitAutoReducer", input);
+        
+        pigServer.getPigContext().getProperties().setProperty("pig.exec.reducers.bytes.per.reducer", "9");
+        pigServer.registerQuery("A = load 'table_testLimitAutoReducer' as (a0, a1);");
+        pigServer.registerQuery("B = order A by a0;");
+        pigServer.registerQuery("C = limit B 2;");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("C");
+        
+        Tuple t = iter.next();
+        Assert.assertTrue(t.toString().equals("(1,A)"));
+        
+        t = iter.next();
+        Assert.assertTrue(t.toString().equals("(2,C)"));
+        
+        Assert.assertFalse(iter.hasNext());
+    }
 }
