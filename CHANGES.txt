@@ -22,6 +22,8 @@ Release 0.9.1 - Unreleased
 
 IMPROVEMENTS
 
+PIG-2300: Pig Docs - release 0.9.1 (chandec via daijy)
+
 PIG-2270: Put jython.jar in classpath (daijy)
 
 PIG-2284: Add pig-setup-conf.sh script (eyang via daijy)
