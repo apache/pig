@@ -253,6 +253,52 @@ public class TestLogicalPlanGenerator {
     }
     
     @Test
+    public void test22() {
+        String query = "A = (load 'x' as (u, v));\n" +
+                       "B = (group (foreach A generate $0 parallel 5) all);";
+        generateLogicalPlan( query );
+    }
+    
+    @Test
+    public void test23() {
+        String query = "a = (load 'x1' using PigStorage() as (name, age, gpa));" +
+                       "b = (group a all);" +
+                       "c = (foreach b generate AVG(a.age) as avg); " +
+                       "d = (load 'x2' using PigStorage() as (name, age, registration, contributions));" +
+                       "e = (group d all);" +
+                       "f = (foreach e generate AVG(d.age) as avg);" +
+                       "y = (foreach a generate age/c.avg, age/f.avg);" +
+                       "store y into 'y';";
+        generateLogicalPlan( query );
+    }
+    
+    @Test
+    public void test24() {
+        String query = "a = (load 'x1' using PigStorage() as (name, age:int, gpa));" +
+                       "b = (load 'x2' as (name, age, registration, contributions));" +
+                       "e = (cogroup a by name, b by name parallel 8);" +
+                       "f = (foreach e generate group,  SUM(a.age) as s);" +
+                       "g = (filter f by s>0);" +
+                       "(store g into 'y');";
+        generateLogicalPlan( query );
+    }
+    
+    @Test
+    public void test25() {
+        String query = "A = (load 'x' as ( u:int, v:long, w:bytearray)); " + 
+                       "B = (distinct A partition by org.apache.pig.Identity); " +
+                       "C = (sample B 0.49); " +
+                       "D = (order C by $0, $1); " +
+                       "E = (load 'y' as (d1, d2)); " +
+                       "F = (union onschema D, E); " +
+                       "G = (load 'z' as (g1:int, g2:tuple(g21, g22))); " +
+                       "H = (cross F, G); " +
+                       "split H into I if 10 > 5, J if 'world' eq 'hello', K if 77 <= 200; " +
+                       "L = (store J into 'output');";
+        generateLogicalPlan( query );
+    }
+    
+    @Test
     public void testFilter() {
         String query = "A = load 'x' as ( u:int, v:long, w:bytearray); " + 
                        "B = filter A by 2 > 1;\n" +
