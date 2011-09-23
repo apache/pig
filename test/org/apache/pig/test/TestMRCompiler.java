@@ -44,6 +44,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.builtin.GFCross;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.LimitAdjuster;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompilerException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
@@ -901,6 +902,11 @@ public class TestMRCompiler extends junit.framework.TestCase {
     	
     	PhysicalPlan pp = Util.buildPp(pigServerMR, query);
     	MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
+    	
+    	LimitAdjuster la = new LimitAdjuster(mrPlan, pc);
+        la.visit();
+        la.adjust();
+
     	MapReduceOper mrOper = mrPlan.getRoots().get(0);
     	int count = 1;
     	
@@ -995,6 +1001,11 @@ public class TestMRCompiler extends junit.framework.TestCase {
          
         PhysicalPlan pp = Util.buildPp(pigServerMR, query);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
+        
+        LimitAdjuster la = new LimitAdjuster(mrPlan, pc);
+        la.visit();
+        la.adjust();
+        
         MapReduceOper mrOper = mrPlan.getRoots().get(0);
         int count = 1;
         
