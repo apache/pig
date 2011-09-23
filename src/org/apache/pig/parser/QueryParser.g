@@ -161,7 +161,7 @@ inline_statement : inline_clause SEMI_COLON!
 split_statement : split_clause SEMI_COLON!
 ;
 
-general_statement : ( alias EQUAL )? op_clause parallel_clause? SEMI_COLON 
+general_statement : ( alias EQUAL )? (op_clause parallel_clause? | LEFT_PAREN op_clause parallel_clause? RIGHT_PAREN) SEMI_COLON 
                  -> ^( STATEMENT alias? op_clause parallel_clause? )
 ;
 
@@ -180,7 +180,8 @@ foreach_complex_statement : ( alias EQUAL )? foreach_clause_complex SEMI_COLON?
                          -> ^( STATEMENT alias? foreach_clause_complex )
 ;
 
-foreach_simple_statement : ( alias EQUAL )? foreach_clause_simple parallel_clause? SEMI_COLON
+foreach_simple_statement : ( alias EQUAL )? (foreach_clause_simple parallel_clause? 
+                                                | LEFT_PAREN foreach_clause_simple parallel_clause? RIGHT_PAREN) SEMI_COLON
                         -> ^( STATEMENT alias? foreach_clause_simple parallel_clause? )
 ;
 
