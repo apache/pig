@@ -257,6 +257,8 @@ PIG-2221: Couldnt find documentation for ColumnMapKeyPrune optimization rule (ch
 
 BUG FIXES
 
+PIG-2237: LIMIT generates wrong number of records if pig determines no of reducers as more than 1 (daijy)
+
 PIG-2261: Restore support for parenthesis in Pig 0.9 (rding via daijy)
 
 PIG-2238: Pig 0.9 error message not useful as compared to 0.8 (daijy)

@@ -532,6 +532,10 @@ public class MapReduceLauncher extends Launcher{
         SampleOptimizer so = new SampleOptimizer(plan, pc);
         so.visit();
         
+        LimitAdjuster la = new LimitAdjuster(plan, pc);
+        la.visit();
+        la.adjust();
+        
         // Optimize to use secondary sort key if possible
         prop = pc.getProperties().getProperty("pig.exec.nosecondarykey");
         if (!pc.inIllustrator && !("true".equals(prop)))  {
