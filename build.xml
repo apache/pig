@@ -15,7 +15,7 @@
    limitations under the License.
 -->
 
-<project name="Pig" default="jar-withouthadoop" 
+<project name="Pig" default="jar-all" 
 	xmlns:artifact="urn:maven-artifact-ant"
 	xmlns:ivy="antlib:org.apache.ivy.ant">
     <!-- Load all the default properties, and any the user wants    -->
@@ -73,7 +73,7 @@
     <property name="output.jarfile.javadoc" value="${build.dir}/${final.name}-javadoc.jar" />
     <!-- Maintain old pig.jar in top level directory. -->
     <property name="output.jarfile.backcompat.withouthadoop" value="${basedir}/${name}-withouthadoop.jar" />
-    <property name="output.jarfile.backcompat" value="${basedir}/${name}-all.jar" />
+    <property name="output.jarfile.backcompat" value="${basedir}/${name}.jar" />
 
     <!-- test properties -->
     <property name="test.src.dir" value="${basedir}/test" />
@@ -513,6 +513,9 @@
         </jar>
     </target>
 
+    <target name="jar-all" depends="jar,jar-withouthadoop" description="Create pig-all.jar and pig-withouthadoop.jar">
+    </target>
+
     <!-- ================================================================== -->
     <!-- Make pig.jar                                                       -->
     <!-- ================================================================== -->
@@ -874,7 +877,7 @@
 
         <copy file="${output.jarfile.backcompat.withouthadoop}" tofile="${dist.dir}/${final.name}-withouthadoop.jar" />
 
-        <copy file="${output.jarfile.backcompat}" tofile="${dist.dir}/${final.name}-all.jar" />
+        <copy file="${output.jarfile.backcompat}" tofile="${dist.dir}/${final.name}.jar" />
 
         <copy todir="${dist.dir}/" file="ivy.xml" />
 
