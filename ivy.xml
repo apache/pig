@@ -58,6 +58,8 @@
       conf="compile->default;test->default"/>
     <dependency org="org.apache.hadoop" name="hadoop-test" rev="${hadoop-test.version}"
       conf="compile->default;test->default"/>
+    <dependency org="org.mortbay.jetty" name="jetty" rev="${jetty.version}"
+      conf="compile->master"/>
     <dependency org="org.mortbay.jetty" name="jetty-util" rev="${jetty-util.version}"
       conf="compile->master"/>
     <dependency org="commons-logging" name="commons-logging" rev="${commons-logging.version}"
