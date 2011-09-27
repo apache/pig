@@ -54,13 +54,17 @@ import org.apache.pig.impl.streaming.StreamingCommand.Handle;
 import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.impl.util.StringUtils;
+import org.apache.pig.newplan.Operator;
+import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.logical.expression.ConstantExpression;
 import org.apache.pig.newplan.logical.expression.LessThanEqualExpression;
 import org.apache.pig.newplan.logical.expression.LogicalExpression;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.newplan.logical.expression.ProjectExpression;
 import org.apache.pig.newplan.logical.expression.UserFuncExpression;
+import org.apache.pig.newplan.logical.optimizer.SchemaResetter;
 import org.apache.pig.newplan.logical.relational.LOCogroup;
+import org.apache.pig.newplan.logical.relational.LOCogroup.GROUPTYPE;
 import org.apache.pig.newplan.logical.relational.LOCross;
 import org.apache.pig.newplan.logical.relational.LODistinct;
 import org.apache.pig.newplan.logical.relational.LOFilter;
@@ -68,6 +72,7 @@ import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOGenerate;
 import org.apache.pig.newplan.logical.relational.LOInnerLoad;
 import org.apache.pig.newplan.logical.relational.LOJoin;
+import org.apache.pig.newplan.logical.relational.LOJoin.JOINTYPE;
 import org.apache.pig.newplan.logical.relational.LOLimit;
 import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LONative;
@@ -80,12 +85,9 @@ import org.apache.pig.newplan.logical.relational.LOUnion;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
-import org.apache.pig.newplan.logical.relational.LOCogroup.GROUPTYPE;
-import org.apache.pig.newplan.logical.relational.LOJoin.JOINTYPE;
 import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
+import org.apache.pig.newplan.logical.visitor.ProjStarInUdfExpander;
 import org.apache.pig.newplan.logical.visitor.ProjectStarExpander;
-import org.apache.pig.newplan.Operator;
-import org.apache.pig.newplan.OperatorPlan;
 
 public class LogicalPlanBuilder {
     private LogicalPlan plan = new LogicalPlan();
@@ -148,9 +150,18 @@ public class LogicalPlanBuilder {
         return new LOFilter( plan );
     }
 
-    String buildFilterOp(SourceLocation loc, LOFilter op, String alias, String inputAlias, LogicalExpressionPlan expr) throws ParserValidationException {
+    String buildFilterOp(SourceLocation loc, LOFilter op, String alias,
+            String inputAlias, LogicalExpressionPlan expr)
+                    throws ParserValidationException {
         op.setFilterPlan( expr );
-        return buildOp( loc, op, alias, inputAlias, null );
+        alias = buildOp( loc, op, alias, inputAlias, null ); // it should actually return same alias 
+        try {
+            (new ProjStarInUdfExpander(op.getPlan())).visit(op);
+            new SchemaResetter(op.getPlan()).visit(op);
+        } catch (FrontendException e) {
+            throw new ParserValidationException( intStream, loc, e );
+        }   
+        return alias;
     }
     
     String buildDistinctOp(SourceLocation loc, String alias, String inputAlias, String partitioner) throws ParserValidationException {
@@ -164,7 +175,9 @@ public class LogicalPlanBuilder {
     }
     
     String buildSampleOp(SourceLocation loc, String alias, String inputAlias, double value,
-            SourceLocation valLoc) throws ParserValidationException {
+            SourceLocation valLoc)
+                    throws ParserValidationException {
+        
         LogicalExpressionPlan filterPlan = new LogicalExpressionPlan();
         //  Generate a filter condition.
         LogicalExpression konst = new ConstantExpression( filterPlan, value);
@@ -216,6 +229,8 @@ public class LogicalPlanBuilder {
         alias = buildOp( loc, sort, alias, inputAlias, null );
         try {
             (new ProjectStarExpander(sort.getPlan())).visit(sort);
+            (new ProjStarInUdfExpander(sort.getPlan())).visit(sort);
+            new SchemaResetter(sort.getPlan()).visit(sort);
         } catch (FrontendException e) {
             throw new ParserValidationException( intStream, loc, e );
         }
@@ -275,6 +290,8 @@ public class LogicalPlanBuilder {
         alias = buildOp( loc, op, alias, inputAliases, partitioner );
         try {
             (new ProjectStarExpander(op.getPlan())).visit(op);
+            (new ProjStarInUdfExpander(op.getPlan())).visit(op);
+            new SchemaResetter(op.getPlan()).visit(op);
         } catch (FrontendException e) {
             throw new ParserValidationException( intStream, loc, e );
         }
@@ -316,6 +333,8 @@ public class LogicalPlanBuilder {
         alias = buildOp( loc, op, alias, inputAliases, partitioner );
         try {
             (new ProjectStarExpander(op.getPlan())).visit(op);
+            (new ProjStarInUdfExpander(op.getPlan())).visit(op);
+            new SchemaResetter(op.getPlan()).visit(op);
         } catch (FrontendException e) {
             throw new ParserValidationException( intStream, loc, e );
         }
@@ -429,6 +448,8 @@ public class LogicalPlanBuilder {
         alias = buildOp( loc, op, alias, inputAlias, null );
         try {
             (new ProjectStarExpander(op.getPlan())).visit(op);
+            (new ProjStarInUdfExpander(op.getPlan())).visit(op);
+            new SchemaResetter(op.getPlan()).visit(op);
         } catch (FrontendException e) {
             throw new ParserValidationException( intStream, loc, e );
         }

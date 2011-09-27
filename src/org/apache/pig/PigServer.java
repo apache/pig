@@ -82,6 +82,7 @@ import org.apache.pig.newplan.logical.expression.LogicalExpressionVisitor;
 import org.apache.pig.newplan.logical.expression.ScalarExpression;
 import org.apache.pig.newplan.logical.optimizer.AllExpressionVisitor;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
+import org.apache.pig.newplan.logical.optimizer.SchemaResetter;
 import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LOStore;
@@ -1654,7 +1655,6 @@ public class PigServer {
         }
         
         private void compile(LogicalPlan lp) throws FrontendException  {
-            new ProjStarInUdfExpander(lp).visit();
             new ColumnAliasConversionVisitor( lp ).visit();
             new SchemaAliasVisitor( lp ).visit();
             new ScalarVisitor( lp, pigContext ).visit();

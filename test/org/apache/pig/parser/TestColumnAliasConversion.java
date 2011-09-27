@@ -101,7 +101,7 @@ public class TestColumnAliasConversion {
                        "C = store B into 'output';";
         try {
             validate( query );
-        } catch(PlanValidationException ex) {
+        }catch(ParserValidationException ex){
             return;
         }
         Assert.fail( "Query should fail to validate." );
@@ -140,7 +140,7 @@ public class TestColumnAliasConversion {
                        "C = store B into 'output';";
         try {
             validate( query );
-        } catch(PlanValidationException ex) {
+        } catch(ParserValidationException ex) {
             return;
         }
         Assert.fail( "Query should fail to validate." );

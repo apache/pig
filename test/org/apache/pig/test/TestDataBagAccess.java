@@ -130,7 +130,7 @@ public class TestDataBagAccess extends TestCase {
         } catch(FrontendException e) {
             exceptionOccured = true;
             String msg = e.getMessage();
-            Util.checkStrContainsSubStr(msg, "Invalid field reference. Referenced field [t] does not exist in schema");
+            Util.checkStrContainsSubStr(msg, "Cannot find field t in i:int,d:double,c:chararray");
         }
         assertTrue(exceptionOccured);
     }

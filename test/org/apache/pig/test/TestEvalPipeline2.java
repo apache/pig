@@ -898,8 +898,8 @@ public class TestEvalPipeline2 {
             pigServer.openIterator("c");
         } catch (Exception e) {
             PigException pe = LogUtils.getPigException(e);
-            Assert.assertTrue(pe.getErrorCode()==1031);
-            Assert.assertTrue(pe.getMessage().contains("Incompatable schema"));
+            Util.checkStrContainsSubStr(pe.getMessage(), "ERROR 1031");
+            Util.checkStrContainsSubStr(pe.getMessage(), "Incompatable schema");
             return;
         }
         Assert.fail();

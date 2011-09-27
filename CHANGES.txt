@@ -40,6 +40,8 @@ PIG-2221: Couldnt find documentation for ColumnMapKeyPrune optimization rule (ch
 
 BUG FIXES
 
+PIG-2223: error accessing column in output schema of udf having project-star input (thejas)
+
 PIG-2299: jetty 6.1.14 startup issue causes unit tests to fail in CI (thw via daijy)
 
 PIG-2301: Some more bin/pig, build.xml cleanup for 0.9.1 (daijy)

@@ -145,6 +145,33 @@ public class TestProjectStarRangeInUdf  {
 
     }
 
+    //PIG-2223 
+    // lookup on column name in udf output tuple schema
+    @Test
+    public void testProjStarExpandInForeachLookup1() throws IOException {
+
+        String query =
+            "  l1 = load '" + INP_FILE_5FIELDS + "' as (a : int, b : int, c : int);"
+            + "f = foreach l1 generate TOTUPLE(*) as tb;"
+            + "f2 = foreach f generate tb.a, tb.b;"                    
+            ; 
+        compileAndCompareSchema("a : int, b : int", query, "f2");
+    }
+    
+    //PIG-2223 
+    // lookup on column name in udf output tuple schema
+    @Test
+    public void testProjStarExpandInForeachLookup2() throws IOException {
+
+        String query =
+            "  l1 = load '" + INP_FILE_5FIELDS + "' as (a : int, b : int, c : int);"
+            + "f = foreach l1 generate TOTUPLE(b .. ) as tb;"
+            + "f2 = foreach f generate tb.b as b2, tb.c as c2;"     
+            + "f3 = foreach f2 generate b2, b2 + c2 as bc2;"     
+            ; 
+        compileAndCompareSchema("b2 : int, bc2 : int", query, "f3");
+    }
+    
     @Test
     public void testProjStarExpandInFilter1() throws IOException{
         //TOBAG has * and a bincond expression as argument
