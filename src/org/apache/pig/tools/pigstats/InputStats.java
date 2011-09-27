@@ -96,7 +96,7 @@ public final class InputStats {
                 sb.append("read ");
             }
             
-            if (!local) {
+            if (!local && records >= 0) {
                 sb.append(records).append(" records ");
             } else {
                 sb.append("records ");

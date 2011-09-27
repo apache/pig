@@ -86,6 +86,12 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
     // back-end to track the number of records for each input.
     private boolean isMultiInputs = false;
     
+    // the flag indicates the custom Hadoop counter should be disabled.
+    // This is to prevent the number of counters exceeding the limit.
+    // This flag is controlled by Pig property "pig.disable.counter" (
+    // the default value is 'false').
+    private boolean disableCounter = false;
+    
     /**
      * the job Configuration
      */
@@ -202,6 +208,7 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
     
     @SuppressWarnings("unchecked")
     public void readFields(DataInput is) throws IOException {
+        disableCounter = is.readBoolean();
         isMultiInputs = is.readBoolean();
         totalSplits = is.readInt();
         splitIndex = is.readInt();
@@ -229,6 +236,7 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
 
     @SuppressWarnings("unchecked")
     public void write(DataOutput os) throws IOException {
+        os.writeBoolean(disableCounter);
         os.writeBoolean(isMultiInputs);
         os.writeInt(totalSplits);
         os.writeInt(splitIndex);
@@ -373,5 +381,13 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
           return null;
         }
         return st.toString();
+    }
+
+    public void setDisableCounter(boolean disableCounter) {
+        this.disableCounter = disableCounter;
+    }
+
+    public boolean disableCounter() {
+        return disableCounter;
     }
 }

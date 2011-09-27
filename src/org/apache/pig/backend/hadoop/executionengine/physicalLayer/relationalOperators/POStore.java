@@ -66,6 +66,9 @@ public class POStore extends PhysicalOperator {
     // flag to distinguish single store from multiquery store.
     private boolean isMultiStore;
     
+    // flag to indicate if the custom counter should be disabled.
+    private boolean disableCounter = false;
+    
     // the index of multiquery store to track counters
     private int index;
     
@@ -101,7 +104,7 @@ public class POStore extends PhysicalOperator {
         if (impl != null) {
             try{
                 storer = impl.createStoreFunc(this);
-                if (!isTmpStore && impl instanceof MapReducePOStoreImpl) {
+                if (!isTmpStore && !disableCounter && impl instanceof MapReducePOStoreImpl) {
                     outputRecordCounter = 
                         ((MapReducePOStoreImpl) impl).createRecordCounter(this);
                 }
@@ -281,5 +284,13 @@ public class POStore extends PhysicalOperator {
 
     public int getIndex() {
         return index;
+    }
+
+    public void setDisableCounter(boolean disableCounter) {
+        this.disableCounter = disableCounter;
+    }
+
+    public boolean disableCounter() {
+        return disableCounter;
     }
 }

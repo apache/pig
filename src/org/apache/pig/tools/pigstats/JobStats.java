@@ -95,6 +95,8 @@ public final class JobStats extends Operator {
     private String errorMsg;
     
     private Exception exception = null;
+    
+    private Boolean disableCounter = false;
             
     @SuppressWarnings("deprecation")
     private JobID jobId;
@@ -270,6 +272,7 @@ public final class JobStats extends Operator {
                     .get(JobControlCompiler.PIG_REDUCE_STORES));           
             loads = (ArrayList<FileSpec>) ObjectSerializer.deserialize(conf
                     .get("pig.inputs"));
+            disableCounter = conf.getBoolean("pig.disable.counter", false);
         } catch (IOException e) {
             LOG.warn("Failed to deserialize the store list", e);
         }                    
@@ -545,13 +548,17 @@ public final class JobStats extends Operator {
     }
     
     private void addOneInputStats(String fileName, int index) {
-        long records = 0;
+        long records = -1;
         Long n = multiInputCounters.get(
                 PigStatsUtil.getMultiInputsCounterName(fileName, index));
         if (n != null) {   
             records = n;
         } else {
-            LOG.warn("unable to get input counter for " + fileName);
+            // the file could be empty
+            if (!disableCounter) records = 0;
+            else {
+                LOG.warn("unable to get input counter for " + fileName);
+            }
         }
         InputStats is = new InputStats(fileName, -1, records, (state == JobState.SUCCESS));              
         is.setConf(conf);
