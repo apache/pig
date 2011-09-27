@@ -134,6 +134,8 @@ PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
 
+PIG-2223: error accessing column in output schema of udf having project-star input (thejas)
+
 PIG-2273: Pig.compileFromFile in embedded python fails when pig script starts with a comment (ddaniels888 via gates)
 
 PIG-2278: Wrong version numbers for libraries in eclipse template classpath (azaroth)
