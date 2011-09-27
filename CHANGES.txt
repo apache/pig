@@ -40,6 +40,26 @@ PIG-2221: Couldnt find documentation for ColumnMapKeyPrune optimization rule (ch
 
 BUG FIXES
 
+PIG-1857: Create an package integration project (eyang via daijy)
+
+PIG-2013: Penny gets a null pointer when no properties are set (breed via daijy)
+
+PIG-2102: MonitoredUDF does not work (dvryaboy)
+
+PIG-2152: Null pointer exception while reporting progress (thejas)
+
+PIG-2183: Pig not working with Hadoop 0.20.203.0 (daijy)
+
+PIG-2193: Using HBaseStorage to scan 2 tables in the same Map job produces bad data (rangadi via dvryaboy)
+
+PIG-2199: Penny throws Exception when netty classes are missing (ddaniels888 via daijy)
+
+PIG-2231: Limit produce wrong number of records after foreach flatten (daijy)
+
+PIG-2258: ant rpm doesn't work (daijy)
+
+PIG-2264: Change conf/log4j.properties to conf/log4j.properties.template (daijy)
+
 PIG-2208: Restrict number of PIG generated Haddop counters (rding via daijy)
 
 PIG-2223: error accessing column in output schema of udf having project-star input (thejas)
@@ -73,8 +93,6 @@ PIG-1188: Padding nulls to the input tuple according to input schema (daijy)
 PIG-1876: Typed map for Pig (daijy)
 
 IMPROVEMENTS
-
-PIG-1857: Create an package integration project (eyang via daijy)
 
 PIG-2129:  NOTICE file needs updates (gates via olgan)
 
@@ -233,24 +251,6 @@ OPTIMIZATIONS
 PIG-1696: Performance: Use System.arraycopy() instead of manually copying the bytes while reading the data (hashutosh)
 
 BUG FIXES
-
-PIG-2264: Change conf/log4j.properties to conf/log4j.properties.template (daijy)
-
-PIG-2152: Null pointer exception while reporting progress (thejas)
-
-PIG-2258: ant rpm doesn't work (daijy)
-
-PIG-2231: Limit produce wrong number of records after foreach flatten (daijy)
-
-PIG-2193: Using HBaseStorage to scan 2 tables in the same Map job produces bad data (rangadi via dvryaboy)
-
-PIG-2102: MonitoredUDF does not work (dvryaboy)
-
-PIG-2183: Pig not working with Hadoop 0.20.203.0 (daijy)
-
-PIG-2199: Penny throws Exception when netty classes are missing (ddaniels888 via daijy)
-
-PIG-2013: Penny gets a null pointer when no properties are set (breed via daijy)
 
 PIG-2146: POStore.getSchema() returns null because of which PigOutputCommitter
  is not storing schema while cleanup (thejas)
