@@ -256,7 +256,6 @@ else
     fi
 
     PIG_JAR=`echo $PIG_HOME/pig!(*withouthadoop).jar`
-    echo $PIG_JAR
 
     if [ -n "$PIG_JAR" ]; then
         CLASSPATH="${CLASSPATH}:$PIG_JAR"
