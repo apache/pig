@@ -292,9 +292,16 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
         // also passing the multi-input flag to the back-end so that 
         // the multi-input record counters can be created 
         int m = inputs.size();        
+        
+        boolean disableCounter = conf.getBoolean("pig.disable.counter", false);
+        if ((m > 1) && disableCounter) {
+            log.info("Disable Pig custom input counters");
+        }
+        
         for (InputSplit split : splits) {
             ((PigSplit) split).setTotalSplits(n);
             if (m > 1) ((PigSplit) split).setMultiInputs(true);
+            ((PigSplit) split).setDisableCounter(disableCounter);
         }
         
         return splits;
