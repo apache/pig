@@ -111,7 +111,7 @@ public final class OutputStats {
         StringBuilder sb = new StringBuilder();
         if (success) {
             sb.append("Successfully stored ");
-            if (!local) {
+            if (!local && records >= 0) {
                 sb.append(records).append(" records ");
             } else {
                 sb.append("records ");

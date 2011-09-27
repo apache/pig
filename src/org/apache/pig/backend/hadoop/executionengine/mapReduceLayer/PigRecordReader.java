@@ -177,7 +177,7 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
             loadfunc.prepareToRead(curReader, pigSplit);
         }
                 
-        if (pigSplit.isMultiInputs()) { 
+        if (pigSplit.isMultiInputs() && !pigSplit.disableCounter()) { 
             counterName = getMultiInputsCounerName(pigSplit, inputSpecificConf);
         }
     }

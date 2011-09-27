@@ -498,9 +498,8 @@ public class JobControlCompiler{
                     .getTemporaryPath(pigContext).toString();
                     tmpLocation = new Path(tmpLocationStr);
                     conf.set("pig.streaming.log.dir",
-                            new Path(tmpLocation, LOG_DIR).toString());
-                
-            } 
+                            new Path(tmpLocation, LOG_DIR).toString());            
+                } 
                 conf.set("pig.streaming.task.output.dir", outputPathString);
             }
            else if (mapStores.size() + reduceStores.size() > 0) { // multi store case
@@ -511,8 +510,13 @@ public class JobControlCompiler{
 
                 nwJob.setOutputFormatClass(PigOutputFormat.class);
                 
+                boolean disableCounter = conf.getBoolean("pig.disable.counter", false);
+                if (disableCounter) {
+                    log.info("Disable Pig custom output counters");
+                }
                 int idx = 0;
                 for (POStore sto: storeLocations) {
+                    sto.setDisableCounter(disableCounter);
                     sto.setMultiStore(true);
                     sto.setIndex(idx++);
                 }
