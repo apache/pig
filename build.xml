@@ -990,7 +990,7 @@
                 </replacetokens>
             </filterchain>
         </copy>
-        <rpm specFile="pig.spec" command="-bb" topDir="${package.buildroot}" cleanBuildDir="true" failOnError="true"/>
+        <rpm specFile="pig.spec" command="-bb --target ${os.arch}" topDir="${package.buildroot}" cleanBuildDir="true" failOnError="true"/>
         <copy todir="${build.dir}/" flatten="true">
             <fileset dir="${package.buildroot}/RPMS">
                 <include name="**/${name}*.rpm" />
