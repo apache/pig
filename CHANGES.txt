@@ -40,6 +40,8 @@ PIG-2221: Couldnt find documentation for ColumnMapKeyPrune optimization rule (ch
 
 BUG FIXES
 
+PIG-2310: bin/pig fail when both pig-0.9.1.jar and pig.jar are in PIG_HOME (daijy)
+
 PIG-1857: Create an package integration project (eyang via daijy)
 
 PIG-2013: Penny gets a null pointer when no properties are set (breed via daijy)
