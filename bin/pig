@@ -57,7 +57,7 @@ done
 this="${BASH_SOURCE-$0}"
 
 # convert relative path to absolute path
-bin=$(cd -P -- "$(dirname -- "$this")" && pwd -P)
+bin=$(cd -P -- "$(dirname -- "$this")">/dev/null && pwd -P)
 script="$(basename -- "$this")"
 this="$bin/$script"
 
@@ -223,7 +223,11 @@ if [ -n "$HADOOP_BIN" ]; then
         echo "Find hadoop at $HADOOP_BIN"
     fi
 
-    PIG_JAR=`echo $PIG_HOME/pig-*withouthadoop.jar`
+    if [ -f $PIG_HOME/pig-withouthadoop.jar ]; then
+        PIG_JAR=$PIG_HOME/pig-withouthadoop.jar
+    else
+        PIG_JAR=`echo $PIG_HOME/pig-?.*withouthadoop.jar`
+    fi
 
     # for deb/rpm package, add pig jar in /usr/share/pig
     if [ -z "$PIG_JAR" ]; then
@@ -255,7 +259,11 @@ else
         echo "Cannot find local hadoop installation, using bundled hadoop 20.2"
     fi
 
-    PIG_JAR=`echo $PIG_HOME/pig!(*withouthadoop).jar`
+    if [ -f $PIG_HOME/pig.jar ]; then
+        PIG_JAR=$PIG_HOME/pig.jar
+    else
+        PIG_JAR=`echo $PIG_HOME/pig-?.!(*withouthadoop).jar`
+    fi
 
     if [ -n "$PIG_JAR" ]; then
         CLASSPATH="${CLASSPATH}:$PIG_JAR"
