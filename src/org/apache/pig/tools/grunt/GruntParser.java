@@ -815,6 +815,7 @@ public class GruntParser extends PigScriptParser {
         System.out.println("        -param <param_name - See parameter substitution for details.");
         System.out.println("        -param_file <file_name> - See parameter substitution for details.");
         System.out.println("        script - Script to be executed.");
+        System.out.println("    sh  <shell command> - Invoke a shell command."); 
         System.out.println("    kill <job_id> - Kill the hadoop job specified by the hadoop job id.");
         System.out.println("    set <key> <value> - Provide execution parameters to Pig. Keys and values are case sensitive.");
         System.out.println("        The following keys are supported: ");
