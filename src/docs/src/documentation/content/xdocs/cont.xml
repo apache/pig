@@ -751,7 +751,7 @@ public abstract class PigStats {
 
 <section id="pigserver">
 <title>PigServer Interface</title>
-<p>Currently, <a href="http://pig.apache.org/docs/r0.9.0/api/org/apache/pig/PigServer.html">PigServer</a> is the main interface for embedding Pig in Java. PigServer can now be instantiated from multiple threads. (In the past, PigServer contained references to static data that prevented multiple instances of the object to be created from different threads within your application.) Please note that PigServer is NOT thread safe; the same object can't be shared across multiple threads. </p>
+<p>Currently, <a href="http://pig.apache.org/docs/r0.9.1/api/org/apache/pig/PigServer.html">PigServer</a> is the main interface for embedding Pig in Java. PigServer can now be instantiated from multiple threads. (In the past, PigServer contained references to static data that prevented multiple instances of the object to be created from different threads within your application.) Please note that PigServer is NOT thread safe; the same object can't be shared across multiple threads. </p>
 </section>
 
 <section>
