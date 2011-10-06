@@ -373,10 +373,10 @@ and_cond : unary_cond ( AND^ unary_cond )*
 ;
 
 unary_cond : LEFT_PAREN! cond RIGHT_PAREN!
+           | not_cond
            | expr rel_op^ expr
            | func_eval
            | null_check_cond
-           | not_cond
 ;
 
 not_cond : NOT^ unary_cond

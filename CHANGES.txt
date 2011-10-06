@@ -136,6 +136,8 @@ PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
 
+PIG-2309: Keyword 'NOT' is wrongly treated as a UDF in split statement (vivekp via thejas)
+
 PIG-2307: Jetty version should be updated in .eclipse.templates/.classpath, pig-template.xml and pig.pom as well (zjshen via daijy)
 
 PIG-2273: Pig.compileFromFile in embedded python fails when pig script starts with a comment (ddaniels888 via gates)
