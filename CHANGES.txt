@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2287: add test cases for limit and sample that use expressions with constants only (no scalar variables) (thejas via gates)
+
 PIG-2092: Missing sh command from Grant shell (olgan)
 
 PIG-2163: Improve nested cross to stream one relation (zjshen via daijy)
