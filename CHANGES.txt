@@ -40,6 +40,8 @@ PIG-2221: Couldnt find documentation for ColumnMapKeyPrune optimization rule (ch
 
 BUG FIXES
 
+PIG-2271: PIG regression in BinStorage/PigStorage in 0.9.1 (thejas)
+
 PIG-2307: Jetty version should be updated in .eclipse.templates/.classpath, pig-template.xml and pig.pom as well (zjshen via daijy)
 
 PIG-2310: bin/pig fail when both pig-0.9.1.jar and pig.jar are in PIG_HOME (daijy)

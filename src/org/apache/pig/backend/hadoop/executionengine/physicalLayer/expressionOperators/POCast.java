@@ -20,7 +20,6 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOp
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -34,9 +33,10 @@ import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
+import org.apache.pig.StreamToPig;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.data.DataBag;
@@ -44,10 +44,9 @@ import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.StreamToPig;
 import org.apache.pig.impl.util.CastUtils;
 import org.apache.pig.impl.util.LogUtils;
 
@@ -831,8 +830,13 @@ public class POCast extends ExpressionOperator {
     private Object convertWithSchema(Object obj, ResourceFieldSchema fs) throws IOException {
         Object result = null;
         
-        if (fs==null) {
+        if (fs == null) {
             return obj;
+        }
+
+        if (obj == null) {
+            // handle DataType.NULL
+            return null;
         }
         
         switch (fs.getType()) {
