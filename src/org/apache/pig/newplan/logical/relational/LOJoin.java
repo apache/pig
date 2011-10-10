@@ -39,7 +39,8 @@ public class LOJoin extends LogicalRelationalOperator {
         HASH,    // Hash Join
         REPLICATED, // Fragment Replicated join
         SKEWED, // Skewed Join
-        MERGE   // Sort Merge Join
+        MERGE,   // Sort Merge Join
+        MERGESPARSE   // Sort Merge Index Join
     };
 
     
@@ -217,6 +218,11 @@ public class LOJoin extends LogicalRelationalOperator {
         } else {
             return false;
         }
+    }
+    
+    @Override
+    public String getName() {
+        return name + "(" + mJoinType.toString() + ")";
     }
     
     public List<Operator> getInputs(LogicalPlan plan) {

@@ -176,7 +176,7 @@ abstract public class LogicalRelationalOperator extends Operator {
         if (alias!=null) {
             msg.append(alias + ": ");
         }
-        msg.append("(Name: " + name + " Schema: ");
+        msg.append("(Name: " + getName() + " Schema: ");
         if (schema!=null)
             msg.append(schema);
         else

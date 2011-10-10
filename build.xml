@@ -751,7 +751,7 @@
     <!-- End to end tests                                                   -->
     <!-- ================================================================== -->
 
-    <target name="test-e2e" depends="jar, jar-withouthadoop" description="run end-to-end tests">
+    <target name="test-e2e" depends="jar, jar-withouthadoop, piggybank" description="run end-to-end tests">
         <ant dir="${test.e2e.dir}"/>
     </target>
 
@@ -763,7 +763,7 @@
         <ant dir="${test.e2e.dir}" target="undeploy"/>
     </target>
 
-    <target name="test-e2e-local" depends="jar, jar-withouthadoop" description="run end-to-end tests in local mode">
+    <target name="test-e2e-local" depends="jar, jar-withouthadoop, piggybank" description="run end-to-end tests in local mode">
         <ant dir="${test.e2e.dir}" target="test-local"/>
     </target>
 
@@ -1539,5 +1539,9 @@
      <target name="maven-artifacts" depends="copy-jar-to-maven, copypom" />
 
      <target name="published" depends="ivy-publish-local, maven-artifacts"/>
+
+     <target name="piggybank" depends="jar">
+         <ant antfile="contrib/piggybank/java/build.xml" inheritAll="false"/> 
+     </target>
 
 </project>
