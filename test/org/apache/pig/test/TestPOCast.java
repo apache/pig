@@ -18,24 +18,31 @@
 package org.apache.pig.test;
 
 import java.io.IOException;
-import java.net.URL;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
 
+import junit.framework.TestCase;
+
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.RecordReader;
-import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
-import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POCast;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.builtin.BinStorage;
+import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
@@ -44,24 +51,13 @@ import org.apache.pig.data.DefaultBagFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
-import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POCast;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.parser.ParserException;
 import org.apache.pig.test.utils.GenRandomData;
-import org.apache.pig.builtin.PigStorage;
-import org.apache.pig.builtin.BinStorage;
 import org.junit.Test;
-
-import junit.framework.TestCase;
 
 public class TestPOCast extends TestCase {
 
@@ -1823,9 +1819,46 @@ public class TestPOCast extends TestCase {
             
             assertTrue(res.result==null);
         }
+        
+        {
+            //positive test case
+            Tuple t = tf.newTuple();
+            Tuple wrappedTuple = tf.newTuple();
+            wrappedTuple.append(GenRandomData.genRandString(r));
+            wrappedTuple.append(GenRandomData.genRandString(r));
+            t.append(wrappedTuple);
+            Schema s = Utils.getSchemaFromString("t:tuple(a:chararray, b:chararray)");
+            op.setFieldSchema(new ResourceSchema.ResourceFieldSchema(s.getField(0)));
+            plan.attachInput(t);
+            Tuple tup = null;
+            Result res = op.getNext(tup);
+            verifyResult(res, POStatus.STATUS_OK, wrappedTuple);
+        }
+
+        {
+            //test case trying with null inside tuple
+            Tuple t = tf.newTuple();
+            Tuple wrappedTuple = tf.newTuple();
+            wrappedTuple.append(GenRandomData.genRandString(r));
+            wrappedTuple.append(null);//NULL col inside tuple
+            t.append(wrappedTuple);
+            Schema s = Utils.getSchemaFromString("t:tuple(a:chararray, b:chararray)");
+            op.setFieldSchema(new ResourceSchema.ResourceFieldSchema(s.getField(0)));
+            plan.attachInput(t);
+            Tuple tup = null;
+            Result res = op.getNext(tup);
+            verifyResult(res, POStatus.STATUS_OK, wrappedTuple);
+        }
+	
+	
 	}
 	
-	@Test
+	private void verifyResult(Result res, byte status, Object result) {
+        assertEquals("result status", status, res.returnStatus);
+        assertEquals("result value", result, res.result);        
+    }
+
+    @Test
 	public void testBagToOther() throws IOException, ParserException {
 		POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
 		op.setFuncSpec(new FuncSpec(PigStorage.class.getName()));
@@ -1935,7 +1968,7 @@ public class TestPOCast extends TestCase {
 		
         {
             Tuple t = tf.newTuple();
-            t.append(GenRandomData.genRandSmallTupDataBag(r, 1, 100));
+            t.append(GenRandomData.genRandSmallTupDataBagWithNulls(r, 20, 100));
             Schema s = Utils.getSchemaFromString("b:bag{t:tuple(a:chararray, b:float)}");
             op.setFieldSchema(new ResourceSchema.ResourceFieldSchema(s.getField(0)));
             plan.attachInput(t);
@@ -1947,16 +1980,22 @@ public class TestPOCast extends TestCase {
             while(expectedBagIterator.hasNext()) {
                 Tuple expectedBagTuple = expectedBagIterator.next();
                 Tuple convertedBagTuple = convertedBagIterator.next();
-                assertTrue(convertedBagTuple.get(0) instanceof String);
-                assertTrue(convertedBagTuple.get(1) instanceof Float);
-                assertTrue(expectedBagTuple.get(0).equals(convertedBagTuple.get(0)));
-                assertTrue(((Float)(expectedBagTuple.get(1))).floatValue()==(Float)(convertedBagTuple.get(1)));
+                if(expectedBagTuple.get(0) != null){
+                    assertTrue(convertedBagTuple.get(0) instanceof String);
+                    assertTrue(expectedBagTuple.get(0).equals(convertedBagTuple.get(0)));
+                }
+                if(expectedBagTuple.get(1) != null){
+                    assertTrue(convertedBagTuple.get(1) instanceof Float);
+                    assertTrue(((Float)(expectedBagTuple.get(1))).floatValue()==(Float)(convertedBagTuple.get(1)));
+                }
+                
+
             }
         }
         
         {
             Tuple t = tf.newTuple();
-            t.append(GenRandomData.genRandSmallTupDataBag(r, 1, 100));
+            t.append(GenRandomData.genRandSmallTupDataBagWithNulls(r, 20, 100));
             Schema s = Utils.getSchemaFromString("b:bag{}");
             op.setFieldSchema(new ResourceSchema.ResourceFieldSchema(s.getField(0)));
             plan.attachInput(t);
@@ -1968,10 +2007,17 @@ public class TestPOCast extends TestCase {
             while(expectedBagIterator.hasNext()) {
                 Tuple expectedBagTuple = expectedBagIterator.next();
                 Tuple convertedBagTuple = convertedBagIterator.next();
-                assertTrue(convertedBagTuple.get(0) instanceof String);
-                assertTrue(convertedBagTuple.get(1) instanceof Integer);
-                assertTrue(expectedBagTuple.get(0).equals(convertedBagTuple.get(0)));
-                assertTrue(((Integer)(expectedBagTuple.get(1)))==(Integer)(convertedBagTuple.get(1)));
+                
+                if(expectedBagTuple.get(0) != null){
+                    assertTrue(convertedBagTuple.get(0) instanceof String);
+                    assertTrue(expectedBagTuple.get(0).equals(convertedBagTuple.get(0)));
+                }
+                
+                if(expectedBagTuple.get(1) != null){
+                    assertTrue(convertedBagTuple.get(1) instanceof Integer);
+                    assertTrue(((Integer)(expectedBagTuple.get(1)))==(Integer)(convertedBagTuple.get(1)));
+                }
+
             }
         }
 	}
