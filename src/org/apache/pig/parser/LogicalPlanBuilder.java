@@ -330,7 +330,7 @@ public class LogicalPlanBuilder {
                 throw new ParserValidationException( intStream, loc,
                         "Skewed join can only be applied for 2-way joins" );
             }
-        } else if( jt == JOINTYPE.MERGE && inputCount != 2 ) {
+        } else if( (jt == JOINTYPE.MERGE || jt == JOINTYPE.MERGESPARSE) && inputCount != 2 ) {
             throw new ParserValidationException( intStream, loc,
                     "Merge join can only be applied for 2-way joins" );
         } else if( jt == JOINTYPE.REPLICATED ) {
@@ -1189,9 +1189,11 @@ public class LogicalPlanBuilder {
                  return JOINTYPE.SKEWED;
           } else if (modifier.equalsIgnoreCase("merge")) {
                   return JOINTYPE.MERGE;
+          } else if (modifier.equalsIgnoreCase("merge-sparse")) {
+                  return JOINTYPE.MERGESPARSE;
           } else {
                   throw new ParserValidationException( intStream, loc,
-                          "Only REPL, REPLICATED, HASH, SKEWED and MERGE are vaild JOIN modifiers." );
+                      "Only REPL, REPLICATED, HASH, SKEWED, MERGE, and MERGE-SPARSE are vaild JOIN modifiers." );
           }
     }
 

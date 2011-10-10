@@ -1024,8 +1024,8 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
             }
             logToPhyMap.put(loj, pfrj);
         }
-        
-        else if (loj.getJoinType() == LOJoin.JOINTYPE.MERGE && validateMapSideMerge(inputs,loj.getPlan())) {
+       
+        else if ( (loj.getJoinType() == LOJoin.JOINTYPE.MERGE || loj.getJoinType() == LOJoin.JOINTYPE.MERGESPARSE) && validateMapSideMerge(inputs,loj.getPlan())) { 
             
             PhysicalOperator smj;
             boolean usePOMergeJoin = inputs.size() == 2 && innerFlags[0] && innerFlags[1] ; 
@@ -1036,7 +1036,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                 // require loaders to implement collectable interface.
                 try {
                     smj = new POMergeJoin(new OperatorKey(scope,nodeGen.getNextNodeId(scope)),
-                                            parallel,inp,joinPlans,keyTypes);
+                                            parallel,inp,joinPlans,keyTypes, loj.getJoinType());
                 }
                 catch (PlanException e) {
                     int errCode = 2042;

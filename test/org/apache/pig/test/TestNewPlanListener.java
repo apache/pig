@@ -170,8 +170,8 @@ public class TestNewPlanListener extends TestCase {
     public void testAllSameVisitor() throws FrontendException {
         SillySameVisitor v = new SillySameVisitor(lp);
         v.visit();
-        assertTrue("LOLoad LOJoin LOLoad LOFilter ".equals(v.toString()) ||
-            "LOLoad LOFilter LOJoin LOLoad ".equals(v.toString()));
+        assertTrue("LOLoad LOJoin(HASH) LOLoad LOFilter ".equals(v.toString()) ||
+            "LOLoad LOFilter LOJoin(HASH) LOLoad ".equals(v.toString()));
         
     }
     

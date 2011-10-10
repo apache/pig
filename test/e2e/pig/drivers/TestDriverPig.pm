@@ -72,6 +72,7 @@ sub replaceParameters
     $cmd =~ s/:INPATH:/$testCmd->{'inpathbase'}/g;
     $cmd =~ s/:OUTPATH:/$outfile/g;
     $cmd =~ s/:FUNCPATH:/$testCmd->{'funcjarPath'}/g;
+    $cmd =~ s/:PIGPATH:/$testCmd->{'pigpath'}/g;
     $cmd =~ s/:RUNID:/$testCmd->{'UID'}/g;
     $cmd =~ s/:USRHOMEPATH:/$testCmd->{'userhomePath'}/g;
     $cmd =~ s/:MAPREDJARS:/$testCmd->{'mapredjars'}/g;

@@ -52,6 +52,7 @@ import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.IdentityHashSet;
 import org.apache.pig.impl.util.MultiMap;
+import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.apache.pig.pen.util.ExampleTuple;
 import org.apache.pig.pen.util.LineageTracer;
 
@@ -119,7 +120,9 @@ public class POMergeJoin extends PhysicalOperator {
     private int rightTupSize = -1;
 
     private int arrayListSize = 1024;
-    
+
+    private LOJoin.JOINTYPE joinType;
+
     private String signature;
 
     /**
@@ -130,7 +133,7 @@ public class POMergeJoin extends PhysicalOperator {
      * Ex. join A by ($0,$1), B by ($1,$2);
      */
     public POMergeJoin(OperatorKey k, int rp, List<PhysicalOperator> inp, MultiMap<PhysicalOperator, PhysicalPlan> inpPlans,
-            List<List<Byte>> keyTypes) throws PlanException{
+            List<List<Byte>> keyTypes, LOJoin.JOINTYPE joinType) throws PlanException{
 
         super(k, rp, inp);
         this.opKey = k;
@@ -141,6 +144,7 @@ public class POMergeJoin extends PhysicalOperator {
         leftTuples = new ArrayList<Tuple>(arrayListSize);
         this.createJoinPlans(inpPlans,keyTypes);
         this.indexFile = null;
+        this.joinType = joinType;  
     }
 
     /**
@@ -334,9 +338,16 @@ public class POMergeJoin extends PhysicalOperator {
         }
 
         // We will get here only when curLeftKey > prevRightKey
+        boolean slidingToNextRecord = false;
         while(true){
             // Start moving on right stream to find the tuple whose key is same as with current left bag key.
-            Result rightInp = getNextRightInp();
+            Result rightInp;
+            if (slidingToNextRecord) {
+                rightInp = getNextRightInp();
+                slidingToNextRecord = false;
+            } else
+                rightInp = getNextRightInp(prevLeftKey);
+                
             if(rightInp.returnStatus != POStatus.STATUS_OK)
                 return rightInp;
 
@@ -356,8 +367,10 @@ public class POMergeJoin extends PhysicalOperator {
             }
 
             int cmpval = rightKey.compareTo(prevLeftKey);
-            if(cmpval < 0)     // still behind the left side, do nothing, fetch next right tuple.
+            if(cmpval < 0) {    // still behind the left side, do nothing, fetch next right tuple.
+                slidingToNextRecord = true;
                 continue;
+            }
 
             else if (cmpval == 0){  // Found matching tuple. Time to do join.
 
@@ -411,6 +424,22 @@ public class POMergeJoin extends PhysicalOperator {
                 firstLeftKey instanceof Tuple ? (Tuple)firstLeftKey : mTupleFactory.newTuple(firstLeftKey));
     }
 
+    private Result getNextRightInp(Object leftKey) throws ExecException{
+
+        /*
+         * Only call seekNear if the merge join is 'merge-sparse'.  DefaultIndexableLoader does not
+         * support more than a single call to seekNear per split - so don't call seekNear.
+         */
+    	if (joinType == LOJoin.JOINTYPE.MERGESPARSE) {
+    		try {
+    			((IndexableLoadFunc)rightLoader).seekNear(leftKey instanceof Tuple ? (Tuple)leftKey : mTupleFactory.newTuple(leftKey));
+    			prevRightKey = null;
+    		} catch (IOException e) {
+    			throwProcessingException(true, e);
+    		}
+    	}
+    	return this.getNextRightInp();
+    }
 
     private Result getNextRightInp() throws ExecException{
 
@@ -521,8 +550,11 @@ public class POMergeJoin extends PhysicalOperator {
 
     @Override
     public String name() {
-        return getAliasString() + "MergeJoin[" + DataType.findTypeName(resultType)
-                + "]" + " - " + mKey.toString();
+        String name = getAliasString() + "MergeJoin";
+        if (joinType==LOJoin.JOINTYPE.MERGESPARSE)
+            name+="(sparse)";
+        name+="[" + DataType.findTypeName(resultType) + "]" + " - " + mKey.toString();
+        return name;
     }
 
     @Override
@@ -564,5 +596,9 @@ public class POMergeJoin extends PhysicalOperator {
     @Override
     public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
         return null;
+    }
+    
+    public LOJoin.JOINTYPE getJoinType() {
+        return joinType;
     }
 }

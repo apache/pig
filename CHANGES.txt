@@ -24,6 +24,9 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2293: Pig should support a more efficient merge join against data sources that natively support point 
+lookups or where the join is against large, sparse tables (aklish via daijy)
+
 PIG-2287: add test cases for limit and sample that use expressions with constants only (no scalar variables) (thejas via gates)
 
 PIG-2092: Missing sh command from Grant shell (olgan)
