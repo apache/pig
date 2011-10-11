@@ -139,6 +139,9 @@ PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
 
+PIG-2316: Incorrect results for FILTER *** BY ( *** OR ***) with
+ FilterLogicExpressionSimplifier optimizer turned on (knoguchi via thejas)
+
 PIG-2271: PIG regression in BinStorage/PigStorage in 0.9.1 (thejas)
 
 PIG-2309: Keyword 'NOT' is wrongly treated as a UDF in split statement (vivekp via thejas)

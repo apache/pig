@@ -795,7 +795,46 @@ public class TestFilterSimplification extends TestCase {
 
         assertTrue(expected.isEqual(newLogicalPlan));
     }
-    
+
+    // PIG-2316
+    @Test
+    public void testEqualNotEqualWithSameValue() throws Exception {
+        String query = "b = filter (load 'd.txt' as (a0:int, a1:int)) "
+                       + "by ((a0 == 1) or (a0 != 1));"
+                       + "store b into 'empty';";
+        LogicalPlan newLogicalPlan = Util.buildLp(pigServer, query);;
+        PlanOptimizer optimizer = new MyPlanOptimizer(newLogicalPlan, 10);
+        optimizer.optimize();
+
+        //expected plan is same as original plan
+        LogicalPlan expected = Util.buildLp(pigServer, query);;
+        assertTrue(expected.isEqual(newLogicalPlan));
+
+        //swapping == and !=
+        query = "b = filter (load 'd.txt' as (a0:int, a1:int)) "
+                       + "by ((a0 != 1) or (a0 == 1));"
+                       + "store b into 'empty';";
+        newLogicalPlan = Util.buildLp(pigServer, query);;
+        optimizer = new MyPlanOptimizer(newLogicalPlan, 10);
+        optimizer.optimize();
+
+        //expected plan is same as original plan
+        expected = Util.buildLp(pigServer, query);;
+        assertTrue(expected.isEqual(newLogicalPlan));
+
+        //more realistic test case which created incorrect output
+        query = "b = filter (load 'd.txt' as (a0:int, a1:int)) "
+                       + "by ((a0 == 1 and a1 == 3) or (a0 != 1));"
+                       + "store b into 'empty';";
+        newLogicalPlan = Util.buildLp(pigServer, query);;
+        optimizer = new MyPlanOptimizer(newLogicalPlan, 10);
+        optimizer.optimize();
+
+        //expected plan is same as original plan
+        expected = Util.buildLp(pigServer, query);;
+        assertTrue(expected.isEqual(newLogicalPlan));
+    }
+
     public class MyPlanOptimizer extends LogicalPlanOptimizer {
 
         protected MyPlanOptimizer(OperatorPlan p, int iterations) {
