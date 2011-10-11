@@ -18,27 +18,41 @@
 
 package org.apache.pig.test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Properties;
+import java.util.Set;
+
+import junit.framework.TestCase;
 
 import org.apache.pig.ExecType;
+import org.apache.pig.PigServer;
+import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.logical.LogicalPlanMigrationVistor;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.rules.LogicalExpressionSimplifier;
-import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.optimizer.PlanOptimizer;
 import org.apache.pig.newplan.optimizer.Rule;
-import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.test.utils.LogicalPlanTester;
-
-import junit.framework.TestCase;
+import org.junit.Before;
 import org.junit.Test;
 
 public class TestFilterSimplification extends TestCase {
 
     LogicalPlan plan = null;
     PigContext pc = new PigContext(ExecType.LOCAL, new Properties());
+    PigServer pigServer = null;
+
+    @Before
+    public void setUp() throws Exception {
+        pigServer = new PigServer(ExecType.LOCAL, new Properties());
+        pc = pigServer.getPigContext();
+    }
 
     private LogicalPlan migratePlan(
                     org.apache.pig.impl.logicalLayer.LogicalPlan lp)
@@ -846,7 +860,59 @@ public class TestFilterSimplification extends TestCase {
 
         assertTrue(expected.isEqual(newLogicalPlan));
     }
-    
+
+    // PIG-2316
+    @Test
+    public void testEqualNotEqualWithSameValue() throws Exception {
+        //Test1
+        String query = "b = filter (load 'd.txt' as (a0:int, a1:int)) "
+                       + "by ((a0 == 1) or (a0 != 1));"
+                       + "store b into 'empty';";
+        LogicalPlan newLogicalPlan = getOptimizedPlan(query);
+
+        
+        //expected plan is same as original plan
+        LogicalPlan expected = getPlan(query);
+        assertTrue(expected.isEqual(newLogicalPlan));
+
+        //Test2
+        //swapping == and !=
+        query = "b = filter (load 'd.txt' as (a0:int, a1:int)) "
+                       + "by ((a0 != 1) or (a0 == 1));"
+                       + "store b into 'empty';";
+        
+        newLogicalPlan = getOptimizedPlan(query);
+
+        //expected plan is same as original plan
+        expected = getPlan(query);
+        assertTrue(expected.isEqual(newLogicalPlan));
+
+        //Test3
+        //more realistic test case which created incorrect output
+        query = "b = filter (load 'd.txt' as (a0:int, a1:int)) "
+                       + "by ((a0 == 1 and a1 == 3) or (a0 != 1));"
+                       + "store b into 'empty';";
+        newLogicalPlan = getOptimizedPlan(query);
+
+        //expected plan is same as original plan
+        expected = getPlan(query);
+        assertTrue(expected.isEqual(newLogicalPlan));
+    }
+
+    private LogicalPlan getOptimizedPlan(String query) throws FrontendException {
+        LogicalPlan newLogicalPlan = getPlan(query);
+        PlanOptimizer optimizer = new MyPlanOptimizer(newLogicalPlan, 10);
+        optimizer.optimize();
+        return newLogicalPlan;
+    }
+
+    private LogicalPlan getPlan(String query) throws VisitorException {
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
+        org.apache.pig.impl.logicalLayer.LogicalPlan plan = lpt.buildPlan(query);
+        LogicalPlan newLogicalPlan = migratePlan(plan);
+        return newLogicalPlan;
+    }
+
     public class MyPlanOptimizer extends LogicalPlanOptimizer {
 
         protected MyPlanOptimizer(OperatorPlan p, int iterations) {

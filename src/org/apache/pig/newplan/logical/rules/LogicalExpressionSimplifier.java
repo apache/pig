@@ -626,19 +626,19 @@ public class LogicalExpressionSimplifier extends Rule {
             boolean comparable1 = v1 instanceof Comparable, comparable2 = v2 instanceof Comparable;
             boolean isEqual1 = e1 instanceof EqualExpression, isEqual2 = e2 instanceof EqualExpression, isNotEqual1 = e1 instanceof NotEqualExpression, isNotEqual2 = e2 instanceof NotEqualExpression, isGT1 = e1 instanceof GreaterThanExpression, isGT2 = e2 instanceof GreaterThanExpression, isGE1 = e1 instanceof GreaterThanEqualExpression, isGE2 = e2 instanceof GreaterThanEqualExpression, isLT1 = e1 instanceof LessThanExpression, isLT2 = e2 instanceof LessThanExpression, isLE1 = e1 instanceof LessThanEqualExpression, isLE2 = e2 instanceof LessThanEqualExpression;
             if (isEqual1 && isEqual2) {
-                if (val1.equals(val2)) return Equal | ImplyLeft | ImplyRight;
+                if (v1.equals(v2)) return Equal | ImplyLeft | ImplyRight;
                 else return Exclusive;
             }
             else if (isEqual1 && isNotEqual2) {
-                if (val1.equals(val2)) return Exclusive;
+                if (v1.equals(v2)) return Exclusive;
                 else return ImplyRight;
             }
             else if (isNotEqual1 && isEqual2) {
-                if (val1.equals(v2)) return Exclusive;
+                if (v1.equals(v2)) return Exclusive;
                 else return ImplyLeft;
             }
             else if (isNotEqual1 && isNotEqual2) {
-                if (val1.equals(v2)) return Equal | ImplyLeft | ImplyRight;
+                if (v1.equals(v2)) return Equal | ImplyLeft | ImplyRight;
                 else return Unknown;
             }
             else if (isEqual1 && isGT2) {

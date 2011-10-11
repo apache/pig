@@ -36,6 +36,9 @@ PIG-1886: Add zookeeper jar to list of jars shipped when HBaseStorage used (dvry
 
 BUG FIXES
 
+PIG-2316: Incorrect results for FILTER *** BY ( *** OR ***) with
+ FilterLogicExpressionSimplifier optimizer turned on (knoguchi via thejas)
+
 PIG-2077: Project UDF output inside a non-foreach statement fail on 0.8 (daijy)
 
 PIG-2067: FilterLogicExpressionSimplifier removed some branches in some cases (daijy)
