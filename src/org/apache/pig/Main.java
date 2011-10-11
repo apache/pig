@@ -91,9 +91,12 @@ public class Main {
     private static final String BRIEF = "brief";
     private static final String DEBUG = "debug";
     private static final String VERBOSE = "verbose";
-    
+
     private enum ExecMode {STRING, FILE, SHELL, UNKNOWN}
-                
+
+    private static final String PROP_FILT_SIMPL_OPT 
+        = "pig.exec.filterLogicExpressionSimplifier";
+    
 /**
  * The Main-Class for the Pig Jar that will provide a shell and setup a classpath appropriate
  * for executing Jar files.  Warning, this method calls System.exit().
@@ -347,6 +350,11 @@ static int run(String args[], PigProgressNotificationListener listener) {
         
         if(logFileName != null) {
             log.info("Logging error messages to: " + logFileName);
+        }
+        
+        if( ! Boolean.valueOf(properties.getProperty(PROP_FILT_SIMPL_OPT, "false"))){
+            //turn off if the user has not explicitly turned on this optimization 
+            optimizerRules.add("FilterLogicExpressionSimplifier");
         }
         
         if(optimizerRules.size() > 0) {
@@ -757,7 +765,6 @@ public static void usage()
         System.out.println("    -p, -param - Key value pair of the form param=val");
         System.out.println("    -r, -dryrun - Produces script with substituted parameters. Script is not executed.");
         System.out.println("    -t, -optimizer_off - Turn optimizations off. The following values are supported:");
-        System.out.println("            FilterLogicExpressionSimplifier - Simplify filter expressions");
         System.out.println("            SplitFilter - Split filter conditions");
         System.out.println("            PushUpFilter - Filter as early as possible");
         System.out.println("            MergeFilter - Merge filter conditions");
@@ -768,7 +775,7 @@ public static void usage()
         System.out.println("            MergeForEach - Merge adjacent ForEach");
         System.out.println("            GroupByConstParallelSetter - Force parallel 1 for \"group all\" statement");
         System.out.println("            All - Disable all optimizations");
-        System.out.println("        All optimizations are enabled by default. Optimization values are case insensitive.");
+        System.out.println("        All optimizations listed here are enabled by default. Optimization values are case insensitive.");
         System.out.println("    -v, -verbose - Print all error messages to screen");
         System.out.println("    -w, -warning - Turn warning logging on; also turns warning aggregation off");
         System.out.println("    -x, -exectype - Set execution mode: local|mapreduce, default is mapreduce.");
@@ -800,6 +807,8 @@ public static void printProperties(){
         System.out.println("            Used in conjunction with pig.tmpfilecompression. Defines compression type."); 
         System.out.println("        pig.noSplitCombination=true|false. Split combination is on by default.");
         System.out.println("            Determines if multiple small files are combined into a single map.");
+        System.out.println("        " + PROP_FILT_SIMPL_OPT + "=true|false; Default is false.");
+        System.out.println("            Enable optimizer rules to simplify filter expressions.");
         System.out.println("    Miscellaneous:");
         System.out.println("        exectype=mapreduce|local; default is mapreduce. This property is the same as -x switch");
         System.out.println("        pig.additional.jars=<comma seperated list of jars>. Used in place of register command.");
