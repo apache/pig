@@ -147,6 +147,22 @@ public class TestPigScriptParser extends TestCase {
 	}
 
     
+    @Test
+    public void testErrorMessageUndefinedAliasInGroupByStatement() throws Exception {
+        String queryA = "A = load 'nosuchfile'  using PigStorage() as (f1:chararray,f2:chararray);";
+        String queryB = "B = GROUP B by f1;";
+        PigServer ps = new PigServer(ExecType.LOCAL);
+        ps.registerQuery(queryA);
+        try{
+            ps.registerQuery(queryB);
+        }catch (FrontendException e)
+        {
+            Assert.assertTrue(e.getMessage().contains("Undefined alias:"));
+            return;
+        }
+        Assert.fail();
+    }
+    
 	private void checkParsedConstContent(PigServer pigServer,
                                              PigContext pigContext,
                                              String query,

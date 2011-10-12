@@ -29,7 +29,8 @@ PIG-2305: Pig should log the split locations in task logs (vivekp via thejas)
 PIG-2293: Pig should support a more efficient merge join against data sources that natively support point 
 lookups or where the join is against large, sparse tables (aklish via daijy)
 
-PIG-2287: add test cases for limit and sample that use expressions with constants only (no scalar variables) (thejas via gates)
+PIG-2287: add test cases for limit and sample that use expressions with 
+ constants only (no scalar variables) (thejas via gates)
 
 PIG-2092: Missing sh command from Grant shell (olgan)
 
@@ -141,6 +142,9 @@ PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
 
+PIG-2288: Pig 0.9 error message not useful as compared to 0.8 in case 
+ of group by (vivekp via thejas)
+
 PIG-2316: Incorrect results for FILTER *** BY ( *** OR ***) with
  FilterLogicExpressionSimplifier optimizer turned on (knoguchi via thejas)
 
@@ -148,7 +152,8 @@ PIG-2271: PIG regression in BinStorage/PigStorage in 0.9.1 (thejas)
 
 PIG-2309: Keyword 'NOT' is wrongly treated as a UDF in split statement (vivekp via thejas)
 
-PIG-2307: Jetty version should be updated in .eclipse.templates/.classpath, pig-template.xml and pig.pom as well (zjshen via daijy)
+PIG-2307: Jetty version should be updated in .eclipse.templates/.classpath, 
+ pig-template.xml and pig.pom as well (zjshen via daijy)
 
 PIG-2273: Pig.compileFromFile in embedded python fails when pig script starts with a comment (ddaniels888 via gates)
 

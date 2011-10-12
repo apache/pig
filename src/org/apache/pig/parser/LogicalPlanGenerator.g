@@ -1403,6 +1403,10 @@ alias_col_ref[LogicalExpressionPlan plan] returns[LogicalExpression expr]
        SourceLocation loc = new SourceLocation( (PigParserNode)$IDENTIFIER );
        String alias = $IDENTIFIER.text;
        Operator inOp = builder.lookupOperator( $statement::inputAlias );
+       if(null == inOp)
+       {
+           throw new UndefinedAliasException (input,loc,$statement::inputAlias);
+       }
        LogicalSchema schema;
        try {
            schema = ((LogicalRelationalOperator)inOp).getSchema();
