@@ -225,6 +225,7 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
           
 
             curReader =  inputformat.createRecordReader(pigSplit.getWrappedSplit(idx), context);
+            LOG.info("Current split being processed "+pigSplit.getWrappedSplit(idx));
 
             if (idx > 0) {
                 // initialize() for the first RecordReader will be called by MapTask;
