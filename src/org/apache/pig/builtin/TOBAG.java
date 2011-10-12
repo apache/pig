@@ -36,6 +36,9 @@ import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
  * It's like saying this:
  * T = foreach U generate {($0), ($1), ($2)}
  * 
+ * All arguments that are not of tuple type are inserted into a tuple before
+ * being added to the bag. This is because bag is always a bag of tuples.
+ * 
  * Output schema:
  * The output schema for this udf depends on the schema of its arguments.
  * If all the arguments have same type and same inner 
@@ -81,9 +84,13 @@ public class TOBAG extends EvalFunc<DataBag> {
 
             for (int i = 0; i < input.size(); ++i) {
                 final Object object = input.get(i);
-                Tuple tp2 = TupleFactory.getInstance().newTuple(1);
-                tp2.set(0, object);
-                bag.add(tp2);
+                if (object instanceof Tuple) {
+                    bag.add( (Tuple) object);
+                } else {
+                    Tuple tp2 = TupleFactory.getInstance().newTuple(1);
+                    tp2.set(0, object);
+                    bag.add(tp2);
+                }
             }
 
             return bag;
