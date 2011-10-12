@@ -1660,8 +1660,7 @@ public class TestBuiltin {
     }
 
     @Test
-    public void testMiscFunc() throws Exception {
-        
+    public void testToBag() throws Exception {
         //TEST TOBAG
         TOBAG tb = new TOBAG();
 
@@ -1733,10 +1732,44 @@ public class TestBuiltin {
             assertTrue(s.contains(i));
         }
         assertTrue("null in tobag result", s.contains(null));
+    }
         
+    @Test
+    public void testTOBAGSupportsTuplesInInput() throws IOException {
+        String[][] expected = {
+                { "a", "b" },
+                { "c", "d" }
+        };
+        TOBAG function = new TOBAG();
+        Tuple input = TupleFactory.getInstance().newTuple(); // input represents a tuple of all the params sent to TOBAG
+        Tuple firstItem = TupleFactory.getInstance().newTuple(); // first item of the params is a Tuple
+        firstItem.append(expected[0][0]); // containing a and b
+        firstItem.append(expected[0][1]);
+        Tuple secondItem = TupleFactory.getInstance().newTuple(); // second item of the params is a Tuple
+        secondItem.append(expected[1][0]); // containing c and d
+        secondItem.append(expected[1][1]);
+
+        input.append(firstItem);
+        input.append(secondItem);
+
+        DataBag result = function.exec(input); // run TOBAG on ((a,b),(c,d))
+
+        assertEquals("number of tuples in the bag", 2, result.size()); // we should have 2 tuples in the output bag
+        int position = 0;
+        for (Tuple t : result) {
+            assertEquals("number of items in tuple " + position, 2, t.size()); // each tuple should contain 2 items
+            assertEquals("first item in tuple " + position, expected[position][0], t.get(0)); // check the items
+            assertEquals("second item in tuple " + position, expected[position][1], t.get(1));
+
+            position++;
+        }
+    }
+
+    @Test
+    public void testMiscFunc() throws Exception {
         TOTUPLE tt = new TOTUPLE();
 
-        input = TupleFactory.getInstance().newTuple();
+        Tuple input = TupleFactory.getInstance().newTuple();
         for (int i = 0; i < 100; ++i) {
             input.append(i);
         }
