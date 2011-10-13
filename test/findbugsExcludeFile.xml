@@ -429,4 +429,8 @@
         <Class name = "org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigGenericMapReduce" />
         <Bug pattern = "MS_CANNOT_BE_FINAL" />
     </Match>
+    <Match>
+        <Class name = "org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigOutputCommitter" />
+        <Bug pattern = "REC_CATCH_EXCEPTION" />
+    </Match>
 </FindBugsFilter>
