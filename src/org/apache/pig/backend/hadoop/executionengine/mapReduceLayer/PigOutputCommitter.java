@@ -18,6 +18,7 @@
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -164,6 +165,39 @@ public class PigOutputCommitter extends OutputCommitter {
         }
        
     }
+    
+    // This method only be called in 20.203+
+    public void commitJob(JobContext context) throws IOException {
+        // call commitJob on all map and reduce committers
+        for (Pair<OutputCommitter, POStore> mapCommitter : mapOutputCommitters) {
+            JobContext updatedContext = setUpContext(context,
+                    mapCommitter.second);
+            
+            try {
+                // Use reflection, 20.2 does not have such method
+                Method m = mapCommitter.first.getClass().getMethod("commitJob", JobContext.class);
+                m.invoke(mapCommitter.first, updatedContext);
+            } catch (Exception e) {
+                // Should not happen
+                assert(false);
+            }
+            
+        }
+        for (Pair<OutputCommitter, POStore> reduceCommitter :
+            reduceOutputCommitters) {
+            JobContext updatedContext = setUpContext(context,
+                    reduceCommitter.second);
+            try {
+                // Use reflection, 20.2 does not have such method
+                Method m = reduceCommitter.first.getClass().getMethod("commitJob", JobContext.class);
+                m.invoke(reduceCommitter.first, updatedContext);
+            } catch (Exception e) {
+                // Should not happen
+                assert(false);
+            }
+        }
+    }
+
 
     @Override
     public void abortTask(TaskAttemptContext context) throws IOException {        
