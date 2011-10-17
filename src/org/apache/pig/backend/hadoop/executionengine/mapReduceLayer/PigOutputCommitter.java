@@ -172,10 +172,11 @@ public class PigOutputCommitter extends OutputCommitter {
         for (Pair<OutputCommitter, POStore> mapCommitter : mapOutputCommitters) {
             JobContext updatedContext = setUpContext(context,
                     mapCommitter.second);
-            
+            storeCleanup(mapCommitter.second, updatedContext.getConfiguration());
             try {
                 // Use reflection, 20.2 does not have such method
                 Method m = mapCommitter.first.getClass().getMethod("commitJob", JobContext.class);
+                m.setAccessible(true);
                 m.invoke(mapCommitter.first, updatedContext);
             } catch (Exception e) {
                 // Should not happen
@@ -187,9 +188,11 @@ public class PigOutputCommitter extends OutputCommitter {
             reduceOutputCommitters) {
             JobContext updatedContext = setUpContext(context,
                     reduceCommitter.second);
+            storeCleanup(reduceCommitter.second, updatedContext.getConfiguration());
             try {
                 // Use reflection, 20.2 does not have such method
                 Method m = reduceCommitter.first.getClass().getMethod("commitJob", JobContext.class);
+                m.setAccessible(true);
                 m.invoke(reduceCommitter.first, updatedContext);
             } catch (Exception e) {
                 // Should not happen
