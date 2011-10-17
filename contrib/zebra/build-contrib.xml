@@ -100,8 +100,7 @@
   <!-- the normal classpath -->
   <path id="classpath">
     <fileset dir="${pig.root}/lib">
-      <include name="${hbase.jarfile}" />
-      <include name="${hbase.test.jarfile}" />
+      <include name="*.jar" />
     </fileset>
     <fileset dir="${pig.root}/build">
       <include name="${pig.jarfile}" />
