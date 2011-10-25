@@ -365,5 +365,13 @@ public class TestLogicalPlanGenerator {
         }
         Assert.fail( "Query is supposed to be failing." );
     }
+    
+    @Test
+    // See PIG-2320
+    public void testInlineOpInGroup() {
+        String query = "a = load 'data1' as (x:int); \n" +
+            "a_1 = filter (group a by x) by COUNT(a) > 0;";
+        generateLogicalPlan( query );
+    }
 
 }

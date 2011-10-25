@@ -18,6 +18,10 @@
 
 Pig Change Log
 
+Release 0.9.2 - Unreleased
+
+PIG-2320: Error: "projection with nothing to reference" (daijy)
+
 Release 0.9.1 - Unreleased
 
 IMPROVEMENTS

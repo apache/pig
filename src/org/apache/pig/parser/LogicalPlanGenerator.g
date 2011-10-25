@@ -447,7 +447,9 @@ scope GScope;
     $group_clause::innerFlags = new ArrayList<Boolean>();
     GROUPTYPE groupType = GROUPTYPE.REGULAR;
     SourceLocation loc = new SourceLocation( (PigParserNode)$group_clause.start );
+    int oldStatementIndex = $statement::inputIndex;
 }
+@after { $statement::inputIndex = oldStatementIndex; }
  : ^( GROUP group_item+ ( group_type { groupType = $group_type.type; ((LOCogroup)$GScope::currentOp).pinOption(LOCogroup.OPTION_GROUPTYPE); } )? partition_clause? )
    {
        $alias = builder.buildGroupOp( loc, (LOCogroup)$GScope::currentOp, $statement::alias, 
@@ -986,6 +988,10 @@ scope GScope;
     $join_clause::joinPlans = new MultiMap<Integer, LogicalExpressionPlan>();
     $join_clause::inputAliases = new ArrayList<String>();
     $join_clause::innerFlags = new ArrayList<Boolean>();
+    int oldStatementIndex = $statement::inputIndex;
+}
+@after {
+   $statement::inputIndex=oldStatementIndex;
 }
  : ^( JOIN join_sub_clause join_type? partition_clause? )
    {
