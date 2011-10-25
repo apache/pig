@@ -619,7 +619,10 @@ eid : rel_str_op
     | LEFT
     | RIGHT
     | FULL
-    | IDENTIFIER 
+    | IDENTIFIER
+    | TOBAG
+    | TOMAP
+    | TOTUPLE
 ;
 
 // relational operator

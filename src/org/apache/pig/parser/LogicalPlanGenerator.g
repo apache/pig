@@ -1628,6 +1628,9 @@ eid returns[String id] : rel_str_op { $id = $rel_str_op.id; }
     | RIGHT { $id = $RIGHT.text; }
     | FULL { $id = $FULL.text; }
     | IDENTIFIER { $id = $IDENTIFIER.text; }
+    | TOBAG { $id = "TOBAG"; }
+    | TOMAP { $id = "TOMAP"; }
+    | TOTUPLE { $id = "TOTUPLE"; }
 ;
 
 // relational operator

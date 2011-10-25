@@ -1,3 +1,4 @@
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -70,6 +71,9 @@ tokens {
     FALSE;
     IDENTIFIER;
     ANY;
+    TOBAG;
+    TOMAP;
+    TOTUPLE;
 }
 
 @header {
@@ -353,7 +357,7 @@ flatten_generated_item : flatten_clause ( AS! ( field_def | ( LEFT_PAREN! field_
                        | expr ( AS! field_def )?
                        | STAR ( AS! ( field_def | ( LEFT_PAREN! field_def_list RIGHT_PAREN! ) ) )?
 ;
-
+	
 flatten_clause : FLATTEN^ LEFT_PAREN! expr RIGHT_PAREN!
 ;
 
@@ -433,7 +437,15 @@ expr_eval : const_expr | var_expr
 var_expr : projectable_expr ( dot_proj | pound_proj )*
 ;
 
-projectable_expr: func_eval | col_ref | bin_expr
+projectable_expr: func_eval | col_ref | bin_expr | type_conversion
+;
+
+type_conversion : LEFT_CURLY real_arg_list RIGHT_CURLY 
+               -> ^( FUNC_EVAL TOBAG real_arg_list )
+               | LEFT_BRACKET real_arg_list RIGHT_BRACKET 
+               -> ^( FUNC_EVAL TOMAP real_arg_list )
+               | LEFT_PAREN real_arg ( COMMA real_arg )+ RIGHT_PAREN // to disable convertion on 1 element tuples
+               -> ^( FUNC_EVAL TOTUPLE real_arg+ )
 ;
 
 dot_proj : PERIOD ( col_alias_or_index 
