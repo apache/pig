@@ -602,6 +602,9 @@ eid : rel_str_op
     | RIGHT     { sb.append($RIGHT.text); }
     | FULL      { sb.append($FULL.text); }
     | IDENTIFIER    { sb.append($IDENTIFIER.text); }
+    | TOBAG    { sb.append("TOBAG"); }
+    | TOMAP    { sb.append("TOMAP"); }
+    | TOTUPLE    { sb.append("TOTUPLE"); }
 ;
 
 // relational operator

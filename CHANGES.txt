@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1387: Syntactical Sugar for PIG-1385 (azaroth)
+
 PIG-2305: Pig should log the split locations in task logs (vivekp via thejas)
 
 PIG-2293: Pig should support a more efficient merge join against data sources that natively support point 

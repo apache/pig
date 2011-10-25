@@ -258,7 +258,7 @@ rel : alias {  validateAliasRef( aliases, $alias.node, $alias.name ); }
     | op_clause parallel_clause?
 ;
 
-flatten_generated_item : ( flatten_clause | col_range | expr | STAR) field_def_list?
+flatten_generated_item : ( flatten_clause | col_range | expr | STAR ) field_def_list?
 ;
 
 flatten_clause : ^( FLATTEN expr )
@@ -595,6 +595,9 @@ eid : rel_str_op
     | RIGHT
     | FULL
     | IDENTIFIER
+    | TOBAG
+    | TOMAP
+    | TOTUPLE
 ;
 
 // relational operator
