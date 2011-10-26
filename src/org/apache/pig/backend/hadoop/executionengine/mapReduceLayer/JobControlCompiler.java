@@ -760,22 +760,25 @@ public class JobControlCompiler{
             }
         }
         long size = 0;
-        FileSystem fs = FileSystem.get(conf);
+        
         for (String input : inputs){
             //Using custom uri parsing because 'new Path(location).toUri()' fails
             // for some valid uri's (eg jdbc style), and 'new Uri(location)' fails
             // for valid hdfs paths that contain curly braces
-            if(!UriUtil.isHDFSFileOrLocal(input)){
-                //skip  if it is not hdfs or local file
+            if(!UriUtil.isHDFSFileOrLocalOrS3N(input)){
+                //skip  if it is not hdfs or local file or s3n
                 continue;
             }
+
             //the input file location might be a list of comma separeated files, 
             // separate them out
             for(String location : LoadFunc.getPathStrings(input)){
-                if(! UriUtil.isHDFSFileOrLocal(location)){
+                if(! UriUtil.isHDFSFileOrLocalOrS3N(location)){
                     continue;
                 }
-                FileStatus[] status=fs.globStatus(new Path(location));
+                Path path = new Path(location);
+                FileSystem fs = path.getFileSystem(conf);
+                FileStatus[] status=fs.globStatus(path);
                 if (status != null){
                     for (FileStatus s : status){
                         size += getPathLength(fs, s);
