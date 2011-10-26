@@ -789,12 +789,7 @@ public class TestLogicalPlanBuilder {
     public void testQueryFail67() throws Exception {
         String q = " a = load 'input1' as (name, age, gpa);" +
         " b = foreach a generate age, age * 10L, gpa/0.2f, {16, 4.0e-2, 'hello'};";
-        try {
-            buildPlan(q);
-        } catch (AssertionFailedError e) {
-            return;
-        }
-        Assert.fail( "query should fail" );
+        buildPlan(q);
     }
     
     @Test
