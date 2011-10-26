@@ -30,10 +30,10 @@ public class UriUtil {
         return false;
     }
 
-    public static boolean isHDFSFileOrLocal(String uri){
+    public static boolean isHDFSFileOrLocalOrS3N(String uri){
         if(uri == null)
             return false;
-        if(uri.startsWith("/") || uri.startsWith("hdfs:") || uri.startsWith("file:")){
+        if(uri.startsWith("/") || uri.startsWith("hdfs:") || uri.startsWith("file:") || uri.startsWith("s3n:")){
             return true;
         }
         return false;

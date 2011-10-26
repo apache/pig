@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2334: Set default number of reducers for S3N filesystem (ddaniels888 via daijy)
+
 PIG-1387: Syntactical Sugar for PIG-1385 (azaroth)
 
 PIG-2305: Pig should log the split locations in task logs (vivekp via thejas)
