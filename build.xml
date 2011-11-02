@@ -20,8 +20,6 @@
 	xmlns:ivy="antlib:org.apache.ivy.ant">
     <!-- Load all the default properties, and any the user wants    -->
     <!-- to contribute (without having to type -D or edit this file -->
-    <taskdef resource="net/sf/antcontrib/antcontrib.properties"/>
-
     <property file="${user.home}/build.properties" />
     <property file="${basedir}/build.properties" />
 
@@ -68,7 +66,9 @@
 
     <!-- jar names. TODO we might want to use the svn reversion name in the name in case it is a dev version -->
     <property name="output.jarfile" value="${build.dir}/${final.name}.jar" />
+    <property name="output.stage.jarfile" value="${build.dir}/${final.name}.stage.jar" />
     <property name="output.jarfile.withouthadoop" value="${build.dir}/${final.name}-withouthadoop.jar" />
+    <property name="output.stage.jarfile.withouthadoop" value="${build.dir}/${final.name}-withouthadoop.stage.jar" />
     <property name="output.jarfile.core" value="${build.dir}/${final.name}-core.jar" />
     <property name="output.jarfile.sources" value="${build.dir}/${final.name}-sources.jar" />
     <property name="output.jarfile.javadoc" value="${build.dir}/${final.name}-javadoc.jar" />
@@ -158,6 +158,10 @@
            select="\1" /-->
     <property name="hadoopversion" value="20" />
 
+    <condition property="isHadoop23">
+        <equals arg1="hadoopversion" arg2="23"/>
+    </condition>
+
     <property name="src.shims.dir" value="${basedir}/shims/src/hadoop${hadoopversion}" />
     <property name="src.shims.test.dir" value="${basedir}/shims/test/hadoop${hadoopversion}" />
 
@@ -171,7 +175,6 @@
 	<property name="ant_task_repo_url"
 	value="${mvnrepo}/org/apache/maven/maven-ant-tasks/${ant-task.version}/maven-ant-tasks-${ant-task.version}.jar"/>
 	<property name="ivy_repo_url" value="${mvnrepo}/org/apache/ivy/ivy/${ivy.version}/ivy-${ivy.version}.jar"/>
-    <property name="guava.jar" value="guava-${guava.version}.jar"/>
     <property name="ivysettings.xml" location="${ivy.dir}/ivysettings.xml" />
     <property name="ivy.org" value="org.apache.pig"/>
     <property name="build.dir" location="build" />
@@ -225,7 +228,6 @@
     <!-- javadoc-classpath -->
     <path id="javadoc-classpath">
 	<fileset file="${lib.dir}/${automaton.jarfile}" />
-        <fileset file="${lib.dir}/${guava.jarfile}" />
 	<path refid="javadoc.classpath"/>	
     </path> 
 
@@ -514,7 +516,32 @@
         </jar>
     </target>
 
+    <!-- ================================================================== -->
+    <!-- Utility to build pig.jar and pig-withouthadoop.jar                 -->
+    <!-- ================================================================== -->
     <target name="jar-all" depends="jar,jar-withouthadoop" description="Create pig-all.jar and pig-withouthadoop.jar">
+    </target>
+
+    <target name="include-meta" if="isHadoop23">
+        <copy todir="${build.classes}/META-INF">
+            <fileset dir="${src.dir}/META-INF" includes="**"/>  
+        </copy>
+        <move file="${output.jarfile}" tofile="${output.stage.jarfile}"/>
+        <sleep seconds="1"/>
+        <jar jarfile="${output.jarfile}" if="isHadoop23">
+            <manifest>
+                <attribute name="Main-Class" value="org.apache.pig.Main" />
+                <section name="org/apache/pig">
+                    <attribute name="Implementation-Vendor" value="Apache" />
+                    <attribute name="Implementation-Title" value="Pig" />
+                    <attribute name="Implementation-Version" value="${version}" />
+                    <attribute name="Build-TimeStamp" value="${timestamp}" />
+                    <attribute name="Svn-Revision" value="${svnString}" />
+                </section>
+            </manifest>
+            <zipfileset src="${output.stage.jarfile}"/>
+            <fileset dir="${build.classes}" includes="META-INF/**" />
+        </jar>
     </target>
 
     <!-- ================================================================== -->
@@ -566,24 +593,29 @@
                     <attribute name="Svn-Revision" value="${svnString}" />
                 </section>
             </manifest>
-            <zipfileset src="${ivy.lib.dir}/hadoop-core-${hadoop-core.version}.jar" />
             <zipfileset src="${lib.dir}/${automaton.jarfile}" />
-            <zipfileset src="${ivy.lib.dir}/antlr-runtime-${antlr.version}.jar" />
-            <zipfileset src="${ivy.lib.dir}/ST4-${stringtemplate.version}.jar" />
-            <zipfileset src="${ivy.lib.dir}/junit-${junit.version}.jar" />
-            <zipfileset src="${ivy.lib.dir}/jsch-${jsch.version}.jar" />
-            <zipfileset src="${ivy.lib.dir}/jline-${jline.version}.jar" />
-            <zipfileset src="${ivy.lib.dir}/jackson-mapper-asl-${jackson.version}.jar" />
-            <zipfileset src="${ivy.lib.dir}/jackson-core-asl-${jackson.version}.jar" />
-            <zipfileset src="${ivy.lib.dir}/joda-time-${joda-time.version}.jar" /> 
-            <zipfileset src="${ivy.lib.dir}/${guava.jar}" />
-            <zipgroupfileset dir="${ivy.lib.dir}" includes="hbase-${hbase.version}.jar" /> 
-            <zipgroupfileset dir="${ivy.lib.dir}" includes="commons*.jar"/>
-            <zipgroupfileset dir="${ivy.lib.dir}" includes="log4j*.jar"/>
-            <zipgroupfileset dir="${ivy.lib.dir}" includes="jsp-api*.jar"/>
-            <zipgroupfileset dir="${ivy.lib.dir}" includes="zookeeper*.jar"/>
+            <zipgroupfileset dir="${ivy.lib.dir}">
+                <include name="hadoop-core-${hadoop-core.version}.jar" />
+                <include name="hadoop-*-${hadoop-common.version}*.jar" />
+                <include name="antlr-runtime-${antlr.version}.jar" />
+                <include name="ST4-${stringtemplate.version}.jar" />
+                <include name="junit-${junit.version}.jar" />
+                <include name="jsch-${jsch.version}.jar" />
+                <include name="jline-${jline.version}.jar" />
+                <include name="jackson-mapper-asl-${jackson.version}.jar" />
+                <include name="jackson-core-asl-${jackson.version}.jar" />
+                <include name="joda-time-${joda-time.version}.jar" />
+                <include name="guava-${guava.version}.jar" />
+                <include name="avro-${avro.version}.jar"/>
+                <include name="hbase-${hbase.version}.jar" />
+                <include name="commons*.jar"/>
+                <include name="log4j*.jar"/>
+                <include name="jsp-api*.jar"/>
+                <include name="zookeeper*.jar"/>
+            </zipgroupfileset>
             <fileset file="${basedir}/conf/pig-default.properties" />
         </jar>
+        <antcall target="include-meta" inheritRefs="true" inheritall="true"/>
         <copy file="${output.jarfile}" tofile="${output.jarfile.backcompat}"/>
     </target>
 
@@ -653,12 +685,14 @@
                 </section>
             </manifest>
             <zipfileset src="${lib.dir}/${automaton.jarfile}" />
-            <zipfileset src="${ivy.lib.dir}/antlr-runtime-${antlr.version}.jar" />
-            <zipfileset src="${ivy.lib.dir}/ST4-${stringtemplate.version}.jar" />
-            <zipfileset src="${ivy.lib.dir}/jline-${jline.version}.jar" />
-            <zipfileset src="${ivy.lib.dir}/jackson-mapper-asl-${jackson.version}.jar" />
-            <zipfileset src="${ivy.lib.dir}/jackson-core-asl-${jackson.version}.jar" />
-            <zipfileset src="${ivy.lib.dir}/${guava.jar}" />
+            <zipgroupfileset dir="${ivy.lib.dir}">
+                <include name="antlr-runtime-${antlr.version}.jar" />
+                <include name="ST4-${stringtemplate.version}.jar" />
+                <include name="jline-${jline.version}.jar" />
+                <include name="jackson-mapper-asl-${jackson.version}.jar" />
+                <include name="jackson-core-asl-${jackson.version}.jar" />
+                <include name="guava-${guava.version}.jar" />
+            </zipgroupfileset>
             <fileset file="${basedir}/conf/pig-default.properties" />
         </jar>
         <copy file="${output.jarfile.withouthadoop}" tofile="${output.jarfile.backcompat.withouthadoop}"/>

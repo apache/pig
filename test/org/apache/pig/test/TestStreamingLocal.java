@@ -197,7 +197,7 @@ public class TestStreamingLocal extends TestCase {
             }
 
             // Run the query and check the results
-            Util.checkQueryOutputs(pigServer.openIterator("OP"), expectedResults);
+            Util.checkQueryOutputsAfterSort(pigServer.openIterator("OP"), expectedResults);
         }
     }
 

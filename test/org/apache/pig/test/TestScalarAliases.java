@@ -410,16 +410,13 @@ public class TestScalarAliases  {
 
         Iterator<Tuple> iter = pigServer.openIterator("Y");
 
-        Tuple t = iter.next();
-        assertTrue(t.toString().equals("(1,5,Total3,three)"));
-
-        t = iter.next();
-        assertTrue(t.toString().equals("(2,10,Total3,three)"));
-
-        t = iter.next();
-        assertTrue(t.toString().equals("(3,20,Total3,three)"));
-
-        assertFalse(iter.hasNext());
+        String[] expected = new String[] {
+                "(1,5,Total3,three)",
+                "(2,10,Total3,three)",
+                "(3,20,Total3,three)"
+        };
+        
+        Util.checkQueryOutputsAfterSortRecursive(iter, expected, org.apache.pig.newplan.logical.Util.translateSchema(pigServer.dumpSchema("Y")));
     }
 
     // See PIG-1434

@@ -21,10 +21,12 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.util.Iterator;
+import java.util.Properties;
 import java.util.Random;
 
 import junit.framework.TestCase;
 
+import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataType;
@@ -42,7 +44,7 @@ public class TestAlgebraicEvalLocal extends TestCase {
     @Before
     @Override
     protected void setUp() throws Exception {
-        pig = new PigServer("local");
+        pig = new PigServer(ExecType.LOCAL, new Properties());
     }
     
     Boolean[] nullFlags = new Boolean[]{ false, true};
