@@ -339,7 +339,7 @@ public class TestProject extends  junit.framework.TestCase {
         String query = "a = load '" + inputFileName + "';" +
                 "b = group a all;" +
                 "c = foreach b generate flatten(a.($1, $2)),a.$2;";
-        
+            
         PigServer ps = new PigServer(ExecType.LOCAL);
         Util.registerMultiLineQuery(ps, query);
         Iterator<Tuple> it = ps.openIterator("c");
@@ -347,10 +347,16 @@ public class TestProject extends  junit.framework.TestCase {
                 (Tuple) Util.getPigConstant("('world', null, {(null),(null)})"),
                 (Tuple) Util.getPigConstant("('bye', null, {(null),(null)})")
         };
-        int i = 0;
+        boolean contains0 = false;
+        boolean contains1 = false;
         while(it.hasNext()) {
-            assertEquals(expectedResults[i++].toString(), it.next().toString());
+            String actualResult = it.next().toString();
+            if (actualResult.equals(expectedResults[0].toString()))
+                contains0 = true;
+            if (actualResult.equals(expectedResults[1].toString()))
+                contains1 = true;
         }
+        assertTrue(contains0&&contains1);
     }
 
     @Test

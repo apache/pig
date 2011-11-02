@@ -92,15 +92,18 @@ public class MiniCluster extends MiniGenericCluster {
 				e.printStackTrace();
 			}
 			*/
-			m_dfs.getFileSystem().copyFromLocalFile(new Path("file:///hadoop-mapreduce-client-app-1.0-SNAPSHOT.jar"), new Path("/hadoop-mapreduce-client-app-1.0-SNAPSHOT.jar"));
-			m_dfs.getFileSystem().copyFromLocalFile(new Path("file:///hadoop-mapreduce-client-jobclient-1.0-SNAPSHOT.jar"), new Path("/hadoop-mapreduce-client-jobclient-1.0-SNAPSHOT.jar"));
+			m_dfs.getFileSystem().copyFromLocalFile(new Path("file:///hadoop-mapreduce-client-app-0.23.0-SNAPSHOT.jar"), new Path("/hadoop-mapreduce-client-app-0.23.0-SNAPSHOT.jar"));
+			m_dfs.getFileSystem().copyFromLocalFile(new Path("file:///hadoop-mapreduce-client-jobclient-0.23.0-SNAPSHOT.jar"), new Path("/hadoop-mapreduce-client-jobclient-0.23.0-SNAPSHOT.jar"));
 			m_dfs.getFileSystem().copyFromLocalFile(new Path("file:///pig.jar"), new Path("/pig.jar"));
 			m_dfs.getFileSystem().copyFromLocalFile(new Path("file:///pig-test.jar"), new Path("/pig-test.jar"));
 
-            DistributedCache.addFileToClassPath(new Path("/hadoop-mapreduce-client-app-1.0-SNAPSHOT.jar"), m_conf);
+            DistributedCache.addFileToClassPath(new Path("/hadoop-mapreduce-client-app-0.23.0-SNAPSHOT.jar"), m_conf);
             DistributedCache.addFileToClassPath(new Path("/pig.jar"), m_conf);
             DistributedCache.addFileToClassPath(new Path("/pig-test.jar"), m_conf);
-            DistributedCache.addFileToClassPath(new Path("/hadoop-mapreduce-client-jobclient-1.0-SNAPSHOT.jar"), m_conf);
+            DistributedCache.addFileToClassPath(new Path("/hadoop-mapreduce-client-jobclient-0.23.0-SNAPSHOT.jar"), m_conf);
+            String cachefile = m_conf.get("mapreduce.job.cache.files");
+            m_conf.set("alternative.mapreduce.job.cache.files", cachefile);
+            m_conf.unset("mapreduce.job.cache.files");
 
             //ConfigurationUtil.mergeConf(m_conf, m_dfs_conf);
             //ConfigurationUtil.mergeConf(m_conf, m_mr_conf);

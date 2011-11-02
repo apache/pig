@@ -19,6 +19,7 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
 
 import java.io.IOException;
+
 import java.net.URI;
 import java.util.Iterator;
 import java.util.List;
@@ -37,14 +38,21 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.Partitioner;
+import org.apache.hadoop.mapreduce.RecordReader;
+import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.StatusReporter;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
+import org.apache.hadoop.mapreduce.Reducer.Context;
+import org.apache.hadoop.mapreduce.lib.map.WrappedMapper;
+import org.apache.hadoop.mapreduce.task.MapContextImpl;
 import org.apache.hadoop.security.Credentials;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigGenericMapBase;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.util.Pair;
+import org.apache.hadoop.mapreduce.lib.map.WrappedMapper;
 
 abstract public class PigMapBase extends PigGenericMapBase {
     /**
@@ -63,10 +71,11 @@ abstract public class PigMapBase extends PigGenericMapBase {
     public Context getIllustratorContext(Configuration conf, DataBag input,
           List<Pair<PigNullableWritable, Writable>> output, InputSplit split)
           throws IOException, InterruptedException {
-        return new IllustratorContext(conf, input, output, split);
+    	org.apache.hadoop.mapreduce.Mapper.Context mapperContext = new WrappedMapper<Text, Tuple, PigNullableWritable, Writable>().getMapContext(new IllustratorContext(conf, input, output, split));
+        return mapperContext;
     }
     
-    public class IllustratorContext extends Context {
+    public class IllustratorContext extends MapContextImpl<Text, Tuple, PigNullableWritable, Writable> {
         private DataBag input;
         List<Pair<PigNullableWritable, Writable>> output;
         private Iterator<Tuple> it = null;
@@ -76,11 +85,12 @@ abstract public class PigMapBase extends PigGenericMapBase {
         public IllustratorContext(Configuration conf, DataBag input,
               List<Pair<PigNullableWritable, Writable>> output,
               InputSplit split) throws IOException, InterruptedException {
-              if (output == null)
-                  throw new IOException("Null output can not be used");
-              this.input = input; this.output = output;
+            super(conf, new TaskAttemptID(), null, null, null, null, split);
+            if (output == null)
+                throw new IOException("Null output can not be used");
+            this.input = input; this.output = output;
         }
-        
+
         @Override
         public boolean nextKeyValue() throws IOException, InterruptedException {
             if (input == null) {
@@ -118,263 +128,10 @@ abstract public class PigMapBase extends PigGenericMapBase {
         public void progress() {
           
         }
-
-        @Override
-        public InputSplit getInputSplit() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public Counter getCounter(Enum<?> arg0) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public Counter getCounter(String arg0, String arg1) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public OutputCommitter getOutputCommitter() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public String getStatus() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public TaskAttemptID getTaskAttemptID() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public void setStatus(String arg0) {
-            // TODO Auto-generated method stub
-            
-        }
-
-        @Override
-        public Path[] getArchiveClassPaths() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public long[] getArchiveTimestamps() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public URI[] getCacheArchives() throws IOException {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public URI[] getCacheFiles() throws IOException {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public Class<? extends Reducer<?, ?, ?, ?>> getCombinerClass()
-                throws ClassNotFoundException {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public Configuration getConfiguration() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public Credentials getCredentials() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public Path[] getFileClassPaths() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public long[] getFileTimestamps() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public RawComparator<?> getGroupingComparator() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public Class<? extends InputFormat<?, ?>> getInputFormatClass()
-                throws ClassNotFoundException {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public String getJar() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public JobID getJobID() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public String getJobName() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public boolean getJobSetupCleanupNeeded() {
-            // TODO Auto-generated method stub
-            return false;
-        }
-
-        @Override
-        public Path[] getLocalCacheArchives() throws IOException {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public Path[] getLocalCacheFiles() throws IOException {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public Class<?> getMapOutputKeyClass() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public Class<?> getMapOutputValueClass() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public Class<? extends Mapper<?, ?, ?, ?>> getMapperClass()
-                throws ClassNotFoundException {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public int getMaxMapAttempts() {
-            // TODO Auto-generated method stub
-            return 0;
-        }
-
-        @Override
-        public int getMaxReduceAttempts() {
-            // TODO Auto-generated method stub
-            return 0;
-        }
-
-        @Override
-        public int getNumReduceTasks() {
-            // TODO Auto-generated method stub
-            return 0;
-        }
-
-        @Override
-        public Class<? extends OutputFormat<?, ?>> getOutputFormatClass()
-                throws ClassNotFoundException {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public Class<?> getOutputKeyClass() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public Class<?> getOutputValueClass() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public Class<? extends Partitioner<?, ?>> getPartitionerClass()
-                throws ClassNotFoundException {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public boolean getProfileEnabled() {
-            // TODO Auto-generated method stub
-            return false;
-        }
-
-        @Override
-        public String getProfileParams() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public IntegerRanges getProfileTaskRange(boolean arg0) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public Class<? extends Reducer<?, ?, ?, ?>> getReducerClass()
-                throws ClassNotFoundException {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public RawComparator<?> getSortComparator() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public boolean getSymlink() {
-            // TODO Auto-generated method stub
-            return false;
-        }
-
-        @Override
-        public String getUser() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public Path getWorkingDirectory() throws IOException {
-            // TODO Auto-generated method stub
-            return null;
-        }
+    }
+    
+    @Override
+    public boolean inIllustrator(Context context) {
+        return (context instanceof WrappedMapper.Context);
     }
 }

@@ -164,7 +164,7 @@ public abstract class PigGenericMapBase extends Mapper<Text, Tuple, PigNullableW
         PigMapReduce.sJobContext = context;
         PigMapReduce.sJobConfInternal.set(context.getConfiguration());
         PigMapReduce.sJobConf = context.getConfiguration();
-        inIllustrator = (context instanceof PigMapBase.IllustratorContext);
+        inIllustrator = inIllustrator(context);
         
         PigContext.setPackageImportList((ArrayList<String>)ObjectSerializer.deserialize(job.get("udf.import.list")));
         pigContext = (PigContext)ObjectSerializer.deserialize(job.get("pig.pigContext"));
@@ -301,6 +301,8 @@ public abstract class PigGenericMapBase extends Mapper<Text, Tuple, PigNullableW
 
     abstract public void collect(Context oc, Tuple tuple) throws InterruptedException, IOException;
 
+    abstract public boolean inIllustrator(Context context);
+    
     /**
      * @return the keyType
      */

@@ -56,4 +56,10 @@ public class HadoopShims {
         
         return false;
     }
+    
+    static public TaskAttemptID getNewTaskAttemptID() {
+        TaskAttemptID taskAttemptID = new TaskAttemptID("", 1, TaskType.MAP, 
+                1, 1);
+        return taskAttemptID;
+    }
 }
