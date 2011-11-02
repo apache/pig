@@ -58,4 +58,8 @@ public class HadoopShims {
     static public boolean isMap(TaskAttemptID taskAttemptID) {
         return taskAttemptID.isMap();
     }
+    
+    static public TaskAttemptID getNewTaskAttemptID() {
+        return new TaskAttemptID();
+    }
 }

@@ -37,12 +37,17 @@ import junit.framework.Assert;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
+import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.DefaultDataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.util.Utils;
+import org.apache.pig.newplan.logical.relational.LogicalSchema;
+import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
 import org.junit.AfterClass;
 import org.junit.Test;
 
@@ -495,11 +500,7 @@ public class TestCombiner {
             assertFalse(baos.toString().matches("(?si).*combine plan.*"));
     
             Iterator<Tuple> it = pigServer.openIterator("c");
-            int count = 0;
-            while (it.hasNext()) {
-                Tuple t = it.next();
-                assertEquals(expected[count++], t.toString());
-            }
+            Util.checkQueryOutputsAfterSortRecursive(it, expected, "group:chararray,age:long,b:{t:(name:chararray,age:int,gpa:double)}");
         } catch (IOException e) {
             e.printStackTrace();
             Assert.fail();

@@ -29,6 +29,7 @@ import org.apache.hadoop.mapred.Counters;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.StatusReporter;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
+import org.apache.hadoop.mapreduce.Mapper.Context;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigGenericMapBase;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
@@ -55,7 +56,10 @@ abstract public class PigMapBase extends PigGenericMapBase {
         return new IllustratorContext(conf, input, output, split);
     }
     
-    
+    @Override
+    public boolean inIllustrator(Context context) {
+        return (context instanceof PigMapBase.IllustratorContext);
+    }
 
     /**
      * Dummy implementation of StatusReporter for illustrate mode

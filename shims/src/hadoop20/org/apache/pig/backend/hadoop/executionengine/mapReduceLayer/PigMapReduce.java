@@ -160,5 +160,17 @@ public class PigMapReduce extends PigGenericMapReduce {
             public void progress() { 
             }
         }
+
+        @Override
+        public boolean inIllustrator(
+                org.apache.hadoop.mapreduce.Reducer.Context context) {
+            return (context instanceof PigMapReduce.Reduce.IllustratorContext);
+        }
+
+        @Override
+        public POPackage getPack(
+                org.apache.hadoop.mapreduce.Reducer.Context context) {
+            return ((PigMapReduce.Reduce.IllustratorContext) context).pack;
+        }
     }
 }
