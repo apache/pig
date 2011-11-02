@@ -146,6 +146,8 @@ PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
 
+PIG-2335: bin/pig does not work with bash 3.0 (azaroth)
+
 PIG-2275: NullPointerException from ILLUSTRATE (daijy)
 
 PIG-2119: DuplicateForEachColumnRewrite makes assumptions about the position of LOGGenerate in the plan (daijy)
