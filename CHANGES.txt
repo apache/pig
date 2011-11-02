@@ -146,6 +146,8 @@ PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
 
+PIG-2119: DuplicateForEachColumnRewrite makes assumptions about the position of LOGGenerate in the plan (daijy)
+
 PIG-2290: TOBAG wraps tuple parameters in another tuple (ryan.hoegg via thejas)
 
 PIG-2288: Pig 0.9 error message not useful as compared to 0.8 in case 
