@@ -61,6 +61,7 @@ import org.apache.pig.newplan.logical.expression.LessThanExpression;
 import org.apache.pig.newplan.logical.expression.LessThanEqualExpression;
 import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
+import org.apache.pig.newplan.logical.expression.IsNullExpression;
 import org.apache.pig.newplan.logical.expression.ModExpression;
 import org.apache.pig.newplan.logical.expression.LogicalExpression;
 import org.apache.pig.newplan.logical.expression.MultiplyExpression;
@@ -69,6 +70,7 @@ import org.apache.pig.newplan.logical.expression.NotEqualExpression;
 import org.apache.pig.newplan.logical.expression.OrExpression;
 import org.apache.pig.newplan.logical.expression.ProjectExpression;
 import org.apache.pig.newplan.logical.expression.RegexExpression;
+import org.apache.pig.newplan.logical.expression.UserFuncExpression;
 import org.apache.pig.newplan.logical.relational.LOSort;
 import org.apache.pig.newplan.logical.relational.LOSplit;
 import org.apache.pig.newplan.logical.relational.LOStore;
@@ -510,10 +512,10 @@ public class AugmentBaseDataVisitor extends LogicalRelationalNodesVisitor {
         } catch (Exception e) {
             log
                     .error("Error visiting Load during Augmentation phase of Example Generator! "
-                            + e.getMessage());
+                            + e.getMessage(), e);
             throw new FrontendException(
                     "Error visiting Load during Augmentation phase of Example Generator! "
-                            + e.getMessage());
+                            + e.getMessage(), e);
         }
     }
 
@@ -946,6 +948,12 @@ public class AugmentBaseDataVisitor extends LogicalRelationalNodesVisitor {
                     invert);
         else if (pred instanceof NotExpression)
             GenerateMatchingTupleHelper(t, (NotExpression) pred, invert);
+        else if (pred instanceof IsNullExpression)
+            GenerateMatchingTupleHelper(t, (IsNullExpression) pred, invert);
+        else if (pred instanceof UserFuncExpression)
+            // Don't know how to generate input tuple for UDF, return null
+            // to suppress the generation 
+            t = null;
         else
             throw new FrontendException("Unknown operator in filter predicate");
     }
@@ -1150,6 +1158,15 @@ public class AugmentBaseDataVisitor extends LogicalRelationalNodesVisitor {
         LogicalExpression input = op.getExpression();
         GenerateMatchingTupleHelper(t, input, !invert);
 
+    }
+    
+    void GenerateMatchingTupleHelper(Tuple t, IsNullExpression op, boolean invert)
+            throws FrontendException, ExecException {
+        byte type = op.getExpression().getType();
+        if (!invert)
+            t.set(0, null);
+        else
+            t.set(0, generateData(type, "0"));
     }
 
     Object GetUnequalValue(Object v) {
