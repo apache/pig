@@ -361,4 +361,33 @@ public class TestExampleGenerator {
 
         assertTrue(derivedData != null);
     }
+    
+    //see PIG-2275
+    @Test
+    public void testFilterWithIsNull() throws ExecException, IOException {
+        PigServer pigServer = new PigServer(pigContext);
+
+        pigServer.registerQuery("A = load " + A
+                + " using PigStorage() as (x : int, y : int);");
+        pigServer.registerQuery("B = filter A by x is not null;");
+
+        Map<Operator, DataBag> derivedData = pigServer.getExamples("B");
+
+        assertTrue(derivedData != null);
+    }
+    
+    @Test
+    public void testFilterWithUDF() throws ExecException, IOException {
+        PigServer pigServer = new PigServer(pigContext);
+
+        pigServer.registerQuery("A = load " + A
+                + " using PigStorage() as (x : int, y : int);");
+        pigServer.registerQuery("B = group A by x;");
+        pigServer.registerQuery("C = filter B by NOT IsEmpty(A.y);");
+
+        Map<Operator, DataBag> derivedData = pigServer.getExamples("C");
+
+        assertTrue(derivedData != null);
+    }
+
 }

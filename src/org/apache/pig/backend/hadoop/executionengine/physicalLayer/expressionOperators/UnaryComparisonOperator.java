@@ -55,7 +55,7 @@ public abstract class UnaryComparisonOperator extends UnaryExpressionOperator
     @Override
     public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
         if(illustrator != null) {
-
+            illustrator.setSubExpResult(eqClassIndex == 0);
         }
         return null;
     }
