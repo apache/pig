@@ -235,6 +235,7 @@
     <path id="test.classpath">
         <pathelement location="${build.classes}"/>
         <pathelement location="${test.src.dir}"/>
+        <fileset dir="${ivy.lib.dir}" includes="hadoop*.jar"/>
         <path refid="classpath"/>
         <path refid="test-classpath"/>
     </path>
