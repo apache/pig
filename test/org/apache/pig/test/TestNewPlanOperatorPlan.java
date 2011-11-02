@@ -21,6 +21,7 @@ package org.apache.pig.test;
 import java.util.Collection;
 import java.util.List;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataType;
@@ -1505,7 +1506,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
         aschema1.addField(new LogicalSchema.LogicalFieldSchema(
             "x", null, DataType.INTEGER));
         LOLoad A1 = new LOLoad(new FileSpec("/abc",
-            new FuncSpec(DummyLoad.class.getName(), new String[] {"x", "y"})), aschema1, lp1, null);
+            new FuncSpec(DummyLoad.class.getName(), new String[] {"x", "y"})), aschema1, lp1, new Configuration());
         lp1.add(A1);
         
         LogicalExpressionPlan fp1 = new LogicalExpressionPlan();
@@ -1523,7 +1524,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
         
         LogicalPlan lp2 = new LogicalPlan();
         LOLoad A2 = new LOLoad(new FileSpec("/abc",
-            new FuncSpec(DummyLoad.class.getName(), new String[] {"x", "z"})), null, lp2, null);
+            new FuncSpec(DummyLoad.class.getName(), new String[] {"x", "z"})), null, lp2, new Configuration());
         lp2.add(A2);
         
         LogicalExpressionPlan fp2 = new LogicalExpressionPlan();

@@ -270,7 +270,7 @@ public class TestScriptUDF{
     public void testPythonScriptUDFBagInput() throws Exception{
         String[] script = {
                 "#!/usr/bin/python",
-                "@outputSchema(\"bag:{(y:{t:(word:chararray)})}\")",
+                "@outputSchema(\"bag:{(y:{t:(len:int,word:chararray)})}\")",
                 "def collect(bag):" ,
                 "\toutBag = []",
                 "\tfor word in bag:",
@@ -296,42 +296,13 @@ public class TestScriptUDF{
         pigServer.registerQuery("C = foreach B generate pig.collect(A);");
 
         Iterator<Tuple> iter = pigServer.openIterator("C");
-        Assert.assertTrue(iter.hasNext());
-        Tuple t = iter.next();
         
-        DataBag bag; 
-        Tuple tup;
-        bag = BagFactory.getInstance().newDefaultBag();
-        tup = TupleFactory.getInstance().newTuple();
-        tup.append(3);
-        tup.append("hello");
-        bag.add(tup);
-        tup = TupleFactory.getInstance().newTuple();
-        tup.append(3);
-        tup.append("world");
-        bag.add(tup);
-        tup = TupleFactory.getInstance().newTuple();
-        tup.append(3);
-        tup.append("program");
-        bag.add(tup);
-    
-        Assert.assertTrue(t.get(0).toString().equals(bag.toString()));
-        
-        Assert.assertTrue(iter.hasNext());
-        t = iter.next();
-        
-        bag = BagFactory.getInstance().newDefaultBag();
-        tup = TupleFactory.getInstance().newTuple();
-        tup.append(2);
-        tup.append("pig");
-        bag.add(tup);
-        tup = TupleFactory.getInstance().newTuple();
-        tup.append(2);
-        tup.append("hadoop");
-        bag.add(tup);
-        
-        Assert.assertTrue(t.get(0).toString().equals(bag.toString()));
-    }
+        String[] expected = new String[] {
+        		"({(3,hello),(3,world),(3,program)})",
+        		"({(2,hadoop),(2,pig)})"
+        };
+        Util.checkQueryOutputsAfterSortRecursive(iter, expected, "y: {(len:int, word:chararray)}");
+        }
     
     @Test
     public void testPythonScriptUDFMapInput() throws Exception{

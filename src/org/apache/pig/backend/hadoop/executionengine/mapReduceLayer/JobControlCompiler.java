@@ -701,7 +701,17 @@ public class JobControlCompiler{
             }
             if (maxCombinedSplitSize > 0)
                 conf.setLong("pig.maxCombinedSplitSize", maxCombinedSplitSize);
-                        
+            
+            // It's a hack to set distributed cache file for hadoop 23. Once MiniMRCluster do not require local
+            // jar on fixed location, this can be removed
+            if (pigContext.getExecType() == ExecType.MAPREDUCE) {
+                String newfiles = conf.get("alternative.mapreduce.job.cache.files");
+                if (newfiles!=null) {
+                    String files = conf.get("mapreduce.job.cache.files");
+                    conf.set("mapreduce.job.cache.files",
+                        files == null ? newfiles.toString() : files + "," + newfiles);
+                }
+            }
             // Serialize the UDF specific context info.
             UDFContext.getUDFContext().serialize(conf);
             Job cjob = new Job(new JobConf(nwJob.getConfiguration()), new ArrayList());

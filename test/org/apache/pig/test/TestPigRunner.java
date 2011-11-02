@@ -562,7 +562,8 @@ public class TestPigRunner {
         Assert.assertNotNull(ctx);
 
         assertTrue(ctx.extraJars.contains(ClassLoader.getSystemResource("pig-withouthadoop.jar")));
-        assertEquals("default", ctx.getProperties().getProperty("mapred.job.queue.name"));
+        assertTrue("default", ctx.getProperties().getProperty("mapred.job.queue.name")!=null && ctx.getProperties().getProperty("mapred.job.queue.name").equals("default")||
+                ctx.getProperties().getProperty("mapreduce.job.queuename")!=null && ctx.getProperties().getProperty("mapreduce.job.queuename").equals("default"));
        
     }
 

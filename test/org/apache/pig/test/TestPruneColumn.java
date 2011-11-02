@@ -573,13 +573,11 @@ public class TestPruneColumn extends TestCase {
         pigServer.registerQuery("C = foreach B generate $1;");
         Iterator<Tuple> iter = pigServer.openIterator("C");
         
+        String[] expected = new String[] {
+                "({(1,2,3),(2,5,2)})"
+        };
         assertTrue(iter.hasNext());
-        Tuple t = iter.next();
-        
-        assertTrue(t.size()==1);
-        assertTrue(t.get(0).toString().equals("{(1,2,3),(2,5,2)}"));
-        
-        assertFalse(iter.hasNext());
+        Util.checkQueryOutputsAfterSortRecursive(iter, expected, org.apache.pig.newplan.logical.Util.translateSchema(pigServer.dumpSchema("C")));   
         
         assertTrue(emptyLogFileMessage());
     }
@@ -1215,13 +1213,11 @@ public class TestPruneColumn extends TestCase {
         
         Iterator<Tuple> iter = pigServer.openIterator("C");
         
-        assertTrue(iter.hasNext());
-        Tuple t = iter.next();
-        assertTrue(t.size()==2);
-        assertTrue(t.get(0).toString().equals("all"));
-        assertTrue(t.get(1).toString().equals("{([key2#2,key1#1],1),([key2#4,key1#2],2)}"));
+        String[] expected = new String[] {
+                "(all,{([key2#2,key1#1],1),([key2#4,key1#2],2)})"
+        };
         
-        assertFalse(iter.hasNext());
+        Util.checkQueryOutputsAfterSortRecursive(iter, expected, org.apache.pig.newplan.logical.Util.translateSchema(pigServer.dumpSchema("C")));
         
         assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $0"}));
     }
@@ -1920,21 +1916,14 @@ public class TestPruneColumn extends TestCase {
         pigServer.registerQuery("D = filter C by A::a1>=B::a1;");
         Iterator<Tuple> iter = pigServer.openIterator("D");
 
-        assertTrue(iter.hasNext());
-        Tuple t = iter.next();
-        assertTrue(t.toString().equals("(1,2,3,1,2)"));
+        String [] expected = new String[] {
+                "(1,2,3,1,2)",
+                "(1,3,2,1,2)",
+                "(1,3,2,1,3)",
+                "(2,5,2,2,5)"
+        };
         
-        assertTrue(iter.hasNext());
-        t = iter.next();
-        assertTrue(t.toString().equals("(1,3,2,1,2)"));
-        
-        assertTrue(iter.hasNext());
-        t = iter.next();
-        assertTrue(t.toString().equals("(1,3,2,1,3)"));
-
-        assertTrue(iter.hasNext());
-        t = iter.next();
-        assertTrue(t.toString().equals("(2,5,2,2,5)"));
+        Util.checkQueryOutputsAfterSortRecursive(iter, expected, org.apache.pig.newplan.logical.Util.translateSchema(pigServer.dumpSchema("D")));
         
         assertTrue(emptyLogFileMessage());
     }

@@ -590,7 +590,9 @@ public class TestBZip {
         Util.createInputFile(cluster, inputFileName, inputData);
 
         String inputScript = "set mapred.output.compress true\n" +
+                "set mapreduce.output.fileoutputformat.compress true\n" +
                 "set mapred.output.compression.codec org.apache.hadoop.io.compress.BZip2Codec\n" +
+                "set mapreduce.output.fileoutputformat.compress.codec org.apache.hadoop.io.compress.BZip2Codec\n" +
                 "a = load '" + inputFileName + "';\n" +
                 "store a into 'output3.bz2';\n" +
                 "store a into 'output3';";

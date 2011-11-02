@@ -144,22 +144,21 @@ public class TestCommit extends TestCase {
         pigServer.registerQuery("y = foreach x generate age, cnt, max, min;");
         Iterator<Tuple> iter = pigServer.openIterator("y");
         int count = 0;
+        boolean contain1=false, contain2=false;
         while(iter.hasNext()){
             Tuple t = iter.next();
             count++;
-            if (count == 1) {
-                assertTrue(t.get(0).equals(expected1.get(0)));
-                assertTrue(t.get(1).equals(expected1.get(1)));
-                assertTrue(t.get(2).equals(expected1.get(2)));
-                assertTrue(t.get(3).equals(expected1.get(3)));
-            } else if (count == 2){
-                assertTrue(t.get(0).equals(expected2.get(0)));
-                assertTrue(t.get(1).equals(expected2.get(1)));
-                assertTrue(t.get(2).equals(expected2.get(2)));
-                assertTrue(t.get(3).equals(expected2.get(3)));
+            if (t.get(0).equals(expected1.get(0)) && t.get(1).equals(expected1.get(1)) && t.get(2).equals(expected1.get(2)) && t.get(3).equals(expected1.get(3))) {
+                contain1 = true;
             }
+            
+            if (t.get(0).equals(expected2.get(0)) && t.get(1).equals(expected2.get(1)) && t.get(2).equals(expected2.get(2)) && t.get(3).equals(expected2.get(3))) {
+                contain2 = true;
+            }
+            
         }
         assertEquals(count, 2);
+        assertTrue(contain1 && contain2);
         Util.deleteFile(cluster, "testCheckin2-input.txt");
     }    
 }

@@ -74,4 +74,7 @@ public class PigStatusReporter extends StatusReporter implements Progressable {
         }
     }
 
+    public float getProgress() {
+        return 0;
+    }
 }

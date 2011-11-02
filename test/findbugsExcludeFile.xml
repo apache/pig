@@ -433,4 +433,8 @@
         <Class name = "org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigOutputCommitter" />
         <Bug pattern = "REC_CATCH_EXCEPTION" />
     </Match>
+    <Match>
+        <Class name = "org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapBase$IllustratorContext" />
+        <Bug pattern = "SIC_INNER_SHOULD_BE_STATIC" />
+    </Match>
 </FindBugsFilter>

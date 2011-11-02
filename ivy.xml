@@ -31,13 +31,15 @@
     <conf name="default" extends="master,runtime"/>
     <conf name="runtime" extends="compile,test" description="runtime but not the artifact" />
     <!--Private configurations. -->
-    <conf name="compile" visibility="private" description="compile artifacts"/>
+    <conf name="compile" extends="hadoop${hadoopversion}" visibility="private" description="compile artifacts"/>
     <conf name="test" extends="compile" visibility="private"/>
     <conf name="javadoc" visibility="private" extends="compile,test"/>
     <conf name="releaseaudit" visibility="private"/>
     <conf name="jdiff" visibility="private"/>
     <conf name="checkstyle" visibility="private"/>
     <conf name="buildJar" extends="compile,test" visibility="private"/>
+    <conf name="hadoop20" visibility="private"/>
+    <conf name="hadoop23" visibility="private"/>
   </configurations>
   <publications>
     <!--get the artifact from our module name-->
@@ -50,14 +52,56 @@
       conf="checkstyle->master"/> -->
     <dependency org="commons-beanutils" name="commons-beanutils-core" rev="${commons-beanutils.version}"
       conf="checkstyle->master"/>
+    <dependency org="commons-codec" name="commons-codec" rev="${commons-codec.version}"
+      conf="hadoop23->master"/>
     <dependency org="commons-el" name="commons-el" rev="${commons-el.version}"
       conf="compile->master"/>
+    <dependency org="commons-httpclient" name="commons-httpclient" rev="${commons-httpclient.version}"
+      conf="hadoop23->master"/>
+    <dependency org="commons-configuration" name="commons-configuration" rev="${commons-configuration.version}"
+      conf="hadoop23->master"/>
     <dependency org="log4j" name="log4j" rev="${log4j.version}"
       conf="compile->master"/>
     <dependency org="org.apache.hadoop" name="hadoop-core" rev="${hadoop-core.version}"
-      conf="compile->default;test->default"/>
+      conf="hadoop20->default"/>
     <dependency org="org.apache.hadoop" name="hadoop-test" rev="${hadoop-test.version}"
-      conf="compile->default;test->default"/>
+      conf="hadoop20->default"/>
+    <dependency org="org.apache.hadoop" name="hadoop-annotations" 
+      rev="${hadoop-common.version}" conf="hadoop23->master"/>
+    <dependency org="org.apache.hadoop" name="hadoop-auth" 
+      rev="${hadoop-common.version}" conf="hadoop23->master"/>
+    <dependency org="org.apache.hadoop" name="hadoop-common" 
+      rev="${hadoop-common.version}" conf="hadoop23->master">
+      <artifact name="hadoop-common" ext="jar" />
+      <artifact name="hadoop-common" type="tests" ext="jar" m:classifier="tests" />
+    </dependency>
+    <dependency org="org.apache.hadoop" name="hadoop-hdfs"
+      rev="${hadoop-hdfs.version}" conf="hadoop23->master">
+      <artifact name="hadoop-hdfs" ext="jar" />
+      <artifact name="hadoop-hdfs" type="tests" ext="jar" m:classifier="tests" />
+    </dependency>
+    <dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-core" rev="${hadoop-mapreduce.version}"
+      conf="hadoop23->master"/>
+    <dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-jobclient" rev="${hadoop-mapreduce.version}"
+      conf="hadoop23->master">
+        <artifact name="hadoop-mapreduce-client-jobclient" type="jar" m:classifier="tests"/>
+        <exclude org="commons-daemon" module="commons-daemon"/><!--bad POM-->
+        <exclude org="org.apache.commons" module="commons-daemon"/><!--bad POM-->
+    </dependency>
+    <dependency org="org.apache.hadoop" name="hadoop-yarn-server-tests" rev="${hadoop-mapreduce.version}"
+      conf="hadoop23->master">
+      <artifact name="hadoop-yarn-server-tests" type="jar" m:classifier="tests"/>
+    </dependency>
+    <dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-common"
+      rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
+    <dependency org="org.apache.hadoop" name="hadoop-yarn-api" 
+      rev="${hadoop-common.version}" conf="hadoop23->master"/>
+    <dependency org="org.apache.hadoop" name="hadoop-yarn-common" 
+      rev="${hadoop-common.version}" conf="hadoop23->master"/>
+    <dependency org="org.apache.hadoop" name="hadoop-yarn-server-nodemanager" 
+      rev="${hadoop-common.version}" conf="hadoop23->master"/>
+    <dependency org="org.apache.hadoop" name="hadoop-yarn-server-resourcemanager" 
+      rev="${hadoop-common.version}" conf="hadoop23->master"/>
     <dependency org="org.mortbay.jetty" name="jetty" rev="${jetty.version}"
       conf="compile->master"/>
     <dependency org="org.mortbay.jetty" name="jetty-util" rev="${jetty-util.version}"
@@ -67,7 +111,7 @@
      <dependency org="org.slf4j" name="slf4j-log4j12" rev="${slf4j-log4j12.version}"
       conf="compile->master;test->master"/>
     <dependency org="commons-cli" name="commons-cli" rev="${commons-cli.version}"
-      conf="checkstyle->master"/>
+      conf="compile->master;checkstyle->master"/>
     
     <dependency org="org.apache.avro" name="avro" rev="${avro.version}"
       conf="compile->master;checkstyle->master"/>
@@ -93,13 +137,13 @@
     <dependency org="org.codehaus.jackson" name="jackson-core-asl" rev="${jackson.version}"
       conf="compile->master"/>
     <dependency org="joda-time" name="joda-time" rev="${joda-time.version}" conf="compile->master"/>
-  	<dependency org="commons-lang" name="commons-lang" rev="${commons-lang.version}"
+    <dependency org="commons-lang" name="commons-lang" rev="${commons-lang.version}"
   	  conf="compile->master"/>
     <dependency org="com.google.guava" name="guava" rev="${guava.version}" conf="compile->master" />
-  	<dependency org="org.python" name="jython" rev="${jython.version}" conf="compile->master"/>
+    <dependency org="org.python" name="jython" rev="${jython.version}" conf="compile->master"/>
     <dependency org="rhino" name="js" rev="${rhino.version}" conf="compile->master"/>
-  	<dependency org="org.antlr" name="antlr" rev="${antlr.version}" conf="compile->master"/>
-  	<dependency org="org.antlr" name="antlr-runtime" rev="${antlr.version}" conf="compile->default"/>
+    <dependency org="org.antlr" name="antlr" rev="${antlr.version}" conf="compile->master"/>
+    <dependency org="org.antlr" name="antlr-runtime" rev="${antlr.version}" conf="compile->default"/>
     <dependency org="org.apache.zookeeper" name="zookeeper" rev="${zookeeper.version}" conf="compile->master"/>
     <dependency org="org.jboss.netty" name="netty" rev="3.2.2.Final" conf="compile->master"/>
 
