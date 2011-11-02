@@ -23,12 +23,14 @@ import java.io.ObjectInputStream;
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import org.apache.pig.Accumulator;
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
+import org.apache.pig.ResourceSchema;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -46,6 +48,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.UDFContext;
 
 public class POUserFunc extends ExpressionOperator {
 
@@ -66,6 +69,7 @@ public class POUserFunc extends ExpressionOperator {
 
     private PhysicalOperator referencedOperator = null;
     private boolean isAccumulationDone;
+    private String signature;
 
     public PhysicalOperator getReferencedOperator() {
         return referencedOperator;
@@ -105,6 +109,7 @@ public class POUserFunc extends ExpressionOperator {
 
     private void instantiateFunc(FuncSpec fSpec) {
         this.func = (EvalFunc) PigContext.instantiateFuncFromSpec(fSpec);
+        this.func.setUDFContextSignature(signature);
         if (func.getClass().isAnnotationPresent(MonitoredUDF.class)) {
             executor = new MonitoredUDFExecutor(func);
         }
@@ -431,6 +436,7 @@ public class POUserFunc extends ExpressionOperator {
             NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)),
             requestedParallelism, null, funcSpec.clone());
         clone.setResultType(resultType);
+        clone.signature = signature;
         return clone;
     }
 
@@ -468,5 +474,12 @@ public class POUserFunc extends ExpressionOperator {
     
     public EvalFunc getFunc() {
         return func;
+    }
+    
+    public void setSignature(String signature) {
+        this.signature = signature;
+        if (this.func!=null) {
+            this.func.setUDFContextSignature(signature);
+        }
     }
 }
