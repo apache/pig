@@ -35,6 +35,7 @@ import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
+import org.apache.hadoop.mapreduce.Mapper.Context;
 
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -307,9 +308,9 @@ public class PigGenericMapReduce {
         @Override
         protected void setup(Context context) throws IOException, InterruptedException {
             super.setup(context);
-            inIllustrator = (context instanceof PigMapReduce.Reduce.IllustratorContext);
+            inIllustrator = inIllustrator(context);
             if (inIllustrator)
-                pack = ((PigMapReduce.Reduce.IllustratorContext) context).pack;
+                pack = getPack(context);
             Configuration jConf = context.getConfiguration();
             SpillableMemoryManager.configure(ConfigurationUtil.toProperties(jConf));
             sJobContext = context;
@@ -550,6 +551,10 @@ public class PigGenericMapReduce {
          */
         abstract public Context getIllustratorContext(Job job,
                List<Pair<PigNullableWritable, Writable>> input, POPackage pkg) throws IOException, InterruptedException;
+        
+        abstract public boolean inIllustrator(Context context);
+        
+        abstract public POPackage getPack(Context context);
     }
     
     /**

@@ -175,6 +175,7 @@ public class HExecutionEngine {
             jc.addResource("mapred-default.xml");
             recomputeProperties(jc, properties);
             
+            properties.setProperty("mapreduce.framework.name", "local");
             properties.setProperty(JOB_TRACKER_LOCATION, LOCAL );
             properties.setProperty(FILE_SYSTEM_LOCATION, "file:///");
             properties.setProperty(ALTERNATIVE_FILE_SYSTEM_LOCATION, "file:///");

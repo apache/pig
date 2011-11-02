@@ -80,7 +80,8 @@ public class PigFile {
         PigOutputFormat.setLocation(jc, store);
         OutputCommitter oc;
         // create a simulated TaskAttemptContext
-        TaskAttemptContext tac = HadoopShims.createTaskAttemptContext(conf, new TaskAttemptID());
+        
+        TaskAttemptContext tac = HadoopShims.createTaskAttemptContext(conf, HadoopShims.getNewTaskAttemptID());
         PigOutputFormat.setLocation(tac, store);
         RecordWriter<?,?> rw ;
         try {

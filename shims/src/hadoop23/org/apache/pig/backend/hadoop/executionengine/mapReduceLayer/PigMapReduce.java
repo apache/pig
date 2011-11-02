@@ -27,10 +27,12 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configuration.IntegerRanges;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.RawComparator;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapreduce.Counter;
@@ -40,17 +42,41 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.Partitioner;
+import org.apache.hadoop.mapreduce.ReduceContext;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.mapreduce.Reducer.Context;
+import org.apache.hadoop.mapreduce.lib.reduce.WrappedReducer;
+import org.apache.hadoop.mapreduce.task.ReduceContextImpl;
 import org.apache.hadoop.security.Credentials;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapBase.IllustratorContext;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.pen.FakeRawKeyValueIterator;
 
 public class PigMapReduce extends PigGenericMapReduce {
+    
+    static class IllustrateReducerContext extends WrappedReducer<PigNullableWritable, NullableTuple, PigNullableWritable, Writable> {
+        public IllustratorContext 
+        getReducerContext(ReduceContext<PigNullableWritable, NullableTuple, PigNullableWritable, Writable> reduceContext) {
+            return new IllustratorContext(reduceContext);
+        }
+        
+        public class IllustratorContext 
+            extends WrappedReducer.Context {
+            public IllustratorContext(
+                    ReduceContext<PigNullableWritable, NullableTuple, PigNullableWritable, Writable> reduceContext) {
+                super(reduceContext);
+            }
+            public POPackage getPack() {
+                return ((Reduce.IllustratorContextImpl)reduceContext).pack;
+            }
+        }
+    }
+		  
     public static class Reduce extends PigGenericMapReduce.Reduce {
         /**
          * Get reducer's illustrator context
@@ -64,11 +90,13 @@ public class PigMapReduce extends PigGenericMapReduce {
         @Override
         public Context getIllustratorContext(Job job,
                List<Pair<PigNullableWritable, Writable>> input, POPackage pkg) throws IOException, InterruptedException {
-            return new IllustratorContext(job, input, pkg);
+        	org.apache.hadoop.mapreduce.Reducer.Context reducerContext = new IllustrateReducerContext()
+        			.getReducerContext(new IllustratorContextImpl(job, input, pkg));
+        	return reducerContext;
         }
         
         @SuppressWarnings("unchecked")
-        public class IllustratorContext extends Context {
+        public class IllustratorContextImpl extends ReduceContextImpl<PigNullableWritable, NullableTuple, PigNullableWritable, Writable> {
             private PigNullableWritable currentKey = null, nextKey = null;
             private NullableTuple nextValue = null;
             private List<NullableTuple> currentValues = null;
@@ -76,12 +104,15 @@ public class PigMapReduce extends PigGenericMapReduce {
             private final ByteArrayOutputStream bos;
             private final DataOutputStream dos;
             private final RawComparator sortComparator, groupingComparator;
-            POPackage pack = null;
+            public POPackage pack = null;
+            private IllustratorValueIterable iterable = new IllustratorValueIterable();
 
-            public IllustratorContext(Job job,
+            public IllustratorContextImpl(Job job,
                   List<Pair<PigNullableWritable, Writable>> input,
                   POPackage pkg
                   ) throws IOException, InterruptedException {
+                super(job.getJobConf(), new TaskAttemptID(), new FakeRawKeyValueIterator(input.iterator().hasNext()),
+                    null, null, null, null, null, null, PigNullableWritable.class, NullableTuple.class);
                 bos = new ByteArrayOutputStream();
                 dos = new DataOutputStream(bos);
                 org.apache.hadoop.mapreduce.Job nwJob = new org.apache.hadoop.mapreduce.Job(job.getJobConf());
@@ -114,6 +145,60 @@ public class PigMapReduce extends PigGenericMapReduce {
                     nextValue = (NullableTuple) entry.second;
                 }
                 pack = pkg;
+            }
+            
+            public class IllustratorValueIterator implements ReduceContext.ValueIterator<NullableTuple> {
+                
+                private int pos = -1;
+                private int mark = -1;
+
+                @Override
+                public void mark() throws IOException {
+                    mark=pos-1;
+                    if (mark<-1)
+                        mark=-1;
+                }
+
+                @Override
+                public void reset() throws IOException {
+                    pos=mark;
+                }
+
+                @Override
+                public void clearMark() throws IOException {
+                    mark=-1;
+                }
+
+                @Override
+                public boolean hasNext() {
+                    return pos<currentValues.size()-1;
+                }
+
+                @Override
+                public NullableTuple next() {
+                    pos++;
+                    return currentValues.get(pos);
+                }
+
+                @Override
+                public void remove() {
+                    throw new UnsupportedOperationException("remove not implemented");
+                }
+
+                @Override
+                public void resetBackupStore() throws IOException {
+                    pos=-1;
+                    mark=-1;
+                }
+                
+            }
+            
+            protected class IllustratorValueIterable implements Iterable<NullableTuple> {
+                private IllustratorValueIterator iterator = new IllustratorValueIterator();
+                @Override
+                public Iterator<NullableTuple> iterator() {
+                    return iterator;
+                } 
             }
             
             @Override
@@ -160,7 +245,7 @@ public class PigMapReduce extends PigGenericMapReduce {
             
             @Override
             public Iterable<NullableTuple> getValues() {
-                return currentValues;
+                return iterable;
             }
             
             @Override
@@ -170,272 +255,16 @@ public class PigMapReduce extends PigGenericMapReduce {
             @Override
             public void progress() { 
             }
+        }
 
-            @Override
-            public Counter getCounter(Enum<?> arg0) {
-                // TODO Auto-generated method stub
-                return null;
-            }
+        @Override
+        public boolean inIllustrator(org.apache.hadoop.mapreduce.Reducer.Context context) {
+            return (context instanceof PigMapReduce.IllustrateReducerContext.IllustratorContext);
+        }
 
-            @Override
-            public Counter getCounter(String arg0, String arg1) {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public NullableTuple getCurrentValue() throws IOException,
-                    InterruptedException {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public OutputCommitter getOutputCommitter() {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public boolean nextKeyValue() throws IOException,
-                    InterruptedException {
-                // TODO Auto-generated method stub
-                return false;
-            }
-
-            @Override
-            public String getStatus() {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public TaskAttemptID getTaskAttemptID() {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public void setStatus(String arg0) {
-                // TODO Auto-generated method stub
-                
-            }
-
-            @Override
-            public Path[] getArchiveClassPaths() {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public long[] getArchiveTimestamps() {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public URI[] getCacheArchives() throws IOException {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public URI[] getCacheFiles() throws IOException {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public Class<? extends Reducer<?, ?, ?, ?>> getCombinerClass()
-                    throws ClassNotFoundException {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public Configuration getConfiguration() {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public Credentials getCredentials() {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public Path[] getFileClassPaths() {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public long[] getFileTimestamps() {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public RawComparator<?> getGroupingComparator() {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public Class<? extends InputFormat<?, ?>> getInputFormatClass()
-                    throws ClassNotFoundException {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public String getJar() {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public JobID getJobID() {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public String getJobName() {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public boolean getJobSetupCleanupNeeded() {
-                // TODO Auto-generated method stub
-                return false;
-            }
-
-            @Override
-            public Path[] getLocalCacheArchives() throws IOException {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public Path[] getLocalCacheFiles() throws IOException {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public Class<?> getMapOutputKeyClass() {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public Class<?> getMapOutputValueClass() {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public Class<? extends Mapper<?, ?, ?, ?>> getMapperClass()
-                    throws ClassNotFoundException {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public int getMaxMapAttempts() {
-                // TODO Auto-generated method stub
-                return 0;
-            }
-
-            @Override
-            public int getMaxReduceAttempts() {
-                // TODO Auto-generated method stub
-                return 0;
-            }
-
-            @Override
-            public int getNumReduceTasks() {
-                // TODO Auto-generated method stub
-                return 0;
-            }
-
-            @Override
-            public Class<? extends OutputFormat<?, ?>> getOutputFormatClass()
-                    throws ClassNotFoundException {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public Class<?> getOutputKeyClass() {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public Class<?> getOutputValueClass() {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public Class<? extends Partitioner<?, ?>> getPartitionerClass()
-                    throws ClassNotFoundException {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public boolean getProfileEnabled() {
-                // TODO Auto-generated method stub
-                return false;
-            }
-
-            @Override
-            public String getProfileParams() {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public IntegerRanges getProfileTaskRange(boolean arg0) {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public Class<? extends Reducer<?, ?, ?, ?>> getReducerClass()
-                    throws ClassNotFoundException {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public RawComparator<?> getSortComparator() {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public boolean getSymlink() {
-                // TODO Auto-generated method stub
-                return false;
-            }
-
-            @Override
-            public String getUser() {
-                // TODO Auto-generated method stub
-                return null;
-            }
-
-            @Override
-            public Path getWorkingDirectory() throws IOException {
-                // TODO Auto-generated method stub
-                return null;
-            }
+        @Override
+        public POPackage getPack(org.apache.hadoop.mapreduce.Reducer.Context context) {
+            return ((PigMapReduce.IllustrateReducerContext.IllustratorContext) context).getPack();
         }
     }
 }
