@@ -390,4 +390,22 @@ public class TestExampleGenerator {
         assertTrue(derivedData != null);
     }
 
+    @Test
+    public void testFilterGroupCountStore() throws Exception {
+        File out = File.createTempFile("testFilterGroupCountStoreOutput", "");
+        out.deleteOnExit();
+        out.delete();
+    
+        PigServer pigServer = new PigServer(pigContext);
+        pigServer.setBatchOn();
+        pigServer.registerQuery("A = load " + A.toString() + " as (x, y);");
+        pigServer.registerQuery("B = filter A by x < 5;");
+        pigServer.registerQuery("C = group B by x;");
+        pigServer.registerQuery("D = foreach C generate group as x, COUNT(B) as the_count;");
+        pigServer.registerQuery("store D into '" +  out.getAbsolutePath() + "';");
+        Map<Operator, DataBag> derivedData = pigServer.getExamples(null);
+    
+        assertTrue(derivedData != null);
+    }
+
 }
