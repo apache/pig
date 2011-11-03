@@ -124,14 +124,16 @@ public abstract class PigGenericMapBase extends Mapper<Text, Tuple, PigNullableW
             runPipeline(leaf);
         }
 
-        for (POStore store: stores) {
-            if (!initialized) {
-                MapReducePOStoreImpl impl 
-                    = new MapReducePOStoreImpl(context);
-                store.setStoreImpl(impl);
-                store.setUp();
+        if (!inIllustrator) {
+            for (POStore store: stores) {
+                if (!initialized) {
+                    MapReducePOStoreImpl impl 
+                        = new MapReducePOStoreImpl(context);
+                    store.setStoreImpl(impl);
+                    store.setUp();
+                }
+                store.tearDown();
             }
-            store.tearDown();
         }
         
         //Calling EvalFunc.finish()
@@ -227,12 +229,14 @@ public abstract class PigGenericMapBase extends Mapper<Text, Tuple, PigNullableW
             pigReporter.setRep(context);
             PhysicalOperator.setReporter(pigReporter);
            
-            for (POStore store: stores) {
-                MapReducePOStoreImpl impl 
-                    = new MapReducePOStoreImpl(context);
-                store.setStoreImpl(impl);
-                if (!pigContext.inIllustrator)
-                    store.setUp();
+            if (!inIllustrator) {
+                for (POStore store: stores) {
+                    MapReducePOStoreImpl impl 
+                        = new MapReducePOStoreImpl(context);
+                    store.setStoreImpl(impl);
+                    if (!pigContext.inIllustrator)
+                        store.setUp();
+                }
             }
             
             boolean aggregateWarning = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("aggregate.warning"));

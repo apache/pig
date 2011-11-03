@@ -70,7 +70,7 @@ public class PigMapReduce extends PigGenericMapReduce {
                   POPackage pkg
                   ) throws IOException, InterruptedException {
                 super(job.getJobConf(), new TaskAttemptID(), new FakeRawKeyValueIterator(input.iterator().hasNext()),
-                    null, null, null, null, null, null, PigNullableWritable.class, NullableTuple.class);
+                    null, null, null, null, new IllustrateDummyReporter(), null, PigNullableWritable.class, NullableTuple.class);
                 bos = new ByteArrayOutputStream();
                 dos = new DataOutputStream(bos);
                 org.apache.hadoop.mapreduce.Job nwJob = new org.apache.hadoop.mapreduce.Job(job.getJobConf());

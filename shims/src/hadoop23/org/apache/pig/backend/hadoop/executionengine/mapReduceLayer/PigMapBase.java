@@ -85,7 +85,7 @@ abstract public class PigMapBase extends PigGenericMapBase {
         public IllustratorContext(Configuration conf, DataBag input,
               List<Pair<PigNullableWritable, Writable>> output,
               InputSplit split) throws IOException, InterruptedException {
-            super(conf, new TaskAttemptID(), null, null, null, null, split);
+            super(conf, new TaskAttemptID(), null, null, null, new IllustrateDummyReporter(), split);
             if (output == null)
                 throw new IOException("Null output can not be used");
             this.input = input; this.output = output;
