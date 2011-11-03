@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2328: Add builtin UDFs for building and using bloom filters (gates)
+
 PIG-2338: Need signature for EvalFunc (daijy)
 
 OPTIMIZATIONS
