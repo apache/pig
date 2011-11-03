@@ -60,38 +60,6 @@ abstract public class PigMapBase extends PigGenericMapBase {
     public boolean inIllustrator(Context context) {
         return (context instanceof PigMapBase.IllustratorContext);
     }
-
-    /**
-     * Dummy implementation of StatusReporter for illustrate mode
-     *
-     */
-    @SuppressWarnings("deprecation")
-    public static class IllustrateDummyReporter extends StatusReporter{
-
-
-        Counters countGen = new Counters();
-        
-        @Override
-        public Counter getCounter(Enum<?> arg0) {
-            return countGen.findCounter(arg0);
-        }
-
-        @Override
-        public Counter getCounter(String group, String name) {
-            return countGen.findCounter(group, name);
-        }
-
-        @Override
-        public void progress() {
-            //no-op
-        }
-
-        @Override
-        public void setStatus(String arg0) {
-            //no-op
-        }
-        
-    }
     
     public class IllustratorContext extends Context {
         private DataBag input;

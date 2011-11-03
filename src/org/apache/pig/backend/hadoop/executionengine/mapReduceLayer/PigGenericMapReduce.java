@@ -518,14 +518,16 @@ public class PigGenericMapReduce {
                 runPipeline(leaf);
             }
 
-            for (POStore store: stores) {
-                if (!initialized) {
-                    MapReducePOStoreImpl impl 
-                        = new MapReducePOStoreImpl(context);
-                    store.setStoreImpl(impl);
-                    store.setUp();
+            if (!inIllustrator) {
+                for (POStore store: stores) {
+                    if (!initialized) {
+                        MapReducePOStoreImpl impl 
+                            = new MapReducePOStoreImpl(context);
+                        store.setStoreImpl(impl);
+                        store.setUp();
+                    }
+                    store.tearDown();
                 }
-                store.tearDown();
             }
                         
             //Calling EvalFunc.finish()
