@@ -278,6 +278,9 @@ PIG-2320: Error: "projection with nothing to reference" (daijy)
 
 PIG-2346: TypeCastInsert should not insert Foreach if there is no as statement (daijy)
 
+PIG-2339: HCatLoader loads all the partitions in a partitioned table even though
+ a filter clause on the partitions is specified in the Pig script (daijy)
+
 Release 0.9.1 - Unreleased
 
 IMPROVEMENTS
