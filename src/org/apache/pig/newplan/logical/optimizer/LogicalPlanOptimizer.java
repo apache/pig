@@ -91,15 +91,6 @@ public class LogicalPlanOptimizer extends PlanOptimizer {
         checkAndAddRule(s, r);
         if (!s.isEmpty())
             ls.add(s);
-        
-        // Partition filter set
-        // This set of rules push partition filter to LoadFunc
-        s = new HashSet<Rule>();
-        // Optimize partition filter
-        r = new PartitionFilterOptimizer("PartitionFilterOptimizer");
-        checkAndAddRule(s, r);
-        if (!s.isEmpty())
-            ls.add(s);
 
         // Limit Set
         // This set of rules push up limit
@@ -137,6 +128,15 @@ public class LogicalPlanOptimizer extends PlanOptimizer {
         checkAndAddRule(s, r);
         // add merge filter rule
         r = new MergeFilter("MergeFilter");        
+        checkAndAddRule(s, r);
+        if (!s.isEmpty())
+            ls.add(s);
+        
+        // Partition filter set
+        // This set of rules push partition filter to LoadFunc
+        s = new HashSet<Rule>();
+        // Optimize partition filter
+        r = new PartitionFilterOptimizer("PartitionFilterOptimizer");
         checkAndAddRule(s, r);
         if (!s.isEmpty())
             ls.add(s);
