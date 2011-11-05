@@ -235,4 +235,64 @@ public class TestPlanGeneration extends junit.framework.TestCase {
         
         Assert.assertTrue(lp.getSuccessors(loStore)==null);
     }
+    
+    public static class PartitionedLoader extends PigStorage implements LoadMetadata {
+
+        Schema schema;
+        String[] partCols;
+        static Expression partFilter = null;
+        
+        public PartitionedLoader(String schemaString, String commaSepPartitionCols) 
+        throws ParserException {
+            schema = Utils.getSchemaFromString(schemaString);
+            partCols = commaSepPartitionCols.split(",");
+        }
+
+        @Override
+        public ResourceSchema getSchema(String location, Job job)
+        throws IOException {
+            return new ResourceSchema(schema);
+        }
+
+        @Override
+        public ResourceStatistics getStatistics(String location,
+                Job job) throws IOException {
+            return null;
+        }
+
+        @Override
+        public void setPartitionFilter(Expression partitionFilter)
+        throws IOException {
+            partFilter = partitionFilter;            
+        }
+
+        @Override
+        public String[] getPartitionKeys(String location, Job job)
+                throws IOException {
+            return partCols;
+        }
+        
+        public Expression getPartFilter() {
+            return partFilter;
+        }
+
+    }
+    
+    @Test
+    // See PIG-2339
+    public void testPartitionFilterOptimizer() throws Exception {
+        String query = "a = load 'foo' using " + PartitionedLoader.class.getName() + 
+                "('name:chararray, dt:chararray', 'dt');\n" +
+            "b = filter a by dt=='2011';\n" +
+            "store b into 'output';";
+            
+        LogicalPlan lp = Util.parse(query, pc);
+        Util.optimizeNewLP(lp);
+        
+        LOLoad loLoad = (LOLoad)lp.getSources().get(0);
+        LOForEach loForEach = (LOForEach)lp.getSuccessors(loLoad).get(0);
+        LOStore loStore = (LOStore)lp.getSuccessors(loForEach).get(0);
+        Assert.assertTrue(((PartitionedLoader)loLoad.getLoadFunc()).getPartFilter()!=null);
+        Assert.assertTrue(loStore.getAlias().equals("b"));
+    }
 }
