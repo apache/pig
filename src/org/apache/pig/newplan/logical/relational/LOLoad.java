@@ -278,4 +278,8 @@ public class LOLoad extends LogicalRelationalOperator {
         this.signature = signature;
         loadFunc.setUDFContextSignature(signature);
     }
+    
+    public LogicalSchema getScriptSchema() {
+        return scriptSchema;
+    }
 }

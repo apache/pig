@@ -568,7 +568,7 @@ public class TestPartitionFilterPushDown {
             Assert.assertTrue(!(iter.next() instanceof LOFilter));
             counter++;
         }      
-        Assert.assertEquals(counter, 7);
+        Assert.assertEquals(counter, 5);
     }
 
     //// helper methods ///////

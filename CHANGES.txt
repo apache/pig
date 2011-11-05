@@ -290,6 +290,8 @@ BUG FIXES
 
 PIG-2320: Error: "projection with nothing to reference" (daijy)
 
+PIG-2346: TypeCastInsert should not insert Foreach if there is no as statement (daijy)
+
 Release 0.9.1 - Unreleased
 
 IMPROVEMENTS
