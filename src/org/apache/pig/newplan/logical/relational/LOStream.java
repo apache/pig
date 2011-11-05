@@ -113,4 +113,8 @@ public class LOStream extends LogicalRelationalOperator {
     public void resetUid() {
         uidOnlySchema = null;
     }
+    
+    public LogicalSchema getScriptSchema() {
+        return scriptSchema;
+    }
 }
