@@ -77,9 +77,11 @@ public abstract class TypeCastInserter extends Rule {
             if (s == null) return false;
     
             if (op instanceof LOLoad) {
+                if (((LOLoad)op).getScriptSchema()==null) return false;
                 if (((LOLoad)op).isCastInserted()) return false;
             }
             else {
+                if (((LOStream)op).getScriptSchema()==null) return false;
                 if (((LOStream)op).isCastInserted()) return false;
             }
             
