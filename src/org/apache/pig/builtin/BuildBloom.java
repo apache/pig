@@ -56,7 +56,7 @@ public class BuildBloom extends BuildBloomBase<DataByteArray> implements Algebra
     /** 
      * Build a bloom filter of fixed size and number of hash functions.
      * @param hashType type of the hashing function (see
-     * {@link org.apache.hadoop.util.bloom.Hash}).
+     * {@link org.apache.hadoop.util.hash.Hash}).
      * @param mode Will be ignored, though by convention it should be
      * "fixed" or "fixedsize"
      * @param vectorSize The vector size of this filter.
@@ -73,7 +73,7 @@ public class BuildBloom extends BuildBloomBase<DataByteArray> implements Algebra
      * Construct a Bloom filter based on expected number of elements and
      * desired accuracy.
      * @param hashType type of the hashing function (see
-     * {@link org.apache.hadoop.util.bloom.Hash}).
+     * {@link org.apache.hadoop.util.hash.Hash}).
      * @param numElements The number of distinct elements expected to be
      * placed in this filter.
      * @param desiredFalsePositive the acceptable rate of false positives.
