@@ -135,8 +135,8 @@ static int run(String args[], PigProgressNotificationListener listener) {
         boolean debug = false;
         boolean dryrun = false;
         boolean embedded = false;
-        ArrayList<String> params = new ArrayList<String>();
-        ArrayList<String> paramFiles = new ArrayList<String>();
+        List<String> params = new ArrayList<String>();
+        List<String> paramFiles = new ArrayList<String>();
         HashSet<String> optimizerRules = new HashSet<String>();
 
         CmdLineParser opts = new CmdLineParser(pigArgs);
@@ -370,6 +370,11 @@ static int run(String args[], PigProgressNotificationListener listener) {
         Grunt grunt = null;
         BufferedReader in;
         String substFile = null;
+        
+        paramFiles = fetchRemoteParamFiles(paramFiles, properties);
+        pigContext.setParams(params);
+        pigContext.setParamFiles(paramFiles);
+        
         switch (mode) {
         
         case FILE: {
@@ -394,7 +399,8 @@ static int run(String args[], PigProgressNotificationListener listener) {
             
             // run parameter substitution preprocessor first
             substFile = file + ".substituted";
-                pin = runParamPreprocessor(properties, in, params, paramFiles,
+            
+                pin = runParamPreprocessor(pigContext, in,
                         substFile, debug || dryrun || checkScriptOnly);
             if (dryrun) {
                 if (dryrun(substFile, pigContext)) {
@@ -522,7 +528,7 @@ static int run(String args[], PigProgressNotificationListener listener) {
             
             // run parameter substitution preprocessor first
             substFile = remainders[0] + ".substituted";
-            pin = runParamPreprocessor(properties, in, params, paramFiles, substFile, debug || dryrun || checkScriptOnly);
+            pin = runParamPreprocessor(pigContext, in, substFile, debug || dryrun || checkScriptOnly);
             if (dryrun) {
                 if (dryrun(substFile, pigContext)) {
                     log.info("Dry run completed. Substituted pig script is at "
@@ -691,17 +697,21 @@ private static void configureLog4J(Properties properties, PigContext pigContext)
     pigContext.setLog4jProperties(backendProps);
     pigContext.setDefaultLogLevel(logLevel);
 }
- 
-// returns the stream of final pig script to be passed to Grunt
-private static BufferedReader runParamPreprocessor(Properties properties, BufferedReader origPigScript, ArrayList<String> params,
-                                            ArrayList<String> paramFiles, String scriptFile, boolean createFile) 
-                                throws org.apache.pig.tools.parameters.ParseException, IOException{
-    
-    ArrayList<String> paramFiles2 = new ArrayList<String>();
+
+
+private static List<String> fetchRemoteParamFiles(List<String> paramFiles, Properties properties)
+        throws IOException {
+    List<String> paramFiles2 = new ArrayList<String>();
     for (String param: paramFiles) {
         FileLocalizer.FetchFileRet localFileRet = FileLocalizer.fetchFile(properties, param);
         paramFiles2.add(localFileRet.file.getAbsolutePath());
-    }    
+    }
+    return paramFiles2;
+}
+// returns the stream of final pig script to be passed to Grunt
+private static BufferedReader runParamPreprocessor(PigContext context, BufferedReader origPigScript, 
+                                            String scriptFile, boolean createFile) 
+                                throws org.apache.pig.tools.parameters.ParseException, IOException{
     
     ParameterSubstitutionPreprocessor psp = new ParameterSubstitutionPreprocessor(50);
     String[] type1 = new String[1];
@@ -709,14 +719,14 @@ private static BufferedReader runParamPreprocessor(Properties properties, Buffer
 
     if (createFile){
         BufferedWriter fw = new BufferedWriter(new FileWriter(scriptFile));
-        psp.genSubstitutedFile (origPigScript, fw, params.size() > 0 ? params.toArray(type1) : null, 
-                                paramFiles.size() > 0 ? paramFiles2.toArray(type2) : null);
+        psp.genSubstitutedFile (origPigScript, fw, context.getParams().size() > 0 ? context.getParams().toArray(type1) : null, 
+                                context.getParamFiles().size() > 0 ? context.getParamFiles().toArray(type2) : null);
         return new BufferedReader(new FileReader (scriptFile));
 
     } else {
         StringWriter writer = new StringWriter();
-        psp.genSubstitutedFile (origPigScript, writer,  params.size() > 0 ? params.toArray(type1) : null, 
-                                paramFiles.size() > 0 ? paramFiles2.toArray(type2) : null);
+        psp.genSubstitutedFile (origPigScript, writer,  context.getParams().size() > 0 ? context.getParams().toArray(type1) : null, 
+                                context.getParamFiles().size() > 0 ? context.getParamFiles().toArray(type2) : null);
         return new BufferedReader(new StringReader(writer.toString()));
     }
 }
