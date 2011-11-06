@@ -280,6 +280,11 @@ public class Pig {
             plist.add(entry.getKey() + "="
                     + fixNonEscapedDollarSign(entry.getValue().toString()));
         }
+        if (getScriptContext().getPigContext().getParams()!=null) {
+            for (String param : getScriptContext().getPigContext().getParams()) {
+                plist.add(param);
+            }
+        }
         
         ParameterSubstitutionPreprocessor psp = 
             new ParameterSubstitutionPreprocessor(50);
@@ -288,8 +293,12 @@ public class Pig {
         
         StringWriter writer = new StringWriter();
         BufferedReader in = new BufferedReader(new StringReader(qstr));
+        String[] type1 = new String[1];
         try {
-            psp.genSubstitutedFile(in, writer, plist.toArray(params), null);
+            psp.genSubstitutedFile(in, writer, plist.toArray(params), 
+                    scriptContext.getPigContext().getParamFiles()!=null && 
+                    scriptContext.getPigContext().getParamFiles().size() > 0 ? 
+                    scriptContext.getPigContext().getParamFiles().toArray(type1) : null);
         } catch (org.apache.pig.tools.parameters.ParseException e) {
             throw new IOException("Param substitution failed", e);            
         } 
