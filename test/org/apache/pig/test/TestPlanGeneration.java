@@ -290,8 +290,7 @@ public class TestPlanGeneration extends junit.framework.TestCase {
         Util.optimizeNewLP(lp);
         
         LOLoad loLoad = (LOLoad)lp.getSources().get(0);
-        LOForEach loForEach = (LOForEach)lp.getSuccessors(loLoad).get(0);
-        LOStore loStore = (LOStore)lp.getSuccessors(loForEach).get(0);
+        LOStore loStore = (LOStore)lp.getSuccessors(loLoad).get(0);
         Assert.assertTrue(((PartitionedLoader)loLoad.getLoadFunc()).getPartFilter()!=null);
         Assert.assertTrue(loStore.getAlias().equals("b"));
     }
