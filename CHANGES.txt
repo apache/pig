@@ -148,6 +148,8 @@ PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
 
+PIG-2352: e2e test harness' use of environment variables causes unintended effects between tests (gates)
+
 PIG-2165: Need a way to deal with params and param_file in embedded pig in python (daijy)
 
 PIG-2313: NPE in ILLUSTRATE trying to get StatusReporter in STORE (daijy)

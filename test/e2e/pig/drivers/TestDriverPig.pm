@@ -84,6 +84,7 @@ sub replaceParameters
 #    $cmd =~ s/:LOCALTESTPATH:/$testCmd->{'localpathbase'}/g;
     $cmd =~ s/:BMPATH:/$testCmd->{'benchmarkPath'}/g;
     $cmd =~ s/:TMP:/$testCmd->{'tmpPath'}/g;
+    $cmd =~ s/:HDFSTMP:/tmp\/$testCmd->{'runid'}/g;
 
     if ( $testCmd->{'hadoopSecurity'} eq "secure" ) { 
       $cmd =~ s/:REMOTECLUSTER:/$testCmd->{'remoteSecureCluster'}/g;
@@ -137,6 +138,11 @@ sub globalSetup
     IPC::Run::run(['mkdir', '-p', $globalHash->{'tmpPath'}], \undef, $log, $log) or 
         die "Cannot create temporary directory " . $globalHash->{'tmpPath'} .
         " " . "$ERRNO\n";
+
+    # Create the HDFS temporary directory
+    @cmd = ($self->getPigCmd($globalHash, $log), '-e', 'mkdir', "tmp/$globalHash->{'runid'}");
+	print $log "Going to run " . join(" ", @cmd) . "\n";
+    IPC::Run::run(\@cmd, \undef, $log, $log) or die "Cannot create HDFS directory " . $globalHash->{'outpath'} . ": $? - $!\n";
 }
 
 sub globalCleanup
@@ -146,6 +152,11 @@ sub globalCleanup
     IPC::Run::run(['rm', '-rf', $globalHash->{'tmpPath'}], \undef, $log, $log) or 
         warn "Cannot remove temporary directory " . $globalHash->{'tmpPath'} .
         " " . "$ERRNO\n";
+
+    # Cleanup the HDFS temporary directory
+    my @cmd = ($self->getPigCmd($globalHash, $log), '-e', 'fs', '-rmr', "tmp/$globalHash->{'runid'}");
+	print $log "Going to run " . join(" ", @cmd) . "\n";
+    IPC::Run::run(\@cmd, \undef, $log, $log) or die "Cannot create HDFS directory " . $globalHash->{'outpath'} . ": $? - $!\n";
 }
 
 
@@ -329,11 +340,12 @@ sub getPigCmd($$$)
 
     if (defined($testCmd->{'java_params'})) {
 		$ENV{'PIG_OPTS'} = join(" ", @{$testCmd->{'java_params'}});
+    } else {
+        $ENV{'PIG_OPTS'} = undef;
     }
 
-
 	print $log "Returning Pig command " . join(" ", @pigCmd) . "\n";
-	print $log "With PIG_CLASSPATH set to " . $ENV{'PIG_CLASSPATH'} . "\n";
+	print $log "With PIG_CLASSPATH set to " . $ENV{'PIG_CLASSPATH'} . " and PIG_OPTS set to " . $ENV{'PIG_OPTS'} . "\n";
     return @pigCmd;
 }
 
