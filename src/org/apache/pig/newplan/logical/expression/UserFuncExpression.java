@@ -181,6 +181,12 @@ public class UserFuncExpression extends LogicalExpression {
             ef = (EvalFunc<?>) PigContext.instantiateFuncFromSpec(mFuncSpec);
         
         ef.setUDFContextSignature(signature);
+        Properties props = UDFContext.getUDFContext().getUDFProperties(ef.getClass());
+        if(Util.translateSchema(inputSchema)!=null)
+    		props.put("pig.evalfunc.inputschema."+signature, Util.translateSchema(inputSchema));
+        // Store inputSchema into the UDF context
+        ef.setInputSchema(Util.translateSchema(inputSchema));
+        
         Schema udfSchema = ef.outputSchema(Util.translateSchema(inputSchema));
 
         if (udfSchema != null) {

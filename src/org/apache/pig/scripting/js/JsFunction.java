@@ -91,7 +91,6 @@ public class JsFunction extends EvalFunc<Object> {
     private String functionName;
     private JsScriptEngine jsScriptEngine;
     private Schema outputSchema;
-    private Schema inputSchema;
 
     ///////////////////////
     // Debugging functions
@@ -187,29 +186,13 @@ public class JsFunction extends EvalFunc<Object> {
 
     }
 
-    private Schema getInputSchema() {
-        if (inputSchema == null) {
-            // input schema must be passed from client to slaves
-            Properties properties = UDFContext.getUDFContext().getUDFProperties(this.getClass(), new String[]{ functionName });
-            inputSchema = (Schema)properties.get(functionName+".inputSchema");
-        }
-        return inputSchema;
-    }
-
-    private void setInputSchema(Schema inputSchema) {
-        this.inputSchema = inputSchema;
-        // input schema must be passed from client to slaves
-        Properties properties = UDFContext.getUDFContext().getUDFProperties(this.getClass(), new String[]{ functionName });
-        properties.put(functionName+".inputSchema", inputSchema);
-    }
-
     ///////////////////////////
     // EvalFunc implementation
     ///////////////////////////
 
     @Override
     public Object exec(Tuple tuple) throws IOException {
-        Schema inputSchema = getInputSchema();
+    	Schema inputSchema = this.getInputSchema();
         if (LOG.isDebugEnabled()) {
             LOG.debug( "CALL " + stringify(outputSchema) + " " + functionName + " " + stringify(inputSchema));
         }
@@ -244,7 +227,7 @@ public class JsFunction extends EvalFunc<Object> {
 
     @Override
     public Schema outputSchema(Schema input) {
-        setInputSchema(input);
+        this.setInputSchema(input);
         return outputSchema;
     }
 
