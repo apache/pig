@@ -32,7 +32,7 @@ public class UDFContextTestUDF extends EvalFunc<String> {
     @Override
     public String exec(Tuple input) throws IOException {
         Schema sch = (Schema)UDFContext.getUDFContext()
-                .getUDFProperties(this.getClass()).get("pig.evalfunc.signature."+signature);
+                .getUDFProperties(this.getClass()).get("pig.evalfunc.inputschema."+signature);
          return sch.toString();
     }
 
@@ -44,7 +44,7 @@ public class UDFContextTestUDF extends EvalFunc<String> {
     @Override
     public Schema outputSchema(Schema input) {
         Properties props = UDFContext.getUDFContext().getUDFProperties(this.getClass());
-        props.put("pig.evalfunc.signature."+signature, input);
+        props.put("pig.evalfunc.inputschema."+signature, input);
         return new Schema(new Schema.FieldSchema(null, DataType.CHARARRAY));
     }
 }

@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.List;
+import java.util.Properties;
 import java.util.Stack;
 
 import org.apache.commons.logging.Log;
@@ -296,6 +297,7 @@ public abstract class EvalFunc<T>  {
     	return log;
     }
     
+    private Schema inputSchemaInternal=null;
     /**
      * This method will be called by Pig both in the front end and back end to
      * pass a unique signature to the {@link EvalFunc}. The signature can be used
@@ -305,5 +307,21 @@ public abstract class EvalFunc<T>  {
      * @param signature a unique signature to identify this EvalFunc
      */
     public void setUDFContextSignature(String signature) {
+    }
+    
+    /**
+     * This method is for internal use. It is called by Pig core in both front-end 
+     * and back-end to setup the right input schema for EvalFunc
+     */
+    public void setInputSchema(Schema input){
+    	this.inputSchemaInternal=input;
+    }
+    	
+    /**
+     * This method is intended to be called by the user in {@link EvalFunc} to get the input
+     * schema of the EvalFunc
+     */
+    public Schema getInputSchema(){
+    	return this.inputSchemaInternal;
     }
 }
