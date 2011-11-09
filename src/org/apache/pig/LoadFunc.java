@@ -25,6 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.Counter;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.RecordReader;
@@ -37,6 +38,7 @@ import org.apache.pig.builtin.Utf8StorageConverter;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.tools.pigstats.PigStatusReporter;
 
 
 /**
@@ -292,5 +294,15 @@ public abstract class LoadFunc {
     public void setUDFContextSignature(String signature) {
         // default implementation is a no-op
     }
-       
+    
+    /**
+     * Issue a warning.  Warning messages are aggregated and reported to
+     * the user.
+     * @param msg String message of the warning
+     * @param warningEnum type of warning
+     */
+    public final void warn(String msg, Enum warningEnum) {
+        Counter counter = PigStatusReporter.getInstance().getCounter(warningEnum);
+        counter.increment(1);
+    }
 }
