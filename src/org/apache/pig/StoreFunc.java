@@ -21,6 +21,7 @@ import java.io.IOException;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.Counter;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
@@ -29,6 +30,7 @@ import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.tools.pigstats.PigStatusReporter;
 
 
 /**
@@ -172,5 +174,16 @@ public abstract class StoreFunc implements StoreFuncInterface {
         if(fs.exists(path)){
             fs.delete(path, true);
         }    
+    }
+    
+    /**
+     * Issue a warning.  Warning messages are aggregated and reported to
+     * the user.
+     * @param msg String message of the warning
+     * @param warningEnum type of warning
+     */
+    public final void warn(String msg, Enum warningEnum) {
+        Counter counter = PigStatusReporter.getInstance().getCounter(warningEnum);
+        counter.increment(1);
     }
 }
