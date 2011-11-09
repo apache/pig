@@ -286,6 +286,7 @@
         <delete dir="${src.gen.dot.parser.dir}" />
         <delete file="${output.jarfile.backcompat}" />
         <delete file="${output.jarfile.backcompat.withouthadoop}" />
+        <ant dir="${test.e2e.dir}" target="clean"/>
     </target>
     
     <target name="eclipse-files" depends="compile, ivy-buildJar"
