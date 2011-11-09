@@ -24,6 +24,7 @@ import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -1129,6 +1130,15 @@ public class Util {
         Assert.assertEquals("Comparing actual and expected results. ",
                 expectedResList, actualResList);
     }
-
     
+    public static String readFile(File file) throws IOException {
+        BufferedReader reader = new BufferedReader(new FileReader(file));
+        String result = "";
+        String line;
+        while ((line=reader.readLine())!=null) {
+            result += line;
+            result += "\n";
+        }
+        return result;
+    }
 }
