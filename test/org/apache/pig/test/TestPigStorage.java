@@ -37,18 +37,25 @@ import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
+import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.util.Utils;
 import org.apache.pig.test.utils.TypeCheckingTestUtil;
+import org.codehaus.jackson.JsonGenerationException;
+import org.codehaus.jackson.map.JsonMappingException;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -394,5 +401,67 @@ public class TestPigStorage  {
 
         header = Util.readOutput(pig.getPigContext(), outPath);
         Assert.assertArrayEquals("Headers are not the same.", new String[] {"foo\tbar"}, header);
+    }
+    
+    private void putInputFile(String filename) throws IOException {
+        Util.createLocalInputFile(filename, new String[] {});
+    }
+    
+    private void putSchemaFile(String schemaFilename, ResourceSchema testSchema) throws JsonGenerationException, JsonMappingException, IOException {
+        new ObjectMapper().writeValue(new File(schemaFilename), testSchema);
+    }
+    
+    @Test
+    public void testPigStorageSchemaSearch() throws Exception {
+        String globtestdir = "build/test/tmpglobbingdata/";
+        ResourceSchema testSchema = new ResourceSchema(Utils.parseSchema("a0:chararray"));
+        PigStorage pigStorage = new PigStorage();
+        pigContext.connect();
+        try{
+            Util.deleteDirectory(new File(datadir));
+            pig.mkdirs(globtestdir+"a");
+            pig.mkdirs(globtestdir+"a/a0");
+            putInputFile(globtestdir+"a/a0/input");
+            pig.mkdirs(globtestdir+"a/b0");
+            putInputFile(globtestdir+"a/b0/input");
+            pig.mkdirs(globtestdir+"b");
+        } catch (IOException e) {};
+        
+        // if schema file is not found, schema is null
+        ResourceSchema schema = pigStorage.getSchema(globtestdir, new Job(ConfigurationUtil.toConfiguration(pigContext.getProperties())));
+        Assert.assertTrue(schema==null);
+        
+        // .pig_schema.input in along with input file
+        putSchemaFile(globtestdir+"a/a0/.pig_schema.input", testSchema);
+        schema = pigStorage.getSchema(globtestdir+"a/a0/*", new Job(ConfigurationUtil.toConfiguration(pigContext.getProperties())));
+        Assert.assertTrue(ResourceSchema.equals(schema, testSchema));
+        new File(globtestdir+"a/a0/.pig_schema.input").delete();
+        
+        // if .pig_schema is in the input directory
+        putSchemaFile(globtestdir+"a/a0/.pig_schema", testSchema);
+        schema = pigStorage.getSchema(globtestdir+"a/a0", new Job(ConfigurationUtil.toConfiguration(pigContext.getProperties())));
+        Assert.assertTrue(ResourceSchema.equals(schema, testSchema));
+        new File(globtestdir+"a/a0/.pig_schema").delete();
+        
+        // .pig_schema in one of globStatus returned directory
+        putSchemaFile(globtestdir+"a/.pig_schema", testSchema);
+        schema = pigStorage.getSchema(globtestdir+"*", new Job(ConfigurationUtil.toConfiguration(pigContext.getProperties())));
+        Assert.assertTrue(ResourceSchema.equals(schema, testSchema));
+        new File(globtestdir+"a/.pig_schema").delete();
+        
+        putSchemaFile(globtestdir+"b/.pig_schema", testSchema);
+        schema = pigStorage.getSchema(globtestdir+"*", new Job(ConfigurationUtil.toConfiguration(pigContext.getProperties())));
+        Assert.assertTrue(ResourceSchema.equals(schema, testSchema));
+        new File(globtestdir+"b/.pig_schema").delete();
+        
+        // if .pig_schema is deep in the globbing, it will not get used
+        putSchemaFile(globtestdir+"a/a0/.pig_schema", testSchema);
+        schema = pigStorage.getSchema(globtestdir+"*", new Job(ConfigurationUtil.toConfiguration(pigContext.getProperties())));
+        Assert.assertTrue(schema==null);
+        putSchemaFile(globtestdir+"a/.pig_schema", testSchema);
+        schema = pigStorage.getSchema(globtestdir+"*", new Job(ConfigurationUtil.toConfiguration(pigContext.getProperties())));
+        Assert.assertTrue(ResourceSchema.equals(schema, testSchema));
+        new File(globtestdir+"a/a0/.pig_schema").delete();
+        new File(globtestdir+"a/.pig_schema").delete();
     }
 }
