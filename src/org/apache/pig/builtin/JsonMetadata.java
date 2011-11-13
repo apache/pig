@@ -44,6 +44,7 @@ import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.backend.hadoop.datastorage.HDirectory;
 import org.apache.pig.backend.hadoop.datastorage.HFile;
+import org.apache.pig.backend.hadoop.datastorage.HPath;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.codehaus.jackson.JsonGenerationException;
@@ -115,25 +116,29 @@ public class JsonMetadata implements LoadMetadata, StoreMetadata {
             } else {
                 ElementDescriptor[] descriptors = storage.asCollection(loc);
                 for(ElementDescriptor descriptor : descriptors) {
-                    String fileName = null, parentName = null;
-                    ContainerDescriptor parentContainer = null;
+                    ContainerDescriptor container = null;
+                    
                     if (descriptor instanceof HFile) {
-                        Path descriptorPath = ((HFile) descriptor).getPath();
-                        fileName = descriptorPath.getName();
+                        Path descriptorPath = ((HPath) descriptor).getPath();
+                        String fileName = descriptorPath.getName();
                         Path parent = descriptorPath.getParent();
-                        parentName = parent.toString();
-                        parentContainer = new HDirectory((HDataStorage)storage,parent);
-                    }
-                    ElementDescriptor metaFilePath = storage.asElement(parentName, prefix+"."+fileName);
+                        String parentName = parent.toString();
+                        container = new HDirectory((HDataStorage)storage,parent);
+                        
+                        // try prefix.filename for the file
+                        ElementDescriptor metaFilePath = storage.asElement(parentName, prefix+"."+fileName);
 
-                    // if the file has a custom schema, use it
-                    if (metaFilePath.exists()) {
-                        metaFileSet.add(metaFilePath);
-                        continue;
+                        // if the file has a custom schema, use it
+                        if (metaFilePath.exists()) {
+                            metaFileSet.add(metaFilePath);
+                            continue;
+                        }
+                    } else { // descriptor instanceof HDirectory
+                        container = (HDirectory)descriptor;
                     }
 
                     // if no custom schema, try the parent directory
-                    metaFilePath = storage.asElement(parentContainer, prefix);
+                    ElementDescriptor metaFilePath = storage.asElement(container, prefix);
                     if (metaFilePath.exists()) {
                         metaFileSet.add(metaFilePath);
                     }
