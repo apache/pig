@@ -22,12 +22,13 @@ import java.io.IOException;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.List;
-import java.util.Properties;
 import java.util.Stack;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PigLogger;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PigProgressable;
+import org.apache.pig.builtin.OutputSchema;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.data.Tuple;
@@ -35,9 +36,8 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.UDFContext;
-import org.apache.pig.LoadPushDown.RequiredFieldList;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PigLogger;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PigProgressable;
+import org.apache.pig.impl.util.Utils;
+import org.apache.pig.parser.ParserException;
 
 
 /**
@@ -215,11 +215,20 @@ public abstract class EvalFunc<T>  {
      * Report the schema of the output of this UDF.  Pig will make use of
      * this in error checking, optimization, and planning.  The schema
      * of input data to this UDF is provided.
+     * <p>
+     * The default implementation interprets the {@link OutputSchema} annotation,
+     * if one is present. Otherwise, it returns <code>null</code> (no known output schema).
+     *
      * @param input Schema of the input
      * @return Schema of the output
      */
     public Schema outputSchema(Schema input) {
-        return null;
+        OutputSchema schema = this.getClass().getAnnotation(OutputSchema.class);
+        try {
+            return (schema == null) ? null : Utils.getSchemaFromString(schema.value());
+        } catch (ParserException e) {
+            throw new RuntimeException(e);
+        }
     }
     
     /**

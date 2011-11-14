@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2151: Add annotation to specify output schema in Java UDFs (dvryaboy)
+
 PIG-2230: Improved error message for invalid parameter format (xuitingz via olgan)
 
 PIG-2328: Add builtin UDFs for building and using bloom filters (gates)
