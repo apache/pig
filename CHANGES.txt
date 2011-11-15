@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2365: Current TOP implementation needlessly results in a null bag name (jcoveney via dvryaboy) 
+
 PIG-2151: Add annotation to specify output schema in Java UDFs (dvryaboy)
 
 PIG-2230: Improved error message for invalid parameter format (xuitingz via olgan)

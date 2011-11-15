@@ -167,10 +167,7 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
             if (input.size() < 3) {
                 return null;
             }
-            Schema.FieldSchema bagFs = new Schema.FieldSchema(null,
-                    input.getField(2).schema, DataType.BAG);
-            return new Schema(bagFs);
-
+            return new Schema(input.getField(2));
         } catch (Exception e) {
             return null;
         }
