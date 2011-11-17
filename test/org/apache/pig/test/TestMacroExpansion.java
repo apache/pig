@@ -1210,27 +1210,23 @@ public class TestMacroExpansion {
         validateFailure(sb.toString(), expectedErr, "at");
     }
     
-    @Test // PIG-2081
-    public void lineNumberTest3() throws Throwable {
-        StringBuilder sb = new StringBuilder();
-        
-        sb.append("DEFINE my_macro (X,key) returns Y\n" +
-            "{\n" +   
-            "tmp1 = foreach  $X generate TOKENIZE((chararray)$key) as tokens;\n" +
-            "tmp2 = foreach tmp1 generate flatten(tokens);\n" +
-            "tmp3 = order tmp2 by $0;\n" + 
-            "$Y = distinct tmp3;\n" +
-            "};\n");
-        
-        sb.append("A3 = load 'sometext3' using TextLoader() as (row3);\n");
-        
-        sb.append("E3 = my_macro(A3,$0);\n");
-
-        
-        String expectedErr = 
-            "<file myscript.pig, line 9, column 17>  Syntax error, unexpected symbol at or near '$0'";
-        
-        validateDryrunFailure(sb.toString(), expectedErr, "<file");
+    //see Pig-2184
+    @Test
+    public void testMacroAliasConversion() throws Exception {
+    	  String macro = "define my_macro (X,key) returns Y {\n" +
+    	        "$Y = filter $X by $key>0;\n" +
+    	            "};\n";
+    	        
+    	        String script = 
+    	            "A = load 'sometext1' using TextLoader() as (row1) ;\n" +
+    	            "E = my_macro (A, $0);\n" +
+    	            "store E into 'byrow1';\n";
+    	        
+    	        String expected =
+    	        			"A = load 'sometext1' USING TextLoader() as row1;\n"+
+    	        			"E = filter A BY ($0 > 0);\n"+
+    	        			"store E INTO 'byrow1';\n";
+    	        verify(macro + script, expected);
     }
     
     @Test

@@ -197,6 +197,7 @@ parameter
     | INTEGER 
     | DOUBLENUMBER
     | QUOTEDSTRING
+    | DOLLARVAR
 ;
 
 content : LEFT_CURLY ( content | ~(LEFT_CURLY | RIGHT_CURLY) )* RIGHT_CURLY

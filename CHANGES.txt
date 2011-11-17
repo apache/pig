@@ -176,6 +176,8 @@ PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
 
+PIG-2184: Not able to provide positional reference to macro invocations (xutingz via daijy)
+
 PIG-2209: JsonMetadata fails to find schema for glob paths (daijy)
 
 PIG-2165: Need a way to deal with params and param_file in embedded pig in python (daijy)
