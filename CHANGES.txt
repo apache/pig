@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2311: STRSPLIT needs to allow bytearray arguments (xuting via olgan)
+
 PIG-2365: Current TOP implementation needlessly results in a null bag name (jcoveney via dvryaboy) 
 
 PIG-2151: Add annotation to specify output schema in Java UDFs (dvryaboy)
