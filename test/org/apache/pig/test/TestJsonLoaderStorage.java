@@ -92,7 +92,6 @@ public class TestJsonLoaderStorage {
         tmpFile.delete();
         
         File schemaFile = new File("test/org/apache/pig/test/data/jsonStorage1.schema");
-        schemaFile.delete();
         
         pigServer.registerQuery("a = load 'jsonStorage1.json' using" + 
         		" JsonLoader('a0:int,a1:{(a10:int,a11:chararray)},a2:(a20:double,a21:bytearray),a3:[chararray]');");
