@@ -138,6 +138,8 @@ class PigMacro {
         
         String[] args = new String[params.size()];
         for (int i=0; i<params.size(); i++) {
+        	 if (inputs[i].startsWith("$"))
+        		 inputs[i]="\\\\"+inputs[i];
             args[i] = params.get(i) + "=" + inputs[i];
         }
         if (!isVoidReturn) {
