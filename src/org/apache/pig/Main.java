@@ -576,7 +576,7 @@ static int run(String args[], PigProgressNotificationListener listener) {
         rc = ReturnCode.PARSE_EXCEPTION;
         PigStatsUtil.setErrorMessage(e.getMessage());
     } catch (org.apache.pig.tools.parameters.ParseException e) {
-        usage();
+       // usage();
         rc = ReturnCode.PARSE_EXCEPTION;
         PigStatsUtil.setErrorMessage(e.getMessage());
     } catch (IOException e) {
