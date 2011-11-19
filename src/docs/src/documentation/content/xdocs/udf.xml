@@ -1492,11 +1492,20 @@ b = foreach a generate myfuncs.helloworld(), myfuncs.square(3);
  </source>
  </section>
  
-    <!-- ++++++++++++++++++++++++++++++++++++++++++++++++ -->
+ <!-- ++++++++++++++++++++++++++++++++++++++++++++++++ -->
  <section id="python-advanced">
  <title>Advanced Topics</title> 
-  <p>UDFs and Pig scripts are generally stored in separate files. For testing purposes you can combine the code in a single file - a "combined" script. 
- Note, however, if you then decide to embed this "combined" script in a host language, the language of the UDF must match the host language.</p>
+  <section id="import-modules">
+  
+<!-- ++++++++++++++++++++ -->
+<title>Importing Modules</title>
+<p>You can import Python modules in your Python script. Pig resolves Python dependencies recursively, which means Pig will automatically ship all dependent Python modules to the backend. Python modules should be found in the jython search path: JYTHON_HOME, JYTHON_PATH, or current directory.</p>
+</section>
+
+<!-- ++++++++++++++++++++ -->
+<section id="combined-scripts">
+<title>Combined Scripts</title>
+  <p>UDFs and Pig scripts are generally stored in separate files. For testing purposes you can combine the code in a single file - a "combined" script. Note, however, if you then decide to embed this "combined" script in a host language, the language of the UDF must match the host language.</p>
  
  <p>This example combines Python and Pig. This "combined" script can only be embedded in Python.</p>
  <p>With Python you MUST use the <code>if __name__ == '__main__': </code> construct to separate UDFs and control flow. Otherwise the script will result in an error.</p>
@@ -1515,6 +1524,8 @@ if __name__ == '__main__':
 
 result = P.bind().runSingle();
  </source>
+   </section>
+
   </section>
 </section>
 

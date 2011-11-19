@@ -341,7 +341,9 @@ The following properties are supported:
    
    <section>
    <title>Usage</title>
-   <p>The kill command enables you to kill a job based on a job id.</p></section>
+   <p>Use the kill command to kill a Pig job based on the job id.</p>
+   <p>The kill command will attempt to kill any MapReduce jobs associated with the Pig job. Under certain conditions, however, this may fail; for example, when a Pig job is killed and does not have a chance to call its shutdown procedures.</p>
+   </section>
    
    <section>
    <title>Example</title>

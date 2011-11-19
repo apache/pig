@@ -1118,7 +1118,7 @@ foreach statement where the foreach statement should meet the following conditio
 <li>Type information must be provided for the join key in the schema.</li>
 </ul>
 <p></p>
-<p>The Zebra and PigStorage loaders satisfy all of these conditions.</p>
+<p>The PigStorage loader satisfies all of these conditions.</p>
 <p></p>
 
 <p><strong>Condition B</strong></p>
@@ -1131,17 +1131,43 @@ foreach statement where the foreach statement should meet the following conditio
 <li>Type information must be provided for the join key in the schema.</li>
 </ul>
 <p></p>
-<p>The Zebra loader satisfies all of these conditions.</p>
-
-<p>An example of a left outer merge join using the Zebra loader:</p>
-<source>
-A = load 'data1' using org.apache.hadoop.zebra.pig.TableLoader('id:int', 'sorted'); 
-B = load 'data2' using org.apache.hadoop.zebra.pig.TableLoader('id:int', 'sorted'); 
-C = join A by id left, B by id using 'merge'; 
-</source>
+<p>Pig does not provide a loader that supports outer merge joins. You will need to build your own loader to take advantage of this feature.</p>
 </section>
 </section>
 <!-- END MERGE JOIN -->
+
+
+
+<!-- +++++++++++++++++++++++++++++++ -->
+<!-- MERGE SPARSE JOIN-->
+<section id="merge-sparse-joins">
+<title>Merge-Sparse Joins</title>
+<p>Merge-Sparse join is a specialization of merge join. Merge-sparse join is intended for use when one of the tables is very sparse, meaning you expect only a small number of records to be matched during the join. In tests this join performed well for cases where less than 1% of the data was matched in the join.</p>
+
+
+<section>
+<title>Usage</title>
+<p>Perform a merge-sparse join with the USING clause (see <a href="basic.html#JOIN-inner">JOIN (inner)</a>). </p>
+<source>
+a = load 'sorted_input1' using org.apache.pig.piggybank.storage.IndexedStorage('\t', '0');
+b = load 'sorted_input2' using org.apache.pig.piggybank.storage.IndexedStorage('\t', '0');
+c = join a by $0, b by $0 using 'merge-sparse';
+store c into 'results';
+</source>
+</section>
+
+<section>
+<title>Conditions</title>
+<p>Merge-sparse join only works for inner joins and is not currently implemented for outer joins.</p>
+
+<p>For inner joins, the preconditions are the same as for merge join with the exception of constrains on the right-side loader. For sparse-merge joins the loader must implement IndexedLoadFunc or the join will fail.</p>
+
+<p>Piggybank now contains a load function called org.apache.pig.piggybank.storage.IndexedStorage that is a derivation of PigStorage and implements IndexedLoadFunc. This is the only loader included in the standard Pig distribution that can be used for merge-sparse join.</p>
+
+</section>
+
+</section>
+<!-- END MERGE-SPARSE JOIN -->
 
 <!-- +++++++++++++++++++++++++++++++ -->
 <section id="specialized-joins-performance">
