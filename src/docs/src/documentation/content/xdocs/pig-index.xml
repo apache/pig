@@ -83,7 +83,9 @@
 <p>&nbsp; + &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="basic.html#sign">sign operator (positive)</a></p>
 <p>&nbsp; *  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="basic.html#sexp">star expression</a></p>
 <p>&nbsp; -  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="basic.html#arithmetic">subtraction operator</a></p>
-
+<p>&nbsp; ( ) &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="basic.html#type-construction">type construction operator (tuple)</a></p>
+<p>&nbsp; { } &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="basic.html#type-construction">type construction operator (bag)</a></p>
+<p>&nbsp; [ ] &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="basic.html#type-construction">type construction operator (map)</a></p>
 
 <!-- ==== A ================================================================== -->
 <p></p>
@@ -130,6 +132,8 @@
 <br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#memory-bags">and memory allocation</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#relations">and relations</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#bag-schema">and schemas</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="func.html#tobag">and TOBAG function</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#type-construction">and type construction operators</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#schema-multi">schemas for multiple types</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#bag">syntax</a>
 </p>
@@ -229,7 +233,7 @@
 <br></br>&nbsp;&nbsp;&nbsp; <a href="start.html#data-work-with">working with</a>
 </p>
 
-<p><a href="basic.html#data-types">data types</a> (simple and complex)</p>
+<p>data types. <em>See</em> types</p>
 
 <p>debugging
 <br></br>&nbsp;&nbsp;&nbsp; <a href="test.html#diagnostic-ops">diagnostic operators</a>
@@ -389,6 +393,7 @@
 <br></br>&nbsp;&nbsp;&nbsp; <a href="test.html#hadoop-job-history-loader">HadoopJobHistoryLoader</a>
 <br></br>&nbsp;&nbsp;&nbsp; hadoop partitioner. <em>See</em> PARTITION BY
 <br></br>&nbsp;&nbsp;&nbsp; <a href="start.html#hadoop-properties">Hadoop properties</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="start.html#req">versions supported</a>
 </p>
 
 <p><a href="start.html#dfs">HDFS</a></p>
@@ -472,6 +477,7 @@
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#join-inner">inner joins</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#join-optimizations">join optimizations</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#merge-joins">merge joins</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#merge-sparse-joins">merge-sparse joins</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#join-outer">outer joins </a> 
 <br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#replicated-joins">replicated joins</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#self-joins">self joins</a>
@@ -566,6 +572,8 @@
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#map-schema">and schemas</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#schema-multi">schemas for multiple types</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#map">syntax</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="func.html#tomap">and TOMAP function</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#type-construction">and type construction operators</a>
 </p>
 
 <p>matches. <em>See</em> pattern matching</p>
@@ -581,6 +589,8 @@
 <p> <a href="perf.html#MergeForEach">MergeForEach</a> optimization rule</p>
 
 <p><a href="perf.html#merge-joins">merge joins</a></p>
+
+<p><a href="perf.html#merge-sparse-joins">merge-sparse joins</a></p>
 
 <p><a href="func.html#min">MIN</a> function</p>
 
@@ -947,6 +957,8 @@
 
 <p><a href="func.html#tokenize">TOKENIZE</a> function</p>
 
+<p><a href="func.html#tomap">TOMAP</a> function</p>
+
 <p><a href="func.html#topx">TOP</a> function</p>
 
 <p><a href="func.html#totuple">TOTUPLE</a> function</p>
@@ -961,11 +973,15 @@
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#relations">and relations</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#tuple-schema">and schemas</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#tuple">syntax</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="func.html#totuple">and TOTUPLE function</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#type-construction">and type construction operators</a>
 </p>
 
-
+<p><a href="basic.html#type-construction">type construction operators</a> (tuple, bag, map)</p>
 
 <p>type conversions. <em>See</em> casting types, types tables</p>
+
+<p><a href="basic.html#data-types">types</a> (simple and complex)</p>
 
 <p><a href="perf.html#types">types and performance</a></p>
 
@@ -978,8 +994,6 @@
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#types-table-nulls">for nulls</a>
 <br></br>&nbsp;&nbsp;&nbsp; <em>See also</em> casting types
 </p>
-
-
 
 <p><a href="start.html#tutorial">tutorial</a> (for Pig)</p>
 

@@ -56,6 +56,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2300: Pig Docs - release 0.10.0 (and 0.9.1) (chandec via daijy)
+
 PIG-2332: JsonLoader/JsonStorage (daijy)
 
 PIG-2334: Set default number of reducers for S3N filesystem (ddaniels888 via daijy)
