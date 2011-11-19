@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2300: Pig Docs - release 0.10.0 (and 0.9.1) (chandec via daijy)
+
 PIG-2230: Improved error message for invalid parameter format (xuitingz via olgan)
 
 PIG-2332: JsonLoader/JsonStorage (daijy)

@@ -503,24 +503,13 @@ DUMP X;
    <table>
       <tr>
             <td>
-               <p><strong>Simple Data Types</strong></p>
+               <p><strong>Simple Types</strong></p>
             </td>
             <td>
                <p>Description</p>
             </td>
             <td>
                <p>Example </p>
-            </td>
-         </tr>
-         <tr>
-            <td>
-               <p>Scalars</p>
-            </td>
-            <td>
-               <p></p>
-            </td>
-            <td>
-               <p></p>
             </td>
          </tr>
          <tr>
@@ -572,17 +561,6 @@ DUMP X;
          </tr>
          <tr>
             <td>
-               <p>Arrays</p>
-            </td>
-            <td>
-               <p></p>
-            </td>
-            <td>
-               <p></p>
-            </td>
-         </tr>
-         <tr>
-            <td>
                <p>chararray</p>
             </td>
             <td>
@@ -603,9 +581,20 @@ DUMP X;
                <p></p>
             </td>
          </tr>
+                  <tr>
+            <td>
+               <p>boolean</p>
+            </td>
+            <td>
+               <p>boolean</p>
+            </td>
+            <td>
+               <p>true/false (case insensitive)</p>
+            </td>
+         </tr>
          <tr>
             <td>
-               <p><strong>Complex Data Types</strong></p>
+               <p><strong>Complex Types</strong></p>
             </td>
             <td>
                <p></p>
@@ -840,7 +829,7 @@ DUMP X;
    
    <section id="map">
    <title>Map</title>
-   <p>A map is a set of key value pairs.</p>
+   <p>A map is a set of key/value pairs.</p>
    
    <section>
    <title>Syntax (&lt;&gt; denotes optional)</title>
@@ -1209,26 +1198,15 @@ dump X;
                <p></p>
             </td>
             <td>
-               <p>Constant Example</p>
+               <p><strong>Constant Example</strong></p>
             </td>
             <td>
-               <p>Notes</p>
-            </td>
-         </tr>
-         <tr>
-            <td>
-               <p>Simple Data Types</p>
-            </td>
-            <td>
-               <p></p>
-            </td>
-            <td>
-               <p></p>
+               <p><strong>Notes</strong></p>
             </td>
          </tr>
          <tr>
             <td>
-               <p>Scalars</p>
+               <p><strong>Simple Data Types</strong></p>
             </td>
             <td>
                <p></p>
@@ -1283,17 +1261,6 @@ dump X;
          </tr>
          <tr>
             <td>
-               <p>Arrays </p>
-            </td>
-            <td>
-               <p></p>
-            </td>
-            <td>
-               <p></p>
-            </td>
-         </tr>
-         <tr>
-            <td>
                <p>chararray</p>
             </td>
             <td>
@@ -1316,7 +1283,18 @@ dump X;
          </tr>
          <tr>
             <td>
-               <p>Complex Data Types</p>
+               <p>boolean</p>
+            </td>
+            <td>
+               <p>true/false</p>
+            </td>
+            <td>
+               <p>Case insensitive.</p>
+            </td>
+         </tr>
+         <tr>
+            <td>
+               <p><strong>Complex Data Types</strong></p>
             </td>
             <td>
                <p></p>
@@ -1646,7 +1624,7 @@ X = FOREACH A GENERATE f1 as user, f2 as age, f3 as gpa;
      <!-- ++++++++++++++++++++++++++++++++++ -->  
    <section  id="schema-simple">
    <title>Schemas for Simple Data Types</title>
-   <p>Simple data types include int, long, float, double, chararray, and bytearray.</p>
+   <p>Simple data types include int, long, float, double, chararray, bytearray, and boolean.</p>
    
    <section>
    <title>Syntax</title>
@@ -2904,7 +2882,7 @@ DUMP X;
             </td>
          </tr>
    </table>
-   <p>Pig does not support a boolean data type. However, the result of a boolean expression (an expression that includes boolean and comparison operators) is always of type boolean (true or false).</p>
+   <p>The result of a boolean expression (an expression that includes boolean and comparison operators) is always of type boolean (true or false).</p>
    
    <section>
    <title>Example</title>
@@ -2922,41 +2900,9 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 > f1));
    <title>Description</title>
    <p>Pig Latin supports casts as shown in this table. </p>
    <table>
-         <tr>
+       <tr>
             <td>
-               <p></p>
-            </td>
-            <td>
-               <p>to </p>
-            </td>
-            <td>
-               <p></p>
-            </td>
-            <td>
-               <p></p>
-            </td>
-            <td>
-               <p></p>
-            </td>
-            <td>
-               <p></p>
-            </td>
-            <td>
-               <p></p>
-            </td>
-            <td>
-               <p></p>
-            </td>
-            <td>
-               <p></p>
-            </td>
-            <td>
-               <p></p>
-            </td>
-         </tr>
-         <tr>
-            <td>
-               <p>from </p>
+               <p><strong>from /  to</strong></p>
             </td>
             <td>
                <p>bag </p>
@@ -2984,6 +2930,9 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 > f1));
             </td>
             <td>
                <p>bytearray </p>
+            </td>
+            <td>
+               <p>boolean</p>
             </td>
          </tr>
          <tr>
@@ -3017,6 +2966,9 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 > f1));
             <td>
                <p>error </p>
             </td>
+            <td>
+               <p>error</p>
+            </td>
          </tr>
          <tr>
             <td>
@@ -3048,6 +3000,9 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 > f1));
             </td>
             <td>
                <p>error </p>
+            </td>
+            <td>
+               <p>error</p>
             </td>
          </tr>
          <tr>
@@ -3081,6 +3036,9 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 > f1));
             <td>
                <p>error </p>
             </td>
+            <td>
+               <p>error</p>
+            </td>
          </tr>
          <tr>
             <td>
@@ -3112,6 +3070,9 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 > f1));
             </td>
             <td>
                <p>error </p>
+            </td>
+           <td>
+               <p>error</p>
             </td>
          </tr>
          <tr>
@@ -3145,6 +3106,9 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 > f1));
             <td>
                <p>error </p>
             </td>
+           <td>
+               <p>error</p>
+            </td>
          </tr>
          <tr>
             <td>
@@ -3176,6 +3140,9 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 > f1));
             </td>
             <td>
                <p>error </p>
+            </td>
+            <td>
+               <p>error</p>
             </td>
          </tr>
          <tr>
@@ -3209,6 +3176,9 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 > f1));
             <td>
                <p>error </p>
             </td>
+            <td>
+               <p>error</p>
+            </td>
          </tr>
          <tr>
             <td>
@@ -3241,6 +3211,9 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 > f1));
             <td>
                <p>error </p>
             </td>
+           <td>
+               <p>yes</p>
+            </td>
          </tr>
          <tr>
             <td>
@@ -3269,6 +3242,44 @@ X = FILTER A BY (f1==8) OR (NOT (f2+f3 > f1));
             </td>
             <td>
                <p>yes </p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p>yes</p>
+            </td>
+         </tr>
+                  <tr>
+            <td>
+               <p>boolean </p>
+            </td>
+            <td>
+               <p>error </p>
+            </td>
+            <td>
+               <p>error </p>
+            </td>
+            <td>
+               <p>error </p>
+            </td>
+            <td>
+               <p>error </p>
+            </td>
+            <td>
+               <p>error </p>
+            </td>
+            <td>
+               <p>error </p>
+            </td>
+            <td>
+               <p>error</p>
+            </td>
+            <td>
+               <p>yes</p>
+            </td>
+            <td>
+               <p>error</p>
             </td>
             <td>
                <p></p>
@@ -3603,31 +3614,30 @@ dump E;
          </tr>
    </table>
    <p>Use the comparison operators with numeric and string data.</p>
-   
+    </section>
+    
    <section>
-   <title>Example: numeric</title>
+   <title>Examples</title>
+
+<p><strong>Numeric Example</strong></p>
 <source>
 X = FILTER A BY (f1 == 8);
 </source>
-   </section>
-   
-   <section>
-   <title>Example: string</title>
+
+<p><strong>String Example</strong></p>   
 <source>
 X = FILTER A BY (f2 == 'apache');
 </source>
-   </section>
-   
-   <section>
-   <title>Example: matches</title>
+
+ <p><strong>Matches Example</strong></p>    
 <source>
 X = FILTER A BY (f1 matches '.*apache.*');
 </source>
    </section>
    
    <section id="types-table-equal">
-   <title>Types Table: equal (==) and not equal (!=) operators</title>
-   <p>* bytearray cast as this data type</p>
+   <title>Types Table: equal (==) operator</title>
+   <p></p>
    <table>
          <tr>
             <td>
@@ -3660,10 +3670,16 @@ X = FILTER A BY (f1 matches '.*apache.*');
             <td>
                <p>bytearray </p>
             </td>
+            <td>
+               <p>boolean </p>
+            </td>
          </tr>
          <tr>
             <td>
                <p>bag </p>
+            </td>
+            <td>
+               <p>error </p>
             </td>
             <td>
                <p>error </p>
@@ -3701,7 +3717,11 @@ X = FILTER A BY (f1 matches '.*apache.*');
                <p></p>
             </td>
             <td>
-               <p>boolean (see Note 1) </p>
+               <p>boolean </p>
+               <p>(see Note 1) </p>
+            </td>
+            <td>
+               <p>error </p>
             </td>
             <td>
                <p>error </p>
@@ -3757,6 +3777,9 @@ X = FILTER A BY (f1 matches '.*apache.*');
             <td>
                <p>error </p>
             </td>
+            <td>
+               <p>error </p>
+            </td>
          </tr>
          <tr>
             <td>
@@ -3788,6 +3811,9 @@ X = FILTER A BY (f1 matches '.*apache.*');
             </td>
             <td>
                <p>cast as boolean </p>
+            </td>
+            <td>
+               <p>error </p>
             </td>
          </tr>
          <tr>
@@ -3821,6 +3847,9 @@ X = FILTER A BY (f1 matches '.*apache.*');
             <td>
                <p>cast as boolean </p>
             </td>
+             <td>
+               <p>error </p>
+            </td>
          </tr>
          <tr>
             <td>
@@ -3852,6 +3881,9 @@ X = FILTER A BY (f1 matches '.*apache.*');
             </td>
             <td>
                <p>cast as boolean  </p>
+            </td>
+             <td>
+               <p>error </p>
             </td>
          </tr>
          <tr>
@@ -3885,6 +3917,9 @@ X = FILTER A BY (f1 matches '.*apache.*');
             <td>
                <p>cast as boolean  </p>
             </td>
+            <td>
+               <p>error </p>
+            </td>
          </tr>
          <tr>
             <td>
@@ -3917,10 +3952,51 @@ X = FILTER A BY (f1 matches '.*apache.*');
             <td>
                <p>cast as boolean </p>
             </td>
+            <td>
+               <p>error </p>
+            </td>
          </tr>
          <tr>
             <td>
                <p>bytearray </p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p>boolean </p>
+            </td>
+            <td>
+               <p>error </p>
+            </td>
+         </tr>
+                  <tr>
+            <td>
+               <p>boolean </p>
+            </td>
+            <td>
+               <p></p>
             </td>
             <td>
                <p></p>
@@ -3953,10 +4029,11 @@ X = FILTER A BY (f1 matches '.*apache.*');
    </table>
    <p>Note 1: boolean (Tuple A is equal to tuple B if they have the same size s, and for all 0 &lt;= i &lt; s A[i] = = B[i])</p>
    <p>Note 2: boolean (Map A is equal to map B if A and B have the same number of entries, and for every key k1 in A with a value of v1, there is a key k2 in B with a value of v2, such that k1 = = k2 and v1 = = v2)</p>
-   </section>
-   
-   <section>
-   <title></title>
+</section>
+
+   <section id="types-table-not-equal">
+   <title>Types Table: not equal (!=) operator</title>
+     <p></p>
    <table>
          <tr>
             <td>
@@ -3989,6 +4066,9 @@ X = FILTER A BY (f1 matches '.*apache.*');
             <td>
                <p>bytearray </p>
             </td>
+            <td>
+               <p>boolean </p>
+            </td>
          </tr>
          <tr>
             <td>
@@ -4021,6 +4101,9 @@ X = FILTER A BY (f1 matches '.*apache.*');
             <td>
                <p>error </p>
             </td>
+          <td>
+               <p>error </p>
+            </td>
          </tr>
          <tr>
             <td>
@@ -4028,6 +4111,9 @@ X = FILTER A BY (f1 matches '.*apache.*');
             </td>
             <td>
                <p></p>
+            </td>
+            <td>
+               <p>error </p>
             </td>
             <td>
                <p>error </p>
@@ -4063,6 +4149,9 @@ X = FILTER A BY (f1 matches '.*apache.*');
             </td>
             <td>
                <p></p>
+            </td>
+            <td>
+               <p>error </p>
             </td>
             <td>
                <p>error </p>
@@ -4117,6 +4206,9 @@ X = FILTER A BY (f1 matches '.*apache.*');
             <td>
                <p>boolean (bytearray cast as int) </p>
             </td>
+            <td>
+               <p>error </p>
+            </td>
          </tr>
          <tr>
             <td>
@@ -4148,6 +4240,9 @@ X = FILTER A BY (f1 matches '.*apache.*');
             </td>
             <td>
                <p>boolean (bytearray cast as long) </p>
+            </td>
+            <td>
+               <p>error </p>
             </td>
          </tr>
          <tr>
@@ -4181,6 +4276,9 @@ X = FILTER A BY (f1 matches '.*apache.*');
             <td>
                <p>boolean (bytearray cast as float) </p>
             </td>
+            <td>
+               <p>error </p>
+            </td>
          </tr>
          <tr>
             <td>
@@ -4212,6 +4310,9 @@ X = FILTER A BY (f1 matches '.*apache.*');
             </td>
             <td>
                <p>boolean (bytearray cast as double) </p>
+            </td>
+            <td>
+               <p>error </p>
             </td>
          </tr>
          <tr>
@@ -4245,6 +4346,9 @@ X = FILTER A BY (f1 matches '.*apache.*');
             <td>
                <p>boolean (bytearray cast as chararray) </p>
             </td>
+            <td>
+               <p>error </p>
+            </td>
          </tr>
          <tr>
             <td>
@@ -4276,6 +4380,44 @@ X = FILTER A BY (f1 matches '.*apache.*');
             </td>
             <td>
                <p>boolean </p>
+            </td>
+            <td>
+               <p>error </p>
+            </td>
+         </tr>
+         <tr>
+            <td>
+               <p>boolean </p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p>error</p>
             </td>
          </tr>
    </table>
@@ -4319,8 +4461,143 @@ X = FILTER A BY (f1 matches '.*apache.*');
             </td>
          </tr>
    </table>
-   </section></section></section>
+   </section>
+   </section>
+
    
+
+  <!-- =================================================================== -->    
+   <section id="type-construction">
+   <title>Type Construction Operators</title>
+   
+   <section>
+   <title>Description</title>
+   <table>
+      <tr>
+            <td>
+               <p>Operator</p>
+            </td>
+            <td>
+               <p>Symbol</p>
+            </td>
+            <td>
+               <p> Notes</p>
+            </td>
+         </tr>
+         <tr>
+            <td>
+               <p>tuple constructor </p>
+            </td>
+            <td>
+               <p> ( ) </p>
+            </td>
+            <td>
+               <p>Use to construct a tuple from the specified elements. Equivalent to <a href="func.html#totuple">TOTUPLE</a>.</p>
+            </td>
+         </tr>
+         <tr>
+            <td>
+               <p>bag constructor</p>
+            </td>
+            <td>
+               <p> { }</p>
+            </td>
+            <td>
+               <p>Use to construct a bag from the specified elements. Equivalent to <a href="func.html#tobag">TOBAG</a>.</p>
+            </td>
+         </tr>
+         <tr>
+            <td>
+               <p>map constructor</p>
+            </td>
+            <td>
+               <p> [ ]</p>
+            </td>
+            <td>
+               <p>Use to construct a bag from the specified elements. Equivalent to <a href="func.html#tomap">TOMAP</a>.</p>
+            </td>
+         </tr>
+   </table>
+
+<p></p>   
+<p>Note the following:</p>  
+<ul>
+<li>These operators can be used anywhere where the expression of the corresponding type is acceptable including FOREACH GENERATE, FILTER, etc.</li>
+<li>A single element enclosed in parens ( ) like (5) is not considered to be a tuple but rather an arithmetic operator.</li>
+<li>For bags, every element is put in the bag; if the element is not a tuple Pig will create a tuple for it:
+<ul>
+<li> Given this {$1, $2}  Pig creates this {($1), ($2)} a bag with two tuples
+<p>... neither $1 and $2 are tuples so Pig creates a tuple around each item</p> <p>&nbsp;</p></li>
+
+<li> Given this {($1), $2} Pig creates this {($1), ($2)} a bag with two tuples
+<p>... since ($1) is treated as $1 (one cannot create a single element tuple using this syntax), {($1), $2} becomes {$1, $2} and Pig creates a tuple around each item</p><p>&nbsp;</p></li>
+
+<li> Given this {($1, $2)} Pig creates this {($1, $2)} a bag with a single tuple
+<p>... Pig creates a tuple ($1, $2) and then puts this tuple into the bag</p><p>&nbsp;</p></li>
+
+</ul> 
+</li>
+</ul>
+</section>
+   
+<!-- ++++++++++++++++++++++++++++++++++ --> 
+   <section>
+   <title>Examples</title>
+<p><strong>Tuple Construction</strong></p>
+<source>
+A = load 'students' as (name:chararray, age:int, gpa:float);
+B = foreach A generate (name, age);
+store B into ‘results’;
+
+Input (students):
+joe smith  20  3.5
+amy chen   22  3.2
+leo allen  18  2.1
+
+Output (results):
+(joe smith,20)
+(amy chen,22)
+(leo allen,18)
+</source>   
+   
+<!-- ++++++++++++++++++++++++++++++++++ --> 
+<p><strong>Bag Construction</strong></p>
+<source>
+A = load 'students' as (name:chararray, age:int, gpa:float);
+B = foreach A generate {(name, age)}, {name, age};
+store B into ‘results’;
+
+Input (students):
+joe smith  20  3.5
+amy chen   22  3.2
+leo allen  18  2.1
+
+Output (results):
+{(joe smith,20)}   {(joe smith),(20)}
+{(amy chen,22)}    {(amy chen),(22)}
+{(leo allen,18)}   {(leo allen),(18)}
+</source>   
+
+<!-- ++++++++++++++++++++++++++++++++++ -->    
+<p><strong>Map Construction</strong></p>
+<source>
+A = load 'students' as (name:chararray, age:int, gpa:float);
+B = foreach A generate [name, gpa];
+store B into ‘results’;
+
+Input (students):
+joe smith  20  3.5
+amy chen   22  3.2
+leo allen  18  2.1
+
+Output (results):
+[joe smith#3.5]
+[amy chen#3.2]
+[leo allen#2.1]
+</source>
+</section>
+</section>
+
 
   <!-- =================================================================== -->    
    <section id="deref">
@@ -4374,11 +4651,14 @@ X = FILTER A BY (f1 matches '.*apache.*');
             </td>
          </tr>
    </table>
+   </section>
    
-   <section>
-   <title>Example: Tuple</title>
-   <p>Suppose we have relation A.</p>
-
+<!-- ++++++++++++++++++++++++++++++++++++ -->    
+<section>
+<title>Examples</title> 
+  
+<p><strong>Tuple Example</strong></p>   
+<p>Suppose we have relation A.</p>
 <source>
 LOAD 'data' as (f1:int, f2:tuple(t1:int,t2:int,t3:int));
 
@@ -4401,11 +4681,12 @@ DUMP X;
 (1,7)
 (2,8)
 </source>
-   </section>
+
    
-   <section>
-   <title>Example: Bag</title>
-   <p>Suppose we have relation B, formed by grouping relation A (see the GROUP operator for information about the field names in relation B).</p>
+<!-- ++++++++++++++++++++++++++++++++++++ --> 
+<p><strong>Bag Example</strong></p>   
+   
+<p>Suppose we have relation B, formed by grouping relation A (see the GROUP operator for information about the field names in relation B).</p>
 <source>
 A = LOAD 'data' AS (f1:int, f2:int,f3:int);
 
@@ -4443,13 +4724,12 @@ DUMP X;
 ({(8),(8)})
 </source>
    
-   </section>
-   
-   <section>
-   <title>Example: Tuple and Bag</title>
-    <p>Suppose we have relation B, formed by grouping relation A  (see the GROUP operator for information about the field names in relation B).</p>
 
-   
+<!-- ++++++++++++++++++++++++++++++++++++ --> 
+<p><strong>Tuple/Bag Example</strong></p>
+
+<p>Suppose we have relation B, formed by grouping relation A  (see the GROUP operator for information about the field names in relation B).</p>
+
 <source>
 A = LOAD 'data' AS (f1:int, f2:int, f3:int);
 
@@ -4492,11 +4772,10 @@ DUMP X;
 (8,{(8)})
 (8,{(8)})
 </source>
-   </section>
-   
-   <section>
-   <title>Example: Map</title>
-   <p>Suppose we have relation A. </p>
+
+<!-- ++++++++++++++++++++++++++++++++++++ -->     
+<p><strong>Map Example</strong></p>
+ <p>Suppose we have relation A. </p>
 
 <source>
 A = LOAD 'data' AS (f1:int, f2:map[]);
@@ -4519,7 +4798,8 @@ DUMP X;
 ()
 ()
 </source>
-  </section></section></section>
+</section>
+</section>
   
   <!-- =================================================================== -->    
 <section id="disambiguate">
@@ -4611,13 +4891,17 @@ grunt>
    </table>
    <p></p>
    <p>For a detailed discussion of nulls see <a href="#nulls">Nulls and Pig Latin</a>.</p>
+      </section>
+      
    <section>
-   <title>Example</title>
+   <title>Examples</title>
+   
+   <p>In this example, values that are not null are obtained.</p>
 <source>
 X = FILTER A BY f1 is not null;
 </source>
-   </section></section>
-   
+   </section>
+
    <section id="types-table-nulls">
    <title>Types Table</title>
    <p>The null operators can be applied to all data types (see <a  href="#nulls">Nulls and Pig Latin</a>). </p>
@@ -4665,14 +4949,17 @@ X = FILTER A BY f1 is not null;
             </td>
          </tr>
    </table>
+   </section>
    
    <section>
-   <title>Example</title>
+   <title>Examples</title>
+<p>In this example, the negation operator is applied to the "x" values.</p>   
 <source>
 A = LOAD 'data' as (x, y, z);
 
 B = FOREACH A GENERATE -x, y;
 </source>
+</section>
    
    </section>
    
@@ -4752,7 +5039,7 @@ B = FOREACH A GENERATE -x, y;
             </td>
          </tr>
    </table>
-   </section></section></section>
+   </section>
   
 </section>   
 
@@ -5128,9 +5415,10 @@ DUMP X;
                <p>nested_op</p>
             </td>
             <td>
-               <p>Allowed operations are DISTINCT, FILTER, LIMIT, and ORDER BY. </p>
-               <p>The FOREACH…GENERATE operation itself is not allowed since this could lead to an arbitrary number of nesting levels.</p>
-               <p>You can also perform projections (see <a href="#nestedblock">Example: Nested Block</a>).</p>
+               <p>Allowed operations are CROSS, DISTINCT, FILTER, FOREACH, LIMIT, and ORDER BY. </p>
+               <p>Note: FOREACH statements can be nested to two levels only. FOREACH statements that are nested to three or more levels will result in a grammar error.</p>
+               <p>You can also perform projections within the nested block.</p>
+               <p>For examples, see <a href="#nestedblock">Example: Nested Block</a>.</p>
             </td>
          </tr>
          <tr>
@@ -5223,6 +5511,8 @@ DUMP X;
    
    <section>
    <title>Example: Nested Projection</title>
+
+
    <p>In this example if one of the fields in the input relation is a tuple, bag or map, we can perform a projection on that field (using a deference operator).</p>
 <source>
 X = FOREACH C GENERATE group, B.b2;
@@ -5339,6 +5629,37 @@ E = GROUP D BY A::x;
    
    <section id="nestedblock">
    <title>Example: Nested Block</title>
+      <p>In this example a CROSS is performed within the nested block.</p>
+<source>
+ user = load 'user' as (uid, age, gender, region);
+session = load 'session' as (uid, region);
+C = cogroup user by uid, session by uid;
+D = foreach C {
+    crossed = cross user, session;
+    generate crossed;  
+</source>
+<p>In this example FOREACH is nested to the second level.</p>
+<source>
+a = load '1.txt' as (a0, a1:chararray, a2:chararray); 
+b = group a by a0; 
+c = foreach b { 
+    c0 = foreach a generate TOMAP(a1,a2); 
+    generate c0; 
+} 
+dump c; 
+</source>
+<p>This example shows a CROSS and FOREACH nested to the second level.</p>
+<source>
+a = load '1.txt' as (a0, a1, a2); 
+b = load '2.txt' as (b0, b1); 
+c = cogroup a by a0, b by b0; 
+d = foreach c { 
+    d0 = cross a, b; 
+    d1 = foreach d0 generate a1+b1; 
+    generate d1; 
+} 
+dump d;
+</source>
    <p>Suppose we have relations A and B. Note that relation B contains an inner bag.</p>
 <source>
 A = LOAD 'data' AS (url:chararray,outlink:chararray);
@@ -5468,7 +5789,6 @@ DUMP X;
                <p></p>
                <p>If your data and loaders satisfy these conditions, use the ‘collected’ clause to perform an optimized version of GROUP; 
             the operation will execute on the map side and avoid running the reduce phase.</p>
-               <p>Note that the Zebra loader satisfies the conditions (see <a href="zebra_pig.html">Zebra and Pig</a>).</p>
                <p></p>
             </td>
          </tr>    
@@ -5504,7 +5824,6 @@ DUMP X;
                <p></p>
                <p>If your data and loaders satisfy these conditions, the ‘merge’ clause to perform an optimized version of COGROUP; 
                the operation will execute on the map side and avoid running the reduce phase.</p>
-               <p>Note that the Zebra loader satisfies the conditions (see <a href="zebra_pig.html">Zebra and Pig</a>).</p>
             </td>
             
          </tr>     
@@ -5704,29 +6023,7 @@ DUMP X;
  B = GROUP A BY (tcid, tpid); 
 </source>
     </section>   
-  
-   <section>
-   <title>Example</title>
-<p>This example shows how to group using the collected keyword.</p>   
-<source>
- register zebra.jar;
- A = LOAD 'studentsortedtab' USING org.apache.hadoop.zebra.pig.TableLoader('name, age, gpa', 'sorted');
- B = GROUP A BY name USING 'collected';
- C = FOREACH b GENERATE group, MAX(a.age), COUNT_STAR(a);
-</source>
-    </section>
-    
-       <section>
-   <title>Example</title>
-<p>This example shows how to use COGROUP with the merge keyword.</p>   
-<source>
- register zebra.jar;
- A = LOAD 'data1' USING org.apahce.hadoop.zebra.pig.TableLoader('id:int', 'sorted');
- B = LOAD 'data2' USING org.apahce.hadoop.zebra.pig.TableLoader('id:int', 'sorted');'
- C = COGROUP A BY id, B BY id USING 'merge';
-</source>
-    </section>
-    
+     
    <section id="partitionby">
    <title>Example: PARTITION BY</title>
 <p>To use the Hadoop Partitioner add PARTITION BY clause to the appropriate operator: </p>
@@ -5771,7 +6068,7 @@ public class SimpleCustomPartitioner extends Partitioner &lt;PigNullableWritable
    <table>
       <tr> 
             <td>
-               <p>alias = JOIN alias BY {expression|'('expression [, expression …]')'} (, alias BY {expression|'('expression [, expression …]')'} …) [USING 'replicated' | 'skewed' | 'merge'] [PARTITION BY partitioner] [PARALLEL n];  </p>
+               <p>alias = JOIN alias BY {expression|'('expression [, expression …]')'} (, alias BY {expression|'('expression [, expression …]')'} …) [USING 'replicated' | 'skewed' | 'merge' | 'merge-sparse'] [PARTITION BY partitioner] [PARALLEL n];  </p>
             </td>
          </tr> 
    </table></section>
@@ -5838,6 +6135,15 @@ public class SimpleCustomPartitioner extends Partitioner &lt;PigNullableWritable
                <p>Use to perform merge joins (see <a href="perf.html#Merge-Joins">Merge Joins</a>).</p>
             </td>
          </tr>
+         
+          <tr>
+            <td>
+               <p>'merge-sparse'</p>
+            </td>
+            <td>
+               <p>Use to perform merge-sparse joins (see <a href="perf.html#Merge-sparse-Joins">Merge-Sparse Joins</a>).</p>
+            </td>
+         </tr>         
          
               <tr>      
          <td>
@@ -6057,6 +6363,7 @@ DUMP X;
             </td>
          </tr>
          
+         
       <tr>      
          <td>
                <p id="partition-by-join-outer">PARTITION BY partitioner</p>
@@ -6172,7 +6479,14 @@ C = JOIN A BY name FULL, B BY name USING 'skewed';
                <p>n</p>
             </td>
             <td>
-               <p>The number of output tuples (a constant).</p>
+               <p>The number of output tuples, either:</p>
+               <ul>
+					<li>a constant (for example, 3)</li>
+					<li>a scalar used in an expression (for example, c.sum/100)</li>
+				</ul>
+				<p></p>
+				<p>Note: The expression can consist of constants or scalars; it cannot contain any columns from the input relation.</p>
+				<p>Note: Using a scalar instead of a constant in LIMIT automatically disables most optimizations (only push-before-foreach is performed).</p>
             </td>
          </tr> 
    </table></section>
@@ -6188,6 +6502,15 @@ C = JOIN A BY name FULL, B BY name USING 'skewed';
    
    <section>
    <title>Examples</title>
+   <p>In this example the lmit is express as a scalar.</p>
+ <source>
+a = load 'a.txt';
+b = group a all;
+c = foreach b generate COUNT(a) as sum;
+d = order a by $0;
+e = limit d c.sum/100;
+</source>
+<p></p>
    <p>Suppose we have relation A.</p>
 <source>
 A = LOAD 'data' AS (a1:int,a2:int,a3:int);
@@ -6620,7 +6943,13 @@ DUMP X;
                <p>size</p>
             </td>
             <td>
-               <p>Sample size, range 0 to 1 (for example, enter 0.1 for 10%).</p>
+               <p>Sample size, either</p>
+               <ul>
+               <li>a constant, rage 0 to 1 (for example, enter 0.1 for 10%)</li>
+                <li>a scalar used in an expression</li>
+               </ul>
+               <p></p>
+               <p>Note: The expression can consist of constants or scalars; it cannot contain any columns from the input relation.</p>
             </td>
          </tr> 
    </table></section>
@@ -6640,6 +6969,13 @@ A = LOAD 'data' AS (f1:int,f2:int,f3:int);
 
 X = SAMPLE A 0.01;
 </source>
+<p>In this example, a scalar expression is used (it will sample approximately 1000 records from the input).</p>
+<source>
+a = load 'a.txt';
+b = group a all;
+c = foreach b generate COUNT(a) as num_rows;
+e = sample d 1000/num_rows;
+</source>
    </section></section>  
    
    <section>
@@ -6651,7 +6987,7 @@ X = SAMPLE A 0.01;
    <table>
       <tr> 
             <td>
-               <p>SPLIT alias INTO alias IF expression, alias IF expression [, alias IF expression …];</p>
+               <p>SPLIT alias INTO alias IF expression, alias IF expression [, alias IF expression …] [, alias OTHERWISE];</p>
             </td>
          </tr> 
    </table></section>
@@ -6691,6 +7027,14 @@ X = SAMPLE A 0.01;
                <p>An expression.</p>
             </td>
          </tr> 
+           <tr>
+            <td>
+               <p>OTHERWISE</p>
+            </td>
+            <td>
+               <p>Optional keyword. Designates a default relation.</p>
+            </td>
+         </tr>
    </table></section>
    
    <section>
