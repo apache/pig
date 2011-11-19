@@ -1011,7 +1011,7 @@ DUMP X;
    <table>
        <tr>
             <td>
-               <p>TOKENIZE(expression)        </p>
+               <p>TOKENIZE(expression [, 'field_delimiter'])        </p>
             </td>
          </tr> 
    </table></section>
@@ -1027,11 +1027,20 @@ DUMP X;
                <p>An expression with data type chararray.</p>
             </td>
          </tr> 
+          <tr>
+            <td>
+               <p>'field_delimiter'</p>
+            </td>
+            <td>
+               <p>An optional field delimiter (in single quotes).</p>
+               <p>If field_delimiter is null or not passed, the following will be used as delimiters: space [  ], double quote [ " ], coma [ , ] parenthesis [ () ], star [ * ].</p>
+            </td>
+         </tr>
    </table></section>
    
    <section>
    <title>Usage</title>
-   <p>Use the TOKENIZE function to split a string of words (all words in a single tuple) into a bag of words (each word in a single tuple). The following characters are considered to be word separators: space, double quote("), coma(,) parenthesis(()), star(*).</p>
+   <p>Use the TOKENIZE function to split a string of words (all words in a single tuple) into a bag of words (each word in a single tuple). </p>
    </section>
    
    <section>
@@ -1052,7 +1061,14 @@ DUMP X;
 ({(Here),(is),(the),(second),(string.)})
 ({(Here),(is),(the),(third),(string.)})
 </source>
-   
+   <p>In this example a field delimiter is specified.</p>
+<source>
+{code}
+A = LOAD 'data' AS (f1:chararray);
+B = FOREACH A TOKENIZE (f1,'||');
+DUMP B;
+{code} 
+</source>
    </section></section></section>
    
    <!-- ======================================================================== -->
@@ -1213,10 +1229,6 @@ dump X;
 ()
 ()
 </source>
-</section>
-
-<section>
-<title>More Examples</title>
 </section>
 </section>
  
@@ -3081,8 +3093,70 @@ Use the UPPER function to convert all characters in a string to upper case.
 <!-- ======================================================== -->
 <!-- Other Functions -->
 <section id="bag-tuple-functions">
-<title>Bag and Tuple Functions</title>
+<title>Tuple, Bag, Map Functions</title>
 
+<!-- ======================================================== -->  
+ <section id="totuple">
+   <title>TOTUPLE</title>
+   <p>Converts one or more expressions to type tuple. </p>
+
+
+<section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>TOTUPLE(expression [, expression ...])</p>
+            </td>
+         </tr> 
+        
+   </table>
+ </section>
+
+<section>
+   <title>Terms</title>
+   <table>
+       <tr>
+            <td>
+               <p>expression</p>
+            </td>
+            <td>
+               <p>An expression of any datatype.</p>
+            </td>
+         </tr> 
+   </table>
+</section>
+
+<section>
+     <title>Usage</title>
+     <p>Use the TOTUPLE function to convert one or more expressions to a tuple.</p>
+        <p>See also: <a href="basic.html#tuple">Tuple</a> data type and <a href="basic.html#type-construction">Type Construction Operators</a></p>
+ </section>
+ 
+ <section>
+     <title>Example</title>
+     <p>
+In this example, fields f1, f2 and f3 are converted to a tuple.
+     </p>
+ <source>
+a = LOAD 'student' AS (f1:chararray, f2:int, f3:float);
+DUMP a;
+
+(John,18,4.0)
+(Mary,19,3.8)
+(Bill,20,3.9)
+(Joe,18,3.8)
+
+b = FOREACH a GENERATE TOTUPLE(f1,f2,f3);
+DUMP b;
+
+((John,18,4.0))
+((Mary,19,3.8))
+((Bill,20,3.9))
+((Joe,18,3.8))
+</source>
+ </section>
+</section>
 
 <!-- ======================================================== -->
  <section id="tobag">
@@ -3117,9 +3191,8 @@ Use the UPPER function to convert all characters in a string to upper case.
 
 <section>
      <title>Usage</title>
-     <p>
-Use the TOBAG function to convert one or more expressions to individual tuples which are then placed in a bag.
-     </p>
+     <p>Use the TOBAG function to convert one or more expressions to individual tuples which are then placed in a bag.</p>
+     <p>See also: <a href="basic.html#bag">Bag</a> data type and <a href="basic.html#type-construction">Type Construction Operators</a></p>
  </section>
  
  <section>
@@ -3148,6 +3221,89 @@ DUMP b;
  </section>
 
 </section>
+
+
+<!-- ======================================================== -->
+ <section id="tomap">
+   <title>TOMAP</title>
+   <p>Converts key/value expression pairs into a map. </p>
+
+<section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>TOMAP(key-expression, value-expression [, key-expression, value-expression ...])</p>
+            </td>
+         </tr> 
+        
+   </table>
+ </section>
+
+<section>
+   <title>Terms</title>
+   <table>
+       <tr>
+            <td>
+               <p>key-expression</p>
+            </td>
+            <td>
+               <p>An expression of type chararray.</p>
+            </td>
+         </tr> 
+                <tr>
+            <td>
+               <p>value-expression</p>
+            </td>
+            <td>
+               <p>An expression of any type supported by a map.</p>
+            </td>
+         </tr>
+   </table>
+</section>
+
+<section>
+     <title>Usage</title>
+     <p>Use the TOMAP function to convert pairs of expressions into a map. Note the following:</p>
+     <ul>
+<li>You must supply an even number of expressions as parameters</li>
+<li>The elements must comply with map type rules:
+<ul>
+<li>Every odd element (key-expression) must be a chararray since only chararrays can be keys into the map</li>
+<li>Every even element (value-expression) can be of any type supported by a map. </li>
+</ul>
+</li>
+     </ul>
+ <p></p>    
+ <p>See also: <a href="basic.html#map">Map</a> data type and  <a href="basic.html#type-construction">Type Construction Operators</a></p>  
+ </section>
+ 
+ <section>
+     <title>Example</title>
+     <p>
+In this example, student names (type chararray) and student GPAs (type float) are used to create three maps.
+     </p>
+ <source>
+A = load 'students' as (name:chararray, age:int, gpa:float);
+B = foreach A generate TOMAP(name, gpa);
+store B into ‘results’;
+
+Input (students)
+joe smith 20 3.5
+amy chen 22 3.2
+leo allen 18 2.1
+
+Output (results)
+[joe smith#3.5]
+[amy chen#3.2]
+[leo allen#2.1]
+</source>
+     
+ </section>
+
+</section>
+
+
 
  <!-- ======================================================== -->  
  <section id="topx">
@@ -3220,71 +3376,7 @@ topResults = FOREACH D {
 </source>
      
  </section>
-
 </section>
-<!-- ======================================================== -->  
- <section id="totuple">
-   <title>TOTUPLE</title>
-   <p>Converts one or more expressions to type tuple. </p>
-
-<section>
-   <title>Syntax</title>
-   <table>
-       <tr>
-            <td>
-               <p>TOTUPLE(expression [, expression ...])</p>
-            </td>
-         </tr> 
-        
-   </table>
- </section>
-
-<section>
-   <title>Terms</title>
-   <table>
-       <tr>
-            <td>
-               <p>expression</p>
-            </td>
-            <td>
-               <p>An expression of any datatype.</p>
-            </td>
-         </tr> 
-   </table>
-</section>
-
-<section>
-     <title>Usage</title>
-     <p>
-Use the TOTUPLE function to convert one or more expressions to a tuple.
-     </p>
- </section>
- 
- <section>
-     <title>Example</title>
-     <p>
-In this example, fields f1, f2 and f3 are converted to a tuple.
-     </p>
- <source>
-a = LOAD 'student' AS (f1:chararray, f2:int, f3:float);
-DUMP a;
-
-(John,18,4.0)
-(Mary,19,3.8)
-(Bill,20,3.9)
-(Joe,18,3.8)
-
-b = FOREACH a GENERATE TOTUPLE(f1,f2,f3);
-DUMP b;
-
-((John,18,4.0))
-((Mary,19,3.8))
-((Bill,20,3.9))
-((Joe,18,3.8))
-</source>
- </section>
-</section>
-
 </section>
 <!-- End Other Functions -->
 

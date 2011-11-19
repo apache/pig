@@ -51,15 +51,6 @@ See http://forrest.apache.org/docs/linking.html for more info
     <index label="Index" href="pig-index.html" />
     </docs>  
       
-    <docs label="Zebra"> 
-     <zover label="Zebra Overview "	href="zebra_overview.html" />
-     <zusers label="Zebra Users "	href="zebra_users.html" />
-     <zref label="Zebra Reference "	href="zebra_reference.html" />
-     <zmr label="Zebra MapReduce "	href="zebra_mapreduce.html" />
-     <zpig label="Zebra Pig "	            href="zebra_pig.html" />
-     <zstream label="Zebra Streaming "	href="zebra_stream.html" />
-     </docs>
-
      <docs label="Miscellaneous"> 
      <api	label="API Docs" href="api/"/>
      <jdiff label="API Changes" href="ext:jdiff/changes"/>
