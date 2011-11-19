@@ -126,6 +126,11 @@ public class ParameterSubstitutionPreprocessor {
             paramParser.ReInit(in);
             while (paramParser.Parse()) {}
             in.close();
+        }catch(org.apache.pig.tools.parameters.ParseException e){
+        	log.info("The file: \""+filename+"\" contains parameter that cannot be parsed by Pig in line. Please double check it");
+        	log.info("Parser give the follow error message:");
+        	log.info(e.getMessage());
+        	throw e;
         } catch (IOException e) {
             RuntimeException rte = new RuntimeException(e.getMessage() , e);
             throw rte;
@@ -142,7 +147,12 @@ public class ParameterSubstitutionPreprocessor {
             // new lines are needed by the parser
             paramParser.ReInit(new StringReader(line));
             paramParser.Parse();
-        } catch (IOException e) {
+        } catch(org.apache.pig.tools.parameters.ParseException e){
+        	log.info("The parameter: \""+line+"\" cannot be parsed by Pig. Please double check it");
+        	log.info("Parser give the follow error message:");
+        	log.info(e.getMessage());
+        	throw e;
+        }catch (IOException e) {
             RuntimeException rte = new RuntimeException(e.getMessage() , e);
             throw rte;
         }
