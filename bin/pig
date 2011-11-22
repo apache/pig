@@ -182,15 +182,17 @@ if [ -d "${PIG_HOME}/etc/hadoop" ]; then
 fi
 
 # locate ZooKeeper
-if [ -d "${PIG_HOME}/share/zookeeper" ]; then
-    for f in ${PIG_HOME}/share/zookeeper/zookeeper-*.jar; do
+ZKH=${ZOOKEEPER_HOME:-"${PIG_HOME}/share/zookeeper"}
+if [ -d "$ZKH" ] ; then
+    for f in ${ZKH}/zookeeper-*.jar; do
         CLASSPATH=${CLASSPATH}:$f
     done
 fi
 
 # locate HBase
-if [ -d "${PIG_HOME}/share/hbase" ]; then
-    for f in ${PIG_HOME}/share/hbase/hbase-*.jar; do
+HBH=${HBASE_HOME:-"${PIG_HOME}/share/hbase"}
+if [ -d "$HBH" ]; then
+    for f in ${HBH}/hbase-*.jar; do
         CLASSPATH=${CLASSPATH}:$f
     done
 fi
