@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2327: bin/pig doesn't have any hooks for picking up ZK installation deployed from tarballs (rvs via hashutosh)
+
 PIG-2382: Modify .gitignore to ignore pig-withouthadoop.jar (azaroth via hashutosh)
 
 PIG-2380: Expose version information more cleanly (jcoveney via azaroth)
