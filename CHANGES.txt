@@ -46,6 +46,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2379: Bug in Schema.getPigSchema(ResourceSchema rSchema) improperly adds two level access (jcoveney via dvryaboy)
+
 PIG-2355: ant clean does not clean e2e test build artifacts (daijy)
 
 PIG-2352: e2e test harness' use of environment variables causes unintended effects between tests (gates)

@@ -45,6 +45,7 @@ import junit.framework.Assert;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
+import org.apache.pig.ResourceSchema;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -54,6 +55,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.newplan.logical.relational.LogicalSchema.MergeMode;
+import org.apache.pig.parser.ParserException;
 import org.junit.Test;
 
 public class TestSchema {
@@ -856,4 +858,11 @@ public class TestSchema {
             Assert.assertTrue(e.getErrorCode()==1031);
         }
     }
+
+    @Test
+    public void testResourceSchemaToSchema() throws ParserException,FrontendException{
+        Schema s1 = Utils.getSchemaFromString("b:bag{t:tuple(name:chararray,age:int)}");
+        Schema s2 = Schema.getPigSchema(new ResourceSchema(s1));
+        Assert.assertTrue(s1.equals(s2));
+}
 }
