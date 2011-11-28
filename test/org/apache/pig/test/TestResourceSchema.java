@@ -166,7 +166,7 @@ public class TestResourceSchema {
         
         Schema pSchema = Schema.getPigSchema(origSchema);
                 
-        assertTrue(CheckTwoLevelAccess(pSchema));
+        assertTrue(!CheckTwoLevelAccess(pSchema));
                 
         assertTrue(ResourceSchema.equals(origSchema, new ResourceSchema(pSchema)));
     }
