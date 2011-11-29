@@ -154,6 +154,8 @@ PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
 
+PIG-2384: PIG-2384: Generic Invokers should use PigContext to resolve classes (dvryaboy)
+
 PIG-2379: Bug in Schema.getPigSchema(ResourceSchema rSchema) improperly adds two level access (jcoveney via dvryaboy)
 
 PIG-2184: Not able to provide positional reference to macro invocations (xutingz via daijy)
