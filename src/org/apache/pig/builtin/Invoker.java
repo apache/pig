@@ -31,6 +31,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 
 import com.google.common.collect.Lists;
@@ -58,16 +59,23 @@ public class Invoker<T>  {
     private Class<?> selfClass_;
     private Type returnType_;
 
-    public Invoker(String fullName, String paramSpecsStr) 
+    public Invoker(String fullName, String paramSpecsStr)
     throws ClassNotFoundException, FrontendException, SecurityException, NoSuchMethodException {
         this(fullName, paramSpecsStr, "true");
     }
 
-    public Invoker(String fullName, String paramSpecsStr, String isStatic) 
+    public Invoker(String fullName, String paramSpecsStr, String isStatic)
     throws ClassNotFoundException, FrontendException, SecurityException, NoSuchMethodException {
         String className = fullName.substring(0, fullName.lastIndexOf('.'));
         String methodName = fullName.substring(fullName.lastIndexOf('.')+1);
-        Class<?> klazz = Class.forName(className);
+        Class<?> klazz;
+        try {
+            klazz = PigContext.resolveClassName(className);
+        } catch (IOException e) {
+            // the amusing part is that PigContext throws this to wrap one of
+            // the exceptions we declare!
+            throw new FrontendException(e);
+        }
         String[] paramSpecs = "".equals(paramSpecsStr) ? new String[0] : paramSpecsStr.split(" ");
         isStatic_ = "static".equalsIgnoreCase(isStatic) || "true".equals(isStatic);
         paramClasses_ = new Class<?>[paramSpecs.length];
@@ -99,7 +107,7 @@ public class Invoker<T>  {
             return new Object[0];
         } else {
             return Arrays.copyOfRange(original, 1, original.length-1);
-        } 
+        }
     }
 
     private static Class<?> stringToClass(String klass) throws FrontendException {
@@ -123,7 +131,7 @@ public class Invoker<T>  {
           return FLOAT_ARRAY_CLASS;
         } else if ("string[]".equalsIgnoreCase(klass)) {
           return STRING_ARRAY_CLASS;
-        } else { 
+        } else {
             throw new FrontendException("unable to find matching class for " + klass);
         }
 
@@ -203,7 +211,7 @@ public class Invoker<T>  {
     }
 
     private Object[] tupleToArgs(Tuple t) throws ExecException {
-      if ( (t == null && (paramClasses_ != null || paramClasses_.length != 0)) 
+      if ( (t == null && (paramClasses_ != null || paramClasses_.length != 0))
             || (t != null && t.size() < paramClasses_.length)) {
             throw new ExecException("unable to match function arguments to declared signature.");
         }
