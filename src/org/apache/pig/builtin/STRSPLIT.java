@@ -20,12 +20,19 @@ package org.apache.pig.builtin;
 import java.io.IOException;
 
 import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.PatternSyntaxException;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.PigWarning;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.FuncSpec;
+import org.apache.pig.data.DataType;
+import org.apache.pig.impl.logicalLayer.FrontendException;
+
 
 /**
  * Wrapper around Java's String.split<br>
@@ -69,5 +76,37 @@ public class STRSPLIT extends EvalFunc<Tuple> {
         }
         // this only happens if the try block did not complete normally
         return null;
+    }
+    
+    /*
+     * The outputSchema of STRSPLIT cannot be set as DataType.chararry otherwise in some cases,
+     * it will cause error. For example, when stringsize() is called.
+    */
+    @Override
+    public Schema outputSchema(Schema input) {
+        return new Schema(new Schema.FieldSchema(null, DataType.TUPLE)); 
+    }
+    
+    /* (non-Javadoc)
+     * @see org.apache.pig.EvalFunc#getArgToFuncMapping()
+     */
+    @Override
+    public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
+        List<FuncSpec> funcList = new ArrayList<FuncSpec>();
+        Schema s = new Schema(new Schema.FieldSchema(null, DataType.CHARARRAY)); 
+        
+        Schema s1 = new Schema();
+        s1.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
+        s1.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
+        
+        Schema s2 = new Schema();
+        s2.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
+        s2.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
+        s2.add(new Schema.FieldSchema(null, DataType.INTEGER));
+        
+        funcList.add(new FuncSpec(this.getClass().getName(), s));
+        funcList.add(new FuncSpec(this.getClass().getName(), s1));
+        funcList.add(new FuncSpec(this.getClass().getName(), s2));
+        return funcList;
     }
 }
