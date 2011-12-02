@@ -35,6 +35,8 @@ Release 0.9.1 - Unreleased
 
 IMPROVEMENTS
 
+PIG-2128: Generating the jar file takes a lot of time and is unnecessary when running Pig local mode (julienledem)
+
 PIG-2300: Pig Docs - release 0.9.1 (chandec via daijy)
 
 PIG-2270: Put jython.jar in classpath (daijy)
