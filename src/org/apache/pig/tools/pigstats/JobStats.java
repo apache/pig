@@ -332,7 +332,6 @@ public final class JobStats extends Operator {
 
     @SuppressWarnings("deprecation")
     void addCounters(RunningJob rjob) {
-        Counters counters = null;
         if (rjob != null) {
             try {
                 counters = rjob.getCounters();
