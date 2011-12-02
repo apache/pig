@@ -190,6 +190,8 @@ PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
 
+PIG-2358: JobStats.getHadoopCounters() is never set and always returns null (xutingz via daijy)
+
 PIG-2184: Not able to provide positional reference to macro invocations (xutingz via daijy)
 
 PIG-2209: JsonMetadata fails to find schema for glob paths (daijy)

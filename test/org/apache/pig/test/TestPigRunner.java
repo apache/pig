@@ -35,6 +35,7 @@ import junit.framework.Assert;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapred.Counters;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigRunner;
 import org.apache.pig.PigRunner.ReturnCode;
@@ -769,6 +770,44 @@ public class TestPigRunner {
         } finally {
             new File(PIG_FILE).delete();
             Util.deleteFile(cluster, OUTPUT_FILE);
+        }
+    }
+    
+    @Test             //Pig-2358
+    public void testGetHadoopCounters() throws Exception {
+        final String OUTPUT_FILE_2 = "output2";
+        
+        PrintWriter w = new PrintWriter(new FileWriter(PIG_FILE));
+        w.println("A = load '" + INPUT_FILE + "' as (a0:int, a1:int, a2:int);");
+        w.println("B = filter A by a0 >= 4;");
+        w.println("C = filter A by a0 < 4;");
+        w.println("D = group C by a0;");
+        w.println("E = foreach D generate group, COUNT(C);");
+        w.println("store B into '" + OUTPUT_FILE_2 + "';");
+        w.println("store E into '" + OUTPUT_FILE + "';");
+        w.close();
+        
+        try {
+            String[] args = { PIG_FILE };
+            PigStats stats = PigRunner.run(args, new TestNotificationListener());
+            
+            Counters counter= ((JobStats)stats.getJobGraph().getSinks().get(0)).getHadoopCounters();
+            assertEquals(5, counter.getGroup(PigStatsUtil.TASK_COUNTER_GROUP).getCounterForName(
+                    PigStatsUtil.MAP_INPUT_RECORDS).getValue());
+            assertEquals(3, counter.getGroup(PigStatsUtil.TASK_COUNTER_GROUP).getCounterForName(
+                    PigStatsUtil.MAP_OUTPUT_RECORDS).getValue());
+            assertEquals(2, counter.getGroup(PigStatsUtil.TASK_COUNTER_GROUP).getCounterForName(
+                    PigStatsUtil.REDUCE_INPUT_RECORDS).getValue());
+            assertEquals(0, counter.getGroup(PigStatsUtil.TASK_COUNTER_GROUP).getCounterForName(
+                    PigStatsUtil.REDUCE_OUTPUT_RECORDS).getValue());
+            assertEquals(20,counter.getGroup(PigStatsUtil.FS_COUNTER_GROUP).getCounterForName(
+            		PigStatsUtil.HDFS_BYTES_WRITTEN).getValue());
+            assertEquals(30,counter.getGroup(PigStatsUtil.FS_COUNTER_GROUP).getCounterForName(
+            		PigStatsUtil.HDFS_BYTES_READ).getValue());
+        } finally {
+            new File(PIG_FILE).delete();
+            Util.deleteFile(cluster, OUTPUT_FILE);
+            Util.deleteFile(cluster, OUTPUT_FILE_2);
         }
     }
     
