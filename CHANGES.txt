@@ -31,6 +31,8 @@ PIG-2346: TypeCastInsert should not insert Foreach if there is no as statement (
 PIG-2339: HCatLoader loads all the partitions in a partitioned table even though 
  a filter clause on the partitions is specified in the Pig script (daijy)
 
+PIG-2385: Store statements not getting processed (daijy)
+
 Release 0.9.1 - Unreleased
 
 IMPROVEMENTS
