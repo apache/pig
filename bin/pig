@@ -27,6 +27,8 @@
 #
 #     HADOOP_HOME/HADOOP_PREFIX     Environment HADOOP_HOME/HADOOP_PREFIX(0.20.205)
 #
+#     HADOOP_CONF_DIR     Hadoop conf dir
+#
 #     PIG_HEAPSIZE    The maximum amount of heap to use, in MB. 
 #                                        Default is 1000.
 #
@@ -109,6 +111,11 @@ if [ "$PIG_CLASSPATH" != "" ]; then
     CLASSPATH=${CLASSPATH}:${PIG_CLASSPATH}
 fi
  
+# add HADOOP_CONF_DIR
+if [ "$HADOOP_CONF_DIR" != "" ]; then
+    CLASSPATH=${CLASSPATH}:${HADOOP_CONF_DIR}
+fi
+
 # so that filenames w/ spaces are handled correctly in loops below
 IFS=
 
@@ -152,7 +159,11 @@ done
 #    done
 #fi
 
-if [ -n "$HADOOP_PREFIX" ]; then
+if which hadoop >/dev/null; then
+    HADOOP_BIN=`which hadoop`
+fi
+
+if [[ -z "$HADOOP_BIN" && -n "$HADOOP_PREFIX" ]]; then
     if [ -f $HADOOP_PREFIX/bin/hadoop ]; then
         HADOOP_BIN=$HADOOP_PREFIX/bin/hadoop
     fi
@@ -164,7 +175,7 @@ if [[ -z "$HADOOP_BIN" && -n "$HADOOP_HOME" && -d "$HADOOP_HOME" ]]; then
     fi
 fi
 
-if [ -n "$HADOOP_BIN" ]; then
+if [ -z "$HADOOP_BIN" ]; then
     # if installed with rpm/deb package
     if [ -f /usr/bin/hadoop ]; then
         HADOOP_BIN=/usr/bin/hadoop
