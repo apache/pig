@@ -107,6 +107,7 @@ public class BinStorageRecordReader extends RecordReader<Text, Tuple> {
           // if we got here, we have seen RECORD_1-RECORD_2-RECORD_3-TUPLE_MARKER
           // sequence - lets now read the contents of the tuple 
           value = (Tuple)DataReaderWriter.readDatum(inData, DataType.TUPLE);
+          pos=in.getPosition();
           return true;
       } catch (ExecException ee) {
           throw ee;
