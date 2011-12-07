@@ -78,13 +78,17 @@ public class MapRedUtil {
      */
     @SuppressWarnings("unchecked")
     public static <E> Map<E, Pair<Integer, Integer>> loadPartitionFileFromLocalCache(
-            String keyDistFile, Integer[] totalReducers, byte keyType)
+            String keyDistFile, Integer[] totalReducers, byte keyType, Configuration mapConf)
             throws IOException {
 
         Map<E, Pair<Integer, Integer>> reducerMap = new HashMap<E, Pair<Integer, Integer>>();
 
         // use local file system to get the keyDistFile
         Configuration conf = new Configuration(false);            
+        
+        if (mapConf.get("yarn.resourcemanager.principal")!=null) {
+            conf.set("yarn.resourcemanager.principal", mapConf.get("yarn.resourcemanager.principal"));
+        }
         
         if (PigMapReduce.sJobConfInternal.get().get("fs.file.impl")!=null)
             conf.set("fs.file.impl", PigMapReduce.sJobConfInternal.get().get("fs.file.impl"));
