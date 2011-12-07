@@ -86,6 +86,7 @@ abstract public class PigMapBase extends PigGenericMapBase {
               List<Pair<PigNullableWritable, Writable>> output,
               InputSplit split) throws IOException, InterruptedException {
             super(conf, new TaskAttemptID(), null, null, null, new IllustrateDummyReporter(), split);
+            conf.set("inIllustrator", "true");
             if (output == null)
                 throw new IOException("Null output can not be used");
             this.input = input; this.output = output;
@@ -132,6 +133,6 @@ abstract public class PigMapBase extends PigGenericMapBase {
     
     @Override
     public boolean inIllustrator(Context context) {
-        return (context instanceof WrappedMapper.Context);
+        return ((WrappedMapper.Context)context).getConfiguration().get("inIllustrator")!=null;
     }
 }
