@@ -132,7 +132,9 @@ public class JsonLoader extends LoadFunc implements LoadMetadata {
 
         // Create a parser specific for this input line.  This may not be the
         // most efficient approach.
-        ByteArrayInputStream bais = new ByteArrayInputStream(val.getBytes());
+        byte[] newBytes = new byte[val.getLength()];
+        System.arraycopy(val.getBytes(), 0, newBytes, 0, val.getLength());
+        ByteArrayInputStream bais = new ByteArrayInputStream(newBytes);
         JsonParser p = jsonFactory.createJsonParser(bais);
 
         // Create the tuple we will be returning.  We create it with the right
