@@ -101,7 +101,7 @@ public class POPartitionRearrange extends POLocalRearrange {
             Integer [] redCnt = new Integer[1];
 
             reducerMap = MapRedUtil.loadPartitionFileFromLocalCache(
-                    keyDistFile, redCnt, DataType.NULL);
+                    keyDistFile, redCnt, DataType.NULL, PigMapReduce.sJobConfInternal.get());
 
             // check if the partition file is empty
             totalReducers = (redCnt[0] == null) ? -1 : redCnt[0];
