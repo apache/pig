@@ -112,7 +112,7 @@ public class SkewedPartitioner extends Partitioner<PigNullableWritable, Writable
         try {
             Integer [] redCnt = new Integer[1]; 
             reducerMap = MapRedUtil.loadPartitionFileFromLocalCache(
-                    keyDistFile, redCnt, DataType.TUPLE);
+                    keyDistFile, redCnt, DataType.TUPLE, job);
             // check if the partition file is empty
             totalReducers = (redCnt[0] == null) ? -1 : redCnt[0];
         } catch (Exception e) {
