@@ -600,7 +600,7 @@
                 <include name="hadoop-core-${hadoop-core.version}.jar" />
                 <include name="hadoop-*-${hadoop-common.version}*.jar" />
                 <include name="antlr-runtime-${antlr.version}.jar" />
-                <include name="stringtemplate-${antlr.version}.jar" />
+                <include name="ST4-${stringtemplate.version}.jar" />
                 <include name="junit-${junit.version}.jar" />
                 <include name="jsch-${jsch.version}.jar" />
                 <include name="jline-${jline.version}.jar" />
@@ -688,7 +688,7 @@
             <zipfileset src="${lib.dir}/${automaton.jarfile}" />
             <zipgroupfileset dir="${ivy.lib.dir}">
                 <include name="antlr-runtime-${antlr.version}.jar" />
-                <include name="stringtemplate-${antlr.version}.jar" />
+                <include name="ST4-${stringtemplate.version}.jar" />
                 <include name="jline-${jline.version}.jar" />
                 <include name="jackson-mapper-asl-${jackson.version}.jar" />
                 <include name="jackson-core-asl-${jackson.version}.jar" />
