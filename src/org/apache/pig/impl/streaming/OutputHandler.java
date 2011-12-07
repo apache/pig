@@ -89,7 +89,9 @@ public abstract class OutputHandler {
             return null;
         }
         
-        return deserializer.deserialize(value.getBytes());
+        byte[] newBytes = new byte[value.getLength()];
+        System.arraycopy(value.getBytes(), 0, newBytes, 0, value.getLength());
+        return deserializer.deserialize(newBytes);
     }
     
     /**
