@@ -181,6 +181,55 @@ public class TestBZip {
         out.delete();
     }
 
+    //see PIG-2391
+    @Test
+    public void testBz2() throws Exception {
+        String[] inputData = new String[] {
+                "1\t2\r3\t4", // '\r' case - this will be split into two tuples
+                "5\t6\r", // '\r\n' case
+                "7\t8", // '\n' case
+                "9\t10\r" // '\r\n' at the end of file
+        };
+        
+        // bzip compressed input
+        File in = File.createTempFile("junit", ".bz2");
+        String compressedInputFileName = in.getAbsolutePath();
+        in.deleteOnExit();
+        
+        try {
+            CBZip2OutputStream cos = 
+                new CBZip2OutputStream(new FileOutputStream(in));
+            for (int i = 0; i < inputData.length; i++) {
+                StringBuffer sb = new StringBuffer();
+                sb.append(inputData[i]).append("\n");
+                byte bytes[] = sb.toString().getBytes();
+                cos.write(bytes);
+            }
+            cos.close();
+            
+            Util.copyFromLocalToCluster(cluster, compressedInputFileName,
+                    compressedInputFileName);
+            
+            // pig script to read compressed input
+            PigServer pig = new PigServer(ExecType.MAPREDUCE, cluster
+                    .getProperties());
+            
+            // pig script to read compressed input
+            String script ="a = load '" + compressedInputFileName +"';";
+            pig.registerQuery(script);
+            
+            pig.registerQuery("store a into 'intermediate.bz';");
+            pig.registerQuery("b = load 'intermediate.bz';");
+            Iterator<Tuple> it2 = pig.openIterator("b");
+			while (it2.hasNext()) {
+				it2.next();
+			}
+        } finally {
+            in.delete();
+            Util.deleteFile(cluster, "intermediate.bz");
+            Util.deleteFile(cluster, "final.bz");
+        }
+    }
     /** 
      * Tests that '\n', '\r' and '\r\n' are treated as record delims when using
      * bzip just like they are when using uncompressed text
