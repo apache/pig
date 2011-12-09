@@ -173,6 +173,7 @@ public class HExecutionEngine {
             jc = new JobConf(false);
             jc.addResource("core-default.xml");
             jc.addResource("mapred-default.xml");
+            jc.addResource("yarn-default.xml");
             recomputeProperties(jc, properties);
             
             properties.setProperty("mapreduce.framework.name", "local");
