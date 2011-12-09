@@ -326,6 +326,8 @@ Release 0.9.2 - Unreleased
 
 BUG FIXES
 
+PIG-2415: A fix for 0.23 local mode: put "yarn-default.xml" into the configuration (daijy)
+
 PIG-2402: inIllustrator condition in PigMapReduce is wrong for hadoop 23 (daijy)
 
 PIG-2370: SkewedParitioner results in Kerberos error (daijy)
