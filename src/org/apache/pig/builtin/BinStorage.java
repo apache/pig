@@ -390,8 +390,8 @@ implements StoreFuncInterface, LoadMetadata {
             // we can use HDataStorage and FileLocalizer.openDFSFile below
             HDataStorage storage;
             try {
-                storage = new HDataStorage(new URI(loc), props);
-            } catch (URISyntaxException e) {
+            	storage = new HDataStorage((new org.apache.hadoop.fs.Path(loc)).toUri(), props);
+            } catch (RuntimeException e) {
                 throw new IOException(e);
             }
             if (!FileLocalizer.fileExists(loc, storage)) {
