@@ -2401,6 +2401,34 @@ public class TestBuiltin {
         assertEquals(2, result.size());
     }
     
+    //see PIG-2331
+    @Test
+    public void testURIwithCurlyBrace() throws Exception {
+        String inputFileName = "input.txt";
+        String inputFileName1 ="part-1";
+        String[] inputData = new String[] {
+                "1",
+                "a",
+                "r"};
+        Util.createInputFile(cluster, inputFileName, inputData);
+
+         try {
+             pigServer.registerQuery("a = load '" + inputFileName + "'AS (s:chararray);");
+             pigServer.store("a", inputFileName1, "BinStorage");
+             pigServer.registerQuery("b = load 'part-{1,2}' using BinStorage() AS (s:chararray);");
+             Iterator<Tuple> it = pigServer.openIterator("b");
+             int i=0;
+             while(it.hasNext())
+             {
+            	 assertTrue(it.next().get(0).equals(inputData[i]));
+            	 i++;
+             }
+             assertTrue(i==3);
+         }catch(Exception e) {
+         }finally {
+             Util.deleteFile(cluster, inputFileName);
+         }
+    }
     private static String getInputType(String typeFor) {
         return allowedInput.get(typeFor);
     }
