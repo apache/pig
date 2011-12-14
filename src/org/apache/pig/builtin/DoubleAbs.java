@@ -18,35 +18,10 @@
 
 package org.apache.pig.builtin;
 
-import java.io.IOException;
-
-import org.apache.pig.EvalFunc;
-import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.data.DataType;
-
-public class DoubleAbs extends EvalFunc<Double>{
-	/**
-	 * java level API
-	 * @param input expects a single numeric value
-	 * @return output returns a single numeric value, absolute value of the argument
-	 */
-	public Double exec(Tuple input) throws IOException {
-        if (input == null || input.size() == 0)
-            return null;
-
-        Double d;
-        try{
-            d = (Double)input.get(0);
-        } catch (Exception e){
-            throw new IOException("Caught exception processing input row ", e);
-        }
-
-		return Math.abs(d);
-	}
+public class DoubleAbs extends DoubleBase {
 	
 	@Override
-	public Schema outputSchema(Schema input) {
-        return new Schema(new Schema.FieldSchema(getSchemaName(this.getClass().getName().toLowerCase(), input), DataType.DOUBLE));
+    Double compute(Double input) {
+        return Math.abs(input);
 	}
 }
