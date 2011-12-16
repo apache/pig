@@ -54,6 +54,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2425: Aggregate Warning does not work as expected on Embedding Pig in Java 0.9.1 (prkommireddi via thejas)
+
 PIG-2384: Generic Invokers should use PigContext to resolve classes (dvryaboy)
 
 PIG-2379: Bug in Schema.getPigSchema(ResourceSchema rSchema) improperly adds two level access (jcoveney via dvryaboy)
