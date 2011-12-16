@@ -54,6 +54,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2427: getSchemaFromString throws away the name of the tuple that is in a bag (jcoveney via dvryaboy)
+
 PIG-2425: Aggregate Warning does not work as expected on Embedding Pig in Java 0.9.1 (prkommireddi via thejas)
 
 PIG-2384: Generic Invokers should use PigContext to resolve classes (dvryaboy)

@@ -694,7 +694,7 @@ public class TestSchema {
         LogicalSchema ls1 = Utils.parseSchema("a:{t:(a0:int, a1:int)}");
         LogicalSchema ls2 = Utils.parseSchema("b:{t:(b0:int, b1:int)}");
         LogicalSchema ls3 = LogicalSchema.merge(ls1, ls2, MergeMode.LoadForEach);
-        Assert.assertTrue(org.apache.pig.newplan.logical.Util.translateSchema(ls3).toString().equals("{a: {(a0: int,a1: int)}}"));
+        Assert.assertTrue(org.apache.pig.newplan.logical.Util.translateSchema(ls3).toString().equals("{a: {t: (a0: int,a1: int)}}"));
     }
     
     @Test
@@ -865,4 +865,30 @@ public class TestSchema {
         Schema s2 = Schema.getPigSchema(new ResourceSchema(s1));
         Assert.assertTrue(s1.equals(s2));
 }
+
+    @Test
+    public void testGetStringFromSchema() throws ParserException {
+        String[] schemaStrings = {
+            "a:int",
+            "a:long",
+            "a:chararray",
+            "a:double",
+            "a:float",
+            "a:bytearray",
+            "b:bag{tuple(x:int,y:int,z:int)}",
+            "b:bag{t:tuple(x:int,y:int,z:int)}",
+            "a:int,b:chararray,c:Map[int]",
+            "a:double,b:float,t:tuple(x:int,y:double,z:bytearray)",
+            "a:double,b:float,t:tuple(x:int,b:bag{t:tuple(a:int,b:float,c:double,x:tuple(z:bag{r:tuple(z:bytearray)}))},z:bytearray)",
+            "a,b,t:tuple(x,b:bag{t:tuple(a,b,c,x:tuple(z:bag{r:tuple(z)}))},z)",
+            "a:bag{t:tuple(a:bag{t:tuple(a:bag{t:tuple(a:bag{t:tuple(a:bag{t:tuple(a:bag{t:tuple(a:int,b:float)})})})})})}",
+            "a:bag{}"
+        };
+        for (String schemaString : schemaStrings) {
+            Schema s1 = Utils.getSchemaFromString(schemaString);
+            String s=s1.toString();
+            Schema s2 = Utils.getSchemaFromString(s.substring(1,s.length()-1)); //have to cut out the brackets that surround it
+            Assert.assertTrue(Schema.equals(s1,s2,false,true));
+        }
+    }
 }
