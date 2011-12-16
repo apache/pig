@@ -209,7 +209,7 @@ tuple_type
 ;
 
 bag_type 
-    : ^( BAG_TYPE tuple_type? )  
+    : ^( BAG_TYPE IDENTIFIER? tuple_type? )
 ;
 
 map_type : ^( MAP_TYPE type? )

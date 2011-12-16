@@ -209,7 +209,7 @@ simple_type : BOOLEAN | INT | LONG | FLOAT | DOUBLE | CHARARRAY | BYTEARRAY
 tuple_type : ^( TUPLE_TYPE field_def_list? )
 ;
 
-bag_type : ^( BAG_TYPE tuple_type? )
+bag_type : ^( BAG_TYPE IDENTIFIER? tuple_type? )
 ;
 
 map_type : ^( MAP_TYPE type? )
