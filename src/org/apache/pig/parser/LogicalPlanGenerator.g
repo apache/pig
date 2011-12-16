@@ -375,14 +375,14 @@ tuple_type returns[LogicalSchema logicalSchema]
 ;
 
 bag_type returns[LogicalSchema logicalSchema]
- : ^( BAG_TYPE tuple_type? )
+ : ^( BAG_TYPE IDENTIFIER? tuple_type? )
    {
        if ($tuple_type.logicalSchema!=null && $tuple_type.logicalSchema.size()==1 && $tuple_type.logicalSchema.getField(0).type==DataType.TUPLE) {
            $logicalSchema = $tuple_type.logicalSchema;
        }
        else {
            LogicalSchema s = new LogicalSchema();
-           s.addField(new LogicalFieldSchema(null, $tuple_type.logicalSchema, DataType.TUPLE));
+           s.addField(new LogicalFieldSchema($IDENTIFIER.text, $tuple_type.logicalSchema, DataType.TUPLE));
            $logicalSchema = s;
        }
    }
