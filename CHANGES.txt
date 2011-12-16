@@ -156,6 +156,8 @@ PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
 
+PIG-2425: Aggregate Warning does not work as expected on Embedding Pig in Java 0.9.1 (prkommireddi via thejas)
+
 PIG-2331: BinStorage in LOAD statement failing when input has curly braces (xutingz via thejas)
 
 PIG-2391: Bzip_2 test is broken (xutingz via daijy)
