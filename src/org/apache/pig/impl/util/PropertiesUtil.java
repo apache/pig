@@ -43,7 +43,8 @@ public class PropertiesUtil {
                 System.getProperty("user.home") + "/.pigrc");
         loadPropertiesFromClasspath(properties, DEFAULT_PROPERTIES_FILE);
         loadPropertiesFromClasspath(properties, PROPERTIES_FILE);
-
+        setDefaultsIfUnset(properties);
+        
         //Now set these as system properties only if they are not already defined.
         if (log.isDebugEnabled()) {
             for (Object o: properties.keySet()) {
@@ -123,6 +124,27 @@ public class PropertiesUtil {
         }
     }
 
+    /**
+     * Sets properties to their default values if not set by Client
+     * @param properties
+     */
+    private static void setDefaultsIfUnset(Properties properties) {
+    	if (properties.getProperty("aggregate.warning") == null) {
+            //by default warning aggregation is on
+            properties.setProperty("aggregate.warning", ""+true);
+        }
+
+        if (properties.getProperty("opt.multiquery") == null) {
+            //by default multiquery optimization is on
+            properties.setProperty("opt.multiquery", ""+true);
+        }
+
+        if (properties.getProperty("stop.on.failure") == null) {
+            //by default we keep going on error on the backend
+            properties.setProperty("stop.on.failure", ""+false);
+        }
+    }
+    
     /**
      * Loads default properties.
      * @return default properties

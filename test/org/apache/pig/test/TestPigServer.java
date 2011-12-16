@@ -834,4 +834,46 @@ public class TestPigServer {
         Assert.fail( "Query is supposed to fail." );
     }
 
+    @Test
+	public void testDefaultPigProperties() throws Throwable {
+    	//Test with PigServer
+    	PigServer pigServer = new PigServer(ExecType.MAPREDUCE);
+    	Properties properties = pigServer.getPigContext().getProperties();
+    	
+    	Assert
+		.assertTrue(properties.getProperty(
+				"pig.exec.reducers.max").equals("999"));
+		Assert.assertTrue(properties.getProperty("aggregate.warning").equals("true"));
+		Assert.assertTrue(properties.getProperty("opt.multiquery").equals("true"));
+		Assert.assertTrue(properties.getProperty("stop.on.failure").equals("false"));
+    	
+		//Test with properties file
+		File propertyFile = new File("pig.properties");
+
+		properties = PropertiesUtil.loadDefaultProperties();
+		
+		Assert
+		.assertTrue(properties.getProperty(
+				"pig.exec.reducers.max").equals("999"));
+		Assert.assertTrue(properties.getProperty("aggregate.warning").equals("true"));
+		Assert.assertTrue(properties.getProperty("opt.multiquery").equals("true"));
+		Assert.assertTrue(properties.getProperty("stop.on.failure").equals("false"));
+		
+		PrintWriter out = new PrintWriter(new FileWriter(propertyFile));
+		out.println("aggregate.warning=false");
+		out.println("opt.multiquery=false");
+		out.println("stop.on.failure=true");
+		
+		out.close();
+
+		properties = PropertiesUtil.loadDefaultProperties();
+		Assert.assertTrue(properties.getProperty("aggregate.warning")
+				.equals("false"));
+		Assert.assertTrue(properties.getProperty("opt.multiquery")
+				.equals("false"));
+		Assert.assertTrue(properties.getProperty("stop.on.failure")
+				.equals("true"));
+
+		propertyFile.delete();
+	}
 }

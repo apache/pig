@@ -207,21 +207,6 @@ static int run(String args[], PigProgressNotificationListener listener) {
             execType = PigServer.parseExecType(execTypeString);
         }
 
-        if (properties.getProperty("aggregate.warning") == null) {
-            //by default warning aggregation is on
-            properties.setProperty("aggregate.warning", ""+true);
-        }
-
-        if (properties.getProperty("opt.multiquery") == null) {
-            //by default multiquery optimization is on
-            properties.setProperty("opt.multiquery", ""+true);
-        }
-
-        if (properties.getProperty("stop.on.failure") == null) {
-            //by default we keep going on error on the backend
-            properties.setProperty("stop.on.failure", ""+false);
-        }
-
         // set up client side system properties in UDF context
         UDFContext.getUDFContext().setClientSystemProps(properties);
 
