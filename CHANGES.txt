@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2422: Add log messages for Jython schema definitions (vivekp via gates)
+
 PIG-2403: Reduce code duplication in SUM, MAX, MIN udfs (dvryaboy)
 
 PIG-2245: Add end to end test for tokenize (markroddy via gates)

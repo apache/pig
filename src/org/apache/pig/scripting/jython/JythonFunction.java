@@ -38,6 +38,7 @@ import org.python.core.PyObject;
  * data structures
  */
 public class JythonFunction extends EvalFunc<Object> {
+    private static  boolean logOnce=true;
     private PyFunction function;
     private Schema schema;
     private int num_parameters;
@@ -55,6 +56,7 @@ public class JythonFunction extends EvalFunc<Object> {
             PyObject outputSchemaDef = f.__findattr__("outputSchema".intern());
             if (outputSchemaDef != null) {
                 this.schema = Utils.getSchemaFromString(outputSchemaDef.toString());
+                logOnce("Schema '"+outputSchemaDef.toString()+"' defined for func "+functionName);
                 found = true;
             }
             PyObject outputSchemaFunctionDef = f.__findattr__("outputSchemaFunction".intern());
@@ -65,6 +67,7 @@ public class JythonFunction extends EvalFunc<Object> {
                 }
                 scriptFilePath = filename;
                 outputSchemaFunc = outputSchemaFunctionDef.toString();
+                logOnce("Schema Function '"+outputSchemaFunc+"' defined for func "+functionName);
                 this.schema = null;
                 found = true;
             }
@@ -78,6 +81,8 @@ public class JythonFunction extends EvalFunc<Object> {
                 // BUG
                 throw new ExecException(
                         "unregistered " + functionName);
+            }else if (!found && outputSchemaFunctionDef == null){
+                logOnce("No schema defined for function '"+functionName+ "' in "+filename);
             }
         } catch (ParserException pe) {
             throw new ExecException("Could not parse schema for script function " + pe, pe);
@@ -88,6 +93,13 @@ public class JythonFunction extends EvalFunc<Object> {
         }
     }
 
+    private void logOnce (String msg)
+    {
+        if(logOnce)
+            getLogger().info(msg);
+        logOnce = false;
+    }
+    
     @Override
     public Object exec(Tuple tuple) throws IOException {
         try {
