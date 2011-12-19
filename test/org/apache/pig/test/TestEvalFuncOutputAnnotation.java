@@ -56,7 +56,7 @@ public class TestEvalFuncOutputAnnotation {
     }
 
     // This would give the same result: "y:bag{tuple(len:int,word:chararray)}"
-    @OutputSchema("y:bag{t:tuple(len:int,word:chararray)}")
+    @OutputSchema("y:bag{(len:int,word:chararray)}")
     public static class ComplexFunc extends EvalFunc<DataBag> {
         @Override
         public DataBag exec(Tuple input) throws IOException {
