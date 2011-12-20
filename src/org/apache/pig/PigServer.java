@@ -1283,7 +1283,7 @@ public class PigServer {
         currDAG.compile();
 
         if( currDAG.lp.size() == 0 ) {
-            return PigStatsUtil.getEmptyPigStats();
+           return PigStats.get(); 
         }
         
         PigStats stats = executeCompiledLogicalPlan();
