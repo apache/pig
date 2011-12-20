@@ -304,6 +304,8 @@ Release 0.9.2 - Unreleased
 
 BUG FIXES
 
+PIG-2291: PigStats.isSuccessful returns false if embedded pig script has dump (xutingz via daijy)
+
 PIG-2415: A fix for 0.23 local mode: put "yarn-default.xml" into the configuration (daijy)
 
 PIG-2402: inIllustrator condition in PigMapReduce is wrong for hadoop 23 (daijy)

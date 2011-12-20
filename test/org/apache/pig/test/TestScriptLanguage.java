@@ -583,5 +583,76 @@ public class TestScriptLanguage {
         s = (String)fixNonEscapedDollarSign.invoke(null, "$$abc");
         assertEquals("\\\\$\\\\$abc", s);
     }
-       
+    
+    // See PIG-2291
+    @Test
+    public void testDumpInScript() throws Exception{
+    	
+    	  String[] script = {
+                  "#!/usr/bin/python",
+                  "from org.apache.pig.scripting import *",
+                  "Pig.fs(\"rmr simple_out\")",
+                  "input = 'testDumpInScript_table'",
+                  "output = 'simple_out'",
+                  "P = Pig.compileFromFile(\"\"\"testScript.pig\"\"\")",
+                  "Q = P.bind({'input':input, 'output':output})",
+                  "stats = Q.runSingle()",
+                  "if stats.isSuccessful():",
+                  "\tprint 'success!'",
+                  "else:",
+                  "\tprint 'failed'"
+          };
+        String[] input = {
+                "1\t3",
+                "2\t4",
+                "3\t5"
+        };
+        
+        String[] pigLatin = {
+                "a = load '$input' as (a0:int,a1:int);",
+                "store a into '$output';",
+                "dump a"
+        };
+        
+        Util.createInputFile(cluster, "testDumpInScript_table", input);
+        Util.createLocalInputFile( "testScript.py", script);
+        Util.createLocalInputFile( "testScript.pig", pigLatin);
+        
+        ScriptEngine scriptEngine = ScriptEngine.getInstance("jython");
+        Map<String, List<PigStats>> statsMap = scriptEngine.run(pigServer.getPigContext(), "testScript.py");
+        Iterator<List<PigStats>> it = statsMap.values().iterator();  
+        PigStats stats = it.next().get(0);
+        assertTrue(stats.isSuccessful());
+    }
+
+	// See PIG-2291
+	@Test
+	public void testIllustrateInScript() throws Exception {
+
+		String[] script = { "#!/usr/bin/python",
+				"from org.apache.pig.scripting import *",
+				"Pig.fs(\"rmr simple_out\")",
+				"input = 'testIllustrateInScript_table'",
+				"output = 'simple_out'",
+				"P = Pig.compileFromFile(\"\"\"testScript.pig\"\"\")",
+				"Q = P.bind({'input':input, 'output':output})",
+				"stats = Q.runSingle()", "if stats.isSuccessful():",
+				"\tprint 'success!'", "else:", "\tprint 'failed'" };
+		String[] input = { "1\t3", "2\t4", "3\t5" };
+
+		String[] pigLatin = { "a = load '$input' as (a0:int,a1:int);",
+				"store a into '$output';", "illustrate a" };
+
+		Util.createInputFile(cluster, "testIllustrateInScript_table", input);
+		Util.createLocalInputFile("testScript.py", script);
+		Util.createLocalInputFile("testScript.pig", pigLatin);
+
+		ScriptEngine scriptEngine = ScriptEngine.getInstance("jython");
+		Map<String, List<PigStats>> statsMap = scriptEngine.run(
+				pigServer.getPigContext(), "testScript.py");
+		Iterator<List<PigStats>> it = statsMap.values().iterator();
+		PigStats stats = it.next().get(0);
+		assertTrue(stats.isSuccessful());
+	}
+
 }
