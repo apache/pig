@@ -38,7 +38,6 @@ import org.apache.pig.data.SingleTupleBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.MultiMap;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -51,33 +50,26 @@ import junit.framework.TestCase;
  */
 @RunWith(JUnit4.class)
 public class TestDataBagAccess extends TestCase {
-
-    static MiniCluster cluster = MiniCluster.buildCluster();
     private PigServer pigServer;
 
     @Before
     @Override
     public void setUp() throws Exception{
-        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        pigServer = new PigServer(ExecType.LOCAL, System.getProperties());
     }
-    
-    @AfterClass
-    public static void oneTimeTearDown() throws Exception {
-        cluster.shutDown();
-    }
-    
+
     @Test
     public void testSingleTupleBagAcess() throws Exception {
         Tuple inputTuple = new DefaultTuple();
         inputTuple.append("a");
         inputTuple.append("b");
-        
+
         SingleTupleBag bg = new SingleTupleBag(inputTuple);
         Iterator<Tuple> it = bg.iterator();
         assertEquals(inputTuple, it.next());
         assertFalse(it.hasNext());
     }
-    
+
     @Test
     public void testNonSpillableDataBag() throws Exception {
         String[][] tupleContents = new String[][] {{"a", "b"},{"c", "d" }, { "e", "f"} };
@@ -94,12 +86,12 @@ public class TestDataBagAccess extends TestCase {
         }
         assertEquals(tupleContents.length, j);
     }
-    
+
     @Test
     public void testBagConstantAccess() throws IOException, ExecException {
-        File input = Util.createInputFile("tmp", "", 
+        File input = Util.createInputFile("tmp", "",
                 new String[] {"sampledata\tnot_used"});
-        pigServer.registerQuery("a = load '" 
+        pigServer.registerQuery("a = load '"
                 + Util.generateURI(Util.encodeEscape(input.toString()), pigServer.getPigContext()) + "';");
         pigServer.registerQuery("b = foreach a generate {(16, 4.0e-2, 'hello', -101)} as mybag:{t:(i: int, d: double, c: chararray, e : int)};");
         pigServer.registerQuery("c = foreach b generate mybag.i, mybag.d, mybag.c, mybag.e;");
@@ -114,15 +106,15 @@ public class TestDataBagAccess extends TestCase {
             assertEquals(resultClasses[i], bag.iterator().next().get(0).getClass());
         }
     }
-    
+
     @Test
     public void testBagConstantAccessFailure() throws IOException, ExecException {
-        File input = Util.createInputFile("tmp", "", 
+        File input = Util.createInputFile("tmp", "",
                 new String[] {"sampledata\tnot_used"});
         boolean exceptionOccured = false;
         pigServer.setValidateEachStatement(true);
         try {
-            pigServer.registerQuery("a = load '" 
+            pigServer.registerQuery("a = load '"
                     + Util.generateURI(Util.encodeEscape(input.toString()), pigServer.getPigContext()) + "';");
             pigServer.registerQuery("b = foreach a generate {(16, 4.0e-2, 'hello')} as mybag:{t:(i: int, d: double, c: chararray)};");
             pigServer.registerQuery("c = foreach b generate mybag.t;");
@@ -134,12 +126,12 @@ public class TestDataBagAccess extends TestCase {
         }
         assertTrue(exceptionOccured);
     }
-    
+
     @Test
     public void testBagConstantFlatten1() throws IOException, ExecException {
-        File input = Util.createInputFile("tmp", "", 
+        File input = Util.createInputFile("tmp", "",
                 new String[] {"sampledata\tnot_used"});
-        pigServer.registerQuery("A = load '" 
+        pigServer.registerQuery("A = load '"
                 + Util.generateURI(Util.encodeEscape(input.toString()), pigServer.getPigContext()) + "';");
         pigServer.registerQuery("B = foreach A generate {(('p1-t1-e1', 'p1-t1-e2'),('p1-t2-e1', 'p1-t2-e2'))," +
                 "(('p2-t1-e1', 'p2-t1-e2'), ('p2-t2-e1', 'p2-t2-e2'))};");
@@ -158,13 +150,13 @@ public class TestDataBagAccess extends TestCase {
         assertEquals("p2-t2-e1", (String)t.get(1));
         assertFalse(it.hasNext());
     }
-    
+
     @Test
     public void testBagConstantFlatten2() throws IOException, ExecException {
-        File input = Util.createInputFile("tmp", "", 
+        File input = Util.createInputFile("tmp", "",
                 new String[] {"somestring\t10\t{(a,10),(b,20)}"});
-        pigServer.registerQuery("a = load '" 
-                + Util.generateURI(Util.encodeEscape(input.toString()), pigServer.getPigContext()) 
+        pigServer.registerQuery("a = load '"
+                + Util.generateURI(Util.encodeEscape(input.toString()), pigServer.getPigContext())
                 + "' " + "as (str:chararray, intval:int, bg:bag{t:tuple(s:chararray, i:int)});");
         pigServer.registerQuery("b = foreach a generate str, intval, flatten(bg);");
         pigServer.registerQuery("c = foreach b generate str, intval, s, i;");
@@ -182,7 +174,7 @@ public class TestDataBagAccess extends TestCase {
             i++;
         }
         assertEquals(results.length, i);
-        
+
         pigServer.registerQuery("c = foreach b generate str, intval, bg::s, bg::i;");
         it = pigServer.openIterator("c");
         i = 0;
@@ -199,15 +191,15 @@ public class TestDataBagAccess extends TestCase {
 
     @Test
     public void testBagStoreLoad() throws IOException, ExecException {
-        File input = Util.createInputFile("tmp", "", 
+        File input = Util.createInputFile("tmp", "",
                 new String[] {"a\tid1", "a\tid2", "a\tid3", "b\tid4", "b\tid5", "b\tid6"});
-        pigServer.registerQuery("a = load '" 
-                + Util.generateURI(Util.encodeEscape(input.toString()), pigServer.getPigContext()) 
+        pigServer.registerQuery("a = load '"
+                + Util.generateURI(Util.encodeEscape(input.toString()), pigServer.getPigContext())
                 + "' " + "as (s:chararray, id:chararray);");
         pigServer.registerQuery("b = group a by s;");
         Class[] loadStoreClasses = new Class[] { BinStorage.class, PigStorage.class };
         for (int i = 0; i < loadStoreClasses.length; i++) {
-            String output = "/pig/out/TestDataBagAccess-testBagStoreLoad-" + 
+            String output = "/pig/out/TestDataBagAccess-testBagStoreLoad-" +
                              loadStoreClasses[i].getName() + ".txt";
             pigServer.deleteFile(output);
             pigServer.store("b", output, loadStoreClasses[i].getName());
@@ -256,7 +248,7 @@ public class TestDataBagAccess extends TestCase {
             // make sure we saw the right number of high
             // level tuples
             assertEquals(results.keySet().size(), j);
-            
+
             pigServer.registerQuery("d = foreach c generate gp, flatten(bg);");
             // results should be
             // a a id1
@@ -289,7 +281,7 @@ public class TestDataBagAccess extends TestCase {
             }
             // check we got expected number of tuples
             assertEquals(resultTuples.size(), j);
-            
+
             // same output as above - but projection based on aliases
             pigServer.registerQuery("e = foreach d generate gp, sReLoaded, idReLoaded;");
             it = pigServer.openIterator("e");
@@ -328,7 +320,7 @@ public class TestDataBagAccess extends TestCase {
             // check we got expected number of tuples
             assertEquals(resultTuples.size(), j);
 
-        
+
         }
     }
 }
