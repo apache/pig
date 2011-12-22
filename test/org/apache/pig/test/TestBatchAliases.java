@@ -27,8 +27,6 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.impl.io.FileLocalizer;
-import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -36,41 +34,25 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class TestBatchAliases extends TestCase {
 
-    private static final MiniCluster cluster = MiniCluster.buildCluster();
-
     private PigServer myPig;
 
     @Override
     @Before
     public void setUp() throws Exception {
-        cluster.setProperty("opt.multiquery", ""+true);
-        myPig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        System.setProperty("opt.multiquery", ""+true);
+        myPig = new PigServer(ExecType.LOCAL, System.getProperties());
         deleteOutputFiles();
     }
 
-    @Override
-    @After
-    public void tearDown() throws Exception {
-        myPig = null;
-        Util.deleteFile(cluster, "passwd");
-    }
-    
-    @AfterClass
-    public static void oneTimeTearDown() throws Exception {
-        cluster.shutDown();
-    }
-    
     @Test
     public void testBatchAliases() throws IOException {
 
         // test case: key ('group') isn't part of foreach output
         // and keys have the same type.
-        Util.copyFromLocalToCluster(cluster, 
-                "test/org/apache/pig/test/data/passwd", "passwd");
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'passwd' " +
+            myPig.registerQuery("a = load 'test/org/apache/pig/test/data/passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
             myPig.registerQuery("b = group a by uid;");
             myPig.registerQuery("c = group a by gid;");
@@ -89,11 +71,11 @@ public class TestBatchAliases extends TestCase {
             }
             assertTrue(foundD);
             assertTrue(foundE);
-            
+
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
-        } 
+        }
     }
 
     private void deleteOutputFiles() {
