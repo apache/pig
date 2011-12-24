@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Properties;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
@@ -55,7 +56,7 @@ public class TestDataBagAccess extends TestCase {
     @Before
     @Override
     public void setUp() throws Exception{
-        pigServer = new PigServer(ExecType.LOCAL, System.getProperties());
+        pigServer = new PigServer(ExecType.LOCAL, new Properties());
     }
 
     @Test
