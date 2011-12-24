@@ -51,8 +51,6 @@
     <!-- property name="build.encoding" value="ISO-8859-1" / -->
     <property name="build.encoding" value="UTF8" />
 
-    <property name="automaton.jarfile" value="automaton.jar" />
-
     <!-- javac properties -->
     <property name="javac.debug" value="on" />
     <property name="javac.optimize" value="on" />
@@ -226,8 +224,7 @@
 
     <!-- javadoc-classpath -->
     <path id="javadoc-classpath">
-	<fileset file="${lib.dir}/${automaton.jarfile}" />
-	<path refid="javadoc.classpath"/>	
+	    <path refid="javadoc.classpath"/>	
     </path> 
 
     <path id="test.classpath">
@@ -594,7 +591,6 @@
                     <attribute name="Svn-Revision" value="${svnString}" />
                 </section>
             </manifest>
-            <zipfileset src="${lib.dir}/${automaton.jarfile}" />
             <zipgroupfileset dir="${ivy.lib.dir}">
                 <include name="hadoop-core-${hadoop-core.version}.jar" />
                 <include name="hadoop-*-${hadoop-common.version}*.jar" />
@@ -607,12 +603,13 @@
                 <include name="jackson-core-asl-${jackson.version}.jar" />
                 <include name="joda-time-${joda-time.version}.jar" />
                 <include name="guava-${guava.version}.jar" />
-                <include name="avro-${avro.version}.jar"/>
+                <include name="automaton-${automaton.version}.jar" />
+                <include name="avro-${avro.version}.jar" />
                 <include name="hbase-${hbase.version}.jar" />
-                <include name="commons*.jar"/>
-                <include name="log4j*.jar"/>
-                <include name="jsp-api*.jar"/>
-                <include name="zookeeper*.jar"/>
+                <include name="commons*.jar" />
+                <include name="log4j*.jar" />
+                <include name="jsp-api*.jar" />
+                <include name="zookeeper*.jar" />
             </zipgroupfileset>
             <fileset file="${basedir}/conf/pig-default.properties" />
         </jar>
@@ -673,7 +670,7 @@
             </manifest>
             <fileset file="${basedir}/conf/pig-default.properties" />
         </jar>
-        <!-- @depricated -->
+        <!-- @deprecated -->
         <jar jarfile="${output.jarfile.withouthadoop}" basedir="${build.classes}">
             <manifest>
                 <attribute name="Main-Class" value="org.apache.pig.Main" />
@@ -685,7 +682,6 @@
                     <attribute name="Svn-Revision" value="${svnString}" />
                 </section>
             </manifest>
-            <zipfileset src="${lib.dir}/${automaton.jarfile}" />
             <zipgroupfileset dir="${ivy.lib.dir}">
                 <include name="antlr-runtime-${antlr.version}.jar" />
                 <include name="ST4-${stringtemplate.version}.jar" />
@@ -693,6 +689,7 @@
                 <include name="jackson-mapper-asl-${jackson.version}.jar" />
                 <include name="jackson-core-asl-${jackson.version}.jar" />
                 <include name="guava-${guava.version}.jar" />
+                <include name="automaton-${automaton.version}.jar" />
             </zipgroupfileset>
             <fileset file="${basedir}/conf/pig-default.properties" />
         </jar>

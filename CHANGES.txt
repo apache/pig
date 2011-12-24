@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2437: Use Ivy to get automaton.jar (azaroth)
+
 PIG-2448: Convert more tests to use LOCAL mode (dvryaboy)
 
 PIG-2438: Do not hardcode commons-lang version in build.xml (azaroth)
