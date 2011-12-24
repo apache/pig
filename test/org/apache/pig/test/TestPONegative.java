@@ -19,6 +19,7 @@ package org.apache.pig.test;
 
 import java.io.File;
 import java.util.Iterator;
+import java.util.Properties;
 import java.util.Random;
 
 import org.apache.pig.ExecType;
@@ -303,7 +304,7 @@ public class TestPONegative extends TestCase {
 
     @Test
     public void testPONegType() throws Exception {
-        PigServer pig = new PigServer(ExecType.LOCAL, System.getProperties());
+        PigServer pig = new PigServer(ExecType.LOCAL, new Properties());
         File f = Util.createInputFile("tmp", "", new String[] {"a", "b", "c"});
         pig.registerQuery("a = load '"
                 + Util.generateURI(f.toString(), pig.getPigContext()) + "';");

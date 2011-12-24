@@ -20,6 +20,7 @@ package org.apache.pig.test;
 import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.Properties;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
@@ -80,14 +81,14 @@ import org.junit.runners.JUnit4;
 public class TestUnion extends junit.framework.TestCase {
     POUnion sp;
     DataBag expBag;
-    static MiniCluster cluster = MiniCluster.buildCluster();
-    PigContext pc = new PigContext();
+    PigContext pc;
     PigServer pigServer;
 
     @Override
     @Before
     public void setUp() throws Exception {
-        pigServer = new PigServer(ExecType.LOCAL, cluster.getProperties());
+        pigServer = new PigServer(ExecType.LOCAL, new Properties());
+        pc = pigServer.getPigContext();
         pc.connect();
         GenPhyOp.setPc(pc);
         POLoad ld1 = GenPhyOp.topLoadOp();
@@ -160,7 +161,6 @@ public class TestUnion extends junit.framework.TestCase {
 
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
-        cluster.shutDown();
     }
 
     private Tuple castToDBA(Tuple in) throws ExecException{

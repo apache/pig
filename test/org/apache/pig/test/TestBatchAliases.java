@@ -19,6 +19,7 @@ package org.apache.pig.test;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Properties;
 
 import junit.framework.Assert;
 import junit.framework.TestCase;
@@ -40,7 +41,7 @@ public class TestBatchAliases extends TestCase {
     @Before
     public void setUp() throws Exception {
         System.setProperty("opt.multiquery", ""+true);
-        myPig = new PigServer(ExecType.LOCAL, System.getProperties());
+        myPig = new PigServer(ExecType.LOCAL, new Properties());
         deleteOutputFiles();
     }
 

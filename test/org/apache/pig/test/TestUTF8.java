@@ -25,6 +25,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Iterator;
+import java.util.Properties;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -46,7 +47,7 @@ public class TestUTF8 extends TestCase {
     @Before
     @Override
     public void setUp() throws Exception{
-        pigServer = new PigServer(ExecType.LOCAL, System.getProperties());
+        pigServer = new PigServer(ExecType.LOCAL, new Properties());
     }
 
     @Test
