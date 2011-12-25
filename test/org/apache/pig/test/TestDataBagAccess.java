@@ -200,7 +200,7 @@ public class TestDataBagAccess extends TestCase {
         pigServer.registerQuery("b = group a by s;");
         Class[] loadStoreClasses = new Class[] { BinStorage.class, PigStorage.class };
         for (int i = 0; i < loadStoreClasses.length; i++) {
-            String output = "/pig/out/TestDataBagAccess-testBagStoreLoad-" +
+            String output = "TestDataBagAccess-testBagStoreLoad-" +
                              loadStoreClasses[i].getName() + ".txt";
             pigServer.deleteFile(output);
             pigServer.store("b", output, loadStoreClasses[i].getName());

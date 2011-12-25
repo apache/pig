@@ -28,6 +28,7 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -42,6 +43,12 @@ public class TestBatchAliases extends TestCase {
     public void setUp() throws Exception {
         System.setProperty("opt.multiquery", ""+true);
         myPig = new PigServer(ExecType.LOCAL, new Properties());
+        deleteOutputFiles();
+    }
+    
+    @Override
+    @After
+    public void tearDown() throws Exception {
         deleteOutputFiles();
     }
 
