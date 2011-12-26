@@ -414,17 +414,9 @@ public class FileLocalizer {
             return true;
         }
         else {
-            fileSpec = fileSpec.substring(LOCAL_PREFIX.length());
-            boolean ret = true;
-            // TODO probably this should be replaced with the local file system
-            File f = (new File(fileSpec));
-            // TODO this only deletes the file. Any dirs createdas a part of this
-            // are not removed.
-            if (f!=null){
-                ret = f.delete();
-            }
-            
-            return ret;
+            ElementDescriptor elem = pigContext.getLfs().asElement(fileSpec);
+            elem.delete();
+            return true;
         }
     }
 
