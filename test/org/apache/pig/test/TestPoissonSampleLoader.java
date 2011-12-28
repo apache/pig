@@ -45,7 +45,7 @@ public class TestPoissonSampleLoader extends TestCase{
     private static MiniCluster cluster = MiniCluster.buildCluster();
 
     public TestPoissonSampleLoader() throws ExecException, IOException{
-        pigServer = new PigServer(ExecType.LOCAL, cluster.getProperties());
+        pigServer = new PigServer(ExecType.LOCAL);
         pigServer.getPigContext().getProperties().setProperty("pig.skewedjoin.reduce.maxtuple", "5");     
         pigServer.getPigContext().getProperties().setProperty("pig.skewedjoin.reduce.memusage", "0.0001");
         pigServer.getPigContext().getProperties().setProperty("mapred.child.java.opts", "-Xmx512m");

@@ -82,7 +82,7 @@ public class TestPigStorage  {
 
         // If needed, a test can change that. Most tests are local so we save a bit
         // of typing here.
-        pig = new PigServer(ExecType.LOCAL, cluster.getProperties());
+        pig = new PigServer(ExecType.LOCAL);
         Util.deleteDirectory(new File(datadir));
         try {
             pig.mkdirs(datadir);

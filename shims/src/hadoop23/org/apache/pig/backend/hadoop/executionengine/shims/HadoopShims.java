@@ -22,14 +22,17 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapreduce.ContextFactory;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.JobID;
+import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.mapreduce.TaskType;
 import org.apache.hadoop.mapreduce.task.JobContextImpl;
 import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 
 public class HadoopShims {
     static public JobContext cloneJobContext(JobContext original) throws IOException, InterruptedException {
@@ -61,5 +64,17 @@ public class HadoopShims {
         TaskAttemptID taskAttemptID = new TaskAttemptID("", 1, TaskType.MAP, 
                 1, 1);
         return taskAttemptID;
+    }
+    
+    static public void storeSchemaForLocal(Job job, POStore st) {
+        // Doing nothing for hadoop 23
+    }
+    
+    static public String getFsCounterGroupName() {
+        return "org.apache.hadoop.mapreduce.FileSystemCounter";
+    }
+    
+    static public void commitOrCleanup(OutputCommitter oc, JobContext jc) throws IOException {
+        oc.commitJob(jc);
     }
 }

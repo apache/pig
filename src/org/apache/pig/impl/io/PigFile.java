@@ -27,7 +27,6 @@ import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.StoreFuncInterface;
@@ -103,7 +102,7 @@ public class PigFile {
         if(oc.needsTaskCommit(tac)) {
             oc.commitTask(tac);
         }
-        oc.cleanupJob(jc);
+        HadoopShims.commitOrCleanup(oc, jc);
     }
 
     @Override
