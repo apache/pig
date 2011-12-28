@@ -57,6 +57,7 @@
     </chain>
     <chain name="internal">
       <resolver ref="fs"/>
+      <resolver ref="maven2"/>
     </chain>
     <chain name="external">
       <resolver ref="maven2"/>

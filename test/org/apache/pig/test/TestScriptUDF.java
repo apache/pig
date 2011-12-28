@@ -538,6 +538,10 @@ public class TestScriptUDF{
      */
     @Test
     public void testPythonNestedImport() throws Exception {
+        // Skip for hadoop 23 until PIG-2433 fixed
+        if (Util.isHadoop23())
+            return;
+        
         String[] scriptA = {
                 "#!/usr/bin/python",
                 "def square(number):" ,
