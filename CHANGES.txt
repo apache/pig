@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2349: Ant build repeats ivy-buildJar several times (azaroth)
+
 PIG-2437: Use Ivy to get automaton.jar (azaroth)
 
 PIG-2448: Convert more tests to use LOCAL mode (dvryaboy)
