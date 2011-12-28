@@ -68,7 +68,6 @@ public class TestJobSubmission {
     String inpDir;
     String golDir;
     static MiniCluster cluster = MiniCluster.buildCluster();
-    private static HBaseTestingUtility util;
     
     @BeforeClass
     public static void onetimeSetUp() throws Exception {
@@ -84,9 +83,6 @@ public class TestJobSubmission {
         
         Configuration conf = cluster.getConfiguration();
         
-        util = new HBaseTestingUtility(conf);
-        util.startMiniZKCluster();
-        util.startMiniHBaseCluster(1, 1);
     }
     
     @Before
@@ -106,14 +102,6 @@ public class TestJobSubmission {
     
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
-        // In HBase 0.90.1 and above we can use util.shutdownMiniHBaseCluster()
-        // here instead.
-        MiniHBaseCluster hbc = util.getHBaseCluster();
-        if (hbc != null) {
-            hbc.shutdown();
-            hbc.join();
-        }
-        util.shutdownMiniZKCluster();
         cluster.shutDown();
     }
     
@@ -544,7 +532,15 @@ public class TestJobSubmission {
 
     @Test
     public void testReducerNumEstimation() throws Exception{
-       // use the estimation
+        // skip this test for 23 until HBASE-4850
+        if (Util.isHadoop23())
+            return;
+        // use the estimation
+        Configuration conf = cluster.getConfiguration();
+        HBaseTestingUtility util = new HBaseTestingUtility(conf);
+        util.startMiniZKCluster();
+        util.startMiniHBaseCluster(1, 1);
+        
         String query = "a = load '/passwd';" + 
                        "b = group a by $0;" +
                        "store b into 'output';";
@@ -555,7 +551,7 @@ public class TestJobSubmission {
         pc.getConf().setProperty("pig.exec.reducers.bytes.per.reducer", "100");
         pc.getConf().setProperty("pig.exec.reducers.max", "10");
         ConfigurationValidator.validatePigProperties(pc.getProperties());
-        Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties());
+        conf = ConfigurationUtil.toConfiguration(pc.getProperties());
         JobControlCompiler jcc = new JobControlCompiler(pc, conf);
         JobControl jc=jcc.compile(mrPlan, "Test");
         Job job = jc.getWaitingJobs().get(0);
@@ -599,6 +595,14 @@ public class TestJobSubmission {
         job = jc.getWaitingJobs().get(0);
         assertEquals(job.getJobConf().getLong("mapred.reduce.tasks",10), 1);
         util.deleteTable(Bytes.toBytesBinary("passwd"));
+        // In HBase 0.90.1 and above we can use util.shutdownMiniHBaseCluster()
+        // here instead.
+        MiniHBaseCluster hbc = util.getHBaseCluster();
+        if (hbc != null) {
+            hbc.shutdown();
+            hbc.join();
+        }
+        util.shutdownMiniZKCluster();
     }
     
     @Test

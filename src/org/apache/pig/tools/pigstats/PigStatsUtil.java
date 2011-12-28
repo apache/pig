@@ -36,6 +36,7 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOpe
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.NativeMapReduceOper;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 
@@ -51,7 +52,7 @@ public abstract class PigStatsUtil {
     public static final String TASK_COUNTER_GROUP 
             = "org.apache.hadoop.mapred.Task$Counter";
     public static final String FS_COUNTER_GROUP 
-            = "FileSystemCounters";
+            = HadoopShims.getFsCounterGroupName();
     public static final String MAP_INPUT_RECORDS 
             = "MAP_INPUT_RECORDS";
     public static final String MAP_OUTPUT_RECORDS 

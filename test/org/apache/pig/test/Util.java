@@ -1141,4 +1141,18 @@ public class Util {
         }
         return result;
     }
+    
+    public static boolean isHadoop23() {
+        String version = org.apache.hadoop.util.VersionInfo.getVersion();
+        if (version.matches("\\b0\\.23\\..+\\b"))
+            return true;
+        return false;
+    }
+    
+    public static boolean isHadoop203plus() {
+        String version = org.apache.hadoop.util.VersionInfo.getVersion();
+        if (version.matches("\\b0\\.20\\.2\\b"))
+            return false;
+        return true;
+    }
 }
