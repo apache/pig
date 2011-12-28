@@ -137,7 +137,8 @@ public class TestGrunt {
         try {
             grunt.exec();
         } catch (Exception e) {
-            assertTrue(e.getMessage().contains("<line 1, column 62>  mismatched input ';' expecting RIGHT_PAREN"));
+            assertTrue(e.getMessage().contains("<line 1, column 62>")
+                    &&  e.getMessage().contains("mismatched input ';' expecting RIGHT_PAREN"));
         }
     }
 

@@ -52,13 +52,11 @@ public class MiniCluster extends MiniGenericCluster {
     
     @Override
     protected void setupMiniDfsAndMrClusters() {
-		Logger.getLogger("org.apache.hadoop").setLevel(Level.INFO);
-        try {
+		try {
             final int dataNodes = 4;     // There will be 4 data nodes
             final int taskTrackers = 4;  // There will be 4 task tracker nodes
             
-			Logger.getRootLogger().setLevel(Level.TRACE);
-            // Create the configuration hadoop-site.xml file
+		    // Create the configuration hadoop-site.xml file
             File conf_dir = new File(System.getProperty("user.home"), "pigtest/conf/");
             conf_dir.mkdirs();
             File conf_file = new File(conf_dir, "hadoop-site.xml");
@@ -71,8 +69,8 @@ public class MiniCluster extends MiniGenericCluster {
             m_fileSys = m_dfs.getFileSystem();
             m_dfs_conf = m_dfs.getConfiguration(0);
             
-            m_mr = new MiniMRYarnCluster("PigMiniCluster");
-            m_mr.init(new Configuration());
+            m_mr = new MiniMRYarnCluster("PigMiniCluster", taskTrackers);
+            m_mr.init(m_dfs_conf);
             //m_mr.init(m_dfs_conf);
             m_mr.start();
             
@@ -82,27 +80,6 @@ public class MiniCluster extends MiniGenericCluster {
             
             m_conf = m_mr_conf;
 			m_conf.set("fs.default.name", m_dfs_conf.get("fs.default.name"));
-
-			/*
-			try {
-				DistributedCache.addCacheFile(new URI("file:///hadoop-mapreduce-client-app-1.0-SNAPSHOT.jar"), m_conf);
-				DistributedCache.addCacheFile(new URI("file:///hadoop-mapreduce-client-jobclient-1.0-SNAPSHOT.jar"), m_conf);
-				DistributedCache.addCacheFile(new URI("file:///pig.jar"), m_conf);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-			*/
-			m_dfs.getFileSystem().copyFromLocalFile(new Path("file:///hadoop-mapreduce-client-app-0.23.0-SNAPSHOT.jar"), new Path("/hadoop-mapreduce-client-app-0.23.0-SNAPSHOT.jar"));
-			m_dfs.getFileSystem().copyFromLocalFile(new Path("file:///hadoop-mapreduce-client-jobclient-0.23.0-SNAPSHOT.jar"), new Path("/hadoop-mapreduce-client-jobclient-0.23.0-SNAPSHOT.jar"));
-			m_dfs.getFileSystem().copyFromLocalFile(new Path("file:///pig.jar"), new Path("/pig.jar"));
-			m_dfs.getFileSystem().copyFromLocalFile(new Path("file:///pig-test.jar"), new Path("/pig-test.jar"));
-
-            DistributedCache.addFileToClassPath(new Path("/hadoop-mapreduce-client-app-0.23.0-SNAPSHOT.jar"), m_conf);
-            DistributedCache.addFileToClassPath(new Path("/pig.jar"), m_conf);
-            DistributedCache.addFileToClassPath(new Path("/pig-test.jar"), m_conf);
-            DistributedCache.addFileToClassPath(new Path("/hadoop-mapreduce-client-jobclient-0.23.0-SNAPSHOT.jar"), m_conf);
-            String cachefile = m_conf.get("mapreduce.job.cache.files");
-            m_conf.set("alternative.mapreduce.job.cache.files", cachefile);
             m_conf.unset("mapreduce.job.cache.files");
 
             //ConfigurationUtil.mergeConf(m_conf, m_dfs_conf);
@@ -114,7 +91,9 @@ public class MiniCluster extends MiniGenericCluster {
             m_conf.set("mapred.map.max.attempts", "2");
             m_conf.set("mapred.reduce.max.attempts", "2");
             m_conf.writeXml(new FileOutputStream(conf_file));
-            
+            m_fileSys.copyFromLocalFile(new Path(conf_file.getAbsoluteFile().toString()), 
+                    new Path("/pigtest/conf/hadoop-site.xml"));
+            DistributedCache.addFileToClassPath(new Path("/pigtest/conf/hadoop-site.xml"), m_conf);
 //            try {
 //                Thread.sleep(1000*1000);
 //            } catch (InterruptedException e) {
