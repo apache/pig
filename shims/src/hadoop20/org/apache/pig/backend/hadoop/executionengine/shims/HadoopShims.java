@@ -20,10 +20,14 @@ package org.apache.pig.backend.hadoop.executionengine.shims;
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.JobID;
+import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigOutputCommitter;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 
 /**
  * We need to make Pig work with both hadoop 20 and hadoop 23 (PIG-2125). However,
@@ -61,5 +65,20 @@ public class HadoopShims {
     
     static public TaskAttemptID getNewTaskAttemptID() {
         return new TaskAttemptID();
+    }
+    
+    static public void storeSchemaForLocal(Job job, POStore st) throws IOException {
+        JobContext jc = HadoopShims.createJobContext(job.getJobConf(), 
+                new org.apache.hadoop.mapreduce.JobID());
+        JobContext updatedJc = PigOutputCommitter.setUpContext(jc, st);
+        PigOutputCommitter.storeCleanup(st, updatedJc.getConfiguration());
+    }
+
+    static public String getFsCounterGroupName() {
+        return "FileSystemCounters";
+    }
+
+    static public void commitOrCleanup(OutputCommitter oc, JobContext jc) throws IOException {
+        oc.cleanupJob(jc);
     }
 }

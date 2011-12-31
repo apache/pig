@@ -52,6 +52,14 @@
       conf="checkstyle->master"/> -->
     <dependency org="commons-beanutils" name="commons-beanutils-core" rev="${commons-beanutils.version}"
       conf="checkstyle->master"/>
+    <dependency org="xmlenc" name="xmlenc" rev="${xmlenc.version}"
+      conf="hadoop23->master"/>
+    <dependency org="com.sun.jersey" name="jersey-bundle" rev="${jersey.version}"
+      conf="hadoop23->master"/>
+    <dependency org="com.sun.jersey" name="jersey-server" rev="${jersey.version}"
+      conf="hadoop23->master"/>
+    <dependency org="com.sun.jersey.contribs" name="jersey-guice" rev="${jersey.version}"
+      conf="hadoop23->master"/>
     <dependency org="commons-codec" name="commons-codec" rev="${commons-codec.version}"
       conf="hadoop23->master"/>
     <dependency org="commons-el" name="commons-el" rev="${commons-el.version}"
@@ -59,6 +67,24 @@
     <dependency org="commons-httpclient" name="commons-httpclient" rev="${commons-httpclient.version}"
       conf="hadoop23->master"/>
     <dependency org="commons-configuration" name="commons-configuration" rev="${commons-configuration.version}"
+      conf="hadoop23->master"/>
+    <dependency org="commons-collections" name="commons-collections" rev="${commons-collections.version}"
+      conf="hadoop23->master"/>
+    <dependency org="javax.servlet" name="servlet-api" rev="${servlet-api.version}"
+      conf="hadoop23->master"/>
+    <dependency org="javax.ws.rs" name="jsr311-api" rev="${jsr311-api.version}"
+      conf="hadoop23->master"/>
+    <dependency org="org.mortbay.jetty" name="jetty" rev="${jetty.version}"
+      conf="hadoop23->master"/>
+    <dependency org="com.google.protobuf" name="protobuf-java" rev="${protobuf-java.version}"
+      conf="hadoop23->master"/>
+    <dependency org="org.mortbay.jetty" name="jetty-util" rev="${jetty-util.version}"
+      conf="hadoop23->master"/>
+    <dependency org="com.google.inject" name="guice" rev="${guice.version}"
+      conf="hadoop23->master"/>
+    <dependency org="com.google.inject.extensions" name="guice-servlet" rev="${guice-servlet.version}"
+      conf="hadoop23->master"/>
+    <dependency org="aopalliance" name="aopalliance" rev="${aopalliance.version}"
       conf="hadoop23->master"/>
     <dependency org="log4j" name="log4j" rev="${log4j.version}"
       conf="compile->master"/>
@@ -84,7 +110,8 @@
       conf="hadoop23->master"/>
     <dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-jobclient" rev="${hadoop-mapreduce.version}"
       conf="hadoop23->master">
-        <artifact name="hadoop-mapreduce-client-jobclient" type="jar" m:classifier="tests"/>
+        <artifact name="hadoop-mapreduce-client-jobclient" ext="jar" />
+        <artifact name="hadoop-mapreduce-client-jobclient" type="tests" ext="jar" m:classifier="tests"/>
         <exclude org="commons-daemon" module="commons-daemon"/><!--bad POM-->
         <exclude org="org.apache.commons" module="commons-daemon"/><!--bad POM-->
     </dependency>
@@ -92,16 +119,28 @@
       conf="hadoop23->master">
       <artifact name="hadoop-yarn-server-tests" type="jar" m:classifier="tests"/>
     </dependency>
+    <dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-app" rev="${hadoop-mapreduce.version}"
+      conf="hadoop23->master" />
+    <dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-shuffle" rev="${hadoop-mapreduce.version}"
+      conf="hadoop23->master" />
     <dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-common"
       rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
     <dependency org="org.apache.hadoop" name="hadoop-yarn-api" 
-      rev="${hadoop-common.version}" conf="hadoop23->master"/>
+      rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
     <dependency org="org.apache.hadoop" name="hadoop-yarn-common" 
-      rev="${hadoop-common.version}" conf="hadoop23->master"/>
+      rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
+    <dependency org="org.apache.hadoop" name="hadoop-yarn-server"
+      rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
+    <dependency org="org.apache.hadoop" name="hadoop-yarn-server-web-proxy"
+      rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
+    <dependency org="org.apache.hadoop" name="hadoop-yarn-server-common"
+      rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
     <dependency org="org.apache.hadoop" name="hadoop-yarn-server-nodemanager" 
-      rev="${hadoop-common.version}" conf="hadoop23->master"/>
+      rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
     <dependency org="org.apache.hadoop" name="hadoop-yarn-server-resourcemanager" 
-      rev="${hadoop-common.version}" conf="hadoop23->master"/>
+      rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
+    <dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-hs"
+      rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
     <dependency org="org.mortbay.jetty" name="jetty" rev="${jetty.version}"
       conf="compile->master"/>
     <dependency org="org.mortbay.jetty" name="jetty-util" rev="${jetty-util.version}"
@@ -109,7 +148,13 @@
     <dependency org="commons-logging" name="commons-logging" rev="${commons-logging.version}"
       conf="compile->master;checkstyle->master"/>
      <dependency org="org.slf4j" name="slf4j-log4j12" rev="${slf4j-log4j12.version}"
-      conf="compile->master;test->master"/>
+      conf="compile->master;test->master">
+        <artifact name="slf4j-log4j12" type="jar" />
+    </dependency>
+     <dependency org="org.slf4j" name="slf4j-api" rev="${slf4j-api.version}"
+      conf="compile->master;test->master">
+        <artifact name="slf4j-api" type="jar" />
+    </dependency>
     <dependency org="commons-cli" name="commons-cli" rev="${commons-cli.version}"
       conf="compile->master;checkstyle->master"/>
     

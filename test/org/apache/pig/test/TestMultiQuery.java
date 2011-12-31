@@ -462,23 +462,16 @@ public class TestMultiQuery {
                 + "FLATTEN((IsEmpty(c) ? null : c)) as f2, (chararray) 1 as f3;");  
         myPig.registerQuery("all_set2 = UNION set2_1, set2_2;");
         myPig.registerQuery("joined_sets = JOIN set1 BY (a,b), all_set2 BY (f2,f3);");
-      
-        List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
-                new String[] { 
-                        "('quit','0','many','strawberry','quit','0')",
-                        "('login','0','jar','apple','login','0')",
-                        "('login','0','jar','orange','login','0')",
-                        "('login','1','box','apple','login','1')",
-                        "('login','1','box','orange','login','1')",
-                        "('login','1','box','strawberry','login','1')"
-                });
+        
+        String[] expected = new String[] {"(quit,0,many,strawberry,quit,0)",
+                "(login,0,jar,apple,login,0)",
+                "(login,0,jar,orange,login,0)",
+                "(login,1,box,apple,login,1)",
+                "(login,1,box,orange,login,1)",
+                "(login,1,box,strawberry,login,1)"};
         
         Iterator<Tuple> iter = myPig.openIterator("joined_sets");
-        int count = 0;
-        while (iter.hasNext()) {
-            assertEquals(expectedResults.get(count++).toString(), iter.next().toString());
-        }
-        assertEquals(expectedResults.size(), count);
+        Util.checkQueryOutputsAfterSortRecursive(iter, expected, org.apache.pig.newplan.logical.Util.translateSchema(myPig.dumpSchema("joined_sets")));
     }
  
     @Test

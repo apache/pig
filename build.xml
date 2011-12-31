@@ -82,13 +82,14 @@
     <property name="test.build.dir" value="${build.dir}/test" />
     <property name="test.build.classes" value="${test.build.dir}/classes" />
     <property name="test.log.dir" value="${test.build.dir}/logs" />
-    <property name="test.timeout" value="2700000" />
+    <property name="test.timeout" value="3600000" />
     <property name="test.junit.output.format" value="plain" />
     <property name="test.commit.file" value="${test.src.dir}/commit-tests"/>
     <property name="test.unit.file" value="${test.src.dir}/unit-tests"/>
     <property name="test.smoke.file" value="${test.src.dir}/smoke-tests"/>
     <property name="test.all.file" value="${test.src.dir}/all-tests"/>
     <property name="test.exclude.file" value="${test.src.dir}/excluded-tests"/>
+    <property name="test.exclude.file.23" value="${test.src.dir}/excluded-tests-23"/>
     <property name="pigunit.jarfile" value="pigunit.jar" />
     <property name="smoke.tests.jarfile" value="${build.dir}/${final.name}-smoketests.jar" />
     <property name="test.pigunit.src.dir" value="${test.src.dir}/org/apache/pig/test/pigunit" />
@@ -157,10 +158,10 @@
            input="${hadoop-core.version}"
            regexp="\d+\.(\d+)\.\d+"
            select="\1" /-->
-    <property name="hadoopversion" value="20" />
+    <property name="hadoopversion" value="23" />
 
     <condition property="isHadoop23">
-        <equals arg1="hadoopversion" arg2="23"/>
+        <equals arg1="${hadoopversion}" arg2="23"/>
     </condition>
 
     <property name="src.shims.dir" value="${basedir}/shims/src/hadoop${hadoopversion}" />
@@ -415,6 +416,10 @@
         </antcall>
     	
     	<copy file="${basedir}/test/hbase-site.xml" tofile="${test.build.classes}/hbase-site.xml"/>
+   
+        <ivy:cachepath pathid="mr-apps-test.classpath" />
+        <property name="mr-apps-classpath" refid="mr-apps-test.classpath" />
+        <echo file="${test.build.classes}/mrapp-generated-classpath" message="${mr-apps-classpath}" />
     </target>
 
     <!-- This target is for default compilation -->
@@ -530,7 +535,7 @@
         </copy>
         <move file="${output.jarfile}" tofile="${output.stage.jarfile}"/>
         <sleep seconds="1"/>
-        <jar jarfile="${output.jarfile}" if="isHadoop23">
+        <jar jarfile="${output.jarfile}">
             <manifest>
                 <attribute name="Main-Class" value="org.apache.pig.Main" />
                 <section name="org/apache/pig">
@@ -748,6 +753,7 @@
                     <patternset>
                        <includesfile name="@{test.file}"/>
                        <excludesfile name="${test.exclude.file}" if="test.exclude.file"/>
+                       <excludesfile name="${test.exclude.file.23}" if="isHadoop23" />
                     </patternset>
                     <exclude name="**/${exclude.testcase}.java" if="exclude.testcase" />
                 </fileset>

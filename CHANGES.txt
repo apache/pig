@@ -20,6 +20,10 @@ Pig Change Log
 
 Release 0.9.2 - Unreleased
 
+IMPROVEMENTS
+
+PIG-2347: Fix Pig Unit tests for hadoop 23 (daijy)
+
 BUG FIXES
 
 PIG-2291: PigStats.isSuccessful returns false if embedded pig script has dump (xutingz via daijy)

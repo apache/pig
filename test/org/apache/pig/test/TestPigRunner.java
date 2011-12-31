@@ -569,6 +569,9 @@ public class TestPigRunner {
 
     @Test
     public void classLoaderTest() throws Exception {
+        // Skip in hadoop 23 test, see PIG-2449
+        if (Util.isHadoop23())
+            return;
         PrintWriter w = new PrintWriter(new FileWriter(PIG_FILE));
         w.println("register test/org/apache/pig/test/data/pigtestloader.jar");
         w.println("A = load '" + INPUT_FILE + "' using org.apache.pig.test.PigTestLoader();");

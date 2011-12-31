@@ -65,6 +65,7 @@ import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.util.ConfigurationValidator;
 import org.apache.pig.impl.util.LogUtils;
+import org.apache.pig.impl.util.Utils;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStatsUtil;
 import org.apache.pig.tools.pigstats.ScriptState;
@@ -366,19 +367,8 @@ public class MapReduceLauncher extends Launcher{
             for (Job job : succJobs) {
                 List<POStore> sts = jcc.getStores(job);                
                 for (POStore st : sts) {
-                    // Currently (as of Feb 3 2010), hadoop's local mode does
-                    // not call cleanupJob on OutputCommitter (see
-                    // https://issues.apache.org/jira/browse/MAPREDUCE-1447)
-                    // So to workaround that bug, we are calling setStoreSchema
-                    // on StoreFunc's which implement StoreMetadata here
-                    /**********************************************************/
-                    // NOTE: THE FOLLOWING IF SHOULD BE REMOVED ONCE
-                    // MAPREDUCE-1447
-                    // IS FIXED - TestStore.testSetStoreSchema() should fail at
-                    // that time and removing this code should fix it.
-                    /**********************************************************/
                     if (pc.getExecType() == ExecType.LOCAL) {
-                        storeSchema(job, st);
+                        HadoopShims.storeSchemaForLocal(job, st);
                     }
 
                     if (!st.isTmpStore()) {                       
@@ -561,18 +551,6 @@ public class MapReduceLauncher extends Launcher{
             accum.visit();
         }
         return plan;
-    }
-    
-    /**
-     * @param job
-     * @param st
-     * @throws IOException 
-     */
-    private void storeSchema(Job job, POStore st) throws IOException {
-        JobContext jc = HadoopShims.createJobContext(job.getJobConf(), 
-                new org.apache.hadoop.mapreduce.JobID());
-        JobContext updatedJc = PigOutputCommitter.setUpContext(jc, st);
-        PigOutputCommitter.storeCleanup(st, updatedJc.getConfiguration());
     }
 
     private boolean shouldMarkOutputDir(Job job) {
