@@ -158,7 +158,7 @@
            input="${hadoop-core.version}"
            regexp="\d+\.(\d+)\.\d+"
            select="\1" /-->
-    <property name="hadoopversion" value="23" />
+    <property name="hadoopversion" value="20" />
 
     <condition property="isHadoop23">
         <equals arg1="${hadoopversion}" arg2="23"/>
