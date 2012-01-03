@@ -431,12 +431,6 @@ public class TestPigStorage  {
         ResourceSchema schema = pigStorage.getSchema(globtestdir, new Job(ConfigurationUtil.toConfiguration(pigContext.getProperties())));
         Assert.assertTrue(schema==null);
         
-        // .pig_schema.input in along with input file
-        putSchemaFile(globtestdir+"a/a0/.pig_schema.input", testSchema);
-        schema = pigStorage.getSchema(globtestdir+"a/a0/*", new Job(ConfigurationUtil.toConfiguration(pigContext.getProperties())));
-        Assert.assertTrue(ResourceSchema.equals(schema, testSchema));
-        new File(globtestdir+"a/a0/.pig_schema.input").delete();
-        
         // if .pig_schema is in the input directory
         putSchemaFile(globtestdir+"a/a0/.pig_schema", testSchema);
         schema = pigStorage.getSchema(globtestdir+"a/a0", new Job(ConfigurationUtil.toConfiguration(pigContext.getProperties())));
