@@ -224,7 +224,7 @@ cmd[String alias] returns[StreamingCommand command]
    {
        $command = builder.buildCommand( loc, builder.unquote( $EXECCOMMAND.text ), shipPaths,
            cachePaths, $input_clause.inputHandleSpecs, $output_clause.outputHandleSpecs,
-           $error_clause.dir == null? $alias : $error_clause.dir, $error_clause.limit );
+           $error_clause.dir, $error_clause.limit );
    }
 ;
 
