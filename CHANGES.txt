@@ -66,6 +66,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2432: Eclipse .classpath file is out of date (gates)
+
 PIG-2427: getSchemaFromString throws away the name of the tuple that is in a bag (jcoveney via dvryaboy)
 
 PIG-2425: Aggregate Warning does not work as expected on Embedding Pig in Java 0.9.1 (prkommireddi via thejas)
