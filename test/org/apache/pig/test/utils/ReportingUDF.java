@@ -15,40 +15,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
+
+package org.apache.pig.test.utils;
 
 import java.io.IOException;
 
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PigProgressable;
+import org.apache.pig.EvalFunc;
+import org.apache.pig.data.Tuple;
 
-public class ProgressableReporter implements PigProgressable {
-    TaskAttemptContext rep;
+public class ReportingUDF extends EvalFunc<Integer> {
 
-    public ProgressableReporter(){
+    @Override
+    public Integer exec(Tuple input) throws IOException {
         
-    }
-
-    public ProgressableReporter(TaskAttemptContext rep) {
-        super();
-        this.rep = rep;
-    }
-
-    public void progress() {
-        if(rep!=null)
-            rep.progress();
-    }
-
-    public void progress(String msg) {
         try {
-            rep.setStatus(msg);
-        }catch (IOException e) {
-            rep.progress();
+            Thread.sleep(7500);
+            getReporter().progress("Progressing");
+            Thread.sleep(7500);
+        } catch (InterruptedException e) {
         }
-    }
-
-    public void setRep(TaskAttemptContext rep) {
-        this.rep = rep;
+        
+        return 100;
     }
 
 }

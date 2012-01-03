@@ -158,6 +158,8 @@ PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
 
+PIG-2426: ProgressableReporter.progress(String msg) is an empty function (vivekp via daijy)
+
 PIG-2363: _logs for streaming commands bug in new parser (vivekp via daijy)
 
 PIG-2427: getSchemaFromString throws away the name of the tuple that is in a bag (jcoveney via dvryaboy)
