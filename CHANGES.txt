@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2443: [Piggybank] Add UDFs to check if a String is an Integer And if a String is Numeric (prkommireddi via daijy)
+
 PIG-2349: Ant build repeats ivy-buildJar several times (azaroth)
 
 PIG-2437: Use Ivy to get automaton.jar (azaroth)
