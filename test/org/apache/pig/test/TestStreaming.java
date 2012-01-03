@@ -785,6 +785,24 @@ public class TestStreaming {
     	Assert.fail( "Testcase is supposed to fail." );
     }
     
+    @Test
+    public void testStreamingStderrLogsShouldNotBePersistedByDefault() throws Exception {
+
+        Util.createInputFile(cluster, "mydummyinput.txt", new String[] { "dummy"});
+
+        PigServer pig = new PigServer(ExecType.MAPREDUCE,cluster.getProperties());
+        pig.setBatchOn();
+
+        pig.registerQuery("define mycmd `echo dummy` ;");
+        pig.registerQuery("A = load 'mydummyinput.txt' as (f1:chararray);");
+        pig.registerQuery("B = stream A through mycmd;");
+        pig.registerQuery("store B into 'output_dir_001' ;");
+        pig.executeBatch();
+
+        Assert.assertTrue(Util.exists(pig.getPigContext(), "output_dir_001"));
+        Assert.assertFalse(Util.exists(pig.getPigContext(), "output_dir_001/_logs/mycmd"));
+
+    }
     public static class PigStreamDump implements PigToStream {
 
         public static final String recordDelimiter = "\n";
