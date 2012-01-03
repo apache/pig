@@ -51,6 +51,7 @@ import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.map.util.LRUMap;
 
 /**
  * Reads and Writes metadata using JSON in metafiles next to the data.
@@ -71,6 +72,8 @@ public class JsonMetadata implements LoadMetadata, StoreMetadata {
     private byte fieldDel;
     private byte recordDel;
 
+    private transient LRUMap<ElementDescriptor, Boolean> lookupCache = new LRUMap<ElementDescriptor, Boolean>(100, 1000);
+
     public JsonMetadata() {
 
     }
@@ -81,21 +84,19 @@ public class JsonMetadata implements LoadMetadata, StoreMetadata {
      * finds the set of relevant metadata files on the storage system.
      * The algorithm for finding the metadata file is as follows:
      * <p>
-     * For each file represented by the path (either directly, or via a glob):
-     *   If parentPath/prefix.fileName exists, use that as the metadata file.
-     *   Else if parentPath/prefix exists, use that as the metadata file.
+     * For each object represented by the path (either directly, or via a glob):
+     *   If object is a directory, and path/metaname exists, use that as the metadata file.
+     *   Else if parentPath/metaname exists, use that as the metadata file.
      * <p>
      * Resolving conflicts, merging the metadata, etc, is not handled by this method and should be
      * taken care of by downstream code.
      * <p>
-     * This can go into a util package if metadata files are considered a general enough pattern
-     * <p>
      * @param path      Path, as passed in to a LoadFunc (may be a Hadoop glob)
-     * @param prefix    Metadata file designation, such as .pig_schema or .pig_stats
+     * @param metaname    Metadata file designation, such as .pig_schema or .pig_stats
      * @param conf      configuration object
      * @return Set of element descriptors for all metadata files associated with the files on the path.
      */
-    protected Set<ElementDescriptor> findMetaFile(String path, String prefix, Configuration conf)
+    protected Set<ElementDescriptor> findMetaFile(String path, String metaname, Configuration conf)
         throws IOException {
         Set<ElementDescriptor> metaFileSet = new HashSet<ElementDescriptor>();
         String[] locations = LoadFunc.getPathStrings(path);
@@ -109,8 +110,8 @@ public class JsonMetadata implements LoadMetadata, StoreMetadata {
             String fullPath = FileLocalizer.fullPath(loc, storage);
 
             if(storage.isContainer(fullPath)) {
-                ElementDescriptor metaFilePath = storage.asElement(fullPath, prefix);
-                if (metaFilePath.exists()) {
+                ElementDescriptor metaFilePath = storage.asElement(fullPath, metaname);
+                if (exists(metaFilePath)) {
                     metaFileSet.add(metaFilePath);
                 }
             } else {
@@ -124,28 +125,29 @@ public class JsonMetadata implements LoadMetadata, StoreMetadata {
                         Path parent = descriptorPath.getParent();
                         String parentName = parent.toString();
                         container = new HDirectory((HDataStorage)storage,parent);
-                        
-                        // try prefix.filename for the file
-                        ElementDescriptor metaFilePath = storage.asElement(parentName, prefix+"."+fileName);
-
-                        // if the file has a custom schema, use it
-                        if (metaFilePath.exists()) {
-                            metaFileSet.add(metaFilePath);
-                            continue;
-                        }
                     } else { // descriptor instanceof HDirectory
                         container = (HDirectory)descriptor;
                     }
 
                     // if no custom schema, try the parent directory
-                    ElementDescriptor metaFilePath = storage.asElement(container, prefix);
-                    if (metaFilePath.exists()) {
+                    ElementDescriptor metaFilePath = storage.asElement(container, metaname);
+                    if (exists(metaFilePath)) {
                         metaFileSet.add(metaFilePath);
                     }
                 }
             }
         }
         return metaFileSet;
+    }
+
+    private boolean exists(ElementDescriptor e) throws IOException {
+        if (lookupCache.containsKey(e)) {
+            return lookupCache.get(e);
+        } else {
+         boolean res = e.exists();
+         lookupCache.put(e, res);
+         return res;
+        }
     }
 
     //------------------------------------------------------------------------
