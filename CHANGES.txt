@@ -210,6 +210,9 @@ PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
 
+PIG-2430: An EvalFunc which overrides getArgToFuncMapping with FuncSpec
+ with constructor arguments is not properly instantiated with said arguments (jcoveney via thejas)
+
 PIG-2457: JsonLoaderStorage tests is broken for e2e (daijy)
 
 PIG-2426: ProgressableReporter.progress(String msg) is an empty function (vivekp via daijy)
