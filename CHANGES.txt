@@ -26,6 +26,8 @@ PIG-2347: Fix Pig Unit tests for hadoop 23 (daijy)
 
 BUG FIXES
 
+PIG-2418: rpm release package does not take PIG_CLASSPATH (daijy)
+
 PIG-2291: PigStats.isSuccessful returns false if embedded pig script has dump (xutingz via daijy)
 
 PIG-2427: getSchemaFromString throws away the name of the tuple that is in a bag (jcoveney via dvryaboy)
