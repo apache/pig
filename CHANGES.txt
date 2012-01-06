@@ -24,6 +24,8 @@ IMPROVEMENTS
 
 PIG-2347: Fix Pig Unit tests for hadoop 23 (daijy)
 
+PIG-2431: Upgrade bundled hadoop version to 20.205 (daijy)
+
 BUG FIXES
 
 PIG-2418: rpm release package does not take PIG_CLASSPATH (daijy)
