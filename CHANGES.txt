@@ -158,6 +158,8 @@ PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
 
+PIG-2444: Remove the Zebra *.xml documentation files from the TRUNK and Branch-10 (chandec via daijy)
+
 PIG-2430: An EvalFunc which overrides getArgToFuncMapping with FuncSpec 
  with constructor arguments is not properly instantiated with said arguments (jcoveney via thejas)
 
