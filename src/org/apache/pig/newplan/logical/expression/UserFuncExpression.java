@@ -39,6 +39,9 @@ public class UserFuncExpression extends LogicalExpression {
 
     private FuncSpec mFuncSpec;
     private EvalFunc<?> ef = null;
+
+    //this represents whether the function was instantiate via a DEFINE statement or not
+    private boolean viaDefine=false; 
     
     public UserFuncExpression(OperatorPlan plan, FuncSpec funcSpec) {
         super("UserFunc", plan);
@@ -53,6 +56,16 @@ public class UserFuncExpression extends LogicalExpression {
         for( LogicalExpression arg : args ) {
             plan.connect( this, arg );
         }
+    }
+
+    public UserFuncExpression(OperatorPlan plan, FuncSpec funcSpec, boolean viaDefine) {
+        this( plan, funcSpec);
+        this.viaDefine = viaDefine;
+    }
+
+    public UserFuncExpression(OperatorPlan plan, FuncSpec funcSpec, List<LogicalExpression> args, boolean viaDefine) {
+        this( plan, funcSpec, args );
+        this.viaDefine = viaDefine;
     }
 
     public FuncSpec getFuncSpec() {
@@ -196,7 +209,8 @@ public class UserFuncExpression extends LogicalExpression {
         try {
             copy = new UserFuncExpression(
                     lgExpPlan,
-                    this.getFuncSpec().clone() );
+                    this.getFuncSpec().clone(),
+                    viaDefine);
             
             // Deep copy the input expressions.
             List<Operator> inputs = plan.getSuccessors( this );
@@ -233,4 +247,7 @@ public class UserFuncExpression extends LogicalExpression {
         return msg.toString();
     }
 
+    public boolean isViaDefine() {
+        return viaDefine;
+    }
 }

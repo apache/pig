@@ -981,12 +981,17 @@ public class LogicalPlanBuilder {
         }
         
         FuncSpec funcSpec = pigContext.getFuncSpecFromAlias( funcName );
+        LogicalExpression le;
         if( funcSpec == null ) {
             funcName = func.getClass().getName();
             funcSpec = new FuncSpec( funcName );
+            //this point is only reached if there was no DEFINE statement for funcName
+            //in which case, we pass that information along
+            le = new UserFuncExpression( plan, funcSpec, args, false );
+        } else {
+            le = new UserFuncExpression( plan, funcSpec, args, true );
         }
         
-        LogicalExpression le = new UserFuncExpression( plan, funcSpec, args );
         le.setLocation( loc );
         return le;
     }
