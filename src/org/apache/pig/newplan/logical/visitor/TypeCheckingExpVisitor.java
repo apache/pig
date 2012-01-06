@@ -784,7 +784,9 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
                              "different input argument types, please use explicit casts.";
                 msgCollector.collect(msg, MessageType.Warning, PigWarning.USING_OVERLOADED_FUNCTION);
             }
+            if (func.isViaDefine()) {
             matchingSpec.setCtorArgs(func.getFuncSpec().getCtorArgs());
+            }
             func.setFuncSpec(matchingSpec);
             insertCastsForUDF(func, currentArgSchema, matchingSpec.getInputArgsSchema());
             
