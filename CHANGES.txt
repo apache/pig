@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2447: piggybank: get hive dependency from maven (thw via azaroth)
+
 PIG-2453: Fetching schema can be very slow for multi-thousand file LOADs (dvryaboy)
 
 PIG-2443: [Piggybank] Add UDFs to check if a String is an Integer And if a String is Numeric (prkommireddi via daijy)
