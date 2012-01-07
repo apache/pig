@@ -209,8 +209,6 @@ public class HiveColumnarLoader extends FileInputLoadFunc implements
     public static final String DATE_RANGE = HiveColumnarLoader.class.getName()
 	    + ".date-range";
 
-    private static final Text text = new Text();
-
     /**
      * Regex to filter out column names
      */
@@ -497,7 +495,7 @@ public class HiveColumnarLoader extends FileInputLoadFunc implements
 	    int columnIndex = columnIndexes[i];
 
 	    if (columnIndex < partitionColumnStartIndex) {
-		Object obj = struct.getField(columnIndex, text);
+		Object obj = struct.getField(columnIndex);
 		Object pigType = HiveRCSchemaUtil
 			.extractPigTypeFromHiveType(obj);
 
