@@ -66,6 +66,15 @@ public class HadoopShims {
         return taskAttemptID;
     }
     
+    static public TaskAttemptID createTaskAttemptID(String jtIdentifier, int jobId, boolean isMap,
+            int taskId, int id) {
+        if (isMap) {
+            return new TaskAttemptID(jtIdentifier, jobId, TaskType.MAP, taskId, id);
+        } else {
+            return new TaskAttemptID(jtIdentifier, jobId, TaskType.REDUCE, taskId, id);
+        }
+    }
+    
     static public void storeSchemaForLocal(Job job, POStore st) {
         // Doing nothing for hadoop 23
     }

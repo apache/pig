@@ -38,6 +38,14 @@
     <property name="src.dir" value="src/main/java/org/apache/pig/piggybank" />
    <property name="hsqldb.jar" value="../../../build/ivy/lib/Pig/hsqldb-1.8.0.10.jar"/>
 
+	<!-- JobHistoryLoader currently does not support 0.23 -->
+    <condition property="build.classes.excludes" value="**/HadoopJobHistoryLoader.java" else="">
+        <equals arg1="${hadoopversion}" arg2="23"/>
+    </condition>
+    <condition property="test.classes.excludes" value="**/TestHadoopJobHistoryLoader.java" else="">
+        <equals arg1="${hadoopversion}" arg2="23"/>
+    </condition>
+	
     <!-- jar properties -->
     <property name=".javadoc" value="${build.docs}/api" />
     
@@ -65,7 +73,6 @@
     
     <path id="pigudf.classpath">
         <pathelement location="${build.classes}"/>
-        <pathelement location="${pigjar}"/>
         <pathelement location="${pigjar-withouthadoop}"/>
         <pathelement location="${pigtest}"/>
         <pathelement location="${hive_execjar}"/>
@@ -76,6 +83,7 @@
     </path>
 
     <path id="test.classpath">
+        <pathelement location="${udfjar}"/>
         <pathelement location="${build.classes}"/>
         <pathelement location="${test.classes}"/>
         <pathelement location="${test.src.dir}"/>
@@ -96,7 +104,7 @@
     <target depends="init" name="compile" description="compile all of the class files">
         <echo> *** Compiling Pig UDFs ***</echo>
         <javac srcdir="${src.dir}" debug="${javac.debug}" debuglevel="${javac.level}" destdir="${build.classes}" source="${javac.version}"
-        target="${javac.version}" optimize="${javac.optimize}" deprecation="${javac.deprecation}">
+        target="${javac.version}" optimize="${javac.optimize}" deprecation="${javac.deprecation}" excludes="${build.classes.excludes}">
             <compilerarg line="${javac.args} ${javac.args.warnings}" />
             <classpath refid="pigudf.classpath"/>
         </javac>
@@ -109,7 +117,8 @@
     </target>
     <target depends="compile" name="compile-test">
         <echo> *** Compiling UDF tests ***</echo>
-        <javac srcdir="${test.src.dir}" debug="${javac.debug}" debuglevel="${javac.level}" destdir="${test.classes}" source="${javac.version}" target="${javac.version}">
+        <javac srcdir="${test.src.dir}" debug="${javac.debug}" debuglevel="${javac.level}" destdir="${test.classes}" source="${javac.version}"
+        	target="${javac.version}" excludes="${test.classes.excludes}">
             <compilerarg line="${javac.args} ${javac.args.warnings}"/>
             <classpath refid="pigudf.classpath"/>
         </javac>
@@ -125,6 +134,7 @@
             <batchtest fork="yes" todir="${test.logs}" unless="testcase">
                 <fileset dir="${test.src.dir}">
                     <include name="**/*Test*.java" />
+                    <exclude name="${test.classes.excludes}" />
                 </fileset>
             </batchtest>
             <batchtest fork="yes" todir="${test.logs}" if="testcase">

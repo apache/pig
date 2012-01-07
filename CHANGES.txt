@@ -365,6 +365,8 @@ PIG-2431: Upgrade bundled hadoop version to 20.205 (daijy)
 
 BUG FIXES
 
+PIG-2410: Piggybank does not compile in 23 (daijy)
+
 PIG-2418: rpm release package does not take PIG_CLASSPATH (daijy)
 
 PIG-2291: PigStats.isSuccessful returns false if embedded pig script has dump (xutingz via daijy)

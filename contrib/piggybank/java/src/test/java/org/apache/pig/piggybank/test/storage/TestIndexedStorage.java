@@ -18,6 +18,7 @@
 
 package org.apache.pig.piggybank.test.storage;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,46 +37,75 @@ import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
+import org.apache.pig.ExecType;
+import org.apache.pig.PigServer;
+import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.piggybank.storage.IndexedStorage;
-import org.junit.After;
-import org.junit.Before;
+import org.apache.pig.test.Util;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
  * Tests IndexedStorage.
  */
-public class TestIndexedStorage extends TestCase {
+public class TestIndexedStorage {
     public TestIndexedStorage () throws IOException {
     }
 
-    @Override
-    @Before
+    @BeforeClass
     /**
      * Creates indexed data sets.
      */ 
-    public void setUp() throws Exception {
-        int [][] keys1 = {{2,2},{3,3},{4,3},{5,5},{6,6},{10,10}};
-        List<Tuple> records = generateRecords(keys1);
-        writeOutputFile("out/1", records); 
-       
-        int [][] keys2 = {{3,2},{4,4},{5,5},{11,11},{13,13}};
-        records = generateRecords(keys2);
-        writeOutputFile("out/2", records); 
+    public static void setUpBeforeClass() throws Exception {
+        PigServer pigServer = new PigServer(ExecType.LOCAL);
+        
+        String[] input1 = new String[] {
+            "2\t2", "3\t3", "4\t3", "5\t5", "6\t6", "10\t10"
+        };
+        
+        createInputFile(pigServer, input1, 1);
+        
+        String[] input2 = new String[] {
+            "3\t2", "4\t4", "5\t5", "11\t11", "13\t13"
+        };
+        
+        createInputFile(pigServer, input2, 2);
 
-        int [][] keys3 = {{7,7},{8,8},{9,9}};
-        records = generateRecords(keys3);
-        writeOutputFile("out/3", records); 
+        String[] input3 = new String[] {
+            "7\t7", "8\t8", "9\t9"
+        };
+        
+        createInputFile(pigServer, input3, 3);
+    }
+    
+    private static void createInputFile(PigServer pigServer, String[] inputs, int id) throws IOException {
+        File input = File.createTempFile("tmp", "");
+        input.delete();
+        Util.createLocalInputFile(input.getAbsolutePath(), inputs);
+        
+        pigServer.registerQuery("A = load '" + input.getAbsolutePath() + "' as (a0:int, a1:int);");
+        
+        File output = File.createTempFile("tmp", "");
+        output.delete();
+        pigServer.store("A", output.getAbsolutePath(), "org.apache.pig.piggybank.storage.IndexedStorage('\t','0,1')");
+        
+        File outputFile = new File(output.getAbsoluteFile()+"/part-m-00000");
+        new File("out/"+id).mkdirs();
+        outputFile.renameTo(new File("out/"+id+"/part-m-00000"));
+        
+        File outputIndexFile = new File(output.getAbsoluteFile()+"/.part-m-00000.index");
+        outputIndexFile.renameTo(new File("out/"+id+"/.part-m-00000.index"));
     }
 
-    @Override
-    @After
+    @AfterClass
     /**
      * Deletes all data directories.
      */ 
-    public void tearDown() throws Exception {
+    public static void tearDownAfterClass() throws Exception {
         Configuration conf = new Configuration();
         LocalFileSystem fs = FileSystem.getLocal(conf);
         fs.delete(new Path("out"), true);
@@ -92,7 +122,7 @@ public class TestIndexedStorage extends TestCase {
         conf.set("fs.default.name", "file:///");
         LocalFileSystem fs = FileSystem.getLocal(conf);
         
-        TaskAttemptID taskId = new TaskAttemptID();
+        TaskAttemptID taskId = HadoopShims.createTaskAttemptID("jt", 1, true, 1, 1);
         conf.set("mapred.task.id", taskId.toString());
         
         conf.set("mapred.input.dir","out");
@@ -124,7 +154,7 @@ public class TestIndexedStorage extends TestCase {
         conf.set("fs.default.name", "file:///");
         LocalFileSystem fs = FileSystem.getLocal(conf);
         
-        TaskAttemptID taskId = new TaskAttemptID();
+        TaskAttemptID taskId =  HadoopShims.createTaskAttemptID("jt", 2, true, 2, 2);
         conf.set("mapred.task.id", taskId.toString());
         
         conf.set("mapred.input.dir","out");
@@ -213,51 +243,5 @@ public class TestIndexedStorage extends TestCase {
         storage.seekNear(seek);
         read = storage.getNext();
         Assert.assertTrue("GetNext did not return the correct value", (read == null));
-    }
-
-    /**
-     * Given a list of integers, construct a list of single element tuples.
-     */
-    private List<Tuple> generateRecords(int [][] keys) throws IOException {
-        TupleFactory tupleFactory = TupleFactory.getInstance();
-        ArrayList<Tuple> records = new ArrayList<Tuple>(keys.length);
-        for (int [] outer : keys) {
-            Tuple indexTuple = tupleFactory.newTuple(outer.length);
-            int idx = 0;
-            for (int key : outer) {
-                indexTuple.set(idx, new Integer(key));
-                idx++;
-            }
-            records.add(indexTuple);
-        }
-        return records;
-    }
-
-    /**
-     * Given a list of records (Tuples) and a output directory, writes out the 
-     * records using IndexStorage in the output directory.
-     */
-    private void writeOutputFile(String outputDir, List<Tuple> records) throws IOException, InterruptedException {
-        IndexedStorage storage = new IndexedStorage("\t","0,1");
-        Configuration conf = new Configuration();
-        conf.set("fs.default.name", "file:///");
-        conf.set("mapred.output.dir", outputDir);
-
-        TaskAttemptID taskId = new TaskAttemptID();
-        conf.set("mapred.task.id", taskId.toString());
-
-        OutputFormat out = storage.getOutputFormat();
-        TaskAttemptContext ctx = new TaskAttemptContext(conf, taskId); 
-
-        RecordWriter<WritableComparable, Tuple> writer = out.getRecordWriter(ctx);
-        for (Tuple t : records) {
-           writer.write(NullWritable.get(), t);            
-        }
-        writer.close(ctx);
-
-        LocalFileSystem fs = FileSystem.getLocal(conf);
-        String outputFileName = FileOutputFormat.getUniqueFile(ctx, "part", "");
-        fs.rename(new Path(outputDir + "/_temporary/_" + taskId.toString() + "/" + outputFileName), new Path(outputDir + "/" + outputFileName));
-        fs.rename(new Path(outputDir + "/_temporary/_" + taskId.toString() + "/." + outputFileName + ".index"), new Path(outputDir + "/." + outputFileName + ".index"));
     }
 }
