@@ -221,9 +221,9 @@
     <!-- ====================================================== -->
     <!-- setup the classpath -->
     <path id="classpath">
-	<path refid="compile.classpath"/>	
         <fileset dir="${lib.dir}" includes="*.jar"/>
         <fileset file="${ivy.lib.dir}/${zookeeper.jarfile}"/>
+        <fileset dir="${ivy.lib.dir}" includes="*.jar"/>
     </path>
 
     <!-- javadoc-classpath -->
@@ -235,9 +235,8 @@
     <path id="test.classpath">
         <pathelement location="${build.classes}"/>
         <pathelement location="${test.src.dir}"/>
-        <fileset dir="${ivy.lib.dir}" includes="hadoop*.jar"/>
+        <pathelement location="contrib/piggybank/java/piggybank.jar"/>
         <path refid="classpath"/>
-        <path refid="test-classpath"/>
     </path>
 
     <target name="init" depends="ivy-compile" >
@@ -1485,7 +1484,6 @@
        <ivy:resolve settingsRef="${ant.project.name}.ivy.settings" conf="test"/>
        <ivy:retrieve settingsRef="${ant.project.name}.ivy.settings"
                  pattern="${build.ivy.lib.dir}/${ivy.artifact.retrieve.pattern}" conf="test"/>
-       <ivy:cachepath pathid="test-classpath" conf="test" type="jar,test-jar"/>
      </target>
 
      <target name="ivy-javadoc" depends="ivy-init" description="Resolve, Retrieve Ivy-managed artifacts for javadoc configuration">

@@ -150,8 +150,8 @@ public class TestDBStorage extends TestCase {
 	public void testWriteToDB() throws IOException {
 		String insertQuery = "insert into ttt (id, name, ratio) values (?,?,?)";
 		pigServer.setBatchOn();
-		  String dbStore = "org.apache.pig.piggybank.storage.DBStorage('" + driver                                                                                                                       
-		    + "', '" + dbUrl + "','" + user+ "', '"+ password + "', '" + insertQuery + "');";
+		String dbStore = "org.apache.pig.piggybank.storage.DBStorage('" + driver                                                                                                                       
+	            + "', '" + url + "', '" + insertQuery + "');";
 		pigServer.registerQuery("A = LOAD '" + INPUT_FILE
 				+ "' as (id:int, fruit:chararray, ratio:double);");
 		pigServer.registerQuery("STORE A INTO 'dummy' USING " + dbStore);
