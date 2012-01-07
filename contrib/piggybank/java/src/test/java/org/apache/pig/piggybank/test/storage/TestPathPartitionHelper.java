@@ -17,7 +17,9 @@
 package org.apache.pig.piggybank.test.storage;
 
 import java.io.File;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import junit.framework.TestCase;
 
@@ -31,6 +33,7 @@ import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.piggybank.storage.partition.PathPartitionHelper;
 import org.apache.pig.test.Util;
 import org.junit.Test;
+import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 
 /**
  * 
@@ -63,7 +66,12 @@ public class TestPathPartitionHelper extends TestCase {
 	Configuration conf = job.getConfiguration();
 	FileInputFormat.setInputPaths(job, new Path(baseDir.getAbsolutePath()));
 
-	JobContext jobContext = new JobContext(conf, job.getJobID());
+	Iterator<Map.Entry<String, String>> iter = conf.iterator();
+	while (iter.hasNext()) {
+	    Map.Entry<String, String> entry = iter.next();
+	    System.out.println(entry.getKey() + ": " + entry.getValue());
+	}
+	JobContext jobContext = HadoopShims.createJobContext(conf, job.getJobID());
 
 	partitionHelper.setPartitionFilterExpression("year < '2010'",
 		PigStorage.class, "1");
@@ -89,7 +97,7 @@ public class TestPathPartitionHelper extends TestCase {
 	Configuration conf = job.getConfiguration();
 	FileInputFormat.setInputPaths(job, new Path(baseDir.getAbsolutePath()));
 
-	JobContext jobContext = new JobContext(conf, job.getJobID());
+	JobContext jobContext = HadoopShims.createJobContext(conf, job.getJobID());
 
 	partitionHelper.setPartitionFilterExpression(
 		"year<='2010' and month=='01' and day>='01'", PigStorage.class, "2");
@@ -116,7 +124,7 @@ public class TestPathPartitionHelper extends TestCase {
 	Configuration conf = job.getConfiguration();
 	FileInputFormat.setInputPaths(job, new Path(baseDir.getAbsolutePath()));
 
-	JobContext jobContext = new JobContext(conf, job.getJobID());
+	JobContext jobContext = HadoopShims.createJobContext(conf, job.getJobID());
 
 	partitionHelper.setPartitionKeys(baseDir.getAbsolutePath(), conf,
 		PigStorage.class, "3");
@@ -140,7 +148,7 @@ public class TestPathPartitionHelper extends TestCase {
     protected void setUp() throws Exception {
     File oldConf = new File(System.getProperty("user.home")+"/pigtest/conf/hadoop-site.xml");
     oldConf.delete();
-	conf = new Configuration(false);
+	conf = new Configuration();
 
 	baseDir = createDir(null,
 		"testPathPartitioner-testGetKeys-" + System.currentTimeMillis());

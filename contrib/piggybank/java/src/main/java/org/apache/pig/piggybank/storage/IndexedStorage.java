@@ -59,6 +59,7 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.util.StorageUtil;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.DataByteArray;
+import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 
 /**
  * <code>IndexedStorage</code> is a form of <code>PigStorage</code> that supports a
@@ -290,7 +291,7 @@ public class IndexedStorage extends PigStorage implements IndexableLoadFunc {
 			Iterator<FileSplit> it = fileSplits.iterator();
 			while (it.hasNext()) {
 				FileSplit fileSplit = it.next();
-				TaskAttemptContext context = new TaskAttemptContext(conf, id);
+				TaskAttemptContext context = HadoopShims.createTaskAttemptContext(conf, id);
 				IndexedStorageRecordReader r = (IndexedStorageRecordReader) inputFormat.createRecordReader(fileSplit, context);
 				r.initialize(fileSplit, context);
 				this.readers[idx] = r;
