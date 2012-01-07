@@ -216,9 +216,12 @@
       <exclude org="com.sun.jersey" module="jersey-json"/>
       <exclude org="asm" module="asm"/>
     </dependency>
-
+    <!-- for piggybank -->
     <dependency org="hsqldb" name="hsqldb" rev="${hsqldb.version}"
       conf="test->default" />
+    <dependency org="org.apache.hive" name="hive-exec" rev="${hive.version}"
+      conf="test->master" />
+
     <dependency org="org.vafer" name="jdeb" rev="${jdeb.version}"
       conf="compile->master">
     </dependency>
