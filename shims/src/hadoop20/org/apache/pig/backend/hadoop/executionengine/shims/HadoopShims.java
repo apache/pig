@@ -67,6 +67,11 @@ public class HadoopShims {
         return new TaskAttemptID();
     }
     
+    static public TaskAttemptID createTaskAttemptID(String jtIdentifier, int jobId, boolean isMap,
+            int taskId, int id) {
+        return new TaskAttemptID(jtIdentifier, jobId, isMap, taskId, id);
+    }
+
     static public void storeSchemaForLocal(Job job, POStore st) throws IOException {
         JobContext jc = HadoopShims.createJobContext(job.getJobConf(), 
                 new org.apache.hadoop.mapreduce.JobID());
