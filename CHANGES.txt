@@ -30,6 +30,8 @@ PIG-2410: Piggybank does not compile in 23 (daijy)
 
 BUG FIXES
 
+PIG-2458: Can't have spaces in parameter substitution (jcoveney via daijy)
+
 PIG-2418: rpm release package does not take PIG_CLASSPATH (daijy)
 
 PIG-2291: PigStats.isSuccessful returns false if embedded pig script has dump (xutingz via daijy)
