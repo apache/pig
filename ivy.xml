@@ -86,6 +86,10 @@
       conf="hadoop23->master"/>
     <dependency org="aopalliance" name="aopalliance" rev="${aopalliance.version}"
       conf="hadoop23->master"/>
+    <dependency org="org.mortbay.jetty" name="jsp-2.1" rev="${jasper.version}"
+      conf="hadoop23->master"/>
+    <dependency org="org.mortbay.jetty" name="jsp-api-2.1" rev="${jasper.version}"
+      conf="hadoop23->master"/>
     <dependency org="log4j" name="log4j" rev="${log4j.version}"
       conf="compile->master"/>
     <dependency org="com.sun.jersey" name="jersey-core" rev="${jersey-core.version}"
