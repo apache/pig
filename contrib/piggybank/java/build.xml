@@ -58,25 +58,10 @@
     <property name="test.src.dir" value="src/test/java" />
     <property name="junit.hadoop.conf" value="${user.home}/pigtest/conf/"/>
 
-    <!--  Hive RC Dependency properties -->
-    <property name="apache.dist.site" value="http://archive.apache.org/dist"/>
-    <property name="hive.groupId" value="hadoop"/>
-    <property name="hive.artifactId" value="hive"/>
-    <property name="hive.version" value="0.4.1"/>
-    <property name="hive_execjar" value="${basedir}/lib/hive-${hive.version}.jar"/>
-    
-    <condition property="hive.deps.notpresent">
-    	<not>
-    		<available file="${hive_execjar}" />
-    	</not>
-    </condition>
-    
     <path id="pigudf.classpath">
         <pathelement location="${build.classes}"/>
         <pathelement location="${pigjar-withouthadoop}"/>
         <pathelement location="${pigtest}"/>
-        <pathelement location="${hive_execjar}"/>
-    	  <pathelement location="${hsqldb.jar}"/>
         <fileset dir="../../../build/ivy/lib">
             <include name="**/*.jar"/>
         </fileset>
@@ -91,7 +76,7 @@
         <path refid="pigudf.classpath"/>
     </path>
 
-    <target name="init" depends="download-hive-deps">
+    <target name="init">
         <mkdir dir="${build.dir}"/>
         <mkdir dir="${build.classes}"/>
         <mkdir dir="${test.build.dir}"/>
@@ -155,14 +140,6 @@
         <fileset dir="${src.dir}/comparison" includes="**/*.java"/>
         <classpath refid="pigudf.classpath"/>
       </javadoc>
-    </target>
-    
-    <target name="download-hive-deps" if="hive.deps.notpresent" description="Downloads the hive dependencies from the archive.apache.org/dist site">
-    	<get verbose="true" src="${apache.dist.site}/${hive.groupId}/${hive.artifactId}/${hive.artifactId}-${hive.version}/${hive.artifactId}-${hive.version}-bin.tar.gz" dest="lib/${hive.artifactId}-${hive.version}-bin.tar.gz"/>
-    	<untar compression="gzip"  src="lib/${hive.artifactId}-${hive.version}-bin.tar.gz" dest="lib/"/>
-    	<copy file="lib/${hive.artifactId}-${hive.version}-bin/lib/hive_exec.jar" tofile="lib/hive-${hive.version}.jar"/>
-    	<delete dir="lib/${hive.artifactId}-${hive.version}-bin"/>
-		<delete file="lib/${hive.artifactId}-${hive.version}-bin.tar.gz"/>    	
     </target>
     
 </project>
