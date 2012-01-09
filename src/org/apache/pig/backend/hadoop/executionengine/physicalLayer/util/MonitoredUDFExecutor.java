@@ -24,7 +24,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -38,19 +37,20 @@ import org.apache.pig.tools.pigstats.PigStatusReporter;
 import com.google.common.base.Function;
 import com.google.common.util.concurrent.CheckedFuture;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
 /**
  * MonitoredUDF is used to watch execution of a UDF, and kill it if the UDF takes an
  * exceedingly long time. Null is returned if the UDF times out.
- * 
- * Optionally, UDFs can implement the provided interfaces to provide custom logic for 
+ *
+ * Optionally, UDFs can implement the provided interfaces to provide custom logic for
  * handling errors and default values.
- * 
+ *
  */
 public class MonitoredUDFExecutor implements Serializable {
 
-    private final transient ExecutorService exec;
+    private final transient ListeningExecutorService exec;
     private final transient TimeUnit timeUnit;
     private final transient long duration;
     private final transient Object defaultValue;
@@ -66,14 +66,14 @@ public class MonitoredUDFExecutor implements Serializable {
     @SuppressWarnings("unchecked")
     public MonitoredUDFExecutor(EvalFunc udf) {
         // is 10 enough? This is pretty arbitrary.
-        exec = MoreExecutors.getExitingExecutorService(new ScheduledThreadPoolExecutor(10));
+        exec = MoreExecutors.listeningDecorator(MoreExecutors.getExitingExecutorService(new ScheduledThreadPoolExecutor(1)));
         this.evalFunc = udf;
         MonitoredUDF anno = udf.getClass().getAnnotation(MonitoredUDF.class);
         timeUnit = anno.timeUnit();
         duration = anno.duration();
         errorCallback = anno.errorCallback();
 
-        // The exceptions really should not happen since our handlers are defined by the parent class which 
+        // The exceptions really should not happen since our handlers are defined by the parent class which
         // must be extended by all custom handlers.
         try {
             errorHandler = errorCallback.getMethod("handleError", EvalFunc.class, Exception.class);
@@ -137,7 +137,7 @@ public class MonitoredUDFExecutor implements Serializable {
         public static void handleError(EvalFunc evalFunc, Exception e) {
             evalFunc.getLogger().error(e);
             StatusReporter reporter = PigStatusReporter.getInstance();
-            if (reporter != null && 
+            if (reporter != null &&
                     reporter.getCounter(evalFunc.getClass().getName(), e.toString()) != null) {
                 reporter.getCounter(evalFunc.getClass().getName(), e.toString()).increment(1L);
             }
@@ -147,7 +147,7 @@ public class MonitoredUDFExecutor implements Serializable {
         public static void handleTimeout(EvalFunc evalFunc, Exception e) {
             evalFunc.getLogger().error(e);
             StatusReporter reporter = PigStatusReporter.getInstance();
-            if (reporter != null && 
+            if (reporter != null &&
                     reporter.getCounter(evalFunc.getClass().getName(), "MonitoredUDF Timeout") != null) {
                 reporter.getCounter(evalFunc.getClass().getName(), "MonitoredUDF Timeout").increment(1L);
             }
@@ -155,7 +155,7 @@ public class MonitoredUDFExecutor implements Serializable {
     }
 
     public Object monitorExec(final Tuple input) throws IOException {
-        CheckedFuture<Object, Exception> f = 
+        CheckedFuture<Object, Exception> f =
             Futures.makeChecked(
                     // the Future whose exceptions we want to catch
                     exec.submit(new Callable<Object>() {
@@ -163,20 +163,20 @@ public class MonitoredUDFExecutor implements Serializable {
                         public Object call() throws Exception {
                             return closure.apply(input);
                         }
-                    }), 
+                    }),
                     // How to map those exceptions; we simply rethrow them.
-                    // Theoretically we could do some handling of 
+                    // Theoretically we could do some handling of
                     // CancellationException, ExecutionException  and InterruptedException here
                     // and do something special for UDF IOExceptions as opposed to thread exceptions.
-                    new Function<Exception, Exception>() { 
+                    new Function<Exception, Exception>() {
                         @Override
-                        public Exception apply(Exception e) { 
-                            return e; 
-                        } 
+                        public Exception apply(Exception e) {
+                            return e;
+                        }
                     });
 
         Object result = defaultValue;
-        
+
         // The outer try "should never happen" (tm).
         try {
             try {
