@@ -151,6 +151,7 @@ as_clause
 
 field_def
     : ^( FIELD_DEF IDENTIFIER { sb.append($IDENTIFIER.text); }  ( {sb.append(":"); }  type)? )
+    | ^( FIELD_DEF type )
 ;
 
 field_def_list

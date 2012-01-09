@@ -241,4 +241,60 @@ public class TestErrorHandling {
         Assert.fail( "Testcase should fail" );
     }
 
+    @Test //pig-2267
+    public void testAutomaticallyGivenSchemaName1() throws IOException{
+        String query = "a = load 'x' as (int,val_0);";
+        String failMsg = "Duplicated alias in schema";
+        shouldFailWithMessage(query,failMsg);
+    }
+
+    @Test //pig-2267
+    public void testAutomaticallyGivenSchemaName2() throws IOException{
+        String query = "a = load 'x' as ((int,int),tuple_0:tuple(int,int));";
+        String failMsg = "Duplicated alias in schema";
+        shouldFailWithMessage(query,failMsg);
+    }
+
+    @Test //pig-2267
+    public void testAutomaticallyGivenSchemaName3() throws IOException{
+        String query = "a = load 'x' as (tuple_0:tuple(int,int),(int,int));";
+        String failMsg = "Duplicated alias in schema";
+        shouldFailWithMessage(query,failMsg);
+    }
+
+    @Test //pig-2267
+    public void testAutomaticallyGivenSchemaName4() throws IOException{
+        String query = "a = load 'x' as (bag_0:bag{},{});";
+        String failMsg = "Duplicated alias in schema";
+        shouldFailWithMessage(query,failMsg);
+    }
+
+    @Test //pig-2267
+    public void testAutomaticallyGivenSchemaName5() throws IOException{
+        String query = "a = load 'x' as ([],map_0:map[]);";
+        String failMsg = "Duplicated alias in schema";
+        shouldFailWithMessage(query,failMsg);
+    }
+
+    @Test //pig-2267
+    public void testAutomaticallyGivenSchemaName6() throws IOException{
+        String query = "a = load 'x' as (int,int,int,val_3,val_2);";
+        String failMsg = "Duplicated alias in schema";
+        shouldFailWithMessage(query,failMsg);
+    }
+
+    public void shouldFailWithMessage(String query, String... messages) throws IOException {
+        try {
+            pig.registerQuery(query);
+        } catch (Exception e) {
+            String msg = e.getMessage();
+            System.out.println(msg);
+            for (String message : messages) {
+                Assert.assertTrue(msg.contains(message));
+            }
+            return;
+        }
+        Assert.fail("Testcase should fail");
+    }
+
 }

@@ -35,6 +35,9 @@ options {
 @header {
 package org.apache.pig.parser;
 
+import org.apache.pig.data.DataType;
+import org.apache.pig.impl.util.NumValCarrier;
+
 import java.util.HashSet;
 import java.util.Set;
 
@@ -186,24 +189,38 @@ filename : QUOTEDSTRING
 as_clause: ^( AS field_def_list )
 ;
 
-field_def[Set<String> fieldNames] throws DuplicatedSchemaAliasException
+field_def[Set<String> fieldNames, NumValCarrier nvc] throws DuplicatedSchemaAliasException
  : ^( FIELD_DEF IDENTIFIER { validateSchemaAliasName( fieldNames, $IDENTIFIER, $IDENTIFIER.text ); } type? )
+ | ^( FIELD_DEF_WITHOUT_IDENTIFIER type { validateSchemaAliasName ( fieldNames, $FIELD_DEF_WITHOUT_IDENTIFIER, $nvc.makeNameFromDataType ( $type.typev ) ); } )
 ;
 
 field_def_list throws DuplicatedSchemaAliasException
 scope{
     Set<String> fieldNames;
+    NumValCarrier nvc;
 }
 @init {
     $field_def_list::fieldNames = new HashSet<String>();
+    $field_def_list::nvc = new NumValCarrier();
 }
- : ( field_def[$field_def_list::fieldNames] )+
+ : ( field_def[$field_def_list::fieldNames, $field_def_list::nvc] )+
 ;
 
-type : simple_type | tuple_type | bag_type | map_type
+type returns [byte typev]
+  : simple_type { $typev = $simple_type.typev; }
+  | tuple_type { $typev = DataType.TUPLE; }
+  | bag_type { $typev = DataType.BAG; }
+  | map_type { $typev = DataType.MAP; }
 ;
 
-simple_type : BOOLEAN | INT | LONG | FLOAT | DOUBLE | CHARARRAY | BYTEARRAY
+simple_type returns [byte typev]
+  : BOOLEAN { $typev = DataType.BOOLEAN; }
+  | INT { $typev = DataType.INTEGER; }
+  | LONG { $typev = DataType.LONG; }
+  | FLOAT { $typev = DataType.FLOAT; }
+  | DOUBLE { $typev = DataType.DOUBLE; }
+  | CHARARRAY { $typev = DataType.CHARARRAY; }
+  | BYTEARRAY { $typev = DataType.BYTEARRAY; }
 ;
 
 tuple_type : ^( TUPLE_TYPE field_def_list? )

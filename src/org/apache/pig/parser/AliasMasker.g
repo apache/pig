@@ -191,6 +191,7 @@ field_def
 		}
 	}
 }
+    | ^( FIELD_DEF_WITHOUT_IDENTIFIER type )
 ;
 
 field_def_list
