@@ -18,9 +18,6 @@
 package org.apache.pig.test;
 
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
 import java.io.File;
 import java.io.FileWriter;
 import java.util.Iterator;
@@ -52,14 +49,17 @@ public class TestUDFContext {
     
     @Test
     public void testUDFContext() throws Exception {
-        Util.createInputFile(cluster, "a.txt", new String[] { "dumb" });
-        Util.createInputFile(cluster, "b.txt", new String[] { "dumber" });
+        File a = Util.createLocalInputFile("a.txt", new String[] { "dumb" });
+        File b = Util.createLocalInputFile("b.txt", new String[] { "dumber" });
         FileLocalizer.deleteTempFiles();
-        PigServer pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-        String[] statement = { "A = LOAD 'a.txt' USING org.apache.pig.test.utils.UDFContextTestLoader('joe');",
-            "B = LOAD 'b.txt' USING org.apache.pig.test.utils.UDFContextTestLoader('jane');",
+        PigServer pig = new PigServer(ExecType.LOCAL, cluster.getProperties());
+        String[] statement = { "A = LOAD '" + a.getAbsolutePath() +
+                "' USING org.apache.pig.test.utils.UDFContextTestLoader('joe');",
+            "B = LOAD '" + b.getAbsolutePath() +
+            "' USING org.apache.pig.test.utils.UDFContextTestLoader('jane');",
             "C = union A, B;",
-            "D = FOREACH C GENERATE $0, $1, org.apache.pig.test.utils.UDFContextTestEvalFunc($0), org.apache.pig.test.utils.UDFContextTestEvalFunc2($0);" };
+            "D = FOREACH C GENERATE $0, $1, org.apache.pig.test.utils.UDFContextTestEvalFunc($0), " +
+            "org.apache.pig.test.utils.UDFContextTestEvalFunc2($0);" };
 
         File tmpFile = File.createTempFile("temp_jira_851", ".pig");
         FileWriter writer = new FileWriter(tmpFile);
@@ -89,7 +89,7 @@ public class TestUDFContext {
      */
     @Test
     public void testUDFContextReset() throws Exception {
-        PigServer pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer pig = new PigServer(ExecType.LOCAL, cluster.getProperties());
         pig.registerQuery(" l = load 'file' as (a :int, b : int, c : int);");
         pig.registerQuery(" f = foreach l generate a, b;");        
         pig.explain("f", System.out);

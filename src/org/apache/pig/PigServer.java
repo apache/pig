@@ -1619,6 +1619,8 @@ public class PigServer {
          */
         private void parseQuery() throws FrontendException {
             UDFContext.getUDFContext().reset();
+            UDFContext.getUDFContext().setClientSystemProps(pigContext.getProperties());
+
             String query = buildQuery();
 
             if( query.isEmpty() ) {

@@ -223,7 +223,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         }
 
         m_conf = HBaseConfiguration.create();
-        String defaultCaster = m_conf.get(CASTER_PROPERTY, STRING_CASTER);
+        String defaultCaster = UDFContext.getUDFContext().getClientSystemProps().getProperty(CASTER_PROPERTY, STRING_CASTER);
         String casterOption = configuredOptions_.getOptionValue("caster", defaultCaster);
         if (STRING_CASTER.equalsIgnoreCase(casterOption)) {
             caster_ = new Utf8StorageConverter();
@@ -240,6 +240,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
                 throw new IOException(e);
             }
         }
+        LOG.debug("Using caster " + caster_.getClass());
 
         caching_ = Integer.valueOf(configuredOptions_.getOptionValue("caching", "100"));
         limit_ = Long.valueOf(configuredOptions_.getOptionValue("limit", "-1"));
