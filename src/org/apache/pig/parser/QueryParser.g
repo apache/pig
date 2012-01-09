@@ -47,6 +47,7 @@ tokens {
     BAG_VAL;
     KEY_VAL_PAIR;
     FIELD_DEF;
+    FIELD_DEF_WITHOUT_IDENTIFIER;
     NESTED_CMD_ASSI;
     NESTED_CMD;
     NESTED_PROJ;
@@ -291,11 +292,13 @@ load_clause : LOAD^ filename ( USING! func_clause )? as_clause?
 filename : QUOTEDSTRING
 ;
 
-as_clause: AS^ ( field_def | ( LEFT_PAREN! field_def_list RIGHT_PAREN! ) )
+as_clause: AS^ ( ( LEFT_PAREN! field_def_list RIGHT_PAREN! ) | field_def )
 ;
 
 field_def : identifier ( COLON type )?
          -> ^( FIELD_DEF identifier type? )
+          | type
+         -> ^( FIELD_DEF_WITHOUT_IDENTIFIER type )
 ;
 
 field_def_list : field_def ( COMMA field_def )*
@@ -353,10 +356,10 @@ rel : alias
     | LEFT_PAREN! ( foreach_clause_complex | ( ( op_clause | foreach_clause_simple ) parallel_clause? ) ) RIGHT_PAREN!
 ;
 
-flatten_generated_item : flatten_clause ( AS! ( field_def | ( LEFT_PAREN! field_def_list RIGHT_PAREN! ) ) )?
-                       | col_range ( AS! ( field_def | ( LEFT_PAREN! field_def_list RIGHT_PAREN! ) ) )?
+flatten_generated_item : flatten_clause ( AS! ( ( LEFT_PAREN! field_def_list RIGHT_PAREN! ) | field_def ) )?
+                       | col_range ( AS! ( ( LEFT_PAREN! field_def_list RIGHT_PAREN! ) | field_def ) )?
                        | expr ( AS! field_def )?
-                       | STAR ( AS! ( field_def | ( LEFT_PAREN! field_def_list RIGHT_PAREN! ) ) )?
+                       | STAR ( AS! ( ( LEFT_PAREN! field_def_list RIGHT_PAREN! ) | field_def ) )?
 ;
 	
 flatten_clause : FLATTEN^ LEFT_PAREN! expr RIGHT_PAREN!

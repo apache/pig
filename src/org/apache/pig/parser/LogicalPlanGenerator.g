@@ -47,6 +47,7 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
 import org.apache.pig.impl.util.MultiMap;
+import org.apache.pig.impl.util.NumValCarrier;
 import org.apache.pig.impl.plan.PlanValidationException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.logical.expression.AddExpression;
@@ -313,21 +314,29 @@ as_clause returns[LogicalSchema logicalSchema]
    }
 ;
 
-field_def returns[LogicalFieldSchema fieldSchema]
+field_def[NumValCarrier nvc] returns[LogicalFieldSchema fieldSchema]
 @init {
     byte datatype = DataType.NULL;          
+    if ($nvc==null) {
+        $nvc=new NumValCarrier();
+    }
 }
  : ^( FIELD_DEF IDENTIFIER ( type { datatype = $type.datatype;} )? )
    {
            $fieldSchema = new LogicalFieldSchema( $IDENTIFIER.text, $type.logicalSchema, datatype );
+   }
+ | ^( FIELD_DEF_WITHOUT_IDENTIFIER ( type { datatype = $type.datatype; } ) )
+   {
+           $fieldSchema = new LogicalFieldSchema ( $nvc.makeNameFromDataType(datatype) , $type.logicalSchema, datatype );
    }
 ;
 
 field_def_list returns[LogicalSchema schema]
 @init {
     $schema = new LogicalSchema();
+    NumValCarrier nvc = new NumValCarrier();
 }
- : ( field_def { $schema.addField( $field_def.fieldSchema ); } )+
+ : ( field_def[nvc] { $schema.addField( $field_def.fieldSchema ); } )+
 ;
 
 

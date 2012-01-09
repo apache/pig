@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2267: Make the name of the columns in schema optional (jcoveney via daijy)
+
 PIG-2453: Fetching schema can be very slow for multi-thousand file LOADs (dvryaboy)
 
 PIG-2443: [Piggybank] Add UDFs to check if a String is an Integer And if a String is Numeric (prkommireddi via daijy)

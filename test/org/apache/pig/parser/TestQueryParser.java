@@ -331,4 +331,13 @@ public class TestQueryParser {
         return parser.getNumberOfSyntaxErrors();
     }
 
+    //PIG-2267
+    public void testThatColNameIsGeneratedProperly() throws IOException {
+        String query = "a = load '1.txt' as (int,(long,[]),{([])});"
+                     + "b = foreach a generate val_0, tuple_0, bag_0;"
+                     + "c = foreach b generate val_0, flatten(tuple_0), flatten(bag_0);"
+                     + "d = foreach c generate val_0, tuple_0::val_0, bag_0::map_0;";
+        PigServer pig = new PigServer(ExecType.LOCAL);
+        Util.registerMultiLineQuery(pig, query);
+    }
 }
