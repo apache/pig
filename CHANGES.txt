@@ -367,8 +367,6 @@ PIG-2447: piggybank: get hive dependency from maven (thw via azaroth)
 
 PIG-2347: Fix Pig Unit tests for hadoop 23 (daijy)
 
-PIG-2431: Upgrade bundled hadoop version to 20.205 (daijy)
-
 BUG FIXES
 
 PIG-2458: Can't have spaces in parameter substitution (jcoveney via daijy)

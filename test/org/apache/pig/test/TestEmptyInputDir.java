@@ -80,10 +80,7 @@ public class TestEmptyInputDir {
             assertTrue(stats.isSuccessful());
             // the sampler job has zero maps
             JobStats js = (JobStats)stats.getJobGraph().getSources().get(0);
-            
-            // This assert fails on 205 due to MAPREDUCE-3606
-            if (!Util.isHadoop205())
-                assertEquals(0, js.getNumberMaps()); 
+            assertEquals(0, js.getNumberMaps()); 
             
             FileSystem fs = cluster.getFileSystem();
             FileStatus status = fs.getFileStatus(new Path(OUTPUT_FILE));
@@ -113,10 +110,7 @@ public class TestEmptyInputDir {
             assertTrue(stats.isSuccessful());    
             // the indexer job has zero maps
             JobStats js = (JobStats)stats.getJobGraph().getSources().get(0);
-            
-            // This assert fails on 205 due to MAPREDUCE-3606
-            if (!Util.isHadoop205())
-                assertEquals(0, js.getNumberMaps()); 
+            assertEquals(0, js.getNumberMaps()); 
             
             FileSystem fs = cluster.getFileSystem();
             FileStatus status = fs.getFileStatus(new Path(OUTPUT_FILE));
@@ -147,10 +141,7 @@ public class TestEmptyInputDir {
             assertTrue(stats.isSuccessful());    
             // the indexer job has zero maps
             JobStats js = (JobStats)stats.getJobGraph().getSources().get(0);
-            
-            // This assert fails on 205 due to MAPREDUCE-3606
-            if (!Util.isHadoop205())
-                assertEquals(0, js.getNumberMaps()); 
+            assertEquals(0, js.getNumberMaps()); 
             
             FileSystem fs = cluster.getFileSystem();
             FileStatus status = fs.getFileStatus(new Path(OUTPUT_FILE));
