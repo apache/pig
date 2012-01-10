@@ -1110,11 +1110,4 @@ public class Util {
             return false;
         return true;
     }
-    
-    public static boolean isHadoop205() {
-        String version = org.apache.hadoop.util.VersionInfo.getVersion();
-        if (version.matches("\\b0\\.20\\.205\\..+"))
-            return true;
-        return false;
-    }
 }
