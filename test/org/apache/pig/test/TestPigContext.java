@@ -19,6 +19,8 @@
 package org.apache.pig.test;
 
 
+import static org.junit.Assert.*;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -47,8 +49,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
-public class TestPigContext extends TestCase {
+public class TestPigContext {
 
     private static final String TMP_DIR_PROP = "/tmp/hadoop-hadoop";
     private static final String FS_NAME = "file:///";
@@ -64,7 +65,6 @@ public class TestPigContext extends TestCase {
     }
     
     @Before
-    @Override
     public void setUp() throws Exception {
         pigContext = new PigContext(ExecType.LOCAL, getProperties());
         input = File.createTempFile("PigContextTest-", ".txt");
@@ -208,7 +208,6 @@ public class TestPigContext extends TestCase {
     }
 
     @After
-    @Override
     public void tearDown() throws Exception {
         input.delete();
     }

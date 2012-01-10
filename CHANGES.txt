@@ -32,6 +32,8 @@ PIG-2410: Piggybank does not compile in 23 (daijy)
 
 BUG FIXES
 
+PIG-2172: Fix test failure for ant 1.8.x (daijy)
+
 PIG-2120: UDFContext.getClientSystemProps() does not respect pig.properties (dvryaboy)
 
 PIG-2458: Can't have spaces in parameter substitution (jcoveney via daijy)
