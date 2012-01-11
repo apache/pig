@@ -308,8 +308,6 @@ sub getPigCmd($$$)
     # set the PIG_CLASSPATH environment variable
 	my $pcp .= $testCmd->{'jythonjar'} if (defined($testCmd->{'jythonjar'}));
     $pcp .= ":" . $testCmd->{'classpath'} if (defined($testCmd->{'classpath'}));
-    # Only add testconfigpath to PIG_CLASSPATH if HADOOP_HOME isn't defined
-    $pcp .= ":" . $testCmd->{'testconfigpath'} if ($testCmd->{'exectype'} ne "local"); #&& (! defined $ENV{'HADOOP_HOME'});
 
     # Set it in our current environment.  It will get inherited by the IPC::Run
     # command.
@@ -330,9 +328,34 @@ sub getPigCmd($$$)
 		$ENV{'PIG_OPTS'} = join(" ", @{$testCmd->{'java_params'}});
     }
 
+    if (defined($ENV{'HADOOP_HOME'})) {
+        print $log "HADOOP_HOME=" . $ENV{'HADOOP_HOME'} . "\n";
+    }
+    if (defined($ENV{'HADOOP_CONF_DIR'})) {
+        print $log "HADOOP_CONF_DIR=" . $ENV{'HADOOP_CONF_DIR'} . "\n";
+    }
+    if (defined($ENV{'HADOOP_PREFIX'})) {
+        print $log "HADOOP_PREFIX=" . $ENV{'HADOOP_PREFIX'} . "\n";
+    }
+    if (defined($ENV{'HADOOP_COMMON_HOME'})) {
+        print $log "HADOOP_COMMON_HOME=" . $ENV{'HADOOP_COMMON_HOME'} . "\n";
+    }
+    if (defined($ENV{'HADOOP_HDFS_HOME'})) {
+        print $log "HADOOP_HDFS_HOME=" . $ENV{'HADOOP_HDFS_HOME'} . "\n";
+    }
+    if (defined($ENV{'HADOOP_MAPRED_HOME'})) {
+        print $log "HADOOP_MAPRED_HOME=" . $ENV{'HADOOP_MAPRED_HOME'} . "\n";
+    }
+    if (defined($ENV{'YARN_HOME'})) {
+        print $log "YARN_HOME=" . $ENV{'YARN_HOME'} . "\n";
+    }
+    if (defined($ENV{'YARN_CONF_DIR'})) {
+        print $log "=" . $ENV{'YARN_CONF_DIR'} . "\n";
+    }
+    print $log "PIG_CLASSPATH=" . $ENV{'PIG_CLASSPATH'} . "\n";
+    print $log "PIG_OPTS=" .$ENV{'PIG_OPTS'} . "\n";
 
 	print $log "Returning Pig command " . join(" ", @pigCmd) . "\n";
-	print $log "With PIG_CLASSPATH set to " . $ENV{'PIG_CLASSPATH'} . "\n";
     return @pigCmd;
 }
 
@@ -378,8 +401,6 @@ sub runPig
 
 
     # Run the command
-    print $log "Setting PIG_CLASSPATH to $ENV{'PIG_CLASSPATH'}\n";
-    print $log "$0::$className::$subName INFO: Going to run pig command: @cmd\n";
 
     IPC::Run::run(\@cmd, \undef, $log, $log) or
         die "Failed running $pigfile\n";
@@ -491,17 +512,61 @@ sub generateBenchmark
     # If they specified an alternate Pig Latin script, use that on the current
     # version.  Otherwise use a previous version of Pig.
 	my %modifiedTestCmd = %{$testCmd};
+        my $orighadoophome;
+        my $orighadoopconf;
+        my $orighadoopprefix;
+        my $orighadoopcommonhome;
+        my $orighadoophdfshome;
+        my $orighadoopmapredhome;
+        my $orighadoopyarnhome;
+        my $orighadoopyarnconf;
+
 	if (defined $testCmd->{'verify_pig_script'}) {
 		$modifiedTestCmd{'pig'} = $testCmd->{'verify_pig_script'};
 	}
     else {
 		# Change so we're looking at the old version of Pig
 		$modifiedTestCmd{'pigpath'} = $testCmd->{'oldpigpath'};
+                if (defined($testCmd->{'oldconfigpath'})) {
+		    $modifiedTestCmd{'testconfigpath'} = $testCmd->{'oldconfigpath'};
+                }
+                # switch environment to old hadoop
+                $orighadoophome=$ENV{'HADOOP_HOME'};
+                $orighadoopconf=$ENV{'HADOOP_CONF_DIR'};
+                $orighadoopprefix = $ENV{'HADOOP_PREFIX'};
+                $orighadoopcommonhome = $ENV{'HADOOP_COMMON_HOME'};
+                $orighadoophdfshome = $ENV{'HADOOP_HDFS_HOME'};
+                $orighadoopmapredhome = $ENV{'HADOOP_MAPRED_HOME'};
+                $orighadoopyarnhome = $ENV{'YARN_HOME'};
+                $orighadoopyarnconf = $ENV{'YARN_CONF_DIR'};
+
+                $ENV{'HADOOP_HOME'} = $ENV{'OLD_HADOOP_HOME'};
+                $ENV{'HADOOP_CONF_DIR'} = $ENV{'PH_OLD_CLUSTER_CONF'};
+                $ENV{'HADOOP_PREFIX'} = $ENV{'OLD_HADOOP_PREFIX'};
+                $ENV{'HADOOP_COMMON_HOME'} = $ENV{'OLD_HADOOP_COMMON_HOME'};
+                $ENV{'HADOOP_HDFS_HOME'} = $ENV{'OLD_HADOOP_HDFS_HOME'};
+                $ENV{'HADOOP_MAPRED_HOME'} = $ENV{'OLD_HADOOP_MAPRED_HOME'};
+                $ENV{'YARN_HOME'} = $ENV{'OLD_YARN_HOME'};
+                $ENV{'YARN_CONF_DIR'} = $ENV{'OLD_YARN_CONF_DIR'};
 	}
 	# Modify the test number so we don't run over the actual test output
 	# and logs
 	$modifiedTestCmd{'num'} = $testCmd->{'num'} . "_benchmark";
-	return $self->runPig(\%modifiedTestCmd, $log, 1);
+
+	my $res = $self->runPig(\%modifiedTestCmd, $log, 1);
+
+        if (!defined $testCmd->{'verify_pig_script'}) {
+                $ENV{'HADOOP_HOME'} = $orighadoophome;
+                $ENV{'HADOOP_CONF_DIR'} = $orighadoopconf;
+                $ENV{'HADOOP_PREFIX'} = $orighadoopprefix;
+                $ENV{'HADOOP_COMMON_HOME'} = $orighadoopcommonhome;
+                $ENV{'HADOOP_HDFS_HOME'} = $orighadoophdfshome;
+                $ENV{'HADOOP_MAPRED_HOME'} = $orighadoopmapredhome;
+                $ENV{'YARN_HOME'} = $orighadoopyarnhome;
+                $ENV{'YARN_CONF_DIR'} = $orighadoopyarnconf;
+        }
+
+        return $res;
 }
 
 sub hasCommandLineVerifications
