@@ -371,6 +371,8 @@ PIG-2347: Fix Pig Unit tests for hadoop 23 (daijy)
 
 BUG FIXES
 
+PIG-2342: Pig tutorial documentation needs to update about building tutorial (daijy)
+
 PIG-2458: Can't have spaces in parameter substitution (jcoveney via daijy)
 
 PIG-2410: Piggybank does not compile in 23 (daijy)
