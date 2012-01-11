@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2467: Speed up TestCommit (dvryaboy0
+
 PIG-2460: Use guava 11 instead of r06 (dvryaboy)
 
 PIG-2267: Make the name of the columns in schema optional (jcoveney via daijy)
