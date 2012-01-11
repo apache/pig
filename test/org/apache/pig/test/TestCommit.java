@@ -17,8 +17,6 @@
  */
 package org.apache.pig.test;
 
-import static org.apache.pig.ExecType.MAPREDUCE;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -30,6 +28,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Random;
 import java.util.StringTokenizer;
 
@@ -54,43 +53,34 @@ import org.apache.pig.impl.io.PigFile;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.Pair;
-import org.apache.pig.test.utils.GenRandomData;
-import org.apache.pig.test.utils.Identity;
-
 import junit.framework.TestCase;
 
 @RunWith(JUnit4.class)
 public class TestCommit extends TestCase {
-    
-    static MiniCluster cluster = MiniCluster.buildCluster();
+
     private PigServer pigServer;
 
     TupleFactory mTf = TupleFactory.getInstance();
-    
+
     @Before
     @Override
     public void setUp() throws Exception{
-        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        pigServer = new PigServer(ExecType.LOCAL, new Properties());
     }
-    
-    @AfterClass
-    public static void oneTimeTearDown() throws Exception {
-        cluster.shutDown();
-    }
-    
+
     @Test
     public void testCheckin1() throws Exception{
-        Tuple expected1 = mTf.newTuple(2);             
-        Tuple expected2 = mTf.newTuple(2);             
+        Tuple expected1 = mTf.newTuple(2);
+        Tuple expected2 = mTf.newTuple(2);
         expected1.set(0, "independent");
         expected1.set(1, 50.0);
         expected2.set(0, "democrat");
         expected2.set(1, 125.5);
-        Util.createInputFile(cluster, "student", new String[]{"joe smith:18:3.5","amy brown:25:2.5","jim fox:20:4.0","leo fu:55:3.0"});
-        Util.createInputFile(cluster, "voter", new String[]{"amy brown,25,democrat,25.50","amy brown,25,democrat,100","jim fox,20,independent,50.0"});
-        
-        pigServer.registerQuery("a = load 'student' using " + PigStorage.class.getName() + "(':') as (name, age, gpa);");
-        pigServer.registerQuery("b = load 'voter' using " + PigStorage.class.getName() + "(',') as (name, age, registration, contributions);");
+        File studentFile = Util.createInputFile("tmp", "student", new String[]{"joe smith:18:3.5","amy brown:25:2.5","jim fox:20:4.0","leo fu:55:3.0"});
+        File voterFile = Util.createInputFile("tmp", "voter", new String[]{"amy brown,25,democrat,25.50","amy brown,25,democrat,100","jim fox,20,independent,50.0"});
+
+        pigServer.registerQuery("a = load '" + studentFile.getAbsolutePath() + "' using " + PigStorage.class.getName() + "(':') as (name, age, gpa);");
+        pigServer.registerQuery("b = load '" + voterFile.getAbsolutePath() + "' using " + PigStorage.class.getName() + "(',') as (name, age, registration, contributions);");
         pigServer.registerQuery("c = filter a by age < 50;");
         pigServer.registerQuery("d = filter b by age < 50;");
         pigServer.registerQuery("e = cogroup c by (name, age), d by (name, age);");
@@ -113,15 +103,13 @@ public class TestCommit extends TestCase {
             }
         }
         assertEquals(count, 2);
-        Util.deleteFile(cluster, "student");
-        Util.deleteFile(cluster, "voter");
-    } 
-    
+    }
+
     @Test
     public void testCheckin2() throws Exception{
-        Tuple expected1 = mTf.newTuple(4);             
-        Tuple expected2 = mTf.newTuple(4);             
-        Util.createInputFile(cluster, "testCheckin2-input.txt", new String[]{"joe smith:18:3.5","amy brown:18:2.5","jim fox:20:4.0","leo fu:55:3.0", "amy smith:20:3.0"});
+        Tuple expected1 = mTf.newTuple(4);
+        Tuple expected2 = mTf.newTuple(4);
+        File testFile = Util.createInputFile("tmp", "testCheckin2-input.txt", new String[]{"joe smith:18:3.5","amy brown:18:2.5","jim fox:20:4.0","leo fu:55:3.0", "amy smith:20:3.0"});
         expected1.set(0, 18);
         expected1.set(1, 1L);
         expected1.set(2, "joe smith");
@@ -131,10 +119,9 @@ public class TestCommit extends TestCase {
         expected2.set(2, "leo fu");
         expected2.set(3, 55);
 
-        pigServer.registerQuery("a = load 'testCheckin2-input.txt' using " + PigStorage.class.getName() + "(':') as (name: chararray, age: int, gpa: float);");
+        pigServer.registerQuery("a = load '" + testFile.getAbsolutePath() + "' using " + PigStorage.class.getName() + "(':') as (name: chararray, age: int, gpa: float);");
         pigServer.registerQuery("b = group a by age;");
-        //pigServer.registerQuery("c = foreach b { d = order a by $0;  generate group, COUNT(d), MAX (d), MIN(d.$0);}; ");
-        pigServer.registerQuery("c = foreach b { d = filter a by gpa > 2.5;  " + 
+        pigServer.registerQuery("c = foreach b { d = filter a by gpa > 2.5;  " +
                                 "e = order a by name; f = a.age; g = distinct f; " +
                                 " generate group, COUNT(d), MAX (e.name), MIN(g.$0);};");
         pigServer.registerQuery("h = order c by $1;");
@@ -151,14 +138,14 @@ public class TestCommit extends TestCase {
             if (t.get(0).equals(expected1.get(0)) && t.get(1).equals(expected1.get(1)) && t.get(2).equals(expected1.get(2)) && t.get(3).equals(expected1.get(3))) {
                 contain1 = true;
             }
-            
+
             if (t.get(0).equals(expected2.get(0)) && t.get(1).equals(expected2.get(1)) && t.get(2).equals(expected2.get(2)) && t.get(3).equals(expected2.get(3))) {
                 contain2 = true;
             }
-            
+
         }
+        pigServer.deleteFile("testCheckin2-output.txt");
         assertEquals(count, 2);
         assertTrue(contain1 && contain2);
-        Util.deleteFile(cluster, "testCheckin2-input.txt");
-    }    
+    }
 }
