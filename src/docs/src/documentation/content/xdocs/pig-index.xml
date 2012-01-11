@@ -102,6 +102,8 @@
 
 <p><a href="udf.html#aggregate-functions">aggregate functions</a></p>
 
+<p><a href="perf.html#hash-based-aggregation">aggregations (hash-based) in map task</a></p>
+
 <p><a href="udf.html#algebraic-interface">algebraic interface</a></p>
 
 <p>aliases (for fields, relations). <em>See</em> referencing.</p>
@@ -437,6 +439,10 @@
 <p id="j-index"><strong>J</strong> (<a href="#top">top</a>) ----------------------------------------------</p>
 
 
+<p> <a href="func.html#jsonloadstore">JsonLoader</a></p>
+
+<p> <a href="func.html#jsonloadstore">JsonStorage</a></p>
+
 <p> <a href="cont.html#embed-java">Java and embedded Pig</a></p>
 
 <p>Java objects
@@ -556,6 +562,9 @@
 <br></br>&nbsp;&nbsp;&nbsp; <a href="cont.html#expand-macros">expanding macros</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="cont.html#import-macros">importing macros</a>
 </p>
+
+
+<p><a href="perf.html#hash-based-aggregation">map task and hash-based aggregation</a></p>
 
 <p>MapReduce
 <br></br>&nbsp;&nbsp;&nbsp; <a href="test.html#mapreduce-job-ids">MapReduce job ids and Pig scripts</a>
@@ -851,6 +860,7 @@
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#schema-load">and LOAD, STREAM</a> 
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#onschema">ONSCHEMA clause</a> (UNION operator)
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#schemas">and Pig Latin</a>
+<br></br>&nbsp;&nbsp;&nbsp; <a href="func.html#pigstorage-options">and PigStorage</a> (function)
 <br></br>&nbsp;&nbsp;&nbsp; <a href="udf.html#schema-return-types">and return types</a> (JavaScript UDFs)
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#schema-simple">for simple data types</a> (int, long, float, double, chararray, bytearray)
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#unknown-schema">unknown (null) schemas</a> 

@@ -1233,6 +1233,64 @@ dump X;
 </section>
  
  
+     <!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->
+   <section id="jsonloadstore">
+   <title>JsonLoader, JsonStorage</title>
+   <p>Load or store JSON data.</p>
+   
+   <section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>JsonLoader( [‘schema’] ) </p>
+            </td>
+        </tr> 
+        <tr>
+            <td>
+               <p>JsonStorage( ) </p>
+            </td>
+        </tr> 
+   </table></section>
+   
+   <section>
+   <title>Terms</title>
+   <table>
+       <tr>
+            <td>
+               <p>schema</p>
+            </td>
+            <td>
+               <p>An optional Pig schema, in single quotes.</p>
+            </td>
+         </tr> 
+   </table></section>
+   
+   <section>
+   <title>Usage</title>
+   <p>Use JsonLoader to load JSON data. </p>
+   
+    <p>Use JsonStorage to store JSON data.</p>
+   
+   <p>Note that there is no concept of delimit in JsonLoader or JsonStorer. The data is encoded in standard JSON format. JsonLoader optionally takes a schema as the construct argument.</p>
+   </section>
+   
+   <section>
+   <title>Examples</title>
+   <p>In this example data is loaded with a schema. </p>
+<source>
+a = load 'a.json' using JsonLoader('a0:int,a1:{(a10:int,a11:chararray)},a2:(a20:double,a21:bytearray),a3:[chararray]');  
+</source>
+
+   <p>In this example data is loaded without a schema; it assumes there is a .pig_schema (produced by JsonStorage) in the input directory. </p>
+<source>
+a = load 'a.json' using JsonLoader(); 
+</source>
+   </section></section>
+    
+ 
+ 
+ 
 
    
      <!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->
@@ -1286,7 +1344,7 @@ STORE X INTO 'output' USING PigDump();
    <table>
        <tr>
             <td>
-               <p>PigStorage(field_delimiter) </p>
+               <p>PigStorage( [field_delimiter] , ['options'] ) </p>
             </td>
          </tr> 
    </table></section>
@@ -1299,9 +1357,21 @@ STORE X INTO 'output' USING PigDump();
                <p id="field-delimiter">field_delimiter</p>
             </td>
             <td>
-               <p>Parameter. </p>
                <p>The default field delimiter is tab ('\t'). </p>
                <p>You can specify other characters as field delimiters; however, be sure to encase the characters in single quotes.</p>
+            </td>
+         </tr> 
+                <tr>
+            <td>
+               <p id="pigstorage-options">'options'</p>
+            </td>
+            <td>
+               <p>A string that contains space-separated options (‘optionA  optionB  optionC’)</p>
+               <p>Currently supported options are:</p>
+               <ul>
+					<li>(‘schema’) - Stores the schema of the relation using a hidden JSON file.</li>
+					<li>(‘noschema’) - Ignores a stored schema during the load.</li>
+				</ul>
             </td>
          </tr> 
    </table></section>
@@ -1310,13 +1380,27 @@ STORE X INTO 'output' USING PigDump();
    <title>Usage</title>
    <p>PigStorage is the default function used by Pig to load/store the data. PigStorage supports structured text files (in human-readable UTF-8 format) in compressed or uncompressed form (see <a href="#Handling-Compression">Handling Compression</a>). All Pig <a href="basic.html#data-types">data types</a> (both simple and complex) can be read/written using this function. The input data to the load can be a file, a directory or a glob.</p>
 
+ <p><strong>Load/Store Statements</strong></p> 
   <p>Load statements – PigStorage expects data to be formatted using field delimiters, either the tab character  ('\t') or other specified character.</p>
 
    <p>Store statements – PigStorage outputs data using field deliminters, either the tab character  ('\t') or other specified character, and the line feed record delimiter ('\n').  </p>
 
+ <p><strong>Field/Record Delimiters</strong></p> 
    <p>Field Delimiters – For load and store statements the default field delimiter is the tab character ('\t'). You can use other characters as field delimiters, but separators such as ^A or Ctrl-A should be represented in Unicode (\u0001) using UTF-16 encoding (see Wikipedia <a href="http://en.wikipedia.org/wiki/ASCII">ASCII</a>, <a href="http://en.wikipedia.org/wiki/Unicode">Unicode</a>, and <a href="http://en.wikipedia.org/wiki/UTF-16">UTF-16</a>).</p>
    
    <p>Record Deliminters – For load statements Pig interprets the line feed ( '\n' ), carriage return ( '\r' or CTRL-M) and combined CR + LF ( '\r\n' ) characters as record delimiters (do not use these characters as field delimiters). For store statements Pig uses the line feed ('\n') character as the record delimiter.</p>
+   
+<p><strong>Schemas</strong></p>    
+   
+<p>If the schema option is specified, a hidden ".pig_schema" file is created in the output directory when storing data. It is used by PigStorage (with or without -schema) during loading to determine the field names and types of the data without the need for a user to explicitly provide the schema in an as clause, unless <code>noschema</code> is specified. No attempt to merge conflicting schemas is made during loading. The first schema encountered during a file system scan is used. </p>   
+
+<p>Additionally, if the schema option is specified, a ".pig_headers" file is created in the output directory. This file simply lists the delimited aliases. This is intended to make export to tools that can read files with header lines easier (just cat the header to your data). </p>
+
+<p>If the schema option is NOT specified, a schema will not be written when storing data.</p>
+
+<p>If the noschema option is NOT specified, and a schema is found, it gets loaded when loading data.</p>
+
+<p>Note that regardless of whether or not you store the schema, you always need to specify the correct delimiter to read your data. If you store reading delimiter "#" and then load using the default delimiter, your data will not be parsed correctly.</p>   
    
   <p><strong>Complex Data Types</strong></p>   
   <p>The formats for complex data types are shown here:</p>
