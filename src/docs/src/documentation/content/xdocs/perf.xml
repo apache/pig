@@ -140,7 +140,21 @@ D = foreach B generate group, MIN (A.gpa). MAX(A.gpa);
 <p>Depending on your use case, it might be more efficient (improve performance) to split your script into multiple scripts.</p>
  </section>
 </section> 
-  
+
+<!-- ================================================================== -->
+<!-- HASH-BASED AGGREGATION IN MAP TASK-->
+ <section id="hash-based-aggregation">
+<title>Hash-based Aggregation in Map Task</title>
+
+<p> To improve performance, hash-based aggregation will aggregate records in the map task before sending them to the combiner. This  optimization reduces the serializing/deserializing costs of the combiner by sending it fewer records.</p>
+
+<p><strong>Turning On Off</strong></p>
+<p>Hash-based aggregation has been shown to improve the speed of group-by operations by up to 50%. However, since this is a very new feature, it is currently turned OFF by default. To turn it ON, set the property pig.exec.mapPartAgg to true.</p>
+
+<p><strong>Configuring</strong></p>
+<p>If the group-by keys used for grouping don't result in a sufficient reduction in the number of records, the performance might be worse with this feature turned ON. To prevent this from happening, the feature turns itself off if the reduction in records sent to combiner is not more than a configurable threshold. This threshold can be set using the property pig.exec.mapPartAgg.minReduction. It is set to a default value of 10, which means that the number of records that get sent to the combiner should be reduced by a factor of 10 or more.</p>
+
+</section>
   
 <!-- ================================================================== -->
 <!-- MEMORY MANAGEMENT -->
