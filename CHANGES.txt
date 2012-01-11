@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2467: Speed up TestCommit (dvryaboy)
+
 PIG-2460: Use guava 11 instead of r06 (dvryaboy)
 
 PIG-2453: Fetching schema can be very slow for multi-thousand file LOADs (dvryaboy)
