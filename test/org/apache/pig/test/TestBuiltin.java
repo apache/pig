@@ -20,6 +20,7 @@ package org.apache.pig.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -29,10 +30,14 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 import java.util.StringTokenizer;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
@@ -92,30 +97,31 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class TestBuiltin {
-    
-    private String initString = "mapreduce";
-    //private String initString = "local";
-    static MiniCluster cluster = MiniCluster.buildCluster();
-    
+
+    private String initString = "local";
+
     PigServer pigServer;
+
+    // This should only be used when absolutely necessary -- eg, when using ReadToEndLoader.
+    private static MiniCluster cluster = MiniCluster.buildCluster();
 
     TupleFactory tupleFactory = TupleFactory.getInstance();
     BagFactory bagFactory = DefaultBagFactory.getInstance();
-    
+
     // some inputs
     private static Integer[] intInput = { 3, 1, 2, 4, 5, 7, null, 6, 8, 9, 10 };
     private static Long[] intAsLong = { 3L, 1L, 2L, 4L, 5L, 7L, null, 6L, 8L, 9L, 10L };
-    
+
     private static Long[] longInput = { 145769183483345L, null, 4345639849L, 3435543121L, 2L, 5L, 9L, 7L, 8L, 6L, 10L };
-    
+
     private static Float[] floatInput = { 10.4f, 2.35f, 3.099f, null, 4.08495f, 5.350f, 6.78f, 7.0f, 8.0f, 9.0f, 0.09f };
     private static Double[] floatAsDouble = { 10.4, 2.35, 3.099, null, 4.08495, 5.350, 6.78, 7.0, 8.0, 9.0, 0.09 };
-    
+
     private static Double[] doubleInput = { 5.5673910, 121.0, 3.0, 0.000000834593, 1.0, 6.0, 7.0, 8.0, 9.0, 10.0, null };
-    
+
     private static String[] ba = { "7", "2", "3", null, "4", "5", "6", "1", "8", "9", "10"};
     private static Double[] baAsDouble = { 7.0, 2.0, 3.0, null, 4.0, 5.0, 6.0, 1.0, 8.0, 9.0, 10.0};
-    
+
     private static String[] stringInput = {"unit", "test", null, "input", "string"};
     private static DataByteArray[] ByteArrayInput = Util.toDataByteArrays(ba);
 
@@ -124,25 +130,25 @@ public class TestBuiltin {
     // which have different implementations for different input types
     // This way rather than quickly exploding the test cases (one per input type
     // per aggregate), all cases for a given aggregate stage are handled
-    // in one test case in a loop 
-    
+    // in one test case in a loop
+
     // A mapping between name of Aggregate function to its corresponding EvalFunc object
     private static HashMap<String, EvalFunc<?>> evalFuncMap = new HashMap<String, EvalFunc<?>>();
-    
+
     // A mapping between a type name (example: "Integer") and a tuple containing
     // a bag of inputs of that type
     private static HashMap<String, Tuple> inputMap = new HashMap<String, Tuple>();
-    
+
     // A mapping between name of Aggregate function and the input type of its
-    // argument 
+    // argument
     private static HashMap<String, String> allowedInput = new HashMap<String, String>();
-    
+
     // A mapping between name of Aggregate function and the output value (based on the
     // inputs above)
     private static HashMap<String, Object> expectedMap = new HashMap<String, Object>();
-    
+
     String[] stages = {"Initial", "Intermediate", "Final"};
-    
+
     String[][] aggs = {
             {"SUM", "IntSum", "LongSum", "FloatSum", "DoubleSum"},
             {"AVG", "IntAvg", "LongAvg", "FloatAvg", "DoubleAvg"},
@@ -150,26 +156,26 @@ public class TestBuiltin {
             {"MAX", "IntMax", "LongMax", "FloatMax", "DoubleMax", "StringMax"},
             {"COUNT"},
             };
-    
+
     String[] inputTypeAsString = {"ByteArray", "Integer", "Long", "Float", "Double", "String" };
 
     @Before
     public void setUp() throws Exception {
-       
-        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+
+        pigServer = new PigServer(ExecType.LOCAL, new Properties());
         pigServer.setValidateEachStatement(true);
         // First set up data structs for "base" SUM, MIN and MAX and AVG.
-        // The allowed input and expected output data structs for 
-        // the "Intermediate" and "Final" stages can be based on the 
+        // The allowed input and expected output data structs for
+        // the "Intermediate" and "Final" stages can be based on the
         // "base" case - the allowed inputs for Initial stage can be based
         // on the "base" case.  In the test cases, the
         // output of Initial is sent to Intermediate, so we don't
         // explicitly test the output of Initial and hence do not
         // need to set up expectedMap.
-        
+
         // first set up EvalFuncMap and expectedMap
         setupEvalFuncMap();
-        
+
         expectedMap.put("SUM", new Double(55));
         expectedMap.put("DoubleSum", new Double(170.567391834593));
         expectedMap.put("IntSum", new Long(55));
@@ -181,21 +187,21 @@ public class TestBuiltin {
         expectedMap.put("LongAvg", new Double(14577696466636.2));
         expectedMap.put("IntAvg", new Double(5.5));
         expectedMap.put("FloatAvg", new Double(5.615394958853722));
-        
+
         expectedMap.put("MIN", new Double(1));
         expectedMap.put("IntMin", new Integer(1));
         expectedMap.put("LongMin", new Long(2));
         expectedMap.put("FloatMin", new Float(0.09f));
         expectedMap.put("DoubleMin", new Double(0.000000834593));
         expectedMap.put("StringMin", "input");
-        
+
         expectedMap.put("MAX", new Double(10));
         expectedMap.put("IntMax", new Integer(10));
         expectedMap.put("LongMax", new Long(145769183483345L));
         expectedMap.put("FloatMax", new Float(10.4f));
         expectedMap.put("DoubleMax", new Double(121.0));
         expectedMap.put("StringMax", "unit");
-        
+
         expectedMap.put("COUNT", new Long(10));
 
         // set up allowedInput
@@ -205,13 +211,13 @@ public class TestBuiltin {
                 allowedInput.put(agg, inputTypeAsString[i++]);
             }
         }
-        
+
         // The idea here is that we can reuse the same input
         // and expected output of the algebraic functions
-        // for their Intermediate and Final Stages. For the 
+        // for their Intermediate and Final Stages. For the
         // Initial stage we can reuse the input of the algebraic
         // function.
-        
+
         for (String[] aggGroups : aggs) {
             for(String agg: aggGroups) {
                 for (String stage : stages) {
@@ -223,7 +229,7 @@ public class TestBuiltin {
                         // need to set up expectedMap.
                         allowedInput.put(agg + stage, allowedInput.get(agg));
                     } else {
-                        // For IntSumIntermediate and IntSumFinal and 
+                        // For IntSumIntermediate and IntSumFinal and
                         // FloatSumIntermediate and FloatSumFinal, the input is expected
                         // be of types Long and Double respectively (Initial version
                         // of these functions is supposed to convert the Int to Long
@@ -234,7 +240,7 @@ public class TestBuiltin {
                             allowedInput.put(agg + stage, "IntegerAsLong");
                         } else if ((agg).equals("FloatSum") || agg.equals("FloatAvg")) {
                             allowedInput.put(agg + stage, "FloatAsDouble");
-                        }else if ((agg).equals("MIN") || agg.equals("MAX") ||  
+                        }else if ((agg).equals("MIN") || agg.equals("MAX") ||
                                 (agg.equals("SUM")) || agg.equals("AVG")) {
                             // For MIN and MAX the Intermediate and Final functions
                             // expect input to be Doubles (Initial is supposed to
@@ -245,7 +251,7 @@ public class TestBuiltin {
                             // for "Intermediate" and "Final" stages should match the input
                             // and expected output for the aggregate function itself
                             allowedInput.put(agg + stage, allowedInput.get(agg));
-                            
+
                         }
                         // For Average, we set up expectedMap only for the "Final" stage
                         // For other aggs, set up expected Map for both "Intermediate"
@@ -257,15 +263,15 @@ public class TestBuiltin {
                 }
             }
         }
-        
-        // For Avg, the expected output (for the sum part) for Intermediate are the 
+
+        // For Avg, the expected output (for the sum part) for Intermediate are the
         // same as SUM - so handled a little differently accordingly
         expectedMap.put("AVGIntermediate", expectedMap.get("SUM"));
         expectedMap.put("DoubleAvgIntermediate", expectedMap.get("DoubleSum"));
         expectedMap.put("LongAvgIntermediate", expectedMap.get("LongSum"));
         expectedMap.put("IntAvgIntermediate", expectedMap.get("IntSum"));
         expectedMap.put("FloatAvgIntermediate", expectedMap.get("FloatSum"));
-        
+
         // set up input hash
         try{
             inputMap.put("Integer", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), intInput));
@@ -277,14 +283,19 @@ public class TestBuiltin {
             inputMap.put("ByteArray", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), ByteArrayInput));
             inputMap.put("ByteArrayAsDouble", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), baAsDouble));
             inputMap.put("String", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), stringInput));
-            
+
         }catch(ExecException e) {
             e.printStackTrace();
         }
     }
-      
+
+    @AfterClass
+    public static void shutDown() {
+      cluster.shutDown();
+    }
+
     /**
-     * 
+     *
      */
     private void setupEvalFuncMap() {
 
@@ -301,11 +312,6 @@ public class TestBuiltin {
         }
     }
 
-    @AfterClass
-    public static void oneTimeTearDown() throws Exception {
-        cluster.shutDown();
-    }
-    
     /**
      * Test the case where the combiner is not called - so initial is called
      * and then final is called
@@ -313,11 +319,11 @@ public class TestBuiltin {
      */
     @Test
     public void testAggNoCombine() throws Exception {
-        
+
         for (String[] aggGroup : aggs) {
             String[] aggFinalTypes = null; // will contains AVGFinal, DoubleAvgFinal etc
             String[] aggInitialTypes = null; // will contains AVGInitial, DoubleAvgInitial etc
-            
+
             for (String stage: stages) {
                 String[] aggTypesArray = null;
                 if(stage.equals("Initial")) {
@@ -337,11 +343,11 @@ public class TestBuiltin {
             for(int k = 0; k < aggFinalTypes.length; k++) {
                 EvalFunc<?> avgInitial = evalFuncMap.get(aggInitialTypes[k]);
                 Tuple tup = inputMap.get(getInputType(aggInitialTypes[k]));
-                
+
                 // To test this case, first AVGInitial is called for each input
                 // value and output of it is put into a bag. The bag containing
                 // all AVGInitial output is provided as input to AVGFinal
-                
+
                 // The tuple we got above has a bag with input
                 // values. Lets call AVGInitial with each value:
                 DataBag bg = (DataBag) tup.get(0);
@@ -352,7 +358,7 @@ public class TestBuiltin {
                     Tuple initialInputTuple = tupleFactory.newTuple(initialInputBg);
                     finalInputBg.add((Tuple)avgInitial.exec(initialInputTuple));
                 }
-    
+
                 Tuple finalInputTuple = tupleFactory.newTuple(finalInputBg);
                 EvalFunc<?> aggFinal = evalFuncMap.get(aggFinalTypes[k]);
                 String msg = "[Testing " + aggGroup[k] + " on input type: " + getInputType(aggFinalTypes[k]);
@@ -367,10 +373,10 @@ public class TestBuiltin {
                 } else {
                     assertEquals(msg, getExpected(aggFinalTypes[k]), output);
                 }
-            }    
+            }
         }
     }
-   
+
     /**
      * Test the case where the combiner is called once - so initial is called
      * and then Intermediate and then final is called
@@ -378,7 +384,7 @@ public class TestBuiltin {
      */
     @Test
     public void testAggSingleCombine() throws Exception {
-        
+
         for (String[] aggGroup : aggs) {
             String[] aggFinalTypes = null; // will contains AVGFinal, DoubleAvgFinal etc
             String[] aggInitialTypes = null; // will contains AVGInitial, DoubleAvgInitial etc
@@ -391,7 +397,7 @@ public class TestBuiltin {
                 } else if (stage.equals("Intermediate")) {
                     aggIntermediateTypes = new String[aggGroup.length];
                     aggTypesArray = aggIntermediateTypes;
-                } else  {// final 
+                } else  {// final
                     aggFinalTypes = new String[aggGroup.length];
                     aggTypesArray = aggFinalTypes;
                 }
@@ -407,9 +413,9 @@ public class TestBuiltin {
                 // value. The output from <Agg>Initial for the first half of inputs is
                 // put into one bag and the next half into another. Then these two
                 // bags are provided as inputs to two separate calls of <Agg>Intermediate.
-                // The outputs from the two calls to <Agg>Intermediate are put into a bag 
+                // The outputs from the two calls to <Agg>Intermediate are put into a bag
                 // and sent as input to <Agg>Final
-                
+
                 // The tuple we got above has a bag with input
                 // values. Lets call <Agg>Initial with each value:
                 DataBag bg = (DataBag) tup.get(0);
@@ -434,7 +440,7 @@ public class TestBuiltin {
                 finalInputBg.add((Tuple)avgIntermediate.exec(intermediateInputTuple));
                 intermediateInputTuple = tupleFactory.newTuple(intermediateInputBg2);
                 finalInputBg.add((Tuple)avgIntermediate.exec(intermediateInputTuple));
-                
+
                 Tuple finalInputTuple = tupleFactory.newTuple(finalInputBg);
                 EvalFunc<?> aggFinal = evalFuncMap.get(aggFinalTypes[k]);
                 String msg = "[Testing " + aggGroup[k] + " on input type: " + getInputType(aggFinalTypes[k]);
@@ -449,12 +455,12 @@ public class TestBuiltin {
                 } else {
                     assertEquals(msg, getExpected(aggFinalTypes[k]), output);
                 }
-            }    
+            }
         }
-    
+
     }
-         
-    
+
+
     /**
      * Test the case where the combiner is called more than once - so initial is called
      * and then Intermediate called couple of times and then final is called
@@ -462,7 +468,7 @@ public class TestBuiltin {
      */
     @Test
     public void testAggMultipleCombine() throws Exception {
-        
+
         for (String[] aggGroup : aggs) {
             String[] aggFinalTypes = null; // will contains AVGFinal, DoubleAvgFinal etc
             String[] aggInitialTypes = null; // will contains AVGInitial, DoubleAvgInitial etc
@@ -475,7 +481,7 @@ public class TestBuiltin {
                 } else if (stage.equals("Intermediate")) {
                     aggIntermediateTypes = new String[aggGroup.length];
                     aggTypesArray = aggIntermediateTypes;
-                } else  {// final 
+                } else  {// final
                     aggFinalTypes = new String[aggGroup.length];
                     aggTypesArray = aggFinalTypes;
                 }
@@ -488,16 +494,16 @@ public class TestBuiltin {
                 EvalFunc<?> aggInitial = evalFuncMap.get(aggInitialTypes[k]);
                 Tuple tup = inputMap.get(getInputType(aggInitialTypes[k]));
                 // To test this case, first <Agg>Initial is called for each input
-                // value. The output from <Agg>Initial for quarter of values from 
+                // value. The output from <Agg>Initial for quarter of values from
                 // the inputs is put into one bag. Then 4 calls are made to Intermediate
                 // with each bag going to one call. This simulates the call in the map-combine
                 // boundary. The outputs from the first two calls to Intermediate above are
                 // put into a bag and the output from the next two calls put into another bag.
                 // These two bags are provided as inputs to two separate calls of <Agg>Intermediate.
                 // This simulates the call in the combine-reduce boundary.
-                // The outputs from the two calls to <Agg>Intermediate are put into a bag 
+                // The outputs from the two calls to <Agg>Intermediate are put into a bag
                 // and sent as input to <Agg>Final
-                
+
                 // The tuple we got above has a bag with input
                 // values. Lets call <Agg>Initial with each value:
                 DataBag bg = (DataBag) tup.get(0);
@@ -527,7 +533,7 @@ public class TestBuiltin {
                 EvalFunc<?> aggIntermediate = evalFuncMap.get(aggIntermediateTypes[k]);
                 DataBag[] reduceIntermediateInputBgs = new DataBag[2];
                 for (int i = 0; i < reduceIntermediateInputBgs.length; i++) {
-                    reduceIntermediateInputBgs[i] = bagFactory.newDefaultBag();                    
+                    reduceIntermediateInputBgs[i] = bagFactory.newDefaultBag();
                 }
 
                 // simulate call to combine after map
@@ -539,14 +545,14 @@ public class TestBuiltin {
                         reduceIntermediateInputBgs[1].add((Tuple)aggIntermediate.exec(intermediateInputTuple));
                     }
                 }
-               
+
                 DataBag finalInputBag = bagFactory.newDefaultBag();
                 // simulate call to combine before reduce
                 for(int i = 0; i < 2; i++) {
                     Tuple intermediateInputTuple = tupleFactory.newTuple(reduceIntermediateInputBgs[i]);
                     finalInputBag.add((Tuple)aggIntermediate.exec(intermediateInputTuple));
                 }
-                
+
                 // simulate call to final (in reduce)
                 Tuple finalInputTuple = tupleFactory.newTuple(finalInputBag);
                 EvalFunc<?> aggFinal = evalFuncMap.get(aggFinalTypes[k]);
@@ -562,20 +568,20 @@ public class TestBuiltin {
                 } else {
                     assertEquals(msg, getExpected(aggFinalTypes[k]), output);
                 }
-            }    
+            }
         }
-    
+
     }
-    
+
     /**
-     * Test the case where an empty bag is given as input to 
+     * Test the case where an empty bag is given as input to
      * the Initial function and the output is fed to Intermediate
      * function whose output is fed to the Final function
      * @throws Exception
      */
     @Test
     public void testAggEmptyBagWithCombiner() throws Exception {
-        
+
         for (String[] aggGroup : aggs) {
             String[] aggFinalTypes = null; // will contains AVGFinal, DoubleAvgFinal etc
             String[] aggInitialTypes = null; // will contains AVGInitial, DoubleAvgInitial etc
@@ -588,7 +594,7 @@ public class TestBuiltin {
                 } else if (stage.equals("Intermediate")) {
                     aggIntermediateTypes = new String[aggGroup.length];
                     aggTypesArray = aggIntermediateTypes;
-                } else  {// final 
+                } else  {// final
                     aggFinalTypes = new String[aggGroup.length];
                     aggTypesArray = aggFinalTypes;
                 }
@@ -604,9 +610,9 @@ public class TestBuiltin {
                 // The output from <Agg>Initial for the first half of inputs is
                 // put into one bag and the next half into another. Then these two
                 // bags are provided as inputs to two separate calls of <Agg>Intermediate.
-                // The outputs from the two calls to <Agg>Intermediate are put into a bag 
+                // The outputs from the two calls to <Agg>Intermediate are put into a bag
                 // and sent as input to <Agg>Final
-                
+
                 DataBag  intermediateInputBg1 = bagFactory.newDefaultBag();
                 DataBag  intermediateInputBg2 = bagFactory.newDefaultBag();
                 Tuple outputTuple = null;
@@ -615,7 +621,7 @@ public class TestBuiltin {
                     // argument to the "Initial" function
                     DataBag initialInputBg = bagFactory.newDefaultBag();
                     Tuple initialInputTuple = tupleFactory.newTuple(initialInputBg);
-                    
+
                     if(i < 5) {
                         outputTuple = (Tuple)aggInitial.exec(initialInputTuple);
                         // check that output is null for all aggs except COUNT
@@ -645,17 +651,17 @@ public class TestBuiltin {
                 // COUNT will give an output of 0 for empty bag input
                 checkZeroOrNull(aggIntermediate, outputTuple.get(0));
                 finalInputBg.add(outputTuple);
-                
+
                 Tuple finalInputTuple = tupleFactory.newTuple(finalInputBg);
-                
+
                 EvalFunc<?> aggFinal = evalFuncMap.get(aggFinalTypes[k]);
                 Object output = aggFinal.exec(finalInputTuple);
                 // check that output is null for all aggs except COUNT
                 // COUNT will give an output of 0 for empty bag input
                 checkZeroOrNull(aggFinal, output);
-            }    
+            }
         }
-    
+
     }
 
     /**
@@ -665,23 +671,23 @@ public class TestBuiltin {
      */
     @Test
     public void testAggEmptyBag() throws Exception {
-        
+
         for (String[] aggGroup : aggs) {
-            
+
             for(int k = 0; k < aggGroup.length; k++) {
                 EvalFunc<?> agg = evalFuncMap.get(aggGroup[k]);
 
                 // call agg with empty bag as input
                 DataBag inputBag = bagFactory.newDefaultBag();
                 Tuple inputTuple = tupleFactory.newTuple(inputBag);
-                
+
                 Object output = agg.exec(inputTuple);
                 // check that output is null for all aggs except COUNT
                 // COUNT will give an output of 0 for empty bag input
                 checkZeroOrNull(agg, output);
-            }    
+            }
         }
-    
+
     }
 
     private void checkZeroOrNull(EvalFunc<?> func, Object output) {
@@ -705,7 +711,7 @@ public class TestBuiltin {
             String msg = "[Testing " + avgTypes[k] + " on input type: " + getInputType(avgTypes[k]) + " ( (output) " +
                          output + " == " + getExpected(avgTypes[k]) + " (expected) )]";
             assertEquals(msg, (Double)output, (Double)getExpected(avgTypes[k]), 0.00001);
-            
+
         }
     }
 
@@ -727,18 +733,18 @@ public class TestBuiltin {
                 Tuple newTuple = tupleFactory.newTuple(2);
                 newTuple.set(0, t.get(0));
                 newTuple.set(1, new Long(1));
-                bg.add(newTuple);                
+                bg.add(newTuple);
             }
             Tuple intermediateInput = tupleFactory.newTuple();
             intermediateInput.append(bg);
-            
+
             Object output = avg.exec(intermediateInput);
-            
+
             if(inputType == "Long" || inputType == "Integer" || inputType == "IntegerAsLong") {
                 Long l = (Long)((Tuple)output).get(0);
                 String msg = "[Testing " + avgTypes[k] + " on input type: " + getInputType(avgTypes[k]) + " ( (output) " +
                               l + " == " + getExpected(avgTypes[k]) + " (expected) )]";
-                assertEquals(msg, (Long)getExpected(avgTypes[k]), l);
+                assertEquals(msg, getExpected(avgTypes[k]), l);
             } else {
                 Double f1 = (Double)((Tuple)output).get(0);
                 String msg = "[Testing " + avgTypes[k] + " on input type: " + getInputType(avgTypes[k]) + " ( (output) " +
@@ -746,11 +752,11 @@ public class TestBuiltin {
                 assertEquals(msg, (Double)getExpected(avgTypes[k]), f1, 0.00001);
             }
             Long f2 = (Long)((Tuple)output).get(1);
-            assertEquals("[Testing " + avgTypes[k] + " on input type: "+ 
+            assertEquals("[Testing " + avgTypes[k] + " on input type: "+
                 inputType+"]Expected count to be 11", 11, f2.longValue());
         }
     }
-    
+
     @Test
     public void testAVGFinal() throws Exception {
         String[] avgTypes = {"AVGFinal", "DoubleAvgFinal", "LongAvgFinal", "IntAvgFinal", "FloatAvgFinal"};
@@ -758,13 +764,13 @@ public class TestBuiltin {
         for(int k = 0; k < avgTypes.length; k++) {
             EvalFunc<?> avg = evalFuncMap.get(avgTypes[k]);
             Tuple tup = inputMap.get(getInputType(avgTypes[k]));
-            
+
             // To test AVGFinal, AVGIntermediate should first be called and
             // the output of AVGIntermediate should be supplied as input to
             // AVGFinal. To simulate this, we will call Intermediate twice
             // on the above tuple and collect the outputs and pass it to
             // Final.
-            
+
             // get the right "Intermediate" EvalFunc
             EvalFunc<?> avgIntermediate = evalFuncMap.get(avgIntermediateTypes[k]);
             // The tuple we got above has a bag with input
@@ -799,16 +805,16 @@ public class TestBuiltin {
             Tuple intermediateInput2 = tupleFactory.newTuple();
             intermediateInput2.append(bg2);
             Object output2 = avgIntermediate.exec(intermediateInput2);
-            
+
             DataBag bag = Util.createBag(new Tuple[]{(Tuple)output1, (Tuple)output2});
-            
+
             Tuple finalTuple = TupleFactory.getInstance().newTuple(1);
             finalTuple.set(0, bag);
             Object output = avg.exec(finalTuple);
             String msg = "[Testing " + avgTypes[k] + " on input type: " + getInputType(avgTypes[k]) + " ( (output) " +
             output + " == " + getExpected(avgTypes[k]) + " (expected) )]";
             assertEquals(msg, (Double)getExpected(avgTypes[k]), (Double)output, 0.00001);
-        }    
+        }
     }
 
     @Test
@@ -826,7 +832,7 @@ public class TestBuiltin {
     @Test
     public void testCOUNTIntermed() throws Exception {
         Integer input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
-        
+
         DataBag intermediateInputBag = bagFactory.newDefaultBag();
         // call initial and then Intermed
         for (Integer i : input) {
@@ -859,34 +865,34 @@ public class TestBuiltin {
 
     @Test
     public void testCount_ValidNumberOfArguments_WithoutInputSchema_One() throws Exception {
-         String inputFileName = createCountInputFile();
+         File inputFile = createCountInputFile();
          try {
-             pigServer.registerQuery("A = load '" + inputFileName + "';");
+             pigServer.registerQuery("A = load '" + inputFile.getAbsolutePath() + "';");
              pigServer.registerQuery("B = group A all;");
              pigServer.registerQuery("C = foreach B generate COUNT(A.$0);");
              assertValidCount();
          }catch(TypeCheckerException e) {
              Assert.fail("Query is in accordance with schema, still it failed to execute");
          }finally {
-             Util.deleteFile(cluster, inputFileName);
+             inputFile.delete();
          }
     }
 
     @Test
     public void testCount_ValidNumberOfArguments_WithoutInputSchema_Two() throws Exception {
-         String inputFileName = createCountInputFile();
+         File inputFile = createCountInputFile();
          try {
-             pigServer.registerQuery("A = load '" + inputFileName + "';");
+             pigServer.registerQuery("A = load '" + inputFile.getAbsolutePath() + "';");
              pigServer.registerQuery("B = group A all;");
              pigServer.registerQuery("C = foreach B generate COUNT(A);");
              assertValidCount();
          }catch(TypeCheckerException e) {
              Assert.fail("Query is in accordance with schema, still it failed to execute");
          }finally {
-             Util.deleteFile(cluster, inputFileName);
+             inputFile.delete();
          }
     }
-    
+
     @Test
     public void testCount_ValidNumberOfArguments_WithNullTuplesInInput_CaseOne() throws Exception {
         String inputFileName = "CountTest.txt";
@@ -896,30 +902,30 @@ public class TestBuiltin {
                 "a b c d\n",
                 "\n",
                 "r s t u"};
-        Util.createInputFile(cluster, inputFileName, inputData);
+        File inputFile = Util.createInputFile("tmp", inputFileName, inputData);
 
          try {
-             pigServer.registerQuery("A = load '" + inputFileName + "';");
+             pigServer.registerQuery("A = load '" + inputFile.getAbsolutePath() + "';");
              pigServer.registerQuery("B = group A all;");
              pigServer.registerQuery("C = foreach B generate COUNT(A);");
              assertValidCount();
          }catch(TypeCheckerException e) {
              Assert.fail("Query is in accordance with schema, still it failed to execute");
          }finally {
-             Util.deleteFile(cluster, inputFileName);
+             inputFile.delete();
          }
     }
-    
+
     @Test
     public void testCount_ValidNumberOfArguments_WithNullTuplesInInput_CaseTwo() throws Exception {
-        String inputFileName = "CountTest.txt";
         String[] inputData = new String[] {
                 "1 2 3 4\n",
                 "\n",
                 "a b c d\n",
                 "\n",
                 "r s t u"};
-        Util.createInputFile(cluster, inputFileName, inputData);
+        File file = Util.createInputFile("tmp", "CountTest.txt", inputData);
+        String inputFileName = file.getAbsolutePath();
 
          try {
              pigServer.registerQuery("A = load '" + inputFileName + "';");
@@ -928,46 +934,46 @@ public class TestBuiltin {
              assertValidCount();
          }catch(TypeCheckerException e) {
              Assert.fail("Query is in accordance with schema, still it failed to execute");
-         }finally {
-             Util.deleteFile(cluster, inputFileName);
+         } finally {
+           file.delete();
          }
     }
-    
-    
+
+
     @Test
     public void testCount_ValidNumberOfArguments_WithInputSchema_One() throws Exception {
-         String inputFileName = createCountInputFile();
+         File inputFile = createCountInputFile();
          try {
-             pigServer.registerQuery("A = load '" + inputFileName + "' as (data:chararray);");
+             pigServer.registerQuery("A = load '" + inputFile.getAbsolutePath() + "' as (data:chararray);");
              pigServer.registerQuery("B = group A all;");
              pigServer.registerQuery("C = foreach B generate COUNT(A.$0);");
              assertValidCount();
          }catch(TypeCheckerException e) {
              Assert.fail("Query is in accordance with schema, still it failed to execute");
-         }finally {
-             Util.deleteFile(cluster, inputFileName);
+         } finally {
+           inputFile.delete();
          }
     }
-    
+
     @Test
     public void testCount_ValidNumberOfArguments_WithInputSchema_Two() throws Exception {
-         String inputFileName = createCountInputFile();
+         File inputFile = createCountInputFile();
          try {
-             pigServer.registerQuery("A = load '" + inputFileName + "' as (data:chararray);");
+             pigServer.registerQuery("A = load '" + inputFile.getAbsolutePath() + "' as (data:chararray);");
              pigServer.registerQuery("B = group A all;");
              pigServer.registerQuery("C = foreach B generate COUNT(A);");
              assertValidCount();
          }catch(TypeCheckerException e) {
              Assert.fail("Query is in accordance with schema, still it failed to execute");
-         }finally {
-             Util.deleteFile(cluster, inputFileName);
+         } finally {
+           inputFile.delete();
          }
     }
 
     /**
      * Assert the result of COUNT for valid scenarios has only one tuple in output which has only one item which is set
      * to 3.
-     * 
+     *
      * @throws IOException
      * @throws ExecException
      */
@@ -984,70 +990,69 @@ public class TestBuiltin {
          }
          assertEquals("Testing the above loop ran only once.",1,i);
     }
-   
+
     @Test
     public void testCount_InvalidNumberOfArguments_WithoutInputSchema() throws Exception {
-         String inputFileName = createCountInputFile();
+         File inputFile = createCountInputFile();
          try {
-             pigServer.registerQuery("A = load '" + inputFileName + "';");
+             pigServer.registerQuery("A = load '" + inputFile.getAbsolutePath() + "';");
              pigServer.registerQuery("B = group A all;");
              pigServer.registerQuery("C = foreach B generate COUNT(A.$0, A.$0);");
              pigServer.openIterator("C");
              Assert.fail("COUNT is suppose to run with one argument of type BAG, however it ran with couple of arguments.");
          }catch(FrontendException e) {
              Assert.assertTrue( e.getCause() instanceof TypeCheckerException );
-         }finally {
-             Util.deleteFile(cluster, inputFileName);
+         } finally {
+           inputFile.delete();
          }
     }
 
     @Test
     public void testCount_InvalidNumberOfArguments_WithInputSchema() throws Exception {
-         String inputFileName = createCountInputFile();
+         File inputFile = createCountInputFile();
          try {
-             pigServer.registerQuery("A = load '" + inputFileName + "' as (data:chararray);");
+             pigServer.registerQuery("A = load '" + inputFile.getAbsolutePath() + "' as (data:chararray);");
              pigServer.registerQuery("B = group A all;");
              pigServer.registerQuery("C = foreach B generate COUNT(A.$0, A.$0);");
              pigServer.openIterator("C");
              Assert.fail("COUNT is suppose to run with one argument of type BAG, however it ran with couple of arguments.");
          }catch(FrontendException e) {
              Assert.assertTrue( e.getCause() instanceof TypeCheckerException );
-         }finally {
-             Util.deleteFile(cluster, inputFileName);
+         } finally {
+           inputFile.delete();
          }
     }
-    
+
     @Test
     public void testCount_InvalidArgumentType() throws Exception {
-         String inputFileName = createCountInputFile();
+         File inputFile = createCountInputFile();
          try {
-             pigServer.registerQuery("A = load '" + inputFileName + "' as (data:chararray);");
+             pigServer.registerQuery("A = load '" + inputFile.getAbsolutePath() + "' as (data:chararray);");
              pigServer.registerQuery("B = group A all;");
              pigServer.registerQuery("C = foreach B generate COUNT('data');");
              pigServer.openIterator("C");
              Assert.fail("COUNT is suppose to run with one argument of type BAG, however it ran with an argument of type chararray.");
          }catch(FrontendException e) {
              Assert.assertTrue( e.getCause() instanceof TypeCheckerException );
-         }finally {
-             Util.deleteFile(cluster, inputFileName);
+         } finally {
+           inputFile.delete();
          }
     }
 
     /**
      * Creates a input file that will be used to test COUNT builtin function.
-     * 
+     *
      * @return name of the input file.
      * @throws IOException
      *             Unable to create input file.
      */
-    protected String createCountInputFile() throws IOException {
+    protected File createCountInputFile() throws IOException {
         String inputFileName = "CountTest.txt";
          String[] inputData = new String[] {
                  "1 2 3 4\n",
                  "a b c d\n",
                  "r s t u"};
-         Util.createInputFile(cluster, inputFileName, inputData);
-        return inputFileName;
+        return Util.createInputFile("tmp", inputFileName, inputData);
     }
 
     @Test
@@ -1065,7 +1070,7 @@ public class TestBuiltin {
     @Test
     public void testCOUNT_STARIntermed() throws Exception {
         Integer input[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
-        
+
         DataBag intermediateInputBag = bagFactory.newDefaultBag();
         // call initial and then Intermed
         for (Integer i : input) {
@@ -1107,7 +1112,7 @@ public class TestBuiltin {
 
             String msg = "[Testing " + sumTypes[k] + " on input type: " + getInputType(sumTypes[k]) + " ( (output) " +
                           output + " == " + getExpected(sumTypes[k]) + " (expected) )]";
-            
+
             if(inputType == "Integer" || inputType == "Long") {
                 assertEquals(msg, (Long)output, (Long)getExpected(sumTypes[k]), 0.00001);
             } else {
@@ -1122,10 +1127,10 @@ public class TestBuiltin {
         for(int k = 0; k < sumTypes.length; k++) {
             EvalFunc<?> sum = evalFuncMap.get(sumTypes[k]);
             String inputType = getInputType(sumTypes[k]);
-            
+
             Tuple tup = inputMap.get(inputType);
             Object output = sum.exec(tup);
-            
+
             String msg = "[Testing " + sumTypes[k] + " on input type: " + getInputType(sumTypes[k]) + " ( (output) " +
                             ((Tuple)output).get(0) + " == " + getExpected(sumTypes[k]) + " (expected) )]";
             if(inputType.equals("Integer") || inputType.equals("Long") || inputType.equals("IntegerAsLong")) {
@@ -1144,7 +1149,7 @@ public class TestBuiltin {
             String inputType = getInputType(sumTypes[k]);
             Tuple tup = inputMap.get(inputType);
             Object output = sum.exec(tup);
-            
+
             String msg = "[Testing " + sumTypes[k] + " on input type: " + getInputType(sumTypes[k]) + " ( (output) " +
             output + " == " + getExpected(sumTypes[k]) + " (expected) )]";
 
@@ -1169,17 +1174,17 @@ public class TestBuiltin {
                            output + " == " + getExpected(minTypes[k]) + " (expected) )]";
 
             if(inputType == "ByteArray") {
-              assertEquals(msg, (Double)output, (Double)getExpected(minTypes[k]));
+              assertEquals(msg, output, getExpected(minTypes[k]));
             } else if(inputType == "Long") {
-                assertEquals(msg, (Long)output, (Long)getExpected(minTypes[k]));
+                assertEquals(msg, output, getExpected(minTypes[k]));
             } else if(inputType == "Integer") {
-                assertEquals(msg, (Integer)output, (Integer)getExpected(minTypes[k]));
+                assertEquals(msg, output, getExpected(minTypes[k]));
             } else if (inputType == "Double") {
-                assertEquals(msg, (Double)output, (Double)getExpected(minTypes[k]));
+                assertEquals(msg, output, getExpected(minTypes[k]));
             } else if (inputType == "Float") {
-                assertEquals(msg, (Float)output, (Float)getExpected(minTypes[k]));
+                assertEquals(msg, output, getExpected(minTypes[k]));
             } else if (inputType == "String") {
-                assertEquals(msg, (String)output, (String)getExpected(minTypes[k]));
+                assertEquals(msg, output, getExpected(minTypes[k]));
             }
         }
     }
@@ -1187,7 +1192,7 @@ public class TestBuiltin {
 
     @Test
     public void testMINIntermediate() throws Exception {
-        
+
         String[] minTypes = {"MINIntermediate", "LongMinIntermediate", "IntMinIntermediate", "FloatMinIntermediate"};
         for(int k = 0; k < minTypes.length; k++) {
             EvalFunc<?> min = evalFuncMap.get(minTypes[k]);
@@ -1199,17 +1204,17 @@ public class TestBuiltin {
                            ((Tuple)output).get(0) + " == " + getExpected(minTypes[k]) + " (expected) )]";
 
             if(inputType == "ByteArray") {
-              assertEquals(msg, (Double)((Tuple)output).get(0), (Double)getExpected(minTypes[k]));
+              assertEquals(msg, ((Tuple)output).get(0), getExpected(minTypes[k]));
             } else if(inputType == "Long") {
-                assertEquals(msg, (Long)((Tuple)output).get(0), (Long)getExpected(minTypes[k]));
+                assertEquals(msg, ((Tuple)output).get(0), getExpected(minTypes[k]));
             } else if(inputType == "Integer") {
-                assertEquals(msg, (Integer)((Tuple)output).get(0), (Integer)getExpected(minTypes[k]));
+                assertEquals(msg, ((Tuple)output).get(0), getExpected(minTypes[k]));
             } else if (inputType == "Double") {
-                assertEquals(msg, (Double)((Tuple)output).get(0), (Double)getExpected(minTypes[k]));
+                assertEquals(msg, ((Tuple)output).get(0), getExpected(minTypes[k]));
             } else if (inputType == "Float") {
-                assertEquals(msg, (Float)((Tuple)output).get(0), (Float)getExpected(minTypes[k]));
+                assertEquals(msg, ((Tuple)output).get(0), getExpected(minTypes[k]));
             } else if (inputType == "String") {
-                assertEquals(msg, (String)((Tuple)output).get(0), (String)getExpected(minTypes[k]));
+                assertEquals(msg, ((Tuple)output).get(0), getExpected(minTypes[k]));
             }
         }
     }
@@ -1227,24 +1232,24 @@ public class TestBuiltin {
                            output + " == " + getExpected(minTypes[k]) + " (expected) )]";
 
             if(inputType == "ByteArray") {
-              assertEquals(msg, (Double)output, (Double)getExpected(minTypes[k]));
+              assertEquals(msg, output, getExpected(minTypes[k]));
             } else if(inputType == "Long") {
-                assertEquals(msg, (Long)output, (Long)getExpected(minTypes[k]));
+                assertEquals(msg, output, getExpected(minTypes[k]));
             } else if(inputType == "Integer") {
-                assertEquals(msg, (Integer)output, (Integer)getExpected(minTypes[k]));
+                assertEquals(msg, output, getExpected(minTypes[k]));
             } else if (inputType == "Double") {
-                assertEquals(msg, (Double)output, (Double)getExpected(minTypes[k]));
+                assertEquals(msg, output, getExpected(minTypes[k]));
             } else if (inputType == "Float") {
-                assertEquals(msg, (Float)output, (Float)getExpected(minTypes[k]));
+                assertEquals(msg, output, getExpected(minTypes[k]));
             } else if (inputType == "String") {
-                assertEquals(msg, (String)output, (String)getExpected(minTypes[k]));
+                assertEquals(msg, output, getExpected(minTypes[k]));
             }
         }
     }
 
     @Test
     public void testMAX() throws Exception {
-        
+
         String[] maxTypes = {"MAX", "LongMax", "IntMax", "FloatMax"};
         for(int k = 0; k < maxTypes.length; k++) {
             EvalFunc<?> max = evalFuncMap.get(maxTypes[k]);
@@ -1256,17 +1261,17 @@ public class TestBuiltin {
                            output + " == " + getExpected(maxTypes[k]) + " (expected) )]";
 
             if(inputType == "ByteArray") {
-              assertEquals(msg, (Double)output, (Double)getExpected(maxTypes[k]));
+              assertEquals(msg, output, getExpected(maxTypes[k]));
             } else if(inputType == "Long") {
-                assertEquals(msg, (Long)output, (Long)getExpected(maxTypes[k]));
+                assertEquals(msg, output, getExpected(maxTypes[k]));
             } else if(inputType == "Integer") {
-                assertEquals(msg, (Integer)output, (Integer)getExpected(maxTypes[k]));
+                assertEquals(msg, output, getExpected(maxTypes[k]));
             } else if (inputType == "Double") {
-                assertEquals(msg, (Double)output, (Double)getExpected(maxTypes[k]));
+                assertEquals(msg, output, getExpected(maxTypes[k]));
             } else if (inputType == "Float") {
-                assertEquals(msg, (Float)output, (Float)getExpected(maxTypes[k]));
+                assertEquals(msg, output, getExpected(maxTypes[k]));
             } else if (inputType == "String") {
-                assertEquals(msg, (String)output, (String)getExpected(maxTypes[k]));
+                assertEquals(msg, output, getExpected(maxTypes[k]));
             }
         }
     }
@@ -1274,7 +1279,7 @@ public class TestBuiltin {
 
     @Test
     public void testMAXIntermed() throws Exception {
-        
+
         String[] maxTypes = {"MAXIntermediate", "LongMaxIntermediate", "IntMaxIntermediate", "FloatMaxIntermediate"};
         for(int k = 0; k < maxTypes.length; k++) {
             EvalFunc<?> max = evalFuncMap.get(maxTypes[k]);
@@ -1286,24 +1291,24 @@ public class TestBuiltin {
                            ((Tuple)output).get(0) + " == " + getExpected(maxTypes[k]) + " (expected) )]";
 
             if(inputType == "ByteArray") {
-              assertEquals(msg, (Double)((Tuple)output).get(0), (Double)getExpected(maxTypes[k]));
+              assertEquals(msg, ((Tuple)output).get(0), getExpected(maxTypes[k]));
             } else if(inputType == "Long") {
-                assertEquals(msg, (Long)((Tuple)output).get(0), (Long)getExpected(maxTypes[k]));
+                assertEquals(msg, ((Tuple)output).get(0), getExpected(maxTypes[k]));
             } else if(inputType == "Integer") {
-                assertEquals(msg, (Integer)((Tuple)output).get(0), (Integer)getExpected(maxTypes[k]));
+                assertEquals(msg, ((Tuple)output).get(0), getExpected(maxTypes[k]));
             } else if (inputType == "Double") {
-                assertEquals(msg, (Double)((Tuple)output).get(0), (Double)getExpected(maxTypes[k]));
+                assertEquals(msg, ((Tuple)output).get(0), getExpected(maxTypes[k]));
             } else if (inputType == "Float") {
-                assertEquals(msg, (Float)((Tuple)output).get(0), (Float)getExpected(maxTypes[k]));
+                assertEquals(msg, ((Tuple)output).get(0), getExpected(maxTypes[k]));
             } else if (inputType == "String") {
-                assertEquals(msg, (String)((Tuple)output).get(0), (String)getExpected(maxTypes[k]));
+                assertEquals(msg, ((Tuple)output).get(0), getExpected(maxTypes[k]));
             }
         }
     }
 
     @Test
     public void testMAXFinal() throws Exception {
-        
+
         String[] maxTypes = {"MAXFinal", "LongMaxFinal", "IntMaxFinal", "FloatMaxFinal"};
         for(int k = 0; k < maxTypes.length; k++) {
             EvalFunc<?> max = evalFuncMap.get(maxTypes[k]);
@@ -1315,22 +1320,22 @@ public class TestBuiltin {
                            output + " == " + getExpected(maxTypes[k]) + " (expected) )]";
 
             if(inputType == "ByteArray") {
-              assertEquals(msg, (Double)output, (Double)getExpected(maxTypes[k]));
+              assertEquals(msg, output, getExpected(maxTypes[k]));
             } else if(inputType == "Long") {
-                assertEquals(msg, (Long)output, (Long)getExpected(maxTypes[k]));
+                assertEquals(msg, output, getExpected(maxTypes[k]));
             } else if(inputType == "Integer") {
-                assertEquals(msg, (Integer)output, (Integer)getExpected(maxTypes[k]));
+                assertEquals(msg, output, getExpected(maxTypes[k]));
             } else if (inputType == "Double") {
-                assertEquals(msg, (Double)output, (Double)getExpected(maxTypes[k]));
+                assertEquals(msg, output, getExpected(maxTypes[k]));
             } else if (inputType == "Float") {
-                assertEquals(msg, (Float)output, (Float)getExpected(maxTypes[k]));
+                assertEquals(msg, output, getExpected(maxTypes[k]));
             } else if (inputType == "String") {
-                assertEquals(msg, (String)output, (String)getExpected(maxTypes[k]));
+                assertEquals(msg, output, getExpected(maxTypes[k]));
             }
         }
 
     }
-    
+
     @Test
     public void testMathFuncs() throws Exception {
         Random generator = new Random();
@@ -1338,7 +1343,7 @@ public class TestBuiltin {
         Double delta = 0.1;
         // We assume that UDFs are stored in org.apache.pig.builtin
         // Change this test case if we add more hierarchy later\
-        // Also, we assume that we have a function with math function 
+        // Also, we assume that we have a function with math function
         // associated with these UDF with a lowercase name
         String[] mathFuncs = {
                 "SIN",
@@ -1368,7 +1373,7 @@ public class TestBuiltin {
         for(String func: mathFuncs) {
             evalFunc = (EvalFunc<Double>) Class.forName(udfPackage + func).newInstance();
             tup = TupleFactory.getInstance().newTuple(1);
-            // double value between 0.0 and 1.0 
+            // double value between 0.0 and 1.0
             input = generator.nextDouble();
             tup.set(0, input);
             mathMethod = Math.class.getDeclaredMethod(func.toLowerCase(), double.class);
@@ -1378,7 +1383,7 @@ public class TestBuiltin {
             assertEquals(msg, actual, expected, delta);
         }
     }
-    
+
     @Test
     public void testStringFuncs() throws Exception {
         // Since String functions are trivial we add test on per case basis
@@ -1388,52 +1393,52 @@ public class TestBuiltin {
         String inputStrCamel = "hello World!";
         String inputStroWitha = "Hella Warld!";
         String inpuStrExtra = "Hello World!   ";
-        
+
         List<Object> l = new LinkedList<Object>();
         l.add(inputStr);
         l.add("o");
-        
+
         String expected = null;
         Tuple input;
         String output;
         Integer intOutput;
         EvalFunc<String> strFunc;
         EvalFunc<Integer> intFunc;
-        
+
         strFunc = new LCFIRST();
         input = TupleFactory.getInstance().newTuple(inputStr);
         expected = inputStrCamel;
         output = strFunc.exec(input);
         assertTrue(output.equals(expected));
-        
+
         strFunc = new UCFIRST();
         input = TupleFactory.getInstance().newTuple(inputStrCamel);
         expected = inputStr;
         output = strFunc.exec(input);
         assertTrue(output.equals(expected));
-         
+
         intFunc = new LAST_INDEX_OF();
         input = TupleFactory.getInstance().newTuple(l);
         intOutput = intFunc.exec(input);
         assertTrue(intOutput.intValue()==7);
-        
+
         intFunc = new INDEXOF();
         input = TupleFactory.getInstance().newTuple(l);
         intOutput = intFunc.exec(input);
         assertTrue(intOutput.intValue()==4);
-        
+
         strFunc = new UPPER();
         input = TupleFactory.getInstance().newTuple(inputStr);
         expected = inputStrUpper;
         output = strFunc.exec(input);
         assertTrue(output.equals(expected));
-        
+
         strFunc = new LOWER();
         input = TupleFactory.getInstance().newTuple(inputStr);
         expected = inputStrLower;
         output = strFunc.exec(input);
         assertTrue(output.equals(expected));
-        
+
         strFunc = new REPLACE();
         l.clear();
         l.add(inputStr);
@@ -1443,7 +1448,7 @@ public class TestBuiltin {
         expected = inputStroWitha;
         output = strFunc.exec(input);
         assertTrue(output.equals(expected));
-        
+
         strFunc = new SUBSTRING();
         l.clear();
         l.add(inputStr);
@@ -1453,25 +1458,25 @@ public class TestBuiltin {
         expected = "ello";
         output = strFunc.exec(input);
         assertTrue(output.equals(expected));
-        
+
         strFunc = new TRIM();
         input = TupleFactory.getInstance().newTuple(inpuStrExtra);
         expected = inputStr;
         output = strFunc.exec(input);
         assertTrue(output.equals(expected));
-        
+
         STRSPLIT splitter = new STRSPLIT();
         Tuple test1 = TupleFactory.getInstance().newTuple(1);
         Tuple test2 = TupleFactory.getInstance().newTuple(2);
         Tuple test3 = TupleFactory.getInstance().newTuple(3);
-        
+
         test2.set(0, "foo");
         test2.set(1, ":");
         Tuple splits = splitter.exec(test2);
         assertEquals("no matches should return tuple with original string", 1, splits.size());
-        assertEquals("no matches should return tuple with original string", "foo", 
+        assertEquals("no matches should return tuple with original string", "foo",
                 splits.get(0));
-            
+
         // test default delimiter
         test1.set(0, "f ooo bar");
         splits = splitter.exec(test1);
@@ -1479,19 +1484,19 @@ public class TestBuiltin {
         assertEquals("f", splits.get(0));
         assertEquals("ooo", splits.get(1));
         assertEquals("bar", splits.get(2));
-        
+
         // test trimming of whitespace
         test1.set(0, "foo bar  ");
         splits = splitter.exec(test1);
         assertEquals("whitespace trimmed if no length arg", 2, splits.size());
-        
+
         // test forcing null matches with length param
         test3.set(0, "foo bar   ");
         test3.set(1, "\\s");
         test3.set(2, 10);
         splits = splitter.exec(test3);
         assertEquals("length forces empty string matches on end", 5, splits.size());
-        
+
         // test limiting results with limit
         test3.set(0, "foo:bar:baz");
         test3.set(1, ":");
@@ -1500,22 +1505,22 @@ public class TestBuiltin {
         assertEquals(2, splits.size());
         assertEquals("foo", splits.get(0));
         assertEquals("bar:baz", splits.get(1));
-        
+
         Tuple t1 = TupleFactory.getInstance().newTuple(3);
         t1.set(0, "/search/iy/term1/test");
         t1.set(1, "^\\/search\\/iy\\/(.*?)\\/.*");
         t1.set(2, 1);
-        
+
         Tuple t2 = TupleFactory.getInstance().newTuple(3);
         t2.set(0, "/search/iy/term1/test");
         t2.set(1, "^\\/search\\/iy\\/(.*?)\\/.*");
         t2.set(2, 2);
-        
+
         Tuple t3 = TupleFactory.getInstance().newTuple(3);
         t3.set(0, null);
         t3.set(1, "^\\/search\\/iy\\/(.*?)\\/.*");
         t3.set(2, 2);
-        
+
         REGEX_EXTRACT func = new REGEX_EXTRACT();
         String r = func.exec(t1);
         assertTrue(r.equals("term1"));
@@ -1523,34 +1528,34 @@ public class TestBuiltin {
         assertTrue(r==null);
         r = func.exec(t3);
         assertTrue(r==null);
-        
+
         String matchRegex = "^(.+)\\b\\s+is a\\s+\\b(.+)$";
         TupleFactory tupleFactory = TupleFactory.getInstance();
         Tuple te1 = tupleFactory.newTuple(2);
         te1.set(0,"this is a match");
         te1.set(1, matchRegex);
-        
+
         Tuple te2 = tupleFactory.newTuple(2);
         te2.set(0, "no match");
         te2.set(1, matchRegex);
-        
+
         Tuple te3 = tupleFactory.newTuple(2);
         te3.set(0, null);
         te3.set(1, matchRegex);
-     
+
         REGEX_EXTRACT_ALL funce = new REGEX_EXTRACT_ALL();
         Tuple re = funce.exec(te1);
         assertEquals(re.size(), 2);
         assertEquals("this", re.get(0));
         assertEquals("match", re.get(1));
-        
+
         re = funce.exec(te2);
         assertTrue(re==null);
-        
+
         re = funce.exec(te3);
         assertTrue(re==null);
     }
-    
+
     @Test
     public void testStatsFunc() throws Exception {
         COV cov = new COV("a","b");
@@ -1597,11 +1602,11 @@ public class TestBuiltin {
         input.set(1, dBag1);
         DataBag output = cov.exec(input);
         Iterator<Tuple> it = output.iterator();
-        Tuple ans = (Tuple)it.next();
-        assertEquals((String)ans.get(0),"a");
-        assertEquals((String)ans.get(1),"b");
+        Tuple ans = it.next();
+        assertEquals(ans.get(0),"a");
+        assertEquals(ans.get(1),"b");
         assertEquals(1.11111, (Double)ans.get(2),0.0005);
-        
+
         COR cor = new COR("a","b");
         dBag = DefaultBagFactory.getInstance().newDefaultBag();
         tup1 = TupleFactory.getInstance().newTuple(1);
@@ -1646,12 +1651,12 @@ public class TestBuiltin {
         input.set(1, dBag1);
         output = cor.exec(input);
         it = output.iterator();
-        ans = (Tuple) it.next();
-        assertEquals((String)ans.get(0),"a");
-        assertEquals((String)ans.get(1),"b");
+        ans = it.next();
+        assertEquals(ans.get(0),"a");
+        assertEquals(ans.get(1),"b");
         assertEquals(0.582222509739582, (Double)ans.get(2) ,0.0005);
     }
-    
+
     private void checkItemsGT(Iterable<Tuple> tuples, int field, int limit) throws ExecException {
         for (Tuple t : tuples) {
             Long val = (Long) t.get(field);
@@ -1661,7 +1666,7 @@ public class TestBuiltin {
 
     @Test
     public void testMiscFunc() throws Exception {
-        
+
         //TEST TOBAG
         TOBAG tb = new TOBAG();
 
@@ -1688,7 +1693,7 @@ public class TestBuiltin {
         assertEquals("schema of tobag when input has ints and long",
                 expectedSch, tb.outputSchema(inputSch));
 
-        
+
         //test schema when input is a tuple with inner schema
         Schema tupInSchema = new Schema(new FieldSchema("x", DataType.CHARARRAY));
         inputSch = new Schema();
@@ -1698,11 +1703,11 @@ public class TestBuiltin {
         expectedSch = new Schema(new FieldSchema(null, inputSchCp, DataType.BAG));
         assertEquals("schema of tobag when input has cols of type tuple ",
                 expectedSch, tb.outputSchema(inputSch));
-        
+
         inputSch.add(new FieldSchema("b", tupInSchema, DataType.TUPLE));
         assertEquals("schema of tobag when input has cols of type tuple ",
                 expectedSch, tb.outputSchema(inputSch));
-        
+
         //add a column of type tuple with different inner schema
         tupInSchema = new Schema(new FieldSchema("x", DataType.BYTEARRAY));
         inputSch.add(new FieldSchema("c", tupInSchema, DataType.TUPLE));
@@ -1712,15 +1717,15 @@ public class TestBuiltin {
         assertEquals("schema of tobag when input has cols of type tuple with diff inner schema",
                 expectedSch, tb.outputSchema(inputSch));
 
-        
-        
+
+
         Tuple input = TupleFactory.getInstance().newTuple();
         for (int i = 0; i < 100; ++i) {
             input.append(i);
-        }      
+        }
         //test null value in input
         input.append(null);
-        
+
         Set<Integer> s = new HashSet<Integer>();
         DataBag db = tb.exec(input);
         for (Tuple t : db) {
@@ -1733,7 +1738,7 @@ public class TestBuiltin {
             assertTrue(s.contains(i));
         }
         assertTrue("null in tobag result", s.contains(null));
-        
+
         TOTUPLE tt = new TOTUPLE();
 
         input = TupleFactory.getInstance().newTuple();
@@ -1759,13 +1764,13 @@ public class TestBuiltin {
 	assertEquals("", m.get("k2"), 2.0);
 	assertEquals("", m.get("k3"), "foo");
 
-        
+
         TOP top = new TOP();
         TupleFactory tupleFactory = TupleFactory.getInstance();
         BagFactory bagFactory = DefaultBagFactory.getInstance();
         Tuple inputTuple = tupleFactory.newTuple(3);
         DataBag dBag = bagFactory.newDefaultBag();
-        
+
         // set N = 10 i.e retain top 10 tuples
         inputTuple.set(0, 10);
         // compare tuples by field number 1
@@ -1780,11 +1785,11 @@ public class TestBuiltin {
             nestedTuple.set(1, i);
             dBag.add(nestedTuple);
         }
-        
+
         DataBag outBag = top.exec(inputTuple);
         assertEquals(outBag.size(), 10L);
         checkItemsGT(outBag, 1, 89);
-        
+
         // two initial results
         Tuple init1 = (new TOP.Initial()).exec(inputTuple);
         Tuple init2 = (new TOP.Initial()).exec(inputTuple);
@@ -1807,10 +1812,10 @@ public class TestBuiltin {
         assertEquals(outBag.size(), 10L);
         checkItemsGT(outBag, 1, 96);
     }
-    
+
     @Test
     public void testDistinct() throws Exception {
-    
+
         Integer[] inp = new Integer[] { 1, 2 , 3, 1 ,4, 5, 3};
         DataBag inputBag = Util.createBagOfOneColumn(inp);
         EvalFunc<Tuple> initial = new Distinct.Initial();
@@ -1826,20 +1831,20 @@ public class TestBuiltin {
             }
             i++;
         }
-        
+
         EvalFunc<Tuple> intermed = new Distinct.Intermediate();
-        
+
         DataBag finalInputBg = bagFactory.newDefaultBag();
         finalInputBg.add(intermed.exec(tupleFactory.newTuple(intermedInputBg1)));
         finalInputBg.add(intermed.exec(tupleFactory.newTuple(intermedInputBg2)));
         EvalFunc<DataBag> fin = new Distinct.Final();
         DataBag result = fin.exec(tupleFactory.newTuple(finalInputBg));
-        
+
         Integer[] exp = new Integer[] { 1, 2, 3, 4, 5};
         DataBag expectedBag = Util.createBagOfOneColumn(exp);
         assertEquals(expectedBag, result);
-        
-    }    
+
+    }
 
     @Test
     public void testDistinctProgressNonAlgebraic() throws Exception {
@@ -1857,7 +1862,7 @@ public class TestBuiltin {
         DataBag inputBag = Util.createBagOfOneColumn(inp);
         EvalFunc<DataBag> distinct = new Distinct();
         DataBag result = distinct.exec(tupleFactory.newTuple(inputBag));
-        
+
         Integer[] exp = new Integer[inputSize/2];
         for(int j = 0; j < inputSize/2; ++j) {
             exp[j] = j;
@@ -1865,29 +1870,29 @@ public class TestBuiltin {
 
         DataBag expectedBag = Util.createBagOfOneColumn(exp);
         assertEquals(expectedBag, result);
-        
+
     }
-    
+
     @Test
     public void testCONCAT() throws Exception {
-        
+
         // DataByteArray concat
         byte[] a = {1,2,3};
         byte[] b = {4,5,6};
         byte[] expected = {1,2,3,4,5,6};
         DataByteArray dbaExpected = new DataByteArray(expected);
-        
+
         DataByteArray dbaA = new DataByteArray(a);
         DataByteArray dbaB = new DataByteArray(b);
         EvalFunc<DataByteArray> concat = new CONCAT();
-        
+
         Tuple t = TupleFactory.getInstance().newTuple(2);
         t.set(0, dbaA);
         t.set(1, dbaB);
         DataByteArray result = concat.exec(t);
         String msg = "[Testing CONCAT on input type: bytearray]";
         assertTrue(msg, result.equals(dbaExpected));
-        
+
         // String concat
         String s1 = "unit ";
         String s2 = "test";
@@ -1899,7 +1904,7 @@ public class TestBuiltin {
         String res = sConcat.exec(ts);
         msg = "[Testing StringConcat on input type: String]";
         assertTrue(msg, res.equals(exp));
-        
+
     }
 
     @Test
@@ -1955,17 +1960,17 @@ public class TestBuiltin {
 
     @Test
     public void testSIZE() throws Exception {
-        
+
         // DataByteArray size
         byte[] a = {1,2,3};
         DataByteArray dba = new DataByteArray(a);
         Long expected = new Long(3);
         Tuple t = TupleFactory.getInstance().newTuple(1);
         t.set(0, dba);
-        EvalFunc<Long> size = new SIZE();        
+        EvalFunc<Long> size = new SIZE();
         String msg = "[Testing SIZE on input type: bytearray]";
         assertTrue(msg, expected.equals(size.exec(t)));
-        
+
         // String size
         String s = "Unit test case";
         expected = new Long(14);
@@ -1973,7 +1978,7 @@ public class TestBuiltin {
         size = new StringSize();
         msg = "[Testing StringSize on input type: String]";
         assertTrue(msg, expected.equals(size.exec(t)));
-        
+
         // Map size
         String[] mapContents = new String[]{"key1", "value1", "key2", "value2"};
         Map<String, Object> map = Util.createMap(mapContents);
@@ -1982,7 +1987,7 @@ public class TestBuiltin {
         size = new MapSize();
         msg = "[Testing MapSize on input type: Map]";
         assertTrue(msg, expected.equals(size.exec(t)));
-        
+
         // Bag size
         Tuple t1 = Util.createTuple(new String[]{"a", "b", "c"});
         Tuple t2 = Util.createTuple(new String[]{"d", "e", "f"});
@@ -1994,8 +1999,8 @@ public class TestBuiltin {
         size = new BagSize();
         msg = "[Testing BagSize on input type: Bag]";
         assertTrue(msg, expected.equals(size.exec(t)));
-        
-        
+
+
         // Tuple size
         Tuple suspect = Util.createTuple(new String[]{"key1", "str1"});
         size = new TupleSize();
@@ -2004,7 +2009,7 @@ public class TestBuiltin {
         Tuple suspectStuffer = TupleFactory.getInstance().newTuple(1);
         suspectStuffer.set(0, suspect);
         assertTrue(msg, expected.equals(size.exec(suspectStuffer)));
-        
+
         // Tuple size again
         int expectedSize = 4;
         Tuple suspect2 = TupleFactory.getInstance().newTuple(expectedSize);
@@ -2017,8 +2022,8 @@ public class TestBuiltin {
         msg = "[Testing TupleSize on input type: Tuple]";
         suspectStuffer.set(0, suspect2);
         assertTrue(msg, expected.equals(size.exec(suspectStuffer)));
-        
-        
+
+
         // Test for ARITY function.
         // It is depricated but we still need to make sure it works
         ARITY arrity = new ARITY();
@@ -2039,10 +2044,10 @@ public class TestBuiltin {
     			"Don't wanna kiss, don't wanna touch",
     			"Just smoke my cigarette and hush",
     			"Don't call my name, don't call my name, Roberto"};
-        Util.createInputFile(cluster, inputFileName, inputData);
+        File inputFile = Util.createInputFile("tmp", inputFileName, inputData);
 
         // test typed data
-        pigServer.registerQuery("A = load '" + inputFileName + "' AS value:chararray;");
+        pigServer.registerQuery("A = load '" + inputFile.getAbsolutePath() + "' AS value:chararray;");
         pigServer.registerQuery("B = foreach A generate STRSPLIT(value, ' ') AS values;");
         pigServer.registerQuery("C = foreach B generate values, SIZE(values) as cnt;");
 
@@ -2053,10 +2058,11 @@ public class TestBuiltin {
         	assertEquals("Testing SIZE(<Tuple>): ", new Long(new StringTokenizer(inputData[i]).countTokens()), t.get(1));
         	i++;
         }
+        inputFile.delete();
         assertTrue(!it.hasNext());
         assertTrue(i==inputData.length);
     }
-    
+
 
     // Builtin APPLY Functions
     // ========================
@@ -2066,16 +2072,16 @@ public class TestBuiltin {
     // =======================
     @Test
     public void testLFPig() throws Exception {
-        Util.createInputFile(cluster, "input.txt", new String[] 
-                                        {"this:is:delimited:by:a:colon\n"});
+        Util.createInputFile(cluster, "input.txt", new String[]
+            {"this:is:delimited:by:a:colon\n"});
         int arity1 = 6;
         LoadFunc lf = new PigStorage(":");
         LoadFunc p1 = new ReadToEndLoader(lf, ConfigurationUtil.
-                toConfiguration(cluster.getProperties()), "input.txt", 0);
+            toConfiguration(cluster.getProperties()), "input.txt", 0);
         Tuple f1 = p1.getNext();
         assertTrue(f1.size() == arity1);
         Util.deleteFile(cluster, "input.txt");
-        
+
         int LOOP_COUNT = 100;
         String[] input = new String[LOOP_COUNT * LOOP_COUNT];
         int n = 0;
@@ -2087,8 +2093,8 @@ public class TestBuiltin {
         Util.createInputFile(cluster, "input.txt", input);
 
         LoadFunc p15 = new ReadToEndLoader(new PigStorage(), ConfigurationUtil.
-                toConfiguration(cluster.getProperties()), "input.txt", 0);
-        
+            toConfiguration(cluster.getProperties()), "input.txt", 0);
+
         int count = 0;
         while (true) {
             Tuple f15 = p15.getNext();
@@ -2099,91 +2105,25 @@ public class TestBuiltin {
         }
         assertEquals(LOOP_COUNT * LOOP_COUNT, count);
         Util.deleteFile(cluster, "input.txt");
-        
+
         String input2 = ":this:has:a:leading:colon\n";
         int arity2 = 6;
         Util.createInputFile(cluster, "input.txt", new String[] {input2});
         LoadFunc p2 = new ReadToEndLoader(new PigStorage(":"), ConfigurationUtil.
-                toConfiguration(cluster.getProperties()), "input.txt", 0);
+            toConfiguration(cluster.getProperties()), "input.txt", 0);
         Tuple f2 = p2.getNext();
         assertTrue(f2.size() == arity2);
         Util.deleteFile(cluster, "input.txt");
-        
+
         String input3 = "this:has:a:trailing:colon:\n";
         int arity3 = 6;
-        Util.createInputFile(cluster, "input.txt", new String[] {input3});
+        Util.createInputFile(cluster, "input.txt", new String[] {input2});
         LoadFunc p3 = new ReadToEndLoader(new PigStorage(":"), ConfigurationUtil.
-                toConfiguration(cluster.getProperties()), "input.txt", 0);
+            toConfiguration(cluster.getProperties()), "input.txt", 0);
         Tuple f3 = p3.getNext();
         assertTrue(f3.size() == arity3);
         Util.deleteFile(cluster, "input.txt");
     }
-    
-    /*
-    @Test
-    public void testLFBin() throws Exception {
-
-        BagFactory.init(new File("/tmp"));
-        
-        
-        Tuple t1 = new Tuple(4);
-        DataAtom a = new DataAtom("a");
-        DataAtom b = new DataAtom("b");
-        Tuple t2 = new Tuple(1);
-        t2.setField(0,a);
-        Tuple t3 = new Tuple(1);
-        t3.setField(0, b);
-        DataBag bag = BagFactory.getInstance().getNewBigBag();
-        bag.add(t2);
-        bag.add(t3);
-        Tuple t4 = new Tuple(2);
-        t4.setField(0, t2);
-        t4.setField(1, t3);
-        
-        t1.setField(0, a);
-        t1.setField(1, t2);
-        t1.setField(2, bag);
-        t1.setField(3, t4);
-        
-        Tuple t5 = new Tuple(4);
-        DataAtom c = new DataAtom("the quick brown fox");
-        DataAtom d = new DataAtom("jumps over the lazy dog");
-        Tuple t6 = new Tuple(1);
-        t6.setField(0,c);
-        Tuple t7 = new Tuple(1);
-        t7.setField(0, d);
-        DataBag bag2 = BagFactory.getInstance().getNewBigBag();    
-        for(int i = 0; i < 10; i ++) {
-            bag2.add(t6);
-            bag2.add(t7);
-        }
-        Tuple t8 = new Tuple(2);
-        t8.setField(0, t6);
-        t8.setField(1, t7);
-        
-        t5.setField(0, c);
-        t5.setField(1, t6);
-        t5.setField(2, bag2);
-        t5.setField(3, t8);
-        
-        
-        OutputStream os = new FileOutputStream("/tmp/bintest.bin");
-        StoreFunc s = new BinStorage();
-        s.bindTo(os);
-        s.putNext(t1);
-        s.putNext(t5);
-        s.finish();
-        
-        LoadFunc l = new BinStorage();
-        InputStream is = FileLocalizer.open("/tmp/bintest.bin", new PigContext(ExecType.LOCAL));
-        l.bindTo("/tmp/bintest.bin", new BufferedPositionedInputStream(is), 0, Long.MAX_VALUE);
-        Tuple r1 = l.getNext();
-        Tuple r2 = l.getNext();
-        
-        assertTrue(r1.equals(t1));
-        assertTrue(r2.equals(t5));
-    }
-    */
 
     /**
      * test {@link TextLoader} - this also tests that {@link TextLoader} is capable
@@ -2195,29 +2135,30 @@ public class TestBuiltin {
         String input1 = "This is some text.\nWith a newline in it.\n";
         String expected1 = "This is some text.";
         String expected2 = "With a newline in it.";
-        Util.createInputFile(cluster, 
-                "/tmp/testLFTextdir1/testLFTextdir2/testLFTest-input1.txt", 
+        Util.createInputFile(cluster,
+                "testLFTest-input1.txt",
                 new String[] {input1});
         // check that loading the top level dir still reading the file a couple
         // of subdirs below
         LoadFunc text1 = new ReadToEndLoader(new TextLoader(), ConfigurationUtil.
-                toConfiguration(cluster.getProperties()), "/tmp/testLFTextdir1", 0);
+                toConfiguration(new Properties()), "testLFTest-input1.txt", 0);
         Tuple f1 = text1.getNext();
         Tuple f2 = text1.getNext();
+        Util.deleteFile(cluster, "testLFTest-input1.txt");
         assertTrue(expected1.equals(f1.get(0).toString()) &&
             expected2.equals(f2.get(0).toString()));
-        Util.deleteFile(cluster, "testLFTest-input1.txt");
-        Util.createInputFile(cluster, "testLFTest-input2.txt");
+        Util.createInputFile(cluster, "testLFTest-input2.txt", new String[] {});
         LoadFunc text2 = new ReadToEndLoader(new TextLoader(), ConfigurationUtil.
-                toConfiguration(cluster.getProperties()), "testLFTest-input2.txt", 0);
+                toConfiguration(new Properties()), "testLFTest-input2.txt", 0);
         Tuple f3 = text2.getNext();
-        assertTrue(f3 == null);
         Util.deleteFile(cluster, "testLFTest-input2.txt");
+        assertTrue(f3 == null);
     }
 
     @SuppressWarnings("unchecked")
     @Test
     public void testSFPig() throws Exception {
+        PigServer mrPigServer = new PigServer(ExecType.MAPREDUCE);
         String inputStr = "amy\tbob\tcharlene\tdavid\terin\tfrank";
         Util.createInputFile(cluster, "testSFPig-input.txt", new String[]
                                                                     {inputStr});
@@ -2227,19 +2168,19 @@ public class TestBuiltin {
             new DataByteArray("frank") };
         Tuple f1 = Util.loadTuple(TupleFactory.getInstance().
                 newTuple(input.length), input);
-        
+        String outputLocation = "testSFPig-output.txt";
         String query = "a = load 'testSFPig-input.txt';" +
-        		"store a into 'testSFPig-output.txt';";
-        pigServer.setBatchOn();
-        Util.registerMultiLineQuery(pigServer, query);
-        pigServer.executeBatch();
+        		"store a into '" + outputLocation + "';";
+        mrPigServer.setBatchOn();
+        Util.registerMultiLineQuery(mrPigServer, query);
+        mrPigServer.executeBatch();
         LoadFunc lfunc = new ReadToEndLoader(new PigStorage(), ConfigurationUtil.
-                toConfiguration(cluster.getProperties()), "testSFPig-output.txt", 0); 
+                toConfiguration(new Properties()), outputLocation, 0);
         Tuple f2 = lfunc.getNext();
-        
-        assertEquals(f1, f2);
         Util.deleteFile(cluster, "testSFPig-input.txt");
-        Util.deleteFile(cluster, "testSFPig-output.txt");
+
+        Util.deleteFile(cluster, outputLocation);
+        assertEquals(f1, f2);
     }
 
     /* This are e2e tests to make sure that function that maps
@@ -2250,19 +2191,19 @@ public class TestBuiltin {
     @SuppressWarnings("unchecked")
     public void testStringUDFs() throws Exception {
         String inputStr = "amy smith ";
-        Util.createInputFile(cluster, "testStrUDFsIn.txt", new String[] {inputStr});
+        File inputFile = Util.createInputFile("tmp", "testStrUDFsIn.txt", new String[] {inputStr});
 
         // test typed data
-        pigServer.registerQuery("A = load 'testStrUDFsIn.txt' as (name: chararray);");
+        pigServer.registerQuery("A = load '" + inputFile.getAbsolutePath() + "' as (name: chararray);");
         pigServer.registerQuery("B = foreach A generate SUBSTRING(name, 0, 3), " +
             "INDEXOF(name, 'a'), INDEXOF(name, 'a', 3), LAST_INDEX_OF(name, 'a'), REPLACE(name, 'a', 'b'), " +
-            "STRSPLIT(name), STRSPLIT(name, ' '), STRSPLIT(name, ' ', 0), TRIM(name);"); 
+            "STRSPLIT(name), STRSPLIT(name, ' '), STRSPLIT(name, ' ', 0), TRIM(name);");
 
-        Iterator<Tuple> it = pigServer.openIterator("B"); 
+        Iterator<Tuple> it = pigServer.openIterator("B");
         assertTrue(it.hasNext());
         Tuple t = it.next();
         Tuple expected = Util.buildTuple("amy", "smith");
-        assertTrue(!it.hasNext()); 
+        assertTrue(!it.hasNext());
         assertEquals(9, t.size());
         assertEquals("amy", t.get(0));
         assertEquals(0, t.get(1));
@@ -2273,23 +2214,23 @@ public class TestBuiltin {
         assertEquals(expected, t.get(6));
         assertEquals(expected, t.get(7));
         assertEquals("amy smith", t.get(8));
-    
-        // test untyped data
-        pigServer.registerQuery("A = load 'testStrUDFsIn.txt' as (name);");
-        pigServer.registerQuery("B = foreach A generate SUBSTRING(name, 0, 3), " +
-            "LAST_INDEX_OF(name, 'a'), REPLACE(name, 'a', 'b'), TRIM(name);"); 
 
-        it = pigServer.openIterator("B"); 
+        // test untyped data
+        pigServer.registerQuery("A = load '" + inputFile.getAbsolutePath() + "' as (name);");
+        pigServer.registerQuery("B = foreach A generate SUBSTRING(name, 0, 3), " +
+            "LAST_INDEX_OF(name, 'a'), REPLACE(name, 'a', 'b'), TRIM(name);");
+
+        it = pigServer.openIterator("B");
         assertTrue(it.hasNext());
         t = it.next();
-        assertTrue(!it.hasNext()); 
+        assertTrue(!it.hasNext());
         assertEquals(4, t.size());
         assertEquals("amy", t.get(0));
         assertEquals(0, t.get(1));
         assertEquals("bmy smith ", t.get(2));
         assertEquals("amy smith", t.get(3));
     }
-    
+
     @Test
     public void testTOKENIZE() throws Exception {
         TupleFactory tf = TupleFactory.getInstance();
@@ -2298,7 +2239,7 @@ public class TestBuiltin {
         Tuple t2 = tf.newTuple(1);
         t2.set(0, null);
         Tuple t3 = tf.newTuple(0);
-        
+
         TOKENIZE f = new TOKENIZE();
         DataBag b = f.exec(t1);
         assertTrue(b.size()==3);
@@ -2309,10 +2250,10 @@ public class TestBuiltin {
         assertTrue(rt.get(0).equals("456"));
         rt = i.next();
         assertTrue(rt.get(0).equals("789"));
-        
+
         b = f.exec(t2);
         assertTrue(b==null);
-        
+
         b = f.exec(t3);
         assertTrue(b==null);
     }
@@ -2354,7 +2295,7 @@ public class TestBuiltin {
         result = d.exec(t);
         assertEquals(2, result.size());
     }
-    
+
     private static String getInputType(String typeFor) {
         return allowedInput.get(typeFor);
     }
