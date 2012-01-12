@@ -35,11 +35,11 @@
     <property name="final.name" value="${name}-${version}" />
 
     <!-- source properties -->
-    <property name="lib.dir" value="${basedir}/lib/" />
-    <property name="src.dir" value="${basedir}/src/" />
-    <property name="src.lib.dir" value="${basedir}/lib-src/" />
-    <property name="src.gen.dir" value="${basedir}/src-gen/" />
-    <property name="docs.dir" value="${basedir}/src/docs/" />
+    <property name="lib.dir" value="${basedir}/lib" />
+    <property name="src.dir" value="${basedir}/src" />
+    <property name="src.lib.dir" value="${basedir}/lib-src" />
+    <property name="src.gen.dir" value="${basedir}/src-gen" />
+    <property name="docs.dir" value="${basedir}/src/docs" />
 
 
     <!-- build properties -->
@@ -135,6 +135,7 @@
     <property name="clover.report.dir" location="${build.dir}/test/clover/reports"/>
     <property name="clover.jar" location="${clover.home}/lib/clover.jar"/>
     <available property="clover.present" file="${clover.jar}" />
+
     <!-- check if clover reports should be generated -->
     <condition property="clover.enabled">
    	<and>
@@ -212,6 +213,68 @@
     <property name="package.log.dir" value="/var/log/pig"/>
     <property name="package.buildroot" value="/tmp/pig_package_build_${user.name}"/>
     <property name="package.build.dir" value="/tmp/pig_package_build_${user.name}/BUILD"/>
+ 
+    <!-- Eclipse properties -->
+    <property name="build.dir.eclipse" value="${build.dir}"/>
+    <property name="build.dir.eclipse-main-classes" value="${build.classes}"/>
+    <property name="build.dir.eclipse-test-classes" value="${test.build.classes}"/>
+    <!--property name="build.dir.eclipse-test-generated-classes" value="${build.dir.eclipse}/classes-test-generated"/-->
+ 
+    <condition property="ant-eclipse.jar.exists">
+      <available file="${build.dir}/lib/ant-eclipse-1.0-jvm1.2.jar"/>
+    </condition>
+  
+    <target name="ant-eclipse-download" unless="ant-eclipse.jar.exists"
+            description="Downloads the ant-eclipse binary.">
+      <get src="http://downloads.sourceforge.net/project/ant-eclipse/ant-eclipse/1.0/ant-eclipse-1.0.bin.tar.bz2"
+           dest="${build.dir}/ant-eclipse-1.0.bin.tar.bz2" usetimestamp="false" />
+  
+      <untar src="${build.dir}/ant-eclipse-1.0.bin.tar.bz2"
+             dest="${build.dir}" compression="bzip2">
+        <patternset>
+          <include name="lib/ant-eclipse-1.0-jvm1.2.jar"/>
+        </patternset>
+      </untar>
+      <delete file="${build.dir}/ant-eclipse-1.0.bin.tar.bz2" />
+    </target>
+ 
+    <target name="eclipse-files"
+            depends="init,ant-eclipse-download,ivy-compile,ivy-test"
+            description="Create eclipse project files">
+  	     <pathconvert property="eclipse.project">
+  	       <path path="${basedir}"/>
+  	       <regexpmapper from="^.*/([^/]+)$$" to="\1" handledirsep="yes"/>
+  	     </pathconvert>
+             <path id="eclipse.classpath">
+               <fileset dir="${ivy.lib.dir}">
+                 <include name="**.*jar"/>
+               </fileset>
+               <fileset dir="${lib.dir}">
+                 <include name="**.*jar"/>
+               </fileset>
+             </path>
+      <taskdef name="eclipse"
+               classname="prantl.ant.eclipse.EclipseTask"
+               classpath="${build.dir}/lib/ant-eclipse-1.0-jvm1.2.jar" />
+      <eclipse updatealways="true" mode="java">
+        <project name="${eclipse.project}" />
+        <classpath>
+          <source path="${src.dir}"/>
+          <source path="${src.gen.dir}"/>
+          <source path="${src.lib.dir}/bzip2"/>
+          <source path="${src.lib.dir}/shock"/>
+          <source path="${test.e2e.dir}/udfs/java"/>
+          <source path="${src.shims.dir}"/>
+          <source path="${src.shims.test.dir}"/>
+          <source path="tutorial/src"/>
+          <source path="${test.src.dir}" excluding="e2e/pig/udfs/java/"/>
+          <output path="${build.dir.eclipse-main-classes}" />
+          <library pathref="eclipse.classpath" exported="true" />
+          <!--library pathref="classpath" exported="false"/-->
+        </classpath>
+      </eclipse>
+    </target>
+ 
 
     <!-- ====================================================== -->
     <!-- Stuff needed by all targets                            -->
@@ -285,7 +348,7 @@
         <ant dir="${test.e2e.dir}" target="clean"/>
     </target>
     
-    <target name="eclipse-files" depends="compile, ivy-buildJar"
+    <!--target name="eclipse-files" depends="compile, ivy-buildJar"
 			description="Generate files for Eclipse">
         <pathconvert property="eclipse.project">
             <path path="${basedir}"/>
@@ -299,7 +362,7 @@
                 <filter token="PROJECT" value="${eclipse.project}"/>
             </filterset>
         </copy>
-    </target>
+    </target-->
 
     <!-- ================================================================== -->
     <!-- Java Compiler Compiler, generate Parsers                           -->
