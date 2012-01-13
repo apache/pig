@@ -381,6 +381,8 @@ PIG-2347: Fix Pig Unit tests for hadoop 23 (daijy)
 
 BUG FIXES
 
+PIG-2472: piggybank unit tests write directly to /tmp (thw via daijy)
+
 PIG-2413: e2e test should support testing against two cluster (daijy)
 
 PIG-2342: Pig tutorial documentation needs to update about building tutorial (daijy)
