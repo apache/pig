@@ -164,6 +164,8 @@ PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
 
+PIG-2462: getWrappedSplit is incorrectly returning the first split instead of the current split. (arov via daijy)
+
 PIG-2400: Document has based aggregation support (chandec via daijy)
 
 PIG-2444: Remove the Zebra *.xml documentation files from the TRUNK and Branch-10 (chandec via daijy)

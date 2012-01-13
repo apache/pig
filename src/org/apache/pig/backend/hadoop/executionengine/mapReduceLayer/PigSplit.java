@@ -81,6 +81,9 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
     // index
     private int splitIndex;
     
+    // index of current splits being process
+    private int currentIdx;
+    
     // the flag indicates this is a multi-input join (i.e. join)
     // so that custom Hadoop counters will be created in the 
     // back-end to track the number of records for each input.
@@ -122,6 +125,7 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
         this.inputIndex = inputIndex;
         this.targetOps = new ArrayList<OperatorKey>(targetOps);
         this.splitIndex = splitIndex;
+        this.currentIdx = 0;
     }
     
     public List<OperatorKey> getTargetOps() {
@@ -135,7 +139,7 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
      * @return the wrappedSplit
      */
     public InputSplit getWrappedSplit() {
-        return wrappedSplits[0];
+        return wrappedSplits[currentIdx];
     }
     
     /**
@@ -389,5 +393,9 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
 
     public boolean disableCounter() {
         return disableCounter;
+    }
+    
+    public void setCurrentIdx(int idx) {
+        this.currentIdx = idx;
     }
 }
