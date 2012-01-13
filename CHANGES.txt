@@ -40,6 +40,8 @@ PIG-2410: Piggybank does not compile in 23 (daijy)
 
 BUG FIXES
 
+PIG-2462: getWrappedSplit is incorrectly returning the first split instead of the current split. (arov via daijy)
+
 PIG-2473: Fix eclipse files for pig 9 (daijy)
 
 PIG-2472: piggybank unit tests write directly to /tmp (thw via daijy)

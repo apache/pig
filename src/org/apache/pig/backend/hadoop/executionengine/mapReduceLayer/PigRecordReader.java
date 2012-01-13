@@ -224,6 +224,7 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
         try {
           
 
+            pigSplit.setCurrentIdx(idx);
             curReader =  inputformat.createRecordReader(pigSplit.getWrappedSplit(idx), context);
 
             if (idx > 0) {
