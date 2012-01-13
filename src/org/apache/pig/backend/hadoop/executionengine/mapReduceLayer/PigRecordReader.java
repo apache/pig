@@ -223,14 +223,14 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
         // get a record reader for the idx-th chunk
         try {
           
-
-            curReader =  inputformat.createRecordReader(pigSplit.getWrappedSplit(idx), context);
-            LOG.info("Current split being processed "+pigSplit.getWrappedSplit(idx));
+            pigSplit.setCurrentIdx(idx);
+            curReader =  inputformat.createRecordReader(pigSplit.getWrappedSplit(), context);
+            LOG.info("Current split being processed "+pigSplit.getWrappedSplit());
 
             if (idx > 0) {
                 // initialize() for the first RecordReader will be called by MapTask;
                 // we're responsible for initializing subsequent RecordReaders.
-                curReader.initialize(pigSplit.getWrappedSplit(idx), context);
+                curReader.initialize(pigSplit.getWrappedSplit(), context);
                 loadfunc.prepareToRead(curReader, pigSplit);
             }
         } catch (Exception e) {
