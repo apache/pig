@@ -40,6 +40,8 @@ PIG-2410: Piggybank does not compile in 23 (daijy)
 
 BUG FIXES
 
+PIG-2473: Fix eclipse files for pig 9 (daijy)
+
 PIG-2472: piggybank unit tests write directly to /tmp (thw via daijy)
 
 PIG-2413: e2e test should support testing against two cluster (daijy)
