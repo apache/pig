@@ -48,6 +48,7 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.newplan.Operator;
+import org.apache.pig.newplan.logical.optimizer.DanglingNestedNodeRemover;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
 import org.apache.pig.newplan.logical.optimizer.SchemaResetter;
 import org.apache.pig.newplan.logical.optimizer.UidResetter;
@@ -237,6 +238,9 @@ public class HExecutionEngine {
             POOptimizeDisabler pod = new POOptimizeDisabler( plan );
             pod.visit();
         }
+        
+        DanglingNestedNodeRemover DanglingNestedNodeRemover = new DanglingNestedNodeRemover( plan );
+        DanglingNestedNodeRemover.visit();
         
         UidResetter uidResetter = new UidResetter( plan );
         uidResetter.visit();

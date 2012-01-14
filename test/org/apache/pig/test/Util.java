@@ -85,6 +85,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.util.LogUtils;
+import org.apache.pig.newplan.logical.optimizer.DanglingNestedNodeRemover;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanPrinter;
 import org.apache.pig.newplan.logical.optimizer.SchemaResetter;
 import org.apache.pig.newplan.logical.relational.LogToPhyTranslationVisitor;
@@ -709,6 +710,9 @@ public class Util {
     public static  LogicalPlan optimizeNewLP( 
             LogicalPlan lp)
     throws FrontendException{
+        DanglingNestedNodeRemover DanglingNestedNodeRemover = new DanglingNestedNodeRemover( lp );
+        DanglingNestedNodeRemover.visit();
+        
         UidResetter uidResetter = new UidResetter( lp );
         uidResetter.visit();
         

@@ -294,4 +294,20 @@ public class TestPlanGeneration extends junit.framework.TestCase {
         Assert.assertTrue(((PartitionedLoader)loLoad.getLoadFunc()).getPartFilter()!=null);
         Assert.assertTrue(loStore.getAlias().equals("b"));
     }
+    
+    // See PIG-2119
+    @Test
+    public void testDanglingNestedNode() throws Exception  {
+        String query = "a = load 'b.txt' AS (id:chararray, num:int); " +
+            "b = group a by id;" +
+            "c = foreach b {" +
+            "  d = order a by num DESC;" +
+            "  n = COUNT(a);" +
+            "  e = limit d 1;" +
+            "  generate n;" +
+            "};";
+        
+        LogicalPlan lp = Util.parse(query, pc);
+        Util.optimizeNewLP(lp);
+    }
 }
