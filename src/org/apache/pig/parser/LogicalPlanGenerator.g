@@ -884,16 +884,17 @@ bin_expr[LogicalExpressionPlan plan] returns[LogicalExpression expr]
 ;
 
 limit_clause returns[String alias]
- : ^( LIMIT rel INTEGER  )
+ : ^( LIMIT rel ( INTEGER
    {
        $alias = builder.buildLimitOp( new SourceLocation( (PigParserNode)$LIMIT ), $statement::alias,
            $statement::inputAlias, Long.valueOf( $INTEGER.text ) );
    }
- | ^( LIMIT rel LONGINTEGER )
+ | LONGINTEGER
    {
        $alias = builder.buildLimitOp( new SourceLocation( (PigParserNode)$LIMIT ), $statement::alias,
            $statement::inputAlias, builder.parseLong( $LONGINTEGER.text ) );
    }
+ ) )
 ;
 
 sample_clause returns[String alias]

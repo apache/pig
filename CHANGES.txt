@@ -40,6 +40,8 @@ PIG-2410: Piggybank does not compile in 23 (daijy)
 
 BUG FIXES
 
+PIG-2428: In pig9, can't have limit(order by) without getting a null error (jcoveney via daijy)
+
 PIG-2462: getWrappedSplit is incorrectly returning the first split instead of the current split. (arov via daijy)
 
 PIG-2473: Fix eclipse files for pig 9 (daijy)

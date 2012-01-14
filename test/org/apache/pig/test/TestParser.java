@@ -21,7 +21,12 @@ package org.apache.pig.test;
 import static org.apache.pig.ExecType.LOCAL;
 import static org.apache.pig.ExecType.MAPREDUCE;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
+import java.text.DecimalFormat;
+import java.util.Iterator;
 import java.util.Properties;
 
 import junit.framework.TestCase;
@@ -33,6 +38,8 @@ import org.apache.pig.PigServer;
 import org.apache.pig.ExecType;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.data.DataType;
+import org.apache.pig.data.Tuple;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -90,6 +97,42 @@ protected final Log log = LogFactory.getLog(getClass());
         }
     }
     
+    private static final int DATALEN = 1024;
+    private String[][] DATA = new String[2][DATALEN];
+
+    @Test
+    public void testOrderNestedInLimit() throws ExecException, IOException {
+        DecimalFormat myFormatter = new DecimalFormat("0000000");
+        for (int i = 0; i < DATALEN; i++) {
+            DATA[0][i] = myFormatter.format(i);
+            DATA[1][i] = myFormatter.format(DATALEN - i - 1);
+        }
+
+        File tmpFile = File.createTempFile("test", "txt");
+        tmpFile.deleteOnExit();
+        PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+        for(int i = 0; i < DATALEN; i++) {
+            ps.println("1\t" + DATA[1][i] + "\t" + DATA[0][i]);
+        }
+        ps.close();
+
+        Util.copyFromLocalToCluster(cluster, tmpFile.getAbsolutePath(), tmpFile.getName());
+        int limit=100;
+
+        pigServer.registerQuery("myid = limit (order (load '"+tmpFile.getName()+"') by $2) "+limit+";");
+
+        boolean descending = true;
+
+        Iterator<Tuple> it = pigServer.openIterator("myid");
+        int col = (descending ? 1 : 0);
+        for(int i = 0; i < 100; i++) {
+            Tuple t = (Tuple)it.next();
+            int value = DataType.toInteger(t.get(1));
+            assertEquals(Integer.parseInt(DATA[col][i]), value);
+        }
+        assertFalse(it.hasNext());
+    }
+
     @Test
     public void testRemoteServerList() throws ExecException, IOException {
         try {
