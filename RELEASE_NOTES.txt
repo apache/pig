@@ -1,10 +1,13 @@
-These notes are for Pig 0.9.1 release.
+These notes are for Pig 0.9.2 release.
 
 Highlights
 ==========
 
-This is a maintenance release of Pig 0.9. It also adds rpm/deb release
-in addition to traditional tarball release.
+This is a maintenance release of Pig 0.9. See CHANGES.txt for a list of changes.
+
+Note it upgrads the bundled hadoop version to 1.0.0. Make sure to set umask to
+0022 before running unit test (we also see unit test fail due to extended acl,
+use setfacl -b to remove extened acl if applicable)
 
 System Requirements
 ===================
@@ -13,14 +16,14 @@ System Requirements
 Java installation
 2. Ant build tool:  http://ant.apache.org - to build source only
 3. Cygwin: http://www.cygwin.com/ - to run under Windows 
-4. This release is compatible with all Hadoop 0.20.X releases
+4. This release is compatible with all Hadoop 0.20.X and 1.0.0 releases
 
 Trying the Release
 ==================
 
-1. Download pig-0.9.1.tar.gz
-2. Unpack the file: tar -xzvf pig-0.9.1.tar.gz
-3. Move into the installation directory: cd pig-0.9.1
+1. Download pig-0.9.2.tar.gz
+2. Unpack the file: tar -xzvf pig-0.9.2.tar.gz
+3. Move into the installation directory: cd pig-0.9.2
 4. To run pig without Hadoop cluster, execute the command below. This will
 take you into an interactive shell called grunt that allows you to navigate
 the local file system and execute Pig commands against the local files
