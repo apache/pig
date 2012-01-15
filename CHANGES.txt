@@ -38,6 +38,10 @@ PIG-2347: Fix Pig Unit tests for hadoop 23 (daijy)
 
 PIG-2410: Piggybank does not compile in 23 (daijy)
 
+PIG-2125: Make Pig work with hadoop .NEXT (daijy)
+
+PIG-2128: Generating the jar file takes a lot of time and is unnecessary when running Pig local mode (julienledem)
+
 BUG FIXES
 
 PIG-2119: DuplicateForEachColumnRewrite makes assumptions about the position of LOGGenerate in the plan (daijy)
@@ -78,6 +82,9 @@ PIG-2055: inconsistent behavior in parser generated during build (rding via daij
 
 PIG-2387: BinStorageRecordReader causes negative progress (xutingz via daijy)
 
+PIG-2316: Incorrect results for FILTER *** BY ( *** OR ***) with
+ FilterLogicExpressionSimplifier optimizer turned on (thejas)
+
 PIG-2354: Several fixes for bin/pig (daijy)
 
 PIG-2379: Bug in Schema.getPigSchema(ResourceSchema rSchema) improperly adds two level access (jcoveney via dvryaboy)
@@ -91,11 +98,11 @@ PIG-2339: HCatLoader loads all the partitions in a partitioned table even though
 
 PIG-2385: Store statements not getting processed (daijy)
 
-Release 0.9.1 - Unreleased
+PIG-2271: PIG regression in BinStorage/PigStorage in 0.9.1 (thejas)
+
+Release 0.9.1
 
 IMPROVEMENTS
-
-PIG-2128: Generating the jar file takes a lot of time and is unnecessary when running Pig local mode (julienledem)
 
 PIG-2300: Pig Docs - release 0.9.1 (chandec via daijy)
 
