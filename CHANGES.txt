@@ -153,8 +153,6 @@ PIG-2189: e2e test harness needs to use Pig as a source of truth (gates via daij
 
 PIG-1904: Default split destination (azaroth via thejas)
 
-PIG-2125: Make Pig work with hadoop .NEXT (daijy)
-
 PIG-2143: Make PigStorage optionally store schema; improve docs. (dvryaboy) 
 
 PIG-1973: UDFContext.getUDFContext usage of ThreadLocal pattern 
@@ -173,8 +171,6 @@ PIG-2001: DefaultTuple(List) constructor is inefficient, causes List.size()
  complexity (woody via thejas)
 
 PIG-1916: Nested cross (zjshen via daijy)
-
-PIG-2128: Generating the jar file takes a lot of time and is unnecessary when running Pig local mode (julien)
 
 PIG-2121: e2e test harness should use ant instead of make (gates)
 
@@ -257,11 +253,6 @@ PIG-2290: TOBAG wraps tuple parameters in another tuple (ryan.hoegg via thejas)
 
 PIG-2288: Pig 0.9 error message not useful as compared to 0.8 in case 
  of group by (vivekp via thejas)
-
-PIG-2316: Incorrect results for FILTER *** BY ( *** OR ***) with
- FilterLogicExpressionSimplifier optimizer turned on (knoguchi via thejas)
-
-PIG-2271: PIG regression in BinStorage/PigStorage in 0.9.1 (thejas)
 
 PIG-2309: Keyword 'NOT' is wrongly treated as a UDF in split statement (vivekp via thejas)
 
@@ -371,6 +362,8 @@ Release 0.9.2 - Unreleased
 
 IMPROVEMENTS
 
+PIG-2125: Make Pig work with hadoop .NEXT (daijy)
+
 PIG-2471: Pig Requirements Hadoop (chandec via daijy)
 
 PIG-2431: Upgrade bundled hadoop version to 1.0.0 (daijy)
@@ -378,6 +371,8 @@ PIG-2431: Upgrade bundled hadoop version to 1.0.0 (daijy)
 PIG-2447: piggybank: get hive dependency from maven (thw via azaroth)
 
 PIG-2347: Fix Pig Unit tests for hadoop 23 (daijy)
+
+PIG-2128: Generating the jar file takes a lot of time and is unnecessary when running Pig local mode (julien)
 
 BUG FIXES
 
@@ -418,7 +413,12 @@ PIG-2346: TypeCastInsert should not insert Foreach if there is no as statement (
 PIG-2339: HCatLoader loads all the partitions in a partitioned table even though
  a filter clause on the partitions is specified in the Pig script (daijy)
 
-Release 0.9.1 - Unreleased
+PIG-2316: Incorrect results for FILTER *** BY ( *** OR ***) with
+ FilterLogicExpressionSimplifier optimizer turned on (knoguchi via thejas)
+
+PIG-2271: PIG regression in BinStorage/PigStorage in 0.9.1 (thejas)
+
+Release 0.9.1
 
 IMPROVEMENTS
 
