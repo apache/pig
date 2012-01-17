@@ -46,10 +46,10 @@ public class DefaultDataBag extends DefaultAbstractBag {
      */
     private static final long serialVersionUID = 2L;
 
-    private static TupleFactory gTupleFactory = TupleFactory.getInstance();
-
     private static final Log log = LogFactory.getLog(DefaultDataBag.class);
     
+    private static final InterSedes SEDES = InterSedesFactory.getInterSedesInstance();
+
     public DefaultDataBag() {
         mContents = new ArrayList<Tuple>();
     }
@@ -65,18 +65,22 @@ public class DefaultDataBag extends DefaultAbstractBag {
         mSize = listOfTuples.size();
     }
 
+    @Override
     public boolean isSorted() {
         return false;
     }
     
+    @Override
     public boolean isDistinct() {
         return false;
     }
     
+    @Override
     public Iterator<Tuple> iterator() {
         return new DefaultDataBagIterator();
     }
 
+    @Override
     public long spill() {
         // Make sure we have something to spill.  Don't create empty
         // files, as that will make a mess.
@@ -99,7 +103,7 @@ public class DefaultDataBag extends DefaultAbstractBag {
             try {
                 Iterator<Tuple> i = mContents.iterator();
                 while (i.hasNext()) {
-                    i.next().write(out);
+                    SEDES.writeDatum(out, i.next(), DataType.TUPLE);
                     spilled++;
                     // This will spill every 16383 records.
                     if ((spilled & 0x3fff) == 0) reportProgress();
@@ -150,6 +154,7 @@ public class DefaultDataBag extends DefaultAbstractBag {
         DefaultDataBagIterator() {
         }
 
+        @Override
         public boolean hasNext() { 
             // Once we call hasNext(), set the flag, so we can call hasNext() repeated without fetching next tuple
             if (hasCachedTuple)
@@ -159,6 +164,7 @@ public class DefaultDataBag extends DefaultAbstractBag {
             return (mBuf != null);
         }
 
+        @Override
         public Tuple next() {
             // This will report progress every 1024 times through next.
             // This should be much faster than using mod.
@@ -206,10 +212,9 @@ public class DefaultDataBag extends DefaultAbstractBag {
                     log.fatal(msg, fnfe);
                     throw new RuntimeException(msg, fnfe);
                 }
-                Tuple t = gTupleFactory.newTuple();
                 for (int i = 0; i < mMemoryPtr; i++) {
                     try {
-                        t.readFields(mIn);
+                        SEDES.readDatum(mIn);
                     } catch (EOFException eof) {
                         // This should never happen, it means we
                         // didn't dump all of our tuples to disk.
@@ -234,14 +239,15 @@ public class DefaultDataBag extends DefaultAbstractBag {
         /**
          * Not implemented.
          */
+        @Override
         public void remove() {}
 
         private Tuple readFromFile() {
             if (mIn != null) {
                 // We already have a file open
-                Tuple t = gTupleFactory.newTuple();
+                Tuple t;
                 try {
-                    t.readFields(mIn);
+                    t = (Tuple) SEDES.readDatum(mIn);
                     return t;
                 } catch (EOFException eof) {
                     // Fall through to the next case where we find the

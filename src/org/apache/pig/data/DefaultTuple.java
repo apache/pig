@@ -27,13 +27,9 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.PigException;
@@ -103,6 +99,7 @@ public class DefaultTuple implements Tuple {
      * @param t
      *            Tuple to reference.
      */
+    @Override
     public void reference(Tuple t) {
         mFields = t.getAll();
     }
@@ -112,6 +109,7 @@ public class DefaultTuple implements Tuple {
      * 
      * @return number of fields in the tuple.
      */
+    @Override
     public int size() {
         return mFields.size();
     }
@@ -125,6 +123,7 @@ public class DefaultTuple implements Tuple {
      * @throws ExecException
      *             if the field number given is greater than or equal to the number of fields in the tuple.
      */
+    @Override
     public boolean isNull(int fieldNum) throws ExecException {
         return (mFields.get(fieldNum) == null);
     }
@@ -139,6 +138,7 @@ public class DefaultTuple implements Tuple {
      * @throws ExecException
      *             if the field number is greater than or equal to the number of fields in the tuple.
      */
+    @Override
     public byte getType(int fieldNum) throws ExecException {
         return DataType.findType(mFields.get(fieldNum));
     }
@@ -152,6 +152,7 @@ public class DefaultTuple implements Tuple {
      * @throws ExecException
      *             if the field number is greater than or equal to the number of fields in the tuple.
      */
+    @Override
     public Object get(int fieldNum) throws ExecException {
         return mFields.get(fieldNum);
     }
@@ -161,6 +162,7 @@ public class DefaultTuple implements Tuple {
      * 
      * @return List&lt;Object&gt; containing the fields of the tuple in order.
      */
+    @Override
     public List<Object> getAll() {
         return mFields;
     }
@@ -175,6 +177,7 @@ public class DefaultTuple implements Tuple {
      * @throws ExecException
      *             if the field number is greater than or equal to the number of fields in the tuple.
      */
+    @Override
     public void set(int fieldNum, Object val) throws ExecException {
         mFields.set(fieldNum, val);
     }
@@ -187,6 +190,7 @@ public class DefaultTuple implements Tuple {
      * @param val
      *            Object to append to the tuple.
      */
+    @Override
     public void append(Object val) {
         mFields.add(val);
     }
@@ -197,6 +201,7 @@ public class DefaultTuple implements Tuple {
      * 
      * @return estimated memory size.
      */
+    @Override
     public long getMemorySize() {
         Iterator<Object> i = mFields.iterator();
         // fixed overhead
@@ -228,6 +233,7 @@ public class DefaultTuple implements Tuple {
      * @throws ExecException
      *             if a non-atomic value is found.
      */
+    @Override
     public String toDelimitedString(String delim) throws ExecException {
         StringBuilder buf = new StringBuilder();
         for (Iterator<Object> it = mFields.iterator(); it.hasNext();) {
@@ -244,6 +250,7 @@ public class DefaultTuple implements Tuple {
         return TupleFormat.format(this);
     }
 
+    @Override
     public int compareTo(Object other) {
         if (other instanceof Tuple) {
             Tuple t = (Tuple) other;
@@ -522,6 +529,7 @@ public class DefaultTuple implements Tuple {
         return hash;
     }
 
+    @Override
     public void write(DataOutput out) throws IOException {
         out.writeByte(DataType.TUPLE);
         int sz = size();
@@ -531,6 +539,7 @@ public class DefaultTuple implements Tuple {
         }
     }
 
+    @Override
     public void readFields(DataInput in) throws IOException {
         // Clear our fields, in case we're being reused.
         mFields.clear();
@@ -553,22 +562,18 @@ public class DefaultTuple implements Tuple {
         }
     }
 
-    /**
-     * @return true if this Tuple is null
-     */
-    public boolean isNull() {
-        return isNull;
-    }
-
-    /**
-     * @param isNull
-     *            boolean indicating whether this tuple is null
-     */
-    public void setNull(boolean isNull) {
-        this.isNull = isNull;
-    }
-    
     public static Class<? extends TupleRawComparator> getComparatorClass() {
         return DefaultTupleRawComparator.class;
+    }
+
+    @Override
+    @Deprecated
+    public boolean isNull() {
+        return false;
+    }
+    
+    @Override
+    @Deprecated
+    public void setNull(boolean isNull) {
     }
 }

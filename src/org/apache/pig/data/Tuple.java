@@ -151,14 +151,18 @@ public interface Tuple extends WritableComparable, Serializable {
     String toDelimitedString(String delim) throws ExecException;
     
     /**
-     * Determine if this entire tuple (not any particular field) is null.
-     * @return true if this Tuple is null
+     * This is an unsupported method.
+     * It never really worked. Don't use it!
+     * @return probably nonsense! Don't rely on this!
      */
+    @Deprecated
     public boolean isNull();
     
     /**
-     * Mark this entire tuple as null or not null.
-     * @param isNull boolean indicating whether this tuple is null
+     * This is an unsupported method.
+     * It never really worked. Don't use it!
+     * @param isNull (but it will be ignored)
      */
+    @Deprecated
     public void setNull(boolean isNull);
 }

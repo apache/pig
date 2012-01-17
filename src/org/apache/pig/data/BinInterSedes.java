@@ -30,10 +30,8 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.DataInputBuffer;
-import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
@@ -42,8 +40,6 @@ import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
-import org.apache.pig.impl.io.NullableTuple;
-import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.util.ObjectSerializer;
 
 /**
@@ -96,6 +92,17 @@ public class BinInterSedes implements InterSedes {
 
     public static final byte NULL = 27;
 
+    // These are special bytes to mark optimized "primitive" tuples.
+    public static final byte PINT_TUPLE = 28;
+    public static final byte PFLOAT_TUPLE = 29;
+    public static final byte PLONG_TUPLE = 30;
+    public static final byte PDOUBLE_TUPLE = 31;
+    public static final byte PSTRING_TUPLE = 32;
+    public static final byte PBOOL_TUPLE = 33;
+    public static final byte PRIMITIVE_TUPLE = 34;
+
+
+
     private static TupleFactory mTupleFactory = TupleFactory.getInstance();
     private static BagFactory mBagFactory = BagFactory.getInstance();
     static final int UNSIGNED_SHORT_MAX = 65535;
@@ -112,6 +119,12 @@ public class BinInterSedes implements InterSedes {
         }
         return t;
 
+    }
+
+    private Tuple readPrimitiveTuple(DataInput in) throws IOException {
+        PrimitiveTuple t = new PrimitiveTuple();
+        t.readFields(in);
+        return t;
     }
 
     private int getTupleSize(DataInput in, byte type) throws IOException {
@@ -245,6 +258,7 @@ public class BinInterSedes implements InterSedes {
      * 
      * @see org.apache.pig.data.InterSedes#readDatum(java.io.DataInput)
      */
+    @Override
     public Object readDatum(DataInput in) throws IOException, ExecException {
         // Read the data type
         byte b = in.readByte();
@@ -257,11 +271,13 @@ public class BinInterSedes implements InterSedes {
         return new DataByteArray(ba);
     }
 
-    /*
-     * (non-Javadoc)
+    /**
+     * Expects binInterSedes data types (NOT DataType types!)
+     * <p>
      * 
      * @see org.apache.pig.data.InterSedes#readDatum(java.io.DataInput, byte)
      */
+    @Override
     public Object readDatum(DataInput in, byte type) throws IOException, ExecException {
         switch (type) {
         case TUPLE:
@@ -335,9 +351,36 @@ public class BinInterSedes implements InterSedes {
         case GENERIC_WRITABLECOMPARABLE:
             return readWritable(in);
 
+        case PRIMITIVE_TUPLE:
+            return readPrimitiveTuple(in);
+
         case NULL:
             return null;
 
+        case PINT_TUPLE:
+            Tuple t = new PIntTuple();
+            t.readFields(in);
+            return t;
+        case PFLOAT_TUPLE:
+            t = new PFloatTuple();
+            t.readFields(in);
+            return t;
+        case PLONG_TUPLE:
+            t = new PLongTuple();
+            t.readFields(in);
+            return t;
+        case PDOUBLE_TUPLE:
+            t = new PDoubleTuple();
+            t.readFields(in);
+            return t;
+        case PSTRING_TUPLE:
+            t = new PStringTuple();
+            t.readFields(in);
+            return t;
+        case PBOOL_TUPLE:
+            t = new PBooleanTuple();
+            t.readFields(in);
+            return t;
         default:
             throw new RuntimeException("Unexpected data type " + type + " found in stream.");
         }
@@ -348,10 +391,16 @@ public class BinInterSedes implements InterSedes {
      * 
      * @see org.apache.pig.data.InterSedes#writeDatum(java.io.DataOutput, java.lang.Object)
      */
-    @SuppressWarnings("unchecked")
+    @Override
     public void writeDatum(DataOutput out, Object val) throws IOException {
         // Read the data type
         byte type = DataType.findType(val);
+        writeDatum(out, val, type);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public void writeDatum(DataOutput out, Object val, byte type) throws IOException {
         switch (type) {
         case DataType.TUPLE:
             writeTuple(out, (Tuple) val);
@@ -363,7 +412,6 @@ public class BinInterSedes implements InterSedes {
 
         case DataType.MAP: {
             writeMap(out, (Map<String, Object>) val);
-
             break;
         }
 
@@ -415,7 +463,7 @@ public class BinInterSedes implements InterSedes {
             break;
 
         case DataType.BOOLEAN:
-            if (((Boolean) val) == true)
+            if ((Boolean) val)
                 out.writeByte(BOOLEAN_TRUE);
             else
                 out.writeByte(BOOLEAN_FALSE);
@@ -526,6 +574,9 @@ public class BinInterSedes implements InterSedes {
     }
 
     private void writeTuple(DataOutput out, Tuple t) throws IOException {
+        if (t instanceof TypeAwareTuple) {
+            t.write(out);
+        } else {
         final int sz = t.size();
         if (sz < UNSIGNED_BYTE_MAX) {
             out.writeByte(TINYTUPLE);
@@ -542,6 +593,7 @@ public class BinInterSedes implements InterSedes {
             writeDatum(out, t.get(i));
         }
     }
+    }
 
     /*
      * (non-Javadoc)
@@ -551,10 +603,16 @@ public class BinInterSedes implements InterSedes {
     @Override
     public void addColsToTuple(DataInput in, Tuple t) throws IOException {
         byte type = in.readByte();
+        switch (type) {
+        case PRIMITIVE_TUPLE:
+            t.readFields(in);
+            break;
+        default:
         int sz = getTupleSize(in, type);
         for (int i = 0; i < sz; i++) {
             t.append(readDatum(in));
         }
+    }
     }
     
     public static class BinInterSedesTupleRawComparator extends WritableComparator implements TupleRawComparator {

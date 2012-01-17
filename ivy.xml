@@ -64,8 +64,10 @@
       conf="hadoop23->master"/>
     <dependency org="commons-el" name="commons-el" rev="${commons-el.version}"
       conf="compile->master"/>
-    <dependency org="commons-httpclient" name="commons-httpclient" rev="${commons-httpclient.version}"
-      conf="hadoop23->master"/>
+    <dependency org="org.apache.httpcomponents" name="httpclient" rev="${httpcomponents.version}"
+      conf="compile->master"/>
+    <dependency org="org.apache.httpcomponents" name="httpcore" rev="${httpcomponents.version}"
+      conf="compile->master"/>
     <dependency org="commons-configuration" name="commons-configuration" rev="${commons-configuration.version}"
       conf="hadoop23->master"/>
     <dependency org="commons-collections" name="commons-collections" rev="${commons-collections.version}"

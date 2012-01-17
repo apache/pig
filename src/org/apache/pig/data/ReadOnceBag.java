@@ -22,13 +22,10 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.Map;
-
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackageLite;
 import org.apache.pig.impl.io.NullableTuple;
-import org.apache.pig.impl.util.Pair;
 
 /**
  * This bag is specifically created for use by POPackageLite. So it has three 
@@ -49,8 +46,6 @@ public class ReadOnceBag implements DataBag {
     
     // The key being worked on
     Object key;
-
-    protected static TupleFactory mTupleFactory = TupleFactory.getInstance();
 
     /**
      * 
