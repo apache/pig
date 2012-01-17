@@ -417,14 +417,13 @@
 	  <target name="prepare">
 	    <uptodate property="lexerGrammarProcessed" srcfile="${grammar.src.dir}/${grammar.name}Lexer.g">
 	      <mapper type="merge" to="${src.gen.dir}/${grammar.package.dir}/${grammar.name}Lexer.java"/>
-	    </uptodate>
+	    </uptodate><!--
 	    <uptodate property="parserGrammarProcessed" srcfile="${grammar.src.dir}/${grammar.name}Parser.g">
 	      <mapper type="merge" to="${src.gen.dir}/${grammar.package.dir}/${grammar.name}Parser.java"/>
 	    </uptodate>
-	    <uptodate property="treeGrammarProcessed">
-		  <srcfiles dir="${grammar.src.dir}" includes="**/*.g"/>
-		  <mapper type="merge" from="${grammar.src.dir}/*.g" to="${src.gen.dir}/${gramar.package.dir}/*.java"/>
-	    </uptodate>
+	    <uptodate property="treeGrammarProcessed" srcfile="${grammar.src.dir}/${grammar.name}Tree.g">
+	      <mapper type="merge" to="${src.gen.dir}/${gramar.package.dir}/${grammar.name}Tree.java"/>
+	    </uptodate>-->
 	    <!--mkdir dir="build/classes"/-->
 	    <mkdir dir="${src.gen.dir}/${grammar.package.dir}"/>
 	  </target>
