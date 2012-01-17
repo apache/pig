@@ -55,7 +55,7 @@ public class SortedDataBag extends DefaultAbstractBag{
      */
     private static final long serialVersionUID = 2L;
 
-    private static TupleFactory gTupleFactory = TupleFactory.getInstance();
+    private static final InterSedes SEDES = InterSedesFactory.getInterSedesInstance();
 
     private static final Log log = LogFactory.getLog(SortedDataBag.class);
 
@@ -63,15 +63,18 @@ public class SortedDataBag extends DefaultAbstractBag{
     private boolean mReadStarted = false;
 
     private static class DefaultComparator implements Comparator<Tuple> {
+        @Override
         @SuppressWarnings("unchecked")
         public int compare(Tuple t1, Tuple t2) {
             return t1.compareTo(t2);
         }
 
+        @Override
         public boolean equals(Object o) {
             return false;
         }
 
+        @Override
         public int hashCode() {
             return 42; 
         }
@@ -88,18 +91,22 @@ public class SortedDataBag extends DefaultAbstractBag{
         mContents = new ArrayList<Tuple>();
     }
 
+    @Override
     public boolean isSorted() {
         return true;
     }
     
+    @Override
     public boolean isDistinct() {
         return false;
     }
     
+    @Override
     public Iterator<Tuple> iterator() {
         return new SortedDataBagIterator();
     }
 
+    @Override
     public long spill() {
         // Make sure we have something to spill.  Don't create empty
         // files, as that will make a mess.
@@ -132,7 +139,7 @@ public class SortedDataBag extends DefaultAbstractBag{
                 }
                 Iterator<Tuple> i = mContents.iterator();
                 while (i.hasNext()) {
-                    i.next().write(out);
+                    SEDES.writeDatum(out, i.next(), DataType.TUPLE);
                     spilled++;
                     // This will spill every 16383 records.
                     if ((spilled & 0x3fff) == 0) reportProgress();
@@ -181,10 +188,12 @@ public class SortedDataBag extends DefaultAbstractBag{
             public Tuple tuple;
             public int fileNum;
 
+            @Override
             public int compareTo(PQContainer other) {
                 return mComp.compare(tuple, other.tuple);
             }
 
+            @Override
             public boolean equals(Object other) {
                 if (other instanceof PQContainer)
                     return tuple.equals(((PQContainer)other).tuple);
@@ -192,6 +201,7 @@ public class SortedDataBag extends DefaultAbstractBag{
                     return false;
             }
 
+            @Override
             public int hashCode() {
                 return tuple.hashCode(); 
             }
@@ -217,12 +227,14 @@ public class SortedDataBag extends DefaultAbstractBag{
             }
         }
 
+        @Override
         public boolean hasNext() { 
             // See if we can find a tuple.  If so, buffer it.
             mBuf = next();
             return mBuf != null;
         }
 
+        @Override
         public Tuple next() {
             // This will report progress every 1024 times through next.
             // This should be much faster than using mod.
@@ -281,10 +293,9 @@ public class SortedDataBag extends DefaultAbstractBag{
 
                 // Fast foward past the tuples we've already put in the
                 // queue.
-                Tuple t = gTupleFactory.newTuple();
                 for (int i = 0; i < mMemoryPtr; i++) {
                     try {
-                        t.readFields(in);
+                        SEDES.readDatum(in);
                     } catch (EOFException eof) {
                         // This should never happen, it means we
                         // didn't dump all of our tuples to disk.
@@ -312,6 +323,7 @@ public class SortedDataBag extends DefaultAbstractBag{
         /**
          * Not implemented.
          */
+        @Override
         public void remove() {}
 
         private Tuple readFromPriorityQ() {
@@ -388,9 +400,8 @@ public class SortedDataBag extends DefaultAbstractBag{
             DataInputStream in = mStreams.get(fileNum);
             if (in != null) {
                 // There's still data in this file
-                c.tuple = gTupleFactory.newTuple();
                 try {
-                    c.tuple.readFields(in);
+                    c.tuple = (Tuple) SEDES.readDatum(in);
                     mMergeQ.add(c);
                 } catch (EOFException eof) {
                     // Out of tuples in this file.  Set our slot in the

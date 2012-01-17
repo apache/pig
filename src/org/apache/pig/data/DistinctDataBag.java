@@ -53,28 +53,28 @@ import org.apache.pig.PigWarning;
  */
 public class DistinctDataBag extends DefaultAbstractBag {
 
-    /**
-     * 
-     */
     private static final long serialVersionUID = 2L;
 
     private static final Log log = LogFactory.getLog(DistinctDataBag.class);
 
-    private static TupleFactory gTupleFactory = TupleFactory.getInstance();
+    private static final InterSedes SEDES = InterSedesFactory.getInterSedesInstance();
 
     public DistinctDataBag() {
         mContents = new HashSet<Tuple>();
     }
 
+    @Override
     public boolean isSorted() {
         return false;
     }
     
+    @Override
     public boolean isDistinct() {
         return true;
     }
     
     
+    @Override
     public long size() {
         if (mSpillFiles != null && mSpillFiles.size() > 0){
             //We need to racalculate size to guarantee a count of unique 
@@ -96,6 +96,7 @@ public class DistinctDataBag extends DefaultAbstractBag {
     }
     
     
+    @Override
     public Iterator<Tuple> iterator() {
         return new DistinctDataBagIterator();
     }
@@ -122,6 +123,7 @@ public class DistinctDataBag extends DefaultAbstractBag {
     }
 
 
+    @Override
     public long spill() {
         // Make sure we have something to spill.  Don't create empty
         // files, as that will make a mess.
@@ -148,7 +150,7 @@ public class DistinctDataBag extends DefaultAbstractBag {
                 if (mContents instanceof ArrayList) {
                     Iterator<Tuple> i = mContents.iterator();
                     while (i.hasNext()) {
-                        i.next().write(out);
+                        SEDES.writeDatum(out, i.next(), DataType.TUPLE);
                         spilled++;
                         // This will spill every 16383 records.
                         if ((spilled & 0x3fff) == 0) reportProgress();
@@ -202,11 +204,13 @@ public class DistinctDataBag extends DefaultAbstractBag {
             public Tuple tuple;
             public int fileNum;
 
+            @Override
             @SuppressWarnings("unchecked")
             public int compareTo(TContainer other) {
                 return tuple.compareTo(other.tuple);
             }
 
+            @Override
             public boolean equals(Object obj){
                 if (obj instanceof TContainer)
                     return tuple.equals(((TContainer)obj).tuple);
@@ -214,6 +218,7 @@ public class DistinctDataBag extends DefaultAbstractBag {
                     return false;
             }
 
+            @Override
             public int hashCode() {
                 return tuple.hashCode(); 
             }
@@ -243,12 +248,14 @@ public class DistinctDataBag extends DefaultAbstractBag {
             }
         }
 
+        @Override
         public boolean hasNext() { 
             // See if we can find a tuple.  If so, buffer it.
             mBuf = next();
             return mBuf != null;
         }
 
+        @Override
         public Tuple next() {
             // This will report progress every 1024 times through next.
             // This should be much faster than using mod.
@@ -305,12 +312,11 @@ public class DistinctDataBag extends DefaultAbstractBag {
                     throw new RuntimeException(msg, fnfe);
                 }
 
-                // Fast foward past the tuples we've already put in the
+                // Fast forward past the tuples we've already put in the
                 // queue.
-                Tuple t = gTupleFactory.newTuple();
                 for (int i = 0; i < mMemoryPtr; i++) {
                     try {
-                        t.readFields(in);
+                        SEDES.readDatum(in);
                     } catch (EOFException eof) {
                         // This should never happen, it means we
                         // didn't dump all of our tuples to disk.
@@ -336,6 +342,7 @@ public class DistinctDataBag extends DefaultAbstractBag {
         /**
          * Not implemented.
          */
+        @Override
         public void remove() {}
 
         private Tuple readFromTree() {
@@ -418,10 +425,9 @@ public class DistinctDataBag extends DefaultAbstractBag {
             DataInputStream in = mStreams.get(fileNum);
             if (in != null) {
                 // There's still data in this file
-                c.tuple = gTupleFactory.newTuple();
                 do {
                     try {
-                        c.tuple.readFields(in);
+                        c.tuple = (Tuple) SEDES.readDatum(in);
                         // If we find a unique entry, then add it to the queue.
                         // Otherwise ignore it and keep reading.  If we run out
                         // of tuples to read that's fine, we just won't add a

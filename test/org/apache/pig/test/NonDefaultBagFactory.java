@@ -22,7 +22,7 @@ import java.util.List;
 
 import org.apache.pig.data.*;
 
-// Test data bag factory, for testing that we can propery provide a non
+// Test data bag factory, for testing that we can properly provide a non
 // default bag factory.
 public class NonDefaultBagFactory extends BagFactory {
     public DataBag newDefaultBag() { return null; }

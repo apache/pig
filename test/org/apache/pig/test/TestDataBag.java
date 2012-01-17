@@ -19,7 +19,6 @@ package org.apache.pig.test;
 
 import java.util.*;
 import java.io.DataInputStream;
-import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.PipedInputStream;
@@ -81,6 +80,7 @@ public class TestDataBag extends junit.framework.TestCase {
         }
     }
 
+    @Override
     protected void tearDown() throws Exception {
     	BagFactory.resetSelf();
         System.clearProperty("pig.data.bag.factory.name");
@@ -156,6 +156,37 @@ public class TestDataBag extends junit.framework.TestCase {
         for (int j = 0; j < 3; j++) {
             for (int i = 0; i < 10; i++) {
                 Tuple t = TupleFactory.getInstance().newTuple(new Integer(i));
+                b.add(t);
+                rightAnswer.add(t);
+            }
+            mgr.forceSpill();
+        }
+
+        // Read tuples back, hopefully they come out in the same order.
+        Iterator<Tuple> bIter = b.iterator();
+        Iterator<Tuple> rIter = rightAnswer.iterator();
+
+        while (rIter.hasNext()) {
+            assertTrue("bag ran out of tuples before answer", bIter.hasNext());
+            assertEquals("tuples should be the same", bIter.next(), rIter.next());
+        }
+
+        assertFalse("right answer ran out of tuples before the bag",
+            bIter.hasNext());
+    }
+
+    @Test
+    public void testTypedTupleSpill() throws Exception {
+        TestMemoryManager mgr = new TestMemoryManager();
+        LocalBagFactory factory = new LocalBagFactory(mgr);
+        DataBag b = factory.newDefaultBag();
+        ArrayList<Tuple> rightAnswer = new ArrayList<Tuple>(30);
+
+        // Write tuples into both
+        for (int j = 0; j < 3; j++) {
+            for (int i = 0; i < 10; i++) {
+                Tuple t = TupleFactory.getInstance().newTupleForSchema(DataType.INTEGER);
+                t.set(0, i);
                 b.add(t);
                 rightAnswer.add(t);
             }

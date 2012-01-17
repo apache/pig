@@ -65,6 +65,7 @@ public class TargetedTuple implements Tuple {
         return sb.toString();
     }
 
+    @Override
     public void write(DataOutput out) throws IOException {
         t.write(out);
         out.writeInt(targetOps.size());
@@ -77,6 +78,7 @@ public class TargetedTuple implements Tuple {
         }
     }
 
+    @Override
     public void readFields(DataInput in) throws IOException {
         t.readFields(in);
         targetOps = new ArrayList<OperatorKey>();
@@ -106,72 +108,82 @@ public class TargetedTuple implements Tuple {
         this.targetOps = targetOps;
     }
 
+    @Override
     public void append(Object val) {
         t.append(val);
     }
 
+    @Override
     public Object get(int fieldNum) throws ExecException {
         return t.get(fieldNum);
     }
 
+    @Override
     public List<Object> getAll() {
         return t.getAll();
     }
 
+    @Override
     public long getMemorySize() {
         return t.getMemorySize();
     }
 
+    @Override
     public byte getType(int fieldNum) throws ExecException {
         return t.getType(fieldNum);
     }
 
+    @Override
     public boolean isNull(int fieldNum) throws ExecException {
         return t.isNull(fieldNum);
     }
 
+    @Override
     public void reference(Tuple t) {
         this.t = t;
     }
 
+    @Override
     public void set(int fieldNum, Object val) throws ExecException {
         t.set(fieldNum, val);
     }
 
+    @Override
     public int size() {
         return t.size();
     }
 
+    @Override
     public String toDelimitedString(String delim) throws ExecException {
         return t.toDelimitedString(delim);
     }
 
+    @Override
     @SuppressWarnings("unchecked")
     public int compareTo(Object o) {
         return t.compareTo(o);
     }
     
+    @Override
     @SuppressWarnings("unchecked")
     public boolean equals(Object o) {
         return t.equals(o);
     }
 
+    @Override
     public int hashCode() {
         return t.hashCode();
     }
     
-    /**
-     * @return true if this Tuple is null
-     */
+    @Override
+    @Deprecated
     public boolean isNull() {
-        return isNull;
+        return false;
     }
 
-    /**
-     * @param isNull boolean indicating whether this tuple is null
-     */
+    @Override
+    @Deprecated
     public void setNull(boolean isNull) {
-        this.isNull = isNull;
     }
 
 }
