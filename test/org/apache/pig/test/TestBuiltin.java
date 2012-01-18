@@ -2141,7 +2141,7 @@ public class TestBuiltin {
         // check that loading the top level dir still reading the file a couple
         // of subdirs below
         LoadFunc text1 = new ReadToEndLoader(new TextLoader(), ConfigurationUtil.
-                toConfiguration(new Properties()), "testLFTest-input1.txt", 0);
+            toConfiguration(cluster.getProperties()), "testLFTest-input1.txt", 0);
         Tuple f1 = text1.getNext();
         Tuple f2 = text1.getNext();
         Util.deleteFile(cluster, "testLFTest-input1.txt");
@@ -2149,7 +2149,7 @@ public class TestBuiltin {
             expected2.equals(f2.get(0).toString()));
         Util.createInputFile(cluster, "testLFTest-input2.txt", new String[] {});
         LoadFunc text2 = new ReadToEndLoader(new TextLoader(), ConfigurationUtil.
-                toConfiguration(new Properties()), "testLFTest-input2.txt", 0);
+            toConfiguration(cluster.getProperties()), "testLFTest-input2.txt", 0);
         Tuple f3 = text2.getNext();
         Util.deleteFile(cluster, "testLFTest-input2.txt");
         assertTrue(f3 == null);
@@ -2175,7 +2175,7 @@ public class TestBuiltin {
         Util.registerMultiLineQuery(mrPigServer, query);
         mrPigServer.executeBatch();
         LoadFunc lfunc = new ReadToEndLoader(new PigStorage(), ConfigurationUtil.
-                toConfiguration(new Properties()), outputLocation, 0);
+            toConfiguration(cluster.getProperties()), outputLocation, 0);
         Tuple f2 = lfunc.getNext();
         Util.deleteFile(cluster, "testSFPig-input.txt");
 

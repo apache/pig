@@ -44,6 +44,8 @@ PIG-2128: Generating the jar file takes a lot of time and is unnecessary when ru
 
 BUG FIXES
 
+PIG-2477: TestBuiltin testLFText/testSFPig failing against 23 due to invalid test setup -- InvalidInputException (phunt via daijy)
+
 PIG-2119: DuplicateForEachColumnRewrite makes assumptions about the position of LOGGenerate in the plan (daijy)
 
 PIG-2428: In pig9, can't have limit(order by) without getting a null error (jcoveney via daijy)
