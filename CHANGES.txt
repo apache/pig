@@ -378,6 +378,8 @@ PIG-2128: Generating the jar file takes a lot of time and is unnecessary when ru
 
 BUG FIXES
 
+PIG-2477: TestBuiltin testLFText/testSFPig failing against 23 due to invalid test setup -- InvalidInputException (phunt via daijy)
+
 PIG-2462: getWrappedSplit is incorrectly returning the first split instead of the current split. (arov via daijy)
 
 PIG-2472: piggybank unit tests write directly to /tmp (thw via daijy)
