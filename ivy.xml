@@ -62,6 +62,8 @@
       conf="hadoop23->master"/>
     <dependency org="commons-codec" name="commons-codec" rev="${commons-codec.version}"
       conf="hadoop23->master"/>
+    <dependency org="commons-httpclient" name="commons-httpclient" rev="${commons-httpclient.version}"
+      conf="hadoop23->master"/>
     <dependency org="commons-el" name="commons-el" rev="${commons-el.version}"
       conf="compile->master"/>
     <dependency org="org.apache.httpcomponents" name="httpclient" rev="${httpcomponents.version}"
