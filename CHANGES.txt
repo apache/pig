@@ -44,6 +44,8 @@ PIG-2128: Generating the jar file takes a lot of time and is unnecessary when ru
 
 BUG FIXES
 
+PIG-2480: TestUDFContext.testUDFContext failing against hadoop 23 (daijy)
+
 PIG-2477: TestBuiltin testLFText/testSFPig failing against 23 due to invalid test setup -- InvalidInputException (phunt via daijy)
 
 PIG-2119: DuplicateForEachColumnRewrite makes assumptions about the position of LOGGenerate in the plan (daijy)

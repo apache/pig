@@ -52,7 +52,7 @@ public class TestUDFContext {
         File a = Util.createLocalInputFile("a.txt", new String[] { "dumb" });
         File b = Util.createLocalInputFile("b.txt", new String[] { "dumber" });
         FileLocalizer.deleteTempFiles();
-        PigServer pig = new PigServer(ExecType.LOCAL, cluster.getProperties());
+        PigServer pig = new PigServer(ExecType.LOCAL, new Properties());
         String[] statement = { "A = LOAD '" + a.getAbsolutePath() +
                 "' USING org.apache.pig.test.utils.UDFContextTestLoader('joe');",
             "B = LOAD '" + b.getAbsolutePath() +
@@ -89,7 +89,7 @@ public class TestUDFContext {
      */
     @Test
     public void testUDFContextReset() throws Exception {
-        PigServer pig = new PigServer(ExecType.LOCAL, cluster.getProperties());
+        PigServer pig = new PigServer(ExecType.LOCAL, new Properties());
         pig.registerQuery(" l = load 'file' as (a :int, b : int, c : int);");
         pig.registerQuery(" f = foreach l generate a, b;");        
         pig.explain("f", System.out);
