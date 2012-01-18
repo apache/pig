@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2349: Ant build repeats ivy-buildJar several times (azaroth)
+
 PIG-2359: Support more efficient Tuples when schemas are known (dvryaboy)
 
 PIG-2282: Automatically update Eclipse .classpath file when new libs are added to the classpath through Ivy (azaroth via daijy)
