@@ -52,12 +52,13 @@ public class MiniCluster extends MiniGenericCluster {
     
     @Override
     protected void setupMiniDfsAndMrClusters() {
-		try {
+	try {
             final int dataNodes = 4;     // There will be 4 data nodes
             final int taskTrackers = 4;  // There will be 4 task tracker nodes
             
-		    // Create the configuration hadoop-site.xml file
-            File conf_dir = new File(System.getProperty("user.home"), "pigtest/conf/");
+	    // Create the configuration hadoop-site.xml file
+            System.setProperty("hadoop.log.dir", "build/test/logs");
+            File conf_dir = new File("build/classes/");
             conf_dir.mkdirs();
             File conf_file = new File(conf_dir, "hadoop-site.xml");
             

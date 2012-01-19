@@ -65,9 +65,9 @@ public class ConfigurationUtil {
         for (Entry<String, String> entry : replaceConf) {
             origConf.set(entry.getKey(), entry.getValue());
         }
-        
+
     }
-    
+
     public static Properties getLocalFSProperties() {
         Configuration localConf;
         if (PigMapReduce.sJobContext!=null && PigMapReduce.sJobContext.getConfiguration().get("exectype").equals(ExecType.LOCAL.toString())) {
@@ -76,8 +76,8 @@ public class ConfigurationUtil {
         } else {
             localConf = new Configuration(true);
             // It's really hacky, try to get unit test working under hadoop 23.
-            // Hadoop23 MiniMRCluster currently need setup Distributed cache before start, 
-            // so pigtest/conf/hadoop-site.xml contains such entry. This prevents some tests from 
+            // Hadoop23 MiniMRCluster currently need setup Distributed cache before start,
+            // so build/classes/hadoop-site.xml contains such entry. This prevents some tests from
             // successful (They expect those files in hdfs), so we need to unset it in hadoop 23.
             // This should go away once MiniMRCluster fix the distributed cache issue.
             Method unsetMethod = null;

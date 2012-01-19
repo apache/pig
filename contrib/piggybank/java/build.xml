@@ -56,7 +56,6 @@
     <property name="test.timeout" value="900000" />
     <property name="test.junit.output.format" value="plain" />
     <property name="test.src.dir" value="src/test/java" />
-    <property name="junit.hadoop.conf" value="${user.home}/pigtest/conf/"/>
 
     <path id="pigudf.classpath">
         <pathelement location="${build.classes}"/>
@@ -72,7 +71,6 @@
         <pathelement location="${build.classes}"/>
         <pathelement location="${test.classes}"/>
         <pathelement location="${test.src.dir}"/>
-        <pathelement location="${junit.hadoop.conf}" />
         <path refid="pigudf.classpath"/>
     </path>
 

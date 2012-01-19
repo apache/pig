@@ -39,15 +39,15 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestNativeMapReduce  {
-    
+
     //NOTE:
     // Testing NativeMapReduce in LOCAL mode from unit test setup is not easy.
     // (ie current WordCount.jar does not work as-is).
-    // the presence of ~/pigtest/conf/hadoop-site.xml created by MiniCluster
+    // the presence of build/classes/hadoop-site.xml created by MiniCluster
     // in the class path makes the MR job try to contact the MiniCluster.
     // if the MiniCluster shutdown is changed to delete the file, the other
-    // test cases fail because the file in classpath does not exist 
-    
+    // test cases fail because the file in classpath does not exist
+
     // the jar has been created using the source at
     // http://svn.apache.org/repos/asf/hadoop/mapreduce/trunk/src/examples/org/apache/hadoop/examples/WordCount.java:816822
     private String jarFileName = "test//org/apache/pig/test/data/TestWordCount.jar";
@@ -60,12 +60,12 @@ public class TestNativeMapReduce  {
     final static String STOPWORD_FILE = "TestNMapReduceStopwFile";
     static MiniCluster cluster = MiniCluster.buildCluster();
     private PigServer pigServer = null;
-    
+
     /**
      * TODO - Move to runtime jar creation approach
     private void createWordCountJar() {
     }*/
-    
+
     @BeforeClass
     public static void oneTimeSetup() throws Exception{
         String[] input = {
@@ -80,19 +80,19 @@ public class TestNativeMapReduce  {
         String[] stopw = {
                 "one"
         };
-   
+
         Util.createInputFile(cluster, INPUT_FILE, input);
         Util.createLocalInputFile(STOPWORD_FILE, stopw);
     }
 
     //  createWordCountJar(){
-    //  // its a manual process 
-    //  javac -cp build/ivy/lib/Pig/hadoop-core-0.20.2.jar:build/ivy/lib/Pig/commons-cli-1.2.jar test/org/apache/pig/test/utils/WordCount.java 
+    //  // its a manual process
+    //  javac -cp build/ivy/lib/Pig/hadoop-core-0.20.2.jar:build/ivy/lib/Pig/commons-cli-1.2.jar test/org/apache/pig/test/utils/WordCount.java
     //  cd test/
     //  jar -cf WordCount.jar org/apache/pig/test/utils/WordCount*class
     //  mv WordCount.jar org/apache/pig/test/data/TestWordCount.jar
     //
-    //  
+    //
     //}
 
     @Before
@@ -101,7 +101,7 @@ public class TestNativeMapReduce  {
 
         //createWordCountJar();
     }
-    
+
 
 
     @AfterClass
@@ -110,7 +110,7 @@ public class TestNativeMapReduce  {
         new File(STOPWORD_FILE).delete();
         cluster.shutDown();
     }
-      
+
 
     // See PIG-506
     @Test
@@ -145,7 +145,7 @@ public class TestNativeMapReduce  {
                 }
             }
             assertTrue("foundNativeFeature", foundNativeFeature);
-            
+
             // Check the output
             pigServer.registerQuery("C = load 'table_testNativeMRJobSimpleDir';");
 
@@ -187,13 +187,13 @@ public class TestNativeMapReduce  {
         }
     }
 
-    
+
     @Test
     public void testNativeMRJobSimpleFailure() throws Exception{
         try{
             //test if correct return code is obtained when query fails
             // the native MR is writing to an exisiting and should fail
-            
+
             Collection<String> results = new HashSet<String>();
             results.add("(one,1)");
             results.add("(two,2)");
@@ -209,7 +209,7 @@ public class TestNativeMapReduce  {
             pigServer.executeBatch();
 
             assertTrue("job failed", PigStats.get().getReturnCode() != 0);
-   
+
         }
         finally{
             // We have to manually delete intermediate mapreduce files
@@ -218,7 +218,7 @@ public class TestNativeMapReduce  {
         }
     }
 
-    
+
     // See PIG-506
     @Test
     public void testNativeMRJobMultiStoreOnPred() throws Exception{
@@ -354,7 +354,7 @@ public class TestNativeMapReduce  {
             results.add("(2)");
             results.add("(3)");
             results.add("(4)");
-            
+
             pigServer.registerQuery("A = load '" + INPUT_FILE + "';");
             pigServer.registerQuery("B = mapreduce '" + jarFileName + "' " +
                     "Store A into 'table_testNativeMRJobTypeCastInserter_input' "+
@@ -378,7 +378,7 @@ public class TestNativeMapReduce  {
             assertTrue(exp_msg_prefix + t, results.contains(t.toString()));
 
             assertFalse(iter.hasNext());
-        }finally{     
+        }finally{
             Util.deleteFile(cluster,"table_testNativeMRJobTypeCastInserter_input");
             Util.deleteFile(cluster,"table_testNativeMRJobTypeCastInserter_output");
         }
