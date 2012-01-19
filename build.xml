@@ -97,7 +97,6 @@
     <property name="ssh.gateway" value="" />
     <property name="hod.server" value="" />
     <property name="test.log.dir" value="${basedir}/test/logs"/>
-    <property name="junit.hadoop.conf" value="${user.home}/pigtest/conf/"/>
     <property name="test.output" value="no"/>
 
     <!-- e2e test properties -->
@@ -789,7 +788,6 @@
         <mkdir dir="${test.log.dir}"/>
         <tempfile property="junit.tmp.dir" prefix="pig_junit_tmp" destDir="${java.io.tmpdir}" />
         <mkdir dir="${junit.tmp.dir}/"/>
-        <mkdir dir="${junit.hadoop.conf}"/>
         <junit showoutput="${test.output}" printsummary="yes" haltonfailure="no" fork="yes" maxmemory="1024m" dir="${basedir}" timeout="${test.timeout}" errorProperty="tests.failed" failureProperty="tests.failed">
             <sysproperty key="ssh.gateway" value="${ssh.gateway}" />
             <sysproperty key="hod.server" value="${hod.server}" />
@@ -800,7 +798,6 @@
             <classpath>
                 <pathelement location="${output.jarfile.withouthadoop}" />
                 <pathelement location="${test.build.classes}" />
-                <pathelement location="${junit.hadoop.conf}" />
                 <pathelement location="." />
 		<pathelement path="${clover.jar}"/>
                 <path refid="test.classpath"/>

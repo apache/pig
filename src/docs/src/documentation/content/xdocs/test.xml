@@ -933,7 +933,7 @@ junit.framework.ComparisonFailure: null expected:&lt;...ahoo,3)
         <p>When using PigUnit in mapreduce mode, be sure to include the $HADOOP_CONF_DIR of the
           cluster in your CLASSPATH.</p>
         <p>
-          The default value is ~/pigtest/conf.
+          MiniCluster generates one in build/classes.
         </p>
         <source>
 org.apache.pig.backend.executionengine.ExecException: 

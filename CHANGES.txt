@@ -80,6 +80,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2326: Pig minicluster tests can not be run from eclipse (julienledem via daijy)
+
 PIG-2432: Eclipse .classpath file is out of date (gates)
 
 PIG-2427: getSchemaFromString throws away the name of the tuple that is in a bag (jcoveney via dvryaboy)

@@ -188,7 +188,7 @@ $pig_trunk ant pigunit-jar
         <p>When using PigUnit in mapreduce mode, be sure to include the $HADOOP_CONF_DIR of the
           cluster in your CLASSPATH.</p>
         <p>
-          The default value is ~/pigtest/conf.
+          MiniCluster generates one in build/classes.
         </p>
         <source>
 org.apache.pig.backend.executionengine.ExecException: ERROR 4010: Cannot find hadoop configurations in classpath (neither hadoop-site.xml nor core-site.xml was found in the classpath).If you plan to use local mode, please put -x local option in command line
