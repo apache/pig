@@ -555,26 +555,12 @@ sub generateBenchmark
 
                 if (defined($ENV{'OLD_HADOOP_HOME'})) {
                     $ENV{'HADOOP_HOME'} = $ENV{'OLD_HADOOP_HOME'};
-                }
-                if (defined($ENV{'PH_OLD_CLUSTER_CONF'})) {
                     $ENV{'HADOOP_CONF_DIR'} = $ENV{'PH_OLD_CLUSTER_CONF'};
-                }
-                if (defined($ENV{'OLD_HADOOP_PREFIX'})) {
                     $ENV{'HADOOP_PREFIX'} = $ENV{'OLD_HADOOP_PREFIX'};
-                }
-                if (defined($ENV{'OLD_HADOOP_COMMON_HOME'})) {
                     $ENV{'HADOOP_COMMON_HOME'} = $ENV{'OLD_HADOOP_COMMON_HOME'};
-                }
-                if (defined($ENV{'OLD_HADOOP_HDFS_HOME'})) {
                     $ENV{'HADOOP_HDFS_HOME'} = $ENV{'OLD_HADOOP_HDFS_HOME'};
-                }
-                if (defined($ENV{'OLD_HADOOP_MAPRED_HOME'})) {
                     $ENV{'HADOOP_MAPRED_HOME'} = $ENV{'OLD_HADOOP_MAPRED_HOME'};
-                }
-                if (defined($ENV{'OLD_YARN_HOME'})) {
                     $ENV{'YARN_HOME'} = $ENV{'OLD_YARN_HOME'};
-                }
-                if (defined($ENV{'OLD_YARN_CONF_DIR'})) {
                     $ENV{'YARN_CONF_DIR'} = $ENV{'OLD_YARN_CONF_DIR'};
                 }
 	}
