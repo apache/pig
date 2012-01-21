@@ -167,11 +167,7 @@ sub runTest
 
     # Check that we should run this test.  If the current execution type
     # doesn't match the execonly flag, then skip this one.
-    if ($self->wrongExecutionMode($testCmd)) {
-        print $log "Skipping test $testCmd->{'group'}" . "_" .
-            $testCmd->{'num'} . " since it is executed only in " .
-            $testCmd->{'execonly'} . " mode and we are executing in " .
-            $testCmd->{'exectype'} . " mode.\n";
+    if ($self->wrongExecutionMode($testCmd, $log)) {
         my %result;
         return \%result;
     }
@@ -180,9 +176,30 @@ sub runTest
     # the original TestDrivers
 
     if ( $testCmd->{'pig'} && $self->hasCommandLineVerifications( $testCmd, $log) ) {
-       return $self->runPigCmdLine( $testCmd, $log, 1);
+       my $oldpig;
+       if ( $testCmd->{'hadoopversion'} == '23' && $testCmd->{'pig23'}) {
+           $oldpig = $testCmd->{'pig'};
+           $testCmd->{'pig'} = $testCmd->{'pig23'};
+       }
+       if ( $testCmd->{'hadoopversion'} == '23' && $testCmd->{'expected_err_regex23'}) {
+           $testCmd->{'expected_err_regex'} = $testCmd->{'expected_err_regex23'};
+       }
+       my $res = $self->runPigCmdLine( $testCmd, $log, 1);
+       if ($oldpig) {
+           $testCmd->{'pig'} = $oldpig;
+       }
+       return $res;
     } elsif( $testCmd->{'pig'} ){
-       return $self->runPig( $testCmd, $log, 1);
+       my $oldpig;
+       if ( $testCmd->{'hadoopversion'} == '23' && $testCmd->{'pig23'}) {
+           $oldpig = $testCmd->{'pig'};
+           $testCmd->{'pig'} = $testCmd->{'pig23'};
+       }
+       my $res = $self->runPig( $testCmd, $log, 1);
+       if ($oldpig) {
+           $testCmd->{'pig'} = $oldpig;
+       }
+       return $res;
     } elsif(  $testCmd->{'script'} ){
        return $self->runScript( $testCmd, $log );
     } else {
@@ -342,33 +359,32 @@ sub getPigCmd($$$)
         $ENV{'PIG_OPTS'} = undef;
     }
 
-        if (defined($ENV{'HADOOP_HOME'})) {
+        if (defined($ENV{'HADOOP_HOME'}) && $ENV{'HADOOP_HOME'} ne "") {
             print $log "HADOOP_HOME=" . $ENV{'HADOOP_HOME'} . "\n";
         }
-        if (defined($ENV{'HADOOP_CONF_DIR'})) {
+        if (defined($ENV{'HADOOP_CONF_DIR'}) && $ENV{'HADOOP_CONF_DIR'} ne "") {
             print $log "HADOOP_CONF_DIR=" . $ENV{'HADOOP_CONF_DIR'} . "\n";
         }
-        if (defined($ENV{'HADOOP_PREFIX'})) {
+        if (defined($ENV{'HADOOP_PREFIX'}) && $ENV{'HADOOP_PREFIX'} ne "") {
             print $log "HADOOP_PREFIX=" . $ENV{'HADOOP_PREFIX'} . "\n";
         }
-        if (defined($ENV{'HADOOP_COMMON_HOME'})) {
+        if (defined($ENV{'HADOOP_COMMON_HOME'}) && $ENV{'HADOOP_COMMON_HOME'} ne "") {
             print $log "HADOOP_COMMON_HOME=" . $ENV{'HADOOP_COMMON_HOME'} . "\n";
         }
-        if (defined($ENV{'HADOOP_HDFS_HOME'})) {
+        if (defined($ENV{'HADOOP_HDFS_HOME'}) && $ENV{'HADOOP_HDFS_HOME'} ne "") {
             print $log "HADOOP_HDFS_HOME=" . $ENV{'HADOOP_HDFS_HOME'} . "\n";
         }
-        if (defined($ENV{'HADOOP_MAPRED_HOME'})) {
+        if (defined($ENV{'HADOOP_MAPRED_HOME'}) && $ENV{'HADOOP_MAPRED_HOME'} ne "") {
             print $log "HADOOP_MAPRED_HOME=" . $ENV{'HADOOP_MAPRED_HOME'} . "\n";
         }
-        if (defined($ENV{'YARN_HOME'})) {
+        if (defined($ENV{'YARN_HOME'}) && $ENV{'YARN_HOME'} ne "") {
             print $log "YARN_HOME=" . $ENV{'YARN_HOME'} . "\n";
         }
-        if (defined($ENV{'YARN_CONF_DIR'})) {
-            print $log "=" . $ENV{'YARN_CONF_DIR'} . "\n";
+        if (defined($ENV{'YARN_CONF_DIR'}) && $ENV{'YARN_CONF_DIR'} ne "") {
+            print $log "YARN_CONF_DIR=" . $ENV{'YARN_CONF_DIR'} . "\n";
         }
 	print $log "PIG_CLASSPATH=" . $ENV{'PIG_CLASSPATH'} . "\n";
         print $log "PIG_OPTS=" .$ENV{'PIG_OPTS'} . "\n";
-	print $log "Returning Pig command " . join(" ", @pigCmd) . "\n";
     return @pigCmd;
 }
 
@@ -414,6 +430,7 @@ sub runPig
 
 
     # Run the command
+    print $log "$0::$className::$subName INFO: Going to run pig command: @cmd\n";
 
     IPC::Run::run(\@cmd, \undef, $log, $log) or
         die "Failed running $pigfile\n";
@@ -513,7 +530,7 @@ sub generateBenchmark
 
     # Check that we should run this test.  If the current execution type
     # doesn't match the execonly flag, then skip this one.
-    if ($self->wrongExecutionMode($testCmd)) {
+    if ($self->wrongExecutionMode($testCmd, $log)) {
         return \%result;
     }
 
@@ -553,7 +570,7 @@ sub generateBenchmark
                 $orighadoopyarnhome = $ENV{'YARN_HOME'};
                 $orighadoopyarnconf = $ENV{'YARN_CONF_DIR'};
 
-                if (defined($ENV{'OLD_HADOOP_HOME'})) {
+                if (defined($ENV{'OLD_HADOOP_HOME'}) && $ENV{'OLD_HADOOP_HOME'} ne "") {
                     $ENV{'HADOOP_HOME'} = $ENV{'OLD_HADOOP_HOME'};
                 }
                 if (defined($ENV{'PH_OLD_CLUSTER_CONF'})) {
@@ -619,7 +636,7 @@ sub compare
 
     # Check that we should run this test.  If the current execution type
     # doesn't match the execonly flag, then skip this one.
-    if ($self->wrongExecutionMode($testCmd)) {
+    if ($self->wrongExecutionMode($testCmd, $log)) {
         # Special magic value
         return $self->{'wrong_execution_mode'}; 
     }
@@ -858,12 +875,31 @@ sub countStores($$)
 #
 sub wrongExecutionMode($$)
 {
-    my ($self, $testCmd) = @_;
+    my ($self, $testCmd, $log) = @_;
 
     # Check that we should run this test.  If the current execution type
     # doesn't match the execonly flag, then skip this one.
-    return (defined $testCmd->{'execonly'} &&
-            $testCmd->{'execonly'} ne $testCmd->{'exectype'});
+    my $wrong = ((defined $testCmd->{'execonly'} &&
+            $testCmd->{'execonly'} ne $testCmd->{'exectype'}));
+
+    if ($wrong) {
+        print $log "Skipping test $testCmd->{'group'}" . "_" .
+            $testCmd->{'num'} . " since it is executed only in " .
+            $testCmd->{'execonly'} . " mode and we are executing in " .
+            $testCmd->{'exectype'} . " mode.\n";
+        return $wrong;
+    }
+
+    if (defined $testCmd->{'ignore23'} && $testCmd->{'hadoopversion'}=='23') {
+        $wrong = 1;
+    }
+
+    if ($wrong) {
+        print $log "Skipping test $testCmd->{'group'}" . "_" .
+            $testCmd->{'num'} . " since it is not suppsed to be run in hadoop 23\n";
+    }
+
+    return  $wrong;
 }
 
 ##############################################################################
