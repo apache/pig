@@ -224,6 +224,8 @@ PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
 
+PIG-2484: Fix several e2e test failures/aborts for 23 (daijy)
+
 PIG-2400: Document has based aggregation support (chandec via daijy)
 
 PIG-2444: Remove the Zebra *.xml documentation files from the TRUNK and Branch-10 (chandec via daijy)
