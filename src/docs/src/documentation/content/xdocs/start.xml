@@ -438,20 +438,20 @@ However, in a production environment you always want to use the STORE operator t
 <li>Make sure the JAVA_HOME environment variable is set the root of your Java installation.</li>
 <li>Make sure your PATH includes bin/pig (this enables you to run the tutorials using the "pig" command). 
 <source>
-$ export PATH=/&lt;my-path-to-pig&gt;/pig-0.9.1/bin:$PATH 
+$ export PATH=/&lt;my-path-to-pig&gt;/pig-0.9.2/bin:$PATH 
 </source>
 </li>
 <li>Set the PIG_HOME environment variable:
 <source>
-$ export PIG_HOME=/&lt;my-path-to-pig&gt;/pig-0.9.1 
+$ export PIG_HOME=/&lt;my-path-to-pig&gt;/pig-0.9.2 
 </source></li>
 <li>Create the pigtutorial.tar.gz file:
 <ul>
-    <li>Move to the Pig tutorial directory (.../pig-0.9.1/tutorial).</li>
+    <li>Move to the Pig tutorial directory (.../pig-0.9.2/tutorial).</li>
 	<li>Edit the build.xml file in the tutorial directory. 
 <source>
 Change this:   &lt;property name="pigjar" value="../pig.jar" /&gt;
-To this:       &lt;property name="pigjar" value="../pig-0.9.1-core.jar" /&gt;
+To this:       &lt;property name="pigjar" value="../pig-0.9.2-core.jar" /&gt;
 </source>
 	</li>
 	<li>Run the "ant" command from the tutorial directory. This will create the pigtutorial.tar.gz file.
