@@ -18,6 +18,7 @@
 package org.apache.pig.scripting;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.LineNumberReader;
@@ -34,6 +35,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FsShell;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.tools.grunt.GruntParser;
 import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
 
 /**
@@ -69,6 +71,29 @@ public class Pig {
             }
         }
         return code;
+    }
+    
+    /**
+     * Run a sql command.  Any output from this command is written to
+     * stdout or stderr as appropriate.
+     * @param cmd sql command to run along with its arguments as one
+     * string. Currently only hcat is supported as a sql backend
+     * @throws IOException
+     */
+    public static int sql(String cmd) throws IOException {
+        ScriptPigContext ctx = getScriptContext();
+        if (!ctx.getPigContext().getProperties().get("pig.sql.type").equals("hcat")) {
+            throw new IOException("sql command only support hcat currently");
+        }
+        if (ctx.getPigContext().getProperties().get("hcat.bin")==null) {
+            throw new IOException("hcat.bin is not defined. Define it to be your hcat script (Usually $HCAT_HOME/bin/hcat");
+        }
+        String hcatBin = (String)ctx.getPigContext().getProperties().get("hcat.bin");
+        if (new File("hcat.bin").exists()) {
+            throw new IOException(hcatBin + " does not exist. Please check your 'hcat.bin' setting in pig.properties.");
+        }
+        int ret = GruntParser.runSQLCommand(hcatBin, cmd, false);
+        return ret;
     }
 
     /**
