@@ -255,6 +255,7 @@
       <arg value="${test.location}/tests/bigdata.conf"/>
       <arg value="${test.location}/tests/grunt.conf"/>
       <arg value="${test.location}/tests/macro.conf"/>
+      <arg value="${test.location}/tests/hcat.conf"/>
     </exec>
   </target>
 

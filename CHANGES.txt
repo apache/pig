@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2482: Integrate HCat DDL command into Pig (daijy)
+
 PIG-2479: changingPattern should be used with checkmodified in ivysettings.xml (abayer via azaroth)
 
 PIG-2349: Ant build repeats ivy-buildJar several times (azaroth)

@@ -98,6 +98,11 @@ public class DryRunGruntParser extends PigScriptParser {
         String cmds = LoadFunc.join((AbstractList<String>)Arrays.asList(cmdTokens), " ");
         sb.append("sh ").append(cmds).append("\n");
     }
+    
+    @Override
+    protected void processSQLCommand(String cmd) throws IOException {
+        sb.append("sql ").append(cmd).append("\n");
+    }
 
     @Override
     protected void processDescribe(String alias) throws IOException {
