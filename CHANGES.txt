@@ -84,6 +84,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2499: Pig TestGrunt.testShellCommand occasionally fails (tomwhite via daijy)
+
 PIG-2326: Pig minicluster tests can not be run from eclipse (julienledem via daijy)
 
 PIG-2432: Eclipse .classpath file is out of date (gates)
