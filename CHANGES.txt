@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2496: Cache resolved classes in PigContext (dvryaboy)
+
 PIG-2482: Integrate HCat DDL command into Pig (daijy)
 
 PIG-2479: changingPattern should be used with checkmodified in ivysettings.xml (abayer via azaroth)
