@@ -54,7 +54,6 @@ import org.apache.pig.backend.hadoop.streaming.HadoopExecutableManager;
 import org.apache.pig.impl.streaming.ExecutableManager;
 import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.util.JarManager;
-import org.apache.pig.parser.QueryParserDriver;
 
 public class PigContext implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -134,6 +133,8 @@ public class PigContext implements Serializable {
 
     static private ClassLoader classloader = PigContext.class.getClassLoader();
     
+    private static Map<String, Class> classCache = new HashMap<String, Class>();;
+
     private List<String> params;
     public List<String> getParams() {
         return params;
@@ -468,11 +469,14 @@ public class PigContext implements Serializable {
         
     @SuppressWarnings("rawtypes")
     public static Class resolveClassName(String name) throws IOException{
-
+        if (classCache.containsKey(name)) {
+            return classCache.get(name);
+        }
         for(String prefix: getPackageImportList()) {
             Class c;
             try {
                 c = Class.forName(prefix+name,true, PigContext.classloader);
+                classCache.put(name, c);
                 return c;
             } 
             catch (ClassNotFoundException e) {
