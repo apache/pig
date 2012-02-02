@@ -13,12 +13,17 @@
 package org.apache.pig.test.pigunit;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 
 import junit.framework.TestCase;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.Path;
+import org.apache.pig.ExecType;
 import org.apache.pig.pigunit.Cluster;
 import org.apache.pig.pigunit.PigTest;
 import org.apache.pig.pigunit.pig.PigServer;
@@ -41,7 +46,8 @@ public class TestPigTest {
   private PigTest test;
   private static Cluster cluster;
   private static final String PIG_SCRIPT = "test/data/pigunit/top_queries.pig";
-
+  private static final Log LOG = LogFactory.getLog(TestPigTest.class);
+  
   @BeforeClass
   public static void setUpOnce() throws IOException {
     cluster = PigTest.getCluster();
@@ -298,4 +304,78 @@ public class TestPigTest {
 
     test.assertOutput(new File("data/top_queries_expected_top_3.txt"));
   }
+
+  /**
+ * This is a test for default bootup. PIG-2456
+ * @throws IOException
+ */
+
+  @Test
+  public void testDefaultBootup() throws ParseException, IOException {
+	  //Test with properties file
+	  String pigProps = "pig.properties";
+	  String bootupPath = "/tmp/.temppigbootup";
+	  File propertyFile = new File(pigProps);
+	  PrintWriter out = new PrintWriter(new FileWriter(propertyFile));
+	  out.println("pig.load.default.statements="+bootupPath);
+	  out.close();
+
+	  File bootupFile = new File(bootupPath);
+	  out = new PrintWriter(new FileWriter(bootupFile));
+	  out.println("data = LOAD 'top_queries_input_data.txt' AS (query:CHARARRAY, count:INT);");
+	  out.close();
+
+	  String[] script = {
+			  //The following line is commented as the test creates a bootup file which contains it instead. PigTests (and Pig scripts in general) will read the bootup file to load default statements
+			  //"data = LOAD 'top_queries_input_data.txt' AS (query:CHARARRAY, count:INT);",   
+			  "queries_group = GROUP data BY query PARALLEL 1;",
+			  "queries_sum = FOREACH queries_group GENERATE group AS query, SUM(data.count) AS count;",
+			  "queries_ordered = ORDER queries_sum BY count DESC PARALLEL 1;",
+			  "queries_limit = LIMIT queries_ordered 3;",
+			  "STORE queries_limit INTO 'top_3_queries';",
+	  };
+
+	  String scriptPath = "/tmp/tempScript";
+	  File scriptFile = new File(scriptPath);
+	  out = new PrintWriter(new FileWriter(scriptFile));
+	  for(String line : script) {
+		  out.println(line);
+	  }
+	  out.close();
+
+
+	  String[] args = {
+			  "n=3",
+			  "reducers=1",
+			  "input=top_queries_input_data.txt",
+			  "output=top_3_queries",
+	  };
+
+	  //Create a pigunit.pig.PigServer and Cluster to run this test.
+	  PigServer pig = null;
+	  if (System.getProperties().containsKey("pigunit.exectype.cluster")) {
+		  LOG.info("Using cluster mode");
+		  pig = new PigServer(ExecType.MAPREDUCE);
+	  } else {
+		  LOG.info("Using default local mode");
+		  pig = new PigServer(ExecType.LOCAL);
+	  }
+
+	  final Cluster cluster = new Cluster(pig.getPigContext());
+
+	  test = new PigTest(scriptPath, args, pig, cluster);
+
+	  String[] output = {
+			  "(yahoo,25)",
+			  "(facebook,15)",
+			  "(twitter,7)",
+	  };
+
+	  test.assertOutput("queries_limit", output);
+
+	  propertyFile.delete();
+	  scriptFile.delete();
+	  bootupFile.delete();
+  }
+
 }

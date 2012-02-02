@@ -22,12 +22,14 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.io.SequenceInputStream;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.text.ParseException;
@@ -66,6 +68,7 @@ import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.impl.util.Utils;
 import org.apache.pig.parser.DryRunGruntParser;
 import org.apache.pig.scripting.ScriptEngine;
 import org.apache.pig.scripting.ScriptEngine.SupportedScriptLang;
@@ -360,7 +363,6 @@ static int run(String args[], PigProgressNotificationListener listener) {
             scriptState.registerListener(listener);
         }
 
-
         if(logFileName == null && !userSpecifiedLog) {
             logFileName = validateLogFile(properties.getProperty("pig.logfile"), null);
         }
@@ -387,7 +389,7 @@ static int run(String args[], PigProgressNotificationListener listener) {
             PigContext.initializeImportList((String)properties.get("udf.import.list"));
 
         PigContext.setClassLoader(pigContext.createCl(null));
-
+    
         // construct the parameter substitution preprocessor
         Grunt grunt = null;
         BufferedReader in;
@@ -416,8 +418,8 @@ static int run(String args[], PigProgressNotificationListener listener) {
                                 .getPath(), type.name().toLowerCase());
                 }
             }
-
-            in = new BufferedReader(new FileReader(localFileRet.file));
+            //Reader is created by first loading "pig.load.default.statements" or .pigbootup file if available
+            in = new BufferedReader(new InputStreamReader(Utils.getCompositeStream(new FileInputStream(localFileRet.file), properties)));
 
             // run parameter substitution preprocessor first
             substFile = file + ".substituted";
@@ -511,7 +513,8 @@ static int run(String args[], PigProgressNotificationListener listener) {
             }
             // Interactive
             mode = ExecMode.SHELL;
-            ConsoleReader reader = new ConsoleReader(System.in, new OutputStreamWriter(System.out));
+          //Reader is created by first loading "pig.load.default.statements" or .pigbootup file if available
+            ConsoleReader reader = new ConsoleReader(Utils.getCompositeStream(System.in, properties), new OutputStreamWriter(System.out));
             reader.setDefaultPrompt("grunt> ");
             final String HISTORYFILE = ".pig_history";
             String historyFile = System.getProperty("user.home") + File.separator  + HISTORYFILE;
@@ -545,8 +548,9 @@ static int run(String args[], PigProgressNotificationListener listener) {
                                 .getPath(), type.name().toLowerCase());
                 }
             }
-
-            in = new BufferedReader(new FileReader(localFileRet.file));
+            //Reader is created by first loading "pig.load.default.statements" or .pigbootup file if available
+            InputStream seqInputStream = Utils.getCompositeStream(new FileInputStream(localFileRet.file), properties);
+            in = new BufferedReader(new InputStreamReader(seqInputStream));
 
             // run parameter substitution preprocessor first
             substFile = remainders[0] + ".substituted";
@@ -983,26 +987,26 @@ private static SupportedScriptLang determineScriptType(String file)
 }
 
 private static int runEmbeddedScript(PigContext pigContext, String file, String engine)
-        throws IOException {
-    log.info("Run embedded script: " + engine);
-    pigContext.connect();
-    ScriptEngine scriptEngine = ScriptEngine.getInstance(engine);
-    Map<String, List<PigStats>> statsMap = scriptEngine.run(pigContext, file);
-    PigStatsUtil.setStatsMap(statsMap);
+throws IOException {
+	log.info("Run embedded script: " + engine);
+	pigContext.connect();
+	ScriptEngine scriptEngine = ScriptEngine.getInstance(engine);
+	Map<String, List<PigStats>> statsMap = scriptEngine.run(pigContext, file);
+	PigStatsUtil.setStatsMap(statsMap);
 
-    int failCount = 0;
-    int totalCount = 0;
-    for (List<PigStats> lst : statsMap.values()) {
-        if (lst != null && !lst.isEmpty()) {
-            for (PigStats stats : lst) {
-                if (!stats.isSuccessful()) failCount++;
-                totalCount++;
-            }
-        }
-    }
-    return (totalCount > 0 && failCount == totalCount) ? ReturnCode.FAILURE
-            : (failCount > 0) ? ReturnCode.PARTIAL_FAILURE
-                    : ReturnCode.SUCCESS;
+	int failCount = 0;
+	int totalCount = 0;
+	for (List<PigStats> lst : statsMap.values()) {
+		if (lst != null && !lst.isEmpty()) {
+			for (PigStats stats : lst) {
+				if (!stats.isSuccessful()) failCount++;
+				totalCount++;
+			}
+		}
+	}
+	return (totalCount > 0 && failCount == totalCount) ? ReturnCode.FAILURE
+			: (failCount > 0) ? ReturnCode.PARTIAL_FAILURE
+					: ReturnCode.SUCCESS;
 }
 
 }

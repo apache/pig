@@ -12,15 +12,17 @@
  */
 package org.apache.pig.pigunit.pig;
 
-import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.Map;
 import java.util.Properties;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.impl.util.Utils;
 
 /**
  * Slightly modified PigServer that accepts a list of Pig aliases to override.
@@ -47,7 +49,8 @@ public class PigServer extends org.apache.pig.PigServer {
   public void registerScript(String fileName, Map<String, String> aliasOverride)
       throws IOException {
     try {
-      GruntParser grunt = new GruntParser(new FileReader(new File(fileName)), aliasOverride);
+      InputStream compositeStream = Utils.getCompositeStream(new FileInputStream(fileName), pigContext.getProperties());
+      GruntParser grunt = new GruntParser(new InputStreamReader(compositeStream), aliasOverride);
       grunt.setInteractive(false);
       grunt.setParams(this);
       grunt.parseStopOnError(true);
