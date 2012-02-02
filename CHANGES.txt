@@ -86,6 +86,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2501: Changes needed to contrib/piggybank/java/build.xml in order to build piggybank.jar with Hadoop 0.23 
+(ekoontz via daijy)
+
 PIG-2499: Pig TestGrunt.testShellCommand occasionally fails (tomwhite via daijy)
 
 PIG-2326: Pig minicluster tests can not be run from eclipse (julienledem via daijy)
