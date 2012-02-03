@@ -88,6 +88,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2502: Make "hcat.bin" configurable in e2e test (daijy)
+
 PIG-2501: Changes needed to contrib/piggybank/java/build.xml in order to build piggybank.jar with Hadoop 0.23 
 (ekoontz via daijy)
 

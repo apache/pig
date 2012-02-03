@@ -92,6 +92,11 @@ sub replaceParameters
       $cmd =~ s/:REMOTECLUSTER:/$testCmd->{'remoteNotSecureCluster'}/g;
     }
 
+    if ( defined($testCmd->{'hcatbin'}) && $testCmd->{'hcatbin'} ne "" && defined($testCmd->{'java_params'})) {
+      foreach my $param (@{$testCmd->{'java_params'}}) {
+          $param =~ s/:HCATBIN:/$testCmd->{'hcatbin'}/g;
+      }
+    }
     return $cmd;
 }
 
