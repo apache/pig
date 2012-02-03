@@ -2812,7 +2812,7 @@ The function returns a string that corresponds to the matched group in the posit
 This example will return the string '192.168.1.5'.
      </p>
  <source>
-REGEX_EXTRACT('192.168.1.5:8020', '(.*)\:(.*)', 1);
+REGEX_EXTRACT('192.168.1.5:8020', '(.*):(.*)', 1);
 </source>
      
  </section>
