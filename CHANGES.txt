@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2503: Make @MonitoredUDF inherited (dvryaboy)
+
 PIG-2468: Speed up TestBuiltin (dvryaboy)
 
 PIG-2467: Speed up TestCommit (dvryaboy)
