@@ -19,6 +19,7 @@
 package org.apache.pig.builtin;
 
 import java.lang.annotation.Documented;
+import java.lang.annotation.Inherited;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.concurrent.TimeUnit;
@@ -49,6 +50,7 @@ import org.apache.pig.classification.InterfaceStability;
 @InterfaceAudience.Public
 @InterfaceStability.Unstable
 @Documented
+@Inherited
 @Retention(value=RetentionPolicy.RUNTIME)
 public @interface MonitoredUDF {
     /**
