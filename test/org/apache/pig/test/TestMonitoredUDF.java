@@ -51,6 +51,13 @@ public class TestMonitoredUDF {
     }
 
     @Test
+    public void testInheritance() throws IOException {
+        InheritedUdf udf = new InheritedUdf();
+        MonitoredUDFExecutor exec = new MonitoredUDFExecutor(udf);
+        assertEquals( SimpleIntUDF.DEFAULT, ((Integer) exec.monitorExec(null)).intValue());
+    }
+
+    @Test
     public void testCustomErrorHandler() throws IOException {
 
         ErrorCallbackUDF udf = new ErrorCallbackUDF();
@@ -66,6 +73,12 @@ public class TestMonitoredUDF {
         assertTrue((Boolean) exec.monitorExec(null));
     }
 
+    /**
+     * This main method runs a microbenchmark for measuring overhead caused by
+     * annotating a UDF as monitored.
+     * @param args
+     * @throws IOException
+     */
     public static void main(String[] args) throws IOException {
         long startTime = System.currentTimeMillis();
         long unmonitoredTime = 0, monitoredTime = 0;
@@ -132,7 +145,7 @@ public class TestMonitoredUDF {
 
     
     @MonitoredUDF(timeUnit = TimeUnit.MILLISECONDS, duration = 100, intDefault = SimpleIntUDF.DEFAULT)
-    public class SimpleIntUDF extends EvalFunc<Integer> {
+    public static class SimpleIntUDF extends EvalFunc<Integer> {
         public static final int DEFAULT = 123;
         public static final int NOT_DEFAULT = 321;
 
@@ -146,6 +159,8 @@ public class TestMonitoredUDF {
             return  NOT_DEFAULT;
         }
     }
+
+    public static class InheritedUdf extends SimpleIntUDF {}
 
     @MonitoredUDF(timeUnit = TimeUnit.MILLISECONDS, duration = 100, errorCallback = CustomErrorCallback.class)
     public class ErrorCallbackUDF extends EvalFunc<Integer> {
