@@ -405,6 +405,14 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
     @Override
     public void visit(LOUnion relOp) throws FrontendException{
         mapToPredLoadFunc(relOp);
+        
+        // Since the uid changes for Union, add mappings for new uids to funcspec
+        LogicalSchema schema = relOp.getSchema();
+        if(schema != null){
+            for (LogicalFieldSchema logicalFieldSchema : schema.getFields()) {
+                addUidLoadFuncToMap(logicalFieldSchema.uid,rel2InputFuncMap.get(relOp));
+            }
+        }
     }
     
     @Override
