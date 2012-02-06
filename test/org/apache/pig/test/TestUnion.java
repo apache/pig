@@ -30,12 +30,14 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.DefaultBagFactory;
 import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
@@ -261,6 +263,33 @@ public class TestUnion extends junit.framework.TestCase {
         for (int j = 0; j < expected.length; j++) {
             assertTrue(expected[j].equals(results[j]));
         }
+    }
+    
+    @Test
+    public void testCastingAfterUnion() throws Exception {
+
+        Util.createInputFile(cluster, "i1.txt", new String[] {"aaa\t111"});
+        Util.createInputFile(cluster, "i2.txt", new String[] {"bbb\t222"});
+        
+
+        PigServer ps = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        ps.registerQuery("A = load 'i1.txt' as (a,b);");
+        ps.registerQuery("B = load 'i2.txt' as (a,b);");
+        ps.registerQuery("C = union A,B;");
+        ps.registerQuery("D = foreach C generate (chararray)a as a,(int)b as b;");
+        
+        Schema dumpSchema = ps.dumpSchema("D");
+        Schema expected = new Schema ();
+        expected.add(new Schema.FieldSchema("a", DataType.CHARARRAY));
+        expected.add(new Schema.FieldSchema("b", DataType.INTEGER));
+        assertEquals(expected, dumpSchema);
+        
+        Iterator<Tuple> itr = ps.openIterator("D");
+        int recordCount = 0;
+        while(itr.next() != null)
+            ++recordCount;
+        assertEquals(2, recordCount);
+
     }
     
 }
