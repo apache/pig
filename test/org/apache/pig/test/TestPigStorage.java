@@ -457,5 +457,10 @@ public class TestPigStorage  {
         Assert.assertTrue(ResourceSchema.equals(schema, testSchema));
         new File(globtestdir+"a/a0/.pig_schema").delete();
         new File(globtestdir+"a/.pig_schema").delete();
+        
+        pigStorage = new PigStorage("\t", "-schema");
+        putSchemaFile(globtestdir+"a/.pig_schema", testSchema);
+        schema = pigStorage.getSchema(globtestdir+"{a,b}", new Job(ConfigurationUtil.toConfiguration(pigContext.getProperties())));
+        Assert.assertTrue(ResourceSchema.equals(schema, testSchema));
     }
 }
