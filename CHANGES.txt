@@ -243,6 +243,8 @@ PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
 
+PIG-2489: Input Path Globbing{} not working with PigStorageSchema or PigStorage('\t', '-schema') (daijy)
+
 PIG-2484: Fix several e2e test failures/aborts for 23 (daijy)
 
 PIG-2400: Document has based aggregation support (chandec via daijy)
