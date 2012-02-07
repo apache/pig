@@ -90,6 +90,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2491: Pig docs still mention hadoop-site.xml (daijy)
+
 PIG-2504: Incorrect sample provided for REGEX_EXTRACT (prkommireddi via daijy)
 
 PIG-2502: Make "hcat.bin" configurable in e2e test (daijy)

@@ -413,13 +413,13 @@ However, in a production environment you always want to use the STORE operator t
 
 <p id="hadoop-properties">To specify Hadoop properties you can use the same mechanisms:</p>
 <ul>
-	<li>The hadoop-site.xml file (add the directory that contains the hadoop-site.xml file to the classpath)</li>
+	<li>Hadoop configuration files (include pig-cluster-hadoop-site.xml)</li>
 	<li>The -D command line option and a Hadoop property (pig –Dmapreduce.task.profile=true) </li>
 	<li>The -P command line option and a property file (pig -P property_file)</li>
 	<li>The <a href="cmds.html#set">set</a> command (set mapred.map.tasks.speculative.execution false)</li>
 </ul>
 <p></p>
-<p>The same precedence holds: hadoop-site.xml &gt; -D Hadoop property &gt; -P properties_file &gt; set command.</p>
+<p>The same precedence holds: Hadoop configuration files &gt; -D Hadoop property &gt; -P properties_file &gt; set command.</p>
 <p>Hadoop properties are not interpreted by Pig but are passed directly to Hadoop. Any Hadoop property can be passed this way. </p>
 <p>All properties that Pig collects, including Hadoop properties, are available to any UDF via the UDFContext object. To get access to the properties, you can call the getJobConf method.</p>
 </section>  
