@@ -102,11 +102,9 @@ public class JsonMetadata implements LoadMetadata, StoreMetadata {
         String[] locations = LoadFunc.getPathStrings(path);
         for (String loc : locations) {
             DataStorage storage;
-            try {
-                storage = new HDataStorage(new URI(loc), ConfigurationUtil.toProperties(conf));
-            } catch (URISyntaxException e) {
-                throw new IOException("Unable to read " + loc, e);
-            }
+            
+            storage = new HDataStorage(new Path(loc).toUri(), ConfigurationUtil.toProperties(conf));
+            
             String fullPath = FileLocalizer.fullPath(loc, storage);
 
             if(storage.isContainer(fullPath)) {
