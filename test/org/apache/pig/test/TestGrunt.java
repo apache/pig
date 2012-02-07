@@ -34,6 +34,8 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.executionengine.ExecJob;
+import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.test.Util.ProcessReturnInfo;
 import org.apache.pig.tools.grunt.Grunt;
@@ -45,14 +47,17 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.BufferedReader;
 import java.io.PrintWriter;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 public class TestGrunt {
@@ -1085,6 +1090,32 @@ public class TestGrunt {
             e.printStackTrace();
             fail();
         }
+    }
+    
+    // See PIG-2497
+    @Test
+    public void testShellCommandOrder() throws Throwable {
+        PigServer server = new PigServer(ExecType.LOCAL, new Properties());
+        
+        File inputFile = File.createTempFile("test", "txt");
+        PrintWriter pwInput = new PrintWriter(new FileWriter(inputFile));
+        pwInput.println("1");
+        pwInput.close();
+        
+        File inputScript = File.createTempFile("test", "");
+        File outputFile = File.createTempFile("test", "txt");
+        outputFile.delete();
+        PrintWriter pwScript = new PrintWriter(new FileWriter(inputScript));
+        pwScript.println("a = load '" + inputFile.getAbsolutePath() + "';");
+        pwScript.println("store a into '" + outputFile.getAbsolutePath() + "';");
+        pwScript.println("sh rm -rf " + inputFile.getAbsolutePath());
+        pwScript.close();
+        
+        InputStream inputStream = new FileInputStream(inputScript.getAbsoluteFile());
+        server.setBatchOn();
+        server.registerScript(inputStream);
+        List<ExecJob> execJobs = server.executeBatch();
+        Assert.assertTrue(execJobs.get(0).getStatus() == JOB_STATUS.COMPLETED);
     }
 
     @Test

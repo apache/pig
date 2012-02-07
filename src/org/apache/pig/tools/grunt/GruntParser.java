@@ -995,22 +995,28 @@ public class GruntParser extends PigScriptParser {
     
     @Override
     protected void processShCommand(String[] cmdTokens) throws IOException{
-        try {
-            Process executor = Runtime.getRuntime().exec(cmdTokens);
-            StreamPrinter outPrinter = new StreamPrinter(executor.getInputStream(), null, System.out);
-            StreamPrinter errPrinter = new StreamPrinter(executor.getErrorStream(), null, System.err);
-
-            outPrinter.start();
-            errPrinter.start();
-
-            int ret = executor.waitFor();
-            outPrinter.join();
-            errPrinter.join();
-            if (ret != 0) {
-                log.warn("Command failed with exit code = " + ret);
+        if(mExplain == null) { // process only if not in "explain" mode
+            try {
+                executeBatch();
+                
+                Process executor = Runtime.getRuntime().exec(cmdTokens);
+                StreamPrinter outPrinter = new StreamPrinter(executor.getInputStream(), null, System.out);
+                StreamPrinter errPrinter = new StreamPrinter(executor.getErrorStream(), null, System.err);
+    
+                outPrinter.start();
+                errPrinter.start();
+    
+                int ret = executor.waitFor();
+                outPrinter.join();
+                errPrinter.join();
+                if (ret != 0) {
+                    log.warn("Command failed with exit code = " + ret);
+                }
+            } catch (Exception e) {
+                log.warn("Exception raised from Shell command " + e.getLocalizedMessage());
             }
-        } catch (Exception e) {
-            log.warn("Exception raised from Shell command " + e.getLocalizedMessage());
+        } else {
+            log.warn("'sh' statement is ignored while processing 'explain -script' or '-check'");
         }
     }
     
