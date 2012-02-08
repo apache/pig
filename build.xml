@@ -347,6 +347,9 @@
         <ant dir="${test.e2e.dir}" target="clean"/>
     </target>
     
+    <target name="very-clean" unless="offline" depends="ivy-clean-cache,clean"
+            description="Clean build artifacts and flush Ivy cache" />
+
     <!--target name="eclipse-files" depends="compile, ivy-buildJar"
 			description="Generate files for Eclipse">
         <pathconvert property="eclipse.project">
@@ -1574,6 +1577,11 @@
        <ivy:retrieve settingsRef="${ant.project.name}.ivy.settings"
                  pattern="${build.ivy.lib.dir}/${ivy.artifact.retrieve.pattern}" conf="jdiff"/>
        <ivy:cachepath pathid="jdiff.classpath" conf="jdiff"/> 		
+     </target>
+
+     <target name="ivy-clean-cache" depends="ivy-init-antlib"
+             description="Clean the Ivy cache">
+         <ivy:cleancache />
      </target>
 
      <target name="assert-pig-jar-exists" depends="ivy-init">
