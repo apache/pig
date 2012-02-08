@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2518: Add ability to clean ivy cache in build.xml (daijy)
+
 PIG-2503: Make @MonitoredUDF inherited (dvryaboy)
 
 PIG-2488: Move Python unit tests to e2e tests (alangates via daijy)
