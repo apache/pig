@@ -17,14 +17,27 @@
  */
 package org.apache.pig.piggybank.test.evaluation.datetime.convert;
 
+import static org.junit.Assert.*;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.piggybank.evaluation.datetime.convert.*;
+import org.apache.pig.piggybank.evaluation.datetime.convert.CustomFormatToISO;
+import org.apache.pig.piggybank.evaluation.datetime.convert.ISOToUnix;
+import org.apache.pig.piggybank.evaluation.datetime.convert.UnixToISO;
 import org.junit.Test;
 
-import junit.framework.TestCase;
+public class TestConvertDateTime {
 
-public class TestConvertDateTime extends TestCase {
+    @Test
+    public void testBadFormat() throws Exception {
+        Tuple t1 = TupleFactory.getInstance().newTuple(2);
+        t1.set(0, "2011-01-01");
+        t1.set(1, "MMMM, yyyy");
+        CustomFormatToISO convert = new CustomFormatToISO();
+        assertNull("Input that doesn't match format should result in null", convert.exec(t1));
+        t1.set(0, "July, 2012");
+        assertEquals("Matching format should work correctly", "2012-07-01T00:00:00.000Z", convert.exec(t1));
+    }
+
     @Test
     public void testUnixToISO() throws Exception {
 
