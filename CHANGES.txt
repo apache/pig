@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2515: [piggybank] Make CustomFormatToISO return null on Exception in parsing dates (rjurney via dvryaboy)
+
 PIG-2503: Make @MonitoredUDF inherited (dvryaboy)
 
 PIG-2468: Speed up TestBuiltin (dvryaboy)
