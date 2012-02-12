@@ -34,7 +34,7 @@ import java.util.List;
 
 /**
  * CustomFormatToISO converts arbitrary date formats to ISO format.
- * 
+ *
  * Jodatime: http://joda-time.sourceforge.net/
  * ISO8601 Date Format: http://en.wikipedia.org/wiki/ISO_8601
  * Jodatime custom date formats: http://joda-time.sourceforge.net/api-release/org/joda/time/format/DateTimeFormat.html
@@ -82,15 +82,20 @@ public class CustomFormatToISO extends EvalFunc<String> {
 
         // See http://joda-time.sourceforge.net/api-release/org/joda/time/format/DateTimeFormat.html
         DateTimeFormatter parser = DateTimeFormat.forPattern(format);
-        DateTime result = parser.parseDateTime(date);
+        DateTime result;
+        try {
+            result = parser.parseDateTime(date);
+        } catch(Exception e) {
+            return null;
+        }
 
         return result.toString();
     }
 
-	@Override
-	public Schema outputSchema(Schema input) {
+    @Override
+    public Schema outputSchema(Schema input) {
         return new Schema(new Schema.FieldSchema(getSchemaName(this.getClass().getName().toLowerCase(), input), DataType.CHARARRAY));
-	}
+    }
 
     @Override
     public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
