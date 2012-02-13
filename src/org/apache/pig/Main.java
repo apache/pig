@@ -22,14 +22,12 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.io.SequenceInputStream;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.text.ParseException;
@@ -107,6 +105,10 @@ public class Main {
     private static final String PROP_FILT_SIMPL_OPT
         = "pig.exec.filterLogicExpressionSimplifier";
 
+    protected static final String PROGRESS_NOTIFICATION_LISTENER_KEY = "pig.notification.listener";
+
+    protected static final String PROGRESS_NOTIFICATION_LISTENER_ARG_KEY = "pig.notification.listener.arg";
+
     static {
        Attributes attr=null;
        try {
@@ -166,6 +168,9 @@ static int run(String args[], PigProgressNotificationListener listener) {
         PropertiesUtil.loadDefaultProperties(properties);
         properties.putAll(ConfigurationUtil.toProperties(conf));
 
+        if (listener == null) {
+            listener = makeListener(properties);
+        }
         String[] pigArgs = parser.getRemainingArgs();
 
         boolean userSpecifiedLog = false;
@@ -389,7 +394,7 @@ static int run(String args[], PigProgressNotificationListener listener) {
             PigContext.initializeImportList((String)properties.get("udf.import.list"));
 
         PigContext.setClassLoader(pigContext.createCl(null));
-    
+
         // construct the parameter substitution preprocessor
         Grunt grunt = null;
         BufferedReader in;
@@ -633,6 +638,22 @@ static int run(String args[], PigProgressNotificationListener listener) {
     }
 
     return rc;
+}
+
+protected static PigProgressNotificationListener makeListener(Properties properties) {
+    String className = properties.getProperty(PROGRESS_NOTIFICATION_LISTENER_KEY);
+    if (className != null) {
+        FuncSpec fs = null;
+        if (properties.containsKey(PROGRESS_NOTIFICATION_LISTENER_ARG_KEY)) {
+            fs = new FuncSpec(className,
+                    properties.getProperty(PROGRESS_NOTIFICATION_LISTENER_ARG_KEY));
+        } else {
+            fs = new FuncSpec(className);
+        }
+        return (PigProgressNotificationListener) PigContext.instantiateFuncFromSpec(fs);
+    } else {
+        return null;
+    }
 }
 
 private static int getReturnCodeForStats(int[] stats) {
