@@ -32,8 +32,6 @@ PIG-2525: Support pluggable PigProcessNotifcationListeners on the command line (
 
 PIG-2515: [piggybank] Make CustomFormatToISO return null on Exception in parsing dates (rjurney via dvryaboy)
 
-PIG-2518: Add ability to clean ivy cache in build.xml (daijy)
-
 PIG-2503: Make @MonitoredUDF inherited (dvryaboy)
 
 PIG-2488: Move Python unit tests to e2e tests (alangates via daijy)
@@ -134,6 +132,8 @@ Release 0.10.0 - Unreleased
 INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
+
+PIG-2518: Add ability to clean ivy cache in build.xml (daijy)
 
 PIG-2300: Pig Docs - release 0.10.0 (and 0.9.1) (chandec via daijy)
 
