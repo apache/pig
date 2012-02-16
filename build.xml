@@ -287,7 +287,10 @@
         <delete file="${output.jarfile.backcompat}" />
         <delete file="${output.jarfile.backcompat.withouthadoop}" />
     </target>
-    
+
+    <target name="very-clean" unless="offline" depends="ivy-clean-cache,clean"
+             description="Clean build artifacts and flush Ivy cache" />
+
     <target name="eclipse-files" depends="compile, ivy-buildJar"
 			description="Generate files for Eclipse">
         <pathconvert property="eclipse.project">
@@ -1524,6 +1527,11 @@
      <target name="ivy-resolve" depends="ivy-init">
          <ivy:resolve settingsRef="${ant.project.name}.ivy.settings" conf="runtime"/>
      </target>	
+
+     <target name="ivy-clean-cache" depends="ivy-init-antlib"
+             description="Clean the Ivy cache">
+         <ivy:cleancache />
+     </target>
 
      <target name="assert-pig-jar-exists" depends="ivy-init">
          <fail>
