@@ -138,10 +138,8 @@ public abstract class Launcher {
                         log);
                 backendException = getExceptionFromString(jobMessage);
             } catch (Exception e) {
-                //just get the first line in the message and log the rest
-                String firstLine = getFirstLineFromMessage(jobMessage);
                 int errCode = 2997;
-                String msg = "Unable to recreate exception from backend error: " + firstLine;
+                String msg = "Unable to recreate exception from backend error: " + jobMessage;
                 throw new ExecException(msg, errCode, PigException.BUG);
             } 
             throw backendException;
@@ -202,9 +200,7 @@ public abstract class Launcher {
                                 Exception e = getExceptionFromString(msgs[j]);
                                 exceptions.add(e);
                             } catch (Exception e1) {
-                                // keep track of the exception we were unable to re-create
-                                String firstLine = getFirstLineFromMessage(msgs[j]);                                
-                                exceptionCreateFailMsg = firstLine;
+                                exceptionCreateFailMsg = msgs[j];
                           
                             }
                         } else {
@@ -573,15 +569,5 @@ public abstract class Launcher {
         }
         return new StackTraceElement(declaringClass, methodName, fileName, lineNumber);
     }
-    
-    protected String getFirstLineFromMessage(String message) {
-        String[] messages = message.split(newLine);
-        if(messages.length > 0) {
-            return messages[0];
-        } else {
-            return message;
-        }        
-    }
-
 }
 

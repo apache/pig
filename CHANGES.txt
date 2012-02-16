@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2533: Pig MR job exceptions masked on frontend (traviscrawford via dvryaboy)
+
 PIG-2525: Support pluggable PigProcessNotifcationListeners on the command line (dvryaboy)
 
 PIG-2515: [piggybank] Make CustomFormatToISO return null on Exception in parsing dates (rjurney via dvryaboy)
