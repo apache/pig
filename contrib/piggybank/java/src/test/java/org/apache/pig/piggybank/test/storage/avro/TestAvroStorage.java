@@ -150,6 +150,7 @@ public class TestAvroStorage {
       
         Properties properties = new Properties();
         properties.setProperty("mapred.output.compress", "true");
+        properties.setProperty("mapred.output.compression.codec", "org.apache.hadoop.io.compress.SnappyCodec");
         properties.setProperty("avro.output.codec", "snappy");
         PigServer pigServer = new PigServer(ExecType.LOCAL, properties);
         pigServer.setBatchOn();
