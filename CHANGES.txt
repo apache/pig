@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2518: Add ability to clean ivy cache in build.xml (daijy)
+
 PIG-2533: Pig MR job exceptions masked on frontend (traviscrawford via dvryaboy)
 
 PIG-2515: [piggybank] Make CustomFormatToISO return null on Exception in parsing dates (rjurney via dvryaboy)
@@ -165,8 +167,6 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
-
-PIG-2518: Add ability to clean ivy cache in build.xml (daijy)
 
 PIG-2530: Reusing alias name in nested foreach causes incorrect results (daijy)
 
