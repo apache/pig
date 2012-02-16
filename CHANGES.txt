@@ -98,6 +98,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2322: varargs functions do not get passed the arguments in Python embedding (julien)
+
 PIG-2491: Pig docs still mention hadoop-site.xml (daijy)
 
 PIG-2504: Incorrect sample provided for REGEX_EXTRACT (prkommireddi via daijy)

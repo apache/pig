@@ -32,6 +32,7 @@ import org.python.core.PyBaseCode;
 import org.python.core.PyException;
 import org.python.core.PyFunction;
 import org.python.core.PyObject;
+import org.python.core.PyTableCode;
 
 /**
  * Python implementation of a Pig UDF Performs mappings between Python & Pig
@@ -103,7 +104,7 @@ public class JythonFunction extends EvalFunc<Object> {
     @Override
     public Object exec(Tuple tuple) throws IOException {
         try {
-            if (tuple == null || num_parameters == 0) {
+            if (tuple == null || (num_parameters == 0 && !((PyTableCode)function.func_code).varargs)) {
                 // ignore input tuple
                 PyObject out = function.__call__();
                 return JythonUtils.pythonToPig(out);
