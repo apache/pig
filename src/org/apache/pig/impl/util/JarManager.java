@@ -121,17 +121,16 @@ public class JarManager {
         for (String scriptJar: pigContext.scriptJars) {
             mergeJar(jarFile, scriptJar, null, contents);
         }
-        for (URL extraJar: pigContext.extraJars) {
-            // log.error("Adding extra " + pigContext.extraJars.get(i));
-            mergeJar(jarFile, extraJar, null, contents);
-        }
         for (String path: pigContext.scriptFiles) {
+            log.debug("Adding entry " + path + " to job jar" );
         	addStream(jarFile, path, new FileInputStream(new File(path)),contents);
         }
         for (Map.Entry<String, File> entry : pigContext.getScriptFiles().entrySet()) {
+            log.debug("Adding entry " + entry.getKey() + " to job jar" );
         	addStream(jarFile, entry.getKey(), new FileInputStream(entry.getValue()),contents);
         }
-        
+
+        log.debug("Adding entry pigContext to job jar" );
         jarFile.putNextEntry(new ZipEntry("pigContext"));
         new ObjectOutputStream(jarFile).writeObject(pigContext);
         jarFile.close();
@@ -177,7 +176,7 @@ public class JarManager {
     private static void mergeJar(JarOutputStream jarFile, String jar, String prefix, Map<String, String> contents)
             throws FileNotFoundException, IOException {
         JarInputStream jarInput = new JarInputStream(new FileInputStream(jar));
-        
+        log.debug("Adding jar " + jar + (prefix != null ? " for prefix "+prefix : "" ) + " to job jar" );
         mergeJar(jarFile, jarInput, prefix, contents);
     }
     

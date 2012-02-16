@@ -515,17 +515,21 @@ public class FileLocalizer {
     }
 
     public static Path getTemporaryPath(PigContext pigContext) throws IOException {
-        ElementDescriptor relative = relativeRoot(pigContext);
-    
-        if (!relativeRoot(pigContext).exists()) {
-            relativeRoot(pigContext).create();
-        }
-        ElementDescriptor elem= 
-            pigContext.getDfs().asElement(relative.toString(), "tmp" + r.nextInt());
-        toDelete().push(elem);
-        return ((HPath)elem).getPath();
+        return getTemporaryPath(pigContext, "");
     }
-    
+
+    public static Path getTemporaryPath(PigContext pigContext, String suffix) throws IOException {
+      ElementDescriptor relative = relativeRoot(pigContext);
+
+      if (!relativeRoot(pigContext).exists()) {
+          relativeRoot(pigContext).create();
+      }
+      ElementDescriptor elem=
+          pigContext.getDfs().asElement(relative.toString(), "tmp" + r.nextInt() + suffix);
+      toDelete().push(elem);
+      return ((HPath)elem).getPath();
+  }
+
     public static String hadoopify(String filename, PigContext pigContext) throws IOException {
         if (filename.startsWith(LOCAL_PREFIX)) {
             filename = filename.substring(LOCAL_PREFIX.length());
