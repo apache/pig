@@ -326,6 +326,8 @@ Release 0.9.3 - Unreleased
 
 BUG FIXES
 
+PIG-2508: PIG can unpredictably ignore deprecated Hadoop config options (daijy)
+
 PIG-2493: UNION causes casting issues (vivekp via daijy)
 
 PIG-2497: Order of execution of fs, store and sh commands in Pig is not maintained (daijy)
