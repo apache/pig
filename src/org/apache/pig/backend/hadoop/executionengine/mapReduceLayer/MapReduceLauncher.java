@@ -321,7 +321,7 @@ public class MapReduceLauncher extends Launcher{
                     
                     for (int i=0; i<jc.getFailedJobs().size(); i++) {
                         Job j = jc.getFailedJobs().get(i);
-                        msg.append(getFirstLineFromMessage(j.getMessage()));
+                        msg.append(j.getMessage());
                         if (i!=jc.getFailedJobs().size()-1) {
                             msg.append("\n");
                         }
@@ -617,7 +617,7 @@ public class MapReduceLauncher extends Launcher{
                 jobControlException = getExceptionFromString(jobControlExceptionStackTrace);
             } catch (Exception e) {
                 String errMsg = "Could not resolve error that occured when launching map reduce job: "
-                        + getFirstLineFromMessage(jobControlExceptionStackTrace);
+                        + jobControlExceptionStackTrace;
                 jobControlException = new RuntimeException(errMsg);
             }
         }
