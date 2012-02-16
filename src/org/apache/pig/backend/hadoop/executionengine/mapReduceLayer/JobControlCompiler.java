@@ -20,8 +20,10 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -37,6 +39,7 @@ import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.mapred.JobConf;
@@ -55,9 +58,9 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.WeightedRangePartitioner;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFRJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeCogroup;
@@ -404,6 +407,13 @@ public class JobControlCompiler{
 
             if (!pigContext.inIllustrator && pigContext.getExecType() != ExecType.LOCAL) 
             {
+
+                // Setup the DistributedCache for this job
+                for (URL extraJar : pigContext.extraJars) {
+                    log.debug("Adding jar to DistributedCache: " + extraJar.toString());
+                    putJarOnClassPathThroughDistributedCache(pigContext, conf, extraJar);
+                }
+
                 //Create the jar of all functions and classes required
                 File submitJarFile = File.createTempFile("Job", ".jar");
                 log.info("creating jar file "+submitJarFile.getName());
@@ -448,7 +458,6 @@ public class JobControlCompiler{
                 }
             }
 
-            // Setup the DistributedCache for this job
             setupDistributedCache(pigContext, nwJob.getConfiguration(), pigContext.getProperties(), 
                                   "pig.streaming.ship.files", true);
             setupDistributedCache(pigContext, nwJob.getConfiguration(), pigContext.getProperties(), 
@@ -1158,28 +1167,20 @@ public class JobControlCompiler{
             setupDistributedCache(pigContext, conf, paths, shipToCluster);
         }
     }
-        
+
     private static void setupDistributedCache(PigContext pigContext,
             Configuration conf, String[] paths, boolean shipToCluster) throws IOException {
         // Turn on the symlink feature
         DistributedCache.createSymlink(conf);
-            
+
         for (String path : paths) {
             path = path.trim();
             if (path.length() != 0) {
                 Path src = new Path(path);
-                
+
                 // Ensure that 'src' is a valid URI
-                URI srcURI = null;
-                try {
-                    srcURI = new URI(src.toString());
-                } catch (URISyntaxException ue) {
-                    int errCode = 6003;
-                    String msg = "Invalid cache specification. " +
-                    "File doesn't exist: " + src;
-                    throw new ExecException(msg, errCode, PigException.USER_ENVIRONMENT);
-                }
-                
+                URI srcURI = toURI(src);
+
                 // Ship it to the cluster if necessary and add to the
                 // DistributedCache
                 if (shipToCluster) {
@@ -1187,7 +1188,7 @@ public class JobControlCompiler{
                         new Path(FileLocalizer.getTemporaryPath(pigContext).toString());
                     FileSystem fs = dst.getFileSystem(conf);
                     fs.copyFromLocalFile(src, dst);
-                    
+
                     // Construct the dst#srcName uri for DistributedCache
                     URI dstURI = null;
                     try {
@@ -1244,74 +1245,146 @@ public class JobControlCompiler{
         return symlink;
     }
     
+
+    /**
+     * Ensure that 'src' is a valid URI
+     * @param src the source Path
+     * @return a URI for this path
+     * @throws ExecException
+     */
+    private static URI toURI(Path src) throws ExecException {
+        try {
+            return new URI(src.toString());
+        } catch (URISyntaxException ue) {
+            int errCode = 6003;
+            String msg = "Invalid cache specification. " +
+                    "File doesn't exist: " + src;
+            throw new ExecException(msg, errCode, PigException.USER_ENVIRONMENT);
+        }
+    }
+
+    /**
+     * if url is not in HDFS will copy the path to HDFS from local before adding to distributed cache
+     * @param pigContext the pigContext
+     * @param conf the job conf
+     * @param url the url to be added to distributed cache
+     * @return the path as seen on distributed cache
+     * @throws IOException
+     */
+    private static void putJarOnClassPathThroughDistributedCache(
+            PigContext pigContext,
+            Configuration conf,
+            URL url) throws IOException {
+
+        // Turn on the symlink feature
+        DistributedCache.createSymlink(conf);
+
+        // REGISTER always copies locally the jar file. see PigServer.registerJar()
+        Path pathInHDFS = shipToHDFS(pigContext, conf, url);
+        // and add to the DistributedCache
+        DistributedCache.addFileToClassPath(pathInHDFS, conf);
+        pigContext.skipJars.add(url.getPath());
+    }
+
+    /**
+     * copy the file to hdfs in a temporary path
+     * @param pigContext the pig context
+     * @param conf the job conf
+     * @param url the url to ship to hdfs
+     * @return the location where it was shipped
+     * @throws IOException
+     */
+    private static Path shipToHDFS(
+            PigContext pigContext,
+            Configuration conf,
+            URL url) throws IOException {
+
+        String path = url.getPath();
+        int slash = path.lastIndexOf("/");
+        String suffix = slash == -1 ? path : path.substring(slash+1);
+
+        Path dst = new Path(FileLocalizer.getTemporaryPath(pigContext).toUri().getPath(), suffix);
+        FileSystem fs = dst.getFileSystem(conf);
+        OutputStream os = fs.create(dst);
+        try {
+            IOUtils.copyBytes(url.openStream(), os, 4096, true);
+        } finally {
+            // IOUtils can not close both the input and the output properly in a finally
+            // as we can get an exception in between opening the stream and calling the method
+            os.close();
+        }
+        return dst;
+    }
+
+
     private static class JoinDistributedCacheVisitor extends PhyPlanVisitor {
-                 
+
         private PigContext pigContext = null;
-                
-         private Configuration conf = null;
-         
-         public JoinDistributedCacheVisitor(PhysicalPlan plan, 
-                 PigContext pigContext, Configuration conf) {
-             super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(
-                     plan));
-             this.pigContext = pigContext;
-             this.conf = conf;
-         }
-         
-         @Override
+
+        private Configuration conf = null;
+
+        public JoinDistributedCacheVisitor(PhysicalPlan plan, 
+                PigContext pigContext, Configuration conf) {
+            super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(
+                    plan));
+            this.pigContext = pigContext;
+            this.conf = conf;
+        }
+
+        @Override
         public void visitFRJoin(POFRJoin join) throws VisitorException {
-             
-             // XXX Hadoop currently doesn't support distributed cache in local mode.
-             // This line will be removed after the support is added
-             if (pigContext.getExecType() == ExecType.LOCAL) return;
-             
-             // set up distributed cache for the replicated files
-             FileSpec[] replFiles = join.getReplFiles();
-             ArrayList<String> replicatedPath = new ArrayList<String>();
-             
-             FileSpec[] newReplFiles = new FileSpec[replFiles.length];
-             
-             // the first input is not replicated
-             for (int i = 0; i < replFiles.length; i++) {
-                 // ignore fragmented file
-                 String symlink = "";
-                 if (i != join.getFragment()) {
-                     symlink = "pigrepl_" + join.getOperatorKey().toString() + "_"
-                         + Integer.toString(System.identityHashCode(replFiles[i].getFileName()))
-                         + "_" + Long.toString(System.currentTimeMillis()) 
-                         + "_" + i;
-                     replicatedPath.add(replFiles[i].getFileName() + "#"
-                             + symlink);
-                 }
-                 newReplFiles[i] = new FileSpec(symlink, 
-                         (replFiles[i] == null ? null : replFiles[i].getFuncSpec()));               
-             }
-             
-             join.setReplFiles(newReplFiles);
-             
-             try {
-                 setupDistributedCache(pigContext, conf, replicatedPath
-                         .toArray(new String[0]), false);
-             } catch (IOException e) {
-                 String msg = "Internal error. Distributed cache could not " +
-                               "be set up for the replicated files";
-                 throw new VisitorException(msg, e);
-             }
-         }
-         
-         @Override
-         public void visitMergeJoin(POMergeJoin join) throws VisitorException {
-             
-        	 // XXX Hadoop currently doesn't support distributed cache in local mode.
-             // This line will be removed after the support is added
-             if (pigContext.getExecType() == ExecType.LOCAL) return;
-             
-             String indexFile = join.getIndexFile();
-             
-             // merge join may not use an index file
-             if (indexFile == null) return;
-             
-             try {
+
+            // XXX Hadoop currently doesn't support distributed cache in local mode.
+            // This line will be removed after the support is added
+            if (pigContext.getExecType() == ExecType.LOCAL) return;
+
+            // set up distributed cache for the replicated files
+            FileSpec[] replFiles = join.getReplFiles();
+            ArrayList<String> replicatedPath = new ArrayList<String>();
+
+            FileSpec[] newReplFiles = new FileSpec[replFiles.length];
+
+            // the first input is not replicated
+            for (int i = 0; i < replFiles.length; i++) {
+                // ignore fragmented file
+                String symlink = "";
+                if (i != join.getFragment()) {
+                    symlink = "pigrepl_" + join.getOperatorKey().toString() + "_"
+                            + Integer.toString(System.identityHashCode(replFiles[i].getFileName()))
+                            + "_" + Long.toString(System.currentTimeMillis()) 
+                            + "_" + i;
+                    replicatedPath.add(replFiles[i].getFileName() + "#"
+                            + symlink);
+                }
+                newReplFiles[i] = new FileSpec(symlink, 
+                        (replFiles[i] == null ? null : replFiles[i].getFuncSpec()));               
+            }
+
+            join.setReplFiles(newReplFiles);
+
+            try {
+                setupDistributedCache(pigContext, conf, replicatedPath
+                        .toArray(new String[0]), false);
+            } catch (IOException e) {
+                String msg = "Internal error. Distributed cache could not " +
+                        "be set up for the replicated files";
+                throw new VisitorException(msg, e);
+            }
+        }
+
+        @Override
+        public void visitMergeJoin(POMergeJoin join) throws VisitorException {
+
+            // XXX Hadoop currently doesn't support distributed cache in local mode.
+            // This line will be removed after the support is added
+            if (pigContext.getExecType() == ExecType.LOCAL) return;
+
+            String indexFile = join.getIndexFile();
+
+            // merge join may not use an index file
+            if (indexFile == null) return;
+
+            try {
                 String symlink = addSingleFileToDistributedCache(pigContext,
                         conf, indexFile, "indexfile_");
                 join.setIndexFile(symlink);
@@ -1320,21 +1393,21 @@ public class JobControlCompiler{
                         "be set up for merge join index file";
                 throw new VisitorException(msg, e);
             }
-         }
-         
-         @Override
+        }
+
+        @Override
         public void visitMergeCoGroup(POMergeCogroup mergeCoGrp)
                 throws VisitorException {
-          
-             // XXX Hadoop currently doesn't support distributed cache in local mode.
-             // This line will be removed after the support is added
-             if (pigContext.getExecType() == ExecType.LOCAL) return;
-             
-             String indexFile = mergeCoGrp.getIndexFileName();
-             
-             if (indexFile == null) throw new VisitorException("No index file");
-             
-             try {
+
+            // XXX Hadoop currently doesn't support distributed cache in local mode.
+            // This line will be removed after the support is added
+            if (pigContext.getExecType() == ExecType.LOCAL) return;
+
+            String indexFile = mergeCoGrp.getIndexFileName();
+
+            if (indexFile == null) throw new VisitorException("No index file");
+
+            try {
                 String symlink = addSingleFileToDistributedCache(pigContext,
                         conf, indexFile, "indexfile_mergecogrp_");
                 mergeCoGrp.setIndexFileName(symlink);
@@ -1344,40 +1417,40 @@ public class JobControlCompiler{
                 throw new VisitorException(msg, e);
             }
         }
-     }
+    }
 
-     private static class UdfDistributedCacheVisitor extends PhyPlanVisitor {
-                 
-         private PigContext pigContext = null;
-         private Configuration conf = null;
-         
-         public UdfDistributedCacheVisitor(PhysicalPlan plan, 
-                                           PigContext pigContext,
-                                           Configuration conf) {
-             super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(
-                     plan));
-             this.pigContext = pigContext;
-             this.conf = conf;
-         }
-         
-         @Override
-         public void visitUserFunc(POUserFunc func) throws VisitorException {
-             
-             // XXX Hadoop currently doesn't support distributed cache in local mode.
-             // This line will be removed after the support is added
-             if (pigContext.getExecType() == ExecType.LOCAL) return;
-             
-             // set up distributed cache for files indicated by the UDF
-             String[] files = func.getCacheFiles();
-             if (files == null) return;
+    private static class UdfDistributedCacheVisitor extends PhyPlanVisitor {
 
-             try {
-                 setupDistributedCache(pigContext, conf, files, false);
-             } catch (IOException e) {
+        private PigContext pigContext = null;
+        private Configuration conf = null;
+
+        public UdfDistributedCacheVisitor(PhysicalPlan plan, 
+                PigContext pigContext,
+                Configuration conf) {
+            super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(
+                    plan));
+            this.pigContext = pigContext;
+            this.conf = conf;
+        }
+
+        @Override
+        public void visitUserFunc(POUserFunc func) throws VisitorException {
+
+            // XXX Hadoop currently doesn't support distributed cache in local mode.
+            // This line will be removed after the support is added
+            if (pigContext.getExecType() == ExecType.LOCAL) return;
+
+            // set up distributed cache for files indicated by the UDF
+            String[] files = func.getCacheFiles();
+            if (files == null) return;
+
+            try {
+                setupDistributedCache(pigContext, conf, files, false);
+            } catch (IOException e) {
                 String msg = "Internal error. Distributed cache could not " +
-                            "be set up for the requested files";
+                        "be set up for the requested files";
                 throw new VisitorException(msg, e);
-             }
-         }
-     }   
+            }
+        }
+    }   
 }

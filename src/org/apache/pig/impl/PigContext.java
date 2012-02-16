@@ -58,7 +58,7 @@ import org.apache.pig.impl.util.JarManager;
 public class PigContext implements Serializable {
     private static final long serialVersionUID = 1L;
     
-    private transient final Log log = LogFactory.getLog(getClass());
+    private static final Log log = LogFactory.getLog(PigContext.class);
     
     public static final String JOB_NAME = "jobName";
     public static final String JOB_NAME_PREFIX= "PigLatin";
