@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2538: Add helper wrapper classes for StoreFunc (billgraham via dvryaboy)
+
 PIG-2010: registered jars on distributed cache (traviscrawford and julienledem via dvryaboy)
 
 PIG-2533: Pig MR job exceptions masked on frontend (traviscrawford via dvryaboy)
