@@ -182,6 +182,22 @@ if [ -z "$HADOOP_BIN" ]; then
     fi
 fi
 
+# Cassandra configurations
+if [ -n "$CASSANDRA_HOME" ] && [ -d "$CASSANDRA_HOME" ]; then
+  for jar in $CASSANDRA_HOME/lib/*.jar $CASSANDRA_HOME/build/lib/jars/*.jar; do
+    CLASSPATH=$CLASSPATH:$jar
+  done
+
+  STORAGE_JAR=`ls -1 $CASSANDRA_HOME/contrib/pig/build/*.jar`
+  if [ ! -e $STORAGE_JAR ]; then
+      echo "Unable to locate cassandra_storage jar: please run ant." >&2
+      exit 1
+  fi
+  CLASSPATH=$CLASSPATH:$STORAGE_JAR
+
+  export PIG_OPTS="$PIG_OPTS -Dudf.import.list=org.apache.cassandra.hadoop.pig"
+fi
+
 # if using HBase, likely want to include HBase config
 HBASE_CONF_DIR=${HBASE_CONF_DIR:-/etc/hbase}
 if [ -n "$HBASE_CONF_DIR" ] && [ -d "$HBASE_CONF_DIR" ]; then
