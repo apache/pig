@@ -1133,6 +1133,7 @@ nested_command
  : ^( NESTED_CMD IDENTIFIER nested_op[$IDENTIFIER.text] )
    {
        $foreach_plan::operators.put( $IDENTIFIER.text, $nested_op.op );
+       $foreach_plan::exprPlans.remove( $IDENTIFIER.text );
    }
  | 
    ^( NESTED_CMD_ASSI IDENTIFIER expr[exprPlan] )

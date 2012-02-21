@@ -28,6 +28,8 @@ PIG-2497: Order of execution of fs, store and sh commands in Pig is not maintain
 
 PIG-2508: PIG can unpredictably ignore deprecated Hadoop config options (thw via daijy)
 
+PIG-2530: Reusing alias name in nested foreach causes incorrect results (daijy)
+
 Release 0.9.2
 
 IMPROVEMENTS

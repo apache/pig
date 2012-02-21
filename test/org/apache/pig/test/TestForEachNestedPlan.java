@@ -238,6 +238,52 @@ public class TestForEachNestedPlan {
             }
         }
     }
+
+    @Test
+    public void testInnerOrderByAliasReuse() 
+    throws IOException, ParserException {
+        String INPUT_FILE = "test-innerorderbyaliasreuse.txt";
+
+        PrintWriter w = new PrintWriter(new FileWriter(INPUT_FILE));
+        w.println("1\t4");
+        w.println("1\t3");
+        w.println("2\t3");
+        w.println("2\t4");
+        w.close();
+
+        try {
+            Util.copyFromLocalToCluster(cluster, INPUT_FILE, INPUT_FILE);
+        
+            pig.registerQuery("A = load '" + INPUT_FILE
+                    + "' as (v1:int, v2:int);");
+            pig.registerQuery("B = group A by v1;");
+            pig.registerQuery("C = foreach B { X = A; X = order X by v2 asc; " +
+            		"generate flatten(X); };");
+    
+            Iterator<Tuple> iter = pig.openIterator("C");
+
+            List<Tuple> expectedResults =
+                Util.getTuplesFromConstantTupleStrings(
+                        new String[] {"(1,3)", "(1,4)", "(2,3)", "(2,4)"});
+
+            int counter = 0;
+            while (iter.hasNext()) {
+                assertEquals(expectedResults.get(counter++).toString(),
+                        iter.next().toString());                
+            }
+    
+            assertEquals(expectedResults.size(), counter);
+        } finally{
+            new File(INPUT_FILE).delete();
+            try {
+                Util.deleteFile(cluster, INPUT_FILE);
+            } catch (IOException e) {
+                e.printStackTrace();
+                Assert.fail();
+            }
+        }
+    }
+    
     
     /***
      * For generating a sample dataset
