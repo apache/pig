@@ -34,7 +34,7 @@ public class TestScriptingLanguagePython {
 
   @Test
   public void varargTest() throws Exception {
-    System.setProperty("python.cachedir", "/Users/julien/tmp/python");
+    System.setProperty("python.cachedir", System.getProperty("java.io.tmpdir"));
     PigServer pigServer = new PigServer(ExecType.LOCAL);
     String[] script = {
         "#!/usr/bin/python",
