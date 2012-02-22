@@ -57,8 +57,7 @@ public class TestJobControlCompiler {
     // creating a hadoop-site.xml and making it visible to Pig
     // making sure it is at the same location as for other tests to not pick up a 
     // conf from a previous test
-    File conf_dir = new File(System.getProperty("user.home"), "pigtest/conf/");
-    conf_dir.mkdirs();
+    File conf_dir = new File("build/classes");
     File hadoopSite = new File(conf_dir, "hadoop-site.xml");
     hadoopSite.deleteOnExit();
     FileWriter fw = new FileWriter(hadoopSite);
