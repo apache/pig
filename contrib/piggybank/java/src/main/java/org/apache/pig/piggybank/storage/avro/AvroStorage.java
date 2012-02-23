@@ -61,7 +61,7 @@ import org.json.simple.parser.ParseException;
 
 /**
  * AvroStorage is used to load/store Avro data <br/>
- * Document can be found <a href='http://snaprojects.jira.com/wiki/display/HTOOLS/AvroStorage+-+Pig+support+for+Avro+data'>here</a>
+ * Document can be found <a href='https://cwiki.apache.org/PIG/avrostorage.html'>here</a>
  */
 public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface, LoadMetadata {
 
