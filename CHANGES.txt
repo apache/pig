@@ -100,6 +100,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2532: Registered classes fail deserialization in frontend (traviscrawford via julien)
+
 PIG-2549: org.apache.pig.piggybank.storage.avro - Broken documentation link for AvroStorage (chrisas via daijy)
 
 PIG-2322: varargs functions do not get passed the arguments in Python embedding (julien)

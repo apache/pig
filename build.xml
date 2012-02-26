@@ -266,7 +266,7 @@
           <source path="${src.shims.dir}"/>
           <source path="${src.shims.test.dir}"/>
           <source path="tutorial/src"/>
-          <source path="${test.src.dir}" excluding="e2e/pig/udfs/java/"/>
+          <source path="${test.src.dir}" excluding="e2e/pig/udfs/java/|resources/"/>
           <output path="${build.dir.eclipse-main-classes}" />
           <library pathref="eclipse.classpath" exported="true" />
           <!--library pathref="classpath" exported="false"/-->
@@ -464,7 +464,7 @@
             <param name="dist" value="${test.build.classes}" />
             <param name="cp" value="test.classpath" />
             <!-- don't compile PigTestLoader -->
-            <param name="excludes" value="**/PigTestLoader.java" />
+            <param name="excludes" value="**/PigTestLoader.java **/resources/**" />
         </antcall>
 
         <antcall target="compile-sources-all-warnings" inheritRefs="true" inheritall="true">
@@ -472,7 +472,7 @@
             <param name="dist" value="${test.build.classes}" />
             <param name="cp" value="test.classpath" />
             <!-- don't compile PigTestLoader -->
-            <param name="excludes" value="**/PigTestLoader.java" />            
+            <param name="excludes" value="**/PigTestLoader.java **/resources/**" />
         </antcall>
     	
     	<copy file="${basedir}/test/hbase-site.xml" tofile="${test.build.classes}/hbase-site.xml"/>
