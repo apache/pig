@@ -6,7 +6,7 @@
         <classpathentry kind="src" path="shims/src/hadoop20"/>
 	<classpathentry kind="src" path="src-gen"/>
 	<classpathentry kind="src" path="src"/>
-        <classpathentry excluding="e2e/pig/udfs/java/" kind="src" path="test"/>
+        <classpathentry excluding="e2e/pig/udfs/java/|resources/" kind="src" path="test"/>
         <classpathentry kind="src" path="test/e2e/pig/udfs/java"/>
 	<classpathentry kind="src" path="tutorial/src"/>
 	<classpathentry exported="true" kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>

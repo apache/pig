@@ -50,6 +50,13 @@ public class UDFContext {
     /*
      *  internal pig use only - should NOT be called from user code
      */
+    public static void setUdfContext(UDFContext udfContext) {
+        tss.set(udfContext);
+    }
+
+    /*
+     *  internal pig use only - should NOT be called from user code
+     */
     public void setClientSystemProps(Properties properties) {
         clientSysProps = properties;
     }

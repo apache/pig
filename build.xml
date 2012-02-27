@@ -403,7 +403,7 @@
             <param name="dist" value="${test.build.classes}" />
             <param name="cp" value="test.classpath" />
             <!-- don't compile PigTestLoader -->
-            <param name="excludes" value="**/PigTestLoader.java" />
+            <param name="excludes" value="**/PigTestLoader.java **/resources/**" />
         </antcall>
 
         <antcall target="compile-sources-all-warnings" inheritRefs="true" inheritall="true">
@@ -411,7 +411,7 @@
             <param name="dist" value="${test.build.classes}" />
             <param name="cp" value="test.classpath" />
             <!-- don't compile PigTestLoader -->
-            <param name="excludes" value="**/PigTestLoader.java" />            
+            <param name="excludes" value="**/PigTestLoader.java **/resources/**" />
         </antcall>
     	
     	<copy file="${basedir}/test/hbase-site.xml" tofile="${test.build.classes}/hbase-site.xml"/>
