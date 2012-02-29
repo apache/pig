@@ -19,6 +19,8 @@ package org.apache.pig.piggybank.storage.avro;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.System;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -130,16 +132,18 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
      */
     @Override
     public void setLocation(String location, Job job) throws IOException {
+        System.err.println("setLocation(String location=" + location + ")");
         HashSet<Path> paths = new HashSet<Path>();
-    	if(AvroStorageUtils.getAllSubDirs(new Path(location), job, paths) && inputAvroSchema == null) {
+    	if(AvroStorageUtils.getAllSubDirs(URI.create(location), job, paths) && inputAvroSchema == null) {
             FileInputFormat.setInputPaths(job, paths.toArray(new Path[0]));
             inputAvroSchema = getAvroSchema(location, job);
         }
     }
 
     protected Schema getAvroSchema(String location, Job job) throws IOException {
+        System.err.println("getAvroSchema(String location=" + location + ")");
         Configuration conf = job.getConfiguration();
-        FileSystem fs = FileSystem.get(conf);
+        FileSystem fs = FileSystem.get(URI.create(location), conf);
         Path path = new Path(location);
         return getAvroSchema(path, fs);
     }
