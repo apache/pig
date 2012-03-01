@@ -265,6 +265,8 @@ PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
 
+PIG-2509: Util.getSchemaFromString fails with java.lang.NullPointerException when a tuple in a bag has no name (as when used in MongoStorage UDF) (jcoveney via daijy)
+
 PIG-2559: Embedded pig in python; invoking sys.exit(0) causes script failure (vivekp via daijy)
 
 PIG-2530: Reusing alias name in nested foreach causes incorrect results (daijy)
