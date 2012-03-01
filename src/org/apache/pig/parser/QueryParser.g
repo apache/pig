@@ -315,7 +315,9 @@ tuple_type : TUPLE? LEFT_PAREN field_def_list? RIGHT_PAREN
           -> ^( TUPLE_TYPE field_def_list? )
 ;
 
-bag_type : BAG? LEFT_CURLY ( ( identifier COLON )? tuple_type )? RIGHT_CURLY
+bag_type : BAG? LEFT_CURLY ( null_keyword COLON tuple_type? ) RIGHT_CURLY
+        -> ^( BAG_TYPE tuple_type? )
+         | BAG? LEFT_CURLY ( ( identifier COLON )? tuple_type )? RIGHT_CURLY
         -> ^( BAG_TYPE identifier? tuple_type? )
 ;
 
