@@ -118,26 +118,34 @@ public class AvroStorageUtils {
      * @throws IOException
      */
      static boolean getAllSubDirs(URI location, Job job, Set<Path> paths) throws IOException {
+        System.err.println("getAllSubDirs(URI location: " + location);
   		FileSystem fs = FileSystem.get(location, job.getConfiguration());
         Path path = new Path(location.getPath());
+        System.err.println("getAllSubDirs - Path: " + path);
   		if (PATH_FILTER.accept(path)) {
+            System.err.println("getAllSubDirs PATH_FILTER. did accept path!");
   			try {
   				FileStatus file = fs.getFileStatus(path);
+                System.err.println("getAllSubDirs: file.getStatus(path): " + file.toString());
   				if (file.isDir()) {
   					for (FileStatus sub : fs.listStatus(path)) {
-                        System.err.println("FileStatus sub.getPath: " + sub.getPath().toUri());
+                        System.err.println("getAllSubDirs: FileStatus sub.getPath: " + sub.getPath().toUri());
   						getAllSubDirs(sub.getPath().toUri(), job, paths);
   					}
   				} else {
+                    System.err.println("getAllSubDirs: Add input file:" + file);
   					AvroStorageLog.details("Add input file:" + file);
   					paths.add(file.getPath());
   				}
   			} catch (FileNotFoundException e) {
+                AvroStorageLog.details("getAllSubDirs: RETURN FALSE; Input path does not exist: " + path);
   				AvroStorageLog.details("Input path does not exist: " + path);
   				return false;
   			}
+            System.err.println("getAllSubDirs: RETURN TRUE;");
   			return true;
   		}
+        System.err.println("getAllSubDirs: RETURN FALSE;");
   		return false;
   	}
      
