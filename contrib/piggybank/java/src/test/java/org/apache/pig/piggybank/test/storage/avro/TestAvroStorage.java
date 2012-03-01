@@ -323,6 +323,7 @@ public class TestAvroStorage {
         pigServerLocal.setBatchOn();
         for (String query: queries){
             if (query != null && query.length() > 0)
+                System.err.println("QUERY: " + query);
                 pigServerLocal.registerQuery(query);
         }
         pigServerLocal.executeBatch();
