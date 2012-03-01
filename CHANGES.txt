@@ -168,6 +168,8 @@ PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
 
+PIG-2559: Embedded pig in python; invoking sys.exit(0) causes script failure (vivekp via daijy)
+
 PIG-2530: Reusing alias name in nested foreach causes incorrect results (daijy)
 
 PIG-2489: Input Path Globbing{} not working with PigStorageSchema or PigStorage('\t', '-schema') (daijy)
