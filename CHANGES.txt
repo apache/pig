@@ -417,6 +417,8 @@ Release 0.9.3 - Unreleased
 
 BUG FIXES
 
+PIG-2535: Bug in new logical plan results in no output for join (daijy)
+
 PIG-2534: Pig generating infinite map outputs (daijy)
 
 PIG-2493: UNION causes casting issues (vivekp via daijy)
