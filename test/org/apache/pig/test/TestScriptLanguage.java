@@ -654,5 +654,23 @@ public class TestScriptLanguage {
 		PigStats stats = it.next().get(0);
 		assertTrue(stats.isSuccessful());
 	}
+	
+    @Test
+    public void testPyShouldNotFailScriptIfExitCodeIs0() throws Exception {
+        String[] script = {
+                "#!/usr/bin/python",
+                "from org.apache.pig.scripting import *",
+                "import sys",
+                "if 1 == 2:",
+                "   sys.exit(1)",
+                "else: sys.exit(0)"
+         };
+
+        Util.createLocalInputFile( "testScript.py", script);
+        ScriptEngine scriptEngine = ScriptEngine.getInstance("jython");
+        Map<String, List<PigStats>> statsMap = scriptEngine.run(pigServer.getPigContext(), "testScript.py");
+        assertEquals(0, statsMap.size());        
+
+   }
 
 }
