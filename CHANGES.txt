@@ -22,6 +22,8 @@ Release 0.9.3 - Unreleased
 
 BUG FIXES
 
+PIG-2564: Build fails - Hadoop 0.23.1-SNAPSHOT no longer available (thw via daijy)
+
 PIG-2535: Bug in new logical plan results in no output for join (daijy)
 
 PIG-2534: Pig generating infinite map outputs (daijy)
