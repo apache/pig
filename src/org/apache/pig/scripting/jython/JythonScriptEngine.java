@@ -44,6 +44,7 @@ import org.python.core.Py;
 import org.python.core.PyException;
 import org.python.core.PyFrame;
 import org.python.core.PyFunction;
+import org.python.core.PyInteger;
 import org.python.core.PyJavaPackage;
 import org.python.core.PyObject;
 import org.python.core.PyString;
@@ -194,6 +195,16 @@ public class JythonScriptEngine extends ScriptEngine {
                     }
                 }
             } catch (PyException e) {
+                if (e.match(Py.SystemExit)) {
+                    PyObject value = e.value;
+                    if (PyException.isExceptionInstance(e.value)) {
+                        value = value.__findattr__("code");
+                    }
+                    if (new  PyInteger(0).equals(value)) {
+                        LOG.info("Script invoked sys.exit(0)");
+                        return;
+                    }
+                }
                 String message = "Python Error. " + e;
                 throw new ExecException(message, 1121, e);
             }
