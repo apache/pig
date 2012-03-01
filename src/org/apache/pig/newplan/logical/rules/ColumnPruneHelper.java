@@ -301,6 +301,9 @@ public class ColumnPruneHelper {
         
         @Override
         public void visit(LOStream stream) throws FrontendException {
+            // output is not used, setOutputUids is used to check if it has output schema
+            Set<Long> output = setOutputUids(stream);
+            
             // Every field is required
             LogicalRelationalOperator pred = (LogicalRelationalOperator)plan.getPredecessors(stream).get(0);
 
@@ -547,6 +550,8 @@ public class ColumnPruneHelper {
         }
         
         @SuppressWarnings("unchecked")
+        // Get output uid from output schema. If output schema does not exist,
+        // throw exception
         private Set<Long> setOutputUids(LogicalRelationalOperator op) throws FrontendException {
             
             List<Operator> ll = plan.getSuccessors(op);

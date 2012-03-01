@@ -22,6 +22,8 @@ Release 0.9.3 - Unreleased
 
 BUG FIXES
 
+PIG-2534: Pig generating infinite map outputs (daijy)
+
 PIG-2532: Registered classes fail deserialization in frontend (traviscrawford via julien)
 
 PIG-2493: UNION causes casting issues (vivekp via daijy)
