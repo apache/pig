@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2541: Automatic record provenance (source tagging) for PigStorage (prkommireddi via daijy)
+
 PIG-2538: Add helper wrapper classes for StoreFunc (billgraham via dvryaboy)
 
 PIG-2010: registered jars on distributed cache (traviscrawford and julienledem via dvryaboy)
