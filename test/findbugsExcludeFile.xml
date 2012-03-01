@@ -445,4 +445,9 @@
         <Class name = "org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapBase$IllustratorContext" />
         <Bug pattern = "SIC_INNER_SHOULD_BE_STATIC" />
     </Match>
+    <Match>
+        <Class name = "org.apache.pig.newplan.logical.rules.ColumnPruneHelper$ColumnDependencyVisitor" />
+        <Method name = "visit" />
+        <Bug pattern = "DLS_DEAD_LOCAL_STORE" />
+    </Match>
 </FindBugsFilter>
