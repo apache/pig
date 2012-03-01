@@ -330,6 +330,8 @@ Release 0.9.3 - Unreleased
 
 BUG FIXES
 
+PIG-2534: Pig generating infinite map outputs (daijy)
+
 PIG-2508: PIG can unpredictably ignore deprecated Hadoop config options (daijy)
 
 PIG-2493: UNION causes casting issues (vivekp via daijy)
