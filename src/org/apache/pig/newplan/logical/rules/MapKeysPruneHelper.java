@@ -260,7 +260,10 @@ public class MapKeysPruneHelper {
         
         @Override
         public void visit(LOSplitOutput splitOutput) throws FrontendException {
-            super.visit(splitOutput);
+            currentOp = splitOutput;
+            MapExprMarker v = (MapExprMarker) getVisitor(splitOutput.getFilterPlan());
+            v.visit();
+            mergeUidKeys( v.inputUids );
             if (splitOutput.getSchema()!=null) {
                 for (LogicalFieldSchema fs : splitOutput.getSchema().getFields()) {
                     long inputUid = splitOutput.getInputUids(fs.uid);
