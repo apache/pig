@@ -882,7 +882,8 @@ public class TestSchema {
             "a:double,b:float,t:tuple(x:int,b:bag{t:tuple(a:int,b:float,c:double,x:tuple(z:bag{r:tuple(z:bytearray)}))},z:bytearray)",
             "a,b,t:tuple(x,b:bag{t:tuple(a,b,c,x:tuple(z:bag{r:tuple(z)}))},z)",
             "a:bag{t:tuple(a:bag{t:tuple(a:bag{t:tuple(a:bag{t:tuple(a:bag{t:tuple(a:bag{t:tuple(a:int,b:float)})})})})})}",
-            "a:bag{}"
+            "a:bag{}",
+            "b:{null:(a:int)}"
         };
         for (String schemaString : schemaStrings) {
             Schema s1 = Utils.getSchemaFromString(schemaString);
