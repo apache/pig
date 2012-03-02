@@ -41,12 +41,24 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 * <dd><code>match_index</code>-<code>index of the group to extract</code>.</dd>
 * <dt><b>Output:</b></dt>
 * <dd><code>extracted group, if fail, return null</code>.</dd>
+* <dt><b>Matching strategy:</b></dt>
+* <dd>Try to only match the first sequence by using {@link Matcher#find()} instead of
+* {@link Matcher#matches()} (default useMatches=false).</dd>
+* <dd><code>DEFINE NON_GREEDY_EXTRACT REGEX_EXTRACT(true);</code></dd>
 * </dl>
 */
 
 public class REGEX_EXTRACT extends EvalFunc<String> {
     String mExpression = null;
-    Pattern mPattern = null; 
+    Pattern mPattern = null;
+    boolean mUseMatches = false;
+
+    public REGEX_EXTRACT() {}
+
+    public REGEX_EXTRACT(boolean useMatches) {
+      this.mUseMatches = useMatches;
+    }
+
     @Override
     public Schema outputSchema(Schema input) {
       try {
@@ -56,6 +68,7 @@ public class REGEX_EXTRACT extends EvalFunc<String> {
       }
     }
 
+    @Override
     public String exec(Tuple input) throws IOException {
         if (input.size()!=3) {
             String msg = "RegexExtract : Only 3 parameters are allowed.";
@@ -81,16 +94,20 @@ public class REGEX_EXTRACT extends EvalFunc<String> {
             throw new IOException(msg);
         }
         int mIndex = (Integer)input.get(2);
-        
+
         Matcher m = mPattern.matcher((String)input.get(0));
-        if (m.find()&&m.groupCount()>=mIndex)
+
+        if (!mUseMatches&&m.find()||mUseMatches&&m.matches())
         {
-            return m.group(mIndex);
+            if (m.groupCount()>=mIndex)
+            {
+                return m.group(mIndex);
+            }
         }
         warn("RegexExtract : Cannot extract group for input "+input.get(0), PigWarning.UDF_WARNING_1);
         return null;
     }
-    
+
     @Override
     public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
         List<FuncSpec> funcList = new ArrayList<FuncSpec>();
@@ -100,5 +117,5 @@ public class REGEX_EXTRACT extends EvalFunc<String> {
         s.add(new Schema.FieldSchema(null, DataType.INTEGER));
         funcList.add(new FuncSpec(this.getClass().getName(), s));
         return funcList;
-    } 
+    }
 }

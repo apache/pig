@@ -1520,6 +1520,11 @@ public class TestBuiltin {
         t3.set(0, null);
         t3.set(1, "^\\/search\\/iy\\/(.*?)\\/.*");
         t3.set(2, 2);
+        
+        Tuple t4 = tupleFactory.newTuple(3);
+        t4.set(0,"this is a match");
+        t4.set(1, "this is a (.+?)");
+        t4.set(2, 1);
 
         REGEX_EXTRACT func = new REGEX_EXTRACT();
         String r = func.exec(t1);
@@ -1528,6 +1533,12 @@ public class TestBuiltin {
         assertTrue(r==null);
         r = func.exec(t3);
         assertTrue(r==null);
+        r = func.exec(t4);
+        assertEquals("m", r);
+
+        func = new REGEX_EXTRACT(true);
+        r = func.exec(t4);
+        assertEquals("match", r);
 
         String matchRegex = "^(.+)\\b\\s+is a\\s+\\b(.+)$";
         TupleFactory tupleFactory = TupleFactory.getInstance();
@@ -1548,6 +1559,30 @@ public class TestBuiltin {
         assertEquals(re.size(), 2);
         assertEquals("this", re.get(0));
         assertEquals("match", re.get(1));
+
+        re = funce.exec(te2);
+        assertTrue(re==null);
+
+        re = funce.exec(te3);
+        assertTrue(re==null);
+
+        matchRegex = "(.+?)(.+?)";
+        tupleFactory = TupleFactory.getInstance();
+        te1 = tupleFactory.newTuple(2);
+        te1.set(0,"this is a match");
+        te1.set(1, matchRegex);
+
+        funce = new REGEX_EXTRACT_ALL();
+        re = funce.exec(te1);
+        assertEquals(re.size(), 2);
+        assertEquals("t", re.get(0));
+        assertEquals("his is a match", re.get(1));
+
+        funce = new REGEX_EXTRACT_ALL(false);
+        re = funce.exec(te1);
+        assertEquals(re.size(), 2);
+        assertEquals("t", re.get(0));
+        assertEquals("h", re.get(1));
 
         re = funce.exec(te2);
         assertTrue(re==null);
