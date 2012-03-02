@@ -184,8 +184,7 @@ public class PigOutputCommitter extends OutputCommitter {
                     m.setAccessible(true);
                     m.invoke(mapCommitter.first, updatedContext);
                 } catch (Exception e) {
-                    // Should not happen
-                    assert(false);
+                    throw new IOException(e);
                 }
             }
         }
@@ -201,8 +200,7 @@ public class PigOutputCommitter extends OutputCommitter {
                     m.setAccessible(true);
                     m.invoke(reduceCommitter.first, updatedContext);
                 } catch (Exception e) {
-                    // Should not happen
-                    assert(false);
+                    throw new IOException(e);
                 }
             }
         }
