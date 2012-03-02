@@ -40,12 +40,22 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
  * <dd><code>regex</code>-<code>regular expression</code>.</dd>
  * <dt><b>Output:</b></dt>
  * <dd><code>A tuple of matched strings</code>.</dd>
+ * <dt><b>Matching strategy:</b></dt>
+ * <dd>Trying to match the entire input by using {@link Matcher#matches()} instead of
+ * {@link Matcher#find()} (default useMatches=true).</dd>
+ * <dd><code>DEFINE GREEDY_EXTRACT REGEX_EXTRACT(false);</code></dd>
  * </dl>
  */
 
 public class REGEX_EXTRACT_ALL extends EvalFunc<Tuple> {
-
     private static TupleFactory tupleFactory = TupleFactory.getInstance();
+    boolean mUseMatches = true;
+
+    public REGEX_EXTRACT_ALL() {}
+
+    public REGEX_EXTRACT_ALL(boolean useMatches) {
+      this.mUseMatches = useMatches;
+    }
 
     @Override
     public Tuple exec(Tuple input) throws IOException {
@@ -72,7 +82,7 @@ public class REGEX_EXTRACT_ALL extends EvalFunc<Tuple> {
         }
 
         Matcher m = mPattern.matcher((String)input.get(0));
-        if (!m.matches()) {
+        if (mUseMatches&&!m.matches()||!mUseMatches&&!m.find()) {
             return null;
         }
         Tuple result = tupleFactory.newTuple(m.groupCount());
@@ -83,11 +93,11 @@ public class REGEX_EXTRACT_ALL extends EvalFunc<Tuple> {
     }
 
     String mExpression = null;
-    Pattern mPattern = null; 
+    Pattern mPattern = null;
     @Override
     public Schema outputSchema(Schema input) {
         try {
-            return new Schema(new Schema.FieldSchema(getSchemaName(this.getClass().getName().toLowerCase(), input), 
+            return new Schema(new Schema.FieldSchema(getSchemaName(this.getClass().getName().toLowerCase(), input),
                     DataType.TUPLE));
         } catch (Exception e) {
             return null;
@@ -102,6 +112,6 @@ public class REGEX_EXTRACT_ALL extends EvalFunc<Tuple> {
         s.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
         funcList.add(new FuncSpec(this.getClass().getName(), s));
         return funcList;
-    } 
+    }
 }
 
