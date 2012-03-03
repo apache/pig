@@ -261,6 +261,10 @@ sub runPigCmdLine
 
     # Add pig file and redirections 
     push(@cmd, $pigfile);
+
+    if (defined($testCmd->{'additional_cmd_args'})) {
+        push(@cmd, $testCmd->{'additional_cmd_args'});
+    }
     my $command= join (" ", @cmd) . " 1> $stdoutfile 2> $stderrfile";
 
     # Run the command
@@ -433,6 +437,9 @@ sub runPig
 
     push(@cmd, $pigfile);
 
+    if (defined($testCmd->{'additional_cmd_args'})) {
+        push(@cmd, @{$testCmd->{'additional_cmd_args'}});
+    }
 
     # Run the command
     print $log "$0::$className::$subName INFO: Going to run pig command: @cmd\n";
