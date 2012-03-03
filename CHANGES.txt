@@ -143,6 +143,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2548: Support for providing parameters to python script (daijy)
+
 PIG-2518: Add ability to clean ivy cache in build.xml (daijy)
 
 PIG-2300: Pig Docs - release 0.10.0 (and 0.9.1) (chandec via daijy)
