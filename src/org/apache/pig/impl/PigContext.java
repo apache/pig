@@ -64,6 +64,8 @@ public class PigContext implements Serializable {
     public static final String JOB_NAME = "jobName";
     public static final String JOB_NAME_PREFIX= "PigLatin";
     public static final String JOB_PRIORITY = "jobPriority";
+    public static final String PIG_CMD_ARGS_REMAINDERS = "pig.cmd.args.remainders";
+    
     
     /* NOTE: we only serialize some of the stuff 
      * 
