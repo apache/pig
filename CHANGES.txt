@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2548: Support for providing parameters to python script (daijy)
+
 PIG-2518: Add ability to clean ivy cache in build.xml (daijy)
 
 PIG-2533: Pig MR job exceptions masked on frontend (traviscrawford via dvryaboy)

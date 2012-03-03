@@ -325,6 +325,8 @@ static int run(String args[], PigProgressNotificationListener listener) {
         }
         
 
+        pigContext.getProperties().setProperty("pig.cmd.args", commandLine);
+
         if(logFileName == null && !userSpecifiedLog) {
             logFileName = validateLogFile(properties.getProperty("pig.logfile"), null);
         }
@@ -487,10 +489,9 @@ static int run(String args[], PigProgressNotificationListener listener) {
             grunt.run();
             return ReturnCode.SUCCESS;
         } else {
+            pigContext.getProperties().setProperty(PigContext.PIG_CMD_ARGS_REMAINDERS, ObjectSerializer.serialize(remainders));
+            
             // They have a pig script they want us to run.
-            if (remainders.length > 1) {
-                   throw new RuntimeException("Encountered unexpected arguments on command line - please check the command line.");
-            }
             mode = ExecMode.FILE;
             
             FileLocalizer.FetchFileRet localFileRet = FileLocalizer.fetchFile(properties, remainders[0]);

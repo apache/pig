@@ -36,6 +36,7 @@ import org.apache.pig.FuncSpec;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.parser.ParserException;
 import org.apache.pig.scripting.ScriptEngine;
@@ -351,6 +352,16 @@ public class JythonScriptEngine extends ScriptEngine {
             registerFunctions(scriptFile, null, pigContext);
         }
 
+        if (pigContext.getProperties().get(PigContext.PIG_CMD_ARGS_REMAINDERS)!=null) {
+            try {
+                String[] argv = (String[])ObjectSerializer.deserialize(
+                        pigContext.getProperties().getProperty(PigContext.PIG_CMD_ARGS_REMAINDERS));
+                PythonInterpreter.initialize(null, null, argv);
+            } catch (IOException e) {
+                throw new ExecException("Cannot deserialize command line arguments", e);
+            }
+        }
+        
         Interpreter.setMain(true);
         FileInputStream fis = new FileInputStream(scriptFile);
         try {
