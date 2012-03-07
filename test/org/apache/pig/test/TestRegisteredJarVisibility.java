@@ -27,8 +27,10 @@ import org.apache.hadoop.fs.Path;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
@@ -42,11 +44,11 @@ public class TestRegisteredJarVisibility {
     // Actual data is not important. Reusing an existing input file.
     private static final File INPUT_FILE = new File("test/data/pigunit/top_queries_input_data.txt");
 
-    private MiniCluster cluster;
-    private File jarFile;
+    private static MiniCluster cluster;
+    private static File jarFile;
 
-    @Before()
-    public void setUp() throws IOException {
+    @BeforeClass()
+    public static void setUp() throws IOException {
 
         String testResourcesDir =  "test/resources/" + PACKAGE_NAME.replace(".", "/");
 
@@ -77,8 +79,8 @@ public class TestRegisteredJarVisibility {
         cluster = MiniCluster.buildCluster();
     }
 
-    @After()
-    public void tearDown() {
+    @AfterClass()
+    public static void tearDown() {
         cluster.shutDown();
     }
 
@@ -109,7 +111,7 @@ public class TestRegisteredJarVisibility {
         pigServer.shutdown();
     }
 
-    private List<File> compile(File[] javaFiles) {
+    private static List<File> compile(File[] javaFiles) {
         LOG.info("Compiling: " + Arrays.asList(javaFiles));
 
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
@@ -138,7 +140,7 @@ public class TestRegisteredJarVisibility {
      * @param filesToJar map of canonical class name to class file
      * @throws IOException on error
      */
-    private void jar(Map<String, File> filesToJar) throws IOException {
+    private static void jar(Map<String, File> filesToJar) throws IOException {
         LOG.info("Creating jar file containing: " + filesToJar);
 
         JarOutputStream jos = new JarOutputStream(new FileOutputStream(jarFile.getAbsolutePath()));
