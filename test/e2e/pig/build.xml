@@ -43,6 +43,8 @@
 
   <property name="harness.dir" value="${basedir}/../harness"/>
   <property name="harness.tar" value="${harness.dir}/harness.tar"/>
+  <property name="harness.PH_LOCAL" value="."/>
+  <property name="harness.PH_OUT" value="."/>
 
   <property name="test.location" value="${basedir}/testdist"/>
   <property name="benchmark.location" value="${test.location}/benchmarks"/>
@@ -177,8 +179,8 @@
 
     <exec executable="./test_harness.pl" dir="${test.location}" failonerror="true">
       <env key="HARNESS_ROOT" value="."/>
-      <env key="PH_LOCAL" value="."/>
-      <env key="PH_OUT" value="."/>
+      <env key="PH_LOCAL" value="${harness.PH_LOCAL}"/>
+      <env key="PH_OUT" value="${harness.PH_OUT}"/>
       <env key="PH_ROOT" value="."/>
       <env key="PH_PIG" value="${pig.dir}"/>
       <env key="PH_OLDPIG" value="${harness.old.pig}"/>
@@ -216,8 +218,8 @@
   <target name="deploy-base" depends="property-check, tar, init-test">
     <exec executable="./test_harness.pl" dir="${test.location}" failonerror="true">
       <env key="HARNESS_ROOT" value="."/>
-      <env key="PH_LOCAL" value="."/>
-      <env key="PH_OUT" value="."/>
+      <env key="PH_LOCAL" value="${harness.PH_LOCAL}"/>
+      <env key="PH_OUT" value="${harness.PH_OUT}"/>
       <env key="PH_ROOT" value="."/>
       <env key="PH_PIG" value="${pig.dir}"/>
       <env key="PH_OLDPIG" value="${harness.old.pig}"/>
@@ -225,6 +227,7 @@
       <env key="PH_CLUSTER_BIN" value="${harness.cluster.bin}"/>
       <env key="PH_JYTHON_JAR" value="${jython.jar}"/>
       <env key="HARNESS_CONF" value="${harness.conf.file}"/>
+      <env key="HADOOP_HOME" value="${harness.hadoop.home}"/>
 
       <arg value="-deploycfg"/>
       <arg value="${deploy.conf}"/>
