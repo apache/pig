@@ -283,7 +283,6 @@ if ($harnessCfg eq "") {
   }
 }
 
-
 # Read the global config file
 my $globalCfg = "";
 if ( -e "$harnessCfg" ) {
@@ -370,7 +369,7 @@ my $log;
 open $log, "> $logfile" or die "FATAL ERROR $0 at ".__LINE__." : Can't open $logfile, $!\n";
 
 print "================================================================================================\n";
-print "LOGGING RESULTS TO " . cwd . "/$logfile\n";
+print "LOGGING RESULTS TO " . Cwd::realpath($logfile) . "\n";
 print "================================================================================================\n";
 
 # If they have requested deployment, do it now
