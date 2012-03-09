@@ -227,7 +227,7 @@ public class MapReduceLauncher extends Launcher{
             Thread jcThread = new Thread(jc) {
                 @Override
                 public void run() {
-                    UDFContext.setUdfContext(udfContext);
+                    UDFContext.setUdfContext(udfContext.clone()); //PIG-2576
                     super.run();
                 }
             };
