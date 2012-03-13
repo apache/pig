@@ -121,8 +121,25 @@ public class LimitOptimizer extends Rule {
                 // Get operator before LOForEach
                 Operator prepredecessor = currentPlan.getPredecessors(pred)
                     .get(0);
+                
+                List<Operator> softPrepredecessors=null;
+                // get a clone of softPrepredecessors to avoid ConcurrentModificationException
+                if (currentPlan.getSoftLinkPredecessors(limit)!=null) {
+                    softPrepredecessors=new ArrayList<Operator>(
+                            currentPlan.getSoftLinkPredecessors(limit));
+                }
+                if (softPrepredecessors!=null) {
+                    for (Operator op : softPrepredecessors) {
+                        currentPlan.removeSoftLink(op, limit);
+                    }
+                }
                 currentPlan.removeAndReconnect(limit);
                 currentPlan.insertBetween(prepredecessor, limit, pred);
+                if (softPrepredecessors!=null) {
+                    for (Operator op : softPrepredecessors) {
+                        currentPlan.createSoftLink(op, limit);
+                    }
+                }
             } else if (limit.getLimitPlan() == null) {
                 // TODO selectively enable optimizations for variable limit
                 if (pred instanceof LOCross || pred instanceof LOUnion) {
