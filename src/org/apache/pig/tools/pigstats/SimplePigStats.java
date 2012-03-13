@@ -165,7 +165,8 @@ final class SimplePigStats extends PigStats {
     
     @Override
     public boolean isSuccessful() {
-        return (returnCode == ReturnCode.SUCCESS);
+        return (getNumberJobs()==0 && returnCode==ReturnCode.UNKNOWN
+                || returnCode == ReturnCode.SUCCESS);
     }
  
     @Override
