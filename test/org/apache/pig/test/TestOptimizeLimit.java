@@ -25,6 +25,9 @@ import java.util.*;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
+import org.apache.pig.newplan.logical.relational.LOForEach;
+import org.apache.pig.newplan.logical.relational.LOLimit;
+import org.apache.pig.newplan.logical.relational.LOStore;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.rules.LoadTypeCastInserter;
 import org.apache.pig.newplan.logical.rules.LimitOptimizer;
@@ -200,6 +203,24 @@ public class TestOptimizeLimit {
     	String query = "B = foreach (limit (order (load 'myfile' AS (a0, a1, a2)) by $1) 10) generate $0;";
     	LogicalPlan plan = Util.buildLp(pigServer, query);
 	    optimizePlan(plan);
+    }
+    
+    @Test
+    // See PIG-2570
+    public void testLimitSoftLink() throws Exception {
+        String query = "A = LOAD 'data1.txt' AS (owner:chararray,pet:chararray,age:int,phone:chararray);"
+            + "B = group A all; "
+            + "C = foreach B generate SUM(A.age) as total; "
+            + "D = foreach A generate owner, age/(double)C.total AS percentAge; "
+            + "F = LIMIT D C.total/8;"
+            + "store F into 'output';";
+        LogicalPlan newLogicalPlan = Util.buildLp(pigServer, query);;
+        optimizePlan(newLogicalPlan);
+        LOStore store = (LOStore)newLogicalPlan.getSinks().get(0);
+        LOForEach foreach1 = (LOForEach)newLogicalPlan.getPredecessors(store).get(0);
+        LOForEach foreach2 = (LOForEach)newLogicalPlan.getPredecessors(foreach1).get(0);
+        LOLimit limit = (LOLimit)newLogicalPlan.getPredecessors(foreach2).get(0);
+        Assert.assertTrue(newLogicalPlan.getSoftLinkPredecessors(limit).get(0) instanceof LOStore);
     }
 
 
