@@ -38,6 +38,8 @@ import org.antlr.runtime.tree.Tree;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.io.FileLocalizer.FetchFileRet;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
@@ -58,6 +60,8 @@ public class QueryParserDriver {
     private Map<String, Operator> operators;
     private Set<String> importSeen;
     private Set<String> macroSeen;
+    
+    private static Map<String, FetchFileRet> fnameMap = new HashMap<String, FetchFileRet>();
     
     public QueryParserDriver(PigContext pigContext, String scope, Map<String, String> fileNameMap) {
         this.pigContext = pigContext;
@@ -337,6 +341,21 @@ public class QueryParserDriver {
         }
     }
     
+    private FetchFileRet getMacroFile(String fname) {
+        FetchFileRet localFileRet = null;
+        try {
+            if (fnameMap.get(fname)!=null) {
+                localFileRet = fnameMap.get(fname);
+            } else {
+                localFileRet = FileLocalizer.fetchFile(pigContext.getProperties(), fname);
+                fnameMap.put(fname, localFileRet);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Unable to fetch macro file '" + fname + "'", e);
+        }
+        return localFileRet;
+    }
+    
     /*
      * MacroDef node has two child nodes:
      *      1. name
@@ -383,8 +402,10 @@ public class QueryParserDriver {
         String body = bodyNode.getChild(0).getText();
 
         body = body.substring(1, body.length() - 1);
+        
+        FetchFileRet localFileRet = getMacroFile(fname);
 
-        PigMacro pm = new PigMacro(mn, fname, params, returns, body, seen);
+        PigMacro pm = new PigMacro(mn, localFileRet.file.getAbsolutePath(), params, returns, body, seen);
         
         try {
             pm.validate();
@@ -418,10 +439,11 @@ public class QueryParserDriver {
             throw new ParserException(msg);
         }
         
+        FetchFileRet localFileRet = getMacroFile(fname);
         
         BufferedReader in = null;
         try {
-            in = QueryParserUtils.getImportScriptAsReader(fname);
+            in = QueryParserUtils.getImportScriptAsReader(localFileRet.file.getAbsolutePath());
         } catch (FileNotFoundException e) {
             String msg = getErrorMessage(fname, t,
                     "Failed to import file '" + fname + "'", e.getMessage());
