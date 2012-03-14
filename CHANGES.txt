@@ -170,6 +170,8 @@ PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
 
+PIG-2565: Support IMPORT for macros stored in S3 Buckets (daijy)
+
 PIG-2570: LimitOptimizer fails with dynamic LIMIT argument (daijy)
 
 PIG-2543: PigStats.isSuccessful returns false if embedded pig script has sh commands (daijy)
