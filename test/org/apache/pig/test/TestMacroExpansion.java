@@ -715,7 +715,7 @@ public class TestMacroExpansion {
         fw.close();
         
         String script =
-            "import 'mytest2.pig';\n" +
+            "import '/tmp/mytest2.pig';\n" +
             "alpha = load 'users' as (user, age, zip);\n" +
             "gamma = group_and_count (alpha, user, 23);\n" +
             "store gamma into 'byuser';\n";
