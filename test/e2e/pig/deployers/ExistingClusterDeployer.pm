@@ -80,7 +80,7 @@ sub checkPrerequisites
     }
 
     # Run a quick and easy Hadoop command to make sure we can
-    $self->runHadoopCmd($cfg, $log, "fs -ls /");
+    $self->runPigCmd($cfg, $log, "fs -ls /");
 
 }
 
@@ -217,7 +217,7 @@ sub generateData
     );
 
 	# Create the HDFS directories
-	$self->runHadoopCmd($cfg, $log, "fs -mkdir $cfg->{'inpathbase'}");
+	$self->runPigCmd($cfg, $log, "fs -mkdir $cfg->{'inpathbase'}");
 
     foreach my $table (@tables) {
 		print "Generating data for $table->{'name'}\n";
@@ -227,9 +227,9 @@ sub generateData
 		$self->runCmd($log, \@cmd);
 
 		# Copy the data to HDFS
-		my $hadoop = "fs -copyFromLocal $table->{'name'} ".
+		my $hadoop = "copyFromLocal $table->{'name'} ".
 			"$cfg->{'inpathbase'}/$table->{'hdfs'}";
-		$self->runHadoopCmd($cfg, $log, $hadoop);
+		$self->runPigCmd($cfg, $log, $hadoop);
 
     }
 }
@@ -323,17 +323,18 @@ sub confirmUndeployment
 # it can use the existing utilities to build Pig commands and switch
 # naturally to local mode with everything else.
 
-sub runHadoopCmd($$$$)
+sub runPigCmd($$$$)
 {
     my ($self, $cfg, $log, $c) = @_;
 
-    # set the PIG_CLASSPATH environment variable
-    $ENV{'HADOOP_CLASSPATH'} = "$cfg->{'hadoopconfdir'}";
-                          
-    my @cmd = ("$cfg->{'hadoopbin'}");
-    push(@cmd, split(' ', $c));
+    my @pigCmd = ("$cfg->{'pigpath'}/bin/pig");
+    push(@pigCmd, '-e');
+    push(@pigCmd, split(' ', $c));
 
-    $self->runCmd($log, \@cmd);
+    # set the PIG_CLASSPATH environment variable
+    $ENV{'PIG_CLASSPATH'} = "$cfg->{'hadoopconfdir'}";
+                          
+    $self->runCmd($log, \@pigCmd);
 }
 
 sub runCmd($$$)
