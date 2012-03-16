@@ -57,8 +57,9 @@ public class TestQueryParser {
     }
 
     @Test
+    // After PIG-438, realias statement is valid
     public void testNegative1() throws IOException, RecognitionException {
-        shouldFail("A = load 'x'; B=A;");
+        shouldPass("A = load 'x'; B=A;");
     }
     
     @Test
@@ -100,7 +101,7 @@ public class TestQueryParser {
        
         Assert.assertFalse(stats.isSuccessful());
         
-        String expected = "<file myscript.pig, line 1, column 10>";
+        String expected = "<file myscript.pig, line 1, column 0>";
         String msg = stats.getErrorMessage();
         
         Assert.assertFalse(msg == null);
