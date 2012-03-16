@@ -84,15 +84,22 @@ query : ^( QUERY statement* )
 
 statement : general_statement
           | split_statement
+          | realias_statement
 ;
 
 split_statement : split_clause
+;
+
+realias_statement : realias_clause
 ;
 
 // For foreach statement that with complex inner plan.
 general_statement 
     : ^( STATEMENT ( alias )? 
         op_clause parallel_clause? ) 
+;
+
+realias_clause : ^(REALIAS alias IDENTIFIER)
 ;
 
 parallel_clause 

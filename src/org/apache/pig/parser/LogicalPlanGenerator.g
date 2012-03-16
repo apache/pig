@@ -163,9 +163,13 @@ scope {
 }
  : general_statement
  | split_statement
+ | realias_statement
 ;
 
 split_statement : split_clause
+;
+
+realias_statement : realias_clause
 ;
 
 general_statement 
@@ -174,6 +178,18 @@ general_statement
       Operator op = builder.lookupOperator( $oa.alias );
       builder.setParallel( (LogicalRelationalOperator)op, $statement::parallel );
   }
+;
+
+realias_clause
+: ^(REALIAS alias IDENTIFIER)
+    {
+	    Operator op = builder.lookupOperator( $IDENTIFIER.text );
+	    if (op==null) {
+	        throw new UndefinedAliasException(input, 
+	            new SourceLocation( (PigParserNode)$IDENTIFIER ), $IDENTIFIER.text);
+	    }
+	    builder.putOperator( $alias.name, (LogicalRelationalOperator)op );
+    }
 ;
 
 parallel_clause

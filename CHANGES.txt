@@ -149,6 +149,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-438: Handle realiasing of existing Alias (A=B;) (daijy)
+
 PIG-2548: Support for providing parameters to python script (daijy)
 
 PIG-2518: Add ability to clean ivy cache in build.xml (daijy)
