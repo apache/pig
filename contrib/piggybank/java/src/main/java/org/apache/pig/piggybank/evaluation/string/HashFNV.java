@@ -51,7 +51,12 @@ public class HashFNV extends EvalFunc<Long> {
     {
         int hval = init;
 
-        byte[] bytes = s.getBytes();
+        byte[] bytes = null;
+        try {
+            bytes = s.getBytes("UTF-8");
+        } catch (java.io.UnsupportedEncodingException e) {
+            // shall not happen
+        }
         for (int i=0;i<bytes.length;i++)
         {
             /* multiply by the 32 bit FNV magic prime mod 2^32 */
