@@ -49,7 +49,9 @@ import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.LoadMetadata;
 import org.apache.pig.PigException;
+import org.apache.pig.ResourceStatistics;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
@@ -319,7 +321,7 @@ public class JobControlCompiler{
      * the reduce plan and serializes it so that the PigMapReduce class can use it to package
      * the indexed tuples received by the reducer.
      * @param mro - The MapReduceOper for which the JobConf is required
-     * @param conf - the Configuration object from which JobConf is built
+     * @param config - the Configuration object from which JobConf is built
      * @param pigContext - The PigContext passed on from execution engine
      * @return Job corresponding to mro
      * @throws JobCreationException
@@ -595,7 +597,7 @@ public class JobControlCompiler{
 		else if (pigContext.defaultParallel > 0)
                     conf.set("mapred.reduce.tasks", ""+pigContext.defaultParallel);
                 else
-                    estimateNumberOfReducers(conf,lds);
+                    estimateNumberOfReducers(conf, lds, nwJob);
                 
                 if (mro.customPartitioner != null)
                 	nwJob.setPartitionerClass(PigContext.resolveClassName(mro.customPartitioner));
@@ -737,28 +739,44 @@ public class JobControlCompiler{
             throw new JobCreationException(msg, errCode, PigException.BUG, e);
         }
     }
-    
+
     /**
-     * Currently the estimation of reducer number is only applied to HDFS, The estimation is based on the input size of data storage on HDFS.
-     * Two parameters can been configured for the estimation, one is pig.exec.reducers.max which constrain the maximum number of reducer task (default is 999). The other
-     * is pig.exec.reducers.bytes.per.reducer(default value is 1000*1000*1000) which means the how much data can been handled for each reducer.
+     * Estimate the number of reducers based on input size.
+     * Number of reducers is based on two properties:
+     * <ul>
+     *     <li>pig.exec.reducers.bytes.per.reducer -
+     *     how many bytes of input per reducer (default is 1000*1000*1000)</li>
+     *     <li>pig.exec.reducers.max -
+     *     constrain the maximum number of reducer task (default is 999)</li>
+     * </ul>
+     * If using a loader that implements LoadMetadata the reported input size is used, otherwise
+     * attempt to determine size from the filesystem.
+     * <p>
      * e.g. the following is your pig script
+     * <pre>
      * a = load '/data/a';
      * b = load '/data/b';
      * c = join a by $0, b by $0;
      * store c into '/tmp';
-     * 
+     * </pre>
      * The size of /data/a is 1000*1000*1000, and size of /data/b is 2*1000*1000*1000.
      * Then the estimated reducer number is (1000*1000*1000+2*1000*1000*1000)/(1000*1000*1000)=3
-     * @param conf
-     * @param lds
-     * @throws IOException
+     * </p>
+     *
+     * @param conf read settings from this configuration
+     * @param lds inputs to estimate number of reducers for
+     * @param job job configuration
+     * @throws IOException on error
+     * @return estimated number of reducers necessary for this input
      */
-    static int estimateNumberOfReducers(Configuration conf, List<POLoad> lds) throws IOException {
-           long bytesPerReducer = conf.getLong("pig.exec.reducers.bytes.per.reducer", (1000 * 1000 * 1000));
+    public static int estimateNumberOfReducers(Configuration conf, List<POLoad> lds,
+            org.apache.hadoop.mapreduce.Job job) throws IOException {
+        long bytesPerReducer =
+                conf.getLong("pig.exec.reducers.bytes.per.reducer", (1000 * 1000 * 1000));
         int maxReducers = conf.getInt("pig.exec.reducers.max", 999);
-        long totalInputFileSize = getTotalInputFileSize(conf, lds);
-       
+
+        long totalInputFileSize = getInputSize(conf, lds, job);
+
         log.info("BytesPerReducer=" + bytesPerReducer + " maxReducers="
             + maxReducers + " totalInputFileSize=" + totalInputFileSize);
         
@@ -771,56 +789,65 @@ public class JobControlCompiler{
         return reducers;
     }
 
-    private static long getTotalInputFileSize(Configuration conf, List<POLoad> lds) throws IOException {
-        List<String> inputs = new ArrayList<String>();
-        if(lds!=null && lds.size()>0){
-            for (POLoad ld : lds) {
-                inputs.add(ld.getLFile().getFileName());
-            }
-        }
-        long size = 0;
-        
-        for (String input : inputs){
-            //Using custom uri parsing because 'new Path(location).toUri()' fails
-            // for some valid uri's (eg jdbc style), and 'new Uri(location)' fails
-            // for valid hdfs paths that contain curly braces
-            if(!UriUtil.isHDFSFileOrLocalOrS3N(input)){
-                //skip  if it is not hdfs or local file or s3n
+    /**
+     * Get the input size for as many inputs as possible. Inputs that do not report
+     * their size nor can pig look that up itself are excluded from this size.
+     */
+    public static long getInputSize(Configuration conf, List<POLoad> lds,
+            org.apache.hadoop.mapreduce.Job job) throws IOException {
+        long totalInputFileSize = 0;
+        for (POLoad ld : lds) {
+            long size = getInputSizeFromLoader(ld, job);
+            if (size > 0) {
+                totalInputFileSize += size;
                 continue;
             }
-
-            //the input file location might be a list of comma separeated files, 
+            // the input file location might be a list of comma separated files,
             // separate them out
-            for(String location : LoadFunc.getPathStrings(input)){
-                if(! UriUtil.isHDFSFileOrLocalOrS3N(location)){
-                    continue;
-                }
-                Path path = new Path(location);
-                FileSystem fs = path.getFileSystem(conf);
-                FileStatus[] status=fs.globStatus(path);
-                if (status != null){
-                    for (FileStatus s : status){
-                        size += getPathLength(fs, s);
+            for (String location : LoadFunc.getPathStrings(ld.getLFile().getFileName())) {
+                if (UriUtil.isHDFSFileOrLocalOrS3N(location)) {
+                    Path path = new Path(location);
+                    FileSystem fs = path.getFileSystem(conf);
+                    FileStatus[] status = fs.globStatus(path);
+                    if (status != null) {
+                        for (FileStatus s : status) {
+                            totalInputFileSize += Utils.getPathLength(fs, s);
+                        }
                     }
                 }
             }
         }
-        return size;
-   }
-   
-    private static long getPathLength(FileSystem fs,FileStatus status) throws IOException{
-        if (!status.isDir()){
-            return status.getLen();
-        }else{
-            FileStatus[] children = fs.listStatus(status.getPath());
-            long size=0;
-            for (FileStatus child : children){
-                size +=getPathLength(fs, child);
-            }
-            return size;
-        }
+        return totalInputFileSize;
     }
-        
+
+    /**
+     * Get the total input size in bytes by looking at statistics provided by
+     * loaders that implement @{link LoadMetadata}.
+     * @param ld
+     * @param job
+     * @return total input size in bytes, or 0 if unknown or incomplete
+     * @throws IOException on error
+     */
+    public static long getInputSizeFromLoader(
+            POLoad ld, org.apache.hadoop.mapreduce.Job job) throws IOException {
+        if (ld.getLoadFunc() == null
+                || !(ld.getLoadFunc() instanceof LoadMetadata)
+                || ld.getLFile() == null
+                || ld.getLFile().getFileName() == null) {
+            return 0;
+        }
+
+        ResourceStatistics statistics =
+                ((LoadMetadata) ld.getLoadFunc())
+                        .getStatistics(ld.getLFile().getFileName(), job);
+
+        if (statistics == null || statistics.getSizeInBytes() == null) {
+            return 0;
+        }
+
+        return statistics.getSizeInBytes();
+    }
+
     public static class PigSecondaryKeyGroupComparator extends WritableComparator {
         public PigSecondaryKeyGroupComparator() {
 //            super(TupleFactory.getInstance().tupleClass(), true);

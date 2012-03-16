@@ -137,7 +137,8 @@ public class SampleOptimizer extends MROpPlanVisitor {
             Configuration conf = ConfigurationUtil.toConfiguration(pigContext.getProperties());
             int rp = 1;
             try {
-                rp = JobControlCompiler.estimateNumberOfReducers(conf, lds);
+                rp = JobControlCompiler.estimateNumberOfReducers(
+                        conf, lds, new org.apache.hadoop.mapreduce.Job(conf));
             } catch (IOException e) {
                 log.warn("Failed to estimate number of reducers", e);
             }

@@ -30,8 +30,12 @@ import org.apache.hadoop.mapreduce.JobID;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
+import org.apache.pig.Expression;
 import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.LoadMetadata;
+import org.apache.pig.ResourceSchema;
+import org.apache.pig.ResourceStatistics;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.data.Tuple;
@@ -49,7 +53,7 @@ import org.apache.pig.impl.plan.OperatorKey;
  * 1) construct an object using the constructor
  * 2) Call getNext() in a loop till it returns null
  */
-public class ReadToEndLoader extends LoadFunc {
+public class ReadToEndLoader extends LoadFunc implements LoadMetadata {
 
     /**
      * the wrapped LoadFunc which will do the actual reading
@@ -58,7 +62,7 @@ public class ReadToEndLoader extends LoadFunc {
     
     /**
      * the Configuration object used to locate the input location - this will
-     * be used to call {@link LoadFunc#setLocation(String, Configuration)} on 
+     * be used to call {@link LoadFunc#setLocation(String, Job)} on
      * the wrappedLoadFunc
      */
     private Configuration conf;
@@ -257,6 +261,37 @@ public class ReadToEndLoader extends LoadFunc {
         //no-op
     }
 
+    @Override
+    public ResourceSchema getSchema(String location, Job job) throws IOException {
+        if (wrappedLoadFunc instanceof LoadMetadata) {
+            return ((LoadMetadata) wrappedLoadFunc).getSchema(location, job);
+        } else {
+            return null;
+        }
+    }
 
-   
+    @Override
+    public ResourceStatistics getStatistics(String location, Job job) throws IOException {
+        if (wrappedLoadFunc instanceof LoadMetadata) {
+            return ((LoadMetadata) wrappedLoadFunc).getStatistics(location, job);
+        } else {
+            return null;
+        }
+    }
+
+    @Override
+    public String[] getPartitionKeys(String location, Job job) throws IOException {
+        if (wrappedLoadFunc instanceof LoadMetadata) {
+            return ((LoadMetadata) wrappedLoadFunc).getPartitionKeys(location, job);
+        } else {
+            return null;
+        }
+    }
+
+    @Override
+    public void setPartitionFilter(Expression partitionFilter) throws IOException {
+        if (wrappedLoadFunc instanceof LoadMetadata) {
+             ((LoadMetadata) wrappedLoadFunc).setPartitionFilter(partitionFilter);
+        }
+    }
 }

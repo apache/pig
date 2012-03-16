@@ -7,6 +7,7 @@ import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.RandomAccessFile;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Arrays;
@@ -24,21 +25,29 @@ import javax.tools.JavaFileObject;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
 
+import com.google.common.collect.Lists;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.pig.ExecType;
+import org.apache.pig.FuncSpec;
+import org.apache.pig.LoadFunc;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
+import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class TestJobControlCompiler {
+
+    private static final Configuration CONF = new Configuration();
 
   /**
    * specifically tests that REGISTERED jars get added to distributed cache instead of merged into 
@@ -77,8 +86,7 @@ public class TestJobControlCompiler {
     PigContext pigContext = new PigContext(ExecType.MAPREDUCE, new Properties());
     pigContext.connect();
     pigContext.addJar(tmpFile.getAbsolutePath());
-    Configuration conf = new Configuration();
-    JobControlCompiler jobControlCompiler = new JobControlCompiler(pigContext, conf);
+    JobControlCompiler jobControlCompiler = new JobControlCompiler(pigContext, CONF);
     MROperPlan plan = new MROperPlan();
     MapReduceOper mro = new MapReduceOper(new OperatorKey());
     mro.UDFs = new HashSet<String>();
@@ -106,6 +114,68 @@ public class TestJobControlCompiler {
     Assert.assertFalse("the mapred.jar should *not* contain the testUDF", jarContainsFileNamed(submitJarFile, testUDFFileName));
 
   }
+
+    @Test
+    public void testEstimateNumberOfReducers() throws Exception {
+        Assert.assertEquals(2, JobControlCompiler.estimateNumberOfReducers(CONF,
+                Lists.newArrayList(createPOLoadWithSize(2L * 1000 * 1000 * 999,
+                        new PigStorage())),
+                new org.apache.hadoop.mapreduce.Job(CONF)));
+
+        Assert.assertEquals(2, JobControlCompiler.estimateNumberOfReducers(CONF,
+                Lists.newArrayList(createPOLoadWithSize(2L * 1000 * 1000 * 1000,
+                        new PigStorage())),
+                new org.apache.hadoop.mapreduce.Job(CONF)));
+
+        Assert.assertEquals(3, JobControlCompiler.estimateNumberOfReducers(CONF,
+                Lists.newArrayList(createPOLoadWithSize(2L * 1000 * 1000 * 1001,
+                        new PigStorage())),
+                new org.apache.hadoop.mapreduce.Job(CONF)));
+    }
+
+    @Test
+    public void testGetInputSizeFromFs() throws Exception {
+        long size = 2L * 1024 * 1024 * 1024;
+        Assert.assertEquals(size, JobControlCompiler.getInputSize(
+                CONF, Lists.newArrayList(createPOLoadWithSize(size, new PigStorage())),
+                new org.apache.hadoop.mapreduce.Job(CONF)));
+
+        Assert.assertEquals(size, JobControlCompiler.getInputSize(
+                CONF,
+                Lists.newArrayList(createPOLoadWithSize(size, new PigStorageWithStatistics())),
+                new org.apache.hadoop.mapreduce.Job(CONF)));
+
+        Assert.assertEquals(size * 2, JobControlCompiler.getInputSize(
+                CONF,
+                Lists.newArrayList(
+                        createPOLoadWithSize(size, new PigStorage()),
+                        createPOLoadWithSize(size, new PigStorageWithStatistics())),
+                new org.apache.hadoop.mapreduce.Job(CONF)));
+    }
+
+    @Test
+    public void testGetInputSizeFromLoader() throws Exception {
+        long size = 2L * 1024 * 1024 * 1024;
+        Assert.assertEquals(size, JobControlCompiler.getInputSizeFromLoader(
+                createPOLoadWithSize(size, new PigStorageWithStatistics()),
+                new org.apache.hadoop.mapreduce.Job(CONF)));
+    }
+
+    private static POLoad createPOLoadWithSize(long size, LoadFunc loadFunc) throws Exception {
+        File file = File.createTempFile("tempFile", ".tmp");
+        file.deleteOnExit();
+        RandomAccessFile f = new RandomAccessFile(file, "rw");
+        f.setLength(size);
+
+        loadFunc.setLocation(file.getAbsolutePath(), new org.apache.hadoop.mapreduce.Job(CONF));
+        FuncSpec funcSpec = new FuncSpec(loadFunc.getClass().getCanonicalName());
+        POLoad poLoad = new POLoad(new OperatorKey(), loadFunc);
+        poLoad.setLFile(new FileSpec(file.getAbsolutePath(), funcSpec));
+        poLoad.setPc(new PigContext());
+        poLoad.setUp();
+
+        return poLoad;
+    }
 
   /**
    * checks if the given file name is in the jar 
