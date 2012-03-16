@@ -409,9 +409,13 @@ public class TestPigServer {
         FileSystem fs = cluster.getFileSystem();
         fs.copyFromLocalFile(new Path(macroFile.getAbsolutePath()), new Path(macroName));
         
+        // find the absolute path for the directory so that it does not
+        // depend on configuration
+        String absPath = fs.getFileStatus(new Path(macroName)).getPath().toString();
+        
         Util.createInputFile(cluster, "testRegisterRemoteMacro_input", new String[]{"1", "2"});
         
-        pig.registerQuery("import 'util.pig';");
+        pig.registerQuery("import '" + absPath + "';");
         pig.registerQuery("a = load 'testRegisterRemoteMacro_input';");
         pig.registerQuery("b = row_count(a);");
         Iterator<Tuple> iter = pig.openIterator("b");
