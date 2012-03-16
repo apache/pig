@@ -1201,5 +1201,9 @@ public class LogicalPlanBuilder {
                       "Only REPL, REPLICATED, HASH, SKEWED, MERGE, and MERGE-SPARSE are vaild JOIN modifiers." );
           }
     }
+    
+    void putOperator(String alias, Operator op) {
+        operators.put(alias, op);
+    }
 
 }

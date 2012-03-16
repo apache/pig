@@ -218,7 +218,7 @@ public class TestErrorHandling {
         	String msg = ex.getMessage();
             System.out.println( msg );
             Assert.assertFalse( msg.contains( "file null" ) );
-            Assert.assertTrue( msg.contains( "mismatched input ''x'' expecting LEFT_PAREN" ) );
+            Assert.assertTrue( msg.contains( "Syntax error, unexpected symbol at or near 'A'" ) );
             return;
         }
         Assert.fail( "Testcase should fail" );
