@@ -521,6 +521,33 @@ public class TestDataModel extends junit.framework.TestCase {
         db1.append(db2);
         assertTrue("appends as expected", db1.equals(expected));
     }
+    
+    @Test
+    public void testByteArrayAppendMore() throws Exception {
+        DataByteArray expected = new DataByteArray("hello world!");
+        DataByteArray db1 = new DataByteArray("hello ");
+        DataByteArray db2 = new DataByteArray("world");
+        DataByteArray db3 = new DataByteArray("!");
+        db1.append(db2).append(db3);
+        assertTrue("appends as expected", db1.equals(expected));
+    }
+    
+    @Test
+    public void testByteArrayAppendBytes() throws Exception {
+        DataByteArray expected = new DataByteArray("hello world");
+        DataByteArray db1 = new DataByteArray("hello ");
+        byte[] db2 = "world".getBytes();
+        db1.append(db2);
+        assertTrue("appends as expected", db1.equals(expected));
+    }
+    
+    @Test
+    public void testByteArrayAppendString() throws Exception {
+        DataByteArray expected = new DataByteArray("hello world");
+        DataByteArray db1 = new DataByteArray("hello ");
+        db1.append("world");
+        assertTrue("appends as expected", db1.equals(expected));
+    }
 
     @Test
     public void testMapConversionErr() throws Exception {
