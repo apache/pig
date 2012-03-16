@@ -200,6 +200,17 @@ public class ResourceStatistics implements Cloneable {
         this.mBytes = mBytes;
         return this;
     }
+
+    /**
+     * @return getmBytes as bytes.
+     */
+    public Long getSizeInBytes() {
+        // Ideally size would be stored in bytes, and getmBytes would convert
+        // that number. However, mBytes is public so we cannot remove it, or
+        // guarantee it stays in sync with size in bytes.
+        return getmBytes() == null ? null : getmBytes() * 1024 * 1024;
+    }
+
     public Long getNumRecords() {
         return numRecords;
     }
