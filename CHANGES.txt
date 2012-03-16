@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2590: running ant tar and rpm targets on same copy of pig source results in problems (thejas)
+
 PIG-2548: Support for providing parameters to python script (daijy)
 
 PIG-2518: Add ability to clean ivy cache in build.xml (daijy)
