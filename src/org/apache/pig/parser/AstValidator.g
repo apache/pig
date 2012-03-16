@@ -97,12 +97,22 @@ query : ^( QUERY statement* )
 
 statement : general_statement
           | split_statement
+          | realias_statement
 ;
 
 split_statement : split_clause
 ;
 
+realias_statement : realias_clause
+;
+
 general_statement : ^( STATEMENT ( alias { aliases.add( $alias.name ); } )? op_clause parallel_clause? )
+;
+
+realias_clause : ^(REALIAS alias IDENTIFIER)
+   {
+       aliases.add( $alias.name );
+   }
 ;
 
 parallel_clause : ^( PARALLEL INTEGER )

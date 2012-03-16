@@ -154,6 +154,7 @@ statement : SEMI_COLON!
           | split_statement  
           | inline_statement        
           | import_statement
+          | realias_statement
 ;
 
 import_statement : import_clause SEMI_COLON!
@@ -167,6 +168,13 @@ split_statement : split_clause SEMI_COLON!
 
 general_statement : ( alias EQUAL )? (op_clause parallel_clause? | LEFT_PAREN op_clause parallel_clause? RIGHT_PAREN) SEMI_COLON 
                  -> ^( STATEMENT alias? op_clause parallel_clause? )
+;
+
+realias_statement : realias_clause SEMI_COLON!
+;
+
+realias_clause : alias EQUAL identifier 
+    -> ^(REALIAS alias identifier)
 ;
 
 parallel_clause : PARALLEL^ INTEGER
@@ -753,6 +761,7 @@ eid : rel_str_op
     | null_keyword
     | TRUE
     | FALSE
+    | REALIAS
 ;
 
 // relational operator
