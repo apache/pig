@@ -102,6 +102,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2581: HashFNV inconsistent/non-deterministic due to default platform encoding (prkommireddi via daijy)
+
 PIG-2514: REGEX_EXTRACT not returning correct group with non greedy regex (romainr via daijy)
 
 PIG-2532: Registered classes fail deserialization in frontend (traviscrawford via julien)
