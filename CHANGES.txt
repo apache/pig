@@ -346,6 +346,8 @@ Release 0.9.3 - Unreleased
 
 BUG FIXES
 
+PIG-2576: Change in behavior for UDFContext.getUDFContext().getJobConf() in front-end (thw via daijy)
+
 PIG-2532: Registered classes fail deserialization in frontend (traviscrawford via julien)
 
 PIG-2572: e2e harness deploy fails when using pig that does not bundle hadoop (thw via daijy)
