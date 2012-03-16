@@ -47,7 +47,9 @@
     <property name="build.classes" value="${build.dir}/classes" />
     <property name="build.docs" value="${build.dir}/docs" />
     <property name="build.javadoc" value="${build.docs}/api" />
-    <property name="dist.dir" value="${build.dir}/${final.name}" />
+    <property name="tar.dist.dir" value="${build.dir}/tar/${final.name}" />
+    <property name="rpm.dist.dir" value="${build.dir}/rpm/${final.name}" />
+
     <!-- property name="build.encoding" value="ISO-8859-1" / -->
     <property name="build.encoding" value="UTF8" />
 
@@ -176,7 +178,6 @@
     <property name="ivysettings.xml" location="${ivy.dir}/ivysettings.xml" />
     <property name="ivy.org" value="org.apache.pig"/>
     <property name="build.dir" location="build" />
-    <property name="dist.dir" value="${build.dir}/${final.name}"/>
     <property name="build.ivy.dir" location="${build.dir}/ivy" />
     <property name="build.ivy.lib.dir" location="${build.ivy.dir}/lib" />
     <property name="ivy.lib.dir" location="${build.ivy.lib.dir}/${ant.project.name}"/>
@@ -301,7 +302,7 @@
         <mkdir dir="${src.gen.query.parser.dir}" />
         <mkdir dir="${src.gen.script.parser.dir}" />
         <mkdir dir="${src.gen.param.parser.dir}" />
-        <mkdir dir="${dist.dir}" />
+<!--        <mkdir dir="${dist.dir}" /> -->
         <mkdir dir="${build.classes}" />
         <mkdir dir="${test.build.classes}" />
         <mkdir dir="${src.gen.dot.parser.dir}" />
@@ -898,151 +899,151 @@
     <!-- D I S T R I B U T I O N                                            -->
     <!-- ================================================================== -->
     <target name="package-release" depends="docs, api-report" description="Create a Pig release for rpm/deb distribution">
-        <mkdir dir="${dist.dir}" />
-        <mkdir dir="${dist.dir}/etc/pig" />
-        <mkdir dir="${dist.dir}/share/pig/scripts" />
-        <mkdir dir="${dist.dir}/share/pig/templates/conf" />
-        <mkdir dir="${dist.dir}/share/pig/lib" />
-        <mkdir dir="${dist.dir}/share/doc/pig" />
-        <mkdir dir="${dist.dir}/share/doc/pig/api" />
-        <mkdir dir="${dist.dir}/share/doc/pig/jdiff"/>
-        <mkdir dir="${dist.dir}/share/doc/pig/license" />
+        <mkdir dir="${rpm.dist.dir}" />
+        <mkdir dir="${rpm.dist.dir}/etc/pig" />
+        <mkdir dir="${rpm.dist.dir}/share/pig/scripts" />
+        <mkdir dir="${rpm.dist.dir}/share/pig/templates/conf" />
+        <mkdir dir="${rpm.dist.dir}/share/pig/lib" />
+        <mkdir dir="${rpm.dist.dir}/share/doc/pig" />
+        <mkdir dir="${rpm.dist.dir}/share/doc/pig/api" />
+        <mkdir dir="${rpm.dist.dir}/share/doc/pig/jdiff"/>
+        <mkdir dir="${rpm.dist.dir}/share/doc/pig/license" />
 
-        <copy todir="${dist.dir}/share/pig/lib">
+        <copy todir="${rpm.dist.dir}/share/pig/lib">
             <fileset dir="${ivy.lib.dir}" includes="jython*.jar"/>
         </copy>
 
-        <copy file="${output.jarfile.backcompat.withouthadoop}" tofile="${dist.dir}/share/pig/${final.name}-withouthadoop.jar" />
+        <copy file="${output.jarfile.backcompat.withouthadoop}" tofile="${rpm.dist.dir}/share/pig/${final.name}-withouthadoop.jar" />
 
-        <copy todir="${dist.dir}/bin">
+        <copy todir="${rpm.dist.dir}/bin">
             <fileset dir="bin" />
         </copy>
 
-        <copy todir="${dist.dir}/share/doc/pig">
+        <copy todir="${rpm.dist.dir}/share/doc/pig">
             <fileset dir="${build.docs}" />
         </copy>
 
-        <copy todir="${dist.dir}/etc/pig" file="conf/pig.properties"/>
+        <copy todir="${rpm.dist.dir}/etc/pig" file="conf/pig.properties"/>
 
-        <copy todir="${dist.dir}/etc/pig" file="conf/log4j.properties.template"/>
+        <copy todir="${rpm.dist.dir}/etc/pig" file="conf/log4j.properties.template"/>
 
-        <copy todir="${dist.dir}/share/pig/test" includeEmptyDirs="true">
+        <copy todir="${rpm.dist.dir}/share/pig/test" includeEmptyDirs="true">
             <fileset dir="${test.src.dir}" />
         </copy>
 
-        <copy todir="${dist.dir}/share/pig/tutorial" includeEmptyDirs="true">
+        <copy todir="${rpm.dist.dir}/share/pig/tutorial" includeEmptyDirs="true">
             <fileset dir="tutorial" />
         </copy>
 
-        <copy todir="${dist.dir}/share/pig/contrib" includeEmptyDirs="true">
+        <copy todir="${rpm.dist.dir}/share/pig/contrib" includeEmptyDirs="true">
             <fileset dir="contrib" />
         </copy>
 
-        <copy todir="${dist.dir}/share/doc/pig">
+        <copy todir="${rpm.dist.dir}/share/doc/pig">
             <fileset dir=".">
                 <include name="*.txt" />
             </fileset>
         </copy>
 
-        <copy todir="${dist.dir}/share/doc/pig/license">
+        <copy todir="${rpm.dist.dir}/share/doc/pig/license">
             <fileset dir="license" />
         </copy>
 
-        <copy todir="${dist.dir}/share/pig/templates/conf">
+        <copy todir="${rpm.dist.dir}/share/pig/templates/conf">
             <fileset dir="src/packages/templates/conf"/>
         </copy>
 
-        <copy todir="${dist.dir}/sbin">
+        <copy todir="${rpm.dist.dir}/sbin">
             <fileset dir="src/packages">
                 <include name="*.sh"/>
             </fileset>
         </copy>
 
         <chmod perm="ugo+x" type="file">
-            <fileset dir="${dist.dir}/bin" />
-            <fileset dir="${dist.dir}/sbin" />
+            <fileset dir="${rpm.dist.dir}/bin" />
+            <fileset dir="${rpm.dist.dir}/sbin" />
         </chmod>
 
     </target>
 
-    <target name="package" depends="docs, api-report, jar" description="Create a Pig release">
-            <mkdir dir="${dist.dir}" />
-        <mkdir dir="${dist.dir}/lib" />
-        <mkdir dir="${dist.dir}/conf" />
-        <mkdir dir="${dist.dir}/scripts" />
-        <mkdir dir="${dist.dir}/docs" />
-        <mkdir dir="${dist.dir}/docs/api" />
-        <mkdir dir="${dist.dir}/docs/jdiff"/>
-        <mkdir dir="${dist.dir}/license" />
+    <target name="package" depends="docs, api-report, jar" description="Create a Pig tar release">
+            <mkdir dir="${tar.dist.dir}" />
+        <mkdir dir="${tar.dist.dir}/lib" />
+        <mkdir dir="${tar.dist.dir}/conf" />
+        <mkdir dir="${tar.dist.dir}/scripts" />
+        <mkdir dir="${tar.dist.dir}/docs" />
+        <mkdir dir="${tar.dist.dir}/docs/api" />
+        <mkdir dir="${tar.dist.dir}/docs/jdiff"/>
+        <mkdir dir="${tar.dist.dir}/license" />
 
-        <copy todir="${dist.dir}/lib" includeEmptyDirs="false">
+        <copy todir="${tar.dist.dir}/lib" includeEmptyDirs="false">
             <fileset dir="${lib.dir}"/>
         </copy>
 
-        <copy todir="${dist.dir}/lib">
+        <copy todir="${tar.dist.dir}/lib">
             <fileset dir="${ivy.lib.dir}" includes="jython*.jar"/>
         </copy>
 
-        <copy file="${output.jarfile.backcompat.withouthadoop}" tofile="${dist.dir}/${final.name}-withouthadoop.jar" />
+        <copy file="${output.jarfile.backcompat.withouthadoop}" tofile="${tar.dist.dir}/${final.name}-withouthadoop.jar" />
 
-        <copy file="${output.jarfile.backcompat}" tofile="${dist.dir}/${final.name}.jar" />
+        <copy file="${output.jarfile.backcompat}" tofile="${tar.dist.dir}/${final.name}.jar" />
 
-        <copy todir="${dist.dir}/" file="ivy.xml" />
+        <copy todir="${tar.dist.dir}/" file="ivy.xml" />
 
-        <copy todir="${dist.dir}/ivy">
+        <copy todir="${tar.dist.dir}/ivy">
             <fileset dir="ivy" />
         </copy>
 
-        <copy todir="${dist.dir}/bin">
+        <copy todir="${tar.dist.dir}/bin">
             <fileset dir="bin" />
         </copy>
 
-        <copy todir="${dist.dir}/docs">
+        <copy todir="${tar.dist.dir}/docs">
             <fileset dir="${build.docs}" />
         </copy>
 
-        <copy todir="${dist.dir}/conf" file="conf/pig.properties"/>
+        <copy todir="${tar.dist.dir}/conf" file="conf/pig.properties"/>
 
-        <copy todir="${dist.dir}/conf" file="conf/log4j.properties.template"/>
+        <copy todir="${tar.dist.dir}/conf" file="conf/log4j.properties.template"/>
 
-        <copy todir="${dist.dir}/src" includeEmptyDirs="true">
+        <copy todir="${tar.dist.dir}/src" includeEmptyDirs="true">
             <fileset dir="${src.dir}" />
         </copy>
 
-        <copy todir="${dist.dir}/shims" includeEmptyDirs="true">
+        <copy todir="${tar.dist.dir}/shims" includeEmptyDirs="true">
             <fileset dir="${basedir}/shims" />
         </copy>
 
-        <copy todir="${dist.dir}/lib-src" includeEmptyDirs="true">
+        <copy todir="${tar.dist.dir}/lib-src" includeEmptyDirs="true">
             <fileset dir="${src.lib.dir}" />
         </copy>
 
-        <copy todir="${dist.dir}/test" includeEmptyDirs="true">
+        <copy todir="${tar.dist.dir}/test" includeEmptyDirs="true">
             <fileset dir="${test.src.dir}" />
         </copy>
 
-        <copy todir="${dist.dir}/tutorial" includeEmptyDirs="true">
+        <copy todir="${tar.dist.dir}/tutorial" includeEmptyDirs="true">
             <fileset dir="tutorial" />
         </copy>
 
-        <copy todir="${dist.dir}/contrib" includeEmptyDirs="true">
+        <copy todir="${tar.dist.dir}/contrib" includeEmptyDirs="true">
             <fileset dir="contrib" />
         </copy>
 
-        <copy todir="${dist.dir}/" file="build.xml" />
+        <copy todir="${tar.dist.dir}/" file="build.xml" />
 
-        <copy todir="${dist.dir}">
+        <copy todir="${tar.dist.dir}">
             <fileset dir=".">
                 <include name="*.txt" />
             </fileset>
         </copy>
 
-        <copy todir="${dist.dir}/license">
+        <copy todir="${tar.dist.dir}/license">
             <fileset dir="license" />
         </copy>
 
         <chmod perm="ugo+x" type="file">
-            <fileset dir="${dist.dir}/bin" />
+            <fileset dir="${tar.dist.dir}/bin" />
         </chmod>
     </target>
 
@@ -1051,23 +1052,23 @@
     <!-- ================================================================== -->
     <target name="tar" depends="package" description="Source distribution">
         <tar compression="gzip" longfile="gnu" destfile="${build.dir}/${final.name}.tar.gz">
-            <tarfileset dir="${build.dir}" mode="664">
+            <tarfileset dir="${build.dir}/tar/" mode="664">
                 <exclude name="${final.name}/bin/*" />
                 <include name="${final.name}/**" />
             </tarfileset>
-            <tarfileset dir="${build.dir}" mode="755">
+            <tarfileset dir="${build.dir}/tar" mode="755">
                 <include name="${final.name}/bin/*" />
             </tarfileset>
         </tar>
     </target>
 
     <target name="tar-release" depends="package-release" description="Create release tarball">
-        <tar compression="gzip" longfile="gnu" destfile="${build.dir}/${final.name}.tar.gz">
-            <tarfileset dir="${build.dir}" mode="664">
+        <tar compression="gzip" longfile="gnu" destfile="${rpm.dist.dir}/${final.name}.tar.gz">
+            <tarfileset dir="${build.dir}/rpm" mode="664">
                 <exclude name="${final.name}/bin/*" />
                 <include name="${final.name}/**" />
             </tarfileset>
-            <tarfileset dir="${build.dir}" mode="755">
+            <tarfileset dir="${build.dir}/rpm" mode="755">
                 <include name="${final.name}/bin/*" />
             </tarfileset>
         </tar>
@@ -1080,8 +1081,12 @@
         <mkdir dir="${package.buildroot}/SOURCES" />
         <mkdir dir="${package.buildroot}/SPECS" />
         <copy todir="${package.buildroot}/SOURCES">
-            <fileset dir="${build.dir}">
+            <fileset dir="${rpm.dist.dir}">
                 <include name="${final.name}.tar.gz" />
+            </fileset>
+        </copy>
+        <copy todir="${package.buildroot}/SOURCES">
+            <fileset dir="${build.dir}">
                 <include name="${final.name}-withouthadoop.jar" />
             </fileset>
         </copy>
