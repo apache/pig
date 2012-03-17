@@ -324,8 +324,12 @@ public class AvroStorageUtils {
 
     /** check whether it is just a wrapped tuple */
     public static boolean isTupleWrapper(ResourceFieldSchema pigSchema) {
-        return pigSchema.getType() == DataType.TUPLE
-                   && pigSchema.getName().equals(AvroStorageUtils.PIG_TUPLE_WRAPPER);
+        Boolean status = false;
+        if(pigSchema.getType() == DataType.TUPLE)
+            if(pigSchema.getName() != null)
+                if(pigSchema.getName().equals(AvroStorageUtils.PIG_TUPLE_WRAPPER))
+                    status = true;
+        return status;
     }
 
     /** extract schema from a nullable union */
