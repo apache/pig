@@ -176,6 +176,8 @@ PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
 
+PIG-2411: AvroStorage UDF in PiggyBank fails to STORE a bag of single-field tuples as Avro arrays (russell.jurney via daijy)
+
 PIG-2588: e2e harness: use pig command for cluster deploy (thw via daijy)
 
 PIG-2565: Support IMPORT for macros stored in S3 Buckets (daijy)
