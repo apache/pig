@@ -68,6 +68,7 @@ public class TestAvroStorage {
     final private String testRecordFile = getInputFile("test_record.avro");
     final private String testRecordSchema = getInputFile("test_record.avsc");
     final private String testTextFile = getInputFile("test_record.txt");
+    final private String testSingleTupleBagFile = getInputFile("messages.avro");
 
     @BeforeClass
     public static void setup() throws ExecException {
@@ -291,6 +292,20 @@ public class TestAvroStorage {
            };
         testAvroStorage( queries);
         verifyResults(output, expected);
+    }
+    
+    @Test
+    public void testSingleFieldTuples() throws IOException {
+        String output= outbasedir + "testSingleFieldTuples";
+        String expected = basedir + "expected_testSingleFieldTuples.avro";
+        deleteDirectory(new File(output));
+        String [] queries = {
+                " messages = LOAD '" + testSingleTupleBagFile + " ' USING org.apache.pig.piggybank.storage.avro.AvroStorage ();",
+                " a = foreach (group messages by user_id) { sorted = order messages by message_id DESC; GENERATE group AS user_id, sorted AS messages; };",
+                " STORE a INTO '" + output + "' " +
+                        " USING org.apache.pig.piggybank.storage.avro.AvroStorage ();"
+        };
+        testAvroStorage( queries);
     }
 
     private static void deleteDirectory (File path) {
