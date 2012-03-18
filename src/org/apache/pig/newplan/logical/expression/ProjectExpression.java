@@ -24,6 +24,7 @@ import org.apache.pig.PigException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.plan.PlanValidationException;
+import org.apache.pig.impl.util.Pair;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanVisitor;
@@ -273,7 +274,10 @@ public class ProjectExpression extends ColumnExpression {
             if (!(findReferent() instanceof LOInnerLoad)||
                     ((LOInnerLoad)findReferent()).sourceIsBag()) {
                 String alias = findReferent().getAlias();
-                List<LOInnerLoad> innerLoads = LOForEach.findReacheableInnerLoadFromBoundaryProject(this);
+
+                Pair<List<LOInnerLoad>, Boolean> innerLoadsPair = LOForEach.findReacheableInnerLoadFromBoundaryProject(this);
+                List<LOInnerLoad> innerLoads = innerLoadsPair.first;
+                boolean needNewUid = innerLoadsPair.second;
                 
                 // pull tuple information from innerload
                 if (innerLoads.get(0).getProjection().getFieldSchema().schema!=null &&
@@ -281,7 +285,12 @@ public class ProjectExpression extends ColumnExpression {
                     LogicalFieldSchema originalTupleFieldSchema = innerLoads.get(0).getProjection().getFieldSchema().schema.getField(0);
                     LogicalFieldSchema newTupleFieldSchema = new LogicalFieldSchema(originalTupleFieldSchema.alias,
                             schema, DataType.TUPLE);
-                    newTupleFieldSchema.uid = originalTupleFieldSchema.uid;
+                    if (needNewUid) {
+                        newTupleFieldSchema.uid = LogicalExpression.getNextUid();
+                    }
+                    else {
+                        newTupleFieldSchema.uid = originalTupleFieldSchema.uid;
+                    }
                     LogicalSchema newTupleSchema = new LogicalSchema();
                     newTupleSchema.addField(newTupleFieldSchema);
                     fieldSchema = new LogicalSchema.LogicalFieldSchema(alias, newTupleSchema, DataType.BAG);
@@ -289,7 +298,10 @@ public class ProjectExpression extends ColumnExpression {
                 else {
                     fieldSchema = new LogicalSchema.LogicalFieldSchema(alias, schema, DataType.BAG);
                 }
-                fieldSchema.uid = innerLoads.get(0).getProjection().getFieldSchema().uid;
+                if (needNewUid)
+                    fieldSchema.uid = LogicalExpression.getNextUid();
+                else
+                    fieldSchema.uid = innerLoads.get(0).getProjection().getFieldSchema().uid;
             }
             else {
                 // InnerLoad and source is not bag
