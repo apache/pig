@@ -279,6 +279,8 @@ PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
 
+PIG-2585: Enable ignored e2e test cases (daijy)
+
 PIG-2563: IndexOutOfBoundsException: while projecting fields from a bag (daijy)
 
 PIG-2411: AvroStorage UDF in PiggyBank fails to STORE a bag of single-field tuples as Avro arrays (russell.jurney via daijy)

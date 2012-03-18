@@ -253,6 +253,7 @@
       <env key="OLD_HADOOP_HOME" value="${OLD_HADOOP_HOME}"/>
       <env key="PH_OLD_CLUSTER_CONF" value="${PH_OLD_CLUSTER_CONF}"/>
       <env key="HCAT_BIN" value="${hcat.bin}"/>
+      <env key="PERL5LIB" value="./libexec"/>
       <arg line="${tests.to.run}"/>
       <arg value="${test.location}/tests/cmdline.conf"/>
       <arg value="${test.location}/tests/multiquery.conf"/>

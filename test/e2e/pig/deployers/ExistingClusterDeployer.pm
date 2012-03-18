@@ -183,6 +183,11 @@ sub generateData
             'filetype' => "studenttab",
             'rows' => 1,
             'hdfs' => "singlefile/fileexists",
+        },{
+            'name' => "nameMap",
+            'filetype' => "studenttab",
+            'rows' => 1,
+            'hdfs' => "nameMap/part-00000",
         }, {
             'name' => "studenttab20m",
             'filetype' => "studenttab",
