@@ -27,3 +27,21 @@ def squareSchema(input):
 @outputSchema("word:chararray")
 def concat(word):
     return word + word
+
+@outputSchema("gpa:double")
+def adjustgpa(gpa, instate):
+    if instate == None:
+        return None
+    elif instate:
+        return gpa
+    else:
+        return gpa+1
+
+@outputSchema("retired:boolean")
+def isretired(age):
+    if age == None:
+        return None
+    elif age>=60:
+        return True
+    else:
+        return False
