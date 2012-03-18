@@ -165,6 +165,11 @@ sub generateData
             'rows' => 1,
             'outfile' => "singlefile/fileexists",
         }, {
+            'name' => "nameMap",
+            'filetype' => "studenttab",
+            'rows' => 1,
+            'hdfs' => "nameMap/part-00000",
+         },{
             'name' => "unicode100",
             'filetype' => "unicode",
             'rows' => 100,
