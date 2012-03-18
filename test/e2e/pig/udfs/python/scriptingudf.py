@@ -69,3 +69,21 @@ def count(bag):
     for r in bag:
         cnt += 1
     return cnt
+
+@outputSchema("gpa:double")
+def adjustgpa(gpa, instate):
+    if instate == None:
+        return None
+    elif instate:
+        return gpa
+    else:
+        return gpa+1
+
+@outputSchema("retired:boolean")
+def isretired(age):
+    if age == None:
+        return None
+    elif age>=60:
+        return True
+    else:
+        return False

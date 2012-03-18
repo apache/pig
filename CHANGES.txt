@@ -149,6 +149,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2589: Additional e2e test for 0.10 new features (daijy)
+
 PIG-2182: Add more append support to DataByteArray (gsingers via daijy)
 
 PIG-438: Handle realiasing of existing Alias (A=B;) (daijy)

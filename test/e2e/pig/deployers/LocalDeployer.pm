@@ -194,7 +194,12 @@ sub generateData
             'filetype' => "voternulltab",
             'rows' => 10000,
             'outfile' => "singlefile/voternulltab10k",
-        },
+        }, {
+            'name' => "allscalar10k",
+            'filetype' => "allscalar",
+            'rows' => 10000,
+            'outfile' => "singlefile/allscalar10k",
+        }
     );
 
 	# Create the target directories
