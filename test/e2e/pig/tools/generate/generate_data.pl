@@ -454,6 +454,15 @@ sub getBulkCopyCmd(){
         }
         print PSQL "commit;\n" unless defined $nosql;
 
+    } elsif ($filetype eq "allscalar") {
+        srand(1228.2011 + $numRows);
+        for (my $i = 0; $i < $numRows; $i++) {
+            my $name = rand(1) < 0.05 ? '' : randomName();
+            my $age = rand(1) < 0.05 ? '' : randomAge();
+            my $gpa = rand(1) < 0.05 ? '' : randomGpa();
+            my $instate = rand(1) < 0.05 ? '' : (rand(1) < 0.5 ? 'true' : 'false');
+            printf HDFS "%s\t%d\t%.2f\t%s\n", $name, $age, $gpa, $instate;
+        }
     } else {
         warn "Unknown filetype $filetype\n";
         usage();
