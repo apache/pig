@@ -478,7 +478,7 @@ public class ColumnPruneHelper {
                          List<Operator> srcs = exp.getSinks();
                          for (Operator src : srcs) {
                              if (src instanceof ProjectExpression) {
-                                 List<LOInnerLoad> innerLoads = LOForEach.findReacheableInnerLoadFromBoundaryProject((ProjectExpression)src);
+                                 List<LOInnerLoad> innerLoads = LOForEach.findReacheableInnerLoadFromBoundaryProject((ProjectExpression)src).first;
                                  for (LOInnerLoad innerLoad : innerLoads) {
                                      ProjectExpression prj = innerLoad.getProjection();
                                      if (prj.isProjectStar()) {
@@ -514,7 +514,7 @@ public class ColumnPruneHelper {
                  for (Operator src : srcs) {
                      if (!(src instanceof ProjectExpression))
                          continue;
-                     List<LOInnerLoad> innerLoads = LOForEach.findReacheableInnerLoadFromBoundaryProject((ProjectExpression)src);
+                     List<LOInnerLoad> innerLoads = LOForEach.findReacheableInnerLoadFromBoundaryProject((ProjectExpression)src).first;
                      for (LOInnerLoad innerLoad : innerLoads) {
                          ProjectExpression prj = innerLoad.getProjection();
                          if (prj.isProjectStar()) {

@@ -181,4 +181,26 @@ public class TestNestedForeach {
 		t = iter.next();
 		Assert.assertTrue(t.toString().equals("({(7)})"));
 	}
+	
+	// See PIG-2563
+	@Test
+    public void testNestedForeach() throws Exception {
+        String[] input = {
+                "1\t2\t3",
+                "2\t5\t2"
+        };
+
+        Util.createInputFile(cluster, "table_nf_project", input);
+
+        pig.registerQuery("A = load 'table_nf_project' as (a,b,c:chararray);");
+        pig.registerQuery("B = GROUP A BY a;");
+        pig.registerQuery("C = foreach B {tmp = A.a;generate A, tmp; };");
+        pig.registerQuery("D = foreach C generate A.(a,b) as v;");
+        Iterator<Tuple> iter = pig.openIterator("D");
+        Tuple t = iter.next();
+        Assert.assertTrue(t.toString().equals("({(1,2)})"));
+
+        t = iter.next();
+        Assert.assertTrue(t.toString().equals("({(2,5)})"));
+    }
 }
