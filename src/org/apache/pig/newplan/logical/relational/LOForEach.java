@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Stack;
 
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.util.Pair;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanVisitor;
@@ -74,8 +75,14 @@ public class LOForEach extends LogicalRelationalOperator {
         ((LogicalRelationalNodesVisitor)v).visit(this);
     }
     
-    public static List<LOInnerLoad> findReacheableInnerLoadFromBoundaryProject(ProjectExpression project) throws FrontendException {
+    // Find the LOInnerLoad of the inner plan corresponding to the project, and 
+    // also find whether there is a LOForEach in inner plan along the way
+    public static Pair<List<LOInnerLoad>, Boolean> findReacheableInnerLoadFromBoundaryProject(ProjectExpression project) throws FrontendException {
+        boolean needNewUid = false;
         LogicalRelationalOperator referred = project.findReferent();
+        // If it is nested foreach, generate new uid
+        if (referred instanceof LOForEach)
+            needNewUid = true;
         List<Operator> srcs = referred.getPlan().getSources();
         List<LOInnerLoad> innerLoads = new ArrayList<LOInnerLoad>();
         for (Operator src:srcs) {
@@ -85,7 +92,7 @@ public class LOForEach extends LogicalRelationalOperator {
             		continue;
             	}
             	
-                Stack<Operator> stack = new Stack<Operator>();
+            	Stack<Operator> stack = new Stack<Operator>();
                 List<Operator> succs = referred.getPlan().getSuccessors( src );
                 if( succs != null ) {
                 	for( Operator succ : succs ) {
@@ -110,7 +117,7 @@ public class LOForEach extends LogicalRelationalOperator {
                 }
             }
         }
-        return innerLoads;
+        return new Pair<List<LOInnerLoad>, Boolean>(innerLoads, needNewUid);
     }
     
     public LogicalSchema dumpNestedSchema(String alias, String nestedAlias) throws FrontendException {
