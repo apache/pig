@@ -405,7 +405,7 @@ implements StoreFuncInterface, LoadMetadata {
     @Override
     public ResourceStatistics getStatistics(String location, Job job)
             throws IOException {
-        throw new UnsupportedOperationException();
+        return null;
     }
 
     @Override
