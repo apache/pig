@@ -73,6 +73,7 @@ public class TestPigServer {
 
     @Before
     public void setUp() throws Exception{
+        FileLocalizer.setInitialized(false);
         pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         stdOutRedirectedFile = new File("stdout.redirected");
         // Create file if it does not exist
