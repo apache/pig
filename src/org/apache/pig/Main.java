@@ -335,6 +335,7 @@ static int run(String args[], PigProgressNotificationListener listener) {
      
         // configure logging
         configureLog4J(properties, pigContext);
+        log.info(getVersionString().replace("\n", ""));
         
         if(logFileName != null) {
             log.info("Logging error messages to: " + logFileName);
