@@ -283,6 +283,8 @@ PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
 
+PIG-2505: AvroStorage won't read any file not ending in .avro (russell.jurney via daijy)
+
 PIG-2585: Enable ignored e2e test cases (daijy)
 
 PIG-2563: IndexOutOfBoundsException: while projecting fields from a bag (daijy)
