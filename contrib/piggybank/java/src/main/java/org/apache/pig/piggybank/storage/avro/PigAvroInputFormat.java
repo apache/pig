@@ -54,18 +54,6 @@ public class PigAvroInputFormat extends FileInputFormat<NullWritable, Writable> 
     }
 
     /**
-     * Ignore files not ending with ".avro"
-     */
-    @Override
-    protected List<FileStatus> listStatus(JobContext context) throws IOException {
-        List<FileStatus> result = new ArrayList<FileStatus>();
-        for (FileStatus file : super.listStatus(context))
-            if (file.getPath().getName().endsWith(PigAvroOutputFormat.EXT))
-                result.add(file);
-        return result;
-    }
-
-    /**
      * Create and return an avro record reader. 
      * It uses the input schema passed in to the
      * constructor.
