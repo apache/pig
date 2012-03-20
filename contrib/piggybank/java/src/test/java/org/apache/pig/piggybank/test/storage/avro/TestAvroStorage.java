@@ -69,6 +69,7 @@ public class TestAvroStorage {
     final private String testRecordSchema = getInputFile("test_record.avsc");
     final private String testTextFile = getInputFile("test_record.txt");
     final private String testSingleTupleBagFile = getInputFile("messages.avro");
+    final private String testNoExtensionFile = getInputFile("test_no_extension");
 
     @BeforeClass
     public static void setup() throws ExecException {
@@ -306,6 +307,27 @@ public class TestAvroStorage {
                         " USING org.apache.pig.piggybank.storage.avro.AvroStorage ();"
         };
         testAvroStorage( queries);
+    }
+    
+    @Test
+    public void testFileWithNoExtension() throws IOException {
+        String output= outbasedir + "testFileWithNoExtension";
+        String expected = basedir + "expected_testFileWithNoExtension.avro";
+        deleteDirectory(new File(output));
+        String [] queries = {
+                " avro = LOAD '" + testNoExtensionFile + " ' USING org.apache.pig.piggybank.storage.avro.AvroStorage ();",
+                " avro1 = FILTER avro BY member_id > 1211;",
+                " avro2 = FOREACH avro1 GENERATE member_id, browser_id, tracking_time, act_content ;",
+                " STORE avro2 INTO '" + output + "' " +
+                        " USING org.apache.pig.piggybank.storage.avro.AvroStorage (" +
+                        "'{\"data\":  \"" + testNoExtensionFile + "\" ," +
+                        "  \"field0\": \"int\", " +
+                        " \"field1\":  \"def:browser_id\", " +
+                        "  \"field3\": \"def:act_content\" " +
+                        " }');"
+        };
+        testAvroStorage( queries);
+        verifyResults(output, expected);
     }
 
     private static void deleteDirectory (File path) {
