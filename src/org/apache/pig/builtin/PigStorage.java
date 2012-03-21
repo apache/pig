@@ -104,7 +104,7 @@ import org.apache.pig.parser.ParserException;
  * <h3>Source tagging</h3>
  * If<code>-tagsource</code> is specified, PigStorage will prepend input split path to each Tuple/row.
  * User needs to ensure <code>pig.splitCombination</code> is set to false. 
- * Usage: A = LOAD 'input' using PigStorage(',','-tagschema'); B = foreach A generate INPUT_FILE_NAME;
+ * Usage: A = LOAD 'input' using PigStorage(',','-tagsource'); B = foreach A generate INPUT_FILE_NAME;
  * The first field in each Tuple will contain input path (INPUT_FILE_NAME)
  * <p>
  * Note that regardless of whether or not you store the schema, you <b>always</b> need to specify
