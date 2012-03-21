@@ -106,6 +106,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2608: Typo in PigStorage documentation for source tagging (prkommireddi via daijy)
+
 PIG-2590: running ant tar and rpm targets on same copy of pig source results in problems (thejas)
 
 PIG-2581: HashFNV inconsistent/non-deterministic due to default platform encoding (prkommireddi via daijy)
