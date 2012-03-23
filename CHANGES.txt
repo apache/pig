@@ -153,6 +153,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1270: Push limit into loader (daijy)
+
 PIG-2589: Additional e2e test for 0.10 new features (daijy)
 
 PIG-2182: Add more append support to DataByteArray (gsingers via daijy)
