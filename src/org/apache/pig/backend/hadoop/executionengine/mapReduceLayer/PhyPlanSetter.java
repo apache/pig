@@ -17,6 +17,8 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
+import java.util.List;
+
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.*;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.*;
@@ -100,7 +102,15 @@ public class PhyPlanSetter extends PhyPlanVisitor {
     
     @Override
     public void visitSplit(POSplit spl) throws VisitorException{
-        super.visitSplit(spl);
+        PhysicalPlan oldPlan = parent;
+        List<PhysicalPlan> plans = spl.getPlans();
+        for (PhysicalPlan plan : plans) {
+            parent = plan;
+            pushWalker(mCurrentWalker.spawnChildWalker(plan));
+            visit();
+            popWalker();
+        }
+        parent=oldPlan;
         spl.setParentPlan(parent);
     }
     
