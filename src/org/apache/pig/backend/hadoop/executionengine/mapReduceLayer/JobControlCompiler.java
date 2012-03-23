@@ -336,6 +336,7 @@ public class JobControlCompiler{
         ArrayList<FileSpec> inp = new ArrayList<FileSpec>();
         ArrayList<List<OperatorKey>> inpTargets = new ArrayList<List<OperatorKey>>();
         ArrayList<String> inpSignatureLists = new ArrayList<String>();
+        ArrayList<Long> inpLimits = new ArrayList<Long>();
         ArrayList<POStore> storeLocations = new ArrayList<POStore>();
         Path tmpLocation = null;
         
@@ -396,6 +397,7 @@ public class JobControlCompiler{
                     }
                     inpTargets.add(ldSucKeys);
                     inpSignatureLists.add(ld.getSignature());
+                    inpLimits.add(ld.getLimit());
                     //Remove the POLoad from the plan
                     if (!pigContext.inIllustrator)
                         mro.mapPlan.remove(ld);
@@ -418,6 +420,7 @@ public class JobControlCompiler{
             conf.set("pig.inputs", ObjectSerializer.serialize(inp));
             conf.set("pig.inpTargets", ObjectSerializer.serialize(inpTargets));
             conf.set("pig.inpSignatures", ObjectSerializer.serialize(inpSignatureLists));
+            conf.set("pig.inpLimits", ObjectSerializer.serialize(inpLimits));
             conf.set("pig.pigContext", ObjectSerializer.serialize(pigContext));
             conf.set("udf.import.list", ObjectSerializer.serialize(PigContext.getPackageImportList()));
             // this is for unit tests since some don't create PigServer

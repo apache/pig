@@ -49,6 +49,7 @@ public class LOLoad extends LogicalRelationalOperator {
     private LogicalSchema uidOnlySchema;
     private String schemaFile = null;
     private String signature = null;
+    private long limit = -1;
 
     /**
      * 
@@ -281,5 +282,13 @@ public class LOLoad extends LogicalRelationalOperator {
     
     public LogicalSchema getScriptSchema() {
         return scriptSchema;
+    }
+
+    public long getLimit() {
+        return limit;
+    }
+
+    public void setLimit(long limit) {
+        this.limit = limit;
     }
 }

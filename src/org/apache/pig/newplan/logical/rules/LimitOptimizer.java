@@ -75,8 +75,7 @@ public class LimitOptimizer extends Rule {
 
             // Limit cannot be pushed up
             if (pred instanceof LOCogroup || pred instanceof LOFilter
-                    || pred instanceof LOLoad || pred instanceof LOSplit
-                    || pred instanceof LODistinct || pred instanceof LOJoin) {
+                    || pred instanceof LOSplit || pred instanceof LODistinct || pred instanceof LOJoin) {
                 return false;
             }
 
@@ -173,6 +172,14 @@ public class LimitOptimizer extends Rule {
 
                 // remove the limit
                 currentPlan.removeAndReconnect(limit);
+            } else if (pred instanceof LOLoad) {
+                // Push limit to load
+                LOLoad load = (LOLoad) pred;
+                if (load.getLimit() == -1)
+                    load.setLimit(limit.getLimit());
+                else
+                    load.setLimit(load.getLimit() < limit.getLimit() ? load
+                            .getLimit() : limit.getLimit());
             } else if (pred instanceof LOLimit) {
                 // Limit is merged into another LOLimit
                 LOLimit beforeLimit = (LOLimit) pred;
