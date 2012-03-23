@@ -457,6 +457,8 @@ Release 0.9.3 - Unreleased
 
 BUG FIXES
 
+PIG-2442: Multiple Stores in pig streaming causes infinite waiting (daijy)
+
 PIG-2609: e2e harness: make hdfs base path configurable (outside default.conf) (thw via daijy)
 
 PIG-2576: Change in behavior for UDFContext.getUDFContext().getJobConf() in front-end (thw via daijy)
