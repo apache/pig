@@ -291,7 +291,7 @@ public class POSplit extends PhysicalOperator {
             } 
             
             int idx = processedSet.nextClearBit(0);
-            if (inpEOP && parentPlan.endOfAllInput) {
+            if (inpEOP ) {
                 myPlans.get(idx).endOfAllInput = true;
             }
             PhysicalOperator leaf = myPlans.get(idx).getLeaves().get(0);
