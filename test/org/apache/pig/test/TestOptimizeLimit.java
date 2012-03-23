@@ -25,6 +25,7 @@ import java.util.*;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
+import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOLimit;
 import org.apache.pig.newplan.logical.relational.LOStore;
@@ -104,6 +105,7 @@ public class TestOptimizeLimit {
 	    LogicalPlan newLogicalPlan = Util.buildLp(pigServer, query);;
 	    optimizePlan(newLogicalPlan);
 	    compareWithGoldenFile(newLogicalPlan, FILE_BASE_LOCATION + "new-optlimitplan2.dot");
+        Assert.assertTrue(((LOLoad) newLogicalPlan.getSources().get(0)).getLimit() == 10);
 	}
 
 	@Test
@@ -138,6 +140,7 @@ public class TestOptimizeLimit {
 	    LogicalPlan newLogicalPlan = Util.buildLp(pigServer, query);;
 	    optimizePlan(newLogicalPlan);
         compareWithGoldenFile(newLogicalPlan, FILE_BASE_LOCATION + "new-optlimitplan5.dot");
+        Assert.assertTrue(((LOLoad) newLogicalPlan.getSources().get(0)).getLimit() == 100);
     }
 	
     @Test
@@ -150,6 +153,7 @@ public class TestOptimizeLimit {
 	    LogicalPlan newLogicalPlan = Util.buildLp(pigServer, query);;
 	    optimizePlan(newLogicalPlan);
 	    compareWithGoldenFile(newLogicalPlan, FILE_BASE_LOCATION + "new-optlimitplan6.dot");
+        Assert.assertTrue(((LOLoad) newLogicalPlan.getSources().get(0)).getLimit() == 20);
 	}
     
     @Test
@@ -194,6 +198,7 @@ public class TestOptimizeLimit {
 	    LogicalPlan newLogicalPlan = Util.buildLp(pigServer, query);;
 	    optimizePlan(newLogicalPlan);
         compareWithGoldenFile(newLogicalPlan, FILE_BASE_LOCATION + "new-optlimitplan10.dot");
+        Assert.assertTrue(((LOLoad) newLogicalPlan.getSources().get(0)).getLimit() == 100);
     }
 
     @Test

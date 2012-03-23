@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1270: Push limit into loader (daijy)
+
 PIG-2604: Pig should print its build info at runtime (traviscrawford via dvryaboy)
 
 PIG-2589: Additional e2e test for 0.10 new features (daijy)
