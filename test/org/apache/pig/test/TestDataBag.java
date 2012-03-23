@@ -1125,6 +1125,31 @@ public class TestDataBag extends junit.framework.TestCase {
         assertTrue(dfBag.equals(stBag));
     }
     
+    // See PIG-2550
+    static class MyCustomTuple extends DefaultTuple {
+        private static final long serialVersionUID = 8156382697467819543L;
+        public MyCustomTuple() {
+            super();
+        }
+        public MyCustomTuple(Object t) {
+            super();
+            append(t);
+        }
+    }
+
+    @Test
+    public void testSpillCustomTuple() throws Exception {
+        DataBag bag = new DefaultDataBag();
+        Tuple t = new MyCustomTuple();
+        t.append(1);
+        t.append("hello");
+        bag.add(t);
+        bag.spill();
+        Iterator<Tuple> iter = bag.iterator();
+        Tuple t2 = iter.next();
+        assertTrue(t2.equals(t));
+    }
+    
     void processDataBag(DataBag bg, boolean doSpill) {
         Tuple t = TupleFactory.getInstance().newTuple(new Integer(0));
         bg.add(t);

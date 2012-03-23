@@ -99,7 +99,7 @@ public class DefaultDataBag extends DefaultAbstractBag {
             try {
                 Iterator<Tuple> i = mContents.iterator();
                 while (i.hasNext()) {
-                    i.next().write(out);
+                    sedes.writeDatum(out, i.next());
                     spilled++;
                     // This will spill every 16383 records.
                     if ((spilled & 0x3fff) == 0) reportProgress();
