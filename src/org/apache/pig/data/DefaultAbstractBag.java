@@ -51,7 +51,7 @@ public abstract class DefaultAbstractBag implements DataBag {
 
     private static PigLogger pigLogger = PhysicalOperator.getPigLogger();
 
-    private static InterSedes sedes = InterSedesFactory.getInterSedesInstance();
+    protected static InterSedes sedes = InterSedesFactory.getInterSedesInstance();
     // Container that holds the tuples. Actual object instantiated by
     // subclasses.
     protected Collection<Tuple> mContents;
