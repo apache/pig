@@ -84,6 +84,10 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
     
     private TaskAttemptContext context;
     
+    private final long limit;
+
+    private long recordCount = 0;
+    
     /**
      * the Configuration object with data specific to the input the underlying
      * RecordReader will process (this is obtained after a 
@@ -97,7 +101,7 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
      * 
      */
     public PigRecordReader(InputFormat inputformat, PigSplit pigSplit, 
-            LoadFunc loadFunc, TaskAttemptContext context) throws IOException, InterruptedException {
+            LoadFunc loadFunc, TaskAttemptContext context, long limit) throws IOException, InterruptedException {
         this.inputformat = inputformat;
         this.pigSplit = pigSplit; 
         this.loadfunc = loadFunc;
@@ -106,6 +110,7 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
         curReader = null;
         progress = 0;
         idx = 0;
+        this.limit = limit;
         initNextRecordReader();
     }
     
@@ -184,11 +189,14 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
 
     @Override
     public boolean nextKeyValue() throws IOException, InterruptedException {
+        if (limit != -1 && recordCount >= limit)
+            return false;
         while ((curReader == null) || (curValue = loadfunc.getNext()) == null) {
             if (!initNextRecordReader()) {
               return false;
             }
         }
+        recordCount++;
         return true;
     }
 

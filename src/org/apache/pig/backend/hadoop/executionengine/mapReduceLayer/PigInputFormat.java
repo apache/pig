@@ -116,7 +116,11 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
         
         InputFormat inputFormat = loadFunc.getInputFormat();
         
-        return new PigRecordReader(inputFormat, pigSplit, loadFunc, context);
+        List<Long> inpLimitLists = 
+                (ArrayList<Long>)ObjectSerializer.deserialize(
+                        conf.get("pig.inpLimits"));
+        
+        return new PigRecordReader(inputFormat, pigSplit, loadFunc, context, inpLimitLists.get(pigSplit.getInputIndex()));
     }
     
 
