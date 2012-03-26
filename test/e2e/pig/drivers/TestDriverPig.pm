@@ -580,7 +580,7 @@ sub generateBenchmark
                 if (defined($ENV{'OLD_HADOOP_HOME'}) && $ENV{'OLD_HADOOP_HOME'} ne "") {
                     $ENV{'HADOOP_HOME'} = $ENV{'OLD_HADOOP_HOME'};
                 }
-                if (defined($ENV{'PH_OLD_CLUSTER_CONF'})) {
+                if (defined($ENV{'PH_OLD_CLUSTER_CONF'}) && $ENV{'PH_OLD_CLUSTER_CONF'} ne "") {
                     $ENV{'HADOOP_CONF_DIR'} = $ENV{'PH_OLD_CLUSTER_CONF'};
                 }
                 if (defined($ENV{'OLD_HADOOP_PREFIX'})) {
