@@ -182,6 +182,8 @@ PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
 
+PIG-2612: e2e harness: should not require PH_OLD_CLUSTER_CONF (thw via daijy)
+
 PIG-2505: AvroStorage won't read any file not ending in .avro (russell.jurney via daijy)
 
 PIG-2585: Enable ignored e2e test cases (daijy)
