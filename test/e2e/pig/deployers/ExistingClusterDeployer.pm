@@ -218,11 +218,16 @@ sub generateData
             'filetype' => "voternulltab",
             'rows' => 10000,
             'hdfs' => "singlefile/voternulltab10k",
-        }, , {
+        }, {
             'name' => "allscalar10k",
             'filetype' => "allscalar",
             'rows' => 10000,
             'hdfs' => "singlefile/allscalar10k",
+        }, {
+            'name' => "numbers.txt",
+            'filetype' => "numbers",
+            'rows' => 5000,
+            'hdfs' => "types/numbers.txt",
         }
     );
 
