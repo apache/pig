@@ -199,6 +199,11 @@ sub generateData
             'filetype' => "allscalar",
             'rows' => 10000,
             'outfile' => "singlefile/allscalar10k",
+        }, {
+            'name' => "numbers.txt",
+            'filetype' => "numbers",
+            'rows' => 5000,
+            'outfile' => "types/numbers.txt",
         }
     );
 
