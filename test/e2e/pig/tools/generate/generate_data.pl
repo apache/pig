@@ -463,6 +463,16 @@ sub getBulkCopyCmd(){
             my $instate = rand(1) < 0.05 ? '' : (rand(1) < 0.5 ? 'true' : 'false');
             printf HDFS "%s\t%d\t%.2f\t%s\n", $name, $age, $gpa, $instate;
         }
+    } elsif ($filetype eq "numbers") {
+        srand(2012 + $numRows);
+        for (my $i = 0; $i < $numRows; $i++) {
+            my $tid = ($i/1000+1) * 1000;
+            my $rand5 = int(rand(5)) + 1;
+            my $rand100 = int(rand(100)) + 1;
+            my $rand1000 = int(rand(1000)) + 1;
+            my $randf = rand(10);
+            printf HDFS "%d:%d:%d:%d:%d:%dL:%.2ff:%.2f\n", $tid, $i, $rand5, $rand100, $rand1000, $rand1000, $randf, $randf;
+        }
     } else {
         warn "Unknown filetype $filetype\n";
         usage();
