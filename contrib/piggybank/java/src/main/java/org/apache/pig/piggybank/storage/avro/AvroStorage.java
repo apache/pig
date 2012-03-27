@@ -27,6 +27,7 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.HashSet;
+import java.net.URI;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
 import org.apache.avro.file.DataFileStream;
@@ -131,7 +132,7 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
     @Override
     public void setLocation(String location, Job job) throws IOException {
         HashSet<Path> paths = new HashSet<Path>();
-    	if(AvroStorageUtils.getAllSubDirs(new Path(location), job, paths) && inputAvroSchema == null) {
+        if(AvroStorageUtils.getAllSubDirs(URI.create(location), job, paths) && inputAvroSchema == null) {
             FileInputFormat.setInputPaths(job, paths.toArray(new Path[0]));
             inputAvroSchema = getAvroSchema(location, job);
         }
@@ -139,7 +140,7 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
 
     protected Schema getAvroSchema(String location, Job job) throws IOException {
         Configuration conf = job.getConfiguration();
-        FileSystem fs = FileSystem.get(conf);
+        FileSystem fs = FileSystem.get(URI.create(location), conf);
         Path path = new Path(location);
         return getAvroSchema(path, fs);
     }

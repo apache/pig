@@ -182,6 +182,8 @@ PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
 
+PIG-2540: [piggybank] AvroStorage can't read schema on amazon s3 in elastic mapreduce (rjurney via jcoveney)
+
 PIG-2618: e2e local fails to build
 
 PIG-2612: e2e harness: should not require PH_OLD_CLUSTER_CONF (thw via daijy)
