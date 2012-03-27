@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2619: HBaseStorage constructs a Scan with cacheBlocks = false
+
 PIG-2604: Pig should print its build info at runtime (traviscrawford via dvryaboy)
 
 PIG-2573: Automagically setting parallelism based on input file size does not work with HCatalog (traviscrawford via julien)

@@ -329,6 +329,10 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
 
     private void initScan() {
         scan = new Scan();
+
+        // Map-reduce jobs should not run with cacheBlocks
+        scan.setCacheBlocks(false);
+
         // Set filters, if any.
         if (configuredOptions_.hasOption("gt")) {
             gt_ = Bytes.toBytesBinary(Utils.slashisize(configuredOptions_.getOptionValue("gt")));
