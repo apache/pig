@@ -20,6 +20,10 @@ Pig Change Log
 
 Release 0.9.3 - Unreleased
 
+IMPROVEMENTS
+
+PIG-2619: HBaseStorage constructs a Scan with cacheBlocks = false
+
 BUG FIXES
 
 PIG-2540: [piggybank] AvroStorage can't read schema on amazon s3 in elastic mapreduce (rjurney via jcoveney)
