@@ -61,7 +61,7 @@ public class TestAvroStorage {
       };
 
     private static String getInputFile(String file) {
-        return "file:///" + System.getProperty("user.dir") + "/" + basedir + file;
+        return "file://" + System.getProperty("user.dir") + "/" + basedir + file;
     }
 
     final private String testArrayFile = getInputFile("test_array.avro");

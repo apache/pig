@@ -106,6 +106,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2540: [piggybank] AvroStorage can't read schema on amazon s3 in elastic mapreduce (rjurney via jcoveney)
+
 PIG-2618: e2e local fails to build
 
 PIG-2608: Typo in PigStorage documentation for source tagging (prkommireddi via daijy)
