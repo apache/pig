@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2619: HBaseStorage constructs a Scan with cacheBlocks = false (andy lindeman via jcoveney)
+
 PIG-1270: Push limit into loader (daijy)
 
 PIG-2604: Pig should print its build info at runtime (traviscrawford via dvryaboy)
