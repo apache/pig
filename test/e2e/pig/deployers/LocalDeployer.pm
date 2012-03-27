@@ -208,7 +208,7 @@ sub generateData
     );
 
 	# Create the target directories
-    for my $dir ("singlefile", "dir", "glob/star/somegood",
+    for my $dir ("singlefile", "dir", "types", "glob/star/somegood",
             "glob/star/moregood", "glob/star/bad") {
         my @cmd = ("mkdir", "-p", "$cfg->{'inpathbase'}/$dir");
 	    $self->runCmd($log, \@cmd);
