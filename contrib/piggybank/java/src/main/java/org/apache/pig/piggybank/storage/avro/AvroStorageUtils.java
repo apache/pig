@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.net.URI;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
 import org.apache.hadoop.conf.Configuration;
@@ -100,7 +101,7 @@ public class AvroStorageUtils {
       Configuration conf = job.getConfiguration();
       FileSystem fs = FileSystem.get(conf);
       HashSet<Path> paths = new  HashSet<Path>();
-      if (getAllSubDirs(new Path(pathString), job, paths))
+      if (getAllSubDirs(URI.create(pathString), job, paths))
       {
         paths.addAll(Arrays.asList(FileInputFormat.getInputPaths(job)));
         FileInputFormat.setInputPaths(job, paths.toArray(new Path[0]));
@@ -115,20 +116,22 @@ public class AvroStorageUtils {
      * 
      * @throws IOException
      */
-     static boolean getAllSubDirs(Path path, Job job, Set<Path> paths) throws IOException {
-  		FileSystem fs = FileSystem.get(job.getConfiguration());
+    static boolean getAllSubDirs(URI location, Job job, Set<Path> paths) throws IOException {
+        FileSystem fs = FileSystem.get(location, job.getConfiguration());
+        Path path = new Path(location.getPath());
   		if (PATH_FILTER.accept(path)) {
   			try {
   				FileStatus file = fs.getFileStatus(path);
   				if (file.isDir()) {
   					for (FileStatus sub : fs.listStatus(path)) {
-  						getAllSubDirs(sub.getPath(), job, paths);
+                        getAllSubDirs(sub.getPath().toUri(), job, paths);
   					}
   				} else {
   					AvroStorageLog.details("Add input file:" + file);
   					paths.add(file.getPath());
   				}
   			} catch (FileNotFoundException e) {
+                AvroStorageLog.details("getAllSubDirs: RETURN FALSE; Input path does not exist: " + path);
   				AvroStorageLog.details("Input path does not exist: " + path);
   				return false;
   			}

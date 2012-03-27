@@ -22,6 +22,8 @@ Release 0.9.3 - Unreleased
 
 BUG FIXES
 
+PIG-2540: [piggybank] AvroStorage can't read schema on amazon s3 in elastic mapreduce (rjurney via jcoveney)
+
 PIG-2550: Custom tuple results in "Unexpected datatype 110 while reading tuplefrom binary file" while spilling (daijy)
 
 PIG-2442: Multiple Stores in pig streaming causes infinite waiting (daijy)
@@ -133,7 +135,7 @@ PIG-2320: Error: "projection with nothing to reference" (daijy)
 
 PIG-2346: TypeCastInsert should not insert Foreach if there is no as statement (daijy)
 
-PIG-2339: HCatLoader loads all the partitions in a partitioned table even though 
+PIG-2339: HCatLoader loads all the partitions in a partitioned table even though
  a filter clause on the partitions is specified in the Pig script (daijy)
 
 PIG-2385: Store statements not getting processed (daijy)
@@ -162,7 +164,7 @@ PIG-2221: Couldnt find documentation for ColumnMapKeyPrune optimization rule (ch
 
 BUG FIXES
 
-PIG-2316: Incorrect results for FILTER *** BY ( *** OR ***) with 
+PIG-2316: Incorrect results for FILTER *** BY ( *** OR ***) with
  FilterLogicExpressionSimplifier optimizer turned on (knoguchi via thejas)
 
 PIG-2271: PIG regression in BinStorage/PigStorage in 0.9.1 (thejas)
@@ -261,7 +263,7 @@ PIG-1921: Improve error messages in new parser (xuefu)
 
 PIG-1996: Pig new parser fails to recognize PARALLEL keywords in a case (xuefu)
 
-PIG-1612: error reporting: PigException needs to have a way to indicate that 
+PIG-1612: error reporting: PigException needs to have a way to indicate that
  its message is appropriate for user (laukik via thejas)
 
 PIG-1782: Add ability to load data by column family in HBaseStorage (billgraham via dvryaboy)
@@ -293,8 +295,8 @@ PIG-1932: GFCross should allow the user to set the DEFAULT_PARALLELISM value (ga
 
 PIG-1913: Use a file for excluding tests (tomwhite via gates)
 
-PIG-1693: support project-range expression. (was: There 
- needs to be a way in foreach to indicate "and all the 
+PIG-1693: support project-range expression. (was: There
+ needs to be a way in foreach to indicate "and all the
  rest of the fields" ) (thejas)
 
 PIG-1772: Pig 090 Documentation (chandec via daijy)
@@ -348,7 +350,7 @@ PIG-1755: Clean up duplicated code in PhysicalOperators (dvryaboy)
 
 PIG-750: Use combiner when algebraic UDFs are used in expressions (thejas)
 
-PIG-490: Combiner not used when group elements referred to in 
+PIG-490: Combiner not used when group elements referred to in
   tuple notation instead of flatten. (thejas)
 
 PIG-1768: 09 docs: illustrate (changec via olgan)
@@ -371,7 +373,7 @@ against newer hadoop versions (pradeepkth)
 
 PIG-1618: Switch to new parser generator technology (xuefuz via thejas)
 
-PIG-1531: Pig gobbles up error messages (nrai via hashutosh) 
+PIG-1531: Pig gobbles up error messages (nrai via hashutosh)
 
 PIG-1508: Make 'docs' target (forrest) work with Java 1.6 (cwsteinbach via gates)
 
@@ -424,7 +426,7 @@ PIG-2070: "Unknown" appears in error message for an error case (thejas)
 
 PIG-2069: LoadFunc jar does not ship to backend in MultiQuery case (rding)
 
-PIG-2076: update documentation, help command with correct default value 
+PIG-2076: update documentation, help command with correct default value
  of pig.cachedbag.memusage (thejas)
 
 PIG-2072: NPE when udf has project-star argument and input schema is null (thejas)
@@ -513,7 +515,7 @@ PIG-1871: Dont throw exception if partition filters cannot be pushed up. (rding)
 
 PIG-1870: HBaseStorage doesn't project correctly (dvryaboy)
 
-PIG-1788: relation-as-scalar error messages should indicate the field 
+PIG-1788: relation-as-scalar error messages should indicate the field
  being used as scalar (laukik via thejas)
 
 PIG-1697: NullPointerException if log4j.properties is Used (laukik via daijy)
@@ -524,10 +526,10 @@ PIG-1928: Type Checking, incorrect error message (thejas)
 
 PIG-1979: New logical plan failing with ERROR 2229: Couldn't find matching uid -1 (daijy)
 
-PIG-1897: multiple star projection in a statement does not produce 
+PIG-1897: multiple star projection in a statement does not produce
  the right plan (thejas)
 
-PIG-1917: NativeMapReduce does not Allow Configuration Parameters 
+PIG-1917: NativeMapReduce does not Allow Configuration Parameters
  containing Spaces (thejas)
 
 PIG-1974: Lineage need to set for every cast (thejas)
@@ -564,7 +566,7 @@ PIG-1934: Fix zebra test TestCheckin1, TestCheckin4 (daijy)
 
 PIG-1931: Integrate Macro Expansion with New Parser (rding)
 
-PIG-1933: Hints such as 'collected' and 'skewed' for "group by" or "join by" 
+PIG-1933: Hints such as 'collected' and 'skewed' for "group by" or "join by"
  should not be treated as tokens. (xuefuz via thejas)
 
 PIG-1925: Parser error message doesn't show location of the error or show it
@@ -794,10 +796,10 @@ PIG-1317: LOLoad should cache results of LoadMetadata.getSchema() for use in
 subsequent calls to LOLoad.getSchema() or LOLoad.determineSchema()
 (pradeepkth)
 
-PIG-1413: Remove svn:externals reference for test-patch.sh and 
+PIG-1413: Remove svn:externals reference for test-patch.sh and
 create a local copy of test-patch.sh (gkesavan)
 
-PIG-1302: Include zebra's "pigtest" ant target as a part of pig's 
+PIG-1302: Include zebra's "pigtest" ant target as a part of pig's
 ant test target. (gkesavan)
 
 PIG-1582: To upgrade commons-logging
@@ -843,7 +845,7 @@ PIG-1812: Problem with DID_NOT_FIND_LOAD_ONLY_MAP_PLAN (daijy)
 PIG-1813: Pig 0.8 throws ERROR 1075 while trying to refer a map in the result
 of eval udf.Works with 0.7 (daijy)
 
-PIG-1776: changing statement corresponding to alias after explain , then 
+PIG-1776: changing statement corresponding to alias after explain , then
   doing dump gives incorrect result (thejas)
 
 PIG-1800: Missing Signature for maven staging release (rding)
@@ -950,22 +952,22 @@ PIG-1664: leading '_' in directory/file names should be ignored; the "pigtest" b
 
 PIG-1662: Need better error message for MalFormedProbVecException (rding)
 
-PIG-1656: TOBAG udfs ignores columns with null value; it does not use input type 
+PIG-1656: TOBAG udfs ignores columns with null value; it does not use input type
  to determine output schema (thejas)
 
 PIG-1658: ORDER BY does not work properly on integer/short keys that are -1 (yanz)
 
 PIG-1638: sh output gets mixed up with the grunt prompt (nrai via daijy)
 
-PIG-1607: pig should have separate javadoc.jar in the maven 
+PIG-1607: pig should have separate javadoc.jar in the maven
  repository (nrai via thejas)
 
 PIG-1651: PIG class loading mishandled (rding)
 
-PIG-1650: pig grunt shell breaks for many commands like perl , awk , 
+PIG-1650: pig grunt shell breaks for many commands like perl , awk ,
 pipe , 'ls -l' etc  (nrai via thejas)
 
-PIG-1649: FRJoin fails to compute number of input files for replicated 
+PIG-1649: FRJoin fails to compute number of input files for replicated
 input (thejas)
 
 PIG-1637: Combiner not use because optimizor inserts a foreach between group
@@ -990,10 +992,10 @@ PIG-1645: Using both small split combination and temporary file compression on a
 PIG-1635: Logical simplifier does not simplify away constants under AND and OR; after simplificaion the ordering of operands of
           AND and OR may get changed (yanz)
 
-PIG-1639: New logical plan: PushUpFilter should not push before group/cogroup 
+PIG-1639: New logical plan: PushUpFilter should not push before group/cogroup
 if filter condition contains UDF (xuefuz via daijy)
 
-PIG-1643: join fails for a query with input having 'load using pigstorage 
+PIG-1643: join fails for a query with input having 'load using pigstorage
 without schema' + 'foreach' (thejas)
 
 PIG-1628: log this message at debug level : 'Pig Internal storage in use' (thejas)
@@ -1005,7 +1007,7 @@ PIG-1605: PIG-1605: Adding soft link to plan to solve input file dependency
 
 PIG-1598: Pig gobbles up error messages - Part 2 (nrai via daijy)
 
-PIG-1616: 'union onschema' does not use create output with correct schema 
+PIG-1616: 'union onschema' does not use create output with correct schema
 when udfs are involved (thejas)
 
 PIG-1610:  'union onschema' does handle some cases involving 'namespaced'
@@ -1138,7 +1140,7 @@ PIG-1414: Problem with parameter substitution (rding)
 
 PIG-1407: Logging starts before being configured (azaroth via daijy)
 
-PIG-1391: pig unit tests leave behind files in temp directory because 
+PIG-1391: pig unit tests leave behind files in temp directory because
 MiniCluster files don't get deleted (tejas)
 
 PIG-1211: Pig script runs half way after which it reports syntax error
@@ -1186,7 +1188,7 @@ in the path and does not consider JAVA_HOME (pradeepkth)
 
 PIG-1352: piggybank UPPER udf throws exception if argument is null
 
-PIG-1560: Fix ant target checkstyle (gkesavan) 
+PIG-1560: Fix ant target checkstyle (gkesavan)
 
 Release 0.7.0
 
@@ -1280,7 +1282,7 @@ PIG-1218: Use distributed cache to store samples (rding via pradeepkth)
 PIG-1226: suuport for additional jar files (thejas via olgan)
 
 PIG-1230: Streaming input in POJoinPackage should use nonspillable bag to
-collect tuples (ashutoshc) 
+collect tuples (ashutoshc)
 
 PIG-1224: Collected group should change to use new (internal) bag (ashutoshc)
 
@@ -1313,7 +1315,7 @@ PIG-1156: Add aliases to ExecJobs and PhysicalOperators (dvryaboy via gates)
 
 PIG-1161: add missing license headers (dvryaboy via olgan)
 
-PIG-760:  Add a new PigStorageSchema load/store function that 
+PIG-760:  Add a new PigStorageSchema load/store function that
           store schemas for text files (dvryaboy via gates)
 
 PIG-1106: FR join should not spill (ankit.modi via olgan)
@@ -1424,7 +1426,7 @@ PIG-834: incorrect plan when algebraic functions are nested (ashutoshc)
 
 PIG-1217: Fix argToFuncMapping in Piggybank Top function (dvryaboy via gates)
 
-PIG-1154: Local Mode fails when hadoop config directory is specified in 
+PIG-1154: Local Mode fails when hadoop config directory is specified in
             classpath (ankit.modi via gates)
 
 PIG-1124: Unable to set Custom Job Name using the -Dmapred.job.name parameter (ashutoshc)
@@ -1796,7 +1798,7 @@ PIG-697: Proposed improvements to pig's optimizer (sms)
 
 PIG-753:  Allow UDFs with no parameters (zjffdu via gates)
 
-PIG-765: jdiff for pig ( gkesavan 
+PIG-765: jdiff for pig ( gkesavan
 
 OPTIMIZATIONS
 
@@ -1811,7 +1813,7 @@ BUG FIXES
     PIG-957: Tutorial is broken with 0.4 branch and trunk (pradeepkth)
 
     PIG-955: Skewed join produces invalid results  (yinghe via olgan)
-    
+
     PIG-954: Skewed join fails when pig.skewedjoin.reduce.memusage is not
     configured(yinghe via olgan)
 
@@ -1840,7 +1842,7 @@ BUG FIXES
     PIG-882: log level not propogated to loggers (daijy)
 
     PIG-880: Order by is borken with complex fields (sms)
-    
+
     PIG-773: Empty complex constants (empty bag, empty tuple and empty map)
     should be supported (ashutoshc via sms)
 
@@ -1864,7 +1866,7 @@ BUG FIXES
 
     PIG-851: Map type used as return type in UDFs not recognized at all times
     (zjffdu via sms)
-    
+
     PIG-861: POJoinPackage lose tuple in large dataset (daijy)
 
     PIG-797: Limit with ORDER BY producing wrong results (daijy)
@@ -1978,7 +1980,7 @@ for UDFs that want to handle all simple types as strings (ciemo via gates)
 PIG-514: COUNT returns no results as a result of two filter statements in
 FOREACH (pradeepkth)
 
-PIG-789: Fix dump and illustrate to work with new multi-query feature 
+PIG-789: Fix dump and illustrate to work with new multi-query feature
 (hagleitn via gates)
 
 PIG-774: Pig does not handle Chinese characters (in both the parameter subsitution
@@ -1998,7 +2000,7 @@ Release 0.2.0
 INCOMPATIBLE CHANGES
 
     PIG-157: Add types and rework execution pipeline (gates)
-    
+
     PIG-458: integration with Hadoop 18 (olgan)
 
 NEW FEATURES
@@ -2018,13 +2020,13 @@ NEW FEATURES
 IMPROVEMENTS
 
     PIG-270: proper line number for parse errors (daijy via olgan)
-    
+
     PIG-367: convinience function for UDFs to name schema
 
     PIG-443:  Illustrate for the Types branch (shubhamc via olgan)
 
 	PIG-599: Added buffering to BufferedPositionedInputStream (gates)
-    
+
     PIG-629: performance improvement: getting rid of targeted tuple (pradeepkth
     via olgan)
 
@@ -2111,7 +2113,7 @@ BUG FIXES
     correctly (pradeepkth vi olgan)
 
     PIG-421: error with complex nested plan (sms via olgan)
-    
+
     PIG-429: Self join wth implicit split has the join output in wrong order
     (pradeepkth via olgan)
 
@@ -2173,7 +2175,7 @@ BUG FIXES
     PIG-463: POCast changes (pradeepkth via olgan)
 
     PIG-427: casting input to UDFs
-     
+
     PIG-437: as in alias names causing problems (sms via olgan)
 
     PIG-54: MIN/MAX don't deal with invalid data (pradeepkth via olgan)
@@ -2316,7 +2318,7 @@ BUG FIXES
 
     PIG-590: error handling on the backend (sms)
 
-    PIG-658: Data type long : When 'L' or 'l' is included with data 
+    PIG-658: Data type long : When 'L' or 'l' is included with data
     (123L or 123l) load produces null value. Also the case with Float (thejas
     via sms)
 
@@ -2394,13 +2396,13 @@ Release 0.1.0 - 2008-09-11
   NEW FEATURES
 
   PIG-20 Added custom comparator functions for order by (phunt via gates)
-  
+
   PIG-94: Streaming implementation (arunc via olgan)
-  
+
   PIG-58: parameter substitution
 
   PIG-55: added custom splitter (groves via olgan)
-  
+
   PIG-59: Add a new ILLUSTRATE command (shubhamc via gates)
 
   PIG-256: Added variable argument support for UDFs (pi_song)
@@ -2408,9 +2410,9 @@ Release 0.1.0 - 2008-09-11
   IMPROVEMENTS:
 
   PIG-8 added binary comparator (olgan)
-  
+
   PIG-11 Add capability to search for jar file to register. (antmagna via olgan)
-  
+
   PIG-7: Added use of combiner in some restricted cases. (gates)
 
   PIG-47: Added methods to DataMap to provide access to its content
@@ -2420,7 +2422,7 @@ Release 0.1.0 - 2008-09-11
 
   PIG-12: Added time stamps to log4j messages (phunt via gates)
 
-  PIG-44: Added adaptive decision of the number of records to hold in memory 
+  PIG-44: Added adaptive decision of the number of records to hold in memory
 	before spilling (utkarsh)
 
   PIG-56: Made DataBag implement Iterable. (groves via gates)
@@ -2444,7 +2446,7 @@ Release 0.1.0 - 2008-09-11
   PIG-106:  Change StringBuffer and String '+' to StringBuilder (francisoud via gates)
 
   PIG-111: Reworked configuration to be setable via properties. (joa23, pi_song, oae via gates)
-      
+
   BUG FIXES
   	PIG-24 Files that were incorrectly placed under test/reports have been
 	removed.  ant clean now cleans test/reports.  (milindb via gates)
@@ -2538,7 +2540,7 @@ Release 0.1.0 - 2008-09-11
 	PIG-110: Replaced code accidently merged out in PIG-32 fix that handled
 	flattening the combiner case. (gates and oae)
 
-    PIG-213: Remove non-static references to logger from data bags and tuples, 
+    PIG-213: Remove non-static references to logger from data bags and tuples,
     as it causes significant overhead (vgeschel via gates)
 
     PIG-284: target for building source jar (oae via olgan)
