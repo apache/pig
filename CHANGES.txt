@@ -26,6 +26,8 @@ PIG-2619: HBaseStorage constructs a Scan with cacheBlocks = false
 
 BUG FIXES
 
+PIG-2621: Documentation inaccurate regarding Pig Properties in trunk (prkommireddi via daijy)
+
 PIG-2540: [piggybank] AvroStorage can't read schema on amazon s3 in elastic mapreduce (rjurney via jcoveney)
 
 PIG-2550: Custom tuple results in "Unexpected datatype 110 while reading tuplefrom binary file" while spilling (daijy)
