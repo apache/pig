@@ -409,7 +409,7 @@ However, in a production environment you always want to use the STORE operator t
 	<li>The <a href="cmds.html#set">set</a> command (set pig.exec.nocombiner true)</li>
 </ul>
 <p><strong>Note:</strong> The properties file uses standard Java property file format.</p>
-<p>The following precedence order is supported: pig.properties &gt; -D Pig property &gt; -P properties file &gt; set command. This means that if the same property is provided using the –D command line option as well as the –P command line option and a properties file, the value of the property in the properties file will take precedence.</p>
+<p>The following precedence order is supported: pig.properties &lt; -D Pig property &lt; -P properties file &lt; set command. This means that if the same property is provided using the –D command line option as well as the –P command line option (properties file), the value of the property in the properties file will take precedence.</p>
 
 <p id="hadoop-properties">To specify Hadoop properties you can use the same mechanisms:</p>
 <ul>
@@ -419,7 +419,7 @@ However, in a production environment you always want to use the STORE operator t
 	<li>The <a href="cmds.html#set">set</a> command (set mapred.map.tasks.speculative.execution false)</li>
 </ul>
 <p></p>
-<p>The same precedence holds: Hadoop configuration files &gt; -D Hadoop property &gt; -P properties_file &gt; set command.</p>
+<p>The same precedence holds: Hadoop configuration files &lt; -D Hadoop property &lt; -P properties_file &lt; set command.</p>
 <p>Hadoop properties are not interpreted by Pig but are passed directly to Hadoop. Any Hadoop property can be passed this way. </p>
 <p>All properties that Pig collects, including Hadoop properties, are available to any UDF via the UDFContext object. To get access to the properties, you can call the getJobConf method.</p>
 </section>  
