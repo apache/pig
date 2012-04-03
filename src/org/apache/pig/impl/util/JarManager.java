@@ -123,11 +123,29 @@ public class JarManager {
         }
         for (String path: pigContext.scriptFiles) {
             log.debug("Adding entry " + path + " to job jar" );
-        	addStream(jarFile, path, new FileInputStream(new File(path)),contents);
+            InputStream stream = null;
+            if (new File(path).exists()) {
+                stream = new FileInputStream(new File(path));
+            } else {
+                stream = PigContext.getClassLoader().getResourceAsStream(path);
+            }
+            if (stream==null) {
+                throw new IOException("Cannot find " + path);
+            }
+        	addStream(jarFile, path, stream, contents);
         }
         for (Map.Entry<String, File> entry : pigContext.getScriptFiles().entrySet()) {
             log.debug("Adding entry " + entry.getKey() + " to job jar" );
-        	addStream(jarFile, entry.getKey(), new FileInputStream(entry.getValue()),contents);
+            InputStream stream = null;
+            if (entry.getValue().exists()) {
+                stream = new FileInputStream(entry.getValue());
+            } else {
+                stream = PigContext.getClassLoader().getResourceAsStream(entry.getValue().getPath());
+            }
+            if (stream==null) {
+                throw new IOException("Cannot find " + entry.getValue().getPath());
+            }
+        	addStream(jarFile, entry.getKey(), stream, contents);
         }
 
         log.debug("Adding entry pigContext to job jar" );
