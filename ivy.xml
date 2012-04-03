@@ -195,6 +195,8 @@
     <dependency org="org.apache.zookeeper" name="zookeeper" rev="${zookeeper.version}" conf="compile->master"/>
     <dependency org="org.jboss.netty" name="netty" rev="3.2.2.Final" conf="compile->master"/>
 
+    <dependency org="org.jruby" name="jruby-complete" rev="${jruby.version}" conf="compile->master"/>
+
     <dependency org="org.apache.hbase" name="hbase" rev="${hbase.version}" conf="compile->master">
       <artifact name="hbase" type="jar"/>
       <artifact name="hbase" type="test-jar" ext="jar" m:classifier="tests"/>

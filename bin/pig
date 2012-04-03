@@ -135,6 +135,15 @@ if [ -z "$JYTHON_JAR" ]; then
     fi
 fi
 
+JRUBY_JAR=`echo ${PIG_HOME}/lib/jruby-complete-*.jar`
+
+if [ -z "$JRUBY_JAR" ]; then
+    JRUBY_JAR=`echo $PIG_HOME/build/ivy/lib/Pig/jruby-complete-*.jar`
+    if [ -n "$JRUBY_JAR" ]; then
+        CLASSPATH=${CLASSPATH}:$JRUBY_JAR
+    fi
+fi
+
 for f in $PIG_HOME/share/pig/lib/*.jar; do
     CLASSPATH=${CLASSPATH}:$f;
 done
