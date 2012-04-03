@@ -648,6 +648,7 @@
                 </section>
             </manifest>
             <fileset file="${basedir}/conf/pig-default.properties" />
+            <fileset file="${basedir}/src/main/jruby/pigudf.rb" />
             <exclude name="hadoop-site.xml" />
         </jar>
         <!-- @depricated -->
@@ -683,6 +684,7 @@
                 <include name="zookeeper*.jar" />
             </zipgroupfileset>
             <fileset file="${basedir}/conf/pig-default.properties" />
+            <fileset file="${basedir}/src/main/jruby/pigudf.rb" />
             <exclude name="hadoop-site.xml" />
         </jar>
         <antcall target="include-meta" inheritRefs="true" inheritall="true"/>
@@ -741,6 +743,7 @@
                 </section>
             </manifest>
             <fileset file="${basedir}/conf/pig-default.properties" />
+            <fileset file="${basedir}/src/main/jruby/pigudf.rb" />
             <exclude name="hadoop-site.xml" />
         </jar>
         <!-- @deprecated -->
@@ -765,6 +768,7 @@
                 <include name="automaton-${automaton.version}.jar" />
             </zipgroupfileset>
             <fileset file="${basedir}/conf/pig-default.properties" />
+            <fileset file="${basedir}/src/main/jruby/pigudf.rb" />
             <exclude name="hadoop-site.xml" />
         </jar>
         <copy file="${output.jarfile.withouthadoop}" tofile="${output.jarfile.backcompat.withouthadoop}"/>

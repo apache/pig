@@ -21,6 +21,8 @@
   <property name="pig.jar" value="${pig.dir}/pig.jar"/>
   <property name="jython.jar"
     value="${pig.dir}/build/ivy/lib/Pig/jython-2.5.0.jar"/>
+  <property name="jruby.jar"
+    value="${pig.dir}/build/ivy/lib/Pig/jruby-complete-1.6.7.jar"/>
 
   <!-- Separate property name for udfs' build.xml -->
   <property name="pig.jarfile" value="${pig.jar}"/>
@@ -28,6 +30,7 @@
   <property name="udf.java.dir" value="${udf.dir}/java"/>
   <property name="udf.jar" value="${udf.java.dir}/testudf.jar"/>
   <property name="python.udf.dir" value="${udf.dir}/python"/>
+  <property name="ruby.udf.dir" value="${udf.dir}/ruby" />
   <property name="params.dir" value="${basedir}/paramfiles"/>
   <property name="e2e.lib.dir" value="${basedir}/lib"/>
   <property name="streaming.dir" value="${basedir}/streaming"/>
@@ -127,6 +130,7 @@
     <mkdir dir="${tar.dir}/libexec/PigTest/test"/>
     <mkdir dir="${tar.dir}/libexec/PigTest/generate"/>
     <mkdir dir="${tar.dir}/libexec/python"/>
+    <mkdir dir="${tar.dir}/libexec/ruby"/>
     <mkdir dir="${tar.dir}/lib"/>
     <mkdir dir="${tar.dir}/lib/java"/>
     <mkdir dir="${tar.dir}/paramfiles"/>
@@ -168,6 +172,10 @@
 
     <copy todir="${tar.dir}/libexec/python">
       <fileset dir="${python.udf.dir}"/>
+    </copy>
+
+    <copy todir="${tar.dir}/libexec/ruby">
+      <fileset dir="${ruby.udf.dir}"/>
     </copy>
 
     <copy todir="${tar.dir}/paramfiles">
@@ -242,6 +250,8 @@
       <env key="HADOOP_CONF_DIR" value="${harness.cluster.conf}"/>
       <env key="PH_CLUSTER_BIN" value="${harness.cluster.bin}"/>
       <env key="PH_JYTHON_JAR" value="${jython.jar}"/>
+      <env key="PH_JRUBY_JAR" value="${jruby.jar}"/>
+      <env key="JRUBY_OPTS" value="--1.9"/>
       <env key="HARNESS_CONF" value="${harness.conf.file}"/>
       <env key="HADOOP_HOME" value="${harness.hadoop.home}"/>
       <env key="HADOOP_PREFIX" value="${HADOOP_PREFIX}"/>
@@ -292,6 +302,8 @@
       <env key="HADOOP_CONF_DIR" value="${harness.cluster.conf}"/>
       <env key="PH_CLUSTER_BIN" value="${harness.cluster.bin}"/>
       <env key="PH_JYTHON_JAR" value="${jython.jar}"/>
+      <env key="PH_JRUBY_JAR" value="${jruby.jar}"/>
+      <env key="JRUBY_OPTS" value="--1.9"/>
       <env key="HARNESS_CONF" value="${harness.conf.file}"/>
       <env key="HADOOP_HOME" value="${harness.hadoop.home}"/>
 

@@ -159,6 +159,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2317: Ruby/Jruby UDFs (jcoveney via daijy)
+
 PIG-1270: Push limit into loader (daijy)
 
 PIG-2589: Additional e2e test for 0.10 new features (daijy)

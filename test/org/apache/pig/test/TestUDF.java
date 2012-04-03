@@ -25,6 +25,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import junit.framework.TestCase;
 
@@ -189,6 +190,41 @@ public class TestUDF extends TestCase {
         } catch (IOException e) {
             e.printStackTrace();
             fail();
+        }
+    }
+
+    @Test
+    public void testHelperEvalFunc() throws Exception {
+        String pref="org.apache.pig.test.utils.HelperEvalFuncUtils$";
+        String[][] UDF = {
+            {pref + "BasicSUM", pref + "AccSUM", pref + "AlgSUM", "SUM"},
+            {pref + "BasicCOUNT", pref + "AccCOUNT", pref + "AlgCOUNT", "COUNT"},
+            {"BasLCWC", "AccLCWC", "AlgLCWC", "5*COUNT"}
+        };
+        String input = "udf_test_helper_eval_func.txt";
+        Util.createLocalInputFile(input, new String[]{"1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15"});
+        for (String[] udfs : UDF) {
+            for (int i = 0; i < udfs.length - 1; i++) {
+                String query = "DEFINE BasLCWC " + pref + "BasicLongCountWithConstructor('5');";
+                query += "DEFINE AccLCWC " + pref +" AccLongCountWithConstructor('5');";
+                query += "DEFINE AlgLCWC " + pref + "AlgLongCountWithConstructor('5');";
+                query += "A = load '" + input + "' as (x:int);";
+                query += "B = foreach (group A all) generate ";
+                for (String s : Arrays.copyOfRange(udfs, i, udfs.length - 1)) {
+                    query += s + "(A),";
+                }
+                query += udfs[udfs.length - 1] + "(A);";
+                PigServer pigServer = new PigServer(ExecType.LOCAL);
+                pigServer.registerQuery(query);
+                Iterator<Tuple> it = pigServer.openIterator("B");
+                while (it.hasNext()) {
+                    Tuple t = it.next();
+                    Long val = (Long)t.get(0);
+                    for (int j = 1; j < i; j++) {
+                        assertEquals(val, t.get(j));
+                    }
+                }
+            }
         }
     }
 
