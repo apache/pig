@@ -47,8 +47,7 @@ public abstract class ScriptEngine {
     public static enum SupportedScriptLang {
 
         // possibly jruby in the future
-        //jruby(new String[]{}, new String[]{}, "org.apache.pig.scripting.jruby.JrubyScriptEngine"),
-        
+        jruby(new String[]{"ruby", "jruby"}, new String[]{"rb"}, "org.apache.pig.scripting.jruby.JrubyScriptEngine"),
         jython(new String[]{"python", "jython"}, new String[]{"py"}, "org.apache.pig.scripting.jython.JythonScriptEngine"), 
         javascript(new String[]{}, new String[]{"js"}, "org.apache.pig.scripting.js.JsScriptEngine");
         
@@ -122,7 +121,8 @@ public abstract class ScriptEngine {
      * @return a stream (it is the responsibility of the caller to close it)
      * @throws IllegalStateException if we could not open a stream
      */
-    protected static InputStream getScriptAsStream(String scriptPath) {
+    public static InputStream getScriptAsStream(String scriptPath) {
+    //protected static InputStream getScriptAsStream(String scriptPath) {
         InputStream is = null;
         File file = new File(scriptPath);
         if (file.exists()) {

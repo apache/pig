@@ -589,6 +589,7 @@
                 </section>
             </manifest>
             <fileset file="${basedir}/conf/pig-default.properties" />
+            <fileset file="${basedir}/src/main/jruby/pigudf.rb" />
         </jar>
         <!-- @depricated -->
         <jar jarfile="${output.jarfile}" basedir="${build.classes}">
@@ -623,6 +624,7 @@
                 <include name="zookeeper*.jar"/>
             </zipgroupfileset>
             <fileset file="${basedir}/conf/pig-default.properties" />
+            <fileset file="${basedir}/src/main/jruby/pigudf.rb" />
         </jar>
         <antcall target="include-meta" inheritRefs="true" inheritall="true"/>
         <copy file="${output.jarfile}" tofile="${output.jarfile.backcompat}"/>
@@ -680,6 +682,7 @@
                 </section>
             </manifest>
             <fileset file="${basedir}/conf/pig-default.properties" />
+            <fileset file="${basedir}/src/main/jruby/pigudf.rb" />
         </jar>
         <!-- @depricated -->
         <jar jarfile="${output.jarfile.withouthadoop}" basedir="${build.classes}">
@@ -703,6 +706,7 @@
                 <include name="guava-${guava.version}.jar" />
             </zipgroupfileset>
             <fileset file="${basedir}/conf/pig-default.properties" />
+            <fileset file="${basedir}/src/main/jruby/pigudf.rb" />
         </jar>
         <copy file="${output.jarfile.withouthadoop}" tofile="${output.jarfile.backcompat.withouthadoop}"/>
     </target>

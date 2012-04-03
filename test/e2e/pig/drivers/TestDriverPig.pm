@@ -340,6 +340,7 @@ sub getPigCmd($$$)
 
     # set the PIG_CLASSPATH environment variable
 	my $pcp .= $testCmd->{'jythonjar'} if (defined($testCmd->{'jythonjar'}));
+    $pcp .= ":" . $testCmd->{'jrubyjar'} if (defined($testCmd->{'jrubyjar'}));
     $pcp .= ":" . $testCmd->{'classpath'} if (defined($testCmd->{'classpath'}));
 
     # Set it in our current environment.  It will get inherited by the IPC::Run
@@ -809,8 +810,6 @@ sub comparePig
 sub compareSingleOutput
 {
     my ($self, $testResult, $testOutput, $benchmarkOutput, $log) = @_;
-
-print $log "testResult: $testResult testOutput: $testOutput benchmarkOutput: $benchmarkOutput\n";
 
     # cksum the the two files to see if they are the same
     my ($testChksm, $benchmarkChksm);
