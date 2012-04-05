@@ -342,6 +342,13 @@ DUMP A;
 (Bill,20,3.9F)
 (Joe,18,3.8F)
 </source>
+
+  <p>You an assign an alias to another alias. The new alias can be used in the place of the original alias to refer the original relation. </p>
+  <source>
+  A = LOAD 'student' USING PigStorage() AS (name:chararray, age:int, gpa:float);
+  B = A;
+  DUMP B;
+  </source>
 </section>
    
    

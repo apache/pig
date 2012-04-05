@@ -28,7 +28,7 @@
 <section id="udfs">
 <title>Introduction</title>
 <p>
-Pig provides extensive support for user defined functions (UDFs) as a way to specify custom processing. Pig UDFs can currently be implemented in three languages: Java, Python, and JavaScript. 
+Pig provides extensive support for user defined functions (UDFs) as a way to specify custom processing. Pig UDFs can currently be implemented in three languages: Java, Python, JavaScript and Ruby. 
 </p>
 
 <p>
@@ -36,7 +36,7 @@ The most extensive support is provided for Java functions. You can customize all
 </p>
 
 <p>
-Limited support is provided for Python and JavaScript functions. These functions are new, still evolving, additions to the system. Currently only the basic interface is supported; load/store functions are not supported. Furthermore, JavaScript is provided as an experimental feature because it did not go through the same amount of testing as Java or Python. At runtime note that Pig will automatically detect the usage of a scripting UDF in the Pig script and will automatically ship the corresponding scripting jar, either Jython or Rhino, to the backend.</p>
+Limited support is provided for Python, JavaScript and Ruby functions. These functions are new, still evolving, additions to the system. Currently only the basic interface is supported; load/store functions are not supported. Furthermore, JavaScript and Ruby are provided as experimental features because they did not go through the same amount of testing as Java or Python. At runtime note that Pig will automatically detect the usage of a scripting UDF in the Pig script and will automatically ship the corresponding scripting jar, either Jython, Rhino or JRuby, to the backend.</p>
 
 <p></p>
 
@@ -372,6 +372,10 @@ public class IsEmpty extends FilterFunc {
 </source>
 </section>
 
+<section id="udf_simulation">
+<title>Implement UDF by Simulation</title>
+<p>When implementing more advanced types of EvalFuncs, the simpler implementations can be automatically provided by Pig.  Thus if your UDF implements <a href="#Algebraic-Interface">Algebraic</a> then you will get the Accumulator interface and basic the basic EvalFunc exec method for free.  Similarly, if your UDF implements <a href="#Accumulator-Interface">Accumulator Interface</a> you will get the basic EvalFunc exec method for free.  You will not get the Algebraic implemenation.  Note that these free implementations are based on simulation, which might not be the most efficient.  If you wish to ensure the efficiency of your Accumulator of EvalFunc exec method, you may still implement them yourself and your implementations will be used.</p>
+</section>
 <!-- +++++++++++++++++++++++++++++++++++++++++++++++++ -->
 <section id="pig-types">
 <title> Pig Types and Native Java Types</title>
@@ -1619,7 +1623,121 @@ function main() {
  </source>
  
  </section>
- 
+</section>
+
+ <!-- =============================================================== -->
+ <section id="jruby-udfs">
+ <title>Writing Ruby UDFs</title>
+
+ <p><strong>Note:</strong> <em>Ruby UDFs are an experimental feature.</em></p>
+
+<!-- ++++++++++++++++++++++++++++++++++++++++++++++++ -->
+ <section id="write-jruby">
+ <title>Writing a Ruby UDF</title>
+ <p>You must extend PigUdf and define your Ruby UDFs in the class. </p>
+ <source>
+ require 'pigudf'
+ class Myudfs &lt; PigUdf
+     def square num
+         return nil if num.nil?
+         num**2
+     end
+ end
+ </source>
+ </section>
+ <section id="jruby-schema-return-types">
+ <title>Return Types and Schemas</title>
+ <p>You have two ways to define the return schema:</p>
+ <p>outputSchema - Defines the schema for a UDF in a format that Pig understands. </p>
+ <source>
+ outputSchema "word:chararray"
+ </source>
+ <source>
+ outputSchema "t:(m:[], t:(name:chararray, age:int, gpa:double), b:{t:(name:chararray, age:int, gpa:double)})"
+ </source>
+ <p>Schema function</p>
+ <source>
+ outputSchemaFunction :squareSchema
+ def squareSchema input
+     input
+ end
+ </source>
+ <p>You need to put outputSchema/outputSchemaFunction statement right before your UDF. The schema function itself can be defined anywhere inside the class.</p>
+ </section>
+ <section id="register-jruby">
+ <title>Registering the UDF</title>
+ <p>You can register a Ruby UDF as shown here. </p>
+ <source>
+ register 'test.rb' using jruby as myfuncs;
+ </source>
+ <p> This is a shortcut to the complete syntax:</p>
+ <source>
+ register 'test.rb' using org.apache.pig.scripting.jruby.JrubyScriptEngine as myfuncs;
+ </source>
+ <p>The <code>register</code> statement above registers the Ruby functions defined in test.rb in Pig’s runtime within the defined namespace (myfuncs in this example). They can then be referred later on in the Pig Latin script as <code>myfuncs.square()</code>. An example usage is:</p>
+ <source>
+ b = foreach a generate myfuncs.concat($0, $1);
+ </source>
+ </section>
+ <section id="jruby-example">
+ <title>Example Scripts</title>
+ <p>Here are two complete Ruby UDF samples.</p>
+ <source>
+ require 'pigudf'
+ class Myudfs &lt; PigUdf
+ outputSchema "word:chararray"
+     def concat *input
+         input.inject(:+)
+     end
+ end
+ </source>
+ <source>
+ require 'pigudf'
+ class Myudfs &lt; PigUdf
+ outputSchemaFunction :squareSchema
+     def square num
+         return nil if num.nil?
+         num**2
+     end
+     def squareSchema input
+         input
+     end
+ end
+ </source>
+ </section>
+
+ <section id="jruby-advanced">
+ <title>Advanced Topics</title>
+ <p> You can also write Algebraic and Accumulator UDFs using Ruby. You need to extend your class from <code>AlgebraicPigUdf</code> and <code>AccumulatorPigUdf</code> respectively. For an Algebraic UDF, define <code>initial</code>, <code>intermed</code>, and <code>final</code> methods in the class. For an Accumulator UDF, define <code>exec</code> and <code>get</code> methods in the class. Below are example for each type of UDF: </p>
+ <source>
+ class Count &lt; AlgebraicPigUdf
+     output_schema Schema.long
+     def initial t
+          t.nil? ? 0 : 1
+     end
+     def intermed t
+          return 0 if t.nil?
+          t.flatten.inject(:+)
+     end
+     def final t
+         intermed(t)
+     end
+ end
+ </source>
+ <source>
+ class Sum &lt; AccumulatorPigUdf
+     output_schema { |i| i.in.in[0] }
+     def exec items
+         @sum ||= 0
+         @sum += items.flatten.inject(:+)
+     end
+     def get
+         @sum
+     end
+ end
+ </source>
+ </section>
+
 </section> 
 
 <!-- ================================================================== -->
