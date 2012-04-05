@@ -34,7 +34,7 @@
  <p><strong>Mandatory</strong></p>
       <p>Unix and Windows users need the following:</p>
 		<ul>
-		  <li> <strong>Hadoop 0.20.2, 020.203, 020.204,  0.20.205, or 1.0.0</strong> - <a href="http://hadoop.apache.org/common/releases.html">http://hadoop.apache.org/common/releases.html</a> (You can run Pig with different versions of Hadoop by setting HADOOP_HOME to point to the directory where you have installed Hadoop. If you do not set HADOOP_HOME, by default Pig will run with the embedded version, currently Hadoop 0.20.2.)</li>
+		  <li> <strong>Hadoop 0.20.2, 020.203, 020.204,  0.20.205, 1.0.0, 1.0.1, or 0.23.0, 0.23.1</strong> - <a href="http://hadoop.apache.org/common/releases.html">http://hadoop.apache.org/common/releases.html</a> (You can run Pig with different versions of Hadoop by setting HADOOP_HOME to point to the directory where you have installed Hadoop. If you do not set HADOOP_HOME, by default Pig will run with the embedded version, currently Hadoop 1.0.0.)</li>
 		  <li> <strong>Java 1.6</strong> - <a href="http://java.sun.com/javase/downloads/index.jsp">http://java.sun.com/javase/downloads/index.jsp</a> (set JAVA_HOME to the root of your Java installation)</li>	
 		</ul>
 		<p></p>
@@ -45,7 +45,7 @@
  		<ul>
           <li> <strong>Python 2.5</strong> - <a href="http://jython.org/downloads.html">http://jython.org/downloads.html</a> (when using Python UDFs or embedding Pig in Python) </li>
           <li> <strong>JavaScript 1.7</strong> - <a href="https://developer.mozilla.org/en/Rhino_downloads_archive">https://developer.mozilla.org/en/Rhino_downloads_archive</a> and <a href="http://mirrors.ibiblio.org/pub/mirrors/maven2/rhino/js/">http://mirrors.ibiblio.org/pub/mirrors/maven2/rhino/js/</a>  (when using JavaScript UDFs or embedding Pig in JavaScript) </li>		  
-		  
+          <li> <strong>JRuby 1.6.7</strong> - <a href="http://www.jruby.org/download">http://www.jruby.org/download</a> (when using JRuby UDFs) </li>
 		  <li> <strong>Ant 1.7</strong> - <a href="http://ant.apache.org/">http://ant.apache.org/</a> (for builds) </li>
 		  <li> <strong>JUnit 4.5</strong> - <a href="http://junit.sourceforge.net/">http://junit.sourceforge.net/</a> (for unit tests) </li>
 		</ul>

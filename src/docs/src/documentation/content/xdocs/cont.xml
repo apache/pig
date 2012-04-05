@@ -264,6 +264,41 @@ Pig.compile(...).bind(...).runSingle(props)
 <p>As the case with runSingle, a set of Java Properties or a property file can be passed to the call.</p>
 </section>
 
+<section>
+<title>Passing Parameters to a Script</title>
+<p>Inside your script, you can define parameters and then pass parameters from command line to your script.  There are two ways to pass parameters to your script:</p>
+<p>
+1. -param
+Similar to regular Pig parameter substitution, you can define parameters using -param/–param_file on Pig's command line.  This variable will be treated as one of the binding variables when binding the Pig Latin script. For example, you can invoke the below Python script using: pig –param loadfile=student.txt script.py. </p>
+<source>
+#!/usr/bin/python
+from org.apache.pig.scripting import Pig
+
+P = Pig.compile("""A = load '$loadfile' as (name, age, gpa);
+store A into 'output';""")
+
+Q = P.bind()
+
+result = Q.runSingle()
+</source>
+
+<p>
+2. Command line arguments
+Currently this feature is only available in Python. You can pass command line arguments (the arguments after the script file name) to Python. These will become sys.argv in Python.  For example: pig script.py student.txt. The corresponding script is:
+</p>
+<source>
+#!/usr/bin/python
+from org.apache.pig.scripting import Pig
+
+P = Pig.compile("A = load '" + sys.argv[1] + "' as (name, age, gpa);" +
+"store A into 'output';");
+
+Q = P.bind()
+
+result = Q.runSingle()
+</source>
+</section>
+
 </section> 
 
 <section id="pigrunner-api">
