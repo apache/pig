@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2601: Additional document for 0.10 (daijy)
+
 PIG-2317: Ruby/Jruby UDFs (jcoveney via daijy)
 
 PIG-2619: HBaseStorage constructs a Scan with cacheBlocks = false (andy lindeman via jcoveney)
