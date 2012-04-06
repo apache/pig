@@ -69,16 +69,18 @@ public class PigStorageSchema extends PigStorage implements LoadMetadata, StoreM
 
         if ( caster == null) {
             caster = getLoadCaster();
-        }
-        if (signature != null) {
-            Properties p = UDFContext.getUDFContext().getUDFProperties(this.getClass(),
-                    new String[] {signature});
-            String serializedSchema = p.getProperty(signature+".schema");
-            if (serializedSchema == null) return tup;
-            try {
-                schema = new ResourceSchema(Utils.getSchemaFromString(serializedSchema));
-            } catch (ParserException e) {
-                mLog.error("Unable to parse serialized schema " + serializedSchema, e);
+
+            if (signature != null) {
+                Properties p = UDFContext.getUDFContext().getUDFProperties(this.getClass(),
+                      new String[] {signature});
+                String serializedSchema = p.getProperty(signature+".schema");
+                if (serializedSchema != null) {
+                  try {
+                      schema = new ResourceSchema(Utils.getSchemaFromString(serializedSchema));
+                  } catch (ParserException e) {
+                      mLog.error("Unable to parse serialized schema " + serializedSchema, e);
+                  }
+                }
             }
         }
 

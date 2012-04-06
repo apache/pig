@@ -22,6 +22,8 @@ Release 0.9.3 - Unreleased
 
 IMPROVEMENTS
 
+PIG-2555: PigStorageSchema initializes schema and PigContext for every tuple (rangadi via dvryaboy)
+
 PIG-2619: HBaseStorage constructs a Scan with cacheBlocks = false
 
 BUG FIXES
