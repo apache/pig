@@ -208,7 +208,7 @@ public class TestUDF extends TestCase {
                 String query = "DEFINE BasLCWC " + pref + "BasicLongCountWithConstructor('5');";
                 query += "DEFINE AccLCWC " + pref +" AccLongCountWithConstructor('5');";
                 query += "DEFINE AlgLCWC " + pref + "AlgLongCountWithConstructor('5');";
-                query += "A = load '" + input + "' as (x:int);";
+                query += "A = load '" + input + "' as (x:long);";
                 query += "B = foreach (group A all) generate ";
                 for (String s : Arrays.copyOfRange(udfs, i, udfs.length - 1)) {
                     query += s + "(A),";
