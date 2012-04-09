@@ -32,6 +32,7 @@ import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.ResourceSchema;
+import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
@@ -40,6 +41,7 @@ import org.apache.pig.impl.io.InterStorage;
 import org.apache.pig.impl.io.ReadToEndLoader;
 import org.apache.pig.impl.io.TFileStorage;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.newplan.logical.Util;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.parser.ParserException;
@@ -175,7 +177,26 @@ public class Utils {
         LogicalSchema schema = queryParser.parseSchema(schemaString);
 		return schema;
 	}
-    
+	
+    /**
+     * This method adds FieldSchema of 'input source tag/path' as the first
+     * field. This will be called only when PigStorage is invoked with
+     * '-tagsource' option and the schema file is present to be loaded.
+     * 
+     * @param schema
+     * @return ResourceSchema
+     */
+    public static ResourceSchema getSchemaWithInputSourceTag(ResourceSchema schema) {
+        ResourceFieldSchema[] fieldSchemas = schema.getFields();
+        ResourceFieldSchema sourceTagSchema = new ResourceFieldSchema(new FieldSchema("INPUT_FILE_NAME", DataType.CHARARRAY));
+        ResourceFieldSchema[] fieldSchemasWithSourceTag = new ResourceFieldSchema[fieldSchemas.length + 1];
+        fieldSchemasWithSourceTag[0] = sourceTagSchema;
+        for(int j = 0; j < fieldSchemas.length; j++) {
+            fieldSchemasWithSourceTag[j + 1] = fieldSchemas[j];
+        }
+        return schema.setFields(fieldSchemasWithSourceTag);
+    }
+
     public static String getTmpFileCompressorName(PigContext pigContext) {
         if (pigContext == null)
             return InterStorage.class.getName();
