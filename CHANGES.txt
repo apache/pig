@@ -30,8 +30,6 @@ PIG-2604: Pig should print its build info at runtime (traviscrawford via dvryabo
 
 PIG-2573: Automagically setting parallelism based on input file size does not work with HCatalog (traviscrawford via julien)
 
-PIG-2541: Automatic record provenance (source tagging) for PigStorage (prkommireddi via daijy)
-
 PIG-2538: Add helper wrapper classes for StoreFunc (billgraham via dvryaboy)
 
 PIG-2010: registered jars on distributed cache (traviscrawford and julienledem via dvryaboy)
