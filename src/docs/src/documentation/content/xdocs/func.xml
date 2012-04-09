@@ -1371,6 +1371,7 @@ STORE X INTO 'output' USING PigDump();
                <ul>
 					<li>(‘schema’) - Stores the schema of the relation using a hidden JSON file.</li>
 					<li>(‘noschema’) - Ignores a stored schema during the load.</li>
+                                        <li>('tagsource') - Add a first column indicates the input file of the record.</li>
 				</ul>
             </td>
          </tr> 
@@ -1401,6 +1402,9 @@ STORE X INTO 'output' USING PigDump();
 <p>If the noschema option is NOT specified, and a schema is found, it gets loaded when loading data.</p>
 
 <p>Note that regardless of whether or not you store the schema, you always need to specify the correct delimiter to read your data. If you store reading delimiter "#" and then load using the default delimiter, your data will not be parsed correctly.</p>   
+
+<p><strong>Record Provenance</strong></p>
+<p>If tagsource option is specified, PigStorage will add a psudo-column INPUT_FILE_NAME to the beginning of the record. As the name suggests, it is the input file name containing this particular record.</p>
    
   <p><strong>Complex Data Types</strong></p>   
   <p>The formats for complex data types are shown here:</p>
