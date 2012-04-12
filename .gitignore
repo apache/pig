@@ -5,3 +5,5 @@ test/org/apache/pig/test/utils/dotGraph/parser/
 ivy/*.jar
 pig.jar
 pig-withouthadoop.jar
+*.log
+*.patch
