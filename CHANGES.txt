@@ -28,6 +28,8 @@ PIG-2619: HBaseStorage constructs a Scan with cacheBlocks = false
 
 BUG FIXES
 
+PIG-2642: StoreMetadata.storeSchema can't access files in the output directory (Hadoop 0.23) (thw via daijy)
+
 PIG-2621: Documentation inaccurate regarding Pig Properties in trunk (prkommireddi via daijy)
 
 PIG-2540: [piggybank] AvroStorage can't read schema on amazon s3 in elastic mapreduce (rjurney via jcoveney)
