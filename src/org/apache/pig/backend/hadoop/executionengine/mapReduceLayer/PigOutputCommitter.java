@@ -20,7 +20,6 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
@@ -34,9 +33,7 @@ import org.apache.pig.StoreMetadata;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
-import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.Pair;
 
 /**
@@ -169,15 +166,15 @@ public class PigOutputCommitter extends OutputCommitter {
         }
        
     }
-    
-    // This method only be called in 20.203+
+
+    // This method only be called in 20.203+/0.23
     public void commitJob(JobContext context) throws IOException {
         // call commitJob on all map and reduce committers
         for (Pair<OutputCommitter, POStore> mapCommitter : mapOutputCommitters) {
             if (mapCommitter.first!=null) {
                 JobContext updatedContext = setUpContext(context,
                         mapCommitter.second);
-                storeCleanup(mapCommitter.second, updatedContext.getConfiguration());
+                // PIG-2642 promote files before calling storeCleanup/storeSchema 
                 try {
                     // Use reflection, 20.2 does not have such method
                     Method m = mapCommitter.first.getClass().getMethod("commitJob", JobContext.class);
@@ -186,6 +183,7 @@ public class PigOutputCommitter extends OutputCommitter {
                 } catch (Exception e) {
                     throw new IOException(e);
                 }
+                storeCleanup(mapCommitter.second, updatedContext.getConfiguration());
             }
         }
         for (Pair<OutputCommitter, POStore> reduceCommitter :
@@ -193,7 +191,7 @@ public class PigOutputCommitter extends OutputCommitter {
             if (reduceCommitter.first!=null) {
                 JobContext updatedContext = setUpContext(context,
                         reduceCommitter.second);
-                storeCleanup(reduceCommitter.second, updatedContext.getConfiguration());
+                // PIG-2642 promote files before calling storeCleanup/storeSchema 
                 try {
                     // Use reflection, 20.2 does not have such method
                     Method m = reduceCommitter.first.getClass().getMethod("commitJob", JobContext.class);
@@ -202,6 +200,7 @@ public class PigOutputCommitter extends OutputCommitter {
                 } catch (Exception e) {
                     throw new IOException(e);
                 }
+                storeCleanup(reduceCommitter.second, updatedContext.getConfiguration());
             }
         }
     }
