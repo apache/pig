@@ -29,6 +29,7 @@ import java.util.Random;
 import junit.framework.Assert;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
@@ -37,9 +38,9 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.ResourceSchema;
+import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.ResourceStatistics;
 import org.apache.pig.StoreMetadata;
-import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
@@ -732,6 +733,17 @@ public class TestStore extends junit.framework.TestCase {
         public void storeSchema(ResourceSchema schema, String location,
                 Job job) throws IOException {
             FileSystem fs = FileSystem.get(job.getConfiguration());
+            // verify that output is available prior to storeSchema call
+            Path resultPath = new Path(location, "part-m-00000");
+            if (!fs.exists(resultPath)) {
+	            FileStatus[] listing = fs.listStatus(new Path(location));
+	            for (FileStatus fstat : listing) {
+	            	System.err.println(fstat.getPath());
+	            }
+	            // not creating the marker file below fails the test
+	            throw new IOException("" + resultPath + " not available in storeSchema");
+            }
+            
             // create a file to test that this method got called - if it gets called
             // multiple times, the create will throw an Exception
             fs.create(
