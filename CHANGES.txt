@@ -467,6 +467,8 @@ Release 0.9.3 - Unreleased
 
 BUG FIXES
 
+PIG-2642: StoreMetadata.storeSchema can't access files in the output directory (Hadoop 0.23) (thw via daijy)
+
 PIG-2621: Documentation inaccurate regarding Pig Properties in trunk (prkommireddi via daijy)
 
 PIG-2550: Custom tuple results in "Unexpected datatype 110 while reading tuplefrom binary file" while spilling (daijy)
