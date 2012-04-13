@@ -41,4 +41,9 @@ public class ParserValidationException extends PigRecognitionException {
         return msgHeader() + "pig script failed to validate: " + ( ex != null ? ex.toString() : cause  );
     }
 
+    @Override
+    public Throwable getCause() {
+      return ex;
+    };
+
 }
