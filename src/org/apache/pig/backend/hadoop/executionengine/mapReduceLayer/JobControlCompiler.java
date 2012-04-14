@@ -466,13 +466,13 @@ public class JobControlCompiler{
             for (POStore st: mapStores) {
                 storeLocations.add(st);
                 StoreFuncInterface sFunc = st.getStoreFunc();
-                sFunc.setStoreLocation(st.getSFile().getFileName(), nwJob);
+                sFunc.setStoreLocation(st.getSFile().getFileName(), new org.apache.hadoop.mapreduce.Job(nwJob.getConfiguration()));
             }
 
             for (POStore st: reduceStores) {
                 storeLocations.add(st);
                 StoreFuncInterface sFunc = st.getStoreFunc();
-                sFunc.setStoreLocation(st.getSFile().getFileName(), nwJob);
+                sFunc.setStoreLocation(st.getSFile().getFileName(), new org.apache.hadoop.mapreduce.Job(nwJob.getConfiguration()));
             }
 
             // the OutputFormat we report to Hadoop is always PigOutputFormat
