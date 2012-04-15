@@ -192,8 +192,6 @@ BUG FIXES
 
 PIG-2578: Multiple Store-commands mess up mapred.output.dir. (daijy)
 
-PIG-2652: Skew join and order by don't trigger reducer estimation (billgraham via dvryaboy)
-
 PIG-2623: Support S3 paths for registering UDFs (nshkrob via daijy)
 
 PIG-2540: [piggybank] AvroStorage can't read schema on amazon s3 in elastic mapreduce (rjurney via jcoveney)
