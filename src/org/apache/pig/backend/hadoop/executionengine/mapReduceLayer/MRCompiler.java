@@ -2521,8 +2521,8 @@ public class MRCompiler extends PhyPlanVisitor {
                         val = pigContext.defaultParallel;
                     if (val<=0)
                         val = eng.getJobConf().getNumReduceTasks();
-                    if (val<=1)
-                        val = -1;
+                    if (val<=0)
+                        val = 1;
                 } catch (Exception e) {
                     int errCode = 6015;
                     String msg = "Problem getting the default number of reduces from the Job Client.";
