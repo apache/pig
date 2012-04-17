@@ -384,8 +384,8 @@ public class TestMultiQueryLocal {
 
             myPig.registerQuery("a = load 'test/org/apache/pig/test/data/passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
-            myPig.registerQuery("store a into '/tmp/Pig-TestMultiQueryLocal1' using MultiStoreWithSuffix('a');");
-            myPig.registerQuery("store a into '/tmp/Pig-TestMultiQueryLocal2' using MultiStoreWithSuffix('b');");
+            myPig.registerQuery("store a into '/tmp/Pig-TestMultiQueryLocal1' using " + PigStorageWithSuffix.class.getName() + "('a');");
+            myPig.registerQuery("store a into '/tmp/Pig-TestMultiQueryLocal2' using " + PigStorageWithSuffix.class.getName() + "('b');");
 
             myPig.executeBatch();
             myPig.discardBatch();
