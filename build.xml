@@ -1017,7 +1017,7 @@
         </tar>
     </target>
 
-    <target name="rpm" depends="package-release" description="Make rpm package">
+    <target name="rpm" depends="tar-release" description="Make rpm package">
         <mkdir dir="${package.buildroot}/BUILD" />
         <mkdir dir="${package.buildroot}/RPMS" />
         <mkdir dir="${package.buildroot}/SRPMS" />
@@ -1058,7 +1058,7 @@
         <delete dir="${package.buildroot}" quiet="true" verbose="false"/>
     </target>
    
-    <target name="deb" depends="tar-release" description="Make deb package">
+    <target name="deb" depends="package-release" description="Make deb package">
         <taskdef name="deb"
             classname="org.vafer.jdeb.ant.DebAntTask">
             <classpath refid="classpath" />
