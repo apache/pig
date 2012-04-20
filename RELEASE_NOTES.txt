@@ -1,10 +1,16 @@
-These notes are for Pig 0.3.0 release.
+These notes are for Pig 0.10.0 release.
 
 Highlights
 ==========
 
-The main focus of this release is multiquery support that allows to optimize
-multiple queries within the same script that share a computation.
+This release include several new features such as boolean datatype, nested
+cross/foreach, JRuby udf, limit by expression, split default destination,
+tuple/bag/map syntax support, map-side aggregation, and more, see a more complete
+list in CHANGES.txt.
+
+If you want to run unit test, make sure to set umask to 0022 before running unit
+test (we also see unit test fail due to extended acl, use setfacl -b to remove
+extened acl if applicable).
 
 System Requirements
 ===================
@@ -13,14 +19,14 @@ System Requirements
 Java installation
 2. Ant build tool:  http://ant.apache.org - to build source only
 3. Cygwin: http://www.cygwin.com/ - to run under Windows 
-4. This release is compatible with Hadoop 0.18.x releases
+4. This release is compatible with all Hadoop 0.20.X, 1.0.X and 0.23.X releases
 
 Trying the Release
 ==================
 
-1. Download pig-0.3.0.tar.gz
-2. Unpack the file: tar -xzvf pig-0.3.0.tar.gz
-3. Move into the installation directory: cd pig-0.3.0
+1. Download pig-0.10.0.tar.gz
+2. Unpack the file: tar -xzvf pig-0.10.0.tar.gz
+3. Move into the installation directory: cd pig-0.10.0
 4. To run pig without Hadoop cluster, execute the command below. This will
 take you into an interactive shell called grunt that allows you to navigate
 the local file system and execute Pig commands against the local files
@@ -48,8 +54,5 @@ Relevant Documentation
 ======================
 
 Pig Language Manual(including Grunt commands):
-http://wiki.apache.org/pig-data/attachments/FrontPage/attachments/plrm.htm 
-UDF Manual: http://wiki.apache.org/pig/UDFManual
-Piggy Bank: http://wiki.apache.org/pig/PiggyBank
-Pig Tutorial: http://wiki.apache.org/pig/PigTutorial
-Pig Eclipse Plugin (PigPen):  http://wiki.apache.org/pig/PigPen
+http://pig.apache.org/docs/r0.10.0/
+Pig Tutorial: https://cwiki.apache.org/confluence/display/PIG/PigTutorial
