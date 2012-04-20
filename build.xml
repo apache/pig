@@ -1069,7 +1069,7 @@
                 <exclude name="control" />
             </fileset>
         </copy>
-        <copy file="${build.dir}/${final.name}-withouthadoop.jar" tofile="${build.dir}/${final.name}/share/pig/${final.name}-core.jar" overwrite="true" />
+        <copy file="${build.dir}/${final.name}-withouthadoop.jar" tofile="${rpm.dist.dir}/share/pig/${final.name}-core.jar" overwrite="true" />
         <copy file="${src.dir}/packages/deb/pig.control/control" todir="${package.build.dir}/pig.control">
             <filterchain>
                 <replacetokens>
@@ -1084,18 +1084,18 @@
             </filterchain>
         </copy>
         <deb destfile="${package.buildroot}/${name}_${pig.version}-${package.release}_${os.arch}.deb" control="${package.build.dir}/pig.control">
-            <tarfileset dir="${build.dir}/${final.name}" filemode="644" prefix="/usr">
+            <tarfileset dir="${rpm.dist.dir}" filemode="644" prefix="/usr">
                 <exclude name="bin/*" />
                 <exclude name="conf" />
                 <exclude name="conf/*" />
                 <exclude name="etc/**" />
                 <include name="**" />
             </tarfileset>
-            <tarfileset dir="${build.dir}/${final.name}" filemode="755" prefix="/usr">
+            <tarfileset dir="${rpm.dist.dir}" filemode="755" prefix="/usr">
                 <include name="bin/*" />
                 <include name="sbin/*" />
             </tarfileset>
-            <tarfileset dir="${build.dir}/${final.name}/etc/pig" filemode="644" prefix="/etc/pig">
+            <tarfileset dir="${rpm.dist.dir}/etc/pig" filemode="644" prefix="/etc/pig">
                 <include name="**" />
             </tarfileset>
         </deb>
