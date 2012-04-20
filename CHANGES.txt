@@ -339,7 +339,7 @@ declaration (azaroth via gates)
 PIG-2019: smoketest-jar target has to depend on pigunit-jar to guarantee
 inclusion of test classes (cos via gates)
 
-Release 0.9.3 - Unreleased
+Release 0.9.3
 
 IMPROVEMENT
 
