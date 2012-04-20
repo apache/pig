@@ -1327,7 +1327,7 @@
     <target name="releaseaudit" depends="ivy-releaseaudit, package" description="Release Audit activities">
 	<java classname="${rat.reporting.classname}" fork="true">
             <classpath refid="releaseaudit.classpath"/>
-            <arg value="${build.dir}/${final.name}"/>
+            <arg value="${build.dir}/tar/${final.name}"/>
         </java>
     </target>
 
