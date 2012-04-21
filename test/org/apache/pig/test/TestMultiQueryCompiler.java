@@ -46,6 +46,7 @@ import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
+import org.apache.pig.test.utils.SimpleCustomPartitioner;
 import org.apache.pig.tools.grunt.GruntParser;
 import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.junit.After;
@@ -1366,6 +1367,37 @@ public class TestMultiQueryCompiler {
             Assert.fail();
         }
     }
+    
+    @Test
+    public void testMultiQueryWithCustomPartitioner() {
+
+        System.out.println("===== multi-query with intermediate stores =====");
+
+        try {            
+            myPig.setBatchOn();
+            
+            myPig.registerQuery("a = load 'passwd' " +
+                                "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
+            myPig.registerQuery("l = FILTER a BY uname == 'foo';");
+            myPig.registerQuery("b = GROUP a BY uname PARTITION BY " + SimpleCustomPartitioner.class.getName() + " PARALLEL 3;");
+            myPig.registerQuery("c = FOREACH b GENERATE FLATTEN(a) PARALLEL 3;");
+            myPig.registerQuery("STORE c INTO 'output1';");
+            myPig.registerQuery("STORE l INTO 'output2';");
+
+            LogicalPlan lp = checkLogicalPlan(1, 2, 6);
+
+            PhysicalPlan pp = checkPhysicalPlan(lp, 1, 2, 12);
+
+            MROperPlan mrp = checkMRPlan(pp, 1, 1, 1); 
+            
+            MapReduceOper mrop = mrp.getRoots().get(0);
+            Assert.assertTrue(mrop.getCustomPartitioner().equals(SimpleCustomPartitioner.class.getName()));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        } 
+    }    
     
     // --------------------------------------------------------------------------
     // Helper methods

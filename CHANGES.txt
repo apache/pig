@@ -106,6 +106,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2627: Custom partitioner not set when POSplit is involved in Plan (aniket486 via daijy)
+
 PIG-2596: Jython UDF does not handle boolean output (aniket486 via daijy)
 
 PIG-2652: Skew join and order by don't trigger reducer estimation (billgraham via dvryaboy)
