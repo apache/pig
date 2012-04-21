@@ -482,7 +482,7 @@ public class HadoopJobHistoryLoader extends LoadFunc {
             // CHECK_IT: Only one SUCCESSFUL TASK ATTEMPT
             Map.Entry<String, JobHistory.TaskAttempt> tae = kv.next();
             JobHistory.TaskAttempt attempt = tae.getValue();
-            if (attempt.getValues().get(JobHistory.Keys.TASK_STATUS).equals(
+            if (null != attempt && null != attempt.getValues() && attempt.getValues().containsKey(JobHistory.Keys.TASK_STATUS) && attempt.getValues().get(JobHistory.Keys.TASK_STATUS).equals(
                     "SUCCESS")) {
                 return attempt.getValues();
             }

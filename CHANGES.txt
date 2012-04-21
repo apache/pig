@@ -106,6 +106,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2644: Piggybank's HadoopJobHistoryLoader throws NPE when reading broken history file (herberts via daijy)
+
 PIG-2627: Custom partitioner not set when POSplit is involved in Plan (aniket486 via daijy)
 
 PIG-2596: Jython UDF does not handle boolean output (aniket486 via daijy)
