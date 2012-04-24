@@ -330,6 +330,29 @@ public class TestAvroStorage {
         verifyResults(output, expected);
     }
 
+    // Same as above, just without using json in the constructor
+    @Test
+    public void testRecordWithFieldSchemaFromTextWithSchemaFile2() throws IOException {
+        PigSchema2Avro.setTupleIndex(1);
+        String output= outbasedir + "testRecordWithFieldSchemaFromTextWithSchemaFile2";
+        String expected = basedir + "expected_testRecordWithFieldSchema.avro";
+        deleteDirectory(new File(output));
+        String [] queries = {
+          " avro = LOAD '" + testTextFile + "' AS (member_id:int, browser_id:chararray, tracking_time:long, act_content:bag{inner:tuple(key:chararray, value:chararray)});",
+          " avro1 = FILTER avro BY member_id > 1211;",
+          " avro2 = FOREACH avro1 GENERATE member_id, browser_id, tracking_time, act_content ;",
+          " STORE avro2 INTO '" + output + "' " +
+                " USING org.apache.pig.piggybank.storage.avro.AvroStorage (" +
+                "'schema_file', '" + testRecordSchema + "'," +
+                "'field0','int'," +
+                "'field1','def:browser_id'," +
+                "'field3','def:act_content'" +
+                ");"
+           };
+        testAvroStorage( queries);
+        verifyResults(output, expected);
+    }
+
     private static void deleteDirectory (File path) {
         if ( path.exists()) {
             File [] files = path.listFiles();
