@@ -377,6 +377,7 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
             } else if (name.equalsIgnoreCase("data")
                          || name.equalsIgnoreCase("same")
                          || name.equalsIgnoreCase("schema")
+                         || name.equalsIgnoreCase("schema_file")
                          || name.matches("field\\d+")) {
                 /* store value as string */
                 map.put(name, value);
