@@ -1232,7 +1232,7 @@ public class PigServer {
         if( jobPriority != null ) {
             pigContext.getProperties().setProperty( PigContext.JOB_PRIORITY, jobPriority );
         }
-       
+
         // In this plan, all stores in the plan will be executed. They should be ignored if the plan is reused.
         currDAG.countExecutedStores();
        
@@ -1241,7 +1241,9 @@ public class PigServer {
         if( currDAG.lp.size() == 0 ) {
            return PigStats.get(); 
         }
-        
+
+        pigContext.getProperties().setProperty("pig.logical.plan.signature", currDAG.lp.getSignature());
+
         PigStats stats = executeCompiledLogicalPlan();
         
         return stats;
