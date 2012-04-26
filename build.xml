@@ -33,6 +33,7 @@
     <property name="pig.version" value="0.10.0" />
     <property name="version" value="${pig.version}-SNAPSHOT" />
     <property name="final.name" value="${name}-${version}" />
+    <property name="year" value="2007-2012" />
 
     <!-- source properties -->
     <property name="lib.dir" value="${basedir}/lib/" />
