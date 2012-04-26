@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2650: Convenience mock Loader and Storer to simplify unit testing of Pig scripts (julien)
+
 PIG-2257: AvroStorage doesn't recognize schema_file field when JSON isn't used in the constructor (billgraham)
 
 PIG-2587: Compute LogicalPlan signature and store in job conf (billgraham)
