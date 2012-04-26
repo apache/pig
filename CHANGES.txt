@@ -112,6 +112,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2616: JobControlCompiler.getInputSizeFromLoader must handle exceptions from LoadFunc.getStatistics (billgraham)
+
 PIG-2644: Piggybank's HadoopJobHistoryLoader throws NPE when reading broken history file (herberts via daijy)
 
 PIG-2627: Custom partitioner not set when POSplit is involved in Plan (aniket486 via daijy)
@@ -170,6 +172,8 @@ Release 0.10.0 - Unreleased
 INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
+
+PIG-2574: Make reducer estimator plugable (billgraham)
 
 PIG-2601: Additional document for 0.10 (daijy)
 
