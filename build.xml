@@ -203,7 +203,7 @@
     <property name="xerces.jar" value="${ivy.lib.dir}/xerces-${xerces.version}.jar"/>
     <property name="jdiff.build.dir" value="${build.docs}/jdiff"/>						
     <property name="jdiff.xml.dir" value="${lib.dir}/jdiff"/>	
-    <property name="jdiff.stable" value="0.9.1"/>
+    <property name="jdiff.stable" value="0.10.0"/>
     <property name="jdiff.stable.javadoc" value="http://hadoop.apache.org/${name}/docs/r${jdiff.stable}/api/"/>	
 
     <!-- Packaging properties -->
