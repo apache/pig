@@ -80,7 +80,7 @@ sub replaceParameters
     $cmd =~ s/:DBNAME:/$testCmd->{'dbdb'}/g;
 #    $cmd =~ s/:LOCALINPATH:/$testCmd->{'localinpathbase'}/g;
 #    $cmd =~ s/:LOCALOUTPATH:/$testCmd->{'localoutpathbase'}/g;
-#    $cmd =~ s/:LOCALTESTPATH:/$testCmd->{'localpathbase'}/g;
+    $cmd =~ s/:LOCALTESTPATH:/$testCmd->{'localpathbase'}/g;
     $cmd =~ s/:BMPATH:/$testCmd->{'benchmarkPath'}/g;
     $cmd =~ s/:TMP:/$testCmd->{'tmpPath'}/g;
 
