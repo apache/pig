@@ -487,6 +487,8 @@ Release 0.9.3 - Unreleased
 
 BUG FIXES
 
+PIG-2671: e2e harness: Reference local test path via :LOCALTESTPATH: (thw via daijy)
+
 PIG-2642: StoreMetadata.storeSchema can't access files in the output directory (Hadoop 0.23) (thw via daijy)
 
 PIG-2621: Documentation inaccurate regarding Pig Properties in trunk (prkommireddi via daijy)
