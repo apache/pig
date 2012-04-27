@@ -217,7 +217,7 @@ public class TestPigRunner {
         try {
             PigStats stats = PigRunner.run(args, new TestNotificationListener());
             assertTrue(stats.isSuccessful());
-            assertTrue(stats.getJobGraph().size() == 3);
+            assertTrue(stats.getJobGraph().size() == 4);
             assertTrue(stats.getJobGraph().getSinks().size() == 1);
             assertTrue(stats.getJobGraph().getSources().size() == 1);
             JobStats js = (JobStats) stats.getJobGraph().getSinks().get(0);

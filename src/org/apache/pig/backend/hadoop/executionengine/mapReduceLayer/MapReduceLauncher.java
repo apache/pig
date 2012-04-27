@@ -38,7 +38,6 @@ import org.apache.hadoop.mapred.JobID;
 import org.apache.hadoop.mapred.RunningJob;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
-import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
@@ -65,7 +64,6 @@ import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.util.ConfigurationValidator;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.UDFContext;
-import org.apache.pig.impl.util.Utils;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStatsUtil;
 import org.apache.pig.tools.pigstats.ScriptState;
@@ -516,7 +514,6 @@ public class MapReduceLauncher extends Launcher{
             pc.getProperties().getProperty(
                     "last.input.chunksize", POJoinPackage.DEFAULT_CHUNK_SIZE);
         
-        //String prop = System.getProperty("pig.exec.nocombiner");
         String prop = pc.getProperties().getProperty("pig.exec.nocombiner");
         if (!pc.inIllustrator && !("true".equals(prop)))  {
             boolean doMapAgg = 
@@ -532,10 +529,12 @@ public class MapReduceLauncher extends Launcher{
         SampleOptimizer so = new SampleOptimizer(plan, pc);
         so.visit();
         
+        // We must ensure that there is only 1 reducer for a limit. Add a single-reducer job.
+        if (!pc.inIllustrator) {
         LimitAdjuster la = new LimitAdjuster(plan, pc);
         la.visit();
         la.adjust();
-        
+        }
         // Optimize to use secondary sort key if possible
         prop = pc.getProperties().getProperty("pig.exec.nosecondarykey");
         if (!pc.inIllustrator && !("true".equals(prop)))  {
@@ -621,6 +620,7 @@ public class MapReduceLauncher extends Launcher{
      */
     class JobControlThreadExceptionHandler implements Thread.UncaughtExceptionHandler {
         
+        @Override
         public void uncaughtException(Thread thread, Throwable throwable) {
             jobControlExceptionStackTrace = getStackStraceStr(throwable);
             try {	

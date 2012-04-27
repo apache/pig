@@ -161,8 +161,7 @@ public class TestPigStats  {
             PhysicalPlan pp = pig.getPigContext().getExecutionEngine().compile(lp,
                     null);
             MROperPlan mp = getMRPlan(pp, pig.getPigContext());
-            
-            assertEquals(3, mp.getKeys().size());
+            assertEquals(4, mp.getKeys().size());
             
             MapReduceOper mro = mp.getRoots().get(0);
             assertEquals("A,B,C", getAlias(mro));

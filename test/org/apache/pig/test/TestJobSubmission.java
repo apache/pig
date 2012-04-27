@@ -17,7 +17,8 @@
  */
 package org.apache.pig.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.util.Iterator;
@@ -40,6 +41,7 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOpe
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.data.DataType;
@@ -618,9 +620,19 @@ public class TestJobSubmission {
         PhysicalPlan pp = Util.buildPp(ps, query);
 
         MROperPlan mrPlan = Util.buildMRPlanWithOptimizer(pp, pc);
+        Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties());
+        JobControlCompiler jcc = new JobControlCompiler(pc, conf);
+        JobControl jobControl = jcc.compile(mrPlan, query);
+
         assertEquals(2, mrPlan.size());     
         
+        // Simulate the first job having run so estimation kicks in.
         MapReduceOper sort = mrPlan.getLeaves().get(0);        
+        jcc.updateMROpPlan(jobControl.getReadyJobs());
+        FileLocalizer.create(sort.getQuantFile(), pc);
+        jcc.compile(mrPlan, query);
+
+        sort = mrPlan.getLeaves().get(0);
         long reducer=Math.min((long)Math.ceil(new File("test/org/apache/pig/test/data/passwd").length()/100.0), 10);
         assertEquals(reducer, sort.getRequestedParallelism());
         
@@ -630,6 +642,7 @@ public class TestJobSubmission {
         pp = Util.buildPp(ps, query);
         
         mrPlan = Util.buildMRPlanWithOptimizer(pp, pc);               
+
         assertEquals(2, mrPlan.size());     
         
         sort = mrPlan.getLeaves().get(0);        
@@ -658,6 +671,17 @@ public class TestJobSubmission {
         mrPlan = Util.buildMRPlanWithOptimizer(pp, pc);
         assertEquals(3, mrPlan.size());     
         
+        // Simulate the first 2 jobs having run so estimation kicks in.
+        sort = mrPlan.getLeaves().get(0);
+        FileLocalizer.create(sort.getQuantFile(), pc);
+
+        jobControl = jcc.compile(mrPlan, query);
+        Util.copyFromLocalToCluster(cluster, "test/org/apache/pig/test/data/passwd", ((POLoad) sort.mapPlan.getRoots().get(0)).getLFile().getFileName());
+        jcc.updateMROpPlan(jobControl.getReadyJobs());
+        jobControl = jcc.compile(mrPlan, query);
+        jcc.updateMROpPlan(jobControl.getReadyJobs());
+
+        jobControl = jcc.compile(mrPlan, query);
         sort = mrPlan.getLeaves().get(0);       
         assertEquals(reducer, sort.getRequestedParallelism());
     }

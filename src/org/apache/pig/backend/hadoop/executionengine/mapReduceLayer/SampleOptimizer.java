@@ -126,33 +126,6 @@ public class SampleOptimizer extends MROpPlanVisitor {
             return;
         }
         MapReduceOper succ = succs.get(0);
-        
-        // set/estimate the parallelism
-        if (succ.requestedParallelism == 1) {
-            List<PhysicalOperator> loads = pred.mapPlan.getRoots();
-            List<POLoad> lds = new ArrayList<POLoad>();
-            for (PhysicalOperator ld : loads) {
-                lds.add((POLoad)ld);
-            }
-            Configuration conf = ConfigurationUtil.toConfiguration(pigContext.getProperties());
-            int rp = 1;
-            try {
-                rp = JobControlCompiler.estimateNumberOfReducers(
-                        conf, lds, new org.apache.hadoop.mapreduce.Job(conf));
-            } catch (IOException e) {
-                log.warn("Failed to estimate number of reducers", e);
-            }
-            
-            if (rp > 1) {
-                ParallelConstantVisitor visitor = new ParallelConstantVisitor(mr.reducePlan, rp);
-                visitor.visit();
-                if (visitor.isReplaced()) {
-                    succ.requestedParallelism = rp;
-                    log.info(" Setting number of reducers for order by to " + rp);
-                }
-            }
-        }
-        
         if (pred.mapPlan == null || pred.mapPlan.size() != 2) {
             log.debug("Predecessor has more than just load+store in the map");
             return;
@@ -272,36 +245,5 @@ public class SampleOptimizer extends MROpPlanVisitor {
 	    		scan(mr, p, fileName);	    		
 	    	}
 		}
-    }
-    
-    private static class ParallelConstantVisitor extends PhyPlanVisitor {
-
-        private int rp;
-        
-        private boolean replaced = false;
-        
-        public ParallelConstantVisitor(PhysicalPlan plan, int rp) {
-            super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(
-                    plan));
-            this.rp = rp;
-        }
-        
-        public void visitConstant(ConstantExpression cnst) throws VisitorException {            
-            if (cnst.getRequestedParallelism() == -1) {
-                Object obj = cnst.getValue();
-                if (obj instanceof Integer) {
-                    if (replaced) {
-                        // sample job should have only one ConstantExpression
-                        throw new VisitorException("Invalid reduce plan: more " +
-                        		"than one ConstantExpression found in sampling job");
-                    }
-                    cnst.setValue(rp);                    
-                    cnst.setRequestedParallelism(rp);
-                    replaced = true;
-                }
-            }
-        }
-     
-        boolean isReplaced() { return replaced; }
     }
 }

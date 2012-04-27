@@ -112,6 +112,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2652:  Skew join and order by don't trigger reducer estimation (dvryaboy)
+
 PIG-2616: JobControlCompiler.getInputSizeFromLoader must handle exceptions from LoadFunc.getStatistics (billgraham)
 
 PIG-2644: Piggybank's HadoopJobHistoryLoader throws NPE when reading broken history file (herberts via daijy)
