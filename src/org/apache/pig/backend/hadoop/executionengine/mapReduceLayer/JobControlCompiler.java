@@ -58,6 +58,7 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.WeightedRangePartitioner;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -261,7 +262,7 @@ public class JobControlCompiler{
                 if(mro instanceof NativeMapReduceOper) {
                     return null;
                 }
-                Job job = getJob(mro, conf, pigContext);
+                Job job = getJob(plan, mro, conf, pigContext);
                 jobMroMap.put(job, mro);
                 jobCtrl.addJob(job);
             }
@@ -327,7 +328,7 @@ public class JobControlCompiler{
      * @throws JobCreationException
      */
     @SuppressWarnings({ "unchecked", "deprecation" })
-    private Job getJob(MapReduceOper mro, Configuration config, PigContext pigContext) throws JobCreationException{
+    private Job getJob(MROperPlan plan, MapReduceOper mro, Configuration config, PigContext pigContext) throws JobCreationException{
         org.apache.hadoop.mapreduce.Job nwJob = null;
         
         try{
@@ -376,6 +377,8 @@ public class JobControlCompiler{
         }
                 
         try{        
+            adjustNumReducers(plan, mro, conf, nwJob);
+
             //Process the POLoads
             List<POLoad> lds = PlanHelper.getLoads(mro.mapPlan);
             
@@ -594,14 +597,6 @@ public class JobControlCompiler{
                 nwJob.setMapperClass(PigMapReduce.Map.class);
                 nwJob.setReducerClass(PigMapReduce.Reduce.class);
                 
-                // first check the PARALLE in query, then check the defaultParallel in PigContext, and last do estimation
-                if (mro.requestedParallelism > 0)
-                    nwJob.setNumReduceTasks(mro.requestedParallelism);
-		else if (pigContext.defaultParallel > 0)
-                    conf.set("mapred.reduce.tasks", ""+pigContext.defaultParallel);
-                else
-                    estimateNumberOfReducers(conf, lds, nwJob);
-                
                 if (mro.customPartitioner != null)
                 	nwJob.setPartitionerClass(PigContext.resolveClassName(mro.customPartitioner));
 
@@ -743,9 +738,42 @@ public class JobControlCompiler{
         }
     }
 
+    public void adjustNumReducers(MROperPlan plan, MapReduceOper mro, Configuration conf,
+            org.apache.hadoop.mapreduce.Job nwJob) throws IOException {
+        List<PhysicalOperator> loads = mro.mapPlan.getRoots();
+        List<POLoad> lds = new ArrayList<POLoad>();
+        for (PhysicalOperator ld : loads) {
+            lds.add((POLoad)ld);
+        }
+        int jobParallelism = -1;
+        int estimatedParallelism = estimateNumberOfReducers(conf, lds, nwJob);
+        if (mro.requestedParallelism > 0) {
+            jobParallelism = mro.requestedParallelism;
+        } else if (pigContext.defaultParallel > 0) {
+            jobParallelism = pigContext.defaultParallel;
+        } else {
+            jobParallelism = estimatedParallelism;
+        }
+        // Special case: Skewed Join and Order set parallelism to 1 even when no parallelism is specified.
+        if ((mro.isSkewedJoin() || mro.isGlobalSort()) && jobParallelism == 1) {
+            jobParallelism = estimatedParallelism;
+        }
+        if (mro.isSampler() && jobParallelism == 1) {
+            // Note: this is suboptimal, as the number of reducers communicated to the
+            // sampler is only based on the sampler inputs, meaning, the left side in the case
+            // of a skewed join. Ideally, we'd take into account the right side, as well.
+            ParallelConstantVisitor visitor =
+              new ParallelConstantVisitor(mro.reducePlan, estimatedParallelism);
+            visitor.visit();
+        }
+        log.info("Setting Parallelism to " + jobParallelism);
+        mro.requestedParallelism = jobParallelism;
+        conf.setInt("mapred.reduce.tasks", jobParallelism);
+    }
+
     /**
      * Looks up the estimator from REDUCER_ESTIMATOR_KEY and invokes it to find the number of
-     * reducers to use. If REDUCER_ESTIMATOR_KEY isn't set, defaults to InputSizeReducerEstimator
+     * reducers to use. If REDUCER_ESTIMATOR_KEY isn't set, defaults to InputSizeReducerEstimator.
      * @param conf
      * @param lds
      * @throws IOException
@@ -759,10 +787,6 @@ public class JobControlCompiler{
 
         log.info("Using reducer estimator: " + estimator.getClass().getName());
         int numberOfReducers = estimator.estimateNumberOfReducers(conf, lds, job);
-        conf.setInt("mapred.reduce.tasks", numberOfReducers);
-
-        log.info("Neither PARALLEL nor default parallelism is set for this job. Setting number of "
-                + "reducers to " + numberOfReducers);
         return numberOfReducers;
     }
 
@@ -1398,4 +1422,37 @@ public class JobControlCompiler{
             }
         }
     }   
+
+    private static class ParallelConstantVisitor extends PhyPlanVisitor {
+
+        private int rp;
+
+        private boolean replaced = false;
+
+        public ParallelConstantVisitor(PhysicalPlan plan, int rp) {
+            super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(
+                    plan));
+            this.rp = rp;
+}
+
+        @Override
+        public void visitConstant(ConstantExpression cnst) throws VisitorException {
+            if (cnst.getRequestedParallelism() == -1) {
+                Object obj = cnst.getValue();
+                if (obj instanceof Integer) {
+                    if (replaced) {
+                        // sample job should have only one ConstantExpression
+                        throw new VisitorException("Invalid reduce plan: more " +
+                                       "than one ConstantExpression found in sampling job");
+                    }
+                    cnst.setValue(rp);
+                    cnst.setRequestedParallelism(rp);
+                    replaced = true;
+                }
+            }
+        }
+
+        boolean isReplaced() { return replaced; }
+    }
+
 }
