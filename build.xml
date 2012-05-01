@@ -135,6 +135,7 @@
 
     <property name="clover.db.dir" location="${build.dir}/test/clover/db"/>
     <property name="clover.report.dir" location="${build.dir}/test/clover/reports"/>
+    <property name="clover.pdf.report.dir" location="${build.dir}/test/clover/pdf/reports"/>
     <property name="clover.jar" location="${clover.home}/lib/clover.jar"/>
     <available property="clover.present" file="${clover.jar}" />
 
@@ -1460,6 +1461,12 @@
           	</current>
         </clover-report>
      </target>
+
+     <target name="generate-pdf-clover-reports" depends="clover.check, clover">
+       <mkdir dir="${clover.pdf.report.dir}"/>
+        <clover-pdf-report outfile="${clover.pdf.report.dir}/clover_coverage.pdf" />
+     </target>
+
 
      <target name="api-xml" depends="ivy-jdiff, javadoc-all, write-null">
         <javadoc>

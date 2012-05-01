@@ -23,6 +23,7 @@ Trunk (unreleased changes)
 INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
+PIG-2677: Add target to build.xml to generate clover summary reports (gates)
 
 PIG-2650: Convenience mock Loader and Storer to simplify unit testing of Pig scripts (julien)
 
