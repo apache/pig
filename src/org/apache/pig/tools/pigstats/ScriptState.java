@@ -461,7 +461,7 @@ public class ScriptState {
         return featureLongToString(scriptFeatures);
     }
     
-    String getAlias(MapReduceOper mro) {
+    public String getAlias(MapReduceOper mro) {
         if (aliasMap == null) {
             aliasMap = new HashMap<MapReduceOper, String>();
         }
@@ -483,7 +483,7 @@ public class ScriptState {
         return retStr;
     }
 
-    String getPigFeature(MapReduceOper mro) {
+    public String getPigFeature(MapReduceOper mro) {
         if (featureMap == null) {
             featureMap = new HashMap<MapReduceOper, String>();
         }
