@@ -252,7 +252,7 @@ public class TestEvalPipeline2 {
         Assert.assertTrue(tup.get(0) instanceof DataBag);
         DataBag db = (DataBag)tup.get(0);
         Assert.assertTrue(db.iterator().hasNext());
-        Tuple innerTuple = (Tuple)db.iterator().next();
+        Tuple innerTuple = db.iterator().next();
         Assert.assertTrue(innerTuple.get(0)==null);
 
         //tuple 5 
@@ -898,7 +898,6 @@ public class TestEvalPipeline2 {
             pigServer.openIterator("c");
         } catch (Exception e) {
             PigException pe = LogUtils.getPigException(e);
-            Util.checkStrContainsSubStr(pe.getMessage(), "ERROR 1031");
             Util.checkStrContainsSubStr(pe.getMessage(), "Incompatable schema");
             return;
         }
@@ -1488,6 +1487,7 @@ public class TestEvalPipeline2 {
     }    
     
     static public class UDFWithNonStandardType extends EvalFunc<Tuple>{
+        @Override
         public Tuple exec(Tuple input) throws IOException {
             Tuple t = TupleFactory.getInstance().newTuple();
             t.append(new ArrayList<Integer>());
@@ -1656,9 +1656,9 @@ public class TestEvalPipeline2 {
         
         Util.createInputFile(cluster, "table_testLimitAutoReducer", input);
         
-        pigServer.getPigContext().getProperties().setProperty("pig.exec.reducers.bytes.per.reducer", "9");
-        pigServer.registerQuery("A = load 'table_testLimitAutoReducer' as (a0, a1);");
-        pigServer.registerQuery("B = order A by a0;");
+        pigServer.getPigContext().getProperties().setProperty("pig.exec.reducers.bytes.per.reducer", "16");
+        pigServer.registerQuery("A = load 'table_testLimitAutoReducer';");
+        pigServer.registerQuery("B = order A by $0;");
         pigServer.registerQuery("C = limit B 2;");
         
         Iterator<Tuple> iter = pigServer.openIterator("C");

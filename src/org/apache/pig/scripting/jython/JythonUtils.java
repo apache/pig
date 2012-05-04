@@ -30,6 +30,7 @@ import org.apache.pig.data.DefaultBagFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.python.core.Py;
+import org.python.core.PyBoolean;
 import org.python.core.PyDictionary;
 import org.python.core.PyFloat;
 import org.python.core.PyInteger;
@@ -82,6 +83,8 @@ public class JythonUtils {
                 javaObj = newMap;
             } else if (pyObject instanceof PyLong) {
                 javaObj = pyObject.__tojava__(Long.class);
+            } else if (pyObject instanceof PyBoolean) {
+            	javaObj = pyObject.__tojava__(Boolean.class);
             } else if (pyObject instanceof PyInteger) {
                 javaObj = pyObject.__tojava__(Integer.class);
             } else if (pyObject instanceof PyFloat) {

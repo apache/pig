@@ -164,6 +164,7 @@ public abstract class PigStatsUtil {
         SimplePigStats ps = (SimplePigStats)PigStats.start();
         ps.start(pc, client, jcc, plan);
         
+        ScriptState.get().emitInitialPlanNotification(plan);
         ScriptState.get().emitLaunchStartedNotification(plan.size());
     }
      
@@ -187,7 +188,7 @@ public abstract class PigStatsUtil {
                 ps.getNumberSuccessfulJobs());
         if (display) ps.display();
     }
-    
+
     /**
      * Returns an empty PigStats object
      * 

@@ -23,6 +23,13 @@ Trunk (unreleased changes)
 INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
+PIG-2677: Add target to build.xml to generate clover summary reports (gates)
+
+PIG-2650: Convenience mock Loader and Storer to simplify unit testing of Pig scripts (julien)
+
+PIG-2257: AvroStorage doesn't recognize schema_file field when JSON isn't used in the constructor (billgraham)
+
+PIG-2587: Compute LogicalPlan signature and store in job conf (billgraham)
 
 PIG-2619: HBaseStorage constructs a Scan with cacheBlocks = false
 
@@ -106,6 +113,16 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2652:  Skew join and order by don't trigger reducer estimation (dvryaboy)
+
+PIG-2616: JobControlCompiler.getInputSizeFromLoader must handle exceptions from LoadFunc.getStatistics (billgraham)
+
+PIG-2644: Piggybank's HadoopJobHistoryLoader throws NPE when reading broken history file (herberts via daijy)
+
+PIG-2627: Custom partitioner not set when POSplit is involved in Plan (aniket486 via daijy)
+
+PIG-2596: Jython UDF does not handle boolean output (aniket486 via daijy)
+
 PIG-2649: org.apache.pig.parser.ParserValidationException does not expose the cause exception
 
 PIG-2540: [piggybank] AvroStorage can't read schema on amazon s3 in elastic mapreduce (rjurney via jcoveney)
@@ -158,6 +175,12 @@ Release 0.10.0 - Unreleased
 INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
+
+PIG-2663: Expose helpful ScriptState methods (billgraham)
+
+PIG-2660: PPNL notified of plan before it gets executed (billgraham)
+
+PIG-2574: Make reducer estimator plugable (billgraham)
 
 PIG-2601: Additional document for 0.10 (daijy)
 
@@ -296,6 +319,8 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
+
+PIG-2578: Multiple Store-commands mess up mapred.output.dir. (daijy)
 
 PIG-2623: Support S3 paths for registering UDFs (nshkrob via daijy)
 
@@ -468,6 +493,8 @@ inclusion of test classes (cos via gates)
 Release 0.9.3 - Unreleased
 
 BUG FIXES
+
+PIG-2671: e2e harness: Reference local test path via :LOCALTESTPATH: (thw via daijy)
 
 PIG-2642: StoreMetadata.storeSchema can't access files in the output directory (Hadoop 0.23) (thw via daijy)
 

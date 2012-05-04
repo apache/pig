@@ -1051,6 +1051,7 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         splitter.reducePlan = mapReduce.reducePlan;
         splitter.setReduceDone(true);
         splitter.combinePlan = mapReduce.combinePlan;
+        splitter.customPartitioner = mapReduce.customPartitioner;
                 
         // replace store operator in the splitter with split operator
         if (leaf instanceof POStore) {                            

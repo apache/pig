@@ -49,9 +49,7 @@ import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.LoadFunc;
-import org.apache.pig.LoadMetadata;
 import org.apache.pig.PigException;
-import org.apache.pig.ResourceStatistics;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
@@ -60,6 +58,7 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.WeightedRangePartitioner;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -94,7 +93,6 @@ import org.apache.pig.impl.util.JarManager;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.util.UDFContext;
-import org.apache.pig.impl.util.UriUtil;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.tools.pigstats.ScriptState;
 
@@ -133,6 +131,9 @@ public class JobControlCompiler{
     public static final String LOG_DIR = "_logs";
 
     public static final String END_OF_INP_IN_MAP = "pig.invoke.close.in.map";
+
+    private static final String REDUCER_ESTIMATOR_KEY = "pig.exec.reducer.estimator";
+    private static final String REDUCER_ESTIMATOR_ARG_KEY =  "pig.exec.reducer.estimator.arg";
     
     /**
      * We will serialize the POStore(s) present in map and reduce in lists in
@@ -261,7 +262,7 @@ public class JobControlCompiler{
                 if(mro instanceof NativeMapReduceOper) {
                     return null;
                 }
-                Job job = getJob(mro, conf, pigContext);
+                Job job = getJob(plan, mro, conf, pigContext);
                 jobMroMap.put(job, mro);
                 jobCtrl.addJob(job);
             }
@@ -327,7 +328,7 @@ public class JobControlCompiler{
      * @throws JobCreationException
      */
     @SuppressWarnings({ "unchecked", "deprecation" })
-    private Job getJob(MapReduceOper mro, Configuration config, PigContext pigContext) throws JobCreationException{
+    private Job getJob(MROperPlan plan, MapReduceOper mro, Configuration config, PigContext pigContext) throws JobCreationException{
         org.apache.hadoop.mapreduce.Job nwJob = null;
         
         try{
@@ -376,6 +377,8 @@ public class JobControlCompiler{
         }
                 
         try{        
+            adjustNumReducers(plan, mro, conf, nwJob);
+
             //Process the POLoads
             List<POLoad> lds = PlanHelper.getLoads(mro.mapPlan);
             
@@ -477,13 +480,13 @@ public class JobControlCompiler{
             for (POStore st: mapStores) {
                 storeLocations.add(st);
                 StoreFuncInterface sFunc = st.getStoreFunc();
-                sFunc.setStoreLocation(st.getSFile().getFileName(), nwJob);
+                sFunc.setStoreLocation(st.getSFile().getFileName(), new org.apache.hadoop.mapreduce.Job(nwJob.getConfiguration()));
             }
 
             for (POStore st: reduceStores) {
                 storeLocations.add(st);
                 StoreFuncInterface sFunc = st.getStoreFunc();
-                sFunc.setStoreLocation(st.getSFile().getFileName(), nwJob);
+                sFunc.setStoreLocation(st.getSFile().getFileName(), new org.apache.hadoop.mapreduce.Job(nwJob.getConfiguration()));
             }
 
             // the OutputFormat we report to Hadoop is always PigOutputFormat
@@ -593,14 +596,6 @@ public class JobControlCompiler{
                     mro.reducePlan.remove(pack);
                 nwJob.setMapperClass(PigMapReduce.Map.class);
                 nwJob.setReducerClass(PigMapReduce.Reduce.class);
-                
-                // first check the PARALLE in query, then check the defaultParallel in PigContext, and last do estimation
-                if (mro.requestedParallelism > 0)
-                    nwJob.setNumReduceTasks(mro.requestedParallelism);
-		else if (pigContext.defaultParallel > 0)
-                    conf.set("mapred.reduce.tasks", ""+pigContext.defaultParallel);
-                else
-                    estimateNumberOfReducers(conf, lds, nwJob);
                 
                 if (mro.customPartitioner != null)
                 	nwJob.setPartitionerClass(PigContext.resolveClassName(mro.customPartitioner));
@@ -743,112 +738,56 @@ public class JobControlCompiler{
         }
     }
 
+    public void adjustNumReducers(MROperPlan plan, MapReduceOper mro, Configuration conf,
+            org.apache.hadoop.mapreduce.Job nwJob) throws IOException {
+        List<PhysicalOperator> loads = mro.mapPlan.getRoots();
+        List<POLoad> lds = new ArrayList<POLoad>();
+        for (PhysicalOperator ld : loads) {
+            lds.add((POLoad)ld);
+        }
+        int jobParallelism = -1;
+        int estimatedParallelism = estimateNumberOfReducers(conf, lds, nwJob);
+        if (mro.requestedParallelism > 0) {
+            jobParallelism = mro.requestedParallelism;
+        } else if (pigContext.defaultParallel > 0) {
+            jobParallelism = pigContext.defaultParallel;
+        } else {
+            jobParallelism = estimatedParallelism;
+        }
+        // Special case: Skewed Join and Order set parallelism to 1 even when no parallelism is specified.
+        if ((mro.isSkewedJoin() || mro.isGlobalSort()) && jobParallelism == 1) {
+            jobParallelism = estimatedParallelism;
+        }
+        if (mro.isSampler() && jobParallelism == 1) {
+            // Note: this is suboptimal, as the number of reducers communicated to the
+            // sampler is only based on the sampler inputs, meaning, the left side in the case
+            // of a skewed join. Ideally, we'd take into account the right side, as well.
+            ParallelConstantVisitor visitor =
+              new ParallelConstantVisitor(mro.reducePlan, estimatedParallelism);
+            visitor.visit();
+        }
+        log.info("Setting Parallelism to " + jobParallelism);
+        mro.requestedParallelism = jobParallelism;
+        conf.setInt("mapred.reduce.tasks", jobParallelism);
+    }
+
     /**
-     * Estimate the number of reducers based on input size.
-     * Number of reducers is based on two properties:
-     * <ul>
-     *     <li>pig.exec.reducers.bytes.per.reducer -
-     *     how many bytes of input per reducer (default is 1000*1000*1000)</li>
-     *     <li>pig.exec.reducers.max -
-     *     constrain the maximum number of reducer task (default is 999)</li>
-     * </ul>
-     * If using a loader that implements LoadMetadata the reported input size is used, otherwise
-     * attempt to determine size from the filesystem.
-     * <p>
-     * e.g. the following is your pig script
-     * <pre>
-     * a = load '/data/a';
-     * b = load '/data/b';
-     * c = join a by $0, b by $0;
-     * store c into '/tmp';
-     * </pre>
-     * The size of /data/a is 1000*1000*1000, and size of /data/b is 2*1000*1000*1000.
-     * Then the estimated reducer number is (1000*1000*1000+2*1000*1000*1000)/(1000*1000*1000)=3
-     * </p>
-     *
-     * @param conf read settings from this configuration
-     * @param lds inputs to estimate number of reducers for
-     * @param job job configuration
-     * @throws IOException on error
-     * @return estimated number of reducers necessary for this input
+     * Looks up the estimator from REDUCER_ESTIMATOR_KEY and invokes it to find the number of
+     * reducers to use. If REDUCER_ESTIMATOR_KEY isn't set, defaults to InputSizeReducerEstimator.
+     * @param conf
+     * @param lds
+     * @throws IOException
      */
     public static int estimateNumberOfReducers(Configuration conf, List<POLoad> lds,
-            org.apache.hadoop.mapreduce.Job job) throws IOException {
-        long bytesPerReducer =
-                conf.getLong("pig.exec.reducers.bytes.per.reducer", (1000 * 1000 * 1000));
-        int maxReducers = conf.getInt("pig.exec.reducers.max", 999);
+                                        org.apache.hadoop.mapreduce.Job job) throws IOException {
+        PigReducerEstimator estimator = conf.get(REDUCER_ESTIMATOR_KEY) == null ?
+          new InputSizeReducerEstimator() :
+          PigContext.instantiateObjectFromParams(conf,
+                  REDUCER_ESTIMATOR_KEY, REDUCER_ESTIMATOR_ARG_KEY, PigReducerEstimator.class);
 
-        long totalInputFileSize = getInputSize(conf, lds, job);
-
-        log.info("BytesPerReducer=" + bytesPerReducer + " maxReducers="
-            + maxReducers + " totalInputFileSize=" + totalInputFileSize);
-        
-        int reducers = (int)Math.ceil((totalInputFileSize+0.0) / bytesPerReducer);
-        reducers = Math.max(1, reducers);
-        reducers = Math.min(maxReducers, reducers);
-        conf.setInt("mapred.reduce.tasks", reducers);
-
-        log.info("Neither PARALLEL nor default parallelism is set for this job. Setting number of reducers to " + reducers);
-        return reducers;
-    }
-
-    /**
-     * Get the input size for as many inputs as possible. Inputs that do not report
-     * their size nor can pig look that up itself are excluded from this size.
-     */
-    public static long getInputSize(Configuration conf, List<POLoad> lds,
-            org.apache.hadoop.mapreduce.Job job) throws IOException {
-        long totalInputFileSize = 0;
-        for (POLoad ld : lds) {
-            long size = getInputSizeFromLoader(ld, job);
-            if (size > 0) {
-                totalInputFileSize += size;
-                continue;
-            }
-            // the input file location might be a list of comma separated files,
-            // separate them out
-            for (String location : LoadFunc.getPathStrings(ld.getLFile().getFileName())) {
-                if (UriUtil.isHDFSFileOrLocalOrS3N(location)) {
-                    Path path = new Path(location);
-                    FileSystem fs = path.getFileSystem(conf);
-                    FileStatus[] status = fs.globStatus(path);
-                    if (status != null) {
-                        for (FileStatus s : status) {
-                            totalInputFileSize += Utils.getPathLength(fs, s);
-                        }
-                    }
-                }
-            }
-        }
-        return totalInputFileSize;
-    }
-
-    /**
-     * Get the total input size in bytes by looking at statistics provided by
-     * loaders that implement @{link LoadMetadata}.
-     * @param ld
-     * @param job
-     * @return total input size in bytes, or 0 if unknown or incomplete
-     * @throws IOException on error
-     */
-    public static long getInputSizeFromLoader(
-            POLoad ld, org.apache.hadoop.mapreduce.Job job) throws IOException {
-        if (ld.getLoadFunc() == null
-                || !(ld.getLoadFunc() instanceof LoadMetadata)
-                || ld.getLFile() == null
-                || ld.getLFile().getFileName() == null) {
-            return 0;
-        }
-
-        ResourceStatistics statistics =
-                ((LoadMetadata) ld.getLoadFunc())
-                        .getStatistics(ld.getLFile().getFileName(), job);
-
-        if (statistics == null || statistics.getSizeInBytes() == null) {
-            return 0;
-        }
-
-        return statistics.getSizeInBytes();
+        log.info("Using reducer estimator: " + estimator.getClass().getName());
+        int numberOfReducers = estimator.estimateNumberOfReducers(conf, lds, job);
+        return numberOfReducers;
     }
 
     public static class PigSecondaryKeyGroupComparator extends WritableComparator {
@@ -1483,4 +1422,37 @@ public class JobControlCompiler{
             }
         }
     }   
+
+    private static class ParallelConstantVisitor extends PhyPlanVisitor {
+
+        private int rp;
+
+        private boolean replaced = false;
+
+        public ParallelConstantVisitor(PhysicalPlan plan, int rp) {
+            super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(
+                    plan));
+            this.rp = rp;
+}
+
+        @Override
+        public void visitConstant(ConstantExpression cnst) throws VisitorException {
+            if (cnst.getRequestedParallelism() == -1) {
+                Object obj = cnst.getValue();
+                if (obj instanceof Integer) {
+                    if (replaced) {
+                        // sample job should have only one ConstantExpression
+                        throw new VisitorException("Invalid reduce plan: more " +
+                                       "than one ConstantExpression found in sampling job");
+                    }
+                    cnst.setValue(rp);
+                    cnst.setRequestedParallelism(rp);
+                    replaced = true;
+                }
+            }
+        }
+
+        boolean isReplaced() { return replaced; }
+    }
+
 }

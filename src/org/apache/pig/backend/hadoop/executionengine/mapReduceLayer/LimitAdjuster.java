@@ -23,19 +23,14 @@ import java.util.List;
 
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
-import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROpPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLimit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
-import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
@@ -64,9 +59,13 @@ public class LimitAdjuster extends MROpPlanVisitor {
     @Override
     public void visitMROp(MapReduceOper mr) throws VisitorException {
         // Look for map reduce operators which contains limit operator.
-        // If so and the requestedParallelism > 1, add one additional map-reduce
-        // operator with 1 reducer into the original plan
-        if ((mr.limit!=-1 || mr.limitPlan!=null) && mr.requestedParallelism!=1)
+        // If so, add one additional map-reduce
+        // operator with 1 reducer into the original plan.
+
+        // TODO: This new MR job can be skipped if at runtime we discover that
+        // its parent only has a single reducer (mr.requestedParallelism!=1).
+        // This check MUST happen at runtime since that's when reducer estimation happens.
+        if ((mr.limit!=-1 || mr.limitPlan!=null) )
         {
             opsToAdjust.add(mr);
         }

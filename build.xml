@@ -33,6 +33,7 @@
     <property name="pig.version" value="0.11.0" />
     <property name="version" value="${pig.version}-SNAPSHOT" />
     <property name="final.name" value="${name}-${version}" />
+    <property name="year" value="2007-2012" />
 
     <!-- source properties -->
     <property name="lib.dir" value="${basedir}/lib" />
@@ -134,6 +135,7 @@
 
     <property name="clover.db.dir" location="${build.dir}/test/clover/db"/>
     <property name="clover.report.dir" location="${build.dir}/test/clover/reports"/>
+    <property name="clover.pdf.report.dir" location="${build.dir}/test/clover/pdf/reports"/>
     <property name="clover.jar" location="${clover.home}/lib/clover.jar"/>
     <available property="clover.present" file="${clover.jar}" />
 
@@ -203,7 +205,7 @@
     <property name="xerces.jar" value="${ivy.lib.dir}/xerces-${xerces.version}.jar"/>
     <property name="jdiff.build.dir" value="${build.docs}/jdiff"/>						
     <property name="jdiff.xml.dir" value="${lib.dir}/jdiff"/>	
-    <property name="jdiff.stable" value="0.9.1"/>
+    <property name="jdiff.stable" value="0.10.0"/>
     <property name="jdiff.stable.javadoc" value="http://hadoop.apache.org/${name}/docs/r${jdiff.stable}/api/"/>	
 
     <!-- Packaging properties -->
@@ -1119,7 +1121,7 @@
         <delete dir="${package.buildroot}" quiet="true" verbose="false"/>
     </target>
    
-    <target name="deb" depends="tar-release" description="Make deb package">
+    <target name="deb" depends="package-release" description="Make deb package">
         <taskdef name="deb"
             classname="org.vafer.jdeb.ant.DebAntTask">
             <classpath refid="classpath" />
@@ -1130,7 +1132,7 @@
                 <exclude name="control" />
             </fileset>
         </copy>
-        <copy file="${build.dir}/${final.name}-withouthadoop.jar" tofile="${build.dir}/${final.name}/share/pig/${final.name}-core.jar" overwrite="true" />
+        <copy file="${build.dir}/${final.name}-withouthadoop.jar" tofile="${rpm.dist.dir}/share/pig/${final.name}-core.jar" overwrite="true" />
         <copy file="${src.dir}/packages/deb/pig.control/control" todir="${package.build.dir}/pig.control">
             <filterchain>
                 <replacetokens>
@@ -1145,18 +1147,18 @@
             </filterchain>
         </copy>
         <deb destfile="${package.buildroot}/${name}_${pig.version}-${package.release}_${os.arch}.deb" control="${package.build.dir}/pig.control">
-            <tarfileset dir="${build.dir}/${final.name}" filemode="644" prefix="/usr">
+            <tarfileset dir="${rpm.dist.dir}" filemode="644" prefix="/usr">
                 <exclude name="bin/*" />
                 <exclude name="conf" />
                 <exclude name="conf/*" />
                 <exclude name="etc/**" />
                 <include name="**" />
             </tarfileset>
-            <tarfileset dir="${build.dir}/${final.name}" filemode="755" prefix="/usr">
+            <tarfileset dir="${rpm.dist.dir}" filemode="755" prefix="/usr">
                 <include name="bin/*" />
                 <include name="sbin/*" />
             </tarfileset>
-            <tarfileset dir="${build.dir}/${final.name}/etc/pig" filemode="644" prefix="/etc/pig">
+            <tarfileset dir="${rpm.dist.dir}/etc/pig" filemode="644" prefix="/etc/pig">
                 <include name="**" />
             </tarfileset>
         </deb>
@@ -1327,7 +1329,7 @@
     <target name="releaseaudit" depends="ivy-releaseaudit, package" description="Release Audit activities">
 	<java classname="${rat.reporting.classname}" fork="true">
             <classpath refid="releaseaudit.classpath"/>
-            <arg value="${build.dir}/${final.name}"/>
+            <arg value="${build.dir}/tar/${final.name}"/>
         </java>
     </target>
 
@@ -1459,6 +1461,12 @@
           	</current>
         </clover-report>
      </target>
+
+     <target name="generate-pdf-clover-reports" depends="clover.check, clover">
+       <mkdir dir="${clover.pdf.report.dir}"/>
+        <clover-pdf-report outfile="${clover.pdf.report.dir}/clover_coverage.pdf" />
+     </target>
+
 
      <target name="api-xml" depends="ivy-jdiff, javadoc-all, write-null">
         <javadoc>

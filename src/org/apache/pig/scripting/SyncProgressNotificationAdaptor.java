@@ -20,11 +20,16 @@ package org.apache.pig.scripting;
 
 import java.util.List;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigProgressNotificationListener;
 
 class SyncProgressNotificationAdaptor implements PigProgressNotificationListener {
+
+    private static final Log LOG = LogFactory.getLog(SyncProgressNotificationAdaptor.class);
 
     private List<PigProgressNotificationListener> listeners;
 
@@ -77,6 +82,21 @@ class SyncProgressNotificationAdaptor implements PigProgressNotificationListener
                 listener.launchCompletedNotification(scriptId, numJobsSucceeded);
             }
         }        
+    }
+
+    @Override
+    public void initialPlanNotification(String scriptId, MROperPlan plan) {
+        synchronized (listeners) {
+            for (PigProgressNotificationListener listener : listeners) {
+                try {
+                    listener.initialPlanNotification(scriptId, plan);
+                } catch (NoSuchMethodError e) {
+                    LOG.warn("PigProgressNotificationListener implementation doesn't "
+                           + "implement initialPlanNotification(..) method: "
+                           + listener.getClass().getName(), e);
+                }
+            }
+        }
     }
 
     @Override
