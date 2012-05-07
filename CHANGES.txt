@@ -176,6 +176,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2664: Allow PPNL impls to get more job info during the run (billgraham)
+
 PIG-2663: Expose helpful ScriptState methods (billgraham)
 
 PIG-2660: PPNL notified of plan before it gets executed (billgraham)

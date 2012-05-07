@@ -27,6 +27,7 @@ import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.mapred.JobClient;
 import org.apache.pig.PigException;
 import org.apache.pig.PigRunner.ReturnCode;
 import org.apache.pig.classification.InterfaceAudience;
@@ -92,7 +93,9 @@ public abstract class PigStats {
     public int getErrorCode() {
         return errorCode;
     }
-    
+
+    public abstract JobClient getJobClient();
+
     public abstract boolean isEmbedded();
     
     public abstract boolean isSuccessful();
