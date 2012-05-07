@@ -400,8 +400,9 @@ final class SimplePigStats extends PigStats {
     boolean isInitialized() {
         return startTime > 0;
     }
-    
-    JobClient getJobClient() {
+
+    @Override
+    public JobClient getJobClient() {
         return jobClient;
     }
     

@@ -17,6 +17,8 @@
  */
 package org.apache.pig.tools.pigstats;
 
+import org.apache.hadoop.mapred.JobClient;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -68,6 +70,12 @@ final class EmbeddedPigStats extends PigStats {
     public boolean isEmbedded() {
         return true;
     }
+
+    @Override
+    public JobClient getJobClient() {
+        throw new UnsupportedOperationException();
+    }
+
     @Override
     public long getBytesWritten() {
         throw new UnsupportedOperationException();
