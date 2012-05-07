@@ -902,7 +902,7 @@ public static void printProperties(){
         System.out.println("            Enable optimizer rules to simplify filter expressions.");
         System.out.println("    Miscellaneous:");
         System.out.println("        exectype=mapreduce|local; default is mapreduce. This property is the same as -x switch");
-        System.out.println("        pig.additional.jars=<comma seperated list of jars>. Used in place of register command.");
+        System.out.println("        pig.additional.jars=<colon seperated list of jars>. Used in place of register command.");
         System.out.println("        udf.import.list=<comma seperated list of imports>. Used to avoid package names in UDF.");
         System.out.println("        stop.on.failure=true|false; default is false. Set to true to terminate on the first error.");
 	System.out.println("Additionally, any Hadoop property can be specified.");
