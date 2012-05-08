@@ -279,6 +279,15 @@ public class MapReduceLauncher extends Launcher{
 
             			jobsAssignedIdInThisRun.add(job);
             			log.info("HadoopJobId: "+job.getAssignedJobID());
+            			
+                        // display the aliases being processed
+                        MapReduceOper mro = jcc.getJobMroMap().get(job);
+                        if (mro != null) {
+                            String alias = ScriptState.get().getAlias(mro);
+                            log.info("Processing aliases " + alias);
+                        }
+
+                        
             			if(jobTrackerLoc != null){
             				log.info("More information at: http://"+ jobTrackerLoc+
             						"/jobdetails.jsp?jobid="+job.getAssignedJobID());
