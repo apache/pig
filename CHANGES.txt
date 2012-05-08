@@ -113,6 +113,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2640: Usage message gives wrong information for Pig additional jars (prkommireddi via daijy)
+
 PIG-2652:  Skew join and order by don't trigger reducer estimation (dvryaboy)
 
 PIG-2616: JobControlCompiler.getInputSizeFromLoader must handle exceptions from LoadFunc.getStatistics (billgraham)
@@ -175,6 +177,8 @@ Release 0.10.0 - Unreleased
 INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
+
+PIG-2664: Allow PPNL impls to get more job info during the run (billgraham)
 
 PIG-2663: Expose helpful ScriptState methods (billgraham)
 

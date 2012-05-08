@@ -283,7 +283,9 @@ public class MapReduceLauncher extends Launcher{
             				log.info("More information at: http://"+ jobTrackerLoc+
             						"/jobdetails.jsp?jobid="+job.getAssignedJobID());
             			}  
-            			
+
+                        // update statistics for this job so jobId is set
+                        PigStatsUtil.addJobStats(job);
             			ScriptState.get().emitJobStartedNotification(
                                 job.getAssignedJobID().toString());                        
             		}
