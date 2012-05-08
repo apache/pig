@@ -45,8 +45,8 @@ import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
  * schema (for bags/tuple columns), then the udf output schema would be a bag 
  * of tuples having a column of the type and inner-schema (if any) of the 
  * arguments. 
- * If the arguments are of type tuple/bag, then their innerschmea, including
- * the alias names should match.
+ * If the arguments are of type tuple/bag, then their inner schemas should match,
+ * though schema field aliases may differ.
  * If these conditions are not met the output schema will be a bag with null 
  * inner schema.
  *  
@@ -67,7 +67,16 @@ import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
  *  example 3
  *  grunt> describe a;                                                             
  *  a: {a0: (x: int),a1: (y: int)}
- * -- note that the inner schema is different because the alises (x & y) are different
+ *  -- note that the inner schemas have matching types but different field aliases.
+ *  -- the aliases of the first argument (a0) will be used in output schema:
+ *  grunt> b = foreach a generate TOBAG(a0,a1);
+ *  grunt> describe b;
+ *  b: {{(x: int)}}
+ *
+ *  example 4
+ *  grunt> describe a;
+ *  a: {a0: (x: int),a1: (x: chararray)}
+ *  -- here the inner schemas do not match, so output schema is not well defined:
  *  grunt> b = foreach a generate TOBAG(a0,a1);                                    
  *  grunt> describe b;                                                             
  *  b: {{NULL}}
@@ -146,7 +155,7 @@ public class TOBAG extends EvalFunc<DataBag> {
             }
             return true;
         }
-        return currentSchema.equals(newSchema);
+        return Schema.equals(currentSchema, newSchema, false, true);
     }
     
 
