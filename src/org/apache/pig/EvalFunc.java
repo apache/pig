@@ -145,7 +145,7 @@ public abstract class EvalFunc<T>  {
                 throw new RuntimeException("Initial " + errMsg);
             if (getReturnTypeFromSpec(new FuncSpec(a.getIntermed())) != Tuple.class)
                     throw new RuntimeException("Intermediate " + errMsg);
-            if (getReturnTypeFromSpec(new FuncSpec(a.getFinal())) != returnType)
+            if (!getReturnTypeFromSpec(new FuncSpec(a.getFinal())).equals(returnType))
                     throw new RuntimeException("Final " + errMsg);
         }
         
