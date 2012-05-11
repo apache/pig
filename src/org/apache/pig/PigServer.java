@@ -165,7 +165,7 @@ public class PigServer {
      * The current Graph the grunt shell is working on.
      */
     private Graph currDAG;
-
+    
     protected final PigContext pigContext;
     
     private String jobName;
@@ -1202,7 +1202,20 @@ public class PigServer {
         }
      
     }
-
+    
+    public void printHistory(boolean withNumbers) {
+    	
+    	List<String> sc = currDAG.getScriptCache();
+    	
+    	if(!sc.isEmpty()) {
+    		for(int i = 0 ; i < sc.size(); i++) {
+    			if(withNumbers) System.out.print((i+1)+"   ");
+    			System.out.println(sc.get(i));
+    		}    		
+    	}
+    	
+    }
+    
     private void buildStorePlan(String alias) throws IOException {
         currDAG.parseQuery();
         currDAG.buildPlan( alias );
@@ -1564,6 +1577,10 @@ public class PigServer {
                 scriptCache.remove( scriptCache.size() -1 );
                 throw ex;
             }
+        }
+        
+        public List<String> getScriptCache() {
+        	return scriptCache;
         }
 
         /**
