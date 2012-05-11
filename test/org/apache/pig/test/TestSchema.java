@@ -883,7 +883,16 @@ public class TestSchema {
             "a,b,t:tuple(x,b:bag{t:tuple(a,b,c,x:tuple(z:bag{r:tuple(z)}))},z)",
             "a:bag{t:tuple(a:bag{t:tuple(a:bag{t:tuple(a:bag{t:tuple(a:bag{t:tuple(a:bag{t:tuple(a:int,b:float)})})})})})}",
             "a:bag{}",
-            "b:{null:(a:int)}"
+            "b:{null:(a:int)}",
+            "int,int,int,int,int,int,int,int,int,int",
+            "long,long,long,long,long,long,long,long,long,long",
+            "float,float,float,float,float,float,float,float,float,float",
+            "double,double,double,double,double,double,double,double,double,double",
+            "boolean,boolean,boolean,boolean,boolean,boolean,boolean,boolean,boolean,boolean",
+            "(),(),(),(),(),(),(),(),(),()",
+            "{},{},{},{},{},{},{},{},{},{}",
+            "map[],map[],map[],map[],map[],map[],map[],map[],map[],map[]",
+            "int,int,long,long,float,float,double,double,boolean,boolean,(int,long,float,double,boolean),{(int,long,float,double,boolean)},map[(int,long,float,double,boolean)]"
         };
         for (String schemaString : schemaStrings) {
             Schema s1 = Utils.getSchemaFromString(schemaString);
