@@ -196,6 +196,10 @@ public class POLoad extends PhysicalOperator {
     }
     
     public LoadFunc getLoadFunc(){
+        if (this.loader==null) {
+            this.loader = (LoadFunc)PigContext.instantiateFuncFromSpec(lFile.getFuncSpec());
+            this.loader.setUDFContextSignature(signature);
+        }
         return this.loader;
     }
     
