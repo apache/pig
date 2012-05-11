@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2639: Utils.getSchemaFromString should automatically give name to all types, but fails on boolean (jcoveney)
+
 PIG-2583: Add Grunt command to list the statements in cache (xalan via daijy)
 
 PIG-2688: Log the aliases being processed for the current job (ddaniels888 via azaroth)
