@@ -375,12 +375,8 @@ public class JobControlCompiler{
             if(lds!=null && lds.size()>0){
                 for (POLoad ld : lds) {
                     LoadFunc lf = ld.getLoadFunc();
-                    // Call setLocation as a hacky way of letting a LoadFunc fix up the Job.
-                    // Note that setLocation will get called on the loadFuncs later, as well.
-                    // That's ok as setLocation getting called multiple times is documented behavior.
-                    if (lf !=null) {
-                        lf.setLocation(ld.getLFile().getFileName(), nwJob);
-                    }
+                    lf.setLocation(ld.getLFile().getFileName(), nwJob);
+                    
                     //Store the inp filespecs
                     inp.add(ld.getLFile());
                     
