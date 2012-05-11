@@ -197,11 +197,16 @@ public class DryRunGruntParser extends PigScriptParser {
     protected void processPWD() throws IOException {
         sb.append("pwd\n");
     }
-
+    
     @Override
     protected void printHelp() {
 
     }
+    
+    @Override
+	protected void processHistory(boolean withNumbers) {
+		
+	}
 
     @Override
     protected void processMove(String src, String dst) throws IOException {
@@ -361,5 +366,5 @@ public class DryRunGruntParser extends PigScriptParser {
         }
         sb.append(script).append("\n");
     }
-    
+
 }

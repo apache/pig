@@ -82,6 +82,8 @@ public abstract class PigScriptParser
 
 	abstract protected void processSet(String key, String value) throws IOException, ParseException;
 		
+    abstract protected void processHistory(boolean withNumbers);
+    		
 	abstract protected void processCat(String path) throws IOException;
 
 	abstract protected void processCD(String path) throws IOException;
@@ -150,6 +152,7 @@ TOKEN: {<DESCRIBE: "describe">}
 TOKEN: {<ALIASES: "aliases">}
 TOKEN: {<EXPLAIN: "explain">}
 TOKEN: {<HELP: "help">}
+TOKEN: {<HISTORY: "history">}
 TOKEN: {<KILL: "kill">}
 TOKEN: {<LS: "ls">}
 TOKEN: {<MOVE: "mv">}
@@ -171,6 +174,7 @@ TOKEN: {<SCRIPT: "-script">}
 TOKEN: {<DOT: "-dot">}
 TOKEN: {<OUT: "-out">}
 TOKEN: {<BRIEF: "-brief">}
+TOKEN: {<N: "-n">}
 
 // internal use commands
 TOKEN: {<SCRIPT_DONE: "scriptDone">}
@@ -494,6 +498,8 @@ void parse() throws IOException:
 	<HELP>
 	{printHelp();}
 	|
+	History()
+	|
 	<KILL>
 	t1 = <IDENTIFIER>	
 	{processKill(t1.image);}
@@ -613,6 +619,19 @@ void Illustrate() throws IOException:
 		{alias = t.image;}
 	)?
 	{processIllustrate(alias, script, target, params, files);}
+}
+
+void History():
+{
+	boolean withNumbers = true;
+}
+{
+	<HISTORY>
+	(
+		<N>
+        {withNumbers = false;}
+	)?
+	{processHistory(withNumbers);}
 }
 
 void Explain() throws IOException:
@@ -762,6 +781,8 @@ Token GetReserved () :
 	t = <EXPLAIN>
 	|
 	t = <HELP>
+	|
+	t = <HISTORY>
 	|
 	t = <KILL>
 	|

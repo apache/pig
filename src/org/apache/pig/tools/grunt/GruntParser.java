@@ -786,7 +786,12 @@ public class GruntParser extends PigScriptParser {
             log.warn("'pwd' statement is ignored while processing 'explain -script' or '-check'");
         }
     }
-
+    
+    @Override
+	protected void processHistory(boolean withNumbers) {
+    	mPigServer.printHistory(withNumbers);
+    }
+    
     @Override
     protected void printHelp() 
     {
@@ -828,6 +833,8 @@ public class GruntParser extends PigScriptParser {
         System.out.println("        stream.skippath - String that contains the path. This is used by streaming.");
         System.out.println("        any hadoop property.");
         System.out.println("    help - Display this message.");
+        System.out.println("    history [-n] - Display the list statements in cache.");
+        System.out.println("        -n Hide line numbers. ");
         System.out.println("    quit - Quit the grunt shell.");
     }
 
@@ -1154,4 +1161,5 @@ public class GruntParser extends PigScriptParser {
     private int mNumSucceededJobs;
     private FsShell shell;
     private boolean mScriptIllustrate;
+    
 }
