@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2583: Add Grunt command to list the statements in cache (xalan via daijy)
+
 PIG-2688: Log the aliases being processed for the current job (ddaniels888 via azaroth)
 
 PIG-2680: TOBAG output schema reporting (andy schlaikjer via jcoveney)
@@ -504,6 +506,8 @@ inclusion of test classes (cos via gates)
 Release 0.9.3 - Unreleased
 
 BUG FIXES
+
+PIG-2666: LoadFunc.setLocation() is not called when pig script only has Order By (daijy)
 
 PIG-2671: e2e harness: Reference local test path via :LOCALTESTPATH: (thw via daijy)
 
