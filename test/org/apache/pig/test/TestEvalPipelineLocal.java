@@ -29,11 +29,13 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Random;
 import java.util.StringTokenizer;
 
 import junit.framework.Assert;
 
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
@@ -54,6 +56,7 @@ import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.PigFile;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.Pair;
+import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.test.utils.Identity;
 import org.junit.Before;
 import org.junit.Test;
@@ -1060,5 +1063,35 @@ public class TestEvalPipelineLocal {
         
         
         Assert.assertEquals(realPlan, goldenPlan);
+    }
+    
+    public static class SetLocationTestLoadFunc extends PigStorage {
+        String suffix = "test";
+        public SetLocationTestLoadFunc() {
+        }
+        @Override
+        public void setLocation(String location, Job job) throws IOException {
+            super.setLocation(location, job);
+            Properties p = UDFContext.getUDFContext().getUDFProperties(this.getClass());
+            if (UDFContext.getUDFContext().isFrontend()) {
+                p.setProperty("t_"+signature, "test");
+            } else {
+                if (p.getProperty("t_"+signature)==null)
+                    throw new IOException("property expected");
+            }
+        }
+    }
+    
+    @Test
+    public void testSetLocationCalledInFE() throws Exception {
+        File f1 = createFile(new String[]{"a","b"});
+        pigServer.registerQuery("a = load '" + Util.generateURI(f1.toString(), pigServer.getPigContext())
+                + "' using " + SetLocationTestLoadFunc.class.getName()
+                + "();");
+        pigServer.registerQuery("b = order a by $0;");
+        Iterator<Tuple> iter = pigServer.openIterator("b");
+        Assert.assertTrue(iter.next().toString().equals("(a)"));
+        Assert.assertTrue(iter.next().toString().equals("(b)"));
+        Assert.assertFalse(iter.hasNext());
     }
 }

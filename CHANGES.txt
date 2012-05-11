@@ -355,6 +355,8 @@ PIG-2590: running ant tar and rpm targets on same copy of pig source results in 
 
 BUG FIXES
 
+PIG-2666: LoadFunc.setLocation() is not called when pig script only has Order By (daijy)
+
 PIG-2671: e2e harness: Reference local test path via :LOCALTESTPATH: (thw via daijy)
 
 PIG-2530: Reusing alias name in nested foreach causes incorrect results (daijy)
