@@ -83,7 +83,7 @@ public abstract class LoadFunc {
      * should use this method to communicate the location (and any other information)
      * to its underlying InputFormat through the Job object.
      * 
-     * This method will be called in the backend multiple times. Implementations
+     * This method will be called in the frontend and backend multiple times. Implementations
      * should bear in mind that this method is called multiple times and should
      * ensure there are no inconsistent side effects due to the multiple calls.
      * 
