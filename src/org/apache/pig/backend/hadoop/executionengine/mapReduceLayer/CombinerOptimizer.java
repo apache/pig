@@ -338,7 +338,7 @@ public class CombinerOptimizer extends MROpPlanVisitor {
         String scope = combineFE.getOperatorKey().scope;
         POPartialAgg poAgg = new POPartialAgg(new OperatorKey(scope, 
                 NodeIdGenerator.getGenerator().getNextNodeId(scope)));
-        poAgg.setAlias(combineFE.getAlias());
+        poAgg.addOriginalLocation(combineFE.getAlias(), combineFE.getOriginalLocations());
         poAgg.setResultType(combineFE.getResultType());
 
         //first plan in combine foreach is the group key
@@ -484,7 +484,7 @@ public class CombinerOptimizer extends MROpPlanVisitor {
     private POForEach createForEachWithGrpProj(POForEach foreach, byte keyType) {
         String scope = foreach.getOperatorKey().scope;
         POForEach newFE = new POForEach(createOperatorKey(scope), new ArrayList<PhysicalPlan>());
-        newFE.setAlias(foreach.getAlias());
+        newFE.addOriginalLocation(foreach.getAlias(), foreach.getOriginalLocations());
         newFE.setResultType(foreach.getResultType());
         //create plan that projects the group column 
         PhysicalPlan grpProjPlan = new PhysicalPlan();

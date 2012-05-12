@@ -63,6 +63,7 @@ import org.apache.pig.tools.pigstats.SimplePigStats.JobGraphPrinter;
 public final class JobStats extends Operator {
         
     public static final String ALIAS = "JobStatistics:alias";
+    public static final String ALIAS_LOCATION = "JobStatistics:alias_location";
     public static final String FEATURE = "JobStatistics:feature";
     
     public static final String SUCCESS_HEADER = "JobId\tMaps\tReduces\t" +
@@ -199,6 +200,10 @@ public final class JobStats extends Operator {
         return (String)getAnnotation(ALIAS);
     }
     
+    public String getAliasLocation() {
+        return (String)getAnnotation(ALIAS_LOCATION);
+    }
+
     public String getFeature() {
         return (String)getAnnotation(FEATURE);
     }
@@ -266,13 +271,13 @@ public final class JobStats extends Operator {
         if (conf == null) return;
         this.conf = conf;
         try {
-            mapStores = (List<POStore>) ObjectSerializer.deserialize(conf
+            this.mapStores = (List<POStore>) ObjectSerializer.deserialize(conf
                     .get(JobControlCompiler.PIG_MAP_STORES));
-            reduceStores = (List<POStore>) ObjectSerializer.deserialize(conf
+            this.reduceStores = (List<POStore>) ObjectSerializer.deserialize(conf
                     .get(JobControlCompiler.PIG_REDUCE_STORES));           
-            loads = (ArrayList<FileSpec>) ObjectSerializer.deserialize(conf
+            this.loads = (ArrayList<FileSpec>) ObjectSerializer.deserialize(conf
                     .get("pig.inputs"));
-            disableCounter = conf.getBoolean("pig.disable.counter", false);
+            this.disableCounter = conf.getBoolean("pig.disable.counter", false);
         } catch (IOException e) {
             LOG.warn("Failed to deserialize the store list", e);
         }                    
@@ -440,6 +445,7 @@ public final class JobStats extends Operator {
     
     void setAlias(MapReduceOper mro) {       
         annotate(ALIAS, ScriptState.get().getAlias(mro));             
+        annotate(ALIAS_LOCATION, ScriptState.get().getAliasLocation(mro));
         annotate(FEATURE, ScriptState.get().getPigFeature(mro));
     }
     

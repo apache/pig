@@ -162,7 +162,7 @@ public class POLimit extends PhysicalOperator {
             this.requestedParallelism, this.inputs);
         newLimit.mLimit = this.mLimit;
         newLimit.expressionPlan = this.expressionPlan.clone();
-        newLimit.setAlias(alias);
+        newLimit.addOriginalLocation(alias, getOriginalLocations());
         return newLimit;
     }
     

@@ -287,7 +287,7 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
                 nodeGen.getNextNodeId(DEFAULT_SCOPE)));
         ((POMapLookUp)physOp).setLookUpKey(op.getLookupKey() );
         physOp.setResultType(op.getType());
-        physOp.setAlias(op.getFieldSchema().alias);
+        physOp.addOriginalLocation(op.getFieldSchema().alias, op.getLocation());
         currentPlan.add(physOp);
 
         logToPhyMap.put(op, physOp);

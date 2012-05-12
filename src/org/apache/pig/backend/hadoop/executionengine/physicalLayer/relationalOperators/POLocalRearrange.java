@@ -687,7 +687,7 @@ public class POLocalRearrange extends PhysicalOperator {
         // Needs to be called as setDistinct so that the fake index tuple gets
         // created.
         clone.setDistinct(mIsDistinct);
-        clone.setAlias(alias);
+        clone.addOriginalLocation(alias, getOriginalLocations());
         return clone;
     }
 
