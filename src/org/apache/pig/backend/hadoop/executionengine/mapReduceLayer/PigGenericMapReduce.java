@@ -348,6 +348,7 @@ public class PigGenericMapReduce {
                 String msg = "Problem while configuring reduce plan.";
                 throw new RuntimeException(msg, ioe);
             }
+            log.info("Aliases being processed per job phase (AliasName[line,offset]): " + jConf.get("pig.alias.location"));
         }
         
         /**

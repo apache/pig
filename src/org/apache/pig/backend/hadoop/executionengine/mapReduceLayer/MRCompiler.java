@@ -2130,7 +2130,7 @@ public class MRCompiler extends PhyPlanVisitor {
             keyType);
         lr.setPlans(eps1);
         lr.setResultType(DataType.TUPLE);
-        lr.setAlias(sort.getAlias());
+        lr.addOriginalLocation(sort.getAlias(), sort.getOriginalLocations());
         mro.mapPlan.addAsLeaf(lr);
         
         mro.setMapDone(true);
@@ -2220,7 +2220,7 @@ public class MRCompiler extends PhyPlanVisitor {
         POSort sort = new POSort(inpSort.getOperatorKey(), inpSort
                 .getRequestedParallelism(), null, inpSort.getSortPlans(),
                 inpSort.getMAscCols(), inpSort.getMSortFunc());
-    	sort.setAlias(inpSort.getAlias());
+        sort.addOriginalLocation(inpSort.getAlias(), inpSort.getOriginalLocations());
     	
     	// Turn the asc/desc array into an array of strings so that we can pass it
         // to the FindQuantiles function.
@@ -2425,7 +2425,7 @@ public class MRCompiler extends PhyPlanVisitor {
         lr.setKeyType(DataType.CHARARRAY);
         lr.setPlans(eps);
         lr.setResultType(DataType.TUPLE);
-        lr.setAlias(sort.getAlias());
+        lr.addOriginalLocation(sort.getAlias(), sort.getOriginalLocations());
         mro.mapPlan.add(lr);
         mro.mapPlan.connect(nfe1, lr);
         
