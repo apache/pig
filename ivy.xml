@@ -231,5 +231,7 @@
     <dependency org="org.vafer" name="jdeb" rev="${jdeb.version}"
       conf="compile->master">
     </dependency>
+    
+    <dependency org="org.mockito" name="mockito-all" rev="${mockito.version}" conf="compile->default"/>
     </dependencies>
 </ivy-module>
