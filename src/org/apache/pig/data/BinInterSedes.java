@@ -37,6 +37,7 @@ import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.PigException;
+import org.apache.pig.data.utils.SedesHelper;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
@@ -101,25 +102,15 @@ public class BinInterSedes implements InterSedes {
     public static final byte PBOOL_TUPLE = 33;
     public static final byte PRIMITIVE_TUPLE = 34;
 
-
+    public static final byte SCHEMA_TUPLE_BYTE_INDEX = 35;
+    public static final byte SCHEMA_TUPLE_SHORT_INDEX = 36;
+    public static final byte SCHEMA_TUPLE = 37;
 
     private static TupleFactory mTupleFactory = TupleFactory.getInstance();
     private static BagFactory mBagFactory = BagFactory.getInstance();
-    static final int UNSIGNED_SHORT_MAX = 65535;
-    static final int UNSIGNED_BYTE_MAX = 255;
+    public static final int UNSIGNED_SHORT_MAX = 65535;
+    public static final int UNSIGNED_BYTE_MAX = 255;
     public static final String UTF8 = "UTF-8";
-
-    private Tuple readTuple(DataInput in, byte type) throws IOException {
-        // Read the size.
-        int sz = getTupleSize(in, type);
-
-        Tuple t = mTupleFactory.newTuple(sz);
-        for (int i = 0; i < sz; i++) {
-            t.set(i, readDatum(in));
-        }
-        return t;
-
-    }
 
     private Tuple readPrimitiveTuple(DataInput in) throws IOException {
         PrimitiveTuple t = new PrimitiveTuple();
@@ -127,7 +118,22 @@ public class BinInterSedes implements InterSedes {
         return t;
     }
 
-    private int getTupleSize(DataInput in, byte type) throws IOException {
+    private Tuple readSchemaTuple(DataInput in, byte type) throws IOException {
+        int id;
+        switch (type) {
+        case (SCHEMA_TUPLE_BYTE_INDEX): id = in.readUnsignedByte(); break;
+        case (SCHEMA_TUPLE_SHORT_INDEX): id = in.readUnsignedShort(); break;
+        case (SCHEMA_TUPLE): id = in.readInt(); break;
+        default: throw new RuntimeException("Invalid type given to readSchemaTuple");
+        }
+
+        Tuple st = SchemaTupleFactory.getSchemaTupleFactory(id).newTuple();
+        st.readFields(in);
+
+        return st;
+    }
+
+    public int getTupleSize(DataInput in, byte type) throws IOException {
         int sz;
         switch (type) {
         case TINYTUPLE:
@@ -219,17 +225,6 @@ public class BinInterSedes implements InterSedes {
         return m;
     }
 
-    private static String readCharArray(DataInput in) throws IOException {
-        return in.readUTF();
-    }
-
-    private static String readBigCharArray(DataInput in) throws IOException {
-        int size = in.readInt();
-        byte[] ba = new byte[size];
-        in.readFully(ba);
-        return new String(ba, UTF8);
-    }
-
     private WritableComparable readWritable(DataInput in) throws IOException {
         String className = (String) readDatum(in);
         // create the writeable class . It needs to have a default constructor
@@ -255,7 +250,7 @@ public class BinInterSedes implements InterSedes {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see org.apache.pig.data.InterSedes#readDatum(java.io.DataInput)
      */
     @Override
@@ -274,7 +269,7 @@ public class BinInterSedes implements InterSedes {
     /**
      * Expects binInterSedes data types (NOT DataType types!)
      * <p>
-     * 
+     *
      * @see org.apache.pig.data.InterSedes#readDatum(java.io.DataInput, byte)
      */
     @Override
@@ -283,7 +278,7 @@ public class BinInterSedes implements InterSedes {
         case TUPLE:
         case TINYTUPLE:
         case SMALLTUPLE:
-            return readTuple(in, type);
+            return SedesHelper.readGenericTuple(in, type);
 
         case BAG:
         case TINYBAG:
@@ -327,32 +322,25 @@ public class BinInterSedes implements InterSedes {
         case BYTE:
             return Byte.valueOf(in.readByte());
 
-        case TINYBYTEARRAY: {
-            int size = in.readUnsignedByte();
-            return readBytes(in, size);
-        }
-
-        case SMALLBYTEARRAY: {
-            int size = in.readUnsignedShort();
-            return readBytes(in, size);
-        }
-
-        case BYTEARRAY: {
-            int size = in.readInt();
-            return readBytes(in, size);
-        }
+        case TINYBYTEARRAY:
+        case SMALLBYTEARRAY:
+        case BYTEARRAY:
+            return new DataByteArray(SedesHelper.readBytes(in, type));
 
         case CHARARRAY:
-            return readBigCharArray(in);
-
         case SMALLCHARARRAY:
-            return readCharArray(in);
+            return SedesHelper.readChararray(in, type);
 
         case GENERIC_WRITABLECOMPARABLE:
             return readWritable(in);
 
         case PRIMITIVE_TUPLE:
             return readPrimitiveTuple(in);
+
+        case SCHEMA_TUPLE_BYTE_INDEX:
+        case SCHEMA_TUPLE_SHORT_INDEX:
+        case SCHEMA_TUPLE:
+            return readSchemaTuple(in, type);
 
         case NULL:
             return null;
@@ -388,7 +376,7 @@ public class BinInterSedes implements InterSedes {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see org.apache.pig.data.InterSedes#writeDatum(java.io.DataOutput, java.lang.Object)
      */
     @Override
@@ -476,38 +464,14 @@ public class BinInterSedes implements InterSedes {
 
         case DataType.BYTEARRAY: {
             DataByteArray bytes = (DataByteArray) val;
-            final int sz = bytes.size();
-            if (sz < UNSIGNED_BYTE_MAX) {
-                out.writeByte(TINYBYTEARRAY);
-                out.writeByte(sz);
-            } else if (sz < UNSIGNED_SHORT_MAX) {
-                out.writeByte(SMALLBYTEARRAY);
-                out.writeShort(sz);
-            } else {
-                out.writeByte(BYTEARRAY);
-                out.writeInt(sz);
-            }
-            out.write(bytes.mData);
-
+            SedesHelper.writeBytes(out, bytes.mData);
             break;
 
         }
 
         case DataType.CHARARRAY: {
             String s = (String) val;
-            // a char can take up to 3 bytes in the modified utf8 encoding
-            // used by DataOutput.writeUTF, so use UNSIGNED_SHORT_MAX/3
-            if (s.length() < UNSIGNED_SHORT_MAX / 3) {
-                out.writeByte(SMALLCHARARRAY);
-                out.writeUTF(s);
-            } else {
-                byte[] utfBytes = s.getBytes(UTF8);
-                int length = utfBytes.length;
-
-                out.writeByte(CHARARRAY);
-                out.writeInt(length);
-                out.write(utfBytes);
-            }
+            SedesHelper.writeChararray(out, s);
             break;
         }
         case DataType.GENERIC_WRITABLECOMPARABLE:
@@ -577,27 +541,13 @@ public class BinInterSedes implements InterSedes {
         if (t instanceof TypeAwareTuple) {
             t.write(out);
         } else {
-        final int sz = t.size();
-        if (sz < UNSIGNED_BYTE_MAX) {
-            out.writeByte(TINYTUPLE);
-            out.writeByte(sz);
-        } else if (sz < UNSIGNED_SHORT_MAX) {
-            out.writeByte(SMALLTUPLE);
-            out.writeShort(sz);
-        } else {
-            out.writeByte(TUPLE);
-            out.writeInt(sz);
+            SedesHelper.writeGenericTuple(out, t);
         }
-
-        for (int i = 0; i < sz; i++) {
-            writeDatum(out, t.get(i));
-        }
-    }
     }
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see org.apache.pig.data.InterSedes#addColsToTuple(java.io.DataInput, org.apache.pig.data.Tuple)
      */
     @Override
@@ -614,7 +564,7 @@ public class BinInterSedes implements InterSedes {
         }
     }
     }
-    
+
     public static class BinInterSedesTupleRawComparator extends WritableComparator implements TupleRawComparator {
 
         private final Log mLog = LogFactory.getLog(getClass());
@@ -689,7 +639,7 @@ public class BinInterSedes implements InterSedes {
 
         /**
          * Compare two BinSedesTuples as raw bytes. We deal with sort ordering in this method.
-         * 
+         *
          * @throws IOException
          */
         private int compareBinSedesTuple(ByteBuffer bb1, ByteBuffer bb2) throws IOException {
@@ -1136,7 +1086,7 @@ public class BinInterSedes implements InterSedes {
                 throw new RuntimeException("Unexpected data type " + type + " found in stream.");
             }
         }
-        
+
         /**
          * @param bb ByteBuffer having serialized object, including the type information
          * @param type serialized type information

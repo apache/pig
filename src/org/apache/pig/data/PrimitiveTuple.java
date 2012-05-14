@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BinInterSedes;
@@ -16,6 +17,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 /**
  * Keeps all data serialized in a byte array, and deserializes on demand.
@@ -66,6 +68,8 @@ public class PrimitiveTuple implements TypeAwareTuple {
     private boolean[] nulls;
     private byte[] types;
     private static final InterSedes sedes = InterSedesFactory.getInterSedesInstance();
+
+    private static Map<BytesKey, Schema> schemaMap = Maps.newHashMap();
 
     /**
      * Constructs an empty PrimitiveTuple. This is generally a bad idea.
@@ -180,12 +184,68 @@ public class PrimitiveTuple implements TypeAwareTuple {
 
         for (int i = 0; i < size; i++) {
             switch (getType(i)) {
-            case DataType.INTEGER: out.writeInt(getInteger(i)); break;
+            case DataType.INTEGER: out.writeInt(getInt(i)); break;
             case DataType.FLOAT: out.writeFloat(getFloat(i)); break;
             case DataType.LONG: out.writeLong(getLong(i)); break;
             case DataType.DOUBLE: out.writeDouble(getDouble(i)); break;
             case DataType.BOOLEAN: out.writeBoolean(getBoolean(i)); break;
             }
+        }
+    }
+
+    @Override
+    public Schema getSchema() {
+        BytesKey bk = new BytesKey(types);
+        Schema schema = schemaMap.get(bk);
+
+        if (schema != null)
+            return schema;
+
+        schema = new Schema();
+        for (byte type : types)
+            schema.add(new Schema.FieldSchema(null, type));
+
+        schemaMap.put(bk, schema);
+
+        return schema;
+    }
+
+    static class BytesKey {
+        byte[] buf;
+
+        public BytesKey(byte[] buf) {
+            this.buf = buf;
+        }
+
+        public byte[] getBuf() {
+            return buf;
+        }
+
+        public int hashCode() {
+            int hash = 17;
+            int c = 31;
+            for (int i = 0; i < buf.length; i++)
+                hash += c * ((int)buf[i] & 0xFF);
+            return hash;
+        }
+
+        public boolean equals(Object o) {
+            if (this == o)
+                return true;
+
+            if (!(o instanceof BytesKey))
+                return false;
+
+            byte[] buf2 = ((BytesKey)o).getBuf();
+
+            if (buf.length != buf2.length)
+                return false;
+
+            for (int i = 0; i < buf.length; i++)
+                if (buf[i] != buf2[i])
+                   return false;
+
+            return true;
         }
     }
 
@@ -430,6 +490,14 @@ public class PrimitiveTuple implements TypeAwareTuple {
      * NOT IMPLEMENTED
      */
     @Override
+    public void setBytes(int idx, byte[] val) throws ExecException {
+        throw new ExecException("PrimitiveTuple does not support DataByteArrays.");
+    }
+
+    /**
+     * NOT IMPLEMENTED
+     */
+    @Override
     public void setString(int idx, String val) throws ExecException {
         throw new ExecException("PrimitiveTuple does not support Strings.");
     }
@@ -439,27 +507,27 @@ public class PrimitiveTuple implements TypeAwareTuple {
     }
 
     @Override
-    public Integer getInteger(int idx) throws ExecException {
+    public int getInt(int idx) throws ExecException {
         return buffer.getInt(findByteOffset(idx));
     }
 
     @Override
-    public Float getFloat(int idx) throws ExecException {
+    public float getFloat(int idx) throws ExecException {
         return buffer.getFloat(findByteOffset(idx));
     }
 
     @Override
-    public Double getDouble(int idx) throws ExecException {
+    public double getDouble(int idx) throws ExecException {
         return buffer.getDouble(findByteOffset(idx));
     }
 
     @Override
-    public Long getLong(int idx) throws ExecException {
+    public long getLong(int idx) throws ExecException {
         return buffer.getLong(findByteOffset(idx));
     }
 
     @Override
-    public Boolean getBoolean(int idx) throws ExecException {
+    public boolean getBoolean(int idx) throws ExecException {
         return buffer.get(findByteOffset(idx)) == 1;
     }
 
@@ -469,6 +537,14 @@ public class PrimitiveTuple implements TypeAwareTuple {
     @Override
     public String getString(int idx) throws ExecException {
         throw new ExecException("PrimitiveTuple does not support Strings");
+    }
+
+    /**
+     * Always throws ExecException since byte arrays are not supported
+     */
+    @Override
+    public byte[] getBytes(int idx) throws ExecException {
+        throw new ExecException("PrimitiveTuple does not support DataByteArray");
     }
 
     @Override

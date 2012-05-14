@@ -58,84 +58,84 @@ import org.apache.pig.impl.util.JarManager;
 
 public class PigContext implements Serializable {
     private static final long serialVersionUID = 1L;
-    
+
     private static final Log log = LogFactory.getLog(PigContext.class);
-    
+
     public static final String JOB_NAME = "jobName";
     public static final String JOB_NAME_PREFIX= "PigLatin";
     public static final String JOB_PRIORITY = "jobPriority";
     public static final String PIG_CMD_ARGS_REMAINDERS = "pig.cmd.args.remainders";
-    
-    
-    /* NOTE: we only serialize some of the stuff 
-     * 
-     *(to make it smaller given that it's not all needed on the Hadoop side, 
+
+
+    /* NOTE: we only serialize some of the stuff
+     *
+     *(to make it smaller given that it's not all needed on the Hadoop side,
      * and also because some is not serializable e.g. the Configuration)
      */
-    
+
     //one of: local, mapreduce, pigbody
-    private ExecType execType;;    
+    private ExecType execType;;
 
     //  extra jar files that are needed to run a job
-    transient public List<URL> extraJars = new LinkedList<URL>();              
-    
+    transient public List<URL> extraJars = new LinkedList<URL>();
+
     //  The jars that should not be merged in. (Some functions may come from pig.jar and we don't want the whole jar file.)
-    transient public Vector<String> skipJars = new Vector<String>(2);    
-    
+    transient public Vector<String> skipJars = new Vector<String>(2);
+
     //main file system that jobs and shell commands access
-    transient private DataStorage dfs;                         
-    
+    transient private DataStorage dfs;
+
     //  local file system, where jar files, etc. reside
-    transient private DataStorage lfs;                         
-    
+    transient private DataStorage lfs;
+
     // handle to the back-end
     transient private HExecutionEngine executionEngine;
-   
+
     private Properties properties;
-    
+
     //  script files that are needed to run a job
     @Deprecated
     public List<String> scriptFiles = new ArrayList<String>();
     private Map<String,File> aliasedScriptFiles = new LinkedHashMap<String,File>();
-    
+
     //  script jars that are needed to run a script - jython.jar etc
     public List<String> scriptJars = new ArrayList<String>(2);
-    
+
     /**
      * a table mapping function names to function specs.
      */
     private Map<String, FuncSpec> definedFunctions = new HashMap<String, FuncSpec>();
-    
+
     /**
      * a table mapping names to streaming commands.
      */
-    private Map<String, StreamingCommand> definedCommands = 
+    private Map<String, StreamingCommand> definedCommands =
         new HashMap<String, StreamingCommand>();
 
-    private static ThreadLocal<ArrayList<String>> packageImportList = 
+    private static ThreadLocal<ArrayList<String>> packageImportList =
         new ThreadLocal<ArrayList<String>>();
 
     private Properties log4jProperties = new Properties();
-    
-    private Level defaultLogLevel; 
-    
+
+    private Level defaultLogLevel;
+
     public int defaultParallel = -1;
 
     // Says, whether we're processing an explain right now. Explain
     // might skip some check in the logical plan validation (file
     // existence checks, etc).
     public boolean inExplain = false;
-    
+
     // whether we're processing an ILLUSTRATE right now.
     public boolean inIllustrator = false;
-    
+
     private String last_alias = null;
 
     // List of paths skipped for automatic shipping
     List<String> skippedShipPaths = new ArrayList<String>();
 
     static private ClassLoader classloader = PigContext.class.getClassLoader();
-    
+
     private static Map<String, Class> classCache = new HashMap<String, Class>();;
 
     private List<String> params;
@@ -155,14 +155,14 @@ public class PigContext implements Serializable {
         this.paramFiles = paramFiles;
     }
     private List<String> paramFiles;
-    
+
     public PigContext() {
         this(ExecType.MAPREDUCE, new Properties());
     }
-        
+
     public PigContext(ExecType execType, Properties properties){
         this.execType = execType;
-        this.properties = properties;   
+        this.properties = properties;
 
         this.properties.setProperty("exectype", this.execType.name());
         String pigJar = JarManager.findContainingJar(Main.class);
@@ -172,9 +172,9 @@ public class PigContext implements Serializable {
             if (!pigJar.equals(hadoopJar))
                 skipJars.add(hadoopJar);
         }
-        
+
         executionEngine = null;
-        
+
         // Add the default paths to be skipped for auto-shipping of commands
         skippedShipPaths.add("/bin");
         skippedShipPaths.add("/usr/bin");
@@ -183,7 +183,7 @@ public class PigContext implements Serializable {
         skippedShipPaths.add("/usr/sbin");
         skippedShipPaths.add("/usr/local/sbin");
     }
-    
+
     public static void initializeImportList(String importListCommandLineProperties)
     {
         StringTokenizer tokenizer = new StringTokenizer(importListCommandLineProperties, ":");
@@ -198,7 +198,7 @@ public class PigContext implements Serializable {
             pos++;
         }
     }
-    
+
     public void connect() throws ExecException {
 
         switch (execType) {
@@ -208,14 +208,14 @@ public class PigContext implements Serializable {
                 executionEngine = new HExecutionEngine (this);
 
                 executionEngine.init();
-                
+
                 dfs = executionEngine.getDataStorage();
-                
+
                 lfs = new HDataStorage(URI.create("file:///"),
-                                        properties); 
+                                        properties);
             }
             break;
-            
+
             default:
             {
                 int errCode = 2040;
@@ -229,7 +229,7 @@ public class PigContext implements Serializable {
     public void setJobtrackerLocation(String newLocation) {
         Properties trackerLocation = new Properties();
         trackerLocation.setProperty("mapred.job.tracker", newLocation);
-        
+
         try {
             executionEngine.updateConfiguration(trackerLocation);
         }
@@ -244,7 +244,7 @@ public class PigContext implements Serializable {
      * @param path
      * @throws MalformedURLException
      */
-    public void addScriptFile(String path) throws MalformedURLException {
+    public void addScriptFile(String path) {
         if (path != null) {
             aliasedScriptFiles.put(path, new File(path));
         }
@@ -261,14 +261,14 @@ public class PigContext implements Serializable {
             aliasedScriptFiles.put(name, new File(path));
         }
     }
-    
+
     public void addJar(String path) throws MalformedURLException {
         if (path != null) {
             URL resource = (new File(path)).toURI().toURL();
             addJar(resource);
         }
     }
-    
+
     public void addJar(URL resource) throws MalformedURLException{
         if (resource != null) {
             extraJars.add(resource);
@@ -288,18 +288,18 @@ public class PigContext implements Serializable {
         if (oldName.equals(newName)) {
             return;
         }
-        
+
         System.out.println("Renaming " + oldName + " to " + newName);
 
         ElementDescriptor dst = null;
-        ElementDescriptor src = null;            
+        ElementDescriptor src = null;
 
         try {
             dst = dfs.asElement(newName);
-            src = dfs.asElement(oldName);            
+            src = dfs.asElement(oldName);
         }
         catch (DataStorageException e) {
-            byte errSrc = getErrorSource();            
+            byte errSrc = getErrorSource();
             int errCode = 0;
             switch(errSrc) {
             case PigException.REMOTE_ENVIRONMENT:
@@ -312,25 +312,25 @@ public class PigContext implements Serializable {
                 errCode = 2038;
                     break;
             }
-            String msg = "Unable to rename " + oldName + " to " + newName;            
+            String msg = "Unable to rename " + oldName + " to " + newName;
             throw new ExecException(msg, errCode, errSrc, e);
         }
 
         if (dst.exists()) {
             dst.delete();
         }
-        
+
         src.rename(dst);
 
     }
 
     public void copy(String src, String dst, boolean localDst) throws IOException {
         DataStorage dstStorage = dfs;
-        
+
         if (localDst) {
             dstStorage = lfs;
         }
-        
+
         ElementDescriptor srcElement = null;
         ElementDescriptor dstElement = null;
 
@@ -339,7 +339,7 @@ public class PigContext implements Serializable {
             dstElement = dstStorage.asElement(dst);
         }
         catch (DataStorageException e) {
-            byte errSrc = getErrorSource();            
+            byte errSrc = getErrorSource();
             int errCode = 0;
             switch(errSrc) {
             case PigException.REMOTE_ENVIRONMENT:
@@ -352,13 +352,13 @@ public class PigContext implements Serializable {
                 errCode = 2039;
                     break;
             }
-            String msg = "Unable to copy " + src + " to " + dst;            
+            String msg = "Unable to copy " + src + " to " + dst;
             throw new ExecException(msg, errCode, errSrc, e);
         }
-        
+
         srcElement.copy(dstElement, this.properties, false);
     }
-    
+
     public HExecutionEngine getExecutionEngine() {
         return executionEngine;
     }
@@ -374,17 +374,17 @@ public class PigContext implements Serializable {
     public DataStorage getFs() {
         return dfs;
     }
-    
+
     /**
      * Provides configuration information.
-     * 
+     *
      * @return - information about the configuration used to connect to
      *         execution engine
      */
     public Properties getProperties() {
         return this.properties;
     }
-    
+
     /**
      * @deprecated use {@link #getProperties()} instead
      */
@@ -403,13 +403,13 @@ public class PigContext implements Serializable {
 
     /**
      * Defines an alias for the given function spec. This
-     * is useful for functions that require arguments to the 
+     * is useful for functions that require arguments to the
      * constructor.
-     * 
+     *
      * @param function - the new function alias to define.
-     * @param functionSpec - the FuncSpec object representing the name of 
+     * @param functionSpec - the FuncSpec object representing the name of
      * the function class and any arguments to constructor.
-     * 
+     *
      */
     public void registerFunction(String function, FuncSpec functionSpec) {
         if (functionSpec == null) {
@@ -421,11 +421,11 @@ public class PigContext implements Serializable {
 
     /**
      * Defines an alias for the given streaming command.
-     * 
+     *
      * This is useful for complicated streaming command specs.
-     * 
+     *
      * @param alias - the new command alias to define.
-     * @param command - the command 
+     * @param command - the command
      */
     public void registerStreamCmd(String alias, StreamingCommand command) {
         if (command == null) {
@@ -437,19 +437,19 @@ public class PigContext implements Serializable {
 
     /**
      * Returns the type of execution currently in effect.
-     * 
+     *
      * @return current execution type
      */
     public ExecType getExecType() {
         return execType;
     }
-    
-    
-    
+
+
+
 
     /**
      * Creates a Classloader based on the passed jarFile and any extra jar files.
-     * 
+     *
      * @param jarFile
      *            the jar file to be part of the newly created Classloader. This jar file plus any
      *            jars in the extraJars list will constitute the classpath.
@@ -469,7 +469,7 @@ public class PigContext implements Serializable {
         //return new URLClassLoader(urls, PigMapReduce.class.getClassLoader());
         return new URLClassLoader(urls, PigContext.class.getClassLoader());
     }
-        
+
     @SuppressWarnings("rawtypes")
     public static Class resolveClassName(String name) throws IOException{
         if (classCache.containsKey(name)) {
@@ -481,16 +481,16 @@ public class PigContext implements Serializable {
                 c = Class.forName(prefix+name,true, PigContext.classloader);
                 classCache.put(name, c);
                 return c;
-            } 
+            }
             catch (ClassNotFoundException e) {
                 // do nothing
-            } 
+            }
             catch (UnsupportedClassVersionError e) {
                 int errCode = 1069;
                 String msg = "Problem resolving class version numbers for class " + name;
                 throw new ExecException(msg, errCode, PigException.INPUT, e) ;
             }
-            
+
         }
 
         // create ClassNotFoundException exception and attach to IOException
@@ -596,11 +596,11 @@ public class PigContext implements Serializable {
         }
         return ret;
     }
-    
+
     public static Object instantiateFuncFromSpec(String funcSpec)  {
         return instantiateFuncFromSpec(new FuncSpec(funcSpec));
-    }    
-    
+    }
+
     @SuppressWarnings("rawtypes")
     public Class getClassForAlias(String alias) throws IOException{
         String className = null;
@@ -615,7 +615,7 @@ public class PigContext implements Serializable {
         }
         return resolveClassName(className);
     }
-  
+
     public Object instantiateFuncFromAlias(String alias) throws IOException {
         FuncSpec funcSpec;
         if (definedFunctions != null && (funcSpec = definedFunctions.get(alias))!=null)
@@ -626,21 +626,21 @@ public class PigContext implements Serializable {
 
     /**
      * Get the {@link StreamingCommand} for the given alias.
-     * 
+     *
      * @param alias the alias for the <code>StreamingCommand</code>
      * @return <code>StreamingCommand</code> for the alias
      */
     public StreamingCommand getCommandForAlias(String alias) {
         return definedCommands.get(alias);
     }
-    
+
     public void setExecType(ExecType execType) {
         this.execType = execType;
     }
-    
+
     /**
      * Create a new {@link ExecutableManager} depending on the ExecType.
-     * 
+     *
      * @return a new {@link ExecutableManager} depending on the ExecType
      * @throws ExecException
      */
@@ -649,7 +649,7 @@ public class PigContext implements Serializable {
 
         switch (execType) {
             case LOCAL:
-            case MAPREDUCE: 
+            case MAPREDUCE:
             {
                 executableManager = new HadoopExecutableManager();
             }
@@ -661,7 +661,7 @@ public class PigContext implements Serializable {
                 throw new ExecException(msg, errCode, PigException.BUG);
             }
         }
-        
+
         return executableManager;
     }
 
@@ -674,29 +674,29 @@ public class PigContext implements Serializable {
     }
 
     /**
-     * Add a path to be skipped while automatically shipping binaries for 
+     * Add a path to be skipped while automatically shipping binaries for
      * streaming.
-     *  
+     *
      * @param path path to be skipped
      */
     public void addPathToSkip(String path) {
         skippedShipPaths.add(path);
     }
-    
+
     /**
      * Get paths which are to skipped while automatically shipping binaries for
      * streaming.
-     * 
-     * @return paths which are to skipped while automatically shipping binaries 
+     *
+     * @return paths which are to skipped while automatically shipping binaries
      *         for streaming
      */
     public List<String> getPathsToSkip() {
         return skippedShipPaths;
     }
-    
+
     /**
      * Check the execution mode and return the appropriate error source
-     * 
+     *
      * @return error source
      */
     public byte getErrorSource() {
@@ -704,24 +704,24 @@ public class PigContext implements Serializable {
             return PigException.REMOTE_ENVIRONMENT;
         } else {
             return PigException.BUG;
-        }        
+        }
     }
-    
+
     public static ArrayList<String> getPackageImportList() {
         if (packageImportList.get() == null) {
             ArrayList<String> importlist = new ArrayList<String>();
             importlist.add("");
             importlist.add("org.apache.pig.builtin.");
-            importlist.add("org.apache.pig.impl.builtin.");  
+            importlist.add("org.apache.pig.impl.builtin.");
             packageImportList.set(importlist);
         }
         return packageImportList.get();
     }
-    
+
     public static void setPackageImportList(ArrayList<String> list) {
         packageImportList.set(list);
     }
-    
+
     public void setLog4jProperties(Properties p)
     {
         log4jProperties = p;

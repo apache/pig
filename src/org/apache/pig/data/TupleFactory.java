@@ -29,6 +29,8 @@ import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 
+import com.google.common.collect.Maps;
+
 /**
  * A factory to construct tuples.  This class is abstract so that users can
  * override the tuple factory if they desire to provide their own that
@@ -100,7 +102,7 @@ public abstract class TupleFactory {
         }
         return gSelf;
     }
-    
+
     /**
      * Create an empty tuple.  This should be used as infrequently as
      * possible, use newTuple(int) instead.
@@ -117,7 +119,7 @@ public abstract class TupleFactory {
      * @return Tuple with size fields
      */
     public abstract Tuple newTuple(int size);
-    
+
     /**
      * Create a tuple from the provided list of objects.  The underlying list
      * will be copied.
@@ -162,13 +164,22 @@ public abstract class TupleFactory {
         return newTupleForSchema(types);
     }
 
+    //this should only be called on the backend!
+    public static SchemaTupleFactory getInstanceForSchema(Schema schema) {
+        return SchemaTupleFactory.getSchemaTupleFactory(schema);
+    }
+
+    public static SchemaTupleFactory getInstanceForSchemaId(int id) {
+        return SchemaTupleFactory.getSchemaTupleFactory(id);
+    }
+
     /**
      * Create a tuple optimized for a provided schema.
      *
      * @param dataTypes Schema of the desired Tuple, represented as bytes from {@link DataType}
      * @return A tuple optimized for the schema.
      */
-    public Tuple newTupleForSchema(byte... dataTypes) {
+    public Tuple newTupleForSchema(byte... dataTypes) { //perhaps throw execexception instead?
         if (dataTypes == null || dataTypes.length == 0) {
             return this.newTuple();
         } else if (dataTypes.length == 1 && DataType.isAtomic(dataTypes[0])) {
@@ -206,7 +217,7 @@ public abstract class TupleFactory {
      * @return Class that implements tuple.
      */
     public abstract Class<? extends Tuple> tupleClass();
-    
+
     protected TupleFactory() {
     }
 
@@ -217,12 +228,12 @@ public abstract class TupleFactory {
     public static void resetSelf() {
         gSelf = null;
     }
-    
+
     /**
      * Return the actual class implementing the raw comparator for tuples
      * that the factory will be returning. Ovverride this to allow Hadoop to
      * speed up tuple sorting. The actual returned class should know the
-     * serialization details for the tuple. The default implementation 
+     * serialization details for the tuple. The default implementation
      * (PigTupleDefaultRawComparator) will serialize the data before comparison
      * @return Class that implements tuple raw comparator.
      */

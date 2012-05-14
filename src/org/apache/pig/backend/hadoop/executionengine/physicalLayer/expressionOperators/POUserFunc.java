@@ -41,8 +41,10 @@ import org.apache.pig.builtin.MonitoredUDF;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.SchemaTupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.data.TypeAwareTuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.NodeIdGenerator;
@@ -126,7 +128,21 @@ public class POUserFunc extends ExpressionOperator {
         //is set up correctly with the reporter and pigLogger references
         this.func.setReporter(reporter);
         this.func.setPigLogger(pigLogger);
+
+        if (tmpS != null) {
+            //Schema outputS = func.outputSchema(tmpS);
+
+            if (SchemaTupleFactory.isGeneratable(tmpS))
+                inputSchemaTupleFactory = TupleFactory.getInstanceForSchema(tmpS);
+
+/*
+            if (outputS != null && SchemaTupleFactory.isGeneratable(outputS))
+                outputGen = SchemaTuple.generate(outputS);
+*/
+        }
     }
+
+    private SchemaTupleFactory inputSchemaTupleFactory;
 
     @Override
     public Result processInput() throws ExecException {
@@ -161,9 +177,13 @@ public class POUserFunc extends ExpressionOperator {
             detachInput();
             return res;
         } else {
-            res.result = TupleFactory.getInstance().newTuple();
+            if (inputSchemaTupleFactory != null)
+                res.result = inputSchemaTupleFactory.newTuple();
+            else
+                res.result = TupleFactory.getInstance().newTuple();
 
             Result temp = null;
+
             for(PhysicalOperator op : inputs) {
                 temp = op.getNext(getDummy(op.getResultType()), op.getResultType());
                 if(temp.returnStatus!=POStatus.STATUS_OK) {
@@ -185,6 +205,7 @@ public class POUserFunc extends ExpressionOperator {
                 ((Tuple)res.result).append(temp.result);
             }
             res.returnStatus = temp.returnStatus;
+
             return res;
         }
     }
@@ -206,7 +227,7 @@ public class POUserFunc extends ExpressionOperator {
                             // so that udf gets called both when isAccumStarted
                             // is first true and then set to false, even
                             //when the input relation is empty.
-                            // so the STATUS_EOP has to be sent from POUserFunc, 
+                            // so the STATUS_EOP has to be sent from POUserFunc,
                             // after the results have been sent.
                             result.result = null;
                             result.returnStatus = POStatus.STATUS_EOP;
@@ -222,7 +243,7 @@ public class POUserFunc extends ExpressionOperator {
                     if (executor != null) {
                         result.result = executor.monitorExec((Tuple) result.result);
                     } else {
-                    result.result = func.exec((Tuple) result.result);
+                        result.result = func.exec((Tuple) result.result);
                     }
                 }
                 return result;
@@ -470,16 +491,16 @@ public class POUserFunc extends ExpressionOperator {
     public void setResultType(byte resultType) {
         this.resultType = resultType;
     }
-    
+
     @Override
     public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
         return (Tuple) out;
     }
-    
+
     public EvalFunc getFunc() {
         return func;
     }
-    
+
     public void setSignature(String signature) {
         this.signature = signature;
         if (this.func!=null) {

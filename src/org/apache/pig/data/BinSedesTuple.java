@@ -34,7 +34,7 @@ public class BinSedesTuple extends DefaultTuple {
 
     private static final long serialVersionUID = 1L;
     private static final InterSedes sedes = InterSedesFactory.getInterSedesInstance();
-    
+
 
     @Override
     public void write(DataOutput out) throws IOException {
@@ -47,8 +47,8 @@ public class BinSedesTuple extends DefaultTuple {
         // Clear our fields, in case we're being reused.
         mFields.clear();
         sedes.addColsToTuple(in, this);
-    } 
-    
+    }
+
 
 
     /**
@@ -87,7 +87,7 @@ public class BinSedesTuple extends DefaultTuple {
     BinSedesTuple(List<Object> c, int junk) {
         super(c, junk);
     }
-    
+
     public static Class<? extends TupleRawComparator> getComparatorClass() {
         return InterSedesFactory.getInterSedesInstance().getTupleRawComparatorClass();
     }
