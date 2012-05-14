@@ -24,6 +24,14 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2659: add source location of the aliases in the physical plan (julien)
+
+PIG-2547: Easier UDFs: Convenient EvalFunc super-classes (billgraham, dvryaboy)
+
+PIG-2639: Utils.getSchemaFromString should automatically give name to all types, but fails on boolean (jcoveney)
+
+PIG-2696: Enhance Job Stat to print out median map and reduce time (hluu via daijy)
+
 PIG-2583: Add Grunt command to list the statements in cache (xalan via daijy)
 
 PIG-2688: Log the aliases being processed for the current job (ddaniels888 via azaroth)
@@ -31,6 +39,14 @@ PIG-2688: Log the aliases being processed for the current job (ddaniels888 via a
 PIG-2680: TOBAG output schema reporting (andy schlaikjer via jcoveney)
 
 PIG-2685: Fix error in EvalFunc ctor when implementing Algebraic UDF whose return type is parameterized (andy schlaikjer via jcoveney)
+
+PIG-2664: Allow PPNL impls to get more job info during the run (billgraham)
+
+PIG-2663: Expose helpful ScriptState methods (billgraham)
+
+PIG-2660: PPNL notified of plan before it gets executed (billgraham)
+
+PIG-2574: Make reducer estimator plugable (billgraham)
 
 PIG-2677: Add target to build.xml to generate clover summary reports (gates)
 

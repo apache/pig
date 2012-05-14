@@ -593,7 +593,7 @@ public class POForEach extends PhysicalOperator {
                 requestedParallelism, plans, flattens);
         clone.setOpsToBeReset(ops);
         clone.setResultType(getResultType());
-        clone.setAlias(alias);
+        clone.addOriginalLocation(alias, getOriginalLocations());
         return clone;
     }
 

@@ -46,6 +46,7 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOpe
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.NativeMapReduceOper;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator.OriginalLocation;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCollectedGroup;
@@ -115,7 +116,8 @@ public class ScriptState {
         JOB_PARENTS         ("pig.parent.jobid"),
         JOB_FEATURE         ("pig.job.feature"),
         SCRIPT_FEATURES     ("pig.script.features"),
-        JOB_ALIAS           ("pig.alias");        
+        JOB_ALIAS           ("pig.alias"),
+        JOB_ALIAS_LOCATION  ("pig.alias.location");
        
         private String displayStr;
         
@@ -186,7 +188,8 @@ public class ScriptState {
     private PigContext pigContext;
     
     private Map<MapReduceOper, String> featureMap = null;
-    private Map<MapReduceOper, String> aliasMap = null;
+    private Map<MapReduceOper, String> aliasMap = new HashMap<MapReduceOper, String>();
+    private Map<MapReduceOper, String> aliasLocationMap = new HashMap<MapReduceOper, String>();
     
     private List<PigProgressNotificationListener> listeners
             = new ArrayList<PigProgressNotificationListener>();
@@ -237,6 +240,7 @@ public class ScriptState {
         }
     }
     
+
     public void emitJobsSubmittedNotification(int numJobsSubmitted) {        
         for (PigProgressNotificationListener listener: listeners) {
             listener.jobsSubmittedNotification(id, numJobsSubmitted);
@@ -371,6 +375,7 @@ public class ScriptState {
     public String getPigVersion() {
         if (pigVersion == null) {
             String findContainingJar = JarManager.findContainingJar(ScriptState.class);
+            if (findContainingJar != null) {
             try { 
                 JarFile jar = new JarFile(findContainingJar); 
                 final Manifest manifest = jar.getManifest(); 
@@ -380,6 +385,9 @@ public class ScriptState {
             } catch (Exception e) { 
                 LOG.warn("unable to read pigs manifest file"); 
             } 
+            } else {
+                LOG.warn("unable to read pigs manifest file. Not running from the Pig jar");
+        }
         }
         return (pigVersion == null) ? "" : pigVersion;
     }
@@ -427,6 +435,7 @@ public class ScriptState {
                     String.valueOf(scriptFeatures));
         }
         conf.set(PIG_PROPERTY.JOB_ALIAS.toString(), getAlias(mro));    
+        conf.set(PIG_PROPERTY.JOB_ALIAS_LOCATION.toString(), getAliasLocation(mro));
     }
     
     private void setJobParents(MapReduceOper mro, Configuration conf) {
@@ -462,26 +471,44 @@ public class ScriptState {
     }
     
     public String getAlias(MapReduceOper mro) {
-        if (aliasMap == null) {
-            aliasMap = new HashMap<MapReduceOper, String>();
+        if (!aliasMap.containsKey(mro)) {
+            setAlias(mro);
         }
-        String retStr = aliasMap.get(mro);
-        if (retStr == null) {
+        return aliasMap.get(mro);
+    }
+
+    private void setAlias(MapReduceOper mro) {
             ArrayList<String> alias = new ArrayList<String>();
+        String aliasLocationStr = "";
             try {
-                new AliasVisitor(mro.mapPlan, alias).visit();
-                new AliasVisitor(mro.reducePlan, alias).visit();
+            ArrayList<String> aliasLocation = new ArrayList<String>();
+            new AliasVisitor(mro.mapPlan, alias, aliasLocation).visit();
+            aliasLocationStr += "M: "+LoadFunc.join(aliasLocation, ",");
+            if (mro.combinePlan != null) {
+                aliasLocation = new ArrayList<String>();
+                new AliasVisitor(mro.combinePlan, alias, aliasLocation).visit();
+                aliasLocationStr += " C: "+LoadFunc.join(aliasLocation, ",");
+            }
+            aliasLocation = new ArrayList<String>();
+            new AliasVisitor(mro.reducePlan, alias, aliasLocation).visit();
+            aliasLocationStr += " R: "+LoadFunc.join(aliasLocation, ",");
                 if (!alias.isEmpty()) {
                     Collections.sort(alias);
                 }              
             } catch (VisitorException e) {
                 LOG.warn("unable to get alias", e);
             }
-            retStr = LoadFunc.join(alias, ",");
-            aliasMap.put(mro, retStr);
+        aliasMap.put(mro, LoadFunc.join(alias, ","));
+        aliasLocationMap.put(mro, aliasLocationStr);
         }
-        return retStr;
+
+    public String getAliasLocation(MapReduceOper mro) {
+        if (!aliasLocationMap.containsKey(mro)) {
+            setAlias(mro);
     }
+        return aliasLocationMap.get(mro);
+    }
+
 
     public String getPigFeature(MapReduceOper mro) {
         if (featureMap == null) {
@@ -732,10 +759,13 @@ public class ScriptState {
         
         private List<String> alias;
         
-        public AliasVisitor(PhysicalPlan plan, List<String> alias) {
+        private final List<String> aliasLocation;
+
+        public AliasVisitor(PhysicalPlan plan, List<String> alias, List<String> aliasLocation) {
             super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(
                     plan));
             this.alias = alias;
+            this.aliasLocation = aliasLocation;
             aliasSet = new HashSet<String>();
             if (!alias.isEmpty()) {
                 for (String s : alias) aliasSet.add(s);
@@ -745,73 +775,87 @@ public class ScriptState {
         @Override
         public void visitLoad(POLoad load) throws VisitorException {
             setAlias(load);
+            super.visitLoad(load);
         }
         
         @Override
         public void visitFRJoin(POFRJoin join) throws VisitorException {
             setAlias(join);
+            super.visitFRJoin(join);
         }
         
         @Override
         public void visitMergeJoin(POMergeJoin join) throws VisitorException {
             setAlias(join);
+            super.visitMergeJoin(join);
         }
         
         @Override
         public void visitMergeCoGroup(POMergeCogroup mergeCoGrp)
                 throws VisitorException {
             setAlias(mergeCoGrp);
+            super.visitMergeCoGroup(mergeCoGrp);
         }
         
         @Override
         public void visitCollectedGroup(POCollectedGroup mg)
                 throws VisitorException {           
             setAlias(mg);
+            super.visitCollectedGroup(mg);
         }
         
         @Override
         public void visitDistinct(PODistinct distinct) throws VisitorException {
             setAlias(distinct);
+            super.visitDistinct(distinct);
         }
         
         @Override
         public void visitStream(POStream stream) throws VisitorException {
             setAlias(stream);
+            super.visitStream(stream);
         }
         
         @Override
         public void visitFilter(POFilter fl) throws VisitorException {
             setAlias(fl);
+            super.visitFilter(fl);
         }
          
         @Override
         public void visitLocalRearrange(POLocalRearrange lr) throws VisitorException {
             setAlias(lr);
+            super.visitLocalRearrange(lr);
         }
         
         @Override
         public void visitPOForEach(POForEach nfe) throws VisitorException {
             setAlias(nfe);
+            super.visitPOForEach(nfe);
         }
         
         @Override
         public void visitUnion(POUnion un) throws VisitorException {
             setAlias(un);
+            super.visitUnion(un);
         }
 
         @Override
         public void visitSort(POSort sort) throws VisitorException {
             setAlias(sort);
+            super.visitSort(sort);
         }
  
         @Override
         public void visitLimit(POLimit lim) throws VisitorException {
             setAlias(lim);
+            super.visitLimit(lim);
         }
         
         @Override
         public void visitSkewedJoin(POSkewedJoin sk) throws VisitorException {
             setAlias(sk);
+            super.visitSkewedJoin(sk);
         }
         
         private void setAlias(PhysicalOperator op) {
@@ -822,7 +866,11 @@ public class ScriptState {
                     aliasSet.add(s);
                 }
             }
+            List<OriginalLocation> originalLocations = op.getOriginalLocations();
+            for (OriginalLocation originalLocation : originalLocations) {
+                aliasLocation.add(originalLocation.toString());
         }
+    }
     }
     
 }

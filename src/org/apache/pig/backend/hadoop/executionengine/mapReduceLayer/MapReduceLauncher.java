@@ -285,6 +285,8 @@ public class MapReduceLauncher extends Launcher{
                         if (mro != null) {
                             String alias = ScriptState.get().getAlias(mro);
                             log.info("Processing aliases " + alias);
+                            String aliasLocation = ScriptState.get().getAliasLocation(mro);
+                            log.info("detailed locations: " + aliasLocation);
                         }
 
                         

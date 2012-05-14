@@ -208,6 +208,7 @@ public abstract class PigGenericMapBase extends Mapper<Text, Tuple, PigNullableW
         
         PigStatusReporter.setContext(context);
  
+        log.info("Aliases being processed per job phase (AliasName[line,offset]): " + job.get("pig.alias.location"));
     }
     
     /**
@@ -246,6 +247,7 @@ public abstract class PigGenericMapBase extends Mapper<Text, Tuple, PigNullableW
             pigHadoopLogger.setReporter(PigStatusReporter.getInstance());
 
             PhysicalOperator.setPigLogger(pigHadoopLogger);
+
         }
         
         if (mp.isEmpty()) {
