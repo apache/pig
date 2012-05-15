@@ -505,6 +505,10 @@ public class SchemaTupleClassGenerator {
         public void prepare() {
             add("@Override");
             add("public void set(int fieldNum, Object val) throws ExecException {");
+            add("    if (val == null) {");
+            add("        setNull_" + fieldPos +"();");
+            add("        return;");
+            add("    }");
             add("    switch (fieldNum) {");
         }
 
@@ -512,7 +516,7 @@ public class SchemaTupleClassGenerator {
         public void process(int fieldPos, Schema.FieldSchema fs) {
             add("    case ("+fieldPos+"):");
             if (!isTuple()) {
-                add("        setPos_"+fieldPos+"(SchemaTuple.unbox(val, pos_"+fieldPos+"));");
+                add("        setPos_"+fieldPos+"(SchemaTuple.unbox(val, getPos_"+fieldPos+"()));");
             } else {
                 int nestedSchemaTupleId = idQueue.remove();
                 add("        if (val instanceof SchemaTuple_"+nestedSchemaTupleId+") {");
@@ -547,14 +551,7 @@ public class SchemaTupleClassGenerator {
 
         public void process(int fieldPos, Schema.FieldSchema fs) {
             add("    case ("+fieldPos+"):");
-            if (isPrimitive()) {
-                //add("        return checkIfNull_"+fieldPos+"() ? null : SchemaTuple.box(getPos_"+fieldPos+"());");
-                add("        return checkIfNull_"+fieldPos+"() ? null : getPos_"+fieldPos+"();");
-            } else if (isBytearray()) {
-                add("        return pos_"+fieldPos+" == null ? null : SchemaTuple.box(pos_"+fieldPos+");");
-            } else {
-                add("        return pos_"+fieldPos+";");
-            }
+            add("        return checkIfNull_"+fieldPos+"() ? null : SchemaTuple.box(getPos_"+fieldPos+"());");
         }
 
         public void end() {

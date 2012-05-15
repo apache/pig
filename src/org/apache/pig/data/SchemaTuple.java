@@ -431,6 +431,8 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
     }
 
     public static byte[] unbox(DataByteArray v) {
+        if (v == null)
+            return null;
         return v.get();
     }
 
@@ -458,6 +460,14 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
         if (v == null)
             return null;
         return new DataByteArray(v);
+    }
+
+    public static String box(String v) {
+        return v;
+    }
+
+    public static Tuple box(Tuple t) {
+        return t;
     }
 
     public static Integer box(int v) {
@@ -636,27 +646,25 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
 
     protected static Schema staticSchemaGen(String s) {
         try {
-            Schema schema = Utils.getSchemaFromString(s);
+            return Utils.getSchemaFromString(s);
         } catch (FrontendException e) {
             throw new RuntimeException("Unable to make Schema for String: " + s);
         }
     }
 
-    protected void setAndCatch(Tuple t) {
+    public void setAndCatch(Tuple t) {
         try {
-            pos_6.set(t, false);
+            set(t, false);
         } catch (ExecException e) {
             throw new RuntimeException("Unable to set position 6 with Tuple: " + t, e);
         }
     }
 
-    protected void setAndCatch(SchemaTuple t) {
+    public void setAndCatch(SchemaTuple t) {
         try {
-            pos_6.set(t, false);
+            set(t, false);
         } catch (ExecException e) {
             throw new RuntimeException("Unable to set position 6 with Tuple: " + t, e);
         }
     }
-}
-
 }
