@@ -505,18 +505,18 @@ public class SchemaTupleClassGenerator {
         public void prepare() {
             add("@Override");
             add("public void set(int fieldNum, Object val) throws ExecException {");
-            add("    if (val == null) {");
-            add("        setNull_" + fieldPos +"();");
-            add("        return;");
-            add("    }");
             add("    switch (fieldNum) {");
         }
 
         //TODO leverage Java's auto-boxing/unboxing
         public void process(int fieldPos, Schema.FieldSchema fs) {
             add("    case ("+fieldPos+"):");
+            add("        if (val == null) {");
+            add("            setNull_" + fieldPos + "(true);");
+            add("            return;");
+            add("        }");
             if (!isTuple()) {
-                add("        setPos_"+fieldPos+"(SchemaTuple.unbox(val, getPos_"+fieldPos+"()));");
+                add("        setPos_"+fieldPos+"(unbox(val, getPos_"+fieldPos+"()));");
             } else {
                 int nestedSchemaTupleId = idQueue.remove();
                 add("        if (val instanceof SchemaTuple_"+nestedSchemaTupleId+") {");
@@ -551,7 +551,7 @@ public class SchemaTupleClassGenerator {
 
         public void process(int fieldPos, Schema.FieldSchema fs) {
             add("    case ("+fieldPos+"):");
-            add("        return checkIfNull_"+fieldPos+"() ? null : SchemaTuple.box(getPos_"+fieldPos+"());");
+            add("        return checkIfNull_"+fieldPos+"() ? null : box(getPos_"+fieldPos+"());");
         }
 
         public void end() {
@@ -638,7 +638,9 @@ public class SchemaTupleClassGenerator {
                     nullByte++;
                 }
             } else {
-                add("    pos_" + fieldPos + " = null;");
+                add("    if (b) {");
+                add("        pos_" + fieldPos + " = null;");
+                add("    }");
             }
             add("}");
             addBreak();
@@ -721,8 +723,9 @@ public class SchemaTupleClassGenerator {
                 if (booleans++ % 8 == 0)
                     booleanBytes++;
             } else if (!isTuple()) {
-                add("    if (!b["+fieldPos+"])");
-                add("        setPos_"+fieldPos+"(SchemaTuple.read(in, pos_"+fieldPos+"));");
+                add("    if (!b["+fieldPos+"]) {");
+                add("        setPos_"+fieldPos+"(read(in, pos_"+fieldPos+"));");
+                add("    }");
             } else {
                 int nestedSchemaTupleId = idQueue.remove();
                 add("    if (!b["+fieldPos+"]) {");
@@ -737,8 +740,9 @@ public class SchemaTupleClassGenerator {
         public void end() {
             for (int i = 0; i < booleanBytes; i++)
                 add("    booleanByte_"+i+" = in.readByte();");
-            add("    if(!b["+ct+"])");
+            add("    if(!b["+ct+"]) {");
             add("        setAppend(SedesHelper.readGenericTuple(in, in.readByte()));");
+            add("    }");
             add("    updateLargestSetValue(size());");
             add("}");
             addBreak();
@@ -766,7 +770,7 @@ public class SchemaTupleClassGenerator {
                 } else {
                     add("    if(pos_"+fieldPos+" != null)");
                 }
-                add("        SchemaTuple.write(out, pos_"+fieldPos+");");
+                add("        write(out, pos_"+fieldPos+");");
             }
 
             if (isBoolean() && booleans++ % 8 == 0)
@@ -776,8 +780,9 @@ public class SchemaTupleClassGenerator {
         public void end() {
             for (int i = 0; i < booleanBytes; i++)
                 add("    out.writeByte(booleanByte_"+i+");");
-            add("    if (!appendIsNull())");
+            add("    if (!appendIsNull()) {");
             add("        SedesHelper.writeGenericTuple(out, getAppend());");
+            add("    }");
             add("}");
             addBreak();
         }
