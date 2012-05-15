@@ -519,7 +519,7 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
     }
 
     //this is intended to be overriden by the generated code
-    public void genericSetString(int fieldNum, Object val) throws ExecException {
+    public void set(int fieldNum, Object val) throws ExecException {
         int diff = fieldNum - sizeNoAppend();
         if (diff < appendSize()) {
             setAppend(diff, val);
@@ -634,8 +634,29 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
         return ((DataByteArray)getPrimitiveBase(fieldNum, "byte[]")).get();
     }
 
-    public void set(int fieldNum, Object val) throws ExecException {
-        int diff = fieldNum - sizeNoAppend();
+    protected static Schema staticSchemaGen(String s) {
+        try {
+            Schema schema = Utils.getSchemaFromString(s);
+        } catch (FrontendException e) {
+            throw new RuntimeException("Unable to make Schema for String: " + s);
+        }
     }
+
+    protected void setAndCatch(Tuple t) {
+        try {
+            pos_6.set(t, false);
+        } catch (ExecException e) {
+            throw new RuntimeException("Unable to set position 6 with Tuple: " + t, e);
+        }
+    }
+
+    protected void setAndCatch(SchemaTuple t) {
+        try {
+            pos_6.set(t, false);
+        } catch (ExecException e) {
+            throw new RuntimeException("Unable to set position 6 with Tuple: " + t, e);
+        }
+    }
+}
 
 }

@@ -404,14 +404,7 @@ public class SchemaTupleClassGenerator {
         public void prepare() {
             String s = schema.toString();
             s = s.substring(1, s.length() - 1);
-            add("private static Schema schema;");
-            add("static {");
-            add("    try {");
-            add("        schema = Utils.getSchemaFromString(\""+s+"\");");
-            add("    } catch (FrontendException e) {");
-            add("        throw new RuntimeException(\"Unable to make Schema for Schema String: \\\""+s+"\\\"\");");
-            add("    }");
-            add("}");
+            add("private static Schema schema = staticSchemaGen(\"" + s + "\");");
         }
 
         public void process(int fieldPos, Schema.FieldSchema fs) {
@@ -487,22 +480,14 @@ public class SchemaTupleClassGenerator {
                 add("public void setPos_"+fieldPos+"(SchemaTuple t) {");
                 add("    if (pos_"+fieldPos+" == null)");
                 add("        pos_"+fieldPos+" = new SchemaTuple_"+nestedSchemaTupleId+"();");
-                add("    try {");
-                add("        pos_"+fieldPos+".set(t, false);");
-                add("    } catch (ExecException e) {");
-                add("        throw new RuntimeException(\"Unable to set position "+fieldPos+" with Tuple: \" + t, e);");
-                add("    }");
+                add("    pos_" + fieldPos + ".setAndCatch(t);");
                 add("    updateLargestSetValue("+fieldPos+");");
                 add("}");
                 addBreak();
                 add("public void setPos_"+fieldPos+"(Tuple t) {");
                 add("    if (pos_"+fieldPos+" == null)");
                 add("        pos_"+fieldPos+" = new SchemaTuple_"+nestedSchemaTupleId+"();");
-                add("    try {");
-                add("        pos_"+fieldPos+".set(t, false);");
-                add("    } catch (ExecException e) {");
-                add("        throw new RuntimeException(\"Unable to set position "+fieldPos+" with Tuple: \" + t, e);");
-                add("    }");
+                add("    pos_" + fieldPos + ".setAndCatch(t);");
                 add("    updateLargestSetValue("+fieldPos+");");
                 add("}");
             }
@@ -526,18 +511,17 @@ public class SchemaTupleClassGenerator {
         //TODO leverage Java's auto-boxing/unboxing
         public void process(int fieldPos, Schema.FieldSchema fs) {
             add("    case ("+fieldPos+"):");
-            if (isBoolean()) {
-                add("        setPos_"+fieldPos+"((Boolean)val);");
-            } else if (isPrimitive() || isBytearray()) {
+            if (!isTuple()) {
                 add("        setPos_"+fieldPos+"(SchemaTuple.unbox(val, pos_"+fieldPos+"));");
-            } else if (isString()) {
-                add("        setPos_"+fieldPos+"((String)val);");
             } else {
                 int nestedSchemaTupleId = idQueue.remove();
-                add("        if (val instanceof SchemaTuple_"+nestedSchemaTupleId+")");
+                add("        if (val instanceof SchemaTuple_"+nestedSchemaTupleId+") {");
                 add("            setPos_"+fieldPos+"((SchemaTuple_"+nestedSchemaTupleId+")val);");
-                add("        else");
+                add("        } else if (val instanceof SchemaTuple) {");
+                add("            setPos_"+fieldPos+"((SchemaTuple)val);");
+                add("        } else {");
                 add("            setPos_"+fieldPos+"((Tuple)val);");
+                add("        }");
             }
             add("        break;");
         }
@@ -954,7 +938,7 @@ public class SchemaTupleClassGenerator {
 
         public void end() {
             add("    default:");
-            add("        super.getType(fieldNum);");
+            add("        return super.getType(fieldNum);");
             add("    }");
             add("}");
             addBreak();
