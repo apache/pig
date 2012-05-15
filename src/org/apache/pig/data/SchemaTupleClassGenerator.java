@@ -1090,12 +1090,7 @@ public class SchemaTupleClassGenerator {
 
         public void end() {
             add("    default:");
-            add("        int diff = fieldNum - sizeNoAppend();");
-            add("        if (diff < appendSize()) {");
-            add("            setAppend(diff, val);");
-            add("            break;");
-            add("        }");
-            add("        throw new ExecException(\"Given field \"+fieldNum+\" not a "+name()+" field!\");");
+            add("        super.set"+proper()+"(fieldNum, val);");
             add("    }");
             add("}");
         }

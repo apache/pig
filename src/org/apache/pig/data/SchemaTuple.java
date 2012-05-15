@@ -599,34 +599,31 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
     }
 
     public int getInt(int fieldNum) throws ExecException {
-        return getPrimitiveBase(fieldNum, "int");
+        return ((Number)getPrimitiveBase(fieldNum, "int")).intValue();
     }
 
     public long getLong(int fieldNum) throws ExecException {
-        return getPrimitiveBase(fieldNum, "long");
+        return ((Number)getPrimitiveBase(fieldNum, "long")).longValue();
     }
 
     public float getFloat(int fieldNum) throws ExecException {
-        return getPrimitiveBase(fieldNum, "float");
+        return ((Number)getPrimitiveBase(fieldNum, "float")).floatValue();
     }
 
     public double getDouble(int fieldNum) throws ExecException {
-        int diff = fieldNum - sizeNoAppend();
-        if (diff < appendSize()) {
-            return getAppend(diff);
-        }
-        throw new ExecException("Given field " + fieldNum + " not a double field!");
+        return ((Number)getPrimitiveBase(fieldNum, "double")).doubleValue();
     }
 
     public boolean getBoolean(int fieldNum) throws ExecException {
-        int diff = fieldNum - sizeNoAppend();
-        if (diff < appendSize()) {
-            return getAppend(diff);
-        }
-        throw new ExecException("Given field " + fieldNum + " not a boolean field!");
+        return (Boolean)getPrimitiveBase(fieldNum, "boolean");
     }
 
+    public String getString(int fieldNum) throws ExecException {
+        return (String)getPrimitiveBase(fieldNum, "String");
+    }
 
-
+    public byte[] getBytes(int fieldNum) throws ExecException {
+        return ((DataByteArray)getPrimitiveBase(fieldNum, "byte[]")).get();
+    }
 
 }
