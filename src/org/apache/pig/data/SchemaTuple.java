@@ -134,8 +134,16 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
     public abstract void writeElements(DataOutput out) throws IOException;
     public abstract String getSchemaString();
     public abstract int sizeNoAppend();
-    public abstract void setNull(int fieldNum) throws ExecException;
-    public abstract SchemaTuple set(SchemaTuple t, boolean checkType) throws ExecException;
+
+    //NOTE: this MUST be overriden by the generic code! This is simply to help out
+    public SchemaTuple set(SchemaTuple t, boolean checkType) throws ExecException {
+        appendReset();
+        for (int j = sizeNoAppend(); j < t.size(); j++) {
+            append(t.get(j));
+        }
+        updateLargestSetValue(size());
+        return this;
+    }
 
     @Override
     public int size() {
@@ -485,7 +493,7 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
     }
 
     public static int hashCodePiece(int hash, double v, boolean isNull) {
-        long v2 = Double.doubleToLongBits(v)
+        long v2 = Double.doubleToLongBits(v);
         return isNull ? 0 : 31 * hash + (int)(v2^(v2>>>32));
     }
 
@@ -515,7 +523,7 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
         int diff = fieldNum - sizeNoAppend();
         if (diff < appendSize()) {
             setAppend(diff, val);
-            break;
+            return;
         }
         throw new ExecException("Invalid index " + fieldNum + " given");
     }
@@ -547,7 +555,7 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
     }
 
     //this is intended to be overriden by the generated code
-    public void getType(int fieldNum) throws ExecException {
+    public byte getType(int fieldNum) throws ExecException {
         int diff = fieldNum - sizeNoAppend();
         if (diff < appendSize())
             return appendType(diff);
@@ -624,6 +632,10 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
 
     public byte[] getBytes(int fieldNum) throws ExecException {
         return ((DataByteArray)getPrimitiveBase(fieldNum, "byte[]")).get();
+    }
+
+    public void set(int fieldNum, Object val) throws ExecException {
+        int diff = fieldNum - sizeNoAppend();
     }
 
 }

@@ -465,10 +465,7 @@ public class SchemaTupleClassGenerator {
                 if (!isBoolean()) {
                     add("    pos_"+fieldPos+" = v;");
                 } else {
-                    add("    if (v)");
-                    add("        booleanByte_"+byteField+" |= (byte)"+CheckIfNullString.masks[byteIncr]+";");
-                    add("    else");
-                    add("        booleanByte_"+byteField+" &= (byte)"+SetNullString.inverseMasks[byteIncr++]+";");
+                    add("    booleanByte_" + byteField + " = BytesHelper.setBitByPos(booleanByte_" + byteField + ", v, " + byteIncr++ + ");");
 
                     if (byteIncr % 8 == 0) {
                         byteIncr = 0;
@@ -548,6 +545,7 @@ public class SchemaTupleClassGenerator {
         public void end() {
             add("    default:");
             add("        super.set(fieldNum, val);");
+            add("    }");
             add("}");
         }
 
@@ -653,7 +651,7 @@ public class SchemaTupleClassGenerator {
         public void process(int fieldPos, Schema.FieldSchema fs) {
             add("public void setNull_"+fieldPos+"(boolean b) {");
             if (isPrimitive()) {
-                add("    isNull_" + nullByte + " = BytesHelper.setBitByPos(isNull_" + nullByte + ", b, " + byteIncr++ + ");")
+                add("    isNull_" + nullByte + " = BytesHelper.setBitByPos(isNull_" + nullByte + ", b, " + byteIncr++ + ");");
                 if (byteIncr % 8 == 0) {
                     byteIncr = 0;
                     nullByte++;
@@ -858,12 +856,13 @@ public class SchemaTupleClassGenerator {
                 add("public "+typeName()+" getPos_"+fieldPos+"() {");
             } else {
                 int nestedSchemaTupleId = idQueue.remove();
-                add("public SchemaTuple_"+nestedSchemaTupleId+" getPos_"+fieldPos+"() {");
+                add("public SchemaTuple_" + nestedSchemaTupleId + " getPos_"+fieldPos+"() {");
             }
             if (isBoolean()) {
-                add("    return (booleanByte_"+ booleanByte + " & (byte)"+CheckIfNullString.masks[booleans]+") > 0;");
-                if (booleans++ % 8 == 0)
+                add("    return BytesHelper.getBitByPos(booleanByte_" + booleanByte + ", " + booleans++ + ");");
+                if (booleans % 8 == 0) {
                     booleanByte++;
+                }
             } else {
                 add("    return pos_"+fieldPos+";");
             }
@@ -1003,11 +1002,7 @@ public class SchemaTupleClassGenerator {
         }
 
         public void end() {
-            add("    appendReset();");
-            add("    for (int j = sizeNoAppend(); j < t.size(); j++)");
-            add("        append(t.get(j));");
-            add("    updateLargestSetValue(size());");
-            add("    return this;");
+            add("    return super.set(t, checkClass);");
             add("}");
         }
     }
@@ -1019,10 +1014,7 @@ public class SchemaTupleClassGenerator {
 
         public void prepare() {
             add("@Override");
-            if (thisType()==DataType.BYTEARRAY)
-                add("public byte[] getBytes(int fieldNum) throws ExecException {");
-            else
-                add("public "+name()+" get"+proper()+"(int fieldNum) throws ExecException {");
+            add("public "+name()+" get"+proper()+"(int fieldNum) throws ExecException {");
             add("    switch(fieldNum) {");
         }
 
@@ -1034,10 +1026,7 @@ public class SchemaTupleClassGenerator {
 
         public void end() {
             add("    default:");
-            add("        int diff = fieldNum - sizeNoAppend();");
-            add("        if (diff < appendSize())");
-            add("            return SchemaTuple.unbox(getAppend(diff), "+defValue()+");");
-            add("        throw new ExecException(\"Given field \"+fieldNum+\" not a "+name()+" field!\");");
+            add("        return super.get" + proper() + "(fieldNum);");
             add("    }");
             add("}");
         }
