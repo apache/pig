@@ -52,18 +52,18 @@ public class DataByteArray implements Comparable, Serializable {
     }
 
     /**
-     * Construct a byte array concatenating the two provided 
+     * Construct a byte array concatenating the two provided
      * byte arrays as the content.
      * @param b the first byte array to use as content.
      * @param c the other byte array to use as content.
-     * 
+     *
      */
     public DataByteArray(DataByteArray b, DataByteArray c) {
         byte[] ba = (b == null) ?  null : b.get();
         byte[] ca = (c == null) ?  null : c.get();
         int baLength = (ba == null) ? 0 : ba.length;
         int caLength = (ca == null) ? 0 : ca.length;
-        
+
         int totalSize = baLength + caLength;
         if(totalSize == 0) {
             return;
@@ -71,7 +71,7 @@ public class DataByteArray implements Comparable, Serializable {
         System.arraycopy(ba, 0, mData = new byte[totalSize], 0, baLength);
         System.arraycopy(ca, 0, mData,baLength, caLength);
     }
-    
+
     /**
      * Construct a byte array using a portion of the provided bytes as content.
      * @param b byte array to read from.  A copy of the underlying bytes will be
@@ -80,7 +80,7 @@ public class DataByteArray implements Comparable, Serializable {
      * @param end ending point to copy to, exclusive.
      */
     public DataByteArray(byte[] b, int start, int end) {
-    	
+
     System.arraycopy(b, start, mData = new byte[end - start], 0, end-start);
     }
 
@@ -192,7 +192,7 @@ public class DataByteArray implements Comparable, Serializable {
      * length. So "g" will be greater than "abcdefg", but "hello worlds" is
      * greater than "hello world". If the other object is not a DataByteArray,
      * {@link DataType#compare} will be called.
-     * 
+     *
      * @param other Other object to compare to.
      * @return -1 if less than, 1 if greater than, 0 if equal.
      */
@@ -229,11 +229,15 @@ public class DataByteArray implements Comparable, Serializable {
 
     @Override
     public int hashCode() {
+        return hashCode(mData);
+    }
+
+    public static int hashCode(byte[] buf) {
         int hash = 1;
-        for (int i = 0; i < mData.length; i++) {
+        for (int i = 0; i < buf.length; i++) {
             // 29 chosen because hash uses 31 and bag 37, and a I want a
             // prime.
-            hash = 29 * hash + mData[i];
+            hash = 29 * hash + buf[i];
         }
         return hash;
     }

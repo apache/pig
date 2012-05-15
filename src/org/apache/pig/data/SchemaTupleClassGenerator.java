@@ -82,6 +82,7 @@ public class SchemaTupleClassGenerator {
 
         int id = getGlobalClassIdentifier();
         String codeString = generateCodeString(s, id);
+
         File current;
         try {
             current = compileCodeString(codeString, "SchemaTuple_" + id);
@@ -106,7 +107,10 @@ public class SchemaTupleClassGenerator {
         for (Schema.FieldSchema fs : s.getFields())
             f.process(fs);
 
-        return f.end();
+        //return f.end();
+        String tmp = f.end(); //remove
+        System.out.println(tmp); //remove
+        return tmp; //remove
     }
 
 
@@ -368,6 +372,25 @@ public class SchemaTupleClassGenerator {
         }
     }
 
+    static class HashCode extends TypeInFunctionStringOut {
+        private int nulls = 0;
+
+        public void prepare() {
+            add("@Override");
+            add("public int hashCode() {");
+            add("    int h = 17;");
+        }
+
+        public void process(int fieldPos, Schema.FieldSchema fs) {
+            add("    h = hashCodePiece(h, getPos_" + fieldPos + "(), checkIfNull_" + fieldPos + "());");
+        }
+
+        public void end() {
+            add("    return h;");
+            add("}");
+        }
+    }
+
     static class FieldString extends TypeInFunctionStringOut {
         private List<Queue<Integer>> listOfQueuesForIds;
         private Schema schema;
@@ -524,14 +547,7 @@ public class SchemaTupleClassGenerator {
 
         public void end() {
             add("    default:");
-            add("        int diff = fieldNum - sizeNoAppend();");
-            add("        if (diff < appendSize()) {");
-            add("            setAppend(diff, val);");
-            add("            break;");
-            add("        }");
-            add("        throw new ExecException(\"Invalid index \"+fieldNum+\" given\");");
-            add("    }");
-            add("    updateLargestSetValue(fieldNum);");
+            add("        super.set(fieldNum, val);");
             add("}");
         }
 
@@ -561,10 +577,7 @@ public class SchemaTupleClassGenerator {
 
         public void end() {
             add("    default:");
-            add("        int diff = fieldNum - sizeNoAppend();");
-            add("        if (diff < appendSize())");
-            add("            return getAppend(diff);");
-            add("        throw new ExecException(\"Invalid index \"+fieldNum+\" given\");");
+            add("        return super.get(fieldNum);");
             add("    }");
             add("}");
         }
@@ -579,21 +592,12 @@ public class SchemaTupleClassGenerator {
 
         public void process(int fieldPos, Schema.FieldSchema fs) {
             add("    case ("+fieldPos+"):");
-            if (isPrimitive()) {
-                add("        return checkIfNull_"+fieldPos+"();");
-            } else if (isString() || isBytearray()) {
-                add("        return pos_"+fieldPos+" == null;");
-            } else {
-                add("        return pos_"+fieldPos+" == null || pos_"+fieldPos+".isNull();");
-            }
+            add("        return checkIfNull_"+fieldPos+"();");
         }
 
         public void end() {
             add("    default:");
-            add("        int diff = fieldNum - sizeNoAppend();");
-            add("        if (diff < appendSize())");
-            add("            return appendIsNull(diff);");
-            add("        throw new ExecException(\"Invalid index \"+fieldNum+\" given\");");
+            add("        return super.isNull(fieldNum);");
             add("    }");
             add("}");
         }
@@ -608,67 +612,57 @@ public class SchemaTupleClassGenerator {
 
         public void process(int fieldPos, Schema.FieldSchema fs) {
             add("    case ("+fieldPos+"):");
-            if (isPrimitive()) {
-                add("        setNull_"+fieldPos+"(true);");
-            } else {
-                add("        pos_"+fieldPos+" = null;");
-            }
+            add("        setNull_"+fieldPos+"(true);");
             add("        break;");
         }
 
         public void end() {
             add("    default:");
-            add("        int diff = fieldNum - sizeNoAppend();");
-            add("        if (diff < appendSize()) {");
-            add("            setAppend(diff, null);");
-            add("            break;");
-            add("        }");
-            add("        throw new ExecException(\"Invalid index \"+fieldNum+\" given\");");
+            add("        super.setNull(fieldNum);");
             add("    }");
             add("}");
         }
     }
 
     static class CheckIfNullString extends TypeInFunctionStringOut {
-        public static final String[] masks = {"0x01", "0x02", "0x04", "0x08", "0x10", "0x20", "0x40", "0x80"};
-
         private int nullByte = 0; //the byte_ val
         private int byteIncr = 0; //the mask we're on
 
         public void process(int fieldPos, Schema.FieldSchema fs) {
+            add("public boolean checkIfNull_" + fieldPos + "() {");
             if (isPrimitive()) {
-                add("public boolean checkIfNull_"+fieldPos+"() {");
-                add("    return (isNull_"+nullByte+" & (byte)"+masks[byteIncr++]+") > 0;");
-                add("}");
-                addBreak();
+                add("    return BytesHelper.getBitByPos(isNull_" + nullByte + ", " + byteIncr++ +");");
                 if (byteIncr % 8 == 0) {
                     byteIncr = 0;
                     nullByte++;
                 }
+            } else if (isTuple()) {
+               add("    return pos_" + fieldPos + " == null || pos_" + fieldPos + ".isNull();");
+            } else {
+               add("    return pos_" + fieldPos + " == null;");
             }
+            add("}");
+            addBreak();
         }
     }
 
    static class SetNullString extends TypeInFunctionStringOut {
-        public static final String[] inverseMasks = {"0xFE", "0xFD", "0xFB", "0xF7", "0xEF", "0xDF", "0xBF", "0x7F"};
-
         private int nullByte = 0; //the byte_ val
         private int byteIncr = 0; //the mask we're on
 
         public void process(int fieldPos, Schema.FieldSchema fs) {
+            add("public void setNull_"+fieldPos+"(boolean b) {");
             if (isPrimitive()) {
-                add("public void setNull_"+fieldPos+"(boolean b) {");
-                add("    if (b)");
-                add("        isNull_"+nullByte+" |= (byte)" + CheckIfNullString.masks[byteIncr] + ";");
-                add("    else");
-                add("        isNull_"+nullByte+" &= (byte)" + inverseMasks[byteIncr++] + ";");
-                add("}");
-                addBreak();
+                add("    isNull_" + nullByte + " = BytesHelper.setBitByPos(isNull_" + nullByte + ", b, " + byteIncr++ + ");")
                 if (byteIncr % 8 == 0) {
                     byteIncr = 0;
                     nullByte++;
                 }
+            } else {
+                add("    pos_" + fieldPos + " = null;");
             }
+            add("}");
+            addBreak();
         }
     }
 
@@ -690,10 +684,7 @@ public class SchemaTupleClassGenerator {
         }
 
         public void end() {
-            add("    appendReset();");
-            add("    setAppend(t.getAppend());");
-            add("    updateLargestSetValue(size());");
-            add("    return this;");
+            add("    return super.setSpecific(t);");
             add("}");
             addBreak();
         }
@@ -716,10 +707,7 @@ public class SchemaTupleClassGenerator {
         }
 
         public void process(int fieldPos, Schema.FieldSchema fs) {
-            if (isPrimitive())
-                s += "        checkIfNull_"+fieldPos+"(),\n";
-            else
-                s += "        pos_"+fieldPos+" == null,\n";
+            s += "        checkIfNull_"+fieldPos+"(),\n";
         }
 
         public void end() {
@@ -759,9 +747,9 @@ public class SchemaTupleClassGenerator {
             } else {
                 int nestedSchemaTupleId = idQueue.remove();
                 add("    if (!b["+fieldPos+"]) {");
-                add("        SchemaTuple_"+nestedSchemaTupleId+" st_"+fieldPos+" = new SchemaTuple_"+nestedSchemaTupleId+"();");
-                add("        st_"+fieldPos+".readFields(in);");
-                add("        setPos_"+fieldPos+"(st_"+fieldPos+");");
+                add("        SchemaTuple_"+nestedSchemaTupleId+" st = new SchemaTuple_"+nestedSchemaTupleId+"();");
+                add("        st.readFields(in);");
+                add("        setPos_"+fieldPos+"(st);");
                 add("    }");
             }
             ct++;
@@ -937,7 +925,7 @@ public class SchemaTupleClassGenerator {
             addBreak();
         }
     }
-
+/*
     static class SizeString extends TypeInFunctionStringOut {
         int i = 0;
 
@@ -953,7 +941,7 @@ public class SchemaTupleClassGenerator {
             addBreak();
         }
     }
-
+*/
     static class GetTypeString extends TypeInFunctionStringOut {
         public void prepare() {
             add("@Override");
@@ -967,10 +955,7 @@ public class SchemaTupleClassGenerator {
 
         public void end() {
             add("    default:");
-            add("        int diff = fieldNum - sizeNoAppend();");
-            add("        if (diff < appendSize())");
-            add("            return appendType(diff);");
-            add("        throw new RuntimeException(\"Invalid index \"+fieldNum+\" given\");");
+            add("        super.getType(fieldNum);");
             add("    }");
             add("}");
             addBreak();
@@ -1148,7 +1133,7 @@ public class SchemaTupleClassGenerator {
             listOfFutureMethods.add(new MemorySizeString());
             listOfFutureMethods.add(new GetSchemaTupleIdentifierString(id));
             listOfFutureMethods.add(new GetSchemaStringString(s));
-            listOfFutureMethods.add(new SizeString());
+            listOfFutureMethods.add(new HashCode());
             listOfFutureMethods.add(new SizeNoAppendString());
             listOfFutureMethods.add(new GetTypeString());
             listOfFutureMethods.add(new CompareToString(nextNestedSchemaIdForCompareTo, id));
@@ -1192,6 +1177,7 @@ public class SchemaTupleClassGenerator {
                     .append("import org.apache.pig.data.Tuple;\n")
                     .append("import org.apache.pig.data.SchemaTuple;\n")
                     .append("import org.apache.pig.data.utils.SedesHelper;\n")
+                    .append("import org.apache.pig.data.utils.BytesHelper;\n")
                     .append("import org.apache.pig.data.DataByteArray;\n")
                     .append("import org.apache.pig.data.BinInterSedes;\n")
                     .append("import org.apache.pig.impl.util.Utils;\n")

@@ -136,7 +136,19 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
     public abstract int sizeNoAppend();
     public abstract void setNull(int fieldNum) throws ExecException;
     public abstract SchemaTuple set(SchemaTuple t, boolean checkType) throws ExecException;
-    public abstract SchemaTuple setSpecific(T t);
+
+    @Override
+    public int size() {
+        return sizeNoAppend() + appendSize();
+    }
+
+    //NOTE: this MUST be overriden by the generic code! This is simply to help out
+    public SchemaTuple setSpecific(T t) {
+        appendReset();
+        setAppend(t.getAppend());
+        updateLargestSetValue(size());
+        return this;
+    }
 
     //TODO consider if there should be a "strict" method that won't let you append? I'm thinking no
     //TODO also consider: if set is called on a tuple that is too small, instead just null out the extra fields in the SchemaTuple?
@@ -329,16 +341,19 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
     }
 
     public int compareTo(Tuple t) {
-         if (getClass() == t.getClass())
-            return compareToSpecific((T)t);
-
-        if (t instanceof SchemaTuple)
-            return compareTo((SchemaTuple)t, false);
-
-        return compareTo(t, false);
+         return compareTo(t, true);
     }
 
+    //TODO override this in the generated code as well
     public int compareTo(Tuple t, boolean checkType) {
+        if (checkType) {
+            if (getClass() == t.getClass())
+                return compareToSpecific((T)t);
+
+            if (t instanceof SchemaTuple)
+                return compareTo((SchemaTuple)t, false);
+        }
+
         int mySz = size();
         int tSz = t.size();
 
@@ -457,9 +472,161 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
         return new Boolean(v);
     }
 
+    public static int hashCodePiece(int hash, int v, boolean isNull) {
+        return isNull ? 0 : 31 * hash + v;
+    }
+
+    public static int hashCodePiece(int hash, long v, boolean isNull) {
+        return isNull ? 0 : 31 * hash + (int)(v^(v>>>32));
+    }
+
+    public static int hashCodePiece(int hash, float v, boolean isNull) {
+        return isNull ? 0 : 31 * hash + Float.floatToIntBits(v);
+    }
+
+    public static int hashCodePiece(int hash, double v, boolean isNull) {
+        long v2 = Double.doubleToLongBits(v)
+        return isNull ? 0 : 31 * hash + (int)(v2^(v2>>>32));
+    }
+
+    public static int hashCodePiece(int hash, boolean v, boolean isNull) {
+        return isNull ? 0 : 31 * hash + (v ? 1231 : 1237);
+    }
+
+    public static int hashCodePiece(int hash, byte[] v, boolean isNull) {
+        return isNull ? 0 : 31 * hash + DataByteArray.hashCode(v);
+    }
+
+    public static int hashCodePiece(int hash, String v, boolean isNull) {
+        return isNull ? 0 : 31 * hash + v.hashCode();
+    }
+
+    public static int hashCodePiece(int hash, Tuple v, boolean isNull) {
+        return isNull ? 0 : 31 * hash + v.hashCode();
+    }
+
     @Override
     public int hashCode() {
         throw new RuntimeException("IMPLEMENT HASHCODE");
     }
+
+    //this is intended to be overriden by the generated code
+    public void genericSetString(int fieldNum, Object val) throws ExecException {
+        int diff = fieldNum - sizeNoAppend();
+        if (diff < appendSize()) {
+            setAppend(diff, val);
+            break;
+        }
+        throw new ExecException("Invalid index " + fieldNum + " given");
+    }
+
+    //this is intended to be overriden by the generated code
+    public Object get(int fieldNum) throws ExecException {
+        int diff = fieldNum - sizeNoAppend();
+        if (diff < appendSize())
+            return getAppend(diff);
+        throw new ExecException("Invalid index " + fieldNum + " given");
+    }
+
+    //this is intended to be overriden by the generated code
+    public boolean isNull(int fieldNum) throws ExecException {
+        int diff = fieldNum - sizeNoAppend();
+        if (diff < appendSize())
+            return appendIsNull(diff);
+        throw new ExecException("Invalid index " + fieldNum + " given");
+    }
+
+    //this is intended to be overriden by the generated code
+    public void setNull(int fieldNum) throws ExecException {
+        int diff = fieldNum - sizeNoAppend();
+        if (diff < appendSize()) {
+            setAppend(diff, null);
+        } else {
+            throw new ExecException("Invalid index " + fieldNum + " given");
+        }
+    }
+
+    //this is intended to be overriden by the generated code
+    public void getType(int fieldNum) throws ExecException {
+        int diff = fieldNum - sizeNoAppend();
+        if (diff < appendSize())
+            return appendType(diff);
+        throw new ExecException("Invalid index " + fieldNum + " given");
+    }
+
+    private void setPrimitiveBase(int fieldNum, Object val, String type) throws ExecException {
+        int diff = fieldNum - sizeNoAppend();
+        if (diff < appendSize()) {
+            setAppend(diff, val);
+        }
+        throw new ExecException("Given field " + fieldNum + " not a " + type + " field!");
+    }
+
+    private Object getPrimitiveBase(int fieldNum, String type) throws ExecException {
+        int diff = fieldNum - sizeNoAppend();
+        if (diff < appendSize()) {
+            return getAppend(diff);
+        }
+        throw new ExecException("Given field " + fieldNum + " not a " + type + " field!");
+    }
+
+    public void setInt(int fieldNum, int val) throws ExecException {
+        setPrimitiveBase(fieldNum, val, "int");
+    }
+
+    public void setLong(int fieldNum, long val) throws ExecException {
+        setPrimitiveBase(fieldNum, val, "long");
+    }
+
+    public void setFloat(int fieldNum, float val) throws ExecException {
+        setPrimitiveBase(fieldNum, val, "float");
+    }
+
+    public void setDouble(int fieldNum, double val) throws ExecException {
+        setPrimitiveBase(fieldNum, val, "double");
+    }
+
+    public void setBoolean(int fieldNum, boolean val) throws ExecException {
+        setPrimitiveBase(fieldNum, val, "boolean");
+    }
+
+    public void setString(int fieldNum, String val) throws ExecException {
+        setPrimitiveBase(fieldNum, val, "String");
+    }
+
+    public void setBytes(int fieldNum, byte[] val) throws ExecException {
+        setPrimitiveBase(fieldNum, val, "byte[]");
+    }
+
+    public int getInt(int fieldNum) throws ExecException {
+        return getPrimitiveBase(fieldNum, "int");
+    }
+
+    public long getLong(int fieldNum) throws ExecException {
+        return getPrimitiveBase(fieldNum, "long");
+    }
+
+    public float getFloat(int fieldNum) throws ExecException {
+        return getPrimitiveBase(fieldNum, "float");
+    }
+
+    public double getDouble(int fieldNum) throws ExecException {
+        int diff = fieldNum - sizeNoAppend();
+        if (diff < appendSize()) {
+            return getAppend(diff);
+        }
+        throw new ExecException("Given field " + fieldNum + " not a double field!");
+    }
+
+    public boolean getBoolean(int fieldNum) throws ExecException {
+        int diff = fieldNum - sizeNoAppend();
+        if (diff < appendSize()) {
+            return getAppend(diff);
+        }
+        throw new ExecException("Given field " + fieldNum + " not a boolean field!");
+    }
+
+
+
 
 }
