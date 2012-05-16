@@ -471,26 +471,41 @@ public class SchemaTupleClassGenerator {
             } else {
                 int nestedSchemaTupleId = idQueue.remove();
                 add("public void setPos_"+fieldPos+"(SchemaTuple_"+nestedSchemaTupleId+" t) {");
-                add("    if (pos_"+fieldPos+" == null)");
+                add("    if (pos_"+fieldPos+" == null) {");
                 add("        pos_"+fieldPos+" = new SchemaTuple_"+nestedSchemaTupleId+"();");
+                add("    }");
                 add("    pos_"+fieldPos+".setSpecific(t);");
                 add("    updateLargestSetValue("+fieldPos+");");
                 add("}");
                 addBreak();
                 add("public void setPos_"+fieldPos+"(SchemaTuple t) {");
-                add("    if (pos_"+fieldPos+" == null)");
+                add("    if (pos_"+fieldPos+" == null) {");
                 add("        pos_"+fieldPos+" = new SchemaTuple_"+nestedSchemaTupleId+"();");
-                add("    pos_" + fieldPos + ".setAndCatch(t);");
+                add("    }");
+                add("    pos_" + fieldPos + ".publicSetAndCatch(t);");
                 add("    updateLargestSetValue("+fieldPos+");");
                 add("}");
                 addBreak();
                 add("public void setPos_"+fieldPos+"(Tuple t) {");
-                add("    if (pos_"+fieldPos+" == null)");
+                add("    if (pos_"+fieldPos+" == null) {");
                 add("        pos_"+fieldPos+" = new SchemaTuple_"+nestedSchemaTupleId+"();");
-                add("    pos_" + fieldPos + ".setAndCatch(t);");
+                add("    }");
+                add("    pos_" + fieldPos + ".publicSetAndCatch(t);");
                 add("    updateLargestSetValue("+fieldPos+");");
                 add("}");
             }
+            addBreak();
+        }
+
+        // these methods just serve as a protected proxy for for the protected methods they wrap
+        public void end() {
+            add("public void publicSetAndCatch(Tuple t) {");
+            add("    super.setAndCatch(t);");
+            add("}");
+            addBreak();
+            add("public void publicSetAndCatch(SchemaTuple t) {");
+            add("    super.setAndCatch(t);");
+            add("}");
             addBreak();
         }
 

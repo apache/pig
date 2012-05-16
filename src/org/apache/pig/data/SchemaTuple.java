@@ -250,29 +250,27 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
         t.writeElements(out);
     }
 
-    public static int read(DataInput in, int v) throws IOException {
+    protected static int read(DataInput in, int v) throws IOException {
         return SedesHelper.Varint.readSignedVarInt(in);
-        //return in.readInt();
     }
 
-    public static long read(DataInput in, long v) throws IOException {
+    protected static long read(DataInput in, long v) throws IOException {
         return SedesHelper.Varint.readSignedVarLong(in);
-        //return in.readLong();
     }
 
-    public static float read(DataInput in, float v) throws IOException {
+    protected static float read(DataInput in, float v) throws IOException {
         return in.readFloat();
     }
 
-    public static double read(DataInput in, double v) throws IOException {
+    protected static double read(DataInput in, double v) throws IOException {
         return in.readDouble();
     }
 
-    public static String read(DataInput in, String v) throws IOException {
+    protected static String read(DataInput in, String v) throws IOException {
         return SedesHelper.readChararray(in, in.readByte());
     }
 
-    public static byte[] read(DataInput in, byte[] v) throws IOException {
+    protected static byte[] read(DataInput in, byte[] v) throws IOException {
         return SedesHelper.readBytes(in, in.readByte());
     }
 
@@ -402,124 +400,124 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
         return (compareTo(other) == 0);
     }
 
-    public static byte[] unbox(Object v, byte[] t) {
+    protected byte[] unbox(Object v, byte[] t) {
         return unbox((DataByteArray)v);
     }
 
-    public static int unbox(Object v, int t) {
+    protected int unbox(Object v, int t) {
         return unbox((Integer)v);
     }
 
-    public static long unbox(Object v, long t) {
+    protected long unbox(Object v, long t) {
         return unbox((Long)v);
     }
 
-    public static float unbox(Object v, float t) {
+    protected float unbox(Object v, float t) {
         return unbox((Float)v);
     }
 
-    public static double unbox(Object v, double t) {
+    protected double unbox(Object v, double t) {
         return unbox((Double)v);
     }
 
-    public static boolean unbox(Object v, boolean t) {
+    protected boolean unbox(Object v, boolean t) {
         return unbox((Boolean)v);
     }
 
-    public static String unbox(Object v, String t) {
+    protected String unbox(Object v, String t) {
         return (String)v;
     }
 
-    public static byte[] unbox(DataByteArray v) {
+    protected byte[] unbox(DataByteArray v) {
         if (v == null)
             return null;
         return v.get();
     }
 
-    public static int unbox(Integer v) {
+    protected int unbox(Integer v) {
         return v.intValue();
     }
 
-    public static long unbox(Long v) {
+    protected long unbox(Long v) {
         return v.longValue();
     }
 
-    public static float unbox(Float v) {
+    protected float unbox(Float v) {
         return v.floatValue();
     }
 
-    public static double unbox(Double v) {
+    protected double unbox(Double v) {
         return v.doubleValue();
     }
 
-    public static boolean unbox(Boolean v) {
+    protected boolean unbox(Boolean v) {
         return v.booleanValue();
     }
 
-    public static DataByteArray box(byte[] v) {
+    protected DataByteArray box(byte[] v) {
         if (v == null)
             return null;
         return new DataByteArray(v);
     }
 
-    public static String box(String v) {
+    protected String box(String v) {
         return v;
     }
 
-    public static Tuple box(Tuple t) {
+    protected Tuple box(Tuple t) {
         return t;
     }
 
-    public static Integer box(int v) {
+    protected Integer box(int v) {
         return new Integer(v);
     }
 
-    public static Long box(long v) {
+    protected Long box(long v) {
         return new Long(v);
     }
 
-    public static Float box(float v) {
+    protected Float box(float v) {
         return new Float(v);
     }
 
-    public static Double box(double v) {
+    protected Double box(double v) {
         return new Double(v);
     }
 
-    public static Boolean box(boolean v) {
+    protected Boolean box(boolean v) {
         return new Boolean(v);
     }
 
-    public static int hashCodePiece(int hash, int v, boolean isNull) {
+    protected int hashCodePiece(int hash, int v, boolean isNull) {
         return isNull ? 0 : 31 * hash + v;
     }
 
-    public static int hashCodePiece(int hash, long v, boolean isNull) {
+    protected int hashCodePiece(int hash, long v, boolean isNull) {
         return isNull ? 0 : 31 * hash + (int)(v^(v>>>32));
     }
 
-    public static int hashCodePiece(int hash, float v, boolean isNull) {
+    protected int hashCodePiece(int hash, float v, boolean isNull) {
         return isNull ? 0 : 31 * hash + Float.floatToIntBits(v);
     }
 
-    public static int hashCodePiece(int hash, double v, boolean isNull) {
+    protected int hashCodePiece(int hash, double v, boolean isNull) {
         long v2 = Double.doubleToLongBits(v);
         return isNull ? 0 : 31 * hash + (int)(v2^(v2>>>32));
     }
 
-    public static int hashCodePiece(int hash, boolean v, boolean isNull) {
+    protected int hashCodePiece(int hash, boolean v, boolean isNull) {
         return isNull ? 0 : 31 * hash + (v ? 1231 : 1237);
     }
 
-    public static int hashCodePiece(int hash, byte[] v, boolean isNull) {
+    protected int hashCodePiece(int hash, byte[] v, boolean isNull) {
         return isNull ? 0 : 31 * hash + DataByteArray.hashCode(v);
     }
 
-    public static int hashCodePiece(int hash, String v, boolean isNull) {
+    protected int hashCodePiece(int hash, String v, boolean isNull) {
         return isNull ? 0 : 31 * hash + v.hashCode();
     }
 
-    public static int hashCodePiece(int hash, Tuple v, boolean isNull) {
+    protected int hashCodePiece(int hash, Tuple v, boolean isNull) {
         return isNull ? 0 : 31 * hash + v.hashCode();
     }
 
@@ -555,6 +553,7 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
     }
 
     //this is intended to be overriden by the generated code
+    //TODO: do we even need this?
     public void setNull(int fieldNum) throws ExecException {
         int diff = fieldNum - sizeNoAppend();
         if (diff < appendSize()) {
@@ -652,7 +651,7 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
         }
     }
 
-    public void setAndCatch(Tuple t) {
+    protected void setAndCatch(Tuple t) {
         try {
             set(t, false);
         } catch (ExecException e) {
@@ -660,7 +659,7 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
         }
     }
 
-    public void setAndCatch(SchemaTuple t) {
+    protected void setAndCatch(SchemaTuple t) {
         try {
             set(t, false);
         } catch (ExecException e) {
