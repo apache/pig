@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2702: Make Pig local mode (and tests) faster by working around the hard coded sleep(5000) in hadoop's JobControl (julien)
+
 PIG-2659: add source location of the aliases in the physical plan (julien)
 
 PIG-2547: Easier UDFs: Convenient EvalFunc super-classes (billgraham, dvryaboy)
