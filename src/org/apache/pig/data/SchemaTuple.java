@@ -50,10 +50,11 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
 
     private int largestSetValue = -1; //this exists so that append will have a reasonable semantic for an empty Schematuple
 
-    public void updateLargestSetValue(int fieldNum) {
+    protected void updateLargestSetValue(int fieldNum) {
         largestSetValue = Math.max(fieldNum, largestSetValue);
     }
 
+    @Override
     public void append(Object val) {
         if (++largestSetValue < sizeNoAppend()) {
             try {
@@ -64,39 +65,39 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
             return;
         }
 
-        if (append == null)
+        if (append == null) {
             append = mTupleFactory.newTuple();
+        }
 
         append.append(val);
-        updateLargestSetValue(size());
     }
 
-    public int appendSize() {
+    protected int appendSize() {
         return append == null ? 0 : append.size();
     }
 
-    public boolean appendIsNull() {
+    protected boolean appendIsNull() {
         return appendSize() == 0;
     }
 
-    public Object getAppend(int i) throws ExecException {
+    protected Object getAppend(int i) throws ExecException {
         return appendIsNull(i) ? null : append.get(i);
     }
 
-    public boolean appendIsNull(int i) throws ExecException {
+    private boolean appendIsNull(int i) throws ExecException {
         return append == null || append.isNull() ? null : append.isNull(i);
     }
 
-    public Tuple getAppend() {
+    protected Tuple getAppend() {
         return append;
     }
 
-    public void setAppend(Tuple t) {
+    protected void setAppend(Tuple t) {
         append = t;
         updateLargestSetValue(size());
     }
 
-    public void appendReset() {
+    private void appendReset() {
         append = null;
         largestSetValue = -1;
         for (int i = sizeNoAppend() - 1; i >= 0; i--) {
@@ -111,7 +112,7 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
         }
     }
 
-    public void setAppend(int fieldNum, Object val) throws ExecException {
+    private void setAppend(int fieldNum, Object val) throws ExecException {
         append.set(fieldNum, val);
         updateLargestSetValue(size());
     }
@@ -121,7 +122,7 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
         return 0;
     }
 
-    public byte appendType(int i) throws ExecException {
+    private byte appendType(int i) throws ExecException {
         return append == null ? DataType.UNKNOWN : append.getType(i);
     }
 
@@ -133,10 +134,10 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
     public abstract int getSchemaTupleIdentifier();
     public abstract void writeElements(DataOutput out) throws IOException;
     public abstract String getSchemaString();
-    public abstract int sizeNoAppend();
+    protected abstract int sizeNoAppend();
 
     //NOTE: this MUST be overriden by the generic code! This is simply to help out
-    public SchemaTuple set(SchemaTuple t, boolean checkType) throws ExecException {
+    protected SchemaTuple set(SchemaTuple t, boolean checkType) throws ExecException {
         appendReset();
         for (int j = sizeNoAppend(); j < t.size(); j++) {
             append(t.get(j));
@@ -151,7 +152,7 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
     }
 
     //NOTE: this MUST be overriden by the generic code! This is simply to help out
-    public SchemaTuple setSpecific(T t) {
+    protected SchemaTuple setSpecific(T t) {
         appendReset();
         setAppend(t.getAppend());
         updateLargestSetValue(size());
@@ -166,7 +167,7 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
         return set(t, true);
     }
 
-    public SchemaTuple set(Tuple t, boolean checkType) throws ExecException {
+    protected SchemaTuple set(Tuple t, boolean checkType) throws ExecException {
         if (checkType) {
             if (t.getClass() == getClass())
                 return setSpecific((T)t);
@@ -222,12 +223,10 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
 
     protected static void write(DataOutput out, int v) throws IOException {
         SedesHelper.Varint.writeSignedVarInt(v, out);
-        //out.writeInt(v);
     }
 
     protected static void write(DataOutput out, long v) throws IOException {
         SedesHelper.Varint.writeSignedVarLong(v, out);
-        //out.writeLong(v);
     }
 
     protected static void write(DataOutput out, float v) throws IOException {
@@ -351,7 +350,7 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
     }
 
     //TODO override this in the generated code as well
-    public int compareTo(Tuple t, boolean checkType) {
+    protected int compareTo(Tuple t, boolean checkType) {
         if (checkType) {
             if (getClass() == t.getClass())
                 return compareToSpecific((T)t);
@@ -391,9 +390,9 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
         return compareTo(t, false);
     }
 
-    public abstract int compareTo(SchemaTuple t, boolean checkType);
+    protected abstract int compareTo(SchemaTuple t, boolean checkType);
 
-    public abstract int compareToSpecific(T other);
+    protected abstract int compareToSpecific(T other);
 
     @Override
     public boolean equals(Object other) {

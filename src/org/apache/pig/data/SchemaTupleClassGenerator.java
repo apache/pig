@@ -40,7 +40,9 @@ import javax.tools.StandardLocation;
 //TODO: massLoad() should be based on a properties file in the jar that has all of the values I wrote to it
 //TODO: generate code for each unique tuple we get (don't strip on generation)
 
-//the benefit of having the generic here is that in the case that we do ".set(t)" and t is the right type, it will be very fast
+//TODO: could combine the isNull and the boolean byte... code complication may not be worth the 1 byte (at most) saving
+
+//the benefit of having the generic here is that in the case that we do ".set(t)" and t is the right type, it will be faster
 public class SchemaTupleClassGenerator {
     private static final Log LOG = LogFactory.getLog(SchemaTupleClassGenerator.class);
 
@@ -165,7 +167,7 @@ public class SchemaTupleClassGenerator {
         }
 
         public void prepare() {
-            add("public int compareToSpecific(SchemaTuple_"+id+" t) {");
+            add("protected int compareToSpecific(SchemaTuple_"+id+" t) {");
             add("    int i = appendSize() - t.appendSize();");
             add("    if (i != 0)");
             add("        return Math.abs(i);");
@@ -236,7 +238,7 @@ public class SchemaTupleClassGenerator {
 
         public void prepare() {
             add("@Override");
-            add("public int compareTo(SchemaTuple t, boolean checkType) {");
+            add("protected int compareTo(SchemaTuple t, boolean checkType) {");
             add("    if (checkType && t instanceof SchemaTuple_"+id+")");
             add("        return compareToSpecific((SchemaTuple_"+id+")t);");
             add("    int mySz = size();");
@@ -482,7 +484,7 @@ public class SchemaTupleClassGenerator {
                 add("    if (pos_"+fieldPos+" == null) {");
                 add("        pos_"+fieldPos+" = new SchemaTuple_"+nestedSchemaTupleId+"();");
                 add("    }");
-                add("    pos_" + fieldPos + ".publicSetAndCatch(t);");
+                add("    pos_" + fieldPos + ".proxySetAndCatch(t);");
                 add("    updateLargestSetValue("+fieldPos+");");
                 add("}");
                 addBreak();
@@ -490,7 +492,7 @@ public class SchemaTupleClassGenerator {
                 add("    if (pos_"+fieldPos+" == null) {");
                 add("        pos_"+fieldPos+" = new SchemaTuple_"+nestedSchemaTupleId+"();");
                 add("    }");
-                add("    pos_" + fieldPos + ".publicSetAndCatch(t);");
+                add("    pos_" + fieldPos + ".proxySetAndCatch(t);");
                 add("    updateLargestSetValue("+fieldPos+");");
                 add("}");
             }
@@ -499,11 +501,11 @@ public class SchemaTupleClassGenerator {
 
         // these methods just serve as a protected proxy for for the protected methods they wrap
         public void end() {
-            add("public void publicSetAndCatch(Tuple t) {");
+            add("public void proxySetAndCatch(Tuple t) {");
             add("    super.setAndCatch(t);");
             add("}");
             addBreak();
-            add("public void publicSetAndCatch(SchemaTuple t) {");
+            add("public void proxySetAndCatch(SchemaTuple t) {");
             add("    super.setAndCatch(t);");
             add("}");
             addBreak();
@@ -669,7 +671,7 @@ public class SchemaTupleClassGenerator {
 
         public void prepare() {
             add("@Override");
-            add("public SchemaTuple setSpecific(SchemaTuple_"+id+" t) {");
+            add("protected SchemaTuple setSpecific(SchemaTuple_"+id+" t) {");
         }
 
         public void process(int fieldPos, Schema.FieldSchema fs) {
@@ -919,7 +921,7 @@ public class SchemaTupleClassGenerator {
 
         public void end() {
             add("@Override");
-            add("public int sizeNoAppend() {");
+            add("protected int sizeNoAppend() {");
             add("    return " + i + ";");
             add("}");
             addBreak();
@@ -971,7 +973,7 @@ public class SchemaTupleClassGenerator {
 
         public void prepare() {
             add("@Override");
-            add("public SchemaTuple set(SchemaTuple t, boolean checkClass) throws ExecException {");
+            add("protected SchemaTuple set(SchemaTuple t, boolean checkClass) throws ExecException {");
             add("    if (checkClass && t instanceof SchemaTuple_"+id+")");
             add("        return setSpecific((SchemaTuple_"+id+")t);");
             addBreak();
