@@ -399,15 +399,16 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
     @MustOverride
     protected int compareTo(SchemaTuple t, boolean checkType) {
         if (appendSize() > 0) {
+            int i;
             int m = sizeNoAppend();
             for (int k = 0; k < size() - sizeNoAppend(); k++) {
                 try {
-                    int i = DataType.compare(getAppend(k), t.get(m++));
-                    if (i != 0) {
-                        return i;
-                    }
+                    i = DataType.compare(getAppend(k), t.get(m++));
                 } catch (ExecException e) {
                     throw new RuntimeException("Unable to get append value", e);
+                }
+                if (i != 0) {
+                    return i;
                 }
             }
         }
@@ -415,7 +416,8 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
     }
 
     @MustOverride
-    protected int compareToSpecific(T other) {
+    protected int compareToSpecific(T t) {
+        int i;
         for (int z = 0; z < appendSize(); z++) {
             try {
                 i = DataType.compare(getAppend(z), t.getAppend(z));
@@ -460,6 +462,10 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
 
     protected String unbox(Object v, String t) {
         return (String)v;
+    }
+
+    protected Tuple unbox(Object v, Tuple t) {
+        return (Tuple)v;
     }
 
     protected byte[] unbox(DataByteArray v) {
@@ -703,7 +709,7 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
 
     protected void setAndCatch(Tuple t) {
         try {
-            set(t, false);
+            set(t);
         } catch (ExecException e) {
             throw new RuntimeException("Unable to set position 6 with Tuple: " + t, e);
         }
@@ -711,7 +717,7 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
 
     protected void setAndCatch(SchemaTuple t) {
         try {
-            set(t, false);
+            set(t);
         } catch (ExecException e) {
             throw new RuntimeException("Unable to set position 6 with Tuple: " + t, e);
         }
@@ -809,8 +815,13 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
     }
 
     protected int compareNull(boolean usNull, boolean themNull) {
-        if (usNull ^ themNull) {
-            return usNull ? -1 : 1;
+        if (usNull && themNull) {
+            return 2;
+        }
+        if (themNull) {
+            return 1;
+        } else if (usNull) {
+            return -1;
         }
         return 0;
     }
@@ -942,7 +953,7 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
         }
     }
 
-    protected int compare(SchemaTuple val, SchemaTuple themVal) {
+    protected int compare(SchemaTuple val, Object themVal) {
         return val.compareTo(themVal);
     }
 

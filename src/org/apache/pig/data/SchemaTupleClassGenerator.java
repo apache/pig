@@ -181,12 +181,16 @@ public class SchemaTupleClassGenerator {
 
         public void process(int fieldNum, Schema.FieldSchema fs) {
             add("    i = compareNull(checkIfNull_" + fieldNum + "(), t.checkIfNull_" + fieldNum + "());");
-            add("    if (i != 0) {
-            add("        return i;");
-            add("    }");
-            add("    i = compare(getPos_" + fieldNum + "(), t.getPos_" + fieldNum + "());");
-            add("    if (i != 0) {
-            add("        return i;");
+            add("    switch (i) {");
+            add("    case(1):");
+            add("        return 1;");
+            add("    case(-1):");
+            add("        return -1;");
+            add("    case(0):");
+            add("        i = compare(getPos_" + fieldNum + "(), t.getPos_" + fieldNum + "());");
+            add("        if (i != 0) {");
+            add("            return i;");
+            add("        }");
             add("    }");
         }
 
@@ -225,12 +229,16 @@ public class SchemaTupleClassGenerator {
 
         public void process(int fieldNum, Schema.FieldSchema fs) {
             add("    i = compareNull(checkIfNull_" + fieldNum + "(), t, " + fieldNum + ");");
-            add("    if (i != 0) {");
-            add("        return i;");
-            add("    }");
-            add("    i = compare(getPos_" + fieldNum + "(), t, " + fieldNum + ");");
-            add("    if (i != 0) {");
-            add("        return i;");
+            add("    switch (i) {");
+            add("    case(1):");
+            add("        return 1;");
+            add("    case(-1):");
+            add("        return -1;");
+            add("    case(0):");
+            add("        i = compare(getPos_" + fieldNum + "(), t, " + fieldNum + ");");
+            add("        if (i != 0) {");
+            add("            return i;");
+            add("        }");
             add("    }");
         }
 
@@ -395,18 +403,18 @@ public class SchemaTupleClassGenerator {
             add("            setNull_" + fieldPos + "(true);");
             add("            return;");
             add("        }");
-            if (!isTuple()) {
-                add("        setPos_"+fieldPos+"(unbox(val, getPos_"+fieldPos+"()));");
-            } else {
-                int nestedSchemaTupleId = idQueue.remove();
-                add("        if (val instanceof SchemaTuple_"+nestedSchemaTupleId+") {");
-                add("            setPos_"+fieldPos+"((SchemaTuple_"+nestedSchemaTupleId+")val);");
-                add("        } else if (val instanceof SchemaTuple) {");
-                add("            setPos_"+fieldPos+"((SchemaTuple)val);");
-                add("        } else {");
-                add("            setPos_"+fieldPos+"((Tuple)val);");
-                add("        }");
-            }
+            //if (!isTuple()) {
+            add("        setPos_"+fieldPos+"(unbox(val, getPos_"+fieldPos+"()));");
+            //} else {
+                //int nestedSchemaTupleId = idQueue.remove();
+                //add("        if (val instanceof SchemaTuple_"+nestedSchemaTupleId+") {");
+                //add("            setPos_"+fieldPos+"((SchemaTuple_"+nestedSchemaTupleId+")val);");
+                //add("        } else if (val instanceof SchemaTuple) {");
+                //add("            setPos_"+fieldPos+"((SchemaTuple)val);");
+                //add("        } else {");
+                //add("            setPos_"+fieldPos+"((Tuple)val);");
+                //add("        }");
+            //}
             add("        break;");
         }
 
