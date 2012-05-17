@@ -171,61 +171,27 @@ public class SchemaTupleClassGenerator {
         }
 
         public void prepare() {
+            add("@Override");
             add("protected int compareToSpecific(SchemaTuple_"+id+" t) {");
-            add("    int i = appendSize() - t.appendSize();");
-            add("    if (i != 0)");
-            add("        return Math.abs(i);");
-            add("    boolean themNull;");
-            add("    boolean usNull;");
+            add("    int i = compareSizeSpecific(t);");
+            add("    if (i != 0) {");
+            add("        return i;");
+            add("    }");
         }
 
         public void process(int fieldNum, Schema.FieldSchema fs) {
-            if (isPrimitive()) {
-                add("    themNull = checkIfNull_"+fieldNum+"();");
-                add("    usNull = t.checkIfNull_"+fieldNum+"();");
-            } else {
-                add("    themNull = pos_"+fieldNum+" == null;");
-                add("    usNull = pos_"+fieldNum+" == null;");
-            }
-            add("    if (usNull && !themNull) {");
-            add("        return 1;");
-            add("    } else if (!themNull) {");
-            if (isBoolean()) {
-                add("        i = ( getPos_"+fieldNum+"() ? 1 : 0 ) - ( t.getPos_"+fieldNum+"() ? 1 : 0 );");
-                add("        if (i != 0)");
-                add("            return i;");
-            } else if (isPrimitive()) {
-                add("        if (getPos_"+fieldNum+"() != t.getPos_"+fieldNum+"())");
-                add("            return getPos_"+fieldNum+"() > t.getPos_"+fieldNum+"() ? 1 : -1;");
-            } else if (isString()) {
-                add("        i = getPos_"+fieldNum+"().compareTo(t.getPos_"+fieldNum+"());");
-                add("        if (i != 0)");
-                add("            return i;");
-            } else if (isBytearray()) {
-                add("        i = DataByteArray.compare(getPos_"+fieldNum+"(), t.getPos_"+fieldNum+"());");
-                add("        if (i != 0)");
-                add("            return i;");
-            } else {
-                add("        i = pos_"+fieldNum+".compareTo(t.getPos_"+fieldNum+"());");
-                add("        if (i != 0)");
-                add("            return i;");
-            }
-            add("    } else {");
-            add("        return -1;");
+            add("    i = compareNull(checkIfNull_" + fieldNum + "(), t.checkIfNull_" + fieldNum + "());");
+            add("    if (i != 0) {
+            add("        return i;");
+            add("    }");
+            add("    i = compare(getPos_" + fieldNum + "(), t.getPos_" + fieldNum + "());");
+            add("    if (i != 0) {
+            add("        return i;");
             add("    }");
         }
 
         public void end() {
-            add("    for (int z = 0; z < appendSize(); z++) {");
-            add("        try {");
-            add("            i = DataType.compare(getAppend(z), t.getAppend(z));");
-            add("        } catch (ExecException e) {");
-            add("            throw new RuntimeException(\"Unable to get append\", e);");
-            add("        }");
-            add("        if (i != 0)");
-            add("            return i;");
-            add("    }");
-            add("    return 0;");
+            add("    return super.compareToSpecific(t);");
             add("}");
         }
     }

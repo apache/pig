@@ -414,7 +414,20 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
         return 0;
     }
 
-    protected abstract int compareToSpecific(T other);
+    @MustOverride
+    protected int compareToSpecific(T other) {
+        for (int z = 0; z < appendSize(); z++) {
+            try {
+                i = DataType.compare(getAppend(z), t.getAppend(z));
+            } catch (ExecException e) {
+                throw new RuntimeException("Unable to get append", e);
+            }
+            if (i != 0) {
+                return i;
+            }
+        }
+        return 0;
+    }
 
     @Override
     public boolean equals(Object other) {
@@ -795,6 +808,13 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
         }
     }
 
+    protected int compareNull(boolean usNull, boolean themNull) {
+        if (usNull ^ themNull) {
+            return usNull ? -1 : 1;
+        }
+        return 0;
+    }
+
     protected int compareNull(boolean usNull, Tuple t, int pos) {
         boolean themNull;
         try {
@@ -802,10 +822,7 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
         } catch (ExecException e) {
             throw new RuntimeException("Unable to check if position " + pos + " is null in Tuple: " + t, e);
         }
-        if (usNull ^ themNull) {
-            return usNull ? -1 : 1;
-        }
-        return 0;
+        return compareNull(usNull, themNull);
     }
 
     protected int compare(int val, SchemaTuple t, int pos) {
@@ -815,6 +832,10 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
         } catch (ExecException e) {
             throw new RuntimeException("Unable to retrieve int field " + pos + " in given Tuple: " + t, e);
         }
+        return compare(val, themVal);
+    }
+
+    protected int compare(int val, int themVal) {
         if (val != themVal) {
             return val > themVal ? 1 : -1;
         }
@@ -828,6 +849,10 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
         } catch (ExecException e) {
             throw new RuntimeException("Unable to retrieve long field " + pos + " in given Tuple: " + t, e);
         }
+        return compare(val, themVal);
+    }
+
+    protected int compare(long val, long themVal) {
         if (val != themVal) {
             return val > themVal ? 1 : -1;
         }
@@ -841,6 +866,10 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
         } catch (ExecException e) {
             throw new RuntimeException("Unable to retrieve float field " + pos + " in given Tuple: " + t, e);
         }
+        return compare(val, themVal);
+    }
+
+    public int compare(float val, float themVal) {
         if (val != themVal) {
             return val > themVal ? 1 : -1;
         }
@@ -854,6 +883,10 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
         } catch (ExecException e) {
             throw new RuntimeException("Unable to retrieve double field " + pos + " in given Tuple: " + t, e);
         }
+        return compare(val, themVal);
+    }
+
+    protected int compare(double val, double themVal) {
         if (val != themVal) {
             return val > themVal ? 1 : -1;
         }
@@ -867,6 +900,10 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
         } catch (ExecException e) {
             throw new RuntimeException("Unable to retrieve boolean field " + pos + " in given Tuple: " + t, e);
         }
+        return compare(val, themVal);
+    }
+
+    protected int compare(boolean val, boolean themVal) {
         if (val ^ themVal) {
             return val ? 1 : -1;
         }
@@ -875,26 +912,47 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
 
     protected int compare(byte[] val, SchemaTuple t, int pos) {
         try {
-            return DataByteArray.compare(val, t.getBytes(pos));
+            return compare(val, t.getBytes(pos));
         } catch (ExecException e) {
             throw new RuntimeException("Unable to retrieve boolean field " + pos + " in given Tuple: " + t, e);
         }
+    }
+
+    protected int compare(byte[] val, byte[] themVal) {
+        return DataByteArray.compare(val, themVal);
     }
 
     protected int compare(String val, SchemaTuple t, int pos) {
         try {
-            return val.compareTo(t.getString(pos));
+            return compare(val, t.getString(pos));
         } catch (ExecException e) {
             throw new RuntimeException("Unable to retrieve boolean field " + pos + " in given Tuple: " + t, e);
         }
     }
 
+    protected int compare(String val, String themVal) {
+        return val.compareTo(themVal);
+    }
+
     protected int compare(SchemaTuple val, SchemaTuple t, int pos) {
         try {
-            return val.compareTo(t.get(pos));
+            return compare(val, t.get(pos));
         } catch (ExecException e) {
             throw new RuntimeException("Unable to retrieve boolean field " + pos + " in given Tuple: " + t, e);
         }
+    }
+
+    protected int compare(SchemaTuple val, SchemaTuple themVal) {
+        return val.compareTo(themVal);
+    }
+
+    protected int compareSizeSpecific(T t) {
+        int mySz = appendSize();
+        int tSz = t.appendSize();
+        if (mySz != tSz) {
+            return mySz > tSz ? 1 : -1;
+        }
+        return 0;
     }
 
 }
