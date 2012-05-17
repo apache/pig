@@ -58,7 +58,7 @@ public abstract class PrimitiveFieldTuple implements TypeAwareTuple {
             out.writeByte(BinInterSedes.PINT_TUPLE);
             out.writeBoolean(isSet);
             if (isSet) {
-                out.writeInt(getInteger(0));
+                out.writeInt(getInt(0));
             }
             break;
         case DataType.FLOAT:
@@ -251,7 +251,7 @@ public abstract class PrimitiveFieldTuple implements TypeAwareTuple {
      * {@link PStringTuple} should override as appropriate.
      */
     @Override
-    public Integer getInteger(int idx) throws ExecException {
+    public void setBytes(int idx, byte[] val) throws ExecException {
         throw new ExecException("This operation is not supported.");
     }
 
@@ -260,7 +260,7 @@ public abstract class PrimitiveFieldTuple implements TypeAwareTuple {
      * {@link PStringTuple} should override as appropriate.
      */
     @Override
-    public Long getLong(int idx) throws ExecException {
+    public int getInt(int idx) throws ExecException {
         throw new ExecException("This operation is not supported.");
     }
 
@@ -269,7 +269,7 @@ public abstract class PrimitiveFieldTuple implements TypeAwareTuple {
      * {@link PStringTuple} should override as appropriate.
      */
     @Override
-    public Float getFloat(int idx) throws ExecException {
+    public long getLong(int idx) throws ExecException {
         throw new ExecException("This operation is not supported.");
     }
 
@@ -278,7 +278,16 @@ public abstract class PrimitiveFieldTuple implements TypeAwareTuple {
      * {@link PStringTuple} should override as appropriate.
      */
     @Override
-    public Double getDouble(int idx) throws ExecException {
+    public float getFloat(int idx) throws ExecException {
+        throw new ExecException("This operation is not supported.");
+    }
+
+    /**
+     * These methods blow up by default. Individual implementations, such as
+     * {@link PStringTuple} should override as appropriate.
+     */
+    @Override
+    public double getDouble(int idx) throws ExecException {
         throw new ExecException("This operation is not supported.");
     }
 
@@ -296,7 +305,16 @@ public abstract class PrimitiveFieldTuple implements TypeAwareTuple {
      * {@link PStringTuple} should override as appropriate.
      */
     @Override
-    public Boolean getBoolean(int idx) throws ExecException {
+    public boolean getBoolean(int idx) throws ExecException {
+        throw new ExecException("This operation is not supported.");
+    }
+
+    /**
+     * These methods blow up by default. Individual implementations, such as
+     * {@link PStringTuple} should override as appropriate.
+     */
+    @Override
+    public byte[] getBytes(int idx) throws ExecException {
         throw new ExecException("This operation is not supported.");
     }
 

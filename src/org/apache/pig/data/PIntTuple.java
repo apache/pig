@@ -7,6 +7,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigWarning;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.util.LogUtils;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 import com.google.common.collect.Lists;
 
@@ -21,6 +22,12 @@ public class PIntTuple extends PrimitiveFieldTuple {
     public PIntTuple(int i) {
         val = i;
         isSet = true;
+    }
+
+    private static Schema s = new Schema(new Schema.FieldSchema(null, DataType.INTEGER));
+
+    public Schema getSchema() {
+        return s;
     }
 
     @Override
@@ -87,7 +94,7 @@ public class PIntTuple extends PrimitiveFieldTuple {
     }
 
     @Override
-    public Integer getInteger(int pos) throws ExecException {
+    public int getInt(int pos) throws ExecException {
         if (pos != 0) throw new ExecException("Only 1 field in primitive tuples.");
         return isSet ? val : null;
     }

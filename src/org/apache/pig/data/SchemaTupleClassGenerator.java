@@ -25,6 +25,8 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.tools.pigstats.ScriptState;
 import org.apache.pig.scripting.ScriptEngine;
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -43,6 +45,8 @@ import javax.tools.StandardLocation;
 //TODO: could combine the isNull and the boolean byte... code complication may not be worth the 1 byte (at most) saving
 
 //the benefit of having the generic here is that in the case that we do ".set(t)" and t is the right type, it will be faster
+@InterfaceAudience.Private
+@InterfaceStability.Unstable
 public class SchemaTupleClassGenerator {
     private static final Log LOG = LogFactory.getLog(SchemaTupleClassGenerator.class);
 
@@ -239,17 +243,15 @@ public class SchemaTupleClassGenerator {
         public void prepare() {
             add("@Override");
             add("protected int compareTo(SchemaTuple t, boolean checkType) {");
-            add("    if (checkType && t instanceof SchemaTuple_"+id+")");
+            add("    if (checkType && t instanceof SchemaTuple_"+id+") {");
             add("        return compareToSpecific((SchemaTuple_"+id+")t);");
-            add("    int mySz = size();");
-            add("    int tSz = t.size();");
-            add("    if (mySz > tSz) {");
-            add("        return 1;");
-            add("    } else if (mySz < tSz) {");
-            add("        return -1;");
-            add("    } else {");
-            add("        int i = 0;");
-            add("        boolean themNull;");
+            add("    }");
+            add("    {");
+            add("        int i = compareSize(t);");
+            add("        if (i != 0) {");
+            add("            return i;");
+            add("        }");
+            add("    }");
         }
 
         boolean compTup = false;
@@ -258,118 +260,22 @@ public class SchemaTupleClassGenerator {
         boolean compByte = false;
 
         public void process(int fieldNum, Schema.FieldSchema fs) {
-            if (!compIsNull) {
-                add("        boolean compIsNull = false;");
-                compIsNull = true;
-            }
-            add("        try {");
-            add("            themNull = t.isNull("+fieldNum+");");
-            add("        } catch (ExecException e) {");
-            add("            throw new RuntimeException(\"Unable to see if field is null for field: "+fieldNum+"\", e);");
+            add("    {");
+            add("        int i = compareNull(checkIfNull_" + fieldNum + "(), t.isNull(" + fieldNum + "));");
+            add("        if (i != 0) {");
+            add("            return i;");
             add("        }");
-            if (isPrimitive()) {
-                add("        if (checkIfNull_"+fieldNum+"() && !themNull) {");
-                add("            return -1;");
-                add("        } else if (!checkIfNull_"+fieldNum+"() && themNull) {");
-                add("            return 1;");
-                add("        } else if (!checkIfNull_"+fieldNum+"() && !themNull) {");
-                String s = typeName();
-                s = s.substring(0,1).toUpperCase() + s.substring(1);
-                add("            try {");
-                add("                if (getPos_"+fieldNum+"() != t.get"+s+"("+fieldNum+"))");
-                if (isBoolean())
-                    add("                    return getPos_"+fieldNum+"() ? 1 : -1 ;");
-                else
-                    add("                    return getPos_"+fieldNum+"() > t.get"+s+"("+fieldNum+") ? 1 : -1 ;");
-                add("            } catch (ExecException e) {");
-                add("                throw new RuntimeException(\"Unable to retrieve field "+fieldNum+" in given Tuple: \" + t, e);");
-                add("            }");
-                add("        }");
-            } else if (isString()) {
-                if (!compStr) {
-                   add("            String str;");
-                   compStr = true;
-                }
-                add("        try {");
-                add("            str = t.getString("+fieldNum+");");
-                add("        } catch (ExecException e) {");
-                add("            throw new RuntimeException(\"Failed to retrieve String field "+fieldNum+" in tuple: \" + t, e);");
-                add("        }");
-                add("        compIsNull = str == null || themNull;");
-                add("        if (pos_"+fieldNum+" == null && !compIsNull) {");
-                add("            return -1;");
-                add("        } else if (!compIsNull) {");
-                add("            i = pos_"+fieldNum+".compareTo(str);");
-                add("            if (i != 0)");
-                add("                return i;");
-                add("        } else if (pos_"+fieldNum+" != null) {");
-                add("            return 1;");
-                add("        }");
-            } else if (isBytearray()) {
-                if (!compByte) {
-                    add("        byte[] compBuf;");
-                    compByte = true;
-                }
-                add("        try {");
-                add("            compBuf = t.getBytes("+fieldNum+");");
-                add("        } catch (ExecException e) {");
-                add("            throw new RuntimeException(\"Failed to retrieve byte[] field "+fieldNum+" in tuple: \" + t, e);");
-                add("        }");
-                add("        compIsNull = compBuf == null || themNull;");
-                add("        if (pos_"+fieldNum+" == null && !compIsNull) {");
-                add("            return -1;");
-                add("        } else if (!compIsNull) {");
-                add("            i = new DataByteArray(pos_"+fieldNum+").compareTo(new DataByteArray(compBuf));");
-                add("            if (i != 0)");
-                add("                return i;");
-                add("        } else if (pos_"+fieldNum+" != null) {");
-                add("            return 1;");
-                add("        }");
-            } else if (isTuple()) {
-                int nestedSchemaTupleId = nextNestedSchemaIdForCompareTo.remove();
-                if (!compTup) {
-                    add("        Tuple tup;");
-                    compTup = true;
-                }
-                add("        try {");
-                add("            tup = (Tuple)t.get("+fieldNum+");");
-                add("        } catch (ExecException e) {");
-                add("            throw new RuntimeException(\"Unable to retrieve expected field "+fieldNum+" from Tuple: \" + t, e);");
-                add("        }");
-                add("        compIsNull = tup == null || themNull;");
-                add("        if (pos_"+fieldNum+" == null && !compIsNull) {");
-                add("            return -1;");
-                add("        } else if (!compIsNull) {");
-                add("            if (tup instanceof SchemaTuple_"+nestedSchemaTupleId+") {");
-                add("                i = pos_"+fieldNum+".compareToSpecific((SchemaTuple_"+nestedSchemaTupleId+")tup);");
-                add("            } else if (tup instanceof SchemaTuple) {");
-                add("                i = pos_"+fieldNum+".compareTo((SchemaTuple)tup, false);");
-                add("            } else {");
-                add("                i = pos_"+fieldNum+".compareTo(tup);");
-                add("            }");
-                add("            if (i != 0)");
-                add("                return i;");
-                add("        } else {");
-                add("            return 1;");
-                add("        }");
-            }
+            add("    }");
+            add("    {");
+            add("        int i = compare(getPos_" + fieldNum + "(), t, " + fieldNum + ");");
+            add("        if (i != 0) {");
+            add("            return i;");
+            add("        }");
+            add("    }");
         }
 
         public void end() {
-            add("        if (sizeNoAppend() < size()) {");
-            add("            int m = sizeNoAppend();");
-            add("            for (int k = 0; k < size() - sizeNoAppend(); k++) {");
-            add("                try {");
-            add("                    i = DataType.compare(getAppend(k), t.get(m++));");
-            add("                } catch (ExecException e) {");
-            add("                    throw new RuntimeException(\"Unable to get append value\", e);");
-            add("                }");
-            add("                if (i != 0)");
-            add("                    return i;");
-            add("            }");
-            add("        }");
-            add("    }");
-            add("    return 0;");
+            add("    return super.compareTo(t, false);");
             add("}");
         }
     }
@@ -473,10 +379,7 @@ public class SchemaTupleClassGenerator {
             } else {
                 int nestedSchemaTupleId = idQueue.remove();
                 add("public void setPos_"+fieldPos+"(SchemaTuple_"+nestedSchemaTupleId+" t) {");
-                add("    if (pos_"+fieldPos+" == null) {");
-                add("        pos_"+fieldPos+" = new SchemaTuple_"+nestedSchemaTupleId+"();");
-                add("    }");
-                add("    pos_"+fieldPos+".setSpecific(t);");
+                add("    pos_" + fieldPos + " = t;");
                 add("    updateLargestSetValue("+fieldPos+");");
                 add("}");
                 addBreak();
@@ -567,13 +470,11 @@ public class SchemaTupleClassGenerator {
         }
 
         public void process(int fieldPos, Schema.FieldSchema fs) {
-            add("    case ("+fieldPos+"):");
-            add("        return checkIfNull_"+fieldPos+"() ? null : box(getPos_"+fieldPos+"());");
+            add("    case ("+fieldPos+"): return checkIfNull_"+fieldPos+"() ? null : box(getPos_"+fieldPos+"());");
         }
 
         public void end() {
-            add("    default:");
-            add("        return super.get(fieldNum);");
+            add("    default: return super.get(fieldNum);");
             add("    }");
             add("}");
         }
@@ -587,13 +488,11 @@ public class SchemaTupleClassGenerator {
         }
 
         public void process(int fieldPos, Schema.FieldSchema fs) {
-            add("    case ("+fieldPos+"):");
-            add("        return checkIfNull_"+fieldPos+"();");
+            add("    case ("+fieldPos+"): return checkIfNull_"+fieldPos+"();");
         }
 
         public void end() {
-            add("    default:");
-            add("        return super.isNull(fieldNum);");
+            add("    default: return super.isNull(fieldNum);");
             add("    }");
             add("}");
         }
@@ -607,14 +506,11 @@ public class SchemaTupleClassGenerator {
         }
 
         public void process(int fieldPos, Schema.FieldSchema fs) {
-            add("    case ("+fieldPos+"):");
-            add("        setNull_"+fieldPos+"(true);");
-            add("        break;");
+            add("    case ("+fieldPos+"): setNull_"+fieldPos+"(true); break;");
         }
 
         public void end() {
-            add("    default:");
-            add("        super.setNull(fieldNum);");
+            add("    default: super.setNull(fieldNum);");
             add("    }");
             add("}");
         }
@@ -675,10 +571,12 @@ public class SchemaTupleClassGenerator {
         }
 
         public void process(int fieldPos, Schema.FieldSchema fs) {
-            add("    setPos_"+fieldPos+"(t.getPos_"+fieldPos+"());");
-            if (isPrimitive()) {
-                add("    setNull_"+fieldPos+"(t.checkIfNull_"+fieldPos+"());");
-            }
+            add("    if (t.checkIfNull_" + fieldPos + "()) {");
+            add("        setNull_" + fieldPos + "(true);");
+            add("    } else {");
+            add("        setPos_"+fieldPos+"(t.getPos_"+fieldPos+"());");
+            add("    }");
+            addBreak();
         }
 
         public void end() {
@@ -733,23 +631,27 @@ public class SchemaTupleClassGenerator {
         }
 
         public void process(int fieldPos, Schema.FieldSchema fs) {
-            if (isPrimitive())
-                add("    setNull_"+fieldPos+"(b["+fieldPos+"]);");
-
             if (isBoolean()) {
-                if (booleans++ % 8 == 0)
+                if (booleans++ % 8 == 0) {
                     booleanBytes++;
+                }
             } else if (!isTuple()) {
-                add("    if (!b["+fieldPos+"]) {");
+                add("    if (b["+fieldPos+"]) {");
+                add("        setNull_"+fieldPos+"(true);");
+                add("    } else {");
                 add("        setPos_"+fieldPos+"(read(in, pos_"+fieldPos+"));");
                 add("    }");
+                addBreak();
             } else {
                 int nestedSchemaTupleId = idQueue.remove();
-                add("    if (!b["+fieldPos+"]) {");
+                add("    if (b["+fieldPos+"]) {");
+                add("        setNull_"+fieldPos+"(true);");
+                add("    } else {");
                 add("        SchemaTuple_"+nestedSchemaTupleId+" st = new SchemaTuple_"+nestedSchemaTupleId+"();");
                 add("        st.readFields(in);");
                 add("        setPos_"+fieldPos+"(st);");
                 add("    }");
+                addBreak();
             }
             ct++;
         }
@@ -773,7 +675,8 @@ public class SchemaTupleClassGenerator {
 
     static class WriteString extends TypeInFunctionStringOut {
         public void prepare() {
-            add("public void writeElements(DataOutput out) throws IOException {");
+            add("@Override");
+            add("protected void writeElements(DataOutput out) throws IOException {");
             add("    writeNulls(out);");
         }
 
@@ -782,12 +685,10 @@ public class SchemaTupleClassGenerator {
 
         public void process(int fieldPos, Schema.FieldSchema fs) {
             if (!isBoolean()) {
-                if (isPrimitive()) {
-                    add("    if (!checkIfNull_"+fieldPos+"())");
-                } else {
-                    add("    if(pos_"+fieldPos+" != null)");
-                }
+                add("    if (!checkIfNull_"+fieldPos+"()) {");
                 add("        write(out, pos_"+fieldPos+");");
+                add("    }");
+                addBreak();
             }
 
             if (isBoolean() && booleans++ % 8 == 0)
@@ -795,11 +696,10 @@ public class SchemaTupleClassGenerator {
         }
 
         public void end() {
-            for (int i = 0; i < booleanBytes; i++)
+            for (int i = 0; i < booleanBytes; i++) {
                 add("    out.writeByte(booleanByte_"+i+");");
-            add("    if (!appendIsNull()) {");
-            add("        SedesHelper.writeGenericTuple(out, getAppend());");
-            add("    }");
+            }
+            add("    super.writeElements(out);");
             add("}");
             addBreak();
         }
@@ -898,11 +798,9 @@ public class SchemaTupleClassGenerator {
         private Schema schema;
 
         public void end() {
-            String schemaString = schema.toString();
-            schemaString = schemaString.substring(1, schemaString.length() - 1);
             add("@Override");
             add("public String getSchemaString() {");
-            add("    return \""+schemaString+"\";");
+            add("    return \"" + schema.toString() + "\";");
             add("}");
             addBreak();
         }
@@ -927,7 +825,7 @@ public class SchemaTupleClassGenerator {
             addBreak();
         }
     }
-/*
+
     static class SizeString extends TypeInFunctionStringOut {
         int i = 0;
 
@@ -943,7 +841,7 @@ public class SchemaTupleClassGenerator {
             addBreak();
         }
     }
-*/
+
     static class GetTypeString extends TypeInFunctionStringOut {
         public void prepare() {
             add("@Override");
@@ -956,8 +854,7 @@ public class SchemaTupleClassGenerator {
         }
 
         public void end() {
-            add("    default:");
-            add("        return super.getType(fieldNum);");
+            add("    default: return super.getType(fieldNum);");
             add("    }");
             add("}");
             addBreak();
@@ -974,34 +871,32 @@ public class SchemaTupleClassGenerator {
         public void prepare() {
             add("@Override");
             add("protected SchemaTuple set(SchemaTuple t, boolean checkClass) throws ExecException {");
-            add("    if (checkClass && t instanceof SchemaTuple_"+id+")");
+            add("    if (checkClass && t instanceof SchemaTuple_"+id+") {");
             add("        return setSpecific((SchemaTuple_"+id+")t);");
+            add("    }");
             addBreak();
-            add("    if (t.size() < sizeNoAppend())");
-            add("        throw new ExecException(\"Given SchemaTuple does not have enough fields as \"+getClass()+\" (\"+t.size()+\" vs \"+sizeNoAppend()+\")\");");
+            add("    if (t.size() < sizeNoAppend()) {");
+            add("        throw new ExecException(\"Given SchemaTuple does not have as many fields as \"+getClass()+\" (\"+t.size()+\" vs \"+sizeNoAppend()+\")\");");
+            add("    }");
             addBreak();
             add("    List<Schema.FieldSchema> theirFS = t.getSchema().getFields();");
+            addBreak();
         }
 
         public void process(int fieldNum, Schema.FieldSchema fs) {
-            add("    if ("+fs.type+" != theirFS.get("+fieldNum+").type)");
-            add("        throw new ExecException(\"Given SchemaTuple does not match current\");");
+            add("    if ("+fs.type+" != theirFS.get("+fieldNum+").type) {");
+            add("        throw new ExecException(\"Given SchemaTuple does not match current in field " + fieldNum + ". Expected type: " + fs.type + ", found: \" + theirFS.get("+fieldNum+").type);");
+            add("    }");
             add("    if (t.isNull("+fieldNum+")) {");
-            if (isPrimitive())
-                add("        setNull_"+fieldNum+"(true);");
-            else
-                add("        pos_"+fieldNum+" = null;");
+            add("        setNull_"+fieldNum+"(true);");
             add("    } else {");
-            if (!isBytearray() && !isTuple()) {
-                String s = typeName();
-                s = s.substring(0,1).toUpperCase() + s.substring(1);
-                add("        setPos_"+fieldNum+"(t.get"+s+"("+fieldNum+"));");
-            } else if (isBytearray()) {
-                add("        setPos_"+fieldNum+"(t.getBytes("+fieldNum+"));");
+            if (!isTuple()) {
+                add("        setPos_"+fieldNum+"(t.get" + proper(fs.type) + "("+fieldNum+"));");
             } else {
                 add("        setPos_"+fieldNum+"((Tuple)t.get("+fieldNum+"));");
             }
             add("    }");
+            addBreak();
         }
 
         public void end() {
@@ -1050,12 +945,6 @@ public class SchemaTupleClassGenerator {
             return typeName(type);
         }
 
-        public String proper() {
-            if (thisType()==DataType.BYTEARRAY)
-                return "Bytes";
-            return name().substring(0,1).toUpperCase() + name().substring(1);
-        }
-
         public String defValue() {
             switch (type) {
             case (DataType.INTEGER): return "0";
@@ -1067,6 +956,10 @@ public class SchemaTupleClassGenerator {
             case (DataType.BYTEARRAY): return "new byte[0]";
             default: throw new RuntimeException("Invalid type for defValue");
             }
+        }
+
+        public String proper() {
+            return proper(thisType());
         }
 
         public void prepare() {
@@ -1081,8 +974,7 @@ public class SchemaTupleClassGenerator {
         }
 
         public void end() {
-            add("    default:");
-            add("        super.set"+proper()+"(fieldNum, val);");
+            add("    default: super.set"+proper()+"(fieldNum, val);");
             add("    }");
             add("}");
         }
@@ -1117,6 +1009,7 @@ public class SchemaTupleClassGenerator {
             listOfFutureMethods.add(new WriteNullsString());
             listOfFutureMethods.add(new ReadString(nextNestedSchemaIdForReadField));
             listOfFutureMethods.add(new WriteString());
+            listOfFutureMethods.add(new SizeString());
             listOfFutureMethods.add(new MemorySizeString());
             listOfFutureMethods.add(new GetSchemaTupleIdentifierString(id));
             listOfFutureMethods.add(new GetSchemaStringString(s));
@@ -1285,5 +1178,10 @@ public class SchemaTupleClassGenerator {
                 default: throw new RuntimeException("Can't return String for given type " + DataType.findTypeName(type));
             }
         }
-    }
+
+        public String proper(byte type) {
+            String s = typeName(type);
+            return type == DataType.BYTEARRAY ? "Bytes" : s.substring(0,1).toUpperCase() + s.substring(1);
+        }
+   }
 }

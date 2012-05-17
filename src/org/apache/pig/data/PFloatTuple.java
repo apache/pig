@@ -8,6 +8,7 @@ import org.apache.pig.PigWarning;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.util.LogUtils;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 import com.google.common.collect.Lists;
 
@@ -21,6 +22,12 @@ public class PFloatTuple extends PrimitiveFieldTuple {
     public PFloatTuple(float i) {
         val = i;
         isSet = true;
+    }
+
+    private static Schema s = new Schema(new Schema.FieldSchema(null, DataType.FLOAT));
+
+    public Schema getSchema() {
+        return s;
     }
 
     @Override
@@ -87,7 +94,7 @@ public class PFloatTuple extends PrimitiveFieldTuple {
     }
 
     @Override
-    public Float getFloat(int pos) throws ExecException {
+    public float getFloat(int pos) throws ExecException {
         if (pos != 0) throw new ExecException("Only 1 field in primitive tuples.");
         return isSet ? val : null;
     }

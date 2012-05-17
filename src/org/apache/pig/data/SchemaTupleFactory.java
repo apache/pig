@@ -183,6 +183,10 @@ public class SchemaTupleFactory extends TupleFactory {
                 throw new ExecException("Given class " + className + " not found in classpath", e);
             }
 
+            if (!SchemaTuple.verifyMustOverride(clazz)) {
+                 throw new ExecException("Generated class " + clazz + " does not override all @MustOverride methods in SchemaTuple");
+            }
+
             SchemaTuple st = instantiateClass(clazz);
             int id = st.getSchemaTupleIdentifier();
             Schema schema = st.getSchema();

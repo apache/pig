@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 import com.google.common.collect.Lists;
 
@@ -18,6 +19,12 @@ public class PStringTuple extends PrimitiveFieldTuple {
     public PStringTuple(String i) {
         val = i;
         isSet = true;
+    }
+
+    private static Schema s = new Schema(new Schema.FieldSchema(null, DataType.CHARARRAY));
+
+    public Schema getSchema() {
+        return s;
     }
 
     @Override

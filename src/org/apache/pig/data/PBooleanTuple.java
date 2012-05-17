@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 import com.google.common.collect.Lists;
 
@@ -17,6 +18,12 @@ public class PBooleanTuple extends PrimitiveFieldTuple {
     public PBooleanTuple(Boolean v) {
         val = v;
         isSet = true;
+    }
+
+    private static Schema s = new Schema(new Schema.FieldSchema(null, DataType.BOOLEAN));
+
+    public Schema getSchema() {
+        return s;
     }
 
     @Override
@@ -66,7 +73,7 @@ public class PBooleanTuple extends PrimitiveFieldTuple {
     }
 
     @Override
-    public Boolean getBoolean(int pos) throws ExecException {
+    public boolean getBoolean(int pos) throws ExecException {
         if (pos != 0) throw new ExecException("Only 1 field in primitive tuples.");
         return isSet ? val : null;
     }
