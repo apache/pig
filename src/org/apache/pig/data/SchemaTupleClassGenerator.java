@@ -246,11 +246,9 @@ public class SchemaTupleClassGenerator {
             add("    if (checkType && t instanceof SchemaTuple_"+id+") {");
             add("        return compareToSpecific((SchemaTuple_"+id+")t);");
             add("    }");
-            add("    {");
-            add("        int i = compareSize(t);");
-            add("        if (i != 0) {");
-            add("            return i;");
-            add("        }");
+            add("    int i = compareSize(t);");
+            add("    if (i != 0) {");
+            add("        return i;");
             add("    }");
         }
 
@@ -260,17 +258,13 @@ public class SchemaTupleClassGenerator {
         boolean compByte = false;
 
         public void process(int fieldNum, Schema.FieldSchema fs) {
-            add("    {");
-            add("        int i = compareNull(checkIfNull_" + fieldNum + "(), t.isNull(" + fieldNum + "));");
-            add("        if (i != 0) {");
-            add("            return i;");
-            add("        }");
+            add("    i = compareNull(checkIfNull_" + fieldNum + "(), t, " + fieldNum + ");");
+            add("    if (i != 0) {");
+            add("        return i;");
             add("    }");
-            add("    {");
-            add("        int i = compare(getPos_" + fieldNum + "(), t, " + fieldNum + ");");
-            add("        if (i != 0) {");
-            add("            return i;");
-            add("        }");
+            add("    i = compare(getPos_" + fieldNum + "(), t, " + fieldNum + ");");
+            add("    if (i != 0) {");
+            add("        return i;");
             add("    }");
         }
 
