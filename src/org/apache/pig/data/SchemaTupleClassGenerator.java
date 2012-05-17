@@ -388,33 +388,19 @@ public class SchemaTupleClassGenerator {
     }
 
     static class GenericSetString extends TypeInFunctionStringOut {
-        private Queue<Integer> idQueue;
-
         public void prepare() {
             add("@Override");
             add("public void set(int fieldNum, Object val) throws ExecException {");
             add("    switch (fieldNum) {");
         }
 
-        //TODO leverage Java's auto-boxing/unboxing
         public void process(int fieldPos, Schema.FieldSchema fs) {
             add("    case ("+fieldPos+"):");
             add("        if (val == null) {");
             add("            setNull_" + fieldPos + "(true);");
             add("            return;");
             add("        }");
-            //if (!isTuple()) {
-            add("        setPos_"+fieldPos+"(unbox(val, getPos_"+fieldPos+"()));");
-            //} else {
-                //int nestedSchemaTupleId = idQueue.remove();
-                //add("        if (val instanceof SchemaTuple_"+nestedSchemaTupleId+") {");
-                //add("            setPos_"+fieldPos+"((SchemaTuple_"+nestedSchemaTupleId+")val);");
-                //add("        } else if (val instanceof SchemaTuple) {");
-                //add("            setPos_"+fieldPos+"((SchemaTuple)val);");
-                //add("        } else {");
-                //add("            setPos_"+fieldPos+"((Tuple)val);");
-                //add("        }");
-            //}
+            add("        setPos_"+fieldPos+"(unbox(val, getDummy_"+fieldPos+"()));");
             add("        break;");
         }
 
@@ -423,10 +409,6 @@ public class SchemaTupleClassGenerator {
             add("        super.set(fieldNum, val);");
             add("    }");
             add("}");
-        }
-
-        public GenericSetString(Queue<Integer> idQueue) {
-            this.idQueue = idQueue;
         }
     }
 
@@ -716,6 +698,28 @@ public class SchemaTupleClassGenerator {
         }
     }
 
+    static class GetDummyString extends TypeInFunctionStringOut {
+        public void process(int fieldPos, Schema.FieldSchema fs) {
+            if (!isTuple()) {
+                add("public "+typeName()+" getDummy_"+fieldPos+"() {");
+            } else {
+                add("public Tuple getDummy_"+fieldPos+"() {");
+            }
+            switch (fs.type) {
+            case (DataType.INTEGER): add("    return 0;"); break;
+            case (DataType.LONG): add("    return 0L;"); break;
+            case (DataType.FLOAT): add("    return 0.0f;"); break;
+            case (DataType.DOUBLE): add("    return 0.0;"); break;
+            case (DataType.BOOLEAN): add("    return true;"); break;
+            case (DataType.BYTEARRAY): add("    return (byte[])null;"); break;
+            case (DataType.CHARARRAY): add("    return (String)null;"); break;
+            case (DataType.TUPLE): add("    return (Tuple)null;"); break;
+            }
+            add("}");
+            addBreak();
+        }
+    }
+
     static class GetPosString extends TypeInFunctionStringOut {
         private Queue<Integer> idQueue;
 
@@ -958,16 +962,16 @@ public class SchemaTupleClassGenerator {
 
             Queue<Integer> nextNestedSchemaIdForSetPos = Lists.newLinkedList();
             Queue<Integer> nextNestedSchemaIdForGetPos = Lists.newLinkedList();
-            Queue<Integer> nextNestedSchemaIdForGenericSet = Lists.newLinkedList();
             Queue<Integer> nextNestedSchemaIdForReadField = Lists.newLinkedList();
             Queue<Integer> nextNestedSchemaIdForCompareTo = Lists.newLinkedList();
 
-            List<Queue<Integer>> listOfQueuesForIds = Lists.newArrayList(nextNestedSchemaIdForSetPos, nextNestedSchemaIdForGetPos, nextNestedSchemaIdForGenericSet, nextNestedSchemaIdForReadField, nextNestedSchemaIdForCompareTo);
+            List<Queue<Integer>> listOfQueuesForIds = Lists.newArrayList(nextNestedSchemaIdForSetPos, nextNestedSchemaIdForGetPos, nextNestedSchemaIdForReadField, nextNestedSchemaIdForCompareTo);
 
             listOfFutureMethods.add(new FieldString(listOfQueuesForIds, s)); //has to be run first
             listOfFutureMethods.add(new SetPosString(nextNestedSchemaIdForSetPos));
             listOfFutureMethods.add(new GetPosString(nextNestedSchemaIdForGetPos));
-            listOfFutureMethods.add(new GenericSetString(nextNestedSchemaIdForGenericSet));
+            listOfFutureMethods.add(new GetDummyString());
+            listOfFutureMethods.add(new GenericSetString());
             listOfFutureMethods.add(new GenericGetString());
             listOfFutureMethods.add(new GeneralIsNullString());
             listOfFutureMethods.add(new GeneralSetNullString());
