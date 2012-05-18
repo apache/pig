@@ -525,6 +525,8 @@ Release 0.9.3 - Unreleased
 
 BUG FIXES
 
+PIG-2693: LoadFunc.setLocation should be called before LoadMetadata.getStatistics (billgraham via julien)
+
 PIG-2666: LoadFunc.setLocation() is not called when pig script only has Order By (daijy)
 
 PIG-2671: e2e harness: Reference local test path via :LOCALTESTPATH: (thw via daijy)
