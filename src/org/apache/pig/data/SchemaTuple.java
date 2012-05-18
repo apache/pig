@@ -66,6 +66,7 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
         largestSetValue = Math.max(fieldNum, largestSetValue);
     }
 
+    //TODO generate code to convert etc more rapidly for anything < sizeNoAppend()
     @Override
     public void append(Object val) {
         if (++largestSetValue < sizeNoAppend()) {
@@ -100,7 +101,8 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
         return append == null || append.isNull() ? null : append.isNull(i);
     }
 
-    protected Tuple getAppend() {
+    //protected Tuple getAppend() {
+    public Tuple getAppend() {
         return append;
     }
 
@@ -701,6 +703,9 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
 
     protected static Schema staticSchemaGen(String s) {
         try {
+            if (s.equals("")) {
+                return new Schema();
+            }
             return Utils.getSchemaFromString(s);
         } catch (FrontendException e) {
             throw new RuntimeException("Unable to make Schema for String: " + s);

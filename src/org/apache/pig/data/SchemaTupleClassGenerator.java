@@ -115,7 +115,7 @@ public class SchemaTupleClassGenerator {
 
         //return f.end();
         String tmp = f.end(); //remove
-        System.out.println(tmp); //remove
+        System.err.println(tmp); //remove
         return tmp; //remove
     }
 
