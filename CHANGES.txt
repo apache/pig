@@ -24,6 +24,10 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2066: Accumulators should be able to early-terminate (jcoveney)
+
+PIG-2600: Better Map support (prkommireddi via jcoveney)
+
 PIG-2711: e2e harness: cache benchmark results between test runs (thw via daijy)
 
 PIG-2702: Make Pig local mode (and tests) faster by working around the hard coded sleep(5000) in hadoop's JobControl (julien)

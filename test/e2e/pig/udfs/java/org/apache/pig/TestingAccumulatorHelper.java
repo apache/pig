@@ -15,25 +15,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.pig.backend.hadoop.executionengine.physicalLayer;
+package org.apache.pig;
 
-public class POStatus {
-    public static final byte STATUS_OK = 0;
+import java.io.IOException;
 
-    public static final byte STATUS_NULL = 1;
+import org.apache.pig.data.Tuple;
 
-    public static final byte STATUS_ERR = 2;
+public class TestingAccumulatorHelper extends AccumulatorEvalFunc<Integer> implements TerminatingAccumulator<Integer> {
+    public boolean earlyTerminate = false;
+    public int accumulates = 0;
 
-    public static final byte STATUS_EOP = 3; // end of processing
+    public TestingAccumulatorHelper(String earlyTerminate) {
+        this.earlyTerminate = Boolean.parseBoolean(earlyTerminate);
+    }
 
-    // This is currently only used in communications
-    // between ExecutableManager and POStream
-    public static final byte STATUS_EOS = 4; // end of Streaming output (i.e. output from streaming binary)
+    public void accumulate(Tuple input) throws IOException {
+        accumulates++;
+    }
 
-    // successfully processing of a batch, used by accumulative UDFs
-    // this is used for accumulative UDFs
-    public static final byte STATUS_BATCH_OK = 5;
+    public Integer getValue() {
+        return accumulates;
+    }
 
-    // this signals that an accumulative UDF has already finished
-    public static final byte STATUS_EARLY_TERMINATION = 6;
+    public void cleanup() {
+        accumulates = 0;
+    }
+
+    public boolean isFinished() {
+        return earlyTerminate;
+    }
 }
