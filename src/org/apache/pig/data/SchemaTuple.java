@@ -48,8 +48,6 @@ import javax.tools.StandardLocation;
 //ALSO: the memory estimate has to include all of these objects that come along with SchemaTuple...
 //TODO: implement getField(String)
 
-//TODO: implement hashCode
-
 //the benefit of having the generic here is that in the case that we do ".set(t)" and t is the right type, it will be very fast
 @InterfaceAudience.Public
 @InterfaceStability.Unstable
@@ -60,24 +58,8 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
     private static final TupleFactory mTupleFactory = TupleFactory.getInstance();
     private static final BinInterSedes pigSerializer = new BinInterSedes();
 
-    private int largestSetValue = -1; //this exists so that append will have a reasonable semantic for an empty Schematuple
-
-    protected void updateLargestSetValue(int fieldNum) {
-        largestSetValue = Math.max(fieldNum, largestSetValue);
-    }
-
-    //TODO generate code to convert etc more rapidly for anything < sizeNoAppend()
     @Override
     public void append(Object val) {
-        if (++largestSetValue < sizeNoAppend()) {
-            try {
-                set(largestSetValue, val);
-            } catch (ExecException e) {
-                throw new RuntimeException("Unable to append to position " + largestSetValue, e);
-            }
-            return;
-        }
-
         if (append == null) {
             append = mTupleFactory.newTuple();
         }
@@ -108,27 +90,14 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
 
     protected void setAppend(Tuple t) {
         append = t;
-        updateLargestSetValue(size());
     }
 
     private void appendReset() {
         append = null;
-        largestSetValue = -1;
-        for (int i = sizeNoAppend() - 1; i >= 0; i--) {
-            try {
-                if (!isNull(i)) {
-                    largestSetValue = i;
-                    return;
-                }
-            } catch (ExecException e) {
-                throw new RuntimeException("Unable to check null status of field "+i, e);
-            }
-        }
     }
 
     private void setAppend(int fieldNum, Object val) throws ExecException {
         append.set(fieldNum, val);
-        updateLargestSetValue(size());
     }
 
     //TODO this should account for all of the non-generated objects, and the general cost of being an object
@@ -156,7 +125,6 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
         for (int j = sizeNoAppend(); j < t.size(); j++) {
             append(t.get(j));
         }
-        updateLargestSetValue(size());
         return this;
     }
 
@@ -164,7 +132,6 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
     protected SchemaTuple setSpecific(T t) {
         appendReset();
         setAppend(t.getAppend());
-        updateLargestSetValue(size());
         return this;
     }
 
@@ -201,10 +168,9 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
 
         appendReset();
 
-        for (int i = sizeNoAppend(); i < l.size(); i++)
+        for (int i = sizeNoAppend(); i < l.size(); i++) {
             append(l.get(i++));
-
-        updateLargestSetValue(size());
+        }
 
         return this;
     }

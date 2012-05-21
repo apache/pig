@@ -177,10 +177,14 @@ public class POUserFunc extends ExpressionOperator {
             detachInput();
             return res;
         } else {
-            if (inputSchemaTupleFactory != null)
+            boolean knownSize = false;
+            int knownIndex = 0;
+            if (inputSchemaTupleFactory != null) {
                 res.result = inputSchemaTupleFactory.newTuple();
-            else
+                knownSize = true;
+            } else {
                 res.result = TupleFactory.getInstance().newTuple();
+            }
 
             Result temp = null;
 
@@ -197,7 +201,11 @@ public class POUserFunc extends ExpressionOperator {
                         Tuple trslt = (Tuple) temp.result;
                         Tuple rslt = (Tuple) res.result;
                         for(int i=0;i<trslt.size();i++) {
-                            rslt.append(trslt.get(i));
+                            if (knownSize) {
+                                rslt.set(knownIndex++, trslt.get(i));
+                            } else {
+                                rslt.append(trslt.get(i));
+                            }
                         }
                         continue;
                     }

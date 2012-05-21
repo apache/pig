@@ -342,13 +342,11 @@ public class SchemaTupleClassGenerator {
                     }
                 }
 
-                add("    updateLargestSetValue("+fieldPos+");");
                 add("}");
             } else {
                 int nestedSchemaTupleId = idQueue.remove();
                 add("public void setPos_"+fieldPos+"(SchemaTuple_"+nestedSchemaTupleId+" t) {");
                 add("    pos_" + fieldPos + " = t;");
-                add("    updateLargestSetValue("+fieldPos+");");
                 add("}");
                 addBreak();
                 add("public void setPos_"+fieldPos+"(SchemaTuple t) {");
@@ -356,7 +354,6 @@ public class SchemaTupleClassGenerator {
                 add("        pos_"+fieldPos+" = new SchemaTuple_"+nestedSchemaTupleId+"();");
                 add("    }");
                 add("    pos_" + fieldPos + ".proxySetAndCatch(t);");
-                add("    updateLargestSetValue("+fieldPos+");");
                 add("}");
                 addBreak();
                 add("public void setPos_"+fieldPos+"(Tuple t) {");
@@ -364,7 +361,6 @@ public class SchemaTupleClassGenerator {
                 add("        pos_"+fieldPos+" = new SchemaTuple_"+nestedSchemaTupleId+"();");
                 add("    }");
                 add("    pos_" + fieldPos + ".proxySetAndCatch(t);");
-                add("    updateLargestSetValue("+fieldPos+");");
                 add("}");
             }
             addBreak();
@@ -612,7 +608,6 @@ public class SchemaTupleClassGenerator {
             add("    if(!b["+ct+"]) {");
             add("        setAppend(SedesHelper.readGenericTuple(in, in.readByte()));");
             add("    }");
-            add("    updateLargestSetValue(size());");
             add("}");
             addBreak();
         }
