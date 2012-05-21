@@ -30,7 +30,7 @@ import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
-import org.apache.pig.ResourceSchema;
+import org.apache.pig.TerminatingAccumulator;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -70,6 +70,7 @@ public class POUserFunc extends ExpressionOperator {
     private PhysicalOperator referencedOperator = null;
     private boolean isAccumulationDone;
     private String signature;
+    private boolean haveCheckedIfTerminatingAccumulator;
 
     public PhysicalOperator getReferencedOperator() {
         return referencedOperator;
@@ -189,6 +190,26 @@ public class POUserFunc extends ExpressionOperator {
         }
     }
 
+    private boolean isEarlyTerminating = false;
+
+    private void setIsEarlyTerminating() {
+        isEarlyTerminating = true;
+    }
+
+    private boolean isEarlyTerminating() {
+        return isEarlyTerminating;
+    }
+
+    private boolean isTerminated = false;
+
+    private boolean hasBeenTerminated() {
+        return isTerminated;
+    }
+
+    private void earlyTerminate() {
+        isTerminated = true;
+    }
+
     private Result getNext() throws ExecException {
         Result result = processInput();
         String errMsg = "";
@@ -196,10 +217,26 @@ public class POUserFunc extends ExpressionOperator {
             if(result.returnStatus == POStatus.STATUS_OK) {
                 if (isAccumulative()) {
                     if (isAccumStarted()) {
+                        if (!haveCheckedIfTerminatingAccumulator) {
+                            haveCheckedIfTerminatingAccumulator  = true;
+                            if (func instanceof TerminatingAccumulator<?>)
+                                setIsEarlyTerminating();
+                        }
+
+                        if (!hasBeenTerminated() && isEarlyTerminating() && ((TerminatingAccumulator<?>)func).isFinished()) {
+                            earlyTerminate();
+                        }
+
+                        if (hasBeenTerminated()) {
+                            result.returnStatus = POStatus.STATUS_EARLY_TERMINATION;
+                            result.result = null;
+                            isAccumulationDone = false;
+                        } else {
                         ((Accumulator)func).accumulate((Tuple)result.result);
                         result.returnStatus = POStatus.STATUS_BATCH_OK;
                         result.result = null;
                         isAccumulationDone = false;
+                        }
                     }else{
                         if(isAccumulationDone){
                             //PORelationToExprProject does not return STATUS_EOP
