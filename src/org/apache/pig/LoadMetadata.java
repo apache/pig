@@ -54,7 +54,9 @@ public interface LoadMetadata {
 
     /**
      * Get statistics about the data to be loaded.  If no statistics are
-     * available, then null should be returned.
+     * available, then null should be returned. If the implementing class also extends
+     * {@link LoadFunc}, then {@link LoadFunc#setLocation(String, org.apache.hadoop.mapreduce.Job)}
+     * is guaranteed to be called before this method.
      * @param location Location as returned by 
      * {@link LoadFunc#relativeToAbsolutePath(String, org.apache.hadoop.fs.Path)}
      * @param job The {@link Job} object - this should be used only to obtain 

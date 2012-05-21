@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2711: e2e harness: cache benchmark results between test runs (thw via daijy)
+
 PIG-2702: Make Pig local mode (and tests) faster by working around the hard coded sleep(5000) in hadoop's JobControl (julien)
 
 PIG-2659: add source location of the aliases in the physical plan (julien)
@@ -524,6 +526,8 @@ inclusion of test classes (cos via gates)
 Release 0.9.3 - Unreleased
 
 BUG FIXES
+
+PIG-2693: LoadFunc.setLocation should be called before LoadMetadata.getStatistics (billgraham via julien)
 
 PIG-2666: LoadFunc.setLocation() is not called when pig script only has Order By (daijy)
 
