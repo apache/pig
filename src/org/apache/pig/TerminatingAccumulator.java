@@ -15,25 +15,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.pig.backend.hadoop.executionengine.physicalLayer;
+package org.apache.pig;
 
-public class POStatus {
-    public static final byte STATUS_OK = 0;
-
-    public static final byte STATUS_NULL = 1;
-
-    public static final byte STATUS_ERR = 2;
-
-    public static final byte STATUS_EOP = 3; // end of processing
-
-    // This is currently only used in communications
-    // between ExecutableManager and POStream
-    public static final byte STATUS_EOS = 4; // end of Streaming output (i.e. output from streaming binary)
-
-    // successfully processing of a batch, used by accumulative UDFs
-    // this is used for accumulative UDFs
-    public static final byte STATUS_BATCH_OK = 5;
-
-    // this signals that an accumulative UDF has already finished
-    public static final byte STATUS_EARLY_TERMINATION = 6;
+/**
+ * This is an interface which, if implemented, allows an Accumulator
+ * function to signal that it can terminate early. Certain classes of
+ * UDF to do not need access to an entire set of data in order to
+ * finish processing. A model example is {@link IsEmpty}. IsEmpty
+ * can be Accumulative as if it receives even one line, it knows that
+ * it is not empty. Another example might be a UDF which does streaming
+ * analysis, and once a given stream matches a criteria, can terminate
+ * without needing any further analysis.
+ */
+public interface TerminatingAccumulator<T> extends Accumulator<T> {
+    public boolean isFinished();
 }

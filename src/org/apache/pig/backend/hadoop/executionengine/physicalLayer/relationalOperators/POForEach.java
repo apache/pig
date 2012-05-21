@@ -19,15 +19,12 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOp
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Iterator;
 import java.util.List;
+
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.data.AccumulativeBag;
-import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DataType;
-import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
@@ -36,9 +33,14 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.PORelationToExprProject;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.data.AccumulativeBag;
+import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataType;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
-import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.pen.util.ExampleTuple;
 import org.apache.pig.pen.util.LineageTracer;
@@ -71,6 +73,9 @@ public class POForEach extends PhysicalOperator {
 
     // store result types of the plan leaves
     protected byte[] resultTypes = null;
+
+    // store whether or not an accumulative UDF has terminated early
+    protected BitSet earlyTermination = null;
 
     // array version of isToBeFlattened - this is purely
     // for optimization - instead of calling isToBeFlattened.get(i)
@@ -258,7 +263,7 @@ public class POForEach extends PhysicalOperator {
 
                 setAccumStart();
                 while(true) {
-                    if (buffer.hasNextBatch()) {
+                    if (!isEarlyTerminated() && buffer.hasNextBatch()) {
                         try {
                             buffer.nextBatch();
                         }catch(IOException e) {
@@ -275,6 +280,11 @@ public class POForEach extends PhysicalOperator {
                     if (res.returnStatus == POStatus.STATUS_BATCH_OK) {
                         // attach same input again to process next batch
                         attachInputToPlans((Tuple) inp.result);
+                    } else if (res.returnStatus == POStatus.STATUS_EARLY_TERMINATION) {
+                        //if this bubbled up, then we just need to pass a null value through the pipe
+                        //so that POUserFunc will properly return the values
+                        attachInputToPlans(null);
+                        earlyTerminate();
                     } else {
                         break;
                     }
@@ -288,6 +298,16 @@ public class POForEach extends PhysicalOperator {
 
             return res;
         }
+    }
+
+    private boolean isEarlyTerminated = false;
+
+    private boolean isEarlyTerminated() {
+        return isEarlyTerminated;
+    }
+
+    private void earlyTerminate() {
+        isEarlyTerminated = true;
     }
 
     protected Result processPlan() throws ExecException{
@@ -313,6 +333,7 @@ public class POForEach extends PhysicalOperator {
             //getNext being called for the first time OR starting with a set of new data from inputs
             its = new Iterator[noItems];
             bags = new Object[noItems];
+            earlyTermination = new BitSet(noItems);
 
             for(int i = 0; i < noItems; ++i) {
                 //Getting the iterators
@@ -337,6 +358,15 @@ public class POForEach extends PhysicalOperator {
                     throw new ExecException(msg, errCode, PigException.BUG);
                 }
 
+                }
+
+                //we accrue information about what accumulators have early terminated
+                //in the case that they all do, we can finish
+                if (inputData.returnStatus == POStatus.STATUS_EARLY_TERMINATION) {
+                    if (!earlyTermination.get(i))
+                        earlyTermination.set(i);
+
+                    continue;
                 }
 
                 if (inputData.returnStatus == POStatus.STATUS_BATCH_OK) {
@@ -368,7 +398,10 @@ public class POForEach extends PhysicalOperator {
 
         // if accumulating, we haven't got data yet for some fields, just return
         if (isAccumulative() && isAccumStarted()) {
+            if (earlyTermination.cardinality() < noItems)
             res.returnStatus = POStatus.STATUS_BATCH_OK;
+            else
+                res.returnStatus = POStatus.STATUS_EARLY_TERMINATION;
             return res;
         }
 

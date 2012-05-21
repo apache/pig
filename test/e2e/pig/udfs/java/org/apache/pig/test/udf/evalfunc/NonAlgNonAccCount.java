@@ -15,25 +15,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.pig.backend.hadoop.executionengine.physicalLayer;
+package org.apache.pig.test.udf.evalfunc;
 
-public class POStatus {
-    public static final byte STATUS_OK = 0;
+import java.io.IOException;
 
-    public static final byte STATUS_NULL = 1;
+import org.apache.pig.builtin.COUNT;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.EvalFunc;
 
-    public static final byte STATUS_ERR = 2;
+public class NonAlgNonAccCount extends EvalFunc<Long> {
+    private COUNT c = new COUNT();
 
-    public static final byte STATUS_EOP = 3; // end of processing
-
-    // This is currently only used in communications
-    // between ExecutableManager and POStream
-    public static final byte STATUS_EOS = 4; // end of Streaming output (i.e. output from streaming binary)
-
-    // successfully processing of a batch, used by accumulative UDFs
-    // this is used for accumulative UDFs
-    public static final byte STATUS_BATCH_OK = 5;
-
-    // this signals that an accumulative UDF has already finished
-    public static final byte STATUS_EARLY_TERMINATION = 6;
+    public Long exec(Tuple input) throws IOException {
+        return c.exec(input);
+    }
 }
