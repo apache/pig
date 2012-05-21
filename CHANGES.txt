@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2711: e2e harness: cache benchmark results between test runs (thw via daijy)
+
 PIG-2680: TOBAG output schema reporting (andy schlaikjer via jcoveney)
 
 PIG-2685: Fix error in EvalFunc ctor when implementing Algebraic UDF whose return type is parameterized (andy schlaikjer via jcoveney)
