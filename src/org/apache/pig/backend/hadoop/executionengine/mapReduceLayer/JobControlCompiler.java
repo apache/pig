@@ -393,7 +393,6 @@ public class JobControlCompiler{
         }
 
         try{
-            adjustNumReducers(plan, mro, conf, nwJob);
 
             //Process the POLoads
             List<POLoad> lds = PlanHelper.getLoads(mro.mapPlan);
@@ -405,7 +404,13 @@ public class JobControlCompiler{
 
                     //Store the inp filespecs
                     inp.add(ld.getLFile());
+                }
+            }
 
+            adjustNumReducers(plan, mro, conf, nwJob);
+
+            if(lds!=null && lds.size()>0){
+              for (POLoad ld : lds) {
                     //Store the target operators for tuples read
                     //from this input
                     List<PhysicalOperator> ldSucs = mro.mapPlan.getSuccessors(ld);

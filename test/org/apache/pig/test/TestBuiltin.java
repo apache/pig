@@ -23,7 +23,9 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -35,9 +37,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.StringTokenizer;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
@@ -55,6 +54,8 @@ import org.apache.pig.builtin.COV;
 import org.apache.pig.builtin.DIFF;
 import org.apache.pig.builtin.Distinct;
 import org.apache.pig.builtin.INDEXOF;
+import org.apache.pig.builtin.INVERSEMAP;
+import org.apache.pig.builtin.KEYSET;
 import org.apache.pig.builtin.LAST_INDEX_OF;
 import org.apache.pig.builtin.LCFIRST;
 import org.apache.pig.builtin.LOWER;
@@ -78,6 +79,8 @@ import org.apache.pig.builtin.TextLoader;
 import org.apache.pig.builtin.TupleSize;
 import org.apache.pig.builtin.UCFIRST;
 import org.apache.pig.builtin.UPPER;
+import org.apache.pig.builtin.VALUELIST;
+import org.apache.pig.builtin.VALUESET;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
@@ -2417,6 +2420,122 @@ public class TestBuiltin {
         return expectedMap.get(expectedFor);
     }
 
+    @Test
+    public void testKeySet() throws Exception {
+        Map<String, Object> m = new HashMap<String, Object>();
+        m.put("open", "apache");
+        m.put("1", "hadoop");
+        m.put("source", "code");
+        Tuple input = TupleFactory.getInstance().newTuple(m);
 
+        KEYSET keySet = new KEYSET();
+        DataBag result = keySet.exec(input);
+        Iterator<Tuple> i = result.iterator();
+        assertEquals(result.size(), m.size());
+
+        while(i.hasNext()) {
+            Tuple t = i.next();
+            assertTrue(m.containsKey((String)t.get(0)));
+        }
+
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testValueSet() throws Exception {
+        Map<String, Object> m = new HashMap<String, Object>();
+        m.put("open", "apache");
+        m.put("1", "hadoop");
+        m.put("source", "apache");
+        Tuple input = TupleFactory.getInstance().newTuple(m);
+
+        VALUESET valueSet = new VALUESET();
+        DataBag result = valueSet.exec(input);
+
+        //Value set should only contain 2 elements
+        assertEquals(result.size(), 2);
+        Iterator<Tuple> i = result.iterator();
+        List resultList = new ArrayList<String>();
+        while(i.hasNext()) {
+            resultList.add(i.next().get(0));
+        }
+
+        //Value set should only contain "apache" and "hadoop"
+        Collections.sort(resultList);
+        assertEquals(resultList.get(0), "apache");
+        assertEquals(resultList.get(1), "hadoop");
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testValueList() throws Exception {
+        Map<String, Object> m = new HashMap<String, Object>();
+        m.put("open", "apache");
+        m.put("1", "hadoop");
+        m.put("source", "apache");
+        Tuple input = TupleFactory.getInstance().newTuple(m);
+
+        VALUELIST valueList = new VALUELIST();
+        DataBag result = valueList.exec(input);
+        //Bag must contain all values, not just unique ones
+        assertEquals(result.size(), 3);
+        Iterator<Tuple> i = result.iterator();
+        List resultList = new ArrayList();
+        while(i.hasNext()) {
+            Tuple t = i.next();
+            resultList.add(t.get(0));
+        }
+        Collections.sort(resultList);
+        assertEquals((String)resultList.get(0), "apache");
+        assertEquals((String)resultList.get(1), "apache");
+        assertEquals((String)resultList.get(2), "hadoop");
+    }
+
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testInverseMap() throws Exception {
+        Map<String, Object> m = new HashMap<String, Object>();
+        m.put("open", "apache");
+        m.put("1", "hadoop");
+        m.put("source", "pig");
+        m.put("integer", new Integer(100));
+        m.put("floating", new Float(100.012));
+        m.put("long", new Long(10000000000000l));
+        m.put("boolean", true);
+        Tuple input = TupleFactory.getInstance().newTuple(m);
+
+        INVERSEMAP inverseMap = new INVERSEMAP();
+        Map inverse  = inverseMap.exec(input);
+        assertEquals(inverse.size(), 7);
+        assertTrue(inverse.containsKey("apache"));
+        assertTrue(inverse.containsKey("hadoop"));
+        assertTrue(inverse.containsKey("pig"));
+        assertTrue(inverse.containsKey("100"));
+        assertTrue(inverse.containsKey("true"));
+        assertTrue(inverse.containsKey("100.012"));
+
+        //Test when values are non-unique
+        m.clear();
+        m.put("open", "apache");
+        m.put("1", "hadoop");
+        m.put("source", "apache");
+        input.set(0, m);
+        inverse = inverseMap.exec(input);
+        assertEquals(inverse.size(), 2);
+        assertTrue(inverse.containsKey("apache"));
+        assertTrue(inverse.containsKey("hadoop"));
+
+        DataBag bag = (DataBag)inverse.get("apache");
+        List resultList = new ArrayList<String>();
+        Iterator<Tuple> i = bag.iterator();
+        while(i.hasNext()) {
+          Tuple t = i.next();
+          resultList.add(t.get(0));
+        }
+        Collections.sort(resultList);
+        assertEquals((String)resultList.get(0), "open");
+        assertEquals((String)resultList.get(1), "source");
+    }
 
 }
