@@ -27,6 +27,7 @@ use Digest::MD5 qw(md5_hex);
 use Util;
 use File::Path;
 use Cwd;
+use Data::Dumper;
 
 use strict;
 use English;
@@ -607,7 +608,30 @@ sub generateBenchmark
 	# and logs
 	$modifiedTestCmd{'num'} = $testCmd->{'num'} . "_benchmark";
 
-	my $res = $self->runPig(\%modifiedTestCmd, $log, 1);
+        my $res;
+        if (defined $testCmd->{'benchmarkcachepath'}) {
+           $modifiedTestCmd{'localpath'} = $testCmd->{'benchmarkcachepath'} . "/";
+           my $statusFile = $modifiedTestCmd{'localpath'} . $modifiedTestCmd{'group'} . "_" . $modifiedTestCmd{'num'} . ".runPigResult";
+           if (open my $in, '<', $statusFile) {
+              {
+                 local $/;  
+                 eval <$in>;
+                 print $log "Using existing benchmark: ". Dumper($res) . "\n";
+              }
+              close $in;
+           }
+        }
+
+        # run pig if we don't already have the benchmark
+	$res = $res || $self->runPig(\%modifiedTestCmd, $log, 1);
+
+        if (defined $testCmd->{'benchmarkcachepath'}) {
+           # save runPig result along with the files
+           my $statusFile = $modifiedTestCmd{'localpath'} . $modifiedTestCmd{'group'} . "_" . $modifiedTestCmd{'num'} . ".runPigResult";
+           open my $out, '>', $statusFile or die $!;
+           print {$out} Data::Dumper->Dump([$res], ["res"]), $/;
+           close $out;
+        }
 
         if (!defined $testCmd->{'verify_pig_script'}) {
                 $ENV{'HADOOP_HOME'} = $orighadoophome;
