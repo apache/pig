@@ -211,7 +211,11 @@ public class POUserFunc extends ExpressionOperator {
                         continue;
                     }
                 }
-                ((Tuple)res.result).append(temp.result);
+                if (knownSize) {
+                    ((Tuple)res.result).set(knownIndex++, temp.result);
+                } else {
+                    ((Tuple)res.result).append(temp.result);
+                }
             }
             res.returnStatus = temp.returnStatus;
 
