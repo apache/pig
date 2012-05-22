@@ -325,83 +325,6 @@ public class BenchmarkSchemaTuple {
             return c;
         }
 
-        public void timeTupleSerializeLong(int reps) throws Exception {
-            File fo = File.createTempFile("testing","testing");
-            DataOutput fos = new DataOutputStream(new FileOutputStream(fo));
-            Tuple t = tf.newTuple(size);
-            for (int i = 0; i < size; i++) {
-                 t.set(i, new Long((long)i));
-            }
-            for (int i = 0; i < reps; i++) {
-                bis.writeDatum(fos, t);
-            }
-            fo.delete();
-        }
-
-        public void timePrimitiveTupleSerializeLong(int reps) throws Exception {
-            File fo = File.createTempFile("testing","testing");
-            DataOutput fos = new DataOutputStream(new FileOutputStream(fo));
-            Tuple t = tf.newTupleForSchema(types);
-            for (int i = 0; i < size; i++) {
-                 t.set(i, new Long((long)i));
-            }
-            for (int i = 0; i < reps; i++) {
-                bis.writeDatum(fos, t);
-            }
-            fo.delete();
-        }
-
-        public void timeSchemaTupleSerializeLong(int reps) throws Exception {
-            File fo = File.createTempFile("testing","testing");
-            DataOutput fos = new DataOutputStream(new FileOutputStream(fo));
-            Tuple t = stf.newTuple();
-            for (int i = 0; i < size; i++) {
-                 t.set(i, new Long((long)i));
-            }
-            for (int i = 0; i < reps; i++) {
-                bis.writeDatum(fos, t);
-            }
-            fo.delete();
-        }
-
-        public void timeTupleSerializeInt(int reps) throws Exception {
-            File fo = File.createTempFile("testing","testing");
-            DataOutput fos = new DataOutputStream(new FileOutputStream(fo));
-            Tuple t = tf.newTuple(size);
-            for (int i = 0; i < size; i++) {
-                 t.set(i, new Integer(i));
-            }
-            for (int i = 0; i < reps; i++) {
-                bis.writeDatum(fos, t);
-            }
-            fo.delete();
-        }
-
-        public void timePrimitiveTupleSerializeInt(int reps) throws Exception {
-            File fo = File.createTempFile("testing","testing");
-            DataOutput fos = new DataOutputStream(new FileOutputStream(fo));
-            Tuple t = tf.newTupleForSchema(typesint);
-            for (int i = 0; i < size; i++) {
-                 t.set(i, new Integer(i));
-            }
-            for (int i = 0; i < reps; i++) {
-                bis.writeDatum(fos, t);
-            }
-            fo.delete();
-        }
-
-        public void timeSchemaTupleSerializeInt(int reps) throws Exception {
-            File fo = File.createTempFile("testing","testing");
-            DataOutput fos = new DataOutputStream(new FileOutputStream(fo));
-            Tuple t = stf2.newTuple();
-            for (int i = 0; i < size; i++) {
-                 t.set(i, new Integer(i));
-            }
-            for (int i = 0; i < reps; i++) {
-                bis.writeDatum(fos, t);
-            }
-            fo.delete();
-        }
 */
         public DataInputStream prepTupleSerialize(Tuple t, int reps) throws Exception {
             Random r = new Random(100L);
@@ -417,34 +340,26 @@ public class BenchmarkSchemaTuple {
             return new DataInputStream(new FileInputStream(fo));
         }
 
-        public int timeTupleSerializeDeserializeLong(int reps) throws Exception {
-            DataInputStream di = prepTupleSerialize(tf.newTuple(size), reps);
+        public int tupleSerDeTest(Tuple t, int reps) throws Exception {
+            DataInputStream di = prepTupleSerialize(t, reps);
             int c = 0;
             for (int i = 0; i < reps; i++) {
                 c += ((Tuple)bis.readDatum(di)).hashCode();
             }
             di.close();
             return c;
+        }
+
+        public int timeTupleSerializeDeserializeLong(int reps) throws Exception {
+            return tupleSerDeTest(tf.newTuple(size), reps);
         }
 
         public int timePrimitiveTupleSerializeDeserializeLong(int reps) throws Exception {
-            DataInputStream di = prepTupleSerialize(tf.newTupleForSchema(types), reps);
-            int c = 0;
-            for (int i = 0; i < reps; i++) {
-                c += ((Tuple)bis.readDatum(di)).hashCode();
-            }
-            di.close();
-            return c;
+            return tupleSerDeTest(tf.newTupleForSchema(types), reps);
         }
 
         public int timeSchemaTupleSerializeDeserializeLong(int reps) throws Exception {
-            DataInputStream di = prepTupleSerialize(stf.newTuple(), reps);
-            int c = 0;
-            for (int i = 0; i < reps; i++) {
-                c += ((Tuple)bis.readDatum(di)).hashCode();
-            }
-            di.close();
-            return c;
+            return tupleSerDeTest(stf.newTuple(), reps);
         }
 
     }
