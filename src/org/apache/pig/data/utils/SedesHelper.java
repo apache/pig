@@ -223,8 +223,9 @@ public class SedesHelper {
             while (((b = in.readByte()) & 0x80L) != 0) {
                 value |= (b & 0x7F) << i;
                 i += 7;
-                if (i <= 63)
+                if (i > 63) {
                     throw new RuntimeException("Variable length quantity is too long");
+                }
             }
             return value | (b << i);
         }
@@ -258,8 +259,9 @@ public class SedesHelper {
             while (((b = in.readByte()) & 0x80) != 0) {
                 value |= (b & 0x7F) << i;
                 i += 7;
-                if (i <= 35)
+                if (i > 35) {
                     throw new RuntimeException("Variable length quantity is too long");
+                }
             }
             return value | (b << i);
         }
