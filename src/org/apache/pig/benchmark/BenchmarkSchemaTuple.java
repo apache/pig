@@ -353,7 +353,7 @@ public class BenchmarkSchemaTuple {
         public int timeTupleSerializeDeserializeLong(int reps) throws Exception {
             return tupleSerDeTest(tf.newTuple(size), reps);
         }
-
+/*
         public int timePrimitiveTupleSerializeDeserializeLong(int reps) throws Exception {
             return tupleSerDeTest(tf.newTupleForSchema(types), reps);
         }
@@ -361,6 +361,7 @@ public class BenchmarkSchemaTuple {
         public int timeSchemaTupleSerializeDeserializeLong(int reps) throws Exception {
             return tupleSerDeTest(stf.newTuple(), reps);
         }
+*/
 
     }
 }
