@@ -233,7 +233,7 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
 
     protected static long read(DataInput in, long v) throws IOException {
         //return SedesHelper.Varint.readSignedVarLong(in);
-        return in.readLong(v);
+        return in.readLong();
     }
 
     protected static float read(DataInput in, float v) throws IOException {

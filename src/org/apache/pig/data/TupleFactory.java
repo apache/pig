@@ -145,25 +145,6 @@ public abstract class TupleFactory {
      */
     public abstract Tuple newTuple(Object datum);
 
-    /**
-     * Create a tuple optimized for a provided schema.
-     * <p>
-     * Note: chances are {@link TupleFactory#newTupleForSchema(byte...)} is slightly
-     * more efficient in most implementations.
-     *
-     * @param schema  Pig Schema of the tuple we want to create.
-     * @return A tuple optimized for the schema
-     */
-    public Tuple newTupleForSchema(Schema schema) {
-        List<FieldSchema> fieldSchemas = schema.getFields();
-        byte[] types = new byte[fieldSchemas.size()];
-        for (int i = 0; i < fieldSchemas.size(); i++) {
-            FieldSchema fs = fieldSchemas.get(i);
-            types[i] = fs.type;
-        }
-        return newTupleForSchema(types);
-    }
-
     //this should only be called on the backend!
     public static SchemaTupleFactory getInstanceForSchema(Schema schema) {
         return SchemaTupleFactory.getSchemaTupleFactory(schema);
@@ -171,43 +152,6 @@ public abstract class TupleFactory {
 
     public static SchemaTupleFactory getInstanceForSchemaId(int id) {
         return SchemaTupleFactory.getSchemaTupleFactory(id);
-    }
-
-    /**
-     * Create a tuple optimized for a provided schema.
-     *
-     * @param dataTypes Schema of the desired Tuple, represented as bytes from {@link DataType}
-     * @return A tuple optimized for the schema.
-     */
-    public Tuple newTupleForSchema(byte... dataTypes) { //perhaps throw execexception instead?
-        if (dataTypes == null || dataTypes.length == 0) {
-            return this.newTuple();
-        } else if (dataTypes.length == 1 && DataType.isAtomic(dataTypes[0])) {
-            switch (dataTypes[0]) {
-            case DataType.INTEGER:
-                return new PIntTuple();
-            case DataType.FLOAT:
-                return new PFloatTuple();
-            case DataType.LONG:
-                return new PLongTuple();
-            case DataType.DOUBLE:
-                return new PDoubleTuple();
-            case DataType.CHARARRAY:
-                return new PStringTuple();
-            case DataType.BOOLEAN:
-                return new PBooleanTuple();
-            default:
-                return this.newTuple(1);
-            }
-        } else if (dataTypes.length > 1) {
-            boolean allNumbers = true;
-            for (byte type : dataTypes) {
-                allNumbers &= DataType.isNumberType(type);
-            }
-            return allNumbers ? new PrimitiveTuple(dataTypes) : this.newTuple(dataTypes.length);
-        } else {
-            return this.newTuple(dataTypes.length);
-        }
     }
 
     /**
