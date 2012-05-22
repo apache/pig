@@ -2,8 +2,11 @@ package org.apache.pig.benchmark;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileInputStream;
 import java.io.DataOutputStream;
+import java.io.DataInputStream;
 import java.io.DataOutput;
+import java.io.DataInput;
 
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.data.BinInterSedes;
@@ -359,7 +362,7 @@ public class BenchmarkSchemaTuple {
             }
             fo.delete();
         }
-*/
+
         public void timeTupleSerializeInt(int reps) throws Exception {
             File fo = File.createTempFile("testing","testing");
             DataOutput fos = new DataOutputStream(new FileOutputStream(fo));
@@ -398,5 +401,49 @@ public class BenchmarkSchemaTuple {
             }
             fo.delete();
         }
+*/
+        public DataInputStream prepTupleSerialize(Tuple t, int reps) throws Exception {
+            File fo = File.createTempFile("testing","testing");
+            DataOutputStream fos = new DataOutputStream(new FileOutputStream(fo));
+            for (int i = 0; i < size; i++) {
+                 t.set(i, new Long((long)i));
+            }
+            for (int i = 0; i < reps; i++) {
+                bis.writeDatum(fos, t);
+            }
+            fos.close();
+            return new DataInputStream(new FileInputStream(fo));
+        }
+
+        public int timeTupleDeserializeLong(int reps) throws Exception {
+            DataInputStream di = prepTupleSerialize(tf.newTuple(size), reps);
+            int c = 0;
+            for (int i = 0; i < reps; i++) {
+                c += ((Tuple)bis.readDatum(di)).hashCode();
+            }
+            di.close();
+            return c;
+        }
+
+        public int timePrimitiveTupleDeserializeLong(int reps) throws Exception {
+            DataInputStream di = prepTupleSerialize(tf.newTupleForSchema(types), reps);
+            int c = 0;
+            for (int i = 0; i < reps; i++) {
+                c += ((Tuple)bis.readDatum(di)).hashCode();
+            }
+            di.close();
+            return c;
+        }
+
+        public int timeSchemaTupleDeserializeLong(int reps) throws Exception {
+            DataInputStream di = prepTupleSerialize(stf.newTuple(), reps);
+            int c = 0;
+            for (int i = 0; i < reps; i++) {
+                c += ((Tuple)bis.readDatum(di)).hashCode();
+            }
+            di.close();
+            return c;
+        }
+
     }
 }
