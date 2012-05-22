@@ -197,11 +197,13 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
     }
 
     protected static void write(DataOutput out, int v) throws IOException {
-        SedesHelper.Varint.writeSignedVarInt(v, out);
+        //SedesHelper.Varint.writeSignedVarInt(v, out);
+        out.writeInt(v);
     }
 
     protected static void write(DataOutput out, long v) throws IOException {
-        SedesHelper.Varint.writeSignedVarLong(v, out);
+        //SedesHelper.Varint.writeSignedVarLong(v, out);
+        out.writeLong(v);
     }
 
     protected static void write(DataOutput out, float v) throws IOException {
@@ -225,11 +227,13 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
     }
 
     protected static int read(DataInput in, int v) throws IOException {
-        return SedesHelper.Varint.readSignedVarInt(in);
+        //return SedesHelper.Varint.readSignedVarInt(in);
+        return in.readInt();
     }
 
     protected static long read(DataInput in, long v) throws IOException {
-        return SedesHelper.Varint.readSignedVarLong(in);
+        //return SedesHelper.Varint.readSignedVarLong(in);
+        return in.readLong(v);
     }
 
     protected static float read(DataInput in, float v) throws IOException {
