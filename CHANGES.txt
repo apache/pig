@@ -146,6 +146,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2709: PigAvroRecordReader should specify which file has a problem when throwing IOException (mpercy via daijy)
+
 PIG-2640: Usage message gives wrong information for Pig additional jars (prkommireddi via daijy)
 
 PIG-2652:  Skew join and order by don't trigger reducer estimation (dvryaboy)
