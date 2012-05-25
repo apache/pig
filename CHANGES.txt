@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2714: Pig documentation on TOP funcation has issues  (daijy)
+
 PIG-2066: Accumulators should be able to early-terminate (jcoveney)
 
 PIG-2600: Better Map support (prkommireddi via jcoveney)
@@ -145,6 +147,8 @@ PIG-2337: Provide UDF with input schema (xutingz via daijy)
 OPTIMIZATIONS
 
 BUG FIXES
+
+PIG-2709: PigAvroRecordReader should specify which file has a problem when throwing IOException (mpercy via daijy)
 
 PIG-2640: Usage message gives wrong information for Pig additional jars (prkommireddi via daijy)
 

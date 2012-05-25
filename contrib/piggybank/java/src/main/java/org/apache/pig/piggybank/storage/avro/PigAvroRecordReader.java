@@ -50,7 +50,12 @@ public class PigAvroRecordReader extends RecordReader<NullWritable, Writable> {
         if(schema == null)
             throw new IOException("Need to provide input avro schema");
 
-        this.reader = new DataFileReader<Object>(in, new PigAvroDatumReader(schema));
+        try {
+          this.reader = new DataFileReader<Object>(in, new PigAvroDatumReader(schema));
+        } catch (IOException e) {
+          throw new IOException("Error initializing data file reader for file (" +
+              split.getPath() + ")", e);
+        }
         this.reader.sync(split.getStart()); // sync to start
         this.start = in.tell();
         this.end = split.getStart() + split.getLength();
