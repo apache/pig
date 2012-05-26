@@ -299,6 +299,36 @@ public class TestLogicalPlanGenerator {
     }
     
     @Test
+    public void testCubeBasic() {
+	String query = "a = load 'input' as (x:chararray,y:chararray,z:long);"
+	        + "b = cube a by (x,y);"
+	        + "c = foreach b generate flatten(group) as (x,y), COUNT(cube) as count, SUM(cube.z) as total;"
+	        + "store c into 'output';";
+	generateLogicalPlan(query);
+    }
+    
+    @Test
+    public void testCubeMultipleIAlias() {
+	String query = "a = load 'input' as (x:chararray,y:chararray,z:long);"
+	        + "a = load 'input' as (x,y:chararray,z:long);"
+	        + "a = load 'input' as (x:chararray,y:chararray,z:long);"
+	        + "b = cube a by (x,y);"
+	        + "c = foreach b generate flatten(group) as (x,y), COUNT(cube) as count, SUM(cube.z) as total;"
+	        + "store c into 'c';";
+	generateLogicalPlan(query);
+    }
+    
+    @Test
+    public void testCubeAfterForeach() {
+	String query = "a = load 'input' as (x:chararray,y:chararray,z:long);"
+	        + "b = foreach a generate x as type,y as location,z as number;"
+	        + "c = cube b by (type,location);"
+	        + "d = foreach c generate flatten(group) as (type,location), COUNT(cube) as count, SUM(cube.number) as total;"
+	        + "store d into 'd';";
+	generateLogicalPlan(query);
+    }
+    
+    @Test
     public void testFilter() {
         String query = "A = load 'x' as ( u:int, v:long, w:bytearray); " + 
                        "B = filter A by 2 > 1;\n" +

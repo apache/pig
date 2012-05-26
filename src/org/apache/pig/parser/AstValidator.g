@@ -145,6 +145,7 @@ op_clause : define_clause
           | mr_clause
           | split_clause
           | foreach_clause
+          | cube_clause
 ;
 
 define_clause : ^( DEFINE alias ( cmd | func_clause ) )
@@ -255,6 +256,22 @@ func_args_string : QUOTEDSTRING | MULTILINE_QUOTEDSTRING
 func_args : func_args_string+
 ;
 
+cube_clause
+  : ^( CUBE cube_item )
+;
+
+cube_item
+  : rel ( cube_by_clause )
+;
+
+cube_by_clause
+    : ^( BY cube_by_expr+ )
+;
+
+cube_by_expr 
+    : col_range | expr | STAR 
+;
+
 group_clause
 scope {
     int arity;
@@ -345,7 +362,7 @@ dot_proj : ^( PERIOD col_alias_or_index+ )
 col_alias_or_index : col_alias | col_index
 ;
 
-col_alias : GROUP | IDENTIFIER
+col_alias : GROUP | CUBE | IDENTIFIER
 ;
 
 col_index : DOLLARVAR
@@ -523,7 +540,7 @@ split_otherwise 	: ^( OTHERWISE alias )
 col_ref : alias_col_ref | dollar_col_ref
 ;
 
-alias_col_ref : GROUP | IDENTIFIER
+alias_col_ref : GROUP | CUBE | IDENTIFIER
 ;
 
 dollar_col_ref : DOLLARVAR
@@ -564,6 +581,7 @@ eid : rel_str_op
     | LOAD
     | FILTER
     | FOREACH
+    | CUBE
     | MATCHES
     | ORDER
     | DISTINCT

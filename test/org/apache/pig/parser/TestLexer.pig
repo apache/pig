@@ -62,6 +62,8 @@ B = GROUP A ALL using 'collected';
 
 I = foreach A generate flatten(B::c);
 
+J = CUBE A BY ($0, $1, $2, $3);
+
 CMD = `ls -l`;
 A = stream through CMD;
 
