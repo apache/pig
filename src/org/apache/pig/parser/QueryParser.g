@@ -215,6 +215,7 @@ content : LEFT_CURLY ( content | ~(LEFT_CURLY | RIGHT_CURLY) )* RIGHT_CURLY
 op_clause : define_clause 
           | load_clause
           | group_clause
+          | cube_clause
           | store_clause
           | filter_clause
           | distinct_clause
@@ -470,7 +471,7 @@ dot_proj : PERIOD ( col_alias_or_index
 col_alias_or_index : col_alias | col_index
 ;
 
-col_alias : GROUP | identifier
+col_alias : GROUP | CUBE | identifier
 ;
 
 col_index : DOLLARVAR
@@ -574,6 +575,23 @@ foreach_plan_complex : nested_blk
                     -> ^( FOREACH_PLAN_COMPLEX nested_blk )
 ;
 
+cube_clause : CUBE^ cube_item 
+;
+
+cube_item : rel ( cube_by_clause )
+;
+
+cube_by_clause : BY^ cube_by_expr_list
+;
+
+cube_by_expr_list : LEFT_PAREN cube_by_expr ( COMMA cube_by_expr )* RIGHT_PAREN
+                       -> cube_by_expr+
+                        | cube_by_expr
+;
+
+cube_by_expr : col_range  | expr | STAR
+;
+
 nested_blk : LEFT_CURLY! nested_command_list ( generate_clause SEMI_COLON! ) RIGHT_CURLY!
 ;
 
@@ -656,7 +674,7 @@ split_otherwise : alias OTHERWISE
 col_ref : alias_col_ref | dollar_col_ref
 ;
 
-alias_col_ref : GROUP | identifier
+alias_col_ref : GROUP | CUBE | identifier
 ;
 
 dollar_col_ref : DOLLARVAR
@@ -708,6 +726,7 @@ eid : rel_str_op
     | LOAD
     | FILTER
     | FOREACH
+    | CUBE
     | ORDER
     | DISTINCT
     | COGROUP

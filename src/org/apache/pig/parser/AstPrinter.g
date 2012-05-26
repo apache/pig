@@ -97,6 +97,7 @@ op_clause : define_clause
           | mr_clause
           | split_clause
           | foreach_clause
+          | cube_clause
 ;
 
 define_clause 
@@ -204,6 +205,23 @@ func_args
         (b=QUOTEDSTRING { sb.append(", ").append($b.text); } )*
 ;
 
+cube_clause
+  : ^( CUBE { sb.append($CUBE.text).append(" "); } cube_item )
+;
+
+cube_item
+  : rel ( cube_by_clause )
+;
+
+cube_by_clause
+    : ^( BY { sb.append(" ").append($BY.text).append(" ("); } 
+    cube_by_expr ( { sb.append(", "); } cube_by_expr )* { sb.append(")"); } )
+;
+
+cube_by_expr 
+    : col_range | expr | STAR { sb.append($STAR.text); }
+;
+
 group_clause
     : ^( ( GROUP { sb.append($GROUP.text).append(" "); } | COGROUP { sb.append($COGROUP.text).append(" "); } ) 
         group_item ( { sb.append(", "); } group_item )* 
@@ -304,6 +322,7 @@ col_alias_or_index : col_alias | col_index
 
 col_alias 
     : GROUP { sb.append($GROUP.text); }
+    | CUBE { sb.append($CUBE.text); }
     | IDENTIFIER { sb.append($IDENTIFIER.text); }
 ;
 
@@ -494,6 +513,7 @@ col_ref : alias_col_ref | dollar_col_ref
 
 alias_col_ref 
     : GROUP { sb.append($GROUP.text); }
+    | CUBE { sb.append($CUBE.text); }
     | IDENTIFIER { sb.append($IDENTIFIER.text); }
 ;
 
@@ -552,6 +572,7 @@ eid : rel_str_op
     | LOAD      { sb.append($LOAD.text); }
     | FILTER    { sb.append($FILTER.text); }
     | FOREACH   { sb.append($FOREACH.text); }
+    | CUBE      { sb.append($CUBE.text); }
     | MATCHES   { sb.append($MATCHES.text); }
     | ORDER     { sb.append($ORDER.text); }
     | DISTINCT  { sb.append($DISTINCT.text); }

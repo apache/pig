@@ -81,6 +81,9 @@ FOREACH : 'FOREACH'
 ORDER   :  'ORDER'
 ;
 
+CUBE    : 'CUBE'
+;
+
 DISTINCT : 'DISTINCT'
 ;
 

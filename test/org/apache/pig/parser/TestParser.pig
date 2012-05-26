@@ -65,6 +65,10 @@ D = cogroup A by $0 inner, B by $0 outer;
 grpInactiveAcct = group inactiveAccounts all;
 B = GROUP A ALL using 'collected';
 
+--cube
+C = CUBE A BY (a, b);
+CC = CUBE A BY (*);
+
 --join
 E = join A by $0, B by $0 using 'replicated';
 H = join A by u, B by u;

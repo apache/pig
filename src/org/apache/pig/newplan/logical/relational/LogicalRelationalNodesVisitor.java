@@ -63,6 +63,9 @@ public abstract class LogicalRelationalNodesVisitor extends PlanVisitor {
     public void visit(LOInnerLoad load) throws FrontendException {
     }
 
+    public void visit(LOCube cube) throws FrontendException {
+    }
+    
     public void visit(LOCogroup loCogroup) throws FrontendException {
     }
     

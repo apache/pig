@@ -78,6 +78,7 @@ import org.apache.pig.newplan.logical.expression.ScalarExpression;
 import org.apache.pig.newplan.logical.expression.SubtractExpression;
 import org.apache.pig.newplan.logical.expression.UserFuncExpression;
 import org.apache.pig.newplan.logical.relational.LOCogroup;
+import org.apache.pig.newplan.logical.relational.LOCube;
 import org.apache.pig.newplan.logical.relational.LOFilter;
 import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOGenerate;
@@ -218,6 +219,7 @@ op_clause returns[String alias] :
           | stream_clause { $alias = $stream_clause.alias; }
           | mr_clause { $alias = $mr_clause.alias; }
           | foreach_clause { $alias = $foreach_clause.alias; }
+          | cube_clause { $alias = $cube_clause.alias; }
 ;
 
 define_clause 
@@ -463,6 +465,67 @@ func_args returns[List<String> args]
     | MULTILINE_QUOTEDSTRING { $args.add( builder.unquote( $MULTILINE_QUOTEDSTRING.text ) ); }
   )+
 ;
+
+// Sets the current operator as CUBE and creates LogicalExpressionPlans based on the user input.
+// Ex: a = CUBE inp BY (x,y);
+// For the above example this grammar creates LogicalExpressionPlan with ProjectExpression for x and y dimensions.
+// inputIndex keeps track of input dataset (which will be useful when cubing is performed over multiple datasets).
+// These inputs are passed to buildCubeOp methods which then builds the logical plan for CUBE operator.
+// If user specifies STAR or RANGE expression for dimensions then it will be expanded inside buildCubeOp.
+cube_clause returns[String alias]
+scope {
+  LOCube cubeOp;
+  MultiMap<Integer, LogicalExpressionPlan> cubePlans;
+  int inputIndex;
+}
+scope GScope;
+@init {
+  $cube_clause::cubeOp = builder.createCubeOp();
+  $GScope::currentOp = $cube_clause::cubeOp;
+  $cube_clause::cubePlans = new MultiMap<Integer, LogicalExpressionPlan>();
+  int oldStatementIndex = $statement::inputIndex;
+}
+@after { $statement::inputIndex = oldStatementIndex; }
+ : ^( CUBE cube_item )
+ {
+  SourceLocation loc = new SourceLocation( (PigParserNode)$cube_clause.start );
+  $alias = builder.buildCubeOp( loc, $cube_clause::cubeOp, $statement::alias, 
+    $statement::inputAlias, $cube_clause::cubePlans );
+ }
+;
+
+cube_item
+ : rel ( cube_by_clause 
+     { 
+            $cube_clause::cubePlans.put( $cube_clause::inputIndex, $cube_by_clause.plans );
+     }
+  )
+  {
+     $cube_clause::inputIndex++;
+     $statement::inputIndex++;  
+  }
+;
+
+cube_by_clause returns[List<LogicalExpressionPlan> plans]
+@init {
+    $plans = new ArrayList<LogicalExpressionPlan>();
+}
+ : ^( BY ( cube_by_expr { $plans.add( $cube_by_expr.plan ); } )+ )
+;
+
+cube_by_expr returns[LogicalExpressionPlan plan]
+@init {
+    $plan = new LogicalExpressionPlan();
+}
+ : col_range[$plan]
+ | expr[$plan]
+ | STAR 
+   {
+       builder.buildProjectExpr( new SourceLocation( (PigParserNode)$STAR ), $plan, $GScope::currentOp, 
+           $statement::inputIndex, null, -1 );
+   }
+;
+
 
 group_clause returns[String alias]
 scope {
@@ -882,6 +945,7 @@ col_alias_or_index returns[Object col]
 
 col_alias returns[Object col]
  : GROUP { $col = $GROUP.text; }
+ | CUBE { $col = $CUBE.text; }
  | IDENTIFIER { $col = $IDENTIFIER.text; }
 ;
 
@@ -1429,6 +1493,11 @@ alias_col_ref[LogicalExpressionPlan plan] returns[LogicalExpression expr]
    {
        $expr = builder.buildProjectExpr( new SourceLocation( (PigParserNode)$GROUP ), $plan, $GScope::currentOp, 
            $statement::inputIndex, $GROUP.text, 0 );
+   }
+ | CUBE 
+   {
+       $expr = builder.buildProjectExpr( new SourceLocation( (PigParserNode)$CUBE ), $plan, $GScope::currentOp, 
+           $statement::inputIndex, $CUBE.text, 0 );
    }
  | IDENTIFIER
    {
