@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2710: Implement Naive CUBE operator (prasanth_j via dvryaboy)
+
 PIG-2714: Pig documentation on TOP funcation has issues  (daijy)
 
 PIG-2066: Accumulators should be able to early-terminate (jcoveney)

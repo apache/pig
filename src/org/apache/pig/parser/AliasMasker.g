@@ -130,6 +130,7 @@ op_clause : define_clause
           | mr_clause
           | split_clause
           | foreach_clause
+          | cube_clause
 ;
 
 define_clause 
@@ -236,6 +237,22 @@ func_args
     : QUOTEDSTRING+ 
 ;
 
+cube_clause
+  : ^( CUBE cube_item )
+;
+
+cube_item
+  : rel ( cube_by_clause )
+;
+
+cube_by_clause
+    : ^( BY cube_by_expr+ )
+;
+
+cube_by_expr 
+    : col_range | expr | STAR 
+;
+
 group_clause
     : ^( ( GROUP | COGROUP ) group_item+ group_type? partition_clause? )
 ;
@@ -333,6 +350,7 @@ col_alias_or_index : col_alias | col_index
 
 col_alias 
     : GROUP 
+    | CUBE 
     | IDENTIFIER
 ;
 
@@ -507,6 +525,7 @@ col_ref : alias_col_ref | dollar_col_ref
 
 alias_col_ref 
     : GROUP 
+    | CUBE
     | IDENTIFIER
       {
           String alias = $IDENTIFIER.text;
@@ -570,6 +589,7 @@ eid : rel_str_op
     | LOAD
     | FILTER
     | FOREACH
+    | CUBE
     | MATCHES
     | ORDER
     | DISTINCT

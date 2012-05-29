@@ -48,7 +48,7 @@ public class TestQueryLexer {
         
         // While we can check more conditions, such as type of each token, for now I think the following
         // is enough. If the token type is wrong, it will be most likely caught by the parser.
-        Assert.assertEquals( 400, tokenCount );
+        Assert.assertEquals( 415, tokenCount );
         Assert.assertEquals( 0, lexer.getNumberOfSyntaxErrors() );
     }
     

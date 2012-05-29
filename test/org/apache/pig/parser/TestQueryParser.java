@@ -178,6 +178,69 @@ public class TestQueryParser {
     }
     
     @Test
+    public void testCubeNegative1() throws IOException, RecognitionException {
+	// cube keyword used as alias
+    	String query = "x = load 'cubedata' as (a, b, c, d); " +
+    				   "cube = cube x by (a, b, c);";
+    	shouldFail( query );
+    }
+    
+    @Test
+    public void testCubeNegative2() throws IOException, RecognitionException {
+	// syntax error - brackets missing
+    	String query = "x = load 'cubedata' as (a, b, c, d); " +
+    				   "y = cube x by a, b, c;";
+    	shouldFail( query );
+    }
+    
+    @Test
+    public void testCubeNegative3() throws IOException, RecognitionException {
+	// syntax error - BY missing
+    	String query = "x = load 'cubedata' as (a, b, c, d); " +
+    				   "y = cube x (a, b, c);";
+    	shouldFail( query );
+    }
+    
+    @Test
+    public void testCubeNegative4() throws IOException, RecognitionException {
+	// syntax error - UDF at the end 
+    	String query = "x = load 'cubedata' as (a, b, c, d); " +
+    				   "y = cube x by (a, b, c), UDF(c);";
+    	shouldFail( query );
+    }
+    
+    @Test
+    public void testCubePositive1() throws IOException, RecognitionException {
+	// syntactically correct
+    	String query = "x = load 'cubedata' as (a, b, c, d);" + 
+    				   "y = cube x by (a, b, c);" +
+    				   "z = foreach y generate flatten(group) as (a, b, c), COUNT(x) as count;" +
+    				   "store z into 'cube_output';";
+    	shouldPass( query );
+    }
+    
+    @Test
+    public void testCubePositive2() throws IOException, RecognitionException {
+	// all columns using *
+    	String query = "x = load 'cubedata' as (a, b, c, d);" + 
+    				   "y = cube x by (*);" +
+    				   "z = foreach y generate flatten(group) as (a, b, c, d), COUNT(x) as count;" +
+    				   "store z into 'cube_output';";
+    	shouldPass( query );
+    }
+    
+    
+    @Test
+    public void testCubePositive3() throws IOException, RecognitionException {
+	// range projection
+    	String query = "x = load 'cubedata' as (a, b, c, d);" + 
+    				   "y = cube x by ($0, $1);" +
+    				   "z = foreach y generate flatten(group) as (a, b), COUNT(x) as count;" +
+    				   "store z into 'cube_output';";
+    	shouldPass( query );
+    }
+    
+    @Test
     public void test9() throws IOException, RecognitionException {
         String query = "a = load 'x' as (u,v);" +
                        "b = load 'y' as (u,w);" +
