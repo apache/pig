@@ -609,7 +609,7 @@ sub generateBenchmark
 	$modifiedTestCmd{'num'} = $testCmd->{'num'} . "_benchmark";
 
         my $res;
-        if (defined $testCmd->{'benchmarkcachepath'} && $ENV{'benchmarkcachepath'} ne "") {
+        if (defined $testCmd->{'benchmarkcachepath'} && $testCmd->{'benchmarkcachepath'} ne "") {
            $modifiedTestCmd{'localpath'} = $testCmd->{'benchmarkcachepath'} . "/";
            my $statusFile = $modifiedTestCmd{'localpath'} . $modifiedTestCmd{'group'} . "_" . $modifiedTestCmd{'num'} . ".runPigResult";
            if (open my $in, '<', $statusFile) {
@@ -625,7 +625,7 @@ sub generateBenchmark
         # run pig if we don't already have the benchmark
 	$res = $res || $self->runPig(\%modifiedTestCmd, $log, 1);
 
-        if (defined $testCmd->{'benchmarkcachepath'} && $ENV{'benchmarkcachepath'} ne "") {
+        if (defined $testCmd->{'benchmarkcachepath'} && $testCmd->{'benchmarkcachepath'} ne "") {
            # save runPig result along with the files
            my $statusFile = $modifiedTestCmd{'localpath'} . $modifiedTestCmd{'group'} . "_" . $modifiedTestCmd{'num'} . ".runPigResult";
            open my $out, '>', $statusFile or die $!;
