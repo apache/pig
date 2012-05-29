@@ -37,6 +37,7 @@ import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionVisitor;
 import org.apache.pig.newplan.logical.expression.ProjectExpression;
 import org.apache.pig.newplan.logical.relational.LOCogroup;
+import org.apache.pig.newplan.logical.relational.LOCube;
 import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOGenerate;
 import org.apache.pig.newplan.logical.relational.LOInnerLoad;
@@ -188,6 +189,15 @@ public class ProjectStarExpander extends LogicalRelationalNodesVisitor{
 
     }
 
+    @Override
+    public void visit(LOCube cu) throws FrontendException {
+
+	MultiMap<Integer, LogicalExpressionPlan> inpExprPlans = cu.getExpressionPlans();
+
+	// modify the plans if they have project-star
+	expandPlans(inpExprPlans);
+
+    }
 
     @Override
     public void visit(LOJoin join) throws FrontendException{

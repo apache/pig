@@ -35,6 +35,7 @@ import org.apache.pig.newplan.logical.expression.LogicalExpression;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.newplan.logical.relational.LOCogroup;
 import org.apache.pig.newplan.logical.relational.LOCross;
+import org.apache.pig.newplan.logical.relational.LOCube;
 import org.apache.pig.newplan.logical.relational.LODistinct;
 import org.apache.pig.newplan.logical.relational.LOFilter;
 import org.apache.pig.newplan.logical.relational.LOForEach;
@@ -58,6 +59,13 @@ public class SchemaResetter extends LogicalRelationalNodesVisitor {
     // uid duplicates are removed only after optimizer rule 
     // DuplicateForEachColumnRewrite has run. So disable it in calls before that
     boolean skipDuplicateUidCheck = true;
+    
+    private void visitAll(Collection<LogicalExpressionPlan> lexpPlans) throws FrontendException {
+	for (LogicalExpressionPlan expPlan : lexpPlans) {
+	    FieldSchemaResetter fsResetter = new FieldSchemaResetter(expPlan);
+	    fsResetter.visit();
+	}
+    }
     
     public SchemaResetter(OperatorPlan plan) throws FrontendException {
         this(plan, false);
@@ -92,11 +100,7 @@ public class SchemaResetter extends LogicalRelationalNodesVisitor {
     @Override
     public void visit(LOJoin join) throws FrontendException {
         join.resetSchema();
-        Collection<LogicalExpressionPlan> joinPlans = join.getExpressionPlanValues();
-        for (LogicalExpressionPlan joinPlan : joinPlans) {
-            FieldSchemaResetter fsResetter = new FieldSchemaResetter(joinPlan);
-            fsResetter.visit();
-        }
+        visitAll(join.getExpressionPlanValues());
         validate(join.getSchema());
     }
     
@@ -114,11 +118,7 @@ public class SchemaResetter extends LogicalRelationalNodesVisitor {
     @Override
     public void visit(LOGenerate gen) throws FrontendException {
         gen.resetSchema();
-        List<LogicalExpressionPlan> genPlans = gen.getOutputPlans();
-        for (LogicalExpressionPlan genPlan : genPlans) {
-            FieldSchemaResetter fsResetter = new FieldSchemaResetter(genPlan);
-            fsResetter.visit();
-        }
+        visitAll(gen.getOutputPlans());
         validate(gen.getSchema());
     }
     
@@ -130,13 +130,16 @@ public class SchemaResetter extends LogicalRelationalNodesVisitor {
     }
 
     @Override
+    public void visit(LOCube loCube) throws FrontendException {
+	loCube.resetSchema();
+	visitAll(loCube.getExpressionPlans().values());
+	validate(loCube.getSchema());
+    }
+    
+    @Override
     public void visit(LOCogroup loCogroup) throws FrontendException {
         loCogroup.resetSchema();
-        MultiMap<Integer, LogicalExpressionPlan> expPlans = loCogroup.getExpressionPlans();
-        for (LogicalExpressionPlan expPlan : expPlans.values()) {
-            FieldSchemaResetter fsResetter = new FieldSchemaResetter(expPlan);
-            fsResetter.visit();
-        }
+        visitAll(loCogroup.getExpressionPlans().values());
         validate(loCogroup.getSchema());
     }
     
@@ -163,11 +166,7 @@ public class SchemaResetter extends LogicalRelationalNodesVisitor {
     @Override
     public void visit(LOSort loSort) throws FrontendException {
         loSort.resetSchema();
-        List<LogicalExpressionPlan> sortPlans = loSort.getSortColPlans();
-        for (LogicalExpressionPlan sortPlan : sortPlans) {
-            FieldSchemaResetter fsResetter = new FieldSchemaResetter(sortPlan);
-            fsResetter.visit();
-        }
+        visitAll(loSort.getSortColPlans());
         validate(loSort.getSchema());
     }
     

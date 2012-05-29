@@ -3426,7 +3426,7 @@ Output (results)
                <p>column</p>
             </td>
             <td>
-               <p>The tuple column whose values are being compared.</p>
+               <p>The tuple column whose values are being compared, note 0 denotes the first column.</p>
             </td>
          </tr> 
                 <tr>
