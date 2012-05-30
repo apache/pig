@@ -28,6 +28,7 @@ PIG-2727: PigStorage Source tagging does not need pig.splitCombination to be tur
 
 BUG FIXES
 
+PIG-2721: Wrong output generated while loading bags as input (knoguchi via daijy)
 
 Release 0.10.0
 

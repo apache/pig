@@ -35,6 +35,8 @@ import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
 import org.apache.pig.newplan.optimizer.PlanOptimizer;
 import org.apache.pig.newplan.optimizer.Rule;
+import org.apache.pig.newplan.logical.optimizer.ProjectionPatcher;
+import org.apache.pig.newplan.logical.optimizer.SchemaPatcher;
 import org.apache.pig.newplan.logical.relational.LOCross;
 import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOJoin;
@@ -42,6 +44,7 @@ import org.apache.pig.newplan.logical.relational.LOLimit;
 import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LOSort;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
+import org.apache.pig.newplan.logical.rules.ColumnMapKeyPrune;
 import org.apache.pig.newplan.logical.rules.LoadTypeCastInserter;
 import org.apache.pig.newplan.logical.rules.OptimizerUtils;
 import org.apache.pig.newplan.logical.rules.PushDownForEachFlatten;
@@ -1119,6 +1122,62 @@ public class TestNewPlanPushDownForeachFlatten {
         Operator store = newLogicalPlan.getSinks().get( 0 );
         Operator op = newLogicalPlan.getPredecessors(store).get(0);
         Assert.assertTrue(op instanceof LOJoin);
+    }
+
+    // See PIG-2721
+    @Test
+    public void testForeachSortWithUserDefinedSchema() throws Exception {
+        String query =
+        "a = load '1.txt' as (a0:int, a1:bag{t:(i1:int, i2:int)});" +
+        "b = foreach a generate a0, flatten(a1) as (q1, q2);" +
+        "c = order b by a0;" +
+        "store c into 'output';";
+
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlanWithPruning( query );
+
+        Operator load = newLogicalPlan.getSources().get( 0 );
+        Assert.assertTrue( load instanceof LOLoad );
+        Assert.assertTrue( "Field \"a1\" is dropped by ColumnMapKeyPrune" + 
+                  "even though it should be stored",
+                  ((LOLoad)load).getSchema().getField("a1") != null );
+    }
+
+    public class MyPlanOptimizerWithPruning extends LogicalPlanOptimizer {
+        protected MyPlanOptimizerWithPruning (OperatorPlan p,  int iterations) {
+            super(p, iterations, new HashSet<String>());
+            addPlanTransformListener(new SchemaPatcher());
+            addPlanTransformListener(new ProjectionPatcher());
+        }
+
+        protected List<Set<Rule>> buildRuleSets() {
+            List<Set<Rule>> ls = new ArrayList<Set<Rule>>();
+
+            Set<Rule> s = new HashSet<Rule>();
+            // add split filter rule
+            Rule r = new LoadTypeCastInserter( "TypeCastInserter" );
+            s.add(r);
+            ls.add(s);
+
+            s = new HashSet<Rule>();
+            r = new PushDownForEachFlatten( "PushDownForEachFlatten" );
+            s.add(r);
+            ls.add(s);
+
+            s = new HashSet<Rule>();
+            r = new ColumnMapKeyPrune( "ColumnMapKeyPrune" );
+            s.add(r);
+            ls.add(s);
+
+            return ls;
+        }
+    }
+
+    private LogicalPlan migrateAndOptimizePlanWithPruning(String query) throws Exception {
+        PigServer pigServer = new PigServer( pc );
+        LogicalPlan newLogicalPlan = Util.buildLp(pigServer, query);
+        PlanOptimizer optimizer = new MyPlanOptimizerWithPruning( newLogicalPlan, 3 );
+        optimizer.optimize();
+        return newLogicalPlan;
     }
 
     public class MyPlanOptimizer extends LogicalPlanOptimizer {
