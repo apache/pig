@@ -6,11 +6,13 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Target;
 import java.util.Set;
+import java.util.List;
 import java.util.Iterator;
 
 import org.apache.pig.data.SchemaTuple;
 
 import com.google.common.collect.Sets;
+import com.google.common.collect.Lists;
 
 public class HierarchyHelper {
     /**
@@ -24,20 +26,43 @@ public class HierarchyHelper {
     @Target(ElementType.METHOD)
     public @interface MustOverride {}
 
+    private static List<Class<?>> getSuperclasses(Class<?> clazz) {
+        List<Class<?>> list = Lists.newLinkedList();
+        Class<?> curClass = clazz.getSuperclass();
+        while (!curClass.equals(Object.class)) {
+            list.add(curClass);
+            curClass = curClass.getSuperclass();
+        }
+        return list;
+    }
+
     /**
-     * This code verifies that every method in SchemaTuple annoted with MustOverride
-     * is overriden in the given Class.
+     * This code verifies that any MustOverride tags in any parent class are fufilled.
+     * Important note: currently, even if an intermediate class overrides the function,
+     * the ultimate class must still override it if the annotation is present.
      */
-    public static boolean verifyMustOverride(Class<? extends SchemaTuple> clazz) {
+    //TODO consider the case of T1, T2 extends T2, and T3 extends T2
+    //TODO if T1 has a MustOverride that T2 overrides without its own flag, then should it be ok?
+    //TODO currently it will not be ok
+    public static boolean verifyMustOverride(Class<?> classToVerify) {
+        for (Class<?> clazz : getSuperclasses(classToVerify)) {
+            if (!verifyMustOverrideSpecific(classToVerify, clazz)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean verifyMustOverrideSpecific(Class<?> classToVerify, Class<?> classWithAnnotations) {
         Set<Method> methodsThatMustBeOverriden = Sets.newHashSet();
 
-        for (Method m : SchemaTuple.class.getDeclaredMethods()) {
+        for (Method m : classWithAnnotations.getDeclaredMethods()) {
             if (m.getAnnotation(MustOverride.class) != null) {
                 methodsThatMustBeOverriden.add(m);
             }
         }
 
-        outer: for (Method m1 : clazz.getDeclaredMethods()) {
+        outer: for (Method m1 : classToVerify.getDeclaredMethods()) {
             Iterator<Method> it = methodsThatMustBeOverriden.iterator();
             while (it.hasNext()) {
                 if (methodsEqual(m1, it.next())) {
@@ -49,7 +74,7 @@ public class HierarchyHelper {
 
         if (methodsThatMustBeOverriden.size() > 0) {
             for (Method m : methodsThatMustBeOverriden) {
-                System.err.println("Missing method in class " + clazz + ": " + m);
+                LOG.warn("Missing method in class " + classToVerify + ": " + m);
             }
             return false;
         } else {
