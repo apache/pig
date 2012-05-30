@@ -365,6 +365,8 @@ PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
 
+PIG-2721: Wrong output generated while loading bags as input (knoguchi via daijy)
+
 PIG-2578: Multiple Store-commands mess up mapred.output.dir. (daijy)
 
 PIG-2623: Support S3 paths for registering UDFs (nshkrob via daijy)
