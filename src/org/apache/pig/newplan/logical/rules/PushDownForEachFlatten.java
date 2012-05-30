@@ -237,6 +237,8 @@ public class PushDownForEachFlatten extends Rule {
                 } else {
                     currentPlan.connect( next, foreach );
                 }
+                subPlan.add(foreach);
+                subPlan.add(next);
             } else if( next instanceof LOCross || next instanceof LOJoin ) {
                 List<Operator> preds = currentPlan.getPredecessors( next );
                 List<Integer> fieldsToBeFlattaned = new ArrayList<Integer>();
