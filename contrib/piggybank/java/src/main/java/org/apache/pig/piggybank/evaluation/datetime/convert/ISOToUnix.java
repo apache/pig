@@ -31,12 +31,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * ISOToUnix converts ISO8601 datetime strings to Unix Time Longs
- *
- * Jodatime: http://joda-time.sourceforge.net/
- * ISO8601 Date Format: http://en.wikipedia.org/wiki/ISO_8601
- * Unix Time: http://en.wikipedia.org/wiki/Unix_time
- *
+ * <p>ISOToUnix converts ISO8601 datetime strings to Unix Time Longs</p>
+ * <ul>
+ * <li>Jodatime: http://joda-time.sourceforge.net/</li>
+ * <li>ISO8601 Date Format: http://en.wikipedia.org/wiki/ISO_8601</li>
+ * <li>Unix Time: http://en.wikipedia.org/wiki/Unix_time</li>
+ * </ul>
+ * <br />
+ * <pre>
  * Example usage:
  *
  * REGISTER /Users/me/commiter/piggybank/java/piggybank.jar ;
@@ -67,7 +69,7 @@ import java.util.List;
  * (1202263562000L)
  * (1173063903000L)
  * ...
- *
+ *</pre>
  */
 
 public class ISOToUnix extends EvalFunc<Long> {
