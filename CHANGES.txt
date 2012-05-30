@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2727: PigStorage Source tagging does not need pig.splitCombination to be turned off (prkommireddi via dvryaboy)
+
 PIG-2710: Implement Naive CUBE operator (prasanth_j via dvryaboy)
 
 PIG-2714: Pig documentation on TOP funcation has issues  (daijy)
