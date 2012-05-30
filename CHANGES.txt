@@ -18,7 +18,18 @@
 
 Pig Change Log
 
-Release 0.10.0 - Unreleased
+Release 0.10.1
+
+INCOMPATIBLE CHANGES
+
+IMPROVEMENTS
+
+PIG-2727: PigStorage Source tagging does not need pig.splitCombination to be turned off (prkommireddi via dvryaboy)
+
+BUG FIXES
+
+
+Release 0.10.0
 
 INCOMPATIBLE CHANGES
 

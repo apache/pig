@@ -35,7 +35,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.compress.BZip2Codec;
 import org.apache.hadoop.io.compress.CompressionCodec;
-import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.hadoop.io.compress.GzipCodec;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
@@ -85,7 +84,7 @@ import org.apache.pig.parser.ParserException;
  * <li><code>-schema</code> Reads/Stores the schema of the relation using a 
  *  hidden JSON file.
  * <li><code>-noschema</code> Ignores a stored schema during loading.
- * <li><code>-tagsource</code> Appends input source file path to end of each tuple. Make sure to set "pig.splitCombination" to false
+ * <li><code>-tagsource</code> Appends input source file path to beginning of each tuple.
  * </ul>
  * <p>
  * <h3>Schemas</h3>
@@ -104,8 +103,8 @@ import org.apache.pig.parser.ParserException;
  * <h3>Source tagging</h3>
  * If<code>-tagsource</code> is specified, PigStorage will prepend input split path to each Tuple/row.
  * User needs to ensure <code>pig.splitCombination</code> is set to false. 
- * Usage: A = LOAD 'input' using PigStorage(',','-tagschema'); B = foreach A generate INPUT_FILE_NAME;
- * The first field in each Tuple will contain input path (INPUT_FILE_NAME)
+ * Usage: A = LOAD 'input' using PigStorage(',','-tagsource'); B = foreach A generate $0;
+ * The first field (0th index) in each Tuple will contain input path
  * <p>
  * Note that regardless of whether or not you store the schema, you <b>always</b> need to specify
  * the correct delimiter to read your data. If you store reading delimiter "#" and then load using
@@ -154,7 +153,7 @@ LoadPushDown, LoadMetadata, StoreMetadata {
     private void populateValidOptions() {
         validOptions.addOption("schema", false, "Loads / Stores the schema of the relation using a hidden JSON file.");
         validOptions.addOption("noschema", false, "Disable attempting to load data schema from the filesystem.");
-        validOptions.addOption(TAG_SOURCE_PATH, false, "Appends input source file path to end of each tuple. Make sure to set pig.splitCombination to false");
+        validOptions.addOption(TAG_SOURCE_PATH, false, "Appends input source file path to beginning of each tuple. ");
     }
 
     public PigStorage() {
@@ -180,7 +179,7 @@ LoadPushDown, LoadMetadata, StoreMetadata {
      * <ul>
      * <li><code>-schema</code> Loads / Stores the schema of the relation using a hidden JSON file.
      * <li><code>-noschema</code> Ignores a stored schema during loading.
-     * <li><code>-tagsource</code> Appends input source file path to end of each tuple. Make sure to set "pig.splitCombination" to false
+     * <li><code>-tagsource</code> Appends input source file path to beginning of each tuple.
      * </ul>
      * @param delimiter the single byte character that is used to separate fields.
      * @param options a list of options that can be used to modify PigStorage behavior
