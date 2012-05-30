@@ -11,6 +11,8 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Lists;
 
+import org.apache.pig.data.utils.HierarchyHelper;
+
 //TODO Use code generation to avoid having to do clazz.newInstance(), and to be able to directly return the proper SchemaTuple
 //TODO can just have a small container class that the generated code extends that has any functionality specific to that
 public class SchemaTupleFactory extends TupleFactory {
@@ -183,7 +185,7 @@ public class SchemaTupleFactory extends TupleFactory {
                 throw new ExecException("Given class " + className + " not found in classpath", e);
             }
 
-            if (!SchemaTuple.verifyMustOverride(clazz)) {
+            if (!HierarchyHelper.verifyMustOverride(clazz)) {
                  throw new ExecException("Generated class " + clazz + " does not override all @MustOverride methods in SchemaTuple");
             }
 

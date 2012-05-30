@@ -72,7 +72,7 @@ public class SchemaTupleClassGenerator {
     }
 
     //this is called on the front end
-    public static int generateAndAddToJar(Schema s) {
+    public static int generateAndAddToJar(Schema s, boolean appendable) {
         SchemaTupleFactory.GeneratedSchemaTupleInfoRepository genned = SchemaTupleFactory.getGeneratedInfo();
 
         Class<SchemaTuple> clazz = genned.getTupleClass(s);
@@ -87,7 +87,7 @@ public class SchemaTupleClassGenerator {
         }
 
         int id = getGlobalClassIdentifier();
-        String codeString = generateCodeString(s, id);
+        String codeString = generateCodeString(s, id, appendable);
 
         File current;
         try {
@@ -107,8 +107,8 @@ public class SchemaTupleClassGenerator {
         return id;
     }
 
-    public static String generateCodeString(Schema s, int id) {
-        TypeInFunctionStringOutFactory f = new TypeInFunctionStringOutFactory(s, id);
+    public static String generateCodeString(Schema s, int id, boolean appendable) {
+        TypeInFunctionStringOutFactory f = new TypeInFunctionStringOutFactory(s, id, appendable);
 
         for (Schema.FieldSchema fs : s.getFields())
             f.process(fs);
@@ -166,17 +166,22 @@ public class SchemaTupleClassGenerator {
     static class CompareToSpecificString extends TypeInFunctionStringOut {
         private int id;
 
-        public CompareToSpecificString(int id) {
+        public CompareToSpecificString(int id, boolean appendable) {
+            super(appendable);
             this.id = id;
         }
 
         public void prepare() {
             add("@Override");
             add("protected int compareToSpecific(SchemaTuple_"+id+" t) {");
-            add("    int i = compareSizeSpecific(t);");
-            add("    if (i != 0) {");
-            add("        return i;");
-            add("    }");
+            if (isAppendable()) {
+                add("    int i = compareSizeSpecific(t);");
+                add("    if (i != 0) {");
+                add("        return i;");
+                add("    }");
+            } else {
+                add("    int i = 0;");
+            }
         }
 
         public void process(int fieldNum, Schema.FieldSchema fs) {
@@ -262,7 +267,7 @@ public class SchemaTupleClassGenerator {
         }
 
         public void end() {
-            add("    return h;");
+            add("    return h + super.hashCode();");
             add("}");
         }
     }
@@ -294,7 +299,7 @@ public class SchemaTupleClassGenerator {
                     add("private "+typeName()+" pos_"+fieldPos+";");
                 }
             } else {
-                int id = SchemaTupleClassGenerator.generateAndAddToJar(fs.schema);
+                int id = SchemaTupleClassGenerator.generateAndAddToJar(fs.schema, isAppendable());
 
                 for (Queue<Integer> q : listOfQueuesForIds)
                     q.add(id);
@@ -313,7 +318,8 @@ public class SchemaTupleClassGenerator {
             addBreak();
         }
 
-        public FieldString(List<Queue<Integer>> listOfQueuesForIds, Schema schema) {
+        public FieldString(List<Queue<Integer>> listOfQueuesForIds, Schema schema, boolean appendable) {
+            super(appendable);
             this.listOfQueuesForIds = listOfQueuesForIds;
             this.schema = schema;
         }
@@ -544,6 +550,7 @@ public class SchemaTupleClassGenerator {
     //will have to be reconstructed
     static class WriteNullsString extends TypeInFunctionStringOut {
         String s = "    boolean[] b = {\n";
+
         public void prepare() {
             add("public void writeNulls(DataOutput out) throws IOException {");
         }
@@ -553,12 +560,18 @@ public class SchemaTupleClassGenerator {
         }
 
         public void end() {
-            s += "        appendIsNull(),\n";
+            if (isAppendable()) {
+                s += "        appendIsNull(),\n";
+            }
             s = s.substring(0, s.length() - 2) + "\n    };";
             add(s);
             add("    SedesHelper.writeBooleanArray(out, b);");
             add("}");
             addBreak();
+        }
+
+        public WriteNullsString(boolean appendable) {
+            super(appendable);
         }
     }
 
@@ -572,7 +585,11 @@ public class SchemaTupleClassGenerator {
         public void prepare() {
             add("@Override");
             add("public void readFields(DataInput in) throws IOException {");
-            add("    boolean[] b = SedesHelper.readBooleanArray(in, sizeNoAppend() + 1);");
+            if (isAppendable()) {
+                add("    boolean[] b = SedesHelper.readBooleanArray(in, sizeNoAppend() + 1);");
+            } else {
+                add("    boolean[] b = SedesHelper.readBooleanArray(in, sizeNoAppend());");
+            }
             addBreak();
         }
 
@@ -605,14 +622,17 @@ public class SchemaTupleClassGenerator {
         public void end() {
             for (int i = 0; i < booleanBytes; i++)
                 add("    booleanByte_"+i+" = in.readByte();");
-            add("    if(!b["+ct+"]) {");
-            add("        setAppend(SedesHelper.readGenericTuple(in, in.readByte()));");
-            add("    }");
+            if (isAppendable()) {
+                add("    if(!b["+ct+"]) {");
+                add("        setAppend(SedesHelper.readGenericTuple(in, in.readByte()));");
+                add("    }");
+            }
             add("}");
             addBreak();
         }
 
-        public ReadString(Queue<Integer> idQueue) {
+        public ReadString(Queue<Integer> idQueue, boolean appendable) {
+            super(appendable);
             this.idQueue = idQueue;
         }
     }
@@ -803,9 +823,17 @@ public class SchemaTupleClassGenerator {
         public void end() {
             add("@Override");
             add("public int size() {");
-            add("    return appendSize() + " + i + ";");
+            if (isAppendable()) {
+                add("    return appendSize() + " + i + ";");
+            } else {
+                add("    return " + i + ";");
+            }
             add("}");
             addBreak();
+        }
+
+        public SizeString(boolean appendable) {
+            super(appendable);
         }
     }
 
@@ -951,9 +979,11 @@ public class SchemaTupleClassGenerator {
     static class TypeInFunctionStringOutFactory {
         private List<TypeInFunctionStringOut> listOfFutureMethods = Lists.newArrayList();
         private int id;
+        private boolean appendable;
 
-        public TypeInFunctionStringOutFactory(Schema s, int id) {
+        public TypeInFunctionStringOutFactory(Schema s, int id, boolean appendable) {
             this.id = id;
+            this.appendable = appendable;
 
             Queue<Integer> nextNestedSchemaIdForSetPos = Lists.newLinkedList();
             Queue<Integer> nextNestedSchemaIdForGetPos = Lists.newLinkedList();
@@ -962,7 +992,7 @@ public class SchemaTupleClassGenerator {
 
             List<Queue<Integer>> listOfQueuesForIds = Lists.newArrayList(nextNestedSchemaIdForSetPos, nextNestedSchemaIdForGetPos, nextNestedSchemaIdForReadField, nextNestedSchemaIdForCompareTo);
 
-            listOfFutureMethods.add(new FieldString(listOfQueuesForIds, s)); //has to be run first
+            listOfFutureMethods.add(new FieldString(listOfQueuesForIds, s, appendable)); //has to be run first
             listOfFutureMethods.add(new SetPosString(nextNestedSchemaIdForSetPos));
             listOfFutureMethods.add(new GetPosString(nextNestedSchemaIdForGetPos));
             listOfFutureMethods.add(new GetDummyString());
@@ -973,10 +1003,10 @@ public class SchemaTupleClassGenerator {
             listOfFutureMethods.add(new CheckIfNullString());
             listOfFutureMethods.add(new SetNullString());
             listOfFutureMethods.add(new SetEqualToSchemaTupleSpecificString(id));
-            listOfFutureMethods.add(new WriteNullsString());
-            listOfFutureMethods.add(new ReadString(nextNestedSchemaIdForReadField));
+            listOfFutureMethods.add(new WriteNullsString(appendable));
+            listOfFutureMethods.add(new ReadString(nextNestedSchemaIdForReadField, appendable));
             listOfFutureMethods.add(new WriteString());
-            listOfFutureMethods.add(new SizeString());
+            listOfFutureMethods.add(new SizeString(appendable));
             listOfFutureMethods.add(new MemorySizeString());
             listOfFutureMethods.add(new GetSchemaTupleIdentifierString(id));
             listOfFutureMethods.add(new GetSchemaStringString(s));
@@ -984,7 +1014,7 @@ public class SchemaTupleClassGenerator {
             listOfFutureMethods.add(new SizeNoAppendString());
             listOfFutureMethods.add(new GetTypeString());
             listOfFutureMethods.add(new CompareToString(nextNestedSchemaIdForCompareTo, id));
-            listOfFutureMethods.add(new CompareToSpecificString(id));
+            listOfFutureMethods.add(new CompareToSpecificString(id, appendable));
             listOfFutureMethods.add(new SetEqualToSchemaTupleString(id));
             listOfFutureMethods.add(new PrimitiveSetString(DataType.INTEGER));
             listOfFutureMethods.add(new PrimitiveSetString(DataType.LONG));
@@ -1011,8 +1041,8 @@ public class SchemaTupleClassGenerator {
         }
 
         public String end() {
-            StringBuffer head =
-                new StringBuffer()
+            StringBuilder head =
+                new StringBuilder()
                     .append("import java.util.List;\n")
                     .append("import java.io.DataOutput;\n")
                     .append("import java.io.DataInput;\n")
@@ -1032,8 +1062,13 @@ public class SchemaTupleClassGenerator {
                     .append("import org.apache.pig.impl.logicalLayer.FrontendException;\n")
                     .append("import org.apache.pig.backend.executionengine.ExecException;\n")
                     .append("import org.apache.pig.data.SizeUtil;\n")
-                    .append("\n")
-                    .append("public class SchemaTuple_"+id+" extends SchemaTuple<SchemaTuple_"+id+"> {\n");
+                    .append("\n");
+
+            if (appendable) {
+                head.append("public class SchemaTuple_"+id+" extends AppendableSchemaTuple<SchemaTuple_"+id+"> {\n");
+            } else {
+                head.append("public class SchemaTuple_"+id+" extends SchemaTuple<SchemaTuple_"+id+"> {\n");
+            }
 
             for (TypeInFunctionStringOut t : listOfFutureMethods) {
                 t.end();
@@ -1046,14 +1081,16 @@ public class SchemaTupleClassGenerator {
 
     static class TypeInFunctionStringOut {
         private int fieldPos = 0;
-        private StringBuffer content = new StringBuffer();
+        private StringBuilder content = new StringBuilder();
         private byte type;
 
         public void prepare() {}
         public void process(int fieldPos, Schema.FieldSchema fs) {}
         public void end() {}
 
-        public StringBuffer getContent() {
+        public int appendable = -1;
+
+        public StringBuilder getContent() {
             return content;
         }
 
@@ -1062,17 +1099,31 @@ public class SchemaTupleClassGenerator {
             addBreak();
         }
 
-        public StringBuffer spaces(int indent) {
-            StringBuffer out = new StringBuffer();
+        public boolean isAppendable() {
+            if (appendable == -1) {
+                throw new RuntimeException("Need to be given appendable status in " + getClass());
+            }
+            return appendable == 1;
+        }
+
+        public TypeInFunctionStringOut(boolean appendable) {
+            super();
+            this.appendable = appendable ? 1 : 0;
+        }
+
+        public StringBuilder spaces(int indent) {
+            StringBuilder out = new StringBuilder();
             String space = "    ";
-            for (int i = 0; i < indent; i++)
+            for (int i = 0; i < indent; i++) {
                 out.append(space);
+            }
             return out;
         }
 
         public void add(String s) {
-            for (String str : s.split("\\n"))
+            for (String str : s.split("\\n")) {
                 content.append(spaces(1).append(str).append("\n"));
+            }
         }
 
         public void addBreak() {

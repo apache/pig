@@ -203,11 +203,15 @@ public class UserFuncExpression extends LogicalExpression {
         Schema inputSchemaToGen = Util.translateSchema(inputSchema);
         Schema udfSchema = ef.outputSchema(inputSchemaToGen);
 
-        if (SchemaTupleFactory.isGeneratable(inputSchemaToGen))
-            SchemaTupleClassGenerator.generateAndAddToJar(inputSchemaToGen);
+        //TODO appendability should come from a setting
 
-        if (SchemaTupleFactory.isGeneratable(udfSchema))
-            SchemaTupleClassGenerator.generateAndAddToJar(udfSchema);
+        if (SchemaTupleFactory.isGeneratable(inputSchemaToGen)) {
+            SchemaTupleClassGenerator.generateAndAddToJar(inputSchemaToGen, false);
+        }
+
+        if (SchemaTupleFactory.isGeneratable(udfSchema)) {
+            SchemaTupleClassGenerator.generateAndAddToJar(udfSchema, false);
+        }
 
         if (udfSchema != null) {
             Schema.FieldSchema fs;

@@ -12,11 +12,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Set;
-import java.lang.reflect.Method;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Target;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Lists;
@@ -26,6 +21,7 @@ import com.google.common.collect.Sets;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.utils.SedesHelper;
+import org.apache.pig.data.utils.HierarchyHelper.MustOverride;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.Utils;
@@ -48,66 +44,26 @@ import javax.tools.StandardLocation;
 //ALSO: the memory estimate has to include all of these objects that come along with SchemaTuple...
 //TODO: implement getField(String)
 
+//TODO consider making "write" instead pass around a byte buffer, buffering all the values, and writing ones.
+//TODO this could make Varints reasonable again
+
 //the benefit of having the generic here is that in the case that we do ".set(t)" and t is the right type, it will be very fast
 @InterfaceAudience.Public
 @InterfaceStability.Unstable
 public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTuple {
-    private Tuple append;
-
     private static final Log LOG = LogFactory.getLog(SchemaTuple.class);
     private static final TupleFactory mTupleFactory = TupleFactory.getInstance();
     private static final BinInterSedes pigSerializer = new BinInterSedes();
 
     @Override
     public void append(Object val) {
-        if (append == null) {
-            append = mTupleFactory.newTuple();
-        }
-
-        append.append(val);
-    }
-
-    protected int appendSize() {
-        return append == null ? 0 : append.size();
-    }
-
-    protected boolean appendIsNull() {
-        return appendSize() == 0;
-    }
-
-    protected Object getAppend(int i) throws ExecException {
-        return appendIsNull(i) ? null : append.get(i);
-    }
-
-    private boolean appendIsNull(int i) throws ExecException {
-        return append == null || append.isNull() ? null : append.isNull(i);
-    }
-
-    //protected Tuple getAppend() {
-    public Tuple getAppend() {
-        return append;
-    }
-
-    protected void setAppend(Tuple t) {
-        append = t;
-    }
-
-    private void appendReset() {
-        append = null;
-    }
-
-    private void setAppend(int fieldNum, Object val) throws ExecException {
-        append.set(fieldNum, val);
+        throw new RuntimeException("Append not supported by SchemaTuple! Try AppendableSchemaTuple");
     }
 
     //TODO this should account for all of the non-generated objects, and the general cost of being an object
     @MustOverride
     public long getMemorySize() {
         return 0;
-    }
-
-    private byte appendType(int i) throws ExecException {
-        return append == null ? DataType.UNKNOWN : append.getType(i);
     }
 
     //need helpers that can be integrated with the generated code...
@@ -121,17 +77,11 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
 
     @MustOverride
     protected SchemaTuple set(SchemaTuple t, boolean checkType) throws ExecException {
-        appendReset();
-        for (int j = sizeNoAppend(); j < t.size(); j++) {
-            append(t.get(j));
-        }
         return this;
     }
 
     @MustOverride
     protected SchemaTuple setSpecific(T t) {
-        appendReset();
-        setAppend(t.getAppend());
         return this;
     }
 
@@ -165,12 +115,6 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
 
         for (int i = 0; i < sizeNoAppend(); i++)
             set(i, l.get(i));
-
-        appendReset();
-
-        for (int i = sizeNoAppend(); i < l.size(); i++) {
-            append(l.get(i++));
-        }
 
         return this;
     }
@@ -295,6 +239,7 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
         return Joiner.on(delimiter).useForNull("").join(getAll());
     }
 
+    //TODO could generate a faster getAll
     @Override
     public List<Object> getAll() {
         List<Object> l = Lists.newArrayListWithCapacity(size());
@@ -312,16 +257,19 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
     //TODO also need to implement the raw comparator
     @Override
     public int compareTo(Object other) {
-        if (getClass() == other.getClass())
+        if (getClass() == other.getClass()) {
             return compareToSpecific((T)other);
+        }
 
-        if (other instanceof SchemaTuple)
+        if (other instanceof SchemaTuple) {
             return compareTo((SchemaTuple)other, false);
+        }
 
-        if (other instanceof Tuple)
+        if (other instanceof Tuple) {
             compareTo((Tuple)other, false);
+        }
 
-         return DataType.compare(this, other);
+        return DataType.compare(this, other);
     }
 
     public int compareTo(Tuple t) {
@@ -370,36 +318,11 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
 
     @MustOverride
     protected int compareTo(SchemaTuple t, boolean checkType) {
-        if (appendSize() > 0) {
-            int i;
-            int m = sizeNoAppend();
-            for (int k = 0; k < size() - sizeNoAppend(); k++) {
-                try {
-                    i = DataType.compare(getAppend(k), t.get(m++));
-                } catch (ExecException e) {
-                    throw new RuntimeException("Unable to get append value", e);
-                }
-                if (i != 0) {
-                    return i;
-                }
-            }
-        }
         return 0;
     }
 
     @MustOverride
     protected int compareToSpecific(T t) {
-        int i;
-        for (int z = 0; z < appendSize(); z++) {
-            try {
-                i = DataType.compare(getAppend(z), t.getAppend(z));
-            } catch (ExecException e) {
-                throw new RuntimeException("Unable to get append", e);
-            }
-            if (i != 0) {
-                return i;
-            }
-        }
         return 0;
     }
 
@@ -535,69 +458,42 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
         return isNull ? 0 : 31 * hash + v.hashCode();
     }
 
-    @Override
+    @MustOverride
     public int hashCode() {
-        throw new RuntimeException("IMPLEMENT HASHCODE");
+        return 0;
     }
 
     @MustOverride
     public void set(int fieldNum, Object val) throws ExecException {
-        int diff = fieldNum - sizeNoAppend();
-        if (diff < appendSize()) {
-            setAppend(diff, val);
-            return;
-        }
         throw new ExecException("Invalid index " + fieldNum + " given");
     }
 
     @MustOverride
     public Object get(int fieldNum) throws ExecException {
-        int diff = fieldNum - sizeNoAppend();
-        if (diff < appendSize())
-            return getAppend(diff);
         throw new ExecException("Invalid index " + fieldNum + " given");
     }
 
     @MustOverride
     public boolean isNull(int fieldNum) throws ExecException {
-        int diff = fieldNum - sizeNoAppend();
-        if (diff < appendSize())
-            return appendIsNull(diff);
         throw new ExecException("Invalid index " + fieldNum + " given");
     }
 
     //TODO: do we even need this?
     @MustOverride
     public void setNull(int fieldNum) throws ExecException {
-        int diff = fieldNum - sizeNoAppend();
-        if (diff < appendSize()) {
-            setAppend(diff, null);
-        } else {
-            throw new ExecException("Invalid index " + fieldNum + " given");
-        }
+        throw new ExecException("Invalid index " + fieldNum + " given");
     }
 
     @MustOverride
     public byte getType(int fieldNum) throws ExecException {
-        int diff = fieldNum - sizeNoAppend();
-        if (diff < appendSize())
-            return appendType(diff);
         throw new ExecException("Invalid index " + fieldNum + " given");
     }
 
-    private void setPrimitiveBase(int fieldNum, Object val, String type) throws ExecException {
-        int diff = fieldNum - sizeNoAppend();
-        if (diff < appendSize()) {
-            setAppend(diff, val);
-        }
+    protected void setPrimitiveBase(int fieldNum, Object val, String type) throws ExecException {
         throw new ExecException("Given field " + fieldNum + " not a " + type + " field!");
     }
 
-    private Object getPrimitiveBase(int fieldNum, String type) throws ExecException {
-        int diff = fieldNum - sizeNoAppend();
-        if (diff < appendSize()) {
-            return getAppend(diff);
-        }
+    protected Object getPrimitiveBase(int fieldNum, String type) throws ExecException {
         throw new ExecException("Given field " + fieldNum + " not a " + type + " field!");
     }
 
@@ -700,84 +596,7 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
 
     @MustOverride
     protected void writeElements(DataOutput out) throws IOException {
-        if (!appendIsNull()) {
-            SedesHelper.writeGenericTuple(out, getAppend());
-        }
     }
-
-    /**
-     * This code verifies that every method in SchemaTuple annoted with MustOverride
-     * is overriden in the given Class.
-     */
-    public static boolean verifyMustOverride(Class<? extends SchemaTuple> clazz) {
-        Set<Method> methodsThatMustBeOverriden = Sets.newHashSet();
-
-        for (Method m : SchemaTuple.class.getDeclaredMethods()) {
-            if (m.getAnnotation(MustOverride.class) != null) {
-                methodsThatMustBeOverriden.add(m);
-            }
-        }
-
-        outer: for (Method m1 : clazz.getDeclaredMethods()) {
-            Iterator<Method> it = methodsThatMustBeOverriden.iterator();
-            while (it.hasNext()) {
-                if (methodsEqual(m1, it.next())) {
-                    it.remove();
-                    continue outer;
-                }
-            }
-        }
-
-        if (methodsThatMustBeOverriden.size() > 0) {
-            for (Method m : methodsThatMustBeOverriden) {
-                System.err.println("Missing method in class " + clazz + ": " + m);
-            }
-            return false;
-        } else {
-            return true;
-        }
-    }
-
-    /**
-     * This implements a stripped down version of method equality.
-     * method.equals(method) checks to see whether the declaring classes
-     * are equal, which we do not want. Instead, we just want to know
-     * if the methods are equal assuming that they come from the same
-     * class hierarchy (ie generated code which extends SchemaTuple).
-     */
-    public static boolean methodsEqual(Method m1, Method m2) {
-        if (!m1.getName().equals(m2.getName())) {
-            return false;
-        }
-
-        if (!m1.getReturnType().equals(m2.getReturnType())) {
-            return false;
-        }
-
-        /* Avoid unnecessary cloning */
-        Class[] params1 = m1.getParameterTypes();
-        Class[] params2 = m2.getParameterTypes();
-        if (params1.length == params2.length) {
-            for (int i = 0; i < params1.length; i++) {
-                if (!params1[i].equals(params2[i])) {
-                    return false;
-                }
-            }
-            return true;
-        }
-	return false;
-    }
-
-    /**
-     * This is an annotation used to ensure that the generated
-     * code properly implements a number of methods. A number
-     * of methods have partial implementations which can be
-     * leveraged by the generated code, but must be overriden
-     * and called via super.method() to be meaningful.
-     */
-    @Retention(RetentionPolicy.RUNTIME)
-    @Target(ElementType.METHOD)
-    public @interface MustOverride {}
 
     protected int compareSize(Tuple t) {
         int mySz = size();
@@ -931,14 +750,4 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
     protected int compare(SchemaTuple val, Object themVal) {
         return val.compareTo(themVal);
     }
-
-    protected int compareSizeSpecific(T t) {
-        int mySz = appendSize();
-        int tSz = t.appendSize();
-        if (mySz != tSz) {
-            return mySz > tSz ? 1 : -1;
-        }
-        return 0;
-    }
-
 }
