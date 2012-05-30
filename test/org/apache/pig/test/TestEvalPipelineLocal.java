@@ -1094,4 +1094,17 @@ public class TestEvalPipelineLocal {
         Assert.assertTrue(iter.next().toString().equals("(b)"));
         Assert.assertFalse(iter.hasNext());
     }
+    
+    @Test
+    public void testGroupByTuple() throws Exception {
+        File f1 = createFile(new String[]{"1\t2\t3","4\t5\t6"});
+        pigServer.registerQuery("a = load '" + Util.generateURI(f1.toString(), pigServer.getPigContext())
+                + "' as (x:int, y:int, z:int);");
+        pigServer.registerQuery("b = foreach a generate TOTUPLE(x, y) as t, z;");
+        pigServer.registerQuery("c = group b by t;");
+        Iterator<Tuple> iter = pigServer.openIterator("c");
+        Assert.assertTrue(iter.next().toString().equals("((1,2),{((1,2),3)})"));
+        Assert.assertTrue(iter.next().toString().equals("((4,5),{((4,5),6)})"));
+        Assert.assertFalse(iter.hasNext());
+    }
 }
