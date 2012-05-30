@@ -229,6 +229,7 @@ public class POPackageAnnotator extends MROpPlanVisitor {
                         lrearrange.isProjectStar(), lrearrange.getProjectedColsMap()));
             pkg.setKeyInfo(keyInfo);
             pkg.setKeyTuple(lrearrange.isKeyTuple());
+            pkg.setKeyCompound(lrearrange.isKeyCompound());
         }
 
         /**

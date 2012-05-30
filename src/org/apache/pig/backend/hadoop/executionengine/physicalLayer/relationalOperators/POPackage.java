@@ -80,6 +80,8 @@ public class POPackage extends PhysicalOperator {
     
     // marker to indicate if key is a tuple
     protected boolean isKeyTuple = false;
+    // marker to indicate if the tuple key is compound in nature
+    protected boolean isKeyCompound = false;
     // key as a Tuple object (if the key is a tuple)
     protected Tuple keyAsTuple;
     
@@ -344,7 +346,7 @@ public class POPackage extends PhysicalOperator {
                     valIndex++;
                 } else {
                     // the field for this index is in the key
-                    if(isKeyTuple) {
+                    if(isKeyTuple && isKeyCompound) {
                         // the key is a tuple, extract the
                         // field out of the tuple
                         copy.set(i, keyAsTuple.get(keyIndex));
@@ -414,6 +416,13 @@ public class POPackage extends PhysicalOperator {
      */
     public void setKeyTuple(boolean keyTuple) {
         this.isKeyTuple = keyTuple;
+    }
+    
+    /**
+     * @param keyCompound the keyCompound to set
+     */
+    public void setKeyCompound(boolean keyCompound) {
+        this.isKeyCompound = keyCompound;
     }
 
     /**
