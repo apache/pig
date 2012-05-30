@@ -367,6 +367,8 @@ PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
 
+PIG-2717: Tuple field mangled during flattening (daijy)
+
 PIG-2721: Wrong output generated while loading bags as input (knoguchi via daijy)
 
 PIG-2578: Multiple Store-commands mess up mapred.output.dir. (daijy)
