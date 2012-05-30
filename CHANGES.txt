@@ -152,6 +152,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2173: piggybank datetime conversion javadocs not properly formatted (hluu via daijy)
+
 PIG-2709: PigAvroRecordReader should specify which file has a problem when throwing IOException (mpercy via daijy)
 
 PIG-2640: Usage message gives wrong information for Pig additional jars (prkommireddi via daijy)

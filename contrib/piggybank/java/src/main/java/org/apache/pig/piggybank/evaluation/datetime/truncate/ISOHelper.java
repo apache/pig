@@ -26,8 +26,10 @@ import org.apache.pig.backend.executionengine.ExecException;
 /**
  * ISOHelper provides helper methods for the other classes in this package.
  *
- * Jodatime: http://joda-time.sourceforge.net/
- * ISO8601 Date Format: http://en.wikipedia.org/wiki/ISO_8601
+ * <ul>
+ * <li>Jodatime: http://joda-time.sourceforge.net/</li>
+ * <li>ISO8601 Date Format: http://en.wikipedia.org/wiki/ISO_8601</li>
+ * </ul>
  * This class is public so that it can be tested in TestTruncateDateTime. 
  * Otherwise, it would have "package" visibility.
  */
