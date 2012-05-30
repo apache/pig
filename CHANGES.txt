@@ -28,6 +28,8 @@ PIG-2727: PigStorage Source tagging does not need pig.splitCombination to be tur
 
 BUG FIXES
 
+PIG-2730: TFileStorage getStatistics incorrectly throws an exception instead of returning null (traviscrawford via daijy)
+
 PIG-2717: Tuple field mangled during flattening (daijy)
 
 PIG-2721: Wrong output generated while loading bags as input (knoguchi via daijy)
