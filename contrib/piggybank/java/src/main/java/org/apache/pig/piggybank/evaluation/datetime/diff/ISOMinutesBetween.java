@@ -30,11 +30,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * ISOMinutesBetween returns the number of minutes between two ISO8601 datetimes as a Long
+ * <p>ISOMinutesBetween returns the number of minutes between two ISO8601 datetimes as a Long</p>
  *
- * Jodatime: http://joda-time.sourceforge.net/
- * ISO8601 Date Format: http://en.wikipedia.org/wiki/ISO_8601
- *
+ * <ul>
+ * <li>Jodatime: http://joda-time.sourceforge.net/</li>
+ * <li>ISO8601 Date Format: http://en.wikipedia.org/wiki/ISO_8601</li>
+ * </ul>
+ * <br />
+ * <pre>
  * Example usage:
  * 
  * REGISTER /Users/me/commiter/piggybank/java/piggybank.jar ;
@@ -74,7 +77,7 @@ import java.util.List;
  * (0L,11L,341,8185L,491107L,29466421L)
  * (0L,0L,5,122L,7326L,439562L)
  * (0L,-10L,-332,-7988L,-479334L,-28760097L)
- *
+ * </pre>
  */
 
 public class ISOMinutesBetween extends EvalFunc<Long> {

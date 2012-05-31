@@ -113,6 +113,13 @@ public class POLocalRearrange extends PhysicalOperator {
     // off the "key" correctly to stitch together the
     // "value"
     private boolean isKeyTuple = false;
+    // marker to note that the tuple "key" is compound
+    // in nature. For example:
+    // group a by (a0, a1);
+    // The group key is a tuple of two fields, isKeyCompound is on
+    // group a by a0; -- a0 is a tuple
+    // The group key is a tuple of one field, isKeyCompound is off
+    private boolean isKeyCompound = false;
     private boolean isSecondaryKeyTuple = false;
 
     private int mProjectedColsMapSize = 0;
@@ -574,6 +581,7 @@ public class POLocalRearrange extends PhysicalOperator {
             // off the "key" correctly to stitch together the
             // "value"
             isKeyTuple  = true;
+            isKeyCompound = true;
         }
         mProjectedColsMapSize = mProjectedColsMap.size();
     }
@@ -732,6 +740,13 @@ public class POLocalRearrange extends PhysicalOperator {
      */
     public boolean isKeyTuple() {
         return isKeyTuple;
+    }
+    
+    /**
+     * @return the isKeyCompound
+     */
+    public boolean isKeyCompound() {
+        return isKeyCompound;
     }
 
     /**

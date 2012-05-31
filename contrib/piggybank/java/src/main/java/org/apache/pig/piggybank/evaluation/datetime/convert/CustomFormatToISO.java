@@ -34,11 +34,13 @@ import java.util.List;
 
 /**
  * CustomFormatToISO converts arbitrary date formats to ISO format.
- *
- * Jodatime: http://joda-time.sourceforge.net/
- * ISO8601 Date Format: http://en.wikipedia.org/wiki/ISO_8601
- * Jodatime custom date formats: http://joda-time.sourceforge.net/api-release/org/joda/time/format/DateTimeFormat.html
- *
+ * <ul>
+ * <li>Jodatime: http://joda-time.sourceforge.net/</li>
+ * <li>ISO8601 Date Format: http://en.wikipedia.org/wiki/ISO_8601</li>
+ * <li>Jodatime custom date formats: http://joda-time.sourceforge.net/api-release/org/joda/time/format/DateTimeFormat.html</li>
+ * </ul>
+ * <br />
+ * <pre>
  * Example usage:
  *
  * REGISTER /Users/me/commiter/piggybank/java/piggybank.jar ;
@@ -62,7 +64,7 @@ import java.util.List;
  * DUMP toISO;
  * (2010-10-01T00:00:00.000Z)
  * ...
- *
+ * </pre>
  */
 
 public class CustomFormatToISO extends EvalFunc<String> {

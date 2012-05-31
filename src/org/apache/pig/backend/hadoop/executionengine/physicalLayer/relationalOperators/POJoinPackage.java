@@ -70,6 +70,7 @@ public class POJoinPackage extends POPackage {
             setInner(p.getInner());
             setKeyInfo(p.getKeyInfo());
             this.isKeyTuple = p.isKeyTuple;
+            this.isKeyCompound = p.isKeyCompound;
         }
         if (f!=null)
         {

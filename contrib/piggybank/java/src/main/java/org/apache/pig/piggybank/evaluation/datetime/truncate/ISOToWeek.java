@@ -33,10 +33,12 @@ import java.util.List;
  * ISOToWeek truncates an ISO8601 datetime string to the precision of the day field,
  * for the first day of the week of the datetime.  This 'rounds' to the week's monday, see
  * http://joda-time.sourceforge.net/cal_iso.html
- *
- * Jodatime: http://joda-time.sourceforge.net/
- * ISO8601 Date Format: http://en.wikipedia.org/wiki/ISO_8601
- *
+ * <ul>
+ * <li>Jodatime: http://joda-time.sourceforge.net/</li>
+ * <li>ISO8601 Date Format: http://en.wikipedia.org/wiki/ISO_8601</li>
+ * </ul>
+ * <br />
+ * <pre>
  * Example usage:
  * 
  * REGISTER /Users/me/commiter/piggybank/java/piggybank.jar ;
@@ -77,7 +79,7 @@ import java.util.List;
  * (2009-01-01T00:00:00.000Z,2009-01-01T00:00:00.000Z,2009-01-05T00:00:00.000Z,2009-01-07T00:00:00.000Z,2009-01-07T01:00:00.000Z,2009-01-07T01:07:00.000Z,2009-01-07T01:07:01.000Z)
  * (2008-01-01T00:00:00.000Z,2008-02-01T00:00:00.000Z,2008-02-04T00:00:00.000Z,2008-02-06T00:00:00.000Z,2008-02-06T02:00:00.000Z,2008-02-06T02:06:00.000Z,2008-02-06T02:06:02.000Z)
  * (2007-01-01T00:00:00.000Z,2007-03-01T00:00:00.000Z,2007-03-05T00:00:00.000Z,2007-03-05T00:00:00.000Z,2007-03-05T03:00:00.000Z,2007-03-05T03:05:00.000Z,2007-03-05T03:05:03.000Z)
- *
+ * </pre>
  */
 
 public class ISOToWeek extends EvalFunc<String> {
