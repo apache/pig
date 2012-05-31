@@ -14,7 +14,14 @@ import org.apache.pig.data.SchemaTuple;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Lists;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+@InterfaceAudience.Private
+@InterfaceStability.Unstable
 public class HierarchyHelper {
+    private static final Log LOG = LogFactory.getLog(HierarchyHelper.class);
+
     /**
      * This is an annotation used to ensure that the generated
      * code properly implements a number of methods. A number
