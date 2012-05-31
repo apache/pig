@@ -3,12 +3,13 @@ package org.apache.pig.data;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.Iterator;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BinInterSedes.BinInterSedesTupleRawComparator;
 
 @SuppressWarnings("serial")
-public abstract class PrimitiveFieldTuple implements TypeAwareTuple {
+public abstract class PrimitiveFieldTuple extends AbstractTuple implements TypeAwareTuple {
     protected boolean isSet = false;
 
     @Override

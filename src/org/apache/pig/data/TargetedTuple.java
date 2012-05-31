@@ -22,6 +22,7 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Iterator;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -31,7 +32,7 @@ import org.apache.pig.impl.plan.OperatorKey;
  * it needs be attached
  *
  */
-public class TargetedTuple implements Tuple {
+public class TargetedTuple extends AbstractTuple {
     /**
      * 
      */
@@ -134,11 +135,6 @@ public class TargetedTuple implements Tuple {
     }
 
     @Override
-    public boolean isNull(int fieldNum) throws ExecException {
-        return t.isNull(fieldNum);
-    }
-
-    @Override
     public void reference(Tuple t) {
         this.t = t;
     }
@@ -151,11 +147,6 @@ public class TargetedTuple implements Tuple {
     @Override
     public int size() {
         return t.size();
-    }
-
-    @Override
-    public String toDelimitedString(String delim) throws ExecException {
-        return t.toDelimitedString(delim);
     }
 
     @Override
