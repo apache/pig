@@ -27,6 +27,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BagFactory;
@@ -170,6 +171,40 @@ public class TestBinInterSedes {
 
     }
 
+    /*
+     * test sedes of long of diff sizes
+     * @throws IOException
+     */
+    @Test
+    public void testTupleWriteReadLongDiffSizes() throws IOException {
+        try {
+            Random r = new Random(100L);
+
+            Tuple tuple = TupleFactory.getInstance().newTuple();
+
+            tuple.append(new Long(0));
+            tuple.append(new Long(1));
+            tuple.append(new Long(-1));
+            tuple.append(new Long(300));
+            tuple.append(new Long(600));
+            tuple.append(new Long(10000));
+            tuple.append(new Long(-10000));
+            tuple.append(new Long(5000000000000000000L));
+            tuple.append(new Long(-5000000000000000000L));
+
+            for (int i = 0; i < 100000; i++) {
+                tuple.append(new Long(r.nextLong()));
+            }
+
+            testTupleSedes(tuple);
+
+        } catch (ExecException e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+
     /**
      * create bag having given number of tuples
      * @param size
@@ -258,7 +293,6 @@ public class TestBinInterSedes {
         }
         return map;
     }
-
 
     /**
      * Write the serialized tuple to DataOutputStream and get deserialized tuple
