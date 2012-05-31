@@ -17,6 +17,8 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -1853,7 +1855,20 @@ public class TestLogicalPlanBuilder {
         Operator store = lp.getSinks().get(0);
         LOForEach foreach = (LOForEach) lp.getPredecessors(store).get(0);
         String s = foreach.getSchema().toString(false);
-        Assert.assertTrue( s.equals("bag_of_tokenTuples:bag{tuple_of_tokens:tuple(token:chararray)}"));
+        Assert.assertTrue( s.equals("bag_of_tokenTuples_from_f1:bag{tuple_of_tokens:tuple(token:chararray)}"));
+    }
+    
+    @Test
+    public void testTokenizeSchema2()  throws Exception {
+        String query = "a = load 'one' as (f1: chararray, f2: chararray);" + 
+        "b = foreach a generate TOKENIZE(f1), TOKENIZE(f2);" +
+        "store b into 'output';";
+        LogicalPlan lp = buildPlan(query);
+        Operator store = lp.getSinks().get(0);
+        LOForEach foreach = (LOForEach) lp.getPredecessors(store).get(0);
+        String s = foreach.getSchema().toString(false);
+        assertEquals(s, "bag_of_tokenTuples_from_f1:bag{tuple_of_tokens:tuple(token:chararray)}"
+        		+",bag_of_tokenTuples_from_f2:bag{tuple_of_tokens:tuple(token:chararray)}");
     }
 
     @Test
