@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2732: Let's get rid of the deprecated Tuple methods (jcoveney)
+
 PIG-2638: Optimize BinInterSedes treatment of longs (jcoveney)
 
 PIG-2727: PigStorage Source tagging does not need pig.splitCombination to be turned off (prkommireddi via dvryaboy)
