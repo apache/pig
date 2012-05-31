@@ -100,8 +100,8 @@ public class TOKENIZE extends EvalFunc<DataBag> {
             Schema bagSchema = new Schema(tupleFs);
             bagSchema.setTwoLevelAccessRequired(true);
             Schema.FieldSchema bagFs = new Schema.FieldSchema(
-                        "bag_of_tokenTuples",bagSchema, DataType.BAG);
-            
+                        "bag_of_tokenTuples_from_" + input.getField(0).alias, bagSchema, DataType.BAG);
+                    
             return new Schema(bagFs); 
             
             
