@@ -304,15 +304,4 @@ public abstract class PrimitiveFieldTuple implements TypeAwareTuple {
     public String toString() {
         return "" + get();
     }
-
-    @Override
-    @Deprecated
-    public boolean isNull() {
-        return false;
-    }
-
-    @Override
-    @Deprecated
-    public void setNull(boolean isNull) {
-    }
 }

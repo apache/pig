@@ -565,15 +565,4 @@ public class DefaultTuple implements Tuple {
     public static Class<? extends TupleRawComparator> getComparatorClass() {
         return DefaultTupleRawComparator.class;
     }
-
-    @Override
-    @Deprecated
-    public boolean isNull() {
-        return false;
-    }
-    
-    @Override
-    @Deprecated
-    public void setNull(boolean isNull) {
-    }
 }

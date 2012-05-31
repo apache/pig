@@ -174,16 +174,4 @@ public class TargetedTuple implements Tuple {
     public int hashCode() {
         return t.hashCode();
     }
-    
-    @Override
-    @Deprecated
-    public boolean isNull() {
-        return false;
-    }
-
-    @Override
-    @Deprecated
-    public void setNull(boolean isNull) {
-    }
-
 }

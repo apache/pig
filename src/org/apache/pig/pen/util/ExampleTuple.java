@@ -131,15 +131,4 @@ public class ExampleTuple implements Tuple {
     public int compareTo(Object o) {
         return t.compareTo(o);
     }
-
-    @Override
-    @Deprecated
-    public boolean isNull() {
-        return false;
-    }
-
-    @Override
-    @Deprecated
-    public void setNull(boolean isNull) {
-    }
 }
