@@ -22,6 +22,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.utils.SedesHelper;
 import org.apache.pig.data.utils.HierarchyHelper.MustOverride;
+import org.apache.pig.data.utils.MethodHelper.NotImplemented;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.Utils;
@@ -55,6 +56,7 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
     private static final TupleFactory mTupleFactory = TupleFactory.getInstance();
     private static final BinInterSedes pigSerializer = new BinInterSedes();
 
+    @NotImplemented
     @Override
     public void append(Object val) {
         throw new RuntimeException("Append not supported by SchemaTuple! Try AppendableSchemaTuple");

@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Iterator;
 
 import org.apache.pig.data.SchemaTuple;
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
 
 import com.google.common.collect.Sets;
 import com.google.common.collect.Lists;
