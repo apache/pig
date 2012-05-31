@@ -255,6 +255,7 @@
       <env key="YARN_CONF_DIR" value="${YARN_CONF_DIR}"/>
       <env key="YARN_HOME" value="${YARN_HOME}"/>
       <env key="OLD_HADOOP_HOME" value="${OLD_HADOOP_HOME}"/>
+      <env key="PH_BENCHMARK_CACHE_PATH" value="${PH_BENCHMARK_CACHE_PATH}"/>
       <env key="PH_OLD_CLUSTER_CONF" value="${PH_OLD_CLUSTER_CONF}"/>
       <env key="PERL5LIB" value="./libexec"/>
       <arg line="${tests.to.run}"/>
