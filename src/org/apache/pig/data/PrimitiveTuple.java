@@ -475,15 +475,4 @@ public class PrimitiveTuple implements TypeAwareTuple {
     public boolean equals(Object other) {
         return (compareTo(other) == 0);
     }
-
-    @Override
-    @Deprecated
-    public boolean isNull() {
-        return false;
-    }
-
-    @Override
-    @Deprecated
-    public void setNull(boolean isNull) {
-    }
 }

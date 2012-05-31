@@ -39,7 +39,6 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -120,13 +119,12 @@ public class HExecutionEngine {
     }
     
     @SuppressWarnings("deprecation")
-    public void init(Properties properties) throws ExecException {
+    private void init(Properties properties) throws ExecException {
         //First set the ssh socket factory
         setSSHFactory();
         
         String cluster = null;
         String nameNode = null;
-        Configuration configuration = null;
     
         // We need to build a configuration object first in the manner described below
         // and then get back a properties object to inspect the JOB_TRACKER_LOCATION
@@ -152,7 +150,7 @@ public class HExecutionEngine {
             
             if( hadoop_site == null && core_site == null ) {
                 throw new ExecException("Cannot find hadoop configurations in classpath (neither hadoop-site.xml nor core-site.xml was found in the classpath)." +
-                        "If you plan to use local mode, please put -x local option in command line", 
+                        " If you plan to use local mode, please put -x local option in command line", 
                         4010);
             }
 
@@ -203,18 +201,15 @@ public class HExecutionEngine {
         }
      
         log.info("Connecting to hadoop file system at: "  + (nameNode==null? LOCAL: nameNode) )  ;
+        // constructor sets DEFAULT_REPLICATION_FACTOR_KEY
         ds = new HDataStorage(properties);
                 
-        // The above HDataStorage constructor sets DEFAULT_REPLICATION_FACTOR_KEY in properties.
-        configuration = ConfigurationUtil.toConfiguration(properties);
-        
-            
         if(cluster != null && !cluster.equalsIgnoreCase(LOCAL)){
-            log.info("Connecting to map-reduce job tracker at: " + properties.get(JOB_TRACKER_LOCATION));
+            log.info("Connecting to map-reduce job tracker at: " + jc.get(JOB_TRACKER_LOCATION));
         }
 
         // Set job-specific configuration knobs
-        jobConf = new JobConf(configuration);
+        jobConf = jc;
     }
 
     public void updateConfiguration(Properties newConfiguration) 
@@ -352,8 +347,8 @@ public class HExecutionEngine {
     }
 
     /**
-     * Method to recompute pig properties by overriding hadoop properties
-     * with pig properties
+     * Method to apply pig properties to JobConf
+     * (replaces properties with resulting jobConf values)
      * @param conf JobConf with appropriate hadoop resource files
      * @param properties Pig properties that will override hadoop properties; properties might be modified
      */
@@ -362,32 +357,23 @@ public class HExecutionEngine {
         // We need to load the properties from the hadoop configuration
         // We want to override these with any existing properties we have.
         if (jobConf != null && properties != null) {
-            Properties hadoopProperties = new Properties();
-            Iterator<Map.Entry<String, String>> iter = jobConf.iterator();
-            while (iter.hasNext()) {
-                Map.Entry<String, String> entry = iter.next();
-                hadoopProperties.put(entry.getKey(), entry.getValue());
-            }
-
-            //override hadoop properties with user defined properties
+            // set user properties on the jobConf to ensure that defaults
+            // and deprecation is applied correctly
             Enumeration<Object> propertiesIter = properties.keys();
             while (propertiesIter.hasMoreElements()) {
                 String key = (String) propertiesIter.nextElement();
                 String val = properties.getProperty(key);
-
                 // We do not put user.name, See PIG-1419
                 if (!key.equals("user.name"))
-                    hadoopProperties.put(key, val);
+                	jobConf.set(key, val);
             }
-            
             //clear user defined properties and re-populate
             properties.clear();
-            Enumeration<Object> hodPropertiesIter = hadoopProperties.keys();
-            while (hodPropertiesIter.hasMoreElements()) {
-                String key = (String) hodPropertiesIter.nextElement();
-                String val = hadoopProperties.getProperty(key);
-                properties.put(key, val);
-            }
+            Iterator<Map.Entry<String, String>> iter = jobConf.iterator();
+            while (iter.hasNext()) {
+                Map.Entry<String, String> entry = iter.next();
+                properties.put(entry.getKey(), entry.getValue());
+            } 
         }
     } 
     

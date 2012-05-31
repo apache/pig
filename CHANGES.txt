@@ -24,6 +24,10 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2733: Add *.patch, *.log, *.orig, *.rej, *.class to gitignore (jcoveney)
+
+PIG-2732: Let's get rid of the deprecated Tuple methods (jcoveney)
+
 PIG-2638: Optimize BinInterSedes treatment of longs (jcoveney)
 
 PIG-2727: PigStorage Source tagging does not need pig.splitCombination to be turned off (prkommireddi via dvryaboy)
@@ -153,6 +157,8 @@ PIG-2337: Provide UDF with input schema (xutingz via daijy)
 OPTIMIZATIONS
 
 BUG FIXES
+
+PIG-2508: PIG can unpredictably ignore deprecated Hadoop config options (thw via dvryaboy)
 
 PIG-2691: Duplicate TOKENIZE schema (jay23jack via azaroth)
 

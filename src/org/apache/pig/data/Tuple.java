@@ -64,6 +64,7 @@ public interface Tuple extends WritableComparable, Serializable {
      * tuple (and possibly even to the data structure holding the data).
      * @param t Tuple to reference.
      */
+    @Deprecated
     void reference(Tuple t);
 
     /**
@@ -149,20 +150,4 @@ public interface Tuple extends WritableComparable, Serializable {
      * @throws ExecException if a non-atomic value is found.
      */
     String toDelimitedString(String delim) throws ExecException;
-    
-    /**
-     * This is an unsupported method.
-     * It never really worked. Don't use it!
-     * @return probably nonsense! Don't rely on this!
-     */
-    @Deprecated
-    public boolean isNull();
-    
-    /**
-     * This is an unsupported method.
-     * It never really worked. Don't use it!
-     * @param isNull (but it will be ignored)
-     */
-    @Deprecated
-    public void setNull(boolean isNull);
 }
