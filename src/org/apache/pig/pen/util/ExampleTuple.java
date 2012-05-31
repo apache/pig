@@ -25,11 +25,12 @@ import java.util.List;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.AbstractTuple;
 
 //Example tuple adds 2 booleans to Tuple
 //synthetic say whether the tuple was generated synthetically
 //omittable is for future use in case we want to attach weights to tuples that have been displayed earlier
-public class ExampleTuple implements Tuple {
+public class ExampleTuple extends AbstractTuple {
     private static final long serialVersionUID = 2L;
 
     public boolean synthetic = false;
@@ -119,11 +120,6 @@ public class ExampleTuple implements Tuple {
     @Override
     public int size() {
         return t.size();
-    }
-
-    @Override
-    public String toDelimitedString(String delim) throws ExecException {
-        return t.toDelimitedString(delim);
     }
 
     @Override
