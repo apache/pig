@@ -158,6 +158,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2508: PIG can unpredictably ignore deprecated Hadoop config options (thw via dvryaboy)
+
 PIG-2691: Duplicate TOKENIZE schema (jay23jack via azaroth)
 
 PIG-2173: piggybank datetime conversion javadocs not properly formatted (hluu via daijy)
