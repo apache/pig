@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2733: Add *.patch, *.log, *.orig, *.rej, *.class to gitignore (jcoveney)
+
 PIG-2732: Let's get rid of the deprecated Tuple methods (jcoveney)
 
 PIG-2638: Optimize BinInterSedes treatment of longs (jcoveney)
