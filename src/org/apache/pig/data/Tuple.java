@@ -44,7 +44,7 @@ import org.apache.pig.backend.executionengine.ExecException;
 @SuppressWarnings("unchecked")
 @InterfaceAudience.Public
 @InterfaceStability.Stable
-public interface Tuple extends WritableComparable, Serializable {
+public interface Tuple extends WritableComparable, Serializable, Iterable<Object> {
        
     /**
      * Marker for indicating whether the value this object holds
@@ -64,6 +64,7 @@ public interface Tuple extends WritableComparable, Serializable {
      * tuple (and possibly even to the data structure holding the data).
      * @param t Tuple to reference.
      */
+    @Deprecated
     void reference(Tuple t);
 
     /**
@@ -142,27 +143,11 @@ public interface Tuple extends WritableComparable, Serializable {
     long getMemorySize();
 
     /** 
-     * Write a tuple of atomic values into a string.  All values in the
-     * tuple must be atomic (no bags, tuples, or maps).
+     * Write a tuple of values into a string. The output will be the result
+     * of calling toString on each of the values in the tuple.
      * @param delim Delimiter to use in the string.
      * @return A string containing the tuple.
-     * @throws ExecException if a non-atomic value is found.
+     * @throws ExecException this is never thrown. This only exists for backwards compatability reasons.
      */
     String toDelimitedString(String delim) throws ExecException;
-    
-    /**
-     * This is an unsupported method.
-     * It never really worked. Don't use it!
-     * @return probably nonsense! Don't rely on this!
-     */
-    @Deprecated
-    public boolean isNull();
-    
-    /**
-     * This is an unsupported method.
-     * It never really worked. Don't use it!
-     * @param isNull (but it will be ignored)
-     */
-    @Deprecated
-    public void setNull(boolean isNull);
 }

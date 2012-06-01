@@ -97,6 +97,12 @@ public class BinInterSedes implements InterSedes {
     public static final byte SCHEMA_TUPLE_SHORT_INDEX = 29;
     public static final byte SCHEMA_TUPLE = 30;
 
+    public static final byte LONG_INBYTE = 31;
+    public static final byte LONG_INSHORT = 32;
+    public static final byte LONG_ININT = 33;
+    public static final byte LONG_0 = 34;
+    public static final byte LONG_1 = 35;
+
     private static TupleFactory mTupleFactory = TupleFactory.getInstance();
     private static BagFactory mBagFactory = BagFactory.getInstance();
     public static final int UNSIGNED_SHORT_MAX = 65535;
@@ -290,6 +296,16 @@ public class BinInterSedes implements InterSedes {
         case INTEGER:
             return Integer.valueOf(in.readInt());
 
+        case LONG_0:
+            return Long.valueOf(0);
+        case LONG_1:
+            return Long.valueOf(1);
+        case LONG_INBYTE:
+            return Long.valueOf(in.readByte());
+        case LONG_INSHORT:
+            return Long.valueOf(in.readShort());
+        case LONG_ININT:
+            return Long.valueOf(in.readInt());
         case LONG:
             return Long.valueOf(in.readLong());
 
@@ -391,12 +407,27 @@ public class BinInterSedes implements InterSedes {
                 out.writeByte(INTEGER);
                 out.writeInt(i);
             }
-
             break;
 
         case DataType.LONG:
+            long lng = (Long) val;
+            if (lng == 0) {
+                out.writeByte(LONG_0);
+            } else if (lng == 1) {
+                out.writeByte(LONG_1);
+            } else if (Byte.MIN_VALUE <= lng && lng <= Byte.MAX_VALUE) {
+                out.writeByte(LONG_INBYTE);
+                out.writeByte((int)lng);
+            } else if (Short.MIN_VALUE <= lng && lng <= Short.MAX_VALUE) {
+                out.writeByte(LONG_INSHORT);
+                out.writeShort((int)lng);
+            } else if (Integer.MIN_VALUE <= lng && lng <= Integer.MAX_VALUE) {
+                out.writeByte(LONG_ININT);
+                out.writeInt((int)lng);
+            } else {
             out.writeByte(LONG);
-            out.writeLong((Long) val);
+                out.writeLong(lng);
+            }
             break;
 
         case DataType.FLOAT:
@@ -700,12 +731,17 @@ public class BinInterSedes implements InterSedes {
                 }
                 break;
             }
+            case BinInterSedes.LONG_0:
+            case BinInterSedes.LONG_1:
+            case BinInterSedes.LONG_INBYTE:
+            case BinInterSedes.LONG_INSHORT:
+            case BinInterSedes.LONG_ININT:
             case BinInterSedes.LONG: {
                 type1 = DataType.LONG;
                 type2 = getGeneralizedDataType(dt2);
                 if (type1 == type2) {
-                    long lv1 = bb1.getLong();
-                    long lv2 = bb2.getLong();
+                    long lv1 = readLong(bb1, dt1);
+                    long lv2 = readLong(bb2, dt2);
                     rc = (lv1 < lv2 ? -1 : (lv1 == lv2 ? 0 : 1));
                 }
                 break;
@@ -992,6 +1028,11 @@ public class BinInterSedes implements InterSedes {
             case BinInterSedes.INTEGER_INSHORT:
             case BinInterSedes.INTEGER:
                 return DataType.INTEGER;
+            case BinInterSedes.LONG_0:
+            case BinInterSedes.LONG_1:
+            case BinInterSedes.LONG_INBYTE:
+            case BinInterSedes.LONG_INSHORT:
+            case BinInterSedes.LONG_ININT:
             case BinInterSedes.LONG:
                 return DataType.LONG;
             case BinInterSedes.FLOAT:
@@ -1021,6 +1062,20 @@ public class BinInterSedes implements InterSedes {
                 return DataType.INTERNALMAP;
             case BinInterSedes.GENERIC_WRITABLECOMPARABLE:
                 return DataType.GENERIC_WRITABLECOMPARABLE;
+            default:
+                throw new RuntimeException("Unexpected data type " + type + " found in stream.");
+            }
+        }
+
+        private static long readLong(ByteBuffer bb, byte type) {
+            int bytesToRead = 0;
+            switch (type) {
+            case BinInterSedes.LONG_0: return 0L;
+            case BinInterSedes.LONG_1: return 1L;
+            case BinInterSedes.LONG_INBYTE: return bb.get();
+            case BinInterSedes.LONG_INSHORT: return bb.getShort();
+            case BinInterSedes.LONG_ININT: return bb.getInt();
+            case BinInterSedes.LONG: return bb.getLong();
             default:
                 throw new RuntimeException("Unexpected data type " + type + " found in stream.");
             }

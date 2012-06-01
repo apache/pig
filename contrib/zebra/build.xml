@@ -151,10 +151,14 @@ to call at top-level: ant deploy-contrib compile-core-test
         classpath to use build/contrib/*.jar
       -->
       <sysproperty key="user.dir" value="${test.build.dir}/data"/>
-      
-      <sysproperty key="fs.default.name" value="${fs.default.name}"/>
-      <sysproperty key="pig.test.localoutputfile" value="${pig.test.localoutputfile}"/>
-      <sysproperty key="pig.log.dir" value="${pig.log.dir}"/> 
+      <syspropertyset>	
+    	<propertyset>
+    	  <propertyref name="fs.default.name"/>
+      	  <propertyref name="pig.test.localoutputfile"/>
+          <propertyref name="pig.log.dir"/>
+    	</propertyset>
+      </syspropertyset>	
+
       <classpath refid="test.classpath"/>
       <formatter type="${test.junit.output.format}" />
 

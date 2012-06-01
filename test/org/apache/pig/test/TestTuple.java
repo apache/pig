@@ -19,6 +19,7 @@ package org.apache.pig.test;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 import junit.framework.TestCase;
 
@@ -123,4 +124,44 @@ public class TestTuple extends TestCase {
         assertEquals("tuple size",size, 128);
     }    
     
+    public void testTupleIterator() {
+        Tuple t = TupleFactory.getInstance().newTuple();
+        Random r = new Random();
+        for (int i = 0; i < 1000; i++) {
+            t.append(r.nextLong());
+        }
+        for (int i = 0; i < 1000; i++) {
+            t.append(r.nextInt());
+        }
+        int i = 0;
+        for (Object o : t) {
+            try {
+                assertEquals("Element " + i, t.get(i++), o);
+            } catch (ExecException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    public void testToDelimitedString() {
+        Tuple t = TupleFactory.getInstance().newTuple();
+        t.append(new Integer(1));
+        t.append(new Long(2));
+        t.append(new Float(1.1f));
+        t.append(new Double(2.3));
+        t.append("howdy howdy howdy");
+        t.append(null);
+        t.append("woah there");
+        t.append(new Double(2000000.3000000001));
+        t.append(new Float(1000000000.1000001f));
+        t.append(new Long(2001010101));
+        t.append(new Integer(100010101));
+        try {
+            String expected = "1,2,1.1,2.3,howdy howdy howdy,,woah there,2000000.3,1.0E9,2001010101,100010101";
+            assertEquals(expected, t.toDelimitedString(","));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 }

@@ -34,6 +34,7 @@ import java.io.StringWriter;
 import java.util.AbstractList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -46,6 +47,7 @@ import jline.ConsoleReaderInputStream;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FsShell;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
@@ -57,11 +59,10 @@ import org.apache.pig.backend.datastorage.ContainerDescriptor;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.DataStorageException;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
-import org.apache.pig.backend.executionengine.ExecJob;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
-import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileLocalizer.FetchFileRet;
@@ -561,7 +562,33 @@ public class GruntParser extends PigScriptParser {
         }
         else
         {
-        	mPigServer.getPigContext().getProperties().setProperty(key, value);
+            //mPigServer.getPigContext().getProperties().setProperty(key, value);
+            // PIG-2508 properties need to be managed through JobConf
+            // since all other code depends on access to properties, 
+            // we need to re-populate from updated JobConf 
+            //java.util.HashSet<?> keysBefore = new java.util.HashSet<Object>(mPigServer.getPigContext().getProperties().keySet());        	
+            // set current properties on jobConf
+            Properties properties = mPigServer.getPigContext().getProperties();
+            Configuration jobConf = mPigServer.getPigContext().getExecutionEngine().getJobConf();
+            Enumeration<Object> propertiesIter = properties.keys();
+            while (propertiesIter.hasMoreElements()) {
+                String pkey = (String) propertiesIter.nextElement();
+                String val = properties.getProperty(pkey);
+                // We do not put user.name, See PIG-1419
+                if (!pkey.equals("user.name"))
+                   jobConf.set(pkey, val);
+            }
+            // set new value, JobConf will handle deprecation etc.
+            jobConf.set(key, value);
+            // re-initialize to reflect updated JobConf
+            properties.clear();
+            Iterator<Map.Entry<String, String>> iter = jobConf.iterator();
+            while (iter.hasNext()) {
+                Map.Entry<String, String> entry = iter.next();
+                properties.put(entry.getKey(), entry.getValue());
+            } 
+            //keysBefore.removeAll(mPigServer.getPigContext().getProperties().keySet());
+            //log.info("PIG-2508: keys dropped from properties: " + keysBefore);
         }
     }
     
