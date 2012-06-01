@@ -72,7 +72,7 @@ public abstract class AppendableSchemaTuple<T extends AppendableSchemaTuple> ext
     }
 
     private boolean appendIsNull(int i) throws ExecException {
-        return append == null || append.isNull() ? null : append.isNull(i);
+        return appendIsNull() || append.isNull(i);
     }
 
     //protected Tuple getAppend() {

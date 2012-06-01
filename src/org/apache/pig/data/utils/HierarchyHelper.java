@@ -6,6 +6,9 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Target;
 import java.util.Set;
+import java.util.HashSet;
+import java.util.Stack;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Iterator;
 
@@ -22,8 +25,6 @@ import org.apache.commons.logging.LogFactory;
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
 public class HierarchyHelper {
-    private static final Log LOG = LogFactory.getLog(HierarchyHelper.class);
-
     /**
      * This is an annotation used to ensure that the generated
      * code properly implements a number of methods. A number
@@ -47,47 +48,76 @@ public class HierarchyHelper {
 
     /**
      * This code verifies that any MustOverride tags in any parent class are fufilled.
-     * Important note: currently, even if an intermediate class overrides the function,
-     * the ultimate class must still override it if the annotation is present.
+     * Note: in the case that an intermediate class in the class hierarchy overrides
+     * the class, that will satisfy the MustOverride. If you want to ensure that the ultimate
+     * class also overrides, then any intermediate implementations must be tagged as @MustOverride.
+     * Returns true if all MustOverrides are satisfied.
      */
-    //TODO consider the case of T1, T2 extends T2, and T3 extends T2
-    //TODO if T1 has a MustOverride that T2 overrides without its own flag, then should it be ok?
-    //TODO currently it will not be ok
     public static boolean verifyMustOverride(Class<?> classToVerify) {
-        for (Class<?> clazz : getSuperclasses(classToVerify)) {
-            if (!verifyMustOverrideSpecific(classToVerify, clazz)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private static boolean verifyMustOverrideSpecific(Class<?> classToVerify, Class<?> classWithAnnotations) {
-        Set<Method> methodsThatMustBeOverriden = Sets.newHashSet();
-
-        for (Method m : classWithAnnotations.getDeclaredMethods()) {
-            if (m.getAnnotation(MustOverride.class) != null) {
-                methodsThatMustBeOverriden.add(m);
-            }
+        Stack<Class<?>> classHierarchy = new Stack<Class<?>>();
+        classHierarchy.push(classToVerify);
+        Class<?> curClass = classToVerify.getSuperclass();
+        while (!curClass.equals(Object.class)) {
+            classHierarchy.push(curClass);
+            curClass = curClass.getSuperclass();
         }
 
-        outer: for (Method m1 : classToVerify.getDeclaredMethods()) {
-            Iterator<Method> it = methodsThatMustBeOverriden.iterator();
-            while (it.hasNext()) {
-                if (methodsEqual(m1, it.next())) {
-                    it.remove();
-                    continue outer;
+        Set<MethodKey> methodsNeedingToBeOverriden = new HashSet<MethodKey>();
+
+        while (!classHierarchy.empty()) {
+            for (Method m : classHierarchy.pop().getDeclaredMethods()) {
+                MethodKey mk = new MethodKey(m);
+                if (m.getAnnotation(MustOverride.class) != null) {
+                    methodsNeedingToBeOverriden.add(mk);
+                } else {
+                    methodsNeedingToBeOverriden.remove(mk);
                 }
             }
         }
 
-        if (methodsThatMustBeOverriden.size() > 0) {
-            for (Method m : methodsThatMustBeOverriden) {
-                LOG.warn("Missing method in class " + classToVerify + ": " + m);
+        System.out.println("PRINTING METHODS IN SET"); //remove
+        for (MethodKey mk : methodsNeedingToBeOverriden) { //remove
+            System.out.println(mk); //remove
+        } //remove
+        return methodsNeedingToBeOverriden.size() == 0;
+    }
+
+    private static class MethodKey {
+        private Method m;
+
+        public MethodKey(Method m) {
+            this.m = m;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (!(o instanceof MethodKey)) {
+                return false;
             }
-            return false;
-        } else {
-            return true;
+            return methodsEqual(m, ((MethodKey)o).get());
+        }
+
+        public Method get() {
+            return m;
+        }
+
+        @Override
+        public int hashCode() {
+            int c = 17;
+            c += m.getName().hashCode();
+            c *= 31;
+            c += m.getReturnType().hashCode();
+            c *= 31;
+            for (Object o : m.getParameterTypes()) {
+                c += o.hashCode();
+                c *= 31;
+            }
+            return c;
+        }
+
+        @Override
+        public String toString() {
+            return m.toString();
         }
     }
 

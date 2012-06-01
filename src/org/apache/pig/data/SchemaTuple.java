@@ -45,13 +45,13 @@ import javax.tools.StandardLocation;
 //ALSO: the memory estimate has to include all of these objects that come along with SchemaTuple...
 //TODO: implement getField(String)
 
-//TODO consider making "write" instead pass around a byte buffer, buffering all the values, and writing ones.
-//TODO this could make Varints reasonable again
+//TODO need a better benchmark of varint and varlong performance
+//TODO custom iterator?
 
 //the benefit of having the generic here is that in the case that we do ".set(t)" and t is the right type, it will be very fast
 @InterfaceAudience.Public
 @InterfaceStability.Unstable
-public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTuple {
+public abstract class SchemaTuple<T extends SchemaTuple> extends AbstractTuple implements TypeAwareTuple {
     private static final Log LOG = LogFactory.getLog(SchemaTuple.class);
     private static final TupleFactory mTupleFactory = TupleFactory.getInstance();
     private static final BinInterSedes pigSerializer = new BinInterSedes();
@@ -143,13 +143,13 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
     }
 
     protected static void write(DataOutput out, int v) throws IOException {
-        //SedesHelper.Varint.writeSignedVarInt(v, out);
-        out.writeInt(v);
+        SedesHelper.Varint.writeSignedVarInt(v, out);
+        //out.writeInt(v);
     }
 
     protected static void write(DataOutput out, long v) throws IOException {
-        //SedesHelper.Varint.writeSignedVarLong(v, out);
-        out.writeLong(v);
+        SedesHelper.Varint.writeSignedVarLong(v, out);
+        //out.writeLong(v);
     }
 
     protected static void write(DataOutput out, float v) throws IOException {
@@ -203,30 +203,6 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
        write(out, true);
     }
 
-    //returns true only if every element is null
-    @Override
-    public boolean isNull() {
-        if (isNull > -1)
-            return isNull == 1;
-
-        for (int i = 0; i < size(); i++) {
-            try {
-                if (!isNull(i)) {
-                    isNull = 0;
-                    return false;
-                 }
-            } catch (ExecException e) {
-                throw new RuntimeException("Unable to check if value null for index: " + i, e);
-            }
-        }
-        return true;
-    }
-
-    @Override
-    public void setNull(boolean isNull) {
-        this.isNull = isNull ? 1 : 0;
-    }
-
     @Override
     public void reference(Tuple t) {
         try {
@@ -236,12 +212,7 @@ public abstract class SchemaTuple<T extends SchemaTuple> implements TypeAwareTup
         }
     }
 
-    @Override
-    public String toDelimitedString(String delimiter) throws ExecException {
-        return Joiner.on(delimiter).useForNull("").join(getAll());
-    }
-
-    //TODO could generate a faster getAll
+    //TODO could generate a faster getAll in the code
     @Override
     public List<Object> getAll() {
         List<Object> l = Lists.newArrayListWithCapacity(size());
