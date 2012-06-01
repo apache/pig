@@ -21,6 +21,7 @@ package org.apache.pig.scripting.jython;
 import java.io.IOException;
 
 import org.apache.pig.EvalFunc;
+import org.apache.pig.ResourceSchema;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
@@ -137,7 +138,16 @@ public class JythonFunction extends EvalFunc<Object> {
                         throw new IllegalStateException("Function: "
                                 + outputSchemaFunc + " is not a schema function");
                     }
-                    return (Schema)((pf.__call__(Py.java2py(input))).__tojava__(Object.class));
+                    Object newSchema = ((pf.__call__(Py.java2py(input))).__tojava__(Object.class));
+                    if (newSchema instanceof ResourceSchema) {
+                        return(Schema.getPigSchema((ResourceSchema) newSchema));
+                    }
+                    else if (newSchema instanceof Schema) {
+                        return (Schema) newSchema;
+                    }
+                    else {
+                        return Utils.getSchemaFromString(newSchema.toString());
+                    }
                 } catch (IOException ioe) {
                     throw new IllegalStateException("Could not find function: "
                         + outputSchemaFunc + "()", ioe);

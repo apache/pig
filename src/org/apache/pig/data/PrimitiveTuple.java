@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Iterator;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BinInterSedes;
@@ -14,7 +15,6 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 
 /**
@@ -60,7 +60,7 @@ numFields                       benchmark    ns linear runtime
 </pre>
  *
  */
-public class PrimitiveTuple implements TypeAwareTuple {
+public class PrimitiveTuple extends AbstractTuple implements TypeAwareTuple {
     private static final long serialVersionUID = 1L;
     private ByteBuffer buffer;
     private boolean[] nulls;
@@ -421,11 +421,6 @@ public class PrimitiveTuple implements TypeAwareTuple {
         return types.length;
     }
 
-    @Override
-    public String toDelimitedString(String arg0) throws ExecException {
-        return Joiner.on(arg0).join(getAll());
-    }
-
     /**
      * NOT IMPLEMENTED
      */
@@ -469,10 +464,5 @@ public class PrimitiveTuple implements TypeAwareTuple {
     @Override
     public String getString(int idx) throws ExecException {
         throw new ExecException("PrimitiveTuple does not support Strings");
-    }
-
-    @Override
-    public boolean equals(Object other) {
-        return (compareTo(other) == 0);
     }
 }
