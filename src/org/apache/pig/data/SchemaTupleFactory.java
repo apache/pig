@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 
+import org.apache.pig.data.utils.MethodHelper.NotImplemented;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
@@ -71,6 +72,7 @@ public class SchemaTupleFactory extends TupleFactory {
     }
 
     @Override
+    @NotImplemented
     public Tuple newTuple(int size) {
         throw new RuntimeException("newTuple(int) not implemented in SchemaTupleFactory");
     }
@@ -93,6 +95,7 @@ public class SchemaTupleFactory extends TupleFactory {
     }
 
     @Override
+    @NotImplemented
     public Tuple newTuple(Object datum) {
         throw new RuntimeException("newTuple(Object) not implemented in SchemaTupleFactory");
     }
@@ -115,8 +118,9 @@ public class SchemaTupleFactory extends TupleFactory {
     public static Schema stripAliases(Schema s) {
         for (Schema.FieldSchema fs : s.getFields()) {
             fs.alias = null;
-            if (fs.schema != null)
+            if (fs.schema != null) {
                 stripAliases(fs.schema);
+            }
         }
 
         return s;
@@ -125,11 +129,13 @@ public class SchemaTupleFactory extends TupleFactory {
     public static SchemaTupleFactory getSchemaTupleFactory(Schema schema) {
         SchemaTupleFactory stf = schemaFactoryMap.get(schema);
 
-        if (stf != null)
+        if (stf != null) {
             return stf;
+        }
 
-        if (!massLoad)
+        if (!massLoad) {
             massLoad();
+        }
 
         stf = new SchemaTupleFactory(gennedInfo.getTupleClass(schema));
 
@@ -141,11 +147,13 @@ public class SchemaTupleFactory extends TupleFactory {
     public static SchemaTupleFactory getSchemaTupleFactory(int id) {
         SchemaTupleFactory stf = schemaFactoryMap.get(id);
 
-        if (stf != null)
+        if (stf != null) {
             return stf;
+        }
 
-        if (!massLoad)
+        if (!massLoad) {
             massLoad();
+        }
 
         stf = new SchemaTupleFactory(gennedInfo.getTupleClass(id));
 
