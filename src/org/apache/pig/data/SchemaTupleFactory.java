@@ -71,33 +71,33 @@ public class SchemaTupleFactory extends TupleFactory {
         }
     }
 
+    public RuntimeException methodNotImplemented() {
+        StackTraceElement[] ste = Thread.currentThread().getStackTrace();
+        return new RuntimeException(ste[ste.length - 1].getMethodName() + " not implemented in " + getClass());
+    }
+
     @Override
     @NotImplemented
     public Tuple newTuple(int size) {
-        throw new RuntimeException("newTuple(int) not implemented in SchemaTupleFactory");
+        throw methodNotImplemented();
     }
 
     @Override
+    @NotImplemented
     public Tuple newTuple(List c) {
-        List copy = Lists.newArrayList();
-        Collections.copy(c, copy);
-        return newTupleNoCopy(copy);
+        throw methodNotImplemented();
     }
 
     @Override
+    @NotImplemented
     public Tuple newTupleNoCopy(List c) {
-        SchemaTuple st = (SchemaTuple)newTuple();
-        try {
-            return st.set(c);
-        } catch (ExecException e) {
-            throw new RuntimeException("Unable to fill " + st.getClass() + " with given list " + c);
-        }
+        throw methodNotImplemented();
     }
 
     @Override
     @NotImplemented
     public Tuple newTuple(Object datum) {
-        throw new RuntimeException("newTuple(Object) not implemented in SchemaTupleFactory");
+        throw methodNotImplemented();
     }
 
     @Override

@@ -75,10 +75,6 @@ public class HierarchyHelper {
             }
         }
 
-        System.out.println("PRINTING METHODS IN SET"); //remove
-        for (MethodKey mk : methodsNeedingToBeOverriden) { //remove
-            System.out.println(mk); //remove
-        } //remove
         return methodsNeedingToBeOverriden.size() == 0;
     }
 

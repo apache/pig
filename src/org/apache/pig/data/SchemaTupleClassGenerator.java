@@ -10,6 +10,7 @@ import java.net.MalformedURLException;
 import java.util.Map;
 import java.util.List;
 import java.util.LinkedList;
+import java.util.Locale;
 import java.util.Queue;
 
 import com.google.common.collect.Maps;
@@ -31,6 +32,8 @@ import org.apache.pig.classification.InterfaceStability;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import javax.tools.Diagnostic;
+import javax.tools.DiagnosticCollector;
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
 import javax.tools.JavaFileObject;
@@ -130,8 +133,15 @@ public class SchemaTupleClassGenerator {
         StandardJavaFileManager fileManager = compiler.getStandardFileManager(null, null, null);
         Iterable<? extends JavaFileObject> compilationUnits = Lists.newArrayList(new JavaSourceFromString(className, generatedCodeString));
 
-        if (!compiler.getTask(null, fileManager, null, null, null, compilationUnits).call())
+        DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<JavaFileObject>();
+
+        if (!compiler.getTask(null, fileManager, diagnostics, null, null, compilationUnits).call()) {
+            LOG.warn("Error compiling: " + className + ". Printing compilation errors and shutting down.");
+            for (Diagnostic diagnostic : diagnostics.getDiagnostics()) {
+                LOG.warn("Error on line " + diagnostic.getLineNumber() + ": " + diagnostic.getMessage(Locale.US));
+            }
             throw new ExecException(className + " failed to compile properly");
+        }
 
         try {
             fileManager.close();
@@ -141,8 +151,9 @@ public class SchemaTupleClassGenerator {
 
         File current = new File(className + ".class");
 
-        if (!current.exists())
+        if (!current.exists()) {
             throw new ExecException("Generated class file " + className + ".class not found");
+        }
 
         return current;
     }
@@ -481,7 +492,7 @@ public class SchemaTupleClassGenerator {
                     nullByte++;
                 }
             } else if (isTuple()) {
-               add("    return pos_" + fieldPos + " == null || pos_" + fieldPos + ".isNull();");
+               add("    return pos_" + fieldPos + " == null;");
             } else {
                add("    return pos_" + fieldPos + " == null;");
             }
@@ -512,7 +523,6 @@ public class SchemaTupleClassGenerator {
         }
     }
 
-    //TODO in general, should I be calling t.isNull() on the tuple that is given?
     //TODO should this do something different if t is null?
     static class SetEqualToSchemaTupleSpecificString extends TypeInFunctionStringOut {
         private int id;

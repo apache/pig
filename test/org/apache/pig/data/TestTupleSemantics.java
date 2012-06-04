@@ -27,7 +27,7 @@ public class TestTupleSemantics {
         testFactory(TupleFactory.getInstance());
     }
 
-    //@Test
+    @Test
     public void testSchemaTupleFactoryNotAppendable() throws Exception {
         Schema s = Utils.getSchemaFromString("int, long, float, double, boolean, bytearray, chararray, (int, long, float, double, boolean, bytearray, chararray)");
         int id = SchemaTupleClassGenerator.generateAndAddToJar(s, false);
@@ -82,7 +82,6 @@ public class TestTupleSemantics {
         Tuple t1 = tf.newTuple();
         Tuple t2 = tf.newTuple();
         assertEquals("Two brand new tuples should be equal", t1, t2);
-        assertEquals("A branc new tuple should be empty", 0, t1.size());
     }
 
     public void testNewTupleFromList(TupleFactory tf) throws Exception {
@@ -214,6 +213,9 @@ public class TestTupleSemantics {
     }
 
     public void testSetGet(TupleFactory tf) throws Exception {
+        if (isNotImplemented(tf.newTuple().getClass(), Tuple.class, "append", Object.class)) {
+            return;
+        }
         Tuple t = tf.newTuple();
 
         Random r = new Random(100L);
