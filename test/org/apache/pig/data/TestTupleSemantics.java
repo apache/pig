@@ -19,6 +19,8 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.Lists;
+
 public class TestTupleSemantics {
     @Test
     public void testDefaultTupleFactory() throws Exception {
@@ -51,50 +53,77 @@ public class TestTupleSemantics {
     public void testFactory(TupleFactory tf) throws Exception {
         testNewTuple(tf);
         testNewTupleFromList(tf);
-        testNewTupleFromListNoCopy(tf);
         testNewTupleFromObject(tf);
 
         testComparison(tf);
         testRawComparison(tf);
-        testAppend(tf);
         testSerDe(tf);
         testGetType(tf);
         testSetGet(tf);
         testIsNull(tf);
-        testSize(tf);
+        testSizeWithAppend(tf);
     }
 
     public boolean isNotImplemented(Class clazz, Class objClass, String name, Class... params) throws Exception {
         Method m = objClass.getMethod(name, params);
-        return MethodHelper.isNotImplementedAnnotationPresent(m, clazz);
+        boolean retVal = MethodHelper.isNotImplementedAnnotationPresent(m, clazz);
+        if (retVal) {
+            StackTraceElement[] ste = Thread.currentThread().getStackTrace();
+            System.out.println("Skipping test " + ste[ste.length - 1].getMethodName() + " for " + objClass + " class: " + clazz);
+        }
+        return retVal;
     }
 
     public void testNewTuple(TupleFactory tf) throws Exception {
         if (isNotImplemented(tf.getClass(), TupleFactory.class, "newTuple")) {
-            System.out.println("Skipping test testNewTuple for TupleFactory class: " + tf.getClass());
             return;
         }
+        //Also the mere fact that they can be successfully created is an implicit test
+        Tuple t1 = tf.newTuple();
+        Tuple t2 = tf.newTuple();
+        assertEquals("Two brand new tuples should be equal", t1, t2);
+        assertEquals("A branc new tuple should be empty", 0, t1.size());
     }
 
     public void testNewTupleFromList(TupleFactory tf) throws Exception {
         if (isNotImplemented(tf.getClass(), TupleFactory.class, "newTuple", List.class)) {
-            System.out.println("Skipping test testNuewTupleFromListNoCopy for TupleFactory class: " + tf.getClass());
             return;
         }
+        List<Object> lis = Lists.newArrayList((Object)1, 2, 3, 4, 5, 6);
+        Tuple t1 = tf.newTuple(lis);
+        Tuple t2 = tf.newTuple(lis);
+        for (int i = 0; i < lis.size(); i++) {
+            assertEquals("Elements should be equal", lis.get(i), t1.get(i));
+            assertEquals("Elements should be equal", lis.get(i), t2.get(i));
+        }
+        assertEquals("Tuples from same list should be equal", t1, t2);
+        assertEquals("Tuples should have same size as creating list", lis.size(), t1.size());
+        int oldSize1 = t1.size();
+        lis.add(7);
+        assertEquals("newTuple(List) should guarantee that changing the list used after creation won't affect the Tuple", oldSize1, t1.size());
     }
 
-    public void testNewTupleFromListNoCopy(TupleFactory tf) throws Exception {
-        if (isNotImplemented(tf.getClass(), TupleFactory.class, "newTupleNoCopy", List.class)) {
-            System.out.println("Skipping test testNuewTupleFromListNoCopy for TupleFactory class: " + tf.getClass());
-            return;
-        }
-    }
+    // We omit an explicit test for newTupleNoCopy because some Tuple implementations will neither copy all the elements
+    // or take ownership of the list (ie anything using primitives underneath)
 
     public void testNewTupleFromObject(TupleFactory tf) throws Exception {
-        if (isNotImplemented(tf.getClass(), TupleFactory.class, "newTuple", Object.class)) {
-            System.out.println("Skipping test testNewTupleFromObject for TupleFactory class: " + tf.getClass());
+        if (isNotImplemented(tf.getClass(), TupleFactory.class, "newTuple", Integer.TYPE)) {
             return;
         }
+        if (isNotImplemented(tf.getClass(), TupleFactory.class, "newTuple", Object.class)) {
+            return;
+        }
+        Tuple t = tf.newTuple(100);
+        List<Object> lis = Lists.newArrayList();
+        for (int i = 0; i < 100; i++) {
+            t.set(i, tf.newTuple(new Integer(i)));
+            lis.add(new Integer(i));
+        }
+        for (int i = 0; i < 100; i++) {
+            assertEquals("newTuple(Object) should have created the proper integer object", new Integer(i), lis.get(i));
+            assertEquals("newTuple(Object) should have created the proper integer object", ((Tuple)t.get(i)).get(0), lis.get(i));
+        }
+
     }
 
     public void testComparison(TupleFactory tf) {
@@ -105,8 +134,40 @@ public class TestTupleSemantics {
 
     public void testAppend(TupleFactory tf) throws Exception {
         if (isNotImplemented(tf.getClass(), Tuple.class, "append", Object.class)) {
-            System.out.println("Skipping test testAppend for TupleFactory class: " + tf.getClass());
             return;
+        }
+
+        Tuple t = tf.newTuple();
+        for (int i = 0; i < 10; i++) {
+            for (int j = 0; j < 10; j++) {
+                t.append(null);
+                for (int k = 0; k < 10; k++) {
+                    t.append(new Integer(i + j + k));
+                }
+                t.append(null);
+            }
+        }
+
+        int elem = 0;
+        for (int i = 0; i < 10; i++) {
+            for (int j = 0; j < 10; j++) {
+                assertNull(t.get(elem++));
+                for (int k = 0; k < 10; k++) {
+                    assertEquals(new Integer(i + j + k), t.get(elem++));
+                }
+                assertNull(t.get(elem++));
+            }
+        }
+    }
+
+    public void testSize(TupleFactory tf) throws Exception {
+        if (isNotImplemented(tf.getClass(), TupleFactory.class, "newTuple", Integer.TYPE)) {
+            return;
+        }
+        Tuple t = tf.newTuple(10);
+        assertEquals("A tuple instantiated with size 10 should have size 10", 10, t.size());
+        for (int i = 0; i < 10; i++) {
+            assertNull(t.get(i));
         }
     }
 
@@ -119,9 +180,11 @@ public class TestTupleSemantics {
     public void testIsNull(TupleFactory tf) {
     }
 
-    public void testSize(TupleFactory tf) throws Exception {
+    public void testSizeWithAppend(TupleFactory tf) throws Exception {
         if (isNotImplemented(tf.getClass(), TupleFactory.class, "newTuple", Integer.TYPE)) {
-            System.out.println("Skipping test testSize for TupleFactory class: " + tf.getClass());
+            return;
+        }
+        if (isNotImplemented(tf.newTuple().getClass(), Tuple.class, "append", Object.class)) {
             return;
         }
         Tuple t = tf.newTuple(10);
