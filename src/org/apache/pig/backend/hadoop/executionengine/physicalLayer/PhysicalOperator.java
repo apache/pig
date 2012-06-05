@@ -41,6 +41,7 @@ import org.apache.pig.parser.SourceLocation;
 import org.apache.pig.pen.util.LineageTracer;
 import org.apache.pig.pen.Illustrator;
 import org.apache.pig.pen.Illustrable;
+import org.apache.pig.data.SchemaTupleClassGenerator.SchemaTupleClassSerializer;
 
 /**
  *

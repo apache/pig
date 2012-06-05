@@ -36,6 +36,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.pen.util.ExampleTuple;
+import org.apache.pig.data.SchemaTupleFactory.LoadedSchemaTupleClassesHolder;
 
 /**
  * The load operator which is used in two ways:
@@ -95,7 +96,7 @@ public class POLoad extends PhysicalOperator {
         Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties());
         String stToDeserialize = conf.get("pig.schematuple.classes");
         if (stToDeserialize != null) {
-            for (String className = stToDeserialize.split(",")) {
+            for (String className : stToDeserialize.split(",")) {
                 if (schemaTupleHolder.isRegistered(className)) {
                     continue;
                 }

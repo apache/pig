@@ -2,6 +2,7 @@ package org.apache.pig.data;
 
 import java.io.InputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
@@ -33,8 +34,13 @@ import org.apache.pig.scripting.ScriptEngine;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
+import com.google.common.io.Files;
 
 import javax.tools.Diagnostic;
 import javax.tools.DiagnosticCollector;
@@ -73,7 +79,7 @@ public class SchemaTupleClassGenerator {
         PigContext pc = ScriptState.get().getPigContext();
 
         if (pc == null) {
-            LOG.warn("PigContext not available! Unable to add file " + classFile + " to distributed cache");
+            LOG.warn("PigContext not available! Unable to add file " + className + " to distributed cache");
             return;
          }
 
@@ -91,7 +97,7 @@ public class SchemaTupleClassGenerator {
     /**
      * This is a class to encapsulate the logic to add something to the distributed cache.
      */
-    private static class SchemaTupleClassSerializer {
+    public static class SchemaTupleClassSerializer {
         private int id;
         private String name;
         private Class<? extends SchemaTuple> clazz;
@@ -109,22 +115,53 @@ public class SchemaTupleClassGenerator {
         }
 
         public byte[] getBytes() {
-            return classBytes();
+            return classBytes;
+        }
+
+        public int id() {
+            return id;
         }
     }
 
-    public static SchemaTupleClassSerializer generateSerializer(Schema s, boolean appendable) {
-        SchemaTupleFactory.GeneratedSchemaTupleInfoRepository genned = SchemaTupleFactory.getGeneratedInfo();
+    private Map<Boolean, Map<SchemaKey, SchemaTupleClassSerializer> schemaTupleSerializers = Maps.newHashMap() {{
+        put(true, Maps.newHashMap());
+        put(false, Maps.newHashMap());
+    }};
 
-        Class<SchemaTuple> clazz = genned.getTupleClass(s);
+    /**
+     * This encapsulates a Schema and allows it to be used in such a way that
+     * any aliases are ignored in equality.
+     */
+    private class SchemaKey {
+        private Schema s;
 
-        if (clazz != null) {
-            try {
-                SchemaTuple st = SchemaTupleFactory.instantiateClass(clazz);
-                return st.getSchemaTupleIdentifier();
-            } catch (ExecException e) {
-                throw new RuntimeException("Unable to instantiate found class object for Schema " + s, e);
+        public SchemaKey(Schema s) {
+            this.s = s;
+        }
+
+        @Override
+        public int hashCode() {
+            return (this.type * 17) + ( (schema==null? 0:schema.hashCode()) * 23 );
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (!(o instanceof SchemaKey)) {
+                return false;
             }
+            return Schema.equals(s, ((SchemaKey)o).get(), false, true);
+        }
+
+        public Schema get() {
+            return s;
+        }
+    }
+
+    public static SchemaTupleClassSerializer generateAndAddToJob(Schema s, boolean appendable) {
+        SchemaTupleClassSerializer sts = schemaTupleSerializers.get(appendable).get(s);
+
+        if (sts != null) {
+            return sts;
         }
 
         int id = getGlobalClassIdentifier();
@@ -228,7 +265,7 @@ public class SchemaTupleClassGenerator {
              if (classLoader == null) {
                  throw new RuntimeException("Cannot call getClass() if getClassLoader() has not been called by the compiler!");
              }
-             classLoader.loadClass(className)
+             classLoader.loadClass(className);
         }
 
         /**
@@ -1208,14 +1245,14 @@ public class SchemaTupleClassGenerator {
                 head.append(t.getContent());
             }
 
-            head.append("    @Override");
-                .append("    protected abstract SchemaTupleQuickGenerator getQuickGenerator() {");
-                .append("        return new SchemaTupleQuickGenerator {");
-                .append("            @Override");
-                .append("            public SchemaTuple make() {");
-                .append("                return new SchemaTuple_" + id + "();");
-                .append("            }");
-                .append("        };");
+            head.append("    @Override")
+                .append("    protected abstract SchemaTupleQuickGenerator getQuickGenerator() {")
+                .append("        return new SchemaTupleQuickGenerator {")
+                .append("            @Override")
+                .append("            public SchemaTuple make() {")
+                .append("                return new SchemaTuple_" + id + "();")
+                .append("            }")
+                .append("        };")
                 .append("    }");
 
             return head.append("}").toString();

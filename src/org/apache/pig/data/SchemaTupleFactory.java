@@ -1,5 +1,7 @@
 package org.apache.pig.data;
 
+import java.io.IOException;
+import java.io.ByteArrayOutputStream;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -8,6 +10,11 @@ import java.util.HashMap;
 import org.apache.pig.data.utils.MethodHelper.NotImplemented;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.data.SchemaTuple.SchemaTupleQuickGenerator;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FSDataInputStream;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Lists;
@@ -19,6 +26,8 @@ import org.apache.pig.data.utils.HierarchyHelper;
 public class SchemaTupleFactory extends TupleFactory {
     private SchemaTupleQuickGenerator generator;
     private Class<SchemaTuple> clazz;
+
+    private static Map<Integer, SchemaTupleFactory> cachedSchemaTupleFactories = Maps.newHashMap();
 
     protected SchemaTupleFactory(Class<SchemaTuple> clazz, SchemaTupleQuickGenerator generator) {
         this.clazz = clazz;
@@ -81,7 +90,7 @@ public class SchemaTupleFactory extends TupleFactory {
     }
 
     public static SchemaTupleFactory getSchemaTupleFactory(int id) {
-        SchemaTupleFactory stf = schemaFactoryMap.get(id);
+        SchemaTupleFactory stf = cachedSchemaTupleFactories.get(id);
 
         if (stf != null) {
             return stf;
@@ -89,7 +98,7 @@ public class SchemaTupleFactory extends TupleFactory {
 
         stf = loadedSchemaTupleClassesHolder.newSchemaTupleFactory(id);
 
-        schemaFactoryMap.put(id, stf);
+        cachedSchemaTupleFactories.put(id, stf);
 
         return stf;
     }
@@ -100,7 +109,7 @@ public class SchemaTupleFactory extends TupleFactory {
         return loadedSchemaTupleClassesHolder;
     }
 
-    private static class LoadedSchemaTupleClassesHolder {
+    public static class LoadedSchemaTupleClassesHolder {
         private Map<Integer, SchemaTupleQuickGenerator> generators = Maps.newHashMap();
         private Map<Integer, Class<? extends SchemaTuple>> classes = Maps.newHashMap();
 
@@ -113,7 +122,7 @@ public class SchemaTupleFactory extends TupleFactory {
             if (clazz == null || stGen == null) {
                 throw new RuntimeException("Could not find matching SchemaTuple for id: " + id); //TODO do something else? Return null? A checked exception?
             }
-            return new SchemaTuple(clazz, stGen);
+            return new SchemaTupleFactory(clazz, stGen);
         }
 
         public void registerFileFromDistributedCache(String className, Configuration conf) throws IOException {
@@ -144,7 +153,7 @@ public class SchemaTupleFactory extends TupleFactory {
             Class<? extends SchemaTuple> clazz = (Class<? extends SchemaTuple>)cl.loadClass(className);
             SchemaTuple st;
             try {
-                st = clazz.newInstance()
+                st = clazz.newInstance();
             } catch (InstantiationException e) {
                 throw new ExecException("Unable to instantiate class " + clazz, e);
             } catch (IllegalAccessException e) {

@@ -30,6 +30,7 @@ import org.apache.pig.builtin.Nondeterministic;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.SchemaTupleFactory;
 import org.apache.pig.data.SchemaTupleClassGenerator;
+import org.apache.pig.data.SchemaTupleClassGenerator.SchemaTupleClassSerializer;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -221,11 +222,11 @@ public class UserFuncExpression extends LogicalExpression {
         //TODO appendability should come from a setting
 
         if (SchemaTupleFactory.isGeneratable(inputSchemaToGen)) {
-            inputSchemaTupleClassSerializer = SchemaTupleClassGenerator.generateSerializer(inputSchemaToGen, false);
+            inputSchemaTupleClassSerializer = SchemaTupleClassGenerator.generateAndAddToJob(inputSchemaToGen, false);
         }
 
         if (SchemaTupleFactory.isGeneratable(udfSchema)) {
-            outputSchemaTupleClassSerializer = SchemaTupleClassGenerator.generateSerializer(udfSchema, false);
+            outputSchemaTupleClassSerializer = SchemaTupleClassGenerator.generateAndAddToJob(udfSchema, false);
         }
 
         if (udfSchema != null) {

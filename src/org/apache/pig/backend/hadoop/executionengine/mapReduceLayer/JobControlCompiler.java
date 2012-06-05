@@ -74,6 +74,7 @@ import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.data.SchemaTupleClassGenerator.SchemaTupleClassSerializer;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
@@ -97,6 +98,7 @@ import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.tools.pigstats.ScriptState;
 
+import com.google.common.io.Files;
 
 /**
  * This is compiler class that takes an MROperPlan and converts
@@ -1154,7 +1156,7 @@ public class JobControlCompiler{
         }
     }
 
-    private static addBytesToDistributedCache(PigContext pigContext, Configuration conf, String fileName, byte[] bytes, boolean shipToCluster) throws IOException {
+    private static void addBytesToDistributedCache(PigContext pigContext, Configuration conf, String fileName, byte[] bytes, boolean shipToCluster) throws IOException {
         File tempDir = Files.createTempDir();
         tempDir.deleteOnExit();
         File temp = new File(tempDir, "/" + fileName);
@@ -1467,7 +1469,7 @@ public class JobControlCompiler{
                    addBytesToDistributedCache(pigContext, conf, stcs.getName(), stcs.getBytes(), true);
                 } catch (IOException e) {
                     String msg = "Internal error. Distributed cache could not " +
-                            "be set up for the SchemaTuple class " + name;
+                            "be set up for the SchemaTuple class " + stcs.getName();
                     throw new VisitorException(msg, e);
                 }
             }
