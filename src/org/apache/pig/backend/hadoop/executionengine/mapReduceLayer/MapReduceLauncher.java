@@ -165,6 +165,7 @@ public class MapReduceLauncher extends Launcher{
         int totalMRJobs = mrp.size();
         int numMRJobsCompl = 0;
         double lastProg = -1;
+        long scriptSubmittedTimestamp = System.currentTimeMillis();
         
         //create the exception handler for the job control thread
         //and register the handler with the job control thread
@@ -262,7 +263,15 @@ public class MapReduceLauncher extends Launcher{
             jcThread.setUncaughtExceptionHandler(jctExceptionHandler);
             
             jcThread.setContextClassLoader(PigContext.getClassLoader());
-            
+
+            // mark the times that the jobs were submitted so it's reflected in job history props
+            for (Job job : jc.getWaitingJobs()) {
+                job.getJobConf().set("pig.script.submitted.timestamp",
+                                Long.toString(scriptSubmittedTimestamp));
+                job.getJobConf().set("pig.job.submitted.timestamp",
+                                Long.toString(System.currentTimeMillis()));
+            }
+
             //All the setup done, now lets launch the jobs.
             jcThread.start();
             
