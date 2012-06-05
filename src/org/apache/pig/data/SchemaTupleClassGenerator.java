@@ -102,10 +102,10 @@ public class SchemaTupleClassGenerator {
     public static class SchemaTupleClassSerializer {
         private int id;
         private String name;
-        private Class<? extends SchemaTuple> clazz;
+        private Class<SchemaTuple> clazz;
         private byte[] classBytes;
 
-        public SchemaTupleClassSerializer(int id, String name, Class<? extends SchemaTuple> clazz, byte[] classBytes) {
+        public SchemaTupleClassSerializer(int id, String name, Class<SchemaTuple> clazz, byte[] classBytes) {
             this.id = id;
             this.name = name;
             this.clazz = clazz;
@@ -125,16 +125,16 @@ public class SchemaTupleClassGenerator {
         }
     }
 
-    private Map<Boolean, Map<SchemaKey, SchemaTupleClassSerializer>> schemaTupleSerializers = new HashMap<Boolean, Map<SchemaKey, SchemaTupleClassSerializer>>() {{
-        put(true, Maps.newHashMap());
-        put(false, Maps.newHashMap());
+    private static Map<Boolean, Map<SchemaKey, SchemaTupleClassSerializer>> schemaTupleSerializers = new HashMap<Boolean, Map<SchemaKey, SchemaTupleClassSerializer>>() {{
+        put(true, new HashMap<SchemaKey, SchemaTupleClassSerializer>());
+        put(false, new HashMap<SchemaKey, SchemaTupleClassSerializer>());
     }};
 
     /**
      * This encapsulates a Schema and allows it to be used in such a way that
      * any aliases are ignored in equality.
      */
-    private class SchemaKey {
+    private static class SchemaKey {
         private Schema s;
 
         public SchemaKey(Schema s) {
@@ -192,7 +192,7 @@ public class SchemaTupleClassGenerator {
             throw new RuntimeException("Unable to compile codeString:\n" + codeString, e);
         }
 
-        return new SchemaTupleClassSerializer(id, name, (Class<? extends SchemaTuple>)current.getClass(), current.getJavaClassObject().getBytes());
+        return new SchemaTupleClassSerializer(id, name, (Class<SchemaTuple>)current.getClass(), current.getJavaClassObject().getBytes());
     }
 
     public static String generateCodeString(Schema s, int id, boolean appendable) {
