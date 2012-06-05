@@ -72,9 +72,11 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelp
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.SchemaTupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.data.SchemaTupleClassGenerator.SchemaTupleClassSerializer;
+import org.apache.pig.data.SchemaTupleFactory.LoadedSchemaTupleClassesHolder;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
@@ -1444,12 +1446,21 @@ public class JobControlCompiler{
         @Override
         public void visitUserFunc(POUserFunc func) throws VisitorException {
 
-            //TODO in local mode, where should we put the files? They need to be loadable. Could start
-            //TODO putting them in wherever they'll go after serialization
-
             // XXX Hadoop currently doesn't support distributed cache in local mode.
             // This line will be removed after the support is added
-            if (pigContext.getExecType() == ExecType.LOCAL) return;
+            if (pigContext.getExecType() == ExecType.LOCAL) {
+                for (SchemaTupleClassSerializer stcs : func.getSchemaTupleClassSerializer()) {
+                    LoadedSchemaTupleClassesHolder lstch = SchemaTupleFactory.getLoadedSchemaTupleClassesHolder();
+                    try {
+                        lstch.registerLocalMode(stcs);
+                    } catch (IOException e) {
+                        String msg = "Error adding class " + stcs.getName()
+                                   + " to LoadedSchemaTupleClassesHolder in LocalMode";
+                        throw new VisitorException(msg, e);
+                    }
+                }
+                return;
+            }
 
             // set up distributed cache for files indicated by the UDF
             String[] files = func.getCacheFiles();

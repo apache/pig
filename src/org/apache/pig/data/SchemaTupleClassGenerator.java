@@ -1,61 +1,36 @@
 package org.apache.pig.data;
 
-import java.io.InputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.OutputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.DataInput;
-import java.io.DataOutput;
+import java.io.OutputStream;
 import java.net.URI;
-import java.net.MalformedURLException;
-import java.util.Map;
+import java.security.SecureClassLoader;
 import java.util.HashMap;
 import java.util.List;
-import java.util.LinkedList;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Queue;
-import java.security.SecureClassLoader;
-
-import com.google.common.collect.Maps;
-import com.google.common.collect.Lists;
-import com.google.common.base.Joiner;
-
-import org.apache.pig.data.Tuple;
-import org.apache.pig.data.DataType;
-import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
-import org.apache.pig.impl.util.Utils;
-import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.PigContext;
-import org.apache.pig.tools.pigstats.ScriptState;
-import org.apache.pig.scripting.ScriptEngine;
-import org.apache.pig.classification.InterfaceAudience;
-import org.apache.pig.classification.InterfaceStability;
-
-import org.apache.hadoop.conf.Configuration;
-import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import com.google.common.io.Files;
 
 import javax.tools.Diagnostic;
 import javax.tools.DiagnosticCollector;
-import javax.tools.JavaCompiler;
-import javax.tools.ToolProvider;
-import javax.tools.JavaFileObject;
-import javax.tools.JavaFileObject.Kind;
-import javax.tools.SimpleJavaFileObject;
-import javax.tools.JavaFileManager;
-import javax.tools.StandardJavaFileManager;
-import javax.tools.ForwardingJavaFileManager;
-import javax.tools.StandardLocation;
 import javax.tools.FileObject;
+import javax.tools.ForwardingJavaFileManager;
+import javax.tools.JavaCompiler;
+import javax.tools.JavaFileObject;
+import javax.tools.SimpleJavaFileObject;
+import javax.tools.StandardJavaFileManager;
+import javax.tools.ToolProvider;
+import javax.tools.JavaFileObject.Kind;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
+
+import com.google.common.collect.Lists;
 
 //TODO: implement a raw comparator for it?
 //TODO: massLoad() should be based on a properties file in the jar that has all of the values I wrote to it
@@ -70,31 +45,6 @@ public class SchemaTupleClassGenerator {
     private static final Log LOG = LogFactory.getLog(SchemaTupleClassGenerator.class);
 
     private static int globalClassIdentifier = 0;
-    private static boolean filesAdded = false; //a marker for whether necessary files/dependencies have been added to the job jar
-
-    public static List<String> readClasslistFromJar() {
-        return null; //TODO whatever method we end up putting in addClassFilesToJar, this should read that
-    }
-
-    public static void addClassBytesToDistributedCache(String className, byte[] classBytes) {
-        //TODO detect if we're in local mode and not do anything if that is the case
-        PigContext pc = ScriptState.get().getPigContext();
-
-        if (pc == null) {
-            LOG.warn("PigContext not available! Unable to add file " + className + " to distributed cache");
-            return;
-         }
-
-        Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties());
-        File tempDir = Files.createTempDir();
-        tempDir.deleteOnExit();
-        File temp = new File(tempDir, "/" + className);
-        temp.deleteOnExit();
-        FileOutputStream fos = new FileOutputStream(temp);
-        fos.write(classBytes);
-        fos.close();
-
-    }
 
     /**
      * This is a class to encapsulate the logic to add something to the distributed cache.
@@ -102,10 +52,10 @@ public class SchemaTupleClassGenerator {
     public static class SchemaTupleClassSerializer {
         private int id;
         private String name;
-        private Class<SchemaTuple> clazz;
+        private Class<SchemaTuple<?>> clazz;
         private byte[] classBytes;
 
-        public SchemaTupleClassSerializer(int id, String name, Class<SchemaTuple> clazz, byte[] classBytes) {
+        public SchemaTupleClassSerializer(int id, String name, Class<SchemaTuple<?>> clazz, byte[] classBytes) {
             this.id = id;
             this.name = name;
             this.clazz = clazz;
@@ -120,7 +70,7 @@ public class SchemaTupleClassGenerator {
             return classBytes;
         }
 
-        public int id() {
+        public int getId() {
             return id;
         }
     }
@@ -134,7 +84,7 @@ public class SchemaTupleClassGenerator {
      * This encapsulates a Schema and allows it to be used in such a way that
      * any aliases are ignored in equality.
      */
-    private static class SchemaKey {
+    protected static class SchemaKey {
         private Schema s;
 
         public SchemaKey(Schema s) {
@@ -173,7 +123,7 @@ public class SchemaTupleClassGenerator {
         }
     }
 
-    public static SchemaTupleClassSerializer generateAndAddToJob(Schema s, boolean appendable) {
+    public static SchemaTupleClassSerializer generateClassSerializerForSchema(Schema s, boolean appendable) {
         SchemaTupleClassSerializer sts = schemaTupleSerializers.get(appendable).get(s);
 
         if (sts != null) {
@@ -192,14 +142,19 @@ public class SchemaTupleClassGenerator {
             throw new RuntimeException("Unable to compile codeString:\n" + codeString, e);
         }
 
-        return new SchemaTupleClassSerializer(id, name, (Class<SchemaTuple>)current.getClass(), current.getJavaClassObject().getBytes());
+        try {
+            return new SchemaTupleClassSerializer(id, name, (Class<SchemaTuple<?>>)current.getClassLoader(null).loadClass(name), current.getJavaClassObject().getBytes());
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException("Unable to find class despite successful compilation: " + name, e);
+        }
     }
 
-    public static String generateCodeString(Schema s, int id, boolean appendable) {
+    private static String generateCodeString(Schema s, int id, boolean appendable) {
         TypeInFunctionStringOutFactory f = new TypeInFunctionStringOutFactory(s, id, appendable);
 
-        for (Schema.FieldSchema fs : s.getFields())
+        for (Schema.FieldSchema fs : s.getFields()) {
             f.process(fs);
+        }
 
         //return f.end();
         String tmp = f.end(); //remove
@@ -277,13 +232,6 @@ public class SchemaTupleClassGenerator {
             return jclassObject;
         }
 
-        public Class<?> getClass() {
-             if (classLoader == null) {
-                 throw new RuntimeException("Cannot call getClass() if getClassLoader() has not been called by the compiler!");
-             }
-             classLoader.loadClass(className);
-        }
-
         /**
         * Will be used by us to get the class loader for our
         * compiled class. It creates an anonymous class
@@ -293,14 +241,13 @@ public class SchemaTupleClassGenerator {
         */
         @Override
         public ClassLoader getClassLoader(Location location) {
-            classLoader = new SecureClassLoader() {
+            return new SecureClassLoader() {
                 @Override
                 protected Class<?> findClass(String name) {
                     byte[] b = jclassObject.getBytes();
                     return super.defineClass(name, jclassObject.getBytes(), 0, b.length);
                 }
             };
-            return classLoader;
         }
 
         /**
@@ -314,8 +261,7 @@ public class SchemaTupleClassGenerator {
         }
     }
 
-    //TODO should generate directly to a temp directory
-    public static ClassFileManager compileCodeString(String generatedCodeString, String className) throws ExecException {
+    private static ClassFileManager compileCodeString(String generatedCodeString, String className) throws ExecException {
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
         ClassFileManager fileManager = new ClassFileManager(compiler.getStandardFileManager(null, null, null));
         //StandardJavaFileManager fileManager = compiler.getStandardFileManager(null, null, null);
@@ -485,10 +431,11 @@ public class SchemaTupleClassGenerator {
                     add("private "+typeName()+" pos_"+fieldPos+";");
                 }
             } else {
-                int id = SchemaTupleClassGenerator.generateAndAddToJar(fs.schema, isAppendable());
+                int id = SchemaTupleClassGenerator.generateClassSerializerForSchema(fs.schema, isAppendable()).getId();
 
-                for (Queue<Integer> q : listOfQueuesForIds)
+                for (Queue<Integer> q : listOfQueuesForIds) {
                     q.add(id);
+                }
 
                 add("private SchemaTuple_"+id+" pos_"+fieldPos+";");
             }

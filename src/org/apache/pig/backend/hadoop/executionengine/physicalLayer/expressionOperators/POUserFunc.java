@@ -44,7 +44,6 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.SchemaTupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.data.TypeAwareTuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.NodeIdGenerator;
@@ -131,11 +130,9 @@ public class POUserFunc extends ExpressionOperator {
         this.func.setPigLogger(pigLogger);
 
         if (tmpS != null) {
-            //Schema outputS = func.outputSchema(tmpS);
-
-            if (SchemaTupleFactory.isGeneratable(tmpS))
+            if (SchemaTupleFactory.isGeneratable(tmpS)) {
                 inputSchemaTupleFactory = TupleFactory.getInstanceForSchema(tmpS);
-
+            }
 /*
             if (outputS != null && SchemaTupleFactory.isGeneratable(outputS))
                 outputGen = SchemaTuple.generate(outputS);

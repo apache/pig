@@ -1,27 +1,8 @@
 package org.apache.pig.data;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
-import java.util.List;
-import java.lang.reflect.Method;
-import java.util.Random;
-
-import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
-import org.apache.pig.data.utils.MethodHelper;
-import org.apache.pig.impl.util.Utils;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
-
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.Test;
-
-import com.google.common.collect.Lists;
 
 public class TestTupleSemantics {
+    /*
     @Test
     public void testDefaultTupleFactory() throws Exception {
         testFactory(TupleFactory.getInstance());
@@ -277,4 +258,5 @@ public class TestTupleSemantics {
             assertNull(t.get(index++));
         }
     }
+    */
 }

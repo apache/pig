@@ -17,8 +17,6 @@
  */
 package org.apache.pig.data;
 
-import java.lang.Class;
-import java.lang.ClassLoader;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.List;
@@ -27,9 +25,6 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigTupleDefa
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
-
-import com.google.common.collect.Maps;
 
 /**
  * A factory to construct tuples.  This class is abstract so that users can
@@ -145,9 +140,8 @@ public abstract class TupleFactory {
      */
     public abstract Tuple newTuple(Object datum);
 
-    //this should only be called on the backend!
-    public static SchemaTupleFactory getInstanceForSchema(Schema schema) {
-        return SchemaTupleFactory.getSchemaTupleFactory(schema);
+    public static SchemaTupleFactory getInstanceForSchema(Schema s) {
+        return SchemaTupleFactory.getSchemaTupleFactory(s);
     }
 
     public static SchemaTupleFactory getInstanceForSchemaId(int id) {

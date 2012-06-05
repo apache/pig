@@ -60,6 +60,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.Subtract;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.SchemaTupleClassGenerator.SchemaTupleClassSerializer;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.plan.NodeIdGenerator;
@@ -69,7 +70,6 @@ import org.apache.pig.newplan.DependencyOrderWalker;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanWalker;
-import org.apache.pig.newplan.logical.Util;
 import org.apache.pig.newplan.logical.relational.LOGenerate;
 import org.apache.pig.newplan.logical.relational.LOInnerLoad;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
@@ -538,11 +538,11 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
             ((POUserFunc)p).setReferencedOperator( logToPhyMap.get( refOp ) );
         }
 
-        SchemaTupleClassSerializer st = p.getInputSchemaTupleClassSerializer();
+        SchemaTupleClassSerializer st = op.getInputSchemaTupleClassSerializer();
         if (st != null) {
             p.addSchemaTupleClassSerializer(st);
         }
-        st = p.getOutputSchemaTupleClassSerializer();
+        st = op.getOutputSchemaTupleClassSerializer();
         if (st != null) {
             p.addSchemaTupleClassSerializer(st);
         }

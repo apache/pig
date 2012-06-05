@@ -21,22 +21,26 @@ import java.io.IOException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.pig.ExecType;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
+import org.apache.pig.data.SchemaTupleFactory;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.SchemaTupleFactory.LoadedSchemaTupleClassesHolder;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.io.ReadToEndLoader;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.pen.util.ExampleTuple;
-import org.apache.pig.data.SchemaTupleFactory.LoadedSchemaTupleClassesHolder;
+import org.apache.pig.tools.pigstats.ScriptState;
 
 /**
  * The load operator which is used in two ways:
@@ -83,7 +87,7 @@ public class POLoad extends PhysicalOperator {
         this.loader = lf;
     }
 
-    private static LoadedSchemaTupleClassesHolder schemaTupleHolder = SchemaTupleClassGenerator.getLoadedSchemaTupleClassesHolder();
+    private static LoadedSchemaTupleClassesHolder schemaTupleHolder = SchemaTupleFactory.getLoadedSchemaTupleClassesHolder();
 
     /**
      * Set up the loader by
@@ -94,13 +98,16 @@ public class POLoad extends PhysicalOperator {
      */
     public void setUp() throws IOException{
         Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties());
-        String stToDeserialize = conf.get("pig.schematuple.classes");
-        if (stToDeserialize != null) {
-            for (String className : stToDeserialize.split(",")) {
-                if (schemaTupleHolder.isRegistered(className)) {
-                    continue;
+        //TODO is there a cleaner way than going for the static context to see if we're in local mode?
+        if (ScriptState.get().getPigContext().getExecType() != ExecType.LOCAL) {
+            String stToDeserialize = conf.get("pig.schematuple.classes");
+            if (stToDeserialize != null) {
+                for (String className : stToDeserialize.split(",")) {
+                    if (schemaTupleHolder.isRegistered(className)) {
+                        continue;
+                    }
+                    schemaTupleHolder.registerFileFromDistributedCache(className, conf);
                 }
-                schemaTupleHolder.registerFileFromDistributedCache(className, conf);
             }
         }
 
