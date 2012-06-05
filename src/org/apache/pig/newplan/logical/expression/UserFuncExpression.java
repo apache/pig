@@ -170,6 +170,21 @@ public class UserFuncExpression extends LogicalExpression {
         ef = (EvalFunc<?>) PigContext.instantiateFuncFromSpec(mFuncSpec);
     }
 
+    /**
+     * The purpose of these values is so that when the logical to physical transition
+     * happens,
+     */
+    private SchemaTupleClassSerializer inputSchemaTupleClassSerializer;
+    private SchemaTupleClassSerializer outputSchemaTupleClassSerializer;
+
+    public SchemaTupleClassSerializer getInputSchemaTupleClassSerializer() {
+        return inputSchemaTupleClassSerializer;
+    }
+
+    public SchemaTupleClassSerializer getOutputSchemaTupleClassSerializer() {
+        return outputSchemaTupleClassSerializer;
+    }
+
     @Override
     public LogicalSchema.LogicalFieldSchema getFieldSchema() throws FrontendException {
         if (fieldSchema!=null)
@@ -206,11 +221,11 @@ public class UserFuncExpression extends LogicalExpression {
         //TODO appendability should come from a setting
 
         if (SchemaTupleFactory.isGeneratable(inputSchemaToGen)) {
-            SchemaTupleClassGenerator.generateAndAddToJar(inputSchemaToGen, false);
+            inputSchemaTupleClassSerializer = SchemaTupleClassGenerator.generateSerializer(inputSchemaToGen, false);
         }
 
         if (SchemaTupleFactory.isGeneratable(udfSchema)) {
-            SchemaTupleClassGenerator.generateAndAddToJar(udfSchema, false);
+            outputSchemaTupleClassSerializer = SchemaTupleClassGenerator.generateSerializer(udfSchema, false);
         }
 
         if (udfSchema != null) {

@@ -1154,6 +1154,26 @@ public class JobControlCompiler{
         }
     }
 
+    private static addBytesToDistributedCache(PigContext pigContext, Configuration conf, String fileName, byte[] bytes, boolean shipToCluster) throws IOException {
+        File tempDir = Files.createTempDir();
+        tempDir.deleteOnExit();
+        File temp = new File(tempDir, "/" + fileName);
+        temp.deleteOnExit();
+        OutputStream os = new FileOutputStream(temp);
+        os.write(bytes);
+        os.close();
+
+        setupDistributedCache(pigContext, conf, new String[] { temp.getAbsolutePath() }, shipToCluster);
+
+        String stClasses = conf.get("pig.schematuple.classes");
+        if (stClasses == null) {
+            stClasses = fileName;
+        } else {
+            stClasses += "," + fileName;
+        }
+        conf.set("pig.schematuple.classes", stClasses);
+    }
+
     private static void setupDistributedCache(PigContext pigContext,
             Configuration conf, String[] paths, boolean shipToCluster) throws IOException {
         // Turn on the symlink feature
@@ -1422,6 +1442,9 @@ public class JobControlCompiler{
         @Override
         public void visitUserFunc(POUserFunc func) throws VisitorException {
 
+            //TODO in local mode, where should we put the files? They need to be loadable. Could start
+            //TODO putting them in wherever they'll go after serialization
+
             // XXX Hadoop currently doesn't support distributed cache in local mode.
             // This line will be removed after the support is added
             if (pigContext.getExecType() == ExecType.LOCAL) return;
@@ -1436,6 +1459,17 @@ public class JobControlCompiler{
                 String msg = "Internal error. Distributed cache could not " +
                         "be set up for the requested files";
                 throw new VisitorException(msg, e);
+            }
+
+            //TODO if it is in local mode, add it to whatever the new cache of files is going to be
+            for (SchemaTupleClassSerializer stcs : func.getSchemaTupleClassSerializer()) {
+                try {
+                   addBytesToDistributedCache(pigContext, conf, stcs.getName(), stcs.getBytes(), true);
+                } catch (IOException e) {
+                    String msg = "Internal error. Distributed cache could not " +
+                            "be set up for the SchemaTuple class " + name;
+                    throw new VisitorException(msg, e);
+                }
             }
         }
     }

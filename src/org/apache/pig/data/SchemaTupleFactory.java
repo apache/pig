@@ -17,34 +17,12 @@ import org.apache.pig.data.utils.HierarchyHelper;
 //TODO Use code generation to avoid having to do clazz.newInstance(), and to be able to directly return the proper SchemaTuple
 //TODO can just have a small container class that the generated code extends that has any functionality specific to that
 public class SchemaTupleFactory extends TupleFactory {
-    private static boolean massLoad = false;
-    private static GeneratedSchemaTupleInfoRepository gennedInfo = new GeneratedSchemaTupleInfoRepository();
-
+    private SchemaTupleQuickGenerator generator;
     private Class<SchemaTuple> clazz;
 
-    protected SchemaTupleFactory(Class<SchemaTuple> clazz) {
+    protected SchemaTupleFactory(Class<SchemaTuple> clazz, SchemaTupleQuickGenerator generator) {
         this.clazz = clazz;
-    }
-
-    private static Map<Schema, SchemaTupleFactory> schemaFactoryMap = Maps.newHashMap();
-    private static Map<Integer, SchemaTupleFactory> idFactoryMap = Maps.newHashMap();
-
-    //TODO this should use SchemaTupleClassGenerate.readClasslistFromJar and get the classnames there...but for now it uses the janky method
-    private static void massLoad() {
-        //gennedInfo = new GeneratedSchemaTupleInfo(SchemaSchemaTupleClassGenerate.readClasslistFromJar());
-        try {
-            for (int i = 0; true; i++)
-                gennedInfo.registerClass("SchemaTuple_" + i);
-        } catch (ExecException e) {
-            Throwable cause = e.getCause();
-            if (!(cause instanceof ClassNotFoundException))
-                throw new RuntimeException("Unexpected failure in massLoad()", cause);
-        }
-        massLoad = true;
-    }
-
-    protected static GeneratedSchemaTupleInfoRepository getGeneratedInfo() {
-        return gennedInfo;
+        this.generator = generator;
     }
 
     public static boolean isGeneratable(Schema s) {
@@ -64,11 +42,7 @@ public class SchemaTupleFactory extends TupleFactory {
 
     @Override
     public Tuple newTuple() {
-        try {
-            return instantiateClass(clazz);
-        } catch (ExecException e) {
-            throw new RuntimeException("Error creating Tuple", e);
-        }
+        generator.make();
     }
 
     public static RuntimeException methodNotImplemented() {
@@ -106,45 +80,6 @@ public class SchemaTupleFactory extends TupleFactory {
         return clazz;
     }
 
-    public static SchemaTuple instantiateClass(Class<SchemaTuple> clazz) throws ExecException {
-       try {
-            return clazz.newInstance();
-        } catch (InstantiationException e) {
-            throw new ExecException("Unable to instantiate class " + clazz, e);
-        } catch (IllegalAccessException e) {
-            throw new ExecException("Not allowed to instantiate class " + clazz, e);
-        }
-    }
-
-    public static Schema stripAliases(Schema s) {
-        for (Schema.FieldSchema fs : s.getFields()) {
-            fs.alias = null;
-            if (fs.schema != null) {
-                stripAliases(fs.schema);
-            }
-        }
-
-        return s;
-    }
-
-    public static SchemaTupleFactory getSchemaTupleFactory(Schema schema) {
-        SchemaTupleFactory stf = schemaFactoryMap.get(schema);
-
-        if (stf != null) {
-            return stf;
-        }
-
-        if (!massLoad) {
-            massLoad();
-        }
-
-        stf = new SchemaTupleFactory(gennedInfo.getTupleClass(schema));
-
-        schemaFactoryMap.put(schema, stf);
-
-        return stf;
-    }
-
     public static SchemaTupleFactory getSchemaTupleFactory(int id) {
         SchemaTupleFactory stf = schemaFactoryMap.get(id);
 
@@ -152,81 +87,74 @@ public class SchemaTupleFactory extends TupleFactory {
             return stf;
         }
 
-        if (!massLoad) {
-            massLoad();
-        }
+        stf = loadedSchemaTupleClassesHolder.newSchemaTupleFactory(id);
 
-        stf = new SchemaTupleFactory(gennedInfo.getTupleClass(id));
-
-        idFactoryMap.put(id, stf);
+        schemaFactoryMap.put(id, stf);
 
         return stf;
     }
 
-    static class GeneratedSchemaTupleInfoRepository {
-        private Map<Integer, Class<SchemaTuple>> idClassMap = Maps.newHashMap();
-        private Map<Schema, Integer> strippedSchemaIdMap = Maps.newHashMap();
-	private Map<Schema, Integer> schemaIdMap = Maps.newHashMap();
-        private Map<String, Integer> nameIdMap = Maps.newHashMap();
+    private static LoadedSchemaTupleClassesHolder loadedSchemaTupleClassesHolder = new LoadedSchemaTupleClassesHolder();
 
-        public GeneratedSchemaTupleInfoRepository() {}
+    public static LoadedSchemaTupleClassesHolder getLoadedSchemaTupleClassesHolder() {
+        return loadedSchemaTupleClassesHolder;
+    }
 
-        public GeneratedSchemaTupleInfoRepository(Iterable<String> classes) {
-            for (String className : classes) {
-                try {
-                    registerClass(className);
-                } catch (ExecException e) {
-                    throw new RuntimeException("Expected class " + className + " was not in classpath", e);
+    private static class LoadedSchemaTupleClassesHolder {
+        private Map<Integer, SchemaTupleQuickGenerator> generators = Maps.newHashMap();
+        private Map<Integer, Class<? extends SchemaTuple>> classes = Maps.newHashMap();
+
+        protected LoadedSchemaTupleClassesHolder() {
+        }
+
+        public SchemaTupleFactory newSchemaTupleFactory(int id) {
+            Class<? extends SchemaTuple> clazz = classes.get(id);
+            SchemaTupleQuickGenerator stGen = generators.get(id);
+            if (clazz == null || stGen == null) {
+                throw new RuntimeException("Could not find matching SchemaTuple for id: " + id); //TODO do something else? Return null? A checked exception?
+            }
+            return new SchemaTuple(clazz, stGen);
+        }
+
+        public void registerFileFromDistributedCache(String className, Configuration conf) throws IOException {
+            FileSystem fs = FileSystem.get(conf);
+            FSDataInputStream fsdis = fs.open(new Path(className));
+            long available = 0;
+            long position = 0;
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            while ((available = fsdis.available()) > 0) {
+                byte[] buf = new byte[available];
+                long read = fsdis.read(position, buf, 0, available);
+                if (read == -1) {
+                    break;
                 }
+                position += read;
+                baos.write(buf, 0, read);
             }
-        }
 
-        public void registerClass(String className) throws ExecException {
-            Class<SchemaTuple> clazz;
-            Integer hashId = nameIdMap.get(className);
+            byte[] buf = baos.toByteArray();
 
-            if (hashId != null)
-                return;
+            ClassLoader cl = new SecureClassLoader() {
+                @Override
+                protected Class<?> findClass(String name) {
+                    return super.defineClass(name, buf, 0, buf.length);
+                }
+            };
 
+            Class<? extends SchemaTuple> clazz = (Class<? extends SchemaTuple>)cl.loadClass(className);
+            SchemaTuple st;
             try {
-                clazz = (Class<SchemaTuple>)Class.forName(className); //should we be using a different method?
-            } catch (ClassNotFoundException e) {
-                throw new ExecException("Given class " + className + " not found in classpath", e);
+                st = clazz.newInstance()
+            } catch (InstantiationException e) {
+                throw new ExecException("Unable to instantiate class " + clazz, e);
+            } catch (IllegalAccessException e) {
+                throw new ExecException("Not allowed to instantiate class " + clazz, e);
             }
-
-            if (!HierarchyHelper.verifyMustOverride(clazz)) {
-                 throw new ExecException("Generated class " + clazz + " does not override all @MustOverride methods in SchemaTuple");
-            }
-
-            SchemaTuple st = instantiateClass(clazz);
+            SchemaTupleQuickGenerator stGen = st.getQuickGenerator();
             int id = st.getSchemaTupleIdentifier();
-            Schema schema = st.getSchema();
-            schemaIdMap.put(schema, id);
 
-            strippedSchemaIdMap.put(stripAliases(new Schema(schema)), id);
-
-            nameIdMap.put(className, id);
-            idClassMap.put(id, clazz);
-        }
-
-        public Class<SchemaTuple> getTupleClass(Schema schema) {
-            return getTupleClass(schema, false);
-        }
-
-        public Class<SchemaTuple> getTupleClass(Schema schema, boolean strict) {
-            Integer id;
-            if (!strict) {
-                schema = stripAliases(new Schema(schema));
-                id = strippedSchemaIdMap.get(schema);
-            } else {
-                id = schemaIdMap.get(schema);
-            }
-
-            return idClassMap.get(id);
-        }
-
-        public Class<SchemaTuple> getTupleClass(int id) {
-            return idClassMap.get(id);
+            generators.put(id, stGen);
+            classes.put(id, clazz);
         }
     }
 }

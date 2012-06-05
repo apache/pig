@@ -103,9 +103,17 @@ public class SchemaTupleClassGenerator {
             this.clazz = clazz;
             this.classBytes = classBytes;
         }
+
+        public String getName() {
+            return name;
+        }
+
+        public byte[] getBytes() {
+            return classBytes();
+        }
     }
 
-    public static SchemaTupleClassSerializer generateAndAddToJar(Schema s, boolean appendable) {
+    public static SchemaTupleClassSerializer generateSerializer(Schema s, boolean appendable) {
         SchemaTupleFactory.GeneratedSchemaTupleInfoRepository genned = SchemaTupleFactory.getGeneratedInfo();
 
         Class<SchemaTuple> clazz = genned.getTupleClass(s);
@@ -1155,8 +1163,9 @@ public class SchemaTupleClassGenerator {
             listOfFutureMethods.add(new PrimitiveGetString(DataType.CHARARRAY));
             listOfFutureMethods.add(new PrimitiveGetString(DataType.BOOLEAN));
 
-            for (TypeInFunctionStringOut t : listOfFutureMethods)
+            for (TypeInFunctionStringOut t : listOfFutureMethods) {
                 t.prepare();
+            }
         }
 
         public void process(Schema.FieldSchema fs) {
@@ -1198,6 +1207,16 @@ public class SchemaTupleClassGenerator {
                 t.end();
                 head.append(t.getContent());
             }
+
+            head.append("    @Override");
+                .append("    protected abstract SchemaTupleQuickGenerator getQuickGenerator() {");
+                .append("        return new SchemaTupleQuickGenerator {");
+                .append("            @Override");
+                .append("            public SchemaTuple make() {");
+                .append("                return new SchemaTuple_" + id + "();");
+                .append("            }");
+                .append("        };");
+                .append("    }");
 
             return head.append("}").toString();
         }

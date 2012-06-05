@@ -723,4 +723,14 @@ public abstract class SchemaTuple<T extends SchemaTuple> extends AbstractTuple i
     protected int compare(SchemaTuple val, Object themVal) {
         return val.compareTo(themVal);
     }
+
+    /**
+     * This is slightly annoying, but this will allow SchemaTupleFactories to
+     * avoid having to use reflection to instantiate a new SchemaTuple
+     */
+    protected abstract SchemaTupleQuickGenerator getQuickGenerator();
+
+    protected static abstract class SchemaTupleQuickGenerator {
+        public abstract SchemaTuple make();
+    }
 }

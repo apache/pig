@@ -508,4 +508,17 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
             return alias+"["+line+","+offset+"]";
         }
     }
+
+    /**
+     * This is so that it will be passed to the MR plan.
+     */
+    private List<SchemaTupleClassSerializer> schemaTupleClassSerializers;
+
+    public void addSchemaTupleClassSerializer(SchemaTupleClassSerializer schemaTupleClassSerializer) {
+        schemaTupleClassSerializers.add(schemaTupleClassSerializer);
+    }
+
+    public List<SchemaTupleClassSerializer> getSchemaTupleClassSerializer() {
+        return schemaTupleClassSerializers;
+    }
 }

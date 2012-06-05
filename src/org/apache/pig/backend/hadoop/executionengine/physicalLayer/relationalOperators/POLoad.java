@@ -48,7 +48,7 @@ import org.apache.pig.pen.util.ExampleTuple;
 public class POLoad extends PhysicalOperator {
     private static final Log log = LogFactory.getLog(POLoad.class);
     /**
-     * 
+     *
      */
     private static final long serialVersionUID = 1L;
     // The user defined load function or a default load function
@@ -61,9 +61,9 @@ public class POLoad extends PhysicalOperator {
     boolean setUpDone = false;
     // Alias for the POLoad
     private String signature;
-    
+
     private long limit=-1;
-    
+
     public POLoad(OperatorKey k) {
         this(k,-1, null);
     }
@@ -71,31 +71,44 @@ public class POLoad extends PhysicalOperator {
     public POLoad(OperatorKey k, FileSpec lFile){
         this(k,-1,lFile);
     }
-    
+
     public POLoad(OperatorKey k, int rp, FileSpec lFile) {
         super(k, rp);
         this.lFile = lFile;
     }
-    
+
     public POLoad(OperatorKey k, LoadFunc lf){
         this(k);
         this.loader = lf;
     }
-    
+
+    private static LoadedSchemaTupleClassesHolder schemaTupleHolder = SchemaTupleClassGenerator.getLoadedSchemaTupleClassesHolder();
+
     /**
-     * Set up the loader by 
+     * Set up the loader by
      * 1) Instantiating the load func
      * 2) Opening an input stream to the specified file and
      * 3) Binding to the input stream at the specified offset.
      * @throws IOException
      */
     public void setUp() throws IOException{
+        Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties());
+        String stToDeserialize = conf.get("pig.schematuple.classes");
+        if (stToDeserialize != null) {
+            for (String className = stToDeserialize.split(",")) {
+                if (schemaTupleHolder.isRegistered(className)) {
+                    continue;
+                }
+                schemaTupleHolder.registerFileFromDistributedCache(className, conf);
+            }
+        }
+
         loader = new ReadToEndLoader((LoadFunc)
-                PigContext.instantiateFuncFromSpec(lFile.getFuncSpec()), 
-                ConfigurationUtil.toConfiguration(pc.getProperties()), 
+                PigContext.instantiateFuncFromSpec(lFile.getFuncSpec()),
+                conf,
                 lFile.getFileName(),0);
     }
-    
+
     /**
      * At the end of processing, the inputstream is closed
      * using this method
@@ -104,12 +117,12 @@ public class POLoad extends PhysicalOperator {
     public void tearDown() throws IOException{
         setUpDone = false;
     }
-    
+
     /**
      * The main method used by this operator's successor
      * to read tuples from the specified file using the
      * specified load function.
-     * 
+     *
      * @return Whatever the loader returns
      *          A null from the loader is indicative
      *          of EOP and hence the tearDown of connection
@@ -190,11 +203,11 @@ public class POLoad extends PhysicalOperator {
     public String getSignature() {
         return signature;
     }
-    
+
     public void setSignature(String signature) {
         this.signature = signature;
     }
-    
+
     public LoadFunc getLoadFunc(){
         if (this.loader==null) {
             this.loader = (LoadFunc)PigContext.instantiateFuncFromSpec(lFile.getFuncSpec());
@@ -202,7 +215,7 @@ public class POLoad extends PhysicalOperator {
         }
         return this.loader;
     }
-    
+
     public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
         if(illustrator != null) {
           if (!illustrator.ceilingCheck()) {
