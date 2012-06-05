@@ -126,7 +126,7 @@ public class Main {
             version = attr.getValue("Implementation-Version");
             svnRevision = attr.getValue("Svn-Revision");
             buildTime = attr.getValue("Build-TimeStamp");
-            String[] split = version.split("-")[0].split("\\.");
+            String[] split = version.split("\\.");
             majorVersion=split[0];
             minorVersion=split[1];
             patchVersion=split[2];
