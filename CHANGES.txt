@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2658: Add pig.script.submitted.timestamp and pig.job.submitted.timestamp in generated Map-Reduce job conf (billgraham)
+
 PIG-2735: Add a pig.version.suffix property in build.xml to easily override with a build number (julien)
 
 PIG-2705: outputSchema modification from scripting UDFs (levyjoshua via julien)
