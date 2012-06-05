@@ -12,6 +12,7 @@ import java.io.DataOutput;
 import java.net.URI;
 import java.net.MalformedURLException;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.List;
 import java.util.LinkedList;
 import java.util.Locale;
@@ -26,6 +27,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.DataType;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.PigContext;
@@ -123,7 +125,7 @@ public class SchemaTupleClassGenerator {
         }
     }
 
-    private Map<Boolean, Map<SchemaKey, SchemaTupleClassSerializer> schemaTupleSerializers = Maps.newHashMap() {{
+    private Map<Boolean, Map<SchemaKey, SchemaTupleClassSerializer>> schemaTupleSerializers = new HashMap<Boolean, Map<SchemaKey, SchemaTupleClassSerializer>>() {{
         put(true, Maps.newHashMap());
         put(false, Maps.newHashMap());
     }};
@@ -139,9 +141,23 @@ public class SchemaTupleClassGenerator {
             this.s = s;
         }
 
+        private static int[] primeList = { 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37,
+                                           41, 43, 47, 53, 59, 61, 67, 71, 73, 79,
+                                           83, 89, 97, 101, 103, 107, 109, 1133};
+
         @Override
         public int hashCode() {
-            return (this.type * 17) + ( (schema==null? 0:schema.hashCode()) * 23 );
+            int idx = 0 ;
+            int hashCode = 0 ;
+            for(FieldSchema fs : s.getFields()) {
+                hashCode += hashCode(fs) * (primeList[idx % primeList.length]) ;
+                idx++ ;
+            }
+            return hashCode ;
+        }
+
+        private int hashCode(FieldSchema fs) {
+            return (fs.type * 17) + ( (fs.schema == null? 0 : fs.schema.hashCode()) * 23 );
         }
 
         @Override
