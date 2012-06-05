@@ -69,7 +69,7 @@ public class TestTupleSemantics {
         boolean retVal = MethodHelper.isNotImplementedAnnotationPresent(m, clazz);
         if (retVal) {
             StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-            System.out.println("Skipping test " + ste[ste.length - 1].getMethodName() + " for " + objClass + " class: " + clazz);
+            System.out.println("Skipping test " + ste[ste.length - 2].getMethodName() + " for " + objClass + " class: " + clazz);
         }
         return retVal;
     }

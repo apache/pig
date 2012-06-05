@@ -59,7 +59,7 @@ public abstract class SchemaTuple<T extends SchemaTuple> extends AbstractTuple i
     @NotImplemented
     @Override
     public void append(Object val) {
-        throw new RuntimeException("Append not supported by SchemaTuple! Try AppendableSchemaTuple");
+        throw SchemaTupleFactory.methodNotImplemented();
     }
 
     //TODO this should account for all of the non-generated objects, and the general cost of being an object

@@ -1,6 +1,9 @@
 package org.apache.pig.data;
 
+import java.io.InputStream;
 import java.io.File;
+import java.io.OutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.DataInput;
@@ -12,6 +15,7 @@ import java.util.List;
 import java.util.LinkedList;
 import java.util.Locale;
 import java.util.Queue;
+import java.security.SecureClassLoader;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Lists;
@@ -37,9 +41,13 @@ import javax.tools.DiagnosticCollector;
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
 import javax.tools.JavaFileObject;
+import javax.tools.JavaFileObject.Kind;
 import javax.tools.SimpleJavaFileObject;
+import javax.tools.JavaFileManager;
 import javax.tools.StandardJavaFileManager;
+import javax.tools.ForwardingJavaFileManager;
 import javax.tools.StandardLocation;
+import javax.tools.FileObject;
 
 //TODO: implement a raw comparator for it?
 //TODO: massLoad() should be based on a properties file in the jar that has all of the values I wrote to it
@@ -60,22 +68,44 @@ public class SchemaTupleClassGenerator {
         return null; //TODO whatever method we end up putting in addClassFilesToJar, this should read that
     }
 
-    public static void addClassFilesToJar(File classFile) {
+    public static void addClassBytesToDistributedCache(String className, byte[] classBytes) {
         //TODO detect if we're in local mode and not do anything if that is the case
         PigContext pc = ScriptState.get().getPigContext();
 
         if (pc == null) {
-            LOG.warn("PigContext not available! Unable to add file " + classFile + " to job jar");
+            LOG.warn("PigContext not available! Unable to add file " + classFile + " to distributed cache");
             return;
          }
 
-        pc.addScriptFile(classFile.getName(), classFile.getAbsolutePath());
+        Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties());
+        File tempDir = Files.createTempDir();
+        tempDir.deleteOnExit();
+        File temp = new File(tempDir, "/" + className);
+        temp.deleteOnExit();
+        FileOutputStream fos = new FileOutputStream(temp);
+        fos.write(classBytes);
+        fos.close();
 
-        //TODO need to add this information to the jar manifest
     }
 
-    //this is called on the front end
-    public static int generateAndAddToJar(Schema s, boolean appendable) {
+    /**
+     * This is a class to encapsulate the logic to add something to the distributed cache.
+     */
+    private static class SchemaTupleClassSerializer {
+        private int id;
+        private String name;
+        private Class<? extends SchemaTuple> clazz;
+        private byte[] classBytes;
+
+        public SchemaTupleClassSerializer(int id, String name, Class<? extends SchemaTuple> clazz, byte[] classBytes) {
+            this.id = id;
+            this.name = name;
+            this.clazz = clazz;
+            this.classBytes = classBytes;
+        }
+    }
+
+    public static SchemaTupleClassSerializer generateAndAddToJar(Schema s, boolean appendable) {
         SchemaTupleFactory.GeneratedSchemaTupleInfoRepository genned = SchemaTupleFactory.getGeneratedInfo();
 
         Class<SchemaTuple> clazz = genned.getTupleClass(s);
@@ -92,22 +122,16 @@ public class SchemaTupleClassGenerator {
         int id = getGlobalClassIdentifier();
         String codeString = generateCodeString(s, id, appendable);
 
-        File current;
+        String name = "SchemaTuple_" + id;
+
+        ClassFileManager current;
         try {
-            current = compileCodeString(codeString, "SchemaTuple_" + id);
+            current = compileCodeString(codeString, name);
         } catch (ExecException e) {
             throw new RuntimeException("Unable to compile codeString:\n" + codeString, e);
         }
-        current.deleteOnExit();
-        addClassFilesToJar(current);
 
-        try {
-            genned.registerClass("SchemaTuple_" + id);
-        } catch (ExecException e) {
-            throw new RuntimeException("Generated class SchemaTuple_"+id+" not found in classpath", e);
-        }
-
-        return id;
+        return new SchemaTupleClassSerializer(id, name, (Class<? extends SchemaTuple>)current.getClass(), current.getJavaClassObject().getBytes());
     }
 
     public static String generateCodeString(Schema s, int id, boolean appendable) {
@@ -127,10 +151,113 @@ public class SchemaTupleClassGenerator {
         return globalClassIdentifier++;
     }
 
+    // The following is taken from http://www.javablogging.com/dynamic-in-memory-compilation/
+    private static class JavaClassObject extends SimpleJavaFileObject {
+        /**
+        * Byte code created by the compiler will be stored in this
+        * ByteArrayOutputStream so that we can later get the
+        * byte array out of it
+        * and put it in the memory as an instance of our class.
+        */
+        protected final ByteArrayOutputStream bos = new ByteArrayOutputStream();
+
+        /**
+        * Registers the compiled class object under URI
+        * containing the class full name
+        *
+        * @param name Full name of the compiled class
+        * @param kind Kind of the data. It will be CLASS in our case
+        */
+        public JavaClassObject(String name, Kind kind) {
+            super(URI.create("string:///" + name.replace('.', '/') + kind.extension), kind);
+        }
+
+        /**
+        * Will be used by our file manager to get the byte code that
+        * can be put into memory to instantiate our class
+        *
+        * @return compiled byte code
+        */
+        public byte[] getBytes() {
+            return bos.toByteArray();
+        }
+
+        /**
+        * Will provide the compiler with an output stream that leads
+        * to our byte array. This way the compiler will write everything
+        * into the byte array that we will instantiate later
+        */
+        @Override
+        public OutputStream openOutputStream() throws IOException {
+            return bos;
+        }
+    }
+
+    // The following is taken from http://www.javablogging.com/dynamic-in-memory-compilation/
+    private static class ClassFileManager extends ForwardingJavaFileManager<StandardJavaFileManager> {
+        /**
+        * Instance of JavaClassObject that will store the
+        * compiled bytecode of our class
+        */
+        private JavaClassObject jclassObject;
+        private ClassLoader classLoader;
+
+        /**
+        * Will initialize the manager with the specified
+        * standard java file manager
+        *
+        * @param standardManger
+        */
+        public ClassFileManager(StandardJavaFileManager standardManager) {
+            super(standardManager);
+        }
+
+        public JavaClassObject getJavaClassObject() {
+            return jclassObject;
+        }
+
+        public Class<?> getClass() {
+             if (classLoader == null) {
+                 throw new RuntimeException("Cannot call getClass() if getClassLoader() has not been called by the compiler!");
+             }
+             classLoader.loadClass(className)
+        }
+
+        /**
+        * Will be used by us to get the class loader for our
+        * compiled class. It creates an anonymous class
+        * extending the SecureClassLoader which uses the
+        * byte code created by the compiler and stored in
+        * the JavaClassObject, and returns the Class for it
+        */
+        @Override
+        public ClassLoader getClassLoader(Location location) {
+            classLoader = new SecureClassLoader() {
+                @Override
+                protected Class<?> findClass(String name) {
+                    byte[] b = jclassObject.getBytes();
+                    return super.defineClass(name, jclassObject.getBytes(), 0, b.length);
+                }
+            };
+            return classLoader;
+        }
+
+        /**
+        * Gives the compiler an instance of the JavaClassObject
+        * so that the compiler can write the byte code into it.
+        */
+        @Override
+        public JavaFileObject getJavaFileForOutput(Location location, String className, Kind kind, FileObject sibling) throws IOException {
+            jclassObject = new JavaClassObject(className, kind);
+            return jclassObject;
+        }
+    }
+
     //TODO should generate directly to a temp directory
-    public static File compileCodeString(String generatedCodeString, String className) throws ExecException {
+    public static ClassFileManager compileCodeString(String generatedCodeString, String className) throws ExecException {
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-        StandardJavaFileManager fileManager = compiler.getStandardFileManager(null, null, null);
+        ClassFileManager fileManager = new ClassFileManager(compiler.getStandardFileManager(null, null, null));
+        //StandardJavaFileManager fileManager = compiler.getStandardFileManager(null, null, null);
         Iterable<? extends JavaFileObject> compilationUnits = Lists.newArrayList(new JavaSourceFromString(className, generatedCodeString));
 
         DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<JavaFileObject>();
@@ -143,19 +270,7 @@ public class SchemaTupleClassGenerator {
             throw new ExecException(className + " failed to compile properly");
         }
 
-        try {
-            fileManager.close();
-        } catch (IOException e) {
-            throw new ExecException("Unable to close file manager", e);
-        }
-
-        File current = new File(className + ".class");
-
-        if (!current.exists()) {
-            throw new ExecException("Generated class file " + className + ".class not found");
-        }
-
-        return current;
+        return fileManager;
     }
 
     //taken from http://docs.oracle.com/javase/6/docs/api/javax/tools/JavaCompiler.html
@@ -163,7 +278,7 @@ public class SchemaTupleClassGenerator {
         final String code;
 
         JavaSourceFromString(String name, String code) {
-            super(URI.create("string:///" + name.replace('.','/') + JavaFileObject.Kind.SOURCE.extension), JavaFileObject.Kind.SOURCE);
+            super(URI.create("string:///" + name.replace('.','/') + Kind.SOURCE.extension), Kind.SOURCE);
             this.code = code;
         }
 
@@ -172,7 +287,6 @@ public class SchemaTupleClassGenerator {
             return code;
         }
     }
-
 
     static class CompareToSpecificString extends TypeInFunctionStringOut {
         private int id;

@@ -22,7 +22,7 @@ public class SchemaTupleFactory extends TupleFactory {
 
     private Class<SchemaTuple> clazz;
 
-    private SchemaTupleFactory(Class<SchemaTuple> clazz) {
+    protected SchemaTupleFactory(Class<SchemaTuple> clazz) {
         this.clazz = clazz;
     }
 
@@ -71,9 +71,10 @@ public class SchemaTupleFactory extends TupleFactory {
         }
     }
 
-    public RuntimeException methodNotImplemented() {
+    public static RuntimeException methodNotImplemented() {
         StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-        return new RuntimeException(ste[ste.length - 1].getMethodName() + " not implemented in " + getClass());
+        StackTraceElement pre = ste[ste.length - 2];
+        return new RuntimeException(pre.getMethodName() + " not implemented in " + pre.getClassName());
     }
 
     @Override
