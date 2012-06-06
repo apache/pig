@@ -233,6 +233,5 @@
     </dependency>
 
     <dependency org="org.mockito" name="mockito-all" rev="${mockito.version}" conf="compile->default"/>
-    <dependency org="org.jodd" name="jodd" rev="${jodd.version}" conf="compile->default"/>
     </dependencies>
 </ivy-module>

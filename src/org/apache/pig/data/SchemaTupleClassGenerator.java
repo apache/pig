@@ -1,9 +1,15 @@
 package org.apache.pig.data;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.security.SecureClassLoader;
 import java.util.HashMap;
 import java.util.List;
@@ -31,6 +37,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 
 import com.google.common.collect.Lists;
+import com.google.common.io.Files;
 
 //TODO: implement a raw comparator for it?
 //TODO: massLoad() should be based on a properties file in the jar that has all of the values I wrote to it
@@ -43,6 +50,16 @@ import com.google.common.collect.Lists;
 @InterfaceStability.Unstable
 public class SchemaTupleClassGenerator {
     private static final Log LOG = LogFactory.getLog(SchemaTupleClassGenerator.class);
+
+    private static File generatedCodeTempDir = Files.createTempDir(); //this is the temp dir into which all class files will be written
+    private static URLClassLoader classLoader;
+    static {
+        try {
+            classLoader = new URLClassLoader(new URL[] { generatedCodeTempDir.toURI().toURL() });
+        } catch (MalformedURLException e) {
+            throw new RuntimeException("Unable to make URLClassLoader for tempDir: " + generatedCodeTempDir.getAbsolutePath());
+        }
+    }
 
     private static int globalClassIdentifier = 0;
 
@@ -72,6 +89,10 @@ public class SchemaTupleClassGenerator {
 
         public int getId() {
             return id;
+        }
+
+        public Class<SchemaTuple<?>> getStClass() {
+            return clazz;
         }
     }
 
@@ -143,10 +164,28 @@ public class SchemaTupleClassGenerator {
             throw new RuntimeException("Unable to compile codeString:\n" + codeString, e);
         }
 
+        /*
         try {
-            stsc = new SchemaTupleClassSerializer(id, name, (Class<SchemaTuple<?>>)current.getClassLoader(null).loadClass(name), current.getJavaClassObject().getBytes());
+            stsc = new SchemaTupleClassSerializer(id, name, (Class<SchemaTuple<?>>)current.getClassLoader(null).loadClass(name), current.getBytes());
         } catch (ClassNotFoundException e) {
             throw new RuntimeException("Unable to find class despite successful compilation: " + name, e);
+        }
+        */
+
+        //an experiment to validate the generated code
+        File f = new File(name + ".class");
+        FileOutputStream fos;
+        try {
+            fos = new FileOutputStream(f);
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+        byte[] buf = current.getBytes();
+        try {
+            fos.write(buf, 0, buf.length);
+            fos.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
 
         schemaTupleSerializers.get(appendable).put(sk, stsc);
@@ -170,6 +209,24 @@ public class SchemaTupleClassGenerator {
 
     public static int getGlobalClassIdentifier() {
         return globalClassIdentifier++;
+    }
+
+    private static class JavaToTempFileClassObject extends SimpleJavaFileObject {
+        private final File temp;
+
+        public JavaToTempFileClassObject(String name, Kind kind) {
+            super(new File(generatedCodeTempDir, name + kind.extension).toURI(), kind);
+            temp = new File(super.toUri());
+        }
+
+        public File getTempFile() {
+            return temp;
+        }
+
+        @Override
+        public OutputStream openOutputStream() throws IOException {
+            return new FileOutputStream(temp);
+        }
     }
 
     // The following is taken from http://www.javablogging.com/dynamic-in-memory-compilation/
@@ -232,8 +289,8 @@ public class SchemaTupleClassGenerator {
             super(standardManager);
         }
 
-        public JavaClassObject getJavaClassObject() {
-            return jclassObject;
+        public byte[] getBytes() {
+            return jclassObject.getBytes();
         }
 
         /**
@@ -249,7 +306,7 @@ public class SchemaTupleClassGenerator {
                 @Override
                 protected Class<?> findClass(String name) {
                     byte[] b = jclassObject.getBytes();
-                    return super.defineClass(name, jclassObject.getBytes(), 0, b.length);
+                    return super.defineClass(name, b, 0, b.length);
                 }
             };
         }
@@ -1199,6 +1256,7 @@ public class SchemaTupleClassGenerator {
                     .append("import org.apache.pig.impl.logicalLayer.FrontendException;\n")
                     .append("import org.apache.pig.backend.executionengine.ExecException;\n")
                     .append("import org.apache.pig.data.SizeUtil;\n")
+                    .append("import org.apache.pig.data.SchemaTuple.SchemaTupleQuickGenerator;\n")
                     .append("\n");
 
             if (appendable) {
@@ -1212,15 +1270,12 @@ public class SchemaTupleClassGenerator {
                 head.append(t.getContent());
             }
 
+            SchemaTupleClassGenerator.makeMaker(id);
+
             head.append("\n")
                 .append("    @Override\n")
-                .append("    protected SchemaTupleQuickGenerator getQuickGenerator() {\n")
-                .append("        return new SchemaTupleQuickGenerator() {\n")
-                .append("            @Override\n")
-                .append("            public SchemaTuple make() {\n")
-                .append("                return new SchemaTuple_" + id + "();\n")
-                .append("            }\n")
-                .append("        };\n")
+                .append("    public SchemaTupleQuickGenerator<SchemaTuple_" + id + "> getQuickGenerator() {\n")
+                .append("        return new Maker_" + id + "();\n")
                 .append("    }\n");
 
             return head.append("}").toString();
@@ -1350,4 +1405,25 @@ public class SchemaTupleClassGenerator {
             return type == DataType.BYTEARRAY ? "Bytes" : s.substring(0,1).toUpperCase() + s.substring(1);
         }
    }
+
+    public static void makeMaker(int id) {
+        String name = "Maker_" + id;
+        String stName = "SchemaTuple_" + id;
+
+        StringBuilder codeString = new StringBuilder();
+        codeString.append("import org.apache.pig.SchemaTuple.SchemaTupleQuickGenerator\n")
+                  .append("public class " + name + " extends SchemaTupleQuickGenerator<" + stName + "> {\n")
+                  .append("    @Override\n")
+                  .append("    public " + stName + " make() {\n")
+                  .append("        return new " + stName + "();\n")
+                  .append("    }\n")
+                  .append("}");
+
+        try {
+            compileCodeString(codeString.toString(), name);
+        } catch (ExecException e) {
+            throw new RuntimeException("Error compiling " + name, e);
+        }
+
+    }
 }

@@ -705,9 +705,9 @@ public abstract class SchemaTuple<T extends SchemaTuple> extends AbstractTuple i
      * This is slightly annoying, but this will allow SchemaTupleFactories to
      * avoid having to use reflection to instantiate a new SchemaTuple
      */
-    protected abstract SchemaTupleQuickGenerator getQuickGenerator();
+    public abstract SchemaTupleQuickGenerator<T> getQuickGenerator();
 
-    protected static abstract class SchemaTupleQuickGenerator {
-        public abstract SchemaTuple make();
+    public static abstract class SchemaTupleQuickGenerator<A> {
+        public abstract A make();
     }
 }

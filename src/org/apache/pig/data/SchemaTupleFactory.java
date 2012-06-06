@@ -1,7 +1,10 @@
 package org.apache.pig.data;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.security.SecureClassLoader;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -181,48 +184,31 @@ public class SchemaTupleFactory extends TupleFactory {
             registerBytes(buf, className);
         }
 
-        public void registerBytes(byte[] buf, String className) throws IOException {
-            /*
-            File tempDir = Files.createTempDir();
-            tempDir.deleteOnExit();
-            System.out.println("TEMPDIR PATH"); //remove
-            System.out.println(tempDir.getAbsolutePath()); //remove
-            for (String className2 : new String[]{"SchemaTuple_0$1.class"}) {
-                File temp = new File(tempDir, className2 + ".class");
-                temp.deleteOnExit();
-                OutputStream os = new FileOutputStream(temp);
-                os.write(buf, 0, buf.length);
-                os.close();
-            }
+        public void registerBytes(final byte[] buf, String className) throws IOException {
+            System.out.println("THIS IS THE CLASSNAME ARGUMENT: " + className); //remove
+
             //TODO if this works, can just have a static temp directory that everything
             //TODO writes to (locally), and the URLClassLoader
-            ClassLoader cl = new URLClassLoader(new URL[]{ new URL("file://" + tempDir.getAbsolutePath() + "/") });
-            */
+            ClassLoader cl = new SecureClassLoader() {
+                @Override
+                public Class<?> findClass(String name) {
+                    return super.defineClass(name, buf, 0, buf.length);
+                }
+            };
 
-            /*
-            Class<SchemaTuple<?>> clazz = ;
-            try {
-                clazz = (Class<SchemaTuple<?>>)cl.loadClass(className);
-            } catch (ClassNotFoundException e) {
-                throw new ExecException("Failure to load class from classloader: " + className, e);
-            }
             File f = new File(className + ".class"); //remove
             FileOutputStream fos = new FileOutputStream(f); //remove
             fos.write(buf, 0, buf.length); //remove
             fos.close(); //remove
-            */
+            f.deleteOnExit(); //remove
 
-            Class<?> c = jodd.util.ClassLoaderUtil.defineClass(className, buf);
-            Object o;
+            Class<SchemaTuple<?>> clazz;
             try {
-                o = c.newInstance();
-            } catch (InstantiationException e) {
-                throw new RuntimeException("It didn't work :(", e);
-            } catch (IllegalAccessException e) {
-                throw new RuntimeException("It didn't work :(", e);
+                clazz = (Class<SchemaTuple<?>>) cl.loadClass(className);
+            } catch (ClassNotFoundException e) {
+                throw new RuntimeException("Unable to load class " + className, e);
             }
-            System.out.println("PRINTING: " + o.getClass());
-            Class<SchemaTuple<?>> clazz = (Class<SchemaTuple<?>>)c;
+
             SchemaTuple<?> st;
             try {
                 st = clazz.newInstance();
