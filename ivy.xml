@@ -102,11 +102,11 @@
       conf="hadoop20->default"/>
     <dependency org="org.apache.hadoop" name="hadoop-test" rev="${hadoop-test.version}"
       conf="hadoop20->default"/>
-    <dependency org="org.apache.hadoop" name="hadoop-annotations" 
+    <dependency org="org.apache.hadoop" name="hadoop-annotations"
       rev="${hadoop-common.version}" conf="hadoop23->master"/>
-    <dependency org="org.apache.hadoop" name="hadoop-auth" 
+    <dependency org="org.apache.hadoop" name="hadoop-auth"
       rev="${hadoop-common.version}" conf="hadoop23->master"/>
-    <dependency org="org.apache.hadoop" name="hadoop-common" 
+    <dependency org="org.apache.hadoop" name="hadoop-common"
       rev="${hadoop-common.version}" conf="hadoop23->master">
       <artifact name="hadoop-common" ext="jar" />
       <artifact name="hadoop-common" type="tests" ext="jar" m:classifier="tests" />
@@ -133,23 +133,23 @@
       conf="hadoop23->master" />
     <dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-shuffle" rev="${hadoop-mapreduce.version}"
       conf="hadoop23->master" />
-    <dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-common" 
+    <dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-common"
       rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
-    <dependency org="org.apache.hadoop" name="hadoop-yarn-api" 
+    <dependency org="org.apache.hadoop" name="hadoop-yarn-api"
       rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
-    <dependency org="org.apache.hadoop" name="hadoop-yarn-common" 
+    <dependency org="org.apache.hadoop" name="hadoop-yarn-common"
       rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
-    <dependency org="org.apache.hadoop" name="hadoop-yarn-server" 
+    <dependency org="org.apache.hadoop" name="hadoop-yarn-server"
       rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
-    <dependency org="org.apache.hadoop" name="hadoop-yarn-server-web-proxy" 
+    <dependency org="org.apache.hadoop" name="hadoop-yarn-server-web-proxy"
       rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
-    <dependency org="org.apache.hadoop" name="hadoop-yarn-server-common" 
+    <dependency org="org.apache.hadoop" name="hadoop-yarn-server-common"
       rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
-    <dependency org="org.apache.hadoop" name="hadoop-yarn-server-nodemanager" 
+    <dependency org="org.apache.hadoop" name="hadoop-yarn-server-nodemanager"
       rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
-    <dependency org="org.apache.hadoop" name="hadoop-yarn-server-resourcemanager" 
+    <dependency org="org.apache.hadoop" name="hadoop-yarn-server-resourcemanager"
       rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
-    <dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-hs" 
+    <dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-hs"
       rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
     <dependency org="org.mortbay.jetty" name="jetty" rev="${jetty.version}"
       conf="compile->master"/>
@@ -161,7 +161,7 @@
       conf="compile->master;test->master"/>
     <dependency org="commons-cli" name="commons-cli" rev="${commons-cli.version}"
       conf="compile->master;checkstyle->master"/>
-    
+
     <dependency org="org.apache.avro" name="avro" rev="${avro.version}"
       conf="compile->default;checkstyle->master"/>
     <dependency org="com.googlecode.json-simple" name="json-simple" rev="${json-simple.version}"
@@ -231,7 +231,8 @@
     <dependency org="org.vafer" name="jdeb" rev="${jdeb.version}"
       conf="compile->master">
     </dependency>
-    
+
     <dependency org="org.mockito" name="mockito-all" rev="${mockito.version}" conf="compile->default"/>
+    <dependency org="org.jodd" name="jodd" rev="${jodd.version}" conf="compile->default"/>
     </dependencies>
 </ivy-module>

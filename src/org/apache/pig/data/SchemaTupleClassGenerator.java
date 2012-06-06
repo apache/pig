@@ -124,10 +124,11 @@ public class SchemaTupleClassGenerator {
     }
 
     public static SchemaTupleClassSerializer generateClassSerializerForSchema(Schema s, boolean appendable) {
-        SchemaTupleClassSerializer sts = schemaTupleSerializers.get(appendable).get(s);
+        SchemaKey sk = new SchemaKey(s);
+        SchemaTupleClassSerializer stsc = schemaTupleSerializers.get(appendable).get(sk);
 
-        if (sts != null) {
-            return sts;
+        if (stsc != null) {
+            return stsc;
         }
 
         int id = getGlobalClassIdentifier();
@@ -143,10 +144,14 @@ public class SchemaTupleClassGenerator {
         }
 
         try {
-            return new SchemaTupleClassSerializer(id, name, (Class<SchemaTuple<?>>)current.getClassLoader(null).loadClass(name), current.getJavaClassObject().getBytes());
+            stsc = new SchemaTupleClassSerializer(id, name, (Class<SchemaTuple<?>>)current.getClassLoader(null).loadClass(name), current.getJavaClassObject().getBytes());
         } catch (ClassNotFoundException e) {
             throw new RuntimeException("Unable to find class despite successful compilation: " + name, e);
         }
+
+        schemaTupleSerializers.get(appendable).put(sk, stsc);
+
+        return stsc;
     }
 
     private static String generateCodeString(Schema s, int id, boolean appendable) {
@@ -216,7 +221,6 @@ public class SchemaTupleClassGenerator {
         * compiled bytecode of our class
         */
         private JavaClassObject jclassObject;
-        private ClassLoader classLoader;
 
         /**
         * Will initialize the manager with the specified
@@ -1208,15 +1212,16 @@ public class SchemaTupleClassGenerator {
                 head.append(t.getContent());
             }
 
-            head.append("    @Override")
-                .append("    protected abstract SchemaTupleQuickGenerator getQuickGenerator() {")
-                .append("        return new SchemaTupleQuickGenerator {")
-                .append("            @Override")
-                .append("            public SchemaTuple make() {")
-                .append("                return new SchemaTuple_" + id + "();")
-                .append("            }")
-                .append("        };")
-                .append("    }");
+            head.append("\n")
+                .append("    @Override\n")
+                .append("    protected SchemaTupleQuickGenerator getQuickGenerator() {\n")
+                .append("        return new SchemaTupleQuickGenerator() {\n")
+                .append("            @Override\n")
+                .append("            public SchemaTuple make() {\n")
+                .append("                return new SchemaTuple_" + id + "();\n")
+                .append("            }\n")
+                .append("        };\n")
+                .append("    }\n");
 
             return head.append("}").toString();
         }

@@ -1,46 +1,23 @@
 package org.apache.pig.data;
 
-import java.io.File;
-import java.io.IOException;
 import java.io.DataInput;
 import java.io.DataOutput;
-import java.net.URI;
-import java.net.MalformedURLException;
-import java.util.Map;
+import java.io.IOException;
 import java.util.List;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.Queue;
-import java.util.Set;
-
-import com.google.common.collect.Maps;
-import com.google.common.collect.Lists;
-import com.google.common.base.Joiner;
-import com.google.common.collect.Sets;
-
-import org.apache.pig.data.Tuple;
-import org.apache.pig.data.DataType;
-import org.apache.pig.data.utils.SedesHelper;
-import org.apache.pig.data.utils.HierarchyHelper.MustOverride;
-import org.apache.pig.data.utils.MethodHelper.NotImplemented;
-import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.util.Utils;
-import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.PigContext;
-import org.apache.pig.tools.pigstats.ScriptState;
-import org.apache.pig.classification.InterfaceAudience;
-import org.apache.pig.classification.InterfaceStability;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
+import org.apache.pig.data.utils.SedesHelper;
+import org.apache.pig.data.utils.HierarchyHelper.MustOverride;
+import org.apache.pig.data.utils.MethodHelper.NotImplemented;
+import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.util.Utils;
 
-import javax.tools.JavaCompiler;
-import javax.tools.ToolProvider;
-import javax.tools.JavaFileObject;
-import javax.tools.SimpleJavaFileObject;
-import javax.tools.StandardJavaFileManager;
-import javax.tools.StandardLocation;
+import com.google.common.collect.Lists;
 
 //ALSO: the memory estimate has to include all of these objects that come along with SchemaTuple...
 //TODO: implement getField(String)

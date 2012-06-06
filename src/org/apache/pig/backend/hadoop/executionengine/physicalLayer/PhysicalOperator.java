@@ -25,23 +25,24 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.data.SchemaTupleClassGenerator.SchemaTupleClassSerializer;
 import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.parser.SourceLocation;
-import org.apache.pig.pen.util.LineageTracer;
-import org.apache.pig.pen.Illustrator;
 import org.apache.pig.pen.Illustrable;
-import org.apache.pig.data.SchemaTupleClassGenerator.SchemaTupleClassSerializer;
+import org.apache.pig.pen.Illustrator;
+import org.apache.pig.pen.util.LineageTracer;
+
+import com.google.common.collect.Lists;
 
 /**
  *
@@ -513,7 +514,7 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     /**
      * This is so that it will be passed to the MR plan.
      */
-    private List<SchemaTupleClassSerializer> schemaTupleClassSerializers;
+    private List<SchemaTupleClassSerializer> schemaTupleClassSerializers = Lists.newArrayList();
 
     public void addSchemaTupleClassSerializer(SchemaTupleClassSerializer schemaTupleClassSerializer) {
         schemaTupleClassSerializers.add(schemaTupleClassSerializer);
