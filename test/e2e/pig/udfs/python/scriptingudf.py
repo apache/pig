@@ -87,3 +87,7 @@ def isretired(age):
         return True
     else:
         return False
+
+outputSchema("words:{(word:chararray)}")
+def tokenize(sentence):
+    return sentence.split(' ')
