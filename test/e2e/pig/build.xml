@@ -107,6 +107,12 @@
     </not>
   </condition>
 
+  <condition property="PH_BENCHMARK_CACHE_PATH" value="">
+    <not>  
+      <isset property="PH_BENCHMARK_CACHE_PATH"/>
+    </not>
+  </condition>
+
   <!-- Build the UDFs -->
   <target name="pig-jar-available">
     <available property="pig.jar.available" file="${pig.jar}"/>
