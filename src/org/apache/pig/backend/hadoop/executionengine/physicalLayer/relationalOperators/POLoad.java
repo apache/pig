@@ -98,17 +98,11 @@ public class POLoad extends PhysicalOperator {
      */
     public void setUp() throws IOException{
         Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties());
+
         //TODO is there a cleaner way than going for the static context to see if we're in local mode?
         if (ScriptState.get().getPigContext().getExecType() != ExecType.LOCAL) {
-            String stToDeserialize = conf.get("pig.schematuple.classes");
-            if (stToDeserialize != null) {
-                for (String className : stToDeserialize.split(",")) {
-                    if (schemaTupleHolder.isRegistered(className)) {
-                        continue;
-                    }
-                    schemaTupleHolder.registerFileFromDistributedCache(className, conf);
-                }
-            }
+            schemaTupleHolder.copyAllFromDistributedCache(conf);
+            schemaTupleHolder.resolveClasses();
         }
 
         loader = new ReadToEndLoader((LoadFunc)

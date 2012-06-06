@@ -61,6 +61,24 @@ public class SchemaTupleClassGenerator {
         }
     }
 
+    protected static Class<?> getGeneratedClass(String className) {
+        try {
+            return classLoader.loadClass(className);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException("Class not found in URLClassLoader: " + className, e);
+        }
+    }
+
+    public static final String GENERATED_CLASSES_KEY = "pig.schematuple.classes";
+
+    public static File[] getGeneratedFiles() {
+        return generatedCodeTempDir.listFiles();
+    }
+
+    protected static File tempFile(String name) {
+        return new File(generatedCodeTempDir, name + ".class");
+    }
+
     private static int globalClassIdentifier = 0;
 
     /**
@@ -70,21 +88,15 @@ public class SchemaTupleClassGenerator {
         private int id;
         private String name;
         private Class<SchemaTuple<?>> clazz;
-        private byte[] classBytes;
 
-        public SchemaTupleClassSerializer(int id, String name, Class<SchemaTuple<?>> clazz, byte[] classBytes) {
+        public SchemaTupleClassSerializer(int id, String name, Class<SchemaTuple<?>> clazz) {
             this.id = id;
             this.name = name;
             this.clazz = clazz;
-            this.classBytes = classBytes;
         }
 
         public String getName() {
             return name;
-        }
-
-        public byte[] getBytes() {
-            return classBytes;
         }
 
         public int getId() {

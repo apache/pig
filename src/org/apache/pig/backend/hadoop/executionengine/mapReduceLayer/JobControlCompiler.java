@@ -72,11 +72,9 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelp
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataType;
-import org.apache.pig.data.SchemaTupleFactory;
+import org.apache.pig.data.SchemaTupleClassGenerator;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.data.SchemaTupleClassGenerator.SchemaTupleClassSerializer;
-import org.apache.pig.data.SchemaTupleFactory.LoadedSchemaTupleClassesHolder;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
@@ -100,7 +98,7 @@ import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.tools.pigstats.ScriptState;
 
-import com.google.common.io.Files;
+import com.google.common.base.Joiner;
 
 /**
  * This is compiler class that takes an MROperPlan and converts
@@ -584,6 +582,8 @@ public class JobControlCompiler{
             // Search to see if we have any UDFs that need to pack things into the
             // distrubted cache.
             setupDistributedCacheForUdfs(mro, pigContext, conf);
+
+            copyAllGeneratedToDistributedCache(pigContext, conf, true); //TODO is this where this should be?
 
             POPackage pack = null;
             if(mro.reducePlan.isEmpty()){
@@ -1158,24 +1158,21 @@ public class JobControlCompiler{
         }
     }
 
-    private static void addBytesToDistributedCache(PigContext pigContext, Configuration conf, String fileName, byte[] bytes, boolean shipToCluster) throws IOException {
-        File tempDir = Files.createTempDir();
-        tempDir.deleteOnExit();
-        File temp = new File(tempDir, "/" + fileName);
-        temp.deleteOnExit();
-        OutputStream os = new FileOutputStream(temp);
-        os.write(bytes);
-        os.close();
+    private static void copyAllGeneratedToDistributedCache(PigContext pigContext, Configuration conf, boolean shipToCluster) throws IOException {
+        //TODO should I check if it is in local mode?
 
-        setupDistributedCache(pigContext, conf, new String[] { temp.getAbsolutePath() }, shipToCluster);
+        File[] files = SchemaTupleClassGenerator.getGeneratedFiles();
+        String[] paths = new String[files.length];
+        String[] classNames = new String[files.length];
 
-        String stClasses = conf.get("pig.schematuple.classes");
-        if (stClasses == null) {
-            stClasses = fileName;
-        } else {
-            stClasses += "," + fileName;
+        for (int i = 0; i < files.length; i++) {
+            paths[i] = files[i].getAbsolutePath();
+            classNames[i] = files[i].getName().split("\\.")[0];
         }
-        conf.set("pig.schematuple.classes", stClasses);
+
+        setupDistributedCache(pigContext, conf, paths, shipToCluster);
+
+        conf.set(SchemaTupleClassGenerator.GENERATED_CLASSES_KEY, Joiner.on(",").join(classNames));
     }
 
     private static void setupDistributedCache(PigContext pigContext,
@@ -1448,19 +1445,7 @@ public class JobControlCompiler{
 
             // XXX Hadoop currently doesn't support distributed cache in local mode.
             // This line will be removed after the support is added
-            if (pigContext.getExecType() == ExecType.LOCAL) {
-                for (SchemaTupleClassSerializer stcs : func.getSchemaTupleClassSerializer()) {
-                    LoadedSchemaTupleClassesHolder lstch = SchemaTupleFactory.getLoadedSchemaTupleClassesHolder();
-                    try {
-                        lstch.registerLocalMode(stcs);
-                    } catch (IOException e) {
-                        String msg = "Error adding class " + stcs.getName()
-                                   + " to LoadedSchemaTupleClassesHolder in LocalMode";
-                        throw new VisitorException(msg, e);
-                    }
-                }
-                return;
-            }
+            if (pigContext.getExecType() == ExecType.LOCAL) return;
 
             // set up distributed cache for files indicated by the UDF
             String[] files = func.getCacheFiles();
@@ -1472,17 +1457,6 @@ public class JobControlCompiler{
                 String msg = "Internal error. Distributed cache could not " +
                         "be set up for the requested files";
                 throw new VisitorException(msg, e);
-            }
-
-            //TODO if it is in local mode, add it to whatever the new cache of files is going to be
-            for (SchemaTupleClassSerializer stcs : func.getSchemaTupleClassSerializer()) {
-                try {
-                   addBytesToDistributedCache(pigContext, conf, stcs.getName(), stcs.getBytes(), true);
-                } catch (IOException e) {
-                    String msg = "Internal error. Distributed cache could not " +
-                            "be set up for the SchemaTuple class " + stcs.getName();
-                    throw new VisitorException(msg, e);
-                }
             }
         }
     }
