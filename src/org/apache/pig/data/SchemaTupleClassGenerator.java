@@ -2,7 +2,6 @@ package org.apache.pig.data;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -22,6 +21,7 @@ import javax.tools.DiagnosticCollector;
 import javax.tools.FileObject;
 import javax.tools.ForwardingJavaFileManager;
 import javax.tools.JavaCompiler;
+import javax.tools.JavaFileManager;
 import javax.tools.JavaFileObject;
 import javax.tools.SimpleJavaFileObject;
 import javax.tools.StandardJavaFileManager;
@@ -30,7 +30,6 @@ import javax.tools.JavaFileObject.Kind;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -81,9 +80,7 @@ public class SchemaTupleClassGenerator {
 
     private static int globalClassIdentifier = 0;
 
-    /**
-     * This is a class to encapsulate the logic to add something to the distributed cache.
-     */
+    /*
     public static class SchemaTupleClassSerializer {
         private int id;
         private String name;
@@ -112,6 +109,7 @@ public class SchemaTupleClassGenerator {
         put(true, new HashMap<SchemaKey, SchemaTupleClassSerializer>());
         put(false, new HashMap<SchemaKey, SchemaTupleClassSerializer>());
     }};
+    */
 
     /**
      * This encapsulates a Schema and allows it to be used in such a way that
@@ -156,66 +154,38 @@ public class SchemaTupleClassGenerator {
         }
     }
 
-    public static SchemaTupleClassSerializer generateClassSerializerForSchema(Schema s, boolean appendable) {
-        SchemaKey sk = new SchemaKey(s);
-        SchemaTupleClassSerializer stsc = schemaTupleSerializers.get(appendable).get(sk);
+    private static Map<Boolean,Map<SchemaKey, Integer>> cachedIds = new HashMap<Boolean,Map<SchemaKey, Integer>>() {{
+        put(Boolean.TRUE, new HashMap<SchemaKey, Integer>());
+        put(Boolean.FALSE, new HashMap<SchemaKey, Integer>());
+    }};
 
-        if (stsc != null) {
-            return stsc;
+    public static int generateSchemaTuple(Schema s, boolean appendable) {
+        SchemaKey sk = new SchemaKey(s);
+        Integer id = cachedIds.get(appendable).get(sk);
+
+        if (id != null) {
+            return id;
         }
 
-        int id = getGlobalClassIdentifier();
-        String codeString = generateCodeString(s, id, appendable);
+        id = getGlobalClassIdentifier();
+        String codeString = produceCodeString(s, id, appendable);
 
         String name = "SchemaTuple_" + id;
 
-        ClassFileManager current;
-        try {
-            current = compileCodeString(codeString, name);
-        } catch (ExecException e) {
-            throw new RuntimeException("Unable to compile codeString:\n" + codeString, e);
-        }
+        compileCodeString(codeString, name);
 
-        /*
-        try {
-            stsc = new SchemaTupleClassSerializer(id, name, (Class<SchemaTuple<?>>)current.getClassLoader(null).loadClass(name), current.getBytes());
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException("Unable to find class despite successful compilation: " + name, e);
-        }
-        */
-
-        //an experiment to validate the generated code
-        File f = new File(name + ".class");
-        FileOutputStream fos;
-        try {
-            fos = new FileOutputStream(f);
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
-        }
-        byte[] buf = current.getBytes();
-        try {
-            fos.write(buf, 0, buf.length);
-            fos.close();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
-        schemaTupleSerializers.get(appendable).put(sk, stsc);
-
-        return stsc;
+        cachedIds.get(appendable).put(sk, id);
+        return id;
     }
 
-    private static String generateCodeString(Schema s, int id, boolean appendable) {
+    private static String produceCodeString(Schema s, int id, boolean appendable) {
         TypeInFunctionStringOutFactory f = new TypeInFunctionStringOutFactory(s, id, appendable);
 
         for (Schema.FieldSchema fs : s.getFields()) {
             f.process(fs);
         }
 
-        //return f.end();
-        String tmp = f.end(); //remove
-        System.err.println(tmp); //remove
-        return tmp; //remove
+        return f.end();
     }
 
 
@@ -289,6 +259,7 @@ public class SchemaTupleClassGenerator {
         * Instance of JavaClassObject that will store the
         * compiled bytecode of our class
         */
+        //private JavaClassObject jclassObject;
         private JavaClassObject jclassObject;
 
         /**
@@ -334,23 +305,32 @@ public class SchemaTupleClassGenerator {
         }
     }
 
-    private static ClassFileManager compileCodeString(String generatedCodeString, String className) throws ExecException {
+    private static void compileCodeString(String generatedCodeString, String className) {
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-        ClassFileManager fileManager = new ClassFileManager(compiler.getStandardFileManager(null, null, null));
-        //StandardJavaFileManager fileManager = compiler.getStandardFileManager(null, null, null);
+        //ClassFileManager fileManager = new ClassFileManager(compiler.getStandardFileManager(null, null, null));
+        JavaFileManager fileManager = compiler.getStandardFileManager(null, null, null);
         Iterable<? extends JavaFileObject> compilationUnits = Lists.newArrayList(new JavaSourceFromString(className, generatedCodeString));
 
         DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<JavaFileObject>();
 
-        if (!compiler.getTask(null, fileManager, diagnostics, null, null, compilationUnits).call()) {
+        String tempDir = generatedCodeTempDir.getAbsolutePath();
+
+        List<String> optionList = Lists.newArrayList();
+        // Adds the current classpath to the compiler along with our generated code
+        optionList.add("-classpath");
+        optionList.add(System.getProperty("java.class.path") + ":" + tempDir);
+        optionList.add("-d");
+        optionList.add(tempDir);
+
+        if (!compiler.getTask(null, fileManager, diagnostics, optionList, null, compilationUnits).call()) {
             LOG.warn("Error compiling: " + className + ". Printing compilation errors and shutting down.");
             for (Diagnostic diagnostic : diagnostics.getDiagnostics()) {
                 LOG.warn("Error on line " + diagnostic.getLineNumber() + ": " + diagnostic.getMessage(Locale.US));
             }
-            throw new ExecException(className + " failed to compile properly");
+            throw new RuntimeException("Unable to compile code string:\n" + generatedCodeString);
         }
 
-        return fileManager;
+        LOG.info("Successfully compiled class: " + className);
     }
 
     //taken from http://docs.oracle.com/javase/6/docs/api/javax/tools/JavaCompiler.html
@@ -504,7 +484,7 @@ public class SchemaTupleClassGenerator {
                     add("private "+typeName()+" pos_"+fieldPos+";");
                 }
             } else {
-                int id = SchemaTupleClassGenerator.generateClassSerializerForSchema(fs.schema, isAppendable()).getId();
+                int id = SchemaTupleClassGenerator.generateSchemaTuple(fs.schema, isAppendable());
 
                 for (Queue<Integer> q : listOfQueuesForIds) {
                     q.add(id);
@@ -1282,12 +1262,15 @@ public class SchemaTupleClassGenerator {
                 head.append(t.getContent());
             }
 
-            SchemaTupleClassGenerator.makeMaker(id);
-
             head.append("\n")
                 .append("    @Override\n")
                 .append("    public SchemaTupleQuickGenerator<SchemaTuple_" + id + "> getQuickGenerator() {\n")
-                .append("        return new Maker_" + id + "();\n")
+                .append("        return new SchemaTupleQuickGenerator<SchemaTuple_" + id + ">() {\n")
+                .append("            @Override\n")
+                .append("            public SchemaTuple_" + id + " make() {\n")
+                .append("                return new SchemaTuple_" + id + "();\n")
+                .append("            }\n")
+                .append("        };\n")
                 .append("    }\n");
 
             return head.append("}").toString();
@@ -1417,25 +1400,4 @@ public class SchemaTupleClassGenerator {
             return type == DataType.BYTEARRAY ? "Bytes" : s.substring(0,1).toUpperCase() + s.substring(1);
         }
    }
-
-    public static void makeMaker(int id) {
-        String name = "Maker_" + id;
-        String stName = "SchemaTuple_" + id;
-
-        StringBuilder codeString = new StringBuilder();
-        codeString.append("import org.apache.pig.SchemaTuple.SchemaTupleQuickGenerator\n")
-                  .append("public class " + name + " extends SchemaTupleQuickGenerator<" + stName + "> {\n")
-                  .append("    @Override\n")
-                  .append("    public " + stName + " make() {\n")
-                  .append("        return new " + stName + "();\n")
-                  .append("    }\n")
-                  .append("}");
-
-        try {
-            compileCodeString(codeString.toString(), name);
-        } catch (ExecException e) {
-            throw new RuntimeException("Error compiling " + name, e);
-        }
-
-    }
 }

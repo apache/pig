@@ -29,7 +29,6 @@ import org.apache.pig.builtin.Nondeterministic;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.SchemaTupleClassGenerator;
 import org.apache.pig.data.SchemaTupleFactory;
-import org.apache.pig.data.SchemaTupleClassGenerator.SchemaTupleClassSerializer;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -170,20 +169,8 @@ public class UserFuncExpression extends LogicalExpression {
         ef = (EvalFunc<?>) PigContext.instantiateFuncFromSpec(mFuncSpec);
     }
 
-    /**
-     * The purpose of these values is so that when the logical to physical transition
-     * happens,
-     */
-    private SchemaTupleClassSerializer inputSchemaTupleClassSerializer;
-    private SchemaTupleClassSerializer outputSchemaTupleClassSerializer;
-
-    public SchemaTupleClassSerializer getInputSchemaTupleClassSerializer() {
-        return inputSchemaTupleClassSerializer;
-    }
-
-    public SchemaTupleClassSerializer getOutputSchemaTupleClassSerializer() {
-        return outputSchemaTupleClassSerializer;
-    }
+    private int inputSchemaTupleId = -1; //TODO theoretically, these values could be threaded along
+    private int outputSchemaTupleId = -1; //TODO to the POUserFunc directly
 
     @Override
     public LogicalSchema.LogicalFieldSchema getFieldSchema() throws FrontendException {
@@ -221,11 +208,11 @@ public class UserFuncExpression extends LogicalExpression {
         //TODO appendability should come from a setting
 
         if (SchemaTupleFactory.isGeneratable(inputSchemaToGen)) {
-            inputSchemaTupleClassSerializer = SchemaTupleClassGenerator.generateClassSerializerForSchema(inputSchemaToGen, false);
+            inputSchemaTupleId = SchemaTupleClassGenerator.generateSchemaTuple(inputSchemaToGen, false);
         }
 
         if (SchemaTupleFactory.isGeneratable(udfSchema)) {
-            outputSchemaTupleClassSerializer = SchemaTupleClassGenerator.generateClassSerializerForSchema(udfSchema, false);
+            outputSchemaTupleId = SchemaTupleClassGenerator.generateSchemaTuple(udfSchema, false);
         }
 
         if (udfSchema != null) {

@@ -33,7 +33,6 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.SchemaTupleClassGenerator.SchemaTupleClassSerializer;
 import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
@@ -41,8 +40,6 @@ import org.apache.pig.parser.SourceLocation;
 import org.apache.pig.pen.Illustrable;
 import org.apache.pig.pen.Illustrator;
 import org.apache.pig.pen.util.LineageTracer;
-
-import com.google.common.collect.Lists;
 
 /**
  *
@@ -509,18 +506,5 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
         public String toString() {
             return alias+"["+line+","+offset+"]";
         }
-    }
-
-    /**
-     * This is so that it will be passed to the MR plan.
-     */
-    private List<SchemaTupleClassSerializer> schemaTupleClassSerializers = Lists.newArrayList();
-
-    public void addSchemaTupleClassSerializer(SchemaTupleClassSerializer schemaTupleClassSerializer) {
-        schemaTupleClassSerializers.add(schemaTupleClassSerializer);
-    }
-
-    public List<SchemaTupleClassSerializer> getSchemaTupleClassSerializer() {
-        return schemaTupleClassSerializers;
     }
 }

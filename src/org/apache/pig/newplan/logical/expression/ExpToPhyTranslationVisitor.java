@@ -60,7 +60,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.Subtract;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.data.DataType;
-import org.apache.pig.data.SchemaTupleClassGenerator.SchemaTupleClassSerializer;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.plan.NodeIdGenerator;
@@ -536,15 +535,6 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
         if( op instanceof ScalarExpression ) {
             Operator refOp = ((ScalarExpression)op).getImplicitReferencedOperator();
             ((POUserFunc)p).setReferencedOperator( logToPhyMap.get( refOp ) );
-        }
-
-        SchemaTupleClassSerializer st = op.getInputSchemaTupleClassSerializer();
-        if (st != null) {
-            p.addSchemaTupleClassSerializer(st);
-        }
-        st = op.getOutputSchemaTupleClassSerializer();
-        if (st != null) {
-            p.addSchemaTupleClassSerializer(st);
         }
 
     }

@@ -99,11 +99,11 @@ public class POLoad extends PhysicalOperator {
     public void setUp() throws IOException{
         Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties());
 
-        //TODO is there a cleaner way than going for the static context to see if we're in local mode?
         if (ScriptState.get().getPigContext().getExecType() != ExecType.LOCAL) {
             schemaTupleHolder.copyAllFromDistributedCache(conf);
-            schemaTupleHolder.resolveClasses();
         }
+
+        schemaTupleHolder.resolveClasses(); //TODO is this necessary in local mode?
 
         loader = new ReadToEndLoader((LoadFunc)
                 PigContext.instantiateFuncFromSpec(lFile.getFuncSpec()),
