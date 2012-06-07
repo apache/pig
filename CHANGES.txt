@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2658: Add pig.script.submitted.timestamp and pig.job.submitted.timestamp in generated Map-Reduce job conf (billgraham)
+
 PIG-2735: Add a pig.version.suffix property in build.xml to easily override with a build number (julien)
 
 PIG-2705: outputSchema modification from scripting UDFs (levyjoshua via julien)
@@ -382,6 +384,8 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
+
+PIG-2739: PyList should map to Bag automatically in Jython (daijy)
 
 PIG-2730: TFileStorage getStatistics incorrectly throws an exception instead of returning null (traviscrawford via daijy)
 
