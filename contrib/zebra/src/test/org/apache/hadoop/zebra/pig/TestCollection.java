@@ -203,7 +203,6 @@ public class TestCollection extends BaseTestCase
     // Assert.assertEquals(key, new BytesWritable("k11".getBytes()));
     scanner.getValue(RowValue);
     // RowValue is an emplty record
-    Assert.assertEquals(false, RowValue.isNull());
     Assert.assertEquals(null, RowValue.get(0));
     Assert.assertEquals(1, RowValue.size());
     reader.close();

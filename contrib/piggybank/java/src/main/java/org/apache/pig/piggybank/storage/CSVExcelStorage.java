@@ -339,10 +339,6 @@ public class CSVExcelStorage extends PigStorage implements StoreFuncInterface, L
     @Override
     public void putNext(Tuple tupleToWrite) throws IOException {
     	
-    	if (tupleToWrite.isNull()) {
-    		logger.warn("putNext() called with null for a tuple.");
-    		return;
-    	}
     	ArrayList<Object> mProtoTuple = new ArrayList<Object>();
     	int embeddedNewlineIndex = -1;
     	String fieldStr = null;
