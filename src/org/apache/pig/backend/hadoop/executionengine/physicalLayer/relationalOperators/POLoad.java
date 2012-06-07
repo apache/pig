@@ -22,7 +22,6 @@ import java.io.IOException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.pig.ExecType;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -40,7 +39,6 @@ import org.apache.pig.impl.io.ReadToEndLoader;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.pen.util.ExampleTuple;
-import org.apache.pig.tools.pigstats.ScriptState;
 
 /**
  * The load operator which is used in two ways:
@@ -99,12 +97,6 @@ public class POLoad extends PhysicalOperator {
     public void setUp() throws IOException{
         Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties());
 
-        if (ScriptState.get().getPigContext().getExecType() != ExecType.LOCAL) {
-            schemaTupleHolder.copyAllFromDistributedCache(conf);
-        }
-
-        schemaTupleHolder.resolveClasses(); //TODO is this necessary in local mode?
-
         loader = new ReadToEndLoader((LoadFunc)
                 PigContext.instantiateFuncFromSpec(lFile.getFuncSpec()),
                 conf,
@@ -133,6 +125,7 @@ public class POLoad extends PhysicalOperator {
     public Result getNext(Tuple t) throws ExecException {
         if(!setUpDone && lFile!=null){
             try {
+                System.out.println("WE ARE SETTUPING UP"); //remove
                 setUp();
             } catch (IOException ioe) {
                 int errCode = 2081;

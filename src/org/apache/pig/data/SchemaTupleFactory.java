@@ -1,9 +1,15 @@
 package org.apache.pig.data;
 
+import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -19,6 +25,8 @@ import com.google.common.collect.Maps;
 //TODO Use code generation to avoid having to do clazz.newInstance(), and to be able to directly return the proper SchemaTuple
 //TODO can just have a small container class that the generated code extends that has any functionality specific to that
 public class SchemaTupleFactory extends TupleFactory {
+    private static final Log LOG = LogFactory.getLog(SchemaTupleFactory.class);
+
     private SchemaTupleQuickGenerator<? extends SchemaTuple<?>> generator;
     private Class<SchemaTuple<?>> clazz;
 
@@ -137,7 +145,15 @@ public class SchemaTupleFactory extends TupleFactory {
         private Map<SchemaKey, Integer> lookup = Maps.newHashMap();
         private List<String> filesToResolve = Lists.newArrayList();
 
+        private URLClassLoader classLoader;
+
         private LoadedSchemaTupleClassesHolder() {
+            File fil = SchemaTupleClassGenerator.getGenerateCodeTempDir();
+            try {
+                classLoader = new URLClassLoader(new URL[] { fil.toURI().toURL() });
+            } catch (MalformedURLException e) {
+                throw new RuntimeException("Unable to make URLClassLoader for tempDir: " + fil.getAbsolutePath());
+            }
         }
 
         public SchemaTupleFactory newSchemaTupleFactory(Schema s) throws ExecException {
@@ -165,14 +181,28 @@ public class SchemaTupleFactory extends TupleFactory {
                 return;
             }
             FileSystem fs = FileSystem.get(conf);
-            for (String s : toDeserialize.split("\\.")) {
+            for (String s : toDeserialize.split(",")) {
                 copyFromDistributedCache(s, conf, fs);
             }
         }
 
+        public void copyAndResolve(Configuration conf, boolean isLocal) throws IOException {
+            if (!isLocal) {
+                copyAllFromDistributedCache(conf);
+            }
+            //NEED TO ADD ALL FILES IN TEMPDIR TO "filesToResolve"
+            for (File f : SchemaTupleClassGenerator.getGeneratedFiles()) {
+                String name = f.getName().split("\\.")[0];
+                if (!name.contains("$")) {
+                    filesToResolve.add(name);
+                    LOG.info("Added class to list of class to resolve: " + name);
+                }
+            }
+            resolveClasses();
+        }
+
         public void copyFromDistributedCache(String className, Configuration conf, FileSystem fs) throws IOException {
             Path src = new Path(className + ".class");
-            filesToResolve.add(className);
             Path dst = new Path(SchemaTupleClassGenerator.tempFile(className).getAbsolutePath());
             fs.copyToLocalFile(src, dst);
         }
@@ -183,7 +213,13 @@ public class SchemaTupleFactory extends TupleFactory {
          */
         public void resolveClasses() {
             for (String s : filesToResolve) {
-                Class<?> clazz = SchemaTupleClassGenerator.getGeneratedClass(s);
+                LOG.info("Attempting to resolve class: " + s);
+                Class<?> clazz;
+                try {
+                    clazz = classLoader.loadClass(s);
+                } catch (ClassNotFoundException e1) {
+                    throw new RuntimeException("Unable to find class: " + s);
+                }
                 Object o;
                 try {
                     o = clazz.newInstance();
@@ -202,6 +238,7 @@ public class SchemaTupleFactory extends TupleFactory {
                 classes.put(id, (Class<SchemaTuple<?>>)clazz);
                 generators.put(id, (SchemaTupleQuickGenerator<SchemaTuple<?>>)st.getQuickGenerator());
                 lookup.put(new SchemaKey(schema), id);
+                LOG.info("Successfully resolved class.");
             }
         }
 

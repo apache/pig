@@ -5,10 +5,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.net.MalformedURLException;
 import java.net.URI;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.security.SecureClassLoader;
 import java.util.HashMap;
 import java.util.List;
@@ -51,21 +48,9 @@ public class SchemaTupleClassGenerator {
     private static final Log LOG = LogFactory.getLog(SchemaTupleClassGenerator.class);
 
     private static File generatedCodeTempDir = Files.createTempDir(); //this is the temp dir into which all class files will be written
-    private static URLClassLoader classLoader;
-    static {
-        try {
-            classLoader = new URLClassLoader(new URL[] { generatedCodeTempDir.toURI().toURL() });
-        } catch (MalformedURLException e) {
-            throw new RuntimeException("Unable to make URLClassLoader for tempDir: " + generatedCodeTempDir.getAbsolutePath());
-        }
-    }
 
-    protected static Class<?> getGeneratedClass(String className) {
-        try {
-            return classLoader.loadClass(className);
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException("Class not found in URLClassLoader: " + className, e);
-        }
+    protected static File getGenerateCodeTempDir() {
+        return generatedCodeTempDir;
     }
 
     public static final String GENERATED_CLASSES_KEY = "pig.schematuple.classes";
@@ -172,6 +157,7 @@ public class SchemaTupleClassGenerator {
 
         String name = "SchemaTuple_" + id;
 
+        LOG.info("Compiling class " + name + " for Schema: " + s);
         compileCodeString(codeString, name);
 
         cachedIds.get(appendable).put(sk, id);

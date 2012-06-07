@@ -27,27 +27,27 @@ import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStatsUtil;
 
 public class NativeMapReduceOper extends MapReduceOper {
-    
+
     private static final long serialVersionUID = 1L;
     private static int countJobs = 0;
     private String nativeMRJar;
     private String[] params;
-    
+
     public NativeMapReduceOper(OperatorKey k, String mrJar, String[] parameters) {
         super(k);
         nativeMRJar = mrJar;
         params = parameters;
     }
-    
+
     public static int getJobNumber() {
         countJobs++;
         return countJobs;
     }
-    
+
     public String getJobId() {
         return nativeMRJar + "_";
     }
-    
+
     public String getCommandString() {
         StringBuilder sb = new StringBuilder("hadoop jar ");
         sb.append(nativeMRJar);
@@ -55,9 +55,9 @@ public class NativeMapReduceOper extends MapReduceOper {
             sb.append(" ");
             sb.append(pr);
         }
-        return sb.toString(); 
+        return sb.toString();
     }
-    
+
     private String[] getNativeMRParams() {
         // may need more cooking
         String[] paramArr = new String[params.length + 1];
@@ -67,12 +67,12 @@ public class NativeMapReduceOper extends MapReduceOper {
         }
         return paramArr;
     }
-    
+
     @Override
     public void visit(MROpPlanVisitor v) throws VisitorException {
         v.visitMROp(this);
     }
-    
+
     public void runJob() throws JobCreationException {
         RunJarSecurityManager secMan = new RunJarSecurityManager();
         try {
@@ -96,13 +96,13 @@ public class NativeMapReduceOper extends MapReduceOper {
             secMan.retire();
         }
     }
-    
+
     @Override
     public String name(){
-        return "MapReduce - " + mKey.toString() + "\n" 
+        return "MapReduce - " + mKey.toString() + "\n"
         + " Native MapReduce - jar : " + nativeMRJar + ", params: " + Arrays.toString(params) ;
-        
-        		
+
+
     }
-    
+
 }
