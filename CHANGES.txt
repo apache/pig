@@ -166,6 +166,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2593: Filter by a boolean value does not work (jay23jack via daijy)
+
 PIG-2665: Bundled Jython jar in Pig 0.10.0-RC breaks module import in Python scripts with embedded Pig Latin (daijy)
 
 PIG-2736: Support implicit cast from bytearray to boolean (jay23jack via daijy)
