@@ -166,6 +166,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2736: Support implicit cast from bytearray to boolean (jay23jack via daijy)
+
 PIG-2508: PIG can unpredictably ignore deprecated Hadoop config options (thw via dvryaboy)
 
 PIG-2691: Duplicate TOKENIZE schema (jay23jack via azaroth)
