@@ -7,6 +7,8 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -19,8 +21,8 @@ import org.apache.pig.data.SchemaTupleClassGenerator.SchemaKey;
 import org.apache.pig.data.utils.MethodHelper.NotImplemented;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 //TODO Use code generation to avoid having to do clazz.newInstance(), and to be able to directly return the proper SchemaTuple
 //TODO can just have a small container class that the generated code extends that has any functionality specific to that
@@ -38,9 +40,26 @@ public class SchemaTupleFactory extends TupleFactory {
         this.generator = generator;
     }
 
-    public static boolean isGeneratable(Schema s) {
-        if (s == null)
+    public static boolean isGeneratable(Schema s, Configuration conf) {
+        return isGeneratable(s, conf.get("pig.schematuple"));
+    }
+
+    public static boolean isGeneratable(Schema s, Properties prop) {
+        return isGeneratable(s, (String)prop.get("pig.schematuple"));
+    }
+
+    public static boolean isGeneratable(Schema s, String shouldGenerate) {
+        LOG.info("RECEIVED: pig.schematuple: " + shouldGenerate);
+        if (shouldGenerate == null || !Boolean.parseBoolean(shouldGenerate)) {
             return false;
+        }
+        return isGeneratable(s);
+    }
+
+    protected static boolean isGeneratable(Schema s) {
+        if (s == null) {
+            return false;
+        }
 
         for (Schema.FieldSchema fs : s.getFields()) {
             if (fs.type == DataType.BAG || fs.type == DataType.MAP)
@@ -143,7 +162,7 @@ public class SchemaTupleFactory extends TupleFactory {
         private Map<Integer, Class<SchemaTuple<?>>> classes = Maps.newHashMap();
 
         private Map<SchemaKey, Integer> lookup = Maps.newHashMap();
-        private List<String> filesToResolve = Lists.newArrayList();
+        private Set<String> filesToResolve = Sets.newHashSet();
 
         private URLClassLoader classLoader;
 

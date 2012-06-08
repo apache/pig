@@ -583,7 +583,8 @@ public class JobControlCompiler{
             // distrubted cache.
             setupDistributedCacheForUdfs(mro, pigContext, conf);
 
-            copyAllGeneratedToDistributedCache(pigContext, conf, true); //TODO is this where this should be?
+            //TODO is this where this should be?
+            copyAllGeneratedToDistributedCache(pigContext, conf, true);
 
             POPackage pack = null;
             if(mro.reducePlan.isEmpty()){
@@ -1159,6 +1160,8 @@ public class JobControlCompiler{
     }
 
     private static void copyAllGeneratedToDistributedCache(PigContext pigContext, Configuration conf, boolean shipToCluster) throws IOException {
+        log.info("Copying generated files to distributed cache");
+
         //TODO should I check if it is in local mode?
 
         File[] files = SchemaTupleClassGenerator.getGeneratedFiles();
@@ -1166,8 +1169,8 @@ public class JobControlCompiler{
         String[] classNames = new String[files.length];
 
         for (int i = 0; i < files.length; i++) {
-            paths[i] = files[i].getAbsolutePath();
             classNames[i] = files[i].getName().split("\\.")[0];
+            paths[i] = files[i].getAbsolutePath();
         }
 
         setupDistributedCache(pigContext, conf, paths, shipToCluster);

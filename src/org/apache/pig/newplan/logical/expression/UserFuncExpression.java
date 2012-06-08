@@ -207,11 +207,11 @@ public class UserFuncExpression extends LogicalExpression {
 
         //TODO appendability should come from a setting
 
-        if (SchemaTupleFactory.isGeneratable(inputSchemaToGen)) {
+        if (SchemaTupleFactory.isGeneratable(inputSchemaToGen, props)) {
             inputSchemaTupleId = SchemaTupleClassGenerator.generateSchemaTuple(inputSchemaToGen, false);
         }
 
-        if (SchemaTupleFactory.isGeneratable(udfSchema)) {
+        if (SchemaTupleFactory.isGeneratable(udfSchema, props)) {
             outputSchemaTupleId = SchemaTupleClassGenerator.generateSchemaTuple(udfSchema, false);
         }
 

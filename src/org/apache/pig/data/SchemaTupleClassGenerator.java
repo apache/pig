@@ -48,6 +48,9 @@ public class SchemaTupleClassGenerator {
     private static final Log LOG = LogFactory.getLog(SchemaTupleClassGenerator.class);
 
     private static File generatedCodeTempDir = Files.createTempDir(); //this is the temp dir into which all class files will be written
+    static {
+        generatedCodeTempDir.deleteOnExit();
+    }
 
     protected static File getGenerateCodeTempDir() {
         return generatedCodeTempDir;
@@ -301,10 +304,13 @@ public class SchemaTupleClassGenerator {
 
         String tempDir = generatedCodeTempDir.getAbsolutePath();
 
+        String classPath = System.getProperty("java.class.path") + ":" + tempDir;
+        LOG.debug("Compiling with classpath: " + classPath);
+
         List<String> optionList = Lists.newArrayList();
         // Adds the current classpath to the compiler along with our generated code
         optionList.add("-classpath");
-        optionList.add(System.getProperty("java.class.path") + ":" + tempDir);
+        optionList.add(classPath);
         optionList.add("-d");
         optionList.add(tempDir);
 

@@ -130,7 +130,7 @@ public class POUserFunc extends ExpressionOperator {
         this.func.setPigLogger(pigLogger);
 
         if (tmpS != null) {
-            if (SchemaTupleFactory.isGeneratable(tmpS)) {
+            if (SchemaTupleFactory.isGeneratable(tmpS, props)) {
                 inputSchemaTupleFactory = TupleFactory.getInstanceForSchema(tmpS);
             }
 /*
