@@ -353,6 +353,9 @@ public class JythonScriptEngine extends ScriptEngine {
     @Override
     protected Map<String, List<PigStats>> main(PigContext pigContext, String scriptFile)
             throws IOException {
+        if (System.getProperty(PySystemState.PYTHON_CACHEDIR_SKIP)==null)
+            System.setProperty(PySystemState.PYTHON_CACHEDIR_SKIP, "false");
+        
         PigServer pigServer = new PigServer(pigContext, false);
 
         // register dependencies
