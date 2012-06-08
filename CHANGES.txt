@@ -385,6 +385,9 @@ PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
 
+PIG-2741: Python script throws an NameError: name 'Configuration' is not defined in case cache dir is not created
+(knoguchi via daijy)
+
 PIG-2669: Pig release should include pig-default.properties after rebuild (daijy)
 
 PIG-2739: PyList should map to Bag automatically in Jython (daijy)
