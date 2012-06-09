@@ -150,13 +150,13 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
     }
 
     protected static int read(DataInput in, int v) throws IOException {
-        //return SedesHelper.Varint.readSignedVarInt(in);
-        return in.readInt();
+        return SedesHelper.Varint.readSignedVarInt(in);
+        //return in.readInt();
     }
 
     protected static long read(DataInput in, long v) throws IOException {
-        //return SedesHelper.Varint.readSignedVarLong(in);
-        return in.readLong();
+        return SedesHelper.Varint.readSignedVarLong(in);
+        //return in.readLong();
     }
 
     protected static float read(DataInput in, float v) throws IOException {
