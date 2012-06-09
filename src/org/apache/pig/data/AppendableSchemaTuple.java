@@ -1,50 +1,21 @@
 package org.apache.pig.data;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.DataInput;
 import java.io.DataOutput;
-import java.net.URI;
-import java.net.MalformedURLException;
-import java.util.Map;
+import java.io.IOException;
 import java.util.List;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.Queue;
-import java.util.Set;
-
-import com.google.common.collect.Maps;
-import com.google.common.collect.Lists;
-import com.google.common.base.Joiner;
-import com.google.common.collect.Sets;
-
-import org.apache.pig.data.Tuple;
-import org.apache.pig.data.DataType;
-import org.apache.pig.data.utils.SedesHelper;
-import org.apache.pig.data.utils.HierarchyHelper.MustOverride;
-import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.util.Utils;
-import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.PigContext;
-import org.apache.pig.tools.pigstats.ScriptState;
-import org.apache.pig.classification.InterfaceAudience;
-import org.apache.pig.classification.InterfaceStability;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
-import javax.tools.JavaCompiler;
-import javax.tools.ToolProvider;
-import javax.tools.JavaFileObject;
-import javax.tools.SimpleJavaFileObject;
-import javax.tools.StandardJavaFileManager;
-import javax.tools.StandardLocation;
+import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
+import org.apache.pig.data.utils.SedesHelper;
+import org.apache.pig.data.utils.HierarchyHelper.MustOverride;
 
 //TODO need to ensure that serialization and deeserialization is transparent
 @InterfaceAudience.Public
 @InterfaceStability.Unstable
-public abstract class AppendableSchemaTuple<T extends AppendableSchemaTuple> extends SchemaTuple<T> {
+public abstract class AppendableSchemaTuple<T extends AppendableSchemaTuple<T>> extends SchemaTuple<T> {
     private Tuple append;
 
     private static final Log LOG = LogFactory.getLog(AppendableSchemaTuple.class);

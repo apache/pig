@@ -28,7 +28,7 @@ import com.google.common.collect.Lists;
 //the benefit of having the generic here is that in the case that we do ".set(t)" and t is the right type, it will be very fast
 @InterfaceAudience.Public
 @InterfaceStability.Unstable
-public abstract class SchemaTuple<T extends SchemaTuple> extends AbstractTuple implements TypeAwareTuple {
+public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTuple implements TypeAwareTuple {
     private static final Log LOG = LogFactory.getLog(SchemaTuple.class);
     private static final TupleFactory mTupleFactory = TupleFactory.getInstance();
     private static final BinInterSedes pigSerializer = new BinInterSedes();
