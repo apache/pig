@@ -586,6 +586,8 @@ public class JobControlCompiler{
                 if (SchemaTupleClassGenerator.generateAllSchemaTuples()) {
                     SchemaTupleClassGenerator.copyAllGeneratedToDistributedCache(pigContext, conf);
                 }
+            } else {
+                log.info("Key [" +SchemaTupleClassGenerator.SHOULD_GENERATE_KEY+ "] not set, skipping code generation (value was ["+shouldGen+"]).");
             }
 
             POPackage pack = null;

@@ -403,6 +403,7 @@ public class TestPigServer {
    */
     @Test
     public void testToRemove() throws Throwable {
+        cluster.setProperty("pig.schematuple","true");
         FileSystem fs = cluster.getFileSystem();
         Util.createInputFile(cluster, "daytuh", new String[]{"1", "2", "3", "4", "5"});
         pig.registerQuery("a = load 'daytuh' as (x:int);");

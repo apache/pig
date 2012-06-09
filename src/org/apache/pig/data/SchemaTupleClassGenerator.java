@@ -125,6 +125,9 @@ public class SchemaTupleClassGenerator {
 
         @Override
         public int hashCode() {
+            if (s == null) {
+                return 0;
+            }
             int idx = 0 ;
             int hashCode = 0 ;
             for(FieldSchema fs : s.getFields()) {
@@ -143,7 +146,8 @@ public class SchemaTupleClassGenerator {
             if (!(o instanceof SchemaKey)) {
                 return false;
             }
-            return Schema.equals(s, ((SchemaKey)o).get(), false, true);
+            Schema other = ((SchemaKey)o).get();
+            return (s == null && other == null) || Schema.equals(s, other, false, true);
         }
 
         public Schema get() {
@@ -1398,6 +1402,7 @@ public class SchemaTupleClassGenerator {
 
     public static boolean generateAllSchemaTuples() {
         boolean filesToShip = false;
+        LOG.info("Generating all registered Schemas.");
         for (Map.Entry<SchemaKey, Pair<Integer,Boolean>> entry : schemasToGenerate.entrySet()) {
             Schema s = entry.getKey().get();
             Pair<Integer,Boolean> value = entry.getValue();
@@ -1430,7 +1435,7 @@ public class SchemaTupleClassGenerator {
         }
         int id = getGlobalClassIdentifier();
         schemasToGenerate.put(sk, Pair.make(Integer.valueOf(id), isAppendable));
-        LOG.info("Registering "+(isAppendable ? "Appendable" : "")+" Schema for possible generation: " + udfSchema);
+        LOG.info("Registering "+(isAppendable ? "Appendable" : "")+"Schema for generation [" + udfSchema + "] with id [" + id + "]");
         return id;
      }
 
@@ -1457,18 +1462,21 @@ public class SchemaTupleClassGenerator {
 
         @Override
         public int hashCode() {
-            return t1.hashCode() + 31 * t2.hashCode();
+            return (t1 == null ? 0 : t1.hashCode()) + (t2 == null ? 0 : 31 * t2.hashCode());
         }
 
+        @Override
         public boolean equals(Object o) {
             if (!(o instanceof Pair<?,?>)) {
                 return false;
             }
             Pair<?,?> pr = (Pair<?,?>)o;
-            if (t1.equals(pr.getFirst()) && t2.equals(pr.getSecond())) {
-                return true;
-            }
-            return false;
+            return (t1 == null ? pr.getFirst() == null : t1.equals(pr.getFirst())) && (t2 == null ? pr.getSecond() == null : t2.equals(pr.getSecond()));
+        }
+
+        @Override
+        public String toString() {
+            return new StringBuilder().append("[").append(t1).append(",").append(t2).append("]").toString();
         }
     }
 
@@ -1478,8 +1486,15 @@ public class SchemaTupleClassGenerator {
             LOG.info("Distributed cache not supported or needed in local mode.");
             return;
         }
+        StringBuilder serialized = new StringBuilder();
         DistributedCache.createSymlink(conf);
-        for (File f : getGeneratedFiles()) {
+        File[] gennedFiles = getGeneratedFiles();
+        for (int i = 0; i < gennedFiles.length; i++) {
+            File f = gennedFiles[i];
+            serialized.append(f.getName());
+            if (i < gennedFiles.length - 1) {
+                serialized.append(",");
+            }
             String symlink = f.getName();
             Path src = new Path(f.toURI());
             Path dst;
@@ -1509,5 +1524,8 @@ public class SchemaTupleClassGenerator {
             }
             LOG.info("File successfully added to the distributed cache: " + symlink);
         }
+        String toSer = serialized.toString();
+        LOG.info("Setting key [" + GENERATED_CLASSES_KEY + "] with classes to deserialize [" + toSer + "]");
+        conf.set(GENERATED_CLASSES_KEY, toSer);
     }
 }

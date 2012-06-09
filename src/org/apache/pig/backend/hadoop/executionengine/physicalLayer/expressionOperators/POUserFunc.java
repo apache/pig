@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.Accumulator;
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
@@ -52,6 +54,7 @@ import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.UDFContext;
 
 public class POUserFunc extends ExpressionOperator {
+    private static final Log LOG = LogFactory.getLog(POUserFunc.class);
 
     /**
      *
@@ -137,6 +140,9 @@ public class POUserFunc extends ExpressionOperator {
             //Currently, getInstanceForSchema returns null if no class was found. This works fine...
             //if it is null, the default will be used
             inputSchemaTupleFactory = TupleFactory.getInstanceForSchema(tmpS, false);
+            if (inputSchemaTupleFactory == null) {
+                LOG.debug("No SchemaTupleFactory found for Schema ["+tmpS+"], using default TupleFactory");
+            }
 
 /*
             if (outputS != null && SchemaTupleFactory.isGeneratable(outputS))

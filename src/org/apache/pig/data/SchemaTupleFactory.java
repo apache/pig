@@ -137,7 +137,7 @@ public class SchemaTupleFactory extends TupleFactory {
         private SchemaTupleFactory newSchemaTupleFactory(Pair<SchemaKey, Boolean> pr) {
             SchemaTupleFactory stf = schemaTupleFactories.get(pr);
             if (stf == null) {
-                LOG.debug("No SchemaTUpleFactory present for given SchemaKey/Boolean combination: " + pr);
+                LOG.debug("No SchemaTupleFactory present for given SchemaKey/Boolean combination: " + pr);
             }
             return stf;
         }
@@ -145,8 +145,10 @@ public class SchemaTupleFactory extends TupleFactory {
         public void copyAllFromDistributedCache(Configuration conf) throws IOException {
             String toDeserialize = conf.get(SchemaTupleClassGenerator.GENERATED_CLASSES_KEY);
             if (toDeserialize == null) {
+                LOG.info("No classes in in key [" + SchemaTupleClassGenerator.GENERATED_CLASSES_KEY + "] to copy from distributed cache.");
                 return;
             }
+            LOG.info("Copying files in key ["+SchemaTupleClassGenerator.GENERATED_CLASSES_KEY+"] from distributed cache: " + toDeserialize);
             FileSystem fs = FileSystem.get(conf);
             for (String s : toDeserialize.split(",")) {
                 copyFromDistributedCache(s, conf, fs);
@@ -173,7 +175,8 @@ public class SchemaTupleFactory extends TupleFactory {
         }
 
         public void copyFromDistributedCache(String className, Configuration conf, FileSystem fs) throws IOException {
-            Path src = new Path(className + ".class");
+            LOG.info("Attempting to copy " + className + " from distributed cache");
+            Path src = new Path(className);
             Path dst = new Path(SchemaTupleClassGenerator.tempFile(className).getAbsolutePath());
             fs.copyToLocalFile(src, dst);
         }
