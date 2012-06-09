@@ -267,6 +267,7 @@ cond
     | ^( NULL expr { sb.append(" IS "); } (NOT { sb.append($NOT.text).append(" "); } )?  { sb.append($NULL.text); } )
     | ^( rel_op expr { sb.append(" ").append($rel_op.result).append(" "); } expr )
     | func_eval
+    | ^( BOOL_COND expr )
 ;
 
 func_eval

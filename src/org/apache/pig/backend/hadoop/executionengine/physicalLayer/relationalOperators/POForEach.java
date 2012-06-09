@@ -398,10 +398,11 @@ public class POForEach extends PhysicalOperator {
 
         // if accumulating, we haven't got data yet for some fields, just return
         if (isAccumulative() && isAccumStarted()) {
-            if (earlyTermination.cardinality() < noItems)
+            if (earlyTermination.cardinality() < noItems) {
             res.returnStatus = POStatus.STATUS_BATCH_OK;
-            else
+            } else {
                 res.returnStatus = POStatus.STATUS_EARLY_TERMINATION;
+            }
             return res;
         }
 

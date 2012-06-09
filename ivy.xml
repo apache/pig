@@ -189,7 +189,7 @@
     <dependency org="commons-lang" name="commons-lang" rev="${commons-lang.version}"
   	  conf="compile->master"/>
     <dependency org="com.google.guava" name="guava" rev="${guava.version}" conf="compile->master" />
-    <dependency org="org.python" name="jython" rev="${jython.version}" conf="compile->master"/>
+    <dependency org="org.python" name="jython-standalone" rev="${jython.version}" conf="compile->master"/>
     <dependency org="rhino" name="js" rev="${rhino.version}" conf="compile->master"/>
     <dependency org="org.antlr" name="antlr" rev="${antlr.version}" conf="compile->master"/>
     <dependency org="org.antlr" name="antlr-runtime" rev="${antlr.version}" conf="compile->default"/>

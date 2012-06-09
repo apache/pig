@@ -171,6 +171,27 @@ public class JythonScriptEngine extends ScriptEngine {
          */
         static void execfile(InputStream script, String path, PigContext pigContext) throws ExecException {
             try {
+
+                if( pigContext != null ) {
+                  String [] argv;
+                  try {
+                      argv = (String[])ObjectSerializer.deserialize(
+                              pigContext.getProperties().getProperty(PigContext.PIG_CMD_ARGS_REMAINDERS));
+                  } catch (IOException e) {
+                      throw new ExecException("Cannot deserialize command line arguments", e);
+                  }
+                  if( argv != null ) {
+                    PySystemState  state = Py.getSystemState();
+                    state.argv.clear();
+                    for (String str : argv ) {
+                      state.argv.append(new PyString(str));
+                    }
+                  } else {
+                    LOG.warn(PigContext.PIG_CMD_ARGS_REMAINDERS
+                      + " is empty. This is not expected unless on testing." );
+                  }
+                }
+
                 // determine the current module state
                 Map<String, String> before = pigContext != null ? getModuleState() : null;
 
@@ -332,6 +353,9 @@ public class JythonScriptEngine extends ScriptEngine {
     @Override
     protected Map<String, List<PigStats>> main(PigContext pigContext, String scriptFile)
             throws IOException {
+        if (System.getProperty(PySystemState.PYTHON_CACHEDIR_SKIP)==null)
+            System.setProperty(PySystemState.PYTHON_CACHEDIR_SKIP, "false");
+        
         PigServer pigServer = new PigServer(pigContext, false);
 
         // register dependencies
@@ -352,15 +376,6 @@ public class JythonScriptEngine extends ScriptEngine {
             registerFunctions(scriptFile, null, pigContext);
         }
 
-        if (pigContext.getProperties().get(PigContext.PIG_CMD_ARGS_REMAINDERS)!=null) {
-            try {
-                String[] argv = (String[])ObjectSerializer.deserialize(
-                        pigContext.getProperties().getProperty(PigContext.PIG_CMD_ARGS_REMAINDERS));
-                PythonInterpreter.initialize(null, null, argv);
-            } catch (IOException e) {
-                throw new ExecException("Cannot deserialize command line arguments", e);
-            }
-        }
         
         Interpreter.setMain(true);
         FileInputStream fis = new FileInputStream(scriptFile);

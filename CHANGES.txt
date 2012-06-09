@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2651: Provide a much easier to use accumulator interface (jcoveney via daijy)
+
 PIG-2658: Add pig.script.submitted.timestamp and pig.job.submitted.timestamp in generated Map-Reduce job conf (billgraham)
 
 PIG-2735: Add a pig.version.suffix property in build.xml to easily override with a build number (julien)
@@ -165,6 +167,12 @@ PIG-2337: Provide UDF with input schema (xutingz via daijy)
 OPTIMIZATIONS
 
 BUG FIXES
+
+PIG-2593: Filter by a boolean value does not work (jay23jack via daijy)
+
+PIG-2665: Bundled Jython jar in Pig 0.10.0-RC breaks module import in Python scripts with embedded Pig Latin (daijy)
+
+PIG-2736: Support implicit cast from bytearray to boolean (jay23jack via daijy)
 
 PIG-2508: PIG can unpredictably ignore deprecated Hadoop config options (thw via dvryaboy)
 
@@ -384,6 +392,11 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
+
+PIG-2741: Python script throws an NameError: name 'Configuration' is not defined in case cache dir is not created
+(knoguchi via daijy)
+
+PIG-2669: Pig release should include pig-default.properties after rebuild (daijy)
 
 PIG-2739: PyList should map to Bag automatically in Jython (daijy)
 
