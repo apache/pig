@@ -41,7 +41,6 @@ import org.apache.pig.builtin.MonitoredUDF;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
-import org.apache.pig.data.SchemaTupleClassGenerator;
 import org.apache.pig.data.SchemaTupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
@@ -134,10 +133,11 @@ public class POUserFunc extends ExpressionOperator {
             //TODO alternately we could just see if there exists a class that fits
             //TODO the down-side to this approach is that there might be a difference
             //TODO for appendable or not appendable?
-            String shouldGenerate = UDFContext.getUDFContext().getJobConf().get(SchemaTupleClassGenerator.SHOULD_GENERATE_KEY);
-            if (shouldGenerate != null && Boolean.parseBoolean(shouldGenerate) && SchemaTupleFactory.isGeneratable(tmpS)) {
-                inputSchemaTupleFactory = TupleFactory.getInstanceForSchema(tmpS);
-            }
+
+            //Currently, getInstanceForSchema returns null if no class was found. This works fine...
+            //if it is null, the default will be used
+            inputSchemaTupleFactory = TupleFactory.getInstanceForSchema(tmpS, false);
+
 /*
             if (outputS != null && SchemaTupleFactory.isGeneratable(outputS))
                 outputGen = SchemaTuple.generate(outputS);

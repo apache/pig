@@ -1454,6 +1454,22 @@ public class SchemaTupleClassGenerator {
         public static <A,B> Pair<A,B> make(A t1, B t2) {
             return new Pair<A,B>(t1, t2);
         }
+
+        @Override
+        public int hashCode() {
+            return t1.hashCode() + 31 * t2.hashCode();
+        }
+
+        public boolean equals(Object o) {
+            if (!(o instanceof Pair<?,?>)) {
+                return false;
+            }
+            Pair<?,?> pr = (Pair<?,?>)o;
+            if (t1.equals(pr.getFirst()) && t2.equals(pr.getSecond())) {
+                return true;
+            }
+            return false;
+        }
     }
 
     public static void copyAllGeneratedToDistributedCache(PigContext pigContext, Configuration conf) {

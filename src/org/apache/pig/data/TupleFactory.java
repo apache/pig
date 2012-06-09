@@ -140,8 +140,8 @@ public abstract class TupleFactory {
      */
     public abstract Tuple newTuple(Object datum);
 
-    public static SchemaTupleFactory getInstanceForSchema(Schema s) {
-        return SchemaTupleFactory.getSchemaTupleFactory(s);
+    public static SchemaTupleFactory getInstanceForSchema(Schema s, boolean isAppendable) {
+        return SchemaTupleFactory.getSchemaTupleFactory(s, isAppendable);
     }
 
     public static SchemaTupleFactory getInstanceForSchemaId(int id) {

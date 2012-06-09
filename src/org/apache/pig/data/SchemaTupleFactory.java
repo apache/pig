@@ -14,8 +14,8 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.SchemaTuple.SchemaTupleQuickGenerator;
+import org.apache.pig.data.SchemaTupleClassGenerator.Pair;
 import org.apache.pig.data.SchemaTupleClassGenerator.SchemaKey;
 import org.apache.pig.data.utils.MethodHelper.NotImplemented;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -30,10 +30,6 @@ public class SchemaTupleFactory extends TupleFactory {
 
     private SchemaTupleQuickGenerator<? extends SchemaTuple<?>> generator;
     private Class<SchemaTuple<?>> clazz;
-
-    //TODO need to incorporate the appendable/not appendable question!
-    private static Map<Integer, SchemaTupleFactory> cachedSchemaTupleFactoriesById = Maps.newHashMap();
-    private static Map<SchemaKey, SchemaTupleFactory> cachedSchemaTupleFactoriesBySchema = Maps.newHashMap();
 
     protected SchemaTupleFactory(Class<SchemaTuple<?>> clazz, SchemaTupleQuickGenerator<? extends SchemaTuple<?>> generator) {
         this.clazz = clazz;
@@ -96,43 +92,12 @@ public class SchemaTupleFactory extends TupleFactory {
         return clazz;
     }
 
-    public static SchemaTupleFactory getSchemaTupleFactory(Schema s) {
-        SchemaKey sk = new SchemaKey(s);
-        SchemaTupleFactory stf = cachedSchemaTupleFactoriesBySchema.get(sk);
-
-        if (stf != null) {
-            return stf;
-        }
-
-        try {
-            stf = loadedSchemaTupleClassesHolder.newSchemaTupleFactory(s);
-        } catch (ExecException e) {
-            throw new RuntimeException("Error making new SchemaTupleFactory by schema: " + s, e);
-        }
-
-        cachedSchemaTupleFactoriesById.put(((SchemaTuple<?>)stf.newTuple()).getSchemaTupleIdentifier(), stf);
-        cachedSchemaTupleFactoriesBySchema.put(sk, stf);
-
-        return stf;
+    public static SchemaTupleFactory getSchemaTupleFactory(Schema s, boolean isAppendable) {
+        return loadedSchemaTupleClassesHolder.newSchemaTupleFactory(s, isAppendable);
     }
 
     public static SchemaTupleFactory getSchemaTupleFactory(int id) {
-        SchemaTupleFactory stf = cachedSchemaTupleFactoriesById.get(id);
-
-        if (stf != null) {
-            return stf;
-        }
-
-        try {
-            stf = loadedSchemaTupleClassesHolder.newSchemaTupleFactory(id);
-        } catch (ExecException e) {
-            throw new RuntimeException("Error making new SchemaTupleFactory by id: " + id, e);
-        }
-
-        cachedSchemaTupleFactoriesById.put(id, stf);
-        cachedSchemaTupleFactoriesBySchema.put(new SchemaKey(((SchemaTuple<?>)stf.newTuple()).getSchema()), stf);
-
-        return stf;
+        return loadedSchemaTupleClassesHolder.newSchemaTupleFactory(id);
     }
 
     private static LoadedSchemaTupleClassesHolder loadedSchemaTupleClassesHolder = new LoadedSchemaTupleClassesHolder();
@@ -142,13 +107,11 @@ public class SchemaTupleFactory extends TupleFactory {
     }
 
     public static class LoadedSchemaTupleClassesHolder {
-        private Map<Integer, SchemaTupleQuickGenerator<? extends SchemaTuple<?>>> generators = Maps.newHashMap();
-        private Map<Integer, Class<SchemaTuple<?>>> classes = Maps.newHashMap();
-
-        private Map<SchemaKey, Integer> lookup = Maps.newHashMap();
         private Set<String> filesToResolve = Sets.newHashSet();
 
         private URLClassLoader classLoader;
+        private Map<Pair<SchemaKey, Boolean>, SchemaTupleFactory> schemaTupleFactories = Maps.newHashMap();
+        private Map<Integer, Pair<SchemaKey,Boolean>> identifiers = Maps.newHashMap();
 
         private LoadedSchemaTupleClassesHolder() {
             File fil = SchemaTupleClassGenerator.getGenerateCodeTempDir();
@@ -159,23 +122,24 @@ public class SchemaTupleFactory extends TupleFactory {
             }
         }
 
-        public SchemaTupleFactory newSchemaTupleFactory(Schema s) throws ExecException {
-            SchemaKey sk = new SchemaKey(s);
-            Integer id = lookup.get(sk);
-            if (id != null) {
-                return newSchemaTupleFactory(id);
-            }
-
-            throw new ExecException("No mapping present for given Schema: " + s);
+        public SchemaTupleFactory newSchemaTupleFactory(Schema s, boolean isAppendable)  {
+            return newSchemaTupleFactory(Pair.make(new SchemaKey(s), isAppendable));
         }
 
-        public SchemaTupleFactory newSchemaTupleFactory(int id) throws ExecException {
-            Class<SchemaTuple<?>> clazz = classes.get(id);
-            SchemaTupleQuickGenerator<? extends SchemaTuple<?>> stGen = generators.get(id);
-            if (clazz == null || stGen == null) {
-                throw new ExecException("Could not find matching SchemaTuple for id: " + id); //TODO do something else? Return null? A checked exception?
+        public SchemaTupleFactory newSchemaTupleFactory(int id) {
+            Pair<SchemaKey, Boolean> pr = identifiers.get(id);
+            if (pr == null) {
+                LOG.debug("No SchemaTuple present for given identifier: " + id);
             }
-            return new SchemaTupleFactory(clazz, stGen);
+            return newSchemaTupleFactory(pr);
+        }
+
+        private SchemaTupleFactory newSchemaTupleFactory(Pair<SchemaKey, Boolean> pr) {
+            SchemaTupleFactory stf = schemaTupleFactories.get(pr);
+            if (stf == null) {
+                LOG.debug("No SchemaTUpleFactory present for given SchemaKey/Boolean combination: " + pr);
+            }
+            return stf;
         }
 
         public void copyAllFromDistributedCache(Configuration conf) throws IOException {
@@ -190,6 +154,10 @@ public class SchemaTupleFactory extends TupleFactory {
         }
 
         public void copyAndResolve(Configuration conf, boolean isLocal) throws IOException {
+            String shouldGenerate = conf.get(SchemaTupleClassGenerator.SHOULD_GENERATE_KEY);
+            if (shouldGenerate == null || !Boolean.parseBoolean(shouldGenerate)) {
+                LOG.info("Key [" + SchemaTupleClassGenerator.SHOULD_GENERATE_KEY +"] was not set... aborting generation");
+            }
             if (!isLocal) {
                 copyAllFromDistributedCache(conf);
             }
@@ -235,12 +203,19 @@ public class SchemaTupleFactory extends TupleFactory {
                     return;
                 }
                 SchemaTuple<?> st = (SchemaTuple<?>)o;
+                boolean isAppendable = st instanceof AppendableSchemaTuple<?>;
+
                 int id = st.getSchemaTupleIdentifier();
                 Schema schema = st.getSchema();
+                SchemaKey sk = new SchemaKey(schema);
 
-                classes.put(id, (Class<SchemaTuple<?>>)clazz);
-                generators.put(id, (SchemaTupleQuickGenerator<SchemaTuple<?>>)st.getQuickGenerator());
-                lookup.put(new SchemaKey(schema), id);
+                Pair<SchemaKey, Boolean> pr = Pair.make(sk, isAppendable);
+
+                SchemaTupleFactory stf = new SchemaTupleFactory((Class<SchemaTuple<?>>)clazz, (SchemaTupleQuickGenerator<SchemaTuple<?>>)st.getQuickGenerator());
+
+                schemaTupleFactories .put(pr, stf);
+                identifiers.put(id, pr);
+
                 LOG.info("Successfully resolved class.");
             }
         }
