@@ -362,13 +362,13 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             // good
         }
         else if ( (lhsType == DataType.BYTEARRAY) &&
-                ( (rhsType == DataType.CHARARRAY) || (DataType.isNumberType(rhsType)) )
+                ( (rhsType == DataType.CHARARRAY) || (DataType.isNumberType(rhsType)) || (rhsType == DataType.BOOLEAN))
         ) {
             // Cast byte array to the type on rhs
             insertCast(binOp, rhsType, binOp.getLhs());
         }
         else if ( (rhsType == DataType.BYTEARRAY) &&
-                ( (lhsType == DataType.CHARARRAY) || (DataType.isNumberType(lhsType)) )
+                ( (lhsType == DataType.CHARARRAY) || (DataType.isNumberType(lhsType)) || (lhsType == DataType.BOOLEAN))
         ) {
             // Cast byte array to the type on lhs
             insertCast(binOp, lhsType, binOp.getRhs());

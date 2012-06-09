@@ -730,7 +730,13 @@ cond[LogicalExpressionPlan exprPlan] returns[LogicalExpression expr]
    {
        $expr = $func_eval.expr;
    }
+ | ^( BOOL_COND e1 = expr[$exprPlan] )
+   {
+   	   $expr = $e1.expr;
+       $expr.setLocation( new SourceLocation( (PigParserNode)$BOOL_COND ) );
+   }   
 ;
+
 
 func_eval[LogicalExpressionPlan plan] returns[LogicalExpression expr]
 @init { 

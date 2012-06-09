@@ -297,6 +297,7 @@ cond
     | ^( NULL expr NOT? )
     | ^( rel_op expr expr )
     | func_eval
+    | ^( BOOL_COND expr )
 ;
 
 func_eval
