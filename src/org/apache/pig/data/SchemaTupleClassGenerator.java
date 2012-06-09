@@ -34,10 +34,10 @@ import org.apache.hadoop.fs.Path;
 import org.apache.pig.ExecType;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
+import org.apache.pig.data.utils.StructuresHelper;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -72,88 +72,10 @@ public class SchemaTupleClassGenerator {
     }
 
     protected static File tempFile(String name) {
-        return new File(generatedCodeTempDir, name + ".class");
+        return new File(generatedCodeTempDir, name);
     }
 
     private static int globalClassIdentifier = 0;
-
-    /*
-    public static class SchemaTupleClassSerializer {
-        private int id;
-        private String name;
-        private Class<SchemaTuple<?>> clazz;
-
-        public SchemaTupleClassSerializer(int id, String name, Class<SchemaTuple<?>> clazz) {
-            this.id = id;
-            this.name = name;
-            this.clazz = clazz;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public int getId() {
-            return id;
-        }
-
-        public Class<SchemaTuple<?>> getStClass() {
-            return clazz;
-        }
-    }
-
-    private static Map<Boolean, Map<SchemaKey, SchemaTupleClassSerializer>> schemaTupleSerializers = new HashMap<Boolean, Map<SchemaKey, SchemaTupleClassSerializer>>() {{
-        put(true, new HashMap<SchemaKey, SchemaTupleClassSerializer>());
-        put(false, new HashMap<SchemaKey, SchemaTupleClassSerializer>());
-    }};
-    */
-
-    /**
-     * This encapsulates a Schema and allows it to be used in such a way that
-     * any aliases are ignored in equality.
-     */
-    protected static class SchemaKey {
-        private Schema s;
-
-        public SchemaKey(Schema s) {
-            this.s = s;
-        }
-
-        private static int[] primeList = { 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37,
-                                           41, 43, 47, 53, 59, 61, 67, 71, 73, 79,
-                                           83, 89, 97, 101, 103, 107, 109, 1133};
-
-        @Override
-        public int hashCode() {
-            if (s == null) {
-                return 0;
-            }
-            int idx = 0 ;
-            int hashCode = 0 ;
-            for(FieldSchema fs : s.getFields()) {
-                hashCode += hashCode(fs) * (primeList[idx % primeList.length]) ;
-                idx++ ;
-            }
-            return hashCode ;
-        }
-
-        private int hashCode(FieldSchema fs) {
-            return (fs.type * 17) + ( (fs.schema == null? 0 : fs.schema.hashCode()) * 23 );
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (!(o instanceof SchemaKey)) {
-                return false;
-            }
-            Schema other = ((SchemaKey)o).get();
-            return (s == null && other == null) || Schema.equals(s, other, false, true);
-        }
-
-        public Schema get() {
-            return s;
-        }
-    }
 
     private static void generateSchemaTuple(Schema s, boolean appendable, int id) {
         String codeString = produceCodeString(s, id, appendable);
@@ -1398,14 +1320,14 @@ public class SchemaTupleClassGenerator {
         }
     }
 
-    private static Map<SchemaKey, Pair<Integer, Boolean>> schemasToGenerate = Maps.newHashMap();
+    private static Map<StructuresHelper.SchemaKey, StructuresHelper.Pair<Integer, Boolean>> schemasToGenerate = Maps.newHashMap();
 
     public static boolean generateAllSchemaTuples() {
         boolean filesToShip = false;
         LOG.info("Generating all registered Schemas.");
-        for (Map.Entry<SchemaKey, Pair<Integer,Boolean>> entry : schemasToGenerate.entrySet()) {
+        for (Map.Entry<StructuresHelper.SchemaKey, StructuresHelper.Pair<Integer,Boolean>> entry : schemasToGenerate.entrySet()) {
             Schema s = entry.getKey().get();
-            Pair<Integer,Boolean> value = entry.getValue();
+            StructuresHelper.Pair<Integer,Boolean> value = entry.getValue();
             int id = value.getFirst();
             boolean isAppendable = value.getSecond();
             SchemaTupleClassGenerator.generateSchemaTuple(s, isAppendable, id);
@@ -1425,8 +1347,8 @@ public class SchemaTupleClassGenerator {
      * @return
      */
     public static int registerToGenerateIfPossible(Schema udfSchema, boolean isAppendable) {
-        SchemaKey sk = new SchemaKey(udfSchema);
-        Pair<Integer, Boolean> pr = schemasToGenerate.get(sk);
+        StructuresHelper.SchemaKey sk = new StructuresHelper.SchemaKey(udfSchema);
+        StructuresHelper.Pair<Integer, Boolean> pr = schemasToGenerate.get(sk);
         if (pr != null) {
             return pr.getFirst();
         }
@@ -1434,51 +1356,10 @@ public class SchemaTupleClassGenerator {
             return -1;
         }
         int id = getGlobalClassIdentifier();
-        schemasToGenerate.put(sk, Pair.make(Integer.valueOf(id), isAppendable));
+        schemasToGenerate.put(sk, StructuresHelper.Pair.make(Integer.valueOf(id), isAppendable));
         LOG.info("Registering "+(isAppendable ? "Appendable" : "")+"Schema for generation [" + udfSchema + "] with id [" + id + "]");
         return id;
      }
-
-    public static class Pair<T1, T2> {
-        private T1 t1;
-        private T2 t2;
-
-        public Pair(T1 t1, T2 t2) {
-            this.t1 = t1;
-            this.t2 = t2;
-        }
-
-        public T1 getFirst() {
-            return t1;
-        }
-
-        public T2 getSecond() {
-            return t2;
-        }
-
-        public static <A,B> Pair<A,B> make(A t1, B t2) {
-            return new Pair<A,B>(t1, t2);
-        }
-
-        @Override
-        public int hashCode() {
-            return (t1 == null ? 0 : t1.hashCode()) + (t2 == null ? 0 : 31 * t2.hashCode());
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (!(o instanceof Pair<?,?>)) {
-                return false;
-            }
-            Pair<?,?> pr = (Pair<?,?>)o;
-            return (t1 == null ? pr.getFirst() == null : t1.equals(pr.getFirst())) && (t2 == null ? pr.getSecond() == null : t2.equals(pr.getSecond()));
-        }
-
-        @Override
-        public String toString() {
-            return new StringBuilder().append("[").append(t1).append(",").append(t2).append("]").toString();
-        }
-    }
 
     public static void copyAllGeneratedToDistributedCache(PigContext pigContext, Configuration conf) {
         LOG.info("Starting process to move generated code to distributed cacche");

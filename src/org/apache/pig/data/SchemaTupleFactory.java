@@ -1,6 +1,8 @@
 package org.apache.pig.data;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -12,12 +14,11 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.pig.data.SchemaTuple.SchemaTupleQuickGenerator;
-import org.apache.pig.data.SchemaTupleClassGenerator.Pair;
-import org.apache.pig.data.SchemaTupleClassGenerator.SchemaKey;
+import org.apache.pig.data.utils.StructuresHelper;
 import org.apache.pig.data.utils.MethodHelper.NotImplemented;
+import org.apache.pig.data.utils.StructuresHelper.Pair;
+import org.apache.pig.data.utils.StructuresHelper.SchemaKey;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 import com.google.common.collect.Maps;
@@ -110,8 +111,8 @@ public class SchemaTupleFactory extends TupleFactory {
         private Set<String> filesToResolve = Sets.newHashSet();
 
         private URLClassLoader classLoader;
-        private Map<Pair<SchemaKey, Boolean>, SchemaTupleFactory> schemaTupleFactories = Maps.newHashMap();
-        private Map<Integer, Pair<SchemaKey,Boolean>> identifiers = Maps.newHashMap();
+        private Map<StructuresHelper.Pair<StructuresHelper.SchemaKey, Boolean>, SchemaTupleFactory> schemaTupleFactories = Maps.newHashMap();
+        private Map<Integer, StructuresHelper.Pair<StructuresHelper.SchemaKey,Boolean>> identifiers = Maps.newHashMap();
 
         private LoadedSchemaTupleClassesHolder() {
             File fil = SchemaTupleClassGenerator.getGenerateCodeTempDir();
@@ -123,18 +124,18 @@ public class SchemaTupleFactory extends TupleFactory {
         }
 
         public SchemaTupleFactory newSchemaTupleFactory(Schema s, boolean isAppendable)  {
-            return newSchemaTupleFactory(Pair.make(new SchemaKey(s), isAppendable));
+            return newSchemaTupleFactory(StructuresHelper.Pair.make(new StructuresHelper.SchemaKey(s), isAppendable));
         }
 
         public SchemaTupleFactory newSchemaTupleFactory(int id) {
-            Pair<SchemaKey, Boolean> pr = identifiers.get(id);
+            StructuresHelper.Pair<StructuresHelper.SchemaKey, Boolean> pr = identifiers.get(id);
             if (pr == null) {
                 LOG.debug("No SchemaTuple present for given identifier: " + id);
             }
             return newSchemaTupleFactory(pr);
         }
 
-        private SchemaTupleFactory newSchemaTupleFactory(Pair<SchemaKey, Boolean> pr) {
+        private SchemaTupleFactory newSchemaTupleFactory(StructuresHelper.Pair<StructuresHelper.SchemaKey, Boolean> pr) {
             SchemaTupleFactory stf = schemaTupleFactories.get(pr);
             if (stf == null) {
                 LOG.debug("No SchemaTupleFactory present for given SchemaKey/Boolean combination: " + pr);
@@ -149,9 +150,20 @@ public class SchemaTupleFactory extends TupleFactory {
                 return;
             }
             LOG.info("Copying files in key ["+SchemaTupleClassGenerator.GENERATED_CLASSES_KEY+"] from distributed cache: " + toDeserialize);
-            FileSystem fs = FileSystem.get(conf);
+            //FileSystem fs = FileSystem.get(conf);
             for (String s : toDeserialize.split(",")) {
-                copyFromDistributedCache(s, conf, fs);
+                LOG.info("Attempting to read file: " + s);
+                FileInputStream fin = new FileInputStream(new File(s));
+                FileOutputStream fos = new FileOutputStream(SchemaTupleClassGenerator.tempFile(s));
+
+                int read;
+                byte[] buf = new byte[1024*1024];
+                while ((read = fin.read(buf)) > -1) {
+                    fos.write(buf, 0, read);
+                }
+                fin.close();
+                fos.close();
+                LOG.info("Successfully read file.");
             }
         }
 
@@ -172,13 +184,6 @@ public class SchemaTupleFactory extends TupleFactory {
                 }
             }
             resolveClasses();
-        }
-
-        public void copyFromDistributedCache(String className, Configuration conf, FileSystem fs) throws IOException {
-            LOG.info("Attempting to copy " + className + " from distributed cache");
-            Path src = new Path(className);
-            Path dst = new Path(SchemaTupleClassGenerator.tempFile(className).getAbsolutePath());
-            fs.copyToLocalFile(src, dst);
         }
 
         /**
@@ -210,9 +215,9 @@ public class SchemaTupleFactory extends TupleFactory {
 
                 int id = st.getSchemaTupleIdentifier();
                 Schema schema = st.getSchema();
-                SchemaKey sk = new SchemaKey(schema);
+                StructuresHelper.SchemaKey sk = new StructuresHelper.SchemaKey(schema);
 
-                Pair<SchemaKey, Boolean> pr = Pair.make(sk, isAppendable);
+                StructuresHelper.Pair<StructuresHelper.SchemaKey, Boolean> pr = StructuresHelper.Pair.make(sk, isAppendable);
 
                 SchemaTupleFactory stf = new SchemaTupleFactory((Class<SchemaTuple<?>>)clazz, (SchemaTupleQuickGenerator<SchemaTuple<?>>)st.getQuickGenerator());
 
@@ -224,7 +229,7 @@ public class SchemaTupleFactory extends TupleFactory {
         }
 
         public boolean isRegistered(String className) {
-            return SchemaTupleClassGenerator.tempFile(className).exists();
+            return SchemaTupleClassGenerator.tempFile(className + ".class").exists();
         }
     }
 }
