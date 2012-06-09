@@ -7,7 +7,6 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 
 import org.apache.commons.logging.Log;
@@ -32,6 +31,7 @@ public class SchemaTupleFactory extends TupleFactory {
     private SchemaTupleQuickGenerator<? extends SchemaTuple<?>> generator;
     private Class<SchemaTuple<?>> clazz;
 
+    //TODO need to incorporate the appendable/not appendable question!
     private static Map<Integer, SchemaTupleFactory> cachedSchemaTupleFactoriesById = Maps.newHashMap();
     private static Map<SchemaKey, SchemaTupleFactory> cachedSchemaTupleFactoriesBySchema = Maps.newHashMap();
 
@@ -40,23 +40,7 @@ public class SchemaTupleFactory extends TupleFactory {
         this.generator = generator;
     }
 
-    public static boolean isGeneratable(Schema s, Configuration conf) {
-        return isGeneratable(s, conf.get("pig.schematuple"));
-    }
-
-    public static boolean isGeneratable(Schema s, Properties prop) {
-        return isGeneratable(s, (String)prop.get("pig.schematuple"));
-    }
-
-    public static boolean isGeneratable(Schema s, String shouldGenerate) {
-        LOG.info("RECEIVED: pig.schematuple: " + shouldGenerate);
-        if (shouldGenerate == null || !Boolean.parseBoolean(shouldGenerate)) {
-            return false;
-        }
-        return isGeneratable(s);
-    }
-
-    protected static boolean isGeneratable(Schema s) {
+    public static boolean isGeneratable(Schema s) {
         if (s == null) {
             return false;
         }

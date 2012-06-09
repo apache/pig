@@ -6,8 +6,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.security.SecureClassLoader;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -27,12 +27,20 @@ import javax.tools.JavaFileObject.Kind;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.filecache.DistributedCache;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.pig.ExecType;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
+import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.io.Files;
 
 //TODO: implement a raw comparator for it?
@@ -57,8 +65,9 @@ public class SchemaTupleClassGenerator {
     }
 
     public static final String GENERATED_CLASSES_KEY = "pig.schematuple.classes";
+    public static final String SHOULD_GENERATE_KEY = "pig.schematuple";
 
-    public static File[] getGeneratedFiles() {
+    protected static File[] getGeneratedFiles() {
         return generatedCodeTempDir.listFiles();
     }
 
@@ -142,28 +151,20 @@ public class SchemaTupleClassGenerator {
         }
     }
 
-    private static Map<Boolean,Map<SchemaKey, Integer>> cachedIds = new HashMap<Boolean,Map<SchemaKey, Integer>>() {{
-        put(Boolean.TRUE, new HashMap<SchemaKey, Integer>());
-        put(Boolean.FALSE, new HashMap<SchemaKey, Integer>());
-    }};
-
-    public static int generateSchemaTuple(Schema s, boolean appendable) {
-        SchemaKey sk = new SchemaKey(s);
-        Integer id = cachedIds.get(appendable).get(sk);
-
-        if (id != null) {
-            return id;
-        }
-
-        id = getGlobalClassIdentifier();
+    private static void generateSchemaTuple(Schema s, boolean appendable, int id) {
         String codeString = produceCodeString(s, id, appendable);
 
         String name = "SchemaTuple_" + id;
 
         LOG.info("Compiling class " + name + " for Schema: " + s);
         compileCodeString(codeString, name);
+    }
 
-        cachedIds.get(appendable).put(sk, id);
+    private static int generateSchemaTuple(Schema s, boolean appendable) {
+        int id = getGlobalClassIdentifier();
+
+        generateSchemaTuple(s, appendable, id);
+
         return id;
     }
 
@@ -178,7 +179,7 @@ public class SchemaTupleClassGenerator {
     }
 
 
-    public static int getGlobalClassIdentifier() {
+    private static int getGlobalClassIdentifier() {
         return globalClassIdentifier++;
     }
 
@@ -1391,5 +1392,106 @@ public class SchemaTupleClassGenerator {
             String s = typeName(type);
             return type == DataType.BYTEARRAY ? "Bytes" : s.substring(0,1).toUpperCase() + s.substring(1);
         }
-   }
+    }
+
+    private static Map<SchemaKey, Pair<Integer, Boolean>> schemasToGenerate = Maps.newHashMap();
+
+    public static boolean generateAllSchemaTuples() {
+        boolean filesToShip = false;
+        for (Map.Entry<SchemaKey, Pair<Integer,Boolean>> entry : schemasToGenerate.entrySet()) {
+            Schema s = entry.getKey().get();
+            Pair<Integer,Boolean> value = entry.getValue();
+            int id = value.getFirst();
+            boolean isAppendable = value.getSecond();
+            SchemaTupleClassGenerator.generateSchemaTuple(s, isAppendable, id);
+            filesToShip = true;
+        }
+        return filesToShip;
+    }
+
+    /**
+     * This class essentially allows portions of the code to register a Schema
+     * to potentially be generated. It is not generated directly because they might
+     * have that feature turned off. A unique ID will be passed back, so in the actual
+     * M/R job, code needs to make sure that generation was turned on or else the classes
+     * will not be present!
+     * @param udfSchema
+     * @param isAppendable
+     * @return
+     */
+    public static int registerToGenerateIfPossible(Schema udfSchema, boolean isAppendable) {
+        SchemaKey sk = new SchemaKey(udfSchema);
+        Pair<Integer, Boolean> pr = schemasToGenerate.get(sk);
+        if (pr != null) {
+            return pr.getFirst();
+        }
+        if (!SchemaTupleFactory.isGeneratable(udfSchema)) {
+            return -1;
+        }
+        int id = getGlobalClassIdentifier();
+        schemasToGenerate.put(sk, Pair.make(Integer.valueOf(id), isAppendable));
+        LOG.info("Registering "+(isAppendable ? "Appendable" : "")+" Schema for possible generation: " + udfSchema);
+        return id;
+     }
+
+    public static class Pair<T1, T2> {
+        private T1 t1;
+        private T2 t2;
+
+        public Pair(T1 t1, T2 t2) {
+            this.t1 = t1;
+            this.t2 = t2;
+        }
+
+        public T1 getFirst() {
+            return t1;
+        }
+
+        public T2 getSecond() {
+            return t2;
+        }
+
+        public static <A,B> Pair<A,B> make(A t1, B t2) {
+            return new Pair<A,B>(t1, t2);
+        }
+    }
+
+    public static void copyAllGeneratedToDistributedCache(PigContext pigContext, Configuration conf) {
+        LOG.info("Starting process to move generated code to distributed cacche");
+        if (pigContext.getExecType() == ExecType.LOCAL) {
+            LOG.info("Distributed cache not supported or needed in local mode.");
+            return;
+        }
+        DistributedCache.createSymlink(conf);
+        for (File f : getGeneratedFiles()) {
+            String symlink = f.getName();
+            Path src = new Path(f.toURI());
+            Path dst;
+            try {
+                dst = FileLocalizer.getTemporaryPath(pigContext);
+            } catch (IOException e) {
+                throw new RuntimeException("Error getting temporary path in HDFS", e);
+            }
+            FileSystem fs;
+            try {
+                fs = dst.getFileSystem(conf);
+            } catch (IOException e) {
+                throw new RuntimeException("Unable to get FileSystem", e);
+            }
+            try {
+                fs.copyFromLocalFile(src, dst);
+            } catch (IOException e) {
+                throw new RuntimeException("Unable to copy from local filesystem to HDFS", e);
+            }
+
+            String destination = dst.toString() + "#" + symlink;
+
+            try {
+                DistributedCache.addCacheFile(new URI(destination), conf);
+            } catch (URISyntaxException e) {
+                throw new RuntimeException("Unable to add file to distributed cache: " + destination, e);
+            }
+            LOG.info("File successfully added to the distributed cache: " + symlink);
+        }
+    }
 }

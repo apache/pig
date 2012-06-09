@@ -98,8 +98,6 @@ import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.tools.pigstats.ScriptState;
 
-import com.google.common.base.Joiner;
-
 /**
  * This is compiler class that takes an MROperPlan and converts
  * it into a JobControl object with the relevant dependency info
@@ -583,8 +581,12 @@ public class JobControlCompiler{
             // distrubted cache.
             setupDistributedCacheForUdfs(mro, pigContext, conf);
 
-            //TODO is this where this should be?
-            copyAllGeneratedToDistributedCache(pigContext, conf, true);
+            String shouldGen = conf.get(SchemaTupleClassGenerator.SHOULD_GENERATE_KEY);
+            if (shouldGen != null && Boolean.parseBoolean(shouldGen)) {
+                if (SchemaTupleClassGenerator.generateAllSchemaTuples()) {
+                    SchemaTupleClassGenerator.copyAllGeneratedToDistributedCache(pigContext, conf);
+                }
+            }
 
             POPackage pack = null;
             if(mro.reducePlan.isEmpty()){
@@ -1157,25 +1159,6 @@ public class JobControlCompiler{
             String[] paths = fileNames.split(",");
             setupDistributedCache(pigContext, conf, paths, shipToCluster);
         }
-    }
-
-    private static void copyAllGeneratedToDistributedCache(PigContext pigContext, Configuration conf, boolean shipToCluster) throws IOException {
-        log.info("Copying generated files to distributed cache");
-
-        //TODO should I check if it is in local mode?
-
-        File[] files = SchemaTupleClassGenerator.getGeneratedFiles();
-        String[] paths = new String[files.length];
-        String[] classNames = new String[files.length];
-
-        for (int i = 0; i < files.length; i++) {
-            classNames[i] = files[i].getName().split("\\.")[0];
-            paths[i] = files[i].getAbsolutePath();
-        }
-
-        setupDistributedCache(pigContext, conf, paths, shipToCluster);
-
-        conf.set(SchemaTupleClassGenerator.GENERATED_CLASSES_KEY, Joiner.on(",").join(classNames));
     }
 
     private static void setupDistributedCache(PigContext pigContext,
