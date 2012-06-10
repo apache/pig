@@ -117,12 +117,22 @@ public class SchemaTupleFactory extends TupleFactory {
         return clazz;
     }
 
-    private static SchemaTupleResolver schemaTupleResolver = new SchemaTupleResolver();
+    private static SchemaTupleResolver schemaTupleResolver =
+        new SchemaTupleResolver(SchemaTupleClassGenerator.getGenerateCodeTempDir());
 
+    /**
+     * This method returns the SchemaTupleResolver associated with the generated
+     * code temporary directory.
+     * @return  SchemaTupleResolver
+     */
     protected static SchemaTupleResolver getSchemaTupleResolver() {
         return schemaTupleResolver;
     }
 
+    /**
+     * This class encapsulates the logic around resolving the generated class
+     * files.
+     */
     protected static class SchemaTupleResolver {
         private Set<String> filesToResolve = Sets.newHashSet();
 
@@ -135,19 +145,39 @@ public class SchemaTupleFactory extends TupleFactory {
         private Map<Pair<SchemaKey, Boolean>, SchemaTupleFactory> schemaTupleFactoriesByPair = Maps.newHashMap();
         private Map<Integer, SchemaTupleFactory> schemaTupleFactoriesById = Maps.newHashMap();
 
-        private SchemaTupleResolver() {
-            File fil = SchemaTupleClassGenerator.getGenerateCodeTempDir();
+        /**
+         * The only information this class needs is a directory of generated code to resolve
+         * classes in.
+         * @param directory of generated code
+         */
+        private SchemaTupleResolver(File codeDir) {
             try {
-                classLoader = new URLClassLoader(new URL[] { fil.toURI().toURL() });
+                classLoader = new URLClassLoader(new URL[] { codeDir.toURI().toURL() });
             } catch (MalformedURLException e) {
-                throw new RuntimeException("Unable to make URLClassLoader for tempDir: " + fil.getAbsolutePath());
+                throw new RuntimeException("Unable to make URLClassLoader for tempDir: "
+                        + codeDir.getAbsolutePath());
             }
         }
 
+        /**
+         * This method fetches the SchemaTupleFactory that can create Tuples of the given
+         * Schema (ignoring aliases) and appendability. IMPORTANT: if no such SchemaTupleFactory
+         * is available, this returns null.
+         * @param   schema
+         * @param   true if it should be appendable
+         * @return  generating SchemaTupleFactory, null otherwise
+         */
         public SchemaTupleFactory newSchemaTupleFactory(Schema s, boolean isAppendable)  {
             return newSchemaTupleFactory(Pair.make(new SchemaKey(s), isAppendable));
         }
 
+        /**
+         * This method fetches the SchemaTupleFactory that generates the SchemaTuple
+         * registered with the given identifier. IMPORTANT: if no such SchemaTupleFactory
+         * is available, this returns null.
+         * @param   identifier
+         * @return  generating schemaTupleFactory, null otherwise
+         */
         public SchemaTupleFactory newSchemaTupleFactory(int id) {
             SchemaTupleFactory stf = schemaTupleFactoriesById.get(id);
             if (stf == null) {
@@ -156,6 +186,13 @@ public class SchemaTupleFactory extends TupleFactory {
             return stf;
         }
 
+        /**
+         * This method fetches the SchemaTupleFactory that can create Tuples of the given
+         * Schema and appendability. IMPORTANT: if no such SchemaTupleFactory is available,
+         * this returns null.
+         * @param   SchemaKey/appendability pair
+         * @return  generating SchemaTupleFactory, null otherwise
+         */
         private SchemaTupleFactory newSchemaTupleFactory(Pair<SchemaKey, Boolean> pr) {
             SchemaTupleFactory stf = schemaTupleFactoriesByPair.get(pr);
             if (stf == null) {
@@ -164,15 +201,27 @@ public class SchemaTupleFactory extends TupleFactory {
             return stf;
         }
 
+        /**
+         * This method copies all of the generated classes from the distributed cache to a local directory,
+         * and then seeks to resolve them and cache their respective SchemaTupleFactories.
+         * @param   configuration
+         * @param   true if the job is local
+         * @throws  IOException
+         */
         public void copyAndResolve(Configuration conf, boolean isLocal) throws IOException {
+            // Step one is to see if there are any classes in the distributed cache
             String shouldGenerate = conf.get(SchemaTupleClassGenerator.SHOULD_GENERATE_KEY);
             if (shouldGenerate == null || !Boolean.parseBoolean(shouldGenerate)) {
                 LOG.info("Key [" + SchemaTupleClassGenerator.SHOULD_GENERATE_KEY +"] was not set... aborting generation");
                 return;
             }
+            // Step two is to copy everything from the distributed cache if we are in distributed mode
             if (!isLocal) {
                 SchemaTupleClassGenerator.copyAllFromDistributedCache(conf);
             }
+            // Step three is to see if the file needs to be resolved
+            // If there is a "$" in the name, we know that it is an inner
+            // class and thus doesn't need to be instantiated directly.
             for (File f : SchemaTupleClassGenerator.getGeneratedFiles()) {
                 String name = f.getName().split("\\.")[0];
                 if (!name.contains("$")) {
@@ -180,6 +229,7 @@ public class SchemaTupleFactory extends TupleFactory {
                     LOG.info("Added class to list of class to resolve: " + name);
                 }
             }
+            // Step four is to actually try and resolve the classes
             resolveClasses();
         }
 
@@ -243,6 +293,7 @@ public class SchemaTupleFactory extends TupleFactory {
         }
     }
 
+    // This method proxies to the SchemaTupleResolver
     public static void copyAndResolve(Configuration jConf, boolean isLocal) throws IOException {
         schemaTupleResolver.copyAndResolve(jConf, isLocal);
     }

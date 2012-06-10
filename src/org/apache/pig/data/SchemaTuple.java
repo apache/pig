@@ -48,11 +48,13 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return 16; //Object header
     }
 
-    //need helpers that can be integrated with the generated code...
-    //also need a helper to serialize and deserialize (yuck)
-    //the first of the null bits can be dedicated to the append linkedlist... 1 if present,
-    //0 otherwise. If it is present, will severely affect serialization
-
+    /**
+     * This method will return the identifier that the generated code
+     * was generated with. This is useful because when the classes
+     * are resolved generically, this let's us know the identifier, which
+     * is used when serlializing and deserializing tuples.
+     * @return
+     */
     public abstract int getSchemaTupleIdentifier();
     public abstract String getSchemaString();
     protected abstract int sizeNoAppend();
