@@ -4,6 +4,8 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 
 public class StructuresHelper {
+    private StructuresHelper() {
+    }
 
     /**
      * This encapsulates a Schema and allows it to be used in such a way that

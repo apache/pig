@@ -1,6 +1,8 @@
 package org.apache.pig.data;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -216,6 +218,38 @@ public class SchemaTupleClassGenerator {
         LOG.info("Setting key [" + GENERATED_CLASSES_KEY + "] with classes to deserialize [" + toSer + "]");
         // we must set a key in the job conf so individual jobs know to resolve the shipped classes
         conf.set(GENERATED_CLASSES_KEY, toSer);
+    }
+
+    /**
+     * This method copies all generated code that was shipped via
+     * SchemaTupleClassGenerator.copyAllGeneratedToDistributedCache into the
+     * local directory for generated code. This is done in the actual map/reduce
+     * job.
+     * @param   conf
+     * @throws  IOException
+     */
+    protected static void copyAllFromDistributedCache(Configuration conf) throws IOException {
+        String toDeserialize = conf.get(GENERATED_CLASSES_KEY);
+        if (toDeserialize == null) {
+            LOG.info("No classes in in key [" + GENERATED_CLASSES_KEY + "] to copy from distributed cache.");
+            return;
+        }
+        LOG.info("Copying files in key ["+GENERATED_CLASSES_KEY+"] from distributed cache: " + toDeserialize);
+        for (String s : toDeserialize.split(",")) {
+            LOG.info("Attempting to read file: " + s);
+            // The string is the symlink into the distributed cache
+            FileInputStream fin = new FileInputStream(new File(s));
+            FileOutputStream fos = new FileOutputStream(tempFile(s));
+
+            int read;
+            byte[] buf = new byte[1024*1024];
+            while ((read = fin.read(buf)) > -1) {
+                fos.write(buf, 0, read);
+            }
+            fin.close();
+            fos.close();
+            LOG.info("Successfully copied file to local directory.");
+        }
     }
 
     /**

@@ -141,12 +141,30 @@ public abstract class TupleFactory {
      */
     public abstract Tuple newTuple(Object datum);
 
+    // This gets an instance of the resolver which holds all SchemaTupleFactory information
     private static SchemaTupleResolver schemaTupleResolver = SchemaTupleFactory.getSchemaTupleResolver();
 
+    /**
+     * This method is the publicly facing method which returns a SchemaTupleFactory
+     * which will generate SchemaTuples of the given Schema. Note that this method
+     * returns null if such a given SchemaTupleFactory does not exist, instead of
+     * throwing an error.
+     * @param   schema
+     * @param   true or false if an appendable SchemaTuple is desired
+     * @return  a SchemaTupleFactory which will return SchemaTuple's of the desired Schema
+     */
     public static SchemaTupleFactory getInstanceForSchema(Schema s, boolean isAppendable) {
         return schemaTupleResolver.newSchemaTupleFactory(s, isAppendable);
     }
 
+    /**
+     * This method is the publicly facing method which returns a SchemaTupleFactory
+     * which will generate the SchemaTuple associated with the given identifier. This method
+     * is primarily for internal use in cases where the problem SchemaTuple is known
+     * based on the identifier associated with it (such as when deserializing).
+     * @param   identifier
+     * @return  a SchemaTupleFactory which will return SchemaTuple's of the given identifier
+     */
     public static SchemaTupleFactory getInstanceForSchemaId(int id) {
         return schemaTupleResolver.newSchemaTupleFactory(id);
     }

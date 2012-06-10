@@ -1,10 +1,10 @@
 package org.apache.pig.data.utils;
 
-import java.lang.reflect.Method;
+import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.ElementType;
 import java.lang.annotation.Target;
+import java.lang.reflect.Method;
 
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
@@ -12,6 +12,9 @@ import org.apache.pig.classification.InterfaceStability;
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
 public class MethodHelper {
+    private MethodHelper() {
+    }
+
     /**
      * This is an annotation which allows a class to signal that while it is "implementing"
      * a method because it is specified by a parent class or interface, that the implementation
