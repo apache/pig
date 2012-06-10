@@ -33,7 +33,7 @@ import org.apache.pig.data.Tuple;
  * It also provides a getIndex() and setIndex() calls that are used to get
  * and set the index.  These can be used by LocalRearrange, the partitioner,
  * and Package to determine the index.
- * 
+ *
  * Index and the null indicator are packed into one byte to save space.
  */
 
@@ -48,19 +48,19 @@ public abstract class PigNullableWritable implements WritableComparable {
      * This is a bitmask used in those cases.
      */
     public static final byte mqFlag = (byte)0x80;
-    
+
     /**
      *  regular indices used in group and cogroup
      *  can only go from 0x00 to 0x7F
      */
     public static final byte idxSpace = (byte)0x7F;
-    
-    private boolean mNull;
+
+    protected boolean mNull;
 
     protected WritableComparable mValue;
 
-    private byte mIndex;
-       
+    protected byte mIndex;
+
     /**
      * Compare two nullable objects.  Step one is to check if either or both
      * are null.  If one is null and the other is not, then the one that is
@@ -75,14 +75,14 @@ public abstract class PigNullableWritable implements WritableComparable {
         PigNullableWritable w = (PigNullableWritable)o;
 
         if ((mIndex & mqFlag) != 0) { // this is a multi-query index
-            
+
             if ((mIndex & idxSpace) < (w.mIndex & idxSpace)) return -1;
             else if ((mIndex & idxSpace) > (w.mIndex & idxSpace)) return 1;
         }
-        
+
         if (!mNull && !w.mNull) {
             int result = mValue.compareTo(w.mValue);
-            
+
             // If any of the field inside tuple is null, then we do not merge keys
             // See PIG-927
             if (result == 0 && mValue instanceof Tuple && w.mValue instanceof Tuple)
@@ -102,7 +102,7 @@ public abstract class PigNullableWritable implements WritableComparable {
             else if ((mIndex & idxSpace) > (w.mIndex & idxSpace)) return 1;
             else return 0;
         }
-        else if (mNull) return -1; 
+        else if (mNull) return -1;
         else return 1;
     }
 
@@ -137,7 +137,7 @@ public abstract class PigNullableWritable implements WritableComparable {
     public void setNull(boolean isNull) {
         mNull = isNull;
     }
-    
+
     /**
      * @return the index for this value
      */
@@ -169,8 +169,8 @@ public abstract class PigNullableWritable implements WritableComparable {
         else return mValue.hashCode();
     }
 
-    
-    
+
+
     @Override
     public boolean equals(Object arg0) {
         return compareTo(arg0)==0;

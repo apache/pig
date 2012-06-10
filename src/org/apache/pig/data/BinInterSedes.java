@@ -109,6 +109,20 @@ public class BinInterSedes implements InterSedes {
     public static final int UNSIGNED_BYTE_MAX = 255;
     public static final String UTF8 = "UTF-8";
 
+    public Tuple readTuple(DataInput in, byte type) throws IOException {
+        switch (type) {
+        case TUPLE:
+        case TINYTUPLE:
+        case SMALLTUPLE:
+            return SedesHelper.readGenericTuple(in, type);
+        case SCHEMA_TUPLE_BYTE_INDEX:
+        case SCHEMA_TUPLE_SHORT_INDEX:
+        case SCHEMA_TUPLE:
+            return readSchemaTuple(in, type);
+        default:
+            throw new ExecException("Unknown Tuple type found in stream: " + type);
+        }
+    }
 
     private Tuple readSchemaTuple(DataInput in, byte type) throws IOException {
         int id;
@@ -1147,5 +1161,9 @@ public class BinInterSedes implements InterSedes {
     @Override
     public Class<? extends TupleRawComparator> getTupleRawComparatorClass() {
         return BinInterSedesTupleRawComparator.class;
+    }
+
+    public Tuple readTuple(DataInput in) throws IOException {
+        return readTuple(in, in.readByte());
     }
 }
