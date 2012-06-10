@@ -1,13 +1,9 @@
 package org.apache.pig.data;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.security.SecureClassLoader;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -15,15 +11,11 @@ import java.util.Queue;
 
 import javax.tools.Diagnostic;
 import javax.tools.DiagnosticCollector;
-import javax.tools.FileObject;
-import javax.tools.ForwardingJavaFileManager;
 import javax.tools.JavaCompiler;
 import javax.tools.JavaFileManager;
 import javax.tools.JavaFileObject;
 import javax.tools.SimpleJavaFileObject;
-import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
-import javax.tools.JavaFileObject.Kind;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -34,7 +26,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.pig.ExecType;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
-import org.apache.pig.data.utils.StructuresHelper;
+import org.apache.pig.data.utils.StructuresHelper.Pair;
+import org.apache.pig.data.utils.StructuresHelper.SchemaKey;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -43,19 +36,20 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.io.Files;
 
-//TODO: implement a raw comparator for it?
-//TODO: massLoad() should be based on a properties file in the jar that has all of the values I wrote to it
-//TODO: generate code for each unique tuple we get (don't strip on generation)
+//TODO: need to deal with the raw comparator issue
 
-//TODO: could combine the isNull and the boolean byte... code complication may not be worth the 1 byte (at most) saving
-
-//the benefit of having the generic here is that in the case that we do ".set(t)" and t is the right type, it will be faster
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
 public class SchemaTupleClassGenerator {
     private static final Log LOG = LogFactory.getLog(SchemaTupleClassGenerator.class);
 
-    private static File generatedCodeTempDir = Files.createTempDir(); //this is the temp dir into which all class files will be written
+    /**
+     * This is the temporary directory into which all generated code is written.
+     * This is known and written to statically, generally depending on the
+     * lifecycle of the creation of Pig jobs.
+     */
+    private static File generatedCodeTempDir = Files.createTempDir();
+
     static {
         generatedCodeTempDir.deleteOnExit();
     }
@@ -63,9 +57,6 @@ public class SchemaTupleClassGenerator {
     protected static File getGenerateCodeTempDir() {
         return generatedCodeTempDir;
     }
-
-    public static final String GENERATED_CLASSES_KEY = "pig.schematuple.classes";
-    public static final String SHOULD_GENERATE_KEY = "pig.schematuple";
 
     protected static File[] getGeneratedFiles() {
         return generatedCodeTempDir.listFiles();
@@ -75,10 +66,34 @@ public class SchemaTupleClassGenerator {
         return new File(generatedCodeTempDir, name);
     }
 
+    /**
+     * This key is used in the job conf to let the various jobs know what code was
+     * generated.
+     */
+    public static final String GENERATED_CLASSES_KEY = "pig.schematuple.classes";
+
+    /**
+     * This key must be set to true by the user for code generation to be used.
+     * In the future, it may be turned on by default (at least in certain cases),
+     * but for now it is too experimental.
+     */
+    public static final String SHOULD_GENERATE_KEY = "pig.schematuple";
+
+    /**
+     * This value is used to distinguish all of the generated code.
+     * The general naming scheme used is SchemaTupe_identifier. Note that
+     * identifiers are incremented before code is actually generated.
+     */
     private static int globalClassIdentifier = 0;
 
+    /**
+     * This class actually generates the code for a given Schema.
+     * @param schema
+     * @param true or false depending on whether it should be appendable
+     * @param identifier
+     */
     private static void generateSchemaTuple(Schema s, boolean appendable, int id) {
-        String codeString = produceCodeString(s, id, appendable);
+        String codeString = produceCodeString(s, appendable, id);
 
         String name = "SchemaTuple_" + id;
 
@@ -94,7 +109,121 @@ public class SchemaTupleClassGenerator {
         return id;
     }
 
-    private static String produceCodeString(Schema s, int id, boolean appendable) {
+    /**
+     * Schemas registered for generation are held here.
+     */
+    private static Map<SchemaKey, Pair<Integer, Boolean>> schemasToGenerate = Maps.newHashMap();
+
+    /**
+     * This sets into motion the generation of all "registered" Schemas. All code will be generated
+     * into the temporary directory.
+     * @return true of false depending on if there are any files to copy to the distributed cache
+     */
+    public static boolean generateAllSchemaTuples() {
+        boolean filesToShip = false;
+        LOG.info("Generating all registered Schemas.");
+        for (Map.Entry<SchemaKey, Pair<Integer,Boolean>> entry : schemasToGenerate.entrySet()) {
+            Schema s = entry.getKey().get();
+            Pair<Integer,Boolean> value = entry.getValue();
+            int id = value.getFirst();
+            boolean isAppendable = value.getSecond();
+            SchemaTupleClassGenerator.generateSchemaTuple(s, isAppendable, id);
+            filesToShip = true;
+        }
+        return filesToShip;
+    }
+
+    /**
+     * This method "registers" a Schema to be generated. It allows a portions of the code
+     * to register a Schema for generation without knowing whether code generation is enabled.
+     * A unique ID will be passed back, so in the actual M/R job, code needs to make sure that
+     * generation was turned on or else the classes will not be present!
+     * @param   udfSchema
+     * @param   isAppendable
+     * @return  identifier
+     */
+    public static int registerToGenerateIfPossible(Schema udfSchema, boolean isAppendable) {
+        SchemaKey sk = new SchemaKey(udfSchema);
+        Pair<Integer, Boolean> pr = schemasToGenerate.get(sk);
+        if (pr != null) {
+            return pr.getFirst();
+        }
+        if (!SchemaTupleFactory.isGeneratable(udfSchema)) {
+            return -1;
+        }
+        int id = getGlobalClassIdentifier();
+        schemasToGenerate.put(sk, Pair.make(Integer.valueOf(id), isAppendable));
+        LOG.info("Registering "+(isAppendable ? "Appendable" : "")+"Schema for generation [" + udfSchema + "] with id [" + id + "]");
+        return id;
+    }
+
+    /**
+     * This method copies all class files present in the local temp directory to the distributed cache.
+     * All copied files will have a symlink of their name. No files will be copied if the current
+     * job is being run from local mode.
+     * @param pigContext
+     * @param conf
+     */
+    public static void copyAllGeneratedToDistributedCache(PigContext pigContext, Configuration conf) {
+        LOG.info("Starting process to move generated code to distributed cacche");
+        if (pigContext.getExecType() == ExecType.LOCAL) {
+            LOG.info("Distributed cache not supported or needed in local mode.");
+            return;
+        }
+        DistributedCache.createSymlink(conf); // we will read using symlinks
+        StringBuilder serialized = new StringBuilder();
+        boolean first = true;
+        // We attempt to copy over every file in the generated code temp directory
+        for (File f : getGeneratedFiles()) {
+            if (first) {
+                first = false;
+            } else {
+                serialized.append(",");
+            }
+            String symlink = f.getName(); //the class name will also be the symlink
+            serialized.append(symlink);
+            Path src = new Path(f.toURI());
+            Path dst;
+            try {
+                dst = FileLocalizer.getTemporaryPath(pigContext);
+            } catch (IOException e) {
+                throw new RuntimeException("Error getting temporary path in HDFS", e);
+            }
+            FileSystem fs;
+            try {
+                fs = dst.getFileSystem(conf);
+            } catch (IOException e) {
+                throw new RuntimeException("Unable to get FileSystem", e);
+            }
+            try {
+                fs.copyFromLocalFile(src, dst);
+            } catch (IOException e) {
+                throw new RuntimeException("Unable to copy from local filesystem to HDFS", e);
+            }
+
+            String destination = dst.toString() + "#" + symlink;
+
+            try {
+                DistributedCache.addCacheFile(new URI(destination), conf);
+            } catch (URISyntaxException e) {
+                throw new RuntimeException("Unable to add file to distributed cache: " + destination, e);
+            }
+            LOG.info("File successfully added to the distributed cache: " + symlink);
+        }
+        String toSer = serialized.toString();
+        LOG.info("Setting key [" + GENERATED_CLASSES_KEY + "] with classes to deserialize [" + toSer + "]");
+        // we must set a key in the job conf so individual jobs know to resolve the shipped classes
+        conf.set(GENERATED_CLASSES_KEY, toSer);
+    }
+
+    /**
+     * This method generates the actual SchemaTuple for the given Schema.
+     * @param   schema
+     * @param   whether the class should be appendable
+     * @param   identifier
+     * @return  the generated class's implementation
+     */
+    private static String produceCodeString(Schema s, boolean appendable, int id) {
         TypeInFunctionStringOutFactory f = new TypeInFunctionStringOutFactory(s, id, appendable);
 
         for (Schema.FieldSchema fs : s.getFields()) {
@@ -104,121 +233,8 @@ public class SchemaTupleClassGenerator {
         return f.end();
     }
 
-
     private static int getGlobalClassIdentifier() {
         return globalClassIdentifier++;
-    }
-
-    private static class JavaToTempFileClassObject extends SimpleJavaFileObject {
-        private final File temp;
-
-        public JavaToTempFileClassObject(String name, Kind kind) {
-            super(new File(generatedCodeTempDir, name + kind.extension).toURI(), kind);
-            temp = new File(super.toUri());
-        }
-
-        public File getTempFile() {
-            return temp;
-        }
-
-        @Override
-        public OutputStream openOutputStream() throws IOException {
-            return new FileOutputStream(temp);
-        }
-    }
-
-    // The following is taken from http://www.javablogging.com/dynamic-in-memory-compilation/
-    private static class JavaClassObject extends SimpleJavaFileObject {
-        /**
-        * Byte code created by the compiler will be stored in this
-        * ByteArrayOutputStream so that we can later get the
-        * byte array out of it
-        * and put it in the memory as an instance of our class.
-        */
-        protected final ByteArrayOutputStream bos = new ByteArrayOutputStream();
-
-        /**
-        * Registers the compiled class object under URI
-        * containing the class full name
-        *
-        * @param name Full name of the compiled class
-        * @param kind Kind of the data. It will be CLASS in our case
-        */
-        public JavaClassObject(String name, Kind kind) {
-            super(URI.create("string:///" + name.replace('.', '/') + kind.extension), kind);
-        }
-
-        /**
-        * Will be used by our file manager to get the byte code that
-        * can be put into memory to instantiate our class
-        *
-        * @return compiled byte code
-        */
-        public byte[] getBytes() {
-            return bos.toByteArray();
-        }
-
-        /**
-        * Will provide the compiler with an output stream that leads
-        * to our byte array. This way the compiler will write everything
-        * into the byte array that we will instantiate later
-        */
-        @Override
-        public OutputStream openOutputStream() throws IOException {
-            return bos;
-        }
-    }
-
-    // The following is taken from http://www.javablogging.com/dynamic-in-memory-compilation/
-    private static class ClassFileManager extends ForwardingJavaFileManager<StandardJavaFileManager> {
-        /**
-        * Instance of JavaClassObject that will store the
-        * compiled bytecode of our class
-        */
-        //private JavaClassObject jclassObject;
-        private JavaClassObject jclassObject;
-
-        /**
-        * Will initialize the manager with the specified
-        * standard java file manager
-        *
-        * @param standardManger
-        */
-        public ClassFileManager(StandardJavaFileManager standardManager) {
-            super(standardManager);
-        }
-
-        public byte[] getBytes() {
-            return jclassObject.getBytes();
-        }
-
-        /**
-        * Will be used by us to get the class loader for our
-        * compiled class. It creates an anonymous class
-        * extending the SecureClassLoader which uses the
-        * byte code created by the compiler and stored in
-        * the JavaClassObject, and returns the Class for it
-        */
-        @Override
-        public ClassLoader getClassLoader(Location location) {
-            return new SecureClassLoader() {
-                @Override
-                protected Class<?> findClass(String name) {
-                    byte[] b = jclassObject.getBytes();
-                    return super.defineClass(name, b, 0, b.length);
-                }
-            };
-        }
-
-        /**
-        * Gives the compiler an instance of the JavaClassObject
-        * so that the compiler can write the byte code into it.
-        */
-        @Override
-        public JavaFileObject getJavaFileForOutput(Location location, String className, Kind kind, FileObject sibling) throws IOException {
-            jclassObject = new JavaClassObject(className, kind);
-            return jclassObject;
-        }
     }
 
     private static void compileCodeString(String generatedCodeString, String className) {
@@ -243,7 +259,7 @@ public class SchemaTupleClassGenerator {
 
         if (!compiler.getTask(null, fileManager, diagnostics, optionList, null, compilationUnits).call()) {
             LOG.warn("Error compiling: " + className + ". Printing compilation errors and shutting down.");
-            for (Diagnostic diagnostic : diagnostics.getDiagnostics()) {
+            for (Diagnostic<? extends JavaFileObject> diagnostic : diagnostics.getDiagnostics()) {
                 LOG.warn("Error on line " + diagnostic.getLineNumber() + ": " + diagnostic.getMessage(Locale.US));
             }
             throw new RuntimeException("Unable to compile code string:\n" + generatedCodeString);
@@ -311,11 +327,9 @@ public class SchemaTupleClassGenerator {
 
     //TODO clear up how it deals with nulls etc. IE is the logic correct
     static class CompareToString extends TypeInFunctionStringOut {
-        private Queue<Integer> nextNestedSchemaIdForCompareTo;
         private int id;
 
-        public CompareToString(Queue<Integer> nextNestedSchemaIdForCompareTo, int id) {
-            this.nextNestedSchemaIdForCompareTo = nextNestedSchemaIdForCompareTo;
+        public CompareToString(int id) {
             this.id = id;
         }
 
@@ -358,8 +372,6 @@ public class SchemaTupleClassGenerator {
     }
 
     static class HashCode extends TypeInFunctionStringOut {
-        private int nulls = 0;
-
         public void prepare() {
             add("@Override");
             add("public int hashCode() {");
@@ -778,7 +790,7 @@ public class SchemaTupleClassGenerator {
     static class MemorySizeString extends TypeInFunctionStringOut {
         private int size = 0;
 
-        String s = "    return SizeUtil.roundToEight(super.getMemorySize() + ";
+        String s = "    return super.getMemorySize() + SizeUtil.roundToEight(";
 
         public void prepare() {
             add("@Override");
@@ -799,14 +811,16 @@ public class SchemaTupleClassGenerator {
             } else if (isString()) {
                 s += "(pos_"+fieldPos+" == null ? 8 : SizeUtil.getPigObjMemSize(pos_"+fieldPos+")) + ";
             } else if (isBoolean()) {
-                if (booleans++ % 8 == 0)
+                if (booleans++ % 8 == 0) {
                     size++; //accounts for the byte used to store boolean values
+                }
             } else {
                 s += "(pos_"+fieldPos+" == null ? 8 : pos_"+fieldPos+".getMemorySize()) + ";
             }
 
-            if (isPrimitive() && primitives++ % 8 == 0)
+            if (isPrimitive() && primitives++ % 8 == 0) {
                 size++; //accounts for the null byte
+            }
         }
 
         public void end() {
@@ -1092,9 +1106,8 @@ public class SchemaTupleClassGenerator {
             Queue<Integer> nextNestedSchemaIdForSetPos = Lists.newLinkedList();
             Queue<Integer> nextNestedSchemaIdForGetPos = Lists.newLinkedList();
             Queue<Integer> nextNestedSchemaIdForReadField = Lists.newLinkedList();
-            Queue<Integer> nextNestedSchemaIdForCompareTo = Lists.newLinkedList();
 
-            List<Queue<Integer>> listOfQueuesForIds = Lists.newArrayList(nextNestedSchemaIdForSetPos, nextNestedSchemaIdForGetPos, nextNestedSchemaIdForReadField, nextNestedSchemaIdForCompareTo);
+            List<Queue<Integer>> listOfQueuesForIds = Lists.newArrayList(nextNestedSchemaIdForSetPos, nextNestedSchemaIdForGetPos, nextNestedSchemaIdForReadField);
 
             listOfFutureMethods.add(new FieldString(listOfQueuesForIds, s, appendable)); //has to be run first
             listOfFutureMethods.add(new SetPosString(nextNestedSchemaIdForSetPos));
@@ -1117,7 +1130,7 @@ public class SchemaTupleClassGenerator {
             listOfFutureMethods.add(new HashCode());
             listOfFutureMethods.add(new SizeNoAppendString());
             listOfFutureMethods.add(new GetTypeString());
-            listOfFutureMethods.add(new CompareToString(nextNestedSchemaIdForCompareTo, id));
+            listOfFutureMethods.add(new CompareToString(id));
             listOfFutureMethods.add(new CompareToSpecificString(id, appendable));
             listOfFutureMethods.add(new SetEqualToSchemaTupleString(id));
             listOfFutureMethods.add(new PrimitiveSetString(DataType.INTEGER));
@@ -1320,93 +1333,5 @@ public class SchemaTupleClassGenerator {
         }
     }
 
-    private static Map<StructuresHelper.SchemaKey, StructuresHelper.Pair<Integer, Boolean>> schemasToGenerate = Maps.newHashMap();
 
-    public static boolean generateAllSchemaTuples() {
-        boolean filesToShip = false;
-        LOG.info("Generating all registered Schemas.");
-        for (Map.Entry<StructuresHelper.SchemaKey, StructuresHelper.Pair<Integer,Boolean>> entry : schemasToGenerate.entrySet()) {
-            Schema s = entry.getKey().get();
-            StructuresHelper.Pair<Integer,Boolean> value = entry.getValue();
-            int id = value.getFirst();
-            boolean isAppendable = value.getSecond();
-            SchemaTupleClassGenerator.generateSchemaTuple(s, isAppendable, id);
-            filesToShip = true;
-        }
-        return filesToShip;
-    }
-
-    /**
-     * This class essentially allows portions of the code to register a Schema
-     * to potentially be generated. It is not generated directly because they might
-     * have that feature turned off. A unique ID will be passed back, so in the actual
-     * M/R job, code needs to make sure that generation was turned on or else the classes
-     * will not be present!
-     * @param udfSchema
-     * @param isAppendable
-     * @return
-     */
-    public static int registerToGenerateIfPossible(Schema udfSchema, boolean isAppendable) {
-        StructuresHelper.SchemaKey sk = new StructuresHelper.SchemaKey(udfSchema);
-        StructuresHelper.Pair<Integer, Boolean> pr = schemasToGenerate.get(sk);
-        if (pr != null) {
-            return pr.getFirst();
-        }
-        if (!SchemaTupleFactory.isGeneratable(udfSchema)) {
-            return -1;
-        }
-        int id = getGlobalClassIdentifier();
-        schemasToGenerate.put(sk, StructuresHelper.Pair.make(Integer.valueOf(id), isAppendable));
-        LOG.info("Registering "+(isAppendable ? "Appendable" : "")+"Schema for generation [" + udfSchema + "] with id [" + id + "]");
-        return id;
-     }
-
-    public static void copyAllGeneratedToDistributedCache(PigContext pigContext, Configuration conf) {
-        LOG.info("Starting process to move generated code to distributed cacche");
-        if (pigContext.getExecType() == ExecType.LOCAL) {
-            LOG.info("Distributed cache not supported or needed in local mode.");
-            return;
-        }
-        StringBuilder serialized = new StringBuilder();
-        DistributedCache.createSymlink(conf);
-        File[] gennedFiles = getGeneratedFiles();
-        for (int i = 0; i < gennedFiles.length; i++) {
-            File f = gennedFiles[i];
-            serialized.append(f.getName());
-            if (i < gennedFiles.length - 1) {
-                serialized.append(",");
-            }
-            String symlink = f.getName();
-            Path src = new Path(f.toURI());
-            Path dst;
-            try {
-                dst = FileLocalizer.getTemporaryPath(pigContext);
-            } catch (IOException e) {
-                throw new RuntimeException("Error getting temporary path in HDFS", e);
-            }
-            FileSystem fs;
-            try {
-                fs = dst.getFileSystem(conf);
-            } catch (IOException e) {
-                throw new RuntimeException("Unable to get FileSystem", e);
-            }
-            try {
-                fs.copyFromLocalFile(src, dst);
-            } catch (IOException e) {
-                throw new RuntimeException("Unable to copy from local filesystem to HDFS", e);
-            }
-
-            String destination = dst.toString() + "#" + symlink;
-
-            try {
-                DistributedCache.addCacheFile(new URI(destination), conf);
-            } catch (URISyntaxException e) {
-                throw new RuntimeException("Unable to add file to distributed cache: " + destination, e);
-            }
-            LOG.info("File successfully added to the distributed cache: " + symlink);
-        }
-        String toSer = serialized.toString();
-        LOG.info("Setting key [" + GENERATED_CLASSES_KEY + "] with classes to deserialize [" + toSer + "]");
-        conf.set(GENERATED_CLASSES_KEY, toSer);
-    }
 }

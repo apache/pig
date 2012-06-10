@@ -38,4 +38,10 @@ public class MethodHelper {
         }
         return isNotImplementedAnnotationPresent(m, clazz.getSuperclass());
     }
+
+    public static RuntimeException methodNotImplemented() {
+        StackTraceElement[] ste = Thread.currentThread().getStackTrace();
+        StackTraceElement pre = ste[ste.length - 2];
+        return new RuntimeException(pre.getMethodName() + " not implemented in " + pre.getClassName());
+    }
 }

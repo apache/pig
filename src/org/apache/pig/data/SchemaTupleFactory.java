@@ -15,17 +15,15 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.data.SchemaTuple.SchemaTupleQuickGenerator;
+import org.apache.pig.data.utils.HierarchyHelper;
+import org.apache.pig.data.utils.MethodHelper;
 import org.apache.pig.data.utils.StructuresHelper;
 import org.apache.pig.data.utils.MethodHelper.NotImplemented;
-import org.apache.pig.data.utils.StructuresHelper.Pair;
-import org.apache.pig.data.utils.StructuresHelper.SchemaKey;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-//TODO Use code generation to avoid having to do clazz.newInstance(), and to be able to directly return the proper SchemaTuple
-//TODO can just have a small container class that the generated code extends that has any functionality specific to that
 public class SchemaTupleFactory extends TupleFactory {
     private static final Log LOG = LogFactory.getLog(SchemaTupleFactory.class);
 
@@ -58,34 +56,28 @@ public class SchemaTupleFactory extends TupleFactory {
         return generator.make();
     }
 
-    public static RuntimeException methodNotImplemented() {
-        StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-        StackTraceElement pre = ste[ste.length - 2];
-        return new RuntimeException(pre.getMethodName() + " not implemented in " + pre.getClassName());
-    }
-
     @Override
     @NotImplemented
     public Tuple newTuple(int size) {
-        throw methodNotImplemented();
+        throw MethodHelper.methodNotImplemented();
     }
 
     @Override
     @NotImplemented
     public Tuple newTuple(List c) {
-        throw methodNotImplemented();
+        throw MethodHelper.methodNotImplemented();
     }
 
     @Override
     @NotImplemented
     public Tuple newTupleNoCopy(List c) {
-        throw methodNotImplemented();
+        throw MethodHelper.methodNotImplemented();
     }
 
     @Override
     @NotImplemented
     public Tuple newTuple(Object datum) {
-        throw methodNotImplemented();
+        throw MethodHelper.methodNotImplemented();
     }
 
     @Override
@@ -190,6 +182,7 @@ public class SchemaTupleFactory extends TupleFactory {
          * Once all of the files are copied from the distributed cache to the local
          * temp directory, this will attempt to resolve those files and add their information.
          */
+        @SuppressWarnings("unchecked")
         public void resolveClasses() {
             for (String s : filesToResolve) {
                 LOG.info("Attempting to resolve class: " + s);
@@ -198,6 +191,9 @@ public class SchemaTupleFactory extends TupleFactory {
                     clazz = classLoader.loadClass(s);
                 } catch (ClassNotFoundException e1) {
                     throw new RuntimeException("Unable to find class: " + s);
+                }
+                if (!HierarchyHelper.verifyMustOverride(clazz)) {
+                    LOG.error("Class ["+clazz+"] does NOT override all @MustOverride methods!");
                 }
                 Object o;
                 try {

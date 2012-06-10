@@ -8,6 +8,7 @@ import java.util.List;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
+import org.apache.pig.data.utils.MethodHelper;
 import org.apache.pig.data.utils.SedesHelper;
 import org.apache.pig.data.utils.HierarchyHelper.MustOverride;
 import org.apache.pig.data.utils.MethodHelper.NotImplemented;
@@ -18,6 +19,14 @@ import org.apache.pig.impl.util.Utils;
 import com.google.common.collect.Lists;
 
 //the benefit of having the generic here is that in the case that we do ".set(t)" and t is the right type, it will be very fast
+/**
+ * A SchemaTuple is a type aware tuple that is much faster and more memory efficient.
+ * In our implementation, given a Schema, code generation is used to extend this class.
+ * This class provides a broad range of functionality that minimizes the complexity of the
+ * code that must be generated. The odd looking generic signature allows for certain
+ * optimizations, such as "setSpecific(T t)", which allows us to do much faster sets and
+ * comparisons when types match (since the code is generated, there is no other way to know).
+ */
 @InterfaceAudience.Public
 @InterfaceStability.Unstable
 public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTuple implements TypeAwareTuple {
@@ -26,13 +35,17 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
     @NotImplemented
     @Override
     public void append(Object val) {
-        throw SchemaTupleFactory.methodNotImplemented();
+        throw MethodHelper.methodNotImplemented();
     }
 
-    //TODO this should account for all of the non-generated objects, and the general cost of being an object
+    /**
+     * This only accounts for the size of members (adjusting for word alignment). It also includes
+     * the size of the object itself, since this never affects word boundaries.
+     */
+    @Override
     @MustOverride
     public long getMemorySize() {
-        return 0;
+        return 16; //Object header
     }
 
     //need helpers that can be integrated with the generated code...
@@ -536,6 +549,15 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         }
     }
 
+    /**
+     * This method is responsible for writing everything contained by the Tuple.
+     * Note that the base SchemaTuple class does not have an implementation (but is
+     * not abstract) so that the generated code can call this method via super
+     * without worrying about whether it is abstract or not, as there may be classes in
+     * between in the inheritance tree (such as AppendableSchemaTuple).
+     * @param out
+     * @throws IOException
+     */
     @MustOverride
     protected void writeElements(DataOutput out) throws IOException {
     }
@@ -553,8 +575,7 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
     protected int compareNull(boolean usNull, boolean themNull) {
         if (usNull && themNull) {
             return 2;
-        }
-        if (themNull) {
+        } else if (themNull) {
             return 1;
         } else if (usNull) {
             return -1;
@@ -583,10 +604,7 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
     }
 
     protected int compare(int val, int themVal) {
-        if (val != themVal) {
-            return val > themVal ? 1 : -1;
-        }
-        return 0;
+        return val == themVal ? 0 : (val > themVal ? 1 : -1);
     }
 
     protected int compare(long val, SchemaTuple<?> t, int pos) {
@@ -600,10 +618,7 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
     }
 
     protected int compare(long val, long themVal) {
-        if (val != themVal) {
-            return val > themVal ? 1 : -1;
-        }
-        return 0;
+        return val == themVal ? 0 : (val > themVal ? 1 : -1);
     }
 
     protected int compare(float val, SchemaTuple<?> t, int pos) {
@@ -617,10 +632,7 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
     }
 
     public int compare(float val, float themVal) {
-        if (val != themVal) {
-            return val > themVal ? 1 : -1;
-        }
-        return 0;
+        return val == themVal ? 0 : (val > themVal ? 1 : -1);
     }
 
     protected int compare(double val, SchemaTuple<?> t, int pos) {
@@ -634,10 +646,7 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
     }
 
     protected int compare(double val, double themVal) {
-        if (val != themVal) {
-            return val > themVal ? 1 : -1;
-        }
-        return 0;
+        return val == themVal ? 0 : (val > themVal ? 1 : -1);
     }
 
     protected int compare(boolean val, SchemaTuple<?> t, int pos) {
@@ -694,8 +703,10 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
     }
 
     /**
-     * This is slightly annoying, but this will allow SchemaTupleFactories to
-     * avoid having to use reflection to instantiate a new SchemaTuple
+     * This is a mechanism which allows the SchemaTupleFactory to
+     * get around having to use reflection. The generated code
+     * will return a generator which will be created via reflection,
+     * but after which can generate SchemaTuples at native speed.
      */
     public abstract SchemaTupleQuickGenerator<T> getQuickGenerator();
 

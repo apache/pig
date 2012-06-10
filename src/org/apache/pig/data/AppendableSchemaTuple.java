@@ -61,10 +61,13 @@ public abstract class AppendableSchemaTuple<T extends AppendableSchemaTuple<T>> 
         append.set(fieldNum, val);
     }
 
-    //TODO this should account for all of the non-generated objects, and the general cost of being an object
+    /**
+     * This adds the additional overhead of the append Tuple
+     */
+    @Override
     @MustOverride
     public long getMemorySize() {
-        return 0;
+        return SizeUtil.roundToEight(append.getMemorySize()) + super.getMemorySize();
     }
 
     private byte appendType(int i) throws ExecException {
