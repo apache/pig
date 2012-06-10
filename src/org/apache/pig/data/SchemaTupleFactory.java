@@ -119,16 +119,21 @@ public class SchemaTupleFactory extends TupleFactory {
 
     private static SchemaTupleResolver schemaTupleResolver = new SchemaTupleResolver();
 
-    public static SchemaTupleResolver getSchemaTupleResolver() {
+    protected static SchemaTupleResolver getSchemaTupleResolver() {
         return schemaTupleResolver;
     }
 
-    public static class SchemaTupleResolver {
+    protected static class SchemaTupleResolver {
         private Set<String> filesToResolve = Sets.newHashSet();
 
+        /**
+         * We use the URLClassLoader to resolve the generated classes because we can
+         * simply give it the directory we put all of the compiled class files into,
+         * and it will handle the dynamic loading.
+         */
         private URLClassLoader classLoader;
-        private Map<Pair<SchemaKey, Boolean>, SchemaTupleFactory> schemaTupleFactories = Maps.newHashMap();
-        private Map<Integer, Pair<SchemaKey,Boolean>> identifiers = Maps.newHashMap();
+        private Map<Pair<SchemaKey, Boolean>, SchemaTupleFactory> schemaTupleFactoriesByPair = Maps.newHashMap();
+        private Map<Integer, SchemaTupleFactory> schemaTupleFactoriesById = Maps.newHashMap();
 
         private SchemaTupleResolver() {
             File fil = SchemaTupleClassGenerator.getGenerateCodeTempDir();
@@ -144,15 +149,15 @@ public class SchemaTupleFactory extends TupleFactory {
         }
 
         public SchemaTupleFactory newSchemaTupleFactory(int id) {
-            Pair<SchemaKey, Boolean> pr = identifiers.get(id);
-            if (pr == null) {
-                LOG.warn("No SchemaTuple present for given identifier: " + id);
+            SchemaTupleFactory stf = schemaTupleFactoriesById.get(id);
+            if (stf == null) {
+                LOG.warn("No SchemaTupleFactory present for given identifier: " + id);
             }
-            return newSchemaTupleFactory(pr);
+            return stf;
         }
 
         private SchemaTupleFactory newSchemaTupleFactory(Pair<SchemaKey, Boolean> pr) {
-            SchemaTupleFactory stf = schemaTupleFactories.get(pr);
+            SchemaTupleFactory stf = schemaTupleFactoriesByPair.get(pr);
             if (stf == null) {
                 LOG.warn("No SchemaTupleFactory present for given SchemaKey/Boolean combination: " + pr);
             }
@@ -186,42 +191,59 @@ public class SchemaTupleFactory extends TupleFactory {
         public void resolveClasses() {
             for (String s : filesToResolve) {
                 LOG.info("Attempting to resolve class: " + s);
+                // Step one is to simply attempt to get the class object from the classloader
+                // that includes the generated code.
                 Class<?> clazz;
                 try {
                     clazz = classLoader.loadClass(s);
                 } catch (ClassNotFoundException e1) {
                     throw new RuntimeException("Unable to find class: " + s);
                 }
+                // Step two is to ensure that the generated class doesn't have any improperly
+                // implemented methods.
                 if (!HierarchyHelper.verifyMustOverride(clazz)) {
                     LOG.error("Class ["+clazz+"] does NOT override all @MustOverride methods!");
                 }
-                Object o;
+
+                // Step three is to check if the class is a SchemaTuple. If it isn't,
+                // we do not attempt to resolve it, because it is support code, such
+                // as anonymous classes.
+                if (!SchemaTuple.class.isAssignableFrom(clazz)) {
+                    return;
+                }
+
+                Class<SchemaTuple<?>> stClass = (Class<SchemaTuple<?>>)clazz;
+
+                // Step four is to actually try to create the SchemaTuple instance.
+                SchemaTuple<?> st;
                 try {
-                    o = clazz.newInstance();
+                    st = stClass.newInstance();
                 } catch (InstantiationException e) {
                     throw new RuntimeException("Error instantiating file: " + s, e);
                 } catch (IllegalAccessException e) {
                     throw new RuntimeException("Error accessing file: " + s, e);
                 }
-                if (!(o instanceof SchemaTuple<?>)) {
-                    return;
-                }
-                SchemaTuple<?> st = (SchemaTuple<?>)o;
-                boolean isAppendable = st instanceof AppendableSchemaTuple<?>;
 
+                // Step five is to get information about the class.
+                boolean isAppendable = st instanceof AppendableSchemaTuple<?>;
                 int id = st.getSchemaTupleIdentifier();
                 Schema schema = st.getSchema();
-                SchemaKey sk = new SchemaKey(schema);
 
-                Pair<SchemaKey, Boolean> pr = Pair.make(sk, isAppendable);
+                SchemaTupleFactory stf = new SchemaTupleFactory(stClass, st.getQuickGenerator());
 
-                SchemaTupleFactory stf = new SchemaTupleFactory((Class<SchemaTuple<?>>)clazz, (SchemaTupleQuickGenerator<SchemaTuple<?>>)st.getQuickGenerator());
+                // the SchemaKey (Schema sans alias) and appendability are how we will
+                // uniquely identify a SchemaTupleFactory
+                Pair<SchemaKey, Boolean> pr = Pair.make(new SchemaKey(schema), isAppendable);
 
-                schemaTupleFactories .put(pr, stf);
-                identifiers.put(id, pr);
+                schemaTupleFactoriesByPair .put(pr, stf);
+                schemaTupleFactoriesById.put(id, stf);
 
                 LOG.info("Successfully resolved class.");
             }
         }
+    }
+
+    public static void copyAndResolve(Configuration jConf, boolean isLocal) throws IOException {
+        schemaTupleResolver.copyAndResolve(jConf, isLocal);
     }
 }
