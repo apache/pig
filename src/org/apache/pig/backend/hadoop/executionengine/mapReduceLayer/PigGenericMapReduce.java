@@ -314,7 +314,7 @@ public class PigGenericMapReduce {
                 PigContext.setPackageImportList((ArrayList<String>)ObjectSerializer.deserialize(jConf.get("udf.import.list")));
                 pigContext = (PigContext)ObjectSerializer.deserialize(jConf.get("pig.pigContext"));
 
-                SchemaTupleFactory.getLoadedSchemaTupleClassesHolder().copyAndResolve(jConf, pigContext.getExecType() == ExecType.LOCAL);
+                SchemaTupleFactory.getSchemaTupleResolver().copyAndResolve(jConf, pigContext.getExecType() == ExecType.LOCAL);
 
                 if (rp == null)
                     rp = (PhysicalPlan) ObjectSerializer.deserialize(jConf

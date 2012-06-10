@@ -37,10 +37,10 @@ import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.PigException;
-import org.apache.pig.data.utils.SedesHelper;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
+import org.apache.pig.data.utils.SedesHelper;
 import org.apache.pig.impl.util.ObjectSerializer;
 
 /**
@@ -119,7 +119,7 @@ public class BinInterSedes implements InterSedes {
         default: throw new RuntimeException("Invalid type given to readSchemaTuple");
         }
 
-        Tuple st = SchemaTupleFactory.getSchemaTupleFactory(id).newTuple();
+        Tuple st = TupleFactory.getInstanceForSchemaId(id).newTuple();
         st.readFields(in);
 
         return st;

@@ -24,6 +24,7 @@ import java.util.List;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigTupleDefaultRawComparator;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
+import org.apache.pig.data.SchemaTupleFactory.SchemaTupleResolver;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 /**
@@ -140,12 +141,14 @@ public abstract class TupleFactory {
      */
     public abstract Tuple newTuple(Object datum);
 
+    private static SchemaTupleResolver schemaTupleResolver = SchemaTupleFactory.getSchemaTupleResolver();
+
     public static SchemaTupleFactory getInstanceForSchema(Schema s, boolean isAppendable) {
-        return SchemaTupleFactory.getSchemaTupleFactory(s, isAppendable);
+        return schemaTupleResolver.newSchemaTupleFactory(s, isAppendable);
     }
 
     public static SchemaTupleFactory getInstanceForSchemaId(int id) {
-        return SchemaTupleFactory.getSchemaTupleFactory(id);
+        return schemaTupleResolver.newSchemaTupleFactory(id);
     }
 
     /**

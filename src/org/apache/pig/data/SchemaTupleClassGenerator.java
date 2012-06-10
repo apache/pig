@@ -52,6 +52,8 @@ public class SchemaTupleClassGenerator {
 
     static {
         generatedCodeTempDir.deleteOnExit();
+        LOG.debug("Temporary directory for generated code created: "
+                + generatedCodeTempDir.getAbsolutePath());
     }
 
     protected static File getGenerateCodeTempDir() {
@@ -98,7 +100,7 @@ public class SchemaTupleClassGenerator {
         String name = "SchemaTuple_" + id;
 
         LOG.info("Compiling class " + name + " for Schema: " + s);
-        compileCodeString(codeString, name);
+        compileCodeString(name, codeString);
     }
 
     private static int generateSchemaTuple(Schema s, boolean appendable) {
@@ -237,9 +239,18 @@ public class SchemaTupleClassGenerator {
         return globalClassIdentifier++;
     }
 
-    private static void compileCodeString(String generatedCodeString, String className) {
+    /**
+     * This method takes generated code, and compiles it down to a class file. It will output
+     * the generated class file to the static temporary directory for generated code. Note
+     * that the compiler will use the classpath that Pig is instantiated with, as well as the
+     * generated directory.
+     *
+     * @param String of generated code
+     * @param name of class
+     */
+    //TODO in the future, we can use ASM to generate the bytecode directly.
+    private static void compileCodeString(String className, String generatedCodeString) {
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-        //ClassFileManager fileManager = new ClassFileManager(compiler.getStandardFileManager(null, null, null));
         JavaFileManager fileManager = compiler.getStandardFileManager(null, null, null);
         Iterable<? extends JavaFileObject> compilationUnits = Lists.newArrayList(new JavaSourceFromString(className, generatedCodeString));
 
@@ -248,7 +259,7 @@ public class SchemaTupleClassGenerator {
         String tempDir = generatedCodeTempDir.getAbsolutePath();
 
         String classPath = System.getProperty("java.class.path") + ":" + tempDir;
-        LOG.debug("Compiling with classpath: " + classPath);
+        LOG.debug("Compiling SchemaTuple code with classpath: " + classPath);
 
         List<String> optionList = Lists.newArrayList();
         // Adds the current classpath to the compiler along with our generated code
@@ -268,8 +279,11 @@ public class SchemaTupleClassGenerator {
         LOG.info("Successfully compiled class: " + className);
     }
 
-    //taken from http://docs.oracle.com/javase/6/docs/api/javax/tools/JavaCompiler.html
-    static class JavaSourceFromString extends SimpleJavaFileObject {
+    /**
+     * This class allows code to be generated directly from a String, instead of having to be
+     * on disk.
+     */
+    private static class JavaSourceFromString extends SimpleJavaFileObject {
         final String code;
 
         JavaSourceFromString(String name, String code) {
@@ -1332,6 +1346,4 @@ public class SchemaTupleClassGenerator {
             return type == DataType.BYTEARRAY ? "Bytes" : s.substring(0,1).toUpperCase() + s.substring(1);
         }
     }
-
-
 }

@@ -23,29 +23,45 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-
+/**
+ * This is an implementation of TupleFactory that will instantiate
+ * SchemaTuple's. This class has nothing to do with the actual generation
+ * of code, and instead simply encapsulates the classes which allow
+ * for efficiently creating SchemaTuples.
+ */
 public class SchemaTupleFactory extends TupleFactory {
     private static final Log LOG = LogFactory.getLog(SchemaTupleFactory.class);
 
     private SchemaTupleQuickGenerator<? extends SchemaTuple<?>> generator;
     private Class<SchemaTuple<?>> clazz;
 
-    protected SchemaTupleFactory(Class<SchemaTuple<?>> clazz, SchemaTupleQuickGenerator<? extends SchemaTuple<?>> generator) {
+    private SchemaTupleFactory(Class<SchemaTuple<?>> clazz,
+            SchemaTupleQuickGenerator<? extends SchemaTuple<?>> generator) {
         this.clazz = clazz;
         this.generator = generator;
     }
 
+    /**
+     * This method inspects a Schema to see whether or
+     * not a SchemaTuple implementation can be generated
+     * for the types present. Currently, bags and maps
+     * are not supported.
+     * @param   schema
+     * @return  true if it is generatable
+     */
     public static boolean isGeneratable(Schema s) {
         if (s == null) {
             return false;
         }
 
         for (Schema.FieldSchema fs : s.getFields()) {
-            if (fs.type == DataType.BAG || fs.type == DataType.MAP)
+            if (fs.type == DataType.BAG || fs.type == DataType.MAP) {
                 return false;
+            }
 
-            if (fs.type == DataType.TUPLE && !isGeneratable(fs.schema))
+            if (fs.type == DataType.TUPLE && !isGeneratable(fs.schema)) {
                 return false;
+            }
         }
 
         return true;
@@ -56,12 +72,25 @@ public class SchemaTupleFactory extends TupleFactory {
         return generator.make();
     }
 
+    /**
+     * The notion of instantiating a SchemaTuple with a given
+     * size doesn't really make sense, as the size is set
+     * by the Schema.
+     */
     @Override
     @NotImplemented
     public Tuple newTuple(int size) {
         throw MethodHelper.methodNotImplemented();
     }
 
+    /**
+     * As with newTuple(int), it doesn't make much sense
+     * to instantiate a Tuple with a notion of Schema from
+     * an untyped list of objects. Note: in the future
+     * we may inspect the type of the Objects in the list
+     * and see if they match with the underlying Schema, and if so,
+     * generate the Tuple. For now the gain seems minimal.
+     */
     @Override
     @NotImplemented
     public Tuple newTuple(List c) {
@@ -74,6 +103,10 @@ public class SchemaTupleFactory extends TupleFactory {
         throw MethodHelper.methodNotImplemented();
     }
 
+    /**
+     * It does not make any sense to instantiate with
+     * one object a Tuple whose size and type is already known.
+     */
     @Override
     @NotImplemented
     public Tuple newTuple(Object datum) {
@@ -85,28 +118,20 @@ public class SchemaTupleFactory extends TupleFactory {
         return clazz;
     }
 
-    public static SchemaTupleFactory getSchemaTupleFactory(Schema s, boolean isAppendable) {
-        return loadedSchemaTupleClassesHolder.newSchemaTupleFactory(s, isAppendable);
+    private static SchemaTupleResolver schemaTupleResolver = new SchemaTupleResolver();
+
+    public static SchemaTupleResolver getSchemaTupleResolver() {
+        return schemaTupleResolver;
     }
 
-    public static SchemaTupleFactory getSchemaTupleFactory(int id) {
-        return loadedSchemaTupleClassesHolder.newSchemaTupleFactory(id);
-    }
-
-    private static LoadedSchemaTupleClassesHolder loadedSchemaTupleClassesHolder = new LoadedSchemaTupleClassesHolder();
-
-    public static LoadedSchemaTupleClassesHolder getLoadedSchemaTupleClassesHolder() {
-        return loadedSchemaTupleClassesHolder;
-    }
-
-    public static class LoadedSchemaTupleClassesHolder {
+    public static class SchemaTupleResolver {
         private Set<String> filesToResolve = Sets.newHashSet();
 
         private URLClassLoader classLoader;
         private Map<StructuresHelper.Pair<StructuresHelper.SchemaKey, Boolean>, SchemaTupleFactory> schemaTupleFactories = Maps.newHashMap();
         private Map<Integer, StructuresHelper.Pair<StructuresHelper.SchemaKey,Boolean>> identifiers = Maps.newHashMap();
 
-        private LoadedSchemaTupleClassesHolder() {
+        private SchemaTupleResolver() {
             File fil = SchemaTupleClassGenerator.getGenerateCodeTempDir();
             try {
                 classLoader = new URLClassLoader(new URL[] { fil.toURI().toURL() });
@@ -122,7 +147,7 @@ public class SchemaTupleFactory extends TupleFactory {
         public SchemaTupleFactory newSchemaTupleFactory(int id) {
             StructuresHelper.Pair<StructuresHelper.SchemaKey, Boolean> pr = identifiers.get(id);
             if (pr == null) {
-                LOG.debug("No SchemaTuple present for given identifier: " + id);
+                LOG.warn("No SchemaTuple present for given identifier: " + id);
             }
             return newSchemaTupleFactory(pr);
         }
@@ -130,11 +155,19 @@ public class SchemaTupleFactory extends TupleFactory {
         private SchemaTupleFactory newSchemaTupleFactory(StructuresHelper.Pair<StructuresHelper.SchemaKey, Boolean> pr) {
             SchemaTupleFactory stf = schemaTupleFactories.get(pr);
             if (stf == null) {
-                LOG.debug("No SchemaTupleFactory present for given SchemaKey/Boolean combination: " + pr);
+                LOG.warn("No SchemaTupleFactory present for given SchemaKey/Boolean combination: " + pr);
             }
             return stf;
         }
 
+        /**
+         * This method copies all generated code that was shipped via
+         * SchemaTupleClassGenerator.copyAllGeneratedToDistributedCache into the
+         * local directory for generated code. This is done in the actual map/reduce
+         * job.
+         * @param   conf
+         * @throws  IOException
+         */
         public void copyAllFromDistributedCache(Configuration conf) throws IOException {
             String toDeserialize = conf.get(SchemaTupleClassGenerator.GENERATED_CLASSES_KEY);
             if (toDeserialize == null) {
@@ -142,7 +175,6 @@ public class SchemaTupleFactory extends TupleFactory {
                 return;
             }
             LOG.info("Copying files in key ["+SchemaTupleClassGenerator.GENERATED_CLASSES_KEY+"] from distributed cache: " + toDeserialize);
-            //FileSystem fs = FileSystem.get(conf);
             for (String s : toDeserialize.split(",")) {
                 LOG.info("Attempting to read file: " + s);
                 FileInputStream fin = new FileInputStream(new File(s));
@@ -155,7 +187,7 @@ public class SchemaTupleFactory extends TupleFactory {
                 }
                 fin.close();
                 fos.close();
-                LOG.info("Successfully read file.");
+                LOG.info("Successfully copied file to local directory.");
             }
         }
 
