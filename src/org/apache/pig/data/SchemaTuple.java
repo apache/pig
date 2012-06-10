@@ -5,8 +5,6 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
@@ -19,19 +17,11 @@ import org.apache.pig.impl.util.Utils;
 
 import com.google.common.collect.Lists;
 
-//ALSO: the memory estimate has to include all of these objects that come along with SchemaTuple...
-//TODO: implement getField(String)
-
-//TODO need a better benchmark of varint and varlong performance
-//TODO custom iterator?
-
 //the benefit of having the generic here is that in the case that we do ".set(t)" and t is the right type, it will be very fast
 @InterfaceAudience.Public
 @InterfaceStability.Unstable
 public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTuple implements TypeAwareTuple {
-    private static final Log LOG = LogFactory.getLog(SchemaTuple.class);
-    private static final TupleFactory mTupleFactory = TupleFactory.getInstance();
-    private static final BinInterSedes pigSerializer = new BinInterSedes();
+    private static final long serialVersionUID = 1L;
 
     @NotImplemented
     @Override
@@ -55,40 +45,38 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
     protected abstract int sizeNoAppend();
 
     @MustOverride
-    protected SchemaTuple set(SchemaTuple t, boolean checkType) throws ExecException {
+    protected SchemaTuple<T> set(SchemaTuple<?> t, boolean checkType) throws ExecException {
         return this;
     }
 
     @MustOverride
-    protected SchemaTuple setSpecific(T t) {
+    protected SchemaTuple<T> setSpecific(T t) {
         return this;
     }
 
-    //TODO consider if there should be a "strict" method that won't let you append? I'm thinking no
-    //TODO also consider: if set is called on a tuple that is too small, instead just null out the extra fields in the SchemaTuple?
-    //TODO in all of the set and compareTo's, need to take into account the fact that the other one could be null
-
-    public SchemaTuple set(Tuple t) throws ExecException {
+    public SchemaTuple<T> set(Tuple t) throws ExecException {
         return set(t, true);
     }
 
-    protected SchemaTuple set(Tuple t, boolean checkType) throws ExecException {
+    @SuppressWarnings("unchecked") //this is ok because we only cast to T after checking
+    protected SchemaTuple<T> set(Tuple t, boolean checkType) throws ExecException {
         if (checkType) {
-            if (t.getClass() == getClass())
+            if (t.getClass() == getClass()) {
                 return setSpecific((T)t);
+            }
 
-            if (t instanceof SchemaTuple)
-                return set((SchemaTuple)t, false);
+            if (t instanceof SchemaTuple<?>)
+                return set((SchemaTuple<?>)t, false);
         }
 
         return set(t.getAll());
     }
 
-    public SchemaTuple set(SchemaTuple t) throws ExecException {
+    public SchemaTuple<T> set(SchemaTuple<?> t) throws ExecException {
         return set(t, true);
     }
 
-    public SchemaTuple set(List<Object> l) throws ExecException {
+    public SchemaTuple<T> set(List<Object> l) throws ExecException {
         if (l.size() < sizeNoAppend())
             throw new ExecException("Given list of objects has too few fields ("+l.size()+" vs "+sizeNoAppend()+")");
 
@@ -97,10 +85,6 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
 
         return this;
     }
-
-    //this is the null value for the whole Tuple
-    //-1 is unset, 0 means no, 1 means yes
-    private int isNull = -1; //TODO make this a byte
 
     protected void write(DataOutput out, boolean writeIdentifiers) throws IOException {
         if (writeIdentifiers) {
@@ -145,7 +129,7 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         SedesHelper.writeChararray(out, v);
     }
 
-    protected static void write(DataOutput out, SchemaTuple t) throws IOException {
+    protected static void write(DataOutput out, SchemaTuple<?> t) throws IOException {
         t.writeElements(out);
     }
 
@@ -203,16 +187,16 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return l;
     }
 
-    //TODO use something more optimized and generated? this is just lifted from PrimitiveTuple
     //TODO also need to implement the raw comparator
+    @SuppressWarnings("unchecked")
     @Override
     public int compareTo(Object other) {
         if (getClass() == other.getClass()) {
             return compareToSpecific((T)other);
         }
 
-        if (other instanceof SchemaTuple) {
-            return compareTo((SchemaTuple)other, false);
+        if (other instanceof SchemaTuple<?>) {
+            return compareTo((SchemaTuple<?>)other, false);
         }
 
         if (other instanceof Tuple) {
@@ -226,30 +210,36 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
          return compareTo(t, true);
     }
 
+    @SuppressWarnings("unchecked")
     protected int compareTo(Tuple t, boolean checkType) {
         if (checkType) {
-            if (getClass() == t.getClass())
+            if (getClass() == t.getClass()) {
                 return compareToSpecific((T)t);
+            }
 
-            if (t instanceof SchemaTuple)
-                return compareTo((SchemaTuple)t, false);
+            if (t instanceof SchemaTuple<?>) {
+                return compareTo((SchemaTuple<?>)t, false);
+            }
         }
 
         int mySz = size();
         int tSz = t.size();
 
-        if (tSz < mySz)
+        if (tSz < mySz) {
             return 1;
+        }
 
-        if (tSz > mySz)
+        if (tSz > mySz) {
             return -1;
+        }
 
         for (int i = 0; i < mySz; i++) {
             try {
                 int c = DataType.compare(get(i), t.get(i));
 
-                if (c != 0)
+                if (c != 0) {
                     return c;
+                }
 
             } catch (ExecException e) {
                 throw new RuntimeException("Unable to compare tuples", e);
@@ -259,15 +249,17 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return 0;
     }
 
-    public int compareTo(SchemaTuple t) {
-        if (getClass() == t.getClass())
+    @SuppressWarnings("unchecked")
+    public int compareTo(SchemaTuple<?> t) {
+        if (getClass() == t.getClass()) {
             return compareToSpecific((T)t);
+        }
 
         return compareTo(t, false);
     }
 
     @MustOverride
-    protected int compareTo(SchemaTuple t, boolean checkType) {
+    protected int compareTo(SchemaTuple<?> t, boolean checkType) {
         return 0;
     }
 
@@ -536,7 +528,7 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         }
     }
 
-    protected void setAndCatch(SchemaTuple t) {
+    protected void setAndCatch(SchemaTuple<?> t) {
         try {
             set(t);
         } catch (ExecException e) {
@@ -580,7 +572,7 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return compareNull(usNull, themNull);
     }
 
-    protected int compare(int val, SchemaTuple t, int pos) {
+    protected int compare(int val, SchemaTuple<?> t, int pos) {
         int themVal;
         try {
             themVal = t.getInt(pos);
@@ -597,7 +589,7 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return 0;
     }
 
-    protected int compare(long val, SchemaTuple t, int pos) {
+    protected int compare(long val, SchemaTuple<?> t, int pos) {
         long themVal;
         try {
             themVal = t.getLong(pos);
@@ -614,7 +606,7 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return 0;
     }
 
-    protected int compare(float val, SchemaTuple t, int pos) {
+    protected int compare(float val, SchemaTuple<?> t, int pos) {
         float themVal;
         try {
             themVal = t.getFloat(pos);
@@ -631,7 +623,7 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return 0;
     }
 
-    protected int compare(double val, SchemaTuple t, int pos) {
+    protected int compare(double val, SchemaTuple<?> t, int pos) {
         double themVal;
         try {
             themVal = t.getDouble(pos);
@@ -648,7 +640,7 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return 0;
     }
 
-    protected int compare(boolean val, SchemaTuple t, int pos) {
+    protected int compare(boolean val, SchemaTuple<?> t, int pos) {
         boolean themVal;
         try {
             themVal = t.getBoolean(pos);
@@ -665,11 +657,11 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return 0;
     }
 
-    protected int compare(byte[] val, SchemaTuple t, int pos) {
+    protected int compare(byte[] val, SchemaTuple<?> t, int pos) {
         try {
             return compare(val, t.getBytes(pos));
         } catch (ExecException e) {
-            throw new RuntimeException("Unable to retrieve boolean field " + pos + " in given Tuple: " + t, e);
+            throw new RuntimeException("Unable to retrieve byte[] field " + pos + " in given Tuple: " + t, e);
         }
     }
 
@@ -677,11 +669,11 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return DataByteArray.compare(val, themVal);
     }
 
-    protected int compare(String val, SchemaTuple t, int pos) {
+    protected int compare(String val, SchemaTuple<?> t, int pos) {
         try {
             return compare(val, t.getString(pos));
         } catch (ExecException e) {
-            throw new RuntimeException("Unable to retrieve boolean field " + pos + " in given Tuple: " + t, e);
+            throw new RuntimeException("Unable to retrieve String field " + pos + " in given Tuple: " + t, e);
         }
     }
 
@@ -689,15 +681,15 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return val.compareTo(themVal);
     }
 
-    protected int compare(SchemaTuple val, SchemaTuple t, int pos) {
+    protected int compare(SchemaTuple<?> val, SchemaTuple<?> t, int pos) {
         try {
             return compare(val, t.get(pos));
         } catch (ExecException e) {
-            throw new RuntimeException("Unable to retrieve boolean field " + pos + " in given Tuple: " + t, e);
+            throw new RuntimeException("Unable to retrieve Tuple field " + pos + " in given Tuple: " + t, e);
         }
     }
 
-    protected int compare(SchemaTuple val, Object themVal) {
+    protected int compare(SchemaTuple<?> val, Object themVal) {
         return val.compareTo(themVal);
     }
 

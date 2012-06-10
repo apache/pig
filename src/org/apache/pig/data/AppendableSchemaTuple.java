@@ -4,21 +4,19 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.data.utils.SedesHelper;
 import org.apache.pig.data.utils.HierarchyHelper.MustOverride;
 
-//TODO need to ensure that serialization and deeserialization is transparent
 @InterfaceAudience.Public
 @InterfaceStability.Unstable
 public abstract class AppendableSchemaTuple<T extends AppendableSchemaTuple<T>> extends SchemaTuple<T> {
+    private static final long serialVersionUID = 1L;
+
     private Tuple append;
 
-    private static final Log LOG = LogFactory.getLog(AppendableSchemaTuple.class);
     private static final TupleFactory mTupleFactory = TupleFactory.getInstance();
 
     @Override
@@ -74,7 +72,7 @@ public abstract class AppendableSchemaTuple<T extends AppendableSchemaTuple<T>> 
     }
 
     @MustOverride
-    protected SchemaTuple set(SchemaTuple t, boolean checkType) throws ExecException {
+    protected SchemaTuple<T> set(SchemaTuple<?> t, boolean checkType) throws ExecException {
         appendReset();
         for (int j = sizeNoAppend(); j < t.size(); j++) {
             append(t.get(j));
@@ -83,13 +81,13 @@ public abstract class AppendableSchemaTuple<T extends AppendableSchemaTuple<T>> 
     }
 
     @MustOverride
-    protected SchemaTuple setSpecific(T t) {
+    protected SchemaTuple<T> setSpecific(T t) {
         appendReset();
         setAppend(t.getAppend());
         return super.setSpecific(t);
     }
 
-    public SchemaTuple set(List<Object> l) throws ExecException {
+    public SchemaTuple<T> set(List<Object> l) throws ExecException {
         if (l.size() < sizeNoAppend())
             throw new ExecException("Given list of objects has too few fields ("+l.size()+" vs "+sizeNoAppend()+")");
 
@@ -106,7 +104,7 @@ public abstract class AppendableSchemaTuple<T extends AppendableSchemaTuple<T>> 
     }
 
     @MustOverride
-    protected int compareTo(SchemaTuple t, boolean checkType) {
+    protected int compareTo(SchemaTuple<?> t, boolean checkType) {
         if (appendSize() > 0) {
             int i;
             int m = sizeNoAppend();

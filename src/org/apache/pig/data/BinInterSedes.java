@@ -543,13 +543,10 @@ public class BinInterSedes implements InterSedes {
     @Override
     public void addColsToTuple(DataInput in, Tuple t) throws IOException {
         byte type = in.readByte();
-        switch (type) {
-        default:
         int sz = getTupleSize(in, type);
         for (int i = 0; i < sz; i++) {
             t.append(readDatum(in));
         }
-    }
     }
 
     public static class BinInterSedesTupleRawComparator extends WritableComparator implements TupleRawComparator {

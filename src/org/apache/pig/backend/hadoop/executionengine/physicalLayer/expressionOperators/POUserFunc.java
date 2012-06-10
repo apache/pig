@@ -133,10 +133,6 @@ public class POUserFunc extends ExpressionOperator {
         this.func.setPigLogger(pigLogger);
 
         if (tmpS != null) {
-            //TODO alternately we could just see if there exists a class that fits
-            //TODO the down-side to this approach is that there might be a difference
-            //TODO for appendable or not appendable?
-
             //Currently, getInstanceForSchema returns null if no class was found. This works fine...
             //if it is null, the default will be used
             inputSchemaTupleFactory = TupleFactory.getInstanceForSchema(tmpS, false);

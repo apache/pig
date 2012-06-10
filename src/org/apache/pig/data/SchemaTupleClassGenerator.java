@@ -483,7 +483,7 @@ public class SchemaTupleClassGenerator {
             add("    super.setAndCatch(t);");
             add("}");
             addBreak();
-            add("public void proxySetAndCatch(SchemaTuple t) {");
+            add("public void proxySetAndCatch(SchemaTuple<?> t) {");
             add("    super.setAndCatch(t);");
             add("}");
             addBreak();
