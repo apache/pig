@@ -15,42 +15,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.pig.impl.io;
+package org.apache.pig.data.utils;
 
-import java.io.DataInput;
-import java.io.IOException;
+public class BytesHelper {
+    private static final int[] mask = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
+    private static final int[] invMask = {0xFE, 0xFD, 0xFB, 0xF7, 0xEF, 0xDF, 0xBF, 0x7F};
 
-import org.apache.pig.data.BinInterSedes;
-import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
-
-/**
- *
- */
-public class NullableTuple extends PigNullableWritable {
-
-    private TupleFactory mFactory = null;
-    private static final BinInterSedes bis = new BinInterSedes();
-
-    public NullableTuple() {
+    public static boolean getBitByPos(byte byt, int pos) {
+        return (byt & mask[pos]) > 0;
     }
 
-    /**
-     * @param t
-     */
-    public NullableTuple(Tuple t) {
-        mValue = t;
+    public static byte setBitByPos(byte byt, boolean bool, int pos) {
+        if (bool) {
+            return (byte)((int)byt | mask[pos]);
+        } else {
+            return (byte)((int)byt & invMask[pos]);
+        }
     }
-
-    public Object getValueAsPigType() {
-        return isNull() ? null : (Tuple)mValue;
-    }
-
-    @Override
-    public void readFields(DataInput in) throws IOException {
-        mNull = in.readBoolean();
-        if (!mNull) mValue = bis.readTuple(in);
-        mIndex = in.readByte();
-    }
-
 }

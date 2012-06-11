@@ -244,7 +244,7 @@ public class PigContext implements Serializable {
      * @param path
      * @throws MalformedURLException
      */
-    public void addScriptFile(String path) throws MalformedURLException {
+    public void addScriptFile(String path) {
         if (path != null) {
             aliasedScriptFiles.put(path, new File(path));
         }

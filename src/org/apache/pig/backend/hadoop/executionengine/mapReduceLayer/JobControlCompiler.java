@@ -72,6 +72,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelp
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.SchemaTupleClassGenerator;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
@@ -96,7 +97,6 @@ import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.tools.pigstats.ScriptState;
-
 
 /**
  * This is compiler class that takes an MROperPlan and converts
@@ -580,6 +580,10 @@ public class JobControlCompiler{
             // Search to see if we have any UDFs that need to pack things into the
             // distrubted cache.
             setupDistributedCacheForUdfs(mro, pigContext, conf);
+
+            if (SchemaTupleClassGenerator.generateAllSchemaTuples(conf)) {
+                SchemaTupleClassGenerator.copyAllGeneratedToDistributedCache(pigContext, conf);
+            }
 
             POPackage pack = null;
             if(mro.reducePlan.isEmpty()){

@@ -229,11 +229,15 @@ public class DataByteArray implements Comparable, Serializable {
 
     @Override
     public int hashCode() {
+        return hashCode(mData);
+    }
+
+    public static int hashCode(byte[] buf) {
         int hash = 1;
-        for (int i = 0; i < mData.length; i++) {
+        for (int i = 0; i < buf.length; i++) {
             // 29 chosen because hash uses 31 and bag 37, and a I want a
             // prime.
-            hash = 29 * hash + mData[i];
+            hash = 29 * hash + buf[i];
         }
         return hash;
     }

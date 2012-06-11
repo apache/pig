@@ -25,9 +25,10 @@ import java.util.Properties;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
-import org.apache.pig.ResourceSchema;
 import org.apache.pig.builtin.Nondeterministic;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.SchemaTupleClassGenerator;
+import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -168,6 +169,9 @@ public class UserFuncExpression extends LogicalExpression {
         ef = (EvalFunc<?>) PigContext.instantiateFuncFromSpec(mFuncSpec);
     }
     
+    private int inputSchemaTupleId = -1; //TODO theoretically, these values could be threaded along
+    private int outputSchemaTupleId = -1; //TODO to the POUserFunc directly
+
     @Override
     public LogicalSchema.LogicalFieldSchema getFieldSchema() throws FrontendException {
         if (fieldSchema!=null)
@@ -198,7 +202,12 @@ public class UserFuncExpression extends LogicalExpression {
         // Store inputSchema into the UDF context
         ef.setInputSchema(Util.translateSchema(inputSchema));
         
-        Schema udfSchema = ef.outputSchema(Util.translateSchema(inputSchema));
+        Schema inputSchemaToGen = Util.translateSchema(inputSchema);
+        Schema udfSchema = ef.outputSchema(inputSchemaToGen);
+
+        //TODO appendability should come from a setting
+        inputSchemaTupleId = SchemaTupleClassGenerator.registerToGenerateIfPossible(inputSchemaToGen, false, GenContext.UDF);
+        outputSchemaTupleId = SchemaTupleClassGenerator.registerToGenerateIfPossible(udfSchema, false, GenContext.UDF);
 
         if (udfSchema != null) {
             Schema.FieldSchema fs;

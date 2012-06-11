@@ -17,8 +17,6 @@
  */
 package org.apache.pig.data;
 
-import java.lang.Class;
-import java.lang.ClassLoader;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.List;
@@ -26,8 +24,8 @@ import java.util.List;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigTupleDefaultRawComparator;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
+import org.apache.pig.data.SchemaTupleFactory.SchemaTupleResolver;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 
 /**
  * A factory to construct tuples.  This class is abstract so that users can
@@ -143,60 +141,32 @@ public abstract class TupleFactory {
      */
     public abstract Tuple newTuple(Object datum);
 
+    // This gets an instance of the resolver which holds all SchemaTupleFactory information
+    private static SchemaTupleResolver schemaTupleResolver = SchemaTupleFactory.getSchemaTupleResolver();
+
     /**
-     * Create a tuple optimized for a provided schema.
-     * <p>
-     * Note: chances are {@link TupleFactory#newTupleForSchema(byte...)} is slightly
-     * more efficient in most implementations.
-     *
-     * @param schema  Pig Schema of the tuple we want to create.
-     * @return A tuple optimized for the schema
+     * This method is the publicly facing method which returns a SchemaTupleFactory
+     * which will generate SchemaTuples of the given Schema. Note that this method
+     * returns null if such a given SchemaTupleFactory does not exist, instead of
+     * throwing an error.
+     * @param   schema
+     * @param   true or false if an appendable SchemaTuple is desired
+     * @return  a SchemaTupleFactory which will return SchemaTuple's of the desired Schema
      */
-    public Tuple newTupleForSchema(Schema schema) {
-        List<FieldSchema> fieldSchemas = schema.getFields();
-        byte[] types = new byte[fieldSchemas.size()];
-        for (int i = 0; i < fieldSchemas.size(); i++) {
-            FieldSchema fs = fieldSchemas.get(i);
-            types[i] = fs.type;
-        }
-        return newTupleForSchema(types);
+    public static SchemaTupleFactory getInstanceForSchema(Schema s, boolean isAppendable) {
+        return schemaTupleResolver.newSchemaTupleFactory(s, isAppendable);
     }
 
     /**
-     * Create a tuple optimized for a provided schema.
-     *
-     * @param dataTypes Schema of the desired Tuple, represented as bytes from {@link DataType}
-     * @return A tuple optimized for the schema.
+     * This method is the publicly facing method which returns a SchemaTupleFactory
+     * which will generate the SchemaTuple associated with the given identifier. This method
+     * is primarily for internal use in cases where the problem SchemaTuple is known
+     * based on the identifier associated with it (such as when deserializing).
+     * @param   identifier
+     * @return  a SchemaTupleFactory which will return SchemaTuple's of the given identifier
      */
-    public Tuple newTupleForSchema(byte... dataTypes) {
-        if (dataTypes == null || dataTypes.length == 0) {
-            return this.newTuple();
-        } else if (dataTypes.length == 1 && DataType.isAtomic(dataTypes[0])) {
-            switch (dataTypes[0]) {
-            case DataType.INTEGER:
-                return new PIntTuple();
-            case DataType.FLOAT:
-                return new PFloatTuple();
-            case DataType.LONG:
-                return new PLongTuple();
-            case DataType.DOUBLE:
-                return new PDoubleTuple();
-            case DataType.CHARARRAY:
-                return new PStringTuple();
-            case DataType.BOOLEAN:
-                return new PBooleanTuple();
-            default:
-                return this.newTuple(1);
-            }
-        } else if (dataTypes.length > 1) {
-            boolean allNumbers = true;
-            for (byte type : dataTypes) {
-                allNumbers &= DataType.isNumberType(type);
-            }
-            return allNumbers ? new PrimitiveTuple(dataTypes) : this.newTuple(dataTypes.length);
-        } else {
-            return this.newTuple(dataTypes.length);
-        }
+    public static SchemaTupleFactory getInstanceForSchemaId(int id) {
+        return schemaTupleResolver.newSchemaTupleFactory(id);
     }
 
     /**
