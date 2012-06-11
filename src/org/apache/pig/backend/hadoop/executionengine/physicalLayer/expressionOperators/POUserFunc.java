@@ -43,7 +43,6 @@ import org.apache.pig.builtin.MonitoredUDF;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
-import org.apache.pig.data.SchemaTupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
@@ -135,9 +134,12 @@ public class POUserFunc extends ExpressionOperator {
         if (tmpS != null) {
             //Currently, getInstanceForSchema returns null if no class was found. This works fine...
             //if it is null, the default will be used
-            inputSchemaTupleFactory = TupleFactory.getInstanceForSchema(tmpS, false);
-            if (inputSchemaTupleFactory == null) {
+            inputTupleFactory = TupleFactory.getInstanceForSchema(tmpS, false);
+            if (inputTupleFactory == null) {
                 LOG.debug("No SchemaTupleFactory found for Schema ["+tmpS+"], using default TupleFactory");
+                inputTupleFactory = TupleFactory.getInstance();
+            } else {
+                schemaTupleFactory = true;
             }
 
 /*
@@ -147,7 +149,8 @@ public class POUserFunc extends ExpressionOperator {
         }
     }
 
-    private SchemaTupleFactory inputSchemaTupleFactory;
+    private TupleFactory inputTupleFactory;
+    private boolean schemaTupleFactory = false;
 
     @Override
     public Result processInput() throws ExecException {
@@ -182,14 +185,10 @@ public class POUserFunc extends ExpressionOperator {
             detachInput();
             return res;
         } else {
-            boolean knownSize = false;
+            //we decouple this because there may be cases where the size is known and it isn't a schema
+            // tuple factory
+            boolean knownSize = schemaTupleFactory;
             int knownIndex = 0;
-            if (inputSchemaTupleFactory != null) {
-                res.result = inputSchemaTupleFactory.newTuple();
-                knownSize = true;
-            } else {
-                res.result = TupleFactory.getInstance().newTuple();
-            }
 
             Result temp = null;
 
