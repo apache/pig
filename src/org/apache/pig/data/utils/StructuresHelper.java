@@ -111,13 +111,102 @@ public class StructuresHelper {
                 return false;
             }
             Pair<?,?> pr = (Pair<?,?>)o;
-            return (t1 == null ? pr.getFirst() == null : t1.equals(pr.getFirst())) && (t2 == null ? pr.getSecond() == null : t2.equals(pr.getSecond()));
+            if (t1 == null) {
+                return pr.getFirst() == null;
+            }
+            if (!t1.equals(pr.getFirst())) {
+                return false;
+            }
+            if (t2 == null) {
+                return pr.getSecond() == null;
+            }
+            return t2.equals(pr.getSecond());
         }
 
         @Override
         public String toString() {
-            return new StringBuilder().append("[").append(t1).append(",").append(t2).append("]").toString();
+            return new StringBuilder()
+                    .append("[")
+                    .append(t1)
+                    .append(",")
+                    .append(t2)
+                    .append("]")
+                    .toString();
         }
     }
 
+    public static class Triple<T1, T2, T3> {
+        private T1 t1;
+        private T2 t2;
+        private T3 t3;
+
+        public Triple(T1 t1, T2 t2, T3 t3) {
+            this.t1 = t1;
+            this.t2 = t2;
+            this.t3 = t3;
+        }
+
+        public T1 getFirst() {
+            return t1;
+        }
+
+        public T2 getSecond() {
+            return t2;
+        }
+
+        public T3 getThird() {
+            return t3;
+        }
+
+        public static <A,B,C> Triple<A,B,C> make(A t1, B t2, C t3) {
+            return new Triple<A,B,C>(t1, t2, t3);
+        }
+
+        @Override
+        public int hashCode() {
+            return (t1 == null ? 0 : t1.hashCode())
+                 + (t2 == null ? 0 : 31 * t2.hashCode())
+                 + (t3 == null ? 0 : 527 * t3.hashCode());
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (!(o instanceof Triple<?,?,?>)) {
+                return false;
+            }
+            Triple<?,?,?> tr = (Triple<?,?,?>)o;
+            if (t1 == null) {
+                return tr.getFirst() == null;
+            }
+            if (!t1.equals(tr.getFirst())) {
+                return false;
+            }
+            if (t2 == null) {
+                return tr.getSecond() == null;
+            }
+            if (!t2.equals(tr.getSecond())) {
+                return false;
+            }
+            if (t3 == null) {
+                return tr.getThird() ==null;
+            }
+            if (!t3.equals(tr.getThird())) {
+                return false;
+            }
+            return true;
+        }
+
+        @Override
+        public String toString() {
+            return new StringBuilder()
+                    .append("[")
+                    .append(t1)
+                    .append(",")
+                    .append(t2)
+                    .append(",")
+                    .append(t3)
+                    .append("]")
+                    .toString();
+        }
+    }
 }

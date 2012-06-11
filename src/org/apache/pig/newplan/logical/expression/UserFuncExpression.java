@@ -28,6 +28,7 @@ import org.apache.pig.FuncSpec;
 import org.apache.pig.builtin.Nondeterministic;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.SchemaTupleClassGenerator;
+import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -204,19 +205,9 @@ public class UserFuncExpression extends LogicalExpression {
         Schema inputSchemaToGen = Util.translateSchema(inputSchema);
         Schema udfSchema = ef.outputSchema(inputSchemaToGen);
 
-        inputSchemaTupleId = SchemaTupleClassGenerator.registerToGenerateIfPossible(inputSchemaToGen, false);
-        outputSchemaTupleId = SchemaTupleClassGenerator.registerToGenerateIfPossible(udfSchema, false);
-
-        //TODO appendability should come from a setting...but where can we get that info?
-        /*
-        if (SchemaTupleFactory.isGeneratable(inputSchemaToGen) {
-            inputSchemaTupleId = SchemaTupleClassGenerator.generateSchemaTuple(inputSchemaToGen, false);
-        }
-
-        if (SchemaTupleFactory.isGeneratable(udfSchema)) {
-            outputSchemaTupleId = SchemaTupleClassGenerator.generateSchemaTuple(udfSchema, false);
-        }
-        */
+        //TODO appendability should come from a setting
+        inputSchemaTupleId = SchemaTupleClassGenerator.registerToGenerateIfPossible(inputSchemaToGen, false, GenContext.UDF);
+        outputSchemaTupleId = SchemaTupleClassGenerator.registerToGenerateIfPossible(udfSchema, false, GenContext.UDF);
 
         if (udfSchema != null) {
             Schema.FieldSchema fs;

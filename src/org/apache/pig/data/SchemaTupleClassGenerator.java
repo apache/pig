@@ -23,6 +23,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -45,8 +46,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.pig.ExecType;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
-import org.apache.pig.data.utils.StructuresHelper.Pair;
 import org.apache.pig.data.utils.StructuresHelper.SchemaKey;
+import org.apache.pig.data.utils.StructuresHelper.Triple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -103,6 +104,67 @@ public class SchemaTupleClassGenerator {
     public static final String SHOULD_GENERATE_KEY = "pig.schematuple";
 
     /**
+     * This key will override pig.schematuple in the specific case of UDF's.
+     */
+    public static final String SHOULD_GENERATE_UDF_KEY = "pig.schematuple.udf";
+
+    /**
+     * This key will override pig.schematuple in the specific case of LoadFunctions.
+     */
+    public static final String SHOULD_GENERATE_LOAD_KEY = "pig.schematuple.load";
+
+    /**
+     * This key will override pig.schematuple in the specific case of Joins.
+     */
+    public static final String SHOULD_GENERATE_JOIN_KEY = "pig.schematuple.join";
+
+    private static final Map<String, Boolean> defaultKeyValues = new HashMap<String, Boolean>() {{
+        put(SHOULD_GENERATE_KEY, false);
+        put(SHOULD_GENERATE_UDF_KEY, true);
+        put(SHOULD_GENERATE_LOAD_KEY, true);
+        put(SHOULD_GENERATE_JOIN_KEY, true);
+    }};
+
+    public static enum GenContext {
+        UDF (SHOULD_GENERATE_UDF_KEY),
+        LOAD (SHOULD_GENERATE_LOAD_KEY),
+        JOIN (SHOULD_GENERATE_JOIN_KEY);
+
+        private String key;
+        GenContext(String key) {
+            this.key = key;
+        }
+
+        public String key() {
+            return key;
+        }
+
+        public boolean shouldGenerate(Configuration conf) {
+            return checkKeys(conf, SHOULD_GENERATE_KEY, key);
+        }
+    }
+
+    private static boolean checkKeys(Configuration conf, String... keys) {
+        for (String key : keys) {
+            String shouldString = conf.get(key);
+            Boolean shouldBool = defaultKeyValues.get(key);
+            if (shouldBool == null) {
+                // This should never happen, as we should only be checking keys
+                // Which we set and check
+                throw new RuntimeException("Attempted to check key ["+key+"] without a default value!");
+            }
+            if (shouldString != null) {
+                shouldBool = Boolean.parseBoolean(shouldString);
+            }
+            if (shouldBool == false) {
+                LOG.info("Key ["+key+"] was false, skipping generation of Schema.");
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
      * This value is used to distinguish all of the generated code.
      * The general naming scheme used is SchemaTupe_identifier. Note that
      * identifiers are incremented before code is actually generated.
@@ -135,22 +197,27 @@ public class SchemaTupleClassGenerator {
     /**
      * Schemas registered for generation are held here.
      */
-    private static Map<SchemaKey, Pair<Integer, Boolean>> schemasToGenerate = Maps.newHashMap();
+    private static Map<SchemaKey, Triple<Integer, Boolean, GenContext>> schemasToGenerate = Maps.newHashMap();
 
     /**
      * This sets into motion the generation of all "registered" Schemas. All code will be generated
      * into the temporary directory.
      * @return true of false depending on if there are any files to copy to the distributed cache
      */
-    public static boolean generateAllSchemaTuples() {
+    public static boolean generateAllSchemaTuples(Configuration conf) {
         boolean filesToShip = false;
         LOG.info("Generating all registered Schemas.");
-        for (Map.Entry<SchemaKey, Pair<Integer,Boolean>> entry : schemasToGenerate.entrySet()) {
+        for (Map.Entry<SchemaKey, Triple<Integer,Boolean, GenContext>> entry : schemasToGenerate.entrySet()) {
             Schema s = entry.getKey().get();
-            Pair<Integer,Boolean> value = entry.getValue();
+            Triple<Integer, Boolean, GenContext> value = entry.getValue();
+            GenContext context = value.getThird();
+            if (!context.shouldGenerate(conf)) {
+                LOG.info("Skipping generation of Schema [" + s + "], as key value [" + context.key() + "] was false.");
+                continue;
+            }
             int id = value.getFirst();
             boolean isAppendable = value.getSecond();
-            SchemaTupleClassGenerator.generateSchemaTuple(s, isAppendable, id);
+            generateSchemaTuple(s, isAppendable, id);
             filesToShip = true;
         }
         return filesToShip;
@@ -165,9 +232,9 @@ public class SchemaTupleClassGenerator {
      * @param   isAppendable
      * @return  identifier
      */
-    public static int registerToGenerateIfPossible(Schema udfSchema, boolean isAppendable) {
+    public static int registerToGenerateIfPossible(Schema udfSchema, boolean isAppendable, GenContext type) {
         SchemaKey sk = new SchemaKey(udfSchema);
-        Pair<Integer, Boolean> pr = schemasToGenerate.get(sk);
+        Triple<Integer, Boolean, GenContext> pr = schemasToGenerate.get(sk);
         if (pr != null) {
             return pr.getFirst();
         }
@@ -175,7 +242,7 @@ public class SchemaTupleClassGenerator {
             return -1;
         }
         int id = getGlobalClassIdentifier();
-        schemasToGenerate.put(sk, Pair.make(Integer.valueOf(id), isAppendable));
+        schemasToGenerate.put(sk, Triple.make(Integer.valueOf(id), isAppendable, type));
         LOG.info("Registering "+(isAppendable ? "Appendable" : "")+"Schema for generation [" + udfSchema + "] with id [" + id + "]");
         return id;
     }

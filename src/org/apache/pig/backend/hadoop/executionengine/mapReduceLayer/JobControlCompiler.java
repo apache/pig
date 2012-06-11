@@ -581,13 +581,8 @@ public class JobControlCompiler{
             // distrubted cache.
             setupDistributedCacheForUdfs(mro, pigContext, conf);
 
-            String shouldGen = conf.get(SchemaTupleClassGenerator.SHOULD_GENERATE_KEY);
-            if (shouldGen != null && Boolean.parseBoolean(shouldGen)) {
-                if (SchemaTupleClassGenerator.generateAllSchemaTuples()) {
-                    SchemaTupleClassGenerator.copyAllGeneratedToDistributedCache(pigContext, conf);
-                }
-            } else {
-                log.info("Key [" +SchemaTupleClassGenerator.SHOULD_GENERATE_KEY+ "] not set, skipping code generation (value was ["+shouldGen+"]).");
+            if (SchemaTupleClassGenerator.generateAllSchemaTuples(conf)) {
+                SchemaTupleClassGenerator.copyAllGeneratedToDistributedCache(pigContext, conf);
             }
 
             POPackage pack = null;
