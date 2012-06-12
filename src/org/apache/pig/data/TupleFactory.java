@@ -165,7 +165,7 @@ public abstract class TupleFactory {
      * @param   identifier
      * @return  a SchemaTupleFactory which will return SchemaTuple's of the given identifier
      */
-    public static SchemaTupleFactory getInstanceForSchemaId(int id) {
+    protected static SchemaTupleFactory getInstanceForSchemaId(int id) {
         return schemaTupleResolver.newSchemaTupleFactory(id);
     }
 

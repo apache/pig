@@ -32,69 +32,69 @@ import org.apache.pig.data.utils.HierarchyHelper.MustOverride;
 public abstract class AppendableSchemaTuple<T extends AppendableSchemaTuple<T>> extends SchemaTuple<T> {
     private static final long serialVersionUID = 1L;
 
-    private Tuple append;
+    private Tuple appendedFields;
 
     private static final TupleFactory mTupleFactory = TupleFactory.getInstance();
 
     @Override
     public void append(Object val) {
-        if (append == null) {
-            append = mTupleFactory.newTuple();
+        if (appendedFields == null) {
+            appendedFields = mTupleFactory.newTuple();
         }
 
-        append.append(val);
+        appendedFields.append(val);
     }
 
-    protected int appendSize() {
-        return append == null ? 0 : append.size();
+    protected int appendedFieldsSize() {
+        return appendedFields == null ? 0 : appendedFields.size();
     }
 
-    protected boolean appendIsNull() {
-        return appendSize() == 0;
+    protected boolean isAppendedFieldsNull() {
+        return appendedFieldsSize() == 0;
     }
 
-    protected Object getAppend(int i) throws ExecException {
-        return appendIsNull(i) ? null : append.get(i);
+    protected Object getAppendedField(int i) throws ExecException {
+        return isAppendedFieldNull(i) ? null : appendedFields.get(i);
     }
 
-    private boolean appendIsNull(int i) throws ExecException {
-        return appendIsNull() || append.isNull(i);
+    private boolean isAppendedFieldNull(int i) throws ExecException {
+        return isAppendedFieldsNull() || appendedFields.isNull(i);
     }
 
     //protected Tuple getAppend() {
-    public Tuple getAppend() {
-        return append;
+    public Tuple getAppendedFields() {
+        return appendedFields;
     }
 
-    protected void setAppend(Tuple t) {
-        append = t;
+    protected void setAppendedFields(Tuple t) {
+        appendedFields = t;
     }
 
-    private void appendReset() {
-        append = null;
+    private void resetAppendedFields() {
+        appendedFields = null;
     }
 
-    private void setAppend(int fieldNum, Object val) throws ExecException {
-        append.set(fieldNum, val);
+    private void setAppendedField(int fieldNum, Object val) throws ExecException {
+        appendedFields.set(fieldNum, val);
     }
 
     /**
      * This adds the additional overhead of the append Tuple
      */
     @Override
-    @MustOverride
     public long getMemorySize() {
-        return SizeUtil.roundToEight(append.getMemorySize()) + super.getMemorySize();
+        return SizeUtil.roundToEight(appendedFields.getMemorySize()) + super.getMemorySize();
     }
 
-    private byte appendType(int i) throws ExecException {
-        return append == null ? DataType.UNKNOWN : append.getType(i);
+
+    private byte getAppendedFieldType(int i) throws ExecException {
+        return appendedFields == null ? DataType.UNKNOWN : appendedFields.getType(i);
     }
 
     @MustOverride
     protected SchemaTuple<T> set(SchemaTuple<?> t, boolean checkType) throws ExecException {
-        appendReset();
-        for (int j = sizeNoAppend(); j < t.size(); j++) {
+        resetAppendedFields();
+        for (int j = schemaSize(); j < t.size(); j++) {
             append(t.get(j));
         }
         return super.set(t, checkType);
@@ -102,21 +102,21 @@ public abstract class AppendableSchemaTuple<T extends AppendableSchemaTuple<T>> 
 
     @MustOverride
     protected SchemaTuple<T> setSpecific(T t) {
-        appendReset();
-        setAppend(t.getAppend());
+        resetAppendedFields();
+        setAppendedFields(t.getAppendedFields());
         return super.setSpecific(t);
     }
 
     public SchemaTuple<T> set(List<Object> l) throws ExecException {
-        if (l.size() < sizeNoAppend())
-            throw new ExecException("Given list of objects has too few fields ("+l.size()+" vs "+sizeNoAppend()+")");
+        if (l.size() < schemaSize())
+            throw new ExecException("Given list of objects has too few fields ("+l.size()+" vs "+schemaSize()+")");
 
-        for (int i = 0; i < sizeNoAppend(); i++)
+        for (int i = 0; i < schemaSize(); i++)
             set(i, l.get(i));
 
-        appendReset();
+        resetAppendedFields();
 
-        for (int i = sizeNoAppend(); i < l.size(); i++) {
+        for (int i = schemaSize(); i < l.size(); i++) {
             append(l.get(i++));
         }
 
@@ -125,12 +125,12 @@ public abstract class AppendableSchemaTuple<T extends AppendableSchemaTuple<T>> 
 
     @MustOverride
     protected int compareTo(SchemaTuple<?> t, boolean checkType) {
-        if (appendSize() > 0) {
+        if (appendedFieldsSize() > 0) {
             int i;
-            int m = sizeNoAppend();
-            for (int k = 0; k < size() - sizeNoAppend(); k++) {
+            int m = schemaSize();
+            for (int k = 0; k < size() - schemaSize(); k++) {
                 try {
-                    i = DataType.compare(getAppend(k), t.get(m++));
+                    i = DataType.compare(getAppendedField(k), t.get(m++));
                 } catch (ExecException e) {
                     throw new RuntimeException("Unable to get append value", e);
                 }
@@ -145,9 +145,9 @@ public abstract class AppendableSchemaTuple<T extends AppendableSchemaTuple<T>> 
     @MustOverride
     protected int compareToSpecific(T t) {
         int i;
-        for (int z = 0; z < appendSize(); z++) {
+        for (int z = 0; z < appendedFieldsSize(); z++) {
             try {
-                i = DataType.compare(getAppend(z), t.getAppend(z));
+                i = DataType.compare(getAppendedField(z), t.getAppendedField(z));
             } catch (ExecException e) {
                 throw new RuntimeException("Unable to get append", e);
             }
@@ -158,16 +158,15 @@ public abstract class AppendableSchemaTuple<T extends AppendableSchemaTuple<T>> 
         return 0;
     }
 
-    @MustOverride
     public int hashCode() {
-        return append.hashCode();
+        return super.hashCode() + appendedFields.hashCode();
     }
 
     @MustOverride
     public void set(int fieldNum, Object val) throws ExecException {
-        int diff = fieldNum - sizeNoAppend();
-        if (diff < appendSize()) {
-            setAppend(diff, val);
+        int diff = fieldNum - schemaSize();
+        if (diff < appendedFieldsSize()) {
+            setAppendedField(diff, val);
             return;
         }
         throw new ExecException("Invalid index " + fieldNum + " given");
@@ -175,17 +174,17 @@ public abstract class AppendableSchemaTuple<T extends AppendableSchemaTuple<T>> 
 
     @MustOverride
     public Object get(int fieldNum) throws ExecException {
-        int diff = fieldNum - sizeNoAppend();
-        if (diff < appendSize())
-            return getAppend(diff);
+        int diff = fieldNum - schemaSize();
+        if (diff < appendedFieldsSize())
+            return getAppendedField(diff);
         throw new ExecException("Invalid index " + fieldNum + " given");
     }
 
     @MustOverride
     public boolean isNull(int fieldNum) throws ExecException {
-        int diff = fieldNum - sizeNoAppend();
-        if (diff < appendSize()) {
-            return appendIsNull(diff);
+        int diff = fieldNum - schemaSize();
+        if (diff < appendedFieldsSize()) {
+            return isAppendedFieldNull(diff);
         }
         throw new ExecException("Invalid index " + fieldNum + " given");
     }
@@ -193,9 +192,9 @@ public abstract class AppendableSchemaTuple<T extends AppendableSchemaTuple<T>> 
     //TODO: do we even need this?
     @MustOverride
     public void setNull(int fieldNum) throws ExecException {
-        int diff = fieldNum - sizeNoAppend();
-        if (diff < appendSize()) {
-            setAppend(diff, null);
+        int diff = fieldNum - schemaSize();
+        if (diff < appendedFieldsSize()) {
+            setAppendedField(diff, null);
         } else {
             throw new ExecException("Invalid index " + fieldNum + " given");
         }
@@ -203,40 +202,41 @@ public abstract class AppendableSchemaTuple<T extends AppendableSchemaTuple<T>> 
 
     @MustOverride
     public byte getType(int fieldNum) throws ExecException {
-        int diff = fieldNum - sizeNoAppend();
-        if (diff < appendSize()) {
-            return appendType(diff);
+        int diff = fieldNum - schemaSize();
+        if (diff < appendedFieldsSize()) {
+            return getAppendedFieldType(diff);
         }
         throw new ExecException("Invalid index " + fieldNum + " given");
     }
 
     protected void setPrimitiveBase(int fieldNum, Object val, String type) throws ExecException {
-        int diff = fieldNum - sizeNoAppend();
-        if (diff < appendSize()) {
-            setAppend(diff, val);
+        int diff = fieldNum - schemaSize();
+        if (diff < appendedFieldsSize()) {
+            setAppendedField(diff, val);
         }
         throw new ExecException("Given field " + fieldNum + " not a " + type + " field!");
     }
 
     protected Object getPrimitiveBase(int fieldNum, String type) throws ExecException {
-        int diff = fieldNum - sizeNoAppend();
-        if (diff < appendSize()) {
-            return getAppend(diff);
+        int diff = fieldNum - schemaSize();
+        if (diff < appendedFieldsSize()) {
+            return getAppendedField(diff);
         }
         throw new ExecException("Given field " + fieldNum + " not a " + type + " field!");
     }
 
     @MustOverride
     protected void writeElements(DataOutput out) throws IOException {
-        if (!appendIsNull()) {
-            SedesHelper.writeGenericTuple(out, getAppend());
+        super.writeElements(out);
+        if (!isAppendedFieldsNull()) {
+            SedesHelper.writeGenericTuple(out, getAppendedFields());
         }
     }
 
     @MustOverride
     protected int compareSizeSpecific(T t) {
-        int mySz = appendSize();
-        int tSz = t.appendSize();
+        int mySz = appendedFieldsSize();
+        int tSz = t.appendedFieldsSize();
         if (mySz != tSz) {
             return mySz > tSz ? 1 : -1;
         }

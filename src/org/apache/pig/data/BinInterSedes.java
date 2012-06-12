@@ -130,7 +130,7 @@ public class BinInterSedes implements InterSedes {
         case (SCHEMA_TUPLE_BYTE_INDEX): id = in.readUnsignedByte(); break;
         case (SCHEMA_TUPLE_SHORT_INDEX): id = in.readUnsignedShort(); break;
         case (SCHEMA_TUPLE): id = in.readInt(); break;
-        default: throw new RuntimeException("Invalid type given to readSchemaTuple");
+        default: throw new RuntimeException("Invalid type given to readSchemaTuple: " + type);
         }
 
         Tuple st = TupleFactory.getInstanceForSchemaId(id).newTuple();

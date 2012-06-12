@@ -23,7 +23,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -103,36 +102,16 @@ public class SchemaTupleClassGenerator {
      */
     public static final String SHOULD_GENERATE_KEY = "pig.schematuple";
 
-    /**
-     * This key will override pig.schematuple in the specific case of UDF's.
-     */
-    public static final String SHOULD_GENERATE_UDF_KEY = "pig.schematuple.udf";
-
-    /**
-     * This key will override pig.schematuple in the specific case of LoadFunctions.
-     */
-    public static final String SHOULD_GENERATE_LOAD_KEY = "pig.schematuple.load";
-
-    /**
-     * This key will override pig.schematuple in the specific case of Joins.
-     */
-    public static final String SHOULD_GENERATE_JOIN_KEY = "pig.schematuple.join";
-
-    private static final Map<String, Boolean> defaultKeyValues = new HashMap<String, Boolean>() {{
-        put(SHOULD_GENERATE_KEY, false);
-        put(SHOULD_GENERATE_UDF_KEY, true);
-        put(SHOULD_GENERATE_LOAD_KEY, true);
-        put(SHOULD_GENERATE_JOIN_KEY, true);
-    }};
-
     public static enum GenContext {
-        UDF (SHOULD_GENERATE_UDF_KEY),
-        LOAD (SHOULD_GENERATE_LOAD_KEY),
-        JOIN (SHOULD_GENERATE_JOIN_KEY);
+        UDF ("pig.schematuple.udf", true),
+        LOAD ("pig.schematuple.load", true),
+        JOIN ("pig.schematuple.join", true);
 
         private String key;
-        GenContext(String key) {
+        private boolean defaultValue;
+        GenContext(String key, boolean defaultValue) {
             this.key = key;
+            this.defaultValue = defaultValue;
         }
 
         public String key() {
@@ -140,28 +119,16 @@ public class SchemaTupleClassGenerator {
         }
 
         public boolean shouldGenerate(Configuration conf) {
-            return checkKeys(conf, SHOULD_GENERATE_KEY, key);
-        }
-    }
-
-    private static boolean checkKeys(Configuration conf, String... keys) {
-        for (String key : keys) {
-            String shouldString = conf.get(key);
-            Boolean shouldBool = defaultKeyValues.get(key);
-            if (shouldBool == null) {
-                // This should never happen, as we should only be checking keys
-                // Which we set and check
-                throw new RuntimeException("Attempted to check key ["+key+"] without a default value!");
-            }
-            if (shouldString != null) {
-                shouldBool = Boolean.parseBoolean(shouldString);
-            }
-            if (shouldBool == false) {
-                LOG.info("Key ["+key+"] was false, skipping generation of Schema.");
+            String shouldString = conf.get(SHOULD_GENERATE_KEY);
+            if (shouldString == null || !Boolean.parseBoolean(shouldString)) {
                 return false;
             }
+            shouldString = conf.get(key);
+            if (shouldString == null) {
+                return defaultValue;
+            }
+            return Boolean.parseBoolean(shouldString);
         }
-        return true;
     }
 
     /**
@@ -169,7 +136,7 @@ public class SchemaTupleClassGenerator {
      * The general naming scheme used is SchemaTupe_identifier. Note that
      * identifiers are incremented before code is actually generated.
      */
-    private static int globalClassIdentifier = 0;
+    private static int nextGlobalClassIdentifier = 0;
 
     /**
      * This class actually generates the code for a given Schema.
@@ -187,7 +154,7 @@ public class SchemaTupleClassGenerator {
     }
 
     private static int generateSchemaTuple(Schema s, boolean appendable) {
-        int id = getGlobalClassIdentifier();
+        int id = getNextGlobalClassIdentifier();
 
         generateSchemaTuple(s, appendable, id);
 
@@ -241,7 +208,7 @@ public class SchemaTupleClassGenerator {
         if (!SchemaTupleFactory.isGeneratable(udfSchema)) {
             return -1;
         }
-        int id = getGlobalClassIdentifier();
+        int id = getNextGlobalClassIdentifier();
         schemasToGenerate.put(sk, Triple.make(Integer.valueOf(id), isAppendable, type));
         LOG.info("Registering "+(isAppendable ? "Appendable" : "")+"Schema for generation [" + udfSchema + "] with id [" + id + "]");
         return id;
@@ -288,7 +255,8 @@ public class SchemaTupleClassGenerator {
             try {
                 fs.copyFromLocalFile(src, dst);
             } catch (IOException e) {
-                throw new RuntimeException("Unable to copy from local filesystem to HDFS", e);
+                throw new RuntimeException("Unable to copy from local filesystem to HDFS, src = "
+                        + src + ", dst = " + dst, e);
             }
 
             String destination = dst.toString() + "#" + symlink;
@@ -324,14 +292,12 @@ public class SchemaTupleClassGenerator {
         for (String s : toDeserialize.split(",")) {
             LOG.info("Attempting to read file: " + s);
             // The string is the symlink into the distributed cache
-            FileInputStream fin = new FileInputStream(new File(s));
+            File src = new File(s);
+            FileInputStream fin = new FileInputStream(src);
             FileOutputStream fos = new FileOutputStream(tempFile(s));
 
-            int read;
-            byte[] buf = new byte[1024*1024];
-            while ((read = fin.read(buf)) > -1) {
-                fos.write(buf, 0, read);
-            }
+            fin.getChannel().transferTo(0, src.length(), fos.getChannel());
+
             fin.close();
             fos.close();
             LOG.info("Successfully copied file to local directory.");
@@ -355,8 +321,8 @@ public class SchemaTupleClassGenerator {
         return f.end();
     }
 
-    private static int getGlobalClassIdentifier() {
-        return globalClassIdentifier++;
+    private static int getNextGlobalClassIdentifier() {
+        return nextGlobalClassIdentifier++;
     }
 
     /**
@@ -508,7 +474,7 @@ public class SchemaTupleClassGenerator {
     static class HashCode extends TypeInFunctionStringOut {
         public void prepare() {
             add("@Override");
-            add("public int hashCode() {");
+            add("public int generatedCodeHashCode() {");
             add("    int h = 17;");
         }
 
@@ -517,7 +483,7 @@ public class SchemaTupleClassGenerator {
         }
 
         public void end() {
-            add("    return h + super.hashCode();");
+            add("    return h;");
             add("}");
         }
     }
@@ -891,7 +857,7 @@ public class SchemaTupleClassGenerator {
     static class WriteString extends TypeInFunctionStringOut {
         public void prepare() {
             add("@Override");
-            add("protected void writeElements(DataOutput out) throws IOException {");
+            add("protected void generatedCodeWriteElements(DataOutput out) throws IOException {");
             add("    writeNulls(out);");
         }
 
@@ -914,7 +880,6 @@ public class SchemaTupleClassGenerator {
             for (int i = 0; i < booleanBytes; i++) {
                 add("    out.writeByte(booleanByte_"+i+");");
             }
-            add("    super.writeElements(out);");
             add("}");
             addBreak();
         }
@@ -924,11 +889,11 @@ public class SchemaTupleClassGenerator {
     static class MemorySizeString extends TypeInFunctionStringOut {
         private int size = 0;
 
-        String s = "    return super.getMemorySize() + SizeUtil.roundToEight(";
+        String s = "    return SizeUtil.roundToEight(";
 
         public void prepare() {
             add("@Override");
-            add("public long getMemorySize() {");
+            add("public long getGeneratedCodeMemorySize() {");
         }
 
         private int booleans = 0;
@@ -1159,7 +1124,7 @@ public class SchemaTupleClassGenerator {
 
         public void prepare() {
             add("@Override");
-            add("public "+name()+" get"+proper()+"(int fieldNum) throws ExecException {");
+            add("public "+name()+" get"+properName()+"(int fieldNum) throws ExecException {");
             add("    switch(fieldNum) {");
         }
 
@@ -1171,7 +1136,7 @@ public class SchemaTupleClassGenerator {
 
         public void end() {
             add("    default:");
-            add("        return super.get" + proper() + "(fieldNum);");
+            add("        return super.get" + properName() + "(fieldNum);");
             add("    }");
             add("}");
         }
@@ -1192,26 +1157,13 @@ public class SchemaTupleClassGenerator {
             return typeName(type);
         }
 
-        public String defValue() {
-            switch (type) {
-            case (DataType.INTEGER): return "0";
-            case (DataType.LONG): return "1L";
-            case (DataType.FLOAT): return "1.0f";
-            case (DataType.DOUBLE): return "1.0";
-            case (DataType.BOOLEAN): return "true";
-            case (DataType.CHARARRAY): return "\"\"";
-            case (DataType.BYTEARRAY): return "new byte[0]";
-            default: throw new RuntimeException("Invalid type for defValue");
-            }
-        }
-
-        public String proper() {
+        public String properName() {
             return proper(thisType());
         }
 
         public void prepare() {
             add("@Override");
-            add("public void set"+proper()+"(int fieldNum, "+name()+" val) throws ExecException {");
+            add("public void set"+properName()+"(int fieldNum, "+name()+" val) throws ExecException {");
             add("    switch(fieldNum) {");
         }
 
@@ -1221,7 +1173,7 @@ public class SchemaTupleClassGenerator {
         }
 
         public void end() {
-            add("    default: super.set"+proper()+"(fieldNum, val);");
+            add("    default: super.set"+properName()+"(fieldNum, val);");
             add("    }");
             add("}");
         }

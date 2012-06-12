@@ -59,10 +59,12 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
      * the size of the object itself, since this never affects word boundaries.
      */
     @Override
-    @MustOverride
     public long getMemorySize() {
-        return 16; //Object header
+        return 16 //Object header
+             + getGeneratedCodeMemorySize();
     }
+
+    protected abstract long getGeneratedCodeMemorySize();
 
     /**
      * This method will return the identifier that the generated code
@@ -73,7 +75,7 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
      */
     public abstract int getSchemaTupleIdentifier();
     public abstract String getSchemaString();
-    protected abstract int sizeNoAppend();
+    protected abstract int schemaSize();
 
     @MustOverride
     protected SchemaTuple<T> set(SchemaTuple<?> t, boolean checkType) throws ExecException {
@@ -108,10 +110,10 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
     }
 
     public SchemaTuple<T> set(List<Object> l) throws ExecException {
-        if (l.size() < sizeNoAppend())
-            throw new ExecException("Given list of objects has too few fields ("+l.size()+" vs "+sizeNoAppend()+")");
+        if (l.size() < schemaSize())
+            throw new ExecException("Given list of objects has too few fields ("+l.size()+" vs "+schemaSize()+")");
 
-        for (int i = 0; i < sizeNoAppend(); i++)
+        for (int i = 0; i < schemaSize(); i++)
             set(i, l.get(i));
 
         return this;
@@ -136,12 +138,10 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
 
     protected static void write(DataOutput out, int v) throws IOException {
         SedesHelper.Varint.writeSignedVarInt(v, out);
-        //out.writeInt(v);
     }
 
     protected static void write(DataOutput out, long v) throws IOException {
         SedesHelper.Varint.writeSignedVarLong(v, out);
-        //out.writeLong(v);
     }
 
     protected static void write(DataOutput out, float v) throws IOException {
@@ -166,12 +166,10 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
 
     protected static int read(DataInput in, int v) throws IOException {
         return SedesHelper.Varint.readSignedVarInt(in);
-        //return in.readInt();
     }
 
     protected static long read(DataInput in, long v) throws IOException {
         return SedesHelper.Varint.readSignedVarLong(in);
-        //return in.readLong();
     }
 
     protected static float read(DataInput in, float v) throws IOException {
@@ -273,7 +271,8 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
                 }
 
             } catch (ExecException e) {
-                throw new RuntimeException("Unable to compare tuples", e);
+                throw new RuntimeException("Unable to compare tuples, t1 class = "
+                        + getClass() + ", t2 class = " + t.getClass(), e);
             }
         }
 
@@ -431,10 +430,12 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return isNull ? 0 : 31 * hash + v.hashCode();
     }
 
-    @MustOverride
+    @Override
     public int hashCode() {
-        return 0;
+        return generatedCodeHashCode();
     }
+
+    protected abstract int generatedCodeHashCode();
 
     @MustOverride
     public void set(int fieldNum, Object val) throws ExecException {
@@ -555,7 +556,7 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         try {
             set(t);
         } catch (ExecException e) {
-            throw new RuntimeException("Unable to set position 6 with Tuple: " + t, e);
+            throw new RuntimeException("Unable to set position with Tuple: " + t, e);
         }
     }
 
@@ -563,7 +564,7 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         try {
             set(t);
         } catch (ExecException e) {
-            throw new RuntimeException("Unable to set position 6 with Tuple: " + t, e);
+            throw new RuntimeException("Unable to set position with Tuple: " + t, e);
         }
     }
 
@@ -576,18 +577,14 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
      * @param out
      * @throws IOException
      */
-    @MustOverride
     protected void writeElements(DataOutput out) throws IOException {
+        generatedCodeWriteElements(out);
     }
 
+    protected abstract void generatedCodeWriteElements(DataOutput out) throws IOException;
+
     protected int compareSize(Tuple t) {
-        int mySz = size();
-        int tSz = t.size();
-        if (mySz == tSz) {
-            return 0;
-        } else {
-            return mySz > tSz ? 1 : -1;
-        }
+        return compare(size(), t.size());
     }
 
     protected int compareNull(boolean usNull, boolean themNull) {
@@ -611,7 +608,7 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return compareNull(usNull, themNull);
     }
 
-    protected int compare(int val, SchemaTuple<?> t, int pos) {
+    protected int compareElementAtPos(int val, SchemaTuple<?> t, int pos) {
         int themVal;
         try {
             themVal = t.getInt(pos);

@@ -195,7 +195,7 @@ public class SchemaTupleFactory extends TupleFactory {
          * @param   identifier
          * @return  generating schemaTupleFactory, null otherwise
          */
-        public SchemaTupleFactory newSchemaTupleFactory(int id) {
+        protected SchemaTupleFactory newSchemaTupleFactory(int id) {
             SchemaTupleFactory stf = schemaTupleFactoriesById.get(id);
             if (stf == null) {
                 LOG.warn("No SchemaTupleFactory present for given identifier: " + id);
@@ -263,8 +263,8 @@ public class SchemaTupleFactory extends TupleFactory {
                 Class<?> clazz;
                 try {
                     clazz = classLoader.loadClass(s);
-                } catch (ClassNotFoundException e1) {
-                    throw new RuntimeException("Unable to find class: " + s);
+                } catch (ClassNotFoundException e) {
+                    throw new RuntimeException("Unable to find class: " + s, e);
                 }
                 // Step two is to ensure that the generated class doesn't have any improperly
                 // implemented methods.

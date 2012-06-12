@@ -90,7 +90,7 @@ public class HierarchyHelper {
             if (!(o instanceof MethodKey)) {
                 return false;
             }
-            return methodsEqual(m, ((MethodKey)o).get());
+            return methodSignatureEqual(m, ((MethodKey)o).get());
         }
 
         public Method get() {
@@ -124,7 +124,7 @@ public class HierarchyHelper {
      * if the methods are equal assuming that they come from the same
      * class hierarchy (ie generated code which extends SchemaTuple).
      */
-    public static boolean methodsEqual(Method m1, Method m2) {
+    public static boolean methodSignatureEqual(Method m1, Method m2) {
         if (!m1.getName().equals(m2.getName())) {
             return false;
         }

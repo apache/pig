@@ -52,7 +52,7 @@ public class MethodHelper {
             return false;
         }
         for (Method clazzMethod : clazz.getDeclaredMethods()) {
-            if (HierarchyHelper.methodsEqual(m, clazzMethod)) {
+            if (HierarchyHelper.methodSignatureEqual(m, clazzMethod)) {
                 return clazzMethod.getAnnotation(NotImplemented.class) != null;
             }
         }
@@ -62,6 +62,6 @@ public class MethodHelper {
     public static RuntimeException methodNotImplemented() {
         StackTraceElement[] ste = Thread.currentThread().getStackTrace();
         StackTraceElement pre = ste[ste.length - 2];
-        return new RuntimeException(pre.getMethodName() + " not implemented in " + pre.getClassName());
+        return new UnsupportedOperationException(pre.getMethodName() + " not implemented in " + pre.getClassName());
     }
 }

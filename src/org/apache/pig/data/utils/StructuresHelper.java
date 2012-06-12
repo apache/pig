@@ -80,8 +80,8 @@ public class StructuresHelper {
      * and to use them as keys and values in Maps.
      */
     public static class Pair<T1, T2> {
-        private T1 t1;
-        private T2 t2;
+        private final T1 t1;
+        private final T2 t2;
 
         public Pair(T1 t1, T2 t2) {
             this.t1 = t1;
@@ -136,9 +136,9 @@ public class StructuresHelper {
     }
 
     public static class Triple<T1, T2, T3> {
-        private T1 t1;
-        private T2 t2;
-        private T3 t3;
+        private final T1 t1;
+        private final T2 t2;
+        private final T3 t3;
 
         public Triple(T1 t1, T2 t2, T3 t3) {
             this.t1 = t1;
