@@ -451,22 +451,19 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
 
     public abstract Object generatedCodeGetField(int fieldNum) throws ExecException;
 
-    @MustOverride
     @Override
     public boolean isNull(int fieldNum) throws ExecException {
-        throw new ExecException("Invalid index " + fieldNum + " given");
+        return isGeneratedCodeFieldNull(fieldNum);
     }
 
-    //TODO: do we even need this?
-    @MustOverride
-    public void setNull(int fieldNum) throws ExecException {
-        throw new ExecException("Invalid index " + fieldNum + " given");
-    }
+    public abstract boolean isGeneratedCodeFieldNull(int fieldNum) throws ExecException;
 
-    @MustOverride
+    @Override
     public byte getType(int fieldNum) throws ExecException {
-        throw new ExecException("Invalid index " + fieldNum + " given");
+        return getGeneratedCodeFieldType(fieldNum);
     }
+
+    public abstract byte getGeneratedCodeFieldType(int fieldNum) throws ExecException;
 
     protected void setPrimitiveBase(int fieldNum, Object val, String type) throws ExecException {
         throw new ExecException("Given field " + fieldNum + " not a " + type + " field!");

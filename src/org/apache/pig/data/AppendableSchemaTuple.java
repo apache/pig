@@ -163,56 +163,42 @@ public abstract class AppendableSchemaTuple<T extends AppendableSchemaTuple<T>> 
     }
 
     public void set(int fieldNum, Object val) throws ExecException {
-        int mySz = schemaSize();
         int diff = fieldNum - schemaSize();
-        if (fieldNum < mySz) {
-            super.set(fieldNum, val);
-        } else if (diff < appendedFieldsSize()) {
+        if (diff >= 0 && diff < appendedFieldsSize()) {
             setAppendedField(diff, val);
-            return;
+        } else {
+            super.set(fieldNum, val);
         }
-        throw new ExecException("Invalid index " + fieldNum + " given");
     }
 
     @Override
     public Object get(int fieldNum) throws ExecException {
-        int mySz = schemaSize();
-        int diff = fieldNum - mySz;
-        if (fieldNum < mySz) {
-            return super.get(fieldNum);
-        } else if (diff < appendedFieldsSize()) {
+        int diff = fieldNum - schemaSize();
+        if (diff >= 0 && diff < appendedFieldsSize()) {
             return getAppendedField(diff);
+        } else {
+            return super.get(fieldNum);
         }
-        throw new ExecException("Invalid index " + fieldNum + " given");
     }
 
-    @MustOverride
+    @Override
     public boolean isNull(int fieldNum) throws ExecException {
         int diff = fieldNum - schemaSize();
-        if (diff < appendedFieldsSize()) {
+        if (diff >= 0 && diff < appendedFieldsSize()) {
             return isAppendedFieldNull(diff);
-        }
-        throw new ExecException("Invalid index " + fieldNum + " given");
-    }
-
-    //TODO: do we even need this?
-    @MustOverride
-    public void setNull(int fieldNum) throws ExecException {
-        int diff = fieldNum - schemaSize();
-        if (diff < appendedFieldsSize()) {
-            setAppendedField(diff, null);
         } else {
-            throw new ExecException("Invalid index " + fieldNum + " given");
+            return super.isNull(fieldNum);
         }
     }
 
-    @MustOverride
+    @Override
     public byte getType(int fieldNum) throws ExecException {
         int diff = fieldNum - schemaSize();
-        if (diff < appendedFieldsSize()) {
+        if (diff >= 0 && diff < appendedFieldsSize()) {
             return getAppendedFieldType(diff);
+        } else {
+            return super.getType(fieldNum);
         }
-        throw new ExecException("Invalid index " + fieldNum + " given");
     }
 
     protected void setPrimitiveBase(int fieldNum, Object val, String type) throws ExecException {
@@ -231,7 +217,6 @@ public abstract class AppendableSchemaTuple<T extends AppendableSchemaTuple<T>> 
         throw new ExecException("Given field " + fieldNum + " not a " + type + " field!");
     }
 
-    @MustOverride
     protected void writeElements(DataOutput out) throws IOException {
         super.writeElements(out);
         if (!isAppendedFieldsNull()) {

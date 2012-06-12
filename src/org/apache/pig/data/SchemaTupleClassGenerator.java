@@ -652,7 +652,7 @@ public class SchemaTupleClassGenerator {
     static class GeneralIsNullString extends TypeInFunctionStringOut {
         public void prepare() {
             add("@Override");
-            add("public boolean isNull(int fieldNum) throws ExecException {");
+            add("public boolean isGeneratedCodeFieldNull(int fieldNum) throws ExecException {");
             add("    switch (fieldNum) {");
         }
 
@@ -661,25 +661,7 @@ public class SchemaTupleClassGenerator {
         }
 
         public void end() {
-            add("    default: return super.isNull(fieldNum);");
-            add("    }");
-            add("}");
-        }
-    }
-
-    static class GeneralSetNullString extends TypeInFunctionStringOut {
-        public void prepare() {
-            add("@Override");
-            add("public void setNull(int fieldNum) throws ExecException {");
-            add("    switch (fieldNum) {");
-        }
-
-        public void process(int fieldPos, Schema.FieldSchema fs) {
-            add("    case ("+fieldPos+"): setNull_"+fieldPos+"(true); break;");
-        }
-
-        public void end() {
-            add("    default: super.setNull(fieldNum);");
+            add("    default: throw new ExecException(\"Invalid index given: \" + fieldNum);");
             add("    }");
             add("}");
         }
@@ -1057,7 +1039,7 @@ public class SchemaTupleClassGenerator {
     static class GetTypeString extends TypeInFunctionStringOut {
         public void prepare() {
             add("@Override");
-            add("public byte getType(int fieldNum) throws ExecException {");
+            add("public byte getGeneratedCodeFieldType(int fieldNum) throws ExecException {");
             add("    switch (fieldNum) {");
         }
 
@@ -1066,7 +1048,7 @@ public class SchemaTupleClassGenerator {
         }
 
         public void end() {
-            add("    default: return super.getType(fieldNum);");
+            add("    default: throw new ExecException(\"Invalid index given: \" + fieldNum);");
             add("    }");
             add("}");
             addBreak();
@@ -1202,7 +1184,6 @@ public class SchemaTupleClassGenerator {
             listOfFutureMethods.add(new GenericSetString());
             listOfFutureMethods.add(new GenericGetString());
             listOfFutureMethods.add(new GeneralIsNullString());
-            listOfFutureMethods.add(new GeneralSetNullString());
             listOfFutureMethods.add(new CheckIfNullString());
             listOfFutureMethods.add(new SetNullString());
             listOfFutureMethods.add(new SetEqualToSchemaTupleSpecificString(id));
