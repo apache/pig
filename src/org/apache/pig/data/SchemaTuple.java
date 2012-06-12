@@ -437,17 +437,22 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
 
     protected abstract int generatedCodeHashCode();
 
-    @MustOverride
+    @Override
     public void set(int fieldNum, Object val) throws ExecException {
-        throw new ExecException("Invalid index " + fieldNum + " given");
+        generatedCodeGetField(fieldNum);
     }
 
-    @MustOverride
+    public abstract void generatedCodeSetField(int fieldNum, Object val) throws ExecException;
+
+    @Override
     public Object get(int fieldNum) throws ExecException {
-        throw new ExecException("Invalid index " + fieldNum + " given");
+        return generatedCodeGetField(fieldNum);
     }
 
+    public abstract Object generatedCodeGetField(int fieldNum) throws ExecException;
+
     @MustOverride
+    @Override
     public boolean isNull(int fieldNum) throws ExecException {
         throw new ExecException("Invalid index " + fieldNum + " given");
     }

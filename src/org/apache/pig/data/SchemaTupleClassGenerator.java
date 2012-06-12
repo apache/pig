@@ -609,7 +609,7 @@ public class SchemaTupleClassGenerator {
     static class GenericSetString extends TypeInFunctionStringOut {
         public void prepare() {
             add("@Override");
-            add("public void set(int fieldNum, Object val) throws ExecException {");
+            add("public void generatedCodeSetField(int fieldNum, Object val) throws ExecException {");
             add("    switch (fieldNum) {");
         }
 
@@ -625,7 +625,7 @@ public class SchemaTupleClassGenerator {
 
         public void end() {
             add("    default:");
-            add("        super.set(fieldNum, val);");
+            add("        throw new ExecException(\"Invalid index given to set: \" + fieldPos);");
             add("    }");
             add("}");
         }
@@ -634,7 +634,7 @@ public class SchemaTupleClassGenerator {
     static class GenericGetString extends TypeInFunctionStringOut {
         public void prepare() {
             add("@Override");
-            add("public Object get(int fieldNum) throws ExecException {");
+            add("public Object generatedCodeGetField(int fieldNum) throws ExecException {");
             add("    switch (fieldNum) {");
         }
 
@@ -643,7 +643,7 @@ public class SchemaTupleClassGenerator {
         }
 
         public void end() {
-            add("    default: return super.get(fieldNum);");
+            add("    default: throw new ExecException(\"Invalid index given to get: \" + fieldNum);");
             add("    }");
             add("}");
         }

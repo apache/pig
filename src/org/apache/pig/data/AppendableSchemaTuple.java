@@ -162,21 +162,27 @@ public abstract class AppendableSchemaTuple<T extends AppendableSchemaTuple<T>> 
         return super.hashCode() + appendedFields.hashCode();
     }
 
-    @MustOverride
     public void set(int fieldNum, Object val) throws ExecException {
+        int mySz = schemaSize();
         int diff = fieldNum - schemaSize();
-        if (diff < appendedFieldsSize()) {
+        if (fieldNum < mySz) {
+            super.set(fieldNum, val);
+        } else if (diff < appendedFieldsSize()) {
             setAppendedField(diff, val);
             return;
         }
         throw new ExecException("Invalid index " + fieldNum + " given");
     }
 
-    @MustOverride
+    @Override
     public Object get(int fieldNum) throws ExecException {
-        int diff = fieldNum - schemaSize();
-        if (diff < appendedFieldsSize())
+        int mySz = schemaSize();
+        int diff = fieldNum - mySz;
+        if (fieldNum < mySz) {
+            return super.get(fieldNum);
+        } else if (diff < appendedFieldsSize()) {
             return getAppendedField(diff);
+        }
         throw new ExecException("Invalid index " + fieldNum + " given");
     }
 
