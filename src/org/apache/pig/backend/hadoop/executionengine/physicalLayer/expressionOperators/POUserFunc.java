@@ -138,8 +138,8 @@ public class POUserFunc extends ExpressionOperator {
             if (inputTupleFactory == null) {
                 LOG.debug("No SchemaTupleFactory found for Schema ["+tmpS+"], using default TupleFactory");
             } else {
-                LOG.info("No SchemaTuple found for Schema: " + tmpS); //remove
-                schemaTupleFactory = true;
+                LOG.debug("Using SchemaTupleFactory for Schema: " + tmpS);
+                usingSchemaTupleFactory = true;
             }
 
 /*
@@ -150,7 +150,7 @@ public class POUserFunc extends ExpressionOperator {
     }
 
     private TupleFactory inputTupleFactory;
-    private boolean schemaTupleFactory = false;
+    private boolean usingSchemaTupleFactory = false;
 
     @Override
     public Result processInput() throws ExecException {
@@ -187,7 +187,8 @@ public class POUserFunc extends ExpressionOperator {
         } else {
             //we decouple this because there may be cases where the size is known and it isn't a schema
             // tuple factory
-            boolean knownSize = schemaTupleFactory;
+            boolean knownSize = usingSchemaTupleFactory;
+            LOG.info("IS THE SIZE KNOWN? " + knownSize); //remove
             int knownIndex = 0;
             if (inputTupleFactory == null) {
                 inputTupleFactory = TupleFactory.getInstance();

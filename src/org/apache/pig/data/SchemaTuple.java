@@ -440,7 +440,7 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
 
     @Override
     public void set(int fieldNum, Object val) throws ExecException {
-        generatedCodeGetField(fieldNum);
+        generatedCodeSetField(fieldNum, val);
     }
 
     public abstract void generatedCodeSetField(int fieldNum, Object val) throws ExecException;

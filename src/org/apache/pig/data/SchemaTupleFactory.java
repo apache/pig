@@ -302,10 +302,10 @@ public class SchemaTupleFactory extends TupleFactory {
                 // uniquely identify a SchemaTupleFactory
                 Pair<SchemaKey, Boolean> pr = Pair.make(new SchemaKey(schema), isAppendable);
 
-                schemaTupleFactoriesByPair .put(pr, stf);
+                schemaTupleFactoriesByPair.put(pr, stf);
                 schemaTupleFactoriesById.put(id, stf);
 
-                LOG.info("Successfully resolved class.");
+                LOG.info("Successfully resolved class for schema ["+schema+"] and appendability ["+isAppendable+"]");
             }
         }
     }
