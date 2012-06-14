@@ -1193,6 +1193,7 @@ public class SchemaTupleClassGenerator {
             listOfFutureMethods.add(new TypeAwareSetString(DataType.BYTEARRAY));
             listOfFutureMethods.add(new TypeAwareSetString(DataType.CHARARRAY));
             listOfFutureMethods.add(new TypeAwareSetString(DataType.BOOLEAN));
+            listOfFutureMethods.add(new TypeAwareSetString(DataType.TUPLE));
             listOfFutureMethods.add(new TypeAwareGetString(DataType.INTEGER));
             listOfFutureMethods.add(new TypeAwareGetString(DataType.LONG));
             listOfFutureMethods.add(new TypeAwareGetString(DataType.FLOAT));
@@ -1200,6 +1201,7 @@ public class SchemaTupleClassGenerator {
             listOfFutureMethods.add(new TypeAwareGetString(DataType.BYTEARRAY));
             listOfFutureMethods.add(new TypeAwareGetString(DataType.CHARARRAY));
             listOfFutureMethods.add(new TypeAwareGetString(DataType.BOOLEAN));
+            listOfFutureMethods.add(new TypeAwareGetString(DataType.TUPLE));
 
             for (TypeInFunctionStringOut t : listOfFutureMethods) {
                 t.prepare();
