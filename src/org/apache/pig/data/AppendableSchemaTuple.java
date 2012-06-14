@@ -123,10 +123,12 @@ public abstract class AppendableSchemaTuple<T extends AppendableSchemaTuple<T>> 
         return this;
     }
 
-    @MustOverride
     protected int compareTo(SchemaTuple<?> t, boolean checkType) {
+        int i = super.compareTo(t, checkType);
+        if (i != 0) {
+            return i;
+        }
         if (appendedFieldsSize() > 0) {
-            int i;
             int m = schemaSize();
             for (int k = 0; k < size() - schemaSize(); k++) {
                 try {
@@ -144,7 +146,10 @@ public abstract class AppendableSchemaTuple<T extends AppendableSchemaTuple<T>> 
 
     @MustOverride
     protected int compareToSpecific(T t) {
-        int i;
+        int i = super.compareToSpecific(t);
+        if (i != 0) {
+            return i;
+        }
         for (int z = 0; z < appendedFieldsSize(); z++) {
             try {
                 i = DataType.compare(getAppendedField(z), t.getAppendedField(z));
@@ -201,20 +206,24 @@ public abstract class AppendableSchemaTuple<T extends AppendableSchemaTuple<T>> 
         }
     }
 
-    protected void setPrimitiveBase(int fieldNum, Object val, String type) throws ExecException {
+    @Override
+    protected void setTypeAwareBase(int fieldNum, Object val, String type) throws ExecException {
         int diff = fieldNum - schemaSize();
-        if (diff < appendedFieldsSize()) {
+        if (diff >= 0 && diff < appendedFieldsSize()) {
             setAppendedField(diff, val);
+        } else {
+            super.setTypeAwareBase(fieldNum, val, type);
         }
-        throw new ExecException("Given field " + fieldNum + " not a " + type + " field!");
     }
 
-    protected Object getPrimitiveBase(int fieldNum, String type) throws ExecException {
+    @Override
+    protected Object getTypeAwareBase(int fieldNum, String type) throws ExecException {
         int diff = fieldNum - schemaSize();
-        if (diff < appendedFieldsSize()) {
+        if (diff >= 0 && diff < appendedFieldsSize()) {
             return getAppendedField(diff);
+        } else {
+            return super.getTypeAwareBase(fieldNum, type);
         }
-        throw new ExecException("Given field " + fieldNum + " not a " + type + " field!");
     }
 
     protected void writeElements(DataOutput out) throws IOException {

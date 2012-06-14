@@ -188,7 +188,6 @@ public class POUserFunc extends ExpressionOperator {
             //we decouple this because there may be cases where the size is known and it isn't a schema
             // tuple factory
             boolean knownSize = usingSchemaTupleFactory;
-            LOG.info("IS THE SIZE KNOWN? " + knownSize); //remove
             int knownIndex = 0;
             if (inputTupleFactory == null) {
                 inputTupleFactory = TupleFactory.getInstance();

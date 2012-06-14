@@ -28,7 +28,6 @@ import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.data.utils.MethodHelper;
 import org.apache.pig.data.utils.SedesHelper;
-import org.apache.pig.data.utils.HierarchyHelper.MustOverride;
 import org.apache.pig.data.utils.MethodHelper.NotImplemented;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -78,15 +77,17 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
     public abstract String getSchemaString();
     protected abstract int schemaSize();
 
-    @MustOverride
     protected SchemaTuple<T> set(SchemaTuple<?> t, boolean checkType) throws ExecException {
-        return this;
+        return generatedCodeSet(t, checkType);
     }
 
-    @MustOverride
+    protected abstract SchemaTuple<T> generatedCodeSet(SchemaTuple<?> t, boolean checkType) throws ExecException;
+
     protected SchemaTuple<T> setSpecific(T t) {
-        return this;
+        return setSpecific(t);
     }
+
+    protected abstract SchemaTuple<T> generatedCodeSetSpecific(T t);
 
     public SchemaTuple<T> set(Tuple t) throws ExecException {
         return set(t, true);
@@ -289,15 +290,17 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return compareTo(t, false);
     }
 
-    @MustOverride
     protected int compareTo(SchemaTuple<?> t, boolean checkType) {
-        return 0;
+        return generatedCodeCompareTo(t, checkType);
     }
 
-    @MustOverride
+    protected abstract int generatedCodeCompareTo(SchemaTuple<?> t, boolean checkType);
+
     protected int compareToSpecific(T t) {
-        return 0;
+        return generatedCodeCompareToSpecific(t);
     }
+
+    protected abstract int generatedCodeCompareToSpecific(T t);
 
     @Override
     public boolean equals(Object other) {
@@ -466,82 +469,154 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
 
     public abstract byte getGeneratedCodeFieldType(int fieldNum) throws ExecException;
 
-    protected void setPrimitiveBase(int fieldNum, Object val, String type) throws ExecException {
+    protected void setTypeAwareBase(int fieldNum, Object val, String type) throws ExecException {
         throw new ExecException("Given field " + fieldNum + " not a " + type + " field!");
     }
 
-    protected Object getPrimitiveBase(int fieldNum, String type) throws ExecException {
+    protected Object getTypeAwareBase(int fieldNum, String type) throws ExecException {
         throw new ExecException("Given field " + fieldNum + " not a " + type + " field!");
     }
 
-    @MustOverride
+    @Override
     public void setInt(int fieldNum, int val) throws ExecException {
-        setPrimitiveBase(fieldNum, val, "int");
+        generatedCodeSetInt(fieldNum, val);
     }
 
-    @MustOverride
+    protected abstract void generatedCodeSetInt(int fieldNum, int val) throws ExecException;
+
+    @Override
     public void setLong(int fieldNum, long val) throws ExecException {
-        setPrimitiveBase(fieldNum, val, "long");
+        generatedCodeSetLong(fieldNum, val);
     }
 
-    @MustOverride
+    protected abstract void generatedCodeSetLong(int fieldNum, long val) throws ExecException;
+
+    @Override
     public void setFloat(int fieldNum, float val) throws ExecException {
-        setPrimitiveBase(fieldNum, val, "float");
+        generatedCodeSetFloat(fieldNum, val);
     }
 
-    @MustOverride
+    protected abstract void generatedCodeSetFloat(int fieldNum, float val) throws ExecException;
+
+    @Override
     public void setDouble(int fieldNum, double val) throws ExecException {
-        setPrimitiveBase(fieldNum, val, "double");
+        generatedCodeSetDouble(fieldNum, val);
     }
 
-    @MustOverride
+    protected abstract void generatedCodeSetDouble(int fieldNum, double val) throws ExecException;
+
+    @Override
     public void setBoolean(int fieldNum, boolean val) throws ExecException {
-        setPrimitiveBase(fieldNum, val, "boolean");
+        generatedCodeSetBoolean(fieldNum, val);
     }
 
-    @MustOverride
+    protected abstract void generatedCodeSetBoolean(int fieldNum, boolean val) throws ExecException;
+
+    @Override
     public void setString(int fieldNum, String val) throws ExecException {
-        setPrimitiveBase(fieldNum, val, "String");
+         generatedCodeSetString(fieldNum, val);
     }
 
-    @MustOverride
+    protected abstract void generatedCodeSetString(int fieldNum, String val) throws ExecException;
+
+    @Override
     public void setBytes(int fieldNum, byte[] val) throws ExecException {
-        setPrimitiveBase(fieldNum, val, "byte[]");
+        if (fieldNum < schemaSize()) {
+            generatedCodeSetBytes(fieldNum, val);
+        } else {
+            setTypeAwareBase(fieldNum, val, "byte[]");
+        }
     }
 
-    @MustOverride
+    protected abstract void generatedCodeSetBytes(int fieldNum, byte[] val) throws ExecException;
+
+    @Override
     public int getInt(int fieldNum) throws ExecException {
-        return ((Number)getPrimitiveBase(fieldNum, "int")).intValue();
+        return generatedCodeGetInt(fieldNum);
     }
 
-    @MustOverride
+    protected abstract int generatedCodeGetInt(int fieldNum) throws ExecException;
+
+    public int unboxInt(Object val) {
+        return ((Number)val).intValue();
+    }
+
+    @Override
     public long getLong(int fieldNum) throws ExecException {
-        return ((Number)getPrimitiveBase(fieldNum, "long")).longValue();
+        return generatedCodeGetLong(fieldNum);
     }
 
-    @MustOverride
+    protected abstract long generatedCodeGetLong(int fieldNum) throws ExecException;
+
+    public long unboxLong(Object val) {
+        return ((Number)val).longValue();
+    }
+
+    @Override
     public float getFloat(int fieldNum) throws ExecException {
-        return ((Number)getPrimitiveBase(fieldNum, "float")).floatValue();
+        return generatedCodeGetFloat(fieldNum);
     }
 
-    @MustOverride
+    protected abstract float generatedCodeGetFloat(int fieldNum) throws ExecException;
+
+    public float unboxFloat(Object val) {
+        return ((Number)val).floatValue();
+    }
+
+    @Override
     public double getDouble(int fieldNum) throws ExecException {
-        return ((Number)getPrimitiveBase(fieldNum, "double")).doubleValue();
+        return generatedCodeGetDouble(fieldNum);
     }
 
-    @MustOverride
+    protected abstract double generatedCodeGetDouble(int fieldNum) throws ExecException;
+
+    public double unboxDouble(Object val) {
+        return ((Number)val).doubleValue();
+    }
+
+    @Override
     public boolean getBoolean(int fieldNum) throws ExecException {
-        return (Boolean)getPrimitiveBase(fieldNum, "boolean");
+        return generatedCodeGetBoolean(fieldNum);
     }
 
-    @MustOverride
+    protected abstract boolean generatedCodeGetBoolean(int fieldNum) throws ExecException;
+
+    public boolean unboxBoolean(Object val) {
+        return ((Boolean)val).booleanValue();
+    }
+
+    @Override
     public String getString(int fieldNum) throws ExecException {
-        return (String)getPrimitiveBase(fieldNum, "String");
+        return generatedCodeGetString(fieldNum);
     }
 
-    @MustOverride
+    protected abstract String generatedCodeGetString(int fieldNum) throws ExecException;
+
+    public String unboxString(Object val) {
+        return (String)val;
+    }
+
+    @Override
     public byte[] getBytes(int fieldNum) throws ExecException {
-        return ((DataByteArray)getPrimitiveBase(fieldNum, "byte[]")).get();
+        return generatedCodeGetBytes(fieldNum);
+    }
+
+    public byte[] unboxBytes(Object val) {
+        DataByteArray dba = (DataByteArray)val;
+        return val == null ? null : dba.get();
+    }
+
+    protected abstract byte[] generatedCodeGetBytes(int fieldNum) throws ExecException;
+
+    @Override
+    public Tuple getTuple(int fieldNum) throws ExecException {
+        return generatedCodeGetTuple(fieldNum);
+    }
+
+    protected abstract Tuple generatedCodeGetTuple(int fieldNum) throws ExecException;
+
+    protected Tuple unboxTuple(Object val) {
+        return (Tuple)val;
     }
 
     protected static Schema staticSchemaGen(String s) {
@@ -636,7 +711,7 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return val == themVal ? 0 : (val > themVal ? 1 : -1);
     }
 
-    protected int compare(boolean isNull, int val, SchemaTuple<?> t, int pos) {
+    protected int compareWithElementAtPos(boolean isNull, int val, SchemaTuple<?> t, int pos) {
         int themVal;
         boolean themNull;
         try {
@@ -663,7 +738,7 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return val == themVal ? 0 : (val > themVal ? 1 : -1);
     }
 
-    protected int compare(boolean isNull, long val, SchemaTuple<?> t, int pos) {
+    protected int compareWithElementAtPos(boolean isNull, long val, SchemaTuple<?> t, int pos) {
         long themVal;
         boolean themNull;
         try {
@@ -690,7 +765,7 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return val == themVal ? 0 : (val > themVal ? 1 : -1);
     }
 
-    protected int compare(boolean isNull, float val, SchemaTuple<?> t, int pos) {
+    protected int compareWithElementAtPos(boolean isNull, float val, SchemaTuple<?> t, int pos) {
         float themVal;
         boolean themNull;
         try {
@@ -717,7 +792,7 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return val == themVal ? 0 : (val > themVal ? 1 : -1);
     }
 
-    protected int compare(boolean isNull, double val, SchemaTuple<?> t, int pos) {
+    protected int compareWithElementAtPos(boolean isNull, double val, SchemaTuple<?> t, int pos) {
         double themVal;
         boolean themNull;
         try {
@@ -747,7 +822,7 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return 0;
     }
 
-    protected int compare(boolean isNull, boolean val, SchemaTuple<?> t, int pos) {
+    protected int compareWithElementAtPos(boolean isNull, boolean val, SchemaTuple<?> t, int pos) {
         boolean themVal;
         boolean themNull;
         try {
@@ -774,7 +849,7 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return DataByteArray.compare(val, themVal);
     }
 
-    protected int compare(boolean isNull, byte[] val, SchemaTuple<?> t, int pos) {
+    protected int compareWithElementAtPos(boolean isNull, byte[] val, SchemaTuple<?> t, int pos) {
         byte[] themVal;
         boolean themNull;
         try {
@@ -801,7 +876,7 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return val.compareTo(themVal);
     }
 
-    protected int compare(boolean isNull, String val, SchemaTuple<?> t, int pos) {
+    protected int compareWithElementAtPos(boolean isNull, String val, SchemaTuple<?> t, int pos) {
         String themVal;
         boolean themNull;
         try {
@@ -813,7 +888,7 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return compare(isNull, val, themNull, themVal);
     }
 
-    protected int compare(boolean isNull, SchemaTuple<?> val, SchemaTuple<?> t, int pos) {
+    protected int compareWithElementAtPos(boolean isNull, SchemaTuple<?> val, SchemaTuple<?> t, int pos) {
         Object themVal;
         boolean themNull;
         try {

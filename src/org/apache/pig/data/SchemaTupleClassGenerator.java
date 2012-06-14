@@ -393,7 +393,7 @@ public class SchemaTupleClassGenerator {
 
         public void prepare() {
             add("@Override");
-            add("protected int compareToSpecific(SchemaTuple_"+id+" t) {");
+            add("protected int generatedCodeCompareToSpecific(SchemaTuple_"+id+" t) {");
             if (isAppendable()) {
                 add("    int i = compareSizeSpecific(t);");
                 add("    if (i != 0) {");
@@ -429,7 +429,7 @@ public class SchemaTupleClassGenerator {
 
         public void prepare() {
             add("@Override");
-            add("protected int compareTo(SchemaTuple t, boolean checkType) {");
+            add("protected int generatedCodeCompareTo(SchemaTuple t, boolean checkType) {");
             add("    if (checkType && t instanceof SchemaTuple_"+id+") {");
             add("        return compareToSpecific((SchemaTuple_"+id+")t);");
             add("    }");
@@ -445,14 +445,14 @@ public class SchemaTupleClassGenerator {
         boolean compByte = false;
 
         public void process(int fieldNum, Schema.FieldSchema fs) {
-            add("        i = compare(checkIfNull_" + fieldNum + "(), getPos_" + fieldNum + "(), t, " + fieldNum + ");");
+            add("        i = compareWithElementAtPos(checkIfNull_" + fieldNum + "(), getPos_" + fieldNum + "(), t, " + fieldNum + ");");
             add("        if (i != 0) {");
             add("            return i;");
             add("        }");
         }
 
         public void end() {
-            add("    return super.compareTo(t, false);");
+            add("    return 0;");
             add("}");
         }
     }
@@ -703,7 +703,7 @@ public class SchemaTupleClassGenerator {
 
         public void prepare() {
             add("@Override");
-            add("protected SchemaTuple setSpecific(SchemaTuple_"+id+" t) {");
+            add("protected SchemaTuple generatedCodeSetSpecific(SchemaTuple_"+id+" t) {");
         }
 
         public void process(int fieldPos, Schema.FieldSchema fs) {
@@ -716,7 +716,7 @@ public class SchemaTupleClassGenerator {
         }
 
         public void end() {
-            add("    return super.setSpecific(t);");
+            add("    return this;");
             add("}");
             addBreak();
         }
@@ -1050,7 +1050,7 @@ public class SchemaTupleClassGenerator {
 
         public void prepare() {
             add("@Override");
-            add("protected SchemaTuple set(SchemaTuple t, boolean checkClass) throws ExecException {");
+            add("protected SchemaTuple generatedCodeSet(SchemaTuple t, boolean checkClass) throws ExecException {");
             add("    if (checkClass && t instanceof SchemaTuple_"+id+") {");
             add("        return setSpecific((SchemaTuple_"+id+")t);");
             add("    }");
@@ -1092,7 +1092,7 @@ public class SchemaTupleClassGenerator {
 
         public void prepare() {
             add("@Override");
-            add("public "+name()+" get"+properName()+"(int fieldNum) throws ExecException {");
+            add("protected "+name()+" generatedCodeGet"+properName()+"(int fieldNum) throws ExecException {");
             add("    switch(fieldNum) {");
         }
 
@@ -1104,7 +1104,7 @@ public class SchemaTupleClassGenerator {
 
         public void end() {
             add("    default:");
-            add("        return super.get" + properName() + "(fieldNum);");
+            add("        return unbox"+properName()+"(getTypeAwareBase(fieldNum, "+name()+"));");
             add("    }");
             add("}");
         }
@@ -1131,7 +1131,7 @@ public class SchemaTupleClassGenerator {
 
         public void prepare() {
             add("@Override");
-            add("public void set"+properName()+"(int fieldNum, "+name()+" val) throws ExecException {");
+            add("protected void generatedCodeSet"+properName()+"(int fieldNum, "+name()+" val) throws ExecException {");
             add("    switch(fieldNum) {");
         }
 
@@ -1141,7 +1141,7 @@ public class SchemaTupleClassGenerator {
         }
 
         public void end() {
-            add("    default: super.set"+properName()+"(fieldNum, val);");
+            add("    default: setTypeAwareBase(fieldNum, val, \""+name()+"\");");
             add("    }");
             add("}");
         }
@@ -1376,6 +1376,7 @@ public class SchemaTupleClassGenerator {
                 case (DataType.BYTEARRAY): return "byte[]";
                 case (DataType.CHARARRAY): return "String";
                 case (DataType.BOOLEAN): return "boolean";
+                case (DataType.TUPLE): return "tuple";
                 default: throw new RuntimeException("Can't return String for given type " + DataType.findTypeName(type));
             }
         }
