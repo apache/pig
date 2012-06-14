@@ -1085,8 +1085,8 @@ public class SchemaTupleClassGenerator {
         }
     }
 
-   static class PrimitiveGetString extends PrimitiveSetString {
-        public PrimitiveGetString(byte type) {
+   static class TypeAwareGetString extends TypeAwareSetString {
+        public TypeAwareGetString(byte type) {
             super(type);
         }
 
@@ -1104,16 +1104,16 @@ public class SchemaTupleClassGenerator {
 
         public void end() {
             add("    default:");
-            add("        return unbox"+properName()+"(getTypeAwareBase(fieldNum, "+name()+"));");
+            add("        return unbox"+properName()+"(getTypeAwareBase(fieldNum, \""+name()+"\"));");
             add("    }");
             add("}");
         }
     }
 
-    static class PrimitiveSetString extends TypeInFunctionStringOut {
+    static class TypeAwareSetString extends TypeInFunctionStringOut {
         private byte type;
 
-        public PrimitiveSetString(byte type) {
+        public TypeAwareSetString(byte type) {
             this.type = type;
         }
 
@@ -1186,20 +1186,20 @@ public class SchemaTupleClassGenerator {
             listOfFutureMethods.add(new CompareToString(id));
             listOfFutureMethods.add(new CompareToSpecificString(id, appendable));
             listOfFutureMethods.add(new SetEqualToSchemaTupleString(id));
-            listOfFutureMethods.add(new PrimitiveSetString(DataType.INTEGER));
-            listOfFutureMethods.add(new PrimitiveSetString(DataType.LONG));
-            listOfFutureMethods.add(new PrimitiveSetString(DataType.FLOAT));
-            listOfFutureMethods.add(new PrimitiveSetString(DataType.DOUBLE));
-            listOfFutureMethods.add(new PrimitiveSetString(DataType.BYTEARRAY));
-            listOfFutureMethods.add(new PrimitiveSetString(DataType.CHARARRAY));
-            listOfFutureMethods.add(new PrimitiveSetString(DataType.BOOLEAN));
-            listOfFutureMethods.add(new PrimitiveGetString(DataType.INTEGER));
-            listOfFutureMethods.add(new PrimitiveGetString(DataType.LONG));
-            listOfFutureMethods.add(new PrimitiveGetString(DataType.FLOAT));
-            listOfFutureMethods.add(new PrimitiveGetString(DataType.DOUBLE));
-            listOfFutureMethods.add(new PrimitiveGetString(DataType.BYTEARRAY));
-            listOfFutureMethods.add(new PrimitiveGetString(DataType.CHARARRAY));
-            listOfFutureMethods.add(new PrimitiveGetString(DataType.BOOLEAN));
+            listOfFutureMethods.add(new TypeAwareSetString(DataType.INTEGER));
+            listOfFutureMethods.add(new TypeAwareSetString(DataType.LONG));
+            listOfFutureMethods.add(new TypeAwareSetString(DataType.FLOAT));
+            listOfFutureMethods.add(new TypeAwareSetString(DataType.DOUBLE));
+            listOfFutureMethods.add(new TypeAwareSetString(DataType.BYTEARRAY));
+            listOfFutureMethods.add(new TypeAwareSetString(DataType.CHARARRAY));
+            listOfFutureMethods.add(new TypeAwareSetString(DataType.BOOLEAN));
+            listOfFutureMethods.add(new TypeAwareGetString(DataType.INTEGER));
+            listOfFutureMethods.add(new TypeAwareGetString(DataType.LONG));
+            listOfFutureMethods.add(new TypeAwareGetString(DataType.FLOAT));
+            listOfFutureMethods.add(new TypeAwareGetString(DataType.DOUBLE));
+            listOfFutureMethods.add(new TypeAwareGetString(DataType.BYTEARRAY));
+            listOfFutureMethods.add(new TypeAwareGetString(DataType.CHARARRAY));
+            listOfFutureMethods.add(new TypeAwareGetString(DataType.BOOLEAN));
 
             for (TypeInFunctionStringOut t : listOfFutureMethods) {
                 t.prepare();
