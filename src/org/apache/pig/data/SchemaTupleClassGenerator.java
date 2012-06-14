@@ -149,7 +149,7 @@ public class SchemaTupleClassGenerator {
 
         String name = "SchemaTuple_" + id;
 
-        LOG.info("Compiling class " + name + " for Schema: " + s);
+        LOG.info("Compiling class " + name + " for Schema: " + s + ", and appendability: " + appendable);
         compileCodeString(name, codeString);
     }
 

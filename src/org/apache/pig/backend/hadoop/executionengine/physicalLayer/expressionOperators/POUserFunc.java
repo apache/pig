@@ -137,8 +137,8 @@ public class POUserFunc extends ExpressionOperator {
             inputTupleFactory = TupleFactory.getInstanceForSchema(tmpS, false);
             if (inputTupleFactory == null) {
                 LOG.debug("No SchemaTupleFactory found for Schema ["+tmpS+"], using default TupleFactory");
-                inputTupleFactory = TupleFactory.getInstance();
             } else {
+                LOG.info("No SchemaTuple found for Schema: " + tmpS); //remove
                 schemaTupleFactory = true;
             }
 
@@ -192,6 +192,7 @@ public class POUserFunc extends ExpressionOperator {
             if (inputTupleFactory == null) {
                 inputTupleFactory = TupleFactory.getInstance();
             }
+            res.result = inputTupleFactory.newTuple();
 
             Result temp = null;
 
