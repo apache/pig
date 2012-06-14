@@ -21,6 +21,7 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.classification.InterfaceAudience;
@@ -620,6 +621,17 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return compare(val, themVal);
     }
 
+    protected int compare(boolean usNull, int usVal, boolean themNull, int themVal) {
+        if (usNull && themNull) {
+            return 0;
+        } else if (themNull) {
+            return 1;
+        } else if (usNull) {
+            return -1;
+        }
+        return compare(usVal, themVal);
+    }
+
     protected int compare(int val, int themVal) {
         return val == themVal ? 0 : (val > themVal ? 1 : -1);
     }
@@ -632,6 +644,17 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
             throw new RuntimeException("Unable to retrieve long field " + pos + " in given Tuple: " + t, e);
         }
         return compare(val, themVal);
+    }
+
+    protected int compare(boolean usNull, long usVal, boolean themNull, long themVal) {
+        if (usNull && themNull) {
+            return 0;
+        } else if (themNull) {
+            return 1;
+        } else if (usNull) {
+            return -1;
+        }
+        return compare(usVal, themVal);
     }
 
     protected int compare(long val, long themVal) {
@@ -648,6 +671,17 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return compare(val, themVal);
     }
 
+    protected int compare(boolean usNull, float usVal, boolean themNull, float themVal) {
+        if (usNull && themNull) {
+            return 0;
+        } else if (themNull) {
+            return 1;
+        } else if (usNull) {
+            return -1;
+        }
+        return compare(usVal, themVal);
+    }
+
     public int compare(float val, float themVal) {
         return val == themVal ? 0 : (val > themVal ? 1 : -1);
     }
@@ -662,6 +696,17 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return compare(val, themVal);
     }
 
+    protected int compare(boolean usNull, double usVal, boolean themNull, double themVal) {
+        if (usNull && themNull) {
+            return 0;
+        } else if (themNull) {
+            return 1;
+        } else if (usNull) {
+            return -1;
+        }
+        return compare(usVal, themVal);
+    }
+
     protected int compare(double val, double themVal) {
         return val == themVal ? 0 : (val > themVal ? 1 : -1);
     }
@@ -674,6 +719,17 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
             throw new RuntimeException("Unable to retrieve boolean field " + pos + " in given Tuple: " + t, e);
         }
         return compare(val, themVal);
+    }
+
+    protected int compare(boolean usNull, boolean usVal, boolean themNull, boolean themVal) {
+        if (usNull && themNull) {
+            return 0;
+        } else if (themNull) {
+            return 1;
+        } else if (usNull) {
+            return -1;
+        }
+        return compare(usVal, themVal);
     }
 
     protected int compare(boolean val, boolean themVal) {
@@ -691,6 +747,17 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         }
     }
 
+    protected int compare(boolean usNull, byte[] usVal, boolean themNull, byte[] themVal) {
+        if (usNull && themNull) {
+            return 0;
+        } else if (themNull) {
+            return 1;
+        } else if (usNull) {
+            return -1;
+        }
+        return compare(usVal, themVal);
+    }
+
     protected int compare(byte[] val, byte[] themVal) {
         return DataByteArray.compare(val, themVal);
     }
@@ -701,6 +768,17 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         } catch (ExecException e) {
             throw new RuntimeException("Unable to retrieve String field " + pos + " in given Tuple: " + t, e);
         }
+    }
+
+    protected int compare(boolean usNull, String usVal, boolean themNull, String themVal) {
+        if (usNull && themNull) {
+            return 0;
+        } else if (themNull) {
+            return 1;
+        } else if (usNull) {
+            return -1;
+        }
+        return compare(usVal, themVal);
     }
 
     protected int compare(String val, String themVal) {
@@ -729,5 +807,25 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
 
     public static abstract class SchemaTupleQuickGenerator<A> {
         public abstract A make();
+    }
+
+    @NotImplemented
+    public DataBag getBag(int idx) throws ExecException {
+        throw MethodHelper.methodNotImplemented();
+    }
+
+    @NotImplemented
+    public Map<String,Object> getMap(int idx) throws ExecException {
+        throw MethodHelper.methodNotImplemented();
+    }
+
+    @NotImplemented
+    public void setBag(int idx, DataBag val) throws ExecException {
+        throw MethodHelper.methodNotImplemented();
+    }
+
+    @NotImplemented
+    public void setMap(int idx, Map<String,Object> val) throws ExecException {
+        throw MethodHelper.methodNotImplemented();
     }
 }

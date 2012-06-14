@@ -405,17 +405,11 @@ public class SchemaTupleClassGenerator {
         }
 
         public void process(int fieldNum, Schema.FieldSchema fs) {
-            add("    i = compareNull(checkIfNull_" + fieldNum + "(), t.checkIfNull_" + fieldNum + "());");
-            add("    switch (i) {");
-            add("    case(1):");
-            add("        return 1;");
-            add("    case(-1):");
-            add("        return -1;");
-            add("    case(0):");
-            add("        i = compare(getPos_" + fieldNum + "(), t.getPos_" + fieldNum + "());");
-            add("        if (i != 0) {");
-            add("            return i;");
-            add("        }");
+            add("    i = compare(checkIfNull_" + fieldNum + "(), getPos_"
+                    + fieldNum + "(), t.checkIfNull_" + fieldNum + "(), t.getPos_"
+                    + fieldNum + "());");
+            add("    if (i != 0) {");
+            add("        return i;");
             add("    }");
         }
 
@@ -451,17 +445,11 @@ public class SchemaTupleClassGenerator {
         boolean compByte = false;
 
         public void process(int fieldNum, Schema.FieldSchema fs) {
-            add("    i = compareNull(checkIfNull_" + fieldNum + "(), t, " + fieldNum + ");");
-            add("    switch (i) {");
-            add("    case(1):");
-            add("        return 1;");
-            add("    case(-1):");
-            add("        return -1;");
-            add("    case(0):");
-            add("        i = compare(getPos_" + fieldNum + "(), t, " + fieldNum + ");");
-            add("        if (i != 0) {");
-            add("            return i;");
-            add("        }");
+            add("    i = compare(checkIfNull_" + fieldNum + "(), getPos_"
+                    + fieldNum + "(), t.checkIfNull_" + fieldNum + "(), t.getPos_"
+                    + fieldNum + "());");
+            add("    if (i != 0) {");
+            add("        return i;");
             add("    }");
         }
 
@@ -625,7 +613,7 @@ public class SchemaTupleClassGenerator {
 
         public void end() {
             add("    default:");
-            add("        throw new ExecException(\"Invalid index given to set: \" + fieldPos);");
+            add("        throw new ExecException(\"Invalid index given to set: \" + fieldNum);");
             add("    }");
             add("}");
         }
@@ -784,9 +772,9 @@ public class SchemaTupleClassGenerator {
             add("@Override");
             add("public void readFields(DataInput in) throws IOException {");
             if (isAppendable()) {
-                add("    boolean[] b = SedesHelper.readBooleanArray(in, sizeNoAppend() + 1);");
+                add("    boolean[] b = SedesHelper.readBooleanArray(in, schemaSize() + 1);");
             } else {
-                add("    boolean[] b = SedesHelper.readBooleanArray(in, sizeNoAppend());");
+                add("    boolean[] b = SedesHelper.readBooleanArray(in, schemaSize());");
             }
             addBreak();
         }
@@ -996,7 +984,7 @@ public class SchemaTupleClassGenerator {
         }
     }
 
-    static class SizeNoAppendString extends TypeInFunctionStringOut {
+    static class SchemaSizeString extends TypeInFunctionStringOut {
         int i = 0;
 
         public void process(int fieldNum, Schema.FieldSchema fS) {
@@ -1005,7 +993,7 @@ public class SchemaTupleClassGenerator {
 
         public void end() {
             add("@Override");
-            add("protected int sizeNoAppend() {");
+            add("protected int schemaSize() {");
             add("    return " + i + ";");
             add("}");
             addBreak();
@@ -1069,8 +1057,8 @@ public class SchemaTupleClassGenerator {
             add("        return setSpecific((SchemaTuple_"+id+")t);");
             add("    }");
             addBreak();
-            add("    if (t.size() < sizeNoAppend()) {");
-            add("        throw new ExecException(\"Given SchemaTuple does not have as many fields as \"+getClass()+\" (\"+t.size()+\" vs \"+sizeNoAppend()+\")\");");
+            add("    if (t.size() < schemaSize()) {");
+            add("        throw new ExecException(\"Given SchemaTuple does not have as many fields as \"+getClass()+\" (\"+t.size()+\" vs \"+schemaSize()+\")\");");
             add("    }");
             addBreak();
             add("    List<Schema.FieldSchema> theirFS = t.getSchema().getFields();");
@@ -1195,7 +1183,7 @@ public class SchemaTupleClassGenerator {
             listOfFutureMethods.add(new GetSchemaTupleIdentifierString(id));
             listOfFutureMethods.add(new GetSchemaStringString(s));
             listOfFutureMethods.add(new HashCode());
-            listOfFutureMethods.add(new SizeNoAppendString());
+            listOfFutureMethods.add(new SchemaSizeString());
             listOfFutureMethods.add(new GetTypeString());
             listOfFutureMethods.add(new CompareToString(id));
             listOfFutureMethods.add(new CompareToSpecificString(id, appendable));
