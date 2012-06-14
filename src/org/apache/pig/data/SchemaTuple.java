@@ -636,14 +636,16 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return val == themVal ? 0 : (val > themVal ? 1 : -1);
     }
 
-    protected int compare(long val, SchemaTuple<?> t, int pos) {
-        long themVal;
+    protected int compare(boolean isNull, int val, SchemaTuple<?> t, int pos) {
+        int themVal;
+        boolean themNull;
         try {
-            themVal = t.getLong(pos);
+            themVal = t.getInt(pos);
+            themNull = t.isNull(pos);
         } catch (ExecException e) {
-            throw new RuntimeException("Unable to retrieve long field " + pos + " in given Tuple: " + t, e);
+            throw new RuntimeException("Unable to retrieve int field " + pos + " in given Tuple: " + t, e);
         }
-        return compare(val, themVal);
+        return compare(isNull, val, themNull, themVal);
     }
 
     protected int compare(boolean usNull, long usVal, boolean themNull, long themVal) {
@@ -661,14 +663,16 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return val == themVal ? 0 : (val > themVal ? 1 : -1);
     }
 
-    protected int compare(float val, SchemaTuple<?> t, int pos) {
-        float themVal;
+    protected int compare(boolean isNull, long val, SchemaTuple<?> t, int pos) {
+        long themVal;
+        boolean themNull;
         try {
-            themVal = t.getFloat(pos);
+            themVal = t.getLong(pos);
+            themNull = t.isNull(pos);
         } catch (ExecException e) {
-            throw new RuntimeException("Unable to retrieve float field " + pos + " in given Tuple: " + t, e);
+            throw new RuntimeException("Unable to retrieve long field " + pos + " in given Tuple: " + t, e);
         }
-        return compare(val, themVal);
+        return compare(isNull, val, themNull, themVal);
     }
 
     protected int compare(boolean usNull, float usVal, boolean themNull, float themVal) {
@@ -686,14 +690,16 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return val == themVal ? 0 : (val > themVal ? 1 : -1);
     }
 
-    protected int compare(double val, SchemaTuple<?> t, int pos) {
-        double themVal;
+    protected int compare(boolean isNull, float val, SchemaTuple<?> t, int pos) {
+        float themVal;
+        boolean themNull;
         try {
-            themVal = t.getDouble(pos);
+            themVal = t.getFloat(pos);
+            themNull = t.isNull(pos);
         } catch (ExecException e) {
-            throw new RuntimeException("Unable to retrieve double field " + pos + " in given Tuple: " + t, e);
+            throw new RuntimeException("Unable to retrieve float field " + pos + " in given Tuple: " + t, e);
         }
-        return compare(val, themVal);
+        return compare(isNull, val, themNull, themVal);
     }
 
     protected int compare(boolean usNull, double usVal, boolean themNull, double themVal) {
@@ -711,14 +717,16 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return val == themVal ? 0 : (val > themVal ? 1 : -1);
     }
 
-    protected int compare(boolean val, SchemaTuple<?> t, int pos) {
-        boolean themVal;
+    protected int compare(boolean isNull, double val, SchemaTuple<?> t, int pos) {
+        double themVal;
+        boolean themNull;
         try {
-            themVal = t.getBoolean(pos);
+            themVal = t.getDouble(pos);
+            themNull = t.isNull(pos);
         } catch (ExecException e) {
-            throw new RuntimeException("Unable to retrieve boolean field " + pos + " in given Tuple: " + t, e);
+            throw new RuntimeException("Unable to retrieve double field " + pos + " in given Tuple: " + t, e);
         }
-        return compare(val, themVal);
+        return compare(isNull, val, themNull, themVal);
     }
 
     protected int compare(boolean usNull, boolean usVal, boolean themNull, boolean themVal) {
@@ -739,12 +747,16 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return 0;
     }
 
-    protected int compare(byte[] val, SchemaTuple<?> t, int pos) {
+    protected int compare(boolean isNull, boolean val, SchemaTuple<?> t, int pos) {
+        boolean themVal;
+        boolean themNull;
         try {
-            return compare(val, t.getBytes(pos));
+            themVal = t.getBoolean(pos);
+            themNull = t.isNull(pos);
         } catch (ExecException e) {
-            throw new RuntimeException("Unable to retrieve byte[] field " + pos + " in given Tuple: " + t, e);
+            throw new RuntimeException("Unable to retrieve boolean field " + pos + " in given Tuple: " + t, e);
         }
+        return compare(isNull, val, themNull, themVal);
     }
 
     protected int compare(boolean usNull, byte[] usVal, boolean themNull, byte[] themVal) {
@@ -762,12 +774,16 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return DataByteArray.compare(val, themVal);
     }
 
-    protected int compare(String val, SchemaTuple<?> t, int pos) {
+    protected int compare(boolean isNull, byte[] val, SchemaTuple<?> t, int pos) {
+        byte[] themVal;
+        boolean themNull;
         try {
-            return compare(val, t.getString(pos));
+            themVal = t.getBytes(pos);
+            themNull = t.isNull(pos);
         } catch (ExecException e) {
-            throw new RuntimeException("Unable to retrieve String field " + pos + " in given Tuple: " + t, e);
+            throw new RuntimeException("Unable to retrieve byte[] field " + pos + " in given Tuple: " + t, e);
         }
+        return compare(isNull, val, themNull, themVal);
     }
 
     protected int compare(boolean usNull, String usVal, boolean themNull, String themVal) {
@@ -785,16 +801,39 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return val.compareTo(themVal);
     }
 
-    protected int compare(SchemaTuple<?> val, SchemaTuple<?> t, int pos) {
+    protected int compare(boolean isNull, String val, SchemaTuple<?> t, int pos) {
+        String themVal;
+        boolean themNull;
         try {
-            return compare(val, t.get(pos));
+            themVal = t.getString(pos);
+            themNull = t.isNull(pos);
         } catch (ExecException e) {
-            throw new RuntimeException("Unable to retrieve Tuple field " + pos + " in given Tuple: " + t, e);
+            throw new RuntimeException("Unable to retrieve String field " + pos + " in given Tuple: " + t, e);
         }
+        return compare(isNull, val, themNull, themVal);
     }
 
-    protected int compare(SchemaTuple<?> val, Object themVal) {
-        return val.compareTo(themVal);
+    protected int compare(boolean isNull, SchemaTuple<?> val, SchemaTuple<?> t, int pos) {
+        Object themVal;
+        boolean themNull;
+        try {
+            themVal = t.get(pos);
+            themNull = t.isNull(pos);
+        } catch (ExecException e) {
+            throw new RuntimeException("Unable to retrieve double field " + pos + " in given Tuple: " + t, e);
+        }
+        return compare(isNull, val, themNull, themVal);
+    }
+
+    protected int compare(boolean usNull, SchemaTuple<?> usVal, boolean themNull, Object themVal) {
+        if (usNull && themNull) {
+            return 0;
+        } else if (themNull) {
+            return 1;
+        } else if (usNull) {
+            return -1;
+        }
+        return usVal.compareTo(themVal);
     }
 
     /**

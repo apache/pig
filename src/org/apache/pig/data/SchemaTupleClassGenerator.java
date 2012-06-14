@@ -445,12 +445,10 @@ public class SchemaTupleClassGenerator {
         boolean compByte = false;
 
         public void process(int fieldNum, Schema.FieldSchema fs) {
-            add("    i = compare(checkIfNull_" + fieldNum + "(), getPos_"
-                    + fieldNum + "(), t.checkIfNull_" + fieldNum + "(), t.getPos_"
-                    + fieldNum + "());");
-            add("    if (i != 0) {");
-            add("        return i;");
-            add("    }");
+            add("        i = compare(checkIfNull_" + fieldNum + "(), getPos_" + fieldNum + "(), t, " + fieldNum + ");");
+            add("        if (i != 0) {");
+            add("            return i;");
+            add("        }");
         }
 
         public void end() {

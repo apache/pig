@@ -189,6 +189,9 @@ public class POUserFunc extends ExpressionOperator {
             // tuple factory
             boolean knownSize = schemaTupleFactory;
             int knownIndex = 0;
+            if (inputTupleFactory == null) {
+                inputTupleFactory = TupleFactory.getInstance();
+            }
 
             Result temp = null;
 
