@@ -24,6 +24,7 @@ import java.util.List;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigTupleDefaultRawComparator;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
+import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
 import org.apache.pig.data.SchemaTupleFactory.SchemaTupleResolver;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
@@ -153,8 +154,8 @@ public abstract class TupleFactory {
      * @param   true or false if an appendable SchemaTuple is desired
      * @return  a SchemaTupleFactory which will return SchemaTuple's of the desired Schema
      */
-    public static SchemaTupleFactory getInstanceForSchema(Schema s, boolean isAppendable) {
-        return schemaTupleResolver.newSchemaTupleFactory(s, isAppendable);
+    public static SchemaTupleFactory getInstanceForSchema(Schema s, boolean isAppendable, GenContext context) {
+        return schemaTupleResolver.newSchemaTupleFactory(s, isAppendable, context);
     }
 
     /**

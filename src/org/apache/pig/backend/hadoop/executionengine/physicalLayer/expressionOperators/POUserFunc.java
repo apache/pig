@@ -45,6 +45,7 @@ import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.NodeIdGenerator;
@@ -134,7 +135,7 @@ public class POUserFunc extends ExpressionOperator {
         if (tmpS != null) {
             //Currently, getInstanceForSchema returns null if no class was found. This works fine...
             //if it is null, the default will be used
-            inputTupleFactory = TupleFactory.getInstanceForSchema(tmpS, false);
+            inputTupleFactory = TupleFactory.getInstanceForSchema(tmpS, false, GenContext.UDF);
             if (inputTupleFactory == null) {
                 LOG.debug("No SchemaTupleFactory found for Schema ["+tmpS+"], using default TupleFactory");
             } else {

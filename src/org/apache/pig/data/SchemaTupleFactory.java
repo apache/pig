@@ -30,11 +30,12 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.data.SchemaTuple.SchemaTupleQuickGenerator;
+import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
 import org.apache.pig.data.utils.HierarchyHelper;
 import org.apache.pig.data.utils.MethodHelper;
 import org.apache.pig.data.utils.MethodHelper.NotImplemented;
-import org.apache.pig.data.utils.StructuresHelper.Pair;
 import org.apache.pig.data.utils.StructuresHelper.SchemaKey;
+import org.apache.pig.data.utils.StructuresHelper.Triple;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 import com.google.common.collect.Maps;
@@ -159,7 +160,7 @@ public class SchemaTupleFactory extends TupleFactory {
          * and it will handle the dynamic loading.
          */
         private URLClassLoader classLoader;
-        private Map<Pair<SchemaKey, Boolean>, SchemaTupleFactory> schemaTupleFactoriesByPair = Maps.newHashMap();
+        private Map<Triple<SchemaKey, Boolean, GenContext>, SchemaTupleFactory> schemaTupleFactoriesByTriple = Maps.newHashMap();
         private Map<Integer, SchemaTupleFactory> schemaTupleFactoriesById = Maps.newHashMap();
 
         /**
@@ -184,8 +185,8 @@ public class SchemaTupleFactory extends TupleFactory {
          * @param   true if it should be appendable
          * @return  generating SchemaTupleFactory, null otherwise
          */
-        public SchemaTupleFactory newSchemaTupleFactory(Schema s, boolean isAppendable)  {
-            return newSchemaTupleFactory(Pair.make(new SchemaKey(s), isAppendable));
+        public SchemaTupleFactory newSchemaTupleFactory(Schema s, boolean isAppendable, GenContext context)  {
+            return newSchemaTupleFactory(Triple.make(new SchemaKey(s), isAppendable, context));
         }
 
         /**
@@ -210,10 +211,10 @@ public class SchemaTupleFactory extends TupleFactory {
          * @param   SchemaKey/appendability pair
          * @return  generating SchemaTupleFactory, null otherwise
          */
-        private SchemaTupleFactory newSchemaTupleFactory(Pair<SchemaKey, Boolean> pr) {
-            SchemaTupleFactory stf = schemaTupleFactoriesByPair.get(pr);
+        private SchemaTupleFactory newSchemaTupleFactory(Triple<SchemaKey, Boolean, GenContext> trip) {
+            SchemaTupleFactory stf = schemaTupleFactoriesByTriple.get(trip);
             if (stf == null) {
-                LOG.warn("No SchemaTupleFactory present for given SchemaKey/Boolean combination: " + pr);
+                LOG.warn("No SchemaTupleFactory present for given SchemaKey/Boolean/Context combination " + trip);
             }
             return stf;
         }
@@ -298,14 +299,23 @@ public class SchemaTupleFactory extends TupleFactory {
 
                 SchemaTupleFactory stf = new SchemaTupleFactory(stClass, st.getQuickGenerator());
 
-                // the SchemaKey (Schema sans alias) and appendability are how we will
-                // uniquely identify a SchemaTupleFactory
-                Pair<SchemaKey, Boolean> pr = Pair.make(new SchemaKey(schema), isAppendable);
+                for (GenContext context : GenContext.values()) {
+                    if (!context.shouldGenerate(stClass)) {
+                        LOG.debug("Context ["+context+"] not present for class, skipping.");
+                        continue;
+                    }
 
-                schemaTupleFactoriesByPair.put(pr, stf);
+                    // the SchemaKey (Schema sans alias) and appendability are how we will
+                    // uniquely identify a SchemaTupleFactory
+                    Triple<SchemaKey, Boolean, GenContext> trip =
+                        Triple.make(new SchemaKey(schema), isAppendable, context);
+
+                    schemaTupleFactoriesByTriple.put(trip, stf);
+
+                    LOG.info("Successfully resolved class for schema ["+schema+"] and appendability ["+isAppendable+"]"
+                            + " in context: " + context);
+                }
                 schemaTupleFactoriesById.put(id, stf);
-
-                LOG.info("Successfully resolved class for schema ["+schema+"] and appendability ["+isAppendable+"]");
             }
         }
     }

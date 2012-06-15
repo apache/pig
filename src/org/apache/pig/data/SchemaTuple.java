@@ -520,6 +520,13 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
     protected abstract void generatedCodeSetString(int fieldNum, String val) throws ExecException;
 
     @Override
+    public void setTuple(int fieldNum, Tuple val) throws ExecException {
+         generatedCodeSetTuple(fieldNum, val);
+    }
+
+    protected abstract void generatedCodeSetTuple(int fieldNum, Tuple val) throws ExecException;
+
+    @Override
     public void setBytes(int fieldNum, byte[] val) throws ExecException {
         if (fieldNum < schemaSize()) {
             generatedCodeSetBytes(fieldNum, val);

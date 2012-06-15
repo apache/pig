@@ -21,12 +21,17 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 
 import javax.tools.Diagnostic;
 import javax.tools.DiagnosticCollector;
@@ -53,6 +58,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.google.common.io.Files;
 
 /**
@@ -103,19 +109,43 @@ public class SchemaTupleClassGenerator {
     public static final String SHOULD_GENERATE_KEY = "pig.schematuple";
 
     public static enum GenContext {
-        UDF ("pig.schematuple.udf", true),
-        LOAD ("pig.schematuple.load", true),
-        JOIN ("pig.schematuple.join", true);
+        UDF ("pig.schematuple.udf", true, GenerateUdf.class),
+        LOAD ("pig.schematuple.load", true, GenerateLoad.class),
+        JOIN ("pig.schematuple.join", true, GenerateJoin.class);
+
+        @Retention(RetentionPolicy.RUNTIME)
+        @Target(ElementType.TYPE)
+        public @interface GenerateUdf {}
+
+        @Retention(RetentionPolicy.RUNTIME)
+        @Target(ElementType.TYPE)
+        public @interface GenerateLoad {}
+
+        @Retention(RetentionPolicy.RUNTIME)
+        @Target(ElementType.TYPE)
+        public @interface GenerateJoin {}
 
         private String key;
         private boolean defaultValue;
-        GenContext(String key, boolean defaultValue) {
+        private Class<?> annotation;
+
+        GenContext(String key, boolean defaultValue, Class<?> annotation) {
             this.key = key;
             this.defaultValue = defaultValue;
+            this.annotation = annotation;
         }
 
         public String key() {
             return key;
+        }
+
+        public String getAnnotationCanonicalName() {
+            return annotation.getCanonicalName();
+        }
+
+        @SuppressWarnings("unchecked")
+        public boolean shouldGenerate(Class clazz) {
+            return clazz.getAnnotation(annotation) != null;
         }
 
         public boolean shouldGenerate(Configuration conf) {
@@ -140,16 +170,24 @@ public class SchemaTupleClassGenerator {
 
     /**
      * This class actually generates the code for a given Schema.
-     * @param schema
-     * @param true or false depending on whether it should be appendable
-     * @param identifier
+     * @param   schema
+     * @param   true or false depending on whether it should be appendable
+     * @param   identifier
+     * @param   a list of contexts in which the SchemaTuple is intended to be instantiated
      */
-    private static void generateSchemaTuple(Schema s, boolean appendable, int id) {
-        String codeString = produceCodeString(s, appendable, id);
+    private static void generateSchemaTuple(Schema s, boolean appendable, int id, GenContext... contexts) {
+        StringBuilder contextAnnotations = new StringBuilder();
+        for (GenContext context : contexts) {
+            LOG.info("Including context: " + context);
+            contextAnnotations.append("@").append(context.getAnnotationCanonicalName()).append("\n");
+        }
+
+        String codeString = produceCodeString(s, appendable, id, contextAnnotations.toString());
 
         String name = "SchemaTuple_" + id;
 
         LOG.info("Compiling class " + name + " for Schema: " + s + ", and appendability: " + appendable);
+
         compileCodeString(name, codeString);
     }
 
@@ -164,7 +202,7 @@ public class SchemaTupleClassGenerator {
     /**
      * Schemas registered for generation are held here.
      */
-    private static Map<SchemaKey, Triple<Integer, Boolean, GenContext>> schemasToGenerate = Maps.newHashMap();
+    private static Map<SchemaKey, Triple<Integer, Boolean, Set<GenContext>>> schemasToGenerate = Maps.newHashMap();
 
     /**
      * This sets into motion the generation of all "registered" Schemas. All code will be generated
@@ -174,17 +212,25 @@ public class SchemaTupleClassGenerator {
     public static boolean generateAllSchemaTuples(Configuration conf) {
         boolean filesToShip = false;
         LOG.info("Generating all registered Schemas.");
-        for (Map.Entry<SchemaKey, Triple<Integer,Boolean, GenContext>> entry : schemasToGenerate.entrySet()) {
+        for (Map.Entry<SchemaKey, Triple<Integer,Boolean, Set<GenContext>>> entry : schemasToGenerate.entrySet()) {
             Schema s = entry.getKey().get();
-            Triple<Integer, Boolean, GenContext> value = entry.getValue();
-            GenContext context = value.getThird();
-            if (!context.shouldGenerate(conf)) {
-                LOG.info("Skipping generation of Schema [" + s + "], as key value [" + context.key() + "] was false.");
+            Triple<Integer, Boolean, Set<GenContext>> value = entry.getValue();
+            Set<GenContext> contextsToInclude = Sets.newHashSet();
+            boolean isShipping = false;
+            for (GenContext context : value.getThird()) {
+                if (!context.shouldGenerate(conf)) {
+                    LOG.info("Skipping generation of Schema [" + s + "], as key value [" + context.key() + "] was false.");
+                } else {
+                    isShipping = true;
+                    contextsToInclude.add(context);
+                }
+            }
+            if (!isShipping) {
                 continue;
             }
             int id = value.getFirst();
             boolean isAppendable = value.getSecond();
-            generateSchemaTuple(s, isAppendable, id);
+            generateSchemaTuple(s, isAppendable, id, contextsToInclude.toArray(new GenContext[0]));
             filesToShip = true;
         }
         return filesToShip;
@@ -201,16 +247,20 @@ public class SchemaTupleClassGenerator {
      */
     public static int registerToGenerateIfPossible(Schema udfSchema, boolean isAppendable, GenContext type) {
         SchemaKey sk = new SchemaKey(udfSchema);
-        Triple<Integer, Boolean, GenContext> pr = schemasToGenerate.get(sk);
+        Triple<Integer, Boolean, Set<GenContext>> pr = schemasToGenerate.get(sk);
         if (pr != null) {
+            pr.getThird().add(type);
             return pr.getFirst();
         }
         if (!SchemaTupleFactory.isGeneratable(udfSchema)) {
             return -1;
         }
         int id = getNextGlobalClassIdentifier();
-        schemasToGenerate.put(sk, Triple.make(Integer.valueOf(id), isAppendable, type));
-        LOG.info("Registering "+(isAppendable ? "Appendable" : "")+"Schema for generation [" + udfSchema + "] with id [" + id + "]");
+        Set<GenContext> contexts = Sets.newHashSet();
+        contexts.add(type);
+        schemasToGenerate.put(sk, Triple.make(Integer.valueOf(id), isAppendable, contexts));
+        LOG.info("Registering "+(isAppendable ? "Appendable" : "")+"Schema for generation ["
+                + udfSchema + "] with id [" + id + "] and context: " + type);
         return id;
     }
 
@@ -311,8 +361,8 @@ public class SchemaTupleClassGenerator {
      * @param   identifier
      * @return  the generated class's implementation
      */
-    private static String produceCodeString(Schema s, boolean appendable, int id) {
-        TypeInFunctionStringOutFactory f = new TypeInFunctionStringOutFactory(s, id, appendable);
+    private static String produceCodeString(Schema s, boolean appendable, int id, String contextAnnotations) {
+        TypeInFunctionStringOutFactory f = new TypeInFunctionStringOutFactory(s, id, appendable, contextAnnotations);
 
         for (Schema.FieldSchema fs : s.getFields()) {
             f.process(fs);
@@ -1152,10 +1202,12 @@ public class SchemaTupleClassGenerator {
         private List<TypeInFunctionStringOut> listOfFutureMethods = Lists.newArrayList();
         private int id;
         private boolean appendable;
+        private String contextAnnotations;
 
-        public TypeInFunctionStringOutFactory(Schema s, int id, boolean appendable) {
+        public TypeInFunctionStringOutFactory(Schema s, int id, boolean appendable, String contextAnnotations) {
             this.id = id;
             this.appendable = appendable;
+            this.contextAnnotations = contextAnnotations;
 
             Queue<Integer> nextNestedSchemaIdForSetPos = Lists.newLinkedList();
             Queue<Integer> nextNestedSchemaIdForGetPos = Lists.newLinkedList();
@@ -1236,7 +1288,8 @@ public class SchemaTupleClassGenerator {
                     .append("import org.apache.pig.backend.executionengine.ExecException;\n")
                     .append("import org.apache.pig.data.SizeUtil;\n")
                     .append("import org.apache.pig.data.SchemaTuple.SchemaTupleQuickGenerator;\n")
-                    .append("\n");
+                    .append("\n")
+                    .append(contextAnnotations);
 
             if (appendable) {
                 head.append("public class SchemaTuple_"+id+" extends AppendableSchemaTuple<SchemaTuple_"+id+"> {\n");
@@ -1378,7 +1431,7 @@ public class SchemaTupleClassGenerator {
                 case (DataType.BYTEARRAY): return "byte[]";
                 case (DataType.CHARARRAY): return "String";
                 case (DataType.BOOLEAN): return "boolean";
-                case (DataType.TUPLE): return "tuple";
+                case (DataType.TUPLE): return "Tuple";
                 default: throw new RuntimeException("Can't return String for given type " + DataType.findTypeName(type));
             }
         }
