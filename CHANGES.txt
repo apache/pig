@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2166: UDFs to join a bag (hluu via daijy)
+
 PIG-2651: Provide a much easier to use accumulator interface (jcoveney via daijy)
 
 PIG-2658: Add pig.script.submitted.timestamp and pig.job.submitted.timestamp in generated Map-Reduce job conf (billgraham)
