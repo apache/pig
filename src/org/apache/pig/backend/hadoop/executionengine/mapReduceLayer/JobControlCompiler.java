@@ -72,7 +72,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelp
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataType;
-import org.apache.pig.data.SchemaTupleClassGenerator;
+import org.apache.pig.data.SchemaTupleFrontend;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
@@ -581,9 +581,7 @@ public class JobControlCompiler{
             // distrubted cache.
             setupDistributedCacheForUdfs(mro, pigContext, conf);
 
-            if (SchemaTupleClassGenerator.generateAllSchemaTuples(conf)) {
-                SchemaTupleClassGenerator.copyAllGeneratedToDistributedCache(pigContext, conf);
-            }
+            SchemaTupleFrontend.copyAllGeneratedToDistributedCache(pigContext, conf);
 
             POPackage pack = null;
             if(mro.reducePlan.isEmpty()){

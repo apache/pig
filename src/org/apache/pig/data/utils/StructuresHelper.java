@@ -73,6 +73,10 @@ public class StructuresHelper {
         public Schema get() {
             return s;
         }
+
+        public String toString() {
+            return s.toString();
+        }
     }
 
     /**

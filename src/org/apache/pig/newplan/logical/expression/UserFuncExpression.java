@@ -27,8 +27,8 @@ import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.builtin.Nondeterministic;
 import org.apache.pig.data.DataType;
-import org.apache.pig.data.SchemaTupleClassGenerator;
 import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
+import org.apache.pig.data.SchemaTupleFrontend;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -206,8 +206,8 @@ public class UserFuncExpression extends LogicalExpression {
         Schema udfSchema = ef.outputSchema(inputSchemaToGen);
 
         //TODO appendability should come from a setting
-        inputSchemaTupleId = SchemaTupleClassGenerator.registerToGenerateIfPossible(inputSchemaToGen, false, GenContext.UDF);
-        outputSchemaTupleId = SchemaTupleClassGenerator.registerToGenerateIfPossible(udfSchema, false, GenContext.UDF);
+        inputSchemaTupleId = SchemaTupleFrontend.registerToGenerateIfPossible(inputSchemaToGen, false, GenContext.UDF);
+        outputSchemaTupleId = SchemaTupleFrontend.registerToGenerateIfPossible(udfSchema, false, GenContext.UDF);
 
         if (udfSchema != null) {
             Schema.FieldSchema fs;

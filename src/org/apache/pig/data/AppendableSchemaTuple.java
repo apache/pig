@@ -24,8 +24,8 @@ import java.util.List;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
-import org.apache.pig.data.utils.SedesHelper;
 import org.apache.pig.data.utils.HierarchyHelper.MustOverride;
+import org.apache.pig.data.utils.SedesHelper;
 
 @InterfaceAudience.Public
 @InterfaceStability.Unstable

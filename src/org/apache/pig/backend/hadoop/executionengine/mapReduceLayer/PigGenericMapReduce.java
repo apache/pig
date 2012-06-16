@@ -46,7 +46,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelp
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
-import org.apache.pig.data.SchemaTupleFactory;
+import org.apache.pig.data.SchemaTupleBackend;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.NullablePartitionWritable;
@@ -315,7 +315,7 @@ public class PigGenericMapReduce {
                 pigContext = (PigContext)ObjectSerializer.deserialize(jConf.get("pig.pigContext"));
 
                 // This attempts to fetch all of the generated code from the distributed cache, and resolve it
-                SchemaTupleFactory.copyAndResolve(jConf, pigContext.getExecType() == ExecType.LOCAL);
+                SchemaTupleBackend.initialize(jConf, pigContext.getExecType() == ExecType.LOCAL);
 
                 if (rp == null)
                     rp = (PhysicalPlan) ObjectSerializer.deserialize(jConf

@@ -18,20 +18,14 @@
 package org.apache.pig.data;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Queue;
-import java.util.Set;
 
 import javax.tools.Diagnostic;
 import javax.tools.DiagnosticCollector;
@@ -44,22 +38,11 @@ import javax.tools.ToolProvider;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.filecache.DistributedCache;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.pig.ExecType;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
-import org.apache.pig.data.utils.StructuresHelper.SchemaKey;
-import org.apache.pig.data.utils.StructuresHelper.Triple;
-import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import com.google.common.io.Files;
 
 /**
  * This class encapsulates the generation of SchemaTuples, as well as some logic
@@ -70,43 +53,7 @@ import com.google.common.io.Files;
 public class SchemaTupleClassGenerator {
     private static final Log LOG = LogFactory.getLog(SchemaTupleClassGenerator.class);
 
-    /**
-     * This is the temporary directory into which all generated code is written.
-     * This is known and written to statically, generally depending on the
-     * lifecycle of the creation of Pig jobs.
-     */
-    private static File generatedCodeTempDir = Files.createTempDir();
-
-    static {
-        generatedCodeTempDir.deleteOnExit();
-        LOG.debug("Temporary directory for generated code created: "
-                + generatedCodeTempDir.getAbsolutePath());
-    }
-
-    protected static File getGenerateCodeTempDir() {
-        return generatedCodeTempDir;
-    }
-
-    protected static File[] getGeneratedFiles() {
-        return generatedCodeTempDir.listFiles();
-    }
-
-    protected static File tempFile(String name) {
-        return new File(generatedCodeTempDir, name);
-    }
-
-    /**
-     * This key is used in the job conf to let the various jobs know what code was
-     * generated.
-     */
-    public static final String GENERATED_CLASSES_KEY = "pig.schematuple.classes";
-
-    /**
-     * This key must be set to true by the user for code generation to be used.
-     * In the future, it may be turned on by default (at least in certain cases),
-     * but for now it is too experimental.
-     */
-    public static final String SHOULD_GENERATE_KEY = "pig.schematuple";
+    private SchemaTupleClassGenerator() {}
 
     public static enum GenContext {
         UDF ("pig.schematuple.udf", true, GenerateUdf.class),
@@ -149,7 +96,7 @@ public class SchemaTupleClassGenerator {
         }
 
         public boolean shouldGenerate(Configuration conf) {
-            String shouldString = conf.get(SHOULD_GENERATE_KEY);
+            String shouldString = conf.get(SchemaTupleBackend.SHOULD_GENERATE_KEY);
             if (shouldString == null || !Boolean.parseBoolean(shouldString)) {
                 return false;
             }
@@ -175,183 +122,29 @@ public class SchemaTupleClassGenerator {
      * @param   identifier
      * @param   a list of contexts in which the SchemaTuple is intended to be instantiated
      */
-    private static void generateSchemaTuple(Schema s, boolean appendable, int id, GenContext... contexts) {
+    protected static void generateSchemaTuple(Schema s, boolean appendable, int id, File codeDir, GenContext... contexts) {
         StringBuilder contextAnnotations = new StringBuilder();
         for (GenContext context : contexts) {
             LOG.info("Including context: " + context);
             contextAnnotations.append("@").append(context.getAnnotationCanonicalName()).append("\n");
         }
 
-        String codeString = produceCodeString(s, appendable, id, contextAnnotations.toString());
+        String codeString = produceCodeString(s, appendable, id, contextAnnotations.toString(), codeDir);
 
         String name = "SchemaTuple_" + id;
 
         LOG.info("Compiling class " + name + " for Schema: " + s + ", and appendability: " + appendable);
 
-        compileCodeString(name, codeString);
+        compileCodeString(name, codeString, codeDir);
     }
 
-    private static int generateSchemaTuple(Schema s, boolean appendable) {
-        int id = getNextGlobalClassIdentifier();
+    //Should it inherit the
+    private static int generateSchemaTuple(Schema s, boolean appendable, File codeDir, GenContext... contexts) {
+        int id = SchemaTupleClassGenerator.getNextGlobalClassIdentifier();
 
-        generateSchemaTuple(s, appendable, id);
+        generateSchemaTuple(s, appendable, id, codeDir, contexts);
 
         return id;
-    }
-
-    /**
-     * Schemas registered for generation are held here.
-     */
-    private static Map<SchemaKey, Triple<Integer, Boolean, Set<GenContext>>> schemasToGenerate = Maps.newHashMap();
-
-    /**
-     * This sets into motion the generation of all "registered" Schemas. All code will be generated
-     * into the temporary directory.
-     * @return true of false depending on if there are any files to copy to the distributed cache
-     */
-    public static boolean generateAllSchemaTuples(Configuration conf) {
-        boolean filesToShip = false;
-        LOG.info("Generating all registered Schemas.");
-        for (Map.Entry<SchemaKey, Triple<Integer,Boolean, Set<GenContext>>> entry : schemasToGenerate.entrySet()) {
-            Schema s = entry.getKey().get();
-            Triple<Integer, Boolean, Set<GenContext>> value = entry.getValue();
-            Set<GenContext> contextsToInclude = Sets.newHashSet();
-            boolean isShipping = false;
-            for (GenContext context : value.getThird()) {
-                if (!context.shouldGenerate(conf)) {
-                    LOG.info("Skipping generation of Schema [" + s + "], as key value [" + context.key() + "] was false.");
-                } else {
-                    isShipping = true;
-                    contextsToInclude.add(context);
-                }
-            }
-            if (!isShipping) {
-                continue;
-            }
-            int id = value.getFirst();
-            boolean isAppendable = value.getSecond();
-            generateSchemaTuple(s, isAppendable, id, contextsToInclude.toArray(new GenContext[0]));
-            filesToShip = true;
-        }
-        return filesToShip;
-    }
-
-    /**
-     * This method "registers" a Schema to be generated. It allows a portions of the code
-     * to register a Schema for generation without knowing whether code generation is enabled.
-     * A unique ID will be passed back, so in the actual M/R job, code needs to make sure that
-     * generation was turned on or else the classes will not be present!
-     * @param   udfSchema
-     * @param   isAppendable
-     * @return  identifier
-     */
-    public static int registerToGenerateIfPossible(Schema udfSchema, boolean isAppendable, GenContext type) {
-        SchemaKey sk = new SchemaKey(udfSchema);
-        Triple<Integer, Boolean, Set<GenContext>> pr = schemasToGenerate.get(sk);
-        if (pr != null) {
-            pr.getThird().add(type);
-            return pr.getFirst();
-        }
-        if (!SchemaTupleFactory.isGeneratable(udfSchema)) {
-            return -1;
-        }
-        int id = getNextGlobalClassIdentifier();
-        Set<GenContext> contexts = Sets.newHashSet();
-        contexts.add(type);
-        schemasToGenerate.put(sk, Triple.make(Integer.valueOf(id), isAppendable, contexts));
-        LOG.info("Registering "+(isAppendable ? "Appendable" : "")+"Schema for generation ["
-                + udfSchema + "] with id [" + id + "] and context: " + type);
-        return id;
-    }
-
-    /**
-     * This method copies all class files present in the local temp directory to the distributed cache.
-     * All copied files will have a symlink of their name. No files will be copied if the current
-     * job is being run from local mode.
-     * @param pigContext
-     * @param conf
-     */
-    public static void copyAllGeneratedToDistributedCache(PigContext pigContext, Configuration conf) {
-        LOG.info("Starting process to move generated code to distributed cacche");
-        if (pigContext.getExecType() == ExecType.LOCAL) {
-            LOG.info("Distributed cache not supported or needed in local mode.");
-            return;
-        }
-        DistributedCache.createSymlink(conf); // we will read using symlinks
-        StringBuilder serialized = new StringBuilder();
-        boolean first = true;
-        // We attempt to copy over every file in the generated code temp directory
-        for (File f : getGeneratedFiles()) {
-            if (first) {
-                first = false;
-            } else {
-                serialized.append(",");
-            }
-            String symlink = f.getName(); //the class name will also be the symlink
-            serialized.append(symlink);
-            Path src = new Path(f.toURI());
-            Path dst;
-            try {
-                dst = FileLocalizer.getTemporaryPath(pigContext);
-            } catch (IOException e) {
-                throw new RuntimeException("Error getting temporary path in HDFS", e);
-            }
-            FileSystem fs;
-            try {
-                fs = dst.getFileSystem(conf);
-            } catch (IOException e) {
-                throw new RuntimeException("Unable to get FileSystem", e);
-            }
-            try {
-                fs.copyFromLocalFile(src, dst);
-            } catch (IOException e) {
-                throw new RuntimeException("Unable to copy from local filesystem to HDFS, src = "
-                        + src + ", dst = " + dst, e);
-            }
-
-            String destination = dst.toString() + "#" + symlink;
-
-            try {
-                DistributedCache.addCacheFile(new URI(destination), conf);
-            } catch (URISyntaxException e) {
-                throw new RuntimeException("Unable to add file to distributed cache: " + destination, e);
-            }
-            LOG.info("File successfully added to the distributed cache: " + symlink);
-        }
-        String toSer = serialized.toString();
-        LOG.info("Setting key [" + GENERATED_CLASSES_KEY + "] with classes to deserialize [" + toSer + "]");
-        // we must set a key in the job conf so individual jobs know to resolve the shipped classes
-        conf.set(GENERATED_CLASSES_KEY, toSer);
-    }
-
-    /**
-     * This method copies all generated code that was shipped via
-     * SchemaTupleClassGenerator.copyAllGeneratedToDistributedCache into the
-     * local directory for generated code. This is done in the actual map/reduce
-     * job.
-     * @param   conf
-     * @throws  IOException
-     */
-    protected static void copyAllFromDistributedCache(Configuration conf) throws IOException {
-        String toDeserialize = conf.get(GENERATED_CLASSES_KEY);
-        if (toDeserialize == null) {
-            LOG.info("No classes in in key [" + GENERATED_CLASSES_KEY + "] to copy from distributed cache.");
-            return;
-        }
-        LOG.info("Copying files in key ["+GENERATED_CLASSES_KEY+"] from distributed cache: " + toDeserialize);
-        for (String s : toDeserialize.split(",")) {
-            LOG.info("Attempting to read file: " + s);
-            // The string is the symlink into the distributed cache
-            File src = new File(s);
-            FileInputStream fin = new FileInputStream(src);
-            FileOutputStream fos = new FileOutputStream(tempFile(s));
-
-            fin.getChannel().transferTo(0, src.length(), fos.getChannel());
-
-            fin.close();
-            fos.close();
-            LOG.info("Successfully copied file to local directory.");
-        }
     }
 
     /**
@@ -361,8 +154,8 @@ public class SchemaTupleClassGenerator {
      * @param   identifier
      * @return  the generated class's implementation
      */
-    private static String produceCodeString(Schema s, boolean appendable, int id, String contextAnnotations) {
-        TypeInFunctionStringOutFactory f = new TypeInFunctionStringOutFactory(s, id, appendable, contextAnnotations);
+    private static String produceCodeString(Schema s, boolean appendable, int id, String contextAnnotations, File codeDir) {
+        TypeInFunctionStringOutFactory f = new TypeInFunctionStringOutFactory(s, id, appendable, contextAnnotations, codeDir);
 
         for (Schema.FieldSchema fs : s.getFields()) {
             f.process(fs);
@@ -371,7 +164,7 @@ public class SchemaTupleClassGenerator {
         return f.end();
     }
 
-    private static int getNextGlobalClassIdentifier() {
+    protected static int getNextGlobalClassIdentifier() {
         return nextGlobalClassIdentifier++;
     }
 
@@ -385,14 +178,14 @@ public class SchemaTupleClassGenerator {
      * @param name of class
      */
     //TODO in the future, we can use ASM to generate the bytecode directly.
-    private static void compileCodeString(String className, String generatedCodeString) {
+    private static void compileCodeString(String className, String generatedCodeString, File codeDir) {
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
         JavaFileManager fileManager = compiler.getStandardFileManager(null, null, null);
         Iterable<? extends JavaFileObject> compilationUnits = Lists.newArrayList(new JavaSourceFromString(className, generatedCodeString));
 
         DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<JavaFileObject>();
 
-        String tempDir = generatedCodeTempDir.getAbsolutePath();
+        String tempDir = codeDir.getAbsolutePath();
 
         String classPath = System.getProperty("java.class.path") + ":" + tempDir;
         LOG.debug("Compiling SchemaTuple code with classpath: " + classPath);
@@ -533,6 +326,7 @@ public class SchemaTupleClassGenerator {
 
         private int booleanBytes = 0;
         private int booleans = 0;
+        private File codeDir;
 
         public void prepare() {
             String s = schema.toString();
@@ -551,7 +345,7 @@ public class SchemaTupleClassGenerator {
                     add("private "+typeName()+" pos_"+fieldPos+";");
                 }
             } else {
-                int id = SchemaTupleClassGenerator.generateSchemaTuple(fs.schema, isAppendable());
+                int id = SchemaTupleClassGenerator.generateSchemaTuple(fs.schema, isAppendable(), codeDir());
 
                 for (Queue<Integer> q : listOfQueuesForIds) {
                     q.add(id);
@@ -571,10 +365,15 @@ public class SchemaTupleClassGenerator {
             addBreak();
         }
 
-        public FieldString(List<Queue<Integer>> listOfQueuesForIds, Schema schema, boolean appendable) {
+        public FieldString(File codeDir, List<Queue<Integer>> listOfQueuesForIds, Schema schema, boolean appendable) {
             super(appendable);
+            this.codeDir = codeDir;
             this.listOfQueuesForIds = listOfQueuesForIds;
             this.schema = schema;
+        }
+
+        public File codeDir() {
+            return codeDir;
         }
     }
 
@@ -1204,7 +1003,7 @@ public class SchemaTupleClassGenerator {
         private boolean appendable;
         private String contextAnnotations;
 
-        public TypeInFunctionStringOutFactory(Schema s, int id, boolean appendable, String contextAnnotations) {
+        public TypeInFunctionStringOutFactory(Schema s, int id, boolean appendable, String contextAnnotations, File codeDir) {
             this.id = id;
             this.appendable = appendable;
             this.contextAnnotations = contextAnnotations;
@@ -1215,7 +1014,7 @@ public class SchemaTupleClassGenerator {
 
             List<Queue<Integer>> listOfQueuesForIds = Lists.newArrayList(nextNestedSchemaIdForSetPos, nextNestedSchemaIdForGetPos, nextNestedSchemaIdForReadField);
 
-            listOfFutureMethods.add(new FieldString(listOfQueuesForIds, s, appendable)); //has to be run first
+            listOfFutureMethods.add(new FieldString(codeDir, listOfQueuesForIds, s, appendable)); //has to be run first
             listOfFutureMethods.add(new SetPosString(nextNestedSchemaIdForSetPos));
             listOfFutureMethods.add(new GetPosString(nextNestedSchemaIdForGetPos));
             listOfFutureMethods.add(new GetDummyString());
@@ -1345,7 +1144,7 @@ public class SchemaTupleClassGenerator {
         }
 
         public TypeInFunctionStringOut(boolean appendable) {
-            super();
+            this();
             this.appendable = appendable ? 1 : 0;
         }
 

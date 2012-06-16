@@ -134,7 +134,8 @@ public class POUserFunc extends ExpressionOperator {
 
         if (tmpS != null) {
             //Currently, getInstanceForSchema returns null if no class was found. This works fine...
-            //if it is null, the default will be used
+            //if it is null, the default will be used. We pass the context because if it happens that
+            //the same Schema was generated elsewhere, we do not want to override user expectations
             inputTupleFactory = TupleFactory.getInstanceForSchema(tmpS, false, GenContext.UDF);
             if (inputTupleFactory == null) {
                 LOG.debug("No SchemaTupleFactory found for Schema ["+tmpS+"], using default TupleFactory");

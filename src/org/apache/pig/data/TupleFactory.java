@@ -25,7 +25,6 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigTupleDefa
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
-import org.apache.pig.data.SchemaTupleFactory.SchemaTupleResolver;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 /**
@@ -142,8 +141,6 @@ public abstract class TupleFactory {
      */
     public abstract Tuple newTuple(Object datum);
 
-    // This gets an instance of the resolver which holds all SchemaTupleFactory information
-    private static SchemaTupleResolver schemaTupleResolver = SchemaTupleFactory.getSchemaTupleResolver();
 
     /**
      * This method is the publicly facing method which returns a SchemaTupleFactory
@@ -155,7 +152,7 @@ public abstract class TupleFactory {
      * @return  a SchemaTupleFactory which will return SchemaTuple's of the desired Schema
      */
     public static SchemaTupleFactory getInstanceForSchema(Schema s, boolean isAppendable, GenContext context) {
-        return schemaTupleResolver.newSchemaTupleFactory(s, isAppendable, context);
+        return SchemaTupleBackend.newSchemaTupleFactory(s, isAppendable, context);
     }
 
     /**
@@ -167,7 +164,7 @@ public abstract class TupleFactory {
      * @return  a SchemaTupleFactory which will return SchemaTuple's of the given identifier
      */
     protected static SchemaTupleFactory getInstanceForSchemaId(int id) {
-        return schemaTupleResolver.newSchemaTupleFactory(id);
+        return SchemaTupleBackend.newSchemaTupleFactory(id);
     }
 
     /**
