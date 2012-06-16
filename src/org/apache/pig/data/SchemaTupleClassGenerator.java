@@ -257,7 +257,7 @@ public class SchemaTupleClassGenerator {
         }
 
         public void end() {
-            add("    return super.compareToSpecific(t);");
+            add("    return i;");
             add("}");
         }
     }
@@ -739,11 +739,7 @@ public class SchemaTupleClassGenerator {
 
     static class GetDummyString extends TypeInFunctionStringOut {
         public void process(int fieldPos, Schema.FieldSchema fs) {
-            if (!isTuple()) {
-                add("public "+typeName()+" getDummy_"+fieldPos+"() {");
-            } else {
-                add("public Tuple getDummy_"+fieldPos+"() {");
-            }
+            add("public "+typeName()+" getDummy_"+fieldPos+"() {");
             switch (fs.type) {
             case (DataType.INTEGER): add("    return 0;"); break;
             case (DataType.LONG): add("    return 0L;"); break;
@@ -915,7 +911,7 @@ public class SchemaTupleClassGenerator {
         }
 
         public void end() {
-            add("    return super.set(t, checkClass);");
+            add("    return this;");
             add("}");
         }
     }
