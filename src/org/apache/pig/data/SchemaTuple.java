@@ -27,8 +27,8 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.data.utils.MethodHelper;
-import org.apache.pig.data.utils.SedesHelper;
 import org.apache.pig.data.utils.MethodHelper.NotImplemented;
+import org.apache.pig.data.utils.SedesHelper;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.Utils;
@@ -663,6 +663,7 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
      * @throws IOException
      */
     protected void writeElements(DataOutput out) throws IOException {
+        writeNulls(out);
         generatedCodeWriteElements(out);
     }
 
@@ -949,4 +950,20 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
     public void setMap(int idx, Map<String,Object> val) throws ExecException {
         throw MethodHelper.methodNotImplemented();
     }
+
+    public int size() {
+        return generatedCodeSize();
+    }
+
+    protected abstract int generatedCodeSize();
+
+    @Override
+    public void readFields(DataInput in) throws IOException {
+        boolean[] b = SedesHelper.readBooleanArray(in, schemaSize());
+        generatedCodeReadFields(in, b);
+    }
+
+    protected abstract void generatedCodeReadFields(DataInput in, boolean[] nulls) throws IOException;
+
+    protected abstract void writeNulls(DataOutput out) throws IOException;
 }

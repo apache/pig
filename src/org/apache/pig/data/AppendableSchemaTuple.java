@@ -17,6 +17,7 @@
  */
 package org.apache.pig.data;
 
+import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.List;
@@ -24,7 +25,6 @@ import java.util.List;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
-import org.apache.pig.data.utils.HierarchyHelper.MustOverride;
 import org.apache.pig.data.utils.SedesHelper;
 
 @InterfaceAudience.Public
@@ -142,7 +142,6 @@ public abstract class AppendableSchemaTuple<T extends AppendableSchemaTuple<T>> 
         return 0;
     }
 
-    @MustOverride
     protected int compareToSpecific(T t) {
         int i = super.compareToSpecific(t);
         if (i != 0) {
@@ -231,13 +230,17 @@ public abstract class AppendableSchemaTuple<T extends AppendableSchemaTuple<T>> 
         }
     }
 
-    @MustOverride
-    protected int compareSizeSpecific(T t) {
-        int mySz = appendedFieldsSize();
-        int tSz = t.appendedFieldsSize();
-        if (mySz != tSz) {
-            return mySz > tSz ? 1 : -1;
+    public int size() {
+        return super.size() + appendedFieldsSize();
+    }
+
+    @Override
+    public void readFields(DataInput in) throws IOException {
+        int len = schemaSize() + 1;
+        boolean[] b = SedesHelper.readBooleanArray(in, len);
+        generatedCodeReadFields(in, b);
+        if (!b[len - 1]) {
+            setAppendedFields(SedesHelper.readGenericTuple(in, in.readByte()));
         }
-        return 0;
     }
 }

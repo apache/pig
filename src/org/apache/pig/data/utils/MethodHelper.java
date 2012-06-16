@@ -52,7 +52,7 @@ public class MethodHelper {
             return false;
         }
         for (Method clazzMethod : clazz.getDeclaredMethods()) {
-            if (HierarchyHelper.methodSignatureEqual(m, clazzMethod)) {
+            if (MethodHelper.methodSignatureEqual(m, clazzMethod)) {
                 return clazzMethod.getAnnotation(NotImplemented.class) != null;
             }
         }
@@ -63,5 +63,35 @@ public class MethodHelper {
         StackTraceElement[] ste = Thread.currentThread().getStackTrace();
         StackTraceElement pre = ste[ste.length - 2];
         return new UnsupportedOperationException(pre.getMethodName() + " not implemented in " + pre.getClassName());
+    }
+
+    /**
+     * This implements a stripped down version of method equality.
+     * method.equals(method) checks to see whether the declaring classes
+     * are equal, which we do not want. Instead, we just want to know
+     * if the methods are equal assuming that they come from the same
+     * class hierarchy (ie generated code which extends SchemaTuple).
+     */
+    public static boolean methodSignatureEqual(Method m1, Method m2) {
+        if (!m1.getName().equals(m2.getName())) {
+            return false;
+        }
+    
+        if (!m1.getReturnType().equals(m2.getReturnType())) {
+            return false;
+        }
+    
+        /* Avoid unnecessary cloning */
+        Class<?>[] params1 = m1.getParameterTypes();
+        Class<?>[] params2 = m2.getParameterTypes();
+        if (params1.length == params2.length) {
+            for (int i = 0; i < params1.length; i++) {
+                if (!params1[i].equals(params2[i])) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return false;
     }
 }

@@ -31,7 +31,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
-import org.apache.pig.data.utils.HierarchyHelper;
 import org.apache.pig.data.utils.StructuresHelper.SchemaKey;
 import org.apache.pig.data.utils.StructuresHelper.Triple;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -208,11 +207,6 @@ public class SchemaTupleBackend {
                 clazz = classLoader.loadClass(s);
             } catch (ClassNotFoundException e) {
                 throw new RuntimeException("Unable to find class: " + s, e);
-            }
-            // Step two is to ensure that the generated class doesn't have any improperly
-            // implemented methods.
-            if (!HierarchyHelper.verifyMustOverride(clazz)) {
-                SchemaTupleFactory.LOG.error("Class ["+clazz+"] does NOT override all @MustOverride methods!");
             }
 
             // Step three is to check if the class is a SchemaTuple. If it isn't,

@@ -238,7 +238,7 @@ public class SchemaTupleClassGenerator {
             add("@Override");
             add("protected int generatedCodeCompareToSpecific(SchemaTuple_"+id+" t) {");
             if (isAppendable()) {
-                add("    int i = compareSizeSpecific(t);");
+                add("    int i = compareSize(t);");
                 add("    if (i != 0) {");
                 add("        return i;");
                 add("    }");
@@ -585,7 +585,8 @@ public class SchemaTupleClassGenerator {
         String s = "    boolean[] b = {\n";
 
         public void prepare() {
-            add("public void writeNulls(DataOutput out) throws IOException {");
+            add("@Override");
+            add("protected void writeNulls(DataOutput out) throws IOException {");
         }
 
         public void process(int fieldPos, Schema.FieldSchema fs) {
@@ -617,13 +618,7 @@ public class SchemaTupleClassGenerator {
 
         public void prepare() {
             add("@Override");
-            add("public void readFields(DataInput in) throws IOException {");
-            if (isAppendable()) {
-                add("    boolean[] b = SedesHelper.readBooleanArray(in, schemaSize() + 1);");
-            } else {
-                add("    boolean[] b = SedesHelper.readBooleanArray(in, schemaSize());");
-            }
-            addBreak();
+            add("protected void generatedCodeReadFields(DataInput in, boolean[] b) throws IOException {");
         }
 
         public void process(int fieldPos, Schema.FieldSchema fs) {
@@ -653,12 +648,8 @@ public class SchemaTupleClassGenerator {
         }
 
         public void end() {
-            for (int i = 0; i < booleanBytes; i++)
+            for (int i = 0; i < booleanBytes; i++) {
                 add("    booleanByte_"+i+" = in.readByte();");
-            if (isAppendable()) {
-                add("    if(!b["+ct+"]) {");
-                add("        setAppend(SedesHelper.readGenericTuple(in, in.readByte()));");
-                add("    }");
             }
             add("}");
             addBreak();
@@ -675,7 +666,6 @@ public class SchemaTupleClassGenerator {
         public void prepare() {
             add("@Override");
             add("protected void generatedCodeWriteElements(DataOutput out) throws IOException {");
-            add("    writeNulls(out);");
         }
 
         private int booleans = 0;
@@ -856,12 +846,8 @@ public class SchemaTupleClassGenerator {
 
         public void end() {
             add("@Override");
-            add("public int size() {");
-            if (isAppendable()) {
-                add("    return appendSize() + " + i + ";");
-            } else {
-                add("    return " + i + ";");
-            }
+            add("protected int generatedCodeSize() {");
+            add("    return " + i + ";");
             add("}");
             addBreak();
         }
