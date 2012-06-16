@@ -91,7 +91,6 @@ public abstract class AppendableSchemaTuple<T extends AppendableSchemaTuple<T>> 
         return appendedFields == null ? DataType.UNKNOWN : appendedFields.getType(i);
     }
 
-    @MustOverride
     protected SchemaTuple<T> set(SchemaTuple<?> t, boolean checkType) throws ExecException {
         resetAppendedFields();
         for (int j = schemaSize(); j < t.size(); j++) {
@@ -100,7 +99,6 @@ public abstract class AppendableSchemaTuple<T extends AppendableSchemaTuple<T>> 
         return super.set(t, checkType);
     }
 
-    @MustOverride
     protected SchemaTuple<T> setSpecific(T t) {
         resetAppendedFields();
         setAppendedFields(t.getAppendedFields());
