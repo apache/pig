@@ -50,6 +50,11 @@ public class TestSchemaTuple {
         udfSchema = Utils.getSchemaFromString("((a:int,b:int),(a:int,b:int),(a:int,b:int)),((a:int,b:int),(a:int,b:int),(a:int,b:int))");
         SchemaTupleFrontend.registerToGenerateIfPossible(udfSchema, isAppendable, context);
 
+        udfSchema = Utils.getSchemaFromString("a:int, b:long, c:chararray, d:boolean, e:bytearray, f:float, g:double,"
+                +"(a:int, b:long, c:chararray, d:boolean, e:bytearray, f:float, g:double,"
+                +"(a:int, b:long, c:chararray, d:boolean, e:bytearray, f:float, g:double))");
+        SchemaTupleFrontend.registerToGenerateIfPossible(udfSchema, isAppendable, context);
+
         // this compiles and "ships"
         SchemaTupleFrontend.copyAllGeneratedToDistributedCache(pigContext, conf);
 
@@ -92,6 +97,12 @@ public class TestSchemaTuple {
         putThroughPaces(tf, udfSchema, isAppendable);
 
         udfSchema = Utils.getSchemaFromString("((a:int,b:int),(a:int,b:int),(a:int,b:int)),((a:int,b:int),(a:int,b:int),(a:int,b:int))");
+        tf = TupleFactory.getInstanceForSchema(udfSchema, isAppendable, context);
+        putThroughPaces(tf, udfSchema, isAppendable);
+
+        udfSchema = Utils.getSchemaFromString("a:int, b:long, c:chararray, d:boolean, e:bytearray, f:float, g:double,"
+                +"(a:int, b:long, c:chararray, d:boolean, e:bytearray, f:float, g:double,"
+                +"(a:int, b:long, c:chararray, d:boolean, e:bytearray, f:float, g:double))");
         tf = TupleFactory.getInstanceForSchema(udfSchema, isAppendable, context);
         putThroughPaces(tf, udfSchema, isAppendable);
     }
