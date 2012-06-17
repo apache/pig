@@ -1024,6 +1024,7 @@ public class SchemaTupleClassGenerator {
                     .append("import org.apache.pig.data.DataType;\n")
                     .append("import org.apache.pig.data.Tuple;\n")
                     .append("import org.apache.pig.data.SchemaTuple;\n")
+                    .append("import org.apache.pig.data.AppendableSchemaTuple;\n")
                     .append("import org.apache.pig.data.utils.SedesHelper;\n")
                     .append("import org.apache.pig.data.utils.BytesHelper;\n")
                     .append("import org.apache.pig.data.DataByteArray;\n")
