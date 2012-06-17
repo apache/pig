@@ -55,6 +55,22 @@ public class TestSchemaTuple {
                 +"(a:int, b:long, c:chararray, d:boolean, e:bytearray, f:float, g:double))");
         SchemaTupleFrontend.registerToGenerateIfPossible(udfSchema, isAppendable, context);
 
+        udfSchema = Utils.getSchemaFromString("boolean, boolean, boolean, boolean, boolean, boolean"
+                + "boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean,"
+                + "boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean,"
+                + "boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean,"
+                + "boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean,"
+                + "boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean,"
+                + "boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean,"
+                + "boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean,"
+                + "boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean,"
+                + "boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean,"
+                + "boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean,"
+                + "boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean,"
+                + "boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean");
+        SchemaTupleFrontend.registerToGenerateIfPossible(udfSchema, isAppendable, context);
+
+
         // this compiles and "ships"
         SchemaTupleFrontend.copyAllGeneratedToDistributedCache(pigContext, conf);
 
@@ -103,6 +119,22 @@ public class TestSchemaTuple {
         udfSchema = Utils.getSchemaFromString("a:int, b:long, c:chararray, d:boolean, e:bytearray, f:float, g:double,"
                 +"(a:int, b:long, c:chararray, d:boolean, e:bytearray, f:float, g:double,"
                 +"(a:int, b:long, c:chararray, d:boolean, e:bytearray, f:float, g:double))");
+        tf = TupleFactory.getInstanceForSchema(udfSchema, isAppendable, context);
+        putThroughPaces(tf, udfSchema, isAppendable);
+
+        udfSchema = Utils.getSchemaFromString("boolean, boolean, boolean, boolean, boolean, boolean"
+                + "boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean,"
+                + "boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean,"
+                + "boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean,"
+                + "boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean,"
+                + "boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean,"
+                + "boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean,"
+                + "boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean,"
+                + "boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean,"
+                + "boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean,"
+                + "boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean,"
+                + "boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean,"
+                + "boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean");
         tf = TupleFactory.getInstanceForSchema(udfSchema, isAppendable, context);
         putThroughPaces(tf, udfSchema, isAppendable);
     }
