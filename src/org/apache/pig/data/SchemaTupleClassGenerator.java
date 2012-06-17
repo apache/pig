@@ -96,11 +96,7 @@ public class SchemaTupleClassGenerator {
         }
 
         public boolean shouldGenerate(Configuration conf) {
-            String shouldString = conf.get(SchemaTupleBackend.SHOULD_GENERATE_KEY);
-            if (shouldString == null || !Boolean.parseBoolean(shouldString)) {
-                return false;
-            }
-            shouldString = conf.get(key);
+            String shouldString = conf.get(key);
             if (shouldString == null) {
                 return defaultValue;
             }

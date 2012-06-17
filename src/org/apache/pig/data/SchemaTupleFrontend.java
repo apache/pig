@@ -161,6 +161,11 @@ public class SchemaTupleFrontend {
          */
         private boolean generateAll(Map<SchemaKey, Triple<Integer, Boolean, Set<GenContext>>> schemasToGenerate) {
             boolean filesToShip = false;
+            String shouldString = conf.get(SchemaTupleBackend.SHOULD_GENERATE_KEY);
+            if (shouldString == null || !Boolean.parseBoolean(shouldString)) {
+                LOG.info("Key ["+SchemaTupleBackend.SHOULD_GENERATE_KEY+"] is false, aborting generation.");
+                return false;
+            }
             LOG.info("Generating all registered Schemas.");
             for (Map.Entry<SchemaKey, Triple<Integer,Boolean, Set<GenContext>>> entry : schemasToGenerate.entrySet()) {
                 Schema s = entry.getKey().get();
