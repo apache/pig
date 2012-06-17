@@ -785,22 +785,6 @@ public class SchemaTupleClassGenerator {
         }
     }
 
-    static class GetSchemaStringString extends TypeInFunctionStringOut {
-        private Schema schema;
-
-        public void end() {
-            add("@Override");
-            add("public String getSchemaString() {");
-            add("    return \"" + schema.toString() + "\";");
-            add("}");
-            addBreak();
-        }
-
-        public GetSchemaStringString(Schema schema) {
-            this.schema = schema;
-        }
-    }
-
     static class SchemaSizeString extends TypeInFunctionStringOut {
         int i = 0;
 
@@ -996,7 +980,6 @@ public class SchemaTupleClassGenerator {
             listOfFutureMethods.add(new SizeString(appendable));
             listOfFutureMethods.add(new MemorySizeString());
             listOfFutureMethods.add(new GetSchemaTupleIdentifierString(id));
-            listOfFutureMethods.add(new GetSchemaStringString(s));
             listOfFutureMethods.add(new HashCode());
             listOfFutureMethods.add(new SchemaSizeString());
             listOfFutureMethods.add(new GetTypeString());
