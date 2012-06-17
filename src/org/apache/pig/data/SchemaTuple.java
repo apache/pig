@@ -88,7 +88,7 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
     protected abstract SchemaTuple<T> generatedCodeSet(SchemaTuple<?> t, boolean checkType) throws ExecException;
 
     protected SchemaTuple<T> setSpecific(T t) {
-        return setSpecific(t);
+        return generatedCodeSetSpecific(t);
     }
 
     protected abstract SchemaTuple<T> generatedCodeSetSpecific(T t);

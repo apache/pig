@@ -47,7 +47,7 @@ public class TestSchemaTuple {
         udfSchema = Utils.getSchemaFromString("a:int,(a:int,(a:int,(a:int,(a:int,(a:int,(a:int))))))");
         SchemaTupleFrontend.registerToGenerateIfPossible(udfSchema, isAppendable, context);
 
-        udfSchema = Utils.getSchemaFromString("((int,int),(int,int),(int,int)),((int,int),(int,int),(int,int))");
+        udfSchema = Utils.getSchemaFromString("((a:int,b:int),(a:int,b:int),(a:int,b:int)),((a:int,b:int),(a:int,b:int),(a:int,b:int))");
         SchemaTupleFrontend.registerToGenerateIfPossible(udfSchema, isAppendable, context);
 
         // this compiles and "ships"
@@ -83,7 +83,7 @@ public class TestSchemaTuple {
         tf = TupleFactory.getInstanceForSchema(udfSchema, isAppendable, context);
         putThroughPaces(tf, udfSchema, isAppendable);
 
-        udfSchema = Utils.getSchemaFromString("(a:charrarray)");
+        udfSchema = Utils.getSchemaFromString("(a:chararray)");
         tf = TupleFactory.getInstanceForSchema(udfSchema, isAppendable, context);
         assertNull(tf);
 
@@ -91,7 +91,7 @@ public class TestSchemaTuple {
         tf = TupleFactory.getInstanceForSchema(udfSchema, isAppendable, context);
         putThroughPaces(tf, udfSchema, isAppendable);
 
-        udfSchema = Utils.getSchemaFromString("((int,int),(int,int),(int,int)),((int,int),(int,int),(int,int))");
+        udfSchema = Utils.getSchemaFromString("((a:int,b:int),(a:int,b:int),(a:int,b:int)),((a:int,b:int),(a:int,b:int),(a:int,b:int))");
         tf = TupleFactory.getInstanceForSchema(udfSchema, isAppendable, context);
         putThroughPaces(tf, udfSchema, isAppendable);
     }
