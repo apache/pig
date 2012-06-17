@@ -20,6 +20,7 @@ package org.apache.pig.data;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -112,14 +113,16 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
     }
 
     public SchemaTuple<T> set(List<Object> l) throws ExecException {
-        if (l.size() < schemaSize())
-            throw new ExecException("Given list of objects has too few fields ("+l.size()+" vs "+schemaSize()+")");
+        if (l.size() != schemaSize()) {
+            throw new ExecException("Given list of objects has improper number of fields ("+l.size()+" vs "+schemaSize()+")");
+        }
 
-        for (int i = 0; i < schemaSize(); i++)
-            set(i, l.get(i));
+        generatedCodeSetIterator(l.iterator());
 
         return this;
     }
+
+    protected abstract void generatedCodeSetIterator(Iterator<Object> l) throws ExecException;
 
     protected void write(DataOutput out, boolean writeIdentifiers) throws IOException {
         if (writeIdentifiers) {
@@ -281,16 +284,20 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return 0;
     }
 
-    @SuppressWarnings("unchecked")
     public int compareTo(SchemaTuple<?> t) {
-        if (getClass() == t.getClass()) {
+        return compareTo(t, true);
+    }
+
+    @SuppressWarnings("unchecked")
+    protected int compareTo(SchemaTuple<?> t, boolean checkType) {
+        if (checkType && getClass() == t.getClass()) {
             return compareToSpecific((T)t);
         }
 
-        return compareTo(t, false);
-    }
-
-    protected int compareTo(SchemaTuple<?> t, boolean checkType) {
+        int i = compareSize(t);
+        if (i != 0) {
+            return i;
+        }
         return generatedCodeCompareTo(t, checkType);
     }
 
@@ -637,7 +644,7 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         }
     }
 
-    protected void setAndCatch(Tuple t) {
+    public void setAndCatch(Tuple t) {
         try {
             set(t);
         } catch (ExecException e) {
@@ -645,7 +652,7 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         }
     }
 
-    protected void setAndCatch(SchemaTuple<?> t) {
+    public void setAndCatch(SchemaTuple<?> t) {
         try {
             set(t);
         } catch (ExecException e) {
@@ -663,7 +670,8 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
      * @throws IOException
      */
     protected void writeElements(DataOutput out) throws IOException {
-        writeNulls(out);
+        boolean[] b = generatedCodeNullsArray();
+        SedesHelper.writeBooleanArray(out, b);
         generatedCodeWriteElements(out);
     }
 
@@ -965,5 +973,5 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
 
     protected abstract void generatedCodeReadFields(DataInput in, boolean[] nulls) throws IOException;
 
-    protected abstract void writeNulls(DataOutput out) throws IOException;
+    protected abstract boolean[] generatedCodeNullsArray() throws IOException;
 }

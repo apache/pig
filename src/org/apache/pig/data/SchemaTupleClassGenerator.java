@@ -237,14 +237,7 @@ public class SchemaTupleClassGenerator {
         public void prepare() {
             add("@Override");
             add("protected int generatedCodeCompareToSpecific(SchemaTuple_"+id+" t) {");
-            if (isAppendable()) {
-                add("    int i = compareSize(t);");
-                add("    if (i != 0) {");
-                add("        return i;");
-                add("    }");
-            } else {
-                add("    int i = 0;");
-            }
+            add("    int i = 0;");
         }
 
         public void process(int fieldNum, Schema.FieldSchema fs) {
@@ -273,13 +266,7 @@ public class SchemaTupleClassGenerator {
         public void prepare() {
             add("@Override");
             add("protected int generatedCodeCompareTo(SchemaTuple t, boolean checkType) {");
-            add("    if (checkType && t instanceof SchemaTuple_"+id+") {");
-            add("        return compareToSpecific((SchemaTuple_"+id+")t);");
-            add("    }");
-            add("    int i = compareSize(t);");
-            add("    if (i != 0) {");
-            add("        return i;");
-            add("    }");
+            add("    int i;");
         }
 
         boolean compTup = false;
@@ -336,11 +323,14 @@ public class SchemaTupleClassGenerator {
 
         public void process(int fieldPos, Schema.FieldSchema fs) {
             if (!isTuple()) {
-                if (isPrimitive() && (primitives++ % 8 == 0))
-                    add("private byte isNull_"+ isNulls++ +" = (byte)0xFF;"); //TODO make sure this is the right value for all 1's
+                if (isPrimitive() && (primitives++ % 8 == 0)) {
+                    add("private byte isNull_"+ isNulls++ +" = (byte)0xFF;");
+                }
 
-                if (isBoolean() && booleans++ % 8 == 0) {
-                    add("private byte booleanByte_"+ booleanBytes++ +";");
+                if (isBoolean()) {
+                    if (booleans++ % 8 == 0) {
+                        add("private byte booleanByte_"+ booleanBytes++ +";");
+                    }
                 } else {
                     add("private "+typeName()+" pos_"+fieldPos+";");
                 }
@@ -411,33 +401,36 @@ public class SchemaTupleClassGenerator {
                 add("    if (pos_"+fieldPos+" == null) {");
                 add("        pos_"+fieldPos+" = new SchemaTuple_"+nestedSchemaTupleId+"();");
                 add("    }");
-                add("    pos_" + fieldPos + ".proxySetAndCatch(t);");
+                add("    pos_" + fieldPos + ".setAndCatch(t);");
                 add("}");
                 addBreak();
                 add("public void setPos_"+fieldPos+"(Tuple t) {");
                 add("    if (pos_"+fieldPos+" == null) {");
                 add("        pos_"+fieldPos+" = new SchemaTuple_"+nestedSchemaTupleId+"();");
                 add("    }");
-                add("    pos_" + fieldPos + ".proxySetAndCatch(t);");
+                add("    pos_" + fieldPos + ".setAndCatch(t);");
                 add("}");
             }
             addBreak();
         }
 
-        // these methods just serve as a protected proxy for for the protected methods they wrap
-        public void end() {
-            add("public void proxySetAndCatch(Tuple t) {");
-            add("    super.setAndCatch(t);");
-            add("}");
-            addBreak();
-            add("public void proxySetAndCatch(SchemaTuple<?> t) {");
-            add("    super.setAndCatch(t);");
-            add("}");
-            addBreak();
-        }
-
         public SetPosString(Queue<Integer> idQueue) {
             this.idQueue = idQueue;
+        }
+    }
+
+    static class ListSetString extends TypeInFunctionStringOut {
+        public void prepare() {
+            add("@Override");
+            add("public void generatedCodeSetIterator(Iterator<Object> it) throws ExecException {");
+        }
+
+        public void process(int fieldPos, Schema.FieldSchema fs) {
+            add("    setPos_"+fieldPos+"(unbox(it.next(), getDummy_"+fieldPos+"()));");
+        }
+
+        public void end() {
+            add("}");
         }
     }
 
@@ -514,8 +507,6 @@ public class SchemaTupleClassGenerator {
                     byteIncr = 0;
                     nullByte++;
                 }
-            } else if (isTuple()) {
-               add("    return pos_" + fieldPos + " == null;");
             } else {
                add("    return pos_" + fieldPos + " == null;");
             }
@@ -573,10 +564,6 @@ public class SchemaTupleClassGenerator {
         public SetEqualToSchemaTupleSpecificString(int id) {
             this.id = id;
         }
-
-        public int getId() {
-            return id;
-        }
     }
 
     //this has to write the null state of all the fields, not just the null bytes, though those
@@ -586,7 +573,7 @@ public class SchemaTupleClassGenerator {
 
         public void prepare() {
             add("@Override");
-            add("protected void writeNulls(DataOutput out) throws IOException {");
+            add("protected boolean[] generatedCodeNullsArray() throws IOException {");
         }
 
         public void process(int fieldPos, Schema.FieldSchema fs) {
@@ -594,12 +581,9 @@ public class SchemaTupleClassGenerator {
         }
 
         public void end() {
-            if (isAppendable()) {
-                s += "        appendIsNull(),\n";
-            }
             s = s.substring(0, s.length() - 2) + "\n    };";
             add(s);
-            add("    SedesHelper.writeBooleanArray(out, b);");
+            add("    return b;");
             add("}");
             addBreak();
         }
@@ -1035,6 +1019,7 @@ public class SchemaTupleClassGenerator {
             listOfFutureMethods.add(new TypeAwareGetString(DataType.CHARARRAY));
             listOfFutureMethods.add(new TypeAwareGetString(DataType.BOOLEAN));
             listOfFutureMethods.add(new TypeAwareGetString(DataType.TUPLE));
+            listOfFutureMethods.add(new ListSetString());
 
             for (TypeInFunctionStringOut t : listOfFutureMethods) {
                 t.prepare();
@@ -1050,6 +1035,7 @@ public class SchemaTupleClassGenerator {
             StringBuilder head =
                 new StringBuilder()
                     .append("import java.util.List;\n")
+                    .append("import java.util.Iterator;\n")
                     .append("import java.io.DataOutput;\n")
                     .append("import java.io.DataInput;\n")
                     .append("import java.io.IOException;\n")

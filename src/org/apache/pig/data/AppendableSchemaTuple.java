@@ -20,6 +20,7 @@ package org.apache.pig.data;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
 
 import org.apache.pig.backend.executionengine.ExecException;
@@ -106,23 +107,31 @@ public abstract class AppendableSchemaTuple<T extends AppendableSchemaTuple<T>> 
     }
 
     public SchemaTuple<T> set(List<Object> l) throws ExecException {
-        if (l.size() < schemaSize())
-            throw new ExecException("Given list of objects has too few fields ("+l.size()+" vs "+schemaSize()+")");
+        int listSize = l.size();
+        int schemaSize = schemaSize();
 
-        for (int i = 0; i < schemaSize(); i++)
-            set(i, l.get(i));
+        if (listSize < schemaSize) {
+            throw new ExecException("Given list of objects has too few fields ("+l.size()+" vs "+schemaSize()+")");
+        }
+
+        Iterator<Object> it = l.iterator();
+
+        generatedCodeSetIterator(it);
 
         resetAppendedFields();
 
-        for (int i = schemaSize(); i < l.size(); i++) {
-            append(l.get(i++));
+        while (it.hasNext()) {
+            append(it.next());
         }
 
         return this;
     }
 
     protected int compareTo(SchemaTuple<?> t, boolean checkType) {
-        int i = super.compareTo(t, checkType);
+        if (checkType && getClass() == t.getClass()) {
+            return compareToSpecific((T)t);
+        }
+        int i = super.compareTo(t, false);
         if (i != 0) {
             return i;
         }
@@ -143,7 +152,11 @@ public abstract class AppendableSchemaTuple<T extends AppendableSchemaTuple<T>> 
     }
 
     protected int compareToSpecific(T t) {
-        int i = super.compareToSpecific(t);
+        int i = compareSize(t);
+        if (i != 0) {
+            return i;
+        }
+        i = super.compareToSpecific(t);
         if (i != 0) {
             return i;
         }
@@ -224,7 +237,9 @@ public abstract class AppendableSchemaTuple<T extends AppendableSchemaTuple<T>> 
     }
 
     protected void writeElements(DataOutput out) throws IOException {
-        super.writeElements(out);
+        boolean[] b = generatedCodeNullsArray();
+        SedesHelper.writeBooleanArray(out, b, isAppendedFieldsNull());
+        generatedCodeWriteElements(out);
         if (!isAppendedFieldsNull()) {
             SedesHelper.writeGenericTuple(out, getAppendedFields());
         }

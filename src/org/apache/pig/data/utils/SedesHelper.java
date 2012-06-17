@@ -17,9 +17,9 @@
  */
 package org.apache.pig.data.utils;
 
-import java.io.IOException;
 import java.io.DataInput;
 import java.io.DataOutput;
+import java.io.IOException;
 
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.data.BinInterSedes;
@@ -110,6 +110,22 @@ public class SedesHelper {
             t.set(i, pigSerializer.readDatum(in));
         }
         return t;
+    }
+
+    public static void writeBooleanArray(DataOutput out, boolean[] v, boolean extra) throws IOException {
+        int len = v.length + 1;
+        for (int chunk = 0; chunk < len; chunk += 8) {
+            byte encoding = 0;
+            for (int i = chunk; i < len && i < chunk + 8; i++) {
+                encoding <<= 1;
+                if (chunk == v.length) {
+                    encoding += extra ? 1 : 0; //v[len] is the extra piece
+                } else {
+                    encoding += v[i] ? 1 : 0;
+                }
+            }
+            out.writeByte(encoding);
+       }
     }
 
     public static void writeBooleanArray(DataOutput out, boolean[] v) throws IOException {
