@@ -58,7 +58,8 @@ public class SchemaTupleClassGenerator {
     public static enum GenContext {
         UDF ("pig.schematuple.udf", true, GenerateUdf.class),
         LOAD ("pig.schematuple.load", true, GenerateLoad.class),
-        JOIN ("pig.schematuple.join", true, GenerateJoin.class);
+        JOIN ("pig.schematuple.join", true, GenerateJoin.class),
+        FORCE_LOAD ("pig.schematuple.force", true, GenerateForceLoad.class);
 
         @Retention(RetentionPolicy.RUNTIME)
         @Target(ElementType.TYPE)
@@ -71,6 +72,10 @@ public class SchemaTupleClassGenerator {
         @Retention(RetentionPolicy.RUNTIME)
         @Target(ElementType.TYPE)
         public @interface GenerateJoin {}
+
+        @Retention(RetentionPolicy.RUNTIME)
+        @Target(ElementType.TYPE)
+        public @interface GenerateForceLoad {}
 
         private String key;
         private boolean defaultValue;

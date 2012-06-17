@@ -236,7 +236,7 @@ public class SchemaTupleBackend {
             SchemaTupleFactory stf = new SchemaTupleFactory(stClass, st.getQuickGenerator());
 
             for (GenContext context : GenContext.values()) {
-                if (!context.shouldGenerate(stClass)) {
+                if (context != GenContext.FORCE_LOAD && !context.shouldGenerate(stClass)) {
                     SchemaTupleFactory.LOG.debug("Context ["+context+"] not present for class, skipping.");
                     continue;
                 }

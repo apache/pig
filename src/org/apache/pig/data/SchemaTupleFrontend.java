@@ -64,6 +64,7 @@ public class SchemaTupleFrontend {
         }
         int id = SchemaTupleClassGenerator.getNextGlobalClassIdentifier();
         Set<GenContext> contexts = Sets.newHashSet();
+        contexts.add(GenContext.FORCE_LOAD);
         contexts.add(type);
         schemasToGenerate.put(sk, Triple.make(Integer.valueOf(id), isAppendable, contexts));
         LOG.info("Registering "+(isAppendable ? "Appendable" : "")+"Schema for generation ["
