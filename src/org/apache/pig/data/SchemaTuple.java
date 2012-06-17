@@ -24,8 +24,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
@@ -49,8 +47,6 @@ import com.google.common.collect.Lists;
 @InterfaceAudience.Public
 @InterfaceStability.Unstable
 public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTuple implements TypeAwareTuple {
-    private static final Log LOG = LogFactory.getLog(SchemaTuple.class); //remove
-
     private static final long serialVersionUID = 1L;
 
     @NotImplemented
@@ -641,7 +637,6 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
     }
 
     protected static Schema staticSchemaGen(String s) {
-        LOG.info("GENERATING SCHEMA FOR STRING: " + s); //remove
         try {
             if (s.equals("")) {
                 return new Schema();
