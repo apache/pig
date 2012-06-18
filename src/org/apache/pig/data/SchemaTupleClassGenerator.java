@@ -898,7 +898,7 @@ public class SchemaTupleClassGenerator {
 
         public void process(int fieldNum, Schema.FieldSchema fs) {
             if (fs.type==thisType()) {
-                add("    case ("+fieldNum+"): return getPos_"+fieldNum+"();");
+                add("    case ("+fieldNum+"): return returnUnlessNull(checkIfNull_"+fieldNum+"(), getPos_"+fieldNum+"());");
             }
         }
 

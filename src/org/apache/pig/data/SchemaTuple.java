@@ -547,6 +547,52 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
 
     protected abstract void generatedCodeSetBytes(int fieldNum, byte[] val) throws ExecException;
 
+    private void errorIfNull(boolean isNull, String type) throws FieldIsNullException {
+        if (isNull) {
+            throw new FieldIsNullException("Desired field of type ["+type+"] was null!");
+        }
+    }
+
+    protected int returnUnlessNull(boolean isNull, int val) throws FieldIsNullException {
+        errorIfNull(isNull, "int");
+        return val;
+    }
+
+    protected long returnUnlessNull(boolean isNull, long val) throws FieldIsNullException {
+        errorIfNull(isNull, "long");
+        return val;
+    }
+
+    protected float returnUnlessNull(boolean isNull, float val) throws FieldIsNullException {
+        errorIfNull(isNull, "float");
+        return val;
+    }
+
+    protected double returnUnlessNull(boolean isNull, double val) throws FieldIsNullException {
+        errorIfNull(isNull, "double");
+        return val;
+    }
+
+    protected boolean returnUnlessNull(boolean isNull, boolean val) throws FieldIsNullException {
+        errorIfNull(isNull, "boolean");
+        return val;
+    }
+
+    protected Tuple returnUnlessNull(boolean isNull, Tuple val) throws FieldIsNullException {
+        errorIfNull(isNull, "Tuple");
+        return val;
+    }
+
+    protected String returnUnlessNull(boolean isNull, String val) throws FieldIsNullException {
+        errorIfNull(isNull, "String");
+        return val;
+    }
+
+    protected byte[] returnUnlessNull(boolean isNull, byte[] val) throws FieldIsNullException {
+        errorIfNull(isNull, "byte");
+        return val;
+    }
+
     @Override
     public int getInt(int fieldNum) throws ExecException {
         return generatedCodeGetInt(fieldNum);

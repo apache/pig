@@ -139,7 +139,8 @@ public class TestSchemaTuple {
         putThroughPaces(tf, udfSchema, isAppendable);
     }
 
-    private void putThroughPaces(TupleFactory tf, Schema udfSchema, boolean isAppendable) throws ExecException {
+    private void putThroughPaces(TupleFactory tfPrime, Schema udfSchema, boolean isAppendable) throws ExecException {
+        SchemaTupleFactory tf = (SchemaTupleFactory)tfPrime;
         assertNotNull(tf);
         assertTrue(tf instanceof SchemaTupleFactory);
         assertTrue(tf.newTuple() instanceof SchemaTuple);
@@ -161,13 +162,41 @@ public class TestSchemaTuple {
 
     }
 
-    private void testNotAppendable(TupleFactory tf, Schema udfSchema) throws ExecException {
+    private void testNotAppendable(SchemaTupleFactory tf, Schema udfSchema) throws ExecException {
         SchemaTuple<?> st = (SchemaTuple<?>) tf.newTuple();
         Schema.equals(udfSchema, st.getSchema(), false, true);
 
         assertEquals(udfSchema.size(), st.size());
 
-        fillWithData(st, udfSchema);
+        shouldAllBeNull(tf);
+
+        copyThenCompare(tf);
+    }
+
+    private void copyThenCompare(SchemaTupleFactory tf) throws ExecException {
+        SchemaTuple<?> st = (SchemaTuple<?>)tf.newTuple();
+        SchemaTuple<?> st2 = (SchemaTuple<?>)tf.newTuple();
+        fillWithData(st, st.getSchema());
+        st2.set(st);
+        assertTrue(st.equals(st2));
+        assertEquals(st.compareTo(st2), 0);
+    }
+
+    /**
+     * This ensures that a fresh Tuple out of a TupleFactory
+     * will be full of null fields.
+     * @param   tf a TupleFactory
+     * @throws  ExecException
+     */
+    private void shouldAllBeNull(TupleFactory tf) throws ExecException {
+        Tuple t = tf.newTuple();
+        for (Object o : t) {
+            assertNull(o);
+        }
+        for (int i = 0; i < t.size(); i++) {
+            assertNull(t.get(i));
+            assertTrue(t.isNull(i));
+        }
     }
 
     private void fillWithData(SchemaTuple<?> st, Schema udfSchema) throws ExecException {
