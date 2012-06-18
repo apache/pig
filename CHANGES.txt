@@ -28,6 +28,8 @@ PIG-2727: PigStorage Source tagging does not need pig.splitCombination to be tur
 
 BUG FIXES
 
+PIG-2759: Typo in document "Built In Functions" (daijy)
+
 PIG-2745: Pig e2e test RubyUDFs fails in MR mode when running from tarball (cheolsoo via daijy)
 
 PIG-2741: Python script throws an NameError: name 'Configuration' is not defined in case cache dir is not created
