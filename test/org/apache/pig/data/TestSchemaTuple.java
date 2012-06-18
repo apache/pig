@@ -1,6 +1,7 @@
 package org.apache.pig.data;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -178,6 +179,13 @@ public class TestSchemaTuple {
         SchemaTuple<?> st2 = (SchemaTuple<?>)tf.newTuple();
         fillWithData(st, st.getSchema());
         st2.set(st);
+        assertTrue(st.equals(st2));
+        assertEquals(st.compareTo(st2), 0);
+        st.set(0, null);
+        assertFalse(st.equals(st2));
+        assertEquals(st.compareTo(st2), -1);
+        assertTrue(st.isNull(0));
+        st2.set(0, null);
         assertTrue(st.equals(st2));
         assertEquals(st.compareTo(st2), 0);
     }

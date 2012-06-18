@@ -757,6 +757,7 @@ public class SchemaTupleClassGenerator {
                 add("    return BytesHelper.getBitByPos(booleanByte_" + booleanByte + ", " + booleans++ + ");");
                 if (booleans % 8 == 0) {
                     booleanByte++;
+                    booleans = 0;
                 }
             } else {
                 add("    return pos_"+fieldPos+";");
