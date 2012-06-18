@@ -517,7 +517,9 @@ public class PigServer {
             ScriptEngine se = ScriptEngine.getInstance(scriptingLang);    
             se.registerFunctions(f.getPath(), namespace, pigContext);
         }
-        pigContext.addScriptFile(f.getPath());
+        // Remove the leading "/" or "./" from the name of the file to store in jar.
+        String nameInJar = f.getPath().replaceFirst("^\\./|^/", "");
+        pigContext.addScriptFile(nameInJar, f.getPath());
     }
 
     /**
