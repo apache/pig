@@ -19,18 +19,29 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.impl.util.Utils;
+import org.junit.Before;
 import org.junit.Test;
 
 public class TestSchemaTuple {
+    private Properties props;
+    private Configuration conf;
+    private PigContext pigContext;
+
+    @Before
+    public void perTestInitialize() {
+        SchemaTupleFrontend.reset();
+        SchemaTupleBackend.reset();
+
+        props = new Properties();
+        props.setProperty(SchemaTupleBackend.SHOULD_GENERATE_KEY, "true");
+
+        conf = ConfigurationUtil.toConfiguration(props);
+        pigContext = new PigContext(ExecType.LOCAL, props);
+    }
+
     @Test
     public void testCompileAndResolve() throws Exception {
         //frontend
-        Properties props = new Properties();
-        props.setProperty(SchemaTupleBackend.SHOULD_GENERATE_KEY, "true");
-
-        Configuration conf = ConfigurationUtil.toConfiguration(props);
-        PigContext pigContext = new PigContext(ExecType.LOCAL, props);
-
         Schema udfSchema = Utils.getSchemaFromString("a:int");
         boolean isAppendable = false;
         GenContext context = GenContext.UDF;
@@ -237,4 +248,24 @@ public class TestSchemaTuple {
         default: throw new RuntimeException("Cannot generate data for given FieldSchema: " + fs);
         }
     }
+
+    @Test
+    public void testNullGetSetting() {
+
+    }
+
+    @Test
+    public void testTypeAwareGetSetting() {
+
+    }
+
+    @Test
+    public void testSerDe() {
+        //frontend
+
+
+        //backend
+
+    }
+
 }
