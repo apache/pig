@@ -471,7 +471,7 @@ DUMP A;
 DESCRIBE A;
 a: {B1: {T1: (t1: int,t2: int)},B2: {T2: (f1: int,f2: int)}}
 
-X = FOREACH A DIFF(B1,B2);
+X = FOREACH A GENERATE DIFF(B1,B2);
 
 grunt> dump x;
 ({(0,1),(1,1)})
