@@ -55,11 +55,11 @@ public abstract class PigNullableWritable implements WritableComparable {
      */
     public static final byte idxSpace = (byte)0x7F;
 
-    protected boolean mNull;
+    private boolean mNull;
 
     protected WritableComparable mValue;
 
-    protected byte mIndex;
+    private byte mIndex;
 
     /**
      * Compare two nullable objects.  Step one is to check if either or both

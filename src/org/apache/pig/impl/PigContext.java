@@ -242,7 +242,6 @@ public class PigContext implements Serializable {
      * calls: addScriptFile(path, new File(path)), ensuring that a given path is
      * added to the jar at most once.
      * @param path
-     * @throws MalformedURLException
      */
     public void addScriptFile(String path) {
         if (path != null) {
@@ -541,7 +540,7 @@ public class PigContext implements Serializable {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public static Object instantiateFuncFromSpec(FuncSpec funcSpec)  {
         Object ret;
-        String className =funcSpec.getClassName(); 
+        String className =funcSpec.getClassName();
         String[] args = funcSpec.getCtorArgs();
         Class objClass = null ;
 

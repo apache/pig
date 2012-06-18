@@ -197,16 +197,17 @@ public class UserFuncExpression extends LogicalExpression {
 
         ef.setUDFContextSignature(signature);
         Properties props = UDFContext.getUDFContext().getUDFProperties(ef.getClass());
-        if(Util.translateSchema(inputSchema)!=null)
-    		props.put("pig.evalfunc.inputschema."+signature, Util.translateSchema(inputSchema));
+        Schema translatedInputSchema = Util.translateSchema(inputSchema);
+        if(translatedInputSchema != null) {
+    		props.put("pig.evalfunc.inputschema."+signature, translatedInputSchema);
+        }
         // Store inputSchema into the UDF context
-        ef.setInputSchema(Util.translateSchema(inputSchema));
-
-        Schema inputSchemaToGen = Util.translateSchema(inputSchema);
-        Schema udfSchema = ef.outputSchema(inputSchemaToGen);
+        ef.setInputSchema(translatedInputSchema);
+;
+        Schema udfSchema = ef.outputSchema(translatedInputSchema);
 
         //TODO appendability should come from a setting
-        inputSchemaTupleId = SchemaTupleFrontend.registerToGenerateIfPossible(inputSchemaToGen, false, GenContext.UDF);
+        inputSchemaTupleId = SchemaTupleFrontend.registerToGenerateIfPossible(translatedInputSchema, false, GenContext.UDF);
         outputSchemaTupleId = SchemaTupleFrontend.registerToGenerateIfPossible(udfSchema, false, GenContext.UDF);
 
         if (udfSchema != null) {

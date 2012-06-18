@@ -198,5 +198,13 @@ public abstract class TupleFactory {
         return PigTupleDefaultRawComparator.class;
     }
 
+    /**
+     * This method is used to inspect whether the Tuples created by this factory
+     * will be of a fixed size when they are created. In practical terms, this means
+     * whether they support append or not.
+     * @return where the Tuple is fixed or not
+     */
+    public abstract boolean isFixedSize();
+
 }
 

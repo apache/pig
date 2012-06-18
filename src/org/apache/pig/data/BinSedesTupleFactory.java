@@ -17,7 +17,6 @@
  */
 package org.apache.pig.data;
 
-import java.lang.Class;
 import java.util.List;
 
 import org.apache.pig.backend.executionengine.ExecException;
@@ -31,14 +30,14 @@ public class BinSedesTupleFactory extends TupleFactory {
     @Override
     public Tuple newTuple() {
         return new BinSedesTuple();
-    
+
     }
 
     @Override
     public Tuple newTuple(int size) {
         return new BinSedesTuple(size);
     }
-    
+
     @Override
     @SuppressWarnings("unchecked")
     public Tuple newTuple(List c) {
@@ -75,5 +74,9 @@ public class BinSedesTupleFactory extends TupleFactory {
         return BinSedesTuple.getComparatorClass();
     }
 
+    @Override
+    public boolean isFixedSize() {
+        return false;
+    }
 }
 

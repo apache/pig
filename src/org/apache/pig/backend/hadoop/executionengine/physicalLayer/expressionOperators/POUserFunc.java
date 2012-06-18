@@ -43,9 +43,9 @@ import org.apache.pig.builtin.MonitoredUDF;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.NodeIdGenerator;
@@ -144,15 +144,16 @@ public class POUserFunc extends ExpressionOperator {
                 usingSchemaTupleFactory = true;
             }
 
-/*
-            if (outputS != null && SchemaTupleFactory.isGeneratable(outputS))
-                outputGen = SchemaTuple.generate(outputS);
-*/
+            //In the future, we could optionally use SchemaTuples for output as well
+        }
+
+        if (inputTupleFactory == null) {
+            inputTupleFactory = TupleFactory.getInstance();
         }
     }
 
     private TupleFactory inputTupleFactory;
-    private boolean usingSchemaTupleFactory = false;
+    private boolean usingSchemaTupleFactory;
 
     @Override
     public Result processInput() throws ExecException {
@@ -191,9 +192,6 @@ public class POUserFunc extends ExpressionOperator {
             // tuple factory
             boolean knownSize = usingSchemaTupleFactory;
             int knownIndex = 0;
-            if (inputTupleFactory == null) {
-                inputTupleFactory = TupleFactory.getInstance();
-            }
             res.result = inputTupleFactory.newTuple();
 
             Result temp = null;

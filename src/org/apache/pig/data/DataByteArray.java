@@ -19,6 +19,7 @@ package org.apache.pig.data;
 
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
+import java.util.Arrays;
 
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
@@ -233,13 +234,7 @@ public class DataByteArray implements Comparable, Serializable {
     }
 
     public static int hashCode(byte[] buf) {
-        int hash = 1;
-        for (int i = 0; i < buf.length; i++) {
-            // 29 chosen because hash uses 31 and bag 37, and a I want a
-            // prime.
-            hash = 29 * hash + buf[i];
-        }
-        return hash;
+        return Arrays.hashCode(buf);
     }
 
 }

@@ -193,6 +193,10 @@ public class SchemaTupleFrontend {
         }
     }
 
+    public static void reset() {
+        stf = null;
+    }
+
     /**
      * This method "registers" a Schema to be generated. It allows a portions of the code
      * to register a Schema for generation without knowing whether code generation is enabled.

@@ -255,6 +255,10 @@ public class SchemaTupleBackend {
         }
     }
 
+    public static void reset() {
+        stb = null;
+    }
+
     private static SchemaTupleBackend stb;
 
     public static void initialize(Configuration jConf, boolean isLocal) throws IOException {

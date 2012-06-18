@@ -120,4 +120,11 @@ public class SchemaTupleFactory extends TupleFactory {
     public Class<SchemaTuple<?>> tupleClass() {
         return clazz;
     }
+
+    // We could make this faster by caching the result, but I doubt it will be called
+    // in any great volume.
+    @Override
+    public boolean isFixedSize() {
+        return clazz.isAssignableFrom(AppendableSchemaTuple.class);
+    }
 }

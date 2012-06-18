@@ -48,9 +48,12 @@ public class NullableTuple extends PigNullableWritable {
 
     @Override
     public void readFields(DataInput in) throws IOException {
-        mNull = in.readBoolean();
-        if (!mNull) mValue = bis.readTuple(in);
-        mIndex = in.readByte();
+        boolean nullness = in.readBoolean();
+        setNull(nullness);
+        if (!nullness) {
+            mValue = bis.readTuple(in);
+        }
+        setIndex(in.readByte());
     }
 
 }
