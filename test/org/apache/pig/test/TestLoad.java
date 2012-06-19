@@ -164,7 +164,7 @@ public class TestLoad extends junit.framework.TestCase {
     @Test
     public void testLoadRemoteAbsAuth() throws Exception {
         pc = servers[0].getPigContext();
-        checkLoadPath("hdfs://localhost:9000/test","/test");
+        checkLoadPath(cluster.getFileSystem().getUri()+"/test","/test");
     }
 
     @Test

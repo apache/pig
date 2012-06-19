@@ -40,33 +40,58 @@ import org.apache.pig.newplan.logical.Util;
 public class LOLoad extends LogicalRelationalOperator {
     
     private LogicalSchema scriptSchema;
-    private FileSpec fs;
+    private final FileSpec fs;
     private transient LoadFunc loadFunc;
     transient private Configuration conf;
-    private LogicalSchema determinedSchema;
+    private final LogicalSchema determinedSchema;
     private List<Integer> requiredFields = null;
     private boolean castInserted = false;
     private LogicalSchema uidOnlySchema;
-    private String schemaFile = null;
-    private String signature = null;
+    private final String schemaFile;
+    private final String signature;
     private long limit = -1;
 
     /**
+     * used for pattern matching
      * 
-     * @param loader FuncSpec for load function to use for this load.
      * @param schema schema user specified in script, or null if not
      * specified.
      * @param plan logical plan this load is part of.
      */
-    public LOLoad(FileSpec loader, LogicalSchema schema, LogicalPlan plan, Configuration conf) {
-       super("LOLoad", plan);
-       scriptSchema = schema;
-       fs = loader;
-       if (loader != null)
-           schemaFile = loader.getFileName();
-       this.conf = conf;
+    public LOLoad(LogicalSchema schema, LogicalPlan plan) {
+        this(null, schema, plan, null, null, null);
     }
-    
+
+    /**
+     * Used from the LogicalPlanBuilder
+     *
+     * @param loader FuncSpec for load function to use for this load.
+     * @param schema schema user specified in script, or null if not specified.
+     * @param plan logical plan this load is part of.
+     * @param conf
+     * @param loadFunc the LoadFunc that was instantiated from loader
+     * @param signature the signature that will be passed to the LoadFunc
+     */
+    public LOLoad(FileSpec loader, LogicalSchema schema, LogicalPlan plan, Configuration conf, LoadFunc loadFunc, String signature) {
+        super("LOLoad", plan);
+        this.scriptSchema = schema;
+        this.fs = loader;
+        this.schemaFile = loader == null ? null : loader.getFileName();
+        this.conf = conf;
+        this.loadFunc = loadFunc;
+        this.signature = signature;
+        if (loadFunc != null) {
+            this.loadFunc.setUDFContextSignature(signature);
+            try {
+                this.determinedSchema = getSchemaFromMetaData();
+            } catch (FrontendException e) {
+                throw new RuntimeException("Can not retrieve schema from loader " + loadFunc, e);
+            }
+        } else {
+            this.determinedSchema = null;
+        }
+    }
+
     public String getSchemaFile() {
         return schemaFile;
     }
@@ -105,10 +130,6 @@ public class LOLoad extends LogicalRelationalOperator {
             return schema;
         
         LogicalSchema originalSchema = null;
-
-        if (determinedSchema==null) {
-            determinedSchema = getSchemaFromMetaData();
-        }
         
         if (scriptSchema != null && determinedSchema != null) {
             originalSchema = LogicalSchema.merge(scriptSchema, determinedSchema, LogicalSchema.MergeMode.LoadForEach);
@@ -158,15 +179,13 @@ public class LOLoad extends LogicalRelationalOperator {
         return null;
     }
 
-	@Override
-	public void setAlias(String alias) {
-		super.setAlias(alias);
+    @Override
+    public void setAlias(String alias) {
+        super.setAlias(alias);
 
-		// set the schema in this method using the new alias assigned
-		storeScriptSchema();
-		if (signature==null)
-		    signature = alias;
-	}
+        // set the schema in this method using the new alias assigned
+        storeScriptSchema();
+    }
 	
 	/**
 	 * This method will store the scriptSchema:Schema using ObjectSerializer to
@@ -270,16 +289,6 @@ public class LOLoad extends LogicalRelationalOperator {
         return signature;
     }
     
-    /***
-     * This method is called by Pig logical planner to setup UDFContext signature.
-     * So that loadFunc can use signature to store its own configurations in UDFContext.
-     * This is not intend to be called by users
-     */
-    public void setSignature(String signature) {
-        this.signature = signature;
-        loadFunc.setUDFContextSignature(signature);
-    }
-    
     public LogicalSchema getScriptSchema() {
         return scriptSchema;
     }
@@ -291,4 +300,5 @@ public class LOLoad extends LogicalRelationalOperator {
     public void setLimit(long limit) {
         this.limit = limit;
     }
+
 }

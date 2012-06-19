@@ -88,7 +88,7 @@ public class TestScalarVisitor {
         LogicalPlan plan = ParserTestingUtils.generateLogicalPlan( query );
         PigContext pc = new PigContext( ExecType.LOCAL, new Properties() );
         pc.connect();
-        ScalarVisitor visitor = new ScalarVisitor( plan, pc );
+        ScalarVisitor visitor = new ScalarVisitor(plan, pc, "test");
         visitor.visit();
         return plan;
     }

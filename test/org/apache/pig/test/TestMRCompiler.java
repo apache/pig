@@ -1077,7 +1077,17 @@ public class TestMRCompiler extends junit.framework.TestCase {
         System.out.println("Golden");
         System.out.println("<<<" + goldenPlan + ">>>");
         System.out.println("-------------");
-        assertEquals(goldenPlan, compiledPlan);
+        assertEquals(removeSignature(goldenPlan), removeSignature(compiledPlan));
+    }
+
+    /**
+     * this removes the signature from the serialized plan
+     * changing the way the unique signature is generated should not break this test
+     * @param plan the plan to canonicalize
+     * @return the cleaned up plan
+     */
+    private String removeSignature(String plan) {
+        return plan.replaceAll("','','[^']*','scope','true'\\)\\)", "','','','scope','true'))");
     }
 
     public static class TestCollectableLoadFunc extends PigStorage implements CollectableLoadFunc {

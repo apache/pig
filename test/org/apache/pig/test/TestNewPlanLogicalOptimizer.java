@@ -17,6 +17,8 @@
  */
 package org.apache.pig.test;
 
+import static org.apache.pig.newplan.logical.relational.LOTestHelper.newLOLoad;
+
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -84,7 +86,7 @@ public class TestNewPlanLogicalOptimizer {
             	"x", null, DataType.BYTEARRAY));
         	aschema.addField(new LogicalSchema.LogicalFieldSchema(
             	"y", null, DataType.BYTEARRAY));
-        	LOLoad A = new LOLoad(new FileSpec("bla", new FuncSpec("PigStorage", "\t")), aschema, lp, conf);
+        	LOLoad A = newLOLoad(new FileSpec("bla", new FuncSpec("PigStorage", "\t")), aschema, lp, conf);
         	A.setAlias("A");
         	lp.add(A);
 	        
@@ -94,7 +96,7 @@ public class TestNewPlanLogicalOptimizer {
             	"a", null, DataType.BYTEARRAY));
         	bschema.addField(new LogicalSchema.LogicalFieldSchema(
             	"b", null, DataType.BYTEARRAY));
-        	LOLoad B = new LOLoad(new FileSpec("morebla", new FuncSpec("PigStorage", "\t")), bschema, lp, conf);
+        	LOLoad B = newLOLoad(new FileSpec("morebla", new FuncSpec("PigStorage", "\t")), bschema, lp, conf);
         	B.setAlias("B");
         	lp.add(B);
 	        
@@ -160,7 +162,7 @@ public class TestNewPlanLogicalOptimizer {
             	"x", null, DataType.BYTEARRAY));
         	aschema.addField(new LogicalSchema.LogicalFieldSchema(
             	"y", null, DataType.BYTEARRAY));
-        	LOLoad A = new LOLoad(new FileSpec("bla", new FuncSpec("PigStorage", "\t")), aschema, expected, conf);
+        	LOLoad A = newLOLoad(new FileSpec("bla", new FuncSpec("PigStorage", "\t")), aschema, expected, conf);
         	expected.add(A);
         	
         	// DA = filter
@@ -186,7 +188,7 @@ public class TestNewPlanLogicalOptimizer {
             	"a", null, DataType.BYTEARRAY));
         	bschema.addField(new LogicalSchema.LogicalFieldSchema(
             	"b", null, DataType.BYTEARRAY));
-        	LOLoad B = new LOLoad(new FileSpec("morebla", new FuncSpec("PigStorage", "\t")), bschema, expected, conf);
+        	LOLoad B = newLOLoad(new FileSpec("morebla", new FuncSpec("PigStorage", "\t")), bschema, expected, conf);
         	expected.add(B);
         	
         	// DB = filter

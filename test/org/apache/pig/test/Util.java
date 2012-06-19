@@ -24,7 +24,6 @@ import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -67,10 +66,8 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.builtin.Utf8StorageConverter;
 import org.apache.pig.data.BagFactory;
@@ -78,7 +75,6 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.DefaultBagFactory;
-import org.apache.pig.data.SortedDataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
@@ -91,13 +87,11 @@ import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.newplan.logical.optimizer.DanglingNestedNodeRemover;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanPrinter;
 import org.apache.pig.newplan.logical.optimizer.SchemaResetter;
-import org.apache.pig.newplan.logical.relational.LOStore;
 import org.apache.pig.newplan.logical.relational.LogToPhyTranslationVisitor;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
 import org.apache.pig.newplan.logical.optimizer.UidResetter;
-import org.apache.pig.newplan.logical.rules.LoadStoreFuncDupSignatureValidator;
 import org.apache.pig.newplan.logical.visitor.CastLineageSetter;
 import org.apache.pig.newplan.logical.visitor.ColumnAliasConversionVisitor;
 import org.apache.pig.newplan.logical.visitor.ScalarVisitor;
@@ -739,10 +733,7 @@ public class Util {
         SchemaResetter schemaResetter = 
                 new SchemaResetter( lp, true /*disable duplicate uid check*/ );
         schemaResetter.visit();
-        
-        LoadStoreFuncDupSignatureValidator loadStoreFuncDupSignatureValidator = new LoadStoreFuncDupSignatureValidator(lp);
-        loadStoreFuncDupSignatureValidator.validate();
-        
+
         StoreAliasSetter storeAliasSetter = new StoreAliasSetter( lp );
         storeAliasSetter.visit();
         
@@ -1001,9 +992,9 @@ public class Util {
         QueryParserDriver parserDriver = new QueryParserDriver( pc, "test", fileNameMap );
         org.apache.pig.newplan.logical.relational.LogicalPlan lp = parserDriver.parse( query );
         
-        new ColumnAliasConversionVisitor( lp ).visit();
-        new SchemaAliasVisitor( lp ).visit();
-        new ScalarVisitor( lp, pc ).visit();
+        new ColumnAliasConversionVisitor(lp).visit();
+        new SchemaAliasVisitor(lp).visit();
+        new ScalarVisitor(lp, pc, "test").visit();
         
         CompilationMessageCollector collector = new CompilationMessageCollector() ;
         
@@ -1021,7 +1012,7 @@ public class Util {
         
         new ColumnAliasConversionVisitor( lp ).visit();
         new SchemaAliasVisitor( lp ).visit();
-        new ScalarVisitor( lp, pc ).visit();
+        new ScalarVisitor(lp, pc, "test").visit();
         
         CompilationMessageCollector collector = new CompilationMessageCollector() ;
         

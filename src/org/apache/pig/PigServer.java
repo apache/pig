@@ -943,7 +943,7 @@ public class PigServer {
         currDAG.buildPlan( alias );
 
         try {
-            QueryParserUtils.attachStorePlan( currDAG.lp, filename, func, currDAG.getOperator( alias ), alias, pigContext );
+            QueryParserUtils.attachStorePlan(scope, currDAG.lp, filename, func, currDAG.getOperator( alias ), alias, pigContext);
             currDAG.compile();
             return executeCompiledLogicalPlan();
         } catch (PigException e) {
@@ -1225,7 +1225,7 @@ public class PigServer {
         if( !isBatchOn() || alias != null ) {
             // MRCompiler needs a store to be the leaf - hence
             // add a store to the plan to explain
-            QueryParserUtils.attachStorePlan( currDAG.lp, "fakefile", null, currDAG.getOperator( alias ), 
+            QueryParserUtils.attachStorePlan(scope, currDAG.lp, "fakefile", null, currDAG.getOperator( alias ), 
                     "fake", pigContext );
         }
         currDAG.compile();
@@ -1628,9 +1628,9 @@ public class PigServer {
         }
         
         private void compile(LogicalPlan lp) throws FrontendException  {
-            new ColumnAliasConversionVisitor( lp ).visit();
-            new SchemaAliasVisitor( lp ).visit();
-            new ScalarVisitor( lp, pigContext ).visit();
+            new ColumnAliasConversionVisitor(lp).visit();
+            new SchemaAliasVisitor(lp).visit();
+            new ScalarVisitor(lp, pigContext, scope).visit();
             
             // TODO: move optimizer here from HExecuteEngine.
             // TODO: input/output validation visitor

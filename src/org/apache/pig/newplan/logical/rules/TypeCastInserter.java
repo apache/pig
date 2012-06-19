@@ -55,7 +55,7 @@ public abstract class TypeCastInserter extends Rule {
         LogicalPlan plan = new LogicalPlan();
         LogicalRelationalOperator op;
         if (getOperatorClassName().equals(LOLoad.class.getName()))
-            op = new LOLoad(null, null, plan, null);
+            op = new LOLoad(null, plan);
         else // LOStream
             op = new LOStream(plan, null, null, null);
         plan.add(op);

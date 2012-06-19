@@ -677,6 +677,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
         store.setSignature(loStore.getSignature());
         store.setSortInfo(loStore.getSortInfo());
         store.setIsTmpStore(loStore.isTmpStore());
+        store.setStoreFunc(loStore.getStoreFunc());
         
         store.setSchema(Util.translateSchema( loStore.getSchema() ));
 

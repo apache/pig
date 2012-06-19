@@ -18,6 +18,8 @@
 
 package org.apache.pig.test.utils;
 
+import static org.apache.pig.newplan.logical.relational.LOTestHelper.newLOLoad;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -45,7 +47,7 @@ public class TypeCheckingTestUtil {
         PigContext pc = new PigContext(ExecType.LOCAL, new Properties());
         pc.connect();
         org.apache.pig.newplan.logical.relational.LOLoad load =
-        new org.apache.pig.newplan.logical.relational.LOLoad(
+        newLOLoad(
                 new FileSpec("pi", new FuncSpec(pigStorage)),
                 null, plan, new Configuration(ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration()))
         );

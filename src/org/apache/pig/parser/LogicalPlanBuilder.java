@@ -106,6 +106,10 @@ public class LogicalPlanBuilder {
     
     private static NodeIdGenerator nodeIdGen = NodeIdGenerator.getGenerator();
     
+    public static long getNextId(String scope) {
+        return nodeIdGen.getNextNodeId( scope );
+    }
+    
     LogicalPlanBuilder(PigContext pigContext, String scope, Map<String, String> fileNameMap,
             IntStream input) {
         this.pigContext = pigContext;
@@ -635,44 +639,46 @@ public class LogicalPlanBuilder {
         op.setInnerFlags( flags );
         alias = buildOp( loc, op, alias, inputAliases, partitioner );
         expandAndResetVisitor(loc, op);
+
         return alias;
     }
-    
-    private String getAbolutePathForLoad(String filename, FuncSpec funcSpec)
-    throws IOException, URISyntaxException {
-        if( funcSpec == null ){
-            funcSpec = new FuncSpec( PigStorage.class.getName() );
-        }
 
-        LoadFunc loFunc = (LoadFunc)PigContext.instantiateFuncFromSpec( funcSpec );
-        String sig = QueryParserUtils.constructFileNameSignature( filename, funcSpec );
-        String absolutePath = fileNameMap.get( sig );
-        if (absolutePath == null) {
-            absolutePath = loFunc.relativeToAbsolutePath( filename, QueryParserUtils.getCurrentDir( pigContext ) );
-
-            if (absolutePath!=null) {
-                QueryParserUtils.setHdfsServers( absolutePath, pigContext );
-            }
-            fileNameMap.put( sig, absolutePath );
-        }
-        
-        return absolutePath;
-    }
-     
     String buildLoadOp(SourceLocation loc, String alias, String filename, FuncSpec funcSpec, LogicalSchema schema)
     throws ParserValidationException {
-        String absolutePath = filename;
+        String absolutePath;
+        LoadFunc loFunc;
         try {
-            absolutePath = getAbolutePathForLoad( filename, funcSpec );
+            FuncSpec instantiatedFuncSpec =
+                    funcSpec == null ?
+                        new FuncSpec(PigStorage.class.getName()) :
+                        funcSpec;
+
+            loFunc = (LoadFunc)PigContext.instantiateFuncFromSpec(instantiatedFuncSpec);
+            String sig = QueryParserUtils.constructFileNameSignature(filename, instantiatedFuncSpec);
+            absolutePath = fileNameMap.get(sig);
+            if (absolutePath == null) {
+                absolutePath = loFunc.relativeToAbsolutePath( filename, QueryParserUtils.getCurrentDir( pigContext ) );
+
+                if (absolutePath!=null) {
+                    QueryParserUtils.setHdfsServers( absolutePath, pigContext );
+                }
+                fileNameMap.put( sig, absolutePath );
+            }
         } catch(Exception ex) {
             throw new ParserValidationException( intStream, loc, ex );
         }
-        
-        FileSpec loader = new FileSpec( absolutePath, funcSpec );
-        LOLoad op = new LOLoad( loader, schema, plan, ConfigurationUtil.toConfiguration( pigContext.getProperties() ) );
+
+        FileSpec loader = new FileSpec(absolutePath, funcSpec);
+        LOLoad op = new LOLoad(
+                loader,
+                schema,
+                plan,
+                ConfigurationUtil.toConfiguration(pigContext.getProperties()),
+                loFunc,
+                alias + "_" + newOperatorKey());
         return buildOp( loc, op, alias, new ArrayList<String>(), null );
     }
-    
+
     private String buildOp(SourceLocation loc, LogicalRelationalOperator op, String alias, 
     		String inputAlias, String partitioner) throws ParserValidationException {
         List<String> inputAliases = new ArrayList<String>();
@@ -699,41 +705,41 @@ public class LogicalPlanBuilder {
         return op.getAlias();
     }
 
-    private String getAbolutePathForStore(String inputAlias, String filename, FuncSpec funcSpec)
-    throws IOException, URISyntaxException {
-        if( funcSpec == null ){
-            funcSpec = new FuncSpec( PigStorage.class.getName() );
-        }
-        
-        Object obj = PigContext.instantiateFuncFromSpec( funcSpec );
-        StoreFuncInterface stoFunc = (StoreFuncInterface)obj;
-        String sig = QueryParserUtils.constructSignature( inputAlias, filename, funcSpec);
-        stoFunc.setStoreFuncUDFContextSignature( sig );
-        String absolutePath = fileNameMap.get( sig );
-        if (absolutePath == null) {
-            absolutePath = stoFunc.relToAbsPathForStoreLocation( filename, 
-                    QueryParserUtils.getCurrentDir( pigContext ) );
-            if (absolutePath!=null) {
-                QueryParserUtils.setHdfsServers( absolutePath, pigContext );
-            }
-            fileNameMap.put( sig, absolutePath );
-        }
-        
-        return absolutePath;
-    }
-
     String buildStoreOp(SourceLocation loc, String alias, String inputAlias, String filename, FuncSpec funcSpec)
     throws ParserValidationException {
-        String absPath = filename;
         try {
-            absPath = getAbolutePathForStore( inputAlias, filename, funcSpec );
+            FuncSpec instantiatedFuncSpec =
+                    funcSpec == null ?
+                            new FuncSpec(PigStorage.class.getName()):
+                            funcSpec;
+
+            StoreFuncInterface stoFunc = (StoreFuncInterface)PigContext.instantiateFuncFromSpec(instantiatedFuncSpec);
+            String sig = inputAlias + "_" + newOperatorKey();
+            stoFunc.setStoreFuncUDFContextSignature(sig);
+            String absolutePath = fileNameMap.get(sig);
+            if (absolutePath == null) {
+                absolutePath = stoFunc.relToAbsPathForStoreLocation(
+                        filename,
+                        QueryParserUtils.getCurrentDir(pigContext));
+                if (absolutePath!=null) {
+                    QueryParserUtils.setHdfsServers(absolutePath, pigContext);
+                }
+                fileNameMap.put(sig, absolutePath);
+            }
+            FileSpec fileSpec = new FileSpec(absolutePath, funcSpec);
+            LOStore op = new LOStore(plan, fileSpec, stoFunc, sig);
+            return buildOp(loc, op, alias, inputAlias, null);
         } catch(Exception ex) {
-            throw new ParserValidationException( intStream, loc, ex );
+            throw new ParserValidationException(intStream, loc, ex);
         }
-        
-        FileSpec fileSpec = new FileSpec( absPath, funcSpec );
-        LOStore op = new LOStore( plan, fileSpec );
-        return buildOp( loc, op, alias, inputAlias, null );
+    }
+
+    private String newOperatorKey() {
+        return new OperatorKey( scope, getNextId() ).toString();
+    }
+    
+    public static String newOperatorKey(String scope) {
+        return new OperatorKey( scope, getNextId(scope)).toString();
     }
     
     LOForEach createForeachOp() {
@@ -983,7 +989,7 @@ public class LogicalPlanBuilder {
     
     void setAlias(LogicalRelationalOperator op, String alias) {
         if( alias == null )
-            alias = new OperatorKey( scope, getNextId() ).toString();
+            alias = newOperatorKey();
         op.setAlias( alias );
     }
     
@@ -1006,17 +1012,17 @@ public class LogicalPlanBuilder {
     }
     
     private void validateFuncSpec(SourceLocation loc, FuncSpec funcSpec, byte ft) throws RecognitionException {
-        switch( ft ) {
+        switch (ft) {
         case FunctionType.COMPARISONFUNC:
         case FunctionType.LOADFUNC:
         case FunctionType.STOREFUNC:
         case FunctionType.STREAMTOPIGFUNC:
         case FunctionType.PIGTOSTREAMFUNC:
-            Object func = PigContext.instantiateFuncFromSpec( funcSpec );
             try{
-                FunctionType.tryCasting( func, ft );
+                Class<?> func = PigContext.resolveClassName(funcSpec.getClassName());
+                FunctionType.tryCasting(func, ft);
             } catch(Exception ex){
-                throw new ParserValidationException( intStream, loc, ex );
+                throw new ParserValidationException(intStream, loc, ex);
             }
         }
     }
@@ -1196,32 +1202,33 @@ public class LogicalPlanBuilder {
     LogicalExpression buildUDF(SourceLocation loc, LogicalExpressionPlan plan,
             String funcName, List<LogicalExpression> args)
     throws RecognitionException {
-        Object func;
+
+        Class<?> func;
         try {
-            func = pigContext.instantiateFuncFromAlias( funcName );
-            FunctionType.tryCasting( func, FunctionType.EVALFUNC );
+            func = pigContext.getClassForAlias(funcName);
+            FunctionType.tryCasting(func, FunctionType.EVALFUNC);
         } catch (Exception e) {
-            throw new PlanGenerationFailureException( intStream, loc, e );
+            throw new PlanGenerationFailureException(intStream, loc, e);
         }
         
-        FuncSpec funcSpec = pigContext.getFuncSpecFromAlias( funcName );
+        FuncSpec funcSpec = pigContext.getFuncSpecFromAlias(funcName);
         LogicalExpression le;
         if( funcSpec == null ) {
-            funcName = func.getClass().getName();
-            funcSpec = new FuncSpec( funcName );
+            funcName = func.getName();
+            funcSpec = new FuncSpec(funcName);
             //this point is only reached if there was no DEFINE statement for funcName
             //in which case, we pass that information along
-            le = new UserFuncExpression( plan, funcSpec, args, false );
+            le = new UserFuncExpression(plan, funcSpec, args, false);
         } else {
-            le = new UserFuncExpression( plan, funcSpec, args, true );
+            le = new UserFuncExpression(plan, funcSpec, args, true);
         }
         
-        le.setLocation( loc );
+        le.setLocation(loc);
         return le;
     }
     
     private long getNextId() {
-        return nodeIdGen.getNextNodeId( scope );
+        return getNextId(scope);
     }
 
     static LOFilter createNestedFilterOp(LogicalPlan plan) {

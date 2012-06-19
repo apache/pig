@@ -80,7 +80,7 @@ public class TestNewPlanFilterRule {
         schema.getField(0).uid = 1;
         schema.getField(1).uid = 2;
         schema.getField(2).uid = 3;
-        LogicalRelationalOperator l1 = new LOLoad(null, schema, plan, null);
+        LogicalRelationalOperator l1 = new LOLoad(schema, plan);
         l1.setAlias("A");
         plan.add(l1);
 
@@ -91,7 +91,7 @@ public class TestNewPlanFilterRule {
         schema.getField(0).uid = 4;
         schema.getField(1).uid = 5;
         schema.getField(2).uid = 6;
-        LogicalRelationalOperator l2 = new LOLoad(null, schema, plan, null);
+        LogicalRelationalOperator l2 = new LOLoad(schema, plan);
         l2.setAlias("B");
         plan.add(l2);
         
@@ -125,7 +125,7 @@ public class TestNewPlanFilterRule {
         f1.setAlias("D");
         plan.add(f1);
         
-        LogicalRelationalOperator s1 = new LOStore(plan);
+        LogicalRelationalOperator s1 = new LOStore(plan, null, null, null);
         plan.add(s1);       
         
         // load --|-join - filter - store

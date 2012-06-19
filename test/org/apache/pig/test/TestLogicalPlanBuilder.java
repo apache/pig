@@ -2084,14 +2084,17 @@ public class TestLogicalPlanBuilder {
         LogicalPlan plan = buildPlan( query );
         Operator op = plan.getSinks().get(0);
         LOLoad load = (LOLoad)plan.getPredecessors(op).get(0);
-        Assert.assertTrue(((PigStorageWithSchema)(load).getLoadFunc()).getUDFContextSignature().equals("a"));
+        // the signature is now a unique string of the format "{alias}_{scope id}-{id}" example: "a_12-0"
+        String udfContextSignature = ((PigStorageWithSchema)(load).getLoadFunc()).getUDFContextSignature();
+        Assert.assertTrue(udfContextSignature, udfContextSignature.matches("a_[0-9]*-[0-9]*"));
         
         query = " b = load '1.txt' using org.apache.pig.test.PigStorageWithSchema();" +
                 "store b into 'output';";
         plan = buildPlan(query);
         op = plan.getSinks().get(0);
         load = (LOLoad)plan.getPredecessors(op).get(0);
-        Assert.assertTrue(((PigStorageWithSchema)(load).getLoadFunc()).getUDFContextSignature().equals("b"));
+        udfContextSignature = ((PigStorageWithSchema)(load).getLoadFunc()).getUDFContextSignature();
+        Assert.assertTrue(udfContextSignature, udfContextSignature.matches("b_[0-9]*-[0-9]*"));
     }
     
     @Test
