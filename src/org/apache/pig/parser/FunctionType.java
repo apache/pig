@@ -33,28 +33,32 @@ class FunctionType {
     public static final byte PIGTOSTREAMFUNC = 32;
     public static final byte STREAMTOPIGFUNC = 64;
 
-    public static void tryCasting(Object func, byte funcType) throws Exception {
+    public static void tryCasting(Class<?> func, byte funcType) {
+        Class<?> typeClass;
         switch(funcType) {
         case FunctionType.EVALFUNC:
-            EvalFunc evalFunc = (EvalFunc) func;
+            typeClass = EvalFunc.class;
             break;
         case FunctionType.COMPARISONFUNC:
-            ComparisonFunc comparisonFunc = (ComparisonFunc) func;
+            typeClass = ComparisonFunc.class;
             break;
         case FunctionType.LOADFUNC:
-            LoadFunc loadFunc = (LoadFunc) func;
+            typeClass = LoadFunc.class;
             break;
         case FunctionType.STOREFUNC:
-            StoreFuncInterface storeFunc = (StoreFuncInterface) func;
+            typeClass = StoreFuncInterface.class;
             break;
         case FunctionType.PIGTOSTREAMFUNC:
-            PigToStream ptsFunc = (PigToStream) func;
+            typeClass = PigToStream.class;
             break;
         case FunctionType.STREAMTOPIGFUNC:
-            StreamToPig stpFunc = (StreamToPig) func;
+            typeClass = StreamToPig.class;
             break;
         default:
-            throw new Exception("Received an unknown function type: " + funcType);
+            throw new IllegalArgumentException("Received an unknown function type: " + funcType);
+        }
+        if (!typeClass.isAssignableFrom(func)) {
+            throw new ClassCastException(func + " does not implement " + typeClass);
         }
     }
     

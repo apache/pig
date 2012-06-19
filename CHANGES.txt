@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2699: Reduce the number of instances of Load and Store Funcs down to 2+1 (julien)
+
 PIG-2166: UDFs to join a bag (hluu via daijy)
 
 PIG-2651: Provide a much easier to use accumulator interface (jcoveney via daijy)

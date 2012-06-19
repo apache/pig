@@ -79,7 +79,7 @@ public class TestNewPlanListener extends TestCase {
         aschema.addField(new LogicalSchema.LogicalFieldSchema(
             "x", null, DataType.INTEGER));
         aschema.getField(0).uid = 1;
-        LOLoad A = new LOLoad(null, null, lp, null);
+        LOLoad A = new LOLoad(null, lp);
         A.neverUseForRealSetSchema(aschema);
         lp.add(A);
         
@@ -88,7 +88,7 @@ public class TestNewPlanListener extends TestCase {
         bschema.addField(new LogicalSchema.LogicalFieldSchema(
             "y", null, DataType.INTEGER));
         bschema.getField(0).uid = 2;
-        LOLoad B = new LOLoad(null, null, lp, null);
+        LOLoad B = new LOLoad(null, lp);
         B.neverUseForRealSetSchema(bschema);
         lp.add(B);
         

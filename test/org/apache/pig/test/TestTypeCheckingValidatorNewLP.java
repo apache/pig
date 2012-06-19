@@ -18,6 +18,8 @@
 
 package org.apache.pig.test;
 
+import static org.apache.pig.newplan.logical.relational.LOTestHelper.newLOLoad;
+
 import static org.apache.pig.ExecType.LOCAL;
 import static org.apache.pig.test.utils.TypeCheckingTestUtil.genDummyLOLoadNewLP;
 import static org.apache.pig.test.utils.TypeCheckingTestUtil.genFlatSchema;
@@ -864,12 +866,12 @@ public class TestTypeCheckingValidatorNewLP {
     
             String pigStorage = PigStorage.class.getName() ;
             
-            LOLoad load1 = new LOLoad(
+            LOLoad load1 = newLOLoad(
                     new FileSpec("pi", new FuncSpec(pigStorage)),
                     null, plan, new Configuration(ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration()))
             );
                 
-            LOLoad load2 = new LOLoad(
+            LOLoad load2 = newLOLoad(
                     new FileSpec("pi", new FuncSpec(pigStorage)),
                     null, plan, new Configuration(ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration()))
             );
@@ -999,12 +1001,12 @@ public class TestTypeCheckingValidatorNewLP {
             String pigStorage = PigStorage.class.getName() ;
     
             
-            LOLoad load1 = new LOLoad(
+            LOLoad load1 = newLOLoad(
                     new FileSpec("pi", new FuncSpec(pigStorage)),
                     null, plan, new Configuration(ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration()))
             );
                 
-            LOLoad load2 = new LOLoad(
+            LOLoad load2 = newLOLoad(
                     new FileSpec("pi", new FuncSpec(pigStorage)),
                     null, plan, new Configuration(ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration()))
             );
@@ -1107,7 +1109,7 @@ public class TestTypeCheckingValidatorNewLP {
     
             String pigStorage = PigStorage.class.getName() ;
     
-            LOLoad load1 = new LOLoad(
+            LOLoad load1 = newLOLoad(
                     new FileSpec("pi", new FuncSpec(pigStorage)),
                     null, plan, new Configuration(ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration()))
             );
@@ -1175,7 +1177,7 @@ public class TestTypeCheckingValidatorNewLP {
 
             String pigStorage = PigStorage.class.getName() ;
 
-            LOLoad load1 = new LOLoad(
+            LOLoad load1 = newLOLoad(
                     new FileSpec("pi", new FuncSpec(pigStorage)),
                     null, plan, new Configuration(ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration()))
             );
@@ -1238,7 +1240,7 @@ public class TestTypeCheckingValidatorNewLP {
 
             String pigStorage = PigStorage.class.getName() ;
 
-            LOLoad load1 = new LOLoad(
+            LOLoad load1 = newLOLoad(
                     new FileSpec("pi", new FuncSpec(pigStorage)),
                     null, plan, new Configuration(ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration()))
             );
@@ -1300,7 +1302,7 @@ public class TestTypeCheckingValidatorNewLP {
     
             String pigStorage = PigStorage.class.getName() ;
     
-            LOLoad load1 = new LOLoad(
+            LOLoad load1 = newLOLoad(
                     new FileSpec("pi", new FuncSpec(pigStorage)),
                     null, plan, new Configuration(ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration()))
             );
@@ -1390,7 +1392,7 @@ public class TestTypeCheckingValidatorNewLP {
     
             String pigStorage = PigStorage.class.getName() ;
     
-            LOLoad load1 =  new LOLoad(
+            LOLoad load1 =  newLOLoad(
                     new FileSpec("pi", new FuncSpec(pigStorage)),
                     null, plan, new Configuration(ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration()))
             );
@@ -1475,7 +1477,7 @@ public class TestTypeCheckingValidatorNewLP {
     
             String pigStorage = PigStorage.class.getName() ;
     
-            LOLoad load1 =  new LOLoad(
+            LOLoad load1 =  newLOLoad(
                     new FileSpec("pi", new FuncSpec(pigStorage)),
                     null, plan, new Configuration(ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration()))
             );
@@ -1558,7 +1560,7 @@ public class TestTypeCheckingValidatorNewLP {
 
             String pigStorage = PigStorage.class.getName() ;
 
-            LOLoad load1 =  new LOLoad(
+            LOLoad load1 =  newLOLoad(
                     new FileSpec("pi", new FuncSpec(pigStorage)),
                     null, plan, new Configuration(ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration()))
             );
@@ -1665,7 +1667,7 @@ public class TestTypeCheckingValidatorNewLP {
 
             String pigStorage = PigStorage.class.getName() ;
 
-            LOLoad load1 =  new LOLoad(
+            LOLoad load1 =  newLOLoad(
                     new FileSpec("pi", new FuncSpec(pigStorage)),
                     null, plan, new Configuration(ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration()))
             );
@@ -1750,12 +1752,12 @@ public class TestTypeCheckingValidatorNewLP {
     
             String pigStorage = PigStorage.class.getName() ;
     
-            LOLoad load1 =  new LOLoad(
+            LOLoad load1 =  newLOLoad(
                     new FileSpec("pi", new FuncSpec(pigStorage)),
                     null, plan, new Configuration(ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration()))
             );
             
-            LOLoad load2 =  new LOLoad(
+            LOLoad load2 =  newLOLoad(
                     new FileSpec("pi", new FuncSpec(pigStorage)),
                     null, plan, new Configuration(ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration()))
             );
@@ -1888,12 +1890,12 @@ public class TestTypeCheckingValidatorNewLP {
             LogicalPlan plan = new LogicalPlan() ;
     
             String pigStorage = PigStorage.class.getName() ;
-            LOLoad load1 =  new LOLoad(
+            LOLoad load1 =  newLOLoad(
                     new FileSpec("pi", new FuncSpec(pigStorage)),
                     null, plan, new Configuration(ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration()))
             );
             
-            LOLoad load2 =  new LOLoad(
+            LOLoad load2 =  newLOLoad(
                     new FileSpec("pi", new FuncSpec(pigStorage)),
                     null, plan, new Configuration(ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration()))
             );
@@ -2007,12 +2009,12 @@ public class TestTypeCheckingValidatorNewLP {
     
             String pigStorage = PigStorage.class.getName() + "('\\t','-noschema')" ;
     
-            LOLoad load1 =  new LOLoad(
+            LOLoad load1 =  newLOLoad(
                     new FileSpec("pi", new FuncSpec(pigStorage)),
                     null, plan, new Configuration(ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration()))
             );
             
-            LOLoad load2 =  new LOLoad(
+            LOLoad load2 =  newLOLoad(
                     new FileSpec("pi", new FuncSpec(pigStorage)),
                     null, plan, new Configuration(ConfigurationUtil.toConfiguration(pc.getFs().getConfiguration()))
             );

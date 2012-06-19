@@ -85,7 +85,7 @@ public class PartitionFilterOptimizer extends Rule {
     protected OperatorPlan buildPattern() {
         // match each foreach.
         LogicalPlan plan = new LogicalPlan();
-        LogicalRelationalOperator load = new LOLoad (null, null, plan, null );
+        LogicalRelationalOperator load = new LOLoad (null, plan);
         plan.add( load );
 //        LogicalRelationalOperator filter = new LOFilter( plan );
 //        plan.add( filter );

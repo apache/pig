@@ -17,6 +17,8 @@
  */
 package org.apache.pig.test;
 
+import static org.apache.pig.newplan.logical.relational.LOTestHelper.newLOLoad;
+
 import java.io.* ;
 import java.util.Iterator;
 import java.util.Properties;
@@ -26,6 +28,7 @@ import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.ResourceSchema;
+import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
@@ -243,9 +246,9 @@ public class TestInputOutputFileValidator extends TestCase {
             new FileSpec(inputFile, new FuncSpec("org.apache.pig.builtin.PigStorage")) ;
         FileSpec filespec2 =
             new FileSpec(outputFile, new FuncSpec("org.apache.pig.builtin.PigStorage"));
-        LOLoad load = new LOLoad( filespec1, null, plan,
+        LOLoad load = newLOLoad( filespec1, null, plan,
                 ConfigurationUtil.toConfiguration(dfs.getConfiguration())) ;       
-        LOStore store = new LOStore(plan, filespec2) ;
+        LOStore store = new LOStore(plan, filespec2, (StoreFuncInterface)PigContext.instantiateFuncFromSpec(filespec2.getFuncSpec()), null) ;
         
         plan.add(load) ;
         plan.add(store) ;

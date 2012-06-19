@@ -252,7 +252,7 @@ public class MapReduceLauncher extends Launcher{
 
             // Set the thread UDFContext so registered classes are available.
             final UDFContext udfContext = UDFContext.getUDFContext();
-            Thread jcThread = new Thread(jc) {
+            Thread jcThread = new Thread(jc, "JobControl") {
                 @Override
                 public void run() {
                     UDFContext.setUdfContext(udfContext.clone()); //PIG-2576
@@ -650,7 +650,7 @@ public class MapReduceLauncher extends Launcher{
             } catch (Exception e) {
                 String errMsg = "Could not resolve error that occured when launching map reduce job: "
                         + jobControlExceptionStackTrace;
-                jobControlException = new RuntimeException(errMsg);
+                jobControlException = new RuntimeException(errMsg, throwable);
             }
         }
     }

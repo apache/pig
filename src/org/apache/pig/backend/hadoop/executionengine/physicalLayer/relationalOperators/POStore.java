@@ -293,4 +293,8 @@ public class POStore extends PhysicalOperator {
     public boolean disableCounter() {
         return disableCounter;
     }
+
+    public void setStoreFunc(StoreFuncInterface storeFunc) {
+        this.storer = storeFunc;
+    }
 }
