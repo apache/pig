@@ -399,6 +399,8 @@ PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
 
+PIG-2761: With hadoop23 importing modules inside python script does not work (rohini via daijy)
+
 PIG-2759: Typo in document "Built In Functions" (daijy)
 
 PIG-2745: Pig e2e test RubyUDFs fails in MR mode when running from tarball (cheolsoo via daijy)
