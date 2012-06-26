@@ -16,40 +16,5 @@
 #  See the License for the specific language governing permissions and                 
 #  limitations under the License.                                                      
 
-import sys
-sys.path.append("./libexec/python")
-import stringutil
-
-@outputSchemaFunction("squareSchema")
-def square(num):
-    return ((num)*(num))
-
-@schemaFunction("squareSchema")
-def squareSchema(input):
-    return input
-
-@outputSchema("word:chararray")
-def concat(word):
-    return word + word
-
-@outputSchema("gpa:double")
-def adjustgpa(gpa, instate):
-    if instate == None:
-        return None
-    elif instate:
-        return gpa
-    else:
-        return gpa+1
-
-@outputSchema("retired:boolean")
-def isretired(age):
-    if age == None:
-        return None
-    elif age>=60:
-        return True
-    else:
-        return False
-
-outputSchema("words:{(word:chararray)}")
 def tokenize(sentence):
-    return stringutil.tokenize(sentence)
+    return sentence.split(' ')
