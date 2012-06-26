@@ -1095,8 +1095,8 @@ unneeded sort and shuffle phases.
 </p>
 
 <p>
-Pig has implemented a merge join algorithm, or sort-merge join, although in this case the sort is already 
-assumed to have been done (see the Conditions, below). 
+Pig has implemented a merge join algorithm, or sort-merge join. It works on pre-sorted data, and does not
+sort data for you. See Conditions, below, for restrictions that apply when using this join algorithm.
 
 Pig implements the merge join algorithm by selecting the left input of the join to be the input file for the map phase, 
 and the right input of the join to be the side file. It then samples records from the right input to build an
@@ -1119,8 +1119,8 @@ C = JOIN A BY a1, B BY b1, C BY c1 USING 'merge';
 <p><strong>Condition A</strong></p>
 <p>Inner merge join (between two tables) will only work under these conditions: </p>
 <ul>
-<li>Between the load of the sorted input and the merge join statement there can only be filter statements and 
-foreach statement where the foreach statement should meet the following conditions: 
+<li>Data must come directly from either a Load or an Order statement.
+<li>There may be filter statements and foreach statements between the sorted data source and the join statement. The foreach statement should meet the following conditions: 
 <ul>
 <li>There should be no UDFs in the foreach statement. </li>
 <li>The foreach statement should not change the position of the join keys. </li>
@@ -1128,7 +1128,7 @@ foreach statement where the foreach statement should meet the following conditio
 </ul>
 </li>
 <li>Data must be sorted on join keys in ascending (ASC) order on both sides.</li>
-<li>Right-side loader must implement either the {OrderedLoadFunc} interface or {IndexableLoadFunc} interface.</li>
+<li>If sort is provided by the loader, rather than an explicit Order operation, the right-side loader must implement either the {OrderedLoadFunc} interface or {IndexableLoadFunc} interface.</li>
 <li>Type information must be provided for the join key in the schema.</li>
 </ul>
 <p></p>

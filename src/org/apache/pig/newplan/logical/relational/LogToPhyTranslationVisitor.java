@@ -831,7 +831,8 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                     "supported for any relation on Merge Cogroup.");
         }
         List<Operator> inputs = cg.getPlan().getPredecessors(cg);
-        validateMapSideMerge(inputs, cg.getPlan());
+        MapSideMergeValidator validator = new MapSideMergeValidator();
+        validator.validateMapSideMerge(inputs, cg.getPlan());
         POMergeCogroup poCogrp = compileToMergeCogrp(cg, cg.getExpressionPlans());
         poCogrp.setResultType(DataType.TUPLE);
         poCogrp.addOriginalLocation(cg.getAlias(), cg.getLocation());
@@ -855,24 +856,6 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                 return false;
         }
         return true;
-    }
-    
-    private boolean validateMapSideMerge(List<Operator> preds, OperatorPlan lp) 
-        throws LogicalToPhysicalTranslatorException{
-            int errCode = 1103;
-            String errMsg = "Merge join/Cogroup only supports Filter, Foreach, " +
-                "filter and Load as its predecessor. Found : ";
-            if(preds != null && !preds.isEmpty()){
-                for(Operator lo : preds){
-                    if (!(lo instanceof org.apache.pig.newplan.logical.relational.LOFilter || lo instanceof org.apache.pig.newplan.logical.relational.LOForEach 
-                            || lo instanceof org.apache.pig.newplan.logical.relational.LOLoad))
-                        throw new LogicalToPhysicalTranslatorException(errMsg, errCode);
-                    // All is good at this level. Visit predecessors now.
-                    validateMapSideMerge(lp.getPredecessors(lo),lp);
-                }
-            }
-            // We visited everything and all is good.
-            return true;
     }
     
     @Override
@@ -1027,9 +1010,8 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                 }
             }
             logToPhyMap.put(loj, pfrj);
-        }
-       
-        else if ( (loj.getJoinType() == LOJoin.JOINTYPE.MERGE || loj.getJoinType() == LOJoin.JOINTYPE.MERGESPARSE) && validateMapSideMerge(inputs,loj.getPlan())) { 
+        } else if ( (loj.getJoinType() == LOJoin.JOINTYPE.MERGE || loj.getJoinType() == LOJoin.JOINTYPE.MERGESPARSE)
+                && (new MapSideMergeValidator().validateMapSideMerge(inputs,loj.getPlan()))) {
             
             PhysicalOperator smj;
             boolean usePOMergeJoin = inputs.size() == 2 && innerFlags[0] && innerFlags[1] ; 
@@ -1048,9 +1030,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                     throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
                 }
                 logToPhyMap.put(loj, smj);
-            }
-
-            else{
+            } else {
                 // in all other cases we fall back to POMergeCogroup + Flattening FEs
                 smj = compileToMergeCogrp(loj, loj.getExpressionPlans());
             }

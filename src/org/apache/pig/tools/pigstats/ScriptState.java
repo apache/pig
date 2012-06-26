@@ -134,8 +134,8 @@ public class ScriptState {
      */
     static enum PIG_FEATURE {
         UNKNOWN,
-        MERGE_JION,
-        MERGE_SPARSE_JION,
+        MERGE_JOIN,
+        MERGE_SPARSE_JOIN,
         REPLICATED_JOIN,
         SKEWED_JOIN,
         HASH_JOIN,
@@ -618,9 +618,9 @@ public class ScriptState {
         @Override
         public void visitMergeJoin(POMergeJoin join) throws VisitorException {
             if (join.getJoinType()==LOJoin.JOINTYPE.MERGESPARSE)
-                feature.set(PIG_FEATURE.MERGE_SPARSE_JION.ordinal());
+                feature.set(PIG_FEATURE.MERGE_SPARSE_JOIN.ordinal());
             else
-                feature.set(PIG_FEATURE.MERGE_JION.ordinal());
+                feature.set(PIG_FEATURE.MERGE_JOIN.ordinal());
         }
         
         @Override
@@ -711,9 +711,9 @@ public class ScriptState {
             if (op.getJoinType() == JOINTYPE.HASH) {
                 feature.set(PIG_FEATURE.HASH_JOIN.ordinal());
             } else if (op.getJoinType() == JOINTYPE.MERGE) {
-                feature.set(PIG_FEATURE.MERGE_JION.ordinal());
+                feature.set(PIG_FEATURE.MERGE_JOIN.ordinal());
             } else if (op.getJoinType() == JOINTYPE.MERGESPARSE) {
-                feature.set(PIG_FEATURE.MERGE_SPARSE_JION.ordinal());
+                feature.set(PIG_FEATURE.MERGE_SPARSE_JOIN.ordinal());
             } else if (op.getJoinType() == JOINTYPE.REPLICATED) {
                 feature.set(PIG_FEATURE.REPLICATED_JOIN.ordinal());
             } else if (op.getJoinType() == JOINTYPE.SKEWED) {

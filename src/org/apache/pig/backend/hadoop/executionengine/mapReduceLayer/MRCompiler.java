@@ -37,7 +37,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.pig.CollectableLoadFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
@@ -1526,51 +1525,14 @@ public class MRCompiler extends PhyPlanVisitor {
                 throw new MRCompilerException("Merge Join must have exactly two inputs. Found : "+compiledInputs.length, errCode);
             }
 
-            OperatorKey leftPhyOpKey = joinOp.getInputs().get(0).getOperatorKey();
-            OperatorKey rightPhyOpKey = joinOp.getInputs().get(1).getOperatorKey();
-
-            // Currently we assume that physical operator succeeding POMergeJoin in the physical plan is present in MROperators found in compiledInputs[].
-            // This may not always hold. e.g., if there is an order-by before merge join.
-            
-            if(compiledInputs[0].mapPlan.getLeaves().get(0).getOperatorKey().equals(leftPhyOpKey) || compiledInputs[0].reducePlan.getLeaves().get(0).getOperatorKey().equals(leftPhyOpKey))
-                curMROp = compiledInputs[0];
-            
-            else if(compiledInputs[1].mapPlan.getLeaves().get(0).getOperatorKey().equals(leftPhyOpKey) || compiledInputs[1].reducePlan.getLeaves().get(0).getOperatorKey().equals(leftPhyOpKey))
-                curMROp = compiledInputs[1];
-            
-            else{ // This implies predecessor of left input is not found in compiled Inputs.
-                int errCode = 2169;
-                String errMsg = "Physical operator preceding left predicate not found in compiled MR jobs.";
-                throw new MRCompilerException(errMsg,errCode,PigException.BUG);
-            }
+            curMROp = phyToMROpMap.get(joinOp.getInputs().get(0));
              
             MapReduceOper rightMROpr = null;
-            if(compiledInputs[1].mapPlan.getLeaves().get(0).getOperatorKey().equals(rightPhyOpKey) || compiledInputs[1].reducePlan.getLeaves().get(0).getOperatorKey().equals(rightPhyOpKey))
+            if(curMROp.equals(compiledInputs[0]))
                 rightMROpr = compiledInputs[1];
-            
-            else if(compiledInputs[0].mapPlan.getLeaves().get(0).getOperatorKey().equals(rightPhyOpKey) || compiledInputs[0].reducePlan.getLeaves().get(0).getOperatorKey().equals(rightPhyOpKey))
+            else
                 rightMROpr = compiledInputs[0];
             
-            else{ // This implies predecessor of right input is not found in compiled Inputs.
-                int errCode = 2169;
-                String errMsg = "Physical operator preceding right predicate not found in compiled MR jobs.";
-                throw new MRCompilerException(errMsg,errCode,PigException.BUG);
-            } 
-            
-            if(curMROp == null || rightMROpr == null){
-                
-                // This implies either of compiledInputs[0] or compiledInputs[1] is null.
-                int errCode = 2173;
-                String errMsg = "One of the preceding compiled MR operator is null. This is not expected.";
-                throw new MRCompilerException(errMsg,errCode,PigException.BUG);
-            }
-            
-            if(curMROp.equals(rightMROpr)){
-                int errCode = 2170;
-                String errMsg = "Physical operator preceding both left and right predicate found to be same. This is not expected.";
-                throw new MRCompilerException(errMsg,errCode,PigException.BUG);
-            }
-                
             // We will first operate on right side which is indexer job.
             // First yank plan of the compiled right input and set that as an inner plan of right operator.
             PhysicalPlan rightPipelinePlan;
@@ -1608,6 +1570,7 @@ public class MRCompiler extends PhyPlanVisitor {
                 POStore rightStore = getStore();
                 FileSpec rightStrFile = getTempFileSpec();
                 rightStore.setSFile(rightStrFile);
+                rightMROpr.reducePlan.addAsLeaf(rightStore);
                 rightMROpr.setReduceDone(true);
                 rightMROpr = startNew(rightStrFile, rightMROpr);
                 rightPipelinePlan = null; 
@@ -1664,9 +1627,7 @@ public class MRCompiler extends PhyPlanVisitor {
                     }
                 }
             } else {
-
                 LoadFunc loadFunc = rightLoader.getLoadFunc();
-
                 //Replacing POLoad with indexer is disabled for 'merge-sparse' joins.  While 
                 //this feature would be useful, the current implementation of DefaultIndexableLoader
                 //is not designed to handle multiple calls to seekNear.  Specifically, it rereads the entire index
@@ -1737,6 +1698,7 @@ public class MRCompiler extends PhyPlanVisitor {
                 POStore leftStore = getStore();
                 FileSpec leftStrFile = getTempFileSpec();
                 leftStore.setSFile(leftStrFile);
+                curMROp.reducePlan.addAsLeaf(leftStore);
                 curMROp.setReduceDone(true);
                 curMROp = startNew(leftStrFile, curMROp);
                 curMROp.mapPlan.addAsLeaf(joinOp);
@@ -2037,7 +1999,7 @@ public class MRCompiler extends PhyPlanVisitor {
                 } else {
                     proj = null;
                 }
-                byte type = ((PhysicalOperator)op).getResultType();
+                byte type = op.getResultType();
                 ret[++i] = new Pair<POProject, Byte>(proj, type);
             }
             return ret;
