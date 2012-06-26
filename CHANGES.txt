@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2697: pretty print schema via pig.pretty.print.schema (rangadi via jcoveney)
+
 PIG-2673: Allow Merge join to follow an ORDER statement (dvryaboy)
 
 PIG-2699: Reduce the number of instances of Load and Store Funcs down to 2+1 (julien)

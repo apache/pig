@@ -76,6 +76,8 @@ import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.impl.util.Utils;
+import org.apache.pig.newplan.DependencyOrderWalker;
+import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionVisitor;
 import org.apache.pig.newplan.logical.expression.ScalarExpression;
@@ -93,8 +95,6 @@ import org.apache.pig.newplan.logical.visitor.ScalarVisitor;
 import org.apache.pig.newplan.logical.visitor.SchemaAliasVisitor;
 import org.apache.pig.newplan.logical.visitor.TypeCheckingRelVisitor;
 import org.apache.pig.newplan.logical.visitor.UnionOnSchemaSetter;
-import org.apache.pig.newplan.DependencyOrderWalker;
-import org.apache.pig.newplan.Operator;
 import org.apache.pig.parser.QueryParserDriver;
 import org.apache.pig.parser.QueryParserUtils;
 import org.apache.pig.pen.ExampleGenerator;
@@ -104,8 +104,8 @@ import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
 import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
-import org.apache.pig.tools.pigstats.ScriptState;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
+import org.apache.pig.tools.pigstats.ScriptState;
 
 /**
  *
@@ -121,6 +121,8 @@ import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 public class PigServer {
 
     protected final Log log = LogFactory.getLog(getClass());
+
+    public static final String PRETTY_PRINT_SCHEMA_PROPERTY = "pig.pretty.print.schema";
 
     /**
      * Given a string, determine the exec type.
@@ -744,9 +746,12 @@ public class PigServer {
             LogicalRelationalOperator op = getOperatorForAlias( alias );
             LogicalSchema schema = op.getSchema();
             
+            boolean pretty = "true".equals(pigContext.getProperties()
+                                   .getProperty(PRETTY_PRINT_SCHEMA_PROPERTY));
+
             if (schema != null) {
                 Schema s = org.apache.pig.newplan.logical.Util.translateSchema(schema);
-                System.out.println(alias + ": " + s.toString());
+                System.out.println(alias + ": " + (pretty ? s.prettyPrint() : s.toString()));
                 return s;
             } else {
                 System.out.println("Schema for " + alias + " unknown.");
