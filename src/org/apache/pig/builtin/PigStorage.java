@@ -33,9 +33,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.compress.BZip2Codec;
 import org.apache.hadoop.io.compress.CompressionCodec;
-import org.apache.hadoop.io.compress.GzipCodec;
+import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.OutputFormat;
@@ -404,15 +403,13 @@ LoadPushDown, LoadMetadata, StoreMetadata {
     }
 
     private void setCompression(Path path, Job job) {
-     	String location=path.getName();
-        if (location.endsWith(".bz2") || location.endsWith(".bz")) {
-            FileOutputFormat.setCompressOutput(job, true);
-            FileOutputFormat.setOutputCompressorClass(job,  BZip2Codec.class);
-        }  else if (location.endsWith(".gz")) {
-            FileOutputFormat.setCompressOutput(job, true);
-            FileOutputFormat.setOutputCompressorClass(job, GzipCodec.class);
+        CompressionCodecFactory factory = new CompressionCodecFactory(job.getConfiguration());
+        CompressionCodec codec = factory.getCodec(path);
+        if (codec == null) {
+            FileOutputFormat.setCompressOutput(job, false);
         } else {
-            FileOutputFormat.setCompressOutput( job, false);
+            FileOutputFormat.setCompressOutput(job, true);
+            FileOutputFormat.setOutputCompressorClass(job, codec.getClass());
         }
     }
 
