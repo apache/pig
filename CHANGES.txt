@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2746: Pig doesn't detect all forms of compression extensions properly (qwertymaniac via daijy)
+
 PIG-2770: Allow easy inclusion of custom build targets (julien)
 
 PIG-2697: pretty print schema via pig.pretty.print.schema (rangadi via jcoveney)
