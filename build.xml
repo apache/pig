@@ -66,14 +66,21 @@
     <!-- warnings option if all.warnings property is set on cmdline -->
     <property name="javac.args.all.warnings" value="-Xmaxwarns 1000000 -Xlint -Xlint:-deprecation" />
 
+    <!-- artifact jar file names -->
+    <property name="artifact.pig.jar" value="${final.name}.jar"/>
+    <property name="artifact.pig-withouthadoop.jar" value="${final.name}-withouthadoop.jar"/>
+    <property name="artifact.pig-withdependencies.jar" value="${final.name}-withdependencies.jar"/>
+    <property name="artifact.pig-sources.jar" value="${final.name}-sources.jar"/>
+    <property name="artifact.pig-javadoc.jar" value="${final.name}-javadoc.jar"/>
+    <property name="artifact.pig.tar" value="${final.name}.tar.gz"/>
+
     <!-- jar names. TODO we might want to use the svn reversion name in the name in case it is a dev version -->
-    <property name="output.jarfile" value="${build.dir}/${final.name}.jar" />
-    <property name="output.stage.jarfile" value="${build.dir}/${final.name}.stage.jar" />
-    <property name="output.jarfile.withouthadoop" value="${build.dir}/${final.name}-withouthadoop.jar" />
-    <property name="output.stage.jarfile.withouthadoop" value="${build.dir}/${final.name}-withouthadoop.stage.jar" />
-    <property name="output.jarfile.core" value="${build.dir}/${final.name}-core.jar" />
-    <property name="output.jarfile.sources" value="${build.dir}/${final.name}-sources.jar" />
-    <property name="output.jarfile.javadoc" value="${build.dir}/${final.name}-javadoc.jar" />
+    <property name="output.jarfile.withdependencies" value="${build.dir}/${artifact.pig-withdependencies.jar}" />
+    <property name="output.stage.jarfile.withdependencies" value="${build.dir}/${final.name}-withdependencies.stage.jar" />
+    <property name="output.jarfile.withouthadoop" value="${build.dir}/${artifact.pig-withouthadoop.jar}" />
+    <property name="output.jarfile.core" value="${build.dir}/${artifact.pig.jar}" />
+    <property name="output.jarfile.sources" value="${build.dir}/${artifact.pig-sources.jar}" />
+    <property name="output.jarfile.javadoc" value="${build.dir}/${artifact.pig-javadoc.jar}" />
     <!-- Maintain old pig.jar in top level directory. -->
     <property name="output.jarfile.backcompat.withouthadoop" value="${basedir}/${name}-withouthadoop.jar" />
     <property name="output.jarfile.backcompat" value="${basedir}/${name}.jar" />
@@ -186,7 +193,7 @@
     <property name="ivy.lib.dir" location="${build.ivy.lib.dir}/${ant.project.name}"/>
     <property name="build.ivy.report.dir" location="${build.ivy.dir}/report" />
     <property name="build.ivy.maven.dir" location="${build.ivy.dir}/maven" />
-	<property name="pom.xml" location="${build.ivy.maven.dir}/pom.xml"/>
+    <property name="pom.xml" location="${build.ivy.maven.dir}/pom.xml"/>
     <property name="build.ivy.maven.pom" location="${build.ivy.maven.dir}/pig-${version}.pom" />
     <property name="build.ivy.maven.jar" location="${build.ivy.maven.dir}/pig-${version}-core.jar" />
     <property name="javacc.home" location="${ivy.lib.dir}" />
@@ -195,11 +202,7 @@
     <property name="ivy.artifact.retrieve.pattern" value="${ant.project.name}/[artifact]-[revision](-[classifier]).[ext]"/>
 
     <!--this is how artifacts that get built are named-->
-	<property name="ivy.publish.pattern" value="[artifact]-[revision].[ext]"/>
-	<property name="pig.jar" value="${output.jarfile}"/>
-	<property name="pig-core.jar" value="${output.jarfile.core}"/>	
-	<property name="pig-sources.jar" location="${build.dir}/${final.name}-sources.jar" />
-	<property name="pig-javadoc.jar" location="${build.dir}/${final.name}-javadoc.jar" />
+    <property name="ivy.publish.pattern" value="[artifact]-[revision].[ext]"/>
 
     <!-- jdiff properties -->
     <property name="jdiff.jar" value="${ivy.lib.dir}/jdiff-${jdiff.version}.jar"/>
@@ -535,7 +538,7 @@
             <link href="${javadoc.link.java}" />
             <classpath>
                 <path refid="javadoc-classpath" />
-            	<pathelement path="${output.jarfile}" />
+            	<pathelement path="${output.jarfile.withdependencies}" />
                 <fileset dir="build">
                     <include name="**/zebra-*-dev.jar"/>
                 </fileset>
@@ -546,7 +549,7 @@
         </javadoc>
     </target>
     <!-- ================================================================== -->
-    <!-- @depricated, Documentation                                         -->
+    <!-- @deprecated, Documentation                                         -->
     <!-- ================================================================== -->
     <target name="docs" depends="forrest.check, javadoc-all" description="Generate forrest-based documentation. 
 		To use, specify -Dforrest.home=&lt;base of Apache Forrest installation&gt; on the command line." if="forrest.home">
@@ -597,9 +600,9 @@
         <copy todir="${build.classes}/META-INF">
             <fileset dir="${src.dir}/META-INF" includes="**"/>  
         </copy>
-        <move file="${output.jarfile}" tofile="${output.stage.jarfile}"/>
+        <move file="${output.jarfile.withdependencies}" tofile="${output.stage.jarfile.withdependencies}"/>
         <sleep seconds="1"/>
-        <jar jarfile="${output.jarfile}">
+        <jar jarfile="${output.jarfile.withdependencies}">
             <manifest>
                 <attribute name="Main-Class" value="org.apache.pig.Main" />
                 <section name="org/apache/pig">
@@ -610,7 +613,7 @@
                     <attribute name="Svn-Revision" value="${svnString}" />
                 </section>
             </manifest>
-            <zipfileset src="${output.stage.jarfile}"/>
+            <zipfileset src="${output.stage.jarfile.withdependencies}"/>
             <fileset dir="${build.classes}" includes="META-INF/**" />
         </jar>
     </target>
@@ -654,8 +657,8 @@
             <fileset file="${basedir}/src/main/jruby/pigudf.rb" />
             <exclude name="hadoop-site.xml" />
         </jar>
-        <!-- @depricated -->
-        <jar jarfile="${output.jarfile}" basedir="${build.classes}">
+        <!-- @deprecated -->
+        <jar jarfile="${output.jarfile.withdependencies}" basedir="${build.classes}">
             <manifest>
                 <attribute name="Main-Class" value="org.apache.pig.Main" />
                 <section name="org/apache/pig">
@@ -691,7 +694,7 @@
             <exclude name="hadoop-site.xml" />
         </jar>
         <antcall target="include-meta" inheritRefs="true" inheritall="true"/>
-        <copy file="${output.jarfile}" tofile="${output.jarfile.backcompat}"/>
+        <copy file="${output.jarfile.withdependencies}" tofile="${output.jarfile.backcompat}"/>
     </target>
 
     <target name="smoketests-jar" depends="pigunit-jar"
@@ -1058,7 +1061,7 @@
     <!-- Make release packages                                              -->
     <!-- ================================================================== -->
     <target name="tar" depends="package" description="Source distribution">
-        <tar compression="gzip" longfile="gnu" destfile="${build.dir}/${final.name}.tar.gz">
+        <tar compression="gzip" longfile="gnu" destfile="${build.dir}/${artifact.pig.tar}">
             <tarfileset dir="${build.dir}/tar/" mode="664">
                 <exclude name="${final.name}/bin/*" />
                 <include name="${final.name}/**" />
@@ -1070,7 +1073,7 @@
     </target>
 
     <target name="tar-release" depends="package-release" description="Create release tarball">
-        <tar compression="gzip" longfile="gnu" destfile="${rpm.dist.dir}/${final.name}.tar.gz">
+        <tar compression="gzip" longfile="gnu" destfile="${rpm.dist.dir}/${artifact.pig.tar}">
             <tarfileset dir="${build.dir}/rpm" mode="664">
                 <exclude name="${final.name}/bin/*" />
                 <include name="${final.name}/**" />
@@ -1089,7 +1092,7 @@
         <mkdir dir="${package.buildroot}/SPECS" />
         <copy todir="${package.buildroot}/SOURCES">
             <fileset dir="${rpm.dist.dir}">
-                <include name="${final.name}.tar.gz" />
+                <include name="${artifact.pig.tar}" />
             </fileset>
         </copy>
         <copy todir="${package.buildroot}/SOURCES">
@@ -1133,7 +1136,8 @@
                 <exclude name="control" />
             </fileset>
         </copy>
-        <copy file="${build.dir}/${final.name}-withouthadoop.jar" tofile="${rpm.dist.dir}/share/pig/${final.name}-core.jar" overwrite="true" />
+        <!-- why are we copying -withouthadoop to -core ? PIG-2757 -->
+        <copy file="${output.jarfile.withouthadoop}" tofile="${rpm.dist.dir}/share/pig/${final.name}-core.jar" overwrite="true" />
         <copy file="${src.dir}/packages/deb/pig.control/control" todir="${package.build.dir}/pig.control">
             <filterchain>
                 <replacetokens>
@@ -1216,7 +1220,7 @@
       javadoc-jar, pigunit-jar, smoketests-jar"
          description="To install pig to local filesystem's m2 cache">
          <artifact:pom file="${pig.pom}" id="pig"/>
-          <artifact:install file="${pig-core.jar}">
+          <artifact:install file="${output.jarfile.core}">
                <pom refid="pig"/>
            <attach file="${output.jarfile.sources}" classifier="sources" />
            <attach file="${output.jarfile.javadoc}" classifier="javadoc" />
@@ -1239,10 +1243,10 @@
      <target name="signanddeploy" if="staging" depends="sign">
         <artifact:pom file="${pig.pom}" id="pig"/>
         <artifact:install-provider artifactId="wagon-http" version="${wagon-http.version}"/>
-        <artifact:deploy file="${pig-core.jar}">
+        <artifact:deploy file="${output.jarfile.core}">
         <remoteRepository id="apache.staging.https" url="${asfstagingrepo}"/>
         <pom refid="pig"/>
-     	   <attach file="${pig-core.jar}.asc" type="jar.asc"/>
+     	   <attach file="${output.jarfile.core}.asc" type="jar.asc"/>
      	   <attach file="${pig.pom}.asc" type="pom.asc"/>
            <attach file="${output.jarfile.sources}.asc" type="jar.asc" classifier="sources"/>
            <attach file="${output.jarfile.sources}" classifier="sources" />
@@ -1254,11 +1258,11 @@
     <target name="simpledeploy" unless="staging">
       <artifact:pom file="${pig.pom}" id="pig"/>
       <artifact:install-provider artifactId="wagon-http" version="${wagon-http.version}"/>
-      <artifact:deploy file="${pig-core.jar}">
+      <artifact:deploy file="${output.jarfile.core}">
               <remoteRepository id="apache.snapshots.https" url="${asfsnapshotrepo}"/>
               <pom refid="pig"/>
-          <attach file="${pig-sources.jar}" classifier="sources" />
-      	  <attach file="${pig-javadoc.jar}" classifier="javadoc" />
+          <attach file="${output.jarfile.sources}" classifier="sources" />
+      	  <attach file="${output.jarfile.javadoc}" classifier="javadoc" />
       </artifact:deploy>
       <artifact:pom file="${pigunit.pom}" id="pigunit"/>
       <artifact:deploy file="${pigunit.jarfile}">
@@ -1293,8 +1297,8 @@
            </exec>
          </sequential>
        </macrodef>
-       <sign-artifact input.file="${pig-core.jar}"
-        output.file="${pig-core.jar}.asc" gpg.passphrase="${gpg.passphrase}"/>
+       <sign-artifact input.file="${output.jarfile.core}"
+        output.file="${output.jarfile.core}.asc" gpg.passphrase="${gpg.passphrase}"/>
        <sign-artifact input.file="${output.jarfile.sources}"
         output.file="${output.jarfile.sources}.asc" gpg.passphrase="${gpg.passphrase}"/>
        <sign-artifact input.file="${output.jarfile.javadoc}"
@@ -1330,7 +1334,7 @@
     <target name="releaseaudit" depends="ivy-releaseaudit, package" description="Release Audit activities">
 	<java classname="${rat.reporting.classname}" fork="true">
             <classpath refid="releaseaudit.classpath"/>
-            <arg value="${build.dir}/tar/${final.name}"/>
+            <arg value="${tar.dist.dir}"/>
         </java>
     </target>
 
@@ -1479,7 +1483,7 @@
                 <packageset dir="${src.dir}"/>
                 <classpath>
                         <path refid="javadoc-classpath" />
-                        <pathelement path="${output.jarfile}" />
+                        <pathelement path="${output.jarfile.withdependencies}" />
                 </classpath>
         </javadoc>
       </target>
@@ -1505,7 +1509,7 @@
  		</doclet>
  		<classpath>
  	        	<path refid="javadoc-classpath" />
- 			<pathelement path="${output.jarfile}" />	
+ 			<pathelement path="${output.jarfile.withdependencies}" />	
   	        </classpath>
  	</javadoc>				
      </target>
@@ -1610,10 +1614,10 @@
          <fail>
              <condition >
                  <not>
-                     <available file="${pig.jar}" />
+                     <available file="${output.jarfile.withdependencies}" />
                  </not>
              </condition>
-                 Not found: ${pig.jar}
+                 Not found: ${output.jarfile.withdependencies}
                  Please run the target "jar" in the main build file
          </fail>
      </target>
@@ -1640,7 +1644,7 @@
      </target>
 
      <target name="copy-jar-to-maven" depends="ready-to-publish">
-        <copy file="${pig-core.jar}" tofile="${build.ivy.maven.jar}"/>
+        <copy file="${output.jarfile.core}" tofile="${build.ivy.maven.jar}"/>
         <checksum file="${build.ivy.maven.jar}" algorithm="md5"/>
      </target>
 
