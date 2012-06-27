@@ -1664,4 +1664,6 @@
          <ant antfile="contrib/piggybank/java/build.xml" inheritAll="false"/> 
      </target>
 
+     <import file="./build-site.xml" optional="true"/>
+
 </project>
