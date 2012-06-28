@@ -943,6 +943,11 @@ public class Schema implements Serializable, Cloneable {
         return sb.toString();
     }
 
+    public static void stringifySchema(StringBuilder sb, Schema schema, byte type)
+            throws FrontendException {
+        stringifySchema(sb, schema, type, 0);
+    }
+
     // This is used for building up output string
     // type can only be BAG or TUPLE
     public static void stringifySchema(StringBuilder sb,
