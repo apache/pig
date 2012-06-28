@@ -382,6 +382,8 @@ Release 0.9.3
 
 IMPROVEMENT
 
+PIG-2766: Pig-HCat Usability (vikram.dixit via daijy)
+
 PIG-2619: HBaseStorage constructs a Scan with cacheBlocks = false (andy lindeman via jcoveney)
 
 PIG-2590: running ant tar and rpm targets on same copy of pig source results in problems (thejas)
