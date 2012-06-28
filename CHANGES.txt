@@ -28,6 +28,8 @@ PIG-2619: HBaseStorage constructs a Scan with cacheBlocks = false
 
 BUG FIXES
 
+PIG-2775: Register jar does not goes to classpath in some cases (daijy)
+
 PIG-2666: LoadFunc.setLocation() is not called when pig script only has Order By (daijy)
 
 PIG-2671: e2e harness: Reference local test path via :LOCALTESTPATH: (thw via daijy)
