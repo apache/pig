@@ -644,6 +644,8 @@ Release 0.9.2
 
 IMPROVEMENTS
 
+PIG-2766: Pig-HCat Usability (vikram.dixit via daijy)
+
 PIG-2125: Make Pig work with hadoop .NEXT (daijy)
 
 PIG-2471: Pig Requirements Hadoop (chandec via daijy)
