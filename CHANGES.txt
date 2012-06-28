@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2750: add artifacts to the ivy.xml for other jars Pig generates (julien)
+
 PIG-2748: Change the names of the jar produced in the build folder to match maven conventions (julien)
 
 PIG-2746: Pig doesn't detect all forms of compression extensions properly (qwertymaniac via daijy)
