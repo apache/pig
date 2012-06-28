@@ -271,6 +271,7 @@ public class PigContext implements Serializable {
         if (resource != null) {
             extraJars.add(resource);
             PigContext.classloader = createCl(null);
+            Thread.currentThread().setContextClassLoader(PigContext.classloader);
         }
     }
 
