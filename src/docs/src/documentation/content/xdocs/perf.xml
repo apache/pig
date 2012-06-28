@@ -1119,13 +1119,13 @@ C = JOIN A BY a1, B BY b1, C BY c1 USING 'merge';
 <p><strong>Condition A</strong></p>
 <p>Inner merge join (between two tables) will only work under these conditions: </p>
 <ul>
-<li>Data must come directly from either a Load or an Order statement.
+<li>Data must come directly from either a Load or an Order statement.</li>
 <li>There may be filter statements and foreach statements between the sorted data source and the join statement. The foreach statement should meet the following conditions: 
-<ul>
-<li>There should be no UDFs in the foreach statement. </li>
-<li>The foreach statement should not change the position of the join keys. </li>
-<li>There should be no transformation on the join keys which will change the sort order. </li>
-</ul>
+  <ul>
+    <li>There should be no UDFs in the foreach statement. </li>
+    <li>The foreach statement should not change the position of the join keys. </li>
+    <li>There should be no transformation on the join keys which will change the sort order. </li>
+  </ul>
 </li>
 <li>Data must be sorted on join keys in ascending (ASC) order on both sides.</li>
 <li>If sort is provided by the loader, rather than an explicit Order operation, the right-side loader must implement either the {OrderedLoadFunc} interface or {IndexableLoadFunc} interface.</li>
