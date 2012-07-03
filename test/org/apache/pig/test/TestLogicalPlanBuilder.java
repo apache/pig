@@ -253,7 +253,7 @@ public class TestLogicalPlanBuilder {
         Operator lo = listOp.get(0);
         
         if (lo instanceof LOCogroup) {
-            Assert.assertEquals( 1, ((LOCogroup) lo).getRequestedParallelisam() );//Local mode, paraallel = 1
+            Assert.assertEquals( 1, ((LOCogroup) lo).getRequestedParallelism() );//Local mode, paraallel = 1
         } else {
             Assert.fail("Error: Unexpected Parse Tree output");
         }  

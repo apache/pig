@@ -242,9 +242,8 @@ public class PigContext implements Serializable {
      * calls: addScriptFile(path, new File(path)), ensuring that a given path is
      * added to the jar at most once.
      * @param path
-     * @throws MalformedURLException
      */
-    public void addScriptFile(String path) throws MalformedURLException {
+    public void addScriptFile(String path) {
         if (path != null) {
             aliasedScriptFiles.put(path.replaceFirst("^/", ""), new File(path));
         }

@@ -185,8 +185,7 @@ public class TestDataBag extends junit.framework.TestCase {
         // Write tuples into both
         for (int j = 0; j < 3; j++) {
             for (int i = 0; i < 10; i++) {
-                Tuple t = TupleFactory.getInstance().newTupleForSchema(DataType.INTEGER);
-                t.set(0, i);
+                Tuple t = TupleFactory.getInstance().newTuple(new Integer(i));
                 b.add(t);
                 rightAnswer.add(t);
             }

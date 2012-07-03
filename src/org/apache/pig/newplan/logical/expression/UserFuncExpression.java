@@ -25,9 +25,10 @@ import java.util.Properties;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
-import org.apache.pig.ResourceSchema;
 import org.apache.pig.builtin.Nondeterministic;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
+import org.apache.pig.data.SchemaTupleFrontend;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -193,12 +194,18 @@ public class UserFuncExpression extends LogicalExpression {
         
         ef.setUDFContextSignature(signature);
         Properties props = UDFContext.getUDFContext().getUDFProperties(ef.getClass());
-        if(Util.translateSchema(inputSchema)!=null)
-    		props.put("pig.evalfunc.inputschema."+signature, Util.translateSchema(inputSchema));
+        Schema translatedInputSchema = Util.translateSchema(inputSchema);
+        if(translatedInputSchema != null) {
+    		props.put("pig.evalfunc.inputschema."+signature, translatedInputSchema);
+        }
         // Store inputSchema into the UDF context
-        ef.setInputSchema(Util.translateSchema(inputSchema));
+        ef.setInputSchema(translatedInputSchema);
+;
+        Schema udfSchema = ef.outputSchema(translatedInputSchema);
         
-        Schema udfSchema = ef.outputSchema(Util.translateSchema(inputSchema));
+        //TODO appendability should come from a setting
+        SchemaTupleFrontend.registerToGenerateIfPossible(translatedInputSchema, false, GenContext.UDF);
+        SchemaTupleFrontend.registerToGenerateIfPossible(udfSchema, false, GenContext.UDF);
 
         if (udfSchema != null) {
             Schema.FieldSchema fs;

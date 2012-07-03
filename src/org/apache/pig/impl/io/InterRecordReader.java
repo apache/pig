@@ -100,9 +100,7 @@ public class InterRecordReader extends RecordReader<Text, Tuple> {
           }
           if(b == -1) return false;
           b = in.read();
-          if(b != BinInterSedes.TINYTUPLE && 
-                  b != BinInterSedes.SMALLTUPLE &&
-                  b != BinInterSedes.TUPLE &&
+          if(!BinInterSedes.isTupleByte((byte) b) &&
                   b != -1) {
               continue;
           }
