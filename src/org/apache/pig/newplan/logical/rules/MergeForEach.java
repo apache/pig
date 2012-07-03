@@ -198,7 +198,7 @@ public class MergeForEach extends Rule {
             LogicalPlan newForEachInnerPlan = new LogicalPlan();
             newForEach.setInnerPlan(newForEachInnerPlan);
             newForEach.setAlias(foreach2.getAlias());
-            newForEach.setRequestedParallelism(foreach1.getRequestedParallelisam());
+            newForEach.setRequestedParallelism(foreach1.getRequestedParallelism());
             List<LogicalExpressionPlan> newExpList = new ArrayList<LogicalExpressionPlan>();
             LOGenerate newGen = new LOGenerate(newForEachInnerPlan, newExpList, gen2.getFlattenFlags());
             newGen.setUserDefinedSchema(gen2.getUserDefinedSchema());

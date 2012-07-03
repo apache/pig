@@ -25,8 +25,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
+import org.apache.pig.ResourceSchema;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.LogicalToPhysicalTranslatorException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -57,6 +60,8 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
+import org.apache.pig.data.SchemaTupleFrontend;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
@@ -64,6 +69,8 @@ import org.apache.pig.impl.builtin.GFCross;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
@@ -84,7 +91,10 @@ import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.newplan.logical.expression.ProjectExpression;
 import org.apache.pig.parser.SourceLocation;
 
+import com.google.common.collect.Lists;
+
 public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
+    private static final Log LOG = LogFactory.getLog(LogToPhyTranslationVisitor.class);
     
     public LogToPhyTranslationVisitor(OperatorPlan plan) throws FrontendException {
         super(plan, new DependencyOrderWalker(plan));
@@ -190,7 +200,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
         String scope = DEFAULT_SCOPE;
 //        System.err.println("Entering Filter");
         POFilter poFilter = new POFilter(new OperatorKey(scope, nodeGen
-                .getNextNodeId(scope)), filter.getRequestedParallelisam());
+                .getNextNodeId(scope)), filter.getRequestedParallelism());
         poFilter.addOriginalLocation(filter.getAlias(), filter.getLocation());
         poFilter.setResultType(DataType.BAG);
         currentPlan.add(poFilter);
@@ -258,14 +268,14 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
         POSort poSort;
         if (sort.getUserFunc() == null) {
             poSort = new POSort(new OperatorKey(scope, nodeGen
-                    .getNextNodeId(scope)), sort.getRequestedParallelisam(), null,
+                    .getNextNodeId(scope)), sort.getRequestedParallelism(), null,
                     sortPlans, sort.getAscendingCols(), null);
         } else {
             POUserComparisonFunc comparator = new POUserComparisonFunc(new OperatorKey(
                     scope, nodeGen.getNextNodeId(scope)), sort
-                    .getRequestedParallelisam(), null, sort.getUserFunc());
+                    .getRequestedParallelism(), null, sort.getUserFunc());
             poSort = new POSort(new OperatorKey(scope, nodeGen
-                    .getNextNodeId(scope)), sort.getRequestedParallelisam(), null,
+                    .getNextNodeId(scope)), sort.getRequestedParallelism(), null,
                     sortPlans, sort.getAscendingCols(), comparator);
         }
         poSort.addOriginalLocation(sort.getAlias(), sort.getLocation());
@@ -300,7 +310,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
         String scope = DEFAULT_SCOPE;
         List<Operator> inputs = cross.getPlan().getPredecessors(cross);
                 if (cross.isNested()) {
-            POCross physOp = new POCross(new OperatorKey(scope,nodeGen.getNextNodeId(scope)), cross.getRequestedParallelisam());
+            POCross physOp = new POCross(new OperatorKey(scope,nodeGen.getNextNodeId(scope)), cross.getRequestedParallelism());
             physOp.addOriginalLocation(physOp.getAlias(), physOp.getOriginalLocations());
             currentPlan.add(physOp);
             physOp.setResultType(DataType.BAG);
@@ -318,10 +328,10 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
         } else {
             POGlobalRearrange poGlobal = new POGlobalRearrange(new OperatorKey(
                     scope, nodeGen.getNextNodeId(scope)), cross
-                    .getRequestedParallelisam());
+                    .getRequestedParallelism());
             poGlobal.addOriginalLocation(cross.getAlias(), cross.getLocation());
             POPackage poPackage = new POPackage(new OperatorKey(scope, nodeGen
-                    .getNextNodeId(scope)), cross.getRequestedParallelisam());
+                    .getNextNodeId(scope)), cross.getRequestedParallelism());
             poGlobal.addOriginalLocation(cross.getAlias(), cross.getLocation());
             currentPlan.add(poGlobal);
             currentPlan.add(poPackage);
@@ -334,12 +344,12 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                 
                 for (Operator op : inputs) {
                     PhysicalPlan fep1 = new PhysicalPlan();
-                    ConstantExpression ce1 = new ConstantExpression(new OperatorKey(scope, nodeGen.getNextNodeId(scope)),cross.getRequestedParallelisam());
+                    ConstantExpression ce1 = new ConstantExpression(new OperatorKey(scope, nodeGen.getNextNodeId(scope)),cross.getRequestedParallelism());
                     ce1.setValue(inputs.size());
                     ce1.setResultType(DataType.INTEGER);
                     fep1.add(ce1);
                     
-                    ConstantExpression ce2 = new ConstantExpression(new OperatorKey(scope, nodeGen.getNextNodeId(scope)),cross.getRequestedParallelisam());
+                    ConstantExpression ce2 = new ConstantExpression(new OperatorKey(scope, nodeGen.getNextNodeId(scope)),cross.getRequestedParallelism());
                     ce2.setValue(count);
                     ce2.setResultType(DataType.INTEGER);
                     fep1.add(ce2);
@@ -349,7 +359,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                     ce1.setValue(ce1val);
                     ce1.setResultType(DataType.TUPLE);*/
                     
-                    POUserFunc gfc = new POUserFunc(new OperatorKey(scope, nodeGen.getNextNodeId(scope)),cross.getRequestedParallelisam(), Arrays.asList((PhysicalOperator)ce1,(PhysicalOperator)ce2), new FuncSpec(GFCross.class.getName()));
+                    POUserFunc gfc = new POUserFunc(new OperatorKey(scope, nodeGen.getNextNodeId(scope)),cross.getRequestedParallelism(), Arrays.asList((PhysicalOperator)ce1,(PhysicalOperator)ce2), new FuncSpec(GFCross.class.getName()));
                     gfc.addOriginalLocation(cross.getAlias(), cross.getLocation());
                     gfc.setResultType(DataType.BAG);
                     fep1.addAsLeaf(gfc);
@@ -359,7 +369,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                     fep1.connect(ce2, gfc);*/
                     
                     PhysicalPlan fep2 = new PhysicalPlan();
-                    POProject feproj = new POProject(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), cross.getRequestedParallelisam());
+                    POProject feproj = new POProject(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), cross.getRequestedParallelism());
                     feproj.addOriginalLocation(cross.getAlias(), cross.getLocation());
                     feproj.setResultType(DataType.TUPLE);
                     feproj.setStar(true);
@@ -367,19 +377,19 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                     fep2.add(feproj);
                     List<PhysicalPlan> fePlans = Arrays.asList(fep1, fep2);
                     
-                    POForEach fe = new POForEach(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), cross.getRequestedParallelisam(), fePlans, flattenLst );
+                    POForEach fe = new POForEach(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), cross.getRequestedParallelism(), fePlans, flattenLst );
                     fe.addOriginalLocation(cross.getAlias(), cross.getLocation());
                     currentPlan.add(fe);
                     currentPlan.connect(logToPhyMap.get(op), fe);
                     
                     POLocalRearrange physOp = new POLocalRearrange(new OperatorKey(
                             scope, nodeGen.getNextNodeId(scope)), cross
-                            .getRequestedParallelisam());
+                            .getRequestedParallelism());
                     physOp.addOriginalLocation(cross.getAlias(), cross.getLocation());
                     List<PhysicalPlan> lrPlans = new ArrayList<PhysicalPlan>();
                     for(int i=0;i<inputs.size();i++){
                         PhysicalPlan lrp1 = new PhysicalPlan();
-                        POProject lrproj1 = new POProject(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), cross.getRequestedParallelisam(), i);
+                        POProject lrproj1 = new POProject(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), cross.getRequestedParallelism(), i);
                         lrproj1.addOriginalLocation(cross.getAlias(), cross.getLocation());
                         lrproj1.setOverloaded(false);
                         lrproj1.setResultType(DataType.INTEGER);
@@ -420,7 +430,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
             List<Boolean> flattenLst = new ArrayList<Boolean>();
             for(int i=1;i<=count;i++){
                 PhysicalPlan fep1 = new PhysicalPlan();
-                POProject feproj1 = new POProject(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), cross.getRequestedParallelisam(), i);
+                POProject feproj1 = new POProject(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), cross.getRequestedParallelism(), i);
                 feproj1.addOriginalLocation(cross.getAlias(), cross.getLocation());
                 feproj1.setResultType(DataType.BAG);
                 feproj1.setOverloaded(false);
@@ -429,7 +439,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                 flattenLst.add(true);
             }
             
-            POForEach fe = new POForEach(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), cross.getRequestedParallelisam(), fePlans, flattenLst );
+            POForEach fe = new POForEach(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), cross.getRequestedParallelism(), fePlans, flattenLst );
             fe.addOriginalLocation(cross.getAlias(), cross.getLocation());
             currentPlan.add(fe);
             try{
@@ -596,7 +606,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
             flattenList.add(fl);
         }
         POForEach poFE = new POForEach(new OperatorKey(scope, nodeGen
-                .getNextNodeId(scope)), foreach.getRequestedParallelisam(), innerPlans, flattenList);
+                .getNextNodeId(scope)), foreach.getRequestedParallelism(), innerPlans, flattenList);
         poFE.addOriginalLocation(foreach.getAlias(), foreach.getLocation());
         poFE.setResultType(DataType.BAG);
         logToPhyMap.put(foreach, poFE);
@@ -821,7 +831,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
         }
         
         POMergeCogroup poCogrp = new POMergeCogroup(new OperatorKey(
-                DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)),inpPOs,innerLRs,relationalOp.getRequestedParallelisam());
+                DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)),inpPOs,innerLRs,relationalOp.getRequestedParallelism());
         return poCogrp;
     }
     
@@ -881,7 +891,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
         boolean[] innerFlags = loj.getInnerFlags();
         String alias = loj.getAlias();
         SourceLocation location = loj.getLocation();
-        int parallel = loj.getRequestedParallelisam();
+        int parallel = loj.getRequestedParallelism();
         
         for (int i=0;i<inputs.size();i++) {
             Operator op = inputs.get(i);
@@ -952,6 +962,27 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
             logToPhyMap.put(loj, skj);
         }
         else if(loj.getJoinType() == LOJoin.JOINTYPE.REPLICATED) {
+            List<Schema> inputSchemas = Lists.newArrayListWithCapacity(inputs.size());
+            List<Schema> keySchemas = Lists.newArrayListWithCapacity(inputs.size());
+
+            outer: for (int i = 0; i < inputs.size(); i++) {
+                Schema toGen = Schema.getPigSchema(new ResourceSchema(((LogicalRelationalOperator)inputs.get(i)).getSchema()));
+                // This registers the value piece
+                SchemaTupleFrontend.registerToGenerateIfPossible(toGen, false, GenContext.FR_JOIN);
+                inputSchemas.add(toGen);
+
+                Schema keyToGen = new Schema();
+                for (Byte byt : keyTypes.get(i)) {
+                    // We cannot generate any nested code because that information is thrown away
+                    if (byt == null || DataType.isComplex(byt.byteValue())) {
+                        continue outer;
+                    }
+                    keyToGen.add(new FieldSchema(null, byt));
+                }
+
+                SchemaTupleFrontend.registerToGenerateIfPossible(keyToGen, false, GenContext.FR_JOIN);
+                keySchemas.add(keyToGen);
+            }
             
             int fragment = 0;
             POFRJoin pfrj;
@@ -990,8 +1021,17 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                     }
                 }
                 
-                pfrj = new POFRJoin(new OperatorKey(scope,nodeGen.getNextNodeId(scope)),parallel,
-                                            inp, ppLists, keyTypes, null, fragment, isLeftOuter, nullTuple);
+                pfrj = new POFRJoin(new OperatorKey(scope,nodeGen.getNextNodeId(scope)),
+                                        parallel,
+                                        inp,
+                                        ppLists,
+                                        keyTypes,
+                                        null,
+                                        fragment,
+                                        isLeftOuter,
+                                        nullTuple,
+                                        inputSchemas,
+                                        keySchemas);
                 pfrj.addOriginalLocation(alias, location);
             } catch (ExecException e1) {
                 int errCode = 2058;
@@ -1017,12 +1057,46 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
             boolean usePOMergeJoin = inputs.size() == 2 && innerFlags[0] && innerFlags[1] ; 
 
             if(usePOMergeJoin){
+                // We register the merge join schema information for code generation
+                LogicalSchema logicalSchema = ((LogicalRelationalOperator)inputs.get(0)).getSchema();
+                Schema leftSchema = null;
+                if (logicalSchema != null) {
+                    leftSchema = Schema.getPigSchema(new ResourceSchema(logicalSchema));
+                }
+                logicalSchema = ((LogicalRelationalOperator)inputs.get(1)).getSchema();
+                Schema rightSchema = null;
+                if (logicalSchema != null) {
+                    rightSchema = Schema.getPigSchema(new ResourceSchema(logicalSchema));
+                }
+                logicalSchema = loj.getSchema();
+                Schema mergedSchema = null;
+                if (logicalSchema != null) {
+                    mergedSchema = Schema.getPigSchema(new ResourceSchema(logicalSchema));
+                }
+
+                if (leftSchema != null) {
+                    SchemaTupleFrontend.registerToGenerateIfPossible(leftSchema, false, GenContext.MERGE_JOIN);
+                }
+                if (rightSchema != null) {
+                    SchemaTupleFrontend.registerToGenerateIfPossible(rightSchema, false, GenContext.MERGE_JOIN);
+                }
+                if (mergedSchema != null) {
+                    SchemaTupleFrontend.registerToGenerateIfPossible(mergedSchema, false, GenContext.MERGE_JOIN);
+                }
+
                 // inner join on two sorted inputs. We have less restrictive 
                 // implementation here in a form of POMergeJoin which doesn't 
                 // require loaders to implement collectable interface.
                 try {
                     smj = new POMergeJoin(new OperatorKey(scope,nodeGen.getNextNodeId(scope)),
-                                            parallel,inp,joinPlans,keyTypes, loj.getJoinType());
+                                            parallel,
+                                            inp,
+                                            joinPlans,
+                                            keyTypes,
+                                            loj.getJoinType(),
+                                            leftSchema,
+                                            rightSchema,
+                                            mergedSchema);
                 }
                 catch (PlanException e) {
                     int errCode = 2042;
@@ -1083,11 +1157,11 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
             boolean[] innerFlags, MultiMap<Integer, LogicalExpressionPlan> innerPlans) throws FrontendException {
 
         POGlobalRearrange poGlobal = new POGlobalRearrange(new OperatorKey(
-                DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)), relationalOp.getRequestedParallelisam());
+                DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)), relationalOp.getRequestedParallelism());
         poGlobal.addOriginalLocation(relationalOp.getAlias(), relationalOp.getLocation());
         poGlobal.setCustomPartitioner(customPartitioner);
         POPackage poPackage = new POPackage(new OperatorKey(DEFAULT_SCOPE, nodeGen
-                .getNextNodeId(DEFAULT_SCOPE)), relationalOp.getRequestedParallelisam());
+                .getNextNodeId(DEFAULT_SCOPE)), relationalOp.getRequestedParallelism());
         poPackage.addOriginalLocation(relationalOp.getAlias(), relationalOp.getLocation());
         currentPlan.add(poGlobal);
         currentPlan.add(poPackage);
@@ -1107,7 +1181,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
             Operator op = inputs.get(i);
             List<LogicalExpressionPlan> plans = innerPlans.get(i);
             POLocalRearrange physOp = new POLocalRearrange(new OperatorKey(
-                    DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)), relationalOp.getRequestedParallelisam());
+                    DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)), relationalOp.getRequestedParallelism());
             physOp.addOriginalLocation(relationalOp.getAlias(), relationalOp.getLocation());
             List<PhysicalPlan> exprPlans = translateExpressionPlans(relationalOp, plans);
             try {
@@ -1198,7 +1272,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
     @Override
     public void visit(LOUnion loUnion) throws FrontendException {
         String scope = DEFAULT_SCOPE;
-        POUnion physOp = new POUnion(new OperatorKey(scope,nodeGen.getNextNodeId(scope)), loUnion.getRequestedParallelisam());
+        POUnion physOp = new POUnion(new OperatorKey(scope,nodeGen.getNextNodeId(scope)), loUnion.getRequestedParallelism());
         physOp.addOriginalLocation(loUnion.getAlias(), loUnion.getLocation());
         currentPlan.add(physOp);
         physOp.setResultType(DataType.BAG);
@@ -1220,7 +1294,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
     @Override
     public void visit(LODistinct loDistinct) throws FrontendException {
         String scope = DEFAULT_SCOPE;
-        PODistinct physOp = new PODistinct(new OperatorKey(scope,nodeGen.getNextNodeId(scope)), loDistinct.getRequestedParallelisam());
+        PODistinct physOp = new PODistinct(new OperatorKey(scope,nodeGen.getNextNodeId(scope)), loDistinct.getRequestedParallelism());
         physOp.addOriginalLocation(loDistinct.getAlias(), loDistinct.getLocation());
         currentPlan.add(physOp);
         physOp.setResultType(DataType.BAG);
@@ -1241,7 +1315,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
     public void visit(LOLimit loLimit) throws FrontendException {
         String scope = DEFAULT_SCOPE;
         POLimit poLimit = new POLimit(new OperatorKey(scope, nodeGen.getNextNodeId(scope)),
-                loLimit.getRequestedParallelisam());
+                loLimit.getRequestedParallelism());
         poLimit.setLimit(loLimit.getLimit());
         poLimit.addOriginalLocation(loLimit.getAlias(), loLimit.getLocation());
         poLimit.setResultType(DataType.BAG);
@@ -1279,7 +1353,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
     public void visit(LOSplit loSplit) throws FrontendException {
         String scope = DEFAULT_SCOPE;
         POSplit physOp = new POSplit(new OperatorKey(scope, nodeGen
-                .getNextNodeId(scope)), loSplit.getRequestedParallelisam());
+                .getNextNodeId(scope)), loSplit.getRequestedParallelism());
         physOp.addOriginalLocation(loSplit.getAlias(), loSplit.getLocation());
         FileSpec splStrFile;
         try {
@@ -1332,7 +1406,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
         String scope = DEFAULT_SCOPE;
 //        System.err.println("Entering Filter");
         POFilter poFilter = new POFilter(new OperatorKey(scope, nodeGen
-                .getNextNodeId(scope)), loSplitOutput.getRequestedParallelisam());
+                .getNextNodeId(scope)), loSplitOutput.getRequestedParallelism());
         poFilter.addOriginalLocation(loSplitOutput.getAlias(), loSplitOutput.getLocation());
         poFilter.setResultType(DataType.BAG);
         currentPlan.add(poFilter);
@@ -1404,34 +1478,6 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
         
     }
 
-    private boolean validateMergeJoin(LOJoin loj) throws FrontendException{
-        
-        List<Operator> preds = plan.getPredecessors(loj);
-
-        int errCode = 1101;
-        String errMsg = "Merge Join must have exactly two inputs.";
-        if(preds.size() != 2)
-            throw new LogicalToPhysicalTranslatorException(errMsg+" Found: "+preds.size(),errCode);
-        
-        return mergeJoinValidator(preds,loj.getPlan());
-    }
-    
-    private boolean mergeJoinValidator(List<Operator> preds,OperatorPlan lp) throws FrontendException {
-        
-        int errCode = 1103;
-        String errMsg = "Merge join only supports Filter, Foreach, filter and Load as its predecessor. Found : ";
-        if(preds != null && !preds.isEmpty()){
-            for(Operator lo : preds){
-                if (!(lo instanceof LOFilter || lo instanceof LOLoad || lo instanceof LOForEach))
-                    throw new LogicalToPhysicalTranslatorException(errMsg, errCode);
-                // All is good at this level. Visit predecessors now.
-                mergeJoinValidator(lp.getPredecessors(lo),lp);
-            }
-        }
-        // We visited everything and all is good.
-        return true;
-    }
-    
     private void translateSoftLinks(Operator op) throws FrontendException {
         List<Operator> preds = op.getPlan().getSoftLinkPredecessors(op);
 

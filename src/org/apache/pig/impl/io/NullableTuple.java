@@ -17,6 +17,10 @@
  */
 package org.apache.pig.impl.io;
 
+import java.io.DataInput;
+import java.io.IOException;
+
+import org.apache.pig.data.BinInterSedes;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 
@@ -26,12 +30,9 @@ import org.apache.pig.data.TupleFactory;
 public class NullableTuple extends PigNullableWritable {
 
     private TupleFactory mFactory = null;
+    private static final BinInterSedes bis = new BinInterSedes();
 
     public NullableTuple() {
-        if (mFactory == null) {
-            mFactory = TupleFactory.getInstance();
-        }
-        mValue = mFactory.newTuple();
     }
 
     /**
@@ -44,4 +45,15 @@ public class NullableTuple extends PigNullableWritable {
     public Object getValueAsPigType() {
         return isNull() ? null : (Tuple)mValue;
     }
+
+    @Override
+    public void readFields(DataInput in) throws IOException {
+        boolean nullness = in.readBoolean();
+        setNull(nullness);
+        if (!nullness) {
+            mValue = bis.readTuple(in);
+        }
+        setIndex(in.readByte());
+    }
+
 }

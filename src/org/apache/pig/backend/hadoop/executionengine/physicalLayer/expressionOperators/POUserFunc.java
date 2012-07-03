@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.Accumulator;
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
@@ -41,8 +43,11 @@ import org.apache.pig.builtin.MonitoredUDF;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
+import org.apache.pig.data.SchemaTupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.data.TupleMaker;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.NodeIdGenerator;
@@ -51,6 +56,7 @@ import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.UDFContext;
 
 public class POUserFunc extends ExpressionOperator {
+    private static final Log LOG = LogFactory.getLog(POUserFunc.class);
 
     /**
      *
@@ -129,6 +135,9 @@ public class POUserFunc extends ExpressionOperator {
         this.func.setPigLogger(pigLogger);
     }
 
+    private transient TupleMaker inputTupleMaker;
+    private boolean usingSchemaTupleFactory;
+
     @Override
     public Result processInput() throws ExecException {
 
@@ -139,6 +148,31 @@ public class POUserFunc extends ExpressionOperator {
         if(!initialized) {
             func.setReporter(reporter);
             func.setPigLogger(pigLogger);
+
+            // We initialize here instead of instantiateFunc because this is called
+            // when actual processing has begun, whereas a function can be instantiated
+            // on the frontend potentially (mainly for optimization)
+            Schema tmpS = func.getInputSchema();
+            if (tmpS != null) {
+                //Currently, getInstanceForSchema returns null if no class was found. This works fine...
+                //if it is null, the default will be used. We pass the context because if it happens that
+                //the same Schema was generated elsewhere, we do not want to override user expectations
+                inputTupleMaker = SchemaTupleFactory.getInstance(tmpS, false, GenContext.UDF);
+                if (inputTupleMaker == null) {
+                    LOG.debug("No SchemaTupleFactory found for Schema ["+tmpS+"], using default TupleFactory");
+                    usingSchemaTupleFactory = false;
+                } else {
+                    LOG.debug("Using SchemaTupleFactory for Schema: " + tmpS);
+                    usingSchemaTupleFactory = true;
+                }
+
+                //In the future, we could optionally use SchemaTuples for output as well
+            }
+
+            if (inputTupleMaker == null) {
+                inputTupleMaker = TupleFactory.getInstance();
+            }
+
             initialized = true;
         }
 
@@ -162,9 +196,14 @@ public class POUserFunc extends ExpressionOperator {
             detachInput();
             return res;
         } else {
-            res.result = TupleFactory.getInstance().newTuple();
+            //we decouple this because there may be cases where the size is known and it isn't a schema
+            // tuple factory
+            boolean knownSize = usingSchemaTupleFactory;
+            int knownIndex = 0;
+            res.result = inputTupleMaker.newTuple();
 
             Result temp = null;
+
             for(PhysicalOperator op : inputs) {
                 temp = op.getNext(getDummy(op.getResultType()), op.getResultType());
                 if(temp.returnStatus!=POStatus.STATUS_OK) {
@@ -178,14 +217,23 @@ public class POUserFunc extends ExpressionOperator {
                         Tuple trslt = (Tuple) temp.result;
                         Tuple rslt = (Tuple) res.result;
                         for(int i=0;i<trslt.size();i++) {
+                            if (knownSize) {
+                                rslt.set(knownIndex++, trslt.get(i));
+                            } else {
                             rslt.append(trslt.get(i));
+                        }
                         }
                         continue;
                     }
                 }
+                if (knownSize) {
+                    ((Tuple)res.result).set(knownIndex++, temp.result);
+                } else {
                 ((Tuple)res.result).append(temp.result);
             }
+            }
             res.returnStatus = temp.returnStatus;
+
             return res;
         }
     }
