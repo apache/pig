@@ -529,28 +529,5 @@ public class TestPigStorage  {
             String inputFileName = (String)tuple.get(0);
             assertEquals("tagsource value must be part-m-00000", inputFileName, storeFileName);
         }
-    }
-
-    @Test
-    public void testPigStorageCompression() throws Exception {
-        final String storeFileName = "part-m-00000.bz2";
-        pigContext.connect();
-
-        String query = "a = LOAD '" + datadir + "' using PigStorage('\\t') " +
-        "as (f1:chararray, f2:int);";
-        pig.registerQuery(query);
-        // Storing in 'aout.bz2' directory will store contents in part-m-00000.bz2
-        // (With BZ2 compression applied automatically)
-        pig.store("a", datadir + "aout.bz2", "PigStorage('\\t', '-schema')");
-
-        // Verify input source tag is present when using -tagsource
-        pig.registerQuery("b = LOAD '" + datadir + "aout.bz2' using PigStorage('\\t', '-tagsource');");
-        pig.registerQuery("c = foreach b generate INPUT_FILE_NAME;");
-        Iterator<Tuple> iter = pig.openIterator("c");
-        while(iter.hasNext()) {
-            Tuple tuple = iter.next();
-            String inputFileName = (String)tuple.get(0);
-            assertEquals("tagsource value must be part-m-00000.bz2", inputFileName, storeFileName);
-        }
-    }
+    }    
 }
