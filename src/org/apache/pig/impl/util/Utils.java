@@ -111,27 +111,32 @@ public class Utils {
         }
     }
 
-	/**
-	 * A helper function for retrieving the script schema set by the LOLoad
-	 * function.
-	 * 
-	 * @param loadFuncSignature
-	 * @param conf
-	 * @return Schema
-	 * @throws IOException
-	 */
-	public static Schema getScriptSchema(String loadFuncSignature,
-			Configuration conf) throws IOException {
-		Schema scriptSchema = null;
-		String scriptField = conf.get(loadFuncSignature + ".scriptSchema");
+    /**
+     * A helper function for retrieving the script schema set by the LOLoad
+     * function.
+     * 
+     * @param loadFuncSignature
+     * @param conf
+     * @return Schema
+     * @throws IOException
+     */
+    public static Schema getScriptSchema(
+            String loadFuncSignature,
+            Configuration conf) throws IOException {
+        Schema scriptSchema = null;
+        String scriptField = conf.get(getScriptSchemaKey(loadFuncSignature));
 
-		if (scriptField != null) {
-			scriptSchema = (Schema) ObjectSerializer.deserialize(scriptField);
-		}
+        if (scriptField != null) {
+            scriptSchema = (Schema) ObjectSerializer.deserialize(scriptField);
+        }
 
-		return scriptSchema;
-	}
-    
+        return scriptSchema;
+    }
+
+    public static String getScriptSchemaKey(String loadFuncSignature) {
+      return loadFuncSignature + ".scriptSchema";
+    }
+
     public static ResourceSchema getSchema(LoadFunc wrappedLoadFunc, String location, boolean checkExistence, Job job)
     throws IOException {
         Configuration conf = job.getConfiguration();

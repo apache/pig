@@ -33,6 +33,7 @@ import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.ObjectSerializer;
+import org.apache.pig.impl.util.Utils;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.PlanVisitor;
 import org.apache.pig.newplan.logical.Util;
@@ -80,6 +81,7 @@ public class LOLoad extends LogicalRelationalOperator {
         this.conf = conf;
         this.loadFunc = loadFunc;
         this.signature = signature;
+        storeScriptSchema(conf, scriptSchema, signature);
         if (loadFunc != null) {
             this.loadFunc.setUDFContextSignature(signature);
             try {
@@ -179,14 +181,6 @@ public class LOLoad extends LogicalRelationalOperator {
         return null;
     }
 
-    @Override
-    public void setAlias(String alias) {
-        super.setAlias(alias);
-
-        // set the schema in this method using the new alias assigned
-        storeScriptSchema();
-    }
-	
 	/**
 	 * This method will store the scriptSchema:Schema using ObjectSerializer to
 	 * the current configuration.<br/>
@@ -198,7 +192,7 @@ public class LOLoad extends LogicalRelationalOperator {
 	 * ${UDFSignature}.scriptSchema = ObjectSerializer.serialize(scriptSchema)
 	 * </pre>
 	 * <p/>
-	 * Note that this is not the schema the load functiona returns but will
+     * Note that this is not the schema the load function returns but will
 	 * always be the as clause schema.<br/>
 	 * That is a = LOAD 'input' as (a:chararray, b:chararray)<br/>
 	 * The schema wil lbe (a:chararray, b:chararray)<br/>
@@ -207,15 +201,12 @@ public class LOLoad extends LogicalRelationalOperator {
 	 * TODO Find better solution to make script schema available to LoadFunc see
 	 * https://issues.apache.org/jira/browse/PIG-1717
 	 */
-	private void storeScriptSchema() {
-		String alias = getAlias();
-		if (!(conf == null || alias == null || scriptSchema == null)) {
-
+    private void storeScriptSchema(Configuration conf, LogicalSchema scriptSchema, String signature) {
+      if (conf != null && scriptSchema != null && signature != null) {
 			try {
-
-				conf.set(alias + ".scriptSchema", ObjectSerializer
-						.serialize(Util.translateSchema(scriptSchema)));
-
+          conf.set(
+              Utils.getScriptSchemaKey(signature),
+              ObjectSerializer.serialize(Util.translateSchema(scriptSchema)));
 			} catch (IOException ioe) {
 				int errCode = 1018;
 				String msg = "Problem serializing script schema";
