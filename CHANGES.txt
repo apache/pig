@@ -186,6 +186,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2790: After Pig-2699 the script schema (LOAD ... USING ... AS {script schema}) is passed after getSchema is called (daijy)
+
 PIG-2777: Docs are broken due to malformed xml after PIG-2673 (dvryaboy)
 
 PIG-2593: Filter by a boolean value does not work (jay23jack via daijy)
