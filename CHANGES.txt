@@ -188,6 +188,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2807: TestParser TestPigStorage TestNewPlanOperatorPlan broken by PIG-2699 (julienledem via daijy)
+
 PIG-2782: Specifying sorting field(s) at nightly.conf (cheolsoo via daijy)
 
 PIG-2790: After Pig-2699 the script schema (LOAD ... USING ... AS {script schema}) is passed after getSchema is called (daijy)
