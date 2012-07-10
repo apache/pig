@@ -29,25 +29,25 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4; 
+import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)   
+@RunWith(JUnit4.class)
 public abstract class PigExecTestCase extends TestCase {
 
     protected final Log log = LogFactory.getLog(getClass());
-    
+
     protected ExecType execType = LOCAL;
-    
+
     static MiniCluster cluster;
     protected PigServer pigServer;
-    
+
     @Before
     @Override
     public void setUp() throws Exception {
-        
+
         String execTypeString = System.getProperty("test.exectype");
         if(execTypeString!=null && execTypeString.length()>0){
-            execType = PigServer.parseExecType(execTypeString);
+            execType = ExecType.fromString(execTypeString);
         }
         if(execType == MAPREDUCE) {
             cluster = MiniCluster.buildCluster();
@@ -62,7 +62,7 @@ public abstract class PigExecTestCase extends TestCase {
     public void tearDown() throws Exception {
         pigServer.shutdown();
     }
-    
+
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
         if(cluster != null)

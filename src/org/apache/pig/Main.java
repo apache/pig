@@ -213,7 +213,7 @@ static int run(String args[], PigProgressNotificationListener listener) {
         ExecType execType = ExecType.MAPREDUCE ;
         String execTypeString = properties.getProperty("exectype");
         if(execTypeString!=null && execTypeString.length()>0){
-            execType = PigServer.parseExecType(execTypeString);
+            execType = ExecType.fromString(execTypeString);
         }
 
         // set up client side system properties in UDF context
@@ -327,7 +327,7 @@ static int run(String args[], PigProgressNotificationListener listener) {
 
             case 'x':
                 try {
-                    execType = PigServer.parseExecType(opts.getValStr());
+                    execType = ExecType.fromString(opts.getValStr());
                     } catch (IOException e) {
                         throw new RuntimeException("ERROR: Unrecognized exectype.", e);
                     }
@@ -537,7 +537,7 @@ static int run(String args[], PigProgressNotificationListener listener) {
             return ReturnCode.SUCCESS;
         } else {
             pigContext.getProperties().setProperty(PigContext.PIG_CMD_ARGS_REMAINDERS, ObjectSerializer.serialize(remainders));
-            
+
             // They have a pig script they want us to run.
             mode = ExecMode.FILE;
 

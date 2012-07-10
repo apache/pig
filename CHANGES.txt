@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2804: Remove "PIG" exec type (dvryaboy)
+
 PIG-2726: Handling legitimate NULL values in Cube operator (prasanth_j via dvryaboy)
 
 PIG-2808: Add *.project to .gitignore (azaroth)
