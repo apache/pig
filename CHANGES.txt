@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2726: Handling legitimate NULL values in Cube operator (prasanth_j via dvryaboy)
+
 PIG-2808: Add *.project to .gitignore (azaroth)
 
 PIG-2806: Fix merge join test regression (jcoveney)

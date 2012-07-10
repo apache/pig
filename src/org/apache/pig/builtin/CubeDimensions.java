@@ -70,6 +70,7 @@ public class CubeDimensions extends EvalFunc<DataBag> {
     private static BagFactory bf = BagFactory.getInstance();
     private static TupleFactory tf = TupleFactory.getInstance();
     private final String allMarker;
+    private final String unknown = "unknown";
 
     public CubeDimensions() {
         this(null);
@@ -81,11 +82,26 @@ public class CubeDimensions extends EvalFunc<DataBag> {
     @Override
     public DataBag exec(Tuple tuple) throws IOException {
         List<Tuple> result = Lists.newArrayListWithCapacity((int) Math.pow(2, tuple.size()));
+        Tuple nonNullTuple = convertNullToUnknown(tuple);
         Tuple newt = tf.newTuple(tuple.size());
-        recursivelyCube(result, tuple, 0, newt);
+        recursivelyCube(result, nonNullTuple, 0, newt);
         return bf.newDefaultBag(result);
     }
 
+    // if the dimension values contain null then replace it with "unknown" value
+    // since null will be used for rollups
+    private Tuple convertNullToUnknown(Tuple tuple) throws ExecException {
+	Tuple nonNullTup = tf.newTuple(tuple.getAll());
+	int idx = 0;
+	for(Object obj : tuple.getAll()) {
+	    if( (obj == null) ) {
+		nonNullTup.set(idx, unknown);
+	    }
+	    idx++;
+	}
+	return nonNullTup;
+    }
+    
     private void recursivelyCube(List<Tuple> result, Tuple input, int index, Tuple newt) throws ExecException {
         newt.set(index, input.get(index));
         if (index == input.size() - 1 ) {
