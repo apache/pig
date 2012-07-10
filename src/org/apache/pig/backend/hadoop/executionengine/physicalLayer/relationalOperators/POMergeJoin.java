@@ -215,7 +215,7 @@ public class POMergeJoin extends PhysicalOperator {
      * @return the list object to store Tuples in
      */
     private TuplesToSchemaTupleList newLeftTupleArray() {
-        return new TuplesToSchemaTupleList(arrayListSize, (SchemaTupleFactory)leftTupleMaker);
+        return new TuplesToSchemaTupleList(arrayListSize, leftTupleMaker);
     }
 
     /**
@@ -227,9 +227,11 @@ public class POMergeJoin extends PhysicalOperator {
         private List<Tuple> tuples;
         private SchemaTupleFactory tf;
 
-        protected TuplesToSchemaTupleList(int ct, SchemaTupleFactory tf) {
+        protected TuplesToSchemaTupleList(int ct, TupleMaker<?> tf) {
             tuples = new ArrayList<Tuple>(ct);
-            this.tf = tf;
+            if (tf instanceof SchemaTupleFactory) {
+                this.tf = (SchemaTupleFactory)tf;
+            }
         }
 
         public static SchemaTuple<?> convert(Tuple t, SchemaTupleFactory tf) {
