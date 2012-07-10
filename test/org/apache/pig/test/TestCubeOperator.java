@@ -44,8 +44,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 
 public class TestCubeOperator {
     private static PigServer pigServer;
@@ -82,6 +82,11 @@ public class TestCubeOperator {
 		tuple("u10,women,green,apple"),
 		tuple("u11,men,red,apple"),
 		tuple("u12,women,green,mango"));
+	
+	data.set("input3", 
+		tuple("dog", "miami", 12),
+		tuple(null, "miami", 18));
+
     }
 
     @AfterClass
@@ -94,25 +99,25 @@ public class TestCubeOperator {
 	String query =
 		"a = load 'input' USING mock.Storage() as (x:chararray,y:chararray,z:long);" +
 			"b = cube a by (x,y);" +
-			"c = foreach b generate flatten(group) as (type,location), COUNT(cube) as count, SUM(cube.z) as total;" +
+			"c = foreach b generate flatten(group) as (type,location), COUNT_STAR(cube) as count, SUM(cube.z) as total;" +
 			"store c into 'output' using mock.Storage();";
 	Util.registerMultiLineQuery(pigServer, query);
 
 	Set<Tuple> expected = ImmutableSet.of(
-		tf.newTuple(ImmutableList.of("cat", "miami", (long)1, (long)18)),
-		tf.newTuple(ImmutableList.of("cat", "naples", (long)1, (long)9)),
-		tf.newTuple(ImmutableList.of("cat", "NULL", (long)2, (long)27)),
-		tf.newTuple(ImmutableList.of("dog", "miami", (long)1, (long)12)),
-		tf.newTuple(ImmutableList.of("dog", "tampa", (long)1, (long)14)),
-		tf.newTuple(ImmutableList.of("dog", "naples", (long)1, (long)5)),
-		tf.newTuple(ImmutableList.of("dog", "NULL", (long)3, (long)31)),
-		tf.newTuple(ImmutableList.of("turtle", "tampa", (long)1, (long)4)),
-		tf.newTuple(ImmutableList.of("turtle", "naples", (long)1, (long)1)),
-		tf.newTuple(ImmutableList.of("turtle", "NULL", (long)2, (long)5)),
-		tf.newTuple(ImmutableList.of("NULL", "miami", (long)2, (long)30)),
-		tf.newTuple(ImmutableList.of("NULL", "tampa", (long)2, (long)18)),
-		tf.newTuple(ImmutableList.of("NULL", "naples", (long)3, (long)15)),
-		tf.newTuple(ImmutableList.of("NULL", "NULL", (long)7, (long)63))
+		tf.newTuple(Lists.newArrayList("cat", "miami", (long)1, (long)18)),
+		tf.newTuple(Lists.newArrayList("cat", "naples", (long)1, (long)9)),
+		tf.newTuple(Lists.newArrayList("cat", null, (long)2, (long)27)),
+		tf.newTuple(Lists.newArrayList("dog", "miami", (long)1, (long)12)),
+		tf.newTuple(Lists.newArrayList("dog", "tampa", (long)1, (long)14)),
+		tf.newTuple(Lists.newArrayList("dog", "naples", (long)1, (long)5)),
+		tf.newTuple(Lists.newArrayList("dog", null, (long)3, (long)31)),
+		tf.newTuple(Lists.newArrayList("turtle", "tampa", (long)1, (long)4)),
+		tf.newTuple(Lists.newArrayList("turtle", "naples", (long)1, (long)1)),
+		tf.newTuple(Lists.newArrayList("turtle", null, (long)2, (long)5)),
+		tf.newTuple(Lists.newArrayList(null, "miami", (long)2, (long)30)),
+		tf.newTuple(Lists.newArrayList(null, "tampa", (long)2, (long)18)),
+		tf.newTuple(Lists.newArrayList(null, "naples", (long)3, (long)15)),
+		tf.newTuple(Lists.newArrayList(null, null, (long)7, (long)63))
 		);
 
 	List<Tuple> out = data.get("output");
@@ -130,26 +135,26 @@ public class TestCubeOperator {
 			"a = load 'input' USING mock.Storage() as (x,y:chararray,z:long);" +
 			"a = load 'input' USING mock.Storage() as (x:chararray,y:chararray,z:long);" +
 			"b = cube a by (x,y);" + 
-			"c = foreach b generate flatten(group) as (type,location), COUNT(cube) as count, SUM(cube.z) as total;" +
+			"c = foreach b generate flatten(group) as (type,location), COUNT_STAR(cube) as count, SUM(cube.z) as total;" +
 			"store c into 'output' using mock.Storage();";
 
 	Util.registerMultiLineQuery(pigServer, query);
 
 	Set<Tuple> expected = ImmutableSet.of(
-		tf.newTuple(ImmutableList.of("cat", "miami", (long)1, (long)18)),
-		tf.newTuple(ImmutableList.of("cat", "naples", (long)1, (long)9)),
-		tf.newTuple(ImmutableList.of("cat", "NULL", (long)2, (long)27)),
-		tf.newTuple(ImmutableList.of("dog", "miami", (long)1, (long)12)),
-		tf.newTuple(ImmutableList.of("dog", "tampa", (long)1, (long)14)),
-		tf.newTuple(ImmutableList.of("dog", "naples", (long)1, (long)5)),
-		tf.newTuple(ImmutableList.of("dog", "NULL", (long)3, (long)31)),
-		tf.newTuple(ImmutableList.of("turtle", "tampa", (long)1, (long)4)),
-		tf.newTuple(ImmutableList.of("turtle", "naples", (long)1, (long)1)),
-		tf.newTuple(ImmutableList.of("turtle", "NULL", (long)2, (long)5)),
-		tf.newTuple(ImmutableList.of("NULL", "miami", (long)2, (long)30)),
-		tf.newTuple(ImmutableList.of("NULL", "tampa", (long)2, (long)18)),
-		tf.newTuple(ImmutableList.of("NULL", "naples", (long)3, (long)15)),
-		tf.newTuple(ImmutableList.of("NULL", "NULL", (long)7, (long)63))
+		tf.newTuple(Lists.newArrayList("cat", "miami", (long)1, (long)18)),
+		tf.newTuple(Lists.newArrayList("cat", "naples", (long)1, (long)9)),
+		tf.newTuple(Lists.newArrayList("cat", null, (long)2, (long)27)),
+		tf.newTuple(Lists.newArrayList("dog", "miami", (long)1, (long)12)),
+		tf.newTuple(Lists.newArrayList("dog", "tampa", (long)1, (long)14)),
+		tf.newTuple(Lists.newArrayList("dog", "naples", (long)1, (long)5)),
+		tf.newTuple(Lists.newArrayList("dog", null, (long)3, (long)31)),
+		tf.newTuple(Lists.newArrayList("turtle", "tampa", (long)1, (long)4)),
+		tf.newTuple(Lists.newArrayList("turtle", "naples", (long)1, (long)1)),
+		tf.newTuple(Lists.newArrayList("turtle", null, (long)2, (long)5)),
+		tf.newTuple(Lists.newArrayList(null, "miami", (long)2, (long)30)),
+		tf.newTuple(Lists.newArrayList(null, "tampa", (long)2, (long)18)),
+		tf.newTuple(Lists.newArrayList(null, "naples", (long)3, (long)15)),
+		tf.newTuple(Lists.newArrayList(null, null, (long)7, (long)63))
 		);
 
 	List<Tuple> out = data.get("output");
@@ -166,26 +171,26 @@ public class TestCubeOperator {
 		"a = load 'input' USING mock.Storage() as (x:chararray,y:chararray,z:long);" +
 			"b = foreach a generate x as type,y as location,z as number;" +
 			"c = cube b by (type,location);" + 
-			"d = foreach c generate flatten(group) as (type,location), COUNT(cube) as count, SUM(cube.number) as total;" +
+			"d = foreach c generate flatten(group) as (type,location), COUNT_STAR(cube) as count, SUM(cube.number) as total;" +
 			"store d into 'output' using mock.Storage();";
 
 	Util.registerMultiLineQuery(pigServer, query);
 
 	Set<Tuple> expected = ImmutableSet.of(
-		tf.newTuple(ImmutableList.of("cat", "miami", (long)1, (long)18)),
-		tf.newTuple(ImmutableList.of("cat", "naples", (long)1, (long)9)),
-		tf.newTuple(ImmutableList.of("cat", "NULL", (long)2, (long)27)),
-		tf.newTuple(ImmutableList.of("dog", "miami", (long)1, (long)12)),
-		tf.newTuple(ImmutableList.of("dog", "tampa", (long)1, (long)14)),
-		tf.newTuple(ImmutableList.of("dog", "naples", (long)1, (long)5)),
-		tf.newTuple(ImmutableList.of("dog", "NULL", (long)3, (long)31)),
-		tf.newTuple(ImmutableList.of("turtle", "tampa", (long)1, (long)4)),
-		tf.newTuple(ImmutableList.of("turtle", "naples", (long)1, (long)1)),
-		tf.newTuple(ImmutableList.of("turtle", "NULL", (long)2, (long)5)),
-		tf.newTuple(ImmutableList.of("NULL", "miami", (long)2, (long)30)),
-		tf.newTuple(ImmutableList.of("NULL", "tampa", (long)2, (long)18)),
-		tf.newTuple(ImmutableList.of("NULL", "naples", (long)3, (long)15)),
-		tf.newTuple(ImmutableList.of("NULL", "NULL", (long)7, (long)63))
+		tf.newTuple(Lists.newArrayList("cat", "miami", (long)1, (long)18)),
+		tf.newTuple(Lists.newArrayList("cat", "naples", (long)1, (long)9)),
+		tf.newTuple(Lists.newArrayList("cat", null, (long)2, (long)27)),
+		tf.newTuple(Lists.newArrayList("dog", "miami", (long)1, (long)12)),
+		tf.newTuple(Lists.newArrayList("dog", "tampa", (long)1, (long)14)),
+		tf.newTuple(Lists.newArrayList("dog", "naples", (long)1, (long)5)),
+		tf.newTuple(Lists.newArrayList("dog", null, (long)3, (long)31)),
+		tf.newTuple(Lists.newArrayList("turtle", "tampa", (long)1, (long)4)),
+		tf.newTuple(Lists.newArrayList("turtle", "naples", (long)1, (long)1)),
+		tf.newTuple(Lists.newArrayList("turtle", null, (long)2, (long)5)),
+		tf.newTuple(Lists.newArrayList(null, "miami", (long)2, (long)30)),
+		tf.newTuple(Lists.newArrayList(null, "tampa", (long)2, (long)18)),
+		tf.newTuple(Lists.newArrayList(null, "naples", (long)3, (long)15)),
+		tf.newTuple(Lists.newArrayList(null, null, (long)7, (long)63))
 		);
 
 	List<Tuple> out = data.get("output");
@@ -208,12 +213,12 @@ public class TestCubeOperator {
 	Util.registerMultiLineQuery(pigServer, query);
 
 	Set<Tuple> expected = ImmutableSet.of(
-		tf.newTuple(ImmutableList.of("cat", "miami", (long)18)),
-		tf.newTuple(ImmutableList.of("cat", "NULL", (long)18)),
-		tf.newTuple(ImmutableList.of("dog", "miami", (long)12)),
-		tf.newTuple(ImmutableList.of("dog", "NULL", (long)12)),
-		tf.newTuple(ImmutableList.of("NULL", "miami", (long)30)),
-		tf.newTuple(ImmutableList.of("NULL", "NULL", (long)30))
+		tf.newTuple(Lists.newArrayList("cat", "miami", (long)18)),
+		tf.newTuple(Lists.newArrayList("cat", null, (long)18)),
+		tf.newTuple(Lists.newArrayList("dog", "miami", (long)12)),
+		tf.newTuple(Lists.newArrayList("dog", null, (long)12)),
+		tf.newTuple(Lists.newArrayList(null, "miami", (long)30)),
+		tf.newTuple(Lists.newArrayList(null, null, (long)30))
 		);
 
 	List<Tuple> out = data.get("output");
@@ -230,26 +235,26 @@ public class TestCubeOperator {
 		"a = load 'input' USING mock.Storage() as (x:chararray,y:chararray);" +
 			"b = foreach a generate x as type,y as location;" +
 			"c = cube b by (*);" + 
-			"d = foreach c generate flatten(group) as (type,location), COUNT(cube) as count;" +
+			"d = foreach c generate flatten(group) as (type,location), COUNT_STAR(cube) as count;" +
 			"store d into 'output' using mock.Storage();";
 
 	Util.registerMultiLineQuery(pigServer, query);
 
 	Set<Tuple> expected = ImmutableSet.of(
-		tf.newTuple(ImmutableList.of("cat", "miami", (long)1)),
-		tf.newTuple(ImmutableList.of("cat", "naples", (long)1)),
-		tf.newTuple(ImmutableList.of("cat", "NULL", (long)2)),
-		tf.newTuple(ImmutableList.of("dog", "miami", (long)1)),
-		tf.newTuple(ImmutableList.of("dog", "tampa", (long)1)),
-		tf.newTuple(ImmutableList.of("dog", "naples", (long)1)),
-		tf.newTuple(ImmutableList.of("dog", "NULL", (long)3)),
-		tf.newTuple(ImmutableList.of("turtle", "tampa", (long)1)),
-		tf.newTuple(ImmutableList.of("turtle", "naples", (long)1)),
-		tf.newTuple(ImmutableList.of("turtle", "NULL", (long)2)),
-		tf.newTuple(ImmutableList.of("NULL", "miami", (long)2)),
-		tf.newTuple(ImmutableList.of("NULL", "tampa", (long)2)),
-		tf.newTuple(ImmutableList.of("NULL", "naples", (long)3)),
-		tf.newTuple(ImmutableList.of("NULL", "NULL", (long)7))
+		tf.newTuple(Lists.newArrayList("cat", "miami", (long)1)),
+		tf.newTuple(Lists.newArrayList("cat", "naples", (long)1)),
+		tf.newTuple(Lists.newArrayList("cat", null, (long)2)),
+		tf.newTuple(Lists.newArrayList("dog", "miami", (long)1)),
+		tf.newTuple(Lists.newArrayList("dog", "tampa", (long)1)),
+		tf.newTuple(Lists.newArrayList("dog", "naples", (long)1)),
+		tf.newTuple(Lists.newArrayList("dog", null, (long)3)),
+		tf.newTuple(Lists.newArrayList("turtle", "tampa", (long)1)),
+		tf.newTuple(Lists.newArrayList("turtle", "naples", (long)1)),
+		tf.newTuple(Lists.newArrayList("turtle", null, (long)2)),
+		tf.newTuple(Lists.newArrayList(null, "miami", (long)2)),
+		tf.newTuple(Lists.newArrayList(null, "tampa", (long)2)),
+		tf.newTuple(Lists.newArrayList(null, "naples", (long)3)),
+		tf.newTuple(Lists.newArrayList(null, null, (long)7))
 		);
 
 	List<Tuple> out = data.get("output");
@@ -266,26 +271,26 @@ public class TestCubeOperator {
 		"a = load 'input' USING mock.Storage() as (x:chararray,y:chararray,z:long);" +
 			"b = foreach a generate x as type,y as location, z as number;" +
 			"c = cube b by ($0..$1);" + 
-			"d = foreach c generate flatten(group) as (type,location), COUNT(cube) as count, SUM(cube.number) as total;" +
+			"d = foreach c generate flatten(group) as (type,location), COUNT_STAR(cube) as count, SUM(cube.number) as total;" +
 			"store d into 'output' using mock.Storage();";
 
 	Util.registerMultiLineQuery(pigServer, query);
 
 	Set<Tuple> expected = ImmutableSet.of(
-		tf.newTuple(ImmutableList.of("cat", "miami", (long)1, (long)18)),
-		tf.newTuple(ImmutableList.of("cat", "naples", (long)1, (long)9)),
-		tf.newTuple(ImmutableList.of("cat", "NULL", (long)2, (long)27)),
-		tf.newTuple(ImmutableList.of("dog", "miami", (long)1, (long)12)),
-		tf.newTuple(ImmutableList.of("dog", "tampa", (long)1, (long)14)),
-		tf.newTuple(ImmutableList.of("dog", "naples", (long)1, (long)5)),
-		tf.newTuple(ImmutableList.of("dog", "NULL", (long)3, (long)31)),
-		tf.newTuple(ImmutableList.of("turtle", "tampa", (long)1, (long)4)),
-		tf.newTuple(ImmutableList.of("turtle", "naples", (long)1, (long)1)),
-		tf.newTuple(ImmutableList.of("turtle", "NULL", (long)2, (long)5)),
-		tf.newTuple(ImmutableList.of("NULL", "miami", (long)2, (long)30)),
-		tf.newTuple(ImmutableList.of("NULL", "tampa", (long)2, (long)18)),
-		tf.newTuple(ImmutableList.of("NULL", "naples", (long)3, (long)15)),
-		tf.newTuple(ImmutableList.of("NULL", "NULL", (long)7, (long)63))
+		tf.newTuple(Lists.newArrayList("cat", "miami", (long)1, (long)18)),
+		tf.newTuple(Lists.newArrayList("cat", "naples", (long)1, (long)9)),
+		tf.newTuple(Lists.newArrayList("cat", null, (long)2, (long)27)),
+		tf.newTuple(Lists.newArrayList("dog", "miami", (long)1, (long)12)),
+		tf.newTuple(Lists.newArrayList("dog", "tampa", (long)1, (long)14)),
+		tf.newTuple(Lists.newArrayList("dog", "naples", (long)1, (long)5)),
+		tf.newTuple(Lists.newArrayList("dog", null, (long)3, (long)31)),
+		tf.newTuple(Lists.newArrayList("turtle", "tampa", (long)1, (long)4)),
+		tf.newTuple(Lists.newArrayList("turtle", "naples", (long)1, (long)1)),
+		tf.newTuple(Lists.newArrayList("turtle", null, (long)2, (long)5)),
+		tf.newTuple(Lists.newArrayList(null, "miami", (long)2, (long)30)),
+		tf.newTuple(Lists.newArrayList(null, "tampa", (long)2, (long)18)),
+		tf.newTuple(Lists.newArrayList(null, "naples", (long)3, (long)15)),
+		tf.newTuple(Lists.newArrayList(null, null, (long)7, (long)63))
 		);
 
 	List<Tuple> out = data.get("output");
@@ -301,7 +306,7 @@ public class TestCubeOperator {
 	String query = "a = load 'input' USING mock.Storage() as (x:chararray,y:chararray,z:long);"
 		+ "b = foreach a generate x as type,y as location, z as number;"
 		+ "c = cube b by ($0..$1,$0..$1);"
-		+ "d = foreach c generate flatten(group), COUNT(cube) as count, SUM(cube.number) as total;"
+		+ "d = foreach c generate flatten(group), COUNT_STAR(cube) as count, SUM(cube.number) as total;"
 		+ "store d into 'output' using mock.Storage();";
 
 	try {
@@ -323,21 +328,21 @@ public class TestCubeOperator {
 		"a = load 'input' USING mock.Storage() as (x:chararray,y:chararray,z:long);" +
 			"b = filter a by x == 'dog';" +
 			"c = cube b by (x,y);" + 
-			"d = foreach c generate flatten(group), COUNT(cube) as count, SUM(cube.z) as total;" +
+			"d = foreach c generate flatten(group), COUNT_STAR(cube) as count, SUM(cube.z) as total;" +
 			"store d into 'output' using mock.Storage();";
 
 	Util.registerMultiLineQuery(pigServer, query);
 	// Iterator<Tuple> it = pigServer.openIterator("d");
 
 	Set<Tuple> expected = ImmutableSet.of(
-		tf.newTuple(ImmutableList.of("dog", "miami", (long)1, (long)12)),
-		tf.newTuple(ImmutableList.of("dog", "tampa", (long)1, (long)14)),
-		tf.newTuple(ImmutableList.of("dog", "naples", (long)1, (long)5)),
-		tf.newTuple(ImmutableList.of("dog", "NULL", (long)3, (long)31)),
-		tf.newTuple(ImmutableList.of("NULL", "miami", (long)1, (long)12)),
-		tf.newTuple(ImmutableList.of("NULL", "tampa", (long)1, (long)14)),
-		tf.newTuple(ImmutableList.of("NULL", "naples", (long)1, (long)5)),
-		tf.newTuple(ImmutableList.of("NULL", "NULL", (long)3, (long)31))
+		tf.newTuple(Lists.newArrayList("dog", "miami", (long)1, (long)12)),
+		tf.newTuple(Lists.newArrayList("dog", "tampa", (long)1, (long)14)),
+		tf.newTuple(Lists.newArrayList("dog", "naples", (long)1, (long)5)),
+		tf.newTuple(Lists.newArrayList("dog", null, (long)3, (long)31)),
+		tf.newTuple(Lists.newArrayList(null, "miami", (long)1, (long)12)),
+		tf.newTuple(Lists.newArrayList(null, "tampa", (long)1, (long)14)),
+		tf.newTuple(Lists.newArrayList(null, "naples", (long)1, (long)5)),
+		tf.newTuple(Lists.newArrayList(null, null, (long)3, (long)31))
 		);
 
 	List<Tuple> out = data.get("output");
@@ -354,26 +359,26 @@ public class TestCubeOperator {
 		"a = load 'input' USING mock.Storage() as (x:chararray,y:chararray,z:long);" +
 			"b = order a by $2;" +
 			"c = cube b by (x,y);" + 
-			"d = foreach c generate flatten(group), COUNT(cube) as count, SUM(cube.z) as total;" +
+			"d = foreach c generate flatten(group), COUNT_STAR(cube) as count, SUM(cube.z) as total;" +
 			"store d into 'output' using mock.Storage();";
 
 	Util.registerMultiLineQuery(pigServer, query);
 
 	Set<Tuple> expected = ImmutableSet.of(
-		tf.newTuple(ImmutableList.of("cat", "miami", (long)1, (long)18)),
-		tf.newTuple(ImmutableList.of("cat", "naples", (long)1, (long)9)),
-		tf.newTuple(ImmutableList.of("cat", "NULL", (long)2, (long)27)),
-		tf.newTuple(ImmutableList.of("dog", "miami", (long)1, (long)12)),
-		tf.newTuple(ImmutableList.of("dog", "tampa", (long)1, (long)14)),
-		tf.newTuple(ImmutableList.of("dog", "naples", (long)1, (long)5)),
-		tf.newTuple(ImmutableList.of("dog", "NULL", (long)3, (long)31)),
-		tf.newTuple(ImmutableList.of("turtle", "tampa", (long)1, (long)4)),
-		tf.newTuple(ImmutableList.of("turtle", "naples", (long)1, (long)1)),
-		tf.newTuple(ImmutableList.of("turtle", "NULL", (long)2, (long)5)),
-		tf.newTuple(ImmutableList.of("NULL", "miami", (long)2, (long)30)),
-		tf.newTuple(ImmutableList.of("NULL", "tampa", (long)2, (long)18)),
-		tf.newTuple(ImmutableList.of("NULL", "naples", (long)3, (long)15)),
-		tf.newTuple(ImmutableList.of("NULL", "NULL", (long)7, (long)63))
+		tf.newTuple(Lists.newArrayList("cat", "miami", (long)1, (long)18)),
+		tf.newTuple(Lists.newArrayList("cat", "naples", (long)1, (long)9)),
+		tf.newTuple(Lists.newArrayList("cat", null, (long)2, (long)27)),
+		tf.newTuple(Lists.newArrayList("dog", "miami", (long)1, (long)12)),
+		tf.newTuple(Lists.newArrayList("dog", "tampa", (long)1, (long)14)),
+		tf.newTuple(Lists.newArrayList("dog", "naples", (long)1, (long)5)),
+		tf.newTuple(Lists.newArrayList("dog", null, (long)3, (long)31)),
+		tf.newTuple(Lists.newArrayList("turtle", "tampa", (long)1, (long)4)),
+		tf.newTuple(Lists.newArrayList("turtle", "naples", (long)1, (long)1)),
+		tf.newTuple(Lists.newArrayList("turtle", null, (long)2, (long)5)),
+		tf.newTuple(Lists.newArrayList(null, "miami", (long)2, (long)30)),
+		tf.newTuple(Lists.newArrayList(null, "tampa", (long)2, (long)18)),
+		tf.newTuple(Lists.newArrayList(null, "naples", (long)3, (long)15)),
+		tf.newTuple(Lists.newArrayList(null, null, (long)7, (long)63))
 		);
 
 	List<Tuple> out = data.get("output");
@@ -390,24 +395,24 @@ public class TestCubeOperator {
 			"b = load 'input' USING mock.Storage() as (a2,b2,c2:long,d2:chararray);" +
 			"c = join a by a1, b by d2;" +
 			"d = cube c by ($4,$5);" + 
-			"e = foreach d generate flatten(group), COUNT(cube) as count, SUM(cube.c2) as total;" +
+			"e = foreach d generate flatten(group), COUNT_STAR(cube) as count, SUM(cube.c2) as total;" +
 			"store e into 'output' using mock.Storage();";
 
 	Util.registerMultiLineQuery(pigServer, query);
 
 	Set<Tuple> expected = ImmutableSet.of(
-		tf.newTuple(ImmutableList.of("cat", "miami", (long)1, (long)18)),
-		tf.newTuple(ImmutableList.of("cat", "NULL", (long)1, (long)18)),
-		tf.newTuple(ImmutableList.of("dog", "miami", (long)1, (long)12)),
-		tf.newTuple(ImmutableList.of("dog", "tampa", (long)1, (long)14)),
-		tf.newTuple(ImmutableList.of("dog", "NULL", (long)2, (long)26)),
-		tf.newTuple(ImmutableList.of("turtle", "tampa", (long)1, (long)4)),
-		tf.newTuple(ImmutableList.of("turtle", "naples", (long)1, (long)1)),
-		tf.newTuple(ImmutableList.of("turtle", "NULL", (long)2, (long)5)),
-		tf.newTuple(ImmutableList.of("NULL", "miami", (long)2, (long)30)),
-		tf.newTuple(ImmutableList.of("NULL", "tampa", (long)2, (long)18)),
-		tf.newTuple(ImmutableList.of("NULL", "naples", (long)1, (long)1)),
-		tf.newTuple(ImmutableList.of("NULL", "NULL", (long)5, (long)49))
+		tf.newTuple(Lists.newArrayList("cat", "miami", (long)1, (long)18)),
+		tf.newTuple(Lists.newArrayList("cat", null, (long)1, (long)18)),
+		tf.newTuple(Lists.newArrayList("dog", "miami", (long)1, (long)12)),
+		tf.newTuple(Lists.newArrayList("dog", "tampa", (long)1, (long)14)),
+		tf.newTuple(Lists.newArrayList("dog", null, (long)2, (long)26)),
+		tf.newTuple(Lists.newArrayList("turtle", "tampa", (long)1, (long)4)),
+		tf.newTuple(Lists.newArrayList("turtle", "naples", (long)1, (long)1)),
+		tf.newTuple(Lists.newArrayList("turtle", null, (long)2, (long)5)),
+		tf.newTuple(Lists.newArrayList(null, "miami", (long)2, (long)30)),
+		tf.newTuple(Lists.newArrayList(null, "tampa", (long)2, (long)18)),
+		tf.newTuple(Lists.newArrayList(null, "naples", (long)1, (long)1)),
+		tf.newTuple(Lists.newArrayList(null, null, (long)5, (long)49))
 		);
 
 	List<Tuple> out = data.get("output");
@@ -425,30 +430,82 @@ public class TestCubeOperator {
 			"c = cogroup a by a1, b by d2;" +
 			"d = foreach c generate flatten(a), flatten(b);" +
 			"e = cube d by (a2,b2);" +
-			"f = foreach e generate flatten(group), COUNT(cube) as count, SUM(cube.c2) as total;" +
+			"f = foreach e generate flatten(group), COUNT_STAR(cube) as count, SUM(cube.c2) as total;" +
 			"store f into 'output' using mock.Storage();";
 
 	Util.registerMultiLineQuery(pigServer, query);
 
 	Set<Tuple> expected = ImmutableSet.of(
-		tf.newTuple(ImmutableList.of("cat", "miami", (long)1, (long)18)),
-		tf.newTuple(ImmutableList.of("cat", "NULL", (long)1, (long)18)),
-		tf.newTuple(ImmutableList.of("dog", "miami", (long)1, (long)12)),
-		tf.newTuple(ImmutableList.of("dog", "tampa", (long)1, (long)14)),
-		tf.newTuple(ImmutableList.of("dog", "NULL", (long)2, (long)26)),
-		tf.newTuple(ImmutableList.of("turtle", "tampa", (long)1, (long)4)),
-		tf.newTuple(ImmutableList.of("turtle", "naples", (long)1, (long)1)),
-		tf.newTuple(ImmutableList.of("turtle", "NULL", (long)2, (long)5)),
-		tf.newTuple(ImmutableList.of("NULL", "miami", (long)2, (long)30)),
-		tf.newTuple(ImmutableList.of("NULL", "tampa", (long)2, (long)18)),
-		tf.newTuple(ImmutableList.of("NULL", "naples", (long)1, (long)1)),
-		tf.newTuple(ImmutableList.of("NULL", "NULL", (long)5, (long)49))
+		tf.newTuple(Lists.newArrayList("cat", "miami", (long)1, (long)18)),
+		tf.newTuple(Lists.newArrayList("cat", null, (long)1, (long)18)),
+		tf.newTuple(Lists.newArrayList("dog", "miami", (long)1, (long)12)),
+		tf.newTuple(Lists.newArrayList("dog", "tampa", (long)1, (long)14)),
+		tf.newTuple(Lists.newArrayList("dog", null, (long)2, (long)26)),
+		tf.newTuple(Lists.newArrayList("turtle", "tampa", (long)1, (long)4)),
+		tf.newTuple(Lists.newArrayList("turtle", "naples", (long)1, (long)1)),
+		tf.newTuple(Lists.newArrayList("turtle", null, (long)2, (long)5)),
+		tf.newTuple(Lists.newArrayList(null, "miami", (long)2, (long)30)),
+		tf.newTuple(Lists.newArrayList(null, "tampa", (long)2, (long)18)),
+		tf.newTuple(Lists.newArrayList(null, "naples", (long)1, (long)1)),
+		tf.newTuple(Lists.newArrayList(null, null, (long)5, (long)49))
 		);
 
 	List<Tuple> out = data.get("output");
 	for( Tuple tup : out ) {
 	    assertTrue(expected+" contains "+tup, expected.contains(tup));
 	}
+    }
+
+    @Test
+    public void testCubeWithNULLs() throws IOException {
+	// test for dimension values with legitimate null values
+	String query = 
+		"a = load 'input3' USING mock.Storage() as (x:chararray,y:chararray,z:long);" +
+			"b = cube a by (x,y);" + 
+			"c = foreach b generate flatten(group) as (type,location), SUM(cube.z) as total;" +
+			"store c into 'output' using mock.Storage();";
+
+	Util.registerMultiLineQuery(pigServer, query);
+
+	Set<Tuple> expected = ImmutableSet.of(
+		tf.newTuple(Lists.newArrayList("dog", "miami", (long)12)),
+		tf.newTuple(Lists.newArrayList("dog", null, (long)12)),
+		tf.newTuple(Lists.newArrayList(null, "miami", (long)30)),
+		tf.newTuple(Lists.newArrayList(null, null, (long)30)),
+		tf.newTuple(Lists.newArrayList("unknown", "miami", (long)18)),
+		tf.newTuple(Lists.newArrayList("unknown", null, (long)18))
+		);
+
+	List<Tuple> out = data.get("output");
+	for( Tuple tup : out ) {
+	    assertTrue(expected+" contains "+tup, expected.contains(tup));
+	}
+
+    }
+    
+    @Test
+    public void testCubeWithNULLAndFilter() throws IOException {
+	// test for dimension values with legitimate null values
+	// followed by filter
+	String query = 
+		"a = load 'input3' USING mock.Storage() as (x:chararray,y:chararray,z:long);" +
+			"b = cube a by (x,y);" + 
+			"c = foreach b generate flatten(group) as (type,location), SUM(cube.z) as total;" +
+			"d = filter c by type!='unknown';" +
+			"store d into 'output' using mock.Storage();";
+
+	Util.registerMultiLineQuery(pigServer, query);
+
+	Set<Tuple> expected = ImmutableSet.of(
+		tf.newTuple(Lists.newArrayList("dog", "miami", (long)12)),
+		tf.newTuple(Lists.newArrayList("dog", null, (long)12))
+		);
+
+	List<Tuple> out = data.get("output");
+	for( Tuple tup : out ) {
+	    assertTrue(expected+" contains "+tup, expected.contains(tup));
+	}
+
     }
 
     @Test
@@ -474,7 +531,7 @@ public class TestCubeOperator {
 	ByteArrayOutputStream baos = new ByteArrayOutputStream();
 	PrintStream ps = new PrintStream(baos);
 	pigServer.explain("b", ps);
-	assertTrue(baos.toString().contains("CubeDimensions('NULL')"));
+	assertTrue(baos.toString().contains("CubeDimensions"));
     }
 
     @Test

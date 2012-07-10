@@ -462,7 +462,7 @@ public class LogicalPlanBuilder {
 
 	// Create UDF with user specified dimensions 
 	LogicalExpressionPlan uexpPlan = new LogicalExpressionPlan();
-	new UserFuncExpression(uexpPlan, new FuncSpec(CubeDimensions.class.getName(), "NULL"), lexpList);
+	new UserFuncExpression(uexpPlan, new FuncSpec(CubeDimensions.class.getName()), lexpList);
 	for (LogicalExpressionPlan lexp : lexpPlanList) {
 	    Iterator<Operator> it = lexp.getOperators();
 	    while (it.hasNext()) {
