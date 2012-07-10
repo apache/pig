@@ -31,9 +31,24 @@ public enum ExecType implements Serializable {
     /**
      * Use the Hadoop Map/Reduce framework
      */
-    MAPREDUCE,
+    MAPREDUCE;
+
     /**
-     * Use the Experimental Hadoop framework; not available yet.
+     * Given a string, determine the exec type.
+     * @param str accepted values are 'local', 'mapreduce', and 'mapred'
+     * @return exectype as ExecType
      */
-    PIG
+    public static ExecType fromString(String execString) throws PigException {
+        if (execString.equals("mapred")) {
+            return MAPREDUCE;
+        } else {
+            try {
+                return ExecType.valueOf(execString.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                int errCode = 2040;
+                String msg = "Unknown exec type: " + execString;
+                throw new PigException(msg, errCode, e);
+            }
+        }
+    }
 }
