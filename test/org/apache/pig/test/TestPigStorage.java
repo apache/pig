@@ -28,6 +28,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -108,7 +109,7 @@ public class TestPigStorage  {
     @Test
     public void testBlockBoundary() throws ExecException {
 
-        // This tests PigStorage loader with records exectly
+        // This tests PigStorage loader with records exactly
         // on the boundary of the file blocks.
         Properties props = new Properties();
         for (Entry<Object, Object> entry : cluster.getProperties().entrySet()) {
@@ -199,10 +200,11 @@ public class TestPigStorage  {
         pigContext.connect();
         String query = "a = LOAD '" + datadir + "originput' using PigStorage('\\t', '-schema') " +
         "as (f1:chararray, f2:int);";
-        pig.registerQuery(query);
         try{
+            pig.registerQuery(query);
             pig.dumpSchema("a");
         }catch(FrontendException ex){
+            assertEquals(ex.toString(), 1000, ex.getErrorCode());
             return;
         }
         fail("no exception caught");
