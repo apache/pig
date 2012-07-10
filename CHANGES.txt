@@ -192,6 +192,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2809: TestUDFContext broken by PIG-2699 (julienledem via daijy)
+
 PIG-2807: TestParser TestPigStorage TestNewPlanOperatorPlan broken by PIG-2699 (julienledem via daijy)
 
 PIG-2782: Specifying sorting field(s) at nightly.conf (cheolsoo via daijy)
