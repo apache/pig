@@ -97,7 +97,9 @@ public class TestUDFContext {
 
         // required fields property should be set because f results does not
         // require the third column c, so properties should not be null
-        assertNotNull(props.get("l"));
+        assertTrue(
+                "properties in udf context for load should not be empty: "+props, 
+                props.keySet().size()>0);
         
         // the new statement for alias f below will require all columns,
         // so this time required fields property for loader should not be set
@@ -105,8 +107,9 @@ public class TestUDFContext {
         pig.explain("f", System.out);
         props = UDFContext.getUDFContext().getUDFProperties(PigStorage.class);
 
-        assertTrue("properties in udf context for load should be null", 
-                props.get("l") == null);
+        assertTrue(
+                "properties in udf context for load should be empty: "+props, 
+                props.keySet().size() == 0);
 
         
     }
