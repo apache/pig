@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2808: Add *.project to .gitignore (azaroth)
+
 PIG-2806: Fix merge join test regression (jcoveney)
 
 PIG-2787: change the module name in ivy to lowercase to match the maven repo (julien)
