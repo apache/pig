@@ -275,6 +275,9 @@ public class MapReduceLauncher extends Launcher{
             //All the setup done, now lets launch the jobs.
             jcThread.start();
             
+            // a flag whether to warn failure during the loop below, so users can notice failure earlier.
+            boolean warn_failure = true;
+            
             // Now wait, till we are finished.
             while(!jc.allFinished()){
 
@@ -321,7 +324,16 @@ public class MapReduceLauncher extends Launcher{
             	
             	// collect job stats by frequently polling of completed jobs (PIG-1829)
             	PigStatsUtil.accumulateStats(jc);
-            	       	
+            	
+                // if stop_on_failure is enabled, we need to stop immediately when any job has failed
+                checkStopOnFailure(stop_on_failure);
+                // otherwise, we just display a warning message if there's any failure
+                if (warn_failure && !jc.getFailedJobs().isEmpty()) {
+                    // we don't warn again for this group of jobs
+                    warn_failure = false;
+                    log.warn("Ooops! Some job has failed! Specify -stop_on_failure if you "
+                            + "want Pig to stop immediately on failure.");
+                }
             }
             
             //check for the jobControlException first
@@ -345,21 +357,8 @@ public class MapReduceLauncher extends Launcher{
             }
             
             if (!jc.getFailedJobs().isEmpty() ) {
-                if (stop_on_failure){
-                    int errCode = 6017;
-                    StringBuilder msg = new StringBuilder();
-                    
-                    for (int i=0; i<jc.getFailedJobs().size(); i++) {
-                        Job j = jc.getFailedJobs().get(i);
-                        msg.append(j.getMessage());
-                        if (i!=jc.getFailedJobs().size()-1) {
-                            msg.append("\n");
-                        }
-                    }
-                    
-                    throw new ExecException(msg.toString(), errCode,
-                            PigException.REMOTE_ENVIRONMENT);
-                }
+                // stop if stop_on_failure is enabled
+                checkStopOnFailure(stop_on_failure);
                 
                 // If we only have one store and that job fail, then we sure 
                 // that the job completely fail, and we shall stop dependent jobs
@@ -470,6 +469,32 @@ public class MapReduceLauncher extends Launcher{
         return PigStatsUtil.getPigStats(ret);
     }
 
+    /**
+     * If stop_on_failure is enabled and any job has failed, an ExecException is thrown.
+     * @param stop_on_failure whether it's enabled.
+     * @throws ExecException If stop_on_failure is enabled and any job is failed
+     */
+    private void checkStopOnFailure(boolean stop_on_failure) throws ExecException{
+    	if (jc.getFailedJobs().isEmpty())
+            return;
+    	
+    	if (stop_on_failure){
+            int errCode = 6017;
+            StringBuilder msg = new StringBuilder();
+            
+            for (int i=0; i<jc.getFailedJobs().size(); i++) {
+                Job j = jc.getFailedJobs().get(i);
+                msg.append(j.getMessage());
+                if (i!=jc.getFailedJobs().size()-1) {
+                    msg.append("\n");
+                }
+            }
+            
+            throw new ExecException(msg.toString(), errCode,
+                    PigException.REMOTE_ENVIRONMENT);
+        }
+    }
+    
     private String getStackStraceStr(Throwable e) {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PrintStream ps = new PrintStream(baos);
