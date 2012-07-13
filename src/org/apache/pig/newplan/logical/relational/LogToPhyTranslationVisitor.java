@@ -91,8 +91,6 @@ import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.newplan.logical.expression.ProjectExpression;
 import org.apache.pig.parser.SourceLocation;
 
-import com.google.common.collect.Lists;
-
 public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
     private static final Log LOG = LogFactory.getLog(LogToPhyTranslationVisitor.class);
     
@@ -962,14 +960,18 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
             logToPhyMap.put(loj, skj);
         }
         else if(loj.getJoinType() == LOJoin.JOINTYPE.REPLICATED) {
-            List<Schema> inputSchemas = Lists.newArrayListWithCapacity(inputs.size());
-            List<Schema> keySchemas = Lists.newArrayListWithCapacity(inputs.size());
+            Schema[] inputSchemas = new Schema[inputs.size()];
+            Schema[] keySchemas = new Schema[inputs.size()];
 
             outer: for (int i = 0; i < inputs.size(); i++) {
-                Schema toGen = Schema.getPigSchema(new ResourceSchema(((LogicalRelationalOperator)inputs.get(i)).getSchema()));
+                LogicalSchema logicalSchema = ((LogicalRelationalOperator)inputs.get(i)).getSchema();
+                if (logicalSchema == null) {
+                    continue;
+                }
+                Schema toGen = Schema.getPigSchema(new ResourceSchema(logicalSchema));
                 // This registers the value piece
                 SchemaTupleFrontend.registerToGenerateIfPossible(toGen, false, GenContext.FR_JOIN);
-                inputSchemas.add(toGen);
+                inputSchemas[i] = toGen;
 
                 Schema keyToGen = new Schema();
                 for (Byte byt : keyTypes.get(i)) {
@@ -981,7 +983,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                 }
 
                 SchemaTupleFrontend.registerToGenerateIfPossible(keyToGen, false, GenContext.FR_JOIN);
-                keySchemas.add(keyToGen);
+                keySchemas[i] = keyToGen;
             }
             
             int fragment = 0;

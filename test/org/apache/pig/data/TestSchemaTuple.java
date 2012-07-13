@@ -43,7 +43,6 @@ import java.util.Random;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.InputSplit;
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.pig.ExecType;
@@ -482,7 +481,7 @@ public class TestSchemaTuple {
         InputSplit is = new FileSplit(new Path(temp.getAbsolutePath()), 0, temp.length(), null);
 
         InterRecordReader reader = new InterRecordReader();
-        reader.initialize(is, new TaskAttemptContext(conf, taskId));
+        reader.initialize(is, HadoopShims.createTaskAttemptContext(conf, taskId));
 
         for (int i = 0; i < sz; i++) {
             assertTrue(reader.nextKeyValue());

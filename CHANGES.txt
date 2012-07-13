@@ -32,8 +32,6 @@ PIG-2726: Handling legitimate NULL values in Cube operator (prasanth_j via dvrya
 
 PIG-2808: Add *.project to .gitignore (azaroth)
 
-PIG-2806: Fix merge join test regression (jcoveney)
-
 PIG-2787: change the module name in ivy to lowercase to match the maven repo (julien)
 
 PIG-2632: Create a SchemaTuple which generates efficient Tuples via code gen (jcoveney)
@@ -195,6 +193,10 @@ PIG-2337: Provide UDF with input schema (xutingz via daijy)
 OPTIMIZATIONS
 
 BUG FIXES
+
+PIG-2813: Fix test regressions from PIG-2632 (jcoveney)
+
+PIG-2806: Fix merge join test regression from PIG-2632 (jcoveney)
 
 PIG-2809: TestUDFContext broken by PIG-2699 (julienledem via daijy)
 
