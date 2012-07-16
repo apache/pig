@@ -21,6 +21,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.builtin.PigStorage;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.util.UDFContext;
 
 import java.io.IOException;
@@ -32,6 +33,18 @@ import java.util.Properties;
 public class RegisteredJarVisibilityLoader extends PigStorage {
     private static final Log LOG = LogFactory.getLog(RegisteredJarVisibilityLoader.class);
     private static final String REGISTERED_JAR_VISIBILITY_SCHEMA = "registered.jar.visibility.schema";
+
+    public RegisteredJarVisibilityLoader() throws IOException, ClassNotFoundException {
+        // make sure classes that were visible here and through current
+        // PigContext are the same
+        Class<?> clazz = ClassLoaderSanityCheck.class;
+        Class<?> loadedClass = Class.forName(clazz.getName(), true, PigContext.getClassLoader());
+        if (!clazz.equals(loadedClass)) {
+            throw new RuntimeException("class loader sanity check failed. "
+                    + "please make sure jar registration does not result in "
+                    + "multiple instances of same classes");
+        }
+    }
 
     @Override
     public void setLocation(String location, Job job) throws IOException {

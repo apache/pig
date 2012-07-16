@@ -194,6 +194,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2815: class loader management in PigContext (rangadi via jcoveney)
+
 PIG-2813: Fix test regressions from PIG-2632 (jcoveney)
 
 PIG-2806: Fix merge join test regression from PIG-2632 (jcoveney)
