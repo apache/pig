@@ -79,6 +79,7 @@ public class TestRegisteredJarVisibility {
 
         File[] javaFiles = new File[]{
                 new File(testResourcesDir, "RegisteredJarVisibilityLoader.java"),
+                new File(testResourcesDir, "ClassLoaderSanityCheck.java"),
                 new File(testResourcesDir, "RegisteredJarVisibilitySchema.java")};
 
         List<File> classFiles = compile(javaFiles);
@@ -120,7 +121,12 @@ public class TestRegisteredJarVisibility {
 
         String query = "register " + jarFile.getAbsolutePath() + ";\n"
                 + "a = load '" + INPUT_FILE.getName()
-                + "' using org.apache.pig.test.RegisteredJarVisibilityLoader();";
+                + "' using org.apache.pig.test.RegisteredJarVisibilityLoader();\n"
+                // register again to test classloader consistency
+                + "register " +  jarFile.getAbsolutePath() + ";\n"
+                + "b = load 'non_existent' "
+                + "using org.apache.pig.test.RegisteredJarVisibilityLoader();";
+
         LOG.info("Running pig script:\n" + query);
         pigServer.registerScript(new ByteArrayInputStream(query.getBytes()));
 
