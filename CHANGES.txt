@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2763: Groovy UDFs (herberts via julien)
+
 PIG-2780: MapReduceLauncher should break early when one of the jobs throws an exception (jay23jack via daijy)
 
 PIG-2804: Remove "PIG" exec type (dvryaboy)

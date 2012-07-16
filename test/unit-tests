@@ -67,4 +67,5 @@
 **/TestSubtract.java
 **/TestTextDataParser.java
 **/TestTupleFormat.java
+**/TestUDFGroovy.java
 **/TestUDFWithoutParameter.java
