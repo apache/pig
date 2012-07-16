@@ -43,14 +43,15 @@ import org.apache.pig.tools.pigstats.PigStats;
  * Base class for various scripting implementations
  */
 public abstract class ScriptEngine {
-    
+
     public static enum SupportedScriptLang {
 
         // possibly jruby in the future
         jruby(new String[]{"ruby", "jruby"}, new String[]{"rb"}, "org.apache.pig.scripting.jruby.JrubyScriptEngine"),
-        jython(new String[]{"python", "jython"}, new String[]{"py"}, "org.apache.pig.scripting.jython.JythonScriptEngine"), 
-        javascript(new String[]{}, new String[]{"js"}, "org.apache.pig.scripting.js.JsScriptEngine");
-        
+        jython(new String[]{"python", "jython"}, new String[]{"py"}, "org.apache.pig.scripting.jython.JythonScriptEngine"),
+        javascript(new String[]{}, new String[]{"js"}, "org.apache.pig.scripting.js.JsScriptEngine"),
+        groovy(new String[]{}, new String[]{"groovy"}, "org.apache.pig.scripting.groovy.GroovyScriptEngine");
+
         private static Set<String> supportedScriptLangs;
         static {
             supportedScriptLangs = new HashSet<String>();
