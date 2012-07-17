@@ -42,6 +42,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.util.JavaCompilerHelper;
 
 import com.google.common.collect.Lists;
 
@@ -230,51 +231,12 @@ public class SchemaTupleClassGenerator {
      */
     //TODO in the future, we can use ASM to generate the bytecode directly.
     private static void compileCodeString(String className, String generatedCodeString, File codeDir) {
-        JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-        JavaFileManager fileManager = compiler.getStandardFileManager(null, null, null);
-        Iterable<? extends JavaFileObject> compilationUnits = Lists.newArrayList(new JavaSourceFromString(className, generatedCodeString));
-
-        DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<JavaFileObject>();
-
+        JavaCompilerHelper compiler = new JavaCompilerHelper(); 
         String tempDir = codeDir.getAbsolutePath();
-
-        String classPath = System.getProperty("java.class.path") + ":" + tempDir;
-        LOG.debug("Compiling SchemaTuple code with classpath: " + classPath);
-
-        List<String> optionList = Lists.newArrayList();
-        // Adds the current classpath to the compiler along with our generated code
-        optionList.add("-classpath");
-        optionList.add(classPath);
-        optionList.add("-d");
-        optionList.add(tempDir);
-
-        if (!compiler.getTask(null, fileManager, diagnostics, optionList, null, compilationUnits).call()) {
-            LOG.warn("Error compiling: " + className + ". Printing compilation errors and shutting down.");
-            for (Diagnostic<? extends JavaFileObject> diagnostic : diagnostics.getDiagnostics()) {
-                LOG.warn("Error on line " + diagnostic.getLineNumber() + ": " + diagnostic.getMessage(Locale.US));
-            }
-            throw new RuntimeException("Unable to compile code string:\n" + generatedCodeString);
-        }
-
+        compiler.addToClassPath(tempDir);
+        LOG.debug("Compiling SchemaTuple code with classpath: " + compiler.getClassPath());
+        compiler.compile(tempDir, new JavaCompilerHelper.JavaSourceFromString(className, generatedCodeString));
         LOG.info("Successfully compiled class: " + className);
-    }
-
-    /**
-     * This class allows code to be generated directly from a String, instead of having to be
-     * on disk.
-     */
-    private static class JavaSourceFromString extends SimpleJavaFileObject {
-        final String code;
-
-        JavaSourceFromString(String name, String code) {
-            super(URI.create("string:///" + name.replace('.','/') + Kind.SOURCE.extension), Kind.SOURCE);
-            this.code = code;
-        }
-
-        @Override
-        public CharSequence getCharContent(boolean ignoreEncodingErrors) {
-            return code;
-        }
     }
 
     static class CompareToSpecificString extends TypeInFunctionStringOut {
