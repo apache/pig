@@ -92,7 +92,7 @@ public class TestJoin extends TestCase {
             fileName = fileNameHint;
         } else if (execType == ExecType.LOCAL) {
             File f = Util.createInputFile("test", fileNameHint, data);
-            fileName = "file://" + f.getAbsolutePath();
+            fileName = Util.generateURI(Util.encodeEscape(f.getAbsolutePath()), pigServer.getPigContext());
         }
         return fileName;
     }
@@ -173,8 +173,8 @@ public class TestJoin extends TestCase {
             Tuple expectedResult = (Tuple)Util.getPigConstant("('hello',1,'hello','world')");
             
             // with schema
-            String script = "a = load '"+ firstInput +"' as (n:chararray, a:int); " +
-            		"b = load '"+ secondInput +"' as (n:chararray, m:chararray); " +
+            String script = "a = load '"+ Util.encodeEscape(firstInput) +"' as (n:chararray, a:int); " +
+            		"b = load '"+ Util.encodeEscape(secondInput) +"' as (n:chararray, m:chararray); " +
             		"c = join a by $0, b by $0;";
             Util.registerMultiLineQuery(pigServer, script);
             Iterator<Tuple> it = pigServer.openIterator("c");
@@ -183,8 +183,8 @@ public class TestJoin extends TestCase {
             assertEquals(false, it.hasNext());
             
             // without schema
-            script = "a = load '"+ firstInput + "'; " +
-            "b = load '" + secondInput + "'; " +
+            script = "a = load '"+ Util.encodeEscape(firstInput) + "'; " +
+            "b = load '" + Util.encodeEscape(secondInput) + "'; " +
             "c = join a by $0, b by $0;";
             Util.registerMultiLineQuery(pigServer, script);
             it = pigServer.openIterator("c");
@@ -216,8 +216,8 @@ public class TestJoin extends TestCase {
             Tuple expectedResult = (Tuple)Util.getPigConstant("(1,2,1,'hello',1,2,1,'hello')");
             
             // with schema
-            String script = "a = load '"+ firstInput +"' as (i:int, j:int); " +
-                    "b = load '"+ secondInput +"' as (k:int, l:chararray); " +
+            String script = "a = load '"+ Util.encodeEscape(firstInput) +"' as (i:int, j:int); " +
+                    "b = load '"+ Util.encodeEscape(secondInput) +"' as (k:int, l:chararray); " +
                     "c = join a by $0, b by $0;" +
                     "d = foreach c generate i,j,k,l,a::i as ai,a::j as aj,b::k as bk,b::l as bl;";
             Util.registerMultiLineQuery(pigServer, script);
@@ -227,8 +227,8 @@ public class TestJoin extends TestCase {
             assertEquals(false, it.hasNext());
             
             // schema with duplicates
-            script = "a = load '"+ firstInput +"' as (i:int, j:int); " +
-            "b = load '"+ secondInput +"' as (i:int, l:chararray); " +
+            script = "a = load '"+ Util.encodeEscape(firstInput) +"' as (i:int, j:int); " +
+            "b = load '"+ Util.encodeEscape(secondInput) +"' as (i:int, l:chararray); " +
             "c = join a by $0, b by $0;" +
             "d = foreach c generate i,j,l,a::i as ai,a::j as aj,b::i as bi,b::l as bl;";
             boolean exceptionThrown = false;
@@ -243,8 +243,8 @@ public class TestJoin extends TestCase {
             assertEquals(true, exceptionThrown);
             
             // schema with duplicates with resolution
-            script = "a = load '"+ firstInput +"' as (i:int, j:int); " +
-            "b = load '"+ secondInput +"' as (i:int, l:chararray); " +
+            script = "a = load '"+ Util.encodeEscape(firstInput) +"' as (i:int, j:int); " +
+            "b = load '"+ Util.encodeEscape(secondInput) +"' as (i:int, l:chararray); " +
             "c = join a by $0, b by $0;" +
             "d = foreach c generate a::i as ai1,j,b::i as bi1,l,a::i as ai2,a::j as aj2,b::i as bi3,b::l as bl3;";
             Util.registerMultiLineQuery(pigServer, script);
@@ -283,11 +283,11 @@ public class TestJoin extends TestCase {
         }
         
         // with schema
-        String script = "a = load '"+ firstInput +"' ; " +
+        String script = "a = load '"+ Util.encodeEscape(firstInput) +"' ; " +
         //re-using alias a for new operator below, doing this intentionally 
         // because such use case has been seen
         "a = foreach a generate $0 as i, $1 as j ;" +
-        "b = load '"+ secondInput +"' as (k, l); " +
+        "b = load '"+ Util.encodeEscape(secondInput) +"' as (k, l); " +
         "c = join a by $0, b by $0;" +
         "d = foreach c generate i,j,k,l,a::i as ai,a::j as aj,b::k as bk,b::l as bl;";
         Util.registerMultiLineQuery(pigServer, script);
@@ -329,8 +329,8 @@ public class TestJoin extends TestCase {
             // with and without optional outer
             for(int i = 0; i < 2; i++) {
                 //with schema
-                String script = "a = load '"+ firstInput +"' as (n:chararray, a:int); " +
-                        "b = load '"+ secondInput +"' as (n:chararray, m:chararray); ";
+                String script = "a = load '"+ Util.encodeEscape(firstInput) +"' as (n:chararray, a:int); " +
+                        "b = load '"+ Util.encodeEscape(secondInput) +"' as (n:chararray, m:chararray); ";
                 if(i == 0) {
                     script +=  "c = join a by $0 left outer, b by $0;" ;
                 } else {
@@ -351,8 +351,8 @@ public class TestJoin extends TestCase {
                     assertEquals(expectedResults.size(), counter);
                     
                     // without schema
-                    script = "a = load '"+ firstInput +"'; " +
-                    "b = load '"+ secondInput +"'; ";
+                    script = "a = load '"+ Util.encodeEscape(firstInput) +"'; " +
+                    "b = load '"+ Util.encodeEscape(secondInput) +"'; ";
                     if(i == 0) {
                         script +=  "c = join a by $0 left outer, b by $0;" ;
                     } else {
@@ -398,8 +398,8 @@ public class TestJoin extends TestCase {
             // with and without optional outer
             for(int i = 0; i < 2; i++) {
                 // with schema
-                String script = "a = load '"+ firstInput +"' as (n:chararray, a:int); " +
-                        "b = load '"+ secondInput +"' as (n:chararray, m:chararray); ";
+                String script = "a = load '"+ Util.encodeEscape(firstInput) +"' as (n:chararray, a:int); " +
+                        "b = load '"+ Util.encodeEscape(secondInput) +"' as (n:chararray, m:chararray); ";
                 if(i == 0) {
                     script +=  "c = join a by $0 right outer, b by $0;" ;
                 } else {
@@ -420,8 +420,8 @@ public class TestJoin extends TestCase {
                     assertEquals(expectedResults.size(), counter);
                     
                     // without schema
-                    script = "a = load '"+ firstInput +"'; " +
-                    "b = load '"+ secondInput +"'; " ;
+                    script = "a = load '"+ Util.encodeEscape(firstInput) +"'; " +
+                    "b = load '"+ Util.encodeEscape(secondInput) +"'; " ;
                     if(i == 0) {
                         script +=  "c = join a by $0 right outer, b by $0;" ;
                     } else {
@@ -469,8 +469,8 @@ public class TestJoin extends TestCase {
             // with and without optional outer
             for(int i = 0; i < 2; i++) {
                 // with schema
-                String script = "a = load '"+ firstInput +"' as (n:chararray, a:int); " +
-                        "b = load '"+ secondInput +"' as (n:chararray, m:chararray); ";
+                String script = "a = load '"+ Util.encodeEscape(firstInput) +"' as (n:chararray, a:int); " +
+                        "b = load '"+ Util.encodeEscape(secondInput) +"' as (n:chararray, m:chararray); ";
                 if(i == 0) {
                     script +=  "c = join a by $0 full outer, b by $0;" ;
                 } else {
@@ -491,8 +491,8 @@ public class TestJoin extends TestCase {
                     assertEquals(expectedResults.size(), counter);
                     
                     // without schema
-                    script = "a = load '"+ firstInput +"'; " +
-                    "b = load '"+ secondInput +"'; " ;
+                    script = "a = load '"+ Util.encodeEscape(firstInput) +"'; " +
+                    "b = load '"+ Util.encodeEscape(secondInput) +"'; " ;
                     if(i == 0) {
                         script +=  "c = join a by $0 full outer, b by $0;" ;
                     } else {
@@ -577,8 +577,8 @@ public class TestJoin extends TestCase {
             String firstInput = createInputFile(execType, "a.txt", input1);
             String secondInput = createInputFile(execType, "b.txt", input2);
             
-            String script = "a = load '"+ firstInput +"' as (a:tuple(a1:int, a2:chararray));" +
-                    "b = load '"+ secondInput +"' as (b:tuple(b1:int, b2:chararray));" +
+            String script = "a = load '"+ Util.encodeEscape(firstInput) +"' as (a:tuple(a1:int, a2:chararray));" +
+                    "b = load '"+ Util.encodeEscape(secondInput) +"' as (b:tuple(b1:int, b2:chararray));" +
                     "c = join a by a.a1, b by b.b1;";
             Util.registerMultiLineQuery(pigServer, script);
             Iterator<Tuple> it = pigServer.openIterator("c");
@@ -612,8 +612,8 @@ public class TestJoin extends TestCase {
             String firstInput = createInputFile(execType, "a.txt", input1);
             String secondInput = createInputFile(execType, "b.txt", input2);
             
-            String script = "a = load '"+ firstInput +"' as (a1:int, a2:chararray);" +
-                    "b = load '"+ secondInput +"' as (b1:int, b2:chararray);" +
+            String script = "a = load '"+ Util.encodeEscape(firstInput) +"' as (a1:int, a2:chararray);" +
+                    "b = load '"+ Util.encodeEscape(secondInput) +"' as (b1:int, b2:chararray);" +
                     "c = join a by (a1, a2), b by (b1, b2);";
             Util.registerMultiLineQuery(pigServer, script);
             Iterator<Tuple> it = pigServer.openIterator("c");
