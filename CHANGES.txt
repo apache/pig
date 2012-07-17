@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2797: Tests should not create their own file URIs through string concatenation, should use Util.generateURI instead (jgordon via azaroth)
+
 PIG-2820: relToAbsolutePath is not replayed properly when Grunt reparses the script after PIG-2699 (julien)
 
 PIG-2763: Groovy UDFs (herberts via julien)
