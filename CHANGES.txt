@@ -204,6 +204,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2825: StoreFunc signature setting in LogicalPlan broken (jcoveney)
+
 PIG-2815: class loader management in PigContext (rangadi via jcoveney)
 
 PIG-2813: Fix test regressions from PIG-2632 (jcoveney)
