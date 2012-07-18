@@ -20,7 +20,6 @@ package org.apache.pig.parser;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -718,7 +717,10 @@ public class LogicalPlanBuilder {
 
             StoreFuncInterface stoFunc = (StoreFuncInterface)PigContext.instantiateFuncFromSpec(instantiatedFuncSpec);
             String fileNameKey = inputAlias + "_" + (storeIndex++) ;
-            stoFunc.setStoreFuncUDFContextSignature(fileNameKey);
+
+            String signature = inputAlias + "_" + newOperatorKey();
+            stoFunc.setStoreFuncUDFContextSignature(signature);
+
             String absolutePath = fileNameMap.get(fileNameKey);
             if (absolutePath == null) {
                 absolutePath = stoFunc.relToAbsPathForStoreLocation(
@@ -730,7 +732,8 @@ public class LogicalPlanBuilder {
                 fileNameMap.put(fileNameKey, absolutePath);
             }
             FileSpec fileSpec = new FileSpec(absolutePath, funcSpec);
-            LOStore op = new LOStore(plan, fileSpec, stoFunc, inputAlias + "_" + newOperatorKey());
+
+            LOStore op = new LOStore(plan, fileSpec, stoFunc, signature);
             return buildOp(loc, op, alias, inputAlias, null);
         } catch(Exception ex) {
             throw new ParserValidationException(intStream, loc, ex);
