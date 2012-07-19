@@ -206,6 +206,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2827: Unwrap exception swallowing in TOP (haitao.yao via jcoveney)
+
 PIG-2825: StoreFunc signature setting in LogicalPlan broken (jcoveney)
 
 PIG-2815: class loader management in PigContext (rangadi via jcoveney)
@@ -240,21 +242,21 @@ PIG-2709: PigAvroRecordReader should specify which file has a problem when throw
 
 PIG-2640: Usage message gives wrong information for Pig additional jars (prkommireddi via daijy)
 
-	PIG-2652:  Skew join and order by don't trigger reducer estimation (dvryaboy)
+PIG-2652:  Skew join and order by don't trigger reducer estimation (dvryaboy)
 
 PIG-2616: JobControlCompiler.getInputSizeFromLoader must handle exceptions from LoadFunc.getStatistics (billgraham)
 
-	PIG-2644: Piggybank's HadoopJobHistoryLoader throws NPE when reading broken history file (herberts via daijy)
+PIG-2644: Piggybank's HadoopJobHistoryLoader throws NPE when reading broken history file (herberts via daijy)
 
 PIG-2627: Custom partitioner not set when POSplit is involved in Plan (aniket486 via daijy)
 
 PIG-2596: Jython UDF does not handle boolean output (aniket486 via daijy)
 
-	PIG-2649: org.apache.pig.parser.ParserValidationException does not expose the cause exception
+PIG-2649: org.apache.pig.parser.ParserValidationException does not expose the cause exception
 
-	PIG-2540: [piggybank] AvroStorage can't read schema on amazon s3 in elastic mapreduce (rjurney via jcoveney)
+PIG-2540: [piggybank] AvroStorage can't read schema on amazon s3 in elastic mapreduce (rjurney via jcoveney)
 
-	PIG-2618: e2e local fails to build
+PIG-2618: e2e local fails to build
 
 PIG-2608: Typo in PigStorage documentation for source tagging (prkommireddi via daijy)
 
@@ -274,9 +276,9 @@ PIG-2491: Pig docs still mention hadoop-site.xml (daijy)
 
 PIG-2504: Incorrect sample provided for REGEX_EXTRACT (prkommireddi via daijy)
 
-	PIG-2502: Make "hcat.bin" configurable in e2e test (daijy)
+PIG-2502: Make "hcat.bin" configurable in e2e test (daijy)
 
-	PIG-2501: Changes needed to contrib/piggybank/java/build.xml in order to build piggybank.jar with Hadoop 0.23
+PIG-2501: Changes needed to contrib/piggybank/java/build.xml in order to build piggybank.jar with Hadoop 0.23
 (ekoontz via daijy)
 
 PIG-2499: Pig TestGrunt.testShellCommand occasionally fails (tomwhite via daijy)
