@@ -688,6 +688,7 @@
                 <include name="log4j*.jar" />
                 <include name="jsp-api*.jar" />
                 <include name="zookeeper*.jar" />
+                <include name="jansi-${jansi.version}.jar" />
             </zipgroupfileset>
             <fileset file="${basedir}/src/pig-default.properties" />
             <fileset file="${basedir}/src/main/jruby/pigudf.rb" />
@@ -772,6 +773,7 @@
                 <include name="jackson-core-asl-${jackson.version}.jar" />
                 <include name="guava-${guava.version}.jar" />
                 <include name="automaton-${automaton.version}.jar" />
+                <include name="jansi-${jansi.version}.jar" />
             </zipgroupfileset>
             <fileset file="${basedir}/src/pig-default.properties" />
             <fileset file="${basedir}/src/main/jruby/pigudf.rb" />

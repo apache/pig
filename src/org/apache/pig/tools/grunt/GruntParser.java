@@ -75,6 +75,8 @@ import org.apache.pig.tools.pigscript.parser.PigScriptParserTokenManager;
 import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
+import org.fusesource.jansi.Ansi;
+import org.fusesource.jansi.AnsiConsole;
 
 @SuppressWarnings("deprecation")
 public class GruntParser extends PigScriptParser {
@@ -406,12 +408,21 @@ public class GruntParser extends PigScriptParser {
             log.warn("'aliases' statement is ignored while processing 'explain -script' or '-check'");
         }
     }
-    
+
+    @Override
+	protected void printClear() {
+        AnsiConsole.systemInstall();
+        Ansi ansi = Ansi.ansi();
+        System.out.println( ansi.eraseScreen() );
+        System.out.println( ansi.cursor(0, 0) );
+        AnsiConsole.systemUninstall();
+    }
+
     @Override
     protected void processRegister(String jar) throws IOException {
         mPigServer.registerJar(jar);
     }
-    
+
     @Override
     protected void processRegister(String path, String scriptingLang, String namespace) throws IOException, ParseException {
         if(path.endsWith(".jar")) {
