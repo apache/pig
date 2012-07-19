@@ -59,31 +59,33 @@ public abstract class PigScriptParser
         mConsoleReader = c;
         token_source.consoleReader = c;
     }
-    
+
 	abstract public void prompt();
-	
+
 	abstract protected void quit();
-	
+
 	abstract protected void printAliases() throws IOException;
+
+	abstract protected void printClear();
 
 	abstract protected void processFsCommand(String[] cmdTokens) throws IOException;
 
 	abstract protected void processShCommand(String[] cmdTokens) throws IOException;
-	
+
 	abstract protected void processSQLCommand(String cmdTokens) throws IOException;
-	
+
 	abstract protected void processDescribe(String alias) throws IOException;
 
 	abstract protected void processExplain(String alias, String script, boolean isVerbose, String format, String target, List<String> params, List<String> files) throws IOException, ParseException;
-	
+
 	abstract protected void processRegister(String jar) throws IOException;
-	
+
 	abstract protected void processRegister(String path, String scriptingEngine, String namespace) throws IOException, ParseException;
 
 	abstract protected void processSet(String key, String value) throws IOException, ParseException;
-		
+
     abstract protected void processHistory(boolean withNumbers);
-    		
+
 	abstract protected void processCat(String path) throws IOException;
 
 	abstract protected void processCD(String path) throws IOException;
@@ -141,6 +143,7 @@ SKIP : {
 
 // commands
 TOKEN: {<CAT: "cat">}
+TOKEN: {<CLEAR: "clear">}
 TOKEN: {<FS: "fs">}
 TOKEN: {<SH:"sh">}
 TOKEN: {<CD: "cd">}
@@ -450,8 +453,10 @@ void parse() throws IOException:
 	<CAT>
 	(
 	t1 = GetPath()
-	{processCat(t1.image);}		
+	{processCat(t1.image);}
 	)+
+	|
+	Clear()
 	|
 	<CD>
 	(
@@ -579,6 +584,14 @@ void parse() throws IOException:
 	handle_invalid_command(EOL)
 	{prompt();}
 	)
+}
+
+void Clear():
+{
+}
+{
+	<CLEAR>
+	{printClear();}
 }
 
 void Illustrate() throws IOException:
@@ -765,6 +778,8 @@ Token GetReserved () :
 	t = <CAT>
 	|
 	t = <CD>
+	|
+	t = <CLEAR>
 	|
 	t = <COPY>
 	|

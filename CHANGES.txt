@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2706: Add clear to list of grunt commands (xalan via azaroth)
+
 PIG-2823: TestPigContext.testImportList() does not pass if another javac in on the PATH (julien)
 
 PIG-2800: pig.additional.jars path separator should align with File.pathSeparator instead of being hard-coded to ":" (jgordon via azaroth)

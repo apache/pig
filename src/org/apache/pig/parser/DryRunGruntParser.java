@@ -367,4 +367,8 @@ public class DryRunGruntParser extends PigScriptParser {
         sb.append(script).append("\n");
     }
 
+	@Override
+	protected void printClear() {
+	}
+
 }
