@@ -130,7 +130,7 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
         } catch (ExecException e) {
             throw new RuntimeException("ExecException executing function: ", e);
         } catch (Exception e) {
-            throw new RuntimeException("General Exception executing function: " + e);
+            throw new RuntimeException("General Exception executing function: ", e);
         }
     }
 
