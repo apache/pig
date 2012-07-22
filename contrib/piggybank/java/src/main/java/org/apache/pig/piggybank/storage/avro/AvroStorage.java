@@ -131,17 +131,24 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
      */
     @Override
     public void setLocation(String location, Job job) throws IOException {
-        HashSet<Path> paths = new HashSet<Path>();
-        if(AvroStorageUtils.getAllSubDirs(URI.create(location), job, paths) && inputAvroSchema == null) {
+        if (inputAvroSchema != null) {
+            return;
+        }
+        Set<Path> paths = new HashSet<Path>();
+        if (AvroStorageUtils.getAllSubDirs(new Path(location), job, paths)) {
             FileInputFormat.setInputPaths(job, paths.toArray(new Path[0]));
             inputAvroSchema = getAvroSchema(location, job);
+        } else {
+            throw new IOException("Input path \'" + location + "\' is not found");
         }
     }
 
     protected Schema getAvroSchema(String location, Job job) throws IOException {
-        Configuration conf = job.getConfiguration();
-        FileSystem fs = FileSystem.get(URI.create(location), conf);
-        Path path = new Path(location);
+        Path path = AvroStorageUtils.getConcretePathFromGlob(location, job);
+        if (path == null) {
+            return null;
+        }
+        FileSystem fs = FileSystem.get(path.toUri(), job.getConfiguration());
         return getAvroSchema(path, fs);
     }
 

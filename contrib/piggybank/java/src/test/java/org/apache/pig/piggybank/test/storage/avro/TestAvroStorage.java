@@ -25,12 +25,16 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobCreationException;
+import org.apache.pig.piggybank.storage.avro.AvroStorage;
 import org.apache.pig.piggybank.storage.avro.PigSchema2Avro;
 import org.apache.pig.test.Util;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -64,6 +68,13 @@ public class TestAvroStorage {
         return "file://" + System.getProperty("user.dir") + "/" + basedir + file;
     }
 
+    final private String testDir1 = getInputFile("test_dir1");
+    final private String testDir1AllFiles = getInputFile("test_dir1/*");
+    final private String testDir1Files123 = getInputFile("test_dir1/test_glob{1,2,3}.avro");
+    final private String testDir1Files321 = getInputFile("test_dir1/test_glob{3,2,1}.avro");
+    final private String testDir12AllFiles = getInputFile("{test_dir1,test_dir2}/test_glob*.avro");
+    final private String testDir21AllFiles = getInputFile("{test_dir2,test_dir1}/test_glob*.avro");
+    final private String testNoMatchedFiles = getInputFile("test_dir{1,2}/file_that_does_not_exist*.avro");
     final private String testArrayFile = getInputFile("test_array.avro");
     final private String testRecordFile = getInputFile("test_record.avro");
     final private String testRecordSchema = getInputFile("test_record.avsc");
@@ -80,6 +91,117 @@ public class TestAvroStorage {
     @AfterClass
     public static void teardown() {
         if(pigServerLocal != null) pigServerLocal.shutdown();
+    }
+
+    @Test
+    public void testDir() throws IOException {
+        // Verify that all files in a directory including its sub-directories are loaded.
+        String output= outbasedir + "testDir";
+        String expected = basedir + "expected_testDir.avro";
+        deleteDirectory(new File(output));
+        String [] queries = {
+           " in = LOAD '" + testDir1 + " ' USING org.apache.pig.piggybank.storage.avro.AvroStorage ();",
+           " STORE in INTO '" + output + "' USING org.apache.pig.piggybank.storage.avro.AvroStorage (" +
+               "   'schema', '{\"type\":\"array\",\"items\":\"float\"}'  );"
+            };
+        testAvroStorage( queries);
+        verifyResults(output, expected);
+    }
+
+    @Test
+    public void testGlob1() throws IOException {
+        // Verify that the a glob pattern matches files properly.
+        String output = outbasedir + "testGlob1";
+        String expected = basedir + "expected_test_dir_1.avro";
+        deleteDirectory(new File(output));
+        String [] queries = {
+           " in = LOAD '" + testDir1AllFiles + "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ();",
+           " STORE in INTO '" + output + "' USING org.apache.pig.piggybank.storage.avro.AvroStorage (" +
+               "   'schema', '{\"type\":\"array\",\"items\":\"float\"}'  );"
+            };
+        testAvroStorage(queries);
+        verifyResults(output, expected);
+    }
+
+    @Test
+    public void testGlob2() throws IOException {
+        // Verify that comma-separated filenames are escaped properly.
+        String output = outbasedir + "testGlob2";
+        String expected = basedir + "expected_test_dir_1.avro";
+        deleteDirectory(new File(output));
+        String [] queries = {
+           " in = LOAD '" + testDir1Files123 + "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ();",
+           " STORE in INTO '" + output + "' USING org.apache.pig.piggybank.storage.avro.AvroStorage (" +
+               "   'schema', '{\"type\":\"array\",\"items\":\"float\"}'  );"
+            };
+        testAvroStorage(queries);
+        verifyResults(output, expected);
+    }
+
+    @Test
+    public void testGlob3() throws IOException {
+        // Verify that comma-separated filenames are escaped properly.
+        String output = outbasedir + "testGlob3";
+        String expected = basedir + "expected_test_dir_1.avro";
+        deleteDirectory(new File(output));
+        String [] queries = {
+           " in = LOAD '" + testDir1Files321 + "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ();",
+           " STORE in INTO '" + output + "' USING org.apache.pig.piggybank.storage.avro.AvroStorage (" +
+               "   'schema', '{\"type\":\"array\",\"items\":\"float\"}'  );"
+            };
+        testAvroStorage(queries);
+        verifyResults(output, expected);
+    }
+
+    @Test
+    public void testGlob4() throws IOException {
+        // Verify that comma-separated directory names are escaped properly.
+        String output = outbasedir + "testGlob4";
+        String expected = basedir + "expected_test_dir_1_2.avro";
+        deleteDirectory(new File(output));
+        String [] queries = {
+           " in = LOAD '" + testDir12AllFiles + "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ();",
+           " STORE in INTO '" + output + "' USING org.apache.pig.piggybank.storage.avro.AvroStorage (" +
+               "   'schema', '{\"type\":\"array\",\"items\":\"float\"}'  );"
+            };
+        testAvroStorage(queries);
+        verifyResults(output, expected);
+    }
+
+    @Test
+    public void testGlob5() throws IOException {
+        // Verify that comma-separated directory names are escaped properly.
+        String output = outbasedir + "testGlob5";
+        String expected = basedir + "expected_test_dir_1_2.avro";
+        deleteDirectory(new File(output));
+        String [] queries = {
+           " in = LOAD '" + testDir21AllFiles + "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ();",
+           " STORE in INTO '" + output + "' USING org.apache.pig.piggybank.storage.avro.AvroStorage (" +
+               "   'schema', '{\"type\":\"array\",\"items\":\"float\"}'  );"
+            };
+        testAvroStorage(queries);
+        verifyResults(output, expected);
+    }
+
+    @Test
+    public void testGlob6() throws IOException {
+        // Verify that an IOException is thrown if no files are matched by the glob pattern.
+        String output = outbasedir + "testGlob6";
+        deleteDirectory(new File(output));
+        String [] queries = {
+           " in = LOAD '" + testNoMatchedFiles + "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ();",
+           " STORE in INTO '" + output + "' USING org.apache.pig.piggybank.storage.avro.AvroStorage (" +
+               "   'schema', '{\"type\":\"array\",\"items\":\"float\"}'  );"
+            };
+        try {
+            testAvroStorage(queries);
+            Assert.fail();
+        } catch (JobCreationException e) {
+            // The IOException thrown by AvroStorage for input file not found is catched
+            // by the Pig backend, and JobCreationException (a subclass of IOException)
+            // is re-thrown while creating a job configuration.
+            assertEquals(e.getMessage(), "Internal error creating job configuration.");
+        }
     }
 
     @Test
@@ -415,7 +537,7 @@ public class TestAvroStorage {
               count++;
             }        
             in.close();
-            assertEquals(count, expected.size());
+            assertEquals(expected.size(), count);
           }
         }
       }
