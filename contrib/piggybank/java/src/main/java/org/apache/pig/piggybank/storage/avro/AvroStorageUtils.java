@@ -101,7 +101,7 @@ public class AvroStorageUtils {
       Configuration conf = job.getConfiguration();
       FileSystem fs = FileSystem.get(conf);
       HashSet<Path> paths = new  HashSet<Path>();
-      if (getAllSubDirs(URI.create(pathString), job, paths))
+      if (getAllSubDirs(new Path(pathString), job, paths))
       {
         paths.addAll(Arrays.asList(FileInputFormat.getInputPaths(job)));
         FileInputFormat.setInputPaths(job, paths.toArray(new Path[0]));
@@ -116,30 +116,40 @@ public class AvroStorageUtils {
      * 
      * @throws IOException
      */
-    static boolean getAllSubDirs(URI location, Job job, Set<Path> paths) throws IOException {
-        FileSystem fs = FileSystem.get(location, job.getConfiguration());
-        Path path = new Path(location.getPath());
-  		if (PATH_FILTER.accept(path)) {
-  			try {
-  				FileStatus file = fs.getFileStatus(path);
-  				if (file.isDir()) {
-  					for (FileStatus sub : fs.listStatus(path)) {
-                        getAllSubDirs(sub.getPath().toUri(), job, paths);
-  					}
-  				} else {
-  					AvroStorageLog.details("Add input file:" + file);
-  					paths.add(file.getPath());
-  				}
-  			} catch (FileNotFoundException e) {
-                AvroStorageLog.details("getAllSubDirs: RETURN FALSE; Input path does not exist: " + path);
-  				AvroStorageLog.details("Input path does not exist: " + path);
-  				return false;
-  			}
-  			return true;
-  		}
-  		return false;
-  	}
-     
+    static boolean getAllSubDirs(Path path, Job job, Set<Path> paths) throws IOException {
+        FileSystem fs = FileSystem.get(path.toUri(), job.getConfiguration());
+        FileStatus[] matchedFiles = fs.globStatus(path, PATH_FILTER);
+        if (matchedFiles == null || matchedFiles.length == 0) {
+            return false;
+        }
+        for (FileStatus file : matchedFiles) {
+            if (file.isDir()) {
+                for (FileStatus sub : fs.listStatus(path)) {
+                    getAllSubDirs(sub.getPath(), job, paths);
+                }
+            } else {
+                AvroStorageLog.details("Add input file:" + file);
+                paths.add(file.getPath());
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Return the first path that matches the glob pattern in the file system.
+     *
+     * @throws IOException
+     */
+    public static Path getConcretePathFromGlob(String pattern, Job job) throws IOException {
+        Path path = new Path(pattern);
+        FileSystem fs = FileSystem.get(path.toUri(), job.getConfiguration());
+        FileStatus[] matchedFiles = fs.globStatus(path, PATH_FILTER);
+        if (matchedFiles == null || matchedFiles.length == 0) {
+            return null;
+        }
+        return matchedFiles[0].getPath();
+    }
+
     /** check whether there is NO directory in the input file (status) list*/
     public static boolean noDir(FileStatus [] ss) {
         for (FileStatus s : ss) {

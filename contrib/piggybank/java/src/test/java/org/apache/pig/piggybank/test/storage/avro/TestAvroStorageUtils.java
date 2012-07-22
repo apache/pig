@@ -17,8 +17,12 @@
 package org.apache.pig.piggybank.test.storage.avro;
 
 import org.apache.avro.Schema;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.piggybank.storage.avro.AvroStorageUtils;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -122,4 +126,41 @@ public class TestAvroStorageUtils {
         assertNull(realSchema);
     }
 
+    @Test
+    public void testGetConcretePathFromGlob() throws IOException {
+        final String defaultscheme = "file:";
+        final String basedir = System.getProperty("user.dir");
+        final String tempdir = Long.toString(System.currentTimeMillis());
+        final String nonexistentpath = basedir + "/" + tempdir + "/this_path_does_not_exist";
+
+        Path[] paths = null;
+        Path concretePath = null;
+        Job job = new Job(new Configuration());
+
+        // existent path
+        String locationStr = basedir;
+        concretePath = AvroStorageUtils.getConcretePathFromGlob(locationStr, job);
+        assertEquals(defaultscheme + basedir, concretePath.toString());
+
+        // non-existent path
+        locationStr = nonexistentpath;
+        concretePath = AvroStorageUtils.getConcretePathFromGlob(locationStr, job);
+        assertEquals(null, concretePath);
+
+        // empty glob pattern
+        locationStr = basedir + "/{}";
+        concretePath = AvroStorageUtils.getConcretePathFromGlob(locationStr, job);
+        assertEquals(null, concretePath);
+
+        // bad glob pattern
+        locationStr = basedir + "/{1,";
+        try {
+            concretePath = AvroStorageUtils.getConcretePathFromGlob(locationStr, job);
+            Assert.fail();
+        } catch (IOException e) {
+            // The message of the exception for illegal file pattern is rather long,
+            // so we simply confirm if it contains 'illegal file pattern'.
+            assertTrue(e.getMessage().contains("Illegal file pattern"));
+        }
+    }
 }
