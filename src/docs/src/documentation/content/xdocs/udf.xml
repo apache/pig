@@ -28,7 +28,7 @@
 <section id="udfs">
 <title>Introduction</title>
 <p>
-Pig provides extensive support for user defined functions (UDFs) as a way to specify custom processing. Pig UDFs can currently be implemented in three languages: Java, Python, JavaScript and Ruby. 
+Pig provides extensive support for user defined functions (UDFs) as a way to specify custom processing. Pig UDFs can currently be implemented in three languages: Java, Python, JavaScript, Ruby and Groovy. 
 </p>
 
 <p>
@@ -36,7 +36,7 @@ The most extensive support is provided for Java functions. You can customize all
 </p>
 
 <p>
-Limited support is provided for Python, JavaScript and Ruby functions. These functions are new, still evolving, additions to the system. Currently only the basic interface is supported; load/store functions are not supported. Furthermore, JavaScript and Ruby are provided as experimental features because they did not go through the same amount of testing as Java or Python. At runtime note that Pig will automatically detect the usage of a scripting UDF in the Pig script and will automatically ship the corresponding scripting jar, either Jython, Rhino or JRuby, to the backend.</p>
+Limited support is provided for Python, JavaScript, Ruby and Groovy functions. These functions are new, still evolving, additions to the system. Currently only the basic interface is supported; load/store functions are not supported. Furthermore, JavaScript, Ruby and Groovy are provided as experimental features because they did not go through the same amount of testing as Java or Python. At runtime note that Pig will automatically detect the usage of a scripting UDF in the Pig script and will automatically ship the corresponding scripting jar, either Jython, Rhino, JRuby or Groovy-all, to the backend.</p>
 
 <p></p>
 
@@ -1739,6 +1739,174 @@ function main() {
  </section>
 
 </section> 
+
+<!-- =============================================================== -->
+<section id="groovy-udfs">
+ <title>Writing Groovy UDFs</title>
+
+ <p><strong>Note:</strong> <em>Groovy UDFs are an experimental feature.</em></p>
+
+<!-- ++++++++++++++++++++++++++++++++++++++++++++++++ -->
+<section id="register-groovy">
+<title>Registering the UDF</title>
+<p>You can register a Groovy script as shown here. This example uses org.apache.pig.scripting.groovy.GroovyScriptEngine to interpret the Groovy script. You can develop and use custom script engines to support multiple programming languages and ways to interpret them. Currently, Pig identifies groovy as a keyword and ships the required scriptengine (groovy-all) to interpret it. </p>
+<source>
+Register 'test.groovy' using groovy as myfuncs;
+</source>
+
+<p>The following syntax is also supported, where myfuncs is the namespace created for all the functions inside test.groovy.</p>
+<source>
+register 'test.groovy' using org.apache.pig.scripting.groovy.GroovyScriptEngine as myfuncs;
+</source>
+
+<p>A registered script can contain multiple UDFs. UDFs can be static or instance methods, an instance of the enclosing class will be created as needed. Only methods for which a return schema is defined will be available in Pig.</p>
+</section>
+
+<!-- ++++++++++++++++++++++++++++++++++++++++++++++++ -->
+<section id="groovy-schema-return-types">
+<title>Return Types and Schemas</title>
+<p>You have two ways to define the return schema, both use annotations:</p>
+<p>@OutputSchema annotation - Defines the schema for a UDF in a format that Pig understands.</p>
+<source>
+import org.apache.pig.builtin.OutputSchema;
+
+class GroovyUDFs {
+  @OutputSchema('x:long')
+  long square(long x) {
+    return x*x;
+  }
+}
+</source>
+<source>
+outputSchema "t:(m:[], t:(name:chararray, age:int, gpa:double), b:{t:(name:chararray, age:int, gpa:double)})"
+</source>
+<p>@OutputSchemaFunction annotation - Defines the name of a function which will return the schema at runtime according to the input schema.</p>
+<source>
+import org.apache.pig.scripting.groovy.OutputSchemaFunction;",
+
+class GroovyUDFs {",
+  @OutputSchemaFunction('squareSchema')
+  public static square(x) {
+    return x * x;
+  }
+
+  public static squareSchema(input) {          
+    return input;
+  }
+}        
+
+</source>
+<p>Only methods annotated with either @OutputSchema or @OutputSchemaFunction will be exposed to Pig as UDFs. In the example above, squareSchema will not be available in Pig as a UDF.</p>
+</section>
+
+<!-- ++++++++++++++++++++++++++++++++++++++++++++++++ -->
+<section id="groovy-type-conversions">
+<title>Type Conversions</title>
+<p>The data passed back and forth between Pig and Groovy goes through a conversion process. The following conversions rules are applied:</p>
+
+<p>Pig to Groovy</p>
+<ul>
+  <li>Tuple: groovy.lang.Tuple</li>
+  <li>DataBag: groovy.lang.Tuple containing the bag's size and an iterator on its content</li>
+  <li>Map: java.util.Map</li>
+  <li>int/long/float/double: as is</li>
+  <li>chararray: String</li>
+  <li>bytearray: byte[] (content is copied)</li>
+  <li>boolean: boolean</li>
+  <li>null: null </li>
+</ul>
+<p>Anything else raises an exception</p>
+
+<p>Groovy to Pig</p>
+<ul>
+  <li>Object[]: Tuple</li>
+  <li>groovy.lang.Tuple: Tuple</li>
+  <li>org.apache.pig.data.Tuple: Tuple</li>
+  <li>org.apache.pig.data.DataBag: DataBag</li>
+  <li>java.util.Map: Map</li>
+  <li>java.util.List: DataBag</li>
+  <li>Byte/Short/Integer: int</li>
+  <li>Long/BigInteger: long</li>
+  <li>Float: float</li>
+  <li>Double/BigDecimal: double</li>
+  <li>String: chararray</li>
+  <li>byte[]: DataByteArray (content is copied)</li>
+  <li>Boolean: boolean</li>
+  <li>null: null</li>
+</ul>
+<p>Anything else raises an exception</p>
+</section>
+<!-- ++++++++++++++++++++++++++++++++++++++++++++++++ -->
+<section id="groovy-advanced">
+<title>Advanced Topics</title>
+<p>You can also write Algebraic and Accumulator UDFs using Groovy. Both types of UDFs are declared using annotations, a single Groovy file can therefore enclose several Algebraic/Accumulator UDFs, all mixed with regular UDFs.</p>
+
+<p>Algebraic UDFs are declared using three annotations, @AlgebraicInitial, @AlgebraicIntermed and @AlgebraicFinali which are to annotate methods that correspond to the initial, intermed and final steps of an Algebraic UDF. Those annotations have a single parameter which is the name of the Algebraic UDF that will be available in Pig. The methods annotated with @AlgebraicInitial and @AlgebraicIntermed accept a Tuple as parameter and return a Tuple. The return type of the method annotated with @AlgebraicFinal will determine the return type of the Algebraic UDF. Here is an example of an Algebraic UDF named 'sum' defined in Groovy:</p>
+ <source>
+import org.apache.pig.scripting.groovy.AlgebraicInitial;
+import org.apache.pig.scripting.groovy.AlgebraicIntermed;
+import org.apache.pig.scripting.groovy.AlgebraicFinal;
+
+class GroovyUDFs {
+  @AlgebraicFinal('sum')
+  public static long algFinal(Tuple t) {
+    long x = 0;
+    for (Object o: t[1]) {
+      x = x + o;
+    }
+    return x;
+  }
+  @AlgebraicInitial('sum')
+  public static Tuple algInitial(Tuple t) {
+    long x = 0;
+    for (Object o: t[1]) {
+      x = x + o[0];
+    }
+    return [x];
+  }
+  @AlgebraicIntermed('sum')
+  public static Tuple algIntermed(Tuple t) {
+    long x = 0;
+    for (Object o: t[1]) {
+      x = x + o;
+    }
+    return [x];
+  }
+}
+ </source>
+
+<p>Similarly, Accumulator UDFs are declared using the three annotations @AccumulatorAccumulate, @AccumulatorGetValue and @AccumulatorCleanup which are to annotate methods that correspond to the methods accumulate, getValue and cleanup of a Java Accumulator UDF. Those annotations have a single parameter which is the name of the Accumulator UDF that will be available in Pig. The methods annotated with @AccumulatorAccumulate and @AccumulatorCleanup return void. The methods annotated with @AccumulatorGetValue and @AccumulatorCleanup take no parameters. The method annotated with @AccumulatorAccumulate takes a Tuple as parameter. The return schema of the Accumulator UDF is determined by the @OutputSchema or @OutputSchemaFunction annotation used on the method annotated with @AccumulatorGetValue. Note that even though a method annotated with @AccumulatorGetValue has an @OutputSchema or @OutputSchemaFunction annotation, it will not be available in Pig, only the Accumulator UDF to which it belongs will.</p>
+
+<p>Since Accumulator UDFs maintain state, the methods annotated with the @AccumulatorXXX annotations cannot be static. A single instance of the enclosing class will be used when invoking them, thus enabling them to access a single state.</p>
+
+<p>The following example defines an Accumulator UDF named 'sum':</p>
+ <source>
+import org.apache.pig.builtin.OutputSchema;
+import org.apache.pig.scripting.groovy.AccumulatorAccumulate;
+import org.apache.pig.scripting.groovy.AccumulatorGetValue;
+import org.apache.pig.scripting.groovy.AccumulatorCleanup;
+
+class GroovyUDFs {
+  private int sum = 0;
+  @AccumulatorAccumulate('sumacc')
+  public void accuAccumulate(Tuple t) {
+    for (Object o: t[1]) {
+      sum += o[0]
+    }
+  }
+  @AccumulatorGetValue('sumacc')
+  @OutputSchema('sum: long')
+  public long accuGetValue() {
+    return this.sum;
+  }
+  @AccumulatorCleanup('sumacc')
+  public void accuCleanup() {
+    this.sum = 0L;
+  }
+}  
+ </source>
+ </section>
+</section>
 
 <!-- ================================================================== -->
 <!-- PIGGYBANK -->

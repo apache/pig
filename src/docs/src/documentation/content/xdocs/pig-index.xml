@@ -280,6 +280,7 @@
 <p id="e-index"><strong>E</strong> (<a href="#top">top</a>) ----------------------------------------------</p>
 
 <p>embedded Pig
+<br></br>&nbsp;&nbsp;&nbsp; <a href="cont.html#embed-groovy">and Groovy</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="cont.html#invocation-basics">invocation basics</a> 
 <br></br>&nbsp;&nbsp;&nbsp; <a href="cont.html#invocation-details">invocation details</a> (compile, bind, run)
 <br></br>&nbsp;&nbsp;&nbsp; <a href="cont.html#embed-java">and Java</a>
@@ -378,6 +379,10 @@
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#load-glob">and LOAD operator</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#register-glob">and REGISTER statement</a>
 </p>
+
+<p><a href="cont.html#embed-python">Groovy and embedded Pig</a></p>
+
+<p><a href="udf.html#groovy-udfs">Groovy UDFs</a>. <em>See also</em> UDFs</p>
 
 <p><a href="basic.html#group">GROUP</a> operator</p>
 

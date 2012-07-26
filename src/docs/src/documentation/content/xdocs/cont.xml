@@ -24,17 +24,17 @@
 
 <!-- ============================================ -->       
 <section id="embed-python">
-<title>Embedded Pig - Python and JavaScript </title>
+<title>Embedded Pig - Python, JavaScript and Groovy</title>
    
-<p>To enable control flow, you can embed Pig Latin statements and Pig commands in the Python and JavaScript scripting languages using a JDBC-like compile, bind, run model. For Python, make sure the Jython jar is included in your class path. For JavaScript, make sure the Rhino jar is included in your classpath.</p>
+<p>To enable control flow, you can embed Pig Latin statements and Pig commands in the Python, JavaScript and Groovy scripting languages using a JDBC-like compile, bind, run model. For Python, make sure the Jython jar is included in your class path. For JavaScript, make sure the Rhino jar is included in your classpath. For Groovy, make sure the groovy-all jar is included in your classpath.</p>
 
-<p>Note that host languages and the languages of UDFs (included as part of the embedded Pig) are completely orthogonal. For example, a Pig Latin statement that registers a Python UDF may be embedded in Python, JavaScript, or Java. The exception to this rule is "combined" scripts – here the languages must match (see the <a href="udf.html#python-advanced">Advanced Topics for Python</a> and <a href="udf.html#js-advanced">Advanced Topics for JavaScript</a>). </p>
+<p>Note that host languages and the languages of UDFs (included as part of the embedded Pig) are completely orthogonal. For example, a Pig Latin statement that registers a Python UDF may be embedded in Python, JavaScript, or Java. The exception to this rule is "combined" scripts – here the languages must match (see the <a href="udf.html#python-advanced">Advanced Topics for Python</a>, <a href="udf.html#js-advanced">Advanced Topics for JavaScript</a> and <a href="udf.html#groovy-advanced">Advanced Topics for Groovy</a>). </p>
 
 
 <!-- ============================================== -->
 <section id="invocation-basics">
 <title>Invocation Basics</title>
-<p>Embedded Pig is supported in batch mode only, not interactive mode. You can request that embedded Pig be used by adding the <code>--embedded</code> option to the Pig command line. If this option is passed as an argument, that argument will refer to the language Pig  is embedded in, either Python or JavaScript. If no argument is specified, it is taken to refer to the reference implementation for Python.</p>
+<p>Embedded Pig is supported in batch mode only, not interactive mode. You can request that embedded Pig be used by adding the <code>--embedded</code> option to the Pig command line. If this option is passed as an argument, that argument will refer to the language Pig  is embedded in, either Python, JavaScript or Groovy. If no argument is specified, it is taken to refer to the reference implementation for Python.</p>
 
  <p><strong>Python</strong></p>
  <source>
@@ -92,6 +92,33 @@ function main() {
     } else {
         print("Pig job failed")
     }   
+}
+</source>
+
+<p><strong>Groovy</strong></p>
+<source>
+$ pig myembedded.groovy
+OR
+$ java -cp &lt;groovy-all jar&gt;:&lt;pig jars&gt;; [--embedded groovy] /tmp/myembedded.groovy
+</source>
+<p></p>
+<p>Pig will look for the *.groovy extension in the script.</p>
+<source>
+import org.apache.pig.scripting.Pig;
+
+public static void main(String[] args) {
+  String input = "original"
+  String output = "output"
+
+  Pig P = Pig.compile("A = load '\$in'; store A into '\$out';")  
+
+  result = P.bind(['in':input, 'out':output]).runSingle()  
+
+  if (result.isSuccessful()) {
+    print("Pig job succeeded")
+  } else {
+    print("Pig job failed")
+  }  
 }
 </source>
 
@@ -284,7 +311,7 @@ result = Q.runSingle()
 
 <p>
 2. Command line arguments
-Currently this feature is only available in Python. You can pass command line arguments (the arguments after the script file name) to Python. These will become sys.argv in Python.  For example: pig script.py student.txt. The corresponding script is:
+Currently this feature is only available in Python and Groovy. You can pass command line arguments (the arguments after the script file name) to Python. These will become sys.argv in Python and will be passed as main's arguments in Groovy.  For example: pig script.py student.txt. The corresponding script is:
 </p>
 <source>
 #!/usr/bin/python
@@ -297,6 +324,23 @@ Q = P.bind()
 
 result = Q.runSingle()
 </source>
+
+<p>and in Groovy, pig script.groovy student.txt:</p>
+
+<source>
+import org.apache.pig.scripting.Pig;
+
+public static void main(String[] args) {
+
+  P = Pig.compile("A = load '" + args[1] + "' as (name, age, gpa);" +
+                      "store A into 'output';");
+
+  Q = P.bind()
+
+  result = Q.runSingle()
+}
+</source>
+
 </section>
 
 </section> 
@@ -782,7 +826,7 @@ public abstract class PigStats {
 
 <p>To enable control flow, you can embed Pig Latin statements and Pig commands in the Java programming language. </p>
 
-<p>Note that host languages and the languages of UDFs (included as part of the embedded Pig) are completely orthogonal. For example, a Pig Latin statement that registers a Java UDF may be embedded in Python, JavaScript, or Java. The exception to this rule is "combined" scripts – here the languages must match (see the <a href="udf.html#python-advanced">Advanced Topics for Python</a> and <a href="udf.html#js-advanced">Advanced Topics for JavaScript</a>). </p>
+<p>Note that host languages and the languages of UDFs (included as part of the embedded Pig) are completely orthogonal. For example, a Pig Latin statement that registers a Java UDF may be embedded in Python, JavaScript, Groovy, or Java. The exception to this rule is "combined" scripts – here the languages must match (see the <a href="udf.html#python-advanced">Advanced Topics for Python</a>, <a href="udf.html#js-advanced">Advanced Topics for JavaScript</a> and <a href="udf.html#groovy-advanced">Advanced Topics for Groovy</a>). </p>
 
 <section id="pigserver">
 <title>PigServer Interface</title>
