@@ -46,6 +46,7 @@
           <li> <strong>Python 2.5</strong> - <a href="http://jython.org/downloads.html">http://jython.org/downloads.html</a> (when using Python UDFs or embedding Pig in Python) </li>
           <li> <strong>JavaScript 1.7</strong> - <a href="https://developer.mozilla.org/en/Rhino_downloads_archive">https://developer.mozilla.org/en/Rhino_downloads_archive</a> and <a href="http://mirrors.ibiblio.org/pub/mirrors/maven2/rhino/js/">http://mirrors.ibiblio.org/pub/mirrors/maven2/rhino/js/</a>  (when using JavaScript UDFs or embedding Pig in JavaScript) </li>		  
           <li> <strong>JRuby 1.6.7</strong> - <a href="http://www.jruby.org/download">http://www.jruby.org/download</a> (when using JRuby UDFs) </li>
+          <li> <strong>Groovy (<em>groovy-all</em>) 1.8.6</strong> - <a href="http://groovy.codehaus.org/Download">http://groovy.codehaus.org/Download</a> or directly on a maven repo <a href="http://mirrors.ibiblio.org/pub/mirrors/maven2/org/codehaus/groovy/groovy-all/1.8.6/">http://mirrors.ibiblio.org/pub/mirrors/maven2/org/codehaus/groovy/groovy-all/1.8.6/</a> (when using Groovy UDFs or embedding Pig in Groovy) </li>
 		  <li> <strong>Ant 1.7</strong> - <a href="http://ant.apache.org/">http://ant.apache.org/</a> (for builds) </li>
 		  <li> <strong>JUnit 4.5</strong> - <a href="http://junit.sourceforge.net/">http://junit.sourceforge.net/</a> (for unit tests) </li>
 		</ul>
