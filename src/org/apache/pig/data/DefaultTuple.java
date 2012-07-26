@@ -27,6 +27,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -36,7 +37,6 @@ import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.util.ObjectSerializer;
-import org.apache.pig.impl.util.TupleFormat;
 
 /**
  * A default implementation of Tuple. This class will be created by the DefaultTupleFactory.
@@ -458,7 +458,7 @@ public class DefaultTuple extends AbstractTuple {
 
     @Override
     public int hashCode() {
-        int hash = 1;
+        int hash = 17;
         for (Iterator<Object> it = mFields.iterator(); it.hasNext();) {
             Object o = it.next();
             if (o != null) {

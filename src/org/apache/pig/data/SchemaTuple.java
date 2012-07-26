@@ -104,12 +104,13 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
     @SuppressWarnings("unchecked") //this is ok because we only cast to T after checking
     protected SchemaTuple<T> set(Tuple t, boolean checkType) throws ExecException {
         if (checkType) {
-            if (t.getClass() == getClass()) {
+            if (isSpecificSchemaTuple(t)) {
                 return setSpecific((T)t);
             }
 
-            if (t instanceof SchemaTuple<?>)
+            if (t instanceof SchemaTuple<?>) {
                 return set((SchemaTuple<?>)t, false);
+        }
         }
 
         return set(t.getAll());
@@ -236,11 +237,13 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         return l;
     }
 
+    public abstract boolean isSpecificSchemaTuple(Object o);
+
     //TODO also need to implement the raw comparator
     @SuppressWarnings("unchecked")
     @Override
     public int compareTo(Object other) {
-        if (getClass() == other.getClass()) {
+        if (isSpecificSchemaTuple(other)) {
             return compareToSpecific((T)other);
         }
 
@@ -249,7 +252,7 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
         }
 
         if (other instanceof Tuple) {
-            compareTo((Tuple)other, false);
+            return compareTo((Tuple)other, false);
         }
 
         return DataType.compare(this, other);
@@ -262,7 +265,7 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
     @SuppressWarnings("unchecked")
     protected int compareTo(Tuple t, boolean checkType) {
         if (checkType) {
-            if (getClass() == t.getClass()) {
+            if (isSpecificSchemaTuple(t)) {
                 return compareToSpecific((T)t);
             }
 
@@ -305,7 +308,7 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
 
     @SuppressWarnings("unchecked")
     protected int compareTo(SchemaTuple<?> t, boolean checkType) {
-        if (checkType && getClass() == t.getClass()) {
+        if (checkType && isSpecificSchemaTuple(t)) {
             return compareToSpecific((T)t);
         }
 
@@ -436,40 +439,40 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
     }
 
     protected int hashCodePiece(int hash, int v, boolean isNull) {
-        return isNull ? 0 : 31 * hash + v;
+        return isNull ? hash : 31 * hash + v;
     }
 
     protected int hashCodePiece(int hash, long v, boolean isNull) {
-        return isNull ? 0 : 31 * hash + (int)(v^(v>>>32));
+        return isNull ? hash : 31 * hash + (int)(v^(v>>>32));
     }
 
     protected int hashCodePiece(int hash, float v, boolean isNull) {
-        return isNull ? 0 : 31 * hash + Float.floatToIntBits(v);
+        return isNull ? hash : 31 * hash + Float.floatToIntBits(v);
     }
 
     protected int hashCodePiece(int hash, double v, boolean isNull) {
         long v2 = Double.doubleToLongBits(v);
-        return isNull ? 0 : 31 * hash + (int)(v2^(v2>>>32));
+        return isNull ? hash : 31 * hash + (int)(v2^(v2>>>32));
     }
 
     protected int hashCodePiece(int hash, boolean v, boolean isNull) {
-        return isNull ? 0 : 31 * hash + (v ? 1231 : 1237);
+        return isNull ? hash : 31 * hash + (v ? 1231 : 1237);
     }
 
     protected int hashCodePiece(int hash, byte[] v, boolean isNull) {
-        return isNull ? 0 : 31 * hash + DataByteArray.hashCode(v);
+        return isNull ? hash : 31 * hash + DataByteArray.hashCode(v);
     }
 
     protected int hashCodePiece(int hash, String v, boolean isNull) {
-        return isNull ? 0 : 31 * hash + v.hashCode();
+        return isNull ? hash : 31 * hash + v.hashCode();
     }
 
     protected int hashCodePiece(int hash, Tuple v, boolean isNull) {
-        return isNull ? 0 : 31 * hash + v.hashCode();
+        return isNull ? hash : 31 * hash + v.hashCode();
     }
 
     protected int hashCodePiece(int hash, DataBag v, boolean isNull) {
-        return isNull ? 0 : 31 * hash + v.hashCode();
+        return isNull ? hash : 31 * hash + v.hashCode();
     }
 
     @Override
