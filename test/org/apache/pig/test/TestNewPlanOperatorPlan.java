@@ -31,6 +31,7 @@ import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.builtin.PigStorage;
+import org.apache.pig.builtin.mock.Storage;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
@@ -1527,7 +1528,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
         aschema1.addField(new LogicalSchema.LogicalFieldSchema(
             "x", null, DataType.INTEGER));
         LOLoad A1 = newLOLoad(new FileSpec("/abc",
-            new FuncSpec(DummyLoad.class.getName(), new String[] {"x", "y"})), aschema1, lp1, new Configuration());
+            new FuncSpec(DummyLoad.class.getName(), new String[] {"x", "y"})), aschema1, lp1, conf);
         lp1.add(A1);
         
         LogicalExpressionPlan fp1 = new LogicalExpressionPlan();
@@ -1545,7 +1546,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
         
         LogicalPlan lp2 = new LogicalPlan();
         LOLoad A2 = newLOLoad(new FileSpec("/abc",
-            new FuncSpec(DummyLoad.class.getName(), new String[] {"x", "z"})), null, lp2, new Configuration());
+            new FuncSpec(DummyLoad.class.getName(), new String[] {"x", "z"})), null, lp2, conf);
         lp2.add(A2);
         
         LogicalExpressionPlan fp2 = new LogicalExpressionPlan();

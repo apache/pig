@@ -208,6 +208,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2842: TestNewPlanOperatorPlan fails when new Configuration() picks up a previous minicluster conf file (julien)
+
 PIG-2827: Unwrap exception swallowing in TOP (haitao.yao via jcoveney)
 
 PIG-2825: StoreFunc signature setting in LogicalPlan broken (jcoveney)
