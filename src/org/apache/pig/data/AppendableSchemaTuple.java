@@ -173,7 +173,16 @@ public abstract class AppendableSchemaTuple<T extends AppendableSchemaTuple<T>> 
     }
 
     public int hashCode() {
-        return super.hashCode() + appendedFields.hashCode();
+        int hash = super.hashCode();
+        if (appendedFields == null) {
+            return hash;
+        }
+        for (Object o : appendedFields) {
+            if (o != null) {
+                hash = 31 * hash + o.hashCode();
+            }
+        }
+        return hash;
     }
 
     public void set(int fieldNum, Object val) throws ExecException {

@@ -316,6 +316,8 @@ public class TestSchemaTuple {
 
         assertEquals(udfSchema.size(), st.size());
 
+        testHashCodeEqualAsNormalTuple(tf);
+
         shouldAllBeNull(tf);
 
         copyThenCompare(tf);
@@ -593,6 +595,17 @@ public class TestSchemaTuple {
             assertEquals(tuple(i, i), tuples.get(i));
         }
 
+    }
+
+    public void testHashCodeEqualAsNormalTuple(SchemaTupleFactory tf) {
+        SchemaTuple<?> st = tf.newTuple();
+        Tuple t = TupleFactory.getInstance().newTuple();
+        for (Object o : st) {
+            t.append(o);
+        }
+        assertEquals(t.hashCode(), st.hashCode());
+        assertEquals(st, t);
+        assertEquals(t, st);
     }
 
 }
