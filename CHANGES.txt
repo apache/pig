@@ -208,6 +208,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2839: mock.Storage overwrites output with the last relation written when storing UNION (julien)
+
 PIG-2840: Fix SchemaTuple bugs (jcoveney)
 
 PIG-2842: TestNewPlanOperatorPlan fails when new Configuration() picks up a previous minicluster conf file (julien)

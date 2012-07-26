@@ -1,5 +1,7 @@
 package org.apache.pig.builtin.mock;
 
+import static org.apache.hadoop.mapreduce.lib.output.FileOutputFormat.getUniqueFile;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -11,7 +13,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.Set;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Writable;
@@ -171,13 +175,39 @@ public class Storage extends LoadFunc implements StoreFuncInterface, LoadMetadat
     return data;
   }
 
+  private static class Parts {
+    final String location;
+    final Map<String, Collection<Tuple>> parts = new HashMap<String, Collection<Tuple>>();
+
+    public Parts(String location) {
+      super();
+      this.location = location;
+    }
+
+    public void set(String partFile, Collection<Tuple> data) {
+      if (parts.put(partFile, data) != null) {
+        throw new RuntimeException("the part " + partFile + " for location " + location + " already exists");
+      }
+    }
+
+    public List<Tuple> getAll() {
+        List<Tuple> all = new ArrayList<Tuple>();
+        Set<Entry<String, Collection<Tuple>>> entrySet = parts.entrySet();
+        for (Entry<String, Collection<Tuple>> entry : entrySet) {
+            all.addAll(entry.getValue());
+        }
+        return all;
+    }
+
+  }
+  
   /**
    * An isolated data store to avoid side effects
    *
    */
   public static class Data implements Serializable {
     private static final long serialVersionUID = 1L;
-    private Map<String, Collection<Tuple>> locationToData = new HashMap<String, Collection<Tuple>>();
+    private Map<String, Parts> locationToData = new HashMap<String, Parts>();
     private Map<String, Schema> locationToSchema = new HashMap<String, Schema>();
 
     /**
@@ -213,7 +243,9 @@ public class Storage extends LoadFunc implements StoreFuncInterface, LoadMetadat
      */
     public void set(String location, Schema schema, Collection<Tuple> data) {
       set(location, data);
-      locationToSchema.put(location, schema);
+      if (locationToSchema.put(location, schema) != null) {
+          throw new RuntimeException("schema already set for location "+location);
+      }
     }
 
     /**
@@ -233,8 +265,30 @@ public class Storage extends LoadFunc implements StoreFuncInterface, LoadMetadat
      * @param location "where" to store the tuples
      * @param data the tuples to store
      */
+    private void setInternal(String location, String partID, Collection<Tuple> data) {
+        Parts parts = locationToData.get(location);
+        if (partID == null) {
+            if (parts == null) {
+                partID = "mock";
+            } else {
+                throw new RuntimeException("Can not set location " + location + " twice");
+            }
+        }
+        if (parts == null) {
+            parts = new Parts(location);
+            locationToData.put(location, parts);
+        }
+        parts.set(partID, data);
+    }
+
+    /**
+     * to set the data in a location
+     *
+     * @param location "where" to store the tuples
+     * @param data the tuples to store
+     */
     public void set(String location, Collection<Tuple> data) {
-      locationToData.put(location, data);
+      setInternal(location, null, data);
     }
 
     /**
@@ -244,7 +298,7 @@ public class Storage extends LoadFunc implements StoreFuncInterface, LoadMetadat
      * @param data the tuples to store
      */
     public void set(String location, Tuple... data) {
-      set(location, Arrays.asList(data));
+        set(location, Arrays.asList(data));
     }
     
     /**
@@ -256,8 +310,7 @@ public class Storage extends LoadFunc implements StoreFuncInterface, LoadMetadat
       if (!locationToData.containsKey(location)) {
         throw new RuntimeException("No data for location '" + location + "'");
       }
-      Collection<Tuple> collection = locationToData.get(location);
-	return collection instanceof List ? (List<Tuple>)collection : new ArrayList<Tuple>(collection);
+      return locationToData.get(location).getAll();
     }
 
     /**
@@ -286,9 +339,8 @@ public class Storage extends LoadFunc implements StoreFuncInterface, LoadMetadat
   
   private Schema schema;
 
-  private List<Tuple> dataBeingWritten;
-
   private Iterator<Tuple> dataBeingRead;
+private MockRecordWriter mockRecordWriter;
 
   private void init(String location, Job job) throws IOException {
 	  this.data = getData(job);
@@ -385,13 +437,13 @@ public class Storage extends LoadFunc implements StoreFuncInterface, LoadMetadat
 
   @Override
   public void prepareToWrite(@SuppressWarnings("rawtypes") RecordWriter writer) throws IOException {
-    this.dataBeingWritten = new ArrayList<Tuple>();
-    this.data.set(location, dataBeingWritten);
+      mockRecordWriter = (MockRecordWriter) writer;
+      this.data.setInternal(location, mockRecordWriter.partID, mockRecordWriter.dataBeingWritten);
   }
 
   @Override
   public void putNext(Tuple t) throws IOException {
-    this.dataBeingWritten.add(t);
+      mockRecordWriter.dataBeingWritten.add(t);
   }
 
   @Override
@@ -517,8 +569,16 @@ public class Storage extends LoadFunc implements StoreFuncInterface, LoadMetadat
   // mocks for StoreFunc
   private static final class MockRecordWriter extends RecordWriter<Object, Object> {
 
+    private final List<Tuple> dataBeingWritten = new ArrayList<Tuple>();
+    private final String partID;
+
+    public MockRecordWriter(String partID) {
+        super();
+        this.partID = partID;
+    }
+
     @Override
-    public void close(TaskAttemptContext arg0) throws IOException, InterruptedException {
+    public void close(TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
     }
 
     @Override
@@ -567,7 +627,7 @@ public class Storage extends LoadFunc implements StoreFuncInterface, LoadMetadat
     @Override
     public RecordWriter<Object, Object> getRecordWriter(TaskAttemptContext arg0) throws IOException,
     InterruptedException {
-      return new MockRecordWriter();
+      return new MockRecordWriter(getUniqueFile(arg0, "part", ".mock"));
     }
 
   }
