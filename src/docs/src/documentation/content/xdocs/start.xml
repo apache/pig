@@ -748,7 +748,7 @@ ngramed2 = DISTINCT ngramed1;
 hour_frequency1 = GROUP ngramed2 BY (ngram, hour);
 </source>
 <ul>
-<li><p> Use the COUNTfunction to get the count (occurrences) of each n-gram.  </p>
+<li><p> Use the COUNT function to get the count (occurrences) of each n-gram.  </p>
 </li>
 </ul>
 
