@@ -20,6 +20,8 @@ package org.apache.pig.backend.hadoop.executionengine.shims;
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.JobID;
@@ -85,5 +87,9 @@ public class HadoopShims {
 
     static public void commitOrCleanup(OutputCommitter oc, JobContext jc) throws IOException {
         oc.cleanupJob(jc);
+    }
+    
+    public static long getDefaultBlockSize(FileSystem fs, Path path) {
+        return fs.getDefaultBlockSize();
     }
 }

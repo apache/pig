@@ -60,15 +60,16 @@ public class MiniCluster extends MiniGenericCluster {
             File conf_dir = new File(System.getProperty("user.home"), "pigtest/conf/");
             conf_dir.mkdirs();
             File conf_file = new File(conf_dir, "hadoop-site.xml");
-            
-            conf_file.delete();
-            
+   
             // Builds and starts the mini dfs and mapreduce clusters
             Configuration config = new Configuration();
             m_dfs = new MiniDFSCluster(config, dataNodes, true, null);
             m_fileSys = m_dfs.getFileSystem();
             m_dfs_conf = m_dfs.getConfiguration(0);
-            
+
+            //Create user home directory
+            m_fileSys.mkdirs(m_fileSys.getWorkingDirectory());
+
             m_mr = new MiniMRYarnCluster("PigMiniCluster", taskTrackers);
             m_mr.init(m_dfs_conf);
             //m_mr.init(m_dfs_conf);

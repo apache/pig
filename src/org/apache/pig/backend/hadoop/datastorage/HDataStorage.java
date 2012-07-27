@@ -74,9 +74,6 @@ public class HDataStorage implements DataStorage {
         } catch (IOException e) {
             throw new RuntimeException("Failed to create DataStorage", e);
         }
-        short defaultReplication = fs.getDefaultReplication();
-        properties.setProperty(DEFAULT_REPLICATION_FACTOR_KEY, 
-                               Short.valueOf(defaultReplication).toString());
     }
 
     public void close() throws IOException {

@@ -538,6 +538,14 @@ public class Util {
          } 
      }
      
+     static private String getMkDirCommandForHadoop2_0(String fileName) {
+         if (Util.isHadoop23() || Util.isHadoop2_0()) {
+             Path parentDir = new Path(fileName).getParent();
+             String mkdirCommand = parentDir.getName().isEmpty() ? "" : "fs -mkdir -p " + parentDir + "\n";
+             return mkdirCommand;
+         }
+         return "";
+     }
      
     /**
 	 * Utility method to copy a file form local filesystem to the dfs on
@@ -549,7 +557,7 @@ public class Util {
 	 */
 	static public void copyFromLocalToCluster(MiniCluster cluster, String localFileName, String fileNameOnCluster) throws IOException {
         PigServer ps = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-        String script = "fs -put " + localFileName + " " + fileNameOnCluster;
+        String script = getMkDirCommandForHadoop2_0(fileNameOnCluster) + "fs -put " + localFileName + " " + fileNameOnCluster;
 
 	    GruntParser parser = new GruntParser(new StringReader(script));
         parser.setInteractive(false);
@@ -564,7 +572,7 @@ public class Util {
     static public void copyFromLocalToLocal(String fromLocalFileName,
             String toLocalFileName) throws IOException {
         PigServer ps = new PigServer(ExecType.LOCAL, new Properties());
-        String script = "fs -cp " + fromLocalFileName + " " + toLocalFileName;
+        String script = getMkDirCommandForHadoop2_0(toLocalFileName) + "fs -cp " + fromLocalFileName + " " + toLocalFileName;
 
         new File(toLocalFileName).deleteOnExit();
         
@@ -1166,6 +1174,13 @@ public class Util {
     public static boolean isHadoop1_0() {
         String version = org.apache.hadoop.util.VersionInfo.getVersion();
         if (version.matches("\\b1\\.0\\..+"))
+            return true;
+        return false;
+    }
+
+    public static boolean isHadoop2_0() {
+        String version = org.apache.hadoop.util.VersionInfo.getVersion();
+        if (version.matches("\\b2\\.0\\..+"))
             return true;
         return false;
     }
