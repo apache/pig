@@ -1219,7 +1219,7 @@ IMPORT 'my_macro.pig';
 
   
  <!-- =========================================== -->    
-   <section id="parameter-sub">
+   <section id="Parameter-Sub">
    <title>Parameter Substitution</title>
    <section>
    

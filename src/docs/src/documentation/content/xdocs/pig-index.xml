@@ -669,7 +669,7 @@
 <br></br>&nbsp;&nbsp;&nbsp; <a href="cmds.html#set">setting default_parallel</a>
 </p>
 
-<p><a href="cont.html#parameter-sub">parameter substitution</a></p>
+<p><a href="cont.html#Parameter-Sub">parameter substitution</a></p>
 
 <p>PARTITION BY
 <br></br>&nbsp;&nbsp;&nbsp; <a href="basic.html#partition-by-cross">and CROSS</a>
