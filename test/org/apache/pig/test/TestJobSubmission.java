@@ -533,7 +533,7 @@ public class TestJobSubmission {
     @Test
     public void testReducerNumEstimation() throws Exception{
         // skip this test for 23 until HBASE-4850
-        if (Util.isHadoop23())
+        if (Util.isHadoop23() || Util.isHadoop2_0())
             return;
         // use the estimation
         Configuration conf = cluster.getConfiguration();

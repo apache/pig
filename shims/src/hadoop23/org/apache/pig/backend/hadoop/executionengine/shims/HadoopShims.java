@@ -22,6 +22,8 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapreduce.ContextFactory;
 import org.apache.hadoop.mapreduce.JobContext;
@@ -85,5 +87,9 @@ public class HadoopShims {
     
     static public void commitOrCleanup(OutputCommitter oc, JobContext jc) throws IOException {
         oc.commitJob(jc);
+    }
+    
+    public static long getDefaultBlockSize(FileSystem fs, Path path) {
+        return fs.getDefaultBlockSize(path);
     }
 }

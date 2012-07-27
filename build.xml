@@ -420,7 +420,11 @@
     	
     	<copy file="${basedir}/test/hbase-site.xml" tofile="${test.build.classes}/hbase-site.xml"/>
    
-        <ivy:cachepath pathid="mr-apps-test.classpath" />
+        <ivy:cachepath pathid="mr-apps-test-ivy.classpath" />
+        <path id="mr-apps-test.classpath">
+            <pathelement path="${clover.jar}"/>
+            <path refid="mr-apps-test-ivy.classpath"/>
+        </path>
         <property name="mr-apps-classpath" refid="mr-apps-test.classpath" />
         <echo file="${test.build.classes}/mrapp-generated-classpath" message="${mr-apps-classpath}" />
     </target>

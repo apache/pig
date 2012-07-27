@@ -28,6 +28,8 @@ PIG-2727: PigStorage Source tagging does not need pig.splitCombination to be tur
 
 BUG FIXES
 
+PIG-2791: Pig does not work with Namenode Federation (rohini via daijy)
+
 PIG-2783: Fix Iterator_1 e2e test for Hadoop 23 (rohini via daijy)
 
 PIG-2761: With hadoop23 importing modules inside python script does not work (rohini via daijy)
