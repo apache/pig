@@ -815,6 +815,8 @@
             <!-- <sysproperty key="hod.command" value="${hod.command}"/>
             			<sysproperty key="hod.param" value="${hod.param}"/> -->
             <sysproperty key="hadoop.log.dir" value="${test.log.dir}"/>
+            <sysproperty key="java.security.krb5.realm" value="" />
+            <sysproperty key="java.security.krb5.kdc" value="" />
             <classpath>
                 <pathelement location="${output.jarfile.withouthadoop}" />
                 <pathelement location="${test.build.classes}" />
