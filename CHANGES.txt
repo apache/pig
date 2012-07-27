@@ -210,6 +210,10 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2843: Typo in Documentation (eric59 via billgraham)
+
+PIG-2841: Inconsistent URL in Docs (eric59 via billgraham)
+
 PIG-2740: get rid of "java[77427:1a03] Unable to load realm info from SCDynamicStore" log lines when running pig tests (julien)
 
 PIG-2839: mock.Storage overwrites output with the last relation written when storing UNION (julien)
