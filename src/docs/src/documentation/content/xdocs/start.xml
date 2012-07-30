@@ -780,7 +780,7 @@ uniq_frequency2 = FOREACH uniq_frequency1 GENERATE flatten($0), flatten(org.apac
 uniq_frequency3 = FOREACH uniq_frequency2 GENERATE $1 as hour, $0 as ngram, $2 as score, $3 as count, $4 as mean;
 </source>
 <ul>
-<li><p> Use the FILTER operator to move all records with a score less than or equal to 2.0. </p>
+<li><p> Use the FILTER operator to remove all records with a score less than or equal to 2.0. </p>
 </li>
 </ul>
 
@@ -923,7 +923,7 @@ same = JOIN hour00 BY $0, hour12 BY $0;
 same1 = FOREACH same GENERATE hour_frequency2::hour00::group::ngram as ngram, $2 as count00, $5 as count12;
 </source>
 <ul>
-<li><p> Use the PigStorage function to store the results. The output file contains a list of n-grams with the following fields: <strong>hour</strong>, <strong>count00</strong>, <strong>count12</strong>. </p>
+<li><p> Use the PigStorage function to store the results. The output file contains a list of n-grams with the following fields: <strong>ngram</strong>, <strong>count00</strong>, <strong>count12</strong>. </p>
 </li>
 </ul>
 
