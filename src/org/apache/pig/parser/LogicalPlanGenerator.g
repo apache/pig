@@ -467,50 +467,74 @@ func_args returns[List<String> args]
 ;
 
 // Sets the current operator as CUBE and creates LogicalExpressionPlans based on the user input.
-// Ex: a = CUBE inp BY (x,y);
-// For the above example this grammar creates LogicalExpressionPlan with ProjectExpression for x and y dimensions.
-// inputIndex keeps track of input dataset (which will be useful when cubing is performed over multiple datasets).
+// Ex: x = CUBE inp BY CUBE(a,b), ROLLUP(c,d);
+// For the above example this grammar creates LogicalExpressionPlan with ProjectExpression for a,b and c,d dimensions.
+// It also outputs the order of operations i.e in this case CUBE operation followed by ROLLUP operation
 // These inputs are passed to buildCubeOp methods which then builds the logical plan for CUBE operator.
 // If user specifies STAR or RANGE expression for dimensions then it will be expanded inside buildCubeOp.
 cube_clause returns[String alias]
 scope {
-  LOCube cubeOp;
-  MultiMap<Integer, LogicalExpressionPlan> cubePlans;
-  int inputIndex;
+    LOCube cubeOp;
+    MultiMap<Integer, LogicalExpressionPlan> cubePlans;
+    List<String> operations;
+    int inputIndex;
 }
 scope GScope;
 @init {
-  $cube_clause::cubeOp = builder.createCubeOp();
-  $GScope::currentOp = $cube_clause::cubeOp;
-  $cube_clause::cubePlans = new MultiMap<Integer, LogicalExpressionPlan>();
-  int oldStatementIndex = $statement::inputIndex;
+    $cube_clause::cubeOp = builder.createCubeOp();
+    $GScope::currentOp = $cube_clause::cubeOp;
+    $cube_clause::cubePlans = new MultiMap<Integer, LogicalExpressionPlan>();
+    $cube_clause::operations = new ArrayList<String>();
 }
-@after { $statement::inputIndex = oldStatementIndex; }
  : ^( CUBE cube_item )
- {
-  SourceLocation loc = new SourceLocation( (PigParserNode)$cube_clause.start );
-  $alias = builder.buildCubeOp( loc, $cube_clause::cubeOp, $statement::alias, 
-    $statement::inputAlias, $cube_clause::cubePlans );
- }
+   {
+       SourceLocation loc = new SourceLocation( (PigParserNode)$cube_clause.start );
+       $alias = builder.buildCubeOp( loc, $cube_clause::cubeOp, $statement::alias, 
+       $statement::inputAlias, $cube_clause::operations, $cube_clause::cubePlans );
+   }
 ;
 
 cube_item
  : rel ( cube_by_clause 
-     { 
-            $cube_clause::cubePlans.put( $cube_clause::inputIndex, $cube_by_clause.plans );
-     }
-  )
-  {
-     $cube_clause::inputIndex++;
-     $statement::inputIndex++;  
-  }
+   { 
+       $cube_clause::cubePlans = $cube_by_clause.plans;
+       $cube_clause::operations = $cube_by_clause.operations;
+   } )
 ;
 
-cube_by_clause returns[List<LogicalExpressionPlan> plans]
+cube_by_clause returns[List<String> operations, MultiMap<Integer, LogicalExpressionPlan> plans]
+@init {
+    $operations = new ArrayList<String>();
+    $plans = new MultiMap<Integer, LogicalExpressionPlan>();
+}
+ : ^( BY cube_or_rollup { $operations = $cube_or_rollup.operations; $plans = $cube_or_rollup.plans; })
+;
+
+cube_or_rollup returns[List<String> operations, MultiMap<Integer, LogicalExpressionPlan> plans]
+@init {
+    $operations = new ArrayList<String>();
+    $plans = new MultiMap<Integer, LogicalExpressionPlan>();
+}
+ : ( cube_rollup_list 
+   { 
+       $operations.add($cube_rollup_list.operation); 
+       $plans.put( $cube_clause::inputIndex, $cube_rollup_list.plans); 
+       $cube_clause::inputIndex++;
+   } )+
+;
+
+cube_rollup_list returns[String operation, List<LogicalExpressionPlan> plans]
 @init {
     $plans = new ArrayList<LogicalExpressionPlan>();
 }
- : ^( BY ( cube_by_expr { $plans.add( $cube_by_expr.plan ); } )+ )
+ : ^( ( CUBE { $operation = "CUBE"; } | ROLLUP { $operation = "ROLLUP"; } ) cube_by_expr_list { $plans = $cube_by_expr_list.plans; } ) 
+;
+
+cube_by_expr_list returns[List<LogicalExpressionPlan> plans]
+@init {
+    $plans = new ArrayList<LogicalExpressionPlan>();
+}
+ : ( cube_by_expr { $plans.add( $cube_by_expr.plan ); } )+
 ;
 
 cube_by_expr returns[LogicalExpressionPlan plan]
@@ -521,11 +545,9 @@ cube_by_expr returns[LogicalExpressionPlan plan]
  | expr[$plan]
  | STAR 
    {
-       builder.buildProjectExpr( new SourceLocation( (PigParserNode)$STAR ), $plan, $GScope::currentOp, 
-           $statement::inputIndex, null, -1 );
+       builder.buildProjectExpr( new SourceLocation( (PigParserNode)$STAR ), $plan, $GScope::currentOp, 0, null, -1 );
    }
 ;
-
 
 group_clause returns[String alias]
 scope {
@@ -1681,6 +1703,8 @@ eid returns[String id] : rel_str_op { $id = $rel_str_op.id; }
     | ORDER { $id = $ORDER.text; }
     | DISTINCT { $id = $DISTINCT.text; }
     | COGROUP { $id = $COGROUP.text; }
+    | CUBE { $id = $CUBE.text; }
+    | ROLLUP { $id = $ROLLUP.text; }
     | JOIN { $id = $JOIN.text; }
     | CROSS { $id = $CROSS.text; }
     | UNION { $id = $UNION.text; }

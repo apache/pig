@@ -66,8 +66,8 @@ grpInactiveAcct = group inactiveAccounts all;
 B = GROUP A ALL using 'collected';
 
 --cube
-C = CUBE A BY (a, b);
-CC = CUBE A BY (*);
+C = CUBE A BY CUBE(a, b);
+CC = CUBE A BY ROLLUP(*);
 
 --join
 E = join A by $0, B by $0 using 'replicated';

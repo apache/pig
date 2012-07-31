@@ -206,16 +206,27 @@ func_args
 ;
 
 cube_clause
-  : ^( CUBE { sb.append($CUBE.text).append(" "); } cube_item )
+    : ^( CUBE { sb.append($CUBE.text).append(" "); } cube_item )
 ;
 
 cube_item
-  : rel ( cube_by_clause )
+    : rel ( cube_by_clause )
 ;
 
 cube_by_clause
-    : ^( BY { sb.append(" ").append($BY.text).append(" ("); } 
-    cube_by_expr ( { sb.append(", "); } cube_by_expr )* { sb.append(")"); } )
+    : ^( BY { sb.append(" ").append($BY.text); } cube_or_rollup )
+;
+
+cube_or_rollup
+    : cube_rollup_list ( { sb.append(", "); } cube_rollup_list )* 
+;
+
+cube_rollup_list
+    : ^( ( CUBE { sb.append($CUBE.text).append("("); } | ROLLUP { sb.append($ROLLUP.text).append("("); } ) cube_by_expr_list { sb.append(")"); }) 
+;
+
+cube_by_expr_list
+    : ( cube_by_expr ( { sb.append(", "); } cube_by_expr )* )
 ;
 
 cube_by_expr 
@@ -574,6 +585,7 @@ eid : rel_str_op
     | FILTER    { sb.append($FILTER.text); }
     | FOREACH   { sb.append($FOREACH.text); }
     | CUBE      { sb.append($CUBE.text); }
+    | ROLLUP    { sb.append($ROLLUP.text); }
     | MATCHES   { sb.append($MATCHES.text); }
     | ORDER     { sb.append($ORDER.text); }
     | DISTINCT  { sb.append($DISTINCT.text); }
