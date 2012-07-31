@@ -84,6 +84,9 @@ ORDER   :  'ORDER'
 CUBE    : 'CUBE'
 ;
 
+ROLLUP	: 'ROLLUP'
+;
+
 DISTINCT : 'DISTINCT'
 ;
 

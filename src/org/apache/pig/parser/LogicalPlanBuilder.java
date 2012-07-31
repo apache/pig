@@ -38,6 +38,7 @@ import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.builtin.CubeDimensions;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.builtin.RANDOM;
+import org.apache.pig.builtin.RollupDimensions;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
@@ -373,34 +374,123 @@ public class LogicalPlanBuilder {
     }
     
     LOCube createCubeOp() {
-        return new LOCube(plan);
+	return new LOCube(plan);
     }
-    
-    String buildCubeOp(SourceLocation loc, LOCube op, String alias,
-	    String inputAlias,
-	    MultiMap<Integer, LogicalExpressionPlan> expressionPlans)
+
+    String buildCubeOp(SourceLocation loc, LOCube op, String alias, String inputAlias,
+	    List<String> operations, MultiMap<Integer, LogicalExpressionPlan> expressionPlans)
 	    throws ParserValidationException {
+
+	// check if continuously occurring cube operations be combined
+	combineCubeOperations((ArrayList<String>) operations, expressionPlans);
 
 	// set the expression plans for cube operator and build cube operator
 	op.setExpressionPlans(expressionPlans);
+	op.setOperations(operations);
 	buildOp(loc, op, alias, inputAlias, null);
 	expandAndResetVisitor(loc, op);
-
 	try {
-	    alias = convertCubeToFGPlan(loc, op, inputAlias, op.getExpressionPlans());
-        } catch (FrontendException e) {
-            throw new ParserValidationException( intStream, loc, e );
-        }
-        return alias;
+	    alias = convertCubeToFGPlan(loc, op, inputAlias, operations, expressionPlans);
+	} catch (FrontendException e) {
+	    throw new ParserValidationException(intStream, loc, e);
+	}
+	return alias;
     }
 
-     // This function creates logical plan for foreach and groupby operators. 
-     // It connects the predecessors of cube operator with foreach plan and
-     // disconnects cube operator from the logical plan. It also connects foreach
-     // plan with groupby plan.
-    private String convertCubeToFGPlan(SourceLocation loc, LOCube op,
-	    String inputAlias,
-	    MultiMap<Integer, LogicalExpressionPlan> expressionPlans)
+    // if multiple CUBE operations occur continuously then it can be combined
+    // together CUBE rel BY CUBE(a,b), CUBE(c,d); => CUBE rel BY CUBE(a,b,c,d)
+    private void combineCubeOperations(ArrayList<String> operations,
+	    MultiMap<Integer, LogicalExpressionPlan> expressionPlans) {
+
+	int startIdx = -1;
+	int endIdx = -1;
+	int i = 0;
+	boolean isMerged = false;
+
+	// scan and perform merge of column projections
+	for (i = 0; i < operations.size(); i++) {
+	    if ((startIdx == -1) && (operations.get(i).equals("CUBE") == true)) {
+		startIdx = i;
+	    } else {
+		if (operations.get(i).equals("CUBE") == true) {
+		    endIdx = i;
+		} else {
+		    if (endIdx > startIdx) {
+			mergeAndMarkForDelete(operations, expressionPlans, startIdx, endIdx);
+			isMerged = true;
+			startIdx = -1;
+			endIdx = -1;
+		    } else {
+			startIdx = -1;
+			endIdx = -1;
+		    }
+		}
+	    }
+	}
+
+	// this check is required for the case when the sequence of CUBE
+	// operations occurs at the end, like (CUBE, ROLLUP, CUBE, CUBE)
+	// in which case endIdx will be greater than startIdx
+	if (endIdx > startIdx) {
+	    isMerged = true;
+	    mergeAndMarkForDelete(operations, expressionPlans, startIdx, endIdx);
+	}
+
+	// if merged then remove the column projections that were marked for
+	// deletion
+	if (isMerged) {
+	    performDeletion(expressionPlans, operations);
+	}
+    }
+
+    private void performDeletion(MultiMap<Integer, LogicalExpressionPlan> expressionPlans,
+	    ArrayList<String> operations) {
+
+	MultiMap<Integer, LogicalExpressionPlan> ep = new MultiMap<Integer, LogicalExpressionPlan>();
+	List<String> op = new ArrayList<String>();
+	int idx = 0;
+	// rearranging indices
+	for (int i = 0; i < operations.size(); i++) {
+	    if (operations.get(i) != null) {
+		op.add(idx, operations.get(i));
+	    }
+
+	    if (expressionPlans.get(i) != null) {
+		ep.put(idx, expressionPlans.get(i));
+		idx++;
+	    }
+	}
+
+	// performing deletions
+	operations.clear();
+	operations.addAll(op);
+
+	expressionPlans.clear();
+	for (Integer i : ep.keySet()) {
+	    expressionPlans.put(i, ep.get(i));
+	}
+    }
+
+    // performs merging of dimensions of merged cube operation
+    // Ex: CUBE(a,b), CUBE(c,d) ==> CUBE(a,b,c,d)
+    // in the above example CUBE operator and dimensions are merged
+    private void mergeAndMarkForDelete(ArrayList<String> operations,
+	    MultiMap<Integer, LogicalExpressionPlan> expressionPlans, int startIdx, int endIdx) {
+	// mark for delete
+	for (int i = startIdx + 1; i <= endIdx; i++) {
+	    expressionPlans.put(startIdx, expressionPlans.get(i));
+	    expressionPlans.removeKey(i);
+	    operations.remove(i);
+	    operations.add(i, null);
+	}
+    }
+
+    // This function creates logical plan for foreach and groupby operators.
+    // It connects the predecessors of cube operator with foreach plan and
+    // disconnects cube operator from the logical plan. It also connects foreach
+    // plan with groupby plan.
+    private String convertCubeToFGPlan(SourceLocation loc, LOCube op, String inputAlias,
+	    List<String> operations, MultiMap<Integer, LogicalExpressionPlan> expressionPlans)
 	    throws FrontendException {
 
 	LOForEach foreach = new LOForEach(plan);
@@ -413,7 +503,7 @@ public class LogicalPlanBuilder {
 	// Get all column attributes from the input relation.
 	// Create ProjectExpression for all columns. Based on the
 	// dimensions specified by the user, specified columns will be attached
-	// to CubeDimension UDF and rest will be pushed down
+	// to CubeDimension/RollupDimension UDF and rest will be pushed down
 	List<Operator> inpOpers = foreach.getPlan().getPredecessors(foreach);
 	List<LogicalExpressionPlan> allExprPlan = new ArrayList<LogicalExpressionPlan>();
 	for (Operator oper : inpOpers) {
@@ -421,7 +511,8 @@ public class LogicalPlanBuilder {
 	    schema = ((LogicalRelationalOperator) oper).getSchema();
 
 	    if (schema != null) {
-		ArrayList<LogicalFieldSchema> fields = (ArrayList<LogicalFieldSchema>)schema.getFields();
+		ArrayList<LogicalFieldSchema> fields = (ArrayList<LogicalFieldSchema>) schema
+		        .getFields();
 		for (int i = 0; i < fields.size(); i++) {
 		    LogicalExpressionPlan lEplan = new LogicalExpressionPlan();
 		    new ProjectExpression(lEplan, i, fields.get(i).alias, gen);
@@ -430,55 +521,81 @@ public class LogicalPlanBuilder {
 	    }
 	}
 
-	List<LogicalExpressionPlan> lexpPlanList = new ArrayList<LogicalExpressionPlan>();
-	List<LogicalExpression> lexpList = new ArrayList<LogicalExpression>();
+	// iterate over all operations and generate corresponding UDFs
+	for (int operIdx = 0; operIdx < operations.size(); operIdx++) {
+	    List<LogicalExpressionPlan> lexpPlanList = new ArrayList<LogicalExpressionPlan>();
+	    List<LogicalExpression> lexpList = new ArrayList<LogicalExpression>();
 
-	// TODO: current implementation only supports star schema
-	// if snow-flake schema is to be supported then dimensions
-	// from multiple tables should be retrieved here.
-	lexpPlanList.addAll(expressionPlans.get(0));
+	    lexpPlanList.addAll(expressionPlans.get(operIdx));
 
-	// If duplicates exists in the dimension list then exception is thrown
-	checkDuplicateProject(lexpPlanList);
+	    // If duplicates exists in the dimension list then exception is
+	    // thrown
+	    checkDuplicateProject(lexpPlanList);
 
-	// Construct ProjectExpression from the LogicalExpressionPlans
-	lexpList = getProjectExpList(lexpPlanList, gen);
+	    // Construct ProjectExpression from the LogicalExpressionPlans
+	    lexpList = getProjectExpList(lexpPlanList, gen);
 
-	for (int i = 0; i < lexpList.size(); i++) {
-	    // Retain the columns that needs to be pushed down. 
-	    // Remove the dimension columns from the input column list
-	    // as it will be attached to CubeDimension UDF
-	    for (int j = 0; j < allExprPlan.size(); j++) {
-		LogicalExpression lexp = (LogicalExpression) allExprPlan.get(j).getSources().get(0);
-		String colAlias = ((ProjectExpression) lexpList.get(i)).getColAlias();
-		if (colAlias == null) {
-		    colAlias = ((ProjectExpression) lexpList.get(i)).getFieldSchema().alias;
-		}
+	    for (int i = 0; i < lexpList.size(); i++) {
+		// Retain the columns that needs to be pushed down.
+		// Remove the dimension columns from the input column list
+		// as it will be attached to CubeDimension UDF
+		for (int j = 0; j < allExprPlan.size(); j++) {
+		    LogicalExpression lexp = (LogicalExpression) allExprPlan.get(j).getSources()
+			    .get(0);
+		    String colAlias = ((ProjectExpression) lexpList.get(i)).getColAlias();
+		    if (colAlias == null) {
+			colAlias = ((ProjectExpression) lexpList.get(i)).getFieldSchema().alias;
+		    }
 
-		if (colAlias.equals(((ProjectExpression) lexp).getColAlias()) == true) {
-		    allExprPlan.remove(j);
+		    String projExpAlias = null;
+		    try {
+			projExpAlias = ((ProjectExpression) lexp).getColAlias();
+		    } catch (ClassCastException e) {
+			// if it is not projection then it should be
+			// UserFuncExpr.
+			// ignore and continue till next ProjExpr is encountered
+			continue;
+		    }
+		    if (colAlias.equals(projExpAlias) == true) {
+			allExprPlan.remove(j);
+		    } else {
+			// if projected exp alias is a namespaced alias
+			if (projExpAlias.lastIndexOf(":") != -1) {
+			    projExpAlias = projExpAlias.substring(
+				    projExpAlias.lastIndexOf(":") + 1, projExpAlias.length());
+			    if (colAlias.equals(projExpAlias) == true) {
+				allExprPlan.remove(j);
+			    }
+			}
+		    }
 		}
 	    }
 
-	}
-
-	// Create UDF with user specified dimensions 
-	LogicalExpressionPlan uexpPlan = new LogicalExpressionPlan();
-	new UserFuncExpression(uexpPlan, new FuncSpec(CubeDimensions.class.getName()), lexpList);
-	for (LogicalExpressionPlan lexp : lexpPlanList) {
-	    Iterator<Operator> it = lexp.getOperators();
-	    while (it.hasNext()) {
-		uexpPlan.add(it.next());
+	    // Create UDF with user specified dimensions
+	    LogicalExpressionPlan uexpPlan = new LogicalExpressionPlan();
+	    if (operations.get(operIdx).equals("CUBE")) {
+		new UserFuncExpression(uexpPlan, new FuncSpec(CubeDimensions.class.getName()),
+		        lexpList);
+	    } else {
+		new UserFuncExpression(uexpPlan, new FuncSpec(RollupDimensions.class.getName()),
+		        lexpList);
 	    }
+
+	    for (LogicalExpressionPlan lexp : lexpPlanList) {
+		Iterator<Operator> it = lexp.getOperators();
+		while (it.hasNext()) {
+		    uexpPlan.add(it.next());
+		}
+	    }
+	    // Add the UDF to logical expression plan that contains dependent
+	    // attributes (pushed down from input columns)
+	    allExprPlan.add(operIdx, uexpPlan);
 	}
-	// Add the UDF to logical expression plan that contains dependent
-	// attributes (pushed down from input columns)
-	allExprPlan.add(0, uexpPlan);
 
 	// If the operator is a UserFuncExpression then set the flatten flags.
 	List<Boolean> flattenFlags = new ArrayList<Boolean>();
-	for (int i = 0; i < allExprPlan.size(); i++) {
-	    List<Operator> opers = allExprPlan.get(i).getSources();
+	for (int idx = 0; idx < allExprPlan.size(); idx++) {
+	    List<Operator> opers = allExprPlan.get(idx).getSources();
 	    for (Operator oper : opers) {
 		if (oper instanceof ProjectExpression) {
 		    flattenFlags.add(false);
@@ -491,9 +608,9 @@ public class LogicalPlanBuilder {
 	// Generate and Foreach operator creation
 	String falias = null;
 	try {
-	    buildGenerateOp(loc, (LOForEach) foreach, (LOGenerate) gen, 
-		    operators, allExprPlan, flattenFlags, null);
-	    falias = buildForeachOp(loc, (LOForEach) foreach, "cube",inputAlias, innerPlan);
+	    buildGenerateOp(loc, (LOForEach) foreach, (LOGenerate) gen, operators, allExprPlan,
+		    flattenFlags, getUserDefinedSchema(allExprPlan));
+	    falias = buildForeachOp(loc, (LOForEach) foreach, "cube", inputAlias, innerPlan);
 	} catch (ParserValidationException pve) {
 	    throw new FrontendException(pve);
 	}
@@ -506,36 +623,64 @@ public class LogicalPlanBuilder {
 	// Get the output schema of foreach operator and reconstruct the
 	// LogicalExpressionPlan for each dimensional attributes
 	MultiMap<Integer, LogicalExpressionPlan> exprPlansCopy = new MultiMap<Integer, LogicalExpressionPlan>();
-	LogicalSchema fSchema = null;
-	fSchema = foreach.getSchema();
 
-	List<LogicalFieldSchema> lfSchemas = fSchema.getFields();
-	for (LogicalFieldSchema lfSchema : lfSchemas) {
+	for (LogicalExpressionPlan exp : expressionPlans.values()) {
+	    LogicalExpression lexp = (LogicalExpression) exp.getSources().get(0);
 	    LogicalExpressionPlan epGrp = new LogicalExpressionPlan();
-	    if (lfSchema.alias.contains("dimensions::") == true) {
-		new ProjectExpression(epGrp, 0, lfSchema.alias, groupby);
-		exprPlansCopy.put(0, epGrp);
-	    }
+	    new ProjectExpression(epGrp, 0, lexp.getFieldSchema().alias, groupby);
+	    exprPlansCopy.put(0, epGrp);
 	}
 
 	// build group by operator
 	try {
-	    return buildGroupOp(loc, (LOCogroup) groupby, op.getAlias(),
-		    inpAliases, exprPlansCopy, GROUPTYPE.REGULAR, innerFlags,null);
+	    return buildGroupOp(loc, (LOCogroup) groupby, op.getAlias(), inpAliases, exprPlansCopy,
+		    GROUPTYPE.REGULAR, innerFlags, null);
 	} catch (ParserValidationException pve) {
 	    throw new FrontendException(pve);
 	}
     }
-    
+
+    // User defined schema for generate operator. If not specified output schema
+    // of UDF will be used which will prefix "dimensions" namespace to all fields
+    private List<LogicalSchema> getUserDefinedSchema(List<LogicalExpressionPlan> allExprPlan)
+	    throws FrontendException {
+	List<LogicalSchema> genOutputSchema = new ArrayList<LogicalSchema>();
+	for (int i = 0; i < allExprPlan.size(); i++) {
+	    List<Operator> opers = allExprPlan.get(i).getSources();
+	    for (Operator oper : opers) {
+
+		// add a logical schema for dimensions that are pushed from
+		// predecessor of cube/rollup
+		if (oper instanceof ProjectExpression) {
+		    LogicalSchema output = new LogicalSchema();
+		    output.addField(new LogicalFieldSchema(
+			    ((ProjectExpression) oper).getColAlias(), null, DataType.NULL));
+		    genOutputSchema.add(output);
+		} else if (oper instanceof UserFuncExpression) {
+		    // add logical schema for dimensions specified in
+		    // cube/rollup operator
+		    LogicalSchema output = new LogicalSchema();
+		    for (Operator op : ((UserFuncExpression) oper).getPlan().getSinks()) {
+			output.addField(new LogicalFieldSchema(((ProjectExpression) op)
+			        .getFieldSchema()));
+		    }
+		    genOutputSchema.add(output);
+		}
+
+	    }
+	}
+	return genOutputSchema;
+    }
+
     private List<LogicalExpression> getProjectExpList(List<LogicalExpressionPlan> lexpPlanList,
 	    LogicalRelationalOperator lro) throws FrontendException {
 
-	 List<LogicalExpression> leList = new  ArrayList<LogicalExpression>();
+	List<LogicalExpression> leList = new ArrayList<LogicalExpression>();
 	for (int i = 0; i < lexpPlanList.size(); i++) {
 	    LogicalExpressionPlan lexp = lexpPlanList.get(i);
 	    LogicalExpression lex = (LogicalExpression) lexp.getSources().get(0);
 	    Iterator<Operator> opers = lexp.getOperators();
-	    
+
 	    // ProjExpr are initially attached to CubeOp. So re-attach it to
 	    // specified operator
 	    while (opers.hasNext()) {
@@ -546,18 +691,17 @@ public class LogicalPlanBuilder {
 		    throw new FrontendException("Column project expected.", cce);
 		}
 	    }
-	   
+
 	    leList.add(lex);
 	}
-	
+
 	return leList;
     }
 
-
     // This method connects the predecessors of cube operator with foreach
     // operator and disconnects the cube operator from its predecessors
-    private void injectForeachOperator(SourceLocation loc, LOCube op,
-	    LOForEach foreach) throws FrontendException {
+    private void injectForeachOperator(SourceLocation loc, LOCube op, LOForEach foreach)
+	    throws FrontendException {
 	// connect the foreach operator with predecessors of cube operator
 	List<Operator> opers = op.getPlan().getPredecessors(op);
 	for (Operator oper : opers) {
@@ -577,7 +721,7 @@ public class LogicalPlanBuilder {
 	    }
 	}
     }
-    
+
     // This methods if the dimensions specified by the user has duplicates
     private void checkDuplicateProject(List<LogicalExpressionPlan> lExprPlan)
 	    throws FrontendException {
@@ -599,13 +743,13 @@ public class LogicalPlanBuilder {
 
 		if (outColAlias.equals(inColAlias) == true) {
 		    lExprPlan.remove(j);
-		    throw new FrontendException("Duplicate dimensions detected. Dimension name: " + inColAlias);
+		    throw new FrontendException("Duplicate dimensions detected. Dimension name: "
+			    + inColAlias);
 		}
 	    }
 	}
 
     }
-
 	
     LOCogroup createGroupOp() {
         return new LOCogroup( plan );
