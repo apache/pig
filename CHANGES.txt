@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2814: Fix issues with Sample operator documentation (prasanth_j via dvryaboy)
+
 PIG-2817: Documentation for Groovy UDFs (herberts via julien)
 
 PIG-2492: AvroStorage should recognize globs and commas (cheolsoo via sms)

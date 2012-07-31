@@ -6922,7 +6922,7 @@ DUMP X;
 <!-- =========================================================================== -->
    <section id="sample">
    <title>SAMPLE</title>
-   <p>Partitions a relation into two or more relations.</p>
+   <p>Selects a random sample of data based on the specified sample size.</p>
    
    <section>
    <title>Syntax</title>
@@ -6952,7 +6952,7 @@ DUMP X;
             <td>
                <p>Sample size, either</p>
                <ul>
-               <li>a constant, rage 0 to 1 (for example, enter 0.1 for 10%)</li>
+               <li>a constant, range 0 to 1 (for example, enter 0.1 for 10%)</li>
                 <li>a scalar used in an expression</li>
                </ul>
                <p></p>
