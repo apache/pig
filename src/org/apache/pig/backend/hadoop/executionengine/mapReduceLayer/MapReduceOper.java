@@ -118,6 +118,12 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
     
     int requestedParallelism = -1;
     
+    // estimated at runtime
+    int estimatedParallelism = -1;
+    
+    // calculated at runtime 
+    int runtimeParallelism = -1;
+    
     /* Name of the Custom Partitioner used */ 
     String customPartitioner = null;
     

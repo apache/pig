@@ -49,7 +49,7 @@ public interface PigReducerEstimator {
      * @param conf the job configuration
      * @param poLoadList list of POLoads used in the jobs physical plan
      * @param job job instance
-     * @return the number of reducers to use
+     * @return the number of reducers to use, or -1 if the count couldn't be estimated
      * @throws IOException
      */
     public int estimateNumberOfReducers(Configuration conf, List<POLoad> poLoadList, Job job)

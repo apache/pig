@@ -47,7 +47,6 @@ import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
-import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROpPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.ScalarPhyFinder;
@@ -2474,28 +2473,10 @@ public class MRCompiler extends PhyPlanVisitor {
         PhysicalPlan rpep = new PhysicalPlan();
         ConstantExpression rpce = new ConstantExpression(new OperatorKey(scope,nig.getNextNodeId(scope)));
         rpce.setRequestedParallelism(rp);
-        int val = rp;
-        if(val<=0){
-            HExecutionEngine eng = pigContext.getExecutionEngine();
-            if(pigContext.getExecType() != ExecType.LOCAL){
-                try {
-                    if(val<=0)
-                        val = pigContext.defaultParallel;
-                    if (val<=0)
-                        val = eng.getJobConf().getNumReduceTasks();
-                    if (val<=0)
-                        val = 1;
-                } catch (Exception e) {
-                    int errCode = 6015;
-                    String msg = "Problem getting the default number of reduces from the Job Client.";
-                    throw new MRCompilerException(msg, errCode, PigException.REMOTE_ENVIRONMENT, e);
-                }
-            } else {
-            	val = 1; // local mode, set it to 1
-            }
-        }
-        int parallelismForSort = (rp <= 0 ? val : rp);
-        rpce.setValue(parallelismForSort);
+        
+        // We temporarily set it to rp and will adjust it at runtime, because the final degree of parallelism
+        // is unknown until we are ready to submit it. See PIG-2779.
+        rpce.setValue(rp);
         
         rpce.setResultType(DataType.INTEGER);
         rpep.add(rpce);
@@ -2549,7 +2530,7 @@ public class MRCompiler extends PhyPlanVisitor {
         mro.setReduceDone(true);
         mro.requestedParallelism = 1;
         mro.markSampler();
-        return new Pair<MapReduceOper, Integer>(mro, parallelismForSort);
+        return new Pair<MapReduceOper, Integer>(mro, rp);
     }
 
     static class LastInputStreamingOptimizer extends MROpPlanVisitor {
