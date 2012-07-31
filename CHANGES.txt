@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2779: Refactoring the code for setting number of reducers (jay23jack via billgraham)
+
 PIG-2765: Implementing RollupDimensions UDF and adding ROLLUP clause in CUBE operator (prasanth_j via dvryaboy)
 
 PIG-2814: Fix issues with Sample operator documentation (prasanth_j via dvryaboy)

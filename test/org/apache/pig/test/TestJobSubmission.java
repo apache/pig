@@ -27,7 +27,6 @@ import java.util.Random;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.MiniHBaseCluster;
-import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
@@ -476,16 +475,18 @@ public class TestJobSubmission {
         Job job = jobControl.getWaitingJobs().get(0);
         int parallel = job.getJobConf().getNumReduceTasks();
 
-        assertTrue(parallel==100);
-        
+        assertEquals(100, parallel);
+        Util.assertParallelValues(100, -1, -1, 100, job.getJobConf());
+
         pc.defaultParallel = -1;        
     }
-    
+
     @Test
     public void testDefaultParallelInSort() throws Throwable {
-        pc.defaultParallel = 100;
-        
-        String query = "a = load 'input';" + "b = order a by $0;" + "store b into 'output';";
+        // default_parallel is considered only at runtime, so here we only test requested parallel
+        // more thorough tests can be found in TestNumberOfReducers.java
+
+        String query = "a = load 'input';" + "b = order a by $0 parallel 100;" + "store b into 'output';";
         PigServer ps = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         PhysicalPlan pp = Util.buildPp(ps, query);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
@@ -507,11 +508,11 @@ public class TestJobSubmission {
     
     @Test
     public void testDefaultParallelInSkewJoin() throws Throwable {
-        pc.defaultParallel = 100;
-        
+        // default_parallel is considered only at runtime, so here we only test requested parallel
+        // more thorough tests can be found in TestNumberOfReducers.java
         String query = "a = load 'input';" + 
                        "b = load 'input';" + 
-                       "c = join a by $0, b by $0 using 'skewed';" +
+                       "c = join a by $0, b by $0 using 'skewed' parallel 100;" +
                        "store c into 'output';";
         PigServer ps = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         PhysicalPlan pp = Util.buildPp(ps, query);
@@ -558,8 +559,9 @@ public class TestJobSubmission {
         JobControl jc=jcc.compile(mrPlan, "Test");
         Job job = jc.getWaitingJobs().get(0);
         long reducer=Math.min((long)Math.ceil(new File("test/org/apache/pig/test/data/passwd").length()/100.0), 10);
-        assertEquals(job.getJobConf().getLong("mapred.reduce.tasks",10), reducer);
-        
+
+        Util.assertParallelValues(-1, -1, reducer, reducer, job.getJobConf());
+
         // use the PARALLEL key word, it will override the estimated reducer number
         query = "a = load '/passwd';" +
                 "b = group a by $0 PARALLEL 2;" +
@@ -574,14 +576,14 @@ public class TestJobSubmission {
         jcc = new JobControlCompiler(pc, conf);
         jc=jcc.compile(mrPlan, "Test");
         job = jc.getWaitingJobs().get(0);
-        assertEquals(job.getJobConf().getLong("mapred.reduce.tasks",10), 2);
-        
+
+        Util.assertParallelValues(-1, 2, -1, 2, job.getJobConf());
+
         final byte[] COLUMNFAMILY = Bytes.toBytes("pig");
-        HTable table = util.createTable(Bytes.toBytesBinary("passwd"),
-                COLUMNFAMILY);
+        util.createTable(Bytes.toBytesBinary("test_table"), COLUMNFAMILY);
         
         // the estimation won't take effect when it apply to non-dfs or the files doesn't exist, such as hbase
-        query = "a = load 'hbase://passwd' using org.apache.pig.backend.hadoop.hbase.HBaseStorage('c:f1 c:f2');" +
+        query = "a = load 'hbase://test_table' using org.apache.pig.backend.hadoop.hbase.HBaseStorage('c:f1 c:f2');" +
                 "b = group a by $0 ;" +
                 "store b into 'output';";
         pp = Util.buildPp(ps, query);
@@ -595,8 +597,10 @@ public class TestJobSubmission {
         jcc = new JobControlCompiler(pc, conf);
         jc=jcc.compile(mrPlan, "Test");
         job = jc.getWaitingJobs().get(0);
-        assertEquals(job.getJobConf().getLong("mapred.reduce.tasks",10), 1);
-        util.deleteTable(Bytes.toBytesBinary("passwd"));
+
+        Util.assertParallelValues(-1, -1, -1, 1, job.getJobConf());
+
+        util.deleteTable(Bytes.toBytesBinary("test_table"));
         // In HBase 0.90.1 and above we can use util.shutdownMiniHBaseCluster()
         // here instead.
         MiniHBaseCluster hbc = util.getHBaseCluster();
@@ -624,18 +628,24 @@ public class TestJobSubmission {
         JobControlCompiler jcc = new JobControlCompiler(pc, conf);
         JobControl jobControl = jcc.compile(mrPlan, query);
 
-        assertEquals(2, mrPlan.size());     
-        
+        assertEquals(2, mrPlan.size());
+
+        // first job uses a single reducer for the sampling
+        Util.assertParallelValues(-1, 1, -1, 1, jobControl.getWaitingJobs().get(0).getJobConf());
+
         // Simulate the first job having run so estimation kicks in.
         MapReduceOper sort = mrPlan.getLeaves().get(0);        
         jcc.updateMROpPlan(jobControl.getReadyJobs());
         FileLocalizer.create(sort.getQuantFile(), pc);
-        jcc.compile(mrPlan, query);
+        jobControl = jcc.compile(mrPlan, query);
 
         sort = mrPlan.getLeaves().get(0);
         long reducer=Math.min((long)Math.ceil(new File("test/org/apache/pig/test/data/passwd").length()/100.0), 10);
         assertEquals(reducer, sort.getRequestedParallelism());
-        
+
+        // the second job estimates reducers
+        Util.assertParallelValues(-1, -1, reducer, reducer, jobControl.getWaitingJobs().get(0).getJobConf());
+
         // use the PARALLEL key word, it will override the estimated reducer number
         query = "a = load '/passwd';" + "b = order a by $0 PARALLEL 2;" +
                 "store b into 'output';";
@@ -643,7 +653,7 @@ public class TestJobSubmission {
         
         mrPlan = Util.buildMRPlanWithOptimizer(pp, pc);               
 
-        assertEquals(2, mrPlan.size());     
+        assertEquals(2, mrPlan.size());
         
         sort = mrPlan.getLeaves().get(0);        
         assertEquals(2, sort.getRequestedParallelism());
@@ -659,7 +669,9 @@ public class TestJobSubmission {
         
         sort = mrPlan.getLeaves().get(0);
         
-        assertEquals(1, sort.getRequestedParallelism());
+        // the requested parallel will be -1 if users don't set any of default_parallel, paralllel
+        // and the estimation doesn't take effect. MR framework will finally set it to 1.
+        assertEquals(-1, sort.getRequestedParallelism());
         
         // test order by with three jobs (after optimization)
         query = "a = load '/passwd';" +
@@ -677,12 +689,22 @@ public class TestJobSubmission {
 
         jobControl = jcc.compile(mrPlan, query);
         Util.copyFromLocalToCluster(cluster, "test/org/apache/pig/test/data/passwd", ((POLoad) sort.mapPlan.getRoots().get(0)).getLFile().getFileName());
+
+        //First job is just foreach with projection, mapper-only job, so estimate gets ignored
+        Util.assertParallelValues(-1, -1, reducer, 0, jobControl.getWaitingJobs().get(0).getJobConf());
+
         jcc.updateMROpPlan(jobControl.getReadyJobs());
         jobControl = jcc.compile(mrPlan, query);
         jcc.updateMROpPlan(jobControl.getReadyJobs());
 
+        //Second job is a sampler, which requests and gets 1 reducer
+        Util.assertParallelValues(-1, 1, -1, 1, jobControl.getWaitingJobs().get(0).getJobConf());
+
         jobControl = jcc.compile(mrPlan, query);
         sort = mrPlan.getLeaves().get(0);       
         assertEquals(reducer, sort.getRequestedParallelism());
+
+        //Third job is the order, which uses the estimated number of reducers
+        Util.assertParallelValues(-1, -1, reducer, reducer, jobControl.getWaitingJobs().get(0).getJobConf());
     }
 }

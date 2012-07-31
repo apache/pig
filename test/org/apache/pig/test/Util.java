@@ -18,6 +18,7 @@
 package org.apache.pig.test;
 
 import static java.util.regex.Matcher.quoteReplacement;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import java.io.BufferedReader;
@@ -1159,5 +1160,20 @@ public class Util {
         if (version.matches("\\b1\\.0\\..+"))
             return true;
         return false;
+    }
+
+    public static void assertParallelValues(long defaultParallel,
+                                             long requestedParallel,
+                                             long estimatedParallel,
+                                             long runtimeParallel,
+                                             Configuration conf) {
+        assertConfLong(conf, "pig.info.reducers.default.parallel", defaultParallel);
+        assertConfLong(conf, "pig.info.reducers.requested.parallel", requestedParallel);
+        assertConfLong(conf, "pig.info.reducers.estimated.parallel", estimatedParallel);
+        assertConfLong(conf, "mapred.reduce.tasks", runtimeParallel);
+    }
+
+    private static void assertConfLong(Configuration conf, String param, long expected) {
+        assertEquals("Unexpected value found in configs for " + param, expected, conf.getLong(param, -1));
     }
 }
