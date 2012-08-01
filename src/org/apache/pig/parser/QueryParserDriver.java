@@ -19,6 +19,8 @@
 package org.apache.pig.parser;
 
 import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -344,10 +346,13 @@ public class QueryParserDriver {
     private FetchFileRet getMacroFile(String fname) {
         FetchFileRet localFileRet = null;
         try {
-            if (fnameMap.get(fname)!=null) {
+            if (fnameMap.get(fname) != null) {
                 localFileRet = fnameMap.get(fname);
             } else {
-                localFileRet = FileLocalizer.fetchFile(pigContext.getProperties(), fname);
+                File localFile = QueryParserUtils.getFileFromImportSearchPath(fname);
+                localFileRet = localFile == null ?
+                        FileLocalizer.fetchFile(pigContext.getProperties(), fname)
+                        : new FetchFileRet(localFile.getCanonicalFile(), false);
                 fnameMap.put(fname, localFileRet);
             }
         } catch (IOException e) {
@@ -443,7 +448,7 @@ public class QueryParserDriver {
         
         BufferedReader in = null;
         try {
-            in = QueryParserUtils.getImportScriptAsReader(localFileRet.file.getAbsolutePath());
+            in = new BufferedReader(new FileReader(localFileRet.file));
         } catch (FileNotFoundException e) {
             String msg = getErrorMessage(fname, t,
                     "Failed to import file '" + fname + "'", e.getMessage());
