@@ -322,7 +322,7 @@ class XMLLoaderBufferedPositionedInputStream extends BufferedPositionedInputStre
               break;
             case S_MATCH_PREFIX:
               // tag match iff next character is whitespaces or close tag mark
-              if (b == ' ' || b == '\t' || b == '>') {
+              if (b == ' ' || b == '\t' || b == '\r' || b == '\n' || b == '>') {
                 matchBuf.write((byte)(b));
                 state = S_MATCH_TAG;
               } else {
@@ -387,15 +387,16 @@ class XMLLoaderBufferedPositionedInputStream extends BufferedPositionedInputStre
        byte[] beginTag = skipToTag(tagName, limit);
 
        // No need to search for the end tag if the start tag is not found
-       if(beginTag.length > 0 ){ 
-          byte[] untilTag = collectUntilEndTag(tagName, limit);
-          if (untilTag.length > 0) {
-             for (byte b: beginTag) {
-             collectBuf.write(b);
-           }
-           for (byte b: untilTag) {
-              collectBuf.write(b);
-           }
+       if(beginTag.length > 2 ){
+          if (beginTag[beginTag.length - 2] == '/') {
+            //Start tag is empty
+            collectBuf.write(beginTag);
+          } else {
+            byte[] untilTag = collectUntilEndTag(tagName, limit);
+            if (untilTag.length > 0) {
+               collectBuf.write(beginTag);
+            }
+            collectBuf.write(untilTag);
           }
        }
        return collectBuf.toByteArray();

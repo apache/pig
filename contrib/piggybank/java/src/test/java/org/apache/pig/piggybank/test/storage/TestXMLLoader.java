@@ -43,6 +43,17 @@ public class TestXMLLoader extends TestCase {
     data.add(new String[] { "</configuration>"});
   }
   
+  public static ArrayList<String[]> closedTag = new ArrayList<String[]>();
+  static {
+    closedTag.add(new String[] { "<configuration>"});
+    closedTag.add(new String[] { "<property attribute='value'"});
+    closedTag.add(new String[] { "/>"});
+    closedTag.add(new String[] { "<property"});
+    closedTag.add(new String[] { " attribute='value2'>"});
+    closedTag.add(new String[] { "</property>"});
+    closedTag.add(new String[] { "</configuration>"});
+  }
+
   public static ArrayList<String[]> nestedTags = new ArrayList<String[]>();
   static {
      nestedTags.add(new String[] { "<events>"});
@@ -98,9 +109,9 @@ public class TestXMLLoader extends TestCase {
     assertEquals(0, tupleCount); 
   }
   
-  public void testLoadXMLLoader() throws Exception {
+  public void testClosedTag() throws Exception {
     //ArrayList<DataByteArray[]> expected = TestHelper.getExpected(data, pattern);
-    String filename = TestHelper.createTempFile(data, "");
+    String filename = TestHelper.createTempFile(closedTag, "");
     PigServer pig = new PigServer(LOCAL);
     filename = filename.replace("\\", "\\\\");
     patternString = patternString.replace("\\", "\\\\");
@@ -121,6 +132,29 @@ public class TestXMLLoader extends TestCase {
     assertEquals(2, tupleCount);  
   }
   
+  public void testLoadXMLLoader() throws Exception {
+    //ArrayList<DataByteArray[]> expected = TestHelper.getExpected(data, pattern);
+    String filename = TestHelper.createTempFile(closedTag, "");
+    PigServer pig = new PigServer(LOCAL);
+    filename = filename.replace("\\", "\\\\");
+    patternString = patternString.replace("\\", "\\\\");
+    String query = "A = LOAD 'file:" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('property') as (doc:chararray);";
+    pig.registerQuery(query);
+    Iterator<?> it = pig.openIterator("A");
+    int tupleCount = 0;
+    while (it.hasNext()) {
+      Tuple tuple = (Tuple) it.next();
+      if (tuple == null)
+        break;
+      else {
+        if (tuple.size() > 0) {
+            tupleCount++;
+        }
+      }
+    }
+    assertEquals(2, tupleCount);
+  }
+
   public void testXMLLoaderShouldLoadBasicBzip2Files() throws Exception {
     String filename = TestHelper.createTempFile(data, "");
     Process bzipProc = Runtime.getRuntime().exec("bzip2 "+filename);
