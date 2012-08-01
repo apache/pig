@@ -82,11 +82,6 @@ class XMLLoaderBufferedPositionedInputStream extends BufferedPositionedInputStre
     public final static int S_MATCH_TAG = 2;
 
     /**
-     * The input streamed to be filtered 
-     */
-    InputStream wrapperIn;
-
-    /**
      * The field to know if the underlying buffer contains any more bytes
      */
     boolean _isReadable;
@@ -94,30 +89,22 @@ class XMLLoaderBufferedPositionedInputStream extends BufferedPositionedInputStre
     /**
     * The field set the maximum bytes that is readable by this instance of stream.
     */
-    private long maxBytesReadable = 0;
+    private long maxBytesReadable = Long.MAX_VALUE;
     	
     /**
-    * The field denote the number of bytes read by this stream. 
-    */
-    long bytesRead = 0;
-    	
-    /**
-    * Denotes the end of the current split location
-    */
-    long end = 0;
+     * Specifies real start position before first read
+     */
+    final long startPosition;
     
     /**
      * Creates a <code>XMLLoaderBufferedPositionedInputStream</code>
-     * by assigning the  argument <code>in</code>
-     * to the field <code>this.wrapperIn</code> so as
-     * to remember it for later use.
      *
      * @param   in   the underlying input stream,
      */
-    public XMLLoaderBufferedPositionedInputStream(InputStream in){
+    public XMLLoaderBufferedPositionedInputStream(InputStream in) throws IOException{
         super(in);
-        this.wrapperIn = in;
         setReadable(true);
+        startPosition = getPosition();
     }
     
     /**
@@ -126,9 +113,8 @@ class XMLLoaderBufferedPositionedInputStream extends BufferedPositionedInputStre
      * @param start    start location of the split
      * @param end    end location of the split
      */
-    public XMLLoaderBufferedPositionedInputStream(InputStream in,long start,long end){
+    public XMLLoaderBufferedPositionedInputStream(InputStream in,long start,long end) throws IOException{
        this(in);
-       this.end = end;
        maxBytesReadable = end - start;
     }
 
@@ -164,15 +150,14 @@ class XMLLoaderBufferedPositionedInputStream extends BufferedPositionedInputStre
      * is thrown.
      * <p>
      * This method
-     * simply performs <code>in.read()</code> and returns the result.
+     * simply performs <code>super.read()</code> and returns the result.
      *
      * @return     the next byte of data, or <code>-1</code> if the end of the
      *             stream is reached.
      * @exception  IOException  if an I/O error occurs.
-     * @see        XMLLoaderBufferedPositionedInputStreamInputStream#wrapperIn
      */
     public int read() throws IOException {
-       return wrapperIn.read();
+       return super.read();
     }
 
     /**
@@ -201,8 +186,8 @@ class XMLLoaderBufferedPositionedInputStream extends BufferedPositionedInputStre
         tag[2+i] = tmp[i];
       }
       tag[tmp.length+2] = (byte)'>';
-      
-      
+
+
       // Create a start tag bytes to handle nested tags
       byte[] startTag = new byte[tmp.length + 1];
       startTag[0] = (byte)'<';
@@ -210,8 +195,8 @@ class XMLLoaderBufferedPositionedInputStream extends BufferedPositionedInputStre
          startTag[1+i] = tmp[i];
        }
       //startTag[tmp.length+1] = (byte)'>';
-      
-      
+
+
 
       ByteArrayOutputStream collectBuf = new ByteArrayOutputStream(1024);
       int idxTagChar = 0;
@@ -228,7 +213,6 @@ class XMLLoaderBufferedPositionedInputStream extends BufferedPositionedInputStre
         int b = -1;
         try {
           b = this.read();
-          ++bytesRead; // Add one to the bytes read
           if (b == -1) {
             collectBuf.reset();
             this.setReadable(false);
@@ -244,16 +228,16 @@ class XMLLoaderBufferedPositionedInputStream extends BufferedPositionedInputStre
              if (b == ' ' || b == '\t' || b == '>')
                 ++nestedTags;// increment the nesting count
           }
-          
+
           if (b == startTag[idxStartTagChar]){
              ++idxStartTagChar;
              if(idxStartTagChar == startTag.length)
                 startTagMatched = true ; // Set the flag as true if start tag matches
           }else
              idxStartTagChar = 0;
-            
-          
-          
+
+
+
           // start to match the target close tag
           if (b == tag[idxTagChar]) {
             ++idxTagChar;
@@ -265,9 +249,9 @@ class XMLLoaderBufferedPositionedInputStream extends BufferedPositionedInputStre
                   idxTagChar = 0; // Reset the index
                }
             }
-          } else 
-            idxTagChar = 0; 
-          
+          } else
+            idxTagChar = 0;
+
         }
         catch (IOException e) {
           this.setReadable(false);
@@ -312,11 +296,10 @@ class XMLLoaderBufferedPositionedInputStream extends BufferedPositionedInputStre
        * matched. If the read has reached the end of split and there are matched data 
        * then continue on to the next block.
        */
-      while (splitBoundaryCriteria(wrapperIn) ||  (matchBuf.size() > 0 )) {
+      while (splitBoundaryCriteria() ||  (matchBuf.size() > 0 )) {
         int b = -1;
         try {
           b = this.read();
-          ++bytesRead; // Increment the bytes read by 1
           if (b == -1) {
             state = S_START;
             matchBuf.reset();
@@ -377,15 +360,11 @@ class XMLLoaderBufferedPositionedInputStream extends BufferedPositionedInputStre
      * this will cause the entire file to be read. For bz2 and bz files, the 
      * condition lies on the position which until which it is read. 
      *  
-     * @param wrapperIn2
      * @return true/false depending on whether split boundary has reached or no
      * @throws IOException
      */
-    private boolean splitBoundaryCriteria(InputStream wrapperIn2) throws IOException {
-       if(wrapperIn2 instanceof CBZip2InputStream)
-          return ((CBZip2InputStream)wrapperIn2).getPos() <= end;
-       else
-          return bytesRead <= maxBytesReadable;
+    private boolean splitBoundaryCriteria() throws IOException {
+      return getPosition() - startPosition <= maxBytesReadable;
     }
 
     /**
