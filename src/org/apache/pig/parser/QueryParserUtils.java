@@ -18,10 +18,7 @@
 
 package org.apache.pig.parser;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -54,7 +51,7 @@ import org.apache.pig.tools.pigstats.ScriptState;
 public class QueryParserUtils {
     private static Log log = LogFactory.getLog( LogicalPlanGenerator.class );
 
-	public static String removeQuotes(String str) {
+    public static String removeQuotes(String str) {
         if (str.startsWith("\u005c'") && str.endsWith("\u005c'"))
             return str.substring(1, str.length() - 1);
         else
@@ -201,12 +198,11 @@ public class QueryParserUtils {
         }
     }
 
-    static BufferedReader getImportScriptAsReader(String scriptPath)
-            throws FileNotFoundException {
+     static File getFileFromImportSearchPath(String scriptPath) {
         File f = new File(scriptPath);
         if (f.exists() || f.isAbsolute() || scriptPath.startsWith("./")
                 || scriptPath.startsWith("../")) {
-            return new BufferedReader(new FileReader(f));
+            return f;
         }
 
         ScriptState state = ScriptState.get();
@@ -218,14 +214,13 @@ public class QueryParserUtils {
                 for (String path : paths) {
                     File f1 = new File(path + File.separator + scriptPath);
                     if (f1.exists()) {
-                        return new BufferedReader(new FileReader(f1));
+                        return f1;
                     }
                 }
             }
         }
 
-        throw new FileNotFoundException("Can't find the Specified file "
-                + scriptPath);
+        return null;
     }
     
     static QueryParser createParser(CommonTokenStream tokens) {
