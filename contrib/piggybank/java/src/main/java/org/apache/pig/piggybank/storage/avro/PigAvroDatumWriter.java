@@ -108,7 +108,7 @@ public class PigAvroDatumWriter extends GenericDatumWriter<Object> {
      */
     protected void writeUnion(Schema schema, Object datum, Encoder out)
                                     throws IOException {
-        int index = resolveUnion(schema, datum);
+        int index = resolveUnionSchema(schema, datum);
         out.writeIndex(index);
         write(schema.getTypes().get(index), datum, out);
     }
@@ -116,7 +116,7 @@ public class PigAvroDatumWriter extends GenericDatumWriter<Object> {
     /**
      * Called to resolve union. 
      */
-    protected int resolveUnion(Schema union, Object datum) throws IOException {
+    protected int resolveUnionSchema(Schema union, Object datum) throws IOException {
         int i = 0;
         for (Schema type : union.getTypes()) {
             if (type.getType().equals(Schema.Type.UNION))
@@ -130,7 +130,7 @@ public class PigAvroDatumWriter extends GenericDatumWriter<Object> {
 
     /**
      * Recursively check whether "datum" is an instance of "schema" and called 
-     * by {@link #resolveUnion(Schema,Object)},
+     * by {@link #resolveUnionSchema(Schema,Object)},
      * {@link #unwrappedInstanceOf(Schema,Object)}. 
      * 
      */
@@ -156,7 +156,7 @@ public class PigAvroDatumWriter extends GenericDatumWriter<Object> {
 
             case UNION:
                 @SuppressWarnings("unused")
-                int index = resolveUnion(schema, datum);
+                int index = resolveUnionSchema(schema, datum);
                 return true;
             case ENUM:
                 return datum instanceof String && schema.hasEnumSymbol(((String) datum))
