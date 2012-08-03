@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2569: Fix org.apache.pig.test.TestInvoker.testSpeed (aklochkov via dvryaboy)
+
 PIG-2858: Improve PlanHelper to allow finding any PhysicalOperator in a plan (dvryaboy)
 
 PIG-2854: AvroStorage doesn't work with Avro 1.7.1 (cheolsoo via sms)

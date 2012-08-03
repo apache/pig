@@ -835,6 +835,7 @@
                        <excludesfile name="${test.exclude.file.23}" if="isHadoop23" />
                     </patternset>
                     <exclude name="**/${exclude.testcase}.java" if="exclude.testcase" />
+                    <exclude name="**/TestInvokerSpeed.java" if="clover.enabled"/>
                 </fileset>
             </batchtest>
             <batchtest fork="yes" todir="${test.log.dir}" if="testcase">
