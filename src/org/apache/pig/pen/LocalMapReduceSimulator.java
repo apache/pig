@@ -129,15 +129,15 @@ public class LocalMapReduceSimulator {
                     pack = mro.reducePlan.getRoots().get(0);
                 }
                 
-                List<POLoad> lds = PlanHelper.getLoads(mro.mapPlan);
+                List<POLoad> lds = PlanHelper.getPhysicalOperators(mro.mapPlan, POLoad.class);
                 if (!mro.mapPlan.isEmpty()) {
-                    stores = PlanHelper.getStores(mro.mapPlan);
+                    stores = PlanHelper.getPhysicalOperators(mro.mapPlan, POStore.class);
                 }
                 if (!mro.reducePlan.isEmpty()) {
                     if (stores == null)
-                        stores = PlanHelper.getStores(mro.reducePlan);
+                        stores = PlanHelper.getPhysicalOperators(mro.reducePlan, POStore.class);
                     else
-                        stores.addAll(PlanHelper.getStores(mro.reducePlan));
+                        stores.addAll(PlanHelper.getPhysicalOperators(mro.reducePlan, POStore.class));
                 }
 
                 for (POStore store : stores) {

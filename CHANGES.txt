@@ -24,7 +24,9 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
-PIG-2854 AvroStorage doesn't work with Avro 1.7.1 (cheolsoo via sms)
+PIG-2858: Improve PlanHelper to allow finding any PhysicalOperator in a plan (dvryaboy)
+
+PIG-2854: AvroStorage doesn't work with Avro 1.7.1 (cheolsoo via sms)
 
 PIG-2779: Refactoring the code for setting number of reducers (jay23jack via billgraham)
 

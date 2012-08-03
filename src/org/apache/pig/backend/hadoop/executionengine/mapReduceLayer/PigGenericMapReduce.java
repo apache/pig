@@ -319,7 +319,7 @@ public class PigGenericMapReduce {
                 if (rp == null)
                     rp = (PhysicalPlan) ObjectSerializer.deserialize(jConf
                             .get("pig.reducePlan"));
-                stores = PlanHelper.getStores(rp);
+                stores = PlanHelper.getPhysicalOperators(rp, POStore.class);
 
                 if (!inIllustrator)
                     pack = (POPackage)ObjectSerializer.deserialize(jConf.get("pig.reduce.package"));
