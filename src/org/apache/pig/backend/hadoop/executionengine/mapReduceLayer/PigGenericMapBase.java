@@ -178,7 +178,7 @@ public abstract class PigGenericMapBase extends Mapper<Text, Tuple, PigNullableW
         if (mp == null)
             mp = (PhysicalPlan) ObjectSerializer.deserialize(
                 job.get("pig.mapPlan"));
-        stores = PlanHelper.getStores(mp);
+        stores = PlanHelper.getPhysicalOperators(mp, POStore.class);
         
         // To be removed
         if(mp.isEmpty())

@@ -292,7 +292,7 @@ public class ScriptState {
         conf.set(PIG_PROPERTY.COMMAND_LINE.toString(), getCommandLine());
         
         try {
-            LinkedList<POStore> stores = PlanHelper.getStores(mro.mapPlan);
+            LinkedList<POStore> stores = PlanHelper.getPhysicalOperators(mro.mapPlan, POStore.class);
             ArrayList<String> outputDirs = new ArrayList<String>();
             for (POStore st: stores) {  
                 outputDirs.add(st.getSFile().getFileName()); 
@@ -303,7 +303,7 @@ public class ScriptState {
         }
         if (!mro.reducePlan.isEmpty()) {
             try {
-                LinkedList<POStore> stores = PlanHelper.getStores(mro.reducePlan);
+                LinkedList<POStore> stores = PlanHelper.getPhysicalOperators(mro.reducePlan, POStore.class);
                 ArrayList<String> outputDirs = new ArrayList<String>();
                 for (POStore st: stores) {  
                     outputDirs.add(st.getSFile().getFileName()); 
@@ -314,7 +314,7 @@ public class ScriptState {
             }
         }        
         try {
-            List<POLoad> lds = PlanHelper.getLoads(mro.mapPlan);
+            List<POLoad> lds = PlanHelper.getPhysicalOperators(mro.mapPlan, POLoad.class);
             ArrayList<String> inputDirs = new ArrayList<String>();
             if (lds != null && lds.size() > 0){
                 for (POLoad ld : lds) {

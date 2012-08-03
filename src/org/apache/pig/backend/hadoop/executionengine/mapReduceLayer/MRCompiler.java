@@ -323,8 +323,8 @@ public class MRCompiler extends PhyPlanVisitor {
 
         // get all stores and nativeMR operators, sort them in order(operator id)
         // and compile their plans
-        List<POStore> stores = PlanHelper.getStores(plan);
-        List<PONative> nativeMRs= PlanHelper.getNativeMRs(plan);
+        List<POStore> stores = PlanHelper.getPhysicalOperators(plan, POStore.class);
+        List<PONative> nativeMRs= PlanHelper.getPhysicalOperators(plan, PONative.class);
         List<PhysicalOperator> ops;
         if (!pigContext.inIllustrator) {
             ops = new ArrayList<PhysicalOperator>(stores.size() + nativeMRs.size());

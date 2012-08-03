@@ -395,7 +395,7 @@ public class JobControlCompiler{
         try{
 
             //Process the POLoads
-            List<POLoad> lds = PlanHelper.getLoads(mro.mapPlan);
+            List<POLoad> lds = PlanHelper.getPhysicalOperators(mro.mapPlan, POLoad.class);
 
             if(lds!=null && lds.size()>0){
                 for (POLoad ld : lds) {
@@ -491,8 +491,8 @@ public class JobControlCompiler{
             nwJob.setInputFormatClass(PigInputFormat.class);
 
             //Process POStore and remove it from the plan
-            LinkedList<POStore> mapStores = PlanHelper.getStores(mro.mapPlan);
-            LinkedList<POStore> reduceStores = PlanHelper.getStores(mro.reducePlan);
+            LinkedList<POStore> mapStores = PlanHelper.getPhysicalOperators(mro.mapPlan, POStore.class);
+            LinkedList<POStore> reduceStores = PlanHelper.getPhysicalOperators(mro.reducePlan, POStore.class);
 
             for (POStore st: mapStores) {
                 storeLocations.add(st);
@@ -756,7 +756,7 @@ public class JobControlCompiler{
             throw new JobCreationException(msg, errCode, PigException.BUG, e);
         }
     }
-    
+
     /**
      * Adjust the number of reducers based on the default_parallel, requested parallel and estimated
      * parallel. For sampler jobs, we also adjust the next job in advance to get its runtime parallel as
@@ -779,14 +779,14 @@ public class JobControlCompiler{
             // Here we use the same conf and Job to calculate the runtime #reducers of the next job
             // which is fine as the statistics comes from the nextMro's POLoads
             int nPartitions = calculateRuntimeReducers(nextMro, conf, nwJob);
-            
+
             // set the runtime #reducer of the next job as the #partition
             ParallelConstantVisitor visitor =
               new ParallelConstantVisitor(mro.reducePlan, nPartitions);
             visitor.visit();
         }
         log.info("Setting Parallelism to " + jobParallelism);
-        
+
         // set various parallelism into the job conf for later analysis, PIG-2779
         conf.setInt("pig.info.reducers.default.parallel", pigContext.defaultParallel);
         conf.setInt("pig.info.reducers.requested.parallel", mro.requestedParallelism);
@@ -794,16 +794,16 @@ public class JobControlCompiler{
 
         // this is for backward compatibility, and we encourage to use runtimeParallelism at runtime
         mro.requestedParallelism = jobParallelism;
-        
+
         // finally set the number of reducers
         conf.setInt("mapred.reduce.tasks", jobParallelism);
     }
-    
+
     /**
      * Calculate the runtime #reducers based on the default_parallel, requested parallel and estimated
-     * parallel, and save it to MapReduceOper's runtimeParallelism. 
+     * parallel, and save it to MapReduceOper's runtimeParallelism.
      * @return the runtimeParallelism
-     * @throws IOException 
+     * @throws IOException
      */
     private int calculateRuntimeReducers(MapReduceOper mro, Configuration conf,
             org.apache.hadoop.mapreduce.Job nwJob) throws IOException{
@@ -811,14 +811,10 @@ public class JobControlCompiler{
         if (mro.runtimeParallelism != -1) {
             return mro.runtimeParallelism;
         }
-        List<PhysicalOperator> loads = mro.mapPlan.getRoots();
-        List<POLoad> lds = new ArrayList<POLoad>();
-        for (PhysicalOperator ld : loads) {
-            lds.add((POLoad)ld);
-        }
-        
+        List<POLoad> lds = PlanHelper.getPhysicalOperators(mro.mapPlan, POLoad.class);
+
         int jobParallelism = -1;
-        
+
         if (mro.requestedParallelism > 0) {
             jobParallelism = mro.requestedParallelism;
         } else if (pigContext.defaultParallel > 0) {
