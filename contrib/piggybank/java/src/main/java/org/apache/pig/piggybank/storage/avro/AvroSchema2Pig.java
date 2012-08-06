@@ -47,12 +47,12 @@ public class AvroSchema2Pig {
      */
     public static ResourceSchema convert(Schema schema) throws IOException {
 
-        if (AvroStorageUtils.containsGenericUnion(schema))
-            throw new IOException ("We don't accept schema containing generic unions.");
-        
         if (AvroStorageUtils.containsRecursiveRecord(schema))
             throw new IOException ("We don't accept schema containing recursive records.");
         
+        if (AvroStorageUtils.containsGenericUnion(schema))
+            throw new IOException ("We don't accept schema containing generic unions.");
+
         ResourceFieldSchema inSchema = inconvert(schema, FIELD);
 
         ResourceSchema tupleSchema;
