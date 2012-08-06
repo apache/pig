@@ -124,7 +124,7 @@ public class AvroStorageUtils {
         }
         for (FileStatus file : matchedFiles) {
             if (file.isDir()) {
-                for (FileStatus sub : fs.listStatus(path)) {
+                for (FileStatus sub : fs.listStatus(file.getPath())) {
                     getAllSubDirs(sub.getPath(), job, paths);
                 }
             } else {
