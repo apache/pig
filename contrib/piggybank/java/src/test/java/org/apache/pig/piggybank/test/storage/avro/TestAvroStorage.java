@@ -29,6 +29,8 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.executionengine.ExecJob;
+import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobCreationException;
 import org.apache.pig.piggybank.storage.avro.AvroStorage;
 import org.apache.pig.piggybank.storage.avro.PigSchema2Avro;
@@ -41,6 +43,7 @@ import org.junit.Test;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
@@ -112,7 +115,7 @@ public class TestAvroStorage {
     public void testGlob1() throws IOException {
         // Verify that the a glob pattern matches files properly.
         String output = outbasedir + "testGlob1";
-        String expected = basedir + "expected_test_dir_1.avro";
+        String expected = basedir + "expected_testDir.avro";
         deleteDirectory(new File(output));
         String [] queries = {
            " in = LOAD '" + testDir1AllFiles + "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ();",
@@ -492,11 +495,14 @@ public class TestAvroStorage {
             if (query != null && query.length() > 0)
                 pigServerLocal.registerQuery(query);
         }
-        pigServerLocal.executeBatch();
+        List<ExecJob> jobs = pigServerLocal.executeBatch();
+        for (ExecJob job : jobs) {
+            assertEquals(JOB_STATUS.COMPLETED, job.getStatus());
+        }
     }
     
     private void verifyResults(String outPath, String expectedOutpath) throws IOException {
-      verifyResults(outPath, expectedOutpath, null);
+        verifyResults(outPath, expectedOutpath, null);
     }
 
     private void verifyResults(String outPath, String expectedOutpath, String expectedCodec) throws IOException {
