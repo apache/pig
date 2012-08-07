@@ -30,6 +30,8 @@ PIG-2619: HBaseStorage constructs a Scan with cacheBlocks = false
 
 BUG FIXES
 
+PIG-2484: Fix several e2e test failures/aborts for 23 (daijy)
+
 PIG-2721: Wrong output generated while loading bags as input (knoguchi via daijy)
 
 PIG-2761: With hadoop23 importing modules inside python script does not work (rohini via daijy)

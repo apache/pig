@@ -50,6 +50,60 @@
   <property name="benchmark.location" value="${test.location}/benchmarks"/>
 
 
+  <condition property="HADOOP_PREFIX" value="">
+    <not>  
+      <isset property="HADOOP_PREFIX"/>
+    </not>
+  </condition>
+
+  <condition property="HADOOP_COMMON_HOME" value="">
+    <not>  
+      <isset property="HADOOP_COMMON_HOME"/>
+    </not>
+  </condition>
+
+  <condition property="HADOOP_HDFS_HOME" value="">
+    <not>  
+      <isset property="HADOOP_HDFS_HOME"/>
+    </not>
+  </condition>
+
+  <condition property="HADOOP_MAPRED_HOME" value="">
+    <not>  
+      <isset property="HADOOP_MAPRED_HOME"/>
+    </not>
+  </condition>
+
+  <condition property="YARN_CONF_DIR" value="">
+    <not>  
+      <isset property="YARN_CONF_DIR"/>
+    </not>
+  </condition>
+
+  <condition property="YARN_HOME" value="">
+    <not>  
+      <isset property="YARN_HOME"/>
+    </not>
+  </condition>
+
+  <condition property="OLD_HADOOP_HOME" value="">
+    <not>  
+      <isset property="OLD_HADOOP_HOME"/>
+    </not>
+  </condition>
+
+  <condition property="PH_OLD_CLUSTER_CONF" value="">
+    <not>  
+      <isset property="PH_OLD_CLUSTER_CONF"/>
+    </not>
+  </condition>
+
+  <condition property="PH_BENCHMARK_CACHE_PATH" value="">
+    <not>  
+      <isset property="PH_BENCHMARK_CACHE_PATH"/>
+    </not>
+  </condition>
+
   <!-- Build the UDFs -->
   <target name="pig-jar-available">
     <available property="pig.jar.available" file="${pig.jar}"/>
@@ -179,6 +233,7 @@
 
     <exec executable="./test_harness.pl" dir="${test.location}" failonerror="true">
       <env key="HARNESS_ROOT" value="."/>
+      <env key="HADOOP_VERSION" value="${hadoopversion}"/>
       <env key="PH_LOCAL" value="${harness.PH_LOCAL}"/>
       <env key="PH_OUT" value="${harness.PH_OUT}"/>
       <env key="PH_ROOT" value="."/>
@@ -189,6 +244,15 @@
       <env key="PH_JYTHON_JAR" value="${jython.jar}"/>
       <env key="HARNESS_CONF" value="${harness.conf.file}"/>
       <env key="HADOOP_HOME" value="${harness.hadoop.home}"/>
+      <env key="HADOOP_PREFIX" value="${HADOOP_PREFIX}"/>
+      <env key="HADOOP_COMMON_HOME" value="${HADOOP_COMMON_HOME}"/>
+      <env key="HADOOP_HDFS_HOME" value="${HADOOP_HDFS_HOME}"/>
+      <env key="HADOOP_MAPRED_HOME" value="${HADOOP_MAPRED_HOME}"/>
+      <env key="YARN_CONF_DIR" value="${YARN_CONF_DIR}"/>
+      <env key="YARN_HOME" value="${YARN_HOME}"/>
+      <env key="OLD_HADOOP_HOME" value="${OLD_HADOOP_HOME}"/>
+      <env key="PH_BENCHMARK_CACHE_PATH" value="${PH_BENCHMARK_CACHE_PATH}"/>
+      <env key="PH_OLD_CLUSTER_CONF" value="${PH_OLD_CLUSTER_CONF}"/>
       <arg line="${tests.to.run}"/>
       <arg value="${test.location}/tests/cmdline.conf"/>
       <arg value="${test.location}/tests/multiquery.conf"/>
