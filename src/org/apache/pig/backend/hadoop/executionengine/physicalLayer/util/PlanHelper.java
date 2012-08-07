@@ -80,7 +80,8 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.VisitorException;
-import org.python.google.common.collect.Lists;
+
+import com.google.common.collect.Lists;
 
 /**
  * Utility class with a few helper functions to deal with physical plans.
