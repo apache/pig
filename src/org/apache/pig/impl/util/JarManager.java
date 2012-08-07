@@ -128,6 +128,18 @@ public class JarManager {
         	String path = pigContext.scriptFiles.get(i);
         	addStream(jarFile, path, new FileInputStream(new File(path)),contents);
         }
+        for (Map.Entry<String, File> entry : pigContext.getScriptFiles().entrySet()) {
+            InputStream stream = null;
+            if (entry.getValue().exists()) {
+                stream = new FileInputStream(entry.getValue());
+            } else {
+                stream = PigContext.getClassLoader().getResourceAsStream(entry.getValue().getPath());
+            }
+            if (stream==null) {
+                throw new IOException("Cannot find " + entry.getValue().getPath());
+            }
+            addStream(jarFile, entry.getKey(), stream, contents);
+        }
         
         jarFile.putNextEntry(new ZipEntry("pigContext"));
         new ObjectOutputStream(jarFile).writeObject(pigContext);

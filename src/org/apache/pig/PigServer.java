@@ -563,11 +563,16 @@ public class PigServer {
             throw new FrontendException(msg, errCode,
                     PigException.USER_ENVIRONMENT);
         }
+        String cwd = new File(".").getCanonicalPath();
+        String filePath = f.getCanonicalPath();
+        //Use the relative path in the jar, if the path specified is relative
+        String nameInJar = filePath.equals(cwd + File.separator + path) ? 
+                filePath.substring(cwd.length() + 1) : filePath;
+        pigContext.addScriptFile(nameInJar, filePath);
         if(scriptingLang != null) {
             ScriptEngine se = ScriptEngine.getInstance(scriptingLang);    
-            se.registerFunctions(path, namespace, pigContext);
+            se.registerFunctions(nameInJar, namespace, pigContext);
         }
-        pigContext.addScriptFile(path);
     }
 
     /**

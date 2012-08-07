@@ -132,10 +132,23 @@ public abstract class ScriptEngine {
                 throw new IllegalStateException("could not find existing file "+scriptPath, e);
             }
         } else {
-            if (file.isAbsolute()) {
-                is = ScriptEngine.class.getResourceAsStream(scriptPath);
-            } else {
-                is = ScriptEngine.class.getResourceAsStream("/" + scriptPath);
+            // Try system, current and context classloader.
+            is = ScriptEngine.class.getResourceAsStream(scriptPath);
+            if (is == null) {
+                is = getResourceUsingClassLoader(scriptPath, ScriptEngine.class.getClassLoader());
+            }
+            if (is == null) {
+                is = getResourceUsingClassLoader(scriptPath, Thread.currentThread().getContextClassLoader());
+            }
+            if (is == null && !file.isAbsolute()) {
+                String path = "/" + scriptPath;
+                is = ScriptEngine.class.getResourceAsStream(path);
+                if (is == null) {
+                    is = getResourceUsingClassLoader(path, ScriptEngine.class.getClassLoader());
+                }
+                if (is == null) {
+                    is = getResourceUsingClassLoader(path, Thread.currentThread().getContextClassLoader());
+                }
             }
         }
         
@@ -147,6 +160,13 @@ public abstract class ScriptEngine {
         }      
         return is;
     }
+    
+    private static InputStream getResourceUsingClassLoader(String fullFilename, ClassLoader loader) {
+        if (loader != null) {
+            return loader.getResourceAsStream(fullFilename);
+        }
+        return null;
+    } 
     
     public static final String NAMESPACE_SEPARATOR = ".";
        

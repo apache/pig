@@ -28,6 +28,7 @@ import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -91,7 +92,9 @@ public class PigContext implements Serializable {
     private Properties properties;
     
     //  script files that are needed to run a job
+    @Deprecated
     public List<String> scriptFiles = new ArrayList<String>();
+    private Map<String,File> aliasedScriptFiles = new LinkedHashMap<String,File>();
     
     //  script jars that are needed to run a script - jython.jar etc
     public List<String> scriptJars = new ArrayList<String>(2);
@@ -212,13 +215,31 @@ public class PigContext implements Serializable {
             log.error("Failed to set tracker at: " + newLocation);
         }
     }
-    
+  
+    /**
+     * calls: addScriptFile(path, new File(path)), ensuring that a given path is
+     * added to the jar at most once.
+     * @param path
+     * @throws MalformedURLException
+     */
     public void addScriptFile(String path) throws MalformedURLException {
         if (path != null) {
-            scriptFiles.add(path);
+            aliasedScriptFiles.put(path.replaceFirst("^/", ""), new File(path));
         }
     }
-    
+
+    /**
+     * this method adds script files that must be added to the shipped jar
+     * named differently from their local fs path.
+     * @param name  name in the jar
+     * @param path  path on the local fs
+     */
+    public void addScriptFile(String name, String path) {
+        if (path != null) {
+            aliasedScriptFiles.put(name.replaceFirst("^/", ""), new File(path));
+        }
+    }
+   
     public void addJar(String path) throws MalformedURLException {
         if (path != null) {
             URL resource = (new File(path)).toURI().toURL();
@@ -232,6 +253,14 @@ public class PigContext implements Serializable {
             PigContext.classloader = createCl(null);
             Thread.currentThread().setContextClassLoader(PigContext.classloader);
         }
+    }
+
+    /**
+     * script files as name/file pairs to be added to the job jar
+     * @return name/file pairs
+     */
+    public Map<String,File> getScriptFiles() {
+        return aliasedScriptFiles;
     }
 
     public void rename(String oldName, String newName) throws IOException {
