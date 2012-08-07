@@ -487,6 +487,8 @@ PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
 
+PIG-2859: Fix few e2e test failures (rohini via daijy)
+
 PIG-2729: Macro expansion does not use pig.import.search.path - UnitTest borked (johannesch via daijy)
 
 PIG-2783: Fix Iterator_1 e2e test for Hadoop 23 (rohini via daijy)
