@@ -18,6 +18,8 @@
 
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators;
 
+import static org.apache.pig.PigConfiguration.TIME_UDFS_PROP;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.lang.reflect.Type;
@@ -27,6 +29,7 @@ import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.Accumulator;
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
@@ -54,10 +57,15 @@ import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.tools.pigstats.PigStatusReporter;
 
 public class POUserFunc extends ExpressionOperator {
     private static final Log LOG = LogFactory.getLog(POUserFunc.class);
+    private final static String TIMING_COUNTER = "approx_microsecs";
+    private final static String INVOCATION_COUNTER = "approx_invocations";
+    private final static int TIMING_FREQ = 100;
 
+    private transient String counterGroup;
     /**
      *
      */
@@ -77,6 +85,9 @@ public class POUserFunc extends ExpressionOperator {
     private boolean isAccumulationDone;
     private String signature;
     private boolean haveCheckedIfTerminatingAccumulator;
+
+    private long numInvocations = 0L;
+    private boolean doTiming = false;
 
     public PhysicalOperator getReferencedOperator() {
         return referencedOperator;
@@ -119,6 +130,7 @@ public class POUserFunc extends ExpressionOperator {
         this.setSignature(signature);
         Properties props = UDFContext.getUDFContext().getUDFProperties(func.getClass());
     	Schema tmpS=(Schema)props.get("pig.evalfunc.inputschema."+signature);
+
     	if(tmpS!=null)
     		this.func.setInputSchema(tmpS);
         if (func.getClass().isAnnotationPresent(MonitoredUDF.class)) {
@@ -148,7 +160,13 @@ public class POUserFunc extends ExpressionOperator {
         if(!initialized) {
             func.setReporter(reporter);
             func.setPigLogger(pigLogger);
-
+            Configuration jobConf = UDFContext.getUDFContext().getJobConf();
+            if (jobConf != null) {
+                doTiming = "true".equalsIgnoreCase(jobConf.get(TIME_UDFS_PROP, "false"));
+                counterGroup = funcSpec.toString();
+            } else {
+                LOG.warn("jobConf not available. Not tracking UDF timing regardless of user preference.");
+            }
             // We initialize here instead of instantiateFunc because this is called
             // when actual processing has begun, whereas a function can be instantiated
             // on the frontend potentially (mainly for optimization)
@@ -261,6 +279,13 @@ public class POUserFunc extends ExpressionOperator {
     private Result getNext() throws ExecException {
         Result result = processInput();
         String errMsg = "";
+        long startNanos = 0;
+        boolean timeThis = doTiming && (numInvocations++ % TIMING_FREQ == 0);
+        if (timeThis) {
+            startNanos = System.nanoTime();
+            PigStatusReporter.getInstance().getCounter(counterGroup, INVOCATION_COUNTER).increment(TIMING_FREQ);
+
+        }
         try {
             if(result.returnStatus == POStatus.STATUS_OK) {
                 if (isAccumulative()) {
@@ -310,9 +335,11 @@ public class POUserFunc extends ExpressionOperator {
                     result.result = func.exec((Tuple) result.result);
                     }
                 }
-                return result;
             }
-
+            if (timeThis) {
+                PigStatusReporter.getInstance().getCounter(counterGroup, TIMING_COUNTER).increment(
+                        ( Math.round((System.nanoTime() - startNanos) / 1000)) * TIMING_FREQ);
+            }
             return result;
         } catch (ExecException ee) {
             throw ee;

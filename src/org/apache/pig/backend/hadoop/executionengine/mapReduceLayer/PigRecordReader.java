@@ -17,6 +17,8 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
+import static org.apache.pig.PigConfiguration.TIME_UDFS_PROP;
+
 import java.io.IOException;
 import java.util.ArrayList;
 
@@ -52,6 +54,13 @@ import org.apache.pig.tools.pigstats.PigStatusReporter;
 public class PigRecordReader extends RecordReader<Text, Tuple> {
 
     private static final Log LOG = LogFactory.getLog(PigRecordReader.class);
+
+    private final static String TIMING_COUNTER = "approx_microsecs";
+    private final static int TIMING_FREQ = 100;
+
+    transient private String counterGroup = "";
+    private boolean doTiming = false;
+
     /**
      * the current Tuple value as returned by underlying
      * {@link LoadFunc#getNext()}
@@ -112,6 +121,8 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
         idx = 0;
         this.limit = limit;
         initNextRecordReader();
+        counterGroup = loadFunc.toString();
+        doTiming = context.getConfiguration().getBoolean(TIME_UDFS_PROP, false);
     }
     
     @Override
@@ -189,12 +200,22 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
 
     @Override
     public boolean nextKeyValue() throws IOException, InterruptedException {
+
         if (limit != -1 && recordCount >= limit)
             return false;
+        boolean timeThis = doTiming && ( (recordCount + 1) % TIMING_FREQ == 0);
+        long startNanos = 0;
+        if (timeThis) {
+            startNanos = System.nanoTime();
+        }
         while ((curReader == null) || (curValue = loadfunc.getNext()) == null) {
             if (!initNextRecordReader()) {
               return false;
             }
+        }
+        if (timeThis) {
+            PigStatusReporter.getInstance().getCounter(counterGroup, TIMING_COUNTER).increment(
+                    ( Math.round((System.nanoTime() - startNanos) / 1000)) * TIMING_FREQ);
         }
         recordCount++;
         return true;

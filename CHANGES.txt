@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2855: Provide a method to measure time spent in UDFs (dvryaboy)
+
 PIG-2837: AvroStorage throws StackOverFlowError (cheolsoo via sms)
 
 PIG-2856: AvroStorage doesn't load files in the directories when a glob pattern matches both files and directories. (cheolsoo via sms)
