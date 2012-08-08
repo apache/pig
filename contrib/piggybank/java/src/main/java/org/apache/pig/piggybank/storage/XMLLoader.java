@@ -160,6 +160,15 @@ class XMLLoaderBufferedPositionedInputStream extends BufferedPositionedInputStre
        return super.read();
     }
 
+  /**
+   *
+   * @return progress of read between 0 and 1
+   * @throws IOException
+   */
+    public float getProgress() throws IOException {
+      return Math.min(1.0f, (getPosition() - startPosition)/((float)maxBytesReadable));
+    }
+
     /**
      * This is collect the bytes from current position to the ending tag.
      * This scans for the tags and do the pattern match byte by byte
@@ -692,8 +701,7 @@ public class XMLLoader extends LoadFunc {
 
         @Override
         public float getProgress() throws IOException, InterruptedException {
- 
-            return 0;
+            return xmlLoaderBPIS.getProgress();
         }
 
 
