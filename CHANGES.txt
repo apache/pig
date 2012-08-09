@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2862: Hardcode certain tuple lengths into the TUPLE BinInterSedes byte identifier (jcoveney)
+
 PIG-2855: Provide a method to measure time spent in UDFs (dvryaboy)
 
 PIG-2837: AvroStorage throws StackOverFlowError (cheolsoo via sms)

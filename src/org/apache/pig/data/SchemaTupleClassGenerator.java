@@ -723,17 +723,23 @@ public class SchemaTupleClassGenerator {
             } else if (isLong() || isDouble()) {
                 size += 8;
             } else if (isBytearray()) {
-                s += "(pos_"+fieldPos+" == null ? 8 : SizeUtil.roundToEight(12 + pos_"+fieldPos+".length) * 8) + ";
-            } else if (isString()) {
-                s += "(pos_"+fieldPos+" == null ? 8 : SizeUtil.getPigObjMemSize(pos_"+fieldPos+")) + ";
+                size += 8; //the ptr
+                s += "(pos_"+fieldPos+" == null ? 0 : SizeUtil.roundToEight(12 + pos_"+fieldPos+".length) * 8) + ";
             } else if (isBoolean()) {
                 if (booleans++ % 8 == 0) {
                     size++; //accounts for the byte used to store boolean values
                 }
             } else if (isBag()) {
-                //TODO IMPLEMENT
-            } else {
+                size += 8; //the ptr
+                s += "(pos_"+fieldPos+" == null ? 0 : pos_"+fieldPos+".getMemorySize()) + ";
+            } else if (isMap() || isString()) {
+                size += 8; //the ptr
+                s += "(pos_"+fieldPos+" == null ? 0 : SizeUtil.getPigObjMemSize(pos_"+fieldPos+")) + ";
+            } else if (isTuple()) {
+                size += 8; //the ptr
                 s += "(pos_"+fieldPos+" == null ? 8 : pos_"+fieldPos+".getMemorySize()) + ";
+            } else {
+                throw new RuntimeException("Unsupported type found: " + fs);
             }
 
             if (isPrimitive() && primitives++ % 8 == 0) {
@@ -762,6 +768,8 @@ public class SchemaTupleClassGenerator {
             case (DataType.CHARARRAY): add("    return (String)null;"); break;
             case (DataType.TUPLE): add("    return (Tuple)null;"); break;
             case (DataType.BAG): add("    return (DataBag)null;"); break;
+            case (DataType.MAP): add("    return (Map<String,Object>)null;"); break;
+            default: throw new RuntimeException("Unsupported type");
             }
             add("}");
             addBreak();
@@ -1026,6 +1034,7 @@ public class SchemaTupleClassGenerator {
             listOfFutureMethods.add(new TypeAwareSetString(DataType.BOOLEAN));
             listOfFutureMethods.add(new TypeAwareSetString(DataType.TUPLE));
             listOfFutureMethods.add(new TypeAwareSetString(DataType.BAG));
+            listOfFutureMethods.add(new TypeAwareSetString(DataType.MAP));
             listOfFutureMethods.add(new TypeAwareGetString(DataType.INTEGER));
             listOfFutureMethods.add(new TypeAwareGetString(DataType.LONG));
             listOfFutureMethods.add(new TypeAwareGetString(DataType.FLOAT));
@@ -1035,6 +1044,7 @@ public class SchemaTupleClassGenerator {
             listOfFutureMethods.add(new TypeAwareGetString(DataType.BOOLEAN));
             listOfFutureMethods.add(new TypeAwareGetString(DataType.TUPLE));
             listOfFutureMethods.add(new TypeAwareGetString(DataType.BAG));
+            listOfFutureMethods.add(new TypeAwareGetString(DataType.MAP));
             listOfFutureMethods.add(new ListSetString());
 
             for (TypeInFunctionStringOut t : listOfFutureMethods) {
@@ -1051,6 +1061,7 @@ public class SchemaTupleClassGenerator {
             StringBuilder head =
                 new StringBuilder()
                     .append("import java.util.List;\n")
+                    .append("import java.util.Map;\n")
                     .append("import java.util.Iterator;\n")
                     .append("import java.io.DataOutput;\n")
                     .append("import java.io.DataInput;\n")
@@ -1156,10 +1167,6 @@ public class SchemaTupleClassGenerator {
         public void prepareProcess(Schema.FieldSchema fs) {
             type = fs.type;
 
-            if (type==DataType.MAP) {
-                throw new RuntimeException("Map currently not supported by SchemaTuple");
-            }
-
             process(fieldPos, fs);
             fieldPos++;
         }
@@ -1204,6 +1211,10 @@ public class SchemaTupleClassGenerator {
             return type == DataType.BAG;
         }
 
+        public boolean isMap() {
+            return type == DataType.MAP;
+        }
+
         public boolean isObject() {
             return !isPrimitive();
         }
@@ -1223,6 +1234,7 @@ public class SchemaTupleClassGenerator {
                 case (DataType.BOOLEAN): return "boolean";
                 case (DataType.TUPLE): return "Tuple";
                 case (DataType.BAG): return "DataBag";
+                case (DataType.MAP): return "Map";
                 default: throw new RuntimeException("Can't return String for given type " + DataType.findTypeName(type));
             }
         }

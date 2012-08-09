@@ -19,8 +19,8 @@ package org.apache.pig.data;
 
 import java.util.Iterator;
 
-import org.apache.pig.impl.util.TupleFormat;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.impl.util.TupleFormat;
 
 import com.google.common.base.Joiner;
 
@@ -66,5 +66,10 @@ public abstract class AbstractTuple implements Tuple {
     @Override
     public boolean equals(Object other) {
         return (compareTo(other) == 0);
+    }
+
+    @Override
+    public void reference(Tuple t) {
+        throw new RuntimeException("Tuple#reference(Tuple) is deprecated and should not be used");
     }
 }

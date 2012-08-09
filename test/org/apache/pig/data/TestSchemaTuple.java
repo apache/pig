@@ -37,6 +37,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 
@@ -61,6 +62,8 @@ import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.util.Utils;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.google.common.collect.Maps;
 
 public class TestSchemaTuple {
     private Properties props;
@@ -169,6 +172,10 @@ public class TestSchemaTuple {
 
         isAppendable = false;
         udfSchema = Utils.getSchemaFromString("int, b:bag{(int,int,int)}");
+        SchemaTupleFrontend.registerToGenerateIfPossible(udfSchema, isAppendable, context);
+
+        isAppendable = false;
+        udfSchema = Utils.getSchemaFromString("int, m:map[(int,int,int)]");
         SchemaTupleFrontend.registerToGenerateIfPossible(udfSchema, isAppendable, context);
 
         // this compiles and "ships"
@@ -288,6 +295,11 @@ public class TestSchemaTuple {
         udfSchema = Utils.getSchemaFromString("int, b:bag{(int,int,int)}");
         tf = SchemaTupleFactory.getInstance(udfSchema, isAppendable, context);
         putThroughPaces(tf, udfSchema, isAppendable);
+
+        isAppendable = false;
+        udfSchema = Utils.getSchemaFromString("int, m:map[(int,int,int)]");
+        tf = SchemaTupleFactory.getInstance(udfSchema, isAppendable, context);
+        putThroughPaces(tf, udfSchema, isAppendable);
     }
 
     private void putThroughPaces(SchemaTupleFactory tf, Schema udfSchema, boolean isAppendable) throws Exception {
@@ -399,6 +411,22 @@ public class TestSchemaTuple {
                 db.add(t);
             }
             return db;
+        case DataType.MAP:
+            Map<String, Object> map = Maps.newHashMap();
+            int keys = r.nextInt(10);
+            for (int i = 0; i < keys; i++) {
+                String key = (String) randData(new FieldSchema(null, DataType.CHARARRAY));
+                int values = r.nextInt(100);
+                for (int j = 0; j < values; j++) {
+                    int tSz = r.nextInt(10);
+                    Tuple t = TupleFactory.getInstance().newTuple(tSz);
+                    for (int k = 0; k < tSz; k++) {
+                        t.set(k, r.nextInt());
+                    }
+                    map.put(key,  t);
+                }
+            }
+            return map;
         default: throw new RuntimeException("Cannot generate data for given FieldSchema: " + fs);
         }
     }
@@ -424,6 +452,7 @@ public class TestSchemaTuple {
                 case DataType.DOUBLE: st.getDouble(i); break;
                 case DataType.TUPLE: st.getTuple(i); break;
                 case DataType.BAG: st.getDataBag(i); break;
+                case DataType.MAP: st.getMap(i); break;
                 default: throw new RuntimeException("Unsupported FieldSchema in SchemaTuple: " + fs);
                 }
             } catch (FieldIsNullException e) {
