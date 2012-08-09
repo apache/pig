@@ -128,8 +128,7 @@ public class TestAvroStorageUtils {
 
     @Test
     public void testGetConcretePathFromGlob() throws IOException {
-        final String defaultscheme = "file:";
-        final String basedir = System.getProperty("user.dir");
+        final String basedir = "file://" + System.getProperty("user.dir");
         final String tempdir = Long.toString(System.currentTimeMillis());
         final String nonexistentpath = basedir + "/" + tempdir + "/this_path_does_not_exist";
 
@@ -140,7 +139,7 @@ public class TestAvroStorageUtils {
         // existent path
         String locationStr = basedir;
         concretePath = AvroStorageUtils.getConcretePathFromGlob(locationStr, job);
-        assertEquals(defaultscheme + basedir, concretePath.toString());
+        assertEquals(basedir, concretePath.toUri().toString());
 
         // non-existent path
         locationStr = nonexistentpath;
