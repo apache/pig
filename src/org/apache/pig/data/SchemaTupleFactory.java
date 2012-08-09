@@ -57,10 +57,6 @@ public class SchemaTupleFactory implements TupleMaker<SchemaTuple<?>> {
         }
 
         for (Schema.FieldSchema fs : s.getFields()) {
-            if (fs.type == DataType.MAP) {
-                return false;
-            }
-
             if (fs.type == DataType.TUPLE && !isGeneratable(fs.schema)) {
                 return false;
             }

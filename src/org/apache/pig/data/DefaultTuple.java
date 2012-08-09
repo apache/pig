@@ -93,18 +93,6 @@ public class DefaultTuple extends AbstractTuple {
     }
 
     /**
-     * Make this tuple reference the contents of another. This method does not copy the underlying data. It maintains
-     * references to the data from the original tuple (and possibly even to the data structure holding the data).
-     * 
-     * @param t
-     *            Tuple to reference.
-     */
-    @Override
-    public void reference(Tuple t) {
-        mFields = t.getAll();
-    }
-
-    /**
      * Find the size of the tuple. Used to be called arity().
      * 
      * @return number of fields in the tuple.
