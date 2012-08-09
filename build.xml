@@ -785,20 +785,29 @@
     <!-- ================================================================== -->
     <!-- Run unit tests                                                     -->
     <!-- ================================================================== -->
-    <target name="test-core" depends="compile-test,jar-withouthadoop" description="Run full set of unit tests">
+    <target name="test-core" depends="compile-test,jar-withouthadoop,debugger.check" description="Run full set of unit tests">
         <macro-test-runner test.file="${test.all.file}" />
     </target>
 
-    <target name="test-commit" depends="compile-test,jar-withouthadoop" description="Run approximate 10-minute set of unit tests prior to commiting">
+    <target name="test-commit" depends="compile-test,jar-withouthadoop,debugger.check" description="Run approximate 10-minute set of unit tests prior to commiting">
         <macro-test-runner test.file="${test.commit.file}" />
     </target>
 
-    <target name="test-unit" depends="compile-test,jar-withouthadoop" description="Run all true unit tests">
+    <target name="test-unit" depends="compile-test,jar-withouthadoop,debugger.check" description="Run all true unit tests">
         <macro-test-runner test.file="${test.unit.file}" />
     </target>
 
-    <target name="test-smoke" depends="compile-test,jar-withouthadoop" description="Run 30 min smoke tests">
+    <target name="test-smoke" depends="compile-test,jar-withouthadoop,debugger.check" description="Run 30 min smoke tests">
         <macro-test-runner test.file="${test.smoke.file}" />
+    </target>
+
+    <target name="debugger.check" depends="debugger.set,debugger.unset"/>
+    <target name="debugger.set" if="debugPort">
+        <property name="debugArgs" value="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=${debugPort}"/>
+        <echo>debugArgs: ${debugArgs}</echo>
+    </target>
+    <target name="debugger.unset" unless="debugPort">
+        <property name="debugArgs" value=""/>
     </target>
 
     <macrodef name="macro-test-runner">
@@ -815,6 +824,7 @@
             <!-- <sysproperty key="hod.command" value="${hod.command}"/>
             			<sysproperty key="hod.param" value="${hod.param}"/> -->
             <sysproperty key="hadoop.log.dir" value="${test.log.dir}"/>
+            <jvmarg line="${debugArgs}"/>
             <sysproperty key="java.security.krb5.realm" value="" />
             <sysproperty key="java.security.krb5.kdc" value="" />
             <classpath>
