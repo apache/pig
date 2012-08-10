@@ -87,6 +87,38 @@ public class SedesHelper {
 
     public static void writeGenericTuple(DataOutput out, Tuple t) throws IOException {
         int sz = t.size();
+        switch (sz) {
+        case BinInterSedes.TUPLE_0:
+            out.writeByte(BinInterSedes.TUPLE_0);
+            break;
+        case BinInterSedes.TUPLE_1:
+            out.writeByte(BinInterSedes.TUPLE_1);
+            break;
+        case BinInterSedes.TUPLE_2:
+            out.writeByte(BinInterSedes.TUPLE_2);
+            break;
+        case BinInterSedes.TUPLE_3:
+            out.writeByte(BinInterSedes.TUPLE_3);
+            break;
+        case BinInterSedes.TUPLE_4:
+            out.writeByte(BinInterSedes.TUPLE_4);
+            break;
+        case BinInterSedes.TUPLE_5:
+            out.writeByte(BinInterSedes.TUPLE_5);
+            break;
+        case BinInterSedes.TUPLE_6:
+            out.writeByte(BinInterSedes.TUPLE_6);
+            break;
+        case BinInterSedes.TUPLE_7:
+            out.writeByte(BinInterSedes.TUPLE_7);
+            break;
+        case BinInterSedes.TUPLE_8:
+            out.writeByte(BinInterSedes.TUPLE_8);
+            break;
+        case BinInterSedes.TUPLE_9:
+            out.writeByte(BinInterSedes.TUPLE_9);
+            break;
+        default:
         if (sz < BinInterSedes.UNSIGNED_BYTE_MAX) {
             out.writeByte(BinInterSedes.TINYTUPLE);
             out.writeByte(sz);
@@ -96,6 +128,7 @@ public class SedesHelper {
         } else {
             out.writeByte(BinInterSedes.TUPLE);
             out.writeInt(sz);
+        }
         }
 
         for (int i = 0; i < sz; i++) {
