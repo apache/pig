@@ -407,10 +407,15 @@ public class QueryParserDriver {
         String body = bodyNode.getChild(0).getText();
 
         body = body.substring(1, body.length() - 1);
-        
-        FetchFileRet localFileRet = getMacroFile(fname);
 
-        PigMacro pm = new PigMacro(mn, localFileRet.file.getAbsolutePath(), params, returns, body, seen);
+        // sometimes the script has no filename, like when a string is passed to PigServer for
+        // example. See PIG-2866.
+        if (fname != null) {
+            FetchFileRet localFileRet = getMacroFile(fname);
+            fname = localFileRet.file.getAbsolutePath();
+        }
+
+        PigMacro pm = new PigMacro(mn, fname, params, returns, body, seen);
         
         try {
             pm.validate();
