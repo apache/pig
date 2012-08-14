@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2871: Refactor signature for PigReducerEstimator (billgraham)
+
 PIG-2851: Add flag to ant to run tests with a debugger port (billgraham)
 
 PIG-2862: Hardcode certain tuple lengths into the TUPLE BinInterSedes byte identifier (jcoveney)
