@@ -234,6 +234,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2876: Bump up Xerces version (jcoveney)
+
 PIG-2866: PigServer fails with macros without a script file (billgraham)
 
 PIG-2860: [piggybank] TestAvroStorageUtils.testGetConcretePathFromGlob fails on some version of hadoop (cheolsoo via jcoveney)
