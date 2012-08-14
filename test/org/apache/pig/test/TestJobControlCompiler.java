@@ -42,12 +42,12 @@ import javax.tools.JavaFileObject;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
 
-import com.google.common.collect.Lists;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
@@ -134,20 +134,20 @@ public class TestJobControlCompiler {
 
     @Test
     public void testEstimateNumberOfReducers() throws Exception {
-        Assert.assertEquals(2, JobControlCompiler.estimateNumberOfReducers(CONF,
-                Lists.newArrayList(createPOLoadWithSize(2L * 1000 * 1000 * 999,
-                        new PigStorage())),
-                new org.apache.hadoop.mapreduce.Job(CONF)));
+        Assert.assertEquals(2, JobControlCompiler.estimateNumberOfReducers(
+            new Job(CONF), createMockPOLoadMapReduceOper(2L * 1000 * 1000 * 999)));
 
-        Assert.assertEquals(2, JobControlCompiler.estimateNumberOfReducers(CONF,
-                Lists.newArrayList(createPOLoadWithSize(2L * 1000 * 1000 * 1000,
-                        new PigStorage())),
-                new org.apache.hadoop.mapreduce.Job(CONF)));
+        Assert.assertEquals(2, JobControlCompiler.estimateNumberOfReducers(
+            new Job(CONF), createMockPOLoadMapReduceOper(2L * 1000 * 1000 * 1000)));
 
-        Assert.assertEquals(3, JobControlCompiler.estimateNumberOfReducers(CONF,
-                Lists.newArrayList(createPOLoadWithSize(2L * 1000 * 1000 * 1001,
-                        new PigStorage())),
-                new org.apache.hadoop.mapreduce.Job(CONF)));
+        Assert.assertEquals(3, JobControlCompiler.estimateNumberOfReducers(
+            new Job(CONF), createMockPOLoadMapReduceOper(2L * 1000 * 1000 * 1001)));
+    }
+
+    private static MapReduceOper createMockPOLoadMapReduceOper(long size) throws Exception {
+        MapReduceOper mro = new MapReduceOper(new OperatorKey());
+        mro.mapPlan.add(createPOLoadWithSize(size, new PigStorage()));
+        return mro;
     }
 
     public static POLoad createPOLoadWithSize(long size, LoadFunc loadFunc) throws Exception {

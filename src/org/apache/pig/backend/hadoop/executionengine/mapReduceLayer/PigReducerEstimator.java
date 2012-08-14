@@ -17,14 +17,11 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 
 import java.io.IOException;
-import java.util.List;
 
 /**
  * Interface to implement when you want to use a custom approach to estimating
@@ -46,12 +43,10 @@ public interface PigReducerEstimator {
      * Estimate the number of reducers for a given job based on the collection
      * of load funcs passed.
      *
-     * @param conf the job configuration
-     * @param poLoadList list of POLoads used in the jobs physical plan
      * @param job job instance
+     * @param mapReduceOper map reducer operator of the job
      * @return the number of reducers to use, or -1 if the count couldn't be estimated
      * @throws IOException
      */
-    public int estimateNumberOfReducers(Configuration conf, List<POLoad> poLoadList, Job job)
-        throws IOException;
+    public int estimateNumberOfReducers(Job job, MapReduceOper mapReduceOper) throws IOException;
 }

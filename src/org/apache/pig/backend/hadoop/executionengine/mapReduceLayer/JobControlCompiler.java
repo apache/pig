@@ -407,7 +407,7 @@ public class JobControlCompiler{
                 }
             }
 
-            adjustNumReducers(plan, mro, conf, nwJob);
+            adjustNumReducers(plan, mro, nwJob);
 
             if(lds!=null && lds.size()>0){
               for (POLoad ld : lds) {
@@ -763,13 +763,12 @@ public class JobControlCompiler{
      * the number of partitions used in the sampler.
      * @param plan the MR plan
      * @param mro the MR operator
-     * @param conf the configuration
      * @param nwJob the current job
      * @throws IOException
      */
-    public void adjustNumReducers(MROperPlan plan, MapReduceOper mro, Configuration conf,
+    public void adjustNumReducers(MROperPlan plan, MapReduceOper mro,
             org.apache.hadoop.mapreduce.Job nwJob) throws IOException {
-        int jobParallelism = calculateRuntimeReducers(mro, conf, nwJob);
+        int jobParallelism = calculateRuntimeReducers(mro, nwJob);
 
         if (mro.isSampler()) {
             // We need to calculate the final number of reducers of the next job (order-by or skew-join)
@@ -778,7 +777,7 @@ public class JobControlCompiler{
 
             // Here we use the same conf and Job to calculate the runtime #reducers of the next job
             // which is fine as the statistics comes from the nextMro's POLoads
-            int nPartitions = calculateRuntimeReducers(nextMro, conf, nwJob);
+            int nPartitions = calculateRuntimeReducers(nextMro, nwJob);
 
             // set the runtime #reducer of the next job as the #partition
             ParallelConstantVisitor visitor =
@@ -786,6 +785,8 @@ public class JobControlCompiler{
             visitor.visit();
         }
         log.info("Setting Parallelism to " + jobParallelism);
+
+        Configuration conf = nwJob.getConfiguration();
 
         // set various parallelism into the job conf for later analysis, PIG-2779
         conf.setInt("pig.info.reducers.default.parallel", pigContext.defaultParallel);
@@ -805,13 +806,12 @@ public class JobControlCompiler{
      * @return the runtimeParallelism
      * @throws IOException
      */
-    private int calculateRuntimeReducers(MapReduceOper mro, Configuration conf,
+    private int calculateRuntimeReducers(MapReduceOper mro,
             org.apache.hadoop.mapreduce.Job nwJob) throws IOException{
         // we don't recalculate for the same job
         if (mro.runtimeParallelism != -1) {
             return mro.runtimeParallelism;
         }
-        List<POLoad> lds = PlanHelper.getPhysicalOperators(mro.mapPlan, POLoad.class);
 
         int jobParallelism = -1;
 
@@ -820,7 +820,7 @@ public class JobControlCompiler{
         } else if (pigContext.defaultParallel > 0) {
             jobParallelism = pigContext.defaultParallel;
         } else {
-            mro.estimatedParallelism = estimateNumberOfReducers(conf, lds, nwJob);
+            mro.estimatedParallelism = estimateNumberOfReducers(nwJob, mro);
             // reducer estimation could return -1 if it couldn't estimate
             log.info("Could not estimate number of reducers and no requested or default " +
                      "parallelism set. Defaulting to 1 reducer.");
@@ -831,22 +831,25 @@ public class JobControlCompiler{
         mro.runtimeParallelism = jobParallelism;
         return jobParallelism;
     }
+
     /**
      * Looks up the estimator from REDUCER_ESTIMATOR_KEY and invokes it to find the number of
      * reducers to use. If REDUCER_ESTIMATOR_KEY isn't set, defaults to InputSizeReducerEstimator.
-     * @param conf
-     * @param lds
+     * @param job
+     * @param mapReducerOper
      * @throws IOException
      */
-    public static int estimateNumberOfReducers(Configuration conf, List<POLoad> lds,
-                                        org.apache.hadoop.mapreduce.Job job) throws IOException {
+    public static int estimateNumberOfReducers(org.apache.hadoop.mapreduce.Job job,
+                                               MapReduceOper mapReducerOper) throws IOException {
+        Configuration conf = job.getConfiguration();
+
         PigReducerEstimator estimator = conf.get(REDUCER_ESTIMATOR_KEY) == null ?
           new InputSizeReducerEstimator() :
           PigContext.instantiateObjectFromParams(conf,
                   REDUCER_ESTIMATOR_KEY, REDUCER_ESTIMATOR_ARG_KEY, PigReducerEstimator.class);
 
         log.info("Using reducer estimator: " + estimator.getClass().getName());
-        int numberOfReducers = estimator.estimateNumberOfReducers(conf, lds, job);
+        int numberOfReducers = estimator.estimateNumberOfReducers(job, mapReducerOper);
         return numberOfReducers;
     }
 
