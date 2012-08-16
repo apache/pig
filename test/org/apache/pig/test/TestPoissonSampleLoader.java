@@ -90,8 +90,9 @@ public class TestPoissonSampleLoader extends TestCase{
         Util.deleteFile(cluster, INPUT_FILE1);
     }
 
-    @Test
-    public void testNumSamples() throws IOException {
+    private int testNumSamples(String memUsage, String sampleRate) throws IOException {
+        pigServer.getPigContext().getProperties().setProperty("pig.skewedjoin.reduce.memusage", memUsage);
+        pigServer.getPigContext().getProperties().setProperty("pig.sksampler.samplerate", sampleRate);
         pigServer.registerQuery("A = Load '"+INPUT_FILE1+"' Using PoissonSampleLoader('PigStorage()', '100');");
         Iterator<Tuple> iter = pigServer.openIterator("A");
         int count = 0;
@@ -99,7 +100,29 @@ public class TestPoissonSampleLoader extends TestCase{
             count++;
             iter.next();
         }
-        assertEquals(count, 1);
+        return count;
+    }
+
+    @Test
+    public void testNumSamples() throws IOException {
+        //PoissonSampleLoader.DEFAULT_SAMPLE_RATE is 17
+        int count = testNumSamples("0.0001", "17");
+        assertEquals(count, 12);
+
+        count = testNumSamples("0.001", "17");
+        assertEquals(count, 6);
+
+        count = testNumSamples("0.001", "10");
+        assertEquals(count, 4);
+
+        count = testNumSamples("0.001", "100");
+        assertEquals(count, 9);
+
+        count = testNumSamples("0.005", "17");
+        assertEquals(count, 2);
+
+        count = testNumSamples("0.0001", "100");
+        assertEquals(count, 42);
     }
 
     /*
@@ -110,7 +133,19 @@ public class TestPoissonSampleLoader extends TestCase{
         pigServer.registerQuery("A = Load '"+INPUT_FILE1+"' Using PoissonSampleLoader('PigStorage(\\\\\\':\\\\\\')', '100');");
         Iterator<Tuple> iter = pigServer.openIterator("A");
         assertTrue(iter.hasNext());
-        assertEquals(5, iter.next().size());
+        
+        Tuple t = iter.next();
+        //Check the tuple size. It has to be 3.
+        assertEquals(3, t.size());
+
+        while(iter.hasNext()){
+            t = iter.next();
+        }
+        // Last tuple's size has to be 5
+        // 3 datum  (ex: 100:apple1:aaa)
+        // + PoissonSampleLoader.NUMROWS_TUPLE_MARKER ??_pig_inTeRnal-spEcial_roW_num_tuple3kt579CFLehkblah 
+        // + numRow 300
+        assertEquals(5, t.size());
     }
 
 }
