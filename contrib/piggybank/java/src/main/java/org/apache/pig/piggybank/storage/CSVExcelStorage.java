@@ -618,6 +618,10 @@ public class CSVExcelStorage extends PigStorage implements StoreFuncInterface, L
 				// that entire field is quoted:
 				getNextInQuotedField = true;
 				evenQuotesSeen = true;
+        if (i == recordLen - 1) {
+          // We have a quoted field that starts with new line
+          sawEmbeddedRecordDelimiter = true;
+        }
 			} else if (b == FIELD_DEL) {
 				readField(fieldBuffer, getNextFieldID++); // end of the field
 			} else {
