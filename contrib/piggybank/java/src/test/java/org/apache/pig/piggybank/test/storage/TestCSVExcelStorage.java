@@ -70,6 +70,7 @@ public class TestCSVExcelStorage {
     		"\"Mac \"\"the knife\"\"\",Cohen,30",
     		"\"Conrad\nEmil\",Dinger,40",
         "Emil,\"\nDinger\",40",
+        "Quote problem,\"My \"\"famous\"\"\nsong\",60",
     		"1st Field,\"A poem that continues\nfor several lines\ndo we\nhandle that?\",Good,Fairy",
     };
     
@@ -83,6 +84,7 @@ public class TestCSVExcelStorage {
     		add(Util.createTuple(new String[] {"Mac \"the knife\"", "Cohen", "30"}));
     		add(Util.createTuple(new String[] {"Conrad\nEmil", "Dinger", "40"}));
         add(Util.createTuple(new String[] {"Emil", "\nDinger", "40"}));
+        add(Util.createTuple(new String[] {"Quote problem", "My \"famous\"\nsong", "60"}));
     		add(Util.createTuple(new String[] {"1st Field", "A poem that continues\nfor several lines\ndo we\nhandle that?", "Good", "Fairy"}));
     	}
     };
@@ -99,6 +101,8 @@ public class TestCSVExcelStorage {
     		add(Util.createTuple(new String[] {"Emil,Dinger,40"}));  // Trailing double quote after Emil eats rest of line
         add(Util.createTuple(new String[] {"Emil"}));
         add(Util.createTuple(new String[] {"Dinger,40"}));  // Trailing double quote after Emil eats rest of line
+        add(Util.createTuple(new String[] {"Quote problem", "My \"famous\""}));
+        add(Util.createTuple(new String[] {"song,60"}));
     		add(Util.createTuple(new String[] {"1st Field", "A poem that continues"}));
     		add(Util.createTuple(new String[] {"for several lines"}));
     		add(Util.createTuple(new String[] {"do we"}));
