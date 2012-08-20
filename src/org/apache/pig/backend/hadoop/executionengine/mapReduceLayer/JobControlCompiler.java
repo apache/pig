@@ -821,10 +821,14 @@ public class JobControlCompiler{
             jobParallelism = pigContext.defaultParallel;
         } else {
             mro.estimatedParallelism = estimateNumberOfReducers(nwJob, mro);
-            // reducer estimation could return -1 if it couldn't estimate
-            log.info("Could not estimate number of reducers and no requested or default " +
-                     "parallelism set. Defaulting to 1 reducer.");
-            jobParallelism = mro.estimatedParallelism > 0 ? mro.estimatedParallelism : 1;
+            if (mro.estimatedParallelism > 0) {
+                jobParallelism = mro.estimatedParallelism;
+            } else {
+                // reducer estimation could return -1 if it couldn't estimate
+                log.info("Could not estimate number of reducers and no requested or default " +
+                         "parallelism set. Defaulting to 1 reducer.");
+                jobParallelism = 1;
+            }
         }
 
         // save it
