@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2556: CSVExcelStorage load: quoted field with newline as first character sees newline as record end (tivv via dvryaboy)
+
 PIG-2875: Add recursive record support to AvroStorage (cheolsoo via sms)
 
 PIG-2662: skew join does not honor its config parameters (rajesh.balamohan via thejas)
