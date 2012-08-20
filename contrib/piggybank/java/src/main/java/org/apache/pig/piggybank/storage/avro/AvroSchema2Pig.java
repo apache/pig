@@ -5,9 +5,9 @@
  * licenses this file to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -18,7 +18,10 @@
 package org.apache.pig.piggybank.storage.avro;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+
 import org.apache.avro.Schema;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
@@ -47,13 +50,11 @@ public class AvroSchema2Pig {
      */
     public static ResourceSchema convert(Schema schema) throws IOException {
 
-        if (AvroStorageUtils.containsRecursiveRecord(schema))
-            throw new IOException ("We don't accept schema containing recursive records.");
-        
         if (AvroStorageUtils.containsGenericUnion(schema))
             throw new IOException ("We don't accept schema containing generic unions.");
 
-        ResourceFieldSchema inSchema = inconvert(schema, FIELD);
+        Set<Schema> visitedRecords = new HashSet<Schema>();
+        ResourceFieldSchema inSchema = inconvert(schema, FIELD, visitedRecords);
 
         ResourceSchema tupleSchema;
         if (inSchema.getType() == DataType.TUPLE) {
@@ -73,7 +74,8 @@ public class AvroSchema2Pig {
     /**
      * Convert a schema with field name to a pig schema
      */
-     private static ResourceFieldSchema inconvert(Schema in, String fieldName) throws IOException {
+     private static ResourceFieldSchema inconvert(Schema in, String fieldName, Set<Schema> visitedRecords)
+             throws IOException {
 
         AvroStorageLog.details("InConvert avro schema with field name " + fieldName);
 
@@ -85,24 +87,29 @@ public class AvroSchema2Pig {
 
             AvroStorageLog.details("convert to a pig tuple");
 
-            fieldSchema.setType(DataType.TUPLE);
-            ResourceSchema tupleSchema = new ResourceSchema();
-            List<Schema.Field> fields = in.getFields();
-            ResourceFieldSchema[] childFields = new ResourceFieldSchema[fields.size()];
-            int index = 0;
-            for (Schema.Field field : fields) {
-                childFields[index++] = inconvert(field.schema(), field.name());
-            }
+            if (visitedRecords.contains(in)) {
+                fieldSchema.setType(DataType.BYTEARRAY);
+            } else {
+                visitedRecords.add(in);
+                fieldSchema.setType(DataType.TUPLE);
+                ResourceSchema tupleSchema = new ResourceSchema();
+                List<Schema.Field> fields = in.getFields();
+                ResourceFieldSchema[] childFields = new ResourceFieldSchema[fields.size()];
+                int index = 0;
+                for (Schema.Field field : fields) {
+                    childFields[index++] = inconvert(field.schema(), field.name(), visitedRecords);
+                }
 
-            tupleSchema.setFields(childFields);
-            fieldSchema.setSchema(tupleSchema);
+                tupleSchema.setFields(childFields);
+                fieldSchema.setSchema(tupleSchema);
+            }
 
         } else if (avroType.equals(Schema.Type.ARRAY)) {
 
             AvroStorageLog.details("convert array to a pig bag");
             fieldSchema.setType(DataType.BAG);
             Schema elemSchema = in.getElementType();
-            ResourceFieldSchema subFieldSchema = inconvert(elemSchema, ARRAY_FIELD);
+            ResourceFieldSchema subFieldSchema = inconvert(elemSchema, ARRAY_FIELD, visitedRecords);
             add2BagSchema(fieldSchema, subFieldSchema);
 
         } else if (avroType.equals(Schema.Type.MAP)) {
@@ -114,7 +121,7 @@ public class AvroSchema2Pig {
 
             if (AvroStorageUtils.isAcceptableUnion(in)) {
                 Schema acceptSchema = AvroStorageUtils.getAcceptedType(in);
-                ResourceFieldSchema realFieldSchema = inconvert(acceptSchema, null);
+                ResourceFieldSchema realFieldSchema = inconvert(acceptSchema, null, visitedRecords);
                 fieldSchema.setType(realFieldSchema.getType());
                 fieldSchema.setSchema(realFieldSchema.getSchema());
             } else
@@ -138,7 +145,7 @@ public class AvroSchema2Pig {
             fieldSchema.setType(DataType.LONG);
         } else if (avroType.equals(Schema.Type.STRING)) {
             fieldSchema.setType(DataType.CHARARRAY);
-        } else if (avroType.equals(Schema.Type.NULL)) { 
+        } else if (avroType.equals(Schema.Type.NULL)) {
             // value of NULL is always NULL
             fieldSchema.setType(DataType.INTEGER);
         } else {
@@ -154,7 +161,7 @@ public class AvroSchema2Pig {
                                     ResourceFieldSchema subFieldSchema)
                                     throws IOException {
 
-        ResourceFieldSchema wrapped = (subFieldSchema.getType() == DataType.TUPLE) 
+        ResourceFieldSchema wrapped = (subFieldSchema.getType() == DataType.TUPLE)
                                                               ? subFieldSchema
                                                               : AvroStorageUtils.wrapAsTuple(subFieldSchema);
 

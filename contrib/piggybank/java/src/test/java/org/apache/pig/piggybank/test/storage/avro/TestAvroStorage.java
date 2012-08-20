@@ -5,9 +5,9 @@
  * licenses this file to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -60,7 +60,7 @@ public class TestAvroStorage {
     final private static String basedir = "src/test/java/org/apache/pig/piggybank/test/storage/avro/avro_test_files/";
 
     final private static String outbasedir = "/tmp/TestAvroStorage/";
-    
+
     public static final PathFilter hiddenPathFilter = new PathFilter() {
         public boolean accept(Path p) {
           String name = p.getName();
@@ -82,11 +82,82 @@ public class TestAvroStorage {
     final private String testArrayFile = getInputFile("test_array.avro");
     final private String testRecordFile = getInputFile("test_record.avro");
     final private String testRecordSchema = getInputFile("test_record.avsc");
-    final private String testRecursiveSchemaFile = getInputFile("test_recursive_schema.avro");
-    final private String testGenericUnionSchemaFile = getInputFile("test_generic_union_schema.avro");
+    final private String testGenericUnionFile = getInputFile("test_generic_union.avro");
+    final private String testRecursiveRecordInMap = getInputFile("test_recursive_record_in_map.avro");
+    final private String testRecursiveRecordInArray = getInputFile("test_recursive_record_in_array.avro");
+    final private String testRecursiveRecordInUnion = getInputFile("test_recursive_record_in_union.avro");
+    final private String testRecursiveRecordInRecord = getInputFile("test_recursive_record_in_record.avro");
+    final private String testRecursiveRecordInUnionSchema = getInputFile("test_recursive_record_in_union.avsc");
     final private String testTextFile = getInputFile("test_record.txt");
     final private String testSingleTupleBagFile = getInputFile("messages.avro");
     final private String testNoExtensionFile = getInputFile("test_no_extension");
+    final private String recursiveRecordInMap =
+        " {" +
+        "   \"type\" : \"record\"," +
+        "   \"name\" : \"recursive_record\"," +
+        "   \"fields\" : [ {" +
+        "     \"name\" : \"id\"," +
+        "     \"type\" : \"int\"" +
+        "   }, {" +
+        "     \"name\" : \"nested\"," +
+        "     \"type\" : [ \"null\", {" +
+        "       \"type\" : \"map\"," +
+        "       \"values\" : \"recursive_record\"" +
+        "     } ]" +
+        "   } ]" +
+        " }";
+    final private String recursiveRecordInArray =
+        " {" +
+        "   \"type\" : \"record\"," +
+        "   \"name\" : \"recursive_record\"," +
+        "   \"fields\" : [ {" +
+        "     \"name\" : \"id\"," +
+        "     \"type\" : \"int\"" +
+        "   }, {" +
+        "     \"name\" : \"nested\"," +
+        "     \"type\" : [ \"null\", {" +
+        "       \"type\" : \"array\"," +
+        "       \"items\" : \"recursive_record\"" +
+        "     } ]" +
+        "   } ]" +
+        " }";
+    final private String recursiveRecordInUnion =
+        " {" +
+        "   \"type\" : \"record\"," +
+        "   \"name\" : \"recursive_record\"," +
+        "   \"fields\" : [ {" +
+        "     \"name\" : \"value\"," +
+        "     \"type\" : \"int\"" +
+        "   }, {" +
+        "     \"name\" : \"next\"," +
+        "     \"type\" : [ \"null\", \"recursive_record\" ]" +
+        "   } ]" +
+        " }";
+    final private String recursiveRecordInRecord =
+        " {" +
+        "   \"type\" : \"record\"," +
+        "   \"name\" : \"recursive_record\"," +
+        "   \"fields\" : [ {" +
+        "     \"name\" : \"id\"," +
+        "     \"type\" : \"int\"" +
+        "   }, {" +
+        "     \"name\" : \"nested\"," +
+        "     \"type\" : [ \"null\", {" +
+        "       \"type\" : \"record\"," +
+        "       \"name\" : \"nested_record\"," +
+        "       \"fields\" : [ {" +
+        "         \"name\" : \"value1\"," +
+        "         \"type\" : \"string\"" +
+        "       }, {" +
+        "         \"name\" : \"next\"," +
+        "         \"type\" : \"recursive_record\"" +
+        "       }, {" +
+        "         \"name\" : \"value2\"," +
+        "         \"type\" : \"string\"" +
+        "       } ]" +
+        "     } ]" +
+        "   } ]" +
+        " }";
 
     @BeforeClass
     public static void setup() throws ExecException {
@@ -100,40 +171,287 @@ public class TestAvroStorage {
     }
 
     @Test
-    public void testRecursiveSchema() throws IOException {
-        // Verify that a FrontendException is thrown if schema is recursive.
-        String output= outbasedir + "testRecursiveSchema";
+    public void testRecursiveRecordInMap() throws IOException {
+        // Verify that recursive records in map can be loaded/saved.
+        String output= outbasedir + "testRecursiveRecordInMap";
+        String expected = testRecursiveRecordInMap;
         deleteDirectory(new File(output));
         String [] queries = {
-          " in = LOAD '" + testRecursiveSchemaFile +
+          " in = LOAD '" + testRecursiveRecordInMap +
               "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ();",
           " STORE in INTO '" + output +
-              "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ();"
+              "' USING org.apache.pig.piggybank.storage.avro.AvroStorage (" +
+              " 'no_schema_check'," +
+              " 'schema', '" + recursiveRecordInMap + "' );"
+           };
+        testAvroStorage(queries);
+        verifyResults(output, expected);
+    }
+
+    @Test
+    public void testRecursiveRecordInArray() throws IOException {
+        // Verify that recursive records in array can be loaded/saved.
+        String output= outbasedir + "testRecursiveRecordInArray";
+        String expected = testRecursiveRecordInArray;
+        deleteDirectory(new File(output));
+        String [] queries = {
+          " in = LOAD '" + testRecursiveRecordInArray +
+              "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ();",
+          " STORE in INTO '" + output +
+              "' USING org.apache.pig.piggybank.storage.avro.AvroStorage (" +
+              " 'no_schema_check'," +
+              " 'schema', '" + recursiveRecordInArray + "' );"
+           };
+        testAvroStorage(queries);
+        verifyResults(output, expected);
+    }
+
+    @Test
+    public void testRecursiveRecordInUnion() throws IOException {
+        // Verify that recursive records in union can be loaded/saved.
+        String output= outbasedir + "testRecursiveRecordInUnion";
+        String expected = testRecursiveRecordInUnion;
+        deleteDirectory(new File(output));
+        String [] queries = {
+          " in = LOAD '" + testRecursiveRecordInUnion +
+              "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ();",
+          " STORE in INTO '" + output +
+              "' USING org.apache.pig.piggybank.storage.avro.AvroStorage (" +
+              " 'no_schema_check'," +
+              " 'schema', '" + recursiveRecordInUnion + "' );"
+           };
+        testAvroStorage(queries);
+        verifyResults(output, expected);
+    }
+
+    @Test
+    public void testRecursiveRecordInRecord() throws IOException {
+        // Verify that recursive records in record can be loaded/saved.
+        String output= outbasedir + "testRecursiveRecordInRecord";
+        String expected = testRecursiveRecordInRecord;
+        deleteDirectory(new File(output));
+        String [] queries = {
+          " in = LOAD '" + testRecursiveRecordInRecord +
+              "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ();",
+          " STORE in INTO '" + output +
+              "' USING org.apache.pig.piggybank.storage.avro.AvroStorage (" +
+              " 'no_schema_check'," +
+              " 'schema', '" + recursiveRecordInRecord + "' );"
+           };
+        testAvroStorage(queries);
+        verifyResults(output, expected);
+    }
+
+    @Test
+    public void testRecursiveRecordWithSame() throws IOException {
+        // Verify that avro schema can be specified via an external avro file
+        // instead of a json string.
+        String output= outbasedir + "testRecursiveRecordWithSame";
+        String expected = testRecursiveRecordInUnion;
+        deleteDirectory(new File(output));
+        String [] queries = {
+          " in = LOAD '" + testRecursiveRecordInUnion +
+              "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ();",
+          " STORE in INTO '" + output +
+              "' USING org.apache.pig.piggybank.storage.avro.AvroStorage (" +
+              " 'no_schema_check'," +
+              " 'same', '" + testRecursiveRecordInUnion + "' );"
+           };
+        testAvroStorage(queries);
+        verifyResults(output, expected);
+    }
+
+    @Test
+    public void testRecursiveRecordReference1() throws IOException {
+        // The relation 'in' looks like this:
+        //  (1,(2,(3,)))
+        //  (2,(3,))
+        //  (3,)
+        // $0 looks like this:
+        //  (1)
+        //  (2)
+        //  (3)
+        // Avro file stored after filtering out nulls looks like this:
+        //  1
+        //  2
+        //  3
+        String output= outbasedir + "testRecursiveRecordReference1";
+        String expected = basedir + "expected_testRecursiveRecordReference1.avro";
+        deleteDirectory(new File(output));
+        String [] queries = {
+          " in = LOAD '" + testRecursiveRecordInUnion +
+              "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ();",
+          " first = FOREACH in GENERATE $0 AS value;",
+          " filtered = FILTER first BY value is not null;",
+          " STORE filtered INTO '" + output +
+              "' USING org.apache.pig.piggybank.storage.avro.AvroStorage (" +
+              " 'no_schema_check'," +
+              " 'schema', '\"int\"' );"
+           };
+        testAvroStorage(queries);
+        verifyResults(output, expected);
+    }
+
+    @Test
+    public void testRecursiveRecordReference2() throws IOException {
+        // The relation 'in' looks like this:
+        //  (1,(2,(3,)))
+        //  (2,(3,))
+        //  (3,)
+        // $1.$0 looks like this:
+        //  (2)
+        //  (3)
+        //  ()
+        // Avro file stored after filtering out nulls looks like this:
+        //  2
+        //  3
+        String output= outbasedir + "testRecursiveRecordReference2";
+        String expected = basedir + "expected_testRecursiveRecordReference2.avro";
+        deleteDirectory(new File(output));
+        String [] queries = {
+          " in = LOAD '" + testRecursiveRecordInUnion +
+              "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ();",
+          " second = FOREACH in GENERATE $1.$0 AS value;",
+          " filtered = FILTER second BY value is not null;",
+          " STORE filtered INTO '" + output +
+              "' USING org.apache.pig.piggybank.storage.avro.AvroStorage (" +
+              " 'no_schema_check'," +
+              " 'schema', '\"int\"' );"
+           };
+        testAvroStorage(queries);
+        verifyResults(output, expected);
+    }
+
+    @Test
+    public void testRecursiveRecordReference3() throws IOException {
+        // The relation 'in' looks like this:
+        //  (1,(2,(3,)))
+        //  (2,(3,))
+        //  (3,)
+        // $1.$1.$0 looks like this:
+        //  (3)
+        //  ()
+        //  ()
+        // Avro file stored after filtering out nulls looks like this:
+        //  3
+        String output= outbasedir + "testRecursiveRecordReference3";
+        String expected = basedir + "expected_testRecursiveRecordReference3.avro";
+        deleteDirectory(new File(output));
+        String [] queries = {
+          " in = LOAD '" + testRecursiveRecordInUnion +
+              "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ();",
+          " third = FOREACH in GENERATE $1.$1.$0 AS value;",
+          " filtered = FILTER third BY value is not null;",
+          " STORE filtered INTO '" + output +
+              "' USING org.apache.pig.piggybank.storage.avro.AvroStorage (" +
+              " 'no_schema_check'," +
+              " 'schema', '\"int\"' );"
+           };
+        testAvroStorage(queries);
+        verifyResults(output, expected);
+    }
+
+    @Test
+    public void testRecursiveRecordWithNoAvroSchema() throws IOException {
+        // Verify that recursive records cannot be stored,
+        // if no avro schema is specified either via 'schema' or 'same'.
+        String output= outbasedir + "testRecursiveRecordWithNoAvroSchema";
+        deleteDirectory(new File(output));
+        String [] queries = {
+          " in = LOAD '" + testRecursiveRecordInUnion +
+              "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ();",
+          " STORE in INTO '" + output +
+              "' USING org.apache.pig.piggybank.storage.avro.AvroStorage (" +
+              " 'no_schema_check' );"
+           };
+        // Since Avro schema is not specified via the 'schema' parameter, it is
+        // derived from Pig schema. Job is expected to fail because this derived
+        // Avro schema (bytes) is not compatible with data (tuples).
+        testAvroStorage(true, queries);
+    }
+
+    @Test
+    public void testRecursiveRecordWithSchemaCheck() throws IOException {
+        // Verify that recursive records cannot be stored if schema check is enbled.
+        String output= outbasedir + "testRecursiveWithSchemaCheck";
+        deleteDirectory(new File(output));
+        String [] queries = {
+          " in = LOAD '" + testRecursiveRecordInUnion +
+              "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ();",
+          " STORE in INTO '" + output +
+              "' USING org.apache.pig.piggybank.storage.avro.AvroStorage (" +
+              " 'schema', '" + recursiveRecordInUnion + "' );"
            };
         try {
             testAvroStorage(queries);
-            Assert.fail();
-        } catch (FrontendException e) {
-            // The IOException thrown by AvroStorage for recursive schema is caught
-            // by the Pig frontend, and FrontendException is re-thrown.
-            assertTrue(e.getMessage().contains("Cannot get schema"));
+            Assert.fail("Negative test to test an exception. Should not be succeeding!");
+        } catch (IOException e) {
+            // An IOException is thrown by AvroStorage during schema check due to incompatible
+            // data types.
+            assertTrue(e.getMessage().contains("bytearray is not compatible with avro"));
         }
     }
 
     @Test
-    public void testGenericUnionSchema() throws IOException {
-        // Verify that a FrontendException is thrown if schema has generic union.
-        String output= outbasedir + "testGenericUnionSchema";
+    public void testRecursiveRecordWithSchemaFile() throws IOException {
+        // Verify that recursive records cannot be stored if avro schema is specified by 'schema_file'.
+        String output= outbasedir + "testRecursiveWithSchemaFile";
         deleteDirectory(new File(output));
         String [] queries = {
-          " in = LOAD '" + testGenericUnionSchemaFile +
+          " in = LOAD '" + testRecursiveRecordInUnion +
+              "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ();",
+          " STORE in INTO '" + output +
+              "' USING org.apache.pig.piggybank.storage.avro.AvroStorage (" +
+              " 'no_schema_check'," +
+              " 'schema_file', '" + testRecursiveRecordInUnionSchema + "' );"
+           };
+        try {
+            testAvroStorage(queries);
+            Assert.fail("Negative test to test an exception. Should not be succeeding!");
+        } catch (FrontendException e) {
+            // The IOException thrown by AvroSchemaManager for recursive record is caught
+            // by the Pig frontend, and FrontendException is re-thrown.
+            assertTrue(e.getMessage().contains("could not instantiate 'org.apache.pig.piggybank.storage.avro.AvroStorage'"));
+        }
+    }
+
+    @Test
+    public void testRecursiveRecordWithData() throws IOException {
+        // Verify that recursive records cannot be stored if avro schema is specified by 'data'.
+        String output= outbasedir + "testRecursiveWithData";
+        deleteDirectory(new File(output));
+        String [] queries = {
+          " in = LOAD '" + testRecursiveRecordInUnion +
+              "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ();",
+          " STORE in INTO '" + output +
+              "' USING org.apache.pig.piggybank.storage.avro.AvroStorage (" +
+              " 'no_schema_check'," +
+              " 'data', '" + testRecursiveRecordInUnion + "' );"
+           };
+        try {
+            testAvroStorage(queries);
+            Assert.fail("Negative test to test an exception. Should not be succeeding!");
+        } catch (FrontendException e) {
+            // The IOException thrown by AvroSchemaManager for recursive record is caught
+            // by the Pig frontend, and FrontendException is re-thrown.
+            assertTrue(e.getMessage().contains("could not instantiate 'org.apache.pig.piggybank.storage.avro.AvroStorage'"));
+        }
+    }
+
+    @Test
+    public void testGenericUnion() throws IOException {
+        // Verify that a FrontendException is thrown if schema has generic union.
+        String output= outbasedir + "testGenericUnion";
+        deleteDirectory(new File(output));
+        String [] queries = {
+          " in = LOAD '" + testGenericUnionFile +
               "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ();",
           " STORE in INTO '" + output +
               "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ();"
            };
         try {
             testAvroStorage(queries);
-            Assert.fail();
+            Assert.fail("Negative test to test an exception. Should not be succeeding!");
         } catch (FrontendException e) {
             // The IOException thrown by AvroStorage for generic union is caught
             // by the Pig frontend, and FrontendException is re-thrown.
@@ -243,7 +561,7 @@ public class TestAvroStorage {
             };
         try {
             testAvroStorage(queries);
-            Assert.fail();
+            Assert.fail("Negative test to test an exception. Should not be succeeding!");
         } catch (JobCreationException e) {
             // The IOException thrown by AvroStorage for input file not found is catched
             // by the Pig backend, and JobCreationException (a subclass of IOException)
@@ -256,9 +574,9 @@ public class TestAvroStorage {
     public void testArrayDefault() throws IOException {
         String output= outbasedir + "testArrayDefault";
         String expected = basedir + "expected_testArrayDefault.avro";
-        
+
         deleteDirectory(new File(output));
-        
+
         String [] queries = {
            " in = LOAD '" + testArrayFile + " ' USING org.apache.pig.piggybank.storage.avro.AvroStorage ();",
            " STORE in INTO '" + output + "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ();"
@@ -282,7 +600,7 @@ public class TestAvroStorage {
         testAvroStorage( queries);
         verifyResults(output, expected);
     }
-    
+
     @Test
     public void testArrayWithNotNull() throws IOException {
         String output= outbasedir + "testArrayWithNotNull";
@@ -297,7 +615,7 @@ public class TestAvroStorage {
         testAvroStorage( queries);
         verifyResults(output, expected);
     }
-    
+
     @Test
     public void testArrayWithSame() throws IOException {
         String output= outbasedir + "testArrayWithSame";
@@ -317,9 +635,9 @@ public class TestAvroStorage {
     public void testArrayWithSnappyCompression() throws IOException {
         String output= outbasedir + "testArrayWithSnappyCompression";
         String expected = basedir + "expected_testArrayDefault.avro";
-      
+
         deleteDirectory(new File(output));
-      
+
         Properties properties = new Properties();
         properties.setProperty("mapred.output.compress", "true");
         properties.setProperty("mapred.output.compression.codec", "org.apache.hadoop.io.compress.SnappyCodec");
@@ -464,7 +782,7 @@ public class TestAvroStorage {
         testAvroStorage( queries);
         verifyResults(output, expected);
     }
-    
+
     @Test
     public void testSingleFieldTuples() throws IOException {
         String output= outbasedir + "testSingleFieldTuples";
@@ -478,7 +796,7 @@ public class TestAvroStorage {
         };
         testAvroStorage( queries);
     }
-    
+
     @Test
     public void testFileWithNoExtension() throws IOException {
         String output= outbasedir + "testFileWithNoExtension";
@@ -527,25 +845,37 @@ public class TestAvroStorage {
         if ( path.exists()) {
             File [] files = path.listFiles();
             for (File file: files) {
-                if (file.isDirectory()) 
+                if (file.isDirectory())
                     deleteDirectory(file);
                 file.delete();
             }
         }
     }
-    
+
     private void testAvroStorage(String ...queries) throws IOException {
+        testAvroStorage(false, queries);
+    }
+
+    private void testAvroStorage(boolean expectedToFail, String ...queries) throws IOException {
         pigServerLocal.setBatchOn();
         for (String query: queries){
-            if (query != null && query.length() > 0)
+            if (query != null && query.length() > 0) {
                 pigServerLocal.registerQuery(query);
+            }
         }
-        List<ExecJob> jobs = pigServerLocal.executeBatch();
-        for (ExecJob job : jobs) {
-            assertEquals(JOB_STATUS.COMPLETED, job.getStatus());
+        int numOfFailedJobs = 0;
+        for (ExecJob job : pigServerLocal.executeBatch()) {
+            if (job.getStatus().equals(JOB_STATUS.FAILED)) {
+                numOfFailedJobs++;
+            }
+        }
+        if (expectedToFail) {
+            assertTrue("There was no failed job!", numOfFailedJobs > 0);
+        } else {
+            assertTrue("There was a failed job!", numOfFailedJobs == 0);
         }
     }
-    
+
     private void verifyResults(String outPath, String expectedOutpath) throws IOException {
         verifyResults(outPath, expectedOutpath, null);
     }
@@ -554,17 +884,17 @@ public class TestAvroStorage {
         // Seems compress for Avro is broken in 23. Skip this test and open Jira PIG-
         if (Util.isHadoop23())
             return;
-        
-        FileSystem fs = FileSystem.getLocal(new Configuration()) ; 
-        
+
+        FileSystem fs = FileSystem.getLocal(new Configuration()) ;
+
         /* read in expected results*/
         Set<Object> expected = getExpected (expectedOutpath);
-        
+
         /* read in output results and compare */
         Path output = new Path(outPath);
         assertTrue("Output dir does not exists!", fs.exists(output)
                 && fs.getFileStatus(output).isDir());
-        
+
         Path[] paths = FileUtil.stat2Paths(fs.listStatus(output, hiddenPathFilter));
         assertTrue("Split field dirs not found!", paths != null);
 
@@ -574,34 +904,34 @@ public class TestAvroStorage {
                   files != null);
           for (Path filePath : files) {
             assertTrue("This shouldn't be a directory", fs.isFile(filePath));
-            
+
             GenericDatumReader<Object> reader = new GenericDatumReader<Object>();
-            
+
             DataFileStream<Object> in = new DataFileStream<Object>(
                                             fs.open(filePath), reader);
             assertEquals("codec", expectedCodec, in.getMetaString("avro.codec"));
             int count = 0;
             while (in.hasNext()) {
                 Object obj = in.next();
-              //System.out.println("obj = " + (GenericData.Array<Float>)obj);
-              assertTrue("Avro result object found that's not expected: " + obj, expected.contains(obj));
-              count++;
-            }        
+                //System.out.println("obj = " + (GenericData.Array<Float>)obj);
+                assertTrue("Avro result object found that's not expected: " + obj, expected.contains(obj));
+                count++;
+            }
             in.close();
             assertEquals(expected.size(), count);
           }
         }
       }
-    
+
     private Set<Object> getExpected (String pathstr ) throws IOException {
-        
+
         Set<Object> ret = new HashSet<Object>();
-        FileSystem fs = FileSystem.getLocal(new Configuration())  ; 
-                                    
+        FileSystem fs = FileSystem.getLocal(new Configuration());
+
         /* read in output results and compare */
         Path output = new Path(pathstr);
         assertTrue("Expected output does not exists!", fs.exists(output));
-    
+
         Path[] paths = FileUtil.stat2Paths(fs.listStatus(output, hiddenPathFilter));
         assertTrue("Split field dirs not found!", paths != null);
 
@@ -610,15 +940,15 @@ public class TestAvroStorage {
             assertTrue("No files found for path: " + path.toUri().getPath(), files != null);
             for (Path filePath : files) {
                 assertTrue("This shouldn't be a directory", fs.isFile(filePath));
-        
+
                 GenericDatumReader<Object> reader = new GenericDatumReader<Object>();
-        
+
                 DataFileStream<Object> in = new DataFileStream<Object>(fs.open(filePath), reader);
-        
+
                 while (in.hasNext()) {
                     Object obj = in.next();
                     ret.add(obj);
-                }        
+                }
                 in.close();
             }
         }
