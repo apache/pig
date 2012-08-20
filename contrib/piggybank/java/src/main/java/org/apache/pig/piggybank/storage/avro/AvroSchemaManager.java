@@ -5,9 +5,9 @@
  * licenses this file to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -17,6 +17,7 @@
 
 package org.apache.pig.piggybank.storage.avro;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,7 +28,7 @@ import org.apache.avro.Schema.Type;
 /**
  * This class creates two maps out of a given Avro schema. And it supports
  * looking up avro schemas using either type name or field name.
- * 
+ *
  * 1. map[type name] = > avro schema
  * 2. map[field name] => avro schema
  *
@@ -42,10 +43,17 @@ public class AvroSchemaManager {
     /**
      * Construct with a given schema
      */
-    public AvroSchemaManager(Schema schema) {
+    public AvroSchemaManager(Schema schema) throws IOException {
 
         name2Schema = new HashMap<String, Schema>();
         typeName2Schema = new HashMap<String, Schema>();
+
+        if (AvroStorageUtils.containsRecursiveRecord(schema)) {
+            throw new IOException ("Schema containing recursive records cannot be referred to"
+                + " by 'data' and 'schema_file'. Please instead use 'same' with a path that"
+                + " points to an avro file encoded by the same schema as what you want to use,"
+                + " or use 'schema' with a json string representation." );
+        }
 
         init(null, schema, false);
     }
@@ -58,7 +66,7 @@ public class AvroSchemaManager {
     /**
      * Initialize given a schema
      */
-    protected void init(String namespace, Schema schema, 
+    protected void init(String namespace, Schema schema,
                                     boolean ignoreNameMap) {
 
         /* put to map[type name]=>schema */
