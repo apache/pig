@@ -240,6 +240,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2884: JobControlCompiler mis-logs after reducer estimation (billgraham)
+
 PIG-2876: Bump up Xerces version (jcoveney)
 
 PIG-2866: PigServer fails with macros without a script file (billgraham)
