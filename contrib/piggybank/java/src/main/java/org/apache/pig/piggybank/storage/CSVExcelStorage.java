@@ -497,10 +497,10 @@ public class CSVExcelStorage extends PigStorage implements StoreFuncInterface, L
 
         		ByteBuffer fieldBuffer = ByteBuffer.allocate(recordLen);
 
-        		sawEmbeddedRecordDelimiter = processOneInRecord(evenQuotesSeen,
-                buf, recordLen, fieldBuffer);
-        		
-        		// The last field is never delimited by a FIELD_DEL, but by 
+                        sawEmbeddedRecordDelimiter = processOneInRecord(evenQuotesSeen,
+                                buf, recordLen, fieldBuffer);
+
+        		// The last field is never delimited by a FIELD_DEL, but by
         		// the end of the record. So we need to add that last field.
         		// The '!sawEmbeddedRecordDelimiter' handles the case of
         		// embedded newlines; we are amidst a field, not at
@@ -564,9 +564,9 @@ public class CSVExcelStorage extends PigStorage implements StoreFuncInterface, L
 	 * @param fieldBuffer
 	 * @return
 	 */
-	private boolean processOneInRecord(boolean evenQuotesSeen,
-                                     byte[] buf, int recordLen,
-                                     ByteBuffer fieldBuffer) {
+        private boolean processOneInRecord(boolean evenQuotesSeen,
+                                           byte[] buf, int recordLen,
+                                           ByteBuffer fieldBuffer) {
 		for (int i = 0; i < recordLen; i++) {
 			if (nextTupleSkipChar) {
 				nextTupleSkipChar = false;
@@ -610,8 +610,8 @@ public class CSVExcelStorage extends PigStorage implements StoreFuncInterface, L
 				evenQuotesSeen = true;
 				fieldBuffer.put(b);
 			}
-    } // end for
-		return getNextInQuotedField && (multilineTreatment == Multiline.YES);
+                } // end for
+                return getNextInQuotedField && (multilineTreatment == Multiline.YES);
 	}
 
     private void readField(ByteBuffer buf, int fieldID) {
