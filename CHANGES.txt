@@ -242,6 +242,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2848: TestBuiltInBagToTupleOrString fails now that mock.Storage enforces not overwriting output (julien)
+
 PIG-2884: JobControlCompiler mis-logs after reducer estimation (billgraham)
 
 PIG-2876: Bump up Xerces version (jcoveney)
