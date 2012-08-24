@@ -280,16 +280,16 @@ public class TestResourceSchema {
     @Test
     public void testToStringAndParse() throws Exception {
         ResourceSchema rs = new ResourceSchema();
-        ResourceFieldSchema[] fields = new ResourceFieldSchema[12];
+        ResourceFieldSchema[] fields = new ResourceFieldSchema[13];
 
         byte[] types = {DataType.INTEGER, DataType.LONG, DataType.FLOAT,
             DataType.DOUBLE, DataType.BYTEARRAY, DataType.CHARARRAY,
             DataType.MAP, DataType.TUPLE, DataType.TUPLE, DataType.BAG,
-            DataType.BAG, DataType.BOOLEAN};
+            DataType.BAG, DataType.BOOLEAN, DataType.DATETIME};
         String[] names = {"i", "l", "f",
             "d", "b", "s",
             "m", "tschema", "tnull", "bschema",
-            "bnull", "bb"};
+            "bnull", "bb", "dt"};
         
         for (int i = 0; i < fields.length; i++) {
             fields[i] = new ResourceFieldSchema();
@@ -334,14 +334,14 @@ public class TestResourceSchema {
 
         assertEquals("i:int,l:long,f:float,d:double,b:bytearray,s:" +
             "chararray,m:[],tschema:(i:int,l:long,f:float)," +
-            "tnull:(),bschema:{t:(d:double,b:bytearray,s:chararray)},bnull:{},bb:boolean",
+            "tnull:(),bschema:{t:(d:double,b:bytearray,s:chararray)},bnull:{},bb:boolean,dt:datetime",
             strSchema);
 
         ResourceSchema after =
             new ResourceSchema(Utils.getSchemaFromString(strSchema));
         ResourceFieldSchema[] afterFields = after.getFields();
 
-        assertEquals(12, afterFields.length);
+        assertEquals(13, afterFields.length);
         assertEquals("i", afterFields[0].getName());
         assertEquals(DataType.INTEGER, afterFields[0].getType());
         assertEquals("l", afterFields[1].getName());
@@ -366,6 +366,9 @@ public class TestResourceSchema {
         assertEquals(DataType.BAG, afterFields[10].getType());
         assertEquals("bb", afterFields[11].getName());
         assertEquals(DataType.BOOLEAN, afterFields[11].getType());
+        assertEquals("dt", afterFields[12].getName());
+        assertEquals(DataType.DATETIME, afterFields[12].getType());
+        
 
         assertNotNull(afterFields[7].getSchema());
         ResourceFieldSchema[] tAfterFields =

@@ -25,7 +25,7 @@
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/js-1.7R2.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/zookeeper-3.3.3.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/guava-r06.jar"/>
-	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/jython-2.5.0.jar"/>
+	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/jython-2.5.2.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/hadoop-core-0.20.2.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/commons-logging-1.1.1.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/commons-cli-1.2.jar"/>

@@ -22,6 +22,9 @@ import java.util.Random;
 import java.util.Map;
 import java.io.IOException;
 
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.builtin.PigStorage;
@@ -51,6 +54,11 @@ public class TestConversions extends TestCase {
     PigStorage ps = new PigStorage();
 	Random r = new Random();
 	final int MAX = 10;
+
+	@Override
+	public void setUp() {
+	    DateTimeZone.setDefault(DateTimeZone.forOffsetMillis(DateTimeZone.UTC.getOffset(null)));
+	}
 
     @Test
     public void testBytesToBoolean() throws IOException {
@@ -244,6 +252,12 @@ public class TestConversions extends TestCase {
     public void testDoubleToBytes() throws IOException {
         Double d = r.nextDouble();
         assertTrue(DataType.equalByteArrays(d.toString().getBytes(), ((Utf8StorageConverter)ps.getLoadCaster()).toBytes(d)));
+    }
+
+    @Test
+    public void testDateTimeToBytes() throws IOException {
+        DateTime dt = new DateTime(r.nextLong());
+        assertTrue(DataType.equalByteArrays(dt.toString().getBytes(), ((Utf8StorageConverter)ps.getLoadCaster()).toBytes(dt)));
     }
         
     @Test

@@ -27,6 +27,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.joda.time.DateTime;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -414,6 +416,12 @@ public class POUserFunc extends ExpressionOperator {
         return getNext();
     }
 
+    @Override
+    public Result getNext(DateTime dt) throws ExecException {
+
+        return getNext();
+    }
+ 
     @Override
     public Result getNext(Map m) throws ExecException {
 

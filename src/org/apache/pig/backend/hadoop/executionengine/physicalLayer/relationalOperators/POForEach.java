@@ -349,6 +349,7 @@ public class POForEach extends PhysicalOperator {
                 case DataType.DOUBLE :
                 case DataType.LONG :
                 case DataType.FLOAT :
+                case DataType.DATETIME :
                 case DataType.CHARARRAY :
                     inputData = planLeafOps[i].getNext(getDummy(resultTypes[i]), resultTypes[i]);
                     break;

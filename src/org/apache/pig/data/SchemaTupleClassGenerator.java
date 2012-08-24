@@ -729,6 +729,8 @@ public class SchemaTupleClassGenerator {
                 if (booleans++ % 8 == 0) {
                     size++; //accounts for the byte used to store boolean values
                 }
+            } else if (isDateTime()) {
+                size += 10; // 8 for long and 2 for short
             } else if (isBag()) {
                 size += 8; //the ptr
                 s += "(pos_"+fieldPos+" == null ? 0 : pos_"+fieldPos+".getMemorySize()) + ";
@@ -764,6 +766,7 @@ public class SchemaTupleClassGenerator {
             case (DataType.FLOAT): add("    return 0.0f;"); break;
             case (DataType.DOUBLE): add("    return 0.0;"); break;
             case (DataType.BOOLEAN): add("    return true;"); break;
+            case (DataType.DATETIME): add("    return new DateTime();"); break;
             case (DataType.BYTEARRAY): add("    return (byte[])null;"); break;
             case (DataType.CHARARRAY): add("    return (String)null;"); break;
             case (DataType.TUPLE): add("    return (Tuple)null;"); break;
@@ -1032,6 +1035,7 @@ public class SchemaTupleClassGenerator {
             listOfFutureMethods.add(new TypeAwareSetString(DataType.BYTEARRAY));
             listOfFutureMethods.add(new TypeAwareSetString(DataType.CHARARRAY));
             listOfFutureMethods.add(new TypeAwareSetString(DataType.BOOLEAN));
+            listOfFutureMethods.add(new TypeAwareSetString(DataType.DATETIME));
             listOfFutureMethods.add(new TypeAwareSetString(DataType.TUPLE));
             listOfFutureMethods.add(new TypeAwareSetString(DataType.BAG));
             listOfFutureMethods.add(new TypeAwareSetString(DataType.MAP));
@@ -1042,6 +1046,7 @@ public class SchemaTupleClassGenerator {
             listOfFutureMethods.add(new TypeAwareGetString(DataType.BYTEARRAY));
             listOfFutureMethods.add(new TypeAwareGetString(DataType.CHARARRAY));
             listOfFutureMethods.add(new TypeAwareGetString(DataType.BOOLEAN));
+            listOfFutureMethods.add(new TypeAwareGetString(DataType.DATETIME));
             listOfFutureMethods.add(new TypeAwareGetString(DataType.TUPLE));
             listOfFutureMethods.add(new TypeAwareGetString(DataType.BAG));
             listOfFutureMethods.add(new TypeAwareGetString(DataType.MAP));
@@ -1068,6 +1073,8 @@ public class SchemaTupleClassGenerator {
                     .append("import java.io.IOException;\n")
                     .append("\n")
                     .append("import com.google.common.collect.Lists;\n")
+                    .append("\n")
+                    .append("import org.joda.time.DateTime;")
                     .append("\n")
                     .append("import org.apache.pig.data.DataType;\n")
                     .append("import org.apache.pig.data.DataBag;\n")
@@ -1187,6 +1194,10 @@ public class SchemaTupleClassGenerator {
             return type == DataType.DOUBLE;
         }
 
+        public boolean isDateTime() {
+            return type == DataType.DATETIME;
+        }
+
         public boolean isPrimitive() {
             return isInt() || isLong() || isFloat() || isDouble() || isBoolean();
         }
@@ -1232,6 +1243,7 @@ public class SchemaTupleClassGenerator {
                 case (DataType.BYTEARRAY): return "byte[]";
                 case (DataType.CHARARRAY): return "String";
                 case (DataType.BOOLEAN): return "boolean";
+                case (DataType.DATETIME): return "DateTime";
                 case (DataType.TUPLE): return "Tuple";
                 case (DataType.BAG): return "DataBag";
                 case (DataType.MAP): return "Map";

@@ -28,6 +28,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 
+import org.joda.time.DateTime;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -111,6 +113,11 @@ implements StoreFuncInterface, LoadMetadata {
 
         @Override
         public Boolean bytesToBoolean(byte[] b) throws IOException {
+            throw new ExecException(unImplementedErrorMessage, 1118);
+        }
+
+        @Override
+        public DateTime bytesToDateTime(byte[] b) throws IOException {
             throw new ExecException(unImplementedErrorMessage, 1118);
         }
 
@@ -257,6 +264,19 @@ implements StoreFuncInterface, LoadMetadata {
         } catch (Exception ee) {
             int errCode = 2105;
             String msg = "Error while converting boolean to bytes.";
+            throw new ExecException(msg, errCode, PigException.BUG, ee);
+        }
+        return baos.toByteArray();
+    }
+
+    public byte[] toBytes(DateTime dt) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(baos);
+        try {
+            DataReaderWriter.writeDatum(dos, dt);
+        } catch (Exception ee) {
+            int errCode = 2105;
+            String msg = "Error while converting datetime to bytes.";
             throw new ExecException(msg, errCode, PigException.BUG, ee);
         }
         return baos.toByteArray();

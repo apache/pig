@@ -79,6 +79,14 @@ public enum ColumnType {
     }
   },
   /**
+   * DateTime
+   */
+  DATETIME("datetime") {
+    public byte pigDataType() {
+      return DataType.DATETIME;
+    }
+  },
+  /**
    * Collection
    */
   COLLECTION("collection") {

@@ -295,6 +295,22 @@ public class RubySchema extends RubyObject {
     }
 
     /**
+     * This is a static helper method to create a null aliased datetime Schema.
+     * This is useful in cases where you do not want the output to have an explicit
+     * name, which {@link Utils#getSchemaFromString} will assign.
+     *
+     * @param context the context the method is being executed in
+     * @param self    an instance of the RubyClass with metadata on
+     *                the Ruby class object this method is being
+     *                statically invoked against
+     * @return        a null-aliased bytearray schema
+     */
+    @JRubyMethod(meta = true, name = {"dt", "datetime"})
+    public static RubySchema nullDateTime(ThreadContext context, IRubyObject self) {
+       return makeNullAliasRubySchema(context, DataType.DATETIME);
+    }
+
+    /**
      * This is a static helper method to create a null aliased tuple Schema.
      * This is useful in cases where you do not want the output to have an explicit
      * name, which {@link Utils#getSchemaFromString} will assign.

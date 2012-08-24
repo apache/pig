@@ -69,6 +69,7 @@ public class POIsNull extends UnaryComparisonOperator {
         case DataType.BOOLEAN:
         case DataType.LONG:
         case DataType.FLOAT:
+        case DataType.DATETIME:
         case DataType.MAP:
         case DataType.TUPLE:
         case DataType.BAG:

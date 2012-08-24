@@ -469,6 +469,7 @@ public class POPartialAgg extends PhysicalOperator {
         case DataType.FLOAT:
         case DataType.INTEGER:
         case DataType.LONG:
+        case DataType.DATETIME:
         case DataType.MAP:
         case DataType.TUPLE:
             res = op.getNext(getDummy(op.getResultType()), op.getResultType());

@@ -20,6 +20,9 @@ package org.apache.pig.test;
 import java.io.IOException;
 import java.util.Map;
 
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.ResourceSchema;
@@ -108,6 +111,13 @@ public class TestTextDataParser extends junit.framework.TestCase {
         String myDouble = "0.1";
         Double d = ps.getLoadCaster().bytesToDouble(myDouble.getBytes());
         assertTrue(d.equals(0.1));
+    }
+
+    @Test
+    public void testDateTime() throws Exception{
+        String myDateTime = "1970-01-01T00:00:00.000Z";
+        DateTime d = ps.getLoadCaster().bytesToDateTime(myDateTime.getBytes());
+        assertTrue(d.equals(new DateTime(myDateTime, DateTimeZone.forID("+00:00"))));
     }
     
     @Test

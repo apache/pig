@@ -323,6 +323,13 @@ public class DefaultTuple extends AbstractTuple {
                             double dv2 = bb2.getDouble();
                             rc = Double.compare(dv1, dv2);
                             break;
+                        case DataType.DATETIME:
+                            long dtv1 = bb1.getLong();
+                            bb1.position(bb1.position() + 2); // move cursor forward without read the timezone bytes
+                            long dtv2 = bb2.getLong();
+                            bb2.position(bb2.position() + 2);
+                            rc = (dtv1 < dtv2 ? -1 : (dtv1 == dtv2 ? 0 : 1));
+                            break;
                         case DataType.BYTEARRAY:
                             int basz1 = bb1.getInt();
                             int basz2 = bb2.getInt();

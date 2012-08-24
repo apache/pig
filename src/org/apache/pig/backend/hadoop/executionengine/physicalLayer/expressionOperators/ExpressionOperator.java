@@ -21,6 +21,8 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOp
 import java.util.List;
 import java.util.Map;
 
+import org.joda.time.DateTime;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -177,6 +179,14 @@ public abstract class ExpressionOperator extends PhysicalOperator {
      */
     protected Result accumChild(List<ExpressionOperator> child, Boolean b) throws ExecException {
         return accumChild(child, b, DataType.BOOLEAN);
+
+    }
+
+    /**
+     * Drive all the UDFs in accumulative mode
+     */
+    protected Result accumChild(List<ExpressionOperator> child, DateTime dt) throws ExecException {
+        return accumChild(child, dt, DataType.DATETIME);
 
     }
 

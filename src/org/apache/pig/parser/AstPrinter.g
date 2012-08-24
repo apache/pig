@@ -176,6 +176,7 @@ simple_type
     | LONG { sb.append($LONG.text); }
     | FLOAT { sb.append($FLOAT.text); }
     | DOUBLE { sb.append($DOUBLE.text); }
+    | DATETIME { sb.append($DATETIME.text); }
     | CHARARRAY { sb.append($CHARARRAY.text); }
     | BYTEARRAY { sb.append($BYTEARRAY.text); }
 ;
@@ -618,6 +619,7 @@ eid : rel_str_op
     | LONG      { sb.append($LONG.text); }
     | FLOAT     { sb.append($FLOAT.text); }
     | DOUBLE    { sb.append($DOUBLE.text); }
+    | DATETIME  { sb.append($DATETIME.text); }
     | CHARARRAY { sb.append($CHARARRAY.text); }
     | BYTEARRAY { sb.append($BYTEARRAY.text); }
     | BAG       { sb.append($BAG.text); }

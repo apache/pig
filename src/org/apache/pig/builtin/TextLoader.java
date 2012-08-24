@@ -20,6 +20,8 @@ package org.apache.pig.builtin;
 import java.io.IOException;
 import java.util.Map;
 
+import org.joda.time.DateTime;
+
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
@@ -120,6 +122,17 @@ public class TextLoader extends LoadFunc implements LoadCaster {
         String msg = "TextLoader does not support conversion to Double.";
         throw new ExecException(msg, errCode, PigException.BUG);
     }
+    
+    /**
+     * TextLoader does not support conversion to DateTime
+     * @throws IOException if the value cannot be cast.
+     */
+    @Override
+    public DateTime bytesToDateTime(byte[] b) throws IOException {
+        int errCode = 2109;
+        String msg = "TextLoader does not support conversion to DateTime.";
+        throw new ExecException(msg, errCode, PigException.BUG);
+    }
 
     /**
      * Cast data from bytes to chararray value.  
@@ -206,6 +219,12 @@ public class TextLoader extends LoadFunc implements LoadCaster {
     public byte[] toBytes(Long l) throws IOException {
         int errCode = 2109;
         String msg = "TextLoader does not support conversion from Long.";
+        throw new ExecException(msg, errCode, PigException.BUG);
+    }
+
+    public byte[] toBytes(DateTime dt) throws IOException {
+        int errCode = 2109;
+        String msg = "TextLoader does not support conversion from DateTime.";
         throw new ExecException(msg, errCode, PigException.BUG);
     }
 

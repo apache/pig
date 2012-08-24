@@ -19,6 +19,8 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOp
 
 import java.util.Map;
 
+import org.joda.time.DateTime;
+
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
@@ -64,6 +66,8 @@ public interface ComparisonOperator {
     public Result getNext(Map m) throws ExecException;
 
     public Result getNext(Boolean b) throws ExecException;
+
+    public Result getNext(DateTime dt) throws ExecException;
 
     public Result getNext(Tuple t) throws ExecException;
 

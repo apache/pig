@@ -23,6 +23,8 @@ import java.util.Random;
 
 import junit.framework.TestCase;
 
+import org.joda.time.DateTime;
+
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
@@ -54,7 +56,7 @@ public class TestMultiply extends TestCase{
     public void testOperator() throws ExecException{
         //int TRIALS = 10;
         byte[] types = { DataType.BAG, DataType.BOOLEAN, DataType.BYTEARRAY, DataType.CHARARRAY, 
-                DataType.DOUBLE, DataType.FLOAT, DataType.INTEGER, DataType.LONG, DataType.MAP, DataType.TUPLE};
+                DataType.DOUBLE, DataType.FLOAT, DataType.INTEGER, DataType.LONG, DataType.DATETIME, DataType.MAP, DataType.TUPLE};
         //Map<Byte,String> map = GenRandomData.genTypeToNameMap();
         System.out.println("Testing Multiply operator");
         for(byte type : types) {
@@ -228,6 +230,26 @@ public class TestMultiply extends TestCase{
                 rt.setValue(null);
                 resl = op.getNext(inpl1);
                 assertEquals(null, (Long)resl.result);
+                break;
+            }
+            case DataType.DATETIME: {
+                DateTime inpdt1 = new DateTime(r.nextLong());
+                DateTime inpdt2 = new DateTime(r.nextLong());
+                lt.setValue(inpdt1);
+                rt.setValue(inpdt2);
+                Result resdt = op.getNext(inpdt1);
+                assertEquals(resdt.returnStatus, POStatus.STATUS_ERR);
+                
+                // test with null in lhs
+                lt.setValue(null);
+                rt.setValue(inpdt2);
+                resb = op.getNext(inpdt1);
+                assertEquals(resb.returnStatus, POStatus.STATUS_ERR);
+                // test with null in rhs
+                lt.setValue(inpdt1);
+                rt.setValue(null);
+                resb = op.getNext(inpdt1);
+                assertEquals(resb.returnStatus, POStatus.STATUS_ERR);
                 break;
             }
             case DataType.MAP: {

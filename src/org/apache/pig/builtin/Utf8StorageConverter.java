@@ -27,6 +27,9 @@ import java.util.Map;
 import java.util.Stack;
 import java.util.EmptyStackException;
 
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.LoadStoreCaster;
@@ -309,6 +312,9 @@ public class Utf8StorageConverter implements LoadStoreCaster {
         case DataType.BOOLEAN:
             field = bytesToBoolean(b);
             break;
+        case DataType.DATETIME:
+            field = bytesToDateTime(b);
+            break;
         default:
             throw new IOException("Unknown simple data type");
         }
@@ -464,6 +470,28 @@ public class Utf8StorageConverter implements LoadStoreCaster {
     }
 
     @Override
+    public DateTime bytesToDateTime(byte[] b) throws IOException {
+        if (b == null) {
+            return null;
+        }
+        try {
+            String dtStr = new String(b);
+            DateTimeZone dtz = ToDate.extractDateTimeZone(dtStr);
+            if (dtz == null) {
+                return new DateTime(dtStr);
+            } else {
+                return new DateTime(dtStr, dtz);
+            }
+        } catch (IllegalArgumentException e) {
+            LogUtils.warn(this, "Unable to interpret value " + Arrays.toString(b) + " in field being " +
+                    "converted to datetime, caught IllegalArgumentException <" +
+                    e.getMessage() + "> field discarded", 
+                    PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, mLog);
+            return null;
+        }
+    }
+
+    @Override
     @SuppressWarnings("unchecked")
     public Map<String, Object> bytesToMap(byte[] b, ResourceFieldSchema fieldSchema) throws IOException {
         if(b == null)
@@ -544,6 +572,11 @@ public class Utf8StorageConverter implements LoadStoreCaster {
     @Override
     public byte[] toBytes(Boolean b) throws IOException {
         return b.toString().getBytes();
+    }
+
+    @Override
+    public byte[] toBytes(DateTime dt) throws IOException {
+        return dt.toString().getBytes();
     }
 
     @Override

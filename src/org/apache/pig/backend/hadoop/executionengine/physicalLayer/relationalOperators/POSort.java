@@ -192,6 +192,7 @@ public class POSort extends PhysicalOperator {
             case DataType.BOOLEAN:
             case DataType.INTEGER:
             case DataType.LONG:
+            case DataType.DATETIME:
             case DataType.TUPLE:
                 res = Op.getNext(getDummy(resultType), resultType);
                 break;

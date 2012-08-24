@@ -17,6 +17,8 @@
  */
 package org.apache.pig.piggybank.storage;
 
+import org.joda.time.DateTime;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.NullWritable;
@@ -112,6 +114,11 @@ public class DBStorage extends StoreFunc {
 
           case DataType.DOUBLE:
             ps.setDouble(sqlPos, (Double) field);
+            sqlPos++;
+            break;
+
+          case DataType.DATETIME:
+            ps.setDate(sqlPos, ((DateTime) field).toDate());
             sqlPos++;
             break;
 

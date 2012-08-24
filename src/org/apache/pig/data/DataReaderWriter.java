@@ -25,6 +25,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -47,6 +50,7 @@ public class DataReaderWriter {
     private static BagFactory mBagFactory = BagFactory.getInstance();
     static final int UNSIGNED_SHORT_MAX = 65535;
     public static final String UTF8 = "UTF-8";
+    private static final int ONE_MINUTE = 60000;
 
     public static Tuple bytesToTuple(DataInput in) throws IOException {
         // Don't use Tuple.readFields, because it requires you to
@@ -178,6 +182,9 @@ public class DataReaderWriter {
 
             case DataType.BYTE:
                 return Byte.valueOf(in.readByte());
+                
+            case DataType.DATETIME:
+                return new DateTime(in.readLong(), DateTimeZone.forOffsetMillis(in.readShort() * ONE_MINUTE));
 
             case DataType.BYTEARRAY: {
                 int size = in.readInt();
@@ -289,6 +296,11 @@ public class DataReaderWriter {
                 out.writeByte(DataType.BYTE);
                 out.writeByte((Byte)val);
                 break;
+
+            case DataType.DATETIME:
+                out.writeByte(DataType.DATETIME);
+                out.writeLong(((DateTime)val).getMillis());
+                out.writeShort(((DateTime)val).getZone().getOffset((DateTime)val) / 60000);
 
             case DataType.BYTEARRAY: {
                 out.writeByte(DataType.BYTEARRAY);

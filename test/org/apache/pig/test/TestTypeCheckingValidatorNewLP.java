@@ -44,6 +44,8 @@ import java.util.Properties;
 
 import junit.framework.Assert;
 
+import org.joda.time.DateTime;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
@@ -82,6 +84,8 @@ import org.apache.pig.newplan.logical.expression.DereferenceExpression;
 import org.apache.pig.newplan.logical.expression.DivideExpression;
 import org.apache.pig.newplan.logical.expression.EqualExpression;
 import org.apache.pig.newplan.logical.expression.GreaterThanExpression;
+import org.apache.pig.newplan.logical.expression.GreaterThanEqualExpression;
+import org.apache.pig.newplan.logical.expression.LessThanExpression;
 import org.apache.pig.newplan.logical.expression.LessThanEqualExpression;
 import org.apache.pig.newplan.logical.expression.LogicalExpression;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
@@ -680,6 +684,78 @@ public class TestTypeCheckingValidatorNewLP {
         CastExpression cast1 = new CastExpression(plan,  constant3, createFS(DataType.BYTEARRAY)) ;
         EqualExpression equal1 = new EqualExpression(plan, gt1, cast1);
         NotEqualExpression nq1 = new NotEqualExpression(plan, gt1, cast1);
+
+        CompilationMessageCollector collector = new CompilationMessageCollector();
+        TypeCheckingExpVisitor expTypeChecker = new TypeCheckingExpVisitor(
+                plan, collector, null);
+
+        try {
+            expTypeChecker.visit();
+            fail("Exception expected");
+        } catch (TypeCheckerException pve) {
+            // good
+        }
+        printMessageCollector(collector);
+        // printTypeGraph(plan) ;
+
+        if (!collector.hasError()) {
+            throw new Exception("Error during type checking");
+        }
+    }
+
+    @Test
+    public void testExpressionTypeChecking11() throws Throwable {
+        // test whether conditional operators can accept two datetime operands
+        LogicalExpressionPlan plan = new LogicalExpressionPlan();
+        ConstantExpression constant0 = new ConstantExpression(plan, new DateTime(0L));
+        ConstantExpression constant1 = new ConstantExpression(plan, new DateTime("1970-01-01T00:00:00.000Z"));
+        ConstantExpression constant2 = new ConstantExpression(plan, new DateTime(1L));
+        ConstantExpression constant3 = new ConstantExpression(plan, new DateTime(2L));
+        ConstantExpression constant4 = new ConstantExpression(plan, new DataByteArray("1970-01-01T00:00:00.003Z"));
+
+        LessThanExpression lt1 = new LessThanExpression(plan, constant1, constant2);
+        LessThanEqualExpression lte1 = new LessThanEqualExpression(plan, constant1, constant2);
+        GreaterThanExpression gt1 = new GreaterThanExpression(plan, constant3, constant4);
+        GreaterThanEqualExpression gte1 = new GreaterThanEqualExpression(plan, constant3, constant4);
+        EqualExpression eq1 = new EqualExpression(plan, constant0, constant1);
+        NotEqualExpression neq1 = new NotEqualExpression(plan, constant0, constant2);
+
+        CompilationMessageCollector collector = new CompilationMessageCollector();
+        TypeCheckingExpVisitor expTypeChecker = new TypeCheckingExpVisitor(
+                plan, collector, null);
+        expTypeChecker.visit();
+
+        plan.explain(System.out, "text", true);
+
+        printMessageCollector(collector);
+        // printTypeGraph(plan) ;
+
+        if (collector.hasError()) {
+            throw new Exception("Error during type checking");
+        }
+
+        // Induction check
+        assertEquals(DataType.BOOLEAN, lt1.getType());
+        assertEquals(DataType.BOOLEAN, lte1.getType());
+        assertEquals(DataType.BOOLEAN, gt1.getType());
+        assertEquals(DataType.BOOLEAN, gte1.getType());
+        assertEquals(DataType.BOOLEAN, eq1.getType());
+        assertEquals(DataType.BOOLEAN, neq1.getType());
+
+        // Cast insertion check
+        assertEquals(DataType.DATETIME, gt1.getRhs().getType());
+        assertEquals(DataType.DATETIME, gte1.getRhs().getType());
+    }
+    
+    @Test
+    public void testExpressionTypeCheckingFail11() throws Throwable {
+        // test whether conditional operators will reject the operation of one
+        // value of datetime and one of other type
+        LogicalExpressionPlan plan = new LogicalExpressionPlan();
+        ConstantExpression constant0 = new ConstantExpression(plan, new DateTime(0L));
+        ConstantExpression constant1 = new ConstantExpression(plan, new DataByteArray("1970-01-01T00:00:00.000Z"));
+        CastExpression cast1 = new CastExpression(plan,  constant1, createFS(DataType.BYTEARRAY)) ;
+        EqualExpression eq1 = new EqualExpression(plan, constant0, cast1);
 
         CompilationMessageCollector collector = new CompilationMessageCollector();
         TypeCheckingExpVisitor expTypeChecker = new TypeCheckingExpVisitor(

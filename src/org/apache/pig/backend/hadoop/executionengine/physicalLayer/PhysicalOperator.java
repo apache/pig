@@ -23,6 +23,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.joda.time.DateTime;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -122,6 +124,8 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     static final protected Long dummyLong = null;
 
     static final protected Boolean dummyBool = null;
+
+    static final protected DateTime dummyDateTime = null;
 
     static final protected Tuple dummyTuple = null;
 
@@ -343,6 +347,8 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
             return getNext((Integer) obj);
         case DataType.LONG:
             return getNext((Long) obj);
+        case DataType.DATETIME:
+            return getNext((DateTime) obj);
         case DataType.MAP:
             return getNext((Map) obj);
         case DataType.TUPLE:
@@ -370,6 +376,8 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
             return dummyFloat;
         case DataType.LONG:
             return dummyLong;
+        case DataType.DATETIME:
+            return dummyDateTime;
         case DataType.MAP:
             return dummyMap;
         case DataType.TUPLE:
@@ -392,6 +400,10 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     }
 
     public Result getNext(Float f) throws ExecException {
+        return res;
+    }
+    
+    public Result getNext(DateTime dt) throws ExecException {
         return res;
     }
 

@@ -21,6 +21,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
+import org.joda.time.DateTime;
+
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
@@ -238,6 +240,44 @@ public class TestEqualTo extends junit.framework.TestCase {
 	    checkNullValues(   DataType.DOUBLE,  new Double(1.0) );
 	    
 	}
+
+    @Test
+    public void testDateTimeNe() throws Exception {
+        ConstantExpression lt = GenPhyOp.exprConst();
+        lt.setValue(new DateTime(1L));
+        ConstantExpression rt = GenPhyOp.exprConst();
+        rt.setValue(new DateTime(0L));
+        EqualToExpr g = GenPhyOp.compEqualToExpr();
+        g.setLhs(lt);
+        g.setRhs(rt);
+        g.setOperandType(DataType.DATETIME);
+        Result r = g.getNext(new Boolean(true));
+        assertEquals(POStatus.STATUS_OK, r.returnStatus);
+        assertFalse((Boolean)r.result);
+    }
+
+    @Test
+    public void testDateTimeEq() throws Exception {
+        ConstantExpression lt = GenPhyOp.exprConst();
+        lt.setValue(new DateTime(1L));
+        ConstantExpression rt = GenPhyOp.exprConst();
+        rt.setValue(new DateTime(1L));
+        EqualToExpr g = GenPhyOp.compEqualToExpr();
+        g.setLhs(lt);
+        g.setRhs(rt);
+        g.setOperandType(DataType.DATETIME);
+        Result r = g.getNext(new Boolean(true));
+        assertEquals(POStatus.STATUS_OK, r.returnStatus);
+        assertTrue((Boolean)r.result);
+    }
+
+    
+    @Test
+    public void testDateTimeAndNullValues() throws Exception {
+        
+        checkNullValues(  DataType.DATETIME,  new DateTime(1L) );
+
+    }
 
     @Test
     public void testStringNe() throws Exception {

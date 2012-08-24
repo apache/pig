@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.joda.time.DateTime;
+
 import org.apache.pig.LoadCaster;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -158,6 +160,11 @@ public class PigPerformanceLoader extends PigStorage {
         @Override
         public Boolean bytesToBoolean(byte[] arg0) throws IOException {
             return helper.bytesToBoolean(arg0);
+        }
+
+        @Override
+        public DateTime bytesToDateTime(byte[] arg0) throws IOException {
+            return helper.bytesToDateTime(arg0);
         }
 
         @Override

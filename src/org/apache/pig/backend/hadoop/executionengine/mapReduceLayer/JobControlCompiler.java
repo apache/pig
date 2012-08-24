@@ -84,6 +84,7 @@ import org.apache.pig.impl.io.NullableDoubleWritable;
 import org.apache.pig.impl.io.NullableFloatWritable;
 import org.apache.pig.impl.io.NullableIntWritable;
 import org.apache.pig.impl.io.NullableLongWritable;
+import org.apache.pig.impl.io.NullableDateTimeWritable;
 import org.apache.pig.impl.io.NullablePartitionWritable;
 import org.apache.pig.impl.io.NullableText;
 import org.apache.pig.impl.io.NullableTuple;
@@ -956,6 +957,12 @@ public class JobControlCompiler{
         }
     }
 
+    public static class PigDateTimeWritableComparator extends PigWritableComparator {
+        public PigDateTimeWritableComparator() {
+            super(NullableDateTimeWritable.class);
+        }
+    }
+
     public static class PigCharArrayWritableComparator extends PigWritableComparator {
         public PigCharArrayWritableComparator() {
             super(NullableText.class);
@@ -1009,6 +1016,12 @@ public class JobControlCompiler{
     public static class PigGroupingDoubleWritableComparator extends WritableComparator {
         public PigGroupingDoubleWritableComparator() {
             super(NullableDoubleWritable.class, true);
+        }
+    }
+
+    public static class PigGroupingDateTimeWritableComparator extends WritableComparator {
+        public PigGroupingDateTimeWritableComparator() {
+            super(NullableDateTimeWritable.class, true);
         }
     }
 
@@ -1087,6 +1100,10 @@ public class JobControlCompiler{
                 job.setSortComparatorClass(PigDoubleRawComparator.class);
                 break;
 
+            case DataType.DATETIME:
+                job.setSortComparatorClass(PigDateTimeRawComparator.class);
+                break;
+
             case DataType.CHARARRAY:
                 job.setSortComparatorClass(PigTextRawComparator.class);
                 break;
@@ -1139,6 +1156,11 @@ public class JobControlCompiler{
         case DataType.DOUBLE:
             job.setSortComparatorClass(PigDoubleWritableComparator.class);
             job.setGroupingComparatorClass(PigGroupingDoubleWritableComparator.class);
+            break;
+
+        case DataType.DATETIME:
+            job.setSortComparatorClass(PigDateTimeWritableComparator.class);
+            job.setGroupingComparatorClass(PigGroupingDateTimeWritableComparator.class);
             break;
 
         case DataType.CHARARRAY:
