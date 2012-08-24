@@ -17,6 +17,7 @@
  */
 package org.apache.pig.impl.io;
 
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -817,5 +818,37 @@ public class FileLocalizer {
         }
 
         return fetchFiles;
+    }
+    
+    /**
+     * Ensures that the passed resource is available from the local file system, fetching
+     * it to a temporary directory.
+     * 
+     * @throws ResourceNotFoundException 
+     */
+    public static FetchFileRet fetchResource(String name) throws IOException, ResourceNotFoundException {
+      FetchFileRet localFileRet = null;
+      InputStream resourceStream = PigContext.getClassLoader().getResourceAsStream(name);
+      if (resourceStream != null) {        
+        File dest = new File(localTempDir, name);
+        dest.getParentFile().mkdirs();        
+        dest.deleteOnExit();
+                
+        OutputStream outputStream = new BufferedOutputStream(new FileOutputStream(dest));
+        byte[] buffer = new byte[1024];
+        int len;
+        while ((len=resourceStream.read(buffer)) > 0) {
+          outputStream.write(buffer,0,len);
+        }
+        outputStream.close();
+        
+        localFileRet = new FetchFileRet(dest,false);
+      }
+      else
+      {
+        throw new ResourceNotFoundException(name);
+      }
+      
+      return localFileRet;
     }
 }

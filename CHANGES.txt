@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2850: Pig should support loading macro files as resources stored in JAR files (matterhayes via dvryaboy)
+
 PIG-1314: Add DateTime Support to Pig (zjshen via thejas)
 
 PIG-2785: NoClassDefFoundError after upgrading to pig 0.10.0 from 0.9.0 (matterhayes via sms)
