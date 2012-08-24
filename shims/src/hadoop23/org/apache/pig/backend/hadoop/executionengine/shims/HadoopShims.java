@@ -43,13 +43,13 @@ public class HadoopShims {
 
     static public TaskAttemptContext createTaskAttemptContext(Configuration conf,
                                 TaskAttemptID taskId) {
-        TaskAttemptContext newContext = new TaskAttemptContextImpl(new Configuration(conf), taskId);
+        TaskAttemptContext newContext = new TaskAttemptContextImpl(conf, taskId);
         return newContext;
     }
 
     static public JobContext createJobContext(Configuration conf,
             JobID jobId) {
-        JobContext newContext = new JobContextImpl(new Configuration(conf), jobId);
+        JobContext newContext = new JobContextImpl(conf, jobId);
         return newContext;
     }
 
