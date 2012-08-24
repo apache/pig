@@ -67,6 +67,7 @@ public class GTOrEqualToExpr extends BinaryComparisonOperator {
         case DataType.FLOAT:
         case DataType.INTEGER:
         case DataType.LONG:
+        case DataType.DATETIME:
         case DataType.CHARARRAY: {
             Object dummy = getDummy(operandType);
             Result r = accumChild(null, dummy, operandType);

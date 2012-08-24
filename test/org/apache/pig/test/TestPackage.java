@@ -27,6 +27,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import org.joda.time.DateTime;
+
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -147,6 +149,9 @@ public class TestPackage extends junit.framework.TestCase {
             break;
         case DataType.LONG:
             runTest(r.nextLong(),inner, DataType.LONG);
+            break;
+        case DataType.DATETIME:
+            runTest(new DateTime(r.nextLong()),inner, DataType.DATETIME);
             break;
         case DataType.MAP:
         case DataType.INTERNALMAP:

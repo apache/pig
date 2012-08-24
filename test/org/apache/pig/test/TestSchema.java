@@ -871,10 +871,10 @@ public class TestSchema {
             "float,float,float,float,float,float,float,float,float,float",
             "double,double,double,double,double,double,double,double,double,double",
             "boolean,boolean,boolean,boolean,boolean,boolean,boolean,boolean,boolean,boolean",
-            "(),(),(),(),(),(),(),(),(),()",
+            "datetime,datetime,datetime,datetime,datetime,datetime,datetime,datetime,datetime,datetime",
             "{},{},{},{},{},{},{},{},{},{}",
             "map[],map[],map[],map[],map[],map[],map[],map[],map[],map[]",
-            "int,int,long,long,float,float,double,double,boolean,boolean,(int,long,float,double,boolean),{(int,long,float,double,boolean)},map[(int,long,float,double,boolean)]"
+            "int,int,long,long,float,float,double,double,boolean,boolean,datetime,datetime(int,long,float,double,boolean,datetime),{(int,long,float,double,boolean,datetime)},map[(int,long,float,double,boolean,datetime)]"
         };
         for (String schemaString : schemaStrings) {
             Schema s1 = Utils.getSchemaFromString(schemaString);

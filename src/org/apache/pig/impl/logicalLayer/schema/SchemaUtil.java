@@ -50,6 +50,7 @@ public class SchemaUtil {
         SUPPORTED_TYPE_SET.add(DataType.BYTEARRAY);
         SUPPORTED_TYPE_SET.add(DataType.DOUBLE);
         SUPPORTED_TYPE_SET.add(DataType.FLOAT);
+        SUPPORTED_TYPE_SET.add(DataType.DATETIME);
         SUPPORTED_TYPE_SET.add(DataType.MAP);
     }
 

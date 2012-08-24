@@ -30,6 +30,8 @@ import java.util.NavigableMap;
 import java.util.HashMap;
 import java.util.Properties;
 
+import org.joda.time.DateTime;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
@@ -731,7 +733,8 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         case DataType.INTEGER: return caster.toBytes((Integer) o);
         case DataType.LONG: return caster.toBytes((Long) o);
         case DataType.BOOLEAN: return caster.toBytes((Boolean) o);
-        
+        case DataType.DATETIME: return caster.toBytes((DateTime) o);
+
         // The type conversion here is unchecked. 
         // Relying on DataType.findType to do the right thing.
         case DataType.MAP: return caster.toBytes((Map<String, Object>) o);

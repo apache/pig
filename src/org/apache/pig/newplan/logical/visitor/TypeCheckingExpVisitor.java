@@ -353,6 +353,10 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
                 insertCast(binOp, biggerType, binOp.getRhs());
             }
         }
+        else if ( (lhsType == DataType.DATETIME) &&
+                (rhsType == DataType.DATETIME) ) {
+            // good
+        }
         else if ( (lhsType == DataType.CHARARRAY) &&
                 (rhsType == DataType.CHARARRAY) ) {
             // good
@@ -362,13 +366,13 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             // good
         }
         else if ( (lhsType == DataType.BYTEARRAY) &&
-                ( (rhsType == DataType.CHARARRAY) || (DataType.isNumberType(rhsType)) || (rhsType == DataType.BOOLEAN))
+                ( (rhsType == DataType.CHARARRAY) || (DataType.isNumberType(rhsType)) || (rhsType == DataType.BOOLEAN) || (rhsType == DataType.DATETIME))
         ) {
             // Cast byte array to the type on rhs
             insertCast(binOp, rhsType, binOp.getLhs());
         }
         else if ( (rhsType == DataType.BYTEARRAY) &&
-                ( (lhsType == DataType.CHARARRAY) || (DataType.isNumberType(lhsType)) || (lhsType == DataType.BOOLEAN))
+                ( (lhsType == DataType.CHARARRAY) || (DataType.isNumberType(lhsType)) || (lhsType == DataType.BOOLEAN) || (lhsType == DataType.DATETIME))
         ) {
             // Cast byte array to the type on lhs
             insertCast(binOp, lhsType, binOp.getRhs());
@@ -559,12 +563,12 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
         } 
         else if ((lhsType == DataType.BYTEARRAY)
                 && ((rhsType == DataType.CHARARRAY) || (DataType
-                        .isNumberType(rhsType)))) {
+                        .isNumberType(rhsType))) || (rhsType == DataType.DATETIME)) { // need to add boolean as well
             // Cast byte array to the type on rhs
             insertCast(binCond, rhsType, binCond.getLhs());
         } else if ((rhsType == DataType.BYTEARRAY)
                 && ((lhsType == DataType.CHARARRAY) || (DataType
-                        .isNumberType(lhsType)))) {
+                        .isNumberType(lhsType)) || (rhsType == DataType.DATETIME))) { // need to add boolean as well
             // Cast byte array to the type on lhs
             insertCast(binCond, lhsType, binCond.getRhs());
         }
@@ -1197,7 +1201,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
         //Ordering here decides the score for the best fit function.
         //Do not change the order. Conversions to a smaller type is preferred
         //over conversion to a bigger type where ordering of types is:
-        //INTEGER, LONG, FLOAT, DOUBLE, CHARARRAY, TUPLE, BAG, MAP
+        //INTEGER, LONG, FLOAT, DOUBLE, DATETIME, CHARARRAY, TUPLE, BAG, MAP
         //from small to big
         
         List<Byte> boolToTypes = Arrays.asList(
@@ -1233,6 +1237,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
                 DataType.LONG,
                 DataType.FLOAT,
                 DataType.DOUBLE,
+                DataType.DATETIME,
                 DataType.CHARARRAY,
                 DataType.TUPLE,
                 DataType.BAG,
@@ -1352,6 +1357,9 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             break;
         case DataType.BOOLEAN:
             kind = PigWarning.IMPLICIT_CAST_TO_BOOLEAN;
+            break;
+        case DataType.DATETIME:
+            kind = PigWarning.IMPLICIT_CAST_TO_DATETIME;
             break;
         case DataType.MAP:
             kind = PigWarning.IMPLICIT_CAST_TO_MAP;

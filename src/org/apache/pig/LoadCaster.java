@@ -19,6 +19,8 @@ package org.apache.pig;
 import java.io.IOException;
 import java.util.Map;
 
+import org.joda.time.DateTime;
+
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
@@ -68,6 +70,14 @@ public interface LoadCaster {
      * @throws IOException if the value cannot be cast.
      */
     public Double bytesToDouble(byte[] b) throws IOException;
+
+    /**
+     * Cast data from bytearray to datetime value.  
+     * @param b bytearray to be cast.
+     * @return datetime value.
+     * @throws IOException if the value cannot be cast.
+     */
+    public DateTime bytesToDateTime(byte[] b) throws IOException;
 
     /**
      * Cast data from bytearray to integer value.  

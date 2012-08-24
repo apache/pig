@@ -19,6 +19,8 @@ package org.apache.pig.data;
 
 import java.util.Map;
 
+import org.joda.time.DateTime;
+
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
@@ -34,6 +36,7 @@ public interface TypeAwareTuple extends Tuple {
     public void setTuple(int idx, Tuple val) throws ExecException;
     public void setDataBag(int idx, DataBag val) throws ExecException;
     public void setMap(int idx, Map<String,Object> val) throws ExecException;
+    public void setDateTime(int idx, DateTime val) throws ExecException;
 
     public int getInt(int idx) throws ExecException, FieldIsNullException;
     public float getFloat(int idx) throws ExecException, FieldIsNullException;
@@ -45,6 +48,7 @@ public interface TypeAwareTuple extends Tuple {
     public Tuple getTuple(int idx) throws ExecException;
     public DataBag getDataBag(int idx) throws ExecException, FieldIsNullException;
     public Map<String,Object> getMap(int idx) throws ExecException, FieldIsNullException;
+    public DateTime getDateTime(int idx) throws ExecException, FieldIsNullException;
 
     public Schema getSchema();
 

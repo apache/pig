@@ -41,6 +41,7 @@ public class NumValCarrier {
         byteToStr.put(DataType.INTEGER,valCarrier);
         byteToStr.put(DataType.LONG,valCarrier);
         byteToStr.put(DataType.BOOLEAN,valCarrier);
+        byteToStr.put(DataType.DATETIME,valCarrier);
         byteToStr.put(DataType.MAP,mapCarrier);
         byteToStr.put(DataType.TUPLE,tupleCarrier);
         byteToStr.put(DataType.NULL,nullCarrier);

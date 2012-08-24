@@ -26,6 +26,9 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+
 import org.apache.hadoop.io.WritableComparable;
 
 import org.apache.pig.classification.InterfaceAudience;
@@ -33,6 +36,7 @@ import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.PigException;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.builtin.ToDate;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
@@ -63,6 +67,7 @@ public class DataType {
     public static final byte LONG      =  15;
     public static final byte FLOAT     =  20;
     public static final byte DOUBLE    =  25;
+    public static final byte DATETIME  =  30;
     public static final byte BYTEARRAY =  50;
     public static final byte CHARARRAY =  55;
     /**
@@ -119,6 +124,8 @@ public class DataType {
             return DOUBLE;
         } else if (o instanceof Boolean) {
             return BOOLEAN;
+        } else if (o instanceof DateTime) {
+            return DATETIME;
         } else if (o instanceof Byte) {
             return BYTE;
         } else if (o instanceof WritableComparable) {
@@ -154,6 +161,8 @@ public class DataType {
             return BOOLEAN;
         } else if (t == Byte.class) {
             return BYTE;
+        } else if (t == DateTime.class) {
+            return DATETIME;
         } else if (t == InternalMap.class) {
             return INTERNALMAP;
         } else {
@@ -218,7 +227,7 @@ public class DataType {
      */
     public static byte[] genAllTypes(){
         byte[] types = { DataType.BAG, DataType.BIGCHARARRAY, DataType.BOOLEAN, DataType.BYTE, DataType.BYTEARRAY,
-                DataType.CHARARRAY, DataType.DOUBLE, DataType.FLOAT,
+                DataType.CHARARRAY, DataType.DOUBLE, DataType.FLOAT, DataType.DATETIME,
                 DataType.GENERIC_WRITABLECOMPARABLE,
                 DataType.INTEGER, DataType.INTERNALMAP,
                 DataType.LONG, DataType.MAP, DataType.TUPLE};
@@ -227,7 +236,7 @@ public class DataType {
 
     private static String[] genAllTypeNames(){
         String[] names = { "BAG", "BIGCHARARRAY", "BOOLEAN", "BYTE", "BYTEARRAY",
-                "CHARARRAY", "DOUBLE", "FLOAT",
+                "CHARARRAY", "DOUBLE", "FLOAT", "DATETIME",
                 "GENERIC_WRITABLECOMPARABLE",
                 "INTEGER","INTERNALMAP",
                 "LONG", "MAP", "TUPLE" };
@@ -285,6 +294,7 @@ public class DataType {
         case LONG:      return "long";
         case FLOAT:     return "float";
         case DOUBLE:    return "double";
+        case DATETIME:  return "datetime";
         case BYTEARRAY: return "bytearray";
         case BIGCHARARRAY: return "bigchararray";
         case CHARARRAY: return "chararray";
@@ -332,6 +342,7 @@ public class DataType {
                 (dataType == DOUBLE) ||
                 (dataType == BOOLEAN) ||
                 (dataType == BYTE) ||
+                (dataType == DATETIME) ||
                 (dataType == GENERIC_WRITABLECOMPARABLE));
     }
 
@@ -369,7 +380,7 @@ public class DataType {
      * because there's no super class that implements compareTo.  This
      * function provides an (arbitrary) ordering of objects of different
      * types as follows:  NULL &lt; BOOLEAN &lt; BYTE &lt; INTEGER &lt; LONG &lt;
-     * FLOAT &lt; DOUBLE * &lt; BYTEARRAY &lt; STRING &lt; MAP &lt;
+     * FLOAT &lt; DOUBLE &lt; DATETIME &lt; BYTEARRAY &lt; STRING &lt; MAP &lt;
      * TUPLE &lt; BAG.  No other functions should implement this cross
      * object logic.  They should call this function for it instead.
      * @param o1 First object
@@ -419,6 +430,9 @@ public class DataType {
 
             case DOUBLE:
                 return ((Double)o1).compareTo((Double)o2);
+
+            case DATETIME:
+                return ((DateTime)o1).compareTo((DateTime)o2);
 
             case BYTEARRAY:
                 return ((DataByteArray)o1).compareTo(o2);
@@ -504,6 +518,9 @@ public class DataType {
         case LONG:
             return ((Number) o).toString().getBytes();
 
+        case DATETIME:
+            return ((DateTime) o).toString().getBytes();
+
         case CHARARRAY:
             return ((String) o).getBytes();
         case MAP:
@@ -574,6 +591,7 @@ public class DataType {
                 } else {
                     return null;
                 }
+            case DATETIME:
             case MAP:
             case INTERNALMAP:
             case TUPLE:
@@ -648,6 +666,9 @@ public class DataType {
 
 			case NULL:
 			    return null;
+
+			case DATETIME:
+			    return Integer.valueOf(Long.valueOf(((DateTime)o).getMillis()).intValue());
 
 			case MAP:
 			case INTERNALMAP:
@@ -738,6 +759,8 @@ public class DataType {
 			case NULL:
 			    return null;
 
+			case DATETIME:
+			    return Long.valueOf(((DateTime)o).getMillis());
 			case MAP:
 			case INTERNALMAP:
 			case TUPLE:
@@ -811,6 +834,9 @@ public class DataType {
 
 			case DOUBLE:
 			    return new Float(((Double)o).floatValue());
+
+	         case DATETIME:
+	             return new Float(Long.valueOf(((DateTime)o).getMillis()).floatValue());
 
 			case BYTEARRAY:
 			    return Float.valueOf(((DataByteArray)o).toString());
@@ -895,7 +921,10 @@ public class DataType {
 			case DOUBLE:
 			    return (Double)o;
 
-			case BYTEARRAY:
+            case DATETIME:
+                return new Double(Long.valueOf(((DateTime)o).getMillis()).doubleValue());
+
+            case BYTEARRAY:
 			    return Double.valueOf(((DataByteArray)o).toString());
 
 			case CHARARRAY:
@@ -929,6 +958,78 @@ public class DataType {
 			String msg = "Internal error. Could not convert " + o + " to Double.";
 			throw new ExecException(msg, errCode, PigException.BUG);
 		}
+    }
+    
+    /**
+     * Force a data object to a DateTime, if possible. Only CharArray, ByteArray
+     * can be forced to a DateTime. Numeric types and complex types
+     * cannot be forced to a DateTime. This isn't particularly efficient, so if
+     * you already <b>know</b> that the object you have is a DateTime you should
+     * just cast it.
+     * 
+     * @param o
+     *            object to cast
+     * @param type
+     *            of the object you are casting
+     * @return The object as a Boolean.
+     * @throws ExecException
+     *             if the type can't be forced to a Boolean.
+     */
+    public static DateTime toDateTime(Object o, byte type) throws ExecException {
+        try {
+            switch (type) {
+            case NULL:
+                return null;
+            case BYTEARRAY:
+                return new DateTime(((DataByteArray) o).toString());
+            case CHARARRAY:
+                // the string can contain just date part or date part plus time part
+                DateTimeZone dtz = ToDate.extractDateTimeZone((String) o);
+                if (dtz == null) {
+                    return new DateTime((String) o);
+                } else {
+                    return new DateTime((String) o, dtz);
+                }
+            case INTEGER:
+                return new DateTime(((Integer) o).longValue());
+            case LONG:
+                return new DateTime(((Long) o).longValue());
+            case FLOAT:
+                return new DateTime(((Float) o).longValue());
+            case DOUBLE:
+                return new DateTime(((Double) o).longValue());
+            case DATETIME:
+                return (DateTime) o;
+
+            case BOOLEAN:
+            case BYTE:
+            case MAP:
+            case INTERNALMAP:
+            case TUPLE:
+            case BAG:
+            case UNKNOWN:
+            default:
+                int errCode = 1071;
+                String msg = "Cannot convert a " + findTypeName(o) + " to a Boolean";
+                throw new ExecException(msg, errCode, PigException.INPUT);
+            }
+        } catch (ClassCastException cce) {
+            throw cce;
+        } catch (ExecException ee) {
+            throw ee;
+        } catch (NumberFormatException nfe) {
+            int errCode = 1074;
+            String msg = "Problem with formatting. Could not convert " + o + " to Float.";
+            throw new ExecException(msg, errCode, PigException.INPUT, nfe);
+        } catch (Exception e) {
+            int errCode = 2054;
+            String msg = "Internal error. Could not convert " + o + " to Float.";
+            throw new ExecException(msg, errCode, PigException.BUG);
+        }
+    }
+    
+    public static DateTime toDateTime(Object o) throws ExecException {
+        return toDateTime(o, findType(o));
     }
 
     /**
@@ -973,6 +1074,9 @@ public class DataType {
 
 			case DOUBLE:
 			    return ((Double)o).toString();
+    
+			case DATETIME:
+			    return ((DateTime)o).toString();
 
 			case BYTEARRAY:
 			    return ((DataByteArray)o).toString();
@@ -1315,6 +1419,7 @@ public class DataType {
         case LONG:
         case FLOAT:
         case DOUBLE:
+        case DATETIME:
         case BYTEARRAY:
         case CHARARRAY:
         case MAP:

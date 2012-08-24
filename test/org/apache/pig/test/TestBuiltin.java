@@ -32,7 +32,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 import java.util.StringTokenizer;
@@ -45,14 +44,27 @@ import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.builtin.ARITY;
+import org.apache.pig.builtin.AddDuration;
 import org.apache.pig.builtin.BagSize;
 import org.apache.pig.builtin.CONCAT;
 import org.apache.pig.builtin.COR;
 import org.apache.pig.builtin.COUNT;
 import org.apache.pig.builtin.COUNT_STAR;
 import org.apache.pig.builtin.COV;
+import org.apache.pig.builtin.CurrentTime;
 import org.apache.pig.builtin.DIFF;
+import org.apache.pig.builtin.DaysBetween;
 import org.apache.pig.builtin.Distinct;
+import org.apache.pig.builtin.GetDay;
+import org.apache.pig.builtin.GetHour;
+import org.apache.pig.builtin.GetMilliSecond;
+import org.apache.pig.builtin.GetMinute;
+import org.apache.pig.builtin.GetMonth;
+import org.apache.pig.builtin.GetSecond;
+import org.apache.pig.builtin.GetWeek;
+import org.apache.pig.builtin.GetWeekYear;
+import org.apache.pig.builtin.GetYear;
+import org.apache.pig.builtin.HoursBetween;
 import org.apache.pig.builtin.INDEXOF;
 import org.apache.pig.builtin.INVERSEMAP;
 import org.apache.pig.builtin.KEYSET;
@@ -60,6 +72,9 @@ import org.apache.pig.builtin.LAST_INDEX_OF;
 import org.apache.pig.builtin.LCFIRST;
 import org.apache.pig.builtin.LOWER;
 import org.apache.pig.builtin.MapSize;
+import org.apache.pig.builtin.MilliSecondsBetween;
+import org.apache.pig.builtin.MinutesBetween;
+import org.apache.pig.builtin.MonthsBetween;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.builtin.REGEX_EXTRACT;
 import org.apache.pig.builtin.REGEX_EXTRACT_ALL;
@@ -67,8 +82,10 @@ import org.apache.pig.builtin.REPLACE;
 import org.apache.pig.builtin.SIZE;
 import org.apache.pig.builtin.STRSPLIT;
 import org.apache.pig.builtin.SUBSTRING;
+import org.apache.pig.builtin.SecondsBetween;
 import org.apache.pig.builtin.StringConcat;
 import org.apache.pig.builtin.StringSize;
+import org.apache.pig.builtin.SubtractDuration;
 import org.apache.pig.builtin.TOBAG;
 import org.apache.pig.builtin.TOKENIZE;
 import org.apache.pig.builtin.TOMAP;
@@ -76,11 +93,20 @@ import org.apache.pig.builtin.TOP;
 import org.apache.pig.builtin.TOTUPLE;
 import org.apache.pig.builtin.TRIM;
 import org.apache.pig.builtin.TextLoader;
+import org.apache.pig.builtin.ToDate;
+import org.apache.pig.builtin.ToDate2ARGS;
+import org.apache.pig.builtin.ToDate3ARGS;
+import org.apache.pig.builtin.ToDateISO;
+import org.apache.pig.builtin.ToMilliSeconds;
+import org.apache.pig.builtin.ToString;
+import org.apache.pig.builtin.ToUnixTime;
 import org.apache.pig.builtin.TupleSize;
 import org.apache.pig.builtin.UCFIRST;
 import org.apache.pig.builtin.UPPER;
 import org.apache.pig.builtin.VALUELIST;
 import org.apache.pig.builtin.VALUESET;
+import org.apache.pig.builtin.WeeksBetween;
+import org.apache.pig.builtin.YearsBetween;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
@@ -94,6 +120,8 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.impl.logicalLayer.validators.TypeCheckerException;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
@@ -290,6 +318,9 @@ public class TestBuiltin {
         }catch(ExecException e) {
             e.printStackTrace();
         }
+
+
+        DateTimeZone.setDefault(DateTimeZone.forOffsetMillis(DateTimeZone.UTC.getOffset(null)));
     }
 
     @AfterClass
@@ -313,6 +344,117 @@ public class TestBuiltin {
                 evalFuncMap.put(agg + "Final", (EvalFunc<?>)PigContext.instantiateFuncFromSpec(((Algebraic)func).getFinal()));
             }
         }
+    }
+
+    @Test
+    public void testAddSubtractDuration() throws Exception {
+        AddDuration func1 = new AddDuration();
+        SubtractDuration func2 = new SubtractDuration();
+
+        Tuple t1 = TupleFactory.getInstance().newTuple(2);
+        t1.set(0, new DateTime("2009-01-07T01:07:01.000Z"));
+        t1.set(1, "PT1S");
+        Tuple t2 = TupleFactory.getInstance().newTuple(2);
+        t2.set(0, new DateTime("2008-02-06T02:06:02.000Z"));
+        t2.set(1, "PT1M");
+        Tuple t3 = TupleFactory.getInstance().newTuple(2);
+        t3.set(0, new DateTime("2007-03-05T03:05:03.000Z"));
+        t3.set(1, "P1D");
+        
+        assertEquals(func1.exec(t1), new DateTime("2009-01-07T01:07:02.000Z"));
+        assertEquals(func1.exec(t2), new DateTime("2008-02-06T02:07:02.000Z"));
+        assertEquals(func1.exec(t3), new DateTime("2007-03-06T03:05:03.000Z"));
+        assertEquals(func2.exec(t1), new DateTime("2009-01-07T01:07:00.000Z"));
+        assertEquals(func2.exec(t2), new DateTime("2008-02-06T02:05:02.000Z"));
+        assertEquals(func2.exec(t3), new DateTime("2007-03-04T03:05:03.000Z"));
+    }
+
+    @Test
+    public void testConversionBetweenDateTimeAndString() throws Exception {
+        ToDate func1 = new ToDate();
+        Tuple t1 = TupleFactory.getInstance().newTuple(1);
+        t1.set(0, 1231290421000L);
+        DateTime dt1 = func1.exec(t1);
+        assertEquals(dt1, new DateTime("2009-01-07T01:07:01.000Z"));
+
+        ToDateISO func2 = new ToDateISO();
+        Tuple t2 = TupleFactory.getInstance().newTuple(1);
+        t2.set(0, "2009-01-07T01:07:01.000Z");
+        DateTime dt2 = func2.exec(t2);
+        assertEquals(dt2, new DateTime("2009-01-07T01:07:01.000Z"));
+
+        Tuple t3 = TupleFactory.getInstance().newTuple(1);
+        t3.set(0, "2009-01-07T01:07:01.000+08:00");
+        DateTime dt3 = func2.exec(t3);
+        assertEquals(dt3, new DateTime("2009-01-07T01:07:01.000+08:00", DateTimeZone.forID("+08:00")));
+
+        ToDate2ARGS func3 = new ToDate2ARGS();        
+        Tuple t4 = TupleFactory.getInstance().newTuple(2);
+        t4.set(0, "2009.01.07 AD at 01:07:01");
+        t4.set(1, "yyyy.MM.dd G 'at' HH:mm:ss");
+        DateTime dt4 = func3.exec(t4);
+        assertEquals(dt4, new DateTime("2009-01-07T01:07:01.000Z"));
+
+        Tuple t5 = TupleFactory.getInstance().newTuple(2);
+        t5.set(0, "2009.01.07 AD at 01:07:01 +0800");
+        t5.set(1, "yyyy.MM.dd G 'at' HH:mm:ss Z");
+        DateTime dt5 = func3.exec(t5);
+        assertEquals(dt5, new DateTime("2009-01-07T01:07:01.000+08:00"));
+        
+        ToDate3ARGS func4 = new ToDate3ARGS();        
+        Tuple t6 = TupleFactory.getInstance().newTuple(3);
+        t6.set(0, "2009.01.07 AD at 01:07:01");
+        t6.set(1, "yyyy.MM.dd G 'at' HH:mm:ss");
+        t6.set(2, "+00:00");
+        DateTime dt6 = func4.exec(t6);
+        assertEquals(dt6, new DateTime("2009-01-07T01:07:01.000Z", DateTimeZone.forID("+00:00")));
+
+        Tuple t7 = TupleFactory.getInstance().newTuple(3);
+        t7.set(0, "2009.01.07 AD at 01:07:01 +0800");
+        t7.set(1, "yyyy.MM.dd G 'at' HH:mm:ss Z");
+        t7.set(2, "asia/singapore");
+        DateTime dt7 = func4.exec(t7);
+        assertEquals(dt7, new DateTime("2009-01-07T01:07:01.000+08:00", DateTimeZone.forID("+08:00")));
+
+        ToUnixTime func5 = new ToUnixTime();
+        Tuple t8 = TupleFactory.getInstance().newTuple(1);
+        t8.set(0, new DateTime(1231290421000L));
+        Long ut1 = func5.exec(t8);
+        assertEquals(ut1.longValue(), 1231290421L);
+
+        ToString func6 = new ToString();
+
+        Tuple t9 = TupleFactory.getInstance().newTuple(1);
+        t9.set(0, new DateTime("2009-01-07T01:07:01.000Z"));
+        String dtStr1 = func6.exec(t9);
+        assertEquals(dtStr1, "2009-01-07T01:07:01.000Z");
+
+        Tuple t10 = TupleFactory.getInstance().newTuple(1);
+        t10.set(0, new DateTime("2009-01-07T09:07:01.000+08:00"));
+        String dtStr2 = func6.exec(t10);
+        assertEquals(dtStr2, "2009-01-07T01:07:01.000Z");
+
+        Tuple t11 = TupleFactory.getInstance().newTuple(2);
+        t11.set(0, new DateTime("2009-01-07T01:07:01.000Z"));
+        t11.set(1, "yyyy.MM.dd G 'at' HH:mm:ss");
+        String dtStr3 = func6.exec(t11);
+        assertEquals(dtStr3, "2009.01.07 AD at 01:07:01");
+
+        Tuple t12 = TupleFactory.getInstance().newTuple(2);
+        t12.set(0, new DateTime("2009-01-07T01:07:01.000+08:00", DateTimeZone.forID("+08:00")));
+        t12.set(1, "yyyy.MM.dd G 'at' HH:mm:ss Z");
+        String dtStr4 = func6.exec(t12);
+        assertEquals(dtStr4, "2009.01.07 AD at 01:07:01 +0800");
+        
+        ToMilliSeconds func7 = new ToMilliSeconds();
+        Tuple t13 = TupleFactory.getInstance().newTuple(1);
+        t13.set(0, new DateTime(1231290421000L));
+        Long ut2 = func7.exec(t11);
+        assertEquals(ut2.longValue(), 1231290421000L);
+        
+        CurrentTime func8 = new CurrentTime();
+        DateTime dt11 = func8.exec(null);
+        Assert.assertNotNull(dt11);
     }
 
     /**
@@ -2536,6 +2678,115 @@ public class TestBuiltin {
         Collections.sort(resultList);
         assertEquals((String)resultList.get(0), "open");
         assertEquals((String)resultList.get(1), "source");
+    }
+
+    @Test
+    public void testDiffDateTime() throws Exception {
+        Tuple t = TupleFactory.getInstance().newTuple(2);
+        t.set(0, new DateTime("2009-01-07T00:00:00.000Z"));
+        t.set(1, new DateTime("2002-01-01T00:00:00.000Z"));
+
+        YearsBetween func1 = new YearsBetween();
+        Long years = func1.exec(t);
+        System.out.println("Years: " + years.toString());
+        Assert.assertEquals(years.longValue(), 7L);
+        
+        MonthsBetween func2 = new MonthsBetween();
+        Long months = func2.exec(t);
+        System.out.println("Months: " + months.toString());
+        Assert.assertEquals(months.longValue(),84L);
+        
+        WeeksBetween func3 = new WeeksBetween();
+        Long weeks = func3.exec(t);
+        System.out.println("Weeks: " + weeks.toString());
+        Assert.assertEquals(weeks.longValue(), 366L);
+
+        DaysBetween func4 = new DaysBetween();
+        Long days = func4.exec(t);
+        System.out.println("Days: " + days.toString());
+        Assert.assertEquals(days.longValue(), 2563L);
+
+        HoursBetween func5 = new HoursBetween();
+        Long hours = func5.exec(t);
+        System.out.println("Hours: " + hours.toString());
+        Assert.assertEquals(hours.longValue(), 61512L);
+
+        MinutesBetween func6 = new MinutesBetween();
+        Long mins = func6.exec(t);
+        System.out.println("Minutes: " + mins.toString());
+        Assert.assertEquals(mins.longValue(), 3690720L);
+
+        SecondsBetween func7 = new SecondsBetween();
+        Long secs = func7.exec(t);
+        System.out.println("Seconds: " + secs.toString());
+        Assert.assertEquals(secs.longValue(), 221443200L);
+
+        MilliSecondsBetween func8 = new MilliSecondsBetween();
+        Long millis = func8.exec(t);
+        System.out.println("MilliSeconds: " + millis.toString());
+        Assert.assertEquals(millis.longValue(), 221443200000L);
+    }
+
+    @Test
+    public void testGetDateTimeField() throws Exception {
+        Tuple t1 = TupleFactory.getInstance().newTuple(1);
+        t1.set(0, new DateTime("2010-04-15T08:11:33.020Z"));
+        Tuple t2 = TupleFactory.getInstance().newTuple(1);
+        t2.set(0, new DateTime("2010-04-15T08:11:33.020+08:00"));
+        
+        GetYear func1 = new GetYear();
+        Integer year = func1.exec(t1);
+        assertEquals(year.intValue(), 2010);
+        year = func1.exec(t2);
+        assertEquals(year.intValue(), 2010);
+
+        GetMonth func2 = new GetMonth();
+        Integer month = func2.exec(t1);
+        assertEquals(month.intValue(), 4);
+        month = func2.exec(t2);
+        assertEquals(month.intValue(), 4);
+        
+        GetDay func3 = new GetDay();
+        Integer day = func3.exec(t1);
+        assertEquals(day.intValue(), 15);
+        day = func3.exec(t2);
+        assertEquals(day.intValue(), 15);
+        
+        GetHour func4 = new GetHour();
+        Integer hour = func4.exec(t1);
+        assertEquals(hour.intValue(), 8);
+        hour = func4.exec(t2);
+        assertEquals(hour.intValue(), 0);
+        
+        GetMinute func5 = new GetMinute();
+        Integer minute = func5.exec(t1);
+        assertEquals(minute.intValue(), 11);
+        minute = func5.exec(t2);
+        assertEquals(minute.intValue(), 11);
+        
+        GetSecond func6 = new GetSecond();
+        Integer second = func6.exec(t1);
+        assertEquals(second.intValue(), 33);
+        second = func6.exec(t2);
+        assertEquals(second.intValue(), 33);
+        
+        GetMilliSecond func7 = new GetMilliSecond();
+        Integer milli = func7.exec(t1);
+        assertEquals(milli.intValue(), 20);
+        milli = func7.exec(t2);
+        assertEquals(milli.intValue(), 20);
+
+        GetWeekYear func8 = new GetWeekYear();
+        Integer weekyear = func8.exec(t1);
+        assertEquals(weekyear.intValue(), 2010);
+        weekyear = func8.exec(t2);
+        assertEquals(weekyear.intValue(), 2010);
+        
+        GetWeek func9 = new GetWeek();
+        Integer week = func9.exec(t1);
+        assertEquals(week.intValue(), 15);
+        week = func9.exec(t2);
+        assertEquals(week.intValue(), 15);
     }
 
 }

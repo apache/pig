@@ -28,6 +28,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -51,6 +54,8 @@ import org.apache.pig.impl.util.ObjectSerializer;
 @InterfaceAudience.Private
 @InterfaceStability.Stable
 public class BinInterSedes implements InterSedes {
+    
+    private static final int ONE_MINUTE = 60000;
 
     public static final byte BOOLEAN_TRUE = 0;
     public static final byte BOOLEAN_FALSE = 1;
@@ -102,6 +107,8 @@ public class BinInterSedes implements InterSedes {
     public static final byte LONG_ININT = 33;
     public static final byte LONG_0 = 34;
     public static final byte LONG_1 = 35;
+
+    public static final byte DATETIME = 50;
 
     public static final byte TUPLE_0 = 36;
     public static final byte TUPLE_1 = 37;
@@ -375,6 +382,9 @@ public class BinInterSedes implements InterSedes {
         case LONG:
             return Long.valueOf(in.readLong());
 
+        case DATETIME:
+            return new DateTime(in.readLong(), DateTimeZone.forOffsetMillis(in.readShort() * ONE_MINUTE));
+
         case FLOAT:
             return Float.valueOf(in.readFloat());
 
@@ -496,6 +506,12 @@ public class BinInterSedes implements InterSedes {
             }
             break;
 
+        case DataType.DATETIME:
+            out.writeByte(DATETIME);
+            out.writeLong(((DateTime) val).getMillis());
+            out.writeShort(((DateTime) val).getZone().getOffset((DateTime) val) / ONE_MINUTE);
+            break;
+            
         case DataType.FLOAT:
             out.writeByte(FLOAT);
             out.writeFloat((Float) val);
@@ -809,6 +825,18 @@ public class BinInterSedes implements InterSedes {
                 }
                 break;
             }
+            case BinInterSedes.DATETIME: {
+                type1 = DataType.DATETIME;
+                type2 = getGeneralizedDataType(dt2);
+                if (type1 == type2) {
+                    long lv1 = bb1.getLong();
+                    bb1.position(bb1.position() + 2); // move cursor forward without read the timezone bytes
+                    long lv2 = bb2.getLong();
+                    bb2.position(bb2.position() + 2);
+                    rc = (lv1 < lv2 ? -1 : (lv1 == lv2 ? 0 : 1));
+                }
+                break;
+            }
             case BinInterSedes.FLOAT: {
                 type1 = DataType.FLOAT;
                 type2 = getGeneralizedDataType(dt2);
@@ -1108,6 +1136,8 @@ public class BinInterSedes implements InterSedes {
             case BinInterSedes.LONG_ININT:
             case BinInterSedes.LONG:
                 return DataType.LONG;
+            case BinInterSedes.DATETIME:
+                return DataType.DATETIME;
             case BinInterSedes.FLOAT:
                 return DataType.FLOAT;
             case BinInterSedes.DOUBLE:

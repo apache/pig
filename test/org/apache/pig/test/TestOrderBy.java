@@ -28,6 +28,9 @@ import java.util.List;
 
 import junit.framework.TestCase;
 
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.DataType;
@@ -65,6 +68,8 @@ public class TestOrderBy extends TestCase {
             ps.println("1\t" + DATA[1][i] + "\t" + DATA[0][i]);
         }
         ps.close();
+        
+        DateTimeZone.setDefault(DateTimeZone.forOffsetMillis(DateTimeZone.UTC.getOffset(null)));
     }
     
     @After
@@ -303,4 +308,52 @@ public class TestOrderBy extends TestCase {
         return fp1;
     }
 
+    @Test
+    public void testOrderByDateTimeColumn() throws Exception {
+        File tmpFile = genDataSetFileForOrderByDateTimeColumn();
+        List<Tuple> expectedResults = new ArrayList<Tuple>();
+        expectedResults.add(Util.buildTuple("value3", null));
+        expectedResults.add(Util.buildTuple("value4", null));
+        expectedResults.add(Util.buildTuple("value10", null));
+        expectedResults.add(Util.buildTuple("value2", new DateTime("1970-01-01T00:00:00.000Z")));
+        expectedResults.add(Util.buildTuple("value6", new DateTime("1970-01-01T00:00:01.000Z")));
+        expectedResults.add(Util.buildTuple("value7", new DateTime("1970-01-01T00:00:01.000Z")));
+        expectedResults.add(Util.buildTuple("value1", new DateTime("1970-01-01T00:01:00.000Z")));
+        expectedResults.add(Util.buildTuple("value5", new DateTime("1970-01-01T01:00:00.000Z")));
+        expectedResults.add(Util.buildTuple("value8", new DateTime("1970-01-02T00:00:00.000Z")));
+        expectedResults.add(Util.buildTuple("value9", new DateTime("1970-02-01T00:00:00.000Z")));
+        
+        pig.registerQuery("blah = load '"
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                + "' as (data:chararray, test:datetime);");
+        pig.registerQuery("ordered = order blah by test;");
+        Iterator<Tuple> expectedItr = expectedResults.iterator();
+        Iterator<Tuple> actualItr = pig.openIterator("ordered");
+        while (expectedItr.hasNext() && actualItr.hasNext()) {
+            Tuple expectedTuple = expectedItr.next();
+            Tuple actualTuple = actualItr.next();
+            assertEquals(expectedTuple, actualTuple);
+        }
+        assertEquals(expectedItr.hasNext(), actualItr.hasNext());
+    }
+
+    private File genDataSetFileForOrderByDateTimeColumn() throws IOException {
+
+        File fp1 = File.createTempFile("order_by_datetime", "txt");
+        PrintStream ps = new PrintStream(new FileOutputStream(fp1));
+        ps.println("value1\t1970-01-01T00:01:00.000Z");
+        ps.println("value2\t1970-01-01T00:00:00.000Z");
+        ps.println("value3\t");
+        ps.println("value4\t");
+        ps.println("value5\t1970-01-01T01:00:00.000Z");
+        ps.println("value6\t1970-01-01T00:00:01.000Z");
+        ps.println("value7\t1970-01-01T00:00:01.000Z");
+        ps.println("value8\t1970-01-02T00:00:00.000Z");
+        ps.println("value9\t1970-02-01T00:00:00.000Z");
+        ps.println("value10\t");
+
+        ps.close();
+
+        return fp1;
+    }
 }

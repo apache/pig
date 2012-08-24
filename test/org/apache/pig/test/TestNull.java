@@ -22,6 +22,8 @@ import static org.junit.Assert.*;
 import java.util.Map;
 import java.util.Random;
 
+import org.joda.time.DateTime;
+
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
@@ -189,6 +191,22 @@ public class TestNull extends junit.framework.TestCase {
                 return false;
             // set the input to null and test
             lt.setValue((Long)null);
+            res = isNullExpr.getNext((Boolean) null);
+            if (!res.result.equals(true))
+                return false;
+            return true;
+        case DataType.DATETIME:
+            inp1 = new DateTime(r.nextLong());
+            res = isNullExpr.getNext((Boolean) null);
+            if ((Boolean) res.result != true)
+                return false;
+            lt.setValue(inp1);
+            res = isNullExpr.getNext((Boolean) null);
+            ret = (DataType.compare(inp1, null) == 0);
+            if (!(res.result.equals(ret)))
+                return false;
+            // set the input to null and test
+            lt.setValue((DateTime)null);
             res = isNullExpr.getNext((Boolean) null);
             if (!res.result.equals(true))
                 return false;

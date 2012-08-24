@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 
+import org.joda.time.DateTime;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.BooleanWritable;
@@ -40,6 +42,7 @@ import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileRecordReader;
 import org.apache.pig.FileInputLoadFunc;
 import org.apache.pig.backend.BackendException;
+import org.apache.pig.backend.hadoop.DateTimeWritable;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
@@ -96,6 +99,7 @@ public class SequenceFileLoader extends FileInputLoadFunc {
     else if (t == DoubleWritable.class) return DataType.DOUBLE;
     else if (t == BooleanWritable.class) return DataType.BOOLEAN;
     else if (t == ByteWritable.class) return DataType.BYTE;
+    else if (t == DateTimeWritable.class) return DataType.DATETIME;
     // not doing maps or other complex types for now
     else return DataType.ERROR;
   }
@@ -110,6 +114,7 @@ public class SequenceFileLoader extends FileInputLoadFunc {
       case DataType.FLOAT: return ((FloatWritable) w).get();
       case DataType.DOUBLE: return ((DoubleWritable) w).get();
       case DataType.BYTE: return ((ByteWritable) w).get();
+      case DataType.DATETIME: return ((DateTimeWritable) w).get();
     }
     
     return null;

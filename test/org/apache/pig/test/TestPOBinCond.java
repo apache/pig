@@ -39,6 +39,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.EqualToExpr;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.test.utils.GenPhyOp;
+import org.joda.time.DateTime;
 import org.junit.Before;
 
 import junit.framework.TestCase;
@@ -275,7 +276,23 @@ public class TestPOBinCond extends TestCase {
 	    }
 
     }
-   
+
+    public void testPOBinCondWithDateTime() throws  ExecException, PlanException {
+        bag= getBag(DataType.DATETIME);
+        TestPoBinCondHelper testHelper= new TestPoBinCondHelper(DataType.DATETIME, new DateTime(1L) );
+    
+        for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
+               Tuple t = it.next();
+               testHelper.getPlan().attachInput(t);
+               DateTime value = (DateTime) t.get(0);
+               int expected = value.equals(new DateTime(1L))? 1:0 ;
+               Integer dummy = new Integer(0);
+               Integer result=(Integer)testHelper.getOperator().getNext(dummy).result;
+               int actual = result.intValue();
+               assertEquals( expected, actual );
+        }
+    }
+
     public void testPOBinCondIntWithNull() throws  ExecException, PlanException {
    	
     	bag= getBagWithNulls(DataType.INTEGER);
@@ -364,6 +381,33 @@ public class TestPOBinCond extends TestCase {
 	       }
 
 	}
+
+    public void testPOBinCondDateTimeWithNull() throws  ExecException, PlanException {
+        
+        bag= getBagWithNulls(DataType.DATETIME);
+        TestPoBinCondHelper testHelper= new TestPoBinCondHelper(DataType.DATETIME, new DateTime(1L) );
+
+        for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
+               Tuple t = it.next();
+               testHelper.getPlan().attachInput(t);
+               
+               DateTime value=null;
+               if ( t.get(0)!=null){
+                   value = (DateTime) t.get(0);
+               }
+               Integer dummy = new Integer(0);
+               Integer result=(Integer)testHelper.getOperator().getNext(dummy).result;                  
+               int expected;
+               int actual;
+               if ( value!=null ) {
+                   expected=value.equals(new DateTime(1L))? 1:0 ;
+                   actual  = result.intValue();
+                   assertEquals( expected, actual );
+               } else {
+                   assertEquals( null, result );
+               }
+           }
+    }
    
     protected class TestPoBinCondHelper {
     	
@@ -451,7 +495,10 @@ public class TestPOBinCond extends TestCase {
                     break;
                 case DataType.DOUBLE:
                     t.append((i % 2 == 0 ? 1.0 : 0.0));
-                    break;                
+                    break;
+                case DataType.DATETIME:
+                    t.append(new DateTime(r.nextLong() % 2L));
+                    break;
             }
             t.append(1);
             t.append(0);
@@ -482,6 +529,9 @@ public class TestPOBinCond extends TestCase {
                         break;
                     case DataType.DOUBLE:
                         t.append( (i % 2 == 0 ? 1.0 : 0.0));
+                        break;
+                    case DataType.DATETIME:
+                        t.append(new DateTime(r.nextLong() % 2L));
                         break;
                 }
             }            

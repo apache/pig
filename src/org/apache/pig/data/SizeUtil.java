@@ -67,6 +67,9 @@ public class SizeUtil {
         case DataType.LONG:
             return 8 + 8;
 
+        case DataType.DATETIME:
+            return 8 + 2 + 8 + 6 /* one long (8) + one short (2) + 6 to round to 8 bytes */;
+
         case DataType.MAP: {
             @SuppressWarnings("unchecked")
             Map<String, Object> m = (Map<String, Object>) o;

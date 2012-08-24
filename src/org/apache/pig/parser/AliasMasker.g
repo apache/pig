@@ -210,7 +210,7 @@ type : simple_type | tuple_type | bag_type | map_type
 ;
 
 simple_type 
-    : BOOLEAN | INT | LONG | FLOAT | DOUBLE | CHARARRAY | BYTEARRAY 
+    : BOOLEAN | INT | LONG | FLOAT | DOUBLE | DATETIME | CHARARRAY | BYTEARRAY 
 ;
 
 tuple_type 
@@ -636,6 +636,7 @@ eid : rel_str_op
     | LONG
     | FLOAT
     | DOUBLE
+    | DATETIME
     | CHARARRAY
     | BYTEARRAY
     | BAG

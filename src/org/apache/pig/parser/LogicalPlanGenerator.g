@@ -386,6 +386,7 @@ simple_type returns[byte datatype]
  | LONG { $datatype = DataType.LONG; }
  | FLOAT { $datatype = DataType.FLOAT; }
  | DOUBLE { $datatype = DataType.DOUBLE; }
+ | DATETIME { $datatype = DataType.DATETIME; }
  | CHARARRAY { $datatype = DataType.CHARARRAY; }
  | BYTEARRAY { $datatype = DataType.BYTEARRAY; }
 ;
@@ -1733,6 +1734,7 @@ eid returns[String id] : rel_str_op { $id = $rel_str_op.id; }
     | LONG { $id = $LONG.text; }
     | FLOAT { $id = $FLOAT.text; }
     | DOUBLE { $id = $DOUBLE.text; }
+    | DATETIME { $id = $DATETIME.text; }
     | CHARARRAY { $id = $CHARARRAY.text; }
     | BYTEARRAY { $id = $BYTEARRAY.text; }
     | BAG { $id = $BAG.text; }

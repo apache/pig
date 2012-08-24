@@ -256,11 +256,16 @@ public class Schema implements Serializable, Cloneable {
                 }
                 else if (DataType.isNumberType(inputType) && (castType == DataType.CHARARRAY
                         || castType == DataType.BYTEARRAY || DataType.isNumberType(castType)
-                        || castType == DataType.BOOLEAN)) {
+                        || castType == DataType.BOOLEAN || castType == DataType.DATETIME)) {
+                    // good
+                }
+                else if (inputType == DataType.DATETIME && (castType == DataType.CHARARRAY
+                        || castType == DataType.BYTEARRAY || DataType.isNumberType(castType))) {
                     // good
                 }
                 else if (inputType == DataType.CHARARRAY && (castType == DataType.BYTEARRAY
-                        || DataType.isNumberType(castType) || castType == DataType.BOOLEAN)) {
+                        || DataType.isNumberType(castType) || castType == DataType.BOOLEAN
+                        || castType == DataType.DATETIME)) {
                     // good
                 } 
                 else if (inputType == DataType.BYTEARRAY) {
