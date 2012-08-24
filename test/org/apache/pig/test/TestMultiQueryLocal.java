@@ -17,8 +17,6 @@
  */
 package org.apache.pig.test;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.StringReader;
 import java.io.IOException;
 import java.io.File;
@@ -31,16 +29,12 @@ import java.util.Properties;
 import junit.framework.Assert;
 import junit.framework.TestCase;
 
-import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.builtin.PigStorage;
-import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorPlan;
@@ -335,69 +329,6 @@ public class TestMultiQueryLocal {
 
             myPig.executeBatch();
             myPig.discardBatch();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            Assert.fail();
-        }
-    }
-    
-    public static class PigStorageWithSuffix extends PigStorage {
-
-        private String suffix;
-        public PigStorageWithSuffix(String s) {
-            this.suffix = s;
-        }
-        static private final String key="test.key";
-        @Override
-        public void setStoreLocation(String location, Job job) throws IOException {
-            super.setStoreLocation(location, job);
-            if (job.getConfiguration().get(key)==null) {
-                job.getConfiguration().set(key, suffix);
-            }
-            suffix = job.getConfiguration().get(key);
-        }
-        
-        @Override
-        public void putNext(Tuple f) throws IOException {
-            try {
-                Tuple t = TupleFactory.getInstance().newTuple();
-                for (Object obj : f.getAll()) {
-                    t.append(obj);
-                }
-                t.append(suffix);
-                writer.write(null, t);
-            } catch (InterruptedException e) {
-                throw new IOException(e);
-            }
-        }
-    }
-    
-    // See PIG-2578
-    @Test
-    public void testMultiStoreWithConfig() {
-
-        System.out.println("===== test multi-query with competing config =====");
-
-        try {
-            myPig.setBatchOn();
-
-            myPig.registerQuery("a = load 'test/org/apache/pig/test/data/passwd' " +
-                                "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
-            myPig.registerQuery("store a into '/tmp/Pig-TestMultiQueryLocal1' using " + PigStorageWithSuffix.class.getName() + "('a');");
-            myPig.registerQuery("store a into '/tmp/Pig-TestMultiQueryLocal2' using " + PigStorageWithSuffix.class.getName() + "('b');");
-
-            myPig.executeBatch();
-            myPig.discardBatch();
-            BufferedReader reader = new BufferedReader(new FileReader("/tmp/Pig-TestMultiQueryLocal1/part-m-00000"));
-            String line;
-            while ((line = reader.readLine())!=null) {
-                Assert.assertTrue(line.endsWith("a"));
-            }
-            reader = new BufferedReader(new FileReader("/tmp/Pig-TestMultiQueryLocal2/part-m-00000"));
-            while ((line = reader.readLine())!=null) {
-                Assert.assertTrue(line.endsWith("b"));
-            }
 
         } catch (Exception e) {
             e.printStackTrace();

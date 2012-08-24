@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2890: Revert PIG-2578 (dvryaboy)
+
 PIG-2850: Pig should support loading macro files as resources stored in JAR files (matterhayes via dvryaboy)
 
 PIG-1314: Add DateTime Support to Pig (zjshen via thejas)
