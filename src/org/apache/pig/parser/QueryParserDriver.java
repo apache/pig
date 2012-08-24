@@ -22,7 +22,10 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -39,9 +42,13 @@ import org.antlr.runtime.tree.CommonTreeNodeStream;
 import org.antlr.runtime.tree.Tree;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.fs.Path;
+import org.apache.pig.PigException;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileLocalizer.FetchFileRet;
+import org.apache.pig.impl.io.ResourceNotFoundException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
@@ -349,11 +356,34 @@ public class QueryParserDriver {
             if (fnameMap.get(fname) != null) {
                 localFileRet = fnameMap.get(fname);
             } else {
+              try {
                 File localFile = QueryParserUtils.getFileFromImportSearchPath(fname);
                 localFileRet = localFile == null ?
                         FileLocalizer.fetchFile(pigContext.getProperties(), fname)
                         : new FetchFileRet(localFile.getCanonicalFile(), false);
-                fnameMap.put(fname, localFileRet);
+              } catch (FileNotFoundException e) {
+                // ignore this since we'll attempt to load as a resource before failing
+                LOG.debug(String.format("Macro file %s was not found", fname));
+              }
+              
+              // try loading the macro file as a resource in case it is packaged in a registered jar
+              if (localFileRet == null) {
+                LOG.debug(String.format("Attempting to load macro file %s as a resource", fname));
+                
+                try
+                {
+                  localFileRet = FileLocalizer.fetchResource(fname);
+                  LOG.debug(String.format("Found macro file %s as resource", fname));
+                }
+                catch (ResourceNotFoundException e)
+                {
+                  LOG.debug(String.format("Macro file %s was not found as resource either", fname));
+                  LOG.error(String.format("Failed to find macro file %s", fname));
+                  throw new ExecException("file '" + fname + "' does not exist.", 101, PigException.INPUT);
+                }
+              }
+                            
+              fnameMap.put(fname, localFileRet);
             }
         } catch (IOException e) {
             throw new RuntimeException("Unable to fetch macro file '" + fname + "'", e);
@@ -369,11 +399,13 @@ public class QueryParserDriver {
     private PigMacro makeMacroDef(CommonTree t, Map<String, PigMacro> seen)
             throws ParserException {
         String mn = t.getChild(0).getText();
- 
+        
         if (!macroSeen.add(mn)) {
             String msg = getErrorMessage(null, t, null,
                     "Duplicated macro name '" + mn + "'");
-            throw new ParserException(msg);
+            LOG.warn(msg);
+            // Disabling this exception, see https://issues.apache.org/jira/browse/PIG-2279
+            // throw new ParserException(msg);
         }
 
         if (seen != null) {
@@ -383,7 +415,7 @@ public class QueryParserDriver {
         }
         
         String fname = ((PigParserNode)t).getFileName();
-
+        
         Tree defNode = t.getChild(1);
 
         // get parameter markers
@@ -446,7 +478,9 @@ public class QueryParserDriver {
         if (!importSeen.add(fname)) {
             String msg = getErrorMessage(fname, t,
                     ": Duplicated import file '" + fname + "'", null);
-            throw new ParserException(msg);
+            LOG.warn(msg);
+            // Disabling this exception, see https://issues.apache.org/jira/browse/PIG-2279
+            // throw new ParserException(msg);
         }
         
         FetchFileRet localFileRet = getMacroFile(fname);
