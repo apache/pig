@@ -519,6 +519,8 @@ PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
 
+PIG-2821: HBaseStorage should work with secure hbase (rohini via daijy)
+
 PIG-2859: Fix few e2e test failures (rohini via daijy)
 
 PIG-2729: Macro expansion does not use pig.import.search.path - UnitTest borked (johannesch via daijy)
