@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2708: split MiniCluster based tests out of org.apache.pig.test.TestInputOutputFileValidator (analog.sony via daijy)
+
 PIG-2890: Revert PIG-2578 (dvryaboy)
 
 PIG-2850: Pig should support loading macro files as resources stored in JAR files (matterhayes via dvryaboy)

@@ -15,15 +15,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.pig.test;
 
 import static org.apache.pig.newplan.logical.relational.LOTestHelper.newLOLoad;
 
-import java.io.* ;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.Properties;
 
-import org.apache.pig.ExecType; 
+import junit.framework.Assert;
+import junit.framework.TestCase;
+
+import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
@@ -44,55 +51,55 @@ import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LOStore;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.rules.InputOutputFileValidator;
-
+import org.apache.pig.test.TestInputOutputFileValidator.DummyStorer;
 import org.junit.AfterClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-import junit.framework.Assert;
-import junit.framework.TestCase;
+ 
+public class TestInputOutputMiniClusterFileValidator extends TestCase {
 
-@RunWith(JUnit4.class)
-public class TestInputOutputFileValidator extends TestCase {
     
-	 
-     
+    private static MiniCluster cluster = MiniCluster.buildCluster();
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
+    }
+        
     
     @Test
-    public void testLocalModeInputPositive() throws Throwable {
-        PigContext ctx = new PigContext(ExecType.LOCAL, new Properties()) ;
+    public void testMapReduceModeInputPositive() throws Throwable {
+        PigContext ctx = new PigContext(ExecType.MAPREDUCE, cluster.getProperties()) ;       
         ctx.connect() ;
         
-        String inputfile = generateTempFile().getAbsolutePath() ;
-        String outputfile = generateNonExistenceTempFile().getAbsolutePath() ;
+        String inputfile = createHadoopTempFile(ctx) ;
+        String outputfile = createHadoopNonExistenceTempFile(ctx) ;
 
-        LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile, ctx.getFs()) ;        
+        LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile, ctx.getDfs()) ;                     
+        
         InputOutputFileValidator executor = new InputOutputFileValidator(plan, ctx) ;
         executor.validate() ;
     }
     
-       
     @Test
-    public void testLocalModeNegative2() throws Throwable {
-        PigContext ctx = new PigContext(ExecType.LOCAL, new Properties()) ;
+    public void testMapReduceModeInputNegative2() throws Throwable {
+        PigContext ctx = new PigContext(ExecType.MAPREDUCE, cluster.getProperties()) ;       
         ctx.connect() ;
         
-        String inputfile = generateTempFile().getAbsolutePath() ;
-        String outputfile = generateTempFile().getAbsolutePath() ;
+        String inputfile = createHadoopTempFile(ctx) ;
+        String outputfile = createHadoopTempFile(ctx) ;
 
-        LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile, ctx.getDfs()) ;        
+        LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile, ctx.getDfs()) ;                     
         
         InputOutputFileValidator executor = new InputOutputFileValidator(plan, ctx) ;
         try {
             executor.validate() ;
-            fail("Expected to fail.");
-        } catch (Exception pve) {
+            fail("Excepted to fail.");
+        } catch(Exception e) {
             //good
         }
-        
     }
-       
+    
+    
 
     
     
@@ -106,12 +113,10 @@ public class TestInputOutputFileValidator extends TestCase {
         String input = "input.txt";
         String output= "output.txt";
         String data[] = new String[] {"hello\tworld"};
-         PigServer pig = null;
-             try {
-                 Properties props = new Properties();
-                 props.put(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
-                 pig = new PigServer(ExecType.LOCAL, props);
-           
+        PigServer pig = null;
+        	try {
+             	pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+                  
                 // reinitialize FileLocalizer for each mode
                 // this is need for the tmp file creation as part of
                 // PigServer.openIterator
@@ -130,7 +135,8 @@ public class TestInputOutputFileValidator extends TestCase {
             } finally {
                 Util.deleteFile(pig.getPigContext(), input);
                 Util.deleteFile(pig.getPigContext(), output);
-            } 
+            }
+        
     }
     
     /**
@@ -147,10 +153,8 @@ public class TestInputOutputFileValidator extends TestCase {
         PigServer pig = null;
              try {
                 boolean exceptionCaught = false;
-                Properties props = new Properties();
-                props.put(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
-                pig = new PigServer(ExecType.LOCAL, props);
-               
+                pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+                
                 Util.deleteFile(pig.getPigContext(), input);
                 Util.deleteFile(pig.getPigContext(), output);
                 Util.createInputFile(pig.getPigContext(), input, data);
@@ -170,10 +174,27 @@ public class TestInputOutputFileValidator extends TestCase {
                 Util.deleteFile(pig.getPigContext(), input);
                 Util.deleteFile(pig.getPigContext(), output);
             }
-        
-    }
-
+        }
     
+
+    @Test
+    public void testValidationNeg() throws Throwable{
+
+        PigServer pig = new PigServer(ExecType.MAPREDUCE,cluster.getProperties());
+        try{
+            pig.setBatchOn();
+        	pig.registerQuery("A = load 'inputfile' using PigStorage () as (a:int);");
+            pig.registerQuery("store A into 'outfile' using "+DummyStorer.class.getName()+";");
+            pig.executeBatch();
+            assert false;
+        }catch(Exception fe){
+        	assertTrue(fe instanceof FrontendException);
+        	PigException pe = LogUtils.getPigException(fe);
+        	assertTrue(pe instanceof FrontendException);
+        	assertEquals(1115, pe.getErrorCode());
+        	assertTrue(pe.getMessage().contains("Exception from DummyStorer."));
+        }
+    }
  
         
     private LogicalPlan genNewLoadStorePlan(String inputFile,
