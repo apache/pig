@@ -28,6 +28,8 @@ PIG-2727: PigStorage Source tagging does not need pig.splitCombination to be tur
 
 BUG FIXES
 
+PIG-2821: HBaseStorage should work with secure hbase (rohini via daijy)
+
 PIG-2890: Revert PIG-2578 (dvryaboy)
 
 PIG-2859: Fix few e2e test failures (rohini via daijy)
