@@ -29,6 +29,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Date;
 import java.util.List;
 
 import org.apache.pig.ExecType;
@@ -90,16 +91,16 @@ public class TestDBStorage extends TestCase {
 	private void createFile() throws IOException {
 		PrintWriter w = new PrintWriter(new FileWriter(INPUT_FILE));
 		w = new PrintWriter(new FileWriter(INPUT_FILE));
-		w.println("100\tapple\t1.0");
-		w.println("100\torange\t2.0");
-		w.println("100\tbanana\t1.1");
+		w.println("100\tapple\t1.0\t2008-01-01");
+		w.println("100\torange\t2.0\t2008-02-01");
+		w.println("100\tbanana\t1.1\t2008-03-01");
 		w.close();
 		Util.copyFromLocalToCluster(cluster, INPUT_FILE, INPUT_FILE);
 	}
 
 	private void createTable() throws IOException {
 		Connection con = null;
-		String sql = "create table ttt (id integer, name varchar(32), ratio double)";
+		String sql = "create table ttt (id integer, name varchar(32), ratio double, dt date)";
 		try {
 			con = DriverManager.getConnection(url, user, password);
 		} catch (SQLException sqe) {
@@ -148,12 +149,12 @@ public class TestDBStorage extends TestCase {
 	}
 
 	public void testWriteToDB() throws IOException {
-		String insertQuery = "insert into ttt (id, name, ratio) values (?,?,?)";
+		String insertQuery = "insert into ttt (id, name, ratio, dt) values (?,?,?,?)";
 		pigServer.setBatchOn();
 		String dbStore = "org.apache.pig.piggybank.storage.DBStorage('" + driver                                                                                                                       
 	            + "', '" + url + "', '" + insertQuery + "');";
 		pigServer.registerQuery("A = LOAD '" + INPUT_FILE
-				+ "' as (id:int, fruit:chararray, ratio:double);");
+				+ "' as (id:int, fruit:chararray, ratio:double, dt : datetime);");
 		pigServer.registerQuery("STORE A INTO 'dummy' USING " + dbStore);
 	  ExecJob job = pigServer.executeBatch().get(0);
 		try {
@@ -165,7 +166,7 @@ public class TestDBStorage extends TestCase {
 						ExecJob.JOB_STATUS.FAILED);
 		
 		Connection con = null;
-		String selectQuery = "select id, name, ratio from ttt order by name";
+		String selectQuery = "select id, name, ratio, dt from ttt order by name";
 		try {
 			con = DriverManager.getConnection(url, user, password);
 		} catch (SQLException sqe) {
@@ -179,11 +180,14 @@ public class TestDBStorage extends TestCase {
 			int expId = 100;
 			String[] expNames = { "apple", "banana", "orange" };
 			double[] expRatios = { 1.0, 1.1, 2.0 };
+                        Date []  expDates = {new Date(2008,01,01),new Date(2008,02,01),new Date(2008,03,01)};
 			for (int i = 0; i < 3 && rs.next(); i++) {
 				assertEquals("Id mismatch", expId, rs.getInt(1));
 				assertEquals("Name mismatch", expNames[i], rs.getString(2));
 				assertEquals("Ratio mismatch", expRatios[i], rs.getDouble(3), 0.0001);
+				assertEquals("Date mismatch", expDates[i], rs.getDate(4));
 			}
+
 		} catch (SQLException sqe) {
 			throw new IOException(
 					"Unable to read data from database for verification", sqe);

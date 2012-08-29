@@ -118,7 +118,7 @@ public class DBStorage extends StoreFunc {
             break;
 
           case DataType.DATETIME:
-            ps.setDate(sqlPos, ((DateTime) field).toDate());
+            ps.setDate(sqlPos, new Date(((DateTime) field).getMillis()));
             sqlPos++;
             break;
 
