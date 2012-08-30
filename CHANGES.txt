@@ -254,6 +254,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2896:  Pig does not fail anymore if two macros are declared with the same name (julien)
+
 PIG-2848: TestBuiltInBagToTupleOrString fails now that mock.Storage enforces not overwriting output (julien)
 
 PIG-2884: JobControlCompiler mis-logs after reducer estimation (billgraham)
