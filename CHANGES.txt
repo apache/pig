@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2895: jodatime jar missing in pig-withouthadoop.jar  (thejas)
+
 PIG-2888: Improve performance of POPartialAgg (dvryaboy)
 
 PIG-2708: split MiniCluster based tests out of org.apache.pig.test.TestInputOutputFileValidator (analog.sony via daijy)
