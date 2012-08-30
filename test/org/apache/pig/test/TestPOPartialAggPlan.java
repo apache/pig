@@ -25,8 +25,8 @@ import java.util.Iterator;
 import java.util.Properties;
 
 import org.apache.pig.ExecType;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -62,7 +62,7 @@ public class TestPOPartialAggPlan  {
     public void testMapAggPropFalse() throws Exception{
         //test with pig.exec.mapPartAgg set to false
         String query = getGByQuery();
-        pc.getProperties().setProperty(MapReduceLauncher.PROP_EXEC_MAP_PARTAGG, "false");
+        pc.getProperties().setProperty(PigConfiguration.PROP_EXEC_MAP_PARTAGG, "false");
         MROperPlan mrp = Util.buildMRPlan(query, pc);
         assertEquals(mrp.size(), 1);
 
@@ -73,7 +73,7 @@ public class TestPOPartialAggPlan  {
     public void testMapAggPropTrue() throws Exception{
         //test with pig.exec.mapPartAgg to true
         String query = getGByQuery();
-        pc.getProperties().setProperty(MapReduceLauncher.PROP_EXEC_MAP_PARTAGG, "true");
+        pc.getProperties().setProperty(PigConfiguration.PROP_EXEC_MAP_PARTAGG, "true");
         MROperPlan mrp = Util.buildMRPlan(query, pc);
         assertEquals(mrp.size(), 1);
 
@@ -100,7 +100,7 @@ public class TestPOPartialAggPlan  {
         String query = "l = load 'x' as (a,b,c);" +
                 "g = group l by a;" +
                 "f = foreach g generate group;";
-        pc.getProperties().setProperty(MapReduceLauncher.PROP_EXEC_MAP_PARTAGG, "true");
+        pc.getProperties().setProperty(PigConfiguration.PROP_EXEC_MAP_PARTAGG, "true");
         MROperPlan mrp = Util.buildMRPlan(query, pc);
         assertEquals(mrp.size(), 1);
 
@@ -113,19 +113,19 @@ public class TestPOPartialAggPlan  {
         String query = "l = load 'x' as (a,b,c);" +
                 "g = group l by a;" +
                 "f = foreach g generate group, COUNT(l.b), l.b;";
-        pc.getProperties().setProperty(MapReduceLauncher.PROP_EXEC_MAP_PARTAGG, "true");
+        pc.getProperties().setProperty(PigConfiguration.PROP_EXEC_MAP_PARTAGG, "true");
         MROperPlan mrp = Util.buildMRPlan(query, pc);
         assertEquals(mrp.size(), 1);
 
         assertNull("POPartialAgg should be absent", findPOPartialAgg(mrp));
     }
-    
+
     private PhysicalOperator findPOPartialAgg(PhysicalPlan mapPlan) {
         Iterator<PhysicalOperator> it = mapPlan.iterator();
         while(it.hasNext()){
-            PhysicalOperator op = (PhysicalOperator) it.next();
+            PhysicalOperator op = it.next();
             if(op instanceof POPartialAgg){
-                return (POPartialAgg)op;
+                return op;
             }
         }
         return null;

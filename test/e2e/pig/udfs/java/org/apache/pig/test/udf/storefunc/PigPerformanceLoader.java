@@ -56,13 +56,8 @@ public class PigPerformanceLoader extends PigStorage {
     class Caster implements LoadCaster {
         
         Utf8StorageConverter helper = new Utf8StorageConverter();
-        /**
-         * 
-         */
-        public Caster() {
-            // TODO Auto-generated constructor stub
-        }
         
+        @Override
         public DataBag bytesToBag(byte[] b, ResourceFieldSchema fs) throws IOException {
             if (b == null) return null;
 
@@ -102,10 +97,12 @@ public class PigPerformanceLoader extends PigStorage {
             return bag;
         }
 
+		@Override
 		public Map<String, Object> bytesToMap(byte[] b, ResourceFieldSchema fieldSchema) throws IOException {
-			throw new UnsupportedOperationException();
+			return helper.bytesToMap(b);
 		}
 
+        @Override
         public Map<String, Object> bytesToMap(byte[] b) throws IOException {
             if (b == null) return null;
 
