@@ -39,6 +39,7 @@ import org.apache.hadoop.mapred.RunningJob;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
 import org.apache.pig.PigRunner.ReturnCode;
@@ -80,9 +81,6 @@ public class MapReduceLauncher extends Launcher{
     public static final String SUCCESSFUL_JOB_OUTPUT_DIR_MARKER =
         "mapreduce.fileoutputcommitter.marksuccessfuljobs";
 
-    public static final String PROP_EXEC_MAP_PARTAGG = "pig.exec.mapPartAgg";
-
-    
     private static final Log log = LogFactory.getLog(MapReduceLauncher.class);
  
     //used to track the exception thrown by the job control which is run in a separate thread
@@ -561,10 +559,10 @@ public class MapReduceLauncher extends Launcher{
             pc.getProperties().getProperty(
                     "last.input.chunksize", POJoinPackage.DEFAULT_CHUNK_SIZE);
         
-        String prop = pc.getProperties().getProperty("pig.exec.nocombiner");
+        String prop = pc.getProperties().getProperty(PigConfiguration.PROP_NO_COMBINER);
         if (!pc.inIllustrator && !("true".equals(prop)))  {
             boolean doMapAgg = 
-                    Boolean.valueOf(pc.getProperties().getProperty(PROP_EXEC_MAP_PARTAGG,"false"));
+                    Boolean.valueOf(pc.getProperties().getProperty(PigConfiguration.PROP_EXEC_MAP_PARTAGG,"false"));
             CombinerOptimizer co = new CombinerOptimizer(plan, doMapAgg);
             co.visit();
             //display the warning message(s) from the CombinerOptimizer

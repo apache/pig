@@ -25,6 +25,7 @@ import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -201,16 +202,6 @@ public class TestPOPartialAgg {
     }
 
     @Test
-    public void testPartialMultiInput1HashMemEmpty() throws Exception {
-        // input tuple has key, and bag containing SUM.Init output
-        // gby keys in consecutive row, they get aggregated even when
-        // hashmap is not given any memory
-        String[] inputTups = { "(1,(1L))", "(1,(2L))", "(2,(1L))" };
-        String[] outputTups = { "(1,(3L))", "(2,(1L))" };
-        checkInputAndOutput(inputTups, outputTups, true);
-    }
-
-    @Test
     public void testMultiInput1HashMemEmpty() throws Exception {
         // input tuple has key, and bag containing SUM.Init output
         String[] inputTups = { "(1,(1L))", "(2,(2L))", "(1,(2L))" };
@@ -244,7 +235,7 @@ public class TestPOPartialAgg {
 
         PigMapReduce.sJobConfInternal.set(new Configuration());
         if (isMapMemEmpty) {
-            PigMapReduce.sJobConfInternal.get().set("pig.cachedbag.memusage",
+            PigMapReduce.sJobConfInternal.get().set(PigConfiguration.PROP_CACHEDBAG_MEMUSAGE,
                     "0");
         }
 

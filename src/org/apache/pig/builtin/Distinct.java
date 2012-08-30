@@ -27,6 +27,7 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.InternalDistinctBag;
+import org.apache.pig.data.SingleTupleBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 
@@ -82,8 +83,7 @@ public class Distinct  extends EvalFunc<DataBag> implements Algebraic {
             // representing the data we want to distinct. 
             // unwrap, put in a bag and send down
             try {
-                DataBag bag = bagFactory.newDefaultBag();
-                bag.add((Tuple)input.get(0));
+                DataBag bag = new SingleTupleBag((Tuple)input.get(0));
                 return tupleFactory.newTuple(bag);
             } catch (ExecException e) {
                 throw e;
