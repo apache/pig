@@ -773,6 +773,7 @@
                 <include name="jline-${jline.version}.jar" />
                 <include name="jackson-mapper-asl-${jackson.version}.jar" />
                 <include name="jackson-core-asl-${jackson.version}.jar" />
+                <include name="joda-time-${joda-time.version}.jar" />
                 <include name="guava-${guava.version}.jar" />
                 <include name="automaton-${automaton.version}.jar" />
                 <include name="jansi-${jansi.version}.jar" />
