@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2886: Add Scan TimeRange to HBaseStorage (ted.m via dvryaboy)
+
 PIG-2895: jodatime jar missing in pig-withouthadoop.jar  (thejas)
 
 PIG-2888: Improve performance of POPartialAgg (dvryaboy)
