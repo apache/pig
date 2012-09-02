@@ -162,6 +162,9 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
     private final long limit_;
     private final int caching_;
     private final boolean noWAL_;
+    private final long minTimestamp_;
+    private final long maxTimestamp_;
+    private final long timestamp_;
 
     protected transient byte[] gt_;
     protected transient byte[] gte_;
@@ -187,6 +190,10 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         validOptions_.addOption("caster", true, "Caster to use for converting values. A class name, " +
                 "HBaseBinaryConverter, or Utf8StorageConverter. For storage, casters must implement LoadStoreCaster.");
         validOptions_.addOption("noWAL", false, "Sets the write ahead to false for faster loading. To be used with extreme caution since this could result in data loss (see http://hbase.apache.org/book.html#perf.hbase.client.putwal).");
+        validOptions_.addOption("minTimestamp", true, "Record must have timestamp greater or equal to this value");
+        validOptions_.addOption("maxTimestamp", true, "Record must have timestamp less then this value");
+        validOptions_.addOption("timestamp", true, "Record must have timestamp equal to this value");
+
     }
 
     /**
@@ -225,6 +232,9 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
      * <li>-ignoreWhitespace=(true|false) ignore spaces when parsing column names (default true)
      * <li>-caching=numRows  number of rows to cache (faster scans, more memory).
      * <li>-noWAL=(true|false) Sets the write ahead to false for faster loading.
+     * <li>-minTimestamp= Scan's timestamp for min timeRange
+     * <li>-maxTimestamp= Scan's timestamp for max timeRange
+     * <li>-timestamp= Scan's specified timestamp
      * To be used with extreme caution, since this could result in data loss
      * (see http://hbase.apache.org/book.html#perf.hbase.client.putwal).
      * </ul>
@@ -238,7 +248,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
             configuredOptions_ = parser_.parse(validOptions_, optsArr);
         } catch (ParseException e) {
             HelpFormatter formatter = new HelpFormatter();
-            formatter.printHelp( "[-loadKey] [-gt] [-gte] [-lt] [-lte] [-columnPrefix] [-caching] [-caster] [-noWAL] [-limit] [-delim] [-ignoreWhitespace]", validOptions_ );
+            formatter.printHelp( "[-loadKey] [-gt] [-gte] [-lt] [-lte] [-columnPrefix] [-caching] [-caster] [-noWAL] [-limit] [-delim] [-ignoreWhitespace] [-minTimestamp] [-maxTimestamp] [-timestamp]", validOptions_ );
             throw e;
         }
 
@@ -281,6 +291,25 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         caching_ = Integer.valueOf(configuredOptions_.getOptionValue("caching", "100"));
         limit_ = Long.valueOf(configuredOptions_.getOptionValue("limit", "-1"));
         noWAL_ = configuredOptions_.hasOption("noWAL");
+        
+        if (configuredOptions_.hasOption("minTimestamp")){
+            minTimestamp_ = Long.parseLong(configuredOptions_.getOptionValue("minTimestamp"));
+        } else {
+            minTimestamp_ = Long.MIN_VALUE;
+        }
+        
+        if (configuredOptions_.hasOption("maxTimestamp")){
+            maxTimestamp_ = Long.parseLong(configuredOptions_.getOptionValue("maxTimestamp"));
+        } else {
+            maxTimestamp_ = Long.MAX_VALUE;
+        }
+
+        if (configuredOptions_.hasOption("timestamp")){
+            timestamp_ = Long.parseLong(configuredOptions_.getOptionValue("timestamp"));
+        } else {
+            timestamp_ = 0;
+        }
+        
         initScan();	    
     }
 
@@ -337,7 +366,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         return columnInfo;
     }
 
-    private void initScan() {
+    private void initScan() throws IOException{
         scan = new Scan();
 
         // Map-reduce jobs should not run with cacheBlocks
@@ -360,7 +389,12 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
             lte_ = Bytes.toBytesBinary(Utils.slashisize(configuredOptions_.getOptionValue("lte")));
             addRowFilter(CompareOp.LESS_OR_EQUAL, lte_);
         }
-
+        if (configuredOptions_.hasOption("minTimestamp") || configuredOptions_.hasOption("maxTimestamp")){
+            scan.setTimeRange(minTimestamp_, maxTimestamp_);
+        }
+        if (configuredOptions_.hasOption("timestamp")){
+        	scan.setTimeStamp(timestamp_);
+        }
         // apply any column filters
         FilterList allColumnFilters = null;
         for (ColumnInfo colInfo : columnInfo_) {

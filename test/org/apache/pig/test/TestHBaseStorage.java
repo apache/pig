@@ -30,12 +30,14 @@ import org.apache.hadoop.hbase.MiniHBaseCluster;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.hbase.HBaseStorage;
 import org.apache.pig.data.DataByteArray;
@@ -180,6 +182,95 @@ public class TestHBaseStorage {
         }
         Assert.assertEquals(TEST_ROW_COUNT, count);
         LOG.info("LoadFromHBase done");
+    }
+
+    /**
+     * Test Load from hbase with maxTimestamp, minTimestamp, timestamp
+     *
+     */
+    @Test
+    public void testLoadWithSpecifiedTimestampAndRanges() throws IOException {
+        long beforeTimeStamp = System.currentTimeMillis() - 10;
+        
+        HTable table = prepareTable(TESTTABLE_1, true, DataFormat.UTF8PlainText);
+
+        long afterTimeStamp = System.currentTimeMillis() + 10;
+        
+        Assert.assertEquals("MaxTimestamp is set before rows added", 0, queryWithTimestamp(null , beforeTimeStamp, null));
+        
+        Assert.assertEquals("MaxTimestamp is set after rows added", TEST_ROW_COUNT, queryWithTimestamp(null, afterTimeStamp, null));
+        
+        Assert.assertEquals("MinTimestamp is set after rows added", 0, queryWithTimestamp(afterTimeStamp, null, null));
+        
+        Assert.assertEquals("MinTimestamp is set before rows added", TEST_ROW_COUNT, queryWithTimestamp(beforeTimeStamp, null, null));
+        
+        Assert.assertEquals("Timestamp range is set around rows added", TEST_ROW_COUNT, queryWithTimestamp(beforeTimeStamp, afterTimeStamp, null));
+        
+        Assert.assertEquals("Timestamp range is set after rows added", 0, queryWithTimestamp(afterTimeStamp, afterTimeStamp + 10, null));
+        
+        Assert.assertEquals("Timestamp range is set before rows added", 0, queryWithTimestamp(beforeTimeStamp - 10, beforeTimeStamp, null));
+
+        Assert.assertEquals("Timestamp is set before rows added", 0, queryWithTimestamp(null, null, beforeTimeStamp));
+
+        Assert.assertEquals("Timestamp is set after rows added", 0, queryWithTimestamp(null, null, afterTimeStamp));
+
+        long specifiedTimestamp = table.get(new Get(Bytes.toBytes("00"))).getColumnLatest(COLUMNFAMILY, Bytes.toBytes("col_a")).getTimestamp();
+        
+        Assert.assertTrue("Timestamp is set equals to row 01", queryWithTimestamp(null, null, specifiedTimestamp) > 0);
+         
+        
+        LOG.info("LoadFromHBase done");
+    }
+
+    private int queryWithTimestamp(Long minTimestamp, Long maxTimestamp, Long timestamp) throws IOException,
+            ExecException {
+        
+        StringBuilder extraParams = new StringBuilder();
+        
+        if (minTimestamp != null){
+            extraParams.append(" -minTimestamp " + minTimestamp + " ");
+        }
+        
+        if (maxTimestamp != null){
+            extraParams.append(" -maxTimestamp " + maxTimestamp + " ");
+        }
+
+        if (timestamp != null){
+            extraParams.append(" -timestamp " + timestamp + " ");
+        }
+        
+        
+        pig.registerQuery("a = load 'hbase://"
+                + TESTTABLE_1
+                + "' using "
+                + "org.apache.pig.backend.hadoop.hbase.HBaseStorage('"
+                + TESTCOLUMN_A
+                + " "
+                + TESTCOLUMN_B
+                + " "
+                + TESTCOLUMN_C
+                + " pig:"
+                + "','-loadKey " + extraParams.toString() + "') as (rowKey, col_a, col_b, col_c);");
+        Iterator<Tuple> it = pig.openIterator("a");
+        int count = 0;
+        LOG.info("LoadFromHBase Starting");
+        while (it.hasNext()) {
+            Tuple t = it.next();
+            LOG.info("LoadFromHBase " + t);
+            String rowKey = ((DataByteArray) t.get(0)).toString();
+            String col_a = ((DataByteArray) t.get(1)).toString();
+            String col_b = ((DataByteArray) t.get(2)).toString();
+            String col_c = ((DataByteArray) t.get(3)).toString();
+
+            Assert.assertEquals("00".substring((count + "").length()) + count,
+                    rowKey);
+            Assert.assertEquals(count, Integer.parseInt(col_a));
+            Assert.assertEquals(count + 0.0, Double.parseDouble(col_b), 1e-6);
+            Assert.assertEquals("Text_" + count, col_c);
+
+            count++;
+        }
+        return count;
     }
 
     /**
@@ -905,7 +996,7 @@ public class TestHBaseStorage {
      * Prepare a table in hbase for testing.
      * 
      */
-    private void prepareTable(String tableName, boolean initData,
+    private HTable prepareTable(String tableName, boolean initData,
             DataFormat format) throws IOException {
         // define the table schema
         HTable table = null;
@@ -968,6 +1059,7 @@ public class TestHBaseStorage {
             }
             table.flushCommits();
         }
+        return table;
     }
 
     /**
