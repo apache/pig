@@ -17,7 +17,8 @@
  */
 package org.apache.pig.newplan.logical.rules;
 
-import java.util.Stack;
+import java.util.Deque;
+import java.util.LinkedList;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.logical.expression.*;
 import org.apache.pig.newplan.ReverseDependencyOrderWalker;
@@ -35,15 +36,15 @@ import org.apache.pig.newplan.OperatorPlan;
  */
 class DNFPlanGenerator extends LogicalExpressionVisitor {
     private OperatorPlan dnfPlan = null;
-    Stack<LogicalExpression> result;
+    Deque<LogicalExpression> result;
 
     DNFPlanGenerator(OperatorPlan plan) throws FrontendException {
         super(plan, new ReverseDependencyOrderWalker(plan));
-        result = new Stack<LogicalExpression>();
+        result = new LinkedList<LogicalExpression>();
     }
 
     OperatorPlan getDNFPlan() {
-        if (dnfPlan == null) dnfPlan = (result.empty() ? plan : result.pop().getPlan());
+        if (dnfPlan == null) dnfPlan = (result.isEmpty() ? plan : result.pop().getPlan());
         return dnfPlan;
     }
 

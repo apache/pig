@@ -20,10 +20,11 @@ package org.apache.pig.newplan.logical.relational;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Stack;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -98,12 +99,12 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
         super(plan, new DependencyOrderWalker(plan));
         currentPlan = new PhysicalPlan();
         logToPhyMap = new HashMap<Operator, PhysicalOperator>();
-        currentPlans = new Stack<PhysicalPlan>();
+        currentPlans = new LinkedList<PhysicalPlan>();
     }
 
     protected Map<Operator, PhysicalOperator> logToPhyMap;
 
-    protected Stack<PhysicalPlan> currentPlans;
+    protected Deque<PhysicalPlan> currentPlans;
 
     protected PhysicalPlan currentPlan;
 

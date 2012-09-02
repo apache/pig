@@ -18,9 +18,11 @@
 
 package org.apache.pig.newplan;
 
-import java.util.Stack;
+import java.util.Deque;
+import java.util.LinkedList;
 
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.plan.VisitorException;
 
 /**
  * A visitor mechanism for navigating and operating on a plan of 
@@ -40,7 +42,7 @@ public abstract class PlanVisitor {
      */
     protected PlanWalker currentWalker;
 
-    private Stack<PlanWalker> walkers;
+    private Deque<PlanWalker> walkers;
 
     /**
      * Entry point for visiting the plan.
@@ -61,7 +63,7 @@ public abstract class PlanVisitor {
     protected PlanVisitor(OperatorPlan plan, PlanWalker walker) {
         this.plan = plan;
         currentWalker = walker;
-        walkers = new Stack<PlanWalker>();
+        walkers = new LinkedList<PlanWalker>();
     }
 
     /**
@@ -81,7 +83,7 @@ public abstract class PlanVisitor {
      * this case the current walker is not reset.
      */
     protected void popWalker() throws FrontendException {
-        if (walkers.empty()) {
+        if (walkers.isEmpty()) {
             throw new FrontendException("No more walkers to pop.", 2221);
         }
         currentWalker = walkers.pop();
