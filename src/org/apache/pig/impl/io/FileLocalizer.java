@@ -28,11 +28,12 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Deque;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
-import java.util.Stack;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -427,11 +428,11 @@ public class FileLocalizer {
      * Thread local toDelete Stack to hold descriptors to be deleted upon calling
      * deleteTempFiles. Use the toDelete() method to access this stack.
      */
-    private static ThreadLocal<Stack<ElementDescriptor>> toDelete =
-        new ThreadLocal<Stack<ElementDescriptor>>() {
+    private static ThreadLocal<Deque<ElementDescriptor>> toDelete =
+        new ThreadLocal<Deque<ElementDescriptor>>() {
 
-        protected Stack<ElementDescriptor> initialValue() {
-            return new Stack<ElementDescriptor>();
+        protected Deque<ElementDescriptor> initialValue() {
+            return new LinkedList<ElementDescriptor>();
         }
     };
 
@@ -448,7 +449,7 @@ public class FileLocalizer {
      * Convenience accessor method to the toDelete Stack bound to this thread.
      * @return A Stack of ElementDescriptors that should be deleted.
      */
-    private static Stack<ElementDescriptor> toDelete() {
+    private static Deque<ElementDescriptor> toDelete() {
         return toDelete.get();
     }
 
@@ -484,7 +485,7 @@ public class FileLocalizer {
     }
 
     public static void deleteTempFiles() {
-        while (!toDelete().empty()) {
+        while (!toDelete().isEmpty()) {
             try {
                 ElementDescriptor elem = toDelete().pop();
                 elem.delete();

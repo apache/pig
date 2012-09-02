@@ -22,10 +22,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PushbackInputStream;
 import java.util.Arrays;
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
-import java.util.Stack;
-import java.util.EmptyStackException;
 
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -157,7 +157,7 @@ public class Utf8StorageConverter implements LoadStoreCaster {
         }
         else {
             // No inner schema, treat everything inside tuple as bytearray
-            Stack<Character> level = new Stack<Character>();  // keep track of nested tuple/bag/map. We do not interpret, save them as bytearray
+            Deque<Character> level = new LinkedList<Character>();  // keep track of nested tuple/bag/map. We do not interpret, save them as bytearray
             mOut = new ByteArrayOutputStream(BUFFER_SIZE);
             while (true) {
                 buf=in.read();
@@ -219,7 +219,7 @@ public class Utf8StorageConverter implements LoadStoreCaster {
             
             // Read value
             mOut.reset();
-            Stack<Character> level = new Stack<Character>(); // keep track of nested tuple/bag/map. We do not interpret, save them as bytearray
+            Deque<Character> level = new LinkedList<Character>(); // keep track of nested tuple/bag/map. We do not interpret, save them as bytearray
             while (true) {
                 buf=in.read();
                 if (buf==-1) {
@@ -232,12 +232,11 @@ public class Utf8StorageConverter implements LoadStoreCaster {
                     break;
                 else if (buf==']' ||buf=='}'||buf==')')
                 {
-                    try {
-                        if (level.peek()==findStartChar((char)buf))
-                            level.pop();
-                    } catch (EmptyStackException e) {
-                        throw new IOException("Malformed map");
-                    }
+                	if (level.isEmpty())
+                		throw new IOException("Malformed map");
+                	
+                    if (level.peek()==findStartChar((char)buf))
+                        level.pop();
                 } else if (buf==','&&level.isEmpty()) { // Current map item complete
                     break;
                 }

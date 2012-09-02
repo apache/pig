@@ -17,6 +17,8 @@
  */
 package org.apache.pig.newplan.logical.rules;
 
+import java.util.Deque;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Stack;
 
@@ -43,11 +45,11 @@ import org.apache.pig.impl.util.Pair;
  *
  */
 class ConstExpEvaluator extends LogicalExpressionVisitor {
-    Stack<ConstantExpression> result;
+    Deque<ConstantExpression> result;
 
     ConstExpEvaluator(OperatorPlan plan) throws FrontendException {
         super(plan, new ReverseDependencyOrderWalker(plan));
-        result = new Stack<ConstantExpression>();
+        result = new LinkedList<ConstantExpression>();
     }
 
     @SuppressWarnings("unchecked")

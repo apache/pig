@@ -19,9 +19,10 @@ package org.apache.pig.newplan.logical.expression;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Deque;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Stack;
 
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.EvalFunc;
@@ -89,12 +90,12 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
         currentOp = op;
         logToPhyMap = map;
         currentPlan = phyPlan;
-        currentPlans = new Stack<PhysicalPlan>();
+        currentPlans = new LinkedList<PhysicalPlan>();
     }
     
     protected Map<Operator, PhysicalOperator> logToPhyMap;
 
-    protected Stack<PhysicalPlan> currentPlans;
+    protected Deque<PhysicalPlan> currentPlans;
 
     protected PhysicalPlan currentPlan;
 
