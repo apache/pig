@@ -182,13 +182,13 @@ public class LOSort extends LogicalRelationalOperator{
             LOSort otherSort = (LOSort)other;
             if (!mAscCols.equals(otherSort.getAscendingCols()))
                 return false;
-            if (mSortFunc.equals(otherSort.getUserFunc()))
+            if (!mSortFunc.equals(otherSort.getUserFunc()))
                 return false;
             if (mIsStar!=otherSort.isStar())
                 return false;
             if (limit!=otherSort.getLimit())
                 return false;
-            if (mSortColPlans.equals(otherSort.getSortColPlans()))
+            if (!mSortColPlans.equals(otherSort.getSortColPlans()))
                 return false;
         }
         return checkEquality((LogicalRelationalOperator)other);
