@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2781: LOSort isEqual method (xalan via dvryaboy)
+
 PIG-2835: Optimizing the convertion from bytes to Integer/Long (jay23jack via dvryaboy)
 
 PIG-2886: Add Scan TimeRange to HBaseStorage (ted.m via dvryaboy)
