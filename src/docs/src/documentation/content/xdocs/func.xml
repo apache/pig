@@ -2896,7 +2896,7 @@ REGEX_EXTRACT_ALL('192.168.1.5:8020', '(.*)\:(.*)');
    <table>
        <tr>
             <td>
-               <p>REPLACE(string, 'oldChar', 'newChar');</p>
+               <p>REPLACE(string, 'regExp', 'newChar');</p>
             </td>
          </tr>  
    </table>
@@ -2915,10 +2915,10 @@ REGEX_EXTRACT_ALL('192.168.1.5:8020', '(.*)\:(.*)');
          </tr> 
                 <tr>
             <td>
-               <p>'oldChar'</p>
+               <p>'regExp'</p>
             </td>
             <td>
-               <p>The existing characters being replaced, in quotes. </p>
+               <p>The regular expression to which the string is to be matched, in quotes.</p>
             </td>
          </tr> 
                 <tr>
@@ -2941,6 +2941,16 @@ Use the REPLACE function to replace existing characters in a string with new cha
 For example, to change "open source software" to "open source wiki" use this statement: 
 REPLACE(string,'software','wiki');
      </p>
+     <p>
+Note that the REPLACE function is internally implemented using
+<a href="http://docs.oracle.com/javase/6/docs/api/java/lang/String.html#replaceAll(java.lang.String, java.lang.String)">
+java.string.replaceAll(String regex, String replacement)</a>
+where 'regExp' and 'newChar' are passed as the 1st and 2nd argument respectively.
+If you want to replace 
+<a href="http://docs.oracle.com/javase/6/docs/api/java/util/regex/Pattern.html#bs">
+special characters</a> such as '[' in the string literal, it is necessary to escape them in 'regExp'
+by prefixing them with double backslashes (e.g. '\\[').
+    </p>
 </section>
 </section> 
 
