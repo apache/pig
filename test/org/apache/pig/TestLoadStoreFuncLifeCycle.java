@@ -340,7 +340,7 @@ public class TestLoadStoreFuncLifeCycle {
         assertEquals("c", out.get(2).get(0));
 
         assertTrue("loader instanciation count increasing: " + Loader.count, Loader.count <= 3);
-        assertTrue("storer instanciation count increasing: " + Storer.count, Storer.count <= 3);
+        assertTrue("storer instanciation count increasing: " + Storer.count, Storer.count <= 4);
 
     }
 

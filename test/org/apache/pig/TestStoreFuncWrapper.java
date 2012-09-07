@@ -63,6 +63,9 @@ public class TestStoreFuncWrapper {
 
         wrapper.setStoreFuncUDFContextSignature(null);
         assertEquals("setStoreFuncUDFContextSignature", storeFunc.getLastMethodCalled());
+  
+        wrapper.cleanupOnSuccess(null, null);
+        assertEquals("cleanupOnSuccess", storeFunc.getLastMethodCalled());
 
         wrapper.cleanupOnFailure(null, null);
         assertEquals("cleanupOnFailure", storeFunc.getLastMethodCalled());
@@ -146,6 +149,11 @@ public class TestStoreFuncWrapper {
 
         @Override
         public void setStoreFuncUDFContextSignature(String signature) {
+            setLastMethodCalled();
+        }
+
+        @Override
+        public void cleanupOnSuccess(String location, Job job) throws IOException {
             setLastMethodCalled();
         }
 

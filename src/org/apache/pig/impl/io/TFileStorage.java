@@ -206,4 +206,8 @@ public class TFileStorage extends FileInputLoadFunc implements
         StoreFunc.cleanupOnFailureImpl(location, job);
     }
 
+    @Override
+    public void cleanupOnSuccess(String location, Job job) throws IOException {
+        // DEFAULT: do nothing
+    }
 }

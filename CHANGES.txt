@@ -21,6 +21,7 @@ Pig Change Log
 Trunk (unreleased changes)
 
 INCOMPATIBLE CHANGES
+PIG-1891 Enable StoreFunc to make intelligent decision based on job success or failure (initialcontext via gates)
 
 IMPROVEMENTS
 
