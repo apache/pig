@@ -159,9 +159,28 @@ public abstract class StoreFunc implements StoreFuncInterface {
     throws IOException {
         cleanupOnFailureImpl(location, job);
     }
+
+    /**
+     * This method will be called by Pig if the job which contains this store
+     * is successful, and some cleanup of intermediate resources is required.
+     * Implementations can clean up output locations in this method to
+     * ensure that no incorrect/incomplete results are left in the output location.
+     * @param location Location returned by 
+     * {@link StoreFunc#relToAbsPathForStoreLocation(String, Path)}
+     * @param job The {@link Job} object - this should be used only to obtain 
+     * cluster properties through {@link Job#getConfiguration()} and not to set/query
+     * any runtime job information. 
+     */
+    @Override
+    public void cleanupOnSuccess(String location, Job job) 
+    throws IOException {
+        // DEFAULT: DO NOTHING, user-defined overrides can
+        // call cleanupOnFailureImpl(location, job) or ...?
+    }
     
     /**
-     * Implementation for {@link #cleanupOnFailure(String, Job)}.  This removes a file
+     * Default implementation for {@link #cleanupOnFailure(String, Job)}
+     * and {@link #cleanupOnSuccess(String, Job)}.  This removes a file
      * from HDFS.
      * @param location file name (or URI) of file to remove
      * @param job Hadoop job, used to access the appropriate file system.

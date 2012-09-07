@@ -87,6 +87,11 @@ public class StoreFuncWrapper implements StoreFuncInterface {
         storeFunc().cleanupOnFailure(location, job);
     }
 
+    @Override
+    public void cleanupOnSuccess(String location, Job job) throws IOException {
+        storeFunc().cleanupOnSuccess(location, job);
+    }
+
     private StoreFuncInterface storeFunc() {
         if (this.storeFunc == null) {
             // Pig does not re-throw the exception with a stack trace in the parse phase.

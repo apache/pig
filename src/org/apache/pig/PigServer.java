@@ -1288,9 +1288,17 @@ public class PigServer {
                 } catch (IOException e) {
                     throw new ExecException(e);
                 }
+            } else {
+                POStore store = output.getPOStore();
+                try {
+                    store.getStoreFunc().cleanupOnSuccess(
+                            store.getSFile().getFileName(),
+                            new Job(output.getConf()));
+                } catch (IOException e) {
+                    throw new ExecException(e);
+                }
             }
         }
-
         return stats;
     }
 

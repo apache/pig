@@ -455,6 +455,11 @@ private MockRecordWriter mockRecordWriter;
 	init(location, job);
   }
 
+  @Override
+  public void cleanupOnSuccess(String location, Job job) throws IOException {
+	init(location, job);
+  }
+
   // StoreMetaData
   
   @Override
