@@ -25,6 +25,8 @@ PIG-1891 Enable StoreFunc to make intelligent decision based on job success or f
 
 IMPROVEMENTS
 
+PIG-2901: Errors and lacks in document "Pig Latin Basics" (miyakawataku via billgraham)
+
 PIG-2905: Improve documentation around REPLACE (cheolsoo via billgraham)
 
 PIG-2882: Use Deque instead of Stack (mkhadikov via dvryaboy)
