@@ -741,6 +741,8 @@ Release 0.9.3 - Unreleased
 
 BUG FIXES
 
+PIG-2912: Pig should clone JobConf while creating JobContextImpl and TaskAttemptContextImpl in Hadoop23 (rohini via daijy)
+
 PIG-2775: Register jar does not goes to classpath in some cases (daijy)
 
 PIG-2693: LoadFunc.setLocation should be called before LoadMetadata.getStatistics (billgraham via julien)

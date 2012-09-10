@@ -17,6 +17,9 @@
  */
 package org.apache.pig.test;
 
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.FileReader;
 import java.io.StringReader;
 import java.io.IOException;
 import java.io.File;
@@ -27,14 +30,20 @@ import java.util.Collections;
 import java.util.Properties;
 
 import junit.framework.Assert;
-import junit.framework.TestCase;
 
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.OutputCommitter;
+import org.apache.hadoop.mapreduce.OutputFormat;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
-import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigTextOutputFormat;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.builtin.PigStorage;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorPlan;
@@ -329,6 +338,89 @@ public class TestMultiQueryLocal {
 
             myPig.executeBatch();
             myPig.discardBatch();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
+
+    public static class PigStorageWithConfig extends PigStorage {
+
+        private static final String key = "test.key";
+        private String suffix;
+
+        public PigStorageWithConfig(String s) {
+            this.suffix = s;
+        }
+
+        @Override
+        public void setStoreLocation(String location, Job job) throws IOException {
+            super.setStoreLocation(location, job);
+            Assert.assertNull(job.getConfiguration().get(key));
+        }
+
+        @Override
+        public OutputFormat getOutputFormat() {
+            return new PigTextOutputFormatWithConfig();
+        }
+
+        @Override
+        public void putNext(Tuple f) throws IOException {
+            try {
+                Tuple t = TupleFactory.getInstance().newTuple();
+                for (Object obj : f.getAll()) {
+                    t.append(obj);
+                }
+                t.append(suffix);
+                writer.write(null, t);
+            } catch (InterruptedException e) {
+                throw new IOException(e);
+            }
+        }
+    }
+
+    private static class PigTextOutputFormatWithConfig extends PigTextOutputFormat {
+
+        public PigTextOutputFormatWithConfig() {
+            super((byte) '\t');
+        }
+
+        @Override
+        public synchronized OutputCommitter getOutputCommitter(TaskAttemptContext context)
+                throws IOException {
+            context.getConfiguration().set(PigStorageWithConfig.key, "mapred.work.output.dir");
+            return super.getOutputCommitter(context);
+        }
+    }
+
+    // See PIG-2912
+    @Test
+    public void testMultiStoreWithConfig() {
+
+        System.out.println("===== test multi-query with competing config =====");
+
+        try {
+            myPig.setBatchOn();
+
+            myPig.registerQuery("a = load 'test/org/apache/pig/test/data/passwd' " +
+                                "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
+            myPig.registerQuery("b = filter a by uid < 5;");
+            myPig.registerQuery("c = filter a by uid > 5;");
+            myPig.registerQuery("store b into '/tmp/Pig-TestMultiQueryLocal1' using " + PigStorageWithConfig.class.getName() + "('a');");
+            myPig.registerQuery("store c into '/tmp/Pig-TestMultiQueryLocal2' using " + PigStorageWithConfig.class.getName() + "('b');");
+
+            myPig.executeBatch();
+            myPig.discardBatch();
+            BufferedReader reader = new BufferedReader(new FileReader("/tmp/Pig-TestMultiQueryLocal1/part-m-00000"));
+            String line;
+            while ((line = reader.readLine())!=null) {
+                Assert.assertTrue(line.endsWith("a"));
+            }
+            reader = new BufferedReader(new FileReader("/tmp/Pig-TestMultiQueryLocal2/part-m-00000"));
+            while ((line = reader.readLine())!=null) {
+                Assert.assertTrue(line.endsWith("b"));
+            }
 
         } catch (Exception e) {
             e.printStackTrace();
