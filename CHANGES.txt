@@ -229,6 +229,8 @@ PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
 
+PIG-2912: Pig should clone JobConf while creating JobContextImpl and TaskAttemptContextImpl in Hadoop23 (rohini via daijy)
+
 PIG-2775: Register jar does not goes to classpath in some cases (daijy)
 
 PIG-2195: AvroStorage fails to STORE when LOADing via PigStorage (billgraham via gates)
