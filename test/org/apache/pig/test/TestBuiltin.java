@@ -89,7 +89,6 @@ import org.apache.pig.builtin.SubtractDuration;
 import org.apache.pig.builtin.TOBAG;
 import org.apache.pig.builtin.TOKENIZE;
 import org.apache.pig.builtin.TOMAP;
-import org.apache.pig.builtin.TOP;
 import org.apache.pig.builtin.TOTUPLE;
 import org.apache.pig.builtin.TRIM;
 import org.apache.pig.builtin.TextLoader;
@@ -1976,53 +1975,7 @@ public class TestBuiltin {
 	assertEquals("", m.get("k2"), 2.0);
 	assertEquals("", m.get("k3"), "foo");
 
-
-        TOP top = new TOP();
-        TupleFactory tupleFactory = TupleFactory.getInstance();
-        BagFactory bagFactory = DefaultBagFactory.getInstance();
-        Tuple inputTuple = tupleFactory.newTuple(3);
-        DataBag dBag = bagFactory.newDefaultBag();
-
-        // set N = 10 i.e retain top 10 tuples
-        inputTuple.set(0, 10);
-        // compare tuples by field number 1
-        inputTuple.set(1, 1);
-        // set the data bag containing the tuples
-        inputTuple.set(2, dBag);
-
-        // generate tuples of the form (group-1, 1), (group-2, 2) ...
-        for (long i = 0; i < 100; i++) {
-            Tuple nestedTuple = tupleFactory.newTuple(2);
-            nestedTuple.set(0, "group-" + i);
-            nestedTuple.set(1, i);
-            dBag.add(nestedTuple);
-        }
-
-        DataBag outBag = top.exec(inputTuple);
-        assertEquals(outBag.size(), 10L);
-        checkItemsGT(outBag, 1, 89);
-
-        // two initial results
-        Tuple init1 = (new TOP.Initial()).exec(inputTuple);
-        Tuple init2 = (new TOP.Initial()).exec(inputTuple);
-        // two intermediate results
-
-        DataBag intermedBag = bagFactory.newDefaultBag();
-        intermedBag.add(init1);
-        intermedBag.add(init2);
-        Tuple intermedInput = tupleFactory.newTuple(intermedBag);
-        Tuple intermedOutput1 = (new TOP.Intermed()).exec(intermedInput);
-        Tuple intermedOutput2 = (new TOP.Intermed()).exec(intermedInput);
-        checkItemsGT((DataBag)intermedOutput1.get(2), 1, 94);
-
-        // final result
-        DataBag finalInputBag = bagFactory.newDefaultBag();
-        finalInputBag.add(intermedOutput1);
-        finalInputBag.add(intermedOutput2);
-        Tuple finalInput = tupleFactory.newTuple(finalInputBag);
-        outBag = (new TOP.Final()).exec(finalInput);
-        assertEquals(outBag.size(), 10L);
-        checkItemsGT(outBag, 1, 96);
+        // TOP - tests migrated to org.apache.pig.builtin.TestTop
     }
 
     @Test
