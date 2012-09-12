@@ -1663,15 +1663,17 @@
      </target>
   
      <!-- this is here for curiosity, to see how well the makepom task works
-     Answer: it depends whether you want transitive dependencies excluded or not
+    makepom does not depend on the resolution as it translate the ivy file into a maven file
+    we map ivy configurations to maven scopes
      -->
-     <target name="makepom" depends="ivy-resolve">
+     <target name="makepom" depends="ivy-init">
         <ivy:makepom settingsRef="${ant.project.name}.ivy.settings"
            ivyfile="ivy.xml"
-           pomfile="${build.ivy.maven.dir}/generated.pom">
-        <ivy:mapping conf="default" scope="default"/>
-        <ivy:mapping conf="master" scope="master"/> 
-        <ivy:mapping conf="runtime" scope="runtime"/>
+           pomfile="${build.ivy.maven.dir}/generated.pom"
+           conf="compile,runtime,test">
+        <ivy:mapping conf="compile" scope="compile"/>
+        <ivy:mapping conf="test" scope="test"/>
+        <ivy:mapping conf="runtime" scope="run"/>
         </ivy:makepom>
      </target>
 
