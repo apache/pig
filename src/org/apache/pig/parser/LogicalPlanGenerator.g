@@ -85,6 +85,7 @@ import org.apache.pig.newplan.logical.relational.LOGenerate;
 import org.apache.pig.newplan.logical.relational.LOLimit;
 import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.apache.pig.newplan.logical.relational.LOSort;
+import org.apache.pig.newplan.logical.relational.LORank;
 import org.apache.pig.newplan.logical.relational.LOSplitOutput;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
@@ -213,6 +214,7 @@ op_clause returns[String alias] :
           | limit_clause { $alias = $limit_clause.alias; }
           | sample_clause { $alias = $sample_clause.alias; }
           | order_clause { $alias = $order_clause.alias; }
+          | rank_clause { $alias = $rank_clause.alias; }
           | cross_clause { $alias = $cross_clause.alias; }
           | join_clause { $alias = $join_clause.alias; }
           | union_clause { $alias = $union_clause.alias; }
@@ -1050,6 +1052,76 @@ scope GScope;
            (LOFilter)$GScope::currentOp, $statement::alias, $statement::inputAlias, exprPlan, $expr.expr);
    }
   ) )
+;
+
+rank_clause returns[String alias]
+scope {
+	LORank rankOp;
+}
+scope GScope;
+@init {
+	$GScope::currentOp = builder.createRankOp();
+}
+@after {
+}
+ : ^( RANK rel rank_by_statement? )
+ {
+	SourceLocation loc = new SourceLocation( (PigParserNode) $rank_clause.start );
+
+	List<LogicalExpressionPlan> tempPlans = $rank_by_statement.plans;
+	List<Boolean> tempAscFlags = $rank_by_statement.ascFlags;
+
+	if(tempPlans == null && tempAscFlags == null) {
+		tempPlans = new ArrayList<LogicalExpressionPlan>();
+		tempAscFlags = new ArrayList<Boolean>();
+
+		((LORank)$GScope::currentOp).setIsRowNumber( true );
+	}
+
+	((LORank)$GScope::currentOp).setIsDenseRank( $rank_by_statement.isDenseRank != null?$rank_by_statement.isDenseRank:false );
+
+	$alias = builder.buildRankOp( loc, (LORank)$GScope::currentOp, $statement::alias, $statement::inputAlias, tempPlans, tempAscFlags );
+ }
+;
+
+rank_by_statement returns[List<LogicalExpressionPlan> plans, List<Boolean> ascFlags, Boolean isDenseRank]
+@init {
+    $plans = new ArrayList<LogicalExpressionPlan>();
+    $ascFlags = new ArrayList<Boolean>();
+    $isDenseRank = false;
+}
+ : ^( BY rank_by_clause ( DENSE { $isDenseRank =  true; }  )? )
+ {
+	$plans = $rank_by_clause.plans;
+	$ascFlags = $rank_by_clause.ascFlags;
+ }
+;
+
+rank_by_clause returns[List<LogicalExpressionPlan> plans, List<Boolean> ascFlags]
+@init {
+    $plans = new ArrayList<LogicalExpressionPlan>();
+    $ascFlags = new ArrayList<Boolean>();
+}
+ : STAR {
+		LogicalExpressionPlan plan = new LogicalExpressionPlan();
+		builder.buildProjectExpr( new SourceLocation( (PigParserNode)$STAR ), plan, $GScope::currentOp, $statement::inputIndex, null, -1 );
+		$plans.add( plan );
+   }
+   ( ASC { $ascFlags.add( true ); } | DESC { $ascFlags.add( false ); } )?
+ | ( rank_col
+   {
+       $plans.add( $rank_col.plan );
+       $ascFlags.add( $rank_col.ascFlag );
+   } )+
+;
+
+rank_col returns[LogicalExpressionPlan plan, Boolean ascFlag]
+@init {
+    $plan = new LogicalExpressionPlan();
+    $ascFlag = true;
+}
+ : col_range[$plan] (ASC | DESC { $ascFlag = false; } )?
+ | col_ref[$plan] ( ASC | DESC { $ascFlag = false; } )?
 ;
 
 order_clause returns[String alias]

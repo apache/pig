@@ -204,6 +204,16 @@ sub generateData
             'filetype' => "numbers",
             'rows' => 5000,
             'outfile' => "types/numbers.txt",
+        }, {
+            'name' => "biggish",
+            'filetype' => "biggish",
+            'rows' => 1000000,
+            'outfile' => "singlefile/biggish",
+        }, {
+            'name' => "prerank",
+            'filetype' => "ranking",
+            'rows' => 30,
+            'outfile' => "singlefile/prerank",
         }
     );
 

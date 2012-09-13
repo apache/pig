@@ -115,7 +115,13 @@ public class DotPOPrinter extends DotPlanDumper<PhysicalOperator, PhysicalPlan,
             plans.addAll(((POForEach)op).getInputPlans());
         }
         else if(op instanceof POSort){
-            plans.addAll(((POSort)op).getSortPlans()); 
+            plans.addAll(((POSort)op).getSortPlans());
+        }
+        else if(op instanceof PORank){
+            plans.addAll(((PORank)op).getRankPlans());
+        }
+        else if(op instanceof POCounter){
+            plans.addAll(((POCounter)op).getCounterPlans());
         }
         else if(op instanceof POLocalRearrange){
             plans.addAll(((POLocalRearrange)op).getPlans());

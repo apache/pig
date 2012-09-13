@@ -40,6 +40,7 @@ import org.apache.pig.newplan.logical.relational.LOInnerLoad;
 import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.apache.pig.newplan.logical.relational.LOLimit;
 import org.apache.pig.newplan.logical.relational.LOLoad;
+import org.apache.pig.newplan.logical.relational.LORank;
 import org.apache.pig.newplan.logical.relational.LOSort;
 import org.apache.pig.newplan.logical.relational.LOSplit;
 import org.apache.pig.newplan.logical.relational.LOSplitOutput;
@@ -143,12 +144,22 @@ public class UidResetter extends LogicalRelationalNodesVisitor {
             uidResetter.visit();
         }
     }
-    
+
+    @Override
+    public void visit(LORank loRank) throws FrontendException {
+        loRank.resetUid();
+        List<LogicalExpressionPlan> rankPlans = loRank.getRankColPlans();
+        for (LogicalExpressionPlan rankPlan : rankPlans) {
+            ExpressionUidResetter uidResetter = new ExpressionUidResetter(rankPlan);
+            uidResetter.visit();
+        }
+    }
+
     @Override
     public void visit(LODistinct loDistinct) throws FrontendException {
         loDistinct.resetUid();
     }
-    
+
     @Override
     public void visit(LOLimit loLimit) throws FrontendException {
         loLimit.resetUid();

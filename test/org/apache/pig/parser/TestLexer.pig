@@ -73,7 +73,13 @@ A = LOAD 'data' AS (f1:int,f2:int,f3:int);
 
 X = SAMPLE A 0.01;
 
+R = rank A by f1;
 
+R = rank A by f1 ASC, f2 DESC, f3;
+
+R = rank A by *;
+
+R = rank A by * DESC DENSE;
 
 
 

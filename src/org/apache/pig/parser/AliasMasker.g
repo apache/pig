@@ -123,6 +123,7 @@ op_clause : define_clause
           | limit_clause
           | sample_clause
           | order_clause
+          | rank_clause
           | cross_clause
           | join_clause
           | union_clause
@@ -374,48 +375,65 @@ col_index
 col_range :  ^(COL_RANGE col_ref? DOUBLE_PERIOD col_ref?)
 ;
 
-pound_proj 
+pound_proj
     : ^( POUND ( QUOTEDSTRING | NULL ) )
 ;
 
-bin_expr 
-    : ^( BIN_EXPR cond expr expr )     
+bin_expr
+    : ^( BIN_EXPR cond expr expr )
 ;
 
-limit_clause 
+limit_clause
     : ^( LIMIT rel ( INTEGER | LONGINTEGER | expr ) )
 ;
 
-sample_clause 
+sample_clause
     :	 ^( SAMPLE rel ( DOUBLENUMBER | expr ) )
 ;
 
-order_clause 
+rank_clause
+	: ^( RANK rel ( rank_by_statement )? )
+;
+
+rank_by_statement
+	: ^( BY rank_by_clause ( DENSE )? )
+;
+
+rank_by_clause
+	: STAR ( ASC | DESC )?
+    | rank_col+
+;
+
+rank_col
+	: ( col_range | col_ref ) ( ASC | DESC )?
+;
+
+order_clause
     : ^( ORDER rel order_by_clause func_clause? )
 ;
 
-order_by_clause 
+order_by_clause
     : STAR ( ASC | DESC )?
     | order_col+
 ;
 
-order_col 
-    : (col_range | col_ref) ( ASC | DESC )?    
+order_col
+    : (col_range | col_ref) ( ASC | DESC )?
 ;
 
-distinct_clause 
+distinct_clause
     : ^( DISTINCT rel partition_clause? )
 ;
 
-partition_clause 
-    : ^( PARTITION func_name )    
+partition_clause
+    : ^( PARTITION func_name )
 ;
 
-cross_clause 
-    : ^( CROSS rel_list partition_clause? )    
+cross_clause
+    : ^( CROSS rel_list partition_clause? )
 ;
 
-rel_list 
+rel_list
     : rel+
 ;
 
@@ -601,6 +619,7 @@ eid : rel_str_op
     | ROLLUP
     | MATCHES
     | ORDER
+    | RANK
     | DISTINCT
     | COGROUP
     | JOIN

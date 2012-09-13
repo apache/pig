@@ -81,6 +81,12 @@ FOREACH : 'FOREACH'
 ORDER   :  'ORDER'
 ;
 
+RANK   :  'RANK'
+;
+
+DENSE   :  'DENSE'
+;
+
 CUBE    : 'CUBE'
 ;
 

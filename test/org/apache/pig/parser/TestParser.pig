@@ -90,3 +90,11 @@ H = union onschema A, B;
 
 --stream
 C = stream A through CMD;
+
+
+--rank
+
+R = rank A;
+R = rank A by a;
+R = rank A by a DESC;
+R = rank A by a DESC, b;

@@ -90,6 +90,7 @@ op_clause : define_clause
           | limit_clause
           | sample_clause
           | order_clause
+          | rank_clause
           | cross_clause
           | join_clause
           | union_clause
@@ -346,25 +347,42 @@ col_index
 col_range :  ^(COL_RANGE col_ref? { sb.append(".."); } DOUBLE_PERIOD col_ref?)
 ;
 
-pound_proj 
+pound_proj
     : ^( POUND { sb.append($POUND.text); }
         ( QUOTEDSTRING { sb.append($QUOTEDSTRING.text); } | NULL { sb.append($NULL.text); } ) )
 ;
 
-bin_expr 
-    : ^( BIN_EXPR { sb.append(" ("); } cond { sb.append(" ? "); } expr { sb.append(" : "); } expr { sb.append(") "); } )     
+bin_expr
+    : ^( BIN_EXPR { sb.append(" ("); } cond { sb.append(" ? "); } expr { sb.append(" : "); } expr { sb.append(") "); } )
 ;
 
-limit_clause 
-    : ^( LIMIT { sb.append($LIMIT.text).append(" "); } rel 
+limit_clause
+    : ^( LIMIT { sb.append($LIMIT.text).append(" "); } rel
         ( INTEGER { sb.append(" ").append($INTEGER.text); } | LONGINTEGER { sb.append(" ").append($LONGINTEGER.text); } | expr ) )
 ;
 
-sample_clause 
-    : ^( SAMPLE { sb.append($SAMPLE.text).append(" "); } rel ( DOUBLENUMBER { sb.append(" ").append($DOUBLENUMBER.text); } | expr ) )    
+sample_clause
+    : ^( SAMPLE { sb.append($SAMPLE.text).append(" "); } rel ( DOUBLENUMBER { sb.append(" ").append($DOUBLENUMBER.text); } | expr ) )
 ;
 
-order_clause 
+rank_clause
+    : ^( RANK { sb.append($RANK.text).append(" "); } rel ( rank_by_statement )? )
+;
+
+rank_by_statement
+	: ^( BY { sb.append(" ").append($BY.text); } rank_by_clause ( DENSE { sb.append(" ").append($DENSE.text); } )? )
+;
+
+rank_by_clause
+	: STAR { sb.append($STAR.text); } ( ASC { sb.append(" ").append($ASC.text); } | DESC { sb.append(" ").append($DESC.text); } )?
+    | rank_col ( { sb.append(", "); } rank_col )*
+;
+
+rank_col
+	: ( col_range | col_ref ) ( ASC { sb.append(" ").append($ASC.text); } | DESC { sb.append(" ").append($DESC.text); } )?
+;
+
+order_clause
     : ^( ORDER { sb.append($ORDER.text).append(" "); } rel
         { sb.append(" BY "); } order_by_clause
         ( { sb.append(" USING "); } func_clause )? )
@@ -589,6 +607,7 @@ eid : rel_str_op
     | ROLLUP    { sb.append($ROLLUP.text); }
     | MATCHES   { sb.append($MATCHES.text); }
     | ORDER     { sb.append($ORDER.text); }
+    | RANK      { sb.append($RANK.text); }
     | DISTINCT  { sb.append($DISTINCT.text); }
     | COGROUP   { sb.append($COGROUP.text); }
     | JOIN      { sb.append($JOIN.text); }

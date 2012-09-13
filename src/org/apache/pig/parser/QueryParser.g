@@ -222,6 +222,7 @@ op_clause : define_clause
           | limit_clause
           | sample_clause
           | order_clause
+          | rank_clause
           | cross_clause
           | join_clause
           | union_clause
@@ -499,6 +500,24 @@ limit_clause : LIMIT^ rel ( (INTEGER SEMI_COLON) => INTEGER | (LONGINTEGER SEMI_
 ;
 
 sample_clause : SAMPLE^ rel ( (DOUBLENUMBER SEMI_COLON) => DOUBLENUMBER | expr )
+;
+
+rank_clause : RANK^ rel ( rank_by_statement )?
+;
+
+rank_by_statement : BY^ rank_by_clause ( DENSE )?
+;
+
+rank_by_clause : STAR ( ASC | DESC )?
+			   | rank_list
+;
+
+rank_list : rank_col ( COMMA rank_col )*
+         -> rank_col+
+;
+
+rank_col : col_range ( ASC | DESC )?
+         | col_ref ( ASC | DESC )?
 ;
 
 order_clause : ORDER^ rel BY! order_by_clause ( USING! func_clause )?

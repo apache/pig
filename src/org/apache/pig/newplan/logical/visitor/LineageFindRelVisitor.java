@@ -57,6 +57,7 @@ import org.apache.pig.newplan.logical.relational.LOInnerLoad;
 import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.apache.pig.newplan.logical.relational.LOLimit;
 import org.apache.pig.newplan.logical.relational.LOLoad;
+import org.apache.pig.newplan.logical.relational.LORank;
 import org.apache.pig.newplan.logical.relational.LOSort;
 import org.apache.pig.newplan.logical.relational.LOSplit;
 import org.apache.pig.newplan.logical.relational.LOSplitOutput;
@@ -373,13 +374,21 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
             visitExpression(expPlan);
         }
     }
-    
-    
+
+    @Override
+    public void visit(LORank rank) throws FrontendException{
+        mapToPredLoadFunc(rank);
+        List<LogicalExpressionPlan> expPlans = rank.getRankColPlans();
+        for(LogicalExpressionPlan expPlan : expPlans){
+            visitExpression(expPlan);
+        }
+    }
+
     @Override
     public void visit(LODistinct relOp) throws FrontendException{
         mapToPredLoadFunc(relOp);
     }
-    
+
     @Override
     public void visit(LOLimit loLimit) throws FrontendException{
         mapToPredLoadFunc(loLimit);

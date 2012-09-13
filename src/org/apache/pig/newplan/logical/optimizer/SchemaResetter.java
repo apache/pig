@@ -44,6 +44,7 @@ import org.apache.pig.newplan.logical.relational.LOInnerLoad;
 import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.apache.pig.newplan.logical.relational.LOLimit;
 import org.apache.pig.newplan.logical.relational.LOLoad;
+import org.apache.pig.newplan.logical.relational.LORank;
 import org.apache.pig.newplan.logical.relational.LOSort;
 import org.apache.pig.newplan.logical.relational.LOSplit;
 import org.apache.pig.newplan.logical.relational.LOSplitOutput;
@@ -169,13 +170,20 @@ public class SchemaResetter extends LogicalRelationalNodesVisitor {
         visitAll(loSort.getSortColPlans());
         validate(loSort.getSchema());
     }
-    
+
+    @Override
+    public void visit(LORank loRank) throws FrontendException{
+        loRank.resetSchema();
+        visitAll(loRank.getRankColPlans());
+        validate(loRank.getSchema());
+    }
+
     @Override
     public void visit(LODistinct loDistinct) throws FrontendException {
         loDistinct.resetSchema();
         validate(loDistinct.getSchema());
     }
-    
+
     @Override
     public void visit(LOLimit loLimit) throws FrontendException {
         loLimit.resetSchema();

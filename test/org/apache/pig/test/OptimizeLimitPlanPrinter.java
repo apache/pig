@@ -57,6 +57,7 @@ import org.apache.pig.newplan.logical.relational.LOInnerLoad;
 import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.apache.pig.newplan.logical.relational.LOLimit;
 import org.apache.pig.newplan.logical.relational.LOLoad;
+import org.apache.pig.newplan.logical.relational.LORank;
 import org.apache.pig.newplan.logical.relational.LOSort;
 import org.apache.pig.newplan.logical.relational.LOSplit;
 import org.apache.pig.newplan.logical.relational.LOSplitOutput;
@@ -179,12 +180,18 @@ public class OptimizeLimitPlanPrinter extends LogicalRelationalNodesVisitor {
         sb.append(";\n");
         appendEdges(loSort);
     }
-    
+
+    @Override
+    public void visit(LORank loRank) throws FrontendException {
+        appendOp(loRank) ;
+        appendEdges(loRank);
+    }
+
     @Override
     public void visit(LODistinct loDistinct) throws FrontendException {
         appendEdges(loDistinct);
     }
-    
+
     @Override
     public void visit(LOLimit loLimit) throws FrontendException {
         appendOp(loLimit) ;
