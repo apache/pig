@@ -494,6 +494,8 @@ static int run(String args[], PigProgressNotificationListener listener) {
                 if (i != 0) sb.append(' ');
                 sb.append(remainders[i]);
             }
+            
+            sb.append('\n'); 
 
             scriptState.setScript(sb.toString());
 
