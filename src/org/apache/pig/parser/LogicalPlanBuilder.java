@@ -79,6 +79,7 @@ import org.apache.pig.newplan.logical.relational.LOJoin.JOINTYPE;
 import org.apache.pig.newplan.logical.relational.LOLimit;
 import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LONative;
+import org.apache.pig.newplan.logical.relational.LORank;
 import org.apache.pig.newplan.logical.relational.LOSort;
 import org.apache.pig.newplan.logical.relational.LOSplit;
 import org.apache.pig.newplan.logical.relational.LOSplitOutput;
@@ -306,7 +307,28 @@ public class LogicalPlanBuilder {
         expandAndResetVisitor(loc, sort);
         return alias;
     }
-    
+
+    LORank createRankOp() {
+        return new LORank( plan );
+    }
+
+    String buildRankOp(SourceLocation loc, LORank rank, String alias, String inputAlias, List<LogicalExpressionPlan> plans,
+            List<Boolean> ascFlags) throws ParserValidationException {
+
+        //Rank
+        rank.setRankColPlan(plans);
+        if (ascFlags.isEmpty()) {
+            for (int i=0;i<plans.size();i++)
+                ascFlags.add(true);
+        }
+        rank.setAscendingCol(ascFlags);
+
+        buildOp( loc, rank, alias, inputAlias, null );
+        expandAndResetVisitor(loc, rank);
+
+        return alias;
+    }
+
     LOJoin createJoinOp() {
         return new LOJoin( plan );
     }

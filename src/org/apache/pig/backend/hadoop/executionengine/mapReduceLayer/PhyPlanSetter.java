@@ -44,23 +44,23 @@ public class PhyPlanSetter extends PhyPlanVisitor {
     public void visitLoad(POLoad ld) throws VisitorException{
         ld.setParentPlan(parent);
     }
-    
+
     @Override
     public void visitNative(PONative nt) throws VisitorException{
         nt.setParentPlan(parent);
     }
- 
+
     @Override
     public void visitStore(POStore st) throws VisitorException{
         st.setParentPlan(parent);
     }
-    
+
     @Override
     public void visitFilter(POFilter fl) throws VisitorException{
         super.visitFilter(fl);
         fl.setParentPlan(parent);
     }
-    
+
     @Override
     public void visitLocalRearrange(POLocalRearrange lr) throws VisitorException{
         super.visitLocalRearrange(lr);
@@ -77,28 +77,28 @@ public class PhyPlanSetter extends PhyPlanVisitor {
     public void visitGlobalRearrange(POGlobalRearrange gr) throws VisitorException{
         gr.setParentPlan(parent);
     }
-    
+
     @Override
     public void visitPackage(POPackage pkg) throws VisitorException{
         pkg.setParentPlan(parent);
     }
-    
+
     @Override
     public void visitCombinerPackage(POCombinerPackage pkg) throws VisitorException{
         pkg.setParentPlan(parent);
     }
-    
+
     @Override
     public void visitPOForEach(POForEach nfe) throws VisitorException {
         super.visitPOForEach(nfe);
         nfe.setParentPlan(parent);
     }
-    
+
     @Override
     public void visitUnion(POUnion un) throws VisitorException{
         un.setParentPlan(parent);
     }
-    
+
     @Override
     public void visitSplit(POSplit spl) throws VisitorException{
         PhysicalPlan oldPlan = parent;
@@ -112,7 +112,7 @@ public class PhyPlanSetter extends PhyPlanVisitor {
         parent=oldPlan;
         spl.setParentPlan(parent);
     }
-    
+
     @Override
     public void visitDemux(PODemux demux) throws VisitorException{
         super.visitDemux(demux);
@@ -121,55 +121,60 @@ public class PhyPlanSetter extends PhyPlanVisitor {
 
     @Override
     public void visitDistinct(PODistinct distinct) throws VisitorException {
-        distinct.setParentPlan(parent);		
+        distinct.setParentPlan(parent);
     }
-    
+
     @Override
     public void visitSort(POSort sort) throws VisitorException {
         super.visitSort(sort);
         sort.setParentPlan(parent);
     }
-    
+
+    @Override
+    public void visitRank(PORank rank) throws VisitorException {
+
+    }
+
     @Override
     public void visitConstant(ConstantExpression cnst) throws VisitorException{
         cnst.setParentPlan(parent);
     }
-    
+
     @Override
     public void visitProject(POProject proj) throws VisitorException{
         proj.setParentPlan(parent);
     }
-    
+
     @Override
     public void visitGreaterThan(GreaterThanExpr grt) throws VisitorException{
         grt.setParentPlan(parent);
     }
-    
+
     @Override
     public void visitLessThan(LessThanExpr lt) throws VisitorException{
         lt.setParentPlan(parent);
     }
-    
+
     @Override
     public void visitGTOrEqual(GTOrEqualToExpr gte) throws VisitorException{
         gte.setParentPlan(parent);
     }
-    
+
     @Override
     public void visitLTOrEqual(LTOrEqualToExpr lte) throws VisitorException{
         lte.setParentPlan(parent);
     }
-    
+
     @Override
     public void visitEqualTo(EqualToExpr eq) throws VisitorException{
         eq.setParentPlan(parent);
     }
-    
+
     @Override
     public void visitNotEqualTo(NotEqualToExpr eq) throws VisitorException{
         eq.setParentPlan(parent);
     }
-    
+
     @Override
     public void visitRegexp(PORegexp re) throws VisitorException{
         re.setParentPlan(parent);
@@ -179,32 +184,32 @@ public class PhyPlanSetter extends PhyPlanVisitor {
     public void visitIsNull(POIsNull isNull) throws VisitorException {
         isNull.setParentPlan(parent);
     }
-    
+
     @Override
     public void visitAdd(Add add) throws VisitorException{
         add.setParentPlan(parent);
     }
-    
+
     @Override
     public void visitSubtract(Subtract sub) throws VisitorException {
         sub.setParentPlan(parent);
     }
-    
+
     @Override
     public void visitMultiply(Multiply mul) throws VisitorException {
         mul.setParentPlan(parent);
     }
-    
+
     @Override
     public void visitDivide(Divide dv) throws VisitorException {
         dv.setParentPlan(parent);
     }
-    
+
     @Override
     public void visitMod(Mod mod) throws VisitorException {
         mod.setParentPlan(parent);
     }
-    
+
     @Override
     public void visitAnd(POAnd and) throws VisitorException {
         and.setParentPlan(parent);
@@ -229,12 +234,12 @@ public class PhyPlanSetter extends PhyPlanVisitor {
     public void visitNegative(PONegative negative) {
         negative.setParentPlan(parent);
     }
-    
+
     @Override
     public void visitUserFunc(POUserFunc userFunc) throws VisitorException {
         userFunc.setParentPlan(parent);
     }
-    
+
     @Override
     public void visitComparisonFunc(POUserComparisonFunc compFunc) throws VisitorException {
         compFunc.setParentPlan(parent);
@@ -244,7 +249,7 @@ public class PhyPlanSetter extends PhyPlanVisitor {
     public void visitMapLookUp(POMapLookUp mapLookUp) {
         mapLookUp.setParentPlan(parent);
     }
-    
+
     @Override
     public void visitJoinPackage(POJoinPackage joinPackage) throws VisitorException{
         joinPackage.setParentPlan(parent);
@@ -254,17 +259,17 @@ public class PhyPlanSetter extends PhyPlanVisitor {
     public void visitCast(POCast cast) {
         cast.setParentPlan(parent);
     }
-    
+
     @Override
     public void visitLimit(POLimit lim) throws VisitorException{
         lim.setParentPlan(parent);
     }
-    
+
     @Override
     public void visitFRJoin(POFRJoin join) throws VisitorException {
         join.setParentPlan(parent);
     }
-    
+
     @Override
     public void visitMergeJoin(POMergeJoin join) throws VisitorException {
         join.setParentPlan(parent);
@@ -280,13 +285,13 @@ public class PhyPlanSetter extends PhyPlanVisitor {
         stream.setParentPlan(parent);
     }
 
-/*
+    /*
     @Override
     public void visitPartitionRearrange(POPartitionRearrange lrfi) throws VisitorException {
         super.visitPartitionRearrange(lrfi);
         lrfi.setParentPlan(parent);
     }
-*/
+     */
 
     @Override
     public void visitPartialAgg(POPartialAgg poPartialAgg) {

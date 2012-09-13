@@ -28,7 +28,7 @@ import org.antlr.runtime.Token;
 import org.junit.Test;
 
 public class TestQueryLexer {
-    
+
     @Test
     public void TestLexer() throws IOException {
         CharStream input = new QueryParserFileStream( "test/org/apache/pig/parser/TestLexer.pig" );
@@ -45,13 +45,13 @@ public class TestQueryLexer {
                 System.out.print( token.getText() + "(" + token.getType() + ") " );
             }
         }
-        
+
         // While we can check more conditions, such as type of each token, for now I think the following
         // is enough. If the token type is wrong, it will be most likely caught by the parser.
-        Assert.assertEquals( 419, tokenCount );
+        Assert.assertEquals( 455, tokenCount );
         Assert.assertEquals( 0, lexer.getNumberOfSyntaxErrors() );
     }
-    
+
     @Test
     public void test2() throws IOException {
         String query = "A = load 'input' using PigStorage(';');" +

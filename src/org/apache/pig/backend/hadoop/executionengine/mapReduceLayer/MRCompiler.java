@@ -58,6 +58,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCollectedGroup;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCounter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCross;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PODistinct;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFRJoin;
@@ -75,6 +76,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage.PackageType;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackageLite;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPartitionRearrange;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PORank;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSkewedJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
@@ -1982,12 +1984,77 @@ public class MRCompiler extends PhyPlanVisitor {
             throw new MRCompilerException(msg, errCode, PigException.BUG, e);
         }
     }
-    
+
+    /**
+     * For the counter job, it depends if it is row number or not.
+     * In case of being a row number, any previous jobs are saved
+     * and POCounter is added as a leaf on a map task.
+     * If it is not, then POCounter is added as a leaf on a reduce
+     * task (last sorting phase).
+     **/
+    @Override
+    public void visitCounter(POCounter op) throws VisitorException {
+        try{
+            if(op.isRowNumber()) {
+                List<PhysicalOperator> mpLeaves = curMROp.mapPlan.getLeaves();
+                PhysicalOperator leaf = mpLeaves.get(0);
+                if ( !curMROp.isMapDone() && !curMROp.isRankOperation() )
+                {
+                    curMROp.setIsCounterOperation(true);
+                    curMROp.setIsRowNumber(true);
+                    curMROp.setOperationID(op.getOperationID());
+                    curMROp.mapPlan.addAsLeaf(op);
+                } else {
+                    FileSpec fSpec = getTempFileSpec();
+                    MapReduceOper prevMROper = endSingleInputPlanWithStr(fSpec);
+                    MapReduceOper mrCounter = startNew(fSpec, prevMROper);
+                    mrCounter.mapPlan.addAsLeaf(op);
+                    mrCounter.setIsCounterOperation(true);
+                    mrCounter.setIsRowNumber(true);
+                    mrCounter.setOperationID(op.getOperationID());
+                    curMROp = mrCounter;
+                }
+            } else {
+                curMROp.setIsCounterOperation(true);
+                curMROp.setIsRowNumber(false);
+                curMROp.setOperationID(op.getOperationID());
+                curMROp.reducePlan.addAsLeaf(op);
+            }
+
+            phyToMROpMap.put(op, curMROp);
+        }catch(Exception e){
+            int errCode = 2034;
+            String msg = "Error compiling operator " + op.getClass().getSimpleName();
+            throw new MRCompilerException(msg, errCode, PigException.BUG, e);
+        }
+    }
+
+    /**
+     * In case of PORank, it is closed any other previous job (containing
+     * POCounter as a leaf) and PORank is added on map phase.
+     **/
+    @Override
+    public void visitRank(PORank op) throws VisitorException {
+        try{
+            FileSpec fSpec = getTempFileSpec();
+            MapReduceOper prevMROper = endSingleInputPlanWithStr(fSpec);
+
+            curMROp = startNew(fSpec, prevMROper);
+            curMROp.setOperationID(op.getOperationID());
+            curMROp.mapPlan.addAsLeaf(op);
+
+            phyToMROpMap.put(op, curMROp);
+        }catch(Exception e){
+            int errCode = 2034;
+            String msg = "Error compiling operator " + op.getClass().getSimpleName();
+            throw new MRCompilerException(msg, errCode, PigException.BUG, e);
+        }
+    }
 
     private Pair<POProject,Byte> [] getSortCols(List<PhysicalPlan> plans) throws PlanException, ExecException {
         if(plans!=null){
             @SuppressWarnings("unchecked")
-            Pair<POProject,Byte>[] ret = new Pair[plans.size()]; 
+            Pair<POProject,Byte>[] ret = new Pair[plans.size()];
             int i=-1;
             for (PhysicalPlan plan : plans) {
                 PhysicalOperator op = plan.getLeaves().get(0);

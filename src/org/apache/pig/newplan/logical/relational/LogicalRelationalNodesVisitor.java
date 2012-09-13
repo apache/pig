@@ -33,7 +33,7 @@ public abstract class LogicalRelationalNodesVisitor extends PlanVisitor {
 
     protected LogicalRelationalNodesVisitor(OperatorPlan plan, PlanWalker walker) throws FrontendException {
         super(plan, walker);
-        
+
         Iterator<Operator> iter = plan.getOperators();
         while(iter.hasNext()) {
             if (!(iter.next() instanceof LogicalRelationalOperator)) {
@@ -41,58 +41,61 @@ public abstract class LogicalRelationalNodesVisitor extends PlanVisitor {
             }
         }
     }
-    
+
     public void visit(LOLoad load) throws FrontendException {
     }
 
     public void visit(LOFilter filter) throws FrontendException {
     }
-    
+
     public void visit(LOStore store) throws FrontendException {
     }
-    
+
     public void visit(LOJoin join) throws FrontendException {
     }
-    
+
     public void visit(LOForEach foreach) throws FrontendException {
     }
-    
+
     public void visit(LOGenerate gen) throws FrontendException {
     }
-    
+
     public void visit(LOInnerLoad load) throws FrontendException {
     }
 
     public void visit(LOCube cube) throws FrontendException {
     }
-    
+
     public void visit(LOCogroup loCogroup) throws FrontendException {
     }
-    
+
     public void visit(LOSplit loSplit) throws FrontendException {
     }
-    
+
     public void visit(LOSplitOutput loSplitOutput) throws FrontendException {
     }
-    
+
     public void visit(LOUnion loUnion) throws FrontendException {
     }
-    
+
     public void visit(LOSort loSort) throws FrontendException {
     }
-    
+
+    public void visit(LORank loRank) throws FrontendException{
+    }
+
     public void visit(LODistinct loDistinct) throws FrontendException {
     }
-    
+
     public void visit(LOLimit loLimit) throws FrontendException {
     }
-    
+
     public void visit(LOCross loCross) throws FrontendException {
     }
-    
+
     public void visit(LOStream loStream) throws FrontendException {
     }
 
-    public void visit(LONative nativeMR) throws FrontendException{     
+    public void visit(LONative nativeMR) throws FrontendException{
     }
 }

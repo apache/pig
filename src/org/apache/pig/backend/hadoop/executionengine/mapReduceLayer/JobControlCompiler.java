@@ -25,13 +25,17 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -42,6 +46,10 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
+import org.apache.hadoop.mapred.Counters;
+import org.apache.hadoop.mapred.Counters.Counter;
+import org.apache.hadoop.mapred.Counters.Group;
+import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobPriority;
 import org.apache.hadoop.mapred.jobcontrol.Job;
@@ -62,11 +70,13 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCounter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFRJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeCogroup;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PORank;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
@@ -137,6 +147,11 @@ public class JobControlCompiler{
     private static final String REDUCER_ESTIMATOR_KEY = "pig.exec.reducer.estimator";
     private static final String REDUCER_ESTIMATOR_ARG_KEY =  "pig.exec.reducer.estimator.arg";
 
+    public static final String PIG_MAP_COUNTER = "pig.counters.counter_";
+    public static final String PIG_MAP_RANK_NAME = "pig.rank_";
+    public static final String PIG_MAP_SEPARATOR = "_";
+    public HashMap<String, ArrayList<Pair<String,Long>>> globalCounters = new HashMap<String, ArrayList<Pair<String,Long>>>();
+
     /**
      * We will serialize the POStore(s) present in map and reduce in lists in
      * the Hadoop Conf. In the case of Multi stores, we could deduce these from
@@ -152,6 +167,7 @@ public class JobControlCompiler{
     private Map<Job, Pair<List<POStore>, Path>> jobStoreMap;
 
     private Map<Job, MapReduceOper> jobMroMap;
+    private int counterSize;
 
     public JobControlCompiler(PigContext pigContext, Configuration conf) throws IOException {
         this.pigContext = pigContext;
@@ -314,6 +330,8 @@ public class JobControlCompiler{
             if (!completeFailedJobs.contains(job))
             {
                 MapReduceOper mro = jobMroMap.get(job);
+                if (mro.isCounterOperation() /*&& completeFailedJobs.size() > 0*/)
+                    saveCounters(job,mro.getOperationID());
                 plan.remove(mro);
             }
         }
@@ -322,6 +340,64 @@ public class JobControlCompiler{
         return sizeBefore-sizeAfter;
     }
 
+    /**
+     * Reads the global counters produced by a job on the group labeled with PIG_MAP_RANK_NAME.
+     * Then, it is calculated the cumulative sum, which consists on the sum of previous cumulative
+     * sum plus the previous global counter value.
+     * @param job with the global counters collected.
+     * @param operationID After being collected on global counters (POCounter),
+     * these values are passed via configuration file to PORank, by using the unique
+     * operation identifier
+     */
+    private void saveCounters(Job job, String operationID) {
+        JobClient jobClient;
+        Counters counters;
+        Group groupCounters;
+
+        Long previousValue = 0L;
+        Long previousSum = 0L;
+        ArrayList<Pair<String,Long>> counterPairs;
+
+        try {
+            jobClient = job.getJobClient();
+            counters = jobClient.getJob(job.getAssignedJobID()).getCounters();
+            groupCounters = counters.getGroup(getGroupName(counters.getGroupNames()));
+
+            Iterator<Counter> it = groupCounters.iterator();
+            HashMap<Integer,Long> counterList = new HashMap<Integer, Long>();
+
+            while(it.hasNext()) {
+                try{
+                    Counter c = it.next();
+                    counterList.put(Integer.valueOf(c.getDisplayName()), c.getValue());
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+            counterSize = counterList.size();
+            counterPairs = new ArrayList<Pair<String,Long>>();
+
+            for(int i = 0; i < counterSize; i++){
+                previousSum += previousValue;
+                previousValue = counterList.get(Integer.valueOf(i));
+                counterPairs.add(new Pair<String, Long>(JobControlCompiler.PIG_MAP_COUNTER + operationID + JobControlCompiler.PIG_MAP_SEPARATOR + i, previousSum));
+            }
+
+            globalCounters.put(operationID, counterPairs);
+
+        } catch (Exception e) {
+            String msg = "Error to read counters into Rank operation counterSize "+counterSize;
+            throw new RuntimeException(msg, e);
+        }
+    }
+
+    private String getGroupName(Collection<String> collection) {
+        for (String name : collection) {
+            if (name.contains(PIG_MAP_RANK_NAME))
+                return name;
+        }
+        return null;
+    }
     /**
      * The method that creates the Job corresponding to a MapReduceOper.
      * The assumption is that
@@ -702,6 +778,28 @@ public class JobControlCompiler{
                 nwJob.setMapperClass(PigMapReduce.MapWithPartitionIndex.class);
                 nwJob.setMapOutputKeyClass(NullablePartitionWritable.class);
                 nwJob.setGroupingComparatorClass(PigGroupingPartitionWritableComparator.class);
+            }
+
+            if (mro.isCounterOperation()) {
+                if (mro.isRowNumber()) {
+                    nwJob.setMapperClass(PigMapReduceCounter.PigMapCounter.class);
+                } else {
+                    nwJob.setReducerClass(PigMapReduceCounter.PigReduceCounter.class);
+                }
+            }
+
+            if(mro.isRankOperation()) {
+                Iterator<String> operationIDs = mro.getRankOperationId().iterator();
+
+                while(operationIDs.hasNext()) {
+                    String operationID = operationIDs.next();
+                    Iterator<Pair<String, Long>> itPairs = globalCounters.get(operationID).iterator();
+                    Pair<String,Long> pair = null;
+                    while(itPairs.hasNext()) {
+                        pair = itPairs.next();
+                        conf.setLong(pair.first, pair.second);
+                    }
+                }
             }
 
             if (!pigContext.inIllustrator)

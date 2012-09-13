@@ -26,6 +26,7 @@ import junit.framework.Assert;
 
 import org.antlr.runtime.CharStream;
 import org.antlr.runtime.CommonTokenStream;
+import org.antlr.runtime.MismatchedTokenException;
 import org.antlr.runtime.RecognitionException;
 import org.antlr.runtime.tree.CommonTree;
 import org.antlr.runtime.tree.Tree;
@@ -414,5 +415,62 @@ public class TestQueryParser {
                      + "d = foreach c generate val_0, tuple_0::val_0, bag_0::map_0;";
         PigServer pig = new PigServer(ExecType.LOCAL);
         Util.registerMultiLineQuery(pig, query);
+    }
+
+
+    //RANK
+    @Test
+    public void testRankPositive1() throws IOException, RecognitionException {
+        shouldPass("B = rank A;");
+    }
+
+    @Test
+    public void testRankPositive2() throws IOException, RecognitionException {
+        shouldPass("B = rank A by x;");
+    }
+
+    @Test
+    public void testRankPositive3() throws IOException, RecognitionException {
+        shouldPass("B = rank A by x DESC;");
+    }
+
+    @Test
+    public void testRankPositive4() throws IOException, RecognitionException {
+        shouldPass("B = rank A by x, y ASC, w DESC, z ASC;");
+    }
+
+    @Test
+    public void testRankPositive5() throws IOException, RecognitionException {
+        String query = "A = load 'data' as (x:int, y:chararray, z:int, rz:chararray);";
+        query += "B = rank A by x..z;";
+        shouldPass(query);
+    }
+
+    @Test
+    public void testRankPositive6() throws IOException, RecognitionException {
+        String query = "A = load 'data' as (x:int, y:chararray, z:int, rz:chararray);";
+        query += "B = rank A by *;";
+        shouldPass(query);
+    }
+
+    @Test
+    public void testRankPositive7() throws IOException, RecognitionException {
+        String query = "A = load 'data' as (x:int, y:chararray, z:int, rz:chararray);";
+        query += "B = rank A by x DESC DENSE;";
+        shouldPass(query);
+    }
+
+    @Test
+    public void testRankPositive8() throws IOException, RecognitionException {
+        String query = "A = load 'data' as (x:int, y:chararray, z:int, rz:chararray);";
+        query += "B = rank A by x DESC,y ASC DENSE;";
+        shouldPass(query);
+    }
+
+    @Test
+    public void testRankPositive9() throws IOException, RecognitionException {
+        String query = "A = load 'data' as (x:int, y:chararray, z:int, rz:chararray);";
+        query += "B = rank A by * DENSE;";
+        shouldPass(query);
     }
 }

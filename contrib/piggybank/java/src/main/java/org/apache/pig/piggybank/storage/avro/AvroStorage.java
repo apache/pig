@@ -635,4 +635,8 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
         }
     }
 
+    @Override
+    public void cleanupOnSuccess(String location, Job job) throws IOException{
+
+    }
 }

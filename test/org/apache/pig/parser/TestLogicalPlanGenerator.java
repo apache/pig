@@ -411,4 +411,61 @@ public class TestLogicalPlanGenerator {
         generateLogicalPlan( query );
     }
 
+    @Test
+    public void testRank01() {
+        String query = "A = LOAD 'data4' AS (name:chararray,surname:chararray,sales:double,code:int);"
+            + "B = rank A by sales;" + "store B into 'rank01_test';";
+        generateLogicalPlan(query);
+    }
+
+    @Test
+    public void testRank02() {
+        String query = "A = LOAD 'data4' AS (name:chararray,surname:chararray,sales:double,code:int);"
+            + "C = rank A by sales DENSE;" + "store C into 'rank02_test';";
+        generateLogicalPlan(query);
+    }
+
+    @Test
+    public void testRank03() {
+        String query = "A = load 'test02' using PigStorage(',') as (firstname:chararray,lastname:chararray,rownumberPrev:int,rankPrev:int,denserankPrev:int,quartilePrev:int,sales:double,postalcode:int);"
+            + "B = rank A;" + "store B into 'rank03_test';";
+        generateLogicalPlan(query);
+    }
+
+    @Test
+    public void testRank04() {
+        String query = "A = load 'test02' using PigStorage(',') as (firstname:chararray,lastname:chararray,rownumberPrev:int,rankPrev:int,denserankPrev:int,quartilePrev:int,sales:double,postalcode:int);"
+            + "C = rank A by postalcode DESC;"
+            + "store C into 'rank04_test';";
+        generateLogicalPlan(query);
+    }
+
+    @Test
+    public void testRank05() {
+        String query = "A = load 'test02' using PigStorage(',') as (firstname:chararray,lastname:chararray,rownumberPrev:int,rankPrev:int,denserankPrev:int,quartilePrev:int,sales:double,postalcode:int);"
+            + "D = rank A by postalcode DENSE;"
+            + "store D into 'rank05_test';";
+        generateLogicalPlan(query);
+    }
+
+    @Test
+    public void testRank06() {
+        String query = "A = load 'data' as (x:int,y:chararray,z:int,rz:chararray);"
+            + "C = rank A by x..rz;";
+        generateLogicalPlan(query);
+    }
+
+    @Test
+    public void testRank07() {
+        String query = "A = load 'data' as (x:int,y:chararray,z:int,rz:chararray);"
+            + "C = rank A by x ASC, y DESC;";
+        generateLogicalPlan(query);
+    }
+
+    @Test
+    public void testRank08() {
+        String query = "A = load 'data' as (x:int,y:chararray,z:int,rz:chararray);"
+            + "C = rank A;";
+        generateLogicalPlan(query);
+    }
 }

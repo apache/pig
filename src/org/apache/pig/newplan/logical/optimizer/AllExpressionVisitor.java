@@ -34,6 +34,7 @@ import org.apache.pig.newplan.logical.relational.LOGenerate;
 import org.apache.pig.newplan.logical.relational.LOInnerLoad;
 import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.apache.pig.newplan.logical.relational.LOLimit;
+import org.apache.pig.newplan.logical.relational.LORank;
 import org.apache.pig.newplan.logical.relational.LOSort;
 import org.apache.pig.newplan.logical.relational.LOSplitOutput;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalNodesVisitor;
@@ -147,7 +148,13 @@ public abstract class AllExpressionVisitor extends LogicalRelationalNodesVisitor
         LogicalExpressionVisitor v = getVisitor(splitOutput.getFilterPlan());
         v.visit();
     }
-    
+
+    @Override
+    public void visit(LORank rank) throws FrontendException{
+        currentOp = rank;
+        visitAll(rank.getRankColPlans());
+    }
+
     @Override
     public void visit(LOSort sort) throws FrontendException {
         currentOp = sort;

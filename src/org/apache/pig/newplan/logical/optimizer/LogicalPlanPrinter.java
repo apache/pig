@@ -36,6 +36,7 @@ import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOGenerate;
 import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.apache.pig.newplan.logical.relational.LOLimit;
+import org.apache.pig.newplan.logical.relational.LORank;
 import org.apache.pig.newplan.logical.relational.LOSort;
 import org.apache.pig.newplan.logical.relational.LOSplitOutput;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
@@ -189,6 +190,11 @@ public class LogicalPlanPrinter extends PlanVisitor {
                     sb.append(planString(plan));
                 }
             }
+        }
+        else if(node instanceof LORank){
+            // Visit fields for rank
+            for (OperatorPlan plan : ((LORank)node).getRankColPlans())
+                sb.append(planString(plan));
         }
         else if(node instanceof LOSort){
             for (OperatorPlan plan : ((LOSort)node).getSortColPlans())
