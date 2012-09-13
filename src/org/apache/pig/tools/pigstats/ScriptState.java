@@ -409,7 +409,7 @@ public class ScriptState {
     }
 
     private void setCommandLine(String commandLine) {
-        this.commandLine = commandLine;
+        this.commandLine = new String(Base64.encodeBase64(commandLine.getBytes()));
     }
 
     private String getScript() {

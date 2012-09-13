@@ -273,6 +273,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2744: Handle Pig command line with XML special characters (lulynn_2008 via daijy)
+
 PIG-2637: Command-line option -e throws TokenMgrError exception (lulynn_2008 via daijy)
 
 PIG-2887: Macro cannot handle negative number (knoguchi via gates)
