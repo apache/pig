@@ -1379,6 +1379,17 @@ public class TestMacroExpansion {
         
         verify(macro + script, expected);
     }
+
+    @Test // PIG-2887
+    public void testNegativeNumber() throws Exception {
+        String query = "A = load 'x' as ( u:int, v:long, w:bytearray); " +
+                       "B = filter A by 2 > -1; " ;
+
+        String expected =
+            "macro_mymacro_A_0 = load 'x' as (u:int, v:long, w:bytearray);\n" +
+            "macro_mymacro_B_0 = filter macro_mymacro_A_0 BY (2 > -1);\n" ;
+        testMacro( query, expected );
+    }
     
     @Test
     public void test1() throws Exception {

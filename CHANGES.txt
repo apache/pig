@@ -269,6 +269,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2887: Macro cannot handle negative number (knoguchi via gates)
+
 PIG-2844: ant makepom is misconfigured (julien)
 
 PIG-2896: Pig does not fail anymore if two macros are declared with the same name (julien)
