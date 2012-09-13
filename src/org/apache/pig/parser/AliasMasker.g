@@ -564,15 +564,10 @@ const_expr : literal
 literal : scalar | map | bag | tuple
 ;
 
-scalar 
-    : INTEGER
-    | LONGINTEGER
-    | FLOATNUMBER
-    | DOUBLENUMBER
-    | QUOTEDSTRING
-    | NULL
-    | TRUE
-    | FALSE
+scalar : num_scalar | QUOTEDSTRING | NULL | TRUE | FALSE
+;
+
+num_scalar : MINUS? ( INTEGER | LONGINTEGER | FLOATNUMBER | DOUBLENUMBER )
 ;
 
 map 
