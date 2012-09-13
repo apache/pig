@@ -88,6 +88,7 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
     private Schema inputAvroSchema = null;    /* input avro schema */
 
     private boolean checkSchema = true; /*whether check schema of input directories*/
+    private boolean ignoreBadFiles = false; /* whether ignore corrupted files during load */
 
     /**
      * Empty constructor. Output schema is derived from pig schema.
@@ -112,9 +113,11 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
         nullable = true;
         checkSchema = true;
 
-        if (parts.length == 1 && !parts[0].equalsIgnoreCase("no_schema_check")) {
-            /* If one parameter is given, and that is not 'no_schema_check',
-             * then it must be a json string.
+        if (parts.length == 1
+                && !parts[0].equalsIgnoreCase("no_schema_check")
+                && !parts[0].equalsIgnoreCase("ignore_bad_files")) {
+            /* If one parameter is given, and that is neither 'no_schema_check'
+             * nor 'ignore_bad_files', then it must be a json string.
              */
             init(parseJsonString(parts[0]));
         } else {
@@ -259,7 +262,7 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
     public InputFormat getInputFormat() throws IOException {
         AvroStorageLog.funcCall("getInputFormat");
         if(inputAvroSchema != null)
-            return new PigAvroInputFormat(inputAvroSchema);
+            return new PigAvroInputFormat(inputAvroSchema, ignoreBadFiles);
         else
             return new TextInputFormat();
     }
@@ -379,6 +382,10 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
             String name = parts[i].trim();
             if (name.equalsIgnoreCase("no_schema_check")) {
                 checkSchema = false;
+                /* parameter only, so increase iteration counter by 1 */
+                i += 1;
+            } else if (name.equalsIgnoreCase("ignore_bad_files")) {
+                ignoreBadFiles = true;
                 /* parameter only, so increase iteration counter by 1 */
                 i += 1;
             } else {
@@ -627,16 +634,16 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
     }
 
     @Override
+    public void cleanupOnSuccess(String location, Job job) throws IOException {
+        // Nothing to do
+    }
+
+    @Override
     public void putNext(Tuple t) throws IOException {
         try {
             this.writer.write(NullWritable.get(), t.getAll().size() == 1 ? t.get(0) : t);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-    }
-
-    @Override
-    public void cleanupOnSuccess(String location, Job job) throws IOException{
-
     }
 }

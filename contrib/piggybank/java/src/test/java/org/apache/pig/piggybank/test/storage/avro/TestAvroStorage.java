@@ -158,6 +158,7 @@ public class TestAvroStorage {
         "     } ]" +
         "   } ]" +
         " }";
+    final private String testCorruptedFile = getInputFile("test_corrupted_file.avro");
 
     @BeforeClass
     public static void setup() throws ExecException {
@@ -838,6 +839,35 @@ public class TestAvroStorage {
                 ");"
            };
         testAvroStorage( queries);
+        verifyResults(output, expected);
+    }
+
+    @Test
+    public void testCorruptedFile1() throws IOException {
+        // Verify that load fails when bad files are found if ignore_bad_files is disabled.
+        String output = outbasedir + "testCorruptedFile1";
+        deleteDirectory(new File(output));
+        String [] queries = {
+           " in = LOAD '" + testCorruptedFile + "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ();",
+           " STORE in INTO '" + output + "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ();"
+            };
+        // Job is expected to fail for bad files.
+        testAvroStorage(true, queries);
+    }
+
+    @Test
+    public void testCorruptedFile2() throws IOException {
+        // Verify that corrupted files are skipped if ignore_bad_files is enabled.
+        // Output is expected to be empty.
+        String output = outbasedir + "testCorruptedFile2";
+        String expected = basedir + "expected_testCorruptedFile.avro";
+        deleteDirectory(new File(output));
+        String [] queries = {
+           " in = LOAD '" + testCorruptedFile + "'" +
+                  " USING org.apache.pig.piggybank.storage.avro.AvroStorage ('ignore_bad_files');",
+           " STORE in INTO '" + output + "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ();"
+            };
+        testAvroStorage(queries);
         verifyResults(output, expected);
     }
 
