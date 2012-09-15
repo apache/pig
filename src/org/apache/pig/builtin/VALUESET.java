@@ -28,6 +28,7 @@ import org.apache.pig.EvalFunc;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.NonSpillableDataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -73,7 +74,7 @@ public class VALUESET extends EvalFunc<DataBag> {
 
         int initialSetSize = getInitialSetSize(m.values());
         Set<Object> uniqueElements = new HashSet<Object>(initialSetSize);
-        DataBag bag = BAG_FACTORY.newDefaultBag();
+        DataBag bag = new NonSpillableDataBag();
 
         Iterator<Object> iter = m.values().iterator();
 

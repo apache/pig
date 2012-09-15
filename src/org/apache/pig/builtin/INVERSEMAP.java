@@ -26,6 +26,7 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.NonSpillableDataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -100,9 +101,9 @@ public class INVERSEMAP extends EvalFunc<Map> {
             }
 
             // Create a new bag if "newKey" does not exist in Map
-            DataBag bag = (DataBag) inverseMap.get(newKey);
+            DataBag bag = inverseMap.get(newKey);
             if (bag == null) {
-                bag = BAG_FACTORY.newDefaultBag();
+                bag = new NonSpillableDataBag();
                 bag.add(TUPLE_FACTORY.newTuple(entry.getKey()));
                 inverseMap.put(newKey, bag);
             } else {
