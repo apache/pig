@@ -25,6 +25,8 @@ PIG-1891 Enable StoreFunc to make intelligent decision based on job success or f
 
 IMPROVEMENTS
 
+PIG-2918: Avoid Spillable bag overhead where possible (dvryaboy)
+
 PIG-2900: Streaming should provide conf settings in the environment (dvryaboy)
 
 PIG-2353: RANK function like in SQL (xalan via azaroth)

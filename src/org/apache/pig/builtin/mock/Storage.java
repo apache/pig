@@ -39,8 +39,8 @@ import org.apache.pig.ResourceStatistics;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.StoreMetadata;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
-import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.NonSpillableDataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
@@ -97,7 +97,6 @@ public class Storage extends LoadFunc implements StoreFuncInterface, LoadMetadat
   private static final Logger LOG = Logger.getLogger(Storage.class);
   private static Map<Integer, Data> idToData = new HashMap<Integer, Data>();
   private static TupleFactory TF = TupleFactory.getInstance();
-  private static BagFactory BF = BagFactory.getInstance();
 
   private static int nextId;
 
@@ -114,7 +113,7 @@ public class Storage extends LoadFunc implements StoreFuncInterface, LoadMetadat
    * @return a bag containing the provided objects
    */
   public static DataBag bag(Tuple... tuples) {
-    return BF.newDefaultBag(Arrays.asList(tuples));
+    return new NonSpillableDataBag(Arrays.asList(tuples));
   }
   
   /**

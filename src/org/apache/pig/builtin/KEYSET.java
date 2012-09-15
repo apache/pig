@@ -21,9 +21,9 @@ import java.io.IOException;
 import java.util.Map;
 
 import org.apache.pig.EvalFunc;
-import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.NonSpillableDataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -49,7 +49,6 @@ import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
  */
 public class KEYSET extends EvalFunc<DataBag> {
     private static final TupleFactory TUPLE_FACTORY = TupleFactory.getInstance();
-    private static final BagFactory BAG_FACTORY = BagFactory.getInstance();
 
     @SuppressWarnings("unchecked")
     @Override
@@ -65,7 +64,7 @@ public class KEYSET extends EvalFunc<DataBag> {
             return null;
         }
 
-        DataBag bag = BAG_FACTORY.newDefaultBag();
+        DataBag bag = new NonSpillableDataBag(m.size());
         for (String s : m.keySet()) {
             Tuple t = TUPLE_FACTORY.newTuple(s);
             bag.add(t);

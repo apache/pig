@@ -21,9 +21,9 @@ package org.apache.pig.builtin;
 import java.io.IOException;
 
 import org.apache.pig.EvalFunc;
-import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.NonSpillableDataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -89,7 +89,9 @@ public class TOBAG extends EvalFunc<DataBag> {
     @Override
     public DataBag exec(Tuple input) throws IOException {
         try {
-            DataBag bag = BagFactory.getInstance().newDefaultBag();
+            // The assumption is that if the bag contents fits into
+            // an input tuple, it will not need to be spilled.
+            DataBag bag = new NonSpillableDataBag(input.size());
 
             for (int i = 0; i < input.size(); ++i) {
                 final Object object = input.get(i);
