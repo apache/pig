@@ -588,6 +588,10 @@ public class Util {
     }
 	
 	static public void copyFromClusterToLocal(MiniCluster cluster, String fileNameOnCluster, String localFileName) throws IOException {
+	    File parent = new File(localFileName).getParentFile();
+	    if (!parent.exists()) {
+	        parent.mkdirs();
+	    }
 	    PrintWriter writer = new PrintWriter(new FileWriter(localFileName));
 	    
 	    FileSystem fs = FileSystem.get(ConfigurationUtil.toConfiguration(
