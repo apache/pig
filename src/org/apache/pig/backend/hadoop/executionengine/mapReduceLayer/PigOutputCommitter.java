@@ -25,6 +25,7 @@ import java.util.List;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapreduce.JobStatus.State;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.pig.ResourceSchema;
@@ -143,7 +144,7 @@ public class PigOutputCommitter extends OutputCommitter {
             }
         }
     }
-    
+
     @Override
     public void cleanupJob(JobContext context) throws IOException {
         // call clean up on all map and reduce committers
@@ -166,7 +167,7 @@ public class PigOutputCommitter extends OutputCommitter {
         }
        
     }
-
+    
     // This method only be called in 20.203+/0.23
     public void commitJob(JobContext context) throws IOException {
         // call commitJob on all map and reduce committers
@@ -197,6 +198,42 @@ public class PigOutputCommitter extends OutputCommitter {
                     Method m = reduceCommitter.first.getClass().getMethod("commitJob", JobContext.class);
                     m.setAccessible(true);
                     m.invoke(reduceCommitter.first, updatedContext);
+                } catch (Exception e) {
+                    throw new IOException(e);
+                }
+                storeCleanup(reduceCommitter.second, updatedContext.getConfiguration());
+            }
+        }
+    }
+    
+    // This method only be called in 20.203+/0.23
+    public void abortJob(JobContext context, State state) throws IOException {
+     // call abortJob on all map and reduce committers
+        for (Pair<OutputCommitter, POStore> mapCommitter : mapOutputCommitters) {
+            if (mapCommitter.first!=null) {
+                JobContext updatedContext = setUpContext(context,
+                        mapCommitter.second);
+                try {
+                    // Use reflection, 20.2 does not have such method
+                    Method m = mapCommitter.first.getClass().getMethod("abortJob", JobContext.class, State.class);
+                    m.setAccessible(true);
+                    m.invoke(mapCommitter.first, updatedContext, state);
+                } catch (Exception e) {
+                    throw new IOException(e);
+                }
+                storeCleanup(mapCommitter.second, updatedContext.getConfiguration());
+            }
+        }
+        for (Pair<OutputCommitter, POStore> reduceCommitter :
+            reduceOutputCommitters) {
+            if (reduceCommitter.first!=null) {
+                JobContext updatedContext = setUpContext(context,
+                        reduceCommitter.second);
+                try {
+                    // Use reflection, 20.2 does not have such method
+                    Method m = reduceCommitter.first.getClass().getMethod("abortJob", JobContext.class, State.class);
+                    m.setAccessible(true);
+                    m.invoke(reduceCommitter.first, updatedContext, state);
                 } catch (Exception e) {
                     throw new IOException(e);
                 }
