@@ -22,6 +22,8 @@ Release 0.9.3 - Unreleased
 
 IMPROVEMENTS
 
+PIG-2852: Update documentation regarding parallel local mode execution (cheolsoo via jcoveney)
+
 PIG-2766: Pig-HCat Usability (vikram.dixit via daijy)
 
 PIG-2555: PigStorageSchema initializes schema and PigContext for every tuple (rangadi via dvryaboy)
