@@ -41,6 +41,7 @@ import junit.framework.Assert;
 
 import org.apache.log4j.Appender;
 import org.apache.log4j.FileAppender;
+import org.apache.log4j.Level;
 import org.apache.log4j.PatternLayout;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
@@ -1370,5 +1371,27 @@ public class TestGrunt {
         } catch (FrontendException e) { 
             Util.checkMessageInException(e, errMsg);
         }
+    }
+
+    @Test
+    public void testDebugOn() throws Throwable {
+
+        String strCmd = "set debug on\n";
+        PigContext pc = new PigServer(ExecType.LOCAL).getPigContext();
+        InputStreamReader reader = new InputStreamReader(new ByteArrayInputStream(strCmd.getBytes()));
+        new Grunt(new BufferedReader(reader), pc).exec();
+
+        assertEquals(Level.DEBUG.toString(),  pc.getLog4jProperties().getProperty("log4j.logger.org.apache.pig"));
+    }
+
+    @Test
+    public void testDebugOff() throws Throwable {
+
+        String strCmd = "set debug off\n";
+        PigContext pc = new PigServer(ExecType.LOCAL).getPigContext();
+        InputStreamReader reader = new InputStreamReader(new ByteArrayInputStream(strCmd.getBytes()));
+        new Grunt(new BufferedReader(reader), pc).exec();
+
+        assertEquals(Level.INFO.toString(),  pc.getLog4jProperties().getProperty("log4j.logger.org.apache.pig"));
     }
 }

@@ -117,7 +117,7 @@ public class PigContext implements Serializable {
 
     private Properties log4jProperties = new Properties();
 
-    private Level defaultLogLevel;
+    private Level defaultLogLevel = Level.INFO;
 
     public int defaultParallel = -1;
 
