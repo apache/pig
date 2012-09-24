@@ -159,7 +159,7 @@ public class TestScriptUDF{
     @Test
     public void testPythonNestedImport() throws Exception {
         // Skip for hadoop 23 until PIG-2433 fixed
-        if (Util.isHadoop23())
+        if (Util.isHadoop23() || Util.isHadoop2_0())
             return;
         
         String[] scriptA = {

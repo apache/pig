@@ -1271,8 +1271,9 @@ public class MRCompiler extends PhyPlanVisitor {
                             InputFormat inf = loader.getInputFormat();
                             List<InputSplit> splits = inf.getSplits(HadoopShims.cloneJobContext(job));
                             List<List<InputSplit>> results = MapRedUtil
-                            .getCombinePigSplits(splits, fs
-                                    .getDefaultBlockSize(), conf);
+                            .getCombinePigSplits(splits,
+                                    HadoopShims.getDefaultBlockSize(fs, path),
+                                    conf);
                             numFiles += results.size();
                         } else {
                             List<MapReduceOper> preds = MRPlan.getPredecessors(mro);

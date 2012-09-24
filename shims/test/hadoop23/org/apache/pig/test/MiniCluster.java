@@ -69,6 +69,9 @@ public class MiniCluster extends MiniGenericCluster {
             m_dfs = new MiniDFSCluster(config, dataNodes, true, null);
             m_fileSys = m_dfs.getFileSystem();
             m_dfs_conf = m_dfs.getConfiguration(0);
+            
+            //Create user home directory
+            m_fileSys.mkdirs(m_fileSys.getWorkingDirectory());
 
             m_mr = new MiniMRYarnCluster("PigMiniCluster", taskTrackers);
             m_mr.init(m_dfs_conf);

@@ -20,6 +20,8 @@ package org.apache.pig.backend.hadoop.executionengine.shims;
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.hadoop.mapreduce.JobContext;
@@ -92,5 +94,9 @@ public class HadoopShims {
 
     public static JobControl newJobControl(String groupName, int timeToSleep) {
       return new PigJobControl(groupName, timeToSleep);
+    }
+    
+    public static long getDefaultBlockSize(FileSystem fs, Path path) {
+        return fs.getDefaultBlockSize();
     }
 }
