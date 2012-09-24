@@ -30,7 +30,6 @@ import java.io.IOException;
 
 public interface DataStorage {
         
-        public static final String DEFAULT_REPLICATION_FACTOR_KEY = "pig.default.replication.factor";
         public static final String USED_BYTES_KEY = "pig.used.bytes";
         public static final String RAW_CAPACITY_KEY = "pig.raw.capacity.bytes";    // replication is disregarded
         public static final String RAW_USED_KEY = "pig.raw.used.capacity.bytes";   // replication is disregarded

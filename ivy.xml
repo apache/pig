@@ -69,6 +69,8 @@
       conf="hadoop23->master"/>
     <dependency org="commons-el" name="commons-el" rev="${commons-el.version}"
       conf="compile->master"/>
+    <dependency org="commons-io" name="commons-io" rev="${commons-io.version}"
+      conf="compile->master"/>
     <dependency org="org.apache.httpcomponents" name="httpclient" rev="${httpcomponents.version}"
       conf="compile->master"/>
     <dependency org="org.apache.httpcomponents" name="httpcore" rev="${httpcomponents.version}"
@@ -87,6 +89,12 @@
       conf="hadoop23->master"/>
     <dependency org="org.mortbay.jetty" name="jetty-util" rev="${jetty-util.version}"
       conf="hadoop23->master"/>
+    <dependency org="javax.inject" name="javax.inject" rev="${javax-inject.version}"
+      conf="hadoop23->master"/>
+    <dependency org="javax.xml.bind" name="jaxb-api" rev="${jaxb-api.version}"
+      conf="hadoop23->master"/>
+    <dependency org="com.sun.xml.bind" name="jaxb-impl" rev="${jaxb-impl.version}"
+      conf="hadoop23->master"/> 
     <dependency org="com.google.inject" name="guice" rev="${guice.version}"
       conf="hadoop23->master"/>
     <dependency org="com.google.inject.extensions" name="guice-servlet" rev="${guice-servlet.version}"
