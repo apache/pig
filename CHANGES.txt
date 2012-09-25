@@ -281,6 +281,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2930: ant test doesn't compile in trunk (cheolsoo via daijy)
+
 PIG-2791: Pig does not work with ViewFileSystem (rohini via daijy)
 
 PIG-2833: org.apache.pig.pigunit.pig.PigServer does not initialize set default log level of pigContext (cheolsoo via jcoveney)
