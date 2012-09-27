@@ -283,6 +283,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2936: Tuple serialization bug (jcoveney)
+
 PIG-2930: ant test doesn't compile in trunk (cheolsoo via daijy)
 
 PIG-2791: Pig does not work with ViewFileSystem (rohini via daijy)
