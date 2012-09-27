@@ -97,7 +97,7 @@ decoded_strings = FOREACH encoded_strings GENERATE UrlDecode(encoded, 'UTF-8');
    <title>Usage</title>
    <p>Use the AVG function to compute the average of the numeric values in a single-column bag. 
    AVG requires a preceding GROUP ALL statement for global averages and a GROUP BY statement for group averages.</p>
-   <p>The AVG function now ignores NULL values. </p>      
+   <p>The AVG function ignores NULL values. </p>      
    </section>
    
    <section>
@@ -215,6 +215,7 @@ DUMP C;
    <section>
    <title>Usage</title>
    <p>Use the CONCAT function to concatenate two expressions. The result values of the two expressions must have identical types.</p>
+   <p>If either subexpression is null, the resulting expression is null.</p>
    </section>
 
    
@@ -560,7 +561,9 @@ Y = filter X by IsEmpty(SSN_NAME);
    
    <section>
    <title>Usage</title>
-   <p>Use the MAX function to compute the maximum of the numeric values or chararrays in a single-column bag.</p></section>
+   <p>Use the MAX function to compute the maximum of the numeric values or chararrays in a single-column bag.</p>
+   <p>The MAX function ignores NULL values.</p>
+   </section>
    
    <section>
    <title>Example</title>
@@ -676,7 +679,9 @@ DUMP X;
    <section>
    
    <title>Usage</title>
-   <p>Use the MIN function to compute the minimum of a set of numeric values or chararrays in a single-column bag.</p></section>
+   <p>Use the MIN function to compute the minimum of a set of numeric values or chararrays in a single-column bag.</p>
+   <p>The MIN function ignores NULL values.</p> 
+   </section>
    
    <section>
    <title>Example</title>
@@ -793,6 +798,7 @@ DUMP X;
    <title>Usage</title>
    <p>Use the SIZE function to compute the number of elements based on the data type (see the Types Tables below). 
    SIZE includes NULL values in the size computation. SIZE is not algebraic.</p>
+   <p>If the tested object is null, the SIZE function returns null.</p>
    </section>
    
    <section>
@@ -921,7 +927,9 @@ DUMP X;
    
    <section>
    <title>Usage</title>
-   <p>Use the SUM function to compute the sum of a set of numeric values in a single-column bag.</p></section>
+   <p>Use the SUM function to compute the sum of a set of numeric values in a single-column bag.</p>
+   <p>The SUM function ignores NULL values.</p> 
+   </section>
    
    <section>
    <title>Example</title>
