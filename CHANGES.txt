@@ -25,8 +25,10 @@ PIG-1891 Enable StoreFunc to make intelligent decision based on job success or f
 
 IMPROVEMENTS
 
-PIG-2929: Improve documentation around AVG, CONCAT, MIN, MAX (cheolsoo via billgraham)
+PIG-2923: Lazily register bags with SpillableMemoryManager (dvryaboy)
 
+PIG-2929: Improve documentation around AVG, CONCAT, MIN, MAX (cheolsoo via billgraham)
+ 
 PIG-2852: Update documentation regarding parallel local mode execution (cheolsoo via jcoveney)
 
 PIG-2879: Pig current releases lack a UDF startsWith.This UDF tests if a given string starts with the specified prefix. (initialcontext via azaroth)

@@ -26,7 +26,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -150,26 +149,9 @@ public class InternalDistinctBag extends SortedSpillBag {
                 memLimit.addNewObjSize(t.getMemorySize());
             }          
         }    	
+        markSpillableIfNecessary();
     }
 
-    @Override
-    public void addAll(DataBag b) {
-    	Iterator<Tuple> iter = b.iterator();
-    	while(iter.hasNext()) {
-    		add(iter.next());
-    	}
-    }
-
-    @Override
-    public void addAll(Collection<Tuple> c) {
-    	Iterator<Tuple> iter = c.iterator();
-    	while(iter.hasNext()) {
-    		add(iter.next());
-    	}
-    }
-    
-    
-   
     /**
      * An iterator that handles getting the next tuple from the bag.
      * Data can be stored in a combination of in memory and on disk.  

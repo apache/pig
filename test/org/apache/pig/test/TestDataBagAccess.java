@@ -18,6 +18,8 @@
 
 package org.apache.pig.test;
 
+import static org.junit.Assert.*;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -41,20 +43,14 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.MultiMap;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-
-import junit.framework.TestCase;
 
 /**
  *
  */
-@RunWith(JUnit4.class)
-public class TestDataBagAccess extends TestCase {
+public class TestDataBagAccess {
     private PigServer pigServer;
 
     @Before
-    @Override
     public void setUp() throws Exception{
         pigServer = new PigServer(ExecType.LOCAL, new Properties());
     }
@@ -144,11 +140,11 @@ public class TestDataBagAccess extends TestCase {
         // (p1-t1-e2,p1-t2-e1)
         // (p2-t1-e2,p2-t2-e1)
         Tuple t = it.next();
-        assertEquals("p1-t1-e2", (String)t.get(0));
-        assertEquals("p1-t2-e1", (String)t.get(1));
+        assertEquals("p1-t1-e2", t.get(0));
+        assertEquals("p1-t2-e1", t.get(1));
         t = it.next();
-        assertEquals("p2-t1-e2", (String)t.get(0));
-        assertEquals("p2-t2-e1", (String)t.get(1));
+        assertEquals("p2-t1-e2", t.get(0));
+        assertEquals("p2-t2-e1", t.get(1));
         assertFalse(it.hasNext());
     }
 
