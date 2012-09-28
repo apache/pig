@@ -120,10 +120,11 @@ public abstract class BagFactory {
      * Construct a new BagFactory
      */
     protected BagFactory() {
-        gMemMgr = new SpillableMemoryManager();
+        gMemMgr = SpillableMemoryManager.getInstance();
     }
 
     /**
+     * @deprecated As of Pig 0.11, bags register with the {@link SpillableMemoryManager} themselves.
      * Register a bag with the
      * {@link org.apache.pig.impl.util.SpillableMemoryManager}.
      * If the bags created by an implementation of BagFactory are managed by
@@ -131,6 +132,7 @@ public abstract class BagFactory {
      * method should be called each time a new bag is created.
      * @param b bag to be registered.
      */
+    @Deprecated
     protected void registerBag(DataBag b) {
         gMemMgr.registerSpillable(b);
     }

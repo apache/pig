@@ -26,7 +26,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -36,7 +35,6 @@ import java.util.PriorityQueue;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 
 
 /**
@@ -66,15 +64,18 @@ public class InternalSortedBag extends SortedSpillBag{
     private transient boolean mReadStarted = false;
 
     static private class DefaultComparator implements Comparator<Tuple> {
+        @Override
         @SuppressWarnings("unchecked")
 		public int compare(Tuple t1, Tuple t2) {
             return t1.compareTo(t2);
         }
 
+        @Override
         public boolean equals(Object o) {
         	return (o == this);
         }
 
+        @Override
         public int hashCode() {
             return 42; 
         }
@@ -107,6 +108,7 @@ public class InternalSortedBag extends SortedSpillBag{
      
     }
     
+    @Override
     public void add(Tuple t) {
     	if(mReadStarted) {
             throw new IllegalStateException("InternalSortedBag is closed for adding new tuples");
@@ -126,30 +128,20 @@ public class InternalSortedBag extends SortedSpillBag{
         }
                 
         mSize++;
+        markSpillableIfNecessary();
     }
     
-    public void addAll(DataBag b) {
-    	Iterator<Tuple> iter = b.iterator();
-    	while(iter.hasNext()) {
-    		add(iter.next());
-    	}
-    }
-
-    public void addAll(Collection<Tuple> c) {
-    	Iterator<Tuple> iter = c.iterator();
-    	while(iter.hasNext()) {
-    		add(iter.next());
-    	}
-    }    
-
+    @Override
     public boolean isSorted() {
         return true;
     }
     
+    @Override
     public boolean isDistinct() {
         return false;
     }
     
+    @Override
     public Iterator<Tuple> iterator() {
         return new SortedDataBagIterator();
     }
@@ -170,10 +162,12 @@ public class InternalSortedBag extends SortedSpillBag{
             public Tuple tuple;
             public int fileNum;
 
+            @Override
             public int compareTo(PQContainer other) {
                 return mComp.compare(tuple, other.tuple);
             }
             
+            @Override
             public boolean equals(Object obj) {
             	if (obj instanceof PQContainer) {
             		return compareTo((PQContainer)obj) == 0;
@@ -182,6 +176,7 @@ public class InternalSortedBag extends SortedSpillBag{
             	return false;
             }
             
+            @Override
             public int hashCode() {
             	return tuple.hashCode();
             }
@@ -205,12 +200,14 @@ public class InternalSortedBag extends SortedSpillBag{
             }            
         }
 
+        @Override
         public boolean hasNext() { 
             // See if we can find a tuple.  If so, buffer it.
             mBuf = next();
             return mBuf != null;
         }
 
+        @Override
         public Tuple next() {
             // This will report progress every 1024 times through next.
             // This should be much faster than using mod.
@@ -235,6 +232,7 @@ public class InternalSortedBag extends SortedSpillBag{
         /**
          * Not implemented.
          */
+        @Override
         public void remove() {}
 
         private Tuple readFromPriorityQ() {
@@ -436,6 +434,7 @@ public class InternalSortedBag extends SortedSpillBag{
         }
     }
 
+    @Override
     public long spill(){
         return proactive_spill(mComp);
     }

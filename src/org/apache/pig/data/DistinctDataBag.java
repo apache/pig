@@ -108,20 +108,8 @@ public class DistinctDataBag extends DefaultAbstractBag {
                 mSize++;
             }
         }
+        markSpillableIfNecessary();
     }
-
-    @Override
-    public void addAll(DataBag b) {
-        synchronized (mContents) {
-            Iterator<Tuple> i = b.iterator();
-            while (i.hasNext()) {
-                if (mContents.add(i.next())) {
-                    mSize++;
-                }
-            }
-        }
-    }
-
 
     @Override
     public long spill() {

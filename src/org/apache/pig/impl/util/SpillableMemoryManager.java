@@ -78,7 +78,9 @@ public class SpillableMemoryManager implements NotificationListener {
     // log notification on collection threshold exceeded only the first time
     private boolean firstCollectionThreshExceededLogged = false;
     
-    public SpillableMemoryManager() {
+    private static SpillableMemoryManager manager;
+
+    private SpillableMemoryManager() {
         ((NotificationEmitter)ManagementFactory.getMemoryMXBean()).addNotificationListener(this, null, null);
         List<MemoryPoolMXBean> mpbeans = ManagementFactory.getMemoryPoolMXBeans();
         MemoryPoolMXBean biggestHeap = null;
@@ -120,6 +122,13 @@ public class SpillableMemoryManager implements NotificationListener {
         biggestHeap.setUsageThreshold((long)(biggestSize * memoryThresholdFraction));
     }
     
+    public static SpillableMemoryManager getInstance() {
+        if (manager == null) {
+            manager = new SpillableMemoryManager();
+        }
+        return manager;
+    }
+
     public static void configure(Properties properties) {
         
         try {
@@ -136,6 +145,7 @@ public class SpillableMemoryManager implements NotificationListener {
         }
     }
     
+    @Override
     public void handleNotification(Notification n, Object o) {
         CompositeData cd = (CompositeData) n.getUserData();
         MemoryNotificationInfo info = MemoryNotificationInfo.from(cd);
@@ -195,6 +205,7 @@ public class SpillableMemoryManager implements NotificationListener {
                  * Also between the time we sort and we use these spillables, they
                  * may actually change in size - so this is just best effort
                  */    
+                @Override
                 public int compare(WeakReference<Spillable> o1Ref, WeakReference<Spillable> o2Ref) {
                     Spillable o1 = o1Ref.get();
                     Spillable o2 = o2Ref.get();

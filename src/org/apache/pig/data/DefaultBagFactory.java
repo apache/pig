@@ -20,8 +20,6 @@ package org.apache.pig.data;
 import java.util.Comparator;
 import java.util.List;
 
-import org.apache.pig.impl.util.SpillableMemoryManager;
-
 /**
  * Default implementation of BagFactory.
  */
@@ -29,9 +27,9 @@ public class DefaultBagFactory extends BagFactory {
     /**
      * Get a default (unordered, not distinct) data bag.
      */
+    @Override
     public DataBag newDefaultBag() {
         DataBag b = new DefaultDataBag();
-        registerBag(b);
         return b;
     }
     
@@ -41,9 +39,9 @@ public class DefaultBagFactory extends BagFactory {
      * copy the tuples but uses the provided list as its backing store.
      * So it takes ownership of the list.
      */
+    @Override
     public DataBag newDefaultBag(List<Tuple> listOfTuples) {
         DataBag b = new DefaultDataBag(listOfTuples);
-        registerBag(b);
         return b;
     }
 
@@ -52,18 +50,18 @@ public class DefaultBagFactory extends BagFactory {
      * @param comp Comparator that controls how the data is sorted.
      * If null, default comparator will be used.
      */
+    @Override
     public DataBag newSortedBag(Comparator<Tuple> comp) {
         DataBag b = new SortedDataBag(comp);
-        registerBag(b);
         return b;
     }
     
     /**
      * Get a distinct data bag.
      */
+    @Override
     public DataBag newDistinctBag() {
         DataBag b = new DistinctDataBag();
-        registerBag(b);
         return b;
     }
 

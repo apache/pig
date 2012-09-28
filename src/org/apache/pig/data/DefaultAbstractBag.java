@@ -18,17 +18,17 @@
 package org.apache.pig.data;
 
 import java.io.BufferedOutputStream;
+import java.io.DataInput;
+import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.DataInput;
-import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.ArrayList;
 
-import org.apache.pig.PigCounters;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -36,18 +36,20 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigHadoopLog
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PigLogger;
 import org.apache.pig.impl.util.BagFormat;
-import org.apache.pig.impl.util.Spillable;
+import org.apache.pig.impl.util.SpillableMemoryManager;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 /**
  * Default implementation of DataBag.  This is the an abstract class used as a
  * parent for all three of the types of data bags.
  */
+@SuppressWarnings("serial")
 public abstract class DefaultAbstractBag implements DataBag {
 
     private static final Log log = LogFactory.getLog(DataBag.class);
+
+    // If we grow past 100K, may be worthwhile to register.
+    private static final int SPILL_REGISTER_THRESHOLD = 100 * 1024;
 
     private static PigLogger pigLogger = PhysicalOperator.getPigLogger();
 
@@ -67,9 +69,12 @@ public abstract class DefaultAbstractBag implements DataBag {
 
     protected long mMemSize = 0;
 
+    private boolean spillableRegistered = false;
+
     /**
      * Get the number of elements in the bag, both in memory and on disk.
      */
+    @Override
     public long size() {
         return mSize;
     }
@@ -78,40 +83,52 @@ public abstract class DefaultAbstractBag implements DataBag {
      * Add a tuple to the bag.
      * @param t tuple to add.
      */
+    @Override
     public void add(Tuple t) {
         synchronized (mContents) {
             mSize++;
             mContents.add(t);
         }
+        markSpillableIfNecessary();
     }
 
     /**
-     * Add contents of a bag to the bag.
-     * @param b bag to add contents of.
+     * All bag implementations that can get big enough to be spilled
+     * should call this method after every time they add an element.
      */
-    public void addAll(DataBag b) {
-        synchronized (mContents) {
-            mSize += b.size();
-            Iterator<Tuple> i = b.iterator();
-            while (i.hasNext()) mContents.add(i.next());
+    protected void markSpillableIfNecessary() {
+        if (!spillableRegistered && getMemorySize() >= SPILL_REGISTER_THRESHOLD) {
+            SpillableMemoryManager.getInstance().registerSpillable(this);
+            spillableRegistered = true;
         }
     }
 
-    /**
-     * Add contents of a container to the bag.
-     * @param c Collection to add contents of.
-     */
+    @Override
+    public void addAll(DataBag b) {
+        addAll((Iterable<Tuple>) b);
+        }
+
     public void addAll(Collection<Tuple> c) {
+        addAll((Iterable<Tuple>) c);
+    }
+
+    /**
+     * Add contents of an iterable (a collection or a DataBag)
+     *
+     * @param iterable a Collection or DataBag to add contents of
+     */
+    public void addAll(Iterable<Tuple> iterable) {
         synchronized (mContents) {
-            mSize += c.size();
-            Iterator<Tuple> i = c.iterator();
-            while (i.hasNext()) mContents.add(i.next());
+            for (Tuple t : iterable) {
+                add(t);
+            }
         }
     }
 
     /**
      * Return the size of memory usage.
      */
+    @Override
     public long getMemorySize() {
         int j;
         int numInMem = 0;
@@ -188,6 +205,7 @@ public abstract class DefaultAbstractBag implements DataBag {
      * Any attempts to read after this is called will produce undefined
      * results.
      */
+    @Override
     public void clear() {
         synchronized (mContents) {
             mContents.clear();
@@ -207,6 +225,7 @@ public abstract class DefaultAbstractBag implements DataBag {
      * This method is potentially very expensive since it may require a
      * sort of the bag; don't call it unless you have to.
      */
+    @Override
     @SuppressWarnings("unchecked")
     public int compareTo(Object other) {
         if (this == other)
@@ -268,6 +287,7 @@ public abstract class DefaultAbstractBag implements DataBag {
      * @param out DataOutput to write data to.
      * @throws IOException (passes it on from underlying calls).
      */
+    @Override
     public void write(DataOutput out) throws IOException {
         sedes.writeDatum(out, this);
     }
@@ -277,6 +297,7 @@ public abstract class DefaultAbstractBag implements DataBag {
      * @param in DataInput to read data from.
      * @throws IOException (passes it on from underlying calls).
      */
+    @Override
     public void readFields(DataInput in) throws IOException {
         long size = in.readLong();
         
@@ -294,6 +315,7 @@ public abstract class DefaultAbstractBag implements DataBag {
      * This is used by FuncEvalSpec.FakeDataBag.
      * @param stale Set stale state.
      */
+    @Override
     public void markStale(boolean stale)
     {
     }
@@ -370,6 +392,7 @@ public abstract class DefaultAbstractBag implements DataBag {
         }
     }
 
+    @SuppressWarnings("rawtypes")
     protected void warn(String msg, Enum warningEnum, Exception e) {
     	pigLogger = PhysicalOperator.getPigLogger();
     	if(pigLogger != null) {
@@ -379,10 +402,12 @@ public abstract class DefaultAbstractBag implements DataBag {
     	}    	
     }
     
+    @SuppressWarnings("rawtypes")
     protected void incSpillCount(Enum counter) {
         incSpillCount(counter, 1);
     }
 
+    @SuppressWarnings("rawtypes")
     protected void incSpillCount(Enum counter, long numRecsSpilled) {
         PigStatusReporter reporter = PigStatusReporter.getInstance();
         if (reporter != null && reporter.getCounter(counter)!=null) {
