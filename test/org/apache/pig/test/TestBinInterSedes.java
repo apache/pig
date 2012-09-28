@@ -18,19 +18,19 @@
 package org.apache.pig.test;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
+import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
-import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BagFactory;
+import org.apache.pig.data.BinInterSedes;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.InterSedes;
@@ -41,11 +41,12 @@ import org.apache.pig.impl.util.TupleFormat;
 import org.junit.Test;
 
 public class TestBinInterSedes {
+    private static final TupleFactory mTupleFactory = TupleFactory.getInstance();
+    private static final BinInterSedes bis = new BinInterSedes();
+    private static final Random random = new Random(100L);
 
     @Test
     public void testTupleWriteRead1() throws IOException {
-
-        try {
             //create a tuple with columns of different type
             Tuple tuplein = TupleFactory.getInstance().newTuple(7);
             tuplein.set(0, 12);
@@ -68,11 +69,6 @@ public class TestBinInterSedes {
             assertEquals(
                     "(12,[pig#scalability],,12,1.2,(innerTuple),{(innerTuple)})",
                     TupleFormat.format(tuplein));
-        } catch (ExecException e) {
-            e.printStackTrace();
-            fail();
-        }
-
     }
     
     
@@ -82,8 +78,6 @@ public class TestBinInterSedes {
      */
     @Test
     public void testTupleWriteReadIntDiffSizes() throws IOException {
-
-        try {
             //create a tuple with integer columns of different sizes
             Tuple tuple = TupleFactory.getInstance().newTuple();
             tuple.append(new Integer(0)); //boolean rep
@@ -93,12 +87,6 @@ public class TestBinInterSedes {
             tuple.append(new Integer(1024*1024*1024)); //fits into int (=~ 2 ^30)
             
             testTupleSedes(tuple);
-
-        } catch (ExecException e) {
-            e.printStackTrace();
-            fail();
-        }
-
     }
     
     /**
@@ -107,8 +95,6 @@ public class TestBinInterSedes {
      */
     @Test
     public void testTupleWriteReadByteArrStringDiffSizes() throws IOException {
-
-        try {
             // tuple with ByteArray and strings of different sizes
             Tuple tuple = TupleFactory.getInstance().newTuple();
             byte [] tinyBA = new byte[10];
@@ -133,24 +119,14 @@ public class TestBinInterSedes {
             tuple.append(new String(largeBytearray));
 
             testTupleSedes(tuple);
-
-        } catch (ExecException e) {
-            e.printStackTrace();
-            fail();
         }
 
-    }
-    
-    
-    
     /**
      * test sedes  with bags of diff sizes
      * @throws IOException
      */
     @Test
     public void testTupleWriteReadBagDiffSizes() throws IOException {
-
-        try {
             // tuple with ByteArray and strings of different sizes
             Tuple tuple = TupleFactory.getInstance().newTuple();
             DataBag tinyBag = createBag(10); 
@@ -162,13 +138,6 @@ public class TestBinInterSedes {
             tuple.append(largeBag);
 
             testTupleSedes(tuple);
-
-
-        } catch (ExecException e) {
-            e.printStackTrace();
-            fail();
-        }
-
     }
 
     /*
@@ -177,7 +146,6 @@ public class TestBinInterSedes {
      */
     @Test
     public void testTupleWriteReadLongDiffSizes() throws IOException {
-        try {
             Random r = new Random(100L);
 
             Tuple tuple = TupleFactory.getInstance().newTuple();
@@ -197,13 +165,7 @@ public class TestBinInterSedes {
             }
 
             testTupleSedes(tuple);
-
-        } catch (ExecException e) {
-            e.printStackTrace();
-            fail();
-        }
     }
-
 
     /**
      * create bag having given number of tuples
@@ -211,7 +173,6 @@ public class TestBinInterSedes {
      * @return
      */
     private DataBag createBag(int size) {
-        
         Tuple innerTuple = TupleFactory.getInstance().newTuple();
         innerTuple.append(Integer.valueOf(1));
         DataBag bag = BagFactory.getInstance().newDefaultBag();
@@ -221,28 +182,18 @@ public class TestBinInterSedes {
         return bag;
     }
 
-    
     /**
      * test sedes tuple of diff sizes
      * @throws IOException
      */
     @Test
     public void testTupleWriteReadDiffSizes() throws IOException {
-
-        try {
             // tuple with ByteArray and strings of different sizes
             Tuple smallTuple = createTupleWithManyCols(1000);
             testTupleSedes(smallTuple);
             
             Tuple largeTuple = createTupleWithManyCols(100*1000);
             testTupleSedes(largeTuple);
-
-
-        } catch (ExecException e) {
-            e.printStackTrace();
-            fail();
-        }
-
     }
 
     private Tuple createTupleWithManyCols(int size) {
@@ -254,16 +205,12 @@ public class TestBinInterSedes {
         return t;
     }
     
-    
-    
     /**
      * test sedes  with maps of diff sizes
      * @throws IOException
      */
     @Test
     public void testTupleWriteReadMapDiffSizes() throws IOException {
-
-        try {
             // tuple with ByteArray and strings of different sizes
             Tuple tuple = TupleFactory.getInstance().newTuple();
             Map<String, Object> tinyMap = createMap(10);
@@ -274,15 +221,7 @@ public class TestBinInterSedes {
             tuple.append(largeMap);
 
             testTupleSedes(tuple);
-
-
-        } catch (ExecException e) {
-            e.printStackTrace();
-            fail();
-        }
-
     }
-
 
     private Map<String, Object> createMap(int size) {
         Map<String,Object> map = new HashMap<String, Object>(size);
@@ -321,6 +260,50 @@ public class TestBinInterSedes {
         
     }
 
+    /**
+     * See PIG-2936. The purpose of this test is to ensure that Tuples are being serialized in
+     * the specific way that we expect.
+     */
+    @Test
+    public void testTupleSerializationSpecific() throws Exception {
+        byte[] flags = {
+                BinInterSedes.TUPLE_0,
+                BinInterSedes.TUPLE_1,
+                BinInterSedes.TUPLE_2,
+                BinInterSedes.TUPLE_3,
+                BinInterSedes.TUPLE_4,
+                BinInterSedes.TUPLE_5,
+                BinInterSedes.TUPLE_6,
+                BinInterSedes.TUPLE_7,
+                BinInterSedes.TUPLE_8,
+                BinInterSedes.TUPLE_9,
+        };
+
+        for (int i = 0; i < flags.length; i++) {
+            Tuple t = mTupleFactory.newTuple(i);
+
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            DataOutput out = new DataOutputStream(baos);
+            out.writeByte(flags[i]);
+
+            for (int j = 0; j < i; j++) {
+                Integer val = Integer.valueOf(random.nextInt());
+                bis.writeDatum(out, val);
+                t.set(j, val);
+            }
     
+            testSerTuple(t, baos.toByteArray());
+        }
+    }
+
+    private void testSerTuple(Tuple t, byte[] expected) throws Exception {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutput out = new DataOutputStream(baos);
+
+        bis.writeDatum(out, t);
     
+        Tuple t2 = (Tuple) bis.readDatum(new DataInputStream(new ByteArrayInputStream(baos.toByteArray())));
+
+        assertEquals(t, t2);
+    }
 }
