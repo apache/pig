@@ -48,6 +48,7 @@
   <property name="harness.tar" value="${harness.dir}/harness.tar"/>
   <property name="harness.PH_LOCAL" value="."/>
   <property name="harness.PH_OUT" value="."/>
+  <property name="harness.PERL5LIB" value="./libexec"/>
 
   <property name="test.location" value="${basedir}/testdist"/>
   <property name="benchmark.location" value="${test.location}/benchmarks"/>
@@ -270,7 +271,7 @@
       <env key="PH_OLD_CLUSTER_CONF" value="${PH_OLD_CLUSTER_CONF}"/>
       <env key="PH_BENCHMARK_CACHE_PATH" value="${PH_BENCHMARK_CACHE_PATH}"/>
       <env key="HCAT_BIN" value="${hcat.bin}"/>
-      <env key="PERL5LIB" value="./libexec"/>
+      <env key="PERL5LIB" value="${harness.PERL5LIB}"/>
       <arg line="${tests.to.run}"/>
       <arg value="${test.location}/tests/cmdline.conf"/>
       <arg value="${test.location}/tests/multiquery.conf"/>
