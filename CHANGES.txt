@@ -285,6 +285,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2920: e2e tests override PERL5LIB environment variable (azaroth)
+
 PIG-2917: SpillableMemoryManager memory leak for WeakReference (haitao.yao via dvryaboy)
 
 PIG-2938: All unit tests that use MR2 MiniCluster are broken in trunk (cheolsoo via dvryaboy)
