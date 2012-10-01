@@ -181,22 +181,13 @@ public class SpillableMemoryManager implements NotificationListener {
             }
 
         }
-         
+        clearSpillables();
         if (toFree < 0) {
             log.debug("low memory handler returning " + 
                 "because there is nothing to free");
             return;
         }
         synchronized(spillables) {
-            // Walk the list first and remove nulls, otherwise the sort
-            // takes way too long.
-            Iterator<WeakReference<Spillable>> i;
-            for (i = spillables.iterator(); i.hasNext();) {
-                Spillable s = i.next().get();
-                if (s == null) {
-                    i.remove();
-                }
-            }
             Collections.sort(spillables, new Comparator<WeakReference<Spillable>>() {
 
                 /**
@@ -233,7 +224,7 @@ public class SpillableMemoryManager implements NotificationListener {
             long estimatedFreed = 0;
             int numObjSpilled = 0;
             boolean invokeGC = false;
-            for (i = spillables.iterator(); i.hasNext();) {
+            for (Iterator<WeakReference<Spillable>> i = spillables.iterator(); i.hasNext();) {
                 Spillable s = i.next().get();
                 // Still need to check for null here, even after we removed
                 // above, because the reference may have gone bad on us
@@ -280,6 +271,19 @@ public class SpillableMemoryManager implements NotificationListener {
         }
     }
     
+    public void clearSpillables() {
+        synchronized (spillables) {
+            // Walk the list first and remove nulls, otherwise the sort
+            // takes way too long.
+            for (Iterator<WeakReference<Spillable>> i = spillables.iterator(); i
+                    .hasNext();) {
+                Spillable s = i.next().get();
+                if (s == null) {
+                    i.remove();
+                }
+            }
+        }
+    }
     /**
      * Register a spillable to be tracked. No need to unregister, the tracking will stop
      * when the spillable is GCed.
