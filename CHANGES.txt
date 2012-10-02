@@ -285,6 +285,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2935: Catch NoSuchMethodError when StoreFuncInterface's new cleanupOnSuccess method isn't implemented. (gates via dvryaboy)
+
 PIG-2920: e2e tests override PERL5LIB environment variable (azaroth)
 
 PIG-2917: SpillableMemoryManager memory leak for WeakReference (haitao.yao via dvryaboy)
