@@ -1296,6 +1296,10 @@ public class PigServer {
                             new Job(output.getConf()));
                 } catch (IOException e) {
                     throw new ExecException(e);
+                } catch (AbstractMethodError nsme) {
+                    // Just swallow it.  This means we're running against an
+                    // older instance of a StoreFunc that doesn't implement
+                    // this method.
                 }
             }
         }
