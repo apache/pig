@@ -32,7 +32,7 @@
   <property name="repo.maven.org" value="${mvnrepo}" override="true"/>
   <property name="repo.jboss.org" value="http://repository.jboss.com/nexus/content/groups/public/" override="false"/>
   <property name="repo.apache.snapshots" value="http://repository.apache.org/content/groups/snapshots-group/" override="false"/>
-  <property name="repo.dir" value="${user.home}/.m2/repository"/>
+  <property name="repo.dir" value="${user.home}/.m2/repository" override="false"/>
   <property name="maven2.pattern"  value="[organisation]/[module]/[revision]/[module]-[revision](-[classifier])"/> 
   <property name="maven2.pattern.ext" value="${maven2.pattern}.[ext]"/>
   <property name="snapshot.pattern"  value="[organisation]/[module]/[revision]/[artifact]-[revision](-[classifier]).[ext]"/>
