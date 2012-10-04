@@ -28,7 +28,7 @@ IMPROVEMENTS
 PIG-2923: Lazily register bags with SpillableMemoryManager (dvryaboy)
 
 PIG-2929: Improve documentation around AVG, CONCAT, MIN, MAX (cheolsoo via billgraham)
- 
+
 PIG-2852: Update documentation regarding parallel local mode execution (cheolsoo via jcoveney)
 
 PIG-2879: Pig current releases lack a UDF startsWith.This UDF tests if a given string starts with the specified prefix. (initialcontext via azaroth)
@@ -284,6 +284,8 @@ PIG-2337: Provide UDF with input schema (xutingz via daijy)
 OPTIMIZATIONS
 
 BUG FIXES
+
+PIG-2737: [piggybank] TestIndexedStorage is failing, should be refactored (jcoveney)
 
 PIG-2935: Catch NoSuchMethodError when StoreFuncInterface's new cleanupOnSuccess method isn't implemented. (gates via dvryaboy)
 
