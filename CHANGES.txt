@@ -32,6 +32,8 @@ PIG-2619: HBaseStorage constructs a Scan with cacheBlocks = false
 
 BUG FIXES
 
+PIG-2944: PIG-2944: ivysettings.xml does not let you override .m2/repository (raluri via daijy)
+
 PIG-2912: Pig should clone JobConf while creating JobContextImpl and TaskAttemptContextImpl in Hadoop23 (rohini via daijy)
 
 PIG-2484: Fix several e2e test failures/aborts for 23 (daijy)
