@@ -783,6 +783,8 @@ Release 0.9.3 - Unreleased
 
 BUG FIXES
 
+PIG-2944: ivysettings.xml does not let you override .m2/repository (raluri via daijy)
+
 PIG-2912: Pig should clone JobConf while creating JobContextImpl and TaskAttemptContextImpl in Hadoop23 (rohini via daijy)
 
 PIG-2775: Register jar does not goes to classpath in some cases (daijy)
