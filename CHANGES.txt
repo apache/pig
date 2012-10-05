@@ -25,6 +25,8 @@ PIG-1891 Enable StoreFunc to make intelligent decision based on job success or f
 
 IMPROVEMENTS
 
+PIG-2877: Make SchemaTuple work in foreach (and thus, in loads) (jcoveney)
+
 PIG-2923: Lazily register bags with SpillableMemoryManager (dvryaboy)
 
 PIG-2929: Improve documentation around AVG, CONCAT, MIN, MAX (cheolsoo via billgraham)

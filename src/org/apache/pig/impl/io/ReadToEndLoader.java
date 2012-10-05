@@ -38,7 +38,9 @@ import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceStatistics;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
+import org.apache.pig.data.SchemaTupleBackend;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.OperatorKey;
 
 /**
@@ -103,6 +105,8 @@ public class ReadToEndLoader extends LoadFunc implements LoadMetadata {
      */
     private InputFormat inputFormat = null;
     
+    private PigContext pigContext;
+
     /**
      * @param wrappedLoadFunc
      * @param conf
@@ -120,6 +124,16 @@ public class ReadToEndLoader extends LoadFunc implements LoadMetadata {
         init();
     }
     
+    public ReadToEndLoader(LoadFunc wrappedLoadFunc, Configuration conf,
+            String inputLocation, int splitIndex, PigContext pigContext) throws IOException {
+        this.wrappedLoadFunc = wrappedLoadFunc;
+        this.inputLocation = inputLocation;
+        this.conf = conf;
+        this.curSplitIndex = splitIndex;
+        this.pigContext = pigContext;
+        init();
+    }
+
     /**
      * This constructor takes an array of split indexes (toReadSplitIdxs) of the 
      * splits to be read.
@@ -143,9 +157,14 @@ public class ReadToEndLoader extends LoadFunc implements LoadMetadata {
     
     @SuppressWarnings("unchecked")
     private void init() throws IOException {
+        if (conf != null && pigContext != null) {
+            SchemaTupleBackend.initialize(conf, pigContext, true);
+        }
+
         // make a copy so that if the underlying InputFormat writes to the
         // conf, we don't affect the caller's copy
         conf = new Configuration(conf);
+
         // let's initialize the wrappedLoadFunc 
         Job job = new Job(conf);
         wrappedLoadFunc.setLocation(inputLocation, 

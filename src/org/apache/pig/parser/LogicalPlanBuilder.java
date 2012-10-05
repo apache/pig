@@ -820,7 +820,6 @@ public class LogicalPlanBuilder {
                     funcSpec == null ?
                         new FuncSpec(PigStorage.class.getName()) :
                         funcSpec;
-
             loFunc = (LoadFunc)PigContext.instantiateFuncFromSpec(instantiatedFuncSpec);
             String fileNameKey = QueryParserUtils.constructFileNameSignature(filename, instantiatedFuncSpec) + "_" + (loadIndex++);
             absolutePath = fileNameMap.get(fileNameKey);

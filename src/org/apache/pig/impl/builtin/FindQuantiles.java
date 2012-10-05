@@ -253,7 +253,7 @@ public class FindQuantiles extends EvalFunc<Map<String, Object>>{
                     probVec.set(l, new Float(0.0));
                 }
                 // for each partition that this sample item is present in,
-                // compute the fraction of the total occurences for that
+                // compute the fraction of the total occurrences for that
                 // partition - this will be the probability with which we
                 // will pick this partition in the final sort reduce job
                 // for this sample item

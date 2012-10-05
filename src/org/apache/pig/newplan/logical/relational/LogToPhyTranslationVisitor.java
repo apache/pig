@@ -131,7 +131,6 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
     @Override
     public void visit(LOLoad loLoad) throws FrontendException {
         String scope = DEFAULT_SCOPE;
-        //        System.err.println("Entering Load");
         // The last parameter here is set to true as we assume all files are
         // splittable due to LoadStore Refactor
         POLoad load = new POLoad(new OperatorKey(scope, nodeGen
@@ -160,7 +159,6 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                 throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
             }
         }
-        //        System.err.println("Exiting Load");
     }
 
     @Override
@@ -855,8 +853,20 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
         for(boolean fl: flatten) {
             flattenList.add(fl);
         }
+        LogicalSchema logSchema = foreach.getSchema();
+        Schema schema = null;
+        if (logSchema != null) {
+            try {
+                schema = Schema.getPigSchema(new ResourceSchema(logSchema));
+            } catch (FrontendException e) {
+                throw new RuntimeException("LogicalSchema in foreach unable to be converted to Schema: " + logSchema, e);
+            }
+        }
+        if (schema != null) {
+            SchemaTupleFrontend.registerToGenerateIfPossible(schema, false, GenContext.FOREACH); //TODO may need to be appendable
+        }
         POForEach poFE = new POForEach(new OperatorKey(scope, nodeGen
-                .getNextNodeId(scope)), foreach.getRequestedParallelism(), innerPlans, flattenList);
+                .getNextNodeId(scope)), foreach.getRequestedParallelism(), innerPlans, flattenList, schema);
         poFE.addOriginalLocation(foreach.getAlias(), foreach.getLocation());
         poFE.setResultType(DataType.BAG);
         logToPhyMap.put(foreach, poFE);
@@ -884,6 +894,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
     /**
      * This function takes in a List of LogicalExpressionPlan and converts them to
      * a list of PhysicalPlans
+     *
      * @param plans
      * @return
      * @throws FrontendException
