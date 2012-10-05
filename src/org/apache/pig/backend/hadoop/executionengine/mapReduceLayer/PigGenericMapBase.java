@@ -172,7 +172,7 @@ public abstract class PigGenericMapBase extends Mapper<Text, Tuple, PigNullableW
         pigContext = (PigContext)ObjectSerializer.deserialize(job.get("pig.pigContext"));
 
         // This attempts to fetch all of the generated code from the distributed cache, and resolve it
-        SchemaTupleBackend.initialize(job, pigContext.getExecType());
+        SchemaTupleBackend.initialize(job, pigContext);
 
         if (pigContext.getLog4jProperties()!=null)
             PropertyConfigurator.configure(pigContext.getLog4jProperties());

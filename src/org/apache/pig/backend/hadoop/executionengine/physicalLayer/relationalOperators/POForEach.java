@@ -36,8 +36,12 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.data.AccumulativeBag;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
+import org.apache.pig.data.SchemaTupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.data.TupleMaker;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -48,15 +52,10 @@ import org.apache.pig.pen.util.LineageTracer;
 //We intentionally skip type checking in backend for performance reasons
 @SuppressWarnings("unchecked")
 public class POForEach extends PhysicalOperator {
-
-    /**
-     *
-     */
     private static final long serialVersionUID = 1L;
 
     protected List<PhysicalPlan> inputPlans;
     protected List<PhysicalOperator> opsToBeReset;
-    protected static final TupleFactory mTupleFactory = TupleFactory.getInstance();
     //Since the plan has a generate, this needs to be maintained
     //as the generate can potentially return multiple tuples for
     //same call.
@@ -93,12 +92,10 @@ public class POForEach extends PhysicalOperator {
 
     protected Tuple inpTuple;
 
+    private Schema schema;
+
     public POForEach(OperatorKey k) {
         this(k,-1,null,null);
-    }
-
-    public POForEach(OperatorKey k, int rp, List inp) {
-        this(k,rp,inp,null);
     }
 
     public POForEach(OperatorKey k, int rp) {
@@ -115,6 +112,12 @@ public class POForEach extends PhysicalOperator {
         this.inputPlans = inp;
         opsToBeReset = new ArrayList<PhysicalOperator>();
         getLeaves();
+    }
+
+    public POForEach(OperatorKey operatorKey, int requestedParallelism,
+            List<PhysicalPlan> innerPlans, List<Boolean> flattenList, Schema schema) {
+        this(operatorKey, requestedParallelism, innerPlans, flattenList);
+        this.schema = schema;
     }
 
     @Override
@@ -301,6 +304,8 @@ public class POForEach extends PhysicalOperator {
     }
 
     private boolean isEarlyTerminated = false;
+    private TupleMaker<? extends Tuple> tupleMaker;
+    private boolean knownSize = false;
 
     private boolean isEarlyTerminated() {
         return isEarlyTerminated;
@@ -311,6 +316,19 @@ public class POForEach extends PhysicalOperator {
     }
 
     protected Result processPlan() throws ExecException{
+        if (schema != null && tupleMaker == null) {
+            // Note here that if SchemaTuple is currently turned on, then any UDF's in the chain
+            // must follow good practices. Namely, they should not append to the Tuple that comes
+            // out of an iterator (a practice which is fairly common, but is not recommended).
+            tupleMaker = SchemaTupleFactory.getInstance(schema, false, GenContext.FOREACH);
+            if (tupleMaker != null) {
+                knownSize = true;
+            }
+        }
+        if (tupleMaker == null) {
+            tupleMaker = TupleFactory.getInstance();
+        }
+
         Result res = new Result();
 
         //We check if all the databags have exhausted the tuples. If so we enforce the reading of new data by setting data and its to null
@@ -471,7 +489,9 @@ public class POForEach extends PhysicalOperator {
      * @return the final flattened tuple
      */
     protected Tuple createTuple(Object[] data) throws ExecException {
-        Tuple out =  mTupleFactory.newTuple();
+        Tuple out =  tupleMaker.newTuple();
+
+        int idx = 0;
         for(int i = 0; i < data.length; ++i) {
             Object in = data[i];
 
@@ -479,11 +499,19 @@ public class POForEach extends PhysicalOperator {
                 Tuple t = (Tuple)in;
                 int size = t.size();
                 for(int j = 0; j < size; ++j) {
+                    if (knownSize) {
+                        out.set(idx++, t.get(j));
+                    } else {
                     out.append(t.get(j));
                 }
+                }
+            } else {
+                if (knownSize) {
+                    out.set(idx++, in);
             } else {
                 out.append(in);
             }
+        }
         }
         if (inpTuple != null) {
             return illustratorMarkup(inpTuple, out, 0);

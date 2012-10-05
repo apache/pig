@@ -17,6 +17,9 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -29,8 +32,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-
-import junit.framework.Assert;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
@@ -55,22 +56,17 @@ import org.apache.pig.parser.ParserException;
 import org.apache.pig.parser.QueryParserDriver;
 import org.apache.pig.test.utils.GenPhyOp;
 import org.apache.pig.test.utils.TestHelper;
-import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
-public class TestLoad extends junit.framework.TestCase {
+public class TestLoad {
 
     PigContext pc;
     PigServer[] servers;
     
     static MiniCluster cluster = MiniCluster.buildCluster();
     
-    @Override
     @Before
     public void setUp() throws Exception {
         FileLocalizer.deleteTempFiles();
@@ -80,11 +76,6 @@ public class TestLoad extends junit.framework.TestCase {
         };       
     }
         
-    @Override
-    @After
-    public void tearDown() throws Exception {
-    }
-
     @Test
     public void testGetNextTuple() throws IOException {
         pc = servers[0].getPigContext();
@@ -264,7 +255,7 @@ public class TestLoad extends junit.framework.TestCase {
         LogicalPlan lp = Util.buildLp(servers[1], query);
         LOLoad load = (LOLoad) lp.getSources().get(0);
         nonDfsUrl = nonDfsUrl.replaceFirst("/$", "");
-        Assert.assertEquals(nonDfsUrl, load.getFileSpec().getFileName());
+        assertEquals(nonDfsUrl, load.getFileSpec().getFileName());
     }
     
     @SuppressWarnings("unchecked")
@@ -297,7 +288,7 @@ public class TestLoad extends junit.framework.TestCase {
             }
             Collections.sort(expectedBasedOnNumberOfInputs);
             Collections.sort(actual);
-            Assert.assertEquals(expectedBasedOnNumberOfInputs, actual);
+            assertEquals(expectedBasedOnNumberOfInputs, actual);
         } finally {
             for(int i = 0; i < inputFileNames.length; i++) {
                 Util.deleteFile(pc, inputFileNames[i]);
@@ -325,24 +316,24 @@ public class TestLoad extends junit.framework.TestCase {
             
             String query = "a = load '"+orig+"';";
             LogicalPlan lp = builder.parse(query);
-            Assert.assertTrue(lp.size()>0);
+            assertTrue(lp.size()>0);
             Operator op = lp.getSources().get(0);
             
-            Assert.assertTrue(op instanceof LOLoad);
+            assertTrue(op instanceof LOLoad);
             LOLoad load = (LOLoad)op;
     
             String p = load.getFileSpec().getFileName();
             System.err.println("DEBUG: p:" + p + " expected:" + expected +", exectype:" + pc.getExecType());
             if(noConversionExpected) {
-                Assert.assertEquals(p, expected);
+                assertEquals(p, expected);
             } else  {
                 if (pc.getExecType() == ExecType.MAPREDUCE) {
-                    Assert.assertTrue(p.matches(".*hdfs://[0-9a-zA-Z:\\.]*.*"));
-                    Assert.assertEquals(p.replaceAll("hdfs://[0-9a-zA-Z:\\.]*/", "/"),
+                    assertTrue(p.matches(".*hdfs://[0-9a-zA-Z:\\.]*.*"));
+                    assertEquals(p.replaceAll("hdfs://[0-9a-zA-Z:\\.]*/", "/"),
                             expected);
                 } else {
-                    Assert.assertTrue(p.matches(".*file://[0-9a-zA-Z:\\.]*.*"));
-                    Assert.assertEquals(p.replaceAll("file://[0-9a-zA-Z:\\.]*/", "/"),
+                    assertTrue(p.matches(".*file://[0-9a-zA-Z:\\.]*.*"));
+                    assertEquals(p.replaceAll("file://[0-9a-zA-Z:\\.]*/", "/"),
                             expected);
                 }
             }

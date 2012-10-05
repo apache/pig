@@ -129,8 +129,6 @@ import org.junit.Test;
 
 public class TestBuiltin {
 
-    private String initString = "local";
-
     PigServer pigServer;
 
     // This should only be used when absolutely necessary -- eg, when using ReadToEndLoader.
@@ -304,7 +302,6 @@ public class TestBuiltin {
         expectedMap.put("FloatAvgIntermediate", expectedMap.get("FloatSum"));
 
         // set up input hash
-        try{
             inputMap.put("Integer", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), intInput));
             inputMap.put("IntegerAsLong", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), intAsLong));
             inputMap.put("Long", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), longInput));
@@ -314,11 +311,6 @@ public class TestBuiltin {
             inputMap.put("ByteArray", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), ByteArrayInput));
             inputMap.put("ByteArrayAsDouble", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), baAsDouble));
             inputMap.put("String", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), stringInput));
-
-        }catch(ExecException e) {
-            e.printStackTrace();
-        }
-
 
         DateTimeZone.setDefault(DateTimeZone.forOffsetMillis(DateTimeZone.UTC.getOffset(null)));
     }

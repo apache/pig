@@ -52,7 +52,7 @@ public class SchemaTupleFactory implements TupleMaker<SchemaTuple<?>> {
      * @return  true if it is generatable
      */
     public static boolean isGeneratable(Schema s) {
-        if (s == null) {
+        if (s == null || s.size() == 0) {
             return false;
         }
 

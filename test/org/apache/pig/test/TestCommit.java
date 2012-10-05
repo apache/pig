@@ -17,53 +17,28 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 import java.util.Properties;
-import java.util.Random;
-import java.util.StringTokenizer;
 
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-
-import org.apache.pig.ComparisonFunc;
-import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
-import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.builtin.BinStorage;
-import org.apache.pig.builtin.Distinct;
 import org.apache.pig.builtin.PigStorage;
-import org.apache.pig.builtin.TextLoader;
-import org.apache.pig.data.*;
-import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.io.PigFile;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.util.Pair;
-import junit.framework.TestCase;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
+import org.junit.Before;
+import org.junit.Test;
 
-@RunWith(JUnit4.class)
-public class TestCommit extends TestCase {
+public class TestCommit {
 
     private PigServer pigServer;
 
-    TupleFactory mTf = TupleFactory.getInstance();
+    private static final TupleFactory mTf = TupleFactory.getInstance();
 
     @Before
-    @Override
     public void setUp() throws Exception{
         pigServer = new PigServer(ExecType.LOCAL, new Properties());
     }
@@ -95,11 +70,11 @@ public class TestCommit extends TestCase {
             Tuple t = iter.next();
             count++;
             if (count == 1) {
-                assertTrue(t.get(0).equals(expected1.get(0)));
-                assertTrue(t.get(1).equals(expected1.get(1)));
+                assertEquals(t.get(0), expected1.get(0));
+                assertEquals(t.get(1), expected1.get(1));
             } else if (count == 2){
-                assertTrue(t.get(0).equals(expected2.get(0)));
-                assertTrue(t.get(1).equals(expected2.get(1)));
+                assertEquals(t.get(0), expected2.get(0));
+                assertEquals(t.get(1), expected2.get(1));
             }
         }
         assertEquals(count, 2);
@@ -146,6 +121,7 @@ public class TestCommit extends TestCase {
         }
         pigServer.deleteFile("testCheckin2-output.txt");
         assertEquals(count, 2);
-        assertTrue(contain1 && contain2);
+        assertTrue(contain1);
+        assertTrue(contain2);
     }
 }

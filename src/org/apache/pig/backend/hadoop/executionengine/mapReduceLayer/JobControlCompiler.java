@@ -25,7 +25,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -35,7 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -70,13 +68,11 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCounter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFRJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeCogroup;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PORank;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
@@ -90,11 +86,11 @@ import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.io.NullableBooleanWritable;
 import org.apache.pig.impl.io.NullableBytesWritable;
+import org.apache.pig.impl.io.NullableDateTimeWritable;
 import org.apache.pig.impl.io.NullableDoubleWritable;
 import org.apache.pig.impl.io.NullableFloatWritable;
 import org.apache.pig.impl.io.NullableIntWritable;
 import org.apache.pig.impl.io.NullableLongWritable;
-import org.apache.pig.impl.io.NullableDateTimeWritable;
 import org.apache.pig.impl.io.NullablePartitionWritable;
 import org.apache.pig.impl.io.NullableText;
 import org.apache.pig.impl.io.NullableTuple;
@@ -446,7 +442,6 @@ public class JobControlCompiler{
             ss.addSettingsToConf(mro, conf);
         }
 
-
         conf.set("mapred.mapper.new-api", "true");
         conf.set("mapred.reducer.new-api", "true");
 
@@ -655,7 +650,7 @@ public class JobControlCompiler{
             setupDistributedCacheForJoin(mro, pigContext, conf);
 
             // Search to see if we have any UDFs that need to pack things into the
-            // distrubted cache.
+            // distributed cache.
             setupDistributedCacheForUdfs(mro, pigContext, conf);
 
             SchemaTupleFrontend.copyAllGeneratedToDistributedCache(pigContext, conf);

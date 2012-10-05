@@ -34,9 +34,8 @@ import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.data.utils.MethodHelper;
 import org.apache.pig.data.utils.MethodHelper.NotImplemented;
 import org.apache.pig.data.utils.SedesHelper;
-import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.util.Utils;
+import org.apache.pig.impl.util.ObjectSerializer;
 import org.mortbay.log.Log;
 
 import com.google.common.collect.Lists;
@@ -195,12 +194,12 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
     }
 
     protected static DataBag read(DataInput in, DataBag v) throws IOException {
-        return (DataBag) bis.readDatum(in, DataType.BAG);
+        return (DataBag) bis.readDatum(in);
     }
 
     @SuppressWarnings("unchecked")
     protected static Map<String, Object> read(DataInput in, Map<String, Object> v) throws IOException {
-        return (Map<String, Object>) bis.readDatum(in, DataType.MAP);
+        return (Map<String, Object>) bis.readDatum(in);
     }
 
     protected static int read(DataInput in, int v) throws IOException {
@@ -355,11 +354,11 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
     }
 
     protected DataBag unbox(Object v, DataBag t) {
-        return unbox((DataBag) t);
+        return unbox((DataBag) v);
     }
 
     protected Map<String, Object> unbox(Object v, Map<String, Object> t) {
-        return unbox((Map<String, Object>) t);
+        return unbox((Map<String, Object>) v);
     }
 
     protected byte[] unbox(Object v, byte[] t) {
@@ -839,10 +838,9 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
                 Log.warn("No Schema present in SchemaTuple generated class");
                 return new Schema();
             }
-            s = new String(Base64.decodeBase64(s));
-            return Utils.getSchemaFromString(s);
-        } catch (FrontendException e) {
-            throw new RuntimeException("Unable to make Schema for String: " + s);
+            return (Schema) ObjectSerializer.deserialize(s);
+        } catch (IOException e) {
+            throw new RuntimeException("Unable to deserialize serialized Schema: " + s, e);
         }
     }
 

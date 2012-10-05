@@ -316,7 +316,7 @@ public class PigGenericMapReduce {
                 pigContext = (PigContext)ObjectSerializer.deserialize(jConf.get("pig.pigContext"));
                 
                 // This attempts to fetch all of the generated code from the distributed cache, and resolve it
-                SchemaTupleBackend.initialize(jConf, pigContext.getExecType());
+                SchemaTupleBackend.initialize(jConf, pigContext);
 
                 if (rp == null)
                     rp = (PhysicalPlan) ObjectSerializer.deserialize(jConf

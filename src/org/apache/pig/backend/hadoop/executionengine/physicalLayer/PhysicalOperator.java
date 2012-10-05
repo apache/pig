@@ -292,7 +292,6 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
      * @throws ExecException
      */
     public Result processInput() throws ExecException {
-
         Result res = new Result();
         if (input == null && (inputs == null || inputs.size()==0)) {
 //            log.warn("No inputs found. Signaling End of Processing.");

@@ -280,7 +280,7 @@ public class HExecutionEngine {
         SortInfoSetter sortInfoSetter = new SortInfoSetter( plan );
         sortInfoSetter.visit();
         
-        if (pigContext.inExplain==false) {
+        if (!pigContext.inExplain) {
             // Validate input/output file. Currently no validation framework in
             // new logical plan, put this validator here first.
             // We might decide to move it out to a validator framework in future

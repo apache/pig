@@ -17,11 +17,17 @@
  */
 package org.apache.pig.data;
 
+import static org.apache.pig.PigConfiguration.SHOULD_USE_SCHEMA_TUPLE;
+import static org.apache.pig.PigConstants.GENERATED_CLASSES_KEY;
+import static org.apache.pig.PigConstants.LOCAL_CODE_DIR;
+import static org.apache.pig.PigConstants.SCHEMA_TUPLE_ON_BY_DEFAULT;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 import org.apache.commons.logging.Log;
@@ -45,7 +51,6 @@ import com.google.common.io.Files;
 /**
  * This class is to be used at job creation time. It provides the API that lets code
  * register Schemas with pig to be generated. It is necessary to register these Schemas
- * so that the generated code can be made on the client side, and shipped to the mappers
  * and reducers.
  */
 public class SchemaTupleFrontend {
@@ -110,10 +115,12 @@ public class SchemaTupleFrontend {
                 String codePath = codeDir.getAbsolutePath();
                 LOG.info("Distributed cache not supported or needed in local mode. Setting key ["
                         + LOCAL_CODE_DIR + "] with code temp directory: " + codePath);
-                if (pigContext.getExecType() == ExecType.LOCAL) {
                     conf.set(LOCAL_CODE_DIR, codePath);
-                }
                 return;
+            } else {
+                // This let's us avoid NPE in some of the non-traditional pipelines
+                String codePath = codeDir.getAbsolutePath();
+                conf.set(LOCAL_CODE_DIR, codePath);
             }
             DistributedCache.createSymlink(conf); // we will read using symlinks
             StringBuilder serialized = new StringBuilder();
@@ -157,9 +164,9 @@ public class SchemaTupleFrontend {
                 LOG.info("File successfully added to the distributed cache: " + symlink);
             }
             String toSer = serialized.toString();
-            LOG.info("Setting key [" + SchemaTupleBackend.GENERATED_CLASSES_KEY + "] with classes to deserialize [" + toSer + "]");
+            LOG.info("Setting key [" + GENERATED_CLASSES_KEY + "] with classes to deserialize [" + toSer + "]");
             // we must set a key in the job conf so individual jobs know to resolve the shipped classes
-            conf.set(SchemaTupleBackend.GENERATED_CLASSES_KEY, toSer);
+            conf.set(GENERATED_CLASSES_KEY, toSer);
         }
 
         /**
@@ -169,9 +176,8 @@ public class SchemaTupleFrontend {
          */
         private boolean generateAll(Map<Pair<SchemaKey, Boolean>, Pair<Integer, Set<GenContext>>> schemasToGenerate) {
             boolean filesToShip = false;
-            String shouldString = conf.get(SchemaTupleBackend.SHOULD_GENERATE_KEY);
-            if (shouldString == null || !Boolean.parseBoolean(shouldString)) {
-                LOG.info("Key ["+SchemaTupleBackend.SHOULD_GENERATE_KEY+"] is false, aborting generation.");
+            if (!conf.getBoolean(SHOULD_USE_SCHEMA_TUPLE, SCHEMA_TUPLE_ON_BY_DEFAULT)) {
+                LOG.info("Key ["+SHOULD_USE_SCHEMA_TUPLE+"] is false, will not generate code.");
                 return false;
             }
             LOG.info("Generating all registered Schemas.");
@@ -222,6 +228,14 @@ public class SchemaTupleFrontend {
      */
     public static int registerToGenerateIfPossible(Schema udfSchema, boolean isAppendable, GenContext context) {
         if (stf == null) {
+            if (pigContextToReset != null) {
+                Properties prop = pigContextToReset.getProperties();
+                prop.remove(GENERATED_CLASSES_KEY);
+                prop.remove(LOCAL_CODE_DIR);
+                pigContextToReset = null;
+            }
+            SchemaTupleBackend.reset();
+            SchemaTupleClassGenerator.resetGlobalClassIdentifier();
             stf = new SchemaTupleFrontend();
         }
 
@@ -249,12 +263,6 @@ public class SchemaTupleFrontend {
     }
 
     /**
-     * This key is used when a job is run in local mode to pass the location of the generated code
-     * from the frontent to the "backend."
-     */
-    protected static final String LOCAL_CODE_DIR = "pig.schematuple.local.dir";
-
-    /**
      * This must be called when the code has been generated and the generated code needs to be shipped
      * to the cluster, so that it may be used by the mappers and reducers.
      * @param pigContext
@@ -268,5 +276,32 @@ public class SchemaTupleFrontend {
         SchemaTupleFrontendGenHelper stfgh = new SchemaTupleFrontendGenHelper(pigContext, conf);
         stfgh.generateAll(stf.getSchemasToGenerate());
         stfgh.internalCopyAllGeneratedToDistributedCache();
+
+        Properties prop = pigContext.getProperties();
+        String value = conf.get(GENERATED_CLASSES_KEY);
+        if (value != null) {
+            prop.setProperty(GENERATED_CLASSES_KEY, value);
+        } else {
+            prop.remove(GENERATED_CLASSES_KEY);
+        }
+        value = conf.get(LOCAL_CODE_DIR);
+        if (value != null) {
+            prop.setProperty(LOCAL_CODE_DIR, value);
+        } else {
+            prop.remove(LOCAL_CODE_DIR);
+        }
+    }
+
+    private static PigContext pigContextToReset = null;
+
+    /**
+     * This is a method which caches a PigContext object that has had
+     * relevant key values set by SchemaTupleBackend. This is necessary
+     * because in some cases, multiple cycles of jobs might run in the JVM,
+     * but the PigContext object may be shared, so we want to make sure to
+     * undo any changes we have made to it.
+     */
+    protected static void lazyReset(PigContext pigContext) {
+        pigContextToReset = pigContext;
     }
 }
