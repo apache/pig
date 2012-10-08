@@ -147,14 +147,60 @@ grunt>
 </source>
    </section>
  
-    </section>
-        </section>
+   </section>
+    
+   </section>
  
  <!-- ======================================================== -->         
         
    <section id="utillity-cmds">
    <title>Utility Commands</title>
    
+   <!-- +++++++++++++++++++++++++++++++++++++++ -->
+       <section id="clear">
+           <title>clear</title>
+           <p>Clear the screen of Pig grunt shell and position the cursor at top of the screen.</p>
+           
+           <section>
+               <title>Syntax </title>
+               <table>
+                   <tr>
+                       <td>
+                           <p>clear</p>
+                       </td>
+                   </tr> 
+               </table>
+           </section>
+           
+           <section>
+               <title>Terms</title>
+               <table>
+                   <tr>
+                       <td>
+                           <p>key</p>
+                       </td>
+                       <td>
+                           <p>Description.</p>
+                       </td>
+                   </tr>
+                   <tr>
+                       <td>
+                           <p>none</p>
+                       </td>
+                       <td>
+                           <p>no parameters</p>
+                       </td>
+                   </tr> 
+               </table></section>
+           <section>
+               <title>Example</title>
+               <p>In this example the clear command clean up Pig grunt shell.</p>
+               <source>
+grunt&gt; clear</source>
+           </section>
+           
+       </section>
+
    <!-- +++++++++++++++++++++++++++++++++++++++ -->
   <section id="exec">
    <title>exec</title>
@@ -312,6 +358,67 @@ The following properties are supported:
    </section>
    
    <!-- +++++++++++++++++++++++++++++++++++++++ -->      
+       <section id="history">
+           <title>history</title>
+           <p>Display the list of statements used so far.</p>
+           
+           <section>
+               <title>Syntax</title>
+               <table>
+                   <tr>
+                       <td>
+                           <p>history [-n]</p>
+                       </td>
+                   </tr> 
+               </table>
+           </section>
+           
+           <section>
+               <title>Terms</title>
+               <table>
+                   <tr>
+                       <td>
+                           <p>key</p>
+                       </td>
+                       <td>
+                           <p>Description.</p>
+                       </td>
+                   </tr>
+                   <tr>
+                       <td>
+                           <p>-n</p>
+                       </td>
+                       <td>
+                           <p>Omit line numbers in the list.</p>
+                       </td>
+                   </tr>
+               </table>
+           </section>
+           
+           <section>
+               <title>Usage</title>
+               <p>The history command shows the statements used so far.</p></section>
+           
+           <section>
+               <title>Example</title>
+               <p>In this example the history command shows all the statements with line numbers and without them.</p>
+               <source>
+grunt&gt; a = LOAD 'student' AS (name, age, gpa);
+grunt&gt; b = order a by name;
+grunt&gt; history
+1 a = LOAD 'student' AS (name, age, gpa);
+2 b = order a by name;
+
+grunt&gt; c = order a by name;
+grunt&gt; history -n
+a = LOAD 'student' AS (name, age, gpa);
+b = order a by name;
+c = order a by name;</source>
+           </section>
+           
+       </section>
+
+   <!-- +++++++++++++++++++++++++++++++++++++++ -->      
    <section id="kill">
    <title>kill</title>
    <p>Kills a job.</p>
@@ -353,7 +460,8 @@ grunt&gt; kill job_0001
 </source>
    </section></section>
    
-   <section>
+   <!-- +++++++++++++++++++++++++++++++++++++++ -->
+   <section id="quit">
    <title>quit</title>
    <p>Quits from the Pig grunt shell.</p>
    
@@ -390,7 +498,8 @@ grunt&gt; kill job_0001
 <source>
 grunt&gt; quit
 </source>
-   </section></section>
+   </section>
+   </section>
    
     <!-- +++++++++++++++++++++++++++++++++++++++ -->     
    <section id="run">
