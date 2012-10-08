@@ -289,6 +289,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2961: BinInterSedesRawComparator broken by TUPLE_number patch (jcoveney)
+
 PIG-2932: Setting high default_parallel causes IOException in local mode (cheolsoo via gates)
 
 PIG-2737: [piggybank] TestIndexedStorage is failing, should be refactored (jcoveney)

@@ -1146,6 +1146,16 @@ public class BinInterSedes implements InterSedes {
             case BinInterSedes.SMALLCHARARRAY:
             case BinInterSedes.CHARARRAY:
                 return DataType.CHARARRAY;
+            case BinInterSedes.TUPLE_0:
+            case BinInterSedes.TUPLE_1:
+            case BinInterSedes.TUPLE_2:
+            case BinInterSedes.TUPLE_3:
+            case BinInterSedes.TUPLE_4:
+            case BinInterSedes.TUPLE_5:
+            case BinInterSedes.TUPLE_6:
+            case BinInterSedes.TUPLE_7:
+            case BinInterSedes.TUPLE_8:
+            case BinInterSedes.TUPLE_9:
             case BinInterSedes.TUPLE:
             case BinInterSedes.TINYTUPLE:
             case BinInterSedes.SMALLTUPLE:
