@@ -1,7 +1,11 @@
 package org.apache.pig.builtin.mock;
 
-import static junit.framework.Assert.*;
-import static org.apache.pig.builtin.mock.Storage.*;
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertTrue;
+import static junit.framework.Assert.fail;
+import static org.apache.pig.builtin.mock.Storage.resetData;
+import static org.apache.pig.builtin.mock.Storage.schema;
+import static org.apache.pig.builtin.mock.Storage.tuple;
 
 import java.util.HashSet;
 import java.util.List;
@@ -13,7 +17,6 @@ import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
 import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.util.Utils;
 import org.junit.Test;
 
 public class TestMockStorage {

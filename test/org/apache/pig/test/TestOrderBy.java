@@ -17,6 +17,9 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -26,24 +29,18 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import junit.framework.TestCase;
-
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
-
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
-public class TestOrderBy extends TestCase {
+public class TestOrderBy {
     private static final int DATALEN = 1024;
     private String[][] DATA = new String[2][DATALEN];
     static MiniCluster cluster = MiniCluster.buildCluster();
