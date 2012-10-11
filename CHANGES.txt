@@ -25,6 +25,8 @@ PIG-1891 Enable StoreFunc to make intelligent decision based on job success or f
 
 IMPROVEMENTS
 
+PIG-2579: Support for multiple input schemas in AvroStorage (cheolsoo via sms)
+
 PIG-2946: Documentation of "history" and "clear" commands (xalan via azaroth)
 
 PIG-2877: Make SchemaTuple work in foreach (and thus, in loads) (jcoveney)

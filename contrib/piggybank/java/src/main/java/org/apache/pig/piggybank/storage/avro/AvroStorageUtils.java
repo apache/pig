@@ -22,9 +22,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.net.URI;
 import org.apache.avro.Schema;
@@ -95,20 +98,16 @@ public class AvroStorageUtils {
     /**
      * get input paths to job config
      */
-    public static boolean addInputPaths(String pathString, Job job)
-        throws IOException
-    {
+    public static boolean addInputPaths(String pathString, Job job) throws IOException {
       Configuration conf = job.getConfiguration();
       FileSystem fs = FileSystem.get(conf);
       HashSet<Path> paths = new  HashSet<Path>();
-      if (getAllSubDirs(new Path(pathString), job, paths))
-      {
+      if (getAllSubDirs(new Path(pathString), conf, paths)) {
         paths.addAll(Arrays.asList(FileInputFormat.getInputPaths(job)));
         FileInputFormat.setInputPaths(job, paths.toArray(new Path[0]));
         return true;
       }
       return false;
-
     }
 
     /**
@@ -116,8 +115,8 @@ public class AvroStorageUtils {
      *
      * @throws IOException
      */
-    static boolean getAllSubDirs(Path path, Job job, Set<Path> paths) throws IOException {
-        FileSystem fs = FileSystem.get(path.toUri(), job.getConfiguration());
+    public static boolean getAllSubDirs(Path path, Configuration conf, Set<Path> paths) throws IOException {
+        FileSystem fs = FileSystem.get(path.toUri(), conf);
         FileStatus[] matchedFiles = fs.globStatus(path, PATH_FILTER);
         if (matchedFiles == null || matchedFiles.length == 0) {
             return false;
@@ -125,7 +124,7 @@ public class AvroStorageUtils {
         for (FileStatus file : matchedFiles) {
             if (file.isDir()) {
                 for (FileStatus sub : fs.listStatus(file.getPath())) {
-                    getAllSubDirs(sub.getPath(), job, paths);
+                    getAllSubDirs(sub.getPath(), conf, paths);
                 }
             } else {
                 AvroStorageLog.details("Add input file:" + file);
@@ -133,21 +132,6 @@ public class AvroStorageUtils {
             }
         }
         return true;
-    }
-
-    /**
-     * Return the first path that matches the glob pattern in the file system.
-     *
-     * @throws IOException
-     */
-    public static Path getConcretePathFromGlob(String pattern, Job job) throws IOException {
-        Path path = new Path(pattern);
-        FileSystem fs = FileSystem.get(path.toUri(), job.getConfiguration());
-        FileStatus[] matchedFiles = fs.globStatus(path, PATH_FILTER);
-        if (matchedFiles == null || matchedFiles.length == 0) {
-            return null;
-        }
-        return matchedFiles[0].getPath();
     }
 
     /** check whether there is NO directory in the input file (status) list*/
@@ -179,6 +163,291 @@ public class AvroStorageUtils {
             Arrays.sort(statuses);
             return statuses[statuses.length - 1].getPath();
         }
+    }
+
+    /**
+     * This method merges two primitive avro types into one. This method must
+     * be used only to merge two primitive types. For complex types, null will
+     * be returned unless they are both the same type. Also note that not every
+     * primitive type can be merged. For types that cannot be merged, null is
+     * returned.
+     *
+     * @param x first avro type to merge
+     * @param y second avro type to merge
+     * @return merged avro type
+     */
+    private static Schema.Type mergeType(Schema.Type x, Schema.Type y) {
+        if (x.equals(y)) {
+            return x;
+        }
+
+        switch(x) {
+            case INT:
+                switch (y) {
+                    case LONG:
+                        return Schema.Type.LONG;
+                    case FLOAT:
+                        return Schema.Type.FLOAT;
+                    case DOUBLE:
+                        return Schema.Type.DOUBLE;
+                    case ENUM:
+                    case STRING:
+                        return Schema.Type.STRING;
+                }
+
+            case LONG:
+                switch (y) {
+                    case INT:
+                        return Schema.Type.LONG;
+                    case FLOAT:
+                        return Schema.Type.FLOAT;
+                    case DOUBLE:
+                        return Schema.Type.DOUBLE;
+                    case ENUM:
+                    case STRING:
+                        return Schema.Type.STRING;
+                }
+
+            case FLOAT:
+                switch (y) {
+                    case INT:
+                    case LONG:
+                        return Schema.Type.FLOAT;
+                    case DOUBLE:
+                        return Schema.Type.DOUBLE;
+                    case ENUM:
+                    case STRING:
+                        return Schema.Type.STRING;
+                }
+
+            case DOUBLE:
+                switch (y) {
+                    case INT:
+                    case LONG:
+                    case FLOAT:
+                        return Schema.Type.DOUBLE;
+                    case ENUM:
+                    case STRING:
+                        return Schema.Type.STRING;
+                }
+
+            case ENUM:
+                switch (y) {
+                    case INT:
+                    case LONG:
+                    case FLOAT:
+                    case DOUBLE:
+                    case STRING:
+                        return Schema.Type.STRING;
+                }
+
+            case STRING:
+                switch (y) {
+                    case INT:
+                    case LONG:
+                    case FLOAT:
+                    case DOUBLE:
+                    case ENUM:
+                        return Schema.Type.STRING;
+                }
+        }
+
+        // else return just null in particular, bytes and boolean
+        return null;
+    }
+
+    /**
+     * This method merges two avro schemas into one. Note that not every avro schema
+     * can be merged. For complex types to be merged, they must be the same type.
+     * For primitive types to be merged, they must meet certain conditions. For
+     * schemas that cannot be merged, an exception is thrown.
+     *
+     * @param x first avro schema to merge
+     * @param y second avro schema to merge
+     * @return merged avro schema
+     * @throws IOException
+     */
+    public static Schema mergeSchema(Schema x, Schema y) throws IOException {
+        if (x == null) {
+            return y;
+        }
+        if (y == null) {
+            return x;
+        }
+        if (x.equals(y)) {
+            return x;
+        }
+
+        Schema.Type xType = x.getType();
+        Schema.Type yType = y.getType();
+
+        switch (xType) {
+            case RECORD:
+                if (!yType.equals(Schema.Type.RECORD)) {
+                   throw new IOException("Cannot merge " + xType + " with " + yType);
+                }
+
+                List<Schema.Field> xFields = x.getFields();
+                List<Schema.Field> yFields = y.getFields();
+
+                // LinkedHashMap is used to keep fields in insertion order.
+                // It's convenient for testing to have determinitic behaviors.
+                Map<String, Schema> fieldName2Schema =
+                        new LinkedHashMap<String, Schema>(xFields.size() + yFields.size());
+
+                for (Schema.Field xField : xFields) {
+                    fieldName2Schema.put(xField.name(), xField.schema());
+                }
+                for (Schema.Field yField : yFields) {
+                    String name = yField.name();
+                    Schema currSchema = yField.schema();
+                    Schema prevSchema = fieldName2Schema.get(name);
+                    if (prevSchema == null) {
+                        fieldName2Schema.put(name, currSchema);
+                    } else {
+                        fieldName2Schema.put(name, mergeSchema(prevSchema, currSchema));
+                    }
+                }
+
+                List<Schema.Field> mergedFields = new ArrayList<Schema.Field>(fieldName2Schema.size());
+                for (Entry<String, Schema> entry : fieldName2Schema.entrySet()) {
+                    mergedFields.add(new Schema.Field(entry.getKey(), entry.getValue(), "auto-gen", null));
+                }
+                Schema result = Schema.createRecord(
+                        "merged", null, "merged schema (generated by AvroStorage)", false);
+                result.setFields(mergedFields);
+                return result;
+
+            case ARRAY:
+                if (!yType.equals(Schema.Type.ARRAY)) {
+                    throw new IOException("Cannot merge " + xType + " with " + yType);
+                }
+                return Schema.createArray(mergeSchema(x.getElementType(), y.getElementType()));
+
+            case MAP:
+                if (!yType.equals(Schema.Type.MAP)) {
+                    throw new IOException("Cannot merge " + xType + " with " + yType);
+                }
+                return Schema.createMap(mergeSchema(x.getValueType(), y.getValueType()));
+
+            case UNION:
+                if (!yType.equals(Schema.Type.UNION)) {
+                    throw new IOException("Cannot merge " + xType + " with " + yType);
+                }
+                List<Schema> xTypes = x.getTypes();
+                List<Schema> yTypes = y.getTypes();
+
+                List<Schema> unionTypes = new ArrayList<Schema>();
+                for (Schema xSchema : xTypes) {
+                    unionTypes.add(xSchema);
+                }
+                for (Schema ySchema : yTypes) {
+                    if (!unionTypes.contains(ySchema)) {
+                        unionTypes.add(ySchema);
+                    }
+                }
+                return Schema.createUnion(unionTypes);
+
+            case FIXED:
+                if (!yType.equals(Schema.Type.FIXED)) {
+                    throw new IOException("Cannot merge " + xType + " with " + yType);
+                }
+                int xSize = x.getFixedSize();
+                int ySize = y.getFixedSize();
+                if (xSize != ySize) {
+                    throw new IOException("Cannot merge FIXED types with different sizes: " + xSize + " and " + ySize);
+                }
+                return Schema.createFixed("merged", null, "merged schema (generated by AvroStorage)", xSize);
+
+            default: // primitive types
+                Schema.Type mergedType = mergeType(xType ,yType);
+                if (mergedType == null) {
+                    throw new IOException("Cannot merge " + xType + " with " + yType);
+                }
+                return Schema.create(mergedType);
+        }
+    }
+
+    /**
+     * When merging multiple avro record schemas, we build a map (schemaToMergedSchemaMap)
+     * to associate each input record with a remapping of its fields relative to the merged
+     * schema. Take the following two schemas for example:
+     *
+     * // path1
+     * { "type": "record",
+     *   "name": "x",
+     *   "fields": [ { "name": "xField", "type": "string" } ]
+     * }
+     *
+     * // path2
+     * { "type": "record",
+     *   "name": "y",
+     *   "fields": [ { "name": "yField", "type": "string" } ]
+     * }
+     *
+     * The merged schema will be something like this:
+     *
+     * // merged
+     * { "type": "record",
+     *   "name": "merged",
+     *   "fields": [ { "name": "xField", "type": "string" },
+     *               { "name": "yField", "type": "string" } ]
+     * }
+     *
+     * The schemaToMergedSchemaMap will look like this:
+     *
+     * // schemaToMergedSchemaMap
+     * { path1 : { 0 : 0 },
+     *   path2 : { 0 : 1 }
+     * }
+     *
+     * The meaning of the map is:
+     * - The field at index '0' of 'path1' is moved to index '0' in merged schema.
+     * - The field at index '0' of 'path2' is moved to index '1' in merged schema.
+     *
+     * With this map, we can now remap the field position of the original schema to
+     * that of the merged schema. This is necessary because in the backend, we don't
+     * use the merged avro schema but embedded avro schemas of input files to load
+     * them. Therefore, we must relocate each field from old positions in the original
+     * schema to new positions in the merged schema.
+     *
+     * @param mergedSchema new schema generated from multiple input schemas
+     * @param mergedFiles input avro files that are merged
+     * @return schemaToMergedSchemaMap that maps old position of each field in the
+     * original schema to new position in the new schema
+     * @throws IOException
+     */
+    public static Map<Path, Map<Integer, Integer>> getSchemaToMergedSchemaMap(
+            Schema mergedSchema, Map<Path, Schema> mergedFiles) throws IOException {
+
+        if (!mergedSchema.getType().equals(Schema.Type.RECORD)) {
+            throw new IOException("Remapping of non-record schemas is not supported");
+        }
+
+        Map<Path, Map<Integer, Integer>> result =
+                new HashMap<Path, Map<Integer, Integer>>(mergedFiles.size());
+
+        // map from field position in old schema to field position in new schema
+        for (Map.Entry<Path, Schema> entry : mergedFiles.entrySet()) {
+            Path path = entry.getKey();
+            Schema schema = entry.getValue();
+            if (!schema.getType().equals(Schema.Type.RECORD)) {
+                throw new IOException("Remapping of non-record schemas is not supported");
+            }
+            List<Field> fields = schema.getFields();
+            Map<Integer, Integer> oldPos2NewPos = result.get(path);
+            if (oldPos2NewPos == null) {
+                oldPos2NewPos = new HashMap<Integer, Integer>(fields.size());
+                result.put(path, oldPos2NewPos);
+            }
+            for (Field field : fields) {
+                String fieldName = field.name();
+                int oldPos = schema.getField(fieldName).pos();
+                int newPos = mergedSchema.getField(fieldName).pos();
+                oldPos2NewPos.put(oldPos, newPos);
+            }
+        }
+        return result;
     }
 
     /**
