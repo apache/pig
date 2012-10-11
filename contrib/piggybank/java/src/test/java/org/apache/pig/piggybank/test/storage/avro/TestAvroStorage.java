@@ -159,6 +159,8 @@ public class TestAvroStorage {
         "   } ]" +
         " }";
     final private String testCorruptedFile = getInputFile("test_corrupted_file.avro");
+    final private String testMultipleSchemas1File = getInputFile("test_primitive_types/*");
+    final private String testMultipleSchemas2File = getInputFile("test_complex_types/*");
 
     @BeforeClass
     public static void setup() throws ExecException {
@@ -458,6 +460,105 @@ public class TestAvroStorage {
             // by the Pig frontend, and FrontendException is re-thrown.
             assertTrue(e.getMessage().contains("Cannot get schema"));
         }
+    }
+
+    @Test
+    public void testMultipleSchemas1() throws IOException {
+        // Verify that multiple primitive types can be loaded.
+        // Input Avro files have the following schemas:
+        //  "int"
+        //  "long"
+        //  "float"
+        //  "double"
+        //  "string"
+        //  { "type" : "enum", "name" : "foo", "symbols" : [ "6" ] }
+        // Merged Avro schema looks like this:
+        //  "string"
+        // The relation 'in' looks like this: (order of rows can be different.)
+        //  (6)
+        //  (4.0)
+        //  (3.0)
+        //  (5)
+        //  (2)
+        //  (1)
+        // Avro file stored after processing looks like this:
+        //  "1"
+        //  "2"
+        //  "3.0"
+        //  "4.0"
+        //  "5"
+        //  "6"
+        String output= outbasedir + "testMultipleSchemas1";
+        String expected = basedir + "expected_testMultipleSchemas1.avro";
+        deleteDirectory(new File(output));
+        String [] queries = {
+          " in = LOAD '" + testMultipleSchemas1File +
+              "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ('multiple_schemas');",
+          " s = FOREACH in GENERATE StringConcat($0);",
+          " o = ORDER s BY $0;",
+          " STORE o INTO '" + output +
+              "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ('schema', '\"string\"');"
+           };
+        testAvroStorage(queries);
+        verifyResults(output, expected);
+    }
+
+    @Test
+    public void testMultipleSchemas2() throws IOException {
+        // Verify that multiple complex types (records) can be loaded.
+        // Input Avro files have the following schemas:
+        //  { "type" : "record", "name" : "r", "fields" : [ { "name" : "i", "type" : "int" } ] }
+        //  { "type" : "record", "name" : "r", "fields" : [ { "name" : "l", "type" : "long" } ] }
+        //  { "type" : "record", "name" : "r", "fields" : [ { "name" : "f", "type" : "float" } ] }
+        //  { "type" : "record", "name" : "r", "fields" : [ { "name" : "d", "type" : "double" } ] }
+        //  { "type" : "record", "name" : "r", "fields" : [ { "name" : "s", "type" : "string" } ] }
+        //  { "type" : "record", "name" : "r", "fields" : [ { "name" : "e", "type" : {
+        //      "type" : "enum", "name" : "foo", "symbols" : [ "6" ] } } ] }
+        // Merged Avro schema looks like this:
+        //  { "type" : "record",
+        //    "name" : "merged",
+        //    "fields" : [ { "name" : "i", "type" : "int" },
+        //                 { "name" : "l", "type" : "long" },
+        //                 { "name" : "f", "type" : "float" },
+        //                 { "name" : "d", "type" : "double" },
+        //                 { "name" : "s", "type" : "string" },
+        //                 { "name" : "e", "type" : {
+        //                      "type" : "enum", "name" : "foo", "symbols" : [ "6" ] } }
+        //               ]
+        //  }
+        // The relation 'in' looks like this: (order of rows can be different.)
+        //  (,,6,,,)
+        //  (,,,,4.0,)
+        //  (,,,,,3.0)
+        //  (,5,,,,)
+        //  (,,,2,,)
+        //  (1,,,,,)
+        // Avro file stored after processing looks like this:
+        //  "1"
+        //  "2"
+        //  "3.0"
+        //  "4.0"
+        //  "5"
+        //  "6"
+        String output= outbasedir + "testMultipleSchemas2";
+        String expected = basedir + "expected_testMultipleSchemas2.avro";
+        deleteDirectory(new File(output));
+        String [] queries = {
+          " in = LOAD '" + testMultipleSchemas2File +
+              "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ('multiple_schemas');",
+          " f = FOREACH in GENERATE ($0 is not null ? (chararray)$0 : '')," +
+          "                         ($1 is not null ? (chararray)$1 : '')," +
+          "                         ($2 is not null ? (chararray)$2 : '')," +
+          "                         ($3 is not null ? (chararray)$3 : '')," +
+          "                         ($4 is not null ? (chararray)$4 : '')," +
+          "                         ($5 is not null ? (chararray)$5 : '');",
+          " c = FOREACH f GENERATE StringConcat( $0, $1, $2, $3, $4, $5 );",
+          " o = ORDER c BY $0;",
+          " STORE o INTO '" + output +
+              "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ('schema', '\"string\"');"
+           };
+        testAvroStorage(queries);
+        verifyResults(output, expected);
     }
 
     @Test
