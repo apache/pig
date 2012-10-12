@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.commons.collections.IteratorUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.mapred.JobClient;
@@ -216,6 +217,17 @@ public abstract class PigStats {
             return jp.toString();
         }
         
+        /**
+         * Returns a List representation of the Job graph. Returned list is an
+         * ArrayList
+         * 
+         * @return
+         */
+        @SuppressWarnings("unchecked")
+        public List<JobStats> getJobList() {
+            return IteratorUtils.toList(iterator());
+        }
+
         public Iterator<JobStats> iterator() {
             return new Iterator<JobStats>() {
                 private Iterator<Operator> iter = getOperators();                
@@ -246,7 +258,7 @@ public abstract class PigStats {
             return false;
         }
         
-        List<JobStats> getSuccessfulJobs() {
+        public List<JobStats> getSuccessfulJobs() {
             ArrayList<JobStats> lst = new ArrayList<JobStats>();
             Iterator<JobStats> iter = iterator();
             while (iter.hasNext()) {
@@ -259,7 +271,7 @@ public abstract class PigStats {
             return lst;
         }
         
-        List<JobStats> getFailedJobs() {
+        public List<JobStats> getFailedJobs() {
             ArrayList<JobStats> lst = new ArrayList<JobStats>();
             Iterator<JobStats> iter = iterator();
             while (iter.hasNext()) {
