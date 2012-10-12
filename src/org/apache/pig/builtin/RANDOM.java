@@ -19,6 +19,7 @@
 package org.apache.pig.builtin;
 
 import java.io.IOException;
+import java.util.Random;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.data.Tuple;
@@ -31,10 +32,19 @@ import org.apache.pig.data.DataType;
  */
 @Nondeterministic
 public class RANDOM extends EvalFunc<Double>{
+    private Random r;
+
+    public RANDOM() {
+        r = new Random();
+    }
+
+    public RANDOM(String seed) {
+        r = new Random(Long.parseLong(seed));
+    }
 
 	@Override
 	public Double exec(Tuple input) throws IOException {
-		return Math.random();
+		return r.nextDouble();
 	}
 
     @Override
