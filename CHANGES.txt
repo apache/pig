@@ -35,6 +35,8 @@ PIG-1891 Enable StoreFunc to make intelligent decision based on job success or f
 
 IMPROVEMENTS
 
+PIG-2910: Add function to read schema from outout of Schema.toString() (initialcontext via thejas)
+
 PIG-2965: RANDOM should allow seed initialization for ease of testing (jcoveney)
 
 PIG-2964: Add helper method getJobList() to PigStats.JobGraph. Extend visibility of couple methods on same class (prkommireddi via billgraham)
