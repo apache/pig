@@ -879,7 +879,7 @@ public class TestSchema {
         for (String schemaString : schemaStrings) {
             Schema s1 = Utils.getSchemaFromString(schemaString);
             String s=s1.toString();
-            Schema s2 = Utils.getSchemaFromString(s.substring(1,s.length()-1)); //have to cut out the brackets that surround it
+            Schema s2 = Utils.getSchemaFromBagSchemaString(s); // removes outer curly-braces added by Schema#toString
             Assert.assertTrue(Schema.equals(s1,s2,false,true));
         }
     }
