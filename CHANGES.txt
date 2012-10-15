@@ -25,6 +25,8 @@ PIG-1891 Enable StoreFunc to make intelligent decision based on job success or f
 
 IMPROVEMENTS
 
+PIG-2794: Pig test: add utils to simplify testing on Windows (jgordon via gates)
+
 PIG-2908: Fix unit tests to work with jdk7 (rohini via dvryaboy)
 
 PIG-2965: RANDOM should allow seed initialization for ease of testing (jcoveney)
