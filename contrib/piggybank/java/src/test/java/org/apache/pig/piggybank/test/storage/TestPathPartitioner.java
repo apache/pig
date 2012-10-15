@@ -54,9 +54,8 @@ public class TestPathPartitioner extends TestCase {
 
     @Override
     protected void setUp() throws Exception {
-    File oldConf = new File(System.getProperty("user.home")+"/pigtest/conf/hadoop-site.xml");
-    oldConf.delete();
-	conf = new Configuration();
+    conf = new Configuration(false);
+    conf.addResource("core-default.xml");
 
 	baseDir = createDir(null,
 		"testPathPartitioner-testGetKeys-" + System.currentTimeMillis());

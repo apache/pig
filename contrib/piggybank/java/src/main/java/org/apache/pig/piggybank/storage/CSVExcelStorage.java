@@ -163,16 +163,17 @@ public class CSVExcelStorage extends PigStorage implements StoreFuncInterface, L
     protected final static byte DOUBLE_QUOTE = '"';
 	protected final static byte RECORD_DEL = LINEFEED;
 	
-	private static byte FIELD_DEL = ',';
-	private static String MULTILINE_DEFAULT_STR = "NOMULTILINE";
-	private static String LINEBREAKS_DEFAULT_STR = "NOCHANGE";
-	private static Multiline MULTILINE_DEFAULT = Multiline.NO;
-	private static Linebreaks LINEBREAKS_DEFAULT = Linebreaks.NOCHANGE;
+	private static final byte FIELD_DEL_DEFAULT = ',';
+	private static final String MULTILINE_DEFAULT_STR = "NOMULTILINE";
+	private static final String LINEBREAKS_DEFAULT_STR = "NOCHANGE";
+	private static final Multiline MULTILINE_DEFAULT = Multiline.NO;
+	private static final Linebreaks LINEBREAKS_DEFAULT = Linebreaks.NOCHANGE;
     
 	long end = Long.MAX_VALUE;
 
-	Linebreaks eolTreatment = LINEBREAKS_DEFAULT;
-	Multiline multilineTreatment = MULTILINE_DEFAULT;
+	private byte fieldDelimiter = FIELD_DEL_DEFAULT;
+	private Linebreaks eolTreatment = LINEBREAKS_DEFAULT;
+	private Multiline multilineTreatment = MULTILINE_DEFAULT;
 	
     private ArrayList<Object> mProtoTuple = null;
     private TupleFactory mTupleFactory = TupleFactory.getInstance();
@@ -224,7 +225,7 @@ public class CSVExcelStorage extends PigStorage implements StoreFuncInterface, L
      * 
      */
     public CSVExcelStorage() {
-    	super(new String(new byte[] {FIELD_DEL}));
+    	super(new String(new byte[] {FIELD_DEL_DEFAULT}));
     }
     
     /**
@@ -297,7 +298,7 @@ public class CSVExcelStorage extends PigStorage implements StoreFuncInterface, L
 
     
     private void initializeInstance(String delimiter, String multilineStr, String theEofTreatment) {
-        FIELD_DEL = StorageUtil.parseFieldDel(delimiter);
+        fieldDelimiter = StorageUtil.parseFieldDel(delimiter);
         multilineTreatment = canonicalizeMultilineTreatmentRequest(multilineStr);
         eolTreatment = canonicalizeEOLTreatmentRequest(theEofTreatment);
     }
@@ -369,7 +370,7 @@ public class CSVExcelStorage extends PigStorage implements StoreFuncInterface, L
     		// then the entire field must be enclosed in double quotes:
     		embeddedNewlineIndex =  fieldStr.indexOf(LINEFEED);
     		
-    		if ((fieldStr.indexOf(FIELD_DEL) != -1) || 
+    		if ((fieldStr.indexOf(fieldDelimiter) != -1) || 
     			(fieldStr.indexOf(DOUBLE_QUOTE) != -1) ||
     			(multilineTreatment == Multiline.YES) && (embeddedNewlineIndex != -1))  {
     			fieldStr = "\"" + fieldStr + "\"";
@@ -605,7 +606,7 @@ public class CSVExcelStorage extends PigStorage implements StoreFuncInterface, L
 					continue;
 				} else
 					if (!evenQuotesSeen &&
-							(b == FIELD_DEL || b == RECORD_DEL)) {
+							(b == fieldDelimiter || b == RECORD_DEL)) {
 						getNextInQuotedField = false;
 						readField(fieldBuffer, getNextFieldID++);
 					} else {
@@ -622,7 +623,7 @@ public class CSVExcelStorage extends PigStorage implements StoreFuncInterface, L
 				// that entire field is quoted:
 				getNextInQuotedField = true;
 				evenQuotesSeen = true;
-			} else if (b == FIELD_DEL) {
+			} else if (b == fieldDelimiter) {
 				readField(fieldBuffer, getNextFieldID++); // end of the field
 			} else {
 				evenQuotesSeen = true;
