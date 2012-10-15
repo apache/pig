@@ -71,7 +71,7 @@ public class ReadOnceBag implements DataBag {
      */
     @Override
     public long getMemorySize() {
-        throw new RuntimeException("ReadOnceBag does not support getMemorySize operation");
+        return 0;
     }
 
     /* (non-Javadoc)
