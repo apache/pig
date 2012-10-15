@@ -34,6 +34,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
+import org.codehaus.jackson.annotate.JsonPropertyOrder;
 
 /**
  * A represenation of a schema used to communicate with load and store functions.  This is
@@ -42,6 +43,7 @@ import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchem
  */
 @InterfaceAudience.Public
 @InterfaceStability.Stable
+@JsonPropertyOrder({ "fields", "version", "sortKeys", "sortKeyOrders" })
 public class ResourceSchema implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -65,6 +67,7 @@ public class ResourceSchema implements Serializable {
         
     private int version = 0;
 
+    @JsonPropertyOrder({ "name", "type", "description", "schema" })
     public static class ResourceFieldSchema implements Serializable {
         private static final long serialVersionUID = 1L;
         private String name;

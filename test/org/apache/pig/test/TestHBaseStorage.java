@@ -122,7 +122,7 @@ public class TestHBaseStorage {
     // DVR: I've found that it is faster to delete all rows in small tables
     // than to drop them.
     private void deleteAllRows(String tableName) throws Exception {
-        HTable table = new HTable(conf, tableName);
+        HTable table = new HTable(tableName);
         ResultScanner scanner = table.getScanner(new Scan());
         List<Delete> deletes = Lists.newArrayList();
         for (Result row : scanner) {

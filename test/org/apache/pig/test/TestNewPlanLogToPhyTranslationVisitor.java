@@ -17,11 +17,14 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
-
-import junit.framework.TestCase;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
@@ -77,8 +80,10 @@ import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
+import org.junit.Before;
+import org.junit.Test;
 
-public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
+public class TestNewPlanLogToPhyTranslationVisitor {
 
     PigContext pc = new PigContext(ExecType.LOCAL, new Properties());
     private PhysicalPlan translatePlan(OperatorPlan plan) throws IOException {
@@ -93,10 +98,12 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
     	return Util.buildLp(pigServer, query);
     }
     
-    protected void setUp() throws Exception {    
+    @Before
+    public void setUp() throws Exception {    
         LogicalExpression.resetNextUid();
     }
-    
+
+    @Test
     public void testSimplePlan() throws Exception {
         String query = ("a = load 'd.txt';" +
         "b = filter a by $0==NULL;" +        
@@ -117,16 +124,19 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         PhysicalOperator fil = phyPlan.getSuccessors(load).get(0);
         assertEquals( POFilter.class, fil.getClass() );
         PhysicalPlan filPlan = ((POFilter)fil).getPlan();
-        assertEquals( 2, filPlan.getRoots().size() );
+        List<PhysicalOperator> roots = filPlan.getRoots();
+        // Order of entrySet is not guaranteed with jdk1.7
+        Collections.sort(roots);
+        assertEquals( 2, roots.size() );
         assertEquals( 1, filPlan.getLeaves().size() );
         
         PhysicalOperator eq = filPlan.getLeaves().get(0);
         assertEquals( EqualToExpr.class, eq.getClass() );
         
-        PhysicalOperator prj1 = filPlan.getRoots().get(1);
+        PhysicalOperator prj1 = roots.get(0);
         assertEquals( POProject.class, prj1.getClass() );
         assertEquals( 0, ((POProject)prj1).getColumn() );
-        PhysicalOperator constExp = filPlan.getRoots().get(0);
+        PhysicalOperator constExp = roots.get(1);
         assertEquals( ConstantExpression.class, constExp.getClass() );
         assertEquals( null, ((ConstantExpression)constExp).getValue() );
         
@@ -135,7 +145,8 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         assertEquals( POStore.class, stor.getClass() );
         assertTrue(  ((POStore)stor).getSFile().getFileName().contains("empty"));
     }
-    
+
+    @Test
     public void testJoinPlan() throws Exception {
         String query = ("a = load 'd1.txt' as (id, c);" +
         "b = load 'd2.txt'as (id, c);" +
@@ -147,10 +158,12 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         LogicalPlan newPlan = buildPlan(query);
         PhysicalPlan physicalPlan = translatePlan(newPlan);
         assertEquals(9, physicalPlan.size());
-        assertEquals(physicalPlan.getRoots().size(), 2);
+        List<PhysicalOperator> roots = physicalPlan.getRoots();
+        Collections.sort(roots);
+        assertEquals(roots.size(), 2);
         
         // Check Load and LocalRearrange and GlobalRearrange
-        PhysicalOperator LoR = (PhysicalOperator)physicalPlan.getSuccessors(physicalPlan.getRoots().get(1)).get(0);
+        PhysicalOperator LoR = (PhysicalOperator)physicalPlan.getSuccessors(roots.get(0)).get(0);
         assertEquals( POLocalRearrange.class, LoR.getClass() );
         POLocalRearrange Lor = (POLocalRearrange) LoR;
         PhysicalOperator prj3 = Lor.getPlans().get(0).getLeaves().get(0);
@@ -160,7 +173,7 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         assertEquals( POLoad.class, inp1.getClass() );
         assertTrue(  ((POLoad)inp1).getLFile().getFileName().contains("d1.txt") );
                 
-        PhysicalOperator LoR1 = (PhysicalOperator)physicalPlan.getSuccessors(physicalPlan.getRoots().get(0)).get(0);
+        PhysicalOperator LoR1 = (PhysicalOperator)physicalPlan.getSuccessors(roots.get(1)).get(0);
         assertEquals( POLocalRearrange.class, LoR1.getClass() );
         POLocalRearrange Lor1 = (POLocalRearrange) LoR1;
         PhysicalOperator prj4 = Lor1.getPlans().get(0).getLeaves().get(0);
@@ -192,9 +205,11 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         
         PhysicalPlan filPlan = ((POFilter)fil).getPlan();
         List<PhysicalOperator> filRoots = filPlan.getRoots();
+        assertEquals(4, filRoots.size());
+        Collections.sort(filRoots);
         
-        assertEquals( ConstantExpression.class, filRoots.get(2).getClass() );
-        ConstantExpression ce1 = (ConstantExpression) filRoots.get(2);
+        assertEquals( ConstantExpression.class, filRoots.get(1).getClass() );
+        ConstantExpression ce1 = (ConstantExpression) filRoots.get(1);
         assertEquals( null, ce1.getValue() ); 
         assertEquals( ConstantExpression.class, filRoots.get(3).getClass() );
         ConstantExpression ce2 = (ConstantExpression) filRoots.get(3);
@@ -202,8 +217,8 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         assertEquals( POProject.class, filRoots.get(0).getClass() );
         POProject prj1 = (POProject) filRoots.get(0);
         assertEquals( 0, prj1.getColumn() );
-        assertEquals( POProject.class, filRoots.get(1).getClass() );
-        POProject prj2 = (POProject) filRoots.get(1);
+        assertEquals( POProject.class, filRoots.get(2).getClass() );
+        POProject prj2 = (POProject) filRoots.get(2);
         assertEquals( 3, prj2.getColumn() );
 
 
@@ -212,7 +227,8 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         assertEquals( POStore.class, stor.getClass() );
         assertTrue(  ((POStore)stor).getSFile().getFileName().contains("empty") );
     }
-    
+
+    @Test    
     public void testMultiStore() throws Exception {
         String query = ("a = load 'd1.txt' as (id, c);" +
         "b = load 'd2.txt'as (id, c);" +
@@ -227,11 +243,13 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         LogicalPlan newLogicalPlan = buildPlan(query);
         PhysicalPlan phyPlan = translatePlan(newLogicalPlan);
         assertEquals(16, phyPlan.size());
-        assertEquals(phyPlan.getRoots().size(), 3);
+        List<PhysicalOperator> phyPlanRoots = phyPlan.getRoots();
+        Collections.sort(phyPlanRoots);
+        assertEquals(phyPlanRoots.size(), 3);
         assertEquals(phyPlan.getLeaves().size(), 1 );
 
         // Check Load and LocalRearrange and GlobalRearrange
-        PhysicalOperator LoR = (PhysicalOperator)phyPlan.getSuccessors(phyPlan.getRoots().get(0)).get(0);
+        PhysicalOperator LoR = (PhysicalOperator)phyPlan.getSuccessors(phyPlanRoots.get(2)).get(0);
         assertEquals( POLocalRearrange.class, LoR.getClass() );
         POLocalRearrange Lor = (POLocalRearrange) LoR;
         PhysicalOperator prj1 = Lor.getPlans().get(0).getLeaves().get(0);
@@ -241,7 +259,7 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         assertEquals( POLoad.class, inp1.getClass() );
         assertTrue(  ((POLoad)inp1).getLFile().getFileName().contains("d3.txt") );
 
-        PhysicalOperator LoR1 = (PhysicalOperator)phyPlan.getSuccessors(phyPlan.getRoots().get(1)).get(0);
+        PhysicalOperator LoR1 = (PhysicalOperator)phyPlan.getSuccessors(phyPlanRoots.get(0)).get(0);
         assertEquals( POLocalRearrange.class, LoR1.getClass() );
         POLocalRearrange Lor1 = (POLocalRearrange) LoR1;
         PhysicalOperator prj2 = Lor1.getPlans().get(0).getLeaves().get(0);
@@ -257,7 +275,7 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         PhysicalOperator Pack = (PhysicalOperator)phyPlan.getSuccessors(GoR).get(0);
         assertEquals( POPackage.class, Pack.getClass() );
         
-        PhysicalOperator LoR2 = (PhysicalOperator)phyPlan.getSuccessors(phyPlan.getRoots().get(2)).get(0);
+        PhysicalOperator LoR2 = (PhysicalOperator)phyPlan.getSuccessors(phyPlanRoots.get(1)).get(0);
         assertEquals( POLocalRearrange.class, LoR2.getClass() );
         POLocalRearrange Lor2 = (POLocalRearrange) LoR2;
         PhysicalOperator prj3 = Lor2.getPlans().get(0).getLeaves().get(0);
@@ -298,18 +316,19 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         
         PhysicalPlan filPlan = ((POFilter)fil).getPlan();
         List<PhysicalOperator> filRoots = filPlan.getRoots();
+        Collections.sort(filRoots);
         
-        assertEquals( ConstantExpression.class, filRoots.get(0).getClass() );
-        ConstantExpression ce1 = (ConstantExpression) filRoots.get(0);
+        assertEquals( ConstantExpression.class, filRoots.get(1).getClass() );
+        ConstantExpression ce1 = (ConstantExpression) filRoots.get(1);
         assertEquals( null, ce1.getValue() ); 
-        assertEquals( ConstantExpression.class, filRoots.get(2).getClass() );
-        ConstantExpression ce2 = (ConstantExpression) filRoots.get(2);
+        assertEquals( ConstantExpression.class, filRoots.get(3).getClass() );
+        ConstantExpression ce2 = (ConstantExpression) filRoots.get(3);
         assertEquals( null, ce2.getValue() );
-        assertEquals( POProject.class, filRoots.get(1).getClass() );
-        POProject prj8 = (POProject) filRoots.get(1);
+        assertEquals( POProject.class, filRoots.get(2).getClass() );
+        POProject prj8 = (POProject) filRoots.get(2);
         assertEquals( 5, prj8.getColumn() );
-        assertEquals( POProject.class, filRoots.get(3).getClass() );
-        POProject prj9 = (POProject) filRoots.get(3);
+        assertEquals( POProject.class, filRoots.get(0).getClass() );
+        POProject prj9 = (POProject) filRoots.get(0);
         assertEquals( 2, prj9.getColumn() );
         
         
@@ -325,18 +344,19 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         
         PhysicalPlan filPlan2 = ((POFilter)fil2).getPlan();
         List<PhysicalOperator> filRoots2 = filPlan2.getRoots();
+        Collections.sort(filRoots2);
         
-        assertEquals( ConstantExpression.class, filRoots2.get(0).getClass() );
-        ConstantExpression ce3 = (ConstantExpression) filRoots2.get(0);
+        assertEquals( ConstantExpression.class, filRoots2.get(1).getClass() );
+        ConstantExpression ce3 = (ConstantExpression) filRoots2.get(1);
         assertEquals( null, ce3.getValue() ); 
-        assertEquals( ConstantExpression.class, filRoots2.get(2).getClass() );
-        ConstantExpression ce4 = (ConstantExpression) filRoots2.get(2);
+        assertEquals( ConstantExpression.class, filRoots2.get(3).getClass() );
+        ConstantExpression ce4 = (ConstantExpression) filRoots2.get(3);
         assertEquals( null, ce4.getValue() );
-        assertEquals( POProject.class, filRoots2.get(1).getClass() );
-        POProject prj10 = (POProject) filRoots2.get(1);
+        assertEquals( POProject.class, filRoots2.get(2).getClass() );
+        POProject prj10 = (POProject) filRoots2.get(2);
         assertEquals( 3, prj10.getColumn() );
-        assertEquals( POProject.class, filRoots2.get(3).getClass() );
-        POProject prj11 = (POProject) filRoots2.get(3);
+        assertEquals( POProject.class, filRoots2.get(0).getClass() );
+        POProject prj11 = (POProject) filRoots2.get(0);
         assertEquals( 0, prj11.getColumn() );
         
         // Check Store Operator
@@ -345,7 +365,8 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         assertEquals( POStore.class, stor.getClass() );
         assertTrue(  ((POStore)stor).getSFile().getFileName().contains("empty") );
     }
-    
+
+    @Test    
     public void testPlanWithCast() throws Exception {
         String query = ("a = load 'd.txt' as (id, c);" +
         "b = filter a by (int)id==10;" +        
@@ -386,7 +407,8 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         assertEquals( POStore.class, stor.getClass() );
         assertTrue( ((POStore)stor).getSFile().getFileName().contains( "empty" ) );        
     }
-    
+
+    @Test    
     public void testPlanWithGreaterThan() throws Exception {
         String query = ("a = load 'd.txt' as (id, c);" +
         "b = filter a by (int)id>10;" +        
@@ -427,7 +449,8 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         assertEquals( POStore.class, stor.getClass() );
         assertTrue( ((POStore)stor).getSFile().getFileName().contains( "empty" ) );  
     }
-    
+
+    @Test    
     public void testPlanWithLessThan() throws Exception {
         String query = ("a = load 'd.txt' as (id, c);" +
         "b = filter a by (int)id<10;" +
@@ -469,6 +492,7 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         assertTrue( ((POStore)stor).getSFile().getFileName().contains( "empty" ) );  
     }
 
+    @Test
     public void testForeachPlan() throws Exception {
         String query = ("a = load 'd.txt' as (id, c);" +
         "b = foreach a generate id, c;" +        
@@ -498,7 +522,8 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         assertFalse(flat[0]);
         assertFalse(flat[1]);
     }
-    
+
+    @Test    
     public void testForeachPlan2() throws Exception {
         String query = ("a = load 'd.txt' as (id, c:bag{t:(s,v)});" +
         "b = foreach a generate id, flatten(c);" +        
@@ -542,7 +567,8 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         assertFalse(flat[0]);
         assertTrue(flat[1]);
     }
-    
+
+    @Test    
     public void testPlanwithPlus() throws Exception {
         String query = ("a = load 'd.txt' as (a:int, b:int);" +
         "b = foreach a generate a+b;" +        
@@ -596,7 +622,8 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         assertEquals( POProject.class, pAdd.getLhs().getClass() );
         assertEquals( POProject.class, pAdd.getRhs().getClass() );
     }
-    
+
+    @Test    
     public void testPlanwithSubtract() throws Exception {
         String query = ("a = load 'd.txt' as (a:int, b:int);" +
         "b = foreach a generate a-b;" +        
@@ -649,7 +676,8 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         assertEquals( POProject.class, pSubtract.getLhs().getClass() );
         assertEquals( POProject.class, pSubtract.getRhs().getClass() );
     }
-    
+
+    @Test    
     public void testPlanwithMultiply() throws Exception {
         String query = ("a = load 'd.txt' as (a:int, b:int);" +
         "b = foreach a generate a*b;" +        
@@ -702,7 +730,8 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         assertEquals( POProject.class, pMultiply.getLhs().getClass() );
         assertEquals( POProject.class, pMultiply.getRhs().getClass() );
     }
-    
+
+    @Test    
     public void testPlanwithDivide() throws Exception {
         String query = ("a = load 'd.txt' as (a:int, b:int);" +
         "b = foreach a generate a/b;" +        
@@ -755,7 +784,8 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         assertEquals( POProject.class, pDivide.getLhs().getClass() );
         assertEquals( POProject.class, pDivide.getRhs().getClass() );
     }
-    
+
+    @Test    
     public void testPlanwithMod() throws Exception {
         String query = ("a = load 'd.txt' as (a:int, b:int);" +
         "b = foreach a generate a%b;" +        
@@ -808,7 +838,8 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         assertEquals( POProject.class, pMod.getLhs().getClass() );
         assertEquals( POProject.class, pMod.getRhs().getClass() );
     }
-    
+
+    @Test    
     public void testPlanwithNegative() throws Exception {
         String query = ("a = load 'd.txt' as (a:int, b:int);" +
         "b = foreach a generate -a;" +        
@@ -859,7 +890,8 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         assertEquals( 1, inputPln.getRoots().size() );
         assertEquals( POProject.class, pNegative.getInputs().get(0).getClass() );
     }
-    
+
+    @Test    
     public void testPlanwithisNull() throws Exception {
         String query = ("a = load 'd.txt' as (a:int, b:int);" +
         "b = filter a by a is null;" +        
@@ -894,7 +926,8 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         ProjectExpression prj = (ProjectExpression) isNull.getExpression();
         assertEquals( ls.getField(0).uid, prj.getFieldSchema().uid );
     }
-    
+
+    @Test    
     public void testPlanwithisNotNull() throws Exception {
         String query = ("a = load 'd.txt' as (a:int, b:int);" +
         "b = filter a by a is not null;" +        
@@ -933,7 +966,8 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         ProjectExpression prj = (ProjectExpression) isNull.getExpression();
         assertEquals( ls.getField(0).uid, prj.getFieldSchema().uid );
     }
-    
+
+    @Test    
     public void testPlanwithBinCond() throws Exception {
         String query = ("a = load 'd.txt' as (a:int, b:int);" +
         "b = foreach a generate ( a < b ? b : a );" +        
@@ -1014,7 +1048,8 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         POProject prj_4 = (POProject) lessThan_p.getRhs();
         assertEquals( 1, prj_4.getColumn() );
     }
-    
+
+    @Test    
     public void testPlanwithUserFunc() throws Exception {
         String query = ("a = load 'd.txt' as (a:int, b:bag{t:tuple(b_a:int,b_b:int)});" +
         "b = foreach a generate a,COUNT(b);" +
@@ -1074,7 +1109,8 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         assertEquals( 1, ((POProject)inputPln2.getRoots().get(0)).getColumn() );
         
     }
-    
+
+    @Test    
     public void testPlanwithUserFunc2() throws Exception {
         // This one uses BagDereferenceExpression
         String query = ("a = load 'd.txt' as (a:int, b:bag{t:tuple(b_a:int,b_b:int)});" +
@@ -1141,7 +1177,8 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         assertEquals( POProject.class, inputPln2.getSuccessors(prj3).get(0).getClass() );
         assertEquals( 0, ((POProject)inputPln2.getSuccessors(prj3).get(0)).getColumn() );
     }    
-    
+
+    @Test    
     public void testCogroup() throws Exception {
         String query = ("a = load 'd.txt' as (name:chararray, age:int, gpa:float);" +
         "b = group a by name;" +
@@ -1174,7 +1211,8 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         POPackage pack = (POPackage)phyPlan.getSuccessors(globalR).get(0);
         assertEquals( DataType.TUPLE, pack.getResultType() );
     }
-    
+
+    @Test    
     public void testCogroup2() throws Exception {
         String query = ("a = load 'd.txt' as (name:chararray, age:int, gpa:float);" +
         "b = group a by ( name, age );" +
@@ -1212,7 +1250,8 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         POPackage pack = (POPackage)phyPlan.getSuccessors(globalR).get(0);
         assertEquals( DataType.TUPLE, pack.getResultType() );
     }
-    
+
+    @Test    
     public void testCogroup3() throws Exception {
         String query = "a = load 'd.txt' as (name:chararray, age:int, gpa:float);" +
         "b = load 'e.txt' as (name:chararray, age:int, gpa:float);" +
@@ -1256,7 +1295,8 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         POPackage pack = (POPackage)phyPlan.getSuccessors(globalR).get(0);
         assertEquals( DataType.TUPLE, pack.getResultType() );
     }
-    
+
+    @Test    
     public void testCogroup4() throws Exception {
         String query = "a = load 'd.txt' as (name:chararray, age:int, gpa:float);" +
         "b = load 'e.txt' as (name:chararray, age:int, gpa:float);" +
@@ -1313,7 +1353,8 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         POPackage pack = (POPackage)phyPlan.getSuccessors(globalR).get(0);
         assertEquals( DataType.TUPLE, pack.getResultType() );
     }
-    
+
+    @Test    
     public void testUserDefinedForEachSchema1() throws Exception {
         String query = ("a = load 'a.txt';" +
         "b = foreach a generate $0 as a0, $1 as a1;" +        
@@ -1329,6 +1370,7 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         assertTrue(foreach.getSchema().getField(1).alias.equals("a1"));
     }
 
+    @Test
     public void testUserDefinedForEachSchema2() throws Exception {
         String query = ("a = load 'a.txt' as (b:bag{});" +
         "b = foreach a generate flatten($0) as (a0, a1);" +
@@ -1343,7 +1385,8 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         assertTrue(foreach.getSchema().getField(0).alias.equals("a0"));
         assertTrue(foreach.getSchema().getField(1).alias.equals("a1"));
     }
-    
+
+    @Test    
     // See PIG-767
     public void testCogroupSchema1() throws Exception {
         String query = ("a = load '1.txt' as (a0, a1);" +
@@ -1363,7 +1406,8 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         LogicalSchema tupleSchema = bagSchema.getField(0).schema;
         assertEquals(tupleSchema.size(), 2);
     }
-    
+
+    @Test    
     // See PIG-767
     public void testCogroupSchema2() throws Exception {
         String query = "a = load '1.txt' as (a0, a1);" +

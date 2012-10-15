@@ -25,6 +25,8 @@ PIG-1891 Enable StoreFunc to make intelligent decision based on job success or f
 
 IMPROVEMENTS
 
+PIG-2908: Fix unit tests to work with jdk7 (rohini via dvryaboy)
+
 PIG-2965: RANDOM should allow seed initialization for ease of testing (jcoveney)
 
 PIG-2964: Add helper method getJobList() to PigStats.JobGraph. Extend visibility of couple methods on same class (prkommireddi via billgraham)
