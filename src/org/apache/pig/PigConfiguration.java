@@ -74,4 +74,11 @@ public class PigConfiguration {
      * Turns off use of combiners in MapReduce jobs produced by Pig.
      */
     public static final String PROP_NO_COMBINER = "pig.exec.nocombiner";
+
+    /**
+     * This key can be used to defined what properties will be set in the streaming environment.
+     * Just set this property to a comma-delimited list of properties to set, and those properties
+     * will be set in the environment.
+     */
+    public static final String PIG_STREAMING_ENVIRONMENT = "pig.streaming.environment";
 }
