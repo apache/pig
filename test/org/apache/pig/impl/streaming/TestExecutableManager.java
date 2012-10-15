@@ -18,16 +18,22 @@
 
 package org.apache.pig.impl.streaming;
 
+import static org.apache.pig.PigConfiguration.PIG_STREAMING_ENVIRONMENT;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
+import org.apache.commons.lang.RandomStringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
+import com.google.common.collect.Maps;
+
 public class TestExecutableManager {
+    private static final Random r = new Random(100L);
 
     @Test
     public void testSafeEnvVarName() {
@@ -41,12 +47,40 @@ public class TestExecutableManager {
 
     @Test
     public void testAddJobConfToEnv() {
+        StringBuilder streamingEnv = null;
         Configuration conf = new Configuration();
-        conf.set("foo", "bar");
+        Map<String, String> all = Maps.newHashMap();
+        for (int i = 0; i < 10000; i++) {
+            String key = RandomStringUtils.random(10);
+            String value = RandomStringUtils.random(10);
+            all.put(key, value);
+        }
+        Map<String, String> toInclude = Maps.newHashMap();
+        for (Map.Entry<String, String> entry : all.entrySet()) {
+            String key = entry.getKey();
+            String value = entry.getValue();
+            conf.set(key, value);
+            if (r.nextDouble() < .5) {
+                toInclude.put(key, value);
+                if (streamingEnv == null) {
+                    streamingEnv = new StringBuilder();
+                } else {
+                    streamingEnv.append(",");
+                }
+                streamingEnv.append(key);
+            }
+        }
+        conf.set(PIG_STREAMING_ENVIRONMENT, streamingEnv.toString());
         Map<String, String> env = new HashMap<String, String>();
         ExecutableManager manager = new ExecutableManager();
         manager.addJobConfToEnvironment(conf, env);
-        assertTrue(env.containsKey("hadoop_tmp_dir"));
-        assertEquals("bar", env.get("foo"));
+
+        for (Map.Entry<String, String> entry : env.entrySet()) {
+            String key = entry.getKey();
+            String value = entry.getValue();
+            String value2 = toInclude.remove(key);
+            assertEquals("Key ["+key+"] should be set in environment", value, value2);
+        }
+        assertTrue("There should be no remaining pairs in the included map",toInclude.isEmpty());
     }
 }
