@@ -213,6 +213,7 @@ public class SchemaTupleFrontend {
      */
     public static void reset() {
         stf = null;
+        schemasToGenerate.clear();
     }
 
     /**

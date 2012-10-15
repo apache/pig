@@ -60,12 +60,36 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestJobControlCompiler {
 
     private static final Configuration CONF = new Configuration();
 
+    
+    @BeforeClass
+    public static void setupClass() throws Exception {
+        // creating a hadoop-site.xml and making it visible to Pig
+        // making sure it is at the same location as for other tests to not pick
+        // up a conf from a previous test
+        File conf_dir = new File("build/classes");
+        File hadoopSite = new File(conf_dir, "hadoop-site.xml");
+        hadoopSite.deleteOnExit();
+        FileWriter fw = new FileWriter(hadoopSite);
+        try {
+            fw.write("<?xml version=\"1.0\"?>\n");
+            fw.write("<?xml-stylesheet type=\"text/xsl\" href=\"nutch-conf.xsl\"?>\n");
+            fw.write("<configuration>\n");
+            fw.write("</configuration>\n");
+        } finally {
+            fw.close();
+        }
+        // making hadoop-site.xml visible to Pig as it REQUIRES!!! one when
+        // running in mapred mode
+        Thread.currentThread().setContextClassLoader(
+                new URLClassLoader(new URL[] { conf_dir.toURI().toURL() }));
+    }
   /**
    * specifically tests that REGISTERED jars get added to distributed cache instead of merged into 
    * the job jar
@@ -79,25 +103,6 @@ public class TestJobControlCompiler {
     tmpFile.deleteOnExit();
     String className = createTestJar(tmpFile);
     final String testUDFFileName = className+".class";
-
-    // creating a hadoop-site.xml and making it visible to Pig
-    // making sure it is at the same location as for other tests to not pick up a 
-    // conf from a previous test
-    File conf_dir = new File("build/classes");
-    File hadoopSite = new File(conf_dir, "hadoop-site.xml");
-    hadoopSite.deleteOnExit();
-    FileWriter fw = new FileWriter(hadoopSite);
-    try {
-      fw.write("<?xml version=\"1.0\"?>\n");
-      fw.write("<?xml-stylesheet type=\"text/xsl\" href=\"nutch-conf.xsl\"?>\n");
-      fw.write("<configuration>\n");
-      fw.write("</configuration>\n");
-    } finally {
-      fw.close();
-    }
-    // making hadoop-site.xml visible to Pig as it REQUIRES!!! one when running in mapred mode
-    Thread.currentThread().setContextClassLoader(
-        new URLClassLoader(new URL[] {conf_dir.toURI().toURL()}));
 
     // JobControlCompiler setup
     PigContext pigContext = new PigContext(ExecType.MAPREDUCE, new Properties());

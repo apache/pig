@@ -92,7 +92,8 @@ public class TestScriptLanguage {
                 "2\t4",
                 "3\t5"
         };
-        
+
+        Util.deleteFile(cluster, "simple_table");
         Util.createInputFile(cluster, "simple_table", input);
         Util.createLocalInputFile( "testScript.py", script);
         

@@ -901,6 +901,7 @@ public class TestAvroStorage {
 
     @Test
     public void testFileWithNoExtension() throws IOException {
+        PigSchema2Avro.setTupleIndex(4);
         String output= outbasedir + "testFileWithNoExtension";
         String expected = basedir + "expected_testFileWithNoExtension.avro";
         deleteDirectory(new File(output));
