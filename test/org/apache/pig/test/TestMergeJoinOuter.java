@@ -24,7 +24,10 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Properties;
 
 import org.apache.pig.ExecType;
@@ -118,13 +121,17 @@ public class TestMergeJoinOuter {
             assertEquals(2,mrPlan.size());
 
             Iterator<MapReduceOper> itr = mrPlan.iterator();
-            MapReduceOper oper = itr.next();
-            assertTrue(oper.reducePlan.isEmpty());
-            assertFalse(oper.mapPlan.isEmpty());
-
-            oper = itr.next();
-            assertFalse(oper.reducePlan.isEmpty());
-            assertFalse(oper.mapPlan.isEmpty());
+            List<MapReduceOper> opers = new ArrayList<MapReduceOper>();
+            opers.add(itr.next());
+            opers.add(itr.next());
+            //Order of entrySet is not guaranteed with jdk1.7
+            Collections.sort(opers);
+            
+            assertTrue(opers.get(0).reducePlan.isEmpty());
+            assertFalse(opers.get(0).mapPlan.isEmpty());
+            
+            assertFalse(opers.get(1).reducePlan.isEmpty());
+            assertFalse(opers.get(1).mapPlan.isEmpty());
 
 
         } catch(Exception e){
