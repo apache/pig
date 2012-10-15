@@ -17,6 +17,9 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -36,13 +39,14 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
-import org.apache.pig.newplan.logical.relational.LOFilter;
 import org.apache.pig.newplan.logical.relational.LogToPhyTranslationVisitor;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
+import org.apache.pig.test.junit.OrderedJUnit4Runner;
+import org.apache.pig.test.junit.OrderedJUnit4Runner.TestOrder;
 
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
 /**
  * All new tests should be included at the end of the existing test cases. This is to ensure that 
@@ -55,7 +59,29 @@ import org.junit.Test;
  * fos.write(baos.toByteArray());
  *
  */
-public class TestLogToPhyCompiler extends junit.framework.TestCase {
+
+@RunWith(OrderedJUnit4Runner.class)
+@TestOrder({
+    "testComplexForeach",
+    "testSort",
+    "testDistinct",
+    "testCogroup",
+    "testArithmetic",
+    "testComparison",
+    "testBinCond",
+    "testGenerate",
+    "testUnion",
+    "testSplit",
+    "testIsNull",
+    "testLimit",
+    "testSortInfoAsc",
+    "testSortInfoAscDesc",
+    "testSortInfoNoOrderBy1",
+    "testSortInfoNoOrderBy2",
+    "testSortInfoOrderByLimit",
+    "testSortInfoMultipleStore",
+    "testSortInfoNoOrderBySchema" })
+public class TestLogToPhyCompiler {
     File A;
     final int MAX_RANGE = 10;
     
@@ -67,8 +93,8 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
     PigServer pigServer = null;
    
     
-    @Override
-    protected void setUp() throws Exception {
+    @Before
+    public void setUp() throws Exception {
     	pigServer = new PigServer( ExecType.LOCAL, new Properties() );
         pc.connect();
     }
@@ -104,9 +130,10 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         System.out.println(compiledPlan);
         System.out.println("-------------testComplexForeach");
         //System.out.println(compiledPlan.compareTo(goldenPlan)==0);
-        assertEquals(compiledPlan, goldenPlan);
+        assertEquals(goldenPlan, compiledPlan);
     }
-        
+
+    @Test
     public void testSort() throws Exception {
     	String query = "store (order (load 'a') by $0) into 'output';";
     	LogicalPlan plan = buildPlan(query);
@@ -135,9 +162,10 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         System.out.println(compiledPlan);
         System.out.println("-------------testSort");
         
-        assertEquals(compiledPlan, goldenPlan);
+        assertEquals(goldenPlan, compiledPlan);
     }
-        
+
+    @Test    
     public void testDistinct() throws Exception {
     	String query = "store( distinct (load 'a') ) into 'output';";
     	LogicalPlan plan = buildPlan(query);
@@ -166,9 +194,10 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         System.out.println(compiledPlan);
         System.out.println("-------------testDistinct");
         //System.out.println(compiledPlan.compareTo(goldenPlan)==0);
-        assertEquals(compiledPlan, goldenPlan);
+        assertEquals(goldenPlan, compiledPlan);
     }
-    
+
+    @Test
     public void testCogroup() throws Exception {
         System.out.println("testCogroup");
     	String query = "A = cogroup (load 'a') by ($0 + $1, $0 - $1), (load 'b') by ($0 + $1, $0 - $1);"
@@ -200,9 +229,10 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         System.out.println(compiledPlan);
         System.out.println("-------------");
         //System.out.println(compiledPlan.compareTo(goldenPlan)==0);
-        assertEquals(compiledPlan, goldenPlan);
+        assertEquals(goldenPlan, compiledPlan);
     }
-    
+
+    @Test    
     public void testArithmetic() throws Exception {
     	
     	String query = "A = foreach (load 'A') generate $0 + $1 + 5, $0 - 5 - $1, 'hello';" +
@@ -238,9 +268,10 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         System.out.println(compiledPlan);
         System.out.println("-------------");
         //System.out.println(compiledPlan.compareTo(goldenPlan)==0);
-        assertEquals(compiledPlan, goldenPlan);
+        assertEquals(goldenPlan, compiledPlan);
     }
-    
+
+    @Test
     public void testComparison() throws Exception {
     	String query = "A = filter (load 'a' using " + PigStorage.class.getName() + "(':')) by $0 + $1 > ($0 - $1) * (4 / 2);" +
     	"store A into 'output';";
@@ -273,7 +304,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         System.out.println(compiledPlan);
         System.out.println("-------------testComparison");
         //System.out.println(compiledPlan.compareTo(goldenPlan)==0);
-        assertEquals(compiledPlan, goldenPlan);
+        assertEquals(goldenPlan, compiledPlan);
     }
 
     @Test
@@ -308,7 +339,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         System.out.println(compiledPlan);
         System.out.println("-------------testBinCond");
         //System.out.println(compiledPlan.compareTo(goldenPlan)==0);
-        assertEquals(compiledPlan, goldenPlan);
+        assertEquals(goldenPlan, compiledPlan);
     }
     
     
@@ -344,7 +375,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         System.out.println(compiledPlan);
         System.out.println("-------------testGenerate");
         
-        assertEquals(compiledPlan, goldenPlan);
+        assertEquals(goldenPlan, compiledPlan);
     }
 
     @Test
@@ -377,7 +408,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         System.out.println(compiledPlan);
         System.out.println("-------------testUnion");
         
-        assertEquals(compiledPlan, goldenPlan);
+        assertEquals(goldenPlan, compiledPlan);
     }
     
     @Test
@@ -519,7 +550,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         System.out.println("-------------testLimit");
 
         //System.out.println(compiledPlan.compareTo(goldenPlan)==0);
-        assertEquals(compiledPlan, goldenPlan);
+        assertEquals(goldenPlan, compiledPlan);
     }
 
     /**

@@ -17,6 +17,10 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -57,10 +61,14 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserComparisonFunc;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.util.Utils;
+import org.apache.pig.test.junit.OrderedJUnit4Runner;
+import org.apache.pig.test.junit.OrderedJUnit4Runner.TestOrder;
 import org.apache.pig.test.utils.GenPhyOp;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
 /**
  * Test cases to test the MRCompiler.
@@ -73,7 +81,39 @@ import org.junit.Test;
  * that follow it since the operator keys that will be generated through
  * Random will be different.
  */
-public class TestMRCompiler extends junit.framework.TestCase {
+
+@RunWith(OrderedJUnit4Runner.class)
+@TestOrder({
+    "testRun1",
+    "testRun2",
+    "testSpl1",
+    "testSpl2",
+    "testSpl3",
+    "testSim1",
+    "testSim2",
+    "testSim3",
+    "testSim5",
+    "testSim6",
+    "testSim7",
+    "testSim8",
+    "testSim9",
+    "testSortUDF1",
+    "testDistinct1",
+    "testLimit",
+    "testMRCompilerErr",
+    "testMRCompilerErr1",      
+    "testNumReducersInLimit",
+    "testNumReducersInLimitWithParallel",
+    "testUDFInJoin",
+    "testMergeJoin",
+    "testMergeJoinWithIndexableLoadFunc",
+    "testCastFuncShipped",
+    "testLimitAdjusterFuncShipped",
+    "testSortedDistinctInForeach",
+    "testUDFInMergedCoGroup",
+    "testUDFInMergedJoin",
+    "testSchemaInStoreForDistinctLimit" })
+public class TestMRCompiler {
     static MiniCluster cluster = MiniCluster.buildCluster();
     
     static PigContext pc;
@@ -106,7 +146,6 @@ public class TestMRCompiler extends junit.framework.TestCase {
     // and are sure of
     private boolean generate = false;
 
-    @Override
     @Before
     public void setUp() throws ExecException {
         GenPhyOp.setR(r);
@@ -117,7 +156,6 @@ public class TestMRCompiler extends junit.framework.TestCase {
         pigServerMR = new PigServer( pcMR );
     }
 
-    @Override
     @After
     public void tearDown() throws Exception {
     }
@@ -231,6 +269,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
         run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC10.gld");
     }
 
+    @Test
     public void testRun2() throws Exception {
         PhysicalPlan php = new PhysicalPlan();
 
@@ -322,6 +361,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
         run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC11.gld");
     }
 
+    @Test
     public void testSpl1() throws Exception {
         PhysicalPlan php = new PhysicalPlan();
 
@@ -361,6 +401,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
 
     }
 
+    @Test
     public void testSpl2() throws Exception {
         PhysicalPlan php = new PhysicalPlan();
 
@@ -409,6 +450,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
 
     }
 
+    @Test
     public void testSpl3() throws Exception {
         PhysicalPlan php = new PhysicalPlan();
 
@@ -490,6 +532,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
 
      // Tests Single input case for both blocking and non-blocking
      // with both map and reduce phases
+    @Test
     public void testSim1() throws Exception {
         PhysicalPlan php = new PhysicalPlan();
         POLoad ld = GenPhyOp.topLoadOp();
@@ -520,6 +563,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
 
     }
 
+    @Test
     public void testSim2() throws Exception {
         PhysicalPlan php = new PhysicalPlan();
 
@@ -540,6 +584,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
 
     }
 
+    @Test
     public void testSim3() throws Exception {
         PhysicalPlan php = new PhysicalPlan();
 
@@ -592,6 +637,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
         run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC4.gld");
     }
 
+    @Test
     public void testSim5() throws Exception {
         PhysicalPlan php = new PhysicalPlan();
         PhysicalPlan ldFil1 = GenPhyOp.loadedFilter();
@@ -609,6 +655,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
         run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC5.gld");
     }
 
+    @Test
     public void testSim6() throws Exception {
         PhysicalPlan php = new PhysicalPlan();
 
@@ -636,6 +683,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
 
     }
 
+    @Test
     public void testSim7() throws Exception {
         PhysicalPlan php = new PhysicalPlan();
 
@@ -667,6 +715,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
         run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC7.gld");
     }
 
+    @Test
     public void testSim8() throws Exception {
         PhysicalPlan php = new PhysicalPlan();
 
@@ -702,6 +751,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
         run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC8.gld");
     }
 
+    @Test
     public void testSim9() throws Exception {
         PhysicalPlan php = new PhysicalPlan();
 
@@ -725,6 +775,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
         run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC9.gld");
     }
     
+    @Test
     public void testSortUDF1() throws Exception {
         PhysicalPlan php = new PhysicalPlan();
         PhysicalPlan ldFil1 = GenPhyOp.loadedFilter();
@@ -791,6 +842,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
         run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC15.gld");
     }
     
+    @Test
     public void testDistinct1() throws Exception {
         PhysicalPlan php = new PhysicalPlan();
         PhysicalPlan ldFil1 = GenPhyOp.loadedFilter();
@@ -814,7 +866,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
         run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC16.gld");
     }
     
-    
+    @Test
     public void testLimit() throws Exception {
         PhysicalPlan php = new PhysicalPlan();
 

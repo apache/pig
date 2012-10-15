@@ -39,6 +39,7 @@ public class TestGFCross {
     // join groups
     @Test
     public void testDefault() throws Exception {
+        UDFContext.getUDFContext().addJobConf(null);
         Tuple t = TupleFactory.getInstance().newTuple(2);
 
         t.set(0, 2);
