@@ -117,8 +117,14 @@ public class Util {
     private static BagFactory mBagFactory = BagFactory.getInstance();
     private static TupleFactory mTupleFactory = TupleFactory.getInstance();
 
+    // Commonly-checked system state
+    // =================
+    public static final boolean WINDOWS /* borrowed from Path.WINDOWS, Shell.WINDOWS */
+                  = System.getProperty("os.name").startsWith("Windows");
+
     // Helper Functions
     // =================
+
     static public Tuple loadFlatTuple(Tuple t, int[] input) throws ExecException {
         for (int i = 0; i < input.length; i++) {
             t.set(i, new Integer(input[i]));
@@ -260,6 +266,19 @@ public class Util {
             t.set(i, bag);
         }
         return t;
+    }
+
+    /**
+     * Helper to remove colons (if any exist) from paths to sanitize them for
+     * consumption by hdfs.
+     *
+     * @param origPath original path name
+     * @return String  sanitized path with anything prior to : removed
+     * @throws IOException
+     */
+    static public String removeColon(String origPath)
+    {
+       return origPath.replaceAll(":", "");
     }
 
     /**
