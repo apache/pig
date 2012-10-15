@@ -17,6 +17,8 @@
  */
 package org.apache.pig.impl.streaming;
 
+import static org.apache.pig.PigConfiguration.PIG_STREAMING_ENVIRONMENT;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -27,7 +29,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
@@ -57,8 +58,7 @@ import org.apache.pig.impl.util.UDFContext;
  * <code>stdout</code>.
  */
 public class ExecutableManager {
-    private static final Log LOG = LogFactory.getLog(ExecutableManager.class
-            .getName());
+    private static final Log LOG = LogFactory.getLog(ExecutableManager.class);
     private static final int SUCCESS = 0;
     private static final String PATH = "PATH";
     private static final String BASH = "bash";
@@ -238,14 +238,21 @@ public class ExecutableManager {
     }
 
     void addJobConfToEnvironment(Configuration conf, Map<String, String> env) {
-        Iterator<Map.Entry<String, String>> it = conf.iterator();
-        while (it.hasNext()) {
-          Map.Entry<String, String> en = it.next();
-          String name = en.getKey();
-          //String value = (String)en.getValue(); // does not apply variable expansion
-          String value = conf.get(name); // does variable expansion
-          name = safeEnvVarName(name);
-          envPut(env, name, value);
+        String propsToSend = conf.get(PIG_STREAMING_ENVIRONMENT);
+        LOG.debug("Properties to ship to streaming environment set in "+PIG_STREAMING_ENVIRONMENT+": " + propsToSend);
+        if (propsToSend == null) {
+            return;
+        }
+
+        for (String prop : propsToSend.split(",")) {
+            String value = conf.get(prop);
+            if (value == null) {
+                LOG.warn("Property set in "+PIG_STREAMING_ENVIRONMENT+" not found in Configuration: " + prop);
+                continue;
+            }
+            LOG.debug("Setting property in streaming environment: " + prop);
+            envPut(env, prop, value);
+
         }
       }
 
