@@ -297,6 +297,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2928: Fix e2e test failures in trunk: FilterBoolean_23/24 (cheolsoo via dvryaboy)
+
 PIG-2971: Add new parameter to specify the streaming environment (jcoveney)
 
 PIG-2963: Illustrate command and POPackageLite (cheolsoo via jcoveney)
