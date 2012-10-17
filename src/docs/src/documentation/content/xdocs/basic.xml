@@ -6906,7 +6906,162 @@ DUMP X;
 </source>
    
    </section></section>
+    <!-- =================================================================== -->     
+    <section id="rank">
+        <title>RANK</title>
+        <p>Returns each tuple with the rank within a relation.</p>
+        
+        <section>
+            <title>Syntax</title>
+            <table>
+                <tr> 
+                    <td>
+                        <p>alias = RANK alias [ BY { * [ASC|DESC] | field_alias [ASC|DESC] [, field_alias [ASC|DESC] …] } [DENSE] ];</p>
+                    </td>
+                </tr> 
+            </table>
+        </section>
+    
+        
+        <section>
+            <title>Terms</title>
+            <table>
+                <tr>
+                    <td>
+                        <p>alias</p>
+                    </td>
+                    <td>
+                        <p>The name of a relation.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <p>*</p>
+                    </td>
+                    <td>
+                        <p>The designator for a tuple.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <p>field_alias</p>
+                    </td>
+                    <td>
+                        <p>A field in the relation. The field must be a simple type.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <p>ASC</p>
+                    </td>
+                    <td>
+                        <p>Sort in ascending order.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <p>DESC</p>
+                    </td>
+                    <td>
+                        <p>Sort in descending order.</p>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>
+                        <p>DENSE</p>
+                    </td>
+                    <td>
+                        <p>No gap in the ranking values. </p>
+                    </td>
+                </tr> 
+            </table>
+        </section>
+        
+        <section>
+            <title>Usage</title>
+            <p>When specifying no field to sort on, the RANK operator simply prepends a sequential value to each tuple.</p>
+            <p>Otherwise, the RANK operator uses each field (or set of fields) to sort the relation. The rank of a tuple is one plus the number of different rank values preceding it. If two or more tuples tie on the sorting field values, they will receive the same rank.</p>
+            <p><strong>NOTE:</strong> When using the option <strong>DENSE</strong>, ties do not cause gaps in ranking values.</p>
+
+        </section>  
+        
+        <section>
+            <title>Examples</title>
+            <p>Suppose we have relation A.</p>
+            <source>
+A = load 'data' AS (f1:chararray,f2:int,f3:chararray);
    
+DUMP A;
+(David,1,N)
+(Tete,2,N)
+(Ranjit,3,M)
+(Ranjit,3,P)
+(David,4,Q)
+(David,4,Q)
+(Jillian,8,Q)
+(JaePak,7,Q)
+(Michael,8,T)
+(Jillian,8,Q)
+(Jose,10,V)
+            </source>
+            <p>In this example, the RANK operator does not change the order of the relation and simply prepends to each tuple a sequential value.</p>
+            <source>
+B = rank A;
+
+dump B;
+(1,David,1,N)
+(2,Tete,2,N)
+(3,Ranjit,3,M)
+(4,Ranjit,3,P)
+(5,David,4,Q)
+(6,David,4,Q)
+(7,Jillian,8,Q)
+(8,JaePak,7,Q)
+(9,Michael,8,T)
+(10,Jillian,8,Q)
+(11,Jose,10,V)
+            </source>
+            
+            <p>In this example, the RANK operator works with f1 and f2 fields, and each one with different sorting order. RANK sorts the relation on these fields and 
+                prepends the rank value to each tuple. Otherwise, the RANK operator uses each field (or set of fields) to sort the relation. The rank of a tuple is one plus the number of different rank values preceding it. If two or more tuples tie on the sorting field values, they will receive the same rank.</p>
+            <source>
+C = rank A by f1 DESC, f2 ASC;
+                                
+dump C;
+(1,Tete,2,N)
+(2,Ranjit,3,M)
+(2,Ranjit,3,P)
+(4,Michael,8,T)
+(5,Jose,10,V)
+(6,Jillian,8,Q)
+(6,Jillian,8,Q)
+(8,JaePak,7,Q)
+(9,David,1,N)
+(10,David,4,Q)
+(10,David,4,Q)                
+            </source>
+            
+            <p>Same example as previous, but DENSE. In this case there are no gaps in ranking values.</p>
+            <source>
+C = rank A by f1 DESC, f2 ASC DENSE;
+
+dump C;
+(1,Tete,2,N)
+(2,Ranjit,3,M)
+(2,Ranjit,3,P)
+(3,Michael,8,T)
+(4,Jose,10,V)
+(5,Jillian,8,Q)
+(5,Jillian,8,Q)
+(6,JaePak,7,Q)
+(7,David,1,N)
+(8,David,4,Q)
+(8,David,4,Q)
+            </source>
+            
+        </section>
+    </section>
 
 
 <!-- =========================================================================== -->
