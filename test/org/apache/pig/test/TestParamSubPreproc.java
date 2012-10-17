@@ -1198,7 +1198,7 @@ public class TestParamSubPreproc extends TestCase {
             pigOStream = new FileWriter(basedir + "/output1.pig");
 
             String[] arg = {"date=`perl -e 'print \"20080228\n20070101\"' | head -n 1`"};
-            if (System.getProperty("os.name").toUpperCase().startsWith("WINDOWS"))
+            if (Util.WINDOWS)
                 arg[0] = "date=`perl -e 'print \\\"20080228\n20070101\\\"' | head -n 1`";
             String[] argFiles = null;
             ps.genSubstitutedFile(pigIStream , pigOStream , arg , argFiles);
