@@ -410,8 +410,8 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
 
             if (colInfo.isColumnMap()) {
 
-                if (LOG.isInfoEnabled()) {
-                    LOG.info("Adding family:prefix filters with values " +
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Adding family:prefix filters with values " +
                         Bytes.toString(colInfo.getColumnFamily()) + COLON +
                         Bytes.toString(colInfo.getColumnPrefix()));
                 }
@@ -425,8 +425,8 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
             }
             else {
 
-                if (LOG.isInfoEnabled()) {
-                    LOG.info("Adding family:descriptor filters with values " +
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Adding family:descriptor filters with values " +
                         Bytes.toString(colInfo.getColumnFamily()) + COLON +
                         Bytes.toString(colInfo.getColumnName()));
                 }
@@ -446,8 +446,8 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
     }
 
     private void addRowFilter(CompareOp op, byte[] val) {
-        if (LOG.isInfoEnabled()) {
-            LOG.info("Adding filter " + op.toString() +
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Adding filter " + op.toString() +
                     " with value " + Bytes.toStringBinary(val));
         }
         addFilter(new RowFilter(op, new BinaryComparator(val)));
