@@ -24,8 +24,6 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
-PIG-2976: Reduce HBaseStorage logging (billgraham)
-
 PIG-2943: DevTests, Refactor Windows checks to use new Util.WINDOWS method for code health (jgordon via dvryaboy)
 
 PIG-2966: Test failures on CentOS 6 because MALLOC_ARENA_MAX is not set (cheolsoo via sms)
@@ -46,6 +44,8 @@ INCOMPATIBLE CHANGES
 PIG-1891 Enable StoreFunc to make intelligent decision based on job success or failure (initialcontext via gates)
 
 IMPROVEMENTS
+
+PIG-2976: Reduce HBaseStorage logging (billgraham)
 
 PIG-2947: Documentation for Rank operator (xalan via azaroth)
 
