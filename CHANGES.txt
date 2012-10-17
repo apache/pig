@@ -45,6 +45,8 @@ PIG-1891 Enable StoreFunc to make intelligent decision based on job success or f
 
 IMPROVEMENTS
 
+PIG-2947: Documentation for Rank operator (xalan via azaroth)
+
 PIG-2910: Add function to read schema from outout of Schema.toString() (initialcontext via thejas)
 
 PIG-2965: RANDOM should allow seed initialization for ease of testing (jcoveney)
