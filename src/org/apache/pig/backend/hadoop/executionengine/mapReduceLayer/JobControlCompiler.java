@@ -346,7 +346,6 @@ public class JobControlCompiler{
      * operation identifier
      */
     private void saveCounters(Job job, String operationID) {
-        JobClient jobClient;
         Counters counters;
         Group groupCounters;
 
@@ -355,8 +354,7 @@ public class JobControlCompiler{
         ArrayList<Pair<String,Long>> counterPairs;
 
         try {
-            jobClient = job.getJobClient();
-            counters = jobClient.getJob(job.getAssignedJobID()).getCounters();
+            counters = HadoopShims.getCounters(job);
             groupCounters = counters.getGroup(getGroupName(counters.getGroupNames()));
 
             Iterator<Counter> it = groupCounters.iterator();

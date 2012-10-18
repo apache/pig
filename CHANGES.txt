@@ -304,6 +304,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2985: TestRank1,2,3 fail with hadoop-2.0.x (rohini via azaroth)
+
 PIG-2928: Fix e2e test failures in trunk: FilterBoolean_23/24 (cheolsoo via dvryaboy)
 
 PIG-2971: Add new parameter to specify the streaming environment (jcoveney)
