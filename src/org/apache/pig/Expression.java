@@ -45,6 +45,7 @@ public abstract class Expression {
         OP_GE(" >= "),
         OP_LT(" < "),
         OP_LE(" <= "),
+        OP_MATCH(" matches "),
 
         //binary logical
         OP_AND(" and "),
