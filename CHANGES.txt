@@ -306,6 +306,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1283: COUNT on null bag causes failure (analog.sony via jcoveney)
+
 PIG-2958: Pig tests do not appear to have a logger attached (daijyc via jcoveney)
 
 PIG-2926: TestPoissonSampleLoader failing on rhel environment (jcoveney)
