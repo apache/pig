@@ -306,6 +306,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2958: Pig tests do not appear to have a logger attached (daijyc via jcoveney)
+
 PIG-2926: TestPoissonSampleLoader failing on rhel environment (jcoveney)
 
 PIG-2971: Add new parameter to specify the streaming environment (jcoveney)
