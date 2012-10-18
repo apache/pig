@@ -18,6 +18,7 @@
 package org.apache.pig.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -999,6 +1000,17 @@ public class TestBuiltin {
 
         assertEquals("Expected count to be 100", 100, output.longValue());
     }
+
+    @Test
+    public void testCOUNTBagNullCheck() throws Exception{
+
+        DataBag b = null;
+        Tuple t = tupleFactory.getInstance().newTuple(b);
+
+        EvalFunc<Long> count = new COUNT();
+        assertNull(count.exec(t));
+       }
+
 
     @Test
     public void testCount_ValidNumberOfArguments_WithoutInputSchema_One() throws Exception {
