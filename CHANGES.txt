@@ -24,13 +24,11 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
-PIG-2943: DevTests, Refactor Windows checks to use new Util.WINDOWS method for code health (jgordon via dvryaboy)
-
 PIG-2966: Test failures on CentOS 6 because MALLOC_ARENA_MAX is not set (cheolsoo via sms)
 
-PIG-2793: Pig test: add utils to simplify testing on Windows (jgordon via gates)
+PIG-2794: Pig test: add utils to simplify testing on Windows (jgordon via gates)
 
-PIG-2908: Fix unit tests to work with jdk7 (rohini via dvryaboy) 
+PIG-2910: Add function to read schema from outout of Schema.toString() (initialcontext via thejas)
 
 OPTIMIZATIONS
 
@@ -41,6 +39,7 @@ PIG-2928: Fix e2e test failures in trunk: FilterBoolean_23/24 (cheolsoo via dvry
 Release 0.11.0 (unreleased)
 
 INCOMPATIBLE CHANGES
+
 PIG-1891 Enable StoreFunc to make intelligent decision based on job success or failure (initialcontext via gates)
 
 IMPROVEMENTS
@@ -49,7 +48,9 @@ PIG-2976: Reduce HBaseStorage logging (billgraham)
 
 PIG-2947: Documentation for Rank operator (xalan via azaroth)
 
-PIG-2910: Add function to read schema from outout of Schema.toString() (initialcontext via thejas)
+PIG-2943: DevTests, Refactor Windows checks to use new Util.WINDOWS method for code health (jgordon via dvryaboy)
+
+PIG-2908: Fix unit tests to work with jdk7 (rohini via dvryaboy) 
 
 PIG-2965: RANDOM should allow seed initialization for ease of testing (jcoveney)
 
