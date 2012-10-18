@@ -321,6 +321,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2985: TestRank1,2,3 fail with hadoop-2.0.x (rohini via azaroth)
+
 PIG-2971: Add new parameter to specify the streaming environment (jcoveney)
 
 PIG-2963: Illustrate command and POPackageLite (cheolsoo via jcoveney)
