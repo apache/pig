@@ -102,7 +102,9 @@ public class TestPoissonSampleLoader extends TestCase{
         }
         return count;
     }
-
+/*
+// This test has been removed because the results are platform dependent.
+// See: PIG-2926
     @Test
     public void testNumSamples() throws IOException {
         //PoissonSampleLoader.DEFAULT_SAMPLE_RATE is 17
@@ -124,7 +126,7 @@ public class TestPoissonSampleLoader extends TestCase{
         count = testNumSamples("0.0001", "100");
         assertEquals(count, 42);
     }
-
+*/
     /*
      * Test use of LoadFunc with parameters as argument to PoissonSampleLoader
      */
