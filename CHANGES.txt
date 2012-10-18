@@ -36,7 +36,7 @@ BUG FIXES
 
 PIG-2958: Pig tests do not appear to have a logger attached (daijyc via jcoveney)
 
-PIG-2972: TestPoissonSampleLoader failing on rhel environment (jcoveney)
+PIG-2926: TestPoissonSampleLoader failing on rhel environment (jcoveney)
 
 PIG-2928: Fix e2e test failures in trunk: FilterBoolean_23/24 (cheolsoo via dvryaboy)
 
