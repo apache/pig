@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2778: Add 'matches' operator to predicate pushdown (cheolsoo via jcoveney)
+
 PIG-2966: Test failures on CentOS 6 because MALLOC_ARENA_MAX is not set (cheolsoo via sms)
 
 PIG-2794: Pig test: add utils to simplify testing on Windows (jgordon via gates)
@@ -39,8 +41,6 @@ PIG-2928: Fix e2e test failures in trunk: FilterBoolean_23/24 (cheolsoo via dvry
 Release 0.11.0 (unreleased)
 
 INCOMPATIBLE CHANGES
-
-PIG-1283: COUNT on null bag causes failure (anand via jcoveney)
 
 PIG-1891 Enable StoreFunc to make intelligent decision based on job success or failure (initialcontext via gates)
 

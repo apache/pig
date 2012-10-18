@@ -571,21 +571,6 @@ public class TestPartitionFilterPushDown {
         Assert.assertEquals(counter, 5);
     }
 
-    /**
-     * Test PIG-2778 Add matches operator to predicate pushdown
-     * @throws Exception
-     */
-    @Test
-    public void testMatchOpPushDown() throws Exception {
-        // regexp condition on a partition col
-        String q = query + "b = filter a by name matches 'foo*';" + "store b into 'out';";
-        test(q, Arrays.asList("name"), "(name matches 'foo*')", null);
-
-        // regexp condition on a non-partition col
-        q = query + "b = filter a by name matches 'foo*';" + "store b into 'out';";
-        test(q, Arrays.asList("srcid"), null, "(name matches 'foo*')");
-    }
-
     //// helper methods ///////
 
     private PColFilterExtractor test(String query, List<String> partitionCols, 

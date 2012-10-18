@@ -461,8 +461,6 @@ public class PColFilterExtractor extends PlanVisitor {
 				return getExpression(binOp, OpType.OP_LT);
 			} else if(binOp instanceof LessThanEqualExpression) {
 				return getExpression(binOp, OpType.OP_LE);
-			} else if(binOp instanceof RegexExpression) {
-				return getExpression(binOp, OpType.OP_MATCH);
 			} else {
             logInternalErrorAndSetFlag();
 			}
