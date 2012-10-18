@@ -58,9 +58,6 @@ public class COUNT extends EvalFunc<Long> implements Algebraic, Accumulator<Long
     public Long exec(Tuple input) throws IOException {
         try {
             DataBag bag = (DataBag)input.get(0);
-            if(bag==null)
-                return null;
-
             Iterator it = bag.iterator();
             long cnt = 0;
             while (it.hasNext()){
