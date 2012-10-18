@@ -34,10 +34,6 @@ OPTIMIZATIONS
 
 BUG FIXES
 
-PIG-2958: Pig tests do not appear to have a logger attached (daijyc via jcoveney)
-
-PIG-2926: TestPoissonSampleLoader failing on rhel environment (jcoveney)
-
 PIG-2928: Fix e2e test failures in trunk: FilterBoolean_23/24 (cheolsoo via dvryaboy)
 
 Release 0.11.0 (unreleased)
@@ -325,6 +321,10 @@ PIG-2337: Provide UDF with input schema (xutingz via daijy)
 OPTIMIZATIONS
 
 BUG FIXES
+
+PIG-2958: Pig tests do not appear to have a logger attached (daijyc via jcoveney)
+
+PIG-2926: TestPoissonSampleLoader failing on rhel environment (jcoveney)
 
 PIG-2985: TestRank1,2,3 fail with hadoop-2.0.x (rohini via azaroth)
 
