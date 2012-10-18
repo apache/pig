@@ -1482,6 +1482,52 @@ public class TestParamSubPreproc extends TestCase {
         log.info("Done");
     }
 
+    /* Test case
+     *   Test that $ signs in substitution value are treated as literal replacement strings.
+     */
+    @Test
+    public void testSubstitutionWithDollarSign() throws Exception{
+        try {
+            ParameterSubstitutionPreprocessor ps = new ParameterSubstitutionPreprocessor(50);
+            pigIStream = new BufferedReader(new FileReader(basedir + "/inputDollarSign.pig"));
+            pigOStream = new FileWriter(basedir + "/output1.pig");
+
+            String[] arg = {"filter=\"($0 == 'x') and ($1 == 'y')\""};
+            String[] argFiles = null;
+            ps.genSubstitutedFile(pigIStream , pigOStream , arg , argFiles);
+
+            FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
+            pigExResultStream = new FileInputStream(basedir + "/ExpectedResultDollarSign.pig");
+            BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
+            BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
+
+            String exLine;
+            String resLine;
+            int lineNum=0;
+
+            while (true) {
+                lineNum++;
+                exLine = inExpected.readLine();
+                resLine = inResult.readLine();
+                if (exLine==null || resLine==null)
+                    break;
+                assertEquals("Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum ,exLine.trim(), resLine.trim());
+            }
+            if (!(exLine==null && resLine==null)) {
+                fail ("Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum);
+            }
+
+            inExpected.close();
+            inResult.close();
+        } catch (ParseException e) {
+            fail ("Got ParseException : " + e.getMessage());
+        } catch (RuntimeException e) {
+            fail ("Got RuntimeException : " + e.getMessage());
+        } catch (Error e) {
+            fail ("Got error : " + e.getMessage());
+        }
+    }
+
     @Test
     public void testMacroDef() throws Exception{
         log.info("Starting test testMacroDef() ...");
