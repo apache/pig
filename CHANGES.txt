@@ -308,6 +308,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2967: Fix Glob_local test failure for Pig E2E Test Framework (sushantj via daijy)
+
 PIG-1283: COUNT on null bag causes failure (analog.sony via jcoveney)
 
 PIG-2958: Pig tests do not appear to have a logger attached (daijyc via jcoveney)
