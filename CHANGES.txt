@@ -36,7 +36,7 @@ PIG-2727: PigStorage Source tagging does not need pig.splitCombination to be tur
 
 BUG FIXES
 
-PIG-2940: HBaseStorage store fails in secure cluster (rohini via daijy)
+PIG-2940: HBaseStorage store fails in secure cluster (cheolsoo via daijy)
 
 PIG-2821: HBaseStorage should work with secure hbase (rohini via daijy)
 
