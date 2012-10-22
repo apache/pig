@@ -326,6 +326,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2975: TestTypedMap.testOrderBy failing with incorrect result (knoguchi via jcoveney)
+
 PIG-2950: Fix tiny documentation error in BagToString builtin (initialcontext via daijy)
 
 PIG-2967: Fix Glob_local test failure for Pig E2E Test Framework (sushantj via daijy)

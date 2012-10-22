@@ -25,28 +25,32 @@ import org.apache.pig.data.TupleFactory;
  *
  */
 public class NullableBytesWritable extends PigNullableWritable {
+    private static final TupleFactory mTupleFactory = TupleFactory.getInstance();
 
     public NullableBytesWritable() {
-        mValue = TupleFactory.getInstance().newTuple();
+        mValue = mTupleFactory.newTuple();
     }
 
     /**
      * @param obj
      */
     public NullableBytesWritable(Object obj) {
-        mValue = TupleFactory.getInstance().newTuple();
-        ((Tuple)mValue).append(obj);
-    }
-
-    public Object getValueAsPigType() {
-        if (isNull())
-            return null;
-        Object obj = null;
+        mValue = mTupleFactory.newTuple(1);
         try {
-            obj = ((Tuple)mValue).get(0);
+            ((Tuple)mValue).set(0, obj);
         } catch (ExecException e) {
             throw new RuntimeException(e);
         }
-        return obj;
+    }
+
+    public Object getValueAsPigType() {
+        if (isNull()) {
+            return null;
+        }
+        try {
+            return ((Tuple)mValue).get(0);
+        } catch (ExecException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
