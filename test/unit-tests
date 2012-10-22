@@ -44,6 +44,7 @@
 **/TestNull.java
 **/TestPackage.java
 **/TestParamSubPreproc.java
+**/TestPigBytesRawComparator.java
 **/TestPhyOp.java
 **/TestPigScriptParser.java
 **/TestPigSplit.java
