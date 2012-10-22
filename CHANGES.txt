@@ -326,6 +326,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2950: Fix tiny documentation error in BagToString builtin (initialcontext via daijy)
+
 PIG-2967: Fix Glob_local test failure for Pig E2E Test Framework (sushantj via daijy)
 
 PIG-1283: COUNT on null bag causes failure (analog.sony via jcoveney)
