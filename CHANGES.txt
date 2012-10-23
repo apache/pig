@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2941: Ivy resolvers in pig don't have consistent chaining and don't have a kitchen sink option for novices (jgordon via azaroth)
+
 PIG-2778: Add 'matches' operator to predicate pushdown (cheolsoo via jcoveney)
 
 PIG-2966: Test failures on CentOS 6 because MALLOC_ARENA_MAX is not set (cheolsoo via sms)
