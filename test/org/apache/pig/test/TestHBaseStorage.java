@@ -5,9 +5,9 @@
  * licenses this file to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -57,7 +57,7 @@ public class TestHBaseStorage {
     private static final Log LOG = LogFactory.getLog(TestHBaseStorage.class);
     private static HBaseTestingUtility util;
     private static Configuration conf;
-    private static MiniCluster cluster; 
+    private static MiniCluster cluster;
     private static PigServer pig;
 
     final static int NUM_REGIONSERVERS = 1;
@@ -122,7 +122,7 @@ public class TestHBaseStorage {
     // DVR: I've found that it is faster to delete all rows in small tables
     // than to drop them.
     private void deleteAllRows(String tableName) throws Exception {
-        HTable table = new HTable(tableName);
+        HTable table = new HTable(conf, tableName);
         ResultScanner scanner = table.getScanner(new Scan());
         List<Delete> deletes = Lists.newArrayList();
         for (Result row : scanner) {
@@ -191,23 +191,23 @@ public class TestHBaseStorage {
     @Test
     public void testLoadWithSpecifiedTimestampAndRanges() throws IOException {
         long beforeTimeStamp = System.currentTimeMillis() - 10;
-        
+
         HTable table = prepareTable(TESTTABLE_1, true, DataFormat.UTF8PlainText);
 
         long afterTimeStamp = System.currentTimeMillis() + 10;
-        
+
         Assert.assertEquals("MaxTimestamp is set before rows added", 0, queryWithTimestamp(null , beforeTimeStamp, null));
-        
+
         Assert.assertEquals("MaxTimestamp is set after rows added", TEST_ROW_COUNT, queryWithTimestamp(null, afterTimeStamp, null));
-        
+
         Assert.assertEquals("MinTimestamp is set after rows added", 0, queryWithTimestamp(afterTimeStamp, null, null));
-        
+
         Assert.assertEquals("MinTimestamp is set before rows added", TEST_ROW_COUNT, queryWithTimestamp(beforeTimeStamp, null, null));
-        
+
         Assert.assertEquals("Timestamp range is set around rows added", TEST_ROW_COUNT, queryWithTimestamp(beforeTimeStamp, afterTimeStamp, null));
-        
+
         Assert.assertEquals("Timestamp range is set after rows added", 0, queryWithTimestamp(afterTimeStamp, afterTimeStamp + 10, null));
-        
+
         Assert.assertEquals("Timestamp range is set before rows added", 0, queryWithTimestamp(beforeTimeStamp - 10, beforeTimeStamp, null));
 
         Assert.assertEquals("Timestamp is set before rows added", 0, queryWithTimestamp(null, null, beforeTimeStamp));
@@ -215,22 +215,22 @@ public class TestHBaseStorage {
         Assert.assertEquals("Timestamp is set after rows added", 0, queryWithTimestamp(null, null, afterTimeStamp));
 
         long specifiedTimestamp = table.get(new Get(Bytes.toBytes("00"))).getColumnLatest(COLUMNFAMILY, Bytes.toBytes("col_a")).getTimestamp();
-        
+
         Assert.assertTrue("Timestamp is set equals to row 01", queryWithTimestamp(null, null, specifiedTimestamp) > 0);
-         
-        
+
+
         LOG.info("LoadFromHBase done");
     }
 
     private int queryWithTimestamp(Long minTimestamp, Long maxTimestamp, Long timestamp) throws IOException,
             ExecException {
-        
+
         StringBuilder extraParams = new StringBuilder();
-        
+
         if (minTimestamp != null){
             extraParams.append(" -minTimestamp " + minTimestamp + " ");
         }
-        
+
         if (maxTimestamp != null){
             extraParams.append(" -maxTimestamp " + maxTimestamp + " ");
         }
@@ -238,8 +238,8 @@ public class TestHBaseStorage {
         if (timestamp != null){
             extraParams.append(" -timestamp " + timestamp + " ");
         }
-        
-        
+
+
         pig.registerQuery("a = load 'hbase://"
                 + TESTTABLE_1
                 + "' using "
@@ -396,7 +396,7 @@ public class TestHBaseStorage {
         Assert.assertEquals(TEST_ROW_COUNT, count);
         LOG.info("LoadFromHBase done");
     }
-  
+
     /**
      *     * Test Load from hbase with map parameters and with a
      *     static column
@@ -438,7 +438,7 @@ public class TestHBaseStorage {
 
     /**
      * load from hbase test
-     * 
+     *
      * @throws IOException
      */
     @Test
@@ -473,7 +473,7 @@ public class TestHBaseStorage {
 
     /**
      * load from hbase test without hbase:// prefix
-     * 
+     *
      * @throws IOException
      */
     @Test
@@ -503,7 +503,7 @@ public class TestHBaseStorage {
 
     /**
      * load from hbase test including the row key as the first column
-     * 
+     *
      * @throws IOException
      */
     @Test
@@ -537,7 +537,7 @@ public class TestHBaseStorage {
 
     /**
      * Test Load from hbase with parameters lte and gte (01<=key<=98)
-     * 
+     *
      */
     @Test
     public void testLoadWithParameters_1() throws IOException {
@@ -732,7 +732,7 @@ public class TestHBaseStorage {
     /**
      * load from hbase 'TESTTABLE_1' using HBaseBinary format, and store it into
      * 'TESTTABLE_2' using HBaseBinaryFormat
-     * 
+     *
      * @throws IOException
      */
     @Test
@@ -745,7 +745,7 @@ public class TestHBaseStorage {
                 "org.apache.pig.backend.hadoop.hbase.HBaseStorage('"
                 + TESTCOLUMN_A + " " + TESTCOLUMN_B + " "
                 + TESTCOLUMN_C + "','-caster HBaseBinaryConverter')");
-        HTable table = new HTable(TESTTABLE_2);
+        HTable table = new HTable(conf, TESTTABLE_2);
         ResultScanner scanner = table.getScanner(new Scan());
         Iterator<Result> iter = scanner.iterator();
         int i = 0;
@@ -783,7 +783,7 @@ public class TestHBaseStorage {
                 + TESTCOLUMN_A + " " + TESTCOLUMN_B +
                 "','-caster HBaseBinaryConverter')");
 
-        HTable table = new HTable(TESTTABLE_2);
+        HTable table = new HTable(conf, TESTTABLE_2);
         ResultScanner scanner = table.getScanner(new Scan());
         Iterator<Result> iter = scanner.iterator();
         int i = 0;
@@ -804,7 +804,7 @@ public class TestHBaseStorage {
     /**
      * load from hbase 'TESTTABLE_1' using HBaseBinary format, and store it into
      * 'TESTTABLE_2' using UTF-8 Plain Text format
-     * 
+     *
      * @throws IOException
      */
     @Test
@@ -817,7 +817,7 @@ public class TestHBaseStorage {
                 + TESTCOLUMN_A + " " + TESTCOLUMN_B + " "
                 + TESTCOLUMN_C + "')");
 
-        HTable table = new HTable(TESTTABLE_2);
+        HTable table = new HTable(conf, TESTTABLE_2);
         ResultScanner scanner = table.getScanner(new Scan());
         Iterator<Result> iter = scanner.iterator();
         int i = 0;
@@ -881,7 +881,7 @@ public class TestHBaseStorage {
                 "org.apache.pig.backend.hadoop.hbase.HBaseStorage('"
                 + TESTCOLUMN_A + " " + TESTCOLUMN_B + "')");
 
-        HTable table = new HTable(TESTTABLE_2);
+        HTable table = new HTable(conf, TESTTABLE_2);
         ResultScanner scanner = table.getScanner(new Scan());
         Iterator<Result> iter = scanner.iterator();
         int i = 0;
@@ -915,7 +915,7 @@ public class TestHBaseStorage {
                 "org.apache.pig.backend.hadoop.hbase.HBaseStorage('"
                 + TESTCOLUMN_A + " " + TESTCOLUMN_B + "')");
 
-        HTable table = new HTable(TESTTABLE_2);
+        HTable table = new HTable(conf, TESTTABLE_2);
         ResultScanner scanner = table.getScanner(new Scan());
         Iterator<Result> iter = scanner.iterator();
         int i = 0;
@@ -994,7 +994,7 @@ public class TestHBaseStorage {
 
     /**
      * Prepare a table in hbase for testing.
-     * 
+     *
      */
     private HTable prepareTable(String tableName, boolean initData,
             DataFormat format) throws IOException {
@@ -1009,7 +1009,7 @@ public class TestHBaseStorage {
         table = util.createTable(Bytes.toBytesBinary(tableName),
                 COLUMNFAMILY);
         } catch (Exception e) {
-            table = new HTable(Bytes.toBytesBinary(tableName));
+            table = new HTable(conf, Bytes.toBytesBinary(tableName));
         }
 
         if (initData) {
