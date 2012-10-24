@@ -233,7 +233,7 @@ public class PreprocessorContext {
                 }
                 val = param_val.get(key);
                 if (val.contains("$")) {
-                    val = val.replaceAll("\\$", "\\\\\\$");
+                    val = val.replaceAll("(?<!\\\\)\\$", "\\\\\\$");
                 }
                 replaced_line = replaced_line.replaceFirst("\\$"+key, val);
             }
