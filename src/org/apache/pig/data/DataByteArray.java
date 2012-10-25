@@ -21,6 +21,8 @@ import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 
+import org.apache.hadoop.io.WritableComparator;
+
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 
@@ -207,20 +209,8 @@ public class DataByteArray implements Comparable, Serializable {
     }
 
     public static int compare(byte[] b1, byte[] b2) {
-        int i;
-        for (i = 0; i < b1.length; i++) {
-            // If the other has run out of characters, we're bigger.
-            if (i >= b2.length)
-                return 1;
-            if (b1[i] < b2[i])
-                return -1;
-            else if (b1[i] > b2[i])
-                return 1;
-        }
-        // If the other still has characters left, it's greater
-        if (i < b2.length)
-            return -1;
-        return 0;
+        return WritableComparator.compareBytes(b1, 0, b1.length,
+                                               b2, 0, b2.length);
     }
 
     @Override

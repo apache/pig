@@ -337,19 +337,19 @@ public class TestDataModel extends junit.framework.TestCase {
 
         t2 = tf.newTuple();
         t2.append(new Integer(2));
-        assertEquals("greater than tuple with lesser value", 1, t1.compareTo(t2));
+        assertTrue("greater than tuple with lesser value", 0 < t1.compareTo(t2));
 
         t2 = tf.newTuple();
         t2.append(new Integer(4));
-        assertEquals("less than tuple with greater value", -1, t1.compareTo(t2));
+        assertTrue("less than tuple with greater value", 0 > t1.compareTo(t2));
 
         t2 = tf.newTuple();
         t2.append(new Integer(3));
         t2.append(new Integer(4));
-        assertEquals("less than bigger tuple", -1, t1.compareTo(t2));
+        assertTrue("less than bigger tuple", 0 > t1.compareTo(t2));
 
         t2 = tf.newTuple();
-        assertEquals("greater than smaller tuple", 1, t1.compareTo(t2));
+        assertTrue("greater than smaller tuple", 0 < t1.compareTo(t2));
     }
 
     @Test
@@ -369,48 +369,48 @@ public class TestDataModel extends junit.framework.TestCase {
         t2 = tf.newTuple();
         t2.append(new DataByteArray("aaa"));
         t2.append(new DataByteArray("aaa"));
-        assertEquals("greater than tuple with lesser value", 1, t1.compareTo(t2));
+        assertTrue("greater than tuple with lesser value", 0 < t1.compareTo(t2));
 
         t2 = tf.newTuple();
         t2.append(new DataByteArray("ddd"));
         t2.append(new DataByteArray("ddd"));
-        assertEquals("less than tuple with greater value", -1, t1.compareTo(t2));
+        assertTrue("less than tuple with greater value", 0 > t1.compareTo(t2));
 
         // First column same, second lesser
         t2 = tf.newTuple();
         t2.append(new DataByteArray("bbb"));
         t2.append(new DataByteArray("aaa"));
-        assertEquals("greater than tuple with lesser value", 1, t1.compareTo(t2));
+        assertTrue("greater than tuple with lesser value", 0 < t1.compareTo(t2));
 
         // First column same, second greater
         t2 = tf.newTuple();
         t2.append(new DataByteArray("bbb"));
         t2.append(new DataByteArray("ccc"));
-        assertEquals("greater than tuple with lesser value", -1, t1.compareTo(t2));
+        assertTrue("greater than tuple with lesser value", 0 > t1.compareTo(t2));
 
         // First column less, second same
         t2 = tf.newTuple();
         t2.append(new DataByteArray("aaa"));
         t2.append(new DataByteArray("bbb"));
-        assertEquals("greater than tuple with lesser value", 1, t1.compareTo(t2));
+        assertTrue("greater than tuple with lesser value", 0 < t1.compareTo(t2));
 
         // First column greater, second same
         t2 = tf.newTuple();
         t2.append(new DataByteArray("ccc"));
         t2.append(new DataByteArray("bbb"));
-        assertEquals("greater than tuple with lesser value", -1, t1.compareTo(t2));
+        assertTrue("greater than tuple with lesser value", 0 > t1.compareTo(t2));
 
         // First column less, second greater
         t2 = tf.newTuple();
         t2.append(new DataByteArray("aaa"));
         t2.append(new DataByteArray("ccc"));
-        assertEquals("greater than tuple with lesser value", 1, t1.compareTo(t2));
+        assertTrue("greater than tuple with lesser value", 0 < t1.compareTo(t2));
 
         // First column greater, second same
         t2 = tf.newTuple();
         t2.append(new DataByteArray("ccc"));
         t2.append(new DataByteArray("aaa"));
-        assertEquals("greater than tuple with lesser value", -1, t1.compareTo(t2));
+        assertTrue("greater than tuple with lesser value", 0 > t1.compareTo(t2));
     }
 
     @Test
