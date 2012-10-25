@@ -476,6 +476,40 @@ public class TestPigServer {
     }
     
     @Test
+    public void testRegisterRemoteScript() throws Throwable {
+        String scriptName = "script.py";
+        File scriptFile = File.createTempFile("tmp", "");
+        PrintWriter pw = new PrintWriter(new FileWriter(scriptFile));
+        pw.println("@outputSchema(\"word:chararray\")\ndef helloworld():\n    return 'Hello, World'");
+        pw.close();
+
+        FileSystem fs = cluster.getFileSystem();
+        fs.copyFromLocalFile(new Path(scriptFile.getAbsolutePath()), new Path(scriptName));
+
+        // find the absolute path for the directory so that it does not
+        // depend on configuration
+        String absPath = fs.getFileStatus(new Path(scriptName)).getPath().toString();
+
+        Util.createInputFile(cluster, "testRegisterRemoteScript_input", new String[]{"1", "2"});
+        pig.registerCode(absPath, "jython", "pig");
+        pig.registerQuery("a = load 'testRegisterRemoteScript_input';");
+        pig.registerQuery("b = foreach a generate pig.helloworld($0);");
+        Iterator<Tuple> iter = pig.openIterator("b");
+
+        assertTrue(iter.hasNext());
+        Tuple t = iter.next();
+        assertTrue(t.size() > 0);
+        assertEquals("Hello, World", t.get(0));
+
+        assertTrue(iter.hasNext());
+        t = iter.next();
+        assertTrue(t.size() > 0);
+        assertEquals("Hello, World", t.get(0));
+
+        assertFalse(iter.hasNext());
+    }
+
+    @Test
     public void testParamSubstitution() throws Exception{
         // using params map
         PigServer pig=new PigServer(ExecType.LOCAL);
