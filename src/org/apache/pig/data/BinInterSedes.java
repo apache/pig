@@ -862,9 +862,11 @@ public class BinInterSedes implements InterSedes {
                 if (type1 == type2) {
                     int basz1 = readSize(bb1, dt1);
                     int basz2 = readSize(bb2, dt2);
-                    rc = org.apache.hadoop.io.WritableComparator.compareBytes(
+                    rc = WritableComparator.compareBytes(
                           bb1.array(), bb1.position(), basz1,
                           bb2.array(), bb2.position(), basz2);
+                    bb1.position(bb1.position() + basz1);
+                    bb2.position(bb2.position() + basz2);
                 }
                 break;
             }
