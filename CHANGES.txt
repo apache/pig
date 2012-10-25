@@ -308,7 +308,7 @@ OPTIMIZATIONS
 
 BUG FIXES
 
-PIG-2999: Regression after PIG-2975: BinInterSedesTupleRawComparator secondary sort failing (cheolsoo via azaroth)
+PIG-2999: Regression after PIG-2975: BinInterSedesTupleRawComparator secondary sort failing (knoguchi via azaroth)
 
 PIG-2998: Fix TestScriptLanguage and TestMacroExpansion (cheolsoo via jcoveney)
 
