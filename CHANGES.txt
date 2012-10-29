@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2990: the -secretDebugCmd shouldn't be a secret and should just be...a command (jcoveney)
+
 PIG-2941: Ivy resolvers in pig don't have consistent chaining and don't have a kitchen sink option for novices (jgordon via azaroth)
 
 PIG-2778: Add 'matches' operator to predicate pushdown (cheolsoo via jcoveney)

@@ -51,7 +51,7 @@ addJarString=-Dpig.additional.jars\=;
 additionalJars="";
 # filter command line parameter
 for f in "$@"; do
-     if [[ $f == "-secretDebugCmd" ]]; then
+     if [[ $f == "-secretDebugCmd" || $f == "-printCmdDebug" ]]; then
         debug=true
       elif [[ $f == "-useHCatalog" ]]; then
         # if need to use hcatalog, we need to add the hcatalog and hive jars
