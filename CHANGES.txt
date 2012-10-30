@@ -336,6 +336,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-3017: Pig's object serialization should use compression (jcoveney)
+
 PIG-2968: ColumnMapKeyPrune fails to prune a subtree inside foreach (knoguchi via cheolsoo)
 
 PIG-2999: Regression after PIG-2975: BinInterSedesTupleRawComparator secondary sort failing (knoguchi via azaroth)
