@@ -60,7 +60,7 @@ public abstract class ExpressionOperator extends PhysicalOperator {
     public void setIllustrator(Illustrator illustrator) {
         this.illustrator = illustrator;
     }
-    
+
     @Override
     public boolean supportsMultipleOutputs() {
         return false;
@@ -224,5 +224,10 @@ public abstract class ExpressionOperator extends PhysicalOperator {
      */
     protected Result accumChild(List<ExpressionOperator> child, DataBag db) throws ExecException {
         return accumChild(child, db, DataType.BAG);
+    }
+
+    @Override
+    public String toString() {
+        return "[" + this.getClass().getSimpleName() + " " + super.toString() + " children: " + getChildExpressions() + " at " + getOriginalLocations() + "]";
     }
 }

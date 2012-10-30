@@ -206,100 +206,104 @@ public class POForEach extends PhysicalOperator {
      */
     @Override
     public Result getNext(Tuple t) throws ExecException {
-        Result res = null;
-        Result inp = null;
-        //The nested plan is under processing
-        //So return tuples that the generate oper
-        //returns
-        if(processingPlan){
-            while(true) {
-                res = processPlan();
-
-                if(res.returnStatus==POStatus.STATUS_OK) {
-                    return res;
-                }
-                if(res.returnStatus==POStatus.STATUS_EOP) {
-                    processingPlan = false;
-                    for(PhysicalPlan plan : inputPlans) {
-                        plan.detachInput();
-                    }
-                    break;
-                }
-                if(res.returnStatus==POStatus.STATUS_ERR) {
-                    return res;
-                }
-                if(res.returnStatus==POStatus.STATUS_NULL) {
-                    continue;
-                }
-            }
-        }
-        //The nested plan processing is done or is
-        //yet to begin. So process the input and start
-        //nested plan processing on the input tuple
-        //read
-        while (true) {
-            inp = processInput();
-            if (inp.returnStatus == POStatus.STATUS_EOP ||
-                    inp.returnStatus == POStatus.STATUS_ERR) {
-                return inp;
-            }
-            if (inp.returnStatus == POStatus.STATUS_NULL) {
-                continue;
-            }
-
-            attachInputToPlans((Tuple) inp.result);
-            inpTuple = (Tuple)inp.result;
-
-            for (PhysicalOperator po : opsToBeReset) {
-                po.reset();
-            }
-
-            if (isAccumulative()) {
-                for(int i=0; i<inpTuple.size(); i++) {
-                    if (inpTuple.getType(i) == DataType.BAG) {
-                        // we only need to check one bag, because all the bags
-                        // share the same buffer
-                        buffer = ((AccumulativeBag)inpTuple.get(i)).getTuplebuffer();
-                        break;
-                    }
-                }
-
-                setAccumStart();
+        try {
+            Result res = null;
+            Result inp = null;
+            //The nested plan is under processing
+            //So return tuples that the generate oper
+            //returns
+            if(processingPlan){
                 while(true) {
-                    if (!isEarlyTerminated() && buffer.hasNextBatch()) {
-                        try {
-                            buffer.nextBatch();
-                        }catch(IOException e) {
-                            throw new ExecException(e);
-                        }
-                    }else{
-                        inpTuple = ((POPackage.POPackageTupleBuffer) buffer).illustratorMarkup(null, inpTuple, 0);
- //                       buffer.clear();
-                        setAccumEnd();
-                    }
-
                     res = processPlan();
 
-                    if (res.returnStatus == POStatus.STATUS_BATCH_OK) {
-                        // attach same input again to process next batch
-                        attachInputToPlans((Tuple) inp.result);
-                    } else if (res.returnStatus == POStatus.STATUS_EARLY_TERMINATION) {
-                        //if this bubbled up, then we just need to pass a null value through the pipe
-                        //so that POUserFunc will properly return the values
-                        attachInputToPlans(null);
-                        earlyTerminate();
-                    } else {
+                    if(res.returnStatus==POStatus.STATUS_OK) {
+                        return res;
+                    }
+                    if(res.returnStatus==POStatus.STATUS_EOP) {
+                        processingPlan = false;
+                        for(PhysicalPlan plan : inputPlans) {
+                            plan.detachInput();
+                        }
                         break;
                     }
+                    if(res.returnStatus==POStatus.STATUS_ERR) {
+                        return res;
+                    }
+                    if(res.returnStatus==POStatus.STATUS_NULL) {
+                        continue;
+                    }
+                }
+            }
+            //The nested plan processing is done or is
+            //yet to begin. So process the input and start
+            //nested plan processing on the input tuple
+            //read
+            while (true) {
+                inp = processInput();
+                if (inp.returnStatus == POStatus.STATUS_EOP ||
+                        inp.returnStatus == POStatus.STATUS_ERR) {
+                    return inp;
+                }
+                if (inp.returnStatus == POStatus.STATUS_NULL) {
+                    continue;
                 }
 
-            } else {
-                res = processPlan();
+                attachInputToPlans((Tuple) inp.result);
+                inpTuple = (Tuple)inp.result;
+
+                for (PhysicalOperator po : opsToBeReset) {
+                    po.reset();
+                }
+
+                if (isAccumulative()) {
+                    for(int i=0; i<inpTuple.size(); i++) {
+                        if (inpTuple.getType(i) == DataType.BAG) {
+                            // we only need to check one bag, because all the bags
+                            // share the same buffer
+                            buffer = ((AccumulativeBag)inpTuple.get(i)).getTuplebuffer();
+                            break;
+                        }
+                    }
+
+                    setAccumStart();
+                    while(true) {
+                        if (!isEarlyTerminated() && buffer.hasNextBatch()) {
+                            try {
+                                buffer.nextBatch();
+                            }catch(IOException e) {
+                                throw new ExecException(e);
+                            }
+                        }else{
+                            inpTuple = ((POPackage.POPackageTupleBuffer) buffer).illustratorMarkup(null, inpTuple, 0);
+                            //                       buffer.clear();
+                            setAccumEnd();
+                        }
+
+                        res = processPlan();
+
+                        if (res.returnStatus == POStatus.STATUS_BATCH_OK) {
+                            // attach same input again to process next batch
+                            attachInputToPlans((Tuple) inp.result);
+                        } else if (res.returnStatus == POStatus.STATUS_EARLY_TERMINATION) {
+                            //if this bubbled up, then we just need to pass a null value through the pipe
+                            //so that POUserFunc will properly return the values
+                            attachInputToPlans(null);
+                            earlyTerminate();
+                        } else {
+                            break;
+                        }
+                    }
+
+                } else {
+                    res = processPlan();
+                }
+
+                processingPlan = true;
+
+                return res;
             }
-
-            processingPlan = true;
-
-            return res;
+        } catch (RuntimeException e) {
+            throw new ExecException("Error while executing ForEach at " + this.getOriginalLocations(), e);
         }
     }
 
