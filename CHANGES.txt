@@ -310,6 +310,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2968: ColumnMapKeyPrune fails to prune a subtree inside foreach (knoguchi via cheolsoo)
+
 PIG-2999: Regression after PIG-2975: BinInterSedesTupleRawComparator secondary sort failing (knoguchi via azaroth)
 
 PIG-2998: Fix TestScriptLanguage and TestMacroExpansion (cheolsoo via jcoveney)

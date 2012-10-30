@@ -390,7 +390,26 @@ public class TestNewPlanColumnPrune extends TestCase {
         
         assertTrue(expected.isEqual(newLogicalPlan));
     }
-    
+
+    public void testPruneSubTreeForEach() throws Exception  {
+        String query = "a =load 'd.txt' as (id, v1);" +
+            "b = group a by id;" +
+            "c = foreach b { d = a.v1; " +
+                          " e = distinct d; " +
+                          " generate group, e; };" +
+            "f = foreach c generate group ;" +
+            "store f into 'empty';";
+        LogicalPlan newLogicalPlan = buildPlan(query);
+        PlanOptimizer optimizer = new MyPlanOptimizer(newLogicalPlan, 3);
+        try {
+            optimizer.optimize();
+        } catch (Exception e) {
+            //PIG-2968 throws ConcurrentModificationException
+            e.printStackTrace();
+            fail("Unexpected Exception: " + e);
+        }
+    }
+
     public class MyPlanOptimizer extends LogicalPlanOptimizer {
 
         protected MyPlanOptimizer(OperatorPlan p,  int iterations) {
