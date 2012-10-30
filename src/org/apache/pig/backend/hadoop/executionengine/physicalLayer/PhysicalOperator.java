@@ -329,31 +329,35 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
      */
     @SuppressWarnings("rawtypes")  // For legacy use of untemplatized Map.
     public Result getNext(Object obj, byte dataType) throws ExecException {
-        switch (dataType) {
-        case DataType.BAG:
-            return getNext((DataBag) obj);
-        case DataType.BOOLEAN:
-            return getNext((Boolean) obj);
-        case DataType.BYTEARRAY:
-            return getNext((DataByteArray) obj);
-        case DataType.CHARARRAY:
-            return getNext((String) obj);
-        case DataType.DOUBLE:
-            return getNext((Double) obj);
-        case DataType.FLOAT:
-            return getNext((Float) obj);
-        case DataType.INTEGER:
-            return getNext((Integer) obj);
-        case DataType.LONG:
-            return getNext((Long) obj);
-        case DataType.DATETIME:
-            return getNext((DateTime) obj);
-        case DataType.MAP:
-            return getNext((Map) obj);
-        case DataType.TUPLE:
-            return getNext((Tuple) obj);
-        default:
-            throw new ExecException("Unsupported type for getNext: " + DataType.findTypeName(dataType));
+        try {
+            switch (dataType) {
+            case DataType.BAG:
+                return getNext((DataBag) obj);
+            case DataType.BOOLEAN:
+                return getNext((Boolean) obj);
+            case DataType.BYTEARRAY:
+                return getNext((DataByteArray) obj);
+            case DataType.CHARARRAY:
+                return getNext((String) obj);
+            case DataType.DOUBLE:
+                return getNext((Double) obj);
+            case DataType.FLOAT:
+                return getNext((Float) obj);
+            case DataType.INTEGER:
+                return getNext((Integer) obj);
+            case DataType.LONG:
+                return getNext((Long) obj);
+            case DataType.DATETIME:
+                return getNext((DateTime) obj);
+            case DataType.MAP:
+                return getNext((Map) obj);
+            case DataType.TUPLE:
+                return getNext((Tuple) obj);
+            default:
+                throw new ExecException("Unsupported type for getNext: " + DataType.findTypeName(dataType));
+            }
+        } catch (RuntimeException e) {
+            throw new ExecException("Exception while executing " + this.toString() + ": " + e.toString(), e);
         }
     }
 
@@ -401,7 +405,7 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     public Result getNext(Float f) throws ExecException {
         return res;
     }
-    
+
     public Result getNext(DateTime dt) throws ExecException {
         return res;
     }
