@@ -517,13 +517,19 @@ PIG-2379: Bug in Schema.getPigSchema(ResourceSchema rSchema) improperly adds two
 
 PIG-2355: ant clean does not clean e2e test build artifacts (daijy)
 
-	PIG-2352: e2e test harness' use of environment variables causes unintended effects between tests (gates)
+PIG-2352: e2e test harness' use of environment variables causes unintended effects between tests (gates)
 
-	Release 0.10.0 - Unreleased
+Release 0.10.1 - Unreleased
 
-	INCOMPATIBLE CHANGES
+BUG FIXES
 
-	IMPROVEMENTS
+PIG-2795: Fix test cases that generate pig scripts with "load " + pathStr to encode "\" in the path (jgordon via daijy)
+
+Release 0.10.0
+
+INCOMPATIBLE CHANGES
+
+IMPROVEMENTS
 
 PIG-2664: Allow PPNL impls to get more job info during the run (billgraham)
 
