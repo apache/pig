@@ -36,6 +36,9 @@ PIG-2727: PigStorage Source tagging does not need pig.splitCombination to be tur
 
 BUG FIXES
 
+PIG-2797: Tests should not create their own file URIs through string concatenation, should use Util.generateURI
+instead (jgordon via daijy)
+
 PIG-2796: Local temporary paths are not always valid HDFS path names (jgordon via daijy)
 
 PIG-2795: Fix test cases that generate pig scripts with "load " + pathStr to encode "\" in the path (jgordon via daijy)

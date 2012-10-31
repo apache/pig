@@ -162,7 +162,7 @@ public class TestBuiltin {
     @Before
     public void setUp() throws Exception {
 
-        pigServer = new PigServer(ExecType.LOCAL, new Properties());
+        pigServer = new PigServer(ExecType.LOCAL, cluster.getProperties());
         pigServer.setValidateEachStatement(true);
         // First set up data structs for "base" SUM, MIN and MAX and AVG.
         // The allowed input and expected output data structs for
@@ -867,7 +867,7 @@ public class TestBuiltin {
     public void testCount_ValidNumberOfArguments_WithoutInputSchema_One() throws Exception {
          File inputFile = createCountInputFile();
          try {
-             pigServer.registerQuery("A = load '" + inputFile.getAbsolutePath() + "';");
+             pigServer.registerQuery("A = load '" + Util.encodeEscape(inputFile.getAbsolutePath()) + "';");
              pigServer.registerQuery("B = group A all;");
              pigServer.registerQuery("C = foreach B generate COUNT(A.$0);");
              assertValidCount();
@@ -882,7 +882,7 @@ public class TestBuiltin {
     public void testCount_ValidNumberOfArguments_WithoutInputSchema_Two() throws Exception {
          File inputFile = createCountInputFile();
          try {
-             pigServer.registerQuery("A = load '" + inputFile.getAbsolutePath() + "';");
+             pigServer.registerQuery("A = load '" + Util.encodeEscape(inputFile.getAbsolutePath()) + "';");
              pigServer.registerQuery("B = group A all;");
              pigServer.registerQuery("C = foreach B generate COUNT(A);");
              assertValidCount();
@@ -905,7 +905,7 @@ public class TestBuiltin {
         File inputFile = Util.createInputFile("tmp", inputFileName, inputData);
 
          try {
-             pigServer.registerQuery("A = load '" + inputFile.getAbsolutePath() + "';");
+             pigServer.registerQuery("A = load '" + Util.encodeEscape(inputFile.getAbsolutePath()) + "';");
              pigServer.registerQuery("B = group A all;");
              pigServer.registerQuery("C = foreach B generate COUNT(A);");
              assertValidCount();
@@ -928,7 +928,7 @@ public class TestBuiltin {
         String inputFileName = file.getAbsolutePath();
 
          try {
-             pigServer.registerQuery("A = load '" + inputFileName + "';");
+             pigServer.registerQuery("A = load '" + Util.encodeEscape(inputFileName) + "';");
              pigServer.registerQuery("B = group A all;");
              pigServer.registerQuery("C = foreach B generate COUNT(A.$0);");
              assertValidCount();
@@ -944,7 +944,7 @@ public class TestBuiltin {
     public void testCount_ValidNumberOfArguments_WithInputSchema_One() throws Exception {
          File inputFile = createCountInputFile();
          try {
-             pigServer.registerQuery("A = load '" + inputFile.getAbsolutePath() + "' as (data:chararray);");
+             pigServer.registerQuery("A = load '" + Util.encodeEscape(inputFile.getAbsolutePath()) + "' as (data:chararray);");
              pigServer.registerQuery("B = group A all;");
              pigServer.registerQuery("C = foreach B generate COUNT(A.$0);");
              assertValidCount();
@@ -959,7 +959,7 @@ public class TestBuiltin {
     public void testCount_ValidNumberOfArguments_WithInputSchema_Two() throws Exception {
          File inputFile = createCountInputFile();
          try {
-             pigServer.registerQuery("A = load '" + inputFile.getAbsolutePath() + "' as (data:chararray);");
+             pigServer.registerQuery("A = load '" + Util.encodeEscape(inputFile.getAbsolutePath()) + "' as (data:chararray);");
              pigServer.registerQuery("B = group A all;");
              pigServer.registerQuery("C = foreach B generate COUNT(A);");
              assertValidCount();
@@ -995,7 +995,7 @@ public class TestBuiltin {
     public void testCount_InvalidNumberOfArguments_WithoutInputSchema() throws Exception {
          File inputFile = createCountInputFile();
          try {
-             pigServer.registerQuery("A = load '" + inputFile.getAbsolutePath() + "';");
+             pigServer.registerQuery("A = load '" + Util.encodeEscape(inputFile.getAbsolutePath()) + "';");
              pigServer.registerQuery("B = group A all;");
              pigServer.registerQuery("C = foreach B generate COUNT(A.$0, A.$0);");
              pigServer.openIterator("C");
@@ -1011,7 +1011,7 @@ public class TestBuiltin {
     public void testCount_InvalidNumberOfArguments_WithInputSchema() throws Exception {
          File inputFile = createCountInputFile();
          try {
-             pigServer.registerQuery("A = load '" + inputFile.getAbsolutePath() + "' as (data:chararray);");
+             pigServer.registerQuery("A = load '" + Util.encodeEscape(inputFile.getAbsolutePath()) + "' as (data:chararray);");
              pigServer.registerQuery("B = group A all;");
              pigServer.registerQuery("C = foreach B generate COUNT(A.$0, A.$0);");
              pigServer.openIterator("C");
@@ -1027,7 +1027,7 @@ public class TestBuiltin {
     public void testCount_InvalidArgumentType() throws Exception {
          File inputFile = createCountInputFile();
          try {
-             pigServer.registerQuery("A = load '" + inputFile.getAbsolutePath() + "' as (data:chararray);");
+             pigServer.registerQuery("A = load '" + Util.encodeEscape(inputFile.getAbsolutePath()) + "' as (data:chararray);");
              pigServer.registerQuery("B = group A all;");
              pigServer.registerQuery("C = foreach B generate COUNT('data');");
              pigServer.openIterator("C");
@@ -2079,7 +2079,7 @@ public class TestBuiltin {
         File inputFile = Util.createInputFile("tmp", inputFileName, inputData);
 
         // test typed data
-        pigServer.registerQuery("A = load '" + inputFile.getAbsolutePath() + "' AS value:chararray;");
+        pigServer.registerQuery("A = load '" + Util.encodeEscape(inputFile.getAbsolutePath()) + "' AS value:chararray;");
         pigServer.registerQuery("B = foreach A generate STRSPLIT(value, ' ') AS values;");
         pigServer.registerQuery("C = foreach B generate values, SIZE(values) as cnt;");
 
@@ -2226,7 +2226,7 @@ public class TestBuiltin {
         File inputFile = Util.createInputFile("tmp", "testStrUDFsIn.txt", new String[] {inputStr});
 
         // test typed data
-        pigServer.registerQuery("A = load '" + inputFile.getAbsolutePath() + "' as (name: chararray);");
+        pigServer.registerQuery("A = load '" + Util.encodeEscape(inputFile.getAbsolutePath()) + "' as (name: chararray);");
         pigServer.registerQuery("B = foreach A generate SUBSTRING(name, 0, 3), " +
             "INDEXOF(name, 'a'), INDEXOF(name, 'a', 3), LAST_INDEX_OF(name, 'a'), REPLACE(name, 'a', 'b'), " +
             "STRSPLIT(name), STRSPLIT(name, ' '), STRSPLIT(name, ' ', 0), TRIM(name);");
@@ -2248,7 +2248,7 @@ public class TestBuiltin {
         assertEquals("amy smith", t.get(8));
 
         // test untyped data
-        pigServer.registerQuery("A = load '" + inputFile.getAbsolutePath() + "' as (name);");
+        pigServer.registerQuery("A = load '" + Util.encodeEscape(inputFile.getAbsolutePath()) + "' as (name);");
         pigServer.registerQuery("B = foreach A generate SUBSTRING(name, 0, 3), " +
             "LAST_INDEX_OF(name, 'a'), REPLACE(name, 'a', 'b'), TRIM(name);");
 

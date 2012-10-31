@@ -95,7 +95,7 @@ public class TestUnion extends junit.framework.TestCase {
         POLoad ld1 = GenPhyOp.topLoadOp();
         String curDir = System.getProperty("user.dir");
         String inpDir = curDir + File.separatorChar + "test/org/apache/pig/test/data/InputFiles/";
-        FileSpec fSpec = new FileSpec("file:"+ inpDir +"passwd", new FuncSpec(PigStorage.class.getName() , new String[]{":"}));
+        FileSpec fSpec = new FileSpec(Util.generateURI(Util.encodeEscape(inpDir + "passwd"), pc), new FuncSpec(PigStorage.class.getName() , new String[]{":"}));
         ld1.setLFile(fSpec);
         
         POLoad ld2 = GenPhyOp.topLoadOp();
