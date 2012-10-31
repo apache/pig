@@ -53,9 +53,9 @@ public class TestUDFContext {
         File b = Util.createLocalInputFile("b.txt", new String[] { "dumber" });
         FileLocalizer.deleteTempFiles();
         PigServer pig = new PigServer(ExecType.LOCAL, new Properties());
-        String[] statement = { "A = LOAD '" + a.getAbsolutePath() +
+        String[] statement = { "A = LOAD '" + Util.encodeEscape(a.getAbsolutePath()) +
                 "' USING org.apache.pig.test.utils.UDFContextTestLoader('joe');",
-            "B = LOAD '" + b.getAbsolutePath() +
+            "B = LOAD '" + Util.encodeEscape(b.getAbsolutePath()) +
             "' USING org.apache.pig.test.utils.UDFContextTestLoader('jane');",
             "C = union A, B;",
             "D = FOREACH C GENERATE $0, $1, org.apache.pig.test.utils.UDFContextTestEvalFunc($0), " +

@@ -525,6 +525,8 @@ BUG FIXES
 
 PIG-2795: Fix test cases that generate pig scripts with "load " + pathStr to encode "\" in the path (jgordon via daijy)
 
+PIG-2796:  Local temporary paths are not always valid HDFS path names (jgordon via daijy)
+
 Release 0.10.0
 
 INCOMPATIBLE CHANGES

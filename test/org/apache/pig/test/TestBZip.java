@@ -74,8 +74,8 @@ public class TestBZip {
         in.deleteOnExit();
         
         File out = File.createTempFile("junit", ".bz2");
-        out.deleteOnExit();
         out.delete();
+        String clusterOutput = Util.removeColon(out.getAbsolutePath());
                
         CBZip2OutputStream cos = 
             new CBZip2OutputStream(new FileOutputStream(in));
@@ -88,13 +88,13 @@ public class TestBZip {
         cos.close();
                        
         pig.registerQuery("AA = load '"
-                + Util.generateURI(in.getAbsolutePath(), pig.getPigContext())
+                + Util.generateURI(Util.encodeEscape(in.getAbsolutePath()), pig.getPigContext())
                 + "';");
         pig.registerQuery("A = foreach (group (filter AA by $0 > 0) all) generate flatten($1);");
-        pig.registerQuery("store A into '" + out.getAbsolutePath() + "';");
+        pig.registerQuery("store A into '" + Util.encodeEscape(clusterOutput) + "';");
         FileSystem fs = FileSystem.get(ConfigurationUtil.toConfiguration(
                 pig.getPigContext().getProperties()));
-        FSDataInputStream is = fs.open(new Path(out.getAbsolutePath() + 
+        FSDataInputStream is = fs.open(new Path(clusterOutput +
                 "/part-r-00000.bz2"));
         CBZip2InputStream cis = new CBZip2InputStream(is, -1, out.length());
         
@@ -103,7 +103,7 @@ public class TestBZip {
         assertEquals(100, cis.read(new byte[100]));
         cis.close();
         
-        pig.registerQuery("B = load '" + out.getAbsolutePath() + "';");
+        pig.registerQuery("B = load '" + Util.encodeEscape(clusterOutput) + "';");
         
         Iterator<Tuple> i = pig.openIterator("B");
         HashMap<Integer, Integer> map = new HashMap<Integer, Integer>();
@@ -119,7 +119,7 @@ public class TestBZip {
         }
         
         in.delete();
-        out.delete();
+        Util.deleteFile(cluster, clusterOutput);
     }
     
    /**
@@ -133,8 +133,8 @@ public class TestBZip {
         in.deleteOnExit();
         
         File out = File.createTempFile("junit", ".bz2");
-        out.deleteOnExit();
         out.delete();
+        String clusterOutput = Util.removeColon(out.getAbsolutePath());
                
         CBZip2OutputStream cos = 
             new CBZip2OutputStream(new FileOutputStream(in));
@@ -150,10 +150,10 @@ public class TestBZip {
                 + Util.generateURI(in.getAbsolutePath(), pig.getPigContext())
                 + "';");
         pig.registerQuery("A = foreach (group (filter AA by $0 > 0) all) generate flatten($1);");
-        pig.registerQuery("store A into '" + out.getAbsolutePath() + "/';");
+        pig.registerQuery("store A into '" + Util.encodeEscape(clusterOutput) + "/';");
         FileSystem fs = FileSystem.get(ConfigurationUtil.toConfiguration(
                 pig.getPigContext().getProperties()));
-        FSDataInputStream is = fs.open(new Path(out.getAbsolutePath() + 
+        FSDataInputStream is = fs.open(new Path(clusterOutput +
                 "/part-r-00000.bz2"));
         CBZip2InputStream cis = new CBZip2InputStream(is, -1, out.length());
         
@@ -162,7 +162,7 @@ public class TestBZip {
         assertEquals(100, cis.read(new byte[100]));
         cis.close();
         
-        pig.registerQuery("B = load '" + out.getAbsolutePath() + "';");
+        pig.registerQuery("B = load '" + Util.encodeEscape(clusterOutput) + "';");
         
         Iterator<Tuple> i = pig.openIterator("B");
         HashMap<Integer, Integer> map = new HashMap<Integer, Integer>();
@@ -247,6 +247,8 @@ public class TestBZip {
         File in = File.createTempFile("junit", ".bz2");
         String compressedInputFileName = in.getAbsolutePath();
         in.deleteOnExit();
+        String clusterCompressedFilePath = Util.removeColon(compressedInputFileName);
+
         String unCompressedInputFileName = "testRecordDelims-uncomp.txt";
         Util.createInputFile(cluster, unCompressedInputFileName, inputData);
         
@@ -262,7 +264,7 @@ public class TestBZip {
             cos.close();
             
             Util.copyFromLocalToCluster(cluster, compressedInputFileName,
-                    compressedInputFileName);
+                    clusterCompressedFilePath);
             
             // pig script to read uncompressed input
             String script = "a = load '" + unCompressedInputFileName +"';";
@@ -272,7 +274,7 @@ public class TestBZip {
             Iterator<Tuple> it1 = pig.openIterator("a");
             
             // pig script to read compressed input
-            script = "a = load '" + compressedInputFileName +"';";
+            script = "a = load '" + Util.encodeEscape(clusterCompressedFilePath) +"';";
             pig.registerQuery(script);
             Iterator<Tuple> it2 = pig.openIterator("a");
             
@@ -287,6 +289,7 @@ public class TestBZip {
         } finally {
             in.delete();
             Util.deleteFile(cluster, unCompressedInputFileName);
+            Util.deleteFile(cluster, clusterCompressedFilePath);
         }
         
     }
@@ -303,8 +306,8 @@ public class TestBZip {
         in.deleteOnExit();
 
         File out = File.createTempFile("junit", ".bz2");
-        out.deleteOnExit();
         out.delete();
+        String clusterOutputFilePath = Util.removeColon(out.getAbsolutePath());
         
         FileOutputStream fos = new FileOutputStream(in);
         fos.write("55\n".getBytes());
@@ -312,13 +315,13 @@ public class TestBZip {
         System.out.println(in.getAbsolutePath());
         
         pig.registerQuery("AA = load '"
-                + Util.generateURI(in.getAbsolutePath(), pig.getPigContext())
+                + Util.generateURI(Util.encodeEscape(in.getAbsolutePath()), pig.getPigContext())
                 + "';");
         pig.registerQuery("A=foreach (group (filter AA by $0 < '0') all) generate flatten($1);");
-        pig.registerQuery("store A into '" + out.getAbsolutePath() + "';");
+        pig.registerQuery("store A into '" + Util.encodeEscape(clusterOutputFilePath) + "';");
         FileSystem fs = FileSystem.get(ConfigurationUtil.toConfiguration(
                 pig.getPigContext().getProperties()));
-        FSDataInputStream is = fs.open(new Path(out.getAbsolutePath() + 
+        FSDataInputStream is = fs.open(new Path(clusterOutputFilePath +
                 "/part-r-00000.bz2"));
         CBZip2InputStream cis = new CBZip2InputStream(is, -1, out.length());
         
@@ -327,11 +330,11 @@ public class TestBZip {
         assertEquals(-1, cis.read(new byte[100]));
         cis.close();
         
-        pig.registerQuery("B = load '" + out.getAbsolutePath() + "';");
+        pig.registerQuery("B = load '" + Util.encodeEscape(clusterOutputFilePath) + "';");
         pig.openIterator("B");
         
         in.delete();
-        out.delete();
+        Util.deleteFile(cluster, clusterOutputFilePath);
         
     }
 
@@ -587,14 +590,14 @@ public class TestBZip {
                     compressedInputFileName1);
             
             // pig script to read uncompressed input
-            String script = "a = load '" + unCompressedInputFileName +"';";
+            String script = "a = load '" + Util.encodeEscape(unCompressedInputFileName) +"';";
             PigServer pig = new PigServer(ExecType.MAPREDUCE, cluster
                     .getProperties());
             pig.registerQuery(script);
             Iterator<Tuple> it1 = pig.openIterator("a");
             
             // pig script to read compressed concatenated input
-            script = "a = load '" + compressedInputFileName1 +"';";
+            script = "a = load '" + Util.encodeEscape(compressedInputFileName1) +"';";
             pig.registerQuery(script);
             Iterator<Tuple> it2 = pig.openIterator("a");
             
