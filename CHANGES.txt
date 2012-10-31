@@ -491,6 +491,9 @@ Release 0.10.1 - Unreleased
 
 BUG FIXES
 
+PIG-2801:  grunt "sh" command should invoke the shell implicitly instead of calling exec directly with the command tokens
+(jgordon via daijy)
+
 PIG-2798: pig streaming tests assume interpreters are auto-resolved (jgordon via daijy)
 
 PIG-2795: Fix test cases that generate pig scripts with "load " + pathStr to encode "\" in the path (jgordon via daijy)
