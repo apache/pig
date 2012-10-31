@@ -47,12 +47,15 @@ public class TestSample {
         pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
 
         tmpFile = File.createTempFile( this.getClass().getName(), ".txt");
+        tmpFile.delete(); // we don't want the file, just the temp path
+
+        tmpfilepath = Util.removeColon(tmpFile.getCanonicalPath());
+
         String input[] = new String[DATALEN];
         for(int i = 0; i < DATALEN; i++) {
             input[i] = Integer.toString(i);
         }
-        
-        tmpfilepath = tmpFile.getCanonicalPath();
+
         Util.createInputFile(cluster, tmpfilepath, input);
     }
 
@@ -90,21 +93,21 @@ public class TestSample {
     public void testSample_None()
     throws Exception
     {
-        verify("myid = sample (load '"+ tmpfilepath + "') 0.0;", 0, 0);
+        verify("myid = sample (load '"+ Util.encodeEscape(tmpfilepath) + "') 0.0;", 0, 0);
     }
 
     @Test
     public void testSample_All()
     throws Exception
     {
-        verify("myid = sample (load '"+ tmpfilepath + "') 1.0;", DATALEN, DATALEN);
+       verify("myid = sample (load '"+ Util.encodeEscape(tmpfilepath) + "') 1.0;", DATALEN, DATALEN);
     }
 
     @Test
     public void testSample_Some()
     throws Exception
     {
-        verify("myid = sample (load '"+ tmpfilepath + "') 0.5;", DATALEN/3, DATALEN*2/3);
+       verify("myid = sample (load '"+ Util.encodeEscape(tmpfilepath) + "') 0.5;", DATALEN/3, DATALEN*2/3);
     }
     
     @Test
