@@ -20,7 +20,6 @@ package org.apache.pig.test;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 
 import junit.framework.TestCase;
 
@@ -42,10 +41,12 @@ public class TestStreamingLocal extends TestCase {
 
     private static final String simpleEchoStreamingCommand;
     static {
-        if (System.getProperty("os.name").toUpperCase().startsWith("WINDOWS"))
-            simpleEchoStreamingCommand = "perl -ne 'print \\\"$_\\\"'";
-        else
-            simpleEchoStreamingCommand = "perl -ne 'print \"$_\"'";
+        String quote = "'";
+        if (Util.WINDOWS) {
+           quote= "\"";
+        }
+
+        simpleEchoStreamingCommand = "perl -ne "+quote+"print $_"+quote;
     }
 
     @Before
@@ -98,8 +99,9 @@ public class TestStreamingLocal extends TestCase {
             }
 
             // Pig query to run
-            pigServer.registerQuery("IP = load 'file:" + Util.encodeEscape(input.toString()) + "' using " + 
-                    PigStorage.class.getName() + "(',');");
+            pigServer.registerQuery("IP = load '" +
+                    Util.generateURI(Util.encodeEscape(input.toString()), pigServer.getPigContext()) +
+                    "' using " + PigStorage.class.getName() + "(',');");
             pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > '3';");
             pigServer.registerQuery("S1 = stream FILTERED_DATA through `" +
                     simpleEchoStreamingCommand + "`;");
@@ -140,8 +142,9 @@ public class TestStreamingLocal extends TestCase {
                         .toDataByteArrays(expectedSecondFields));
             }
             // Pig query to run
-            pigServer.registerQuery("IP = load 'file:" + Util.encodeEscape(input.toString()) + "' using " + 
-                    PigStorage.class.getName() + "(',');");
+            pigServer.registerQuery("IP = load '" +
+                    Util.generateURI(Util.encodeEscape(input.toString()), pigServer.getPigContext()) +
+                    "' using " + PigStorage.class.getName() + "(',');");
             pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > '3';");
             if(withTypes[i] == true) {
                 pigServer.registerQuery("STREAMED_DATA = stream FILTERED_DATA through `" +
@@ -181,8 +184,9 @@ public class TestStreamingLocal extends TestCase {
             }
 
             // Pig query to run
-            pigServer.registerQuery("IP = load 'file:" + Util.encodeEscape(input.toString()) + "' using " + 
-                    PigStorage.class.getName() + "(',');");
+            pigServer.registerQuery("IP = load '" +
+                    Util.generateURI(Util.encodeEscape(input.toString()), pigServer.getPigContext()) +
+                    "' using " + PigStorage.class.getName() + "(',');");
             pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > '3';");
             pigServer.registerQuery("GROUPED_DATA = group FILTERED_DATA by $0;");
             pigServer.registerQuery("FLATTENED_GROUPED_DATA = foreach GROUPED_DATA " +
@@ -229,8 +233,9 @@ public class TestStreamingLocal extends TestCase {
         //setupExpectedResults(expectedFirstFields, expectedSecondFields);
 
         // Pig query to run
-        pigServer.registerQuery("IP = load 'file:" + Util.encodeEscape(input.toString()) + "' using " + 
-                PigStorage.class.getName() + "(',');");
+        pigServer.registerQuery("IP = load '" +
+                Util.generateURI(Util.encodeEscape(input.toString()), pigServer.getPigContext()) +
+                "' using " + PigStorage.class.getName() + "(',');");
         pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > '3';");
         pigServer.registerQuery("S1 = stream FILTERED_DATA through `" +
                 simpleEchoStreamingCommand + "`;");
@@ -276,8 +281,9 @@ public class TestStreamingLocal extends TestCase {
             // Pig query to run
             pigServer.registerQuery("define CMD `" + simpleEchoStreamingCommand + 
                     " | " + simpleEchoStreamingCommand + "`;");
-            pigServer.registerQuery("IP = load 'file:" + Util.encodeEscape(input.toString()) + "' using " + 
-                    PigStorage.class.getName() + "(',');");
+            pigServer.registerQuery("IP = load '" +
+                    Util.generateURI(Util.encodeEscape(input.toString()), pigServer.getPigContext()) +
+                    "' using " + PigStorage.class.getName() + "(',');");
             if(withTypes[i] == true) {
                 pigServer.registerQuery("OP = stream IP through CMD as (f0:chararray, f1:int);");
             } else {
@@ -288,47 +294,40 @@ public class TestStreamingLocal extends TestCase {
             Util.checkQueryOutputs(pigServer.openIterator("OP"), expectedResults);
         }
     }
-    
+
     @Test
-    // See PIG-2442
-    public void testTwoStreamingMultiStore() 
+    public void testJoinTwoStreamingRelations()
     throws Exception {
-        File input = File.createTempFile("tmp", "");
-        input.delete();
-        Util.createLocalInputFile(input.getAbsolutePath(), new String[] {"first", "second", "third"});
-        
-        File output1 = File.createTempFile("tmp", "");
-        output1.delete();
-        
-        File output2 = File.createTempFile("tmp", "");
-        output2.delete();   
-        
-        pigServer.setBatchOn();
-        pigServer.registerQuery("A = load '" + input.getAbsolutePath() + "';");
-        pigServer.registerQuery("B1 = stream A through `cat`;");
-        pigServer.registerQuery("B1 = foreach B1 generate $0;");
-        pigServer.registerQuery("STORE B1 INTO '" + output1.getAbsolutePath() + "' USING PigStorage();");
-        pigServer.registerQuery("B2 =  STREAM B1 THROUGH `cat`;");
-        pigServer.registerQuery("STORE B2 INTO '" + output2.getAbsolutePath() + "' USING PigStorage();");
-        
-        pigServer.executeBatch();
-        
-        List<Tuple> list = Util.readFile2TupleList(output1.getAbsolutePath() + File.separator + 
-                "part-m-00000", "\t");
-        assertTrue(list.get(0).get(0).equals("first"));
-        assertTrue(list.get(1).get(0).equals("second"));
-        assertTrue(list.get(2).get(0).equals("third"));
-        
-        list = Util.readFile2TupleList(output2.getAbsolutePath() + File.separator + 
-                "part-m-00000", "\t");
-        assertTrue(list.get(0).get(0).equals("first"));
-        assertTrue(list.get(1).get(0).equals("second"));
-        assertTrue(list.get(2).get(0).equals("third"));
-    }
-    
-    @Test
-    public void testJoinTwoStreamingRelations() {
-        
+        ArrayList<String> list = new ArrayList<String>();
+        for (int i=0; i<10000; i++) {
+            list.add("A," + i);
+        }
+        File input = Util.createInputFile("tmp", "", list.toArray(new String[0]));
+
+        // Expected results
+        Tuple expected = TupleFactory.getInstance().newTuple(4);
+        expected.set(0, "A");
+        expected.set(1, 0);
+        expected.set(2, "A");
+        expected.set(3, 0);
+
+        pigServer.registerQuery("A = load '" +
+                Util.generateURI(Util.encodeEscape(input.toString()), pigServer.getPigContext()) +
+                "' using " + PigStorage.class.getName() + "(',') as (a0, a1);");
+        pigServer.registerQuery("B = stream A through `head -1` as (a0, a1);");
+        pigServer.registerQuery("C = load '" +
+                Util.generateURI(Util.encodeEscape(input.toString()), pigServer.getPigContext()) +
+                "' using " + PigStorage.class.getName() + "(',') as (a0, a1);");
+        pigServer.registerQuery("D = stream C through `head -1` as (a0, a1);");
+        pigServer.registerQuery("E = join B by a0, D by a0;");
+
+        Iterator<Tuple> iter = pigServer.openIterator("E");
+        int count = 0;
+        while (iter.hasNext()) {
+            Assert.assertEquals(expected.toString(), iter.next().toString());
+            count++;
+        }
+        Assert.assertTrue(count == 1);
     }
 
     @Test
@@ -361,8 +360,9 @@ public class TestStreamingLocal extends TestCase {
             // Pig query to run
             pigServer.registerQuery("define CMD `"+ simpleEchoStreamingCommand + 
             "` input(stdin);");
-            pigServer.registerQuery("IP = load 'file:" + Util.encodeEscape(input.toString()) + "' using " + 
-                    PigStorage.class.getName() + "(',');");
+            pigServer.registerQuery("IP = load '" +
+                    Util.generateURI(Util.encodeEscape(input.toString()), pigServer.getPigContext()) +
+                    "' using " + PigStorage.class.getName() + "(',');");
             pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > '3';");
             if(withTypes[i] == true) {
                 pigServer.registerQuery("OP = stream FILTERED_DATA through `" +

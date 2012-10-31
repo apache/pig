@@ -69,10 +69,12 @@ public class TestStreaming {
 	private static final String simpleEchoStreamingCommand;
     
 	static {
-        if (System.getProperty("os.name").toUpperCase().startsWith("WINDOWS"))
-            simpleEchoStreamingCommand = "perl -ne 'print \\\"$_\\\"'";
-        else
-            simpleEchoStreamingCommand = "perl -ne 'print \"$_\"'";
+        String quote = "'";
+        if (Util.WINDOWS) {
+           quote= "\"";
+        }
+
+        simpleEchoStreamingCommand = "perl -ne "+quote+"print $_"+quote;
     }
 
     private Tuple[] setupExpectedResults(Object[] firstField, Object[] secondField) throws ExecException {
@@ -305,13 +307,13 @@ public class TestStreaming {
         // Pig query to run
         
         pigServer.registerQuery(
-                "define CMD1 `" + command1.getName() + " foo` " +
+                "define CMD1 `perl " + command1.getName() + " foo` " +
                 "ship ('" + Util.encodeEscape(command1.toString()) + "') " +
                 "input('foo' using " + PigStreaming.class.getName() + "(',')) " +
                 "output(stdout using " + PigStreaming.class.getName() + "(',')) " +
                 "stderr();"); 
         pigServer.registerQuery(
-                "define CMD2 `" + command2.getName() + " bar` " +
+                "define CMD2 `perl " + command2.getName() + " bar` " +
                 "ship ('" + Util.encodeEscape(command2.toString()) + "') " +
                 "input('bar' using " + PigStreaming.class.getName() + "(',')) " +
                 "output(stdout using " + PigStreaming.class.getName() + "(',')) " +        
@@ -375,13 +377,13 @@ public class TestStreaming {
         pigServer.registerQuery("define PS " + PigStreaming.class.getName() + "(',');");
 
         pigServer.registerQuery(
-                "define CMD1 `" + command1.getName() + " foo` " +
+                "define CMD1 `perl " + command1.getName() + " foo` " +
                 "ship ('" + Util.encodeEscape(command1.toString()) + "') " +
                 "input('foo' using PS )" +
                 "output(stdout using PS ) " +
                 "stderr();"); 
         pigServer.registerQuery(
-                "define CMD2 `" + command2.getName() + " bar` " +
+                "define CMD2 `perl " + command2.getName() + " bar` " +
                 "ship ('" + Util.encodeEscape(command2.toString()) + "') " +
                 "input('bar' using PS ) " +
                 "output(stdout using PS ) " +        
@@ -447,12 +449,12 @@ public class TestStreaming {
 
         // Pig query to run
         pigServer.registerQuery(
-                "define CMD1 `script1.pl foo` " +
+                "define CMD1 `perl script1.pl foo` " +
                 "cache ('" + c1 + "#script1.pl') " +
                 "input('foo' using " + PigStreaming.class.getName() + "(',')) " +
                 "stderr();"); 
         pigServer.registerQuery(
-                "define CMD2 `script2.pl bar` " +
+                "define CMD2 `perl script2.pl bar` " +
                 "cache ('" + c2 + "#script2.pl') " +
                 "input('bar' using " + PigStreaming.class.getName() + "(',')) " +
                 "stderr();"); 
@@ -513,7 +515,7 @@ public class TestStreaming {
 
         // Pig query to run
         pigServer.registerQuery(
-                "define CMD `" + command.getName() + " foo bar` " +
+                "define CMD `perl " + command.getName() + " foo bar` " +
                 "ship ('" + Util.encodeEscape(command.toString()) + "') " +
         		"output('foo' using " + PigStreaming.class.getName() + "(','), " +
         		"'bar' using " + PigStreaming.class.getName() + "(',')) " +
@@ -576,7 +578,7 @@ public class TestStreaming {
                 "define PS " + PigStreaming.class.getName() + "(',');");
 
         pigServer.registerQuery(
-                "define CMD `" + command.getName() + " foo bar` " +
+                "define CMD `perl " + command.getName() + " foo bar` " +
                 "ship ('" + Util.encodeEscape(command.toString()) + "') " +
         		"output('foo' using PS, " +
         		"'bar' using PS) " +
@@ -636,7 +638,7 @@ public class TestStreaming {
                                      Util.toDataByteArrays(expectedSecondFields));
         // Pig query to run
         pigServer.registerQuery(
-                "define CMD `" + command.getName() + " foo bar foobar` " +
+                "define CMD `perl " + command.getName() + " foo bar foobar` " +
                 "ship ('" + Util.encodeEscape(command.toString()) + "') " +
                 "input('foo' using " + PigStreaming.class.getName() + "(',')) " +
                 "output('bar', " +
@@ -769,7 +771,7 @@ public class TestStreaming {
                          };
         File command1 = Util.createInputFile("script", "pl", script);
     	String query = 
-                "define CMD1 `" + command1.getName() + " foo` " +
+                "define CMD1 `perl " + command1.getName() + " foo` " +
                 "ship ('" + Util.encodeEscape(command1.toString()) + "') " +
                 "input('foo' using " + PigStreaming.class.getName() + "(',')) " +
                 "output(stdout using " + PigStreaming.class.getName() + "(',')) " +
