@@ -146,10 +146,11 @@ public class TestCombiner {
             }
             ps.close();
         } else {
+            inputFileName = Util.removeColon(inputFileName);
             Util.createInputFile(cluster, inputFileName, inputLines.toArray(new String[] {}));
         }
         pig.registerQuery(loadAlias + " = load '"
-                + inputFileName + "' using "
+                + Util.encodeEscape(inputFileName) + "' using "
                 + PigStorage.class.getName() + "(',');");
         return inputFileName;
     }

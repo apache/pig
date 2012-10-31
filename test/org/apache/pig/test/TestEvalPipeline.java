@@ -173,14 +173,15 @@ public class TestEvalPipeline {
         t.append(weights);
         b.add(t);
         
-        File tmpFile = Util.createTempFileDelOnExit("tmp", "");
-        tmpFile.deleteOnExit();
-        String fileName = tmpFile.getAbsolutePath();
+        File tmpFile = File.createTempFile("tmp", "");
+        tmpFile.delete(); // we only needed the temp file name, so delete the file
+        String fileName = Util.removeColon(tmpFile.getAbsolutePath());
+
         PigFile f = new PigFile(fileName);
         f.store(b, new FuncSpec(BinStorage.class.getCanonicalName()),
                 pigServer.getPigContext());        
         
-        pigServer.registerQuery("a = load '" + fileName + "' using BinStorage();");
+        pigServer.registerQuery("a = load '" + Util.encodeEscape(fileName) + "' using BinStorage();");
         pigServer.registerQuery("b = foreach a generate $0#'apple',flatten($1#'orange');");
         Iterator<Tuple> iter = pigServer.openIterator("b");
         t = iter.next();

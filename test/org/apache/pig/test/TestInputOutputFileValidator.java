@@ -219,10 +219,8 @@ public class TestInputOutputFileValidator extends TestCase {
             ctx.getLfs().asElement(fp1.getAbsolutePath());           
             
         String path = fp1.getAbsolutePath();
-        if (System.getProperty("os.name").toUpperCase().startsWith("WINDOWS"))
-            path = FileLocalizer.parseCygPath(path, FileLocalizer.STYLE_UNIX);
             
-        ElementDescriptor distribElem = ctx.getDfs().asElement(path) ;
+        ElementDescriptor distribElem = ctx.getDfs().asElement(Util.removeColon(path)) ;
     
         localElem.copy(distribElem, null, false);
             
@@ -234,10 +232,8 @@ public class TestInputOutputFileValidator extends TestCase {
         File fp1 = generateTempFile() ;         
          
         String path = fp1.getAbsolutePath();
-        if (System.getProperty("os.name").toUpperCase().startsWith("WINDOWS"))
-            path = FileLocalizer.parseCygPath(path, FileLocalizer.STYLE_UNIX);
         
-        ElementDescriptor distribElem = ctx.getDfs().asElement(path) ;
+        ElementDescriptor distribElem = ctx.getDfs().asElement(Util.removeColon(path)) ;
         
         if (distribElem.exists()) {
             distribElem.delete() ;
