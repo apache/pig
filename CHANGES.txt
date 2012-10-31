@@ -36,6 +36,9 @@ PIG-2727: PigStorage Source tagging does not need pig.splitCombination to be tur
 
 BUG FIXES
 
+PIG-2801:  grunt "sh" command should invoke the shell implicitly instead of calling exec directly with the command tokens
+(jgordon via daijy)
+
 PIG-2800: pig.additional.jars path separator should align with File.pathSeparator instead of being hard-coded to ":"
 (jgordon via azaroth)
 

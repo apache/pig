@@ -214,14 +214,6 @@ public class ExecutableManager {
         String cwd = (dir != null) ? dir.getAbsolutePath() : System
                 .getProperty("user.dir");
 
-        if (System.getProperty("os.name").toUpperCase().startsWith("WINDOWS")) {
-            String unixCwd = FileLocalizer.parseCygPath(cwd, FileLocalizer.STYLE_UNIX);
-            if (unixCwd == null)
-                throw new RuntimeException(
-                        "Can not convert Windows path to Unix path under cygwin");
-            cwd = unixCwd;
-        }
-
         String envPath = env.get(PATH);
         if (envPath == null) {
             envPath = cwd;
@@ -243,12 +235,19 @@ public class ExecutableManager {
     protected void exec() throws IOException {
         // Set the actual command to run with 'bash -c exec ...'
         List<String> cmdArgs = new ArrayList<String>();
-        cmdArgs.add(BASH);
-        cmdArgs.add("-c");
-        StringBuffer sb = new StringBuffer();
-        sb.append("exec ");
-        sb.append(argvAsString);
-        cmdArgs.add(sb.toString());
+
+        if (System.getProperty("os.name").toUpperCase().startsWith("WINDOWS")) {
+          cmdArgs.add("cmd");
+          cmdArgs.add("/c");
+          cmdArgs.add(argvAsString);
+        } else {
+          cmdArgs.add(BASH);
+          cmdArgs.add("-c");
+          StringBuffer sb = new StringBuffer();
+          sb.append("exec ");
+          sb.append(argvAsString);
+          cmdArgs.add(sb.toString());
+        }
 
         // Start the external process
         ProcessBuilder processBuilder = new ProcessBuilder(cmdArgs
