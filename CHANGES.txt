@@ -523,9 +523,11 @@ Release 0.10.1 - Unreleased
 
 BUG FIXES
 
+PIG-2960: Increase the timeout for unit test (daijy)
+
 PIG-2942: DevTests, TestLoad has a false failure on Windows (jgordon via daijy)
 
-PIG-2801:  grunt "sh" command should invoke the shell implicitly instead of calling exec directly with the command tokens
+PIG-2801: grunt "sh" command should invoke the shell implicitly instead of calling exec directly with the command tokens
 (jgordon via daijy)
 
 PIG-2798: pig streaming tests assume interpreters are auto-resolved (jgordon via daijy)
