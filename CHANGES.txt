@@ -491,6 +491,8 @@ Release 0.10.1 - Unreleased
 
 BUG FIXES
 
+PIG-2953: "which" utility does not exist on Windows (daijy)
+
 PIG-2960: Increase the timeout for unit test (daijy)
 
 PIG-2942: DevTests, TestLoad has a false failure on Windows (jgordon via daijy)
