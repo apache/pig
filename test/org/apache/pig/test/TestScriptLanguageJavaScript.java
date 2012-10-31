@@ -40,10 +40,10 @@ public class TestScriptLanguageJavaScript {
 
     static MiniCluster cluster = MiniCluster.buildCluster();
     private PigServer pigServer;
-    
+
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        
+
     }
 
     @AfterClass
@@ -61,7 +61,7 @@ public class TestScriptLanguageJavaScript {
     public void tearDown() throws Exception {
         Util.deleteFile(pigServer.getPigContext(), "simple_out");
     }
-    
+
     @Test
     public void firstTest() throws Exception {
         String[] script = {
@@ -90,23 +90,23 @@ public class TestScriptLanguageJavaScript {
         Util.deleteFile(pigServer.getPigContext(), "simple_table");
         Util.createInputFile(pigServer.getPigContext(), "simple_table", input);
         Util.createLocalInputFile( "testScript.js", script);
-        
+
         ScriptEngine scriptEngine = ScriptEngine.getInstance("javascript");
         Map<String, List<PigStats>> statsMap = scriptEngine.run(pigServer.getPigContext(), "testScript.js");
-        assertEquals(1, statsMap.size());        
-        Iterator<List<PigStats>> it = statsMap.values().iterator();      
+        assertEquals(1, statsMap.size());
+        Iterator<List<PigStats>> it = statsMap.values().iterator();
         PigStats stats = it.next().get(0);
-        assertTrue(stats.isSuccessful());
+        assertTrue("job should succeed", stats.isSuccessful());
         assertEquals(1, stats.getNumberJobs());
         String name = stats.getOutputNames().get(0);
         assertEquals("simple_out", name);
-        
+
         String[] output = Util.readOutput(pigServer.getPigContext(), "simple_out");
         assertTrue(Arrays.toString(input)+" equals "+Arrays.toString(output), Arrays.equals(input, output));
-  
+
     }
-    
-    
+
+
     @Test
     public void testTC() throws Exception {
         String[] input = {
@@ -143,10 +143,10 @@ public class TestScriptLanguageJavaScript {
                 "(id30,[name#a])\t(id31,[name#b])\tMATCH",
                 "(id32,[name#a])"
         };
-        
+
         Util.deleteFile(pigServer.getPigContext(), "simple_table");
         Util.createInputFile(pigServer.getPigContext(), "simple_table", input);
-        
+
         ScriptEngine scriptEngine = ScriptEngine.getInstance("javascript");
         Map<String, List<PigStats>> statsMap = scriptEngine.run(pigServer.getPigContext(), "test/org/apache/pig/test/data/tc.js");
         for (List<PigStats> pigStatsList : statsMap.values()) {
@@ -154,7 +154,7 @@ public class TestScriptLanguageJavaScript {
                 assertTrue(pigStats.getScriptId()+" succesful", pigStats.isSuccessful());
             }
         }
-             
+
     }
 
 }
