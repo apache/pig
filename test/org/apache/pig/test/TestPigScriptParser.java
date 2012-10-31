@@ -100,6 +100,7 @@ public class TestPigScriptParser extends TestCase {
     
     @Test
     public void testDefineUDF() throws Exception {
+        PigServer ps = new PigServer(ExecType.LOCAL);
         String inputData[] = {
                 "dshfdskfwww.xyz.com/sportsjoadfjdslpdshfdskfwww.xyz.com/sportsjoadfjdsl" ,
                 "kas;dka;sd" ,
@@ -108,15 +109,15 @@ public class TestPigScriptParser extends TestCase {
                 "wwwJxyzMcom/sports"
         };
         File f = Util.createFile(inputData);
+
         String[] queryLines = new String[] { 
                 // the reason we have 4 backslashes below is we really want to put two backslashes but
                 // since this is to be represented in a Java String, we escape each backslash with one more
                 // backslash - hence 4. In a pig script in a file, this would be
                 // www\\.xyz\\.com
                 "define minelogs org.apache.pig.test.RegexGroupCount('www\\\\.xyz\\\\.com/sports');" ,
-        		"A = load 'file://" + f.getAbsolutePath() + "'  using PigStorage() as (source : chararray);" ,
+        		"A = load '" + Util.generateURI(Util.encodeEscape(f.getAbsolutePath()), ps.getPigContext()) + "'  using PigStorage() as (source : chararray);" ,
         		"B = foreach A generate minelogs(source) as sportslogs;" };
-        PigServer ps = new PigServer(ExecType.LOCAL);
         for (String line : queryLines) {
             ps.registerQuery(line);
         }
