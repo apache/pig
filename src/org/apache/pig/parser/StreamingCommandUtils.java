@@ -166,8 +166,12 @@ public class StreamingCommandUtils {
 
      private static String which(String file) {
          try {
+             String utility = "which";
+             if (Util.WINDOWS) {
+                 utility = "where";
+             }
              ProcessBuilder processBuilder = 
-                 new ProcessBuilder(new String[] {"which", file});
+                 new ProcessBuilder(new String[] {utility, file});
              Process process = processBuilder.start();
      
              BufferedReader stdout = 
