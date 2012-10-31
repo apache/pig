@@ -44,7 +44,10 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestTypedMap  {
-    private String tmpDirName = System.getProperty("java.io.tmpdir") + "/pigtest/tmp";
+    // this string is used in Pig scripts, where '\' is the escape character.
+    // "\\" has no effect on path resolution in Java, so we escape this here to
+    // fix all the cases that use this to construct paths in this test.
+    private String tmpDirName = Util.encodeEscape(System.getProperty("java.io.tmpdir")) + "/pigtest/tmp";
 
     @Before
     public void setUp() throws Exception {
