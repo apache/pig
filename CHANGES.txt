@@ -336,6 +336,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2973: TestStreaming test times out (cheolsoo)
+
 PIG-3001: TestExecutableManager.testAddJobConfToEnv fails randomly (cheolsoo)
 
 PIG-3017: Pig's object serialization should use compression (jcoveney)
