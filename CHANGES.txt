@@ -36,6 +36,9 @@ PIG-2727: PigStorage Source tagging does not need pig.splitCombination to be tur
 
 BUG FIXES
 
+PIG-2800: pig.additional.jars path separator should align with File.pathSeparator instead of being hard-coded to ":"
+(jgordon via azaroth)
+
 PIG-2798: pig streaming tests assume interpreters are auto-resolved (jgordon via daijy)
 
 PIG-2797: Tests should not create their own file URIs through string concatenation, should use Util.generateURI
