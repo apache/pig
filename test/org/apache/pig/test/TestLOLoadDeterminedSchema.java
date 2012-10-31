@@ -70,7 +70,7 @@ public class TestLOLoadDeterminedSchema extends junit.framework.TestCase {
 		server.registerFunction(ScriptSchemaTestLoader.class.getName(),
 				funcSpec);
 
-		server.registerQuery("a = LOAD '" + inputFile.getAbsolutePath()
+		server.registerQuery("a = LOAD '" + Util.encodeEscape(inputFile.getAbsolutePath())
 				+ "' using " + ScriptSchemaTestLoader.class.getName()
 				+ "() as (a, b, c) ;");
 
