@@ -491,6 +491,8 @@ Release 0.10.1 - Unreleased
 
 BUG FIXES
 
+PIG-2942: DevTests, TestLoad has a false failure on Windows (jgordon via daijy)
+
 PIG-2801:  grunt "sh" command should invoke the shell implicitly instead of calling exec directly with the command tokens
 (jgordon via daijy)
 
