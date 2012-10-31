@@ -1029,23 +1029,37 @@ public class TestGrunt {
         try {
             PigServer server = new PigServer(ExecType.MAPREDUCE,cluster.getProperties());
             PigContext context = server.getPigContext();
+
+            String strQuote     = "'";
+            String strRemoveFile = "rm";
+            String strRemoveDir = "rmdir";
+
+            if (Util.WINDOWS)
+            {
+               strQuote      = "\"";
+               strRemoveFile = "del";
+               strRemoveDir  = "rd";
+            }
             
             String strCmd = "sh mkdir test_shell_tmp;";
             
+            // Create a temp directory via command and make sure it exists
             ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
             InputStreamReader reader = new InputStreamReader(cmd);
             Grunt grunt = new Grunt(new BufferedReader(reader), context);
             grunt.exec();
             assertTrue(new File("test_shell_tmp").exists());
             
-            strCmd = "sh rmdir test_shell_tmp;";
+            // Remove the temp directory via shell and make sure it is gone
+            strCmd = "sh " + strRemoveDir + " test_shell_tmp;";
             cmd = new ByteArrayInputStream(strCmd.getBytes());
             reader = new InputStreamReader(cmd);
             grunt = new Grunt(new BufferedReader(reader), context);
             grunt.exec();
             assertFalse(new File("test_shell_tmp").exists());
             
-            strCmd = "sh bash -c 'echo hello world > tempShFileToTestShCommand'";
+            // Verify pipes are usable in the command context by piping data to a file
+            strCmd = "sh echo hello world > tempShFileToTestShCommand";
             cmd = new ByteArrayInputStream(strCmd.getBytes());
             reader = new InputStreamReader(cmd);
             grunt = new Grunt(new BufferedReader(reader), context);
@@ -1054,27 +1068,36 @@ public class TestGrunt {
             fileReader = new BufferedReader(new FileReader("tempShFileToTestShCommand"));
             assertTrue(fileReader.readLine().equalsIgnoreCase("hello world"));
             fileReader.close();
-            strCmd = "sh rm tempShFileToTestShCommand";
+
+            // Remove the file via cmd and make sure it is gone
+            strCmd = "sh " + strRemoveFile + " tempShFileToTestShCommand";
             cmd = new ByteArrayInputStream(strCmd.getBytes());
             reader = new InputStreamReader(cmd);
             grunt = new Grunt(new BufferedReader(reader), context);
             grunt.exec();
             assertFalse(new File("tempShFileToTestShCommand").exists());
 
-            strCmd = "sh bash -c 'touch TouchedFileInsideGrunt_61 | ls | grep TouchedFileInsideGrunt_61 > fileContainingTouchedFileInsideGruntShell_71'";
+            if (Util.WINDOWS) {
+               strCmd = "sh echo foo > TouchedFileInsideGrunt_61 | dir /B | findstr TouchedFileInsideGrunt_61 > fileContainingTouchedFileInsideGruntShell_71";
+            }
+            else {
+               strCmd = "sh touch TouchedFileInsideGrunt_61 | ls | grep TouchedFileInsideGrunt_61 > fileContainingTouchedFileInsideGruntShell_71";
+            }
             cmd = new ByteArrayInputStream(strCmd.getBytes());
             reader = new InputStreamReader(cmd);
             grunt = new Grunt(new BufferedReader(reader), context);
             grunt.exec();
             fileReader = new BufferedReader(new FileReader("fileContainingTouchedFileInsideGruntShell_71"));
-            assertTrue(fileReader.readLine().equals("TouchedFileInsideGrunt_61"));
+            assertTrue(fileReader.readLine().trim().equals("TouchedFileInsideGrunt_61"));
             fileReader.close();
-            strCmd = "sh bash -c 'rm fileContainingTouchedFileInsideGruntShell_71'";
+
+            strCmd = "sh " + strRemoveFile+" fileContainingTouchedFileInsideGruntShell_71";
             cmd = new ByteArrayInputStream(strCmd.getBytes());
             reader = new InputStreamReader(cmd);
             grunt = new Grunt(new BufferedReader(reader), context);
             grunt.exec();
             assertFalse(new File("fileContainingTouchedFileInsideGruntShell_71").exists());
+
             strCmd = "sh bash -c 'rm TouchedFileInsideGrunt_61'";
             cmd = new ByteArrayInputStream(strCmd.getBytes());
             reader = new InputStreamReader(cmd);

@@ -36,6 +36,8 @@ PIG-2727: PigStorage Source tagging does not need pig.splitCombination to be tur
 
 BUG FIXES
 
+PIG-2798: pig streaming tests assume interpreters are auto-resolved (jgordon via daijy)
+
 PIG-2797: Tests should not create their own file URIs through string concatenation, should use Util.generateURI
 instead (jgordon via daijy)
 
