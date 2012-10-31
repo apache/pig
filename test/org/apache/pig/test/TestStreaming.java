@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Random;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
@@ -39,6 +40,8 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.apache.pig.PigConfiguration.PIG_STREAMING_ENVIRONMENT;
 
 public class TestStreaming {
 
@@ -803,6 +806,77 @@ public class TestStreaming {
         Assert.assertFalse(Util.exists(pig.getPigContext(), "output_dir_001/_logs/mycmd"));
 
     }
+
+    /**
+     * PIG-2973: Verify that JobConf is added to environment even when input to
+     * the streaming binary is asynchronous (i.e. it is from a file).
+     */
+    @Test
+    public void testAddJobConfToEnvironmentWithASynchInput() throws Exception {
+        File input = Util.createInputFile("tmp", "", new String[] {"A"});
+
+        // Generate a random number that will be passed via an environment
+        // variable to the streaming process
+        Random rand = new Random();
+        final int ENV_VAR_VALUE = rand.nextInt();
+        final String ENV_VAR_NAME = "MY_RANDOM_NUMBER";
+
+        // Perl script
+        String[] script =
+            new String[] {
+                          "#!/usr/bin/perl",
+                          "open(INFILE, $ARGV[0]) or die \"Can't open \".$ARGV[0].\"!: $!\";",
+                          "while (<INFILE>) {",
+                          "  chomp $_;",
+                          // Append the value of the environment variable to the line
+                          "  print STDOUT \"$_,$ENV{'" + ENV_VAR_NAME + "'}\n\";",
+                          "  print STDERR \"STDERR: $_\n\";",
+                          "}",
+                         };
+        File command = Util.createInputFile("script", "pl", script);
+
+        // Expected results
+        String[] expectedFirstFields = new String[] {"A"};
+        Integer[] expectedSecondFields = new Integer[] {ENV_VAR_VALUE};
+        Tuple[] expectedResults =
+                setupExpectedResults(Util.toDataByteArrays(expectedFirstFields),
+                                     Util.toDataByteArrays(expectedSecondFields));
+
+        // Set a property and pass it via environment variable to the streaming process
+        pigServer.getPigContext().getProperties()
+                 .setProperty(PIG_STREAMING_ENVIRONMENT, ENV_VAR_NAME);
+        pigServer.getPigContext().getProperties()
+                 .setProperty(ENV_VAR_NAME, Integer.toString(ENV_VAR_VALUE));
+
+        // Pig query to run
+        pigServer.registerQuery(
+                "define CMD `" + command.getName() + " foo` " +
+                "ship ('" + Util.encodeEscape(command.toString()) + "') " +
+                "input('foo' using " + PigStreaming.class.getName() + "()) " +
+                "output(stdout using " + PigStreaming.class.getName() + "(',')) " +
+                "stderr();");
+        pigServer.registerQuery("IP = load '"
+                + Util.generateURI(Util.encodeEscape(input.toString()),
+                        pigServer.getPigContext())
+                + "' using PigStorage();");
+        pigServer.registerQuery("STREAMED_DATA = stream IP through CMD;");
+
+        String output = "/pig/out";
+        pigServer.deleteFile(output);
+        pigServer.store("STREAMED_DATA", output, PigStorage.class.getName() + "(',')");
+
+        pigServer.registerQuery("A = load '" + output + "' using PigStorage(',');");
+        Iterator<Tuple> iter = pigServer.openIterator("A");
+
+        List<Tuple> outputs = new ArrayList<Tuple>();
+        while (iter.hasNext()) {
+            outputs.add(iter.next());
+        }
+
+        // Run the query and check the results
+        Util.checkQueryOutputs(outputs.iterator(), expectedResults);
+    }
+
     public static class PigStreamDump implements PigToStream {
 
         public static final String recordDelimiter = "\n";

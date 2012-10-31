@@ -319,8 +319,12 @@ public class ExecutableManager {
     public void run() throws IOException {
         // Check if we need to exec the process NOW ...
         if (inputHandler.getInputType() == InputType.ASYNCHRONOUS) {
-            // start the thread to handle input
-            fileInputThread = new ProcessInputThread(inputHandler, poStream);
+            // start the thread to handle input. we pass the UDFContext to the
+            // fileInputThread because when input type is asynchronous, the
+            // exec() is called by fileInputThread, and it needs to access to
+            // the UDFContext.
+            fileInputThread = new ProcessInputThread(
+                    inputHandler, poStream, UDFContext.getUDFContext());
             fileInputThread.start();
 
             // If Input type is ASYNCHRONOUS that means input to the
@@ -338,7 +342,7 @@ public class ExecutableManager {
         inputHandler.bindTo(stdin);
 
         // Start the thread to send input to the executable's stdin
-        stdinThread = new ProcessInputThread(inputHandler, poStream);
+        stdinThread = new ProcessInputThread(inputHandler, poStream, null);
         stdinThread.start();
     }
 
@@ -350,12 +354,15 @@ public class ExecutableManager {
 
         InputHandler inputHandler;
         private POStream poStream;
+        private UDFContext udfContext;
         private BlockingQueue<Result> binaryInputQueue;
 
-        ProcessInputThread(InputHandler inputHandler, POStream poStream) {
+        ProcessInputThread(InputHandler inputHandler, POStream poStream, UDFContext udfContext) {
             setDaemon(true);
             this.inputHandler = inputHandler;
             this.poStream = poStream;
+            // a copy of UDFContext passed from the ExecutableManager thread
+            this.udfContext = udfContext;
             // the input queue from where this thread will read
             // input tuples
             this.binaryInputQueue = poStream.getBinaryInputQueue();
@@ -363,6 +370,13 @@ public class ExecutableManager {
 
         @Override
         public void run() {
+            // If input type is asynchronous, set the udfContext of the current
+            // thread to the copy of ExecutableManager thread's udfContext. This
+            // is necessary because the exec() method is called by the current
+            // thread (fileInputThread) instead of the ExecutableManager thread.
+            if (inputHandler.getInputType() == InputType.ASYNCHRONOUS && udfContext != null) {
+                UDFContext.setUdfContext(udfContext);
+            }
             try {
                 // Read tuples from the previous operator in the pipeline
                 // and pass it to the executable
