@@ -167,7 +167,7 @@ public class StreamingCommandUtils {
      private static String which(String file) {
          try {
              String utility = "which";
-             if (Util.WINDOWS) {
+             if (System.getProperty("os.name").toUpperCase().startsWith("WINDOWS")) {
                  utility = "where";
              }
              ProcessBuilder processBuilder = 
