@@ -36,6 +36,8 @@ PIG-2727: PigStorage Source tagging does not need pig.splitCombination to be tur
 
 BUG FIXES
 
+PIG-2942: DevTests, TestLoad has a false failure on Windows (jgordon via daijy)
+
 PIG-2943: DevTests, Refactor Windows checks to use new Util.WINDOWS method for code health (jgordon via dvryaboy)
 
 PIG-2801: grunt "sh" command should invoke the shell implicitly instead of calling exec directly with the command tokens
