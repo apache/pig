@@ -53,7 +53,7 @@ public class TestSplitIndex {
     
     @Test
     public void testSplitIndex() throws Exception {
-        pigServer.registerQuery("a = load '" + inputDir + "' using " + SplitSensitiveLoadFunc.class.getName() + "();");
+        pigServer.registerQuery("a = load '" + Util.encodeEscape(inputDir.toString()) + "' using " + SplitSensitiveLoadFunc.class.getName() + "();");
         Iterator<Tuple> iter = pigServer.openIterator("a");
         
         boolean file1exist=false, file2exist=false;
@@ -74,7 +74,7 @@ public class TestSplitIndex {
     @Test
     public void testSplitIndexNoCombine() throws Exception {
         pigServer.getPigContext().getProperties().setProperty("pig.splitCombination", "false");
-        pigServer.registerQuery("a = load '" + inputDir + "' using " + SplitSensitiveLoadFunc.class.getName() + "();");
+        pigServer.registerQuery("a = load '" + Util.encodeEscape(inputDir.toString()) + "' using " + SplitSensitiveLoadFunc.class.getName() + "();");
         Iterator<Tuple> iter = pigServer.openIterator("a");
         
         boolean file1exist=false, file2exist=false;

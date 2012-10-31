@@ -79,8 +79,8 @@ public class TestCommit extends TestCase {
         File studentFile = Util.createInputFile("tmp", "student", new String[]{"joe smith:18:3.5","amy brown:25:2.5","jim fox:20:4.0","leo fu:55:3.0"});
         File voterFile = Util.createInputFile("tmp", "voter", new String[]{"amy brown,25,democrat,25.50","amy brown,25,democrat,100","jim fox,20,independent,50.0"});
 
-        pigServer.registerQuery("a = load '" + studentFile.getAbsolutePath() + "' using " + PigStorage.class.getName() + "(':') as (name, age, gpa);");
-        pigServer.registerQuery("b = load '" + voterFile.getAbsolutePath() + "' using " + PigStorage.class.getName() + "(',') as (name, age, registration, contributions);");
+        pigServer.registerQuery("a = load '" + Util.encodeEscape(studentFile.getAbsolutePath()) + "' using " + PigStorage.class.getName() + "(':') as (name, age, gpa);");
+        pigServer.registerQuery("b = load '" + Util.encodeEscape(voterFile.getAbsolutePath()) + "' using " + PigStorage.class.getName() + "(',') as (name, age, registration, contributions);");
         pigServer.registerQuery("c = filter a by age < 50;");
         pigServer.registerQuery("d = filter b by age < 50;");
         pigServer.registerQuery("e = cogroup c by (name, age), d by (name, age);");
@@ -119,7 +119,7 @@ public class TestCommit extends TestCase {
         expected2.set(2, "leo fu");
         expected2.set(3, 55);
 
-        pigServer.registerQuery("a = load '" + testFile.getAbsolutePath() + "' using " + PigStorage.class.getName() + "(':') as (name: chararray, age: int, gpa: float);");
+        pigServer.registerQuery("a = load '" + Util.encodeEscape(testFile.getAbsolutePath()) + "' using " + PigStorage.class.getName() + "(':') as (name: chararray, age: int, gpa: float);");
         pigServer.registerQuery("b = group a by age;");
         pigServer.registerQuery("c = foreach b { d = filter a by gpa > 2.5;  " +
                                 "e = order a by name; f = a.age; g = distinct f; " +
