@@ -109,8 +109,9 @@ public class TestFinish {
         } else {
             pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
             f1 = File.createTempFile("test", "txt");
-            f1.deleteOnExit();
-            inputFileName = f1.getAbsolutePath();
+            f1.delete();
+            inputFileName = Util.removeColon(f1.getAbsolutePath());
+
             String input[] = new String[3];
             for(int i = 0; i < 3; i++) {
                 input[i] = ('a'+i + ":1");
@@ -144,7 +145,7 @@ public class TestFinish {
         // this file will be created on the cluster if finish() is called
         String expectedFileName = "testFinishInMapMR-finish.txt";
         pigServer.registerQuery("define MYUDF " + MyEvalFunction.class.getName() + "('MAPREDUCE','" + expectedFileName + "');");
-        pigServer.registerQuery("a = load '" + inputFileName + "' using " + PigStorage.class.getName() + "(':');");
+        pigServer.registerQuery("a = load '" + Util.encodeEscape(inputFileName) + "' using " + PigStorage.class.getName() + "(':');");
         pigServer.registerQuery("b = foreach a generate MYUDF" + "(*);");
         Iterator<Tuple> iter = pigServer.openIterator("b");
         while(iter.hasNext()){
@@ -161,7 +162,7 @@ public class TestFinish {
         // this file will be created on the cluster if finish() is called
         String expectedFileName = "testFinishInReduceMR-finish.txt";
         pigServer.registerQuery("define MYUDF " + MyEvalFunction.class.getName() + "('MAPREDUCE','" + expectedFileName + "');");
-        pigServer.registerQuery("a = load '" + inputFileName + "' using " + PigStorage.class.getName() + "(':');");
+        pigServer.registerQuery("a = load '" + Util.encodeEscape(inputFileName) + "' using " + PigStorage.class.getName() + "(':');");
         pigServer.registerQuery("a1 = group a by $1;");
         pigServer.registerQuery("b = foreach a1 generate MYUDF" + "(*);");
         Iterator<Tuple> iter = pigServer.openIterator("b");
@@ -178,7 +179,7 @@ public class TestFinish {
         // this file will be created on the cluster if finish() is called
         String expectedFileName = "testFinishInMapLoc-finish.txt";
         pigServer.registerQuery("define MYUDF " + MyEvalFunction.class.getName() + "('LOCAL','" + expectedFileName + "');");
-        pigServer.registerQuery("a = load '" + inputFileName + "' using " + PigStorage.class.getName() + "(':');");
+        pigServer.registerQuery("a = load '" + Util.encodeEscape(inputFileName) + "' using " + PigStorage.class.getName() + "(':');");
         pigServer.registerQuery("b = foreach a generate MYUDF" + "(*);");
         pigServer.openIterator("b");
         checkAndCleanup(ExecType.LOCAL, expectedFileName, inputFileName);
@@ -190,7 +191,7 @@ public class TestFinish {
         // this file will be created on the cluster if finish() is called
         String expectedFileName = "testFinishInReduceLoc-finish.txt";
         pigServer.registerQuery("define MYUDF " + MyEvalFunction.class.getName() + "('LOCAL','" + expectedFileName + "');");
-        pigServer.registerQuery("a = load '" + inputFileName + "' using " + PigStorage.class.getName() + "(':');");
+        pigServer.registerQuery("a = load '" + Util.encodeEscape(inputFileName) + "' using " + PigStorage.class.getName() + "(':');");
         pigServer.registerQuery("a1 = group a by $1;");
         pigServer.registerQuery("b = foreach a1 generate MYUDF" + "(*);");
         pigServer.openIterator("b");

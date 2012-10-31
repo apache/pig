@@ -182,7 +182,9 @@ public class TestPigContext {
 
         int LOOP_COUNT = 40;
         File tmpFile = File.createTempFile("test", "txt");
-        tmpFile.deleteOnExit();
+        tmpFile.delete(); // don't actually want the file, just the filename
+        String clusterTmpPath = Util.removeColon(tmpFile.getCanonicalPath());
+	
         String localInput[] = new String[LOOP_COUNT];
         Random r = new Random(1);
         int rand;
@@ -190,9 +192,10 @@ public class TestPigContext {
             rand = r.nextInt(100);
             localInput[i] = Integer.toString(rand);
         }
-        Util.createInputFile(cluster, tmpFile.getCanonicalPath(), localInput);        
+        Util.createInputFile(cluster, clusterTmpPath, localInput);
+
         FileLocalizer.deleteTempFiles();
-        pigServer.registerQuery("A = LOAD '" + tmpFile.getCanonicalPath() + "' using TestUDF2() AS (num:chararray);");
+        pigServer.registerQuery("A = LOAD '" + Util.encodeEscape(clusterTmpPath)+ "' using TestUDF2() AS (num:chararray);");
         pigServer.registerQuery("B = foreach A generate TestUDF1(num);");
         Iterator<Tuple> iter = pigServer.openIterator("B");
         if(!iter.hasNext()) fail("No output found");
@@ -201,7 +204,7 @@ public class TestPigContext {
             assertTrue(t.get(0) instanceof Integer);
             assertTrue((Integer)t.get(0) == 1);
         }
-        Util.deleteFile(cluster, tmpFile.getCanonicalPath());
+        Util.deleteFile(cluster, clusterTmpPath);
         Util.deleteDirectory(tmpDir);
     }
 
@@ -263,9 +266,9 @@ public class TestPigContext {
         for (final String command : commands) {
             pigServer.registerQuery(command);
         }
-        String outFile = input.getAbsolutePath() + ".out";
-        pigServer.store("counts", outFile);
-        Util.deleteFile(cluster, outFile);
+        String outFileName = Util.removeColon(input.getAbsolutePath() + ".out");
+        pigServer.store("counts", outFileName);
+        Util.deleteFile(cluster, outFileName);
     }
 
     private void check_asserts(PigServer pigServer) {
