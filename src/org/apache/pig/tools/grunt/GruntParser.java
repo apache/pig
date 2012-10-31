@@ -32,6 +32,7 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.AbstractList;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Enumeration;
@@ -1024,7 +1025,34 @@ public class GruntParser extends PigScriptParser {
             try {
                 executeBatch();
                 
-                Process executor = Runtime.getRuntime().exec(cmdTokens);
+                // For sh command, create a process with the following syntax
+                // <shell exe> <invoke arg> <command-as-string>
+                String  shellName = "sh";
+                String  shellInvokeArg = "-c";
+
+                // Insert cmd /C in front of the array list to execute to
+                // support built-in shell commands like mkdir on Windows
+                if (System.getProperty("os.name").startsWith("Windows")) {
+                    shellName      = "cmd";
+                    shellInvokeArg = "/C";
+                }
+
+                List<String> stringList = new ArrayList<String>();
+                stringList.add(shellName);
+                stringList.add(shellInvokeArg);
+
+                StringBuffer commandString = new StringBuffer();
+                for (String currToken : cmdTokens) {
+                    commandString.append(" ");
+                    commandString.append(currToken);
+                }
+
+                stringList.add(commandString.toString());
+
+                String[] newCmdTokens = stringList.toArray(new String[0]);
+
+                Process executor = Runtime.getRuntime().exec(newCmdTokens);
+
                 StreamPrinter outPrinter = new StreamPrinter(executor.getInputStream(), null, System.out);
                 StreamPrinter errPrinter = new StreamPrinter(executor.getErrorStream(), null, System.err);
     
