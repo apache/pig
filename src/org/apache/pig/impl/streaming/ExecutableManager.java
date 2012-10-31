@@ -252,32 +252,15 @@ public class ExecutableManager {
             }
             LOG.debug("Setting property in streaming environment: " + prop);
             envPut(env, prop, value);
-
         }
-      }
+    }
 
-      String safeEnvVarName(String var) {
-        StringBuffer safe = new StringBuffer();
-        int len = var.length();
-        for (int i = 0; i < len; i++) {
-          char c = var.charAt(i);
-          char s;
-          if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')) {
-            s = c;
-          } else {
-            s = '_';
-          }
-          safe.append(s);
-        }
-        return safe.toString();
-      }
-
-      void envPut(Map<String, String> env, String name, String value) {
+    void envPut(Map<String, String> env, String name, String value) {
         if (LOG.isDebugEnabled()) {
           LOG.debug("Add  env entry:" + name + "=" + value);
         }
         env.put(name, value);
-      }
+    }
 
     /**
      * Start execution of the external process.
