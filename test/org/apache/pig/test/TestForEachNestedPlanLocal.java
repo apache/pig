@@ -49,7 +49,7 @@ public class TestForEachNestedPlanLocal extends TestCase {
             System.err.println("Running testInnerOrderBy with nullFlags set to :" + nullFlags[i]);
             File tmpFile = genDataSetFile1(nullFlags[i]);
             pig.registerQuery("a = load '"
-                    + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                    + Util.generateURI(Util.encodeEscape(tmpFile.toString()), pig.getPigContext())
                     + "'; ");
             pig.registerQuery("b = group a by $0; ");
             pig.registerQuery("c = foreach b { " + "     c1 = order $1 by *; "
@@ -70,7 +70,7 @@ public class TestForEachNestedPlanLocal extends TestCase {
     public void testInnerLimit() throws Exception {
         File tmpFile = genDataSetFileOneGroup();
         pig.registerQuery("a = load '"
-                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                + Util.generateURI(Util.encodeEscape(tmpFile.toString()), pig.getPigContext())
                 + "'; ");
         pig.registerQuery("b = group a by $0; ");
         pig.registerQuery("c = foreach b { " + "     c1 = limit $1 5; "
