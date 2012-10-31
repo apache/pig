@@ -52,10 +52,10 @@ public class TestLocal2 extends TestCase {
         File tmpFile1 = genDataSetFile(false, 30 ) ;
         File tmpFile2 = genDataSetFile(false, 50 ) ;
         pig.registerQuery("a = load '"
-                + Util.generateURI(tmpFile1.toString(), pig.getPigContext())
+                + Util.generateURI(Util.encodeEscape(tmpFile1.toString()), pig.getPigContext())
                 + "'; ");
         pig.registerQuery("b = load '"
-                + Util.generateURI(tmpFile2.toString(), pig.getPigContext())
+                + Util.generateURI(Util.encodeEscape(tmpFile2.toString()), pig.getPigContext())
                 + "'; ");
         pig.registerQuery("c = union a, b; ") ;
         
@@ -68,10 +68,10 @@ public class TestLocal2 extends TestCase {
         File tmpFile1 = genDataSetFile(true, 30 ) ;
         File tmpFile2 = genDataSetFile(true, 50 ) ;
         pig.registerQuery("a = load '"
-                + Util.generateURI(tmpFile1.toString(), pig.getPigContext())
+                + Util.generateURI(Util.encodeEscape(tmpFile1.toString()), pig.getPigContext())
                 + "'; ");
         pig.registerQuery("b = load '"
-                + Util.generateURI(tmpFile2.toString(), pig.getPigContext())
+                + Util.generateURI(Util.encodeEscape(tmpFile2.toString()), pig.getPigContext())
                 + "'; ");
         pig.registerQuery("c = union a, b; ") ;
 
@@ -84,10 +84,10 @@ public class TestLocal2 extends TestCase {
         File tmpFile1 = genDataSetFile(false, 30) ;
         File tmpFile2 = genDataSetFile(false, 50) ;
         pig.registerQuery("a = load '"
-                + Util.generateURI(tmpFile1.toString(), pig.getPigContext())
+                + Util.generateURI(Util.encodeEscape(tmpFile1.toString()), pig.getPigContext())
                 + "'; ");
         pig.registerQuery("b = load '"
-                + Util.generateURI(tmpFile2.toString(), pig.getPigContext())
+                + Util.generateURI(Util.encodeEscape(tmpFile2.toString()), pig.getPigContext())
                 + "'; ");
         pig.registerQuery("a1 = foreach a generate $0, $1; ") ;
         pig.registerQuery("b1 = foreach b generate $0, $1; ") ;
@@ -101,10 +101,10 @@ public class TestLocal2 extends TestCase {
         File tmpFile1 = genDataSetFile(true, 30) ;
         File tmpFile2 = genDataSetFile(true, 50) ;
         pig.registerQuery("a = load '"
-                + Util.generateURI(tmpFile1.toString(), pig.getPigContext())
+                + Util.generateURI(Util.encodeEscape(tmpFile1.toString()), pig.getPigContext())
                 + "'; ");
         pig.registerQuery("b = load '"
-                + Util.generateURI(tmpFile2.toString(), pig.getPigContext())
+                + Util.generateURI(Util.encodeEscape(tmpFile2.toString()), pig.getPigContext())
                 + "'; ");
         pig.registerQuery("a1 = foreach a generate $0, $1; ") ;
         pig.registerQuery("b1 = foreach b generate $0, $1; ") ;
@@ -123,7 +123,7 @@ public class TestLocal2 extends TestCase {
         ps.close();
         
         pig.registerQuery("A = load '"
-                + Util.generateURI(fp1.toString(), pig.getPigContext())
+                + Util.generateURI(Util.encodeEscape(fp1.toString()), pig.getPigContext())
                 + "'; ");
         pig.registerQuery("B = foreach A generate flatten("
                 + Pig800Udf.class.getName() + "($0));");
@@ -146,7 +146,7 @@ public class TestLocal2 extends TestCase {
         ps.close();
         
         pig.registerQuery("A = load '"
-                + Util.generateURI(fp1.toString(), pig.getPigContext())
+                + Util.generateURI(Util.encodeEscape(fp1.toString()), pig.getPigContext())
                 + "'; ");
         pig.registerQuery("B = foreach A generate flatten("
                 + Pig800Udf.class.getName() + "($0));");
@@ -169,7 +169,7 @@ public class TestLocal2 extends TestCase {
         ps.close();
         
         pig.registerQuery("A = load '"
-                + Util.generateURI(fp1.toString(), pig.getPigContext())
+                + Util.generateURI(Util.encodeEscape(fp1.toString()), pig.getPigContext())
                 + "' AS (c1:int, c2:int); ");
         pig.registerQuery("B = filter A by c1 > 0;");
         pig.registerQuery("C = filter B by c1 < 2;");
@@ -205,10 +205,10 @@ public class TestLocal2 extends TestCase {
         
         
         pig.registerQuery("A = load '"
-                + Util.generateURI(fp1.toString(), pig.getPigContext())
+                + Util.generateURI(Util.encodeEscape(fp1.toString()), pig.getPigContext())
                 + "'AS (a0:int, a1:int); ");
         pig.registerQuery("B = load '"
-                + Util.generateURI(fp2.toString(), pig.getPigContext())
+                + Util.generateURI(Util.encodeEscape(fp2.toString()), pig.getPigContext())
                 + "'AS (b0:int, b1:int); ");
         pig.registerQuery("C = join A by a0, B by b0;");
         
