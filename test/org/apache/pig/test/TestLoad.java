@@ -90,8 +90,7 @@ public class TestLoad extends junit.framework.TestCase {
         pc = servers[0].getPigContext();
         String curDir = System.getProperty("user.dir");
         String inpDir = curDir + File.separatorChar + "test/org/apache/pig/test/data/InputFiles/";
-        if ((System.getProperty("os.name").toUpperCase().startsWith("WINDOWS")))
-            inpDir="/"+FileLocalizer.parseCygPath(inpDir, FileLocalizer.STYLE_WINDOWS);
+
         // copy passwd file to cluster and set that as the input location for the load
         Util.copyFromLocalToCluster(cluster, inpDir + "passwd", "passwd");
         FileSpec inpFSpec = new FileSpec("passwd", new FuncSpec(PigStorage.class.getName(), new String[]{":"}));
