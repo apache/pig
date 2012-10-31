@@ -42,9 +42,6 @@ OPTIMIZATIONS
 
 BUG FIXES
 
-PIG-2801:  grunt "sh" command should invoke the shell implicitly instead of calling exec directly with the command tokens
-(jgordon via daijy)
-
 PIG-2885: TestJobSumission and TestHBaseStorage don't work with HBase 0.94 and ZK 3.4.3 (cheolsoo via sms)
 
 PIG-2928: Fix e2e test failures in trunk: FilterBoolean_23/24 (cheolsoo via dvryaboy)
@@ -525,6 +522,11 @@ PIG-2352: e2e test harness' use of environment variables causes unintended effec
 Release 0.10.1 - Unreleased
 
 BUG FIXES
+
+PIG-2942: DevTests, TestLoad has a false failure on Windows (jgordon via daijy)
+
+PIG-2801:  grunt "sh" command should invoke the shell implicitly instead of calling exec directly with the command tokens
+(jgordon via daijy)
 
 PIG-2798: pig streaming tests assume interpreters are auto-resolved (jgordon via daijy)
 
