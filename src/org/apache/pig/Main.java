@@ -830,11 +830,11 @@ private static String validateLogFile(String logFileName, String scriptName) {
             String scriptFileAbsPath;
             try {
                 scriptFileAbsPath = scriptFile.getCanonicalPath();
+                strippedDownScriptName = getFileFromCanonicalPath(scriptFileAbsPath);
             } catch (IOException ioe) {
                 log.warn("Could not compute canonical path to the script file " + ioe.getMessage());
-                return null;
+                strippedDownScriptName = null;
             }            
-            strippedDownScriptName = getFileFromCanonicalPath(scriptFileAbsPath);
         }
     }
     
