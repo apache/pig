@@ -410,11 +410,14 @@ public class TestSecondarySort {
         ps2.println("1\t4\t4");
         ps2.println("2\t3\t1");
         ps2.close();
-        Util.copyFromLocalToCluster(cluster, tmpFile1.getCanonicalPath(), tmpFile1.getCanonicalPath());
-        Util.copyFromLocalToCluster(cluster, tmpFile2.getCanonicalPath(), tmpFile2.getCanonicalPath());
+        String file1ClusterPath = Util.removeColon(tmpFile1.getCanonicalPath());
+        String file2ClusterPath = Util.removeColon(tmpFile2.getCanonicalPath());
 
-        pigServer.registerQuery("A = LOAD '" + tmpFile1.getCanonicalPath() + "' AS (a0, a1, a2);");
-        pigServer.registerQuery("B = LOAD '" + tmpFile2.getCanonicalPath() + "' AS (b0, b1, b2);");
+        Util.copyFromLocalToCluster(cluster, tmpFile1.getCanonicalPath(), file1ClusterPath);
+        Util.copyFromLocalToCluster(cluster, tmpFile2.getCanonicalPath(), file2ClusterPath);
+
+        pigServer.registerQuery("A = LOAD '" + Util.encodeEscape(file1ClusterPath) + "' AS (a0, a1, a2);");
+        pigServer.registerQuery("B = LOAD '" + Util.encodeEscape(file2ClusterPath) + "' AS (b0, b1, b2);");
         pigServer.registerQuery("C = cogroup A by a0, B by b0 parallel 2;");
         pigServer
                 .registerQuery("D = foreach C { E = limit A 10; F = E.a1; G = DISTINCT F; generate group, COUNT(G);};");
@@ -424,8 +427,8 @@ public class TestSecondarySort {
         assertTrue(iter.hasNext());
         assertTrue(iter.next().toString().equals("(1,2)"));
         assertFalse(iter.hasNext());
-        Util.deleteFile(cluster, tmpFile1.getCanonicalPath());
-        Util.deleteFile(cluster, tmpFile2.getCanonicalPath());
+        Util.deleteFile(cluster, file1ClusterPath);
+        Util.deleteFile(cluster, file2ClusterPath);
     }
 
     @Test
@@ -439,8 +442,11 @@ public class TestSecondarySort {
         ps1.println("1\t2\t4");
         ps1.println("2\t3\t4");
         ps1.close();
-        Util.copyFromLocalToCluster(cluster, tmpFile1.getCanonicalPath(), tmpFile1.getCanonicalPath());
-        pigServer.registerQuery("A = LOAD '" + tmpFile1.getCanonicalPath() + "' AS (a0, a1, a2);");
+
+        String clusterPath = Util.removeColon(tmpFile1.getCanonicalPath());
+
+        Util.copyFromLocalToCluster(cluster, tmpFile1.getCanonicalPath(), clusterPath);
+        pigServer.registerQuery("A = LOAD '" + Util.encodeEscape(clusterPath) + "' AS (a0, a1, a2);");
         pigServer.registerQuery("B = group A by $0 parallel 2;");
         pigServer.registerQuery("C = foreach B { D = distinct A; generate group, D;};");
         Iterator<Tuple> iter = pigServer.openIterator("C");
@@ -449,7 +455,7 @@ public class TestSecondarySort {
         assertTrue(iter.hasNext());
         assertTrue(iter.next().toString().equals("(1,{(1,2,3),(1,2,4),(1,3,4)})"));
         assertFalse(iter.hasNext());
-        Util.deleteFile(cluster, tmpFile1.getCanonicalPath());
+        Util.deleteFile(cluster, clusterPath);
     }
 
     @Test
@@ -468,16 +474,18 @@ public class TestSecondarySort {
                 "(2,{(2,3,4)})",
                 "(1,{(1,2,3),(1,2,4),(1,2,4),(1,2,4),(1,3,4)})"
         };
-        
-        Util.copyFromLocalToCluster(cluster, tmpFile1.getCanonicalPath(), tmpFile1.getCanonicalPath());
-        pigServer.registerQuery("A = LOAD '" + tmpFile1.getCanonicalPath() + "' AS (a0, a1, a2);");
+
+        String clusterPath = Util.removeColon(tmpFile1.getCanonicalPath());
+
+        Util.copyFromLocalToCluster(cluster, tmpFile1.getCanonicalPath(), clusterPath);
+        pigServer.registerQuery("A = LOAD '" + Util.encodeEscape(clusterPath) + "' AS (a0, a1, a2);");
         pigServer.registerQuery("B = group A by $0 parallel 2;");
         pigServer.registerQuery("C = foreach B { D = limit A 10; E = order D by $1; generate group, E;};");
         Iterator<Tuple> iter = pigServer.openIterator("C");
         Schema s = pigServer.dumpSchema("C");
-        
+
         Util.checkQueryOutputsAfterSortRecursive(iter, expected, org.apache.pig.newplan.logical.Util.translateSchema(s));
-        Util.deleteFile(cluster, tmpFile1.getCanonicalPath());
+        Util.deleteFile(cluster, clusterPath);
     }
 
     @Test
@@ -496,16 +504,18 @@ public class TestSecondarySort {
                 "(2,{(2,3,4)})",
                 "(1,{(1,8,4),(1,4,4),(1,3,4),(1,2,3),(1,2,4)})"
         };
-        
-        Util.copyFromLocalToCluster(cluster, tmpFile1.getCanonicalPath(), tmpFile1.getCanonicalPath());
-        pigServer.registerQuery("A = LOAD '" + tmpFile1.getCanonicalPath() + "' AS (a0, a1, a2);");
+
+        String clusterPath = Util.removeColon(tmpFile1.getCanonicalPath());
+
+        Util.copyFromLocalToCluster(cluster, tmpFile1.getCanonicalPath(), clusterPath);
+        pigServer.registerQuery("A = LOAD '" + Util.encodeEscape(clusterPath) + "' AS (a0, a1, a2);");
         pigServer.registerQuery("B = group A by $0 parallel 2;");
         pigServer.registerQuery("C = foreach B { D = order A by a1 desc; generate group, D;};");
         Iterator<Tuple> iter = pigServer.openIterator("C");
         Schema s = pigServer.dumpSchema("C");
-        
+
         Util.checkQueryOutputsAfterSortRecursive(iter, expected, org.apache.pig.newplan.logical.Util.translateSchema(s));
-        Util.deleteFile(cluster, tmpFile1.getCanonicalPath());
+        Util.deleteFile(cluster, clusterPath);
     }
 
 //    @Test
@@ -526,8 +536,8 @@ public class TestSecondarySort {
         ps2.close();
         Util.copyFromLocalToCluster(cluster, tmpFile1.getCanonicalPath(), tmpFile1.getCanonicalPath());
         Util.copyFromLocalToCluster(cluster, tmpFile2.getCanonicalPath(), tmpFile2.getCanonicalPath());
-        pigServer.registerQuery("A = LOAD '" + tmpFile1.getCanonicalPath() + "' AS (a0, a1, a2);");
-        pigServer.registerQuery("B = LOAD '" + tmpFile2.getCanonicalPath() + "' AS (b0, b1, b2);");
+        pigServer.registerQuery("A = LOAD '" + Util.encodeEscape(tmpFile1.getCanonicalPath()) + "' AS (a0, a1, a2);");
+        pigServer.registerQuery("B = LOAD '" + Util.encodeEscape(tmpFile2.getCanonicalPath()) + "' AS (b0, b1, b2);");
         pigServer.registerQuery("C = cogroup A by (a0,a1), B by (b0,b1) parallel 2;");
         pigServer.registerQuery("D = ORDER C BY group;");
         pigServer.registerQuery("E = foreach D { F = limit A 10; G = ORDER F BY a2; generate group, COUNT(G);};");
@@ -586,8 +596,10 @@ public class TestSecondarySort {
                 "((1,3),{(3,4)})",
                 "((2,3),{(3,4)})"
         };
-        Util.copyFromLocalToCluster(cluster, tmpFile1.getCanonicalPath(), tmpFile1.getCanonicalPath());
-        pigServer.registerQuery("A = LOAD '" + tmpFile1.getCanonicalPath() + "' AS (a0, a1, a2);");
+        String clusterFilePath = Util.removeColon(tmpFile1.getCanonicalPath());
+
+        Util.copyFromLocalToCluster(cluster, tmpFile1.getCanonicalPath(), clusterFilePath);
+        pigServer.registerQuery("A = LOAD '" + Util.encodeEscape(clusterFilePath) + "' AS (a0, a1, a2);");
         pigServer.registerQuery("B = group A by (a0, a1);");
         pigServer.registerQuery("C = foreach B { C1 = A.(a1,a2); generate group, C1;};");
         Iterator<Tuple> iter = pigServer.openIterator("C");
