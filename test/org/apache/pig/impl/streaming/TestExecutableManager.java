@@ -36,23 +36,13 @@ public class TestExecutableManager {
     private static final Random r = new Random(100L);
 
     @Test
-    public void testSafeEnvVarName() {
-        ExecutableManager manager = new ExecutableManager();
-        assertEquals("foo", manager.safeEnvVarName("foo"));
-        assertEquals("", manager.safeEnvVarName(""));
-        assertEquals("foo_bar",manager.safeEnvVarName("foo.bar"));
-        assertEquals("foo_bar",manager.safeEnvVarName("foo$bar"));
-        assertEquals("foo_",manager.safeEnvVarName("foo "));
-    }
-
-    @Test
     public void testAddJobConfToEnv() {
         StringBuilder streamingEnv = null;
         Configuration conf = new Configuration();
         Map<String, String> all = Maps.newHashMap();
         for (int i = 0; i < 10000; i++) {
-            String key = RandomStringUtils.random(10);
-            String value = RandomStringUtils.random(10);
+            String key = RandomStringUtils.randomAlphanumeric(10);
+            String value = RandomStringUtils.randomAlphanumeric(10);
             all.put(key, value);
         }
         Map<String, String> toInclude = Maps.newHashMap();
