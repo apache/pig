@@ -138,7 +138,7 @@ public class TestTypeCheckingValidatorNewLP {
 
     private static final String simpleEchoStreamingCommand;
     static {
-        if (System.getProperty("os.name").toUpperCase().startsWith("WINDOWS"))
+        if (Util.WINDOWS)
             simpleEchoStreamingCommand = "perl -ne 'print \\\"$_\\\"'";
         else
             simpleEchoStreamingCommand = "perl -ne 'print \"$_\"'";
