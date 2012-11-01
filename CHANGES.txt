@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2997: Provide a convenience constructor on PigServer that accepts Configuration (prkommireddi via rohini)
+
 PIG-2933: HBaseStorage is using setScannerCaching which is deprecated (prkommireddi via rohini)
 
 PIG-2881: Add SUBTRACT eval function (jocosti via cheolsoo)
