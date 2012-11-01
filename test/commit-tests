@@ -50,6 +50,7 @@
 **/TestSchema.java
 **/TestSchemaUtil.java
 **/TestStore.java
+**/TestSUBTRACT.java
 **/TestTextDataParse.java
 **/TestTupleFormat.java
 **/TestStringUDFs.java

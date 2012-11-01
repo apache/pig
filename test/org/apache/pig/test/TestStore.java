@@ -818,7 +818,7 @@ public class TestStore extends junit.framework.TestCase {
         LOStore store = (LOStore)op;
 
         String p = store.getFileSpec().getFileName();
-        p = p.replaceAll("hdfs://[0-9a-zA-Z:\\.]*/","/");
+        p = p.replaceAll("hdfs://[\\-\\w:\\.]*/","/");
         
         if (isTmp) {
             Assert.assertTrue(p.matches("/tmp.*"));
