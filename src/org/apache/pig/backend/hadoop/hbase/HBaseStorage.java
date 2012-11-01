@@ -17,22 +17,20 @@
 package org.apache.pig.backend.hadoop.hbase;
 
 import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
 import java.io.DataInput;
 import java.io.DataOutput;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
-import java.util.HashMap;
 import java.util.Properties;
-
-import org.joda.time.DateTime;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -42,21 +40,21 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.BinaryComparator;
+import org.apache.hadoop.hbase.filter.ColumnPrefixFilter;
 import org.apache.hadoop.hbase.filter.CompareFilter.CompareOp;
+import org.apache.hadoop.hbase.filter.FamilyFilter;
+import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.filter.QualifierFilter;
 import org.apache.hadoop.hbase.filter.RowFilter;
-import org.apache.hadoop.hbase.filter.FamilyFilter;
-import org.apache.hadoop.hbase.filter.ColumnPrefixFilter;
-import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
 import org.apache.hadoop.hbase.mapreduce.TableMapReduceUtil;
@@ -91,9 +89,10 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.util.Utils;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.impl.util.Utils;
+import org.joda.time.DateTime;
 
 import com.google.common.collect.Lists;
 
@@ -371,6 +370,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
 
         // Map-reduce jobs should not run with cacheBlocks
         scan.setCacheBlocks(false);
+        scan.setCaching(caching_);
 
         // Set filters, if any.
         if (configuredOptions_.hasOption("gt")) {
@@ -596,7 +596,6 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         if (m_table == null) {
             m_table = new HTable(m_conf, tablename);
         }
-        m_table.setScannerCaching(caching_);
         m_conf.set(TableInputFormat.INPUT_TABLE, tablename);
 
         String projectedFields = udfProps.getProperty( projectedFieldsName() );
