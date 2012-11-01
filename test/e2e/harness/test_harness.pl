@@ -62,9 +62,9 @@
 
 use strict;
 use File::Path;
+use File::Basename;
 use Getopt::Long;
 use Cwd;
-
 
 
 #  Var: $ROOT
@@ -289,6 +289,7 @@ if ( -e "$harnessCfg" ) {
    $globalCfg = readCfg("$harnessCfg");
    $globalCfg->{'harnessCfg'} = $harnessCfg;
    
+   TestDriver::dbg("Hadoop mapred local dir defined to be [" . $globalCfg->{'hadoop.mapred.local.dir'} . "]\n");
 } else {
    die "FATAL ERROR: $0 at ".__LINE__." - Configuration file <$harnessCfg> does NOT exist\n";
 }
@@ -386,7 +387,7 @@ if ($deploy) {
 	# Copy the global config into our cfg
 	foreach(keys(%$globalCfg)) {
 		next if $_ eq 'file';
-		$cfg->{$_} = $globalCfg->{$_}; #foreach(keys(%$globalCfg));
+		$cfg->{$_} = $globalCfg->{$_};
 	}
 
     # Instantiate the TestDeployer
@@ -465,28 +466,124 @@ if($dblog) {
 	print $log "Testrun id  $globalCfg->{'trid'}\n";
 }
 
-
 my %testStatuses;
-foreach my $arg (@ARGV) {
-    print $log "INFO: $0 at ".__LINE__." : Loading configuration file $arg\n";
-	my $cfg = readCfg($arg);
-	# Copy contents of global config file into hash.
-	foreach(keys(%$globalCfg)) {
-		next if $_ eq 'file';
-		$cfg->{$_} = $globalCfg->{$_}; # foreach(keys(%$globalCfg));
-		print $log "\nINFO $0: $_=".$cfg->{$_};
-	}
-	print $log "\n"; 
 
-	my $driver = TestDriverFactory::getTestDriver($cfg);
-        die "FATAL: $0: Driver does not exist\n" if ( !$driver );
-	$driver->run(\@testgroups, \@testMatches, $cfg, $log, $dbh, \%testStatuses, $arg, $startat, $logfile);
+my $forkFactor = int($ENV{'FORK_FACTOR_FILE'});
+
+# NB: check if the group fork factor >1 and $startat is defined: such combination is not supported 
+# because in such case several groups are started semultaneously (in parallel):
+my $groupForkFactor = int($ENV{'FORK_FACTOR_GROUP'});
+if (($groupForkFactor > 1) && (defined $startat)) {
+    die "ERROR: '--startat' (or '-st') option is not supported when the group fork (parallel) factor > 1 (env. variable FORK_FACTOR_GROUP).\n";
 }
+
+if ($forkFactor > 1 || $groupForkFactor > 1) {
+    print "Configuration file fork factor: $forkFactor\n";
+    print "Group fork factor:              $groupForkFactor\n";
+}
+
+my $pm;
+if ($forkFactor > 1) {
+    print $log "Configuration file fork factor: $forkFactor\n";
+    $pm = new Parallel::ForkManager($forkFactor);
+    # this is a method that will run in the main process on each job subprocess completion:
+    $pm -> run_on_finish (
+        sub {
+          my ($pid, $exit_code, $identification, $exit_signal, $core_dump, $data_structure_reference) = @_; 
+          if (defined($data_structure_reference)) { 
+            TestDriver::dbg("Subprocess [$identification] finished, pid=$pid, sent back: $data_structure_reference.\n");
+            TestDriver::putAll(\%testStatuses, $data_structure_reference);
+          } else {
+            print "ERROR: Subprocess [$identification] did not send back anything. Exit code = $exit_code\n";
+          }
+          my $subLogAgain = "$logfile-$identification";  
+          TestDriver::appendFile($subLogAgain,$logfile);
+        }
+    );
+}
+
+foreach my $arg (@ARGV) {
+    my $cfg = readCfg($arg);
+
+    my $subLog;
+    my $subLogName;
+    # basename of the .conf file (like "cmdline.conf")
+    # which is unique identifier for this loop body:
+    my $jobId = basename($arg);
+    $cfg->{'job-id'} = $jobId;
+    if ($forkFactor > 1) {
+        #$jobId = basename($arg); # basename of the .conf file (like "cmdline.conf")
+        $subLogName = "$logfile-$jobId";
+        open $subLog, ">$subLogName" or die "FATAL ERROR $0 at ".__LINE__." : Can't open $subLogName, $!\n";
+        # PARALLEL SECTION START: ===============================================================================
+        $pm->start($jobId) and next;
+        TestDriver::dbg("Started configuration file job \"$jobId\"\n"); 
+    } else {
+        $subLog = $log;
+        $subLogName = $logfile;
+    }
+
+    print $subLog "INFO: $0 at ".__LINE__." : Loading configuration file $arg\n";
+    # Copy contents of global config file into hash.
+    foreach(keys(%$globalCfg)) {
+        next if $_ eq 'file';
+        $cfg->{$_} = $globalCfg->{$_}; # foreach(keys(%$globalCfg));
+        print $subLog "\nINFO $0: $_=".$cfg->{$_};
+    }
+    print $subLog "\n"; 
+
+    my $driver = TestDriverFactory::getTestDriver($cfg);
+    die "FATAL: $0: Driver does not exist\n" if ( !$driver );
+
+    # eval this in a separate block to catch possible error and exit status:
+    eval 
+    {
+       $driver->run(\@testgroups, \@testMatches, $cfg, $subLog, $dbh, \%testStatuses, $arg, $startat, $subLogName);
+    };
+    my $runStatus = $@;
+    my $runExitCode = $?; # exit code of the code block above.
+    if ($runStatus) {
+       print "ERROR: driver->run() returned the following error message [$runStatus].";
+    }
+
+    if ($forkFactor > 1) {
+        TestDriver::dbg("finishing config job [$jobId].\n");
+        $subLog -> close();
+        # NB: use run() exit code as the subprocess exit code:
+        # NB: send the "testStatuses" hash object reference (which is local to this subprocess) to the parent process: 
+        $pm -> finish($runExitCode, \%testStatuses);
+        # PARALLEL SECTION END. ===============================================================================
+    }
+}
+
+if ($forkFactor > 1) {
+    TestDriver::dbg("Waiting for the subprocesses...\n");
+    $pm->wait_all_children;
+    TestDriver::dbg("All subprocesses finished.\n");
+    # NB: in case of parallel execution we must reopen the $log descriptor 
+    # because we appended to that file in pm#run_on_finish() sub:
+    open $log, ">>$logfile";
+}
+
 $dbh->endTestRun($globalCfg->{'trid'}) if ($dblog);
 
-# don't remove the space after Final results, it matters.
-TestDriver::printResults(\%testStatuses, $log, "Final results ");
-print $log  "Finished test run at " . time . "\n";
+# cleanup temporary Hadoop directories	
+if( ($groupForkFactor>1 || $forkFactor>1) 
+      && defined($globalCfg->{'hadoop.mapred.local.dir'}) 
+      && $globalCfg->{'exectype'} eq "local") {
+    TestDriver::dbg("Deleting temporary hadoop directories for local exec mode: [" . $globalCfg->{'hadoop.mapred.local.dir'} . "].\n");
+    rmtree( $globalCfg->{'hadoop.mapred.local.dir'} );
+}
+
+# don't remove the space after "Final results", it matters.
+if ($forkFactor > 1) {
+   TestDriver::printResults(\%testStatuses, $log, "Final results ", "", "");
+} else {
+   TestDriver::printResults(\%testStatuses, $log, "Final results ");
+}
+my $finishStr = "Finished test run at " . time . "\n";
+print $log $finishStr;
+TestDriver::dbg($finishStr);
 
 # If they have requested undeployment, do it now
 if ($undeploy) {
