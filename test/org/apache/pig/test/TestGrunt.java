@@ -1098,7 +1098,7 @@ public class TestGrunt {
             grunt.exec();
             assertFalse(new File("fileContainingTouchedFileInsideGruntShell_71").exists());
 
-            strCmd = "sh bash -c 'rm TouchedFileInsideGrunt_61'";
+            strCmd = "sh " + strRemoveFile + " TouchedFileInsideGrunt_61";
             cmd = new ByteArrayInputStream(strCmd.getBytes());
             reader = new InputStreamReader(cmd);
             grunt = new Grunt(new BufferedReader(reader), context);
