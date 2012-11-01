@@ -18,15 +18,11 @@
 package org.apache.pig.test;
 
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 
 import junit.framework.Assert;
 import junit.framework.TestCase;
@@ -37,7 +33,6 @@ import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
@@ -66,7 +61,6 @@ public class TestFRJoin extends TestCase{
     private static final String INPUT_FILE2 = "testFrJoinInput2.txt";
     private PigServer pigServer;
     private static MiniCluster cluster = MiniCluster.buildCluster();
-    private File tmpFile;
     
     public TestFRJoin() throws ExecException, IOException{
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
@@ -139,7 +133,7 @@ public class TestFRJoin extends TestCase{
         private void setUpHashTable() throws IOException {
             FileSpec replFile = new FileSpec(repl,new FuncSpec(PigStorage.class.getName()+"()"));
             POLoad ld = new POLoad(new OperatorKey("Repl File Loader", 1L), replFile);
-            PigContext pc = new PigContext(ExecType.MAPREDUCE,ConfigurationUtil.toProperties(PigMapReduce.sJobConfInternal.get()));
+            PigContext pc = new PigContext(ExecType.MAPREDUCE, PigMapReduce.sJobConfInternal.get());
             try {
                 pc.connect();
             

@@ -104,8 +104,7 @@ public class TestHBaseStorage {
 
     @Before
     public void beforeTest() throws Exception {
-        pig = new PigServer(ExecType.LOCAL,
-                ConfigurationUtil.toProperties(conf));
+        pig = new PigServer(ExecType.LOCAL, conf);
     }
 
     @After

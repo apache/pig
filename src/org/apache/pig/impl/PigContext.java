@@ -49,6 +49,7 @@ import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.DataStorageException;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.backend.hadoop.streaming.HadoopExecutableManager;
@@ -177,6 +178,10 @@ public class PigContext implements Serializable {
 
     public PigContext() {
         this(ExecType.MAPREDUCE, new Properties());
+    }
+    
+    public PigContext(ExecType execType, Configuration conf) {
+        this(execType, ConfigurationUtil.toProperties(conf));
     }
 
     public PigContext(ExecType execType, Properties properties){

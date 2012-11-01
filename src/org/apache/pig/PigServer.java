@@ -45,6 +45,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -104,8 +105,8 @@ import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
 import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
-import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 import org.apache.pig.tools.pigstats.ScriptState;
+import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 
 /**
  *
@@ -192,6 +193,10 @@ public class PigServer {
 
     public PigServer(ExecType execType, Properties properties) throws ExecException {
         this(new PigContext(execType, properties));
+    }
+    
+    public PigServer(ExecType execType, Configuration conf) throws ExecException {
+        this(new PigContext(execType, conf));
     }
 
     public PigServer(PigContext context) throws ExecException {
