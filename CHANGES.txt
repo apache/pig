@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2881: Add SUBTRACT eval function (jocosti via cheolsoo)
+
 PIG-3004: Improve exceptions messages when a RuntimeException is raised in Physical Operators (julien)
 
 PIG-2990: the -secretDebugCmd shouldn't be a secret and should just be...a command (jcoveney)

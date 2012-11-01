@@ -324,17 +324,13 @@ public class TestLoad {
             String p = load.getFileSpec().getFileName();
             System.err.println("DEBUG: p:" + p + " expected:" + expected +", exectype:" + pc.getExecType());
             if(noConversionExpected) {
-                assertEquals(p, expected);
+                assertEquals(expected, p);
             } else  {
-                if (pc.getExecType() == ExecType.MAPREDUCE) {
-                    assertTrue(p.matches(".*hdfs://[0-9a-zA-Z:\\.]*.*"));
-                    assertEquals(p.replaceAll("hdfs://[0-9a-zA-Z:\\.]*/", "/"),
-                            expected);
-                } else {
-                    assertTrue(p.matches(".*file://[0-9a-zA-Z:\\.]*.*"));
-                    assertEquals(p.replaceAll("file://[0-9a-zA-Z:\\.]*/", "/"),
-                            expected);
-                }
+                String protocol = pc.getExecType() == ExecType.MAPREDUCE ? "hdfs" : "file";
+                // regex : A word character, i.e. [a-zA-Z_0-9] or '-' followed by ':' then any characters 
+                String regex = "[\\-\\w:\\.]";
+                assertTrue(p.matches(".*" + protocol + "://" + regex + "*.*"));
+                assertEquals(expected, p.replaceAll(protocol + "://" + regex + "*/", "/"));
             }
         }
     }
