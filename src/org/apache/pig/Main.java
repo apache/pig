@@ -395,9 +395,6 @@ static int run(String args[], PigProgressNotificationListener listener) {
             pigContext.getProperties().setProperty("pig.optimizer.rules", ObjectSerializer.serialize(optimizerRules));
         }
 
-        if (properties.get("udf.import.list")!=null)
-            PigContext.initializeImportList((String)properties.get("udf.import.list"));
-
         PigContext.setClassLoader(pigContext.createCl(null));
 
         // construct the parameter substitution preprocessor
