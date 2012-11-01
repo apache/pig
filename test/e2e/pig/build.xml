@@ -245,6 +245,12 @@
   <target name="test-base" depends="property-check, udfs, tar, init-test">
     <!-- If they have not specified tests to run then null it out -->
     <property name="tests.to.run" value=""/>
+    <!-- fork (parallelization) factors for e2e tests execution. 
+	Defaults are 1, which means *no* parellelization: -->
+    <property name="fork.factor.group" value="1"/>
+    <property name="fork.factor.conf.file" value="1"/>
+    <property name="hadoop.mapred.local.dir" value="/tmp/hadoop/mapred/local"/>
+    <property name="e2e.debug" value="false"/>
 
     <exec executable="./test_harness.pl" dir="${test.location}" failonerror="true">
       <env key="HARNESS_ROOT" value="."/>
@@ -272,6 +278,11 @@
       <env key="PH_BENCHMARK_CACHE_PATH" value="${PH_BENCHMARK_CACHE_PATH}"/>
       <env key="HCAT_BIN" value="${hcat.bin}"/>
       <env key="PERL5LIB" value="${harness.PERL5LIB}"/>
+      <env key="FORK_FACTOR_GROUP" value="${fork.factor.group}"/>
+      <env key="FORK_FACTOR_FILE" value="${fork.factor.conf.file}"/>
+      <env key="HADOOP_MAPRED_LOCAL_DIR" value="${hadoop.mapred.local.dir}"/>
+      <env key="E2E_DEBUG" value="${e2e.debug}"/>
+
       <arg line="${tests.to.run}"/>
       <arg value="${test.location}/tests/cmdline.conf"/>
       <arg value="${test.location}/tests/multiquery.conf"/>
