@@ -201,6 +201,17 @@ public class PigContext implements Serializable {
         skippedShipPaths.add("/sbin");
         skippedShipPaths.add("/usr/sbin");
         skippedShipPaths.add("/usr/local/sbin");
+        
+        init();
+    }
+
+    /**
+     * This method is created with the aim of unifying the Grunt and PigServer
+     * approaches, so all common initializations can go in here.
+     */
+    private void init() {
+        if (properties.get("udf.import.list")!=null)
+            PigContext.initializeImportList((String)properties.get("udf.import.list"));
     }
 
     public static void initializeImportList(String importListCommandLineProperties)
