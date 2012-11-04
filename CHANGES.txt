@@ -46,6 +46,8 @@ PIG-2910: Add function to read schema from outout of Schema.toString() (initialc
 
 OPTIMIZATIONS
 
+PIG-3013: BinInterSedes improve chararray sort performance (rohini)
+
 BUG FIXES
 
 PIG-2885: TestJobSumission and TestHBaseStorage don't work with HBase 0.94 and ZK 3.4.3 (cheolsoo via sms)
