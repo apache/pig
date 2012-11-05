@@ -293,6 +293,28 @@
     <target name="very-clean" unless="offline" depends="ivy-clean-cache,clean"
              description="Clean build artifacts and flush Ivy cache" />
 
+    <target name="clean-piggybank" description="Cleanup piggybank">
+        <ant target="clean" dir="contrib/piggybank/java" inheritAll="false"/>
+    </target>
+
+    <target name="clean-zebra" description="Cleanup Zebra">
+        <ant target="clean" dir="contrib/zebra" inheritAll="false"/>
+    </target>
+
+    <target name="clean-penny" description="Cleanup Penny">
+        <ant target="clean" dir="contrib/penny/java" inheritAll="false"/>
+    </target>
+
+    <target name="clean-tutorial" description="Cleanup Tutorial">
+        <ant target="clean" dir="tutorial" inheritAll="false"/>
+    </target>
+
+    <target name="clean-test-e2e" description="Cleanup e2e tests">
+        <ant target="clean" dir="test/e2e/harness" inheritAll="false"/>
+        <ant target="clean" dir="test/e2e/pig" inheritAll="false"/>
+        <ant target="clean" dir="test/e2e/pig/udfs/java" inheritAll="false"/>
+    </target>
+
     <target name="eclipse-files" depends="compile, ivy-buildJar"
 			description="Generate files for Eclipse">
         <pathconvert property="eclipse.project">
@@ -1112,6 +1134,37 @@
             </fileset>
         </copy>
         <delete dir="${package.buildroot}" quiet="true" verbose="false"/>
+    </target>
+
+    <!-- ================================================================== -->
+    <!-- Make release tarball                                               -->
+    <!-- ================================================================== -->
+    <target name="src-release" depends="clean, clean-piggybank, clean-zebra, clean-penny, clean-test-e2e, clean-tutorial" description="Source distribution">
+        <mkdir dir="${build.dir}"/>
+        <tar compression="gzip" longfile="gnu"
+             destfile="${build.dir}/${final.name}-src-${pig.version}.tar.gz">
+            <tarfileset dir="${basedir}" mode="644" prefix="${final.name}-src-${pig.version}">
+                <include name="conf/**"/>
+                <include name="contrib/**"/>
+                <include name="ivy/**"/>
+                <exclude name="ivy/*.jar"/>
+                <include name="lib/**"/>
+                <include name="lib-src/**"/>
+                <include name="license/**"/>
+                <include name="shims/**"/>
+                <include name="src/**"/>
+                <include name="test/**"/>
+                <exclude name="test/**/*.jar"/>
+                <include name="tutorial/**"/>
+                <include name="*.txt"/>
+                <include name="*.xml"/>
+                <include name="doap_Pig.rdf"/>
+                <include name="KEYS"/>
+            </tarfileset>
+            <tarfileset dir="" mode="755" prefix="${final.name}-src-${pig.version}">
+                <include name="bin/**"/>
+            </tarfileset>
+        </tar>
     </target>
 
     <!-- ================================================================== -->

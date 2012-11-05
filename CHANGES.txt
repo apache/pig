@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-3019: Need a target in build.xml for source releases (gates)
+
 PIG-2794: Pig test: add utils to simplify testing on Windows (jgordon via gates)
 
 PIG-2908: Fix unit tests to work with jdk7 (rohini via dvryaboy) 

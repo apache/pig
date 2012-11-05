@@ -85,6 +85,7 @@
     </target>
     <target name="clean">
         <delete dir="build"/>
+        <delete file="${udfjar}"/>
     </target>
     <target depends="init" name="compile" description="compile all of the class files">
         <echo> *** Compiling Pig UDFs ***</echo>
