@@ -28,6 +28,8 @@ PIG-1891 Enable StoreFunc to make intelligent decision based on job success or f
 
 IMPROVEMENTS
 
+PIG-3019: Need a target in build.xml for source releases (gates)
+
 PIG-2832: org.apache.pig.pigunit.pig.PigServer does not initialize udf.import.list of PigContext (prkommireddi via rohini)
 
 PIG-2898: Parallel execution of e2e tests (iveselovsky via rohini)
