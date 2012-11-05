@@ -53,6 +53,7 @@
     </target>
     <target name="clean">
         <delete dir="build"/>
+        <delete file="${zip.file}"/>
     </target>
     <target depends="jar" name="cp" description="prepare tar creation">
         <echo> *** Preparing tar creation ***</echo>
