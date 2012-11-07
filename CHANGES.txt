@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-3006: Modernize a chunk of the tests (jcoveney via cheolsoo)
+
 PIG-2997: Provide a convenience constructor on PigServer that accepts Configuration (prkommireddi via rohini)
 
 PIG-2933: HBaseStorage is using setScannerCaching which is deprecated (prkommireddi via rohini)

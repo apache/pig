@@ -18,16 +18,9 @@
 
 package org.apache.pig.test;
 
-import junit.framework.Assert;
-import junit.framework.TestCase;
-
-import org.apache.pig.EvalFunc;
-import org.apache.pig.PigServer;
-import org.apache.pig.data.BagFactory;
-import org.apache.pig.data.DataBag;
-import org.apache.pig.data.Tuple;
-import org.apache.pig.test.utils.TestHelper;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -36,14 +29,23 @@ import java.io.PrintStream;
 import java.text.DecimalFormat;
 import java.util.Iterator;
 
-public class TestLocal2 extends TestCase {
+import junit.framework.Assert;
 
-    private String initString = "local";
+import org.apache.pig.EvalFunc;
+import org.apache.pig.ExecType;
+import org.apache.pig.PigServer;
+import org.apache.pig.data.BagFactory;
+import org.apache.pig.data.DataBag;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.test.utils.TestHelper;
+import org.junit.Test;
+
+public class TestLocal2 {
 
     private PigServer pig ;
 
     public TestLocal2() throws Throwable {
-        pig = new PigServer(initString) ;
+        pig = new PigServer(ExecType.LOCAL) ;
     }
 
 
@@ -58,7 +60,7 @@ public class TestLocal2 extends TestCase {
                 + Util.generateURI(Util.encodeEscape(tmpFile2.toString()), pig.getPigContext())
                 + "'; ");
         pig.registerQuery("c = union a, b; ") ;
-        
+
         verifyUnion( "c", 30 + 50 );
     }
 
@@ -112,51 +114,51 @@ public class TestLocal2 extends TestCase {
 
         verifyUnion( "c", 30 + 50 );
     }
-    
+
     @Test
     public void testPig800Distinct() throws Exception {
         // Regression test for Pig-800
         File fp1 = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(fp1));
-        
+
         ps.println("1\t1}");
         ps.close();
-        
+
         pig.registerQuery("A = load '"
                 + Util.generateURI(Util.encodeEscape(fp1.toString()), pig.getPigContext())
                 + "'; ");
         pig.registerQuery("B = foreach A generate flatten("
                 + Pig800Udf.class.getName() + "($0));");
         pig.registerQuery("C = distinct B;");
-        
+
         Iterator<Tuple> iter = pig.openIterator("C");
         // Before PIG-800 was fixed this went into an infinite loop, so just
         // managing to open the iterator is sufficient.
         fp1.delete();
-        
+
     }
-    
+
     @Test
     public void testPig800Sort() throws Exception {
         // Regression test for Pig-800
         File fp1 = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(fp1));
-        
+
         ps.println("1\t1}");
         ps.close();
-        
+
         pig.registerQuery("A = load '"
                 + Util.generateURI(Util.encodeEscape(fp1.toString()), pig.getPigContext())
                 + "'; ");
         pig.registerQuery("B = foreach A generate flatten("
                 + Pig800Udf.class.getName() + "($0));");
         pig.registerQuery("C = order B by $0;");
-        
+
         Iterator<Tuple> iter = pig.openIterator("C");
         // Before PIG-800 was fixed this went into an infinite loop, so just
         // managing to open the iterator is sufficient.
         fp1.delete();
-        
+
     }
 
     @Test
@@ -164,10 +166,10 @@ public class TestLocal2 extends TestCase {
         // Regression test for PIG-1546
         File fp1 = File.createTempFile("opTest", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(fp1));
-        
+
         ps.println("1\t2");
         ps.close();
-        
+
         pig.registerQuery("A = load '"
                 + Util.generateURI(Util.encodeEscape(fp1.toString()), pig.getPigContext())
                 + "' AS (c1:int, c2:int); ");
@@ -175,35 +177,35 @@ public class TestLocal2 extends TestCase {
         pig.registerQuery("C = filter B by c1 < 2;");
         pig.registerQuery("D = filter C by c1 >= 0;");
         pig.registerQuery("E = filter D by c1 <= 2;");
-        
+
         Iterator<Tuple> iter = pig.openIterator("E");
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
-        assertTrue(t.get(0).equals(new Integer(1)));
-        assertTrue(t.get(1).equals(new Integer(2)));
+        assertEquals(Integer.valueOf(1), t.get(0));
+        assertEquals(Integer.valueOf(2), t.get(1));
         assertFalse(iter.hasNext());
 
         fp1.delete();
     }
-    
+
     @Test
     public void testJoin1() throws Exception {
         // Regression test for Pig-925
         File fp1 = File.createTempFile("test1", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(fp1));
-        
+
         ps.println("1\t1");
         ps.println("2\t2");
         ps.close();
-        
+
         File fp2 = File.createTempFile("test2", "txt");
         ps = new PrintStream(new FileOutputStream(fp2));
-        
+
         ps.println("1\t1");
         ps.println("2\t2");
         ps.close();
-        
-        
+
+
         pig.registerQuery("A = load '"
                 + Util.generateURI(Util.encodeEscape(fp1.toString()), pig.getPigContext())
                 + "'AS (a0:int, a1:int); ");
@@ -211,29 +213,28 @@ public class TestLocal2 extends TestCase {
                 + Util.generateURI(Util.encodeEscape(fp2.toString()), pig.getPigContext())
                 + "'AS (b0:int, b1:int); ");
         pig.registerQuery("C = join A by a0, B by b0;");
-        
+
         Iterator<Tuple> iter = pig.openIterator("C");
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
-        assertTrue(t.get(0).equals(new Integer(1)));
-        assertTrue(t.get(1).equals(new Integer(1)));
-        assertTrue(t.get(2).equals(new Integer(1)));
-        assertTrue(t.get(3).equals(new Integer(1)));
-        
+        assertEquals(Integer.valueOf(1), t.get(0));
+        assertEquals(Integer.valueOf(1), t.get(1));
+        assertEquals(Integer.valueOf(1), t.get(2));
+        assertEquals(Integer.valueOf(1), t.get(3));
+
         assertTrue(iter.hasNext());
         t = iter.next();
-        assertTrue(t.get(0).equals(new Integer(2)));
-        assertTrue(t.get(1).equals(new Integer(2)));
-        assertTrue(t.get(2).equals(new Integer(2)));
-        assertTrue(t.get(3).equals(new Integer(2)));
-        
-        assertTrue(!iter.hasNext());
+        assertEquals(Integer.valueOf(2), t.get(0));
+        assertEquals(Integer.valueOf(2), t.get(1));
+        assertEquals(Integer.valueOf(2), t.get(2));
+        assertEquals(Integer.valueOf(2), t.get(3));
+
+        assertFalse(iter.hasNext());
         fp1.delete();
     }
-    
-    
+
     static public class Pig800Udf extends EvalFunc<DataBag> {
-        
+
         @Override
         public DataBag exec(Tuple input) throws IOException {
             DataBag output = BagFactory.getInstance().newDefaultBag();
@@ -305,5 +306,4 @@ public class TestLocal2 extends TestCase {
         tmpFile.deleteOnExit();
         return tmpFile;
     }
-
 }

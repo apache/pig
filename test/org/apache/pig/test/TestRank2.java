@@ -19,84 +19,53 @@ package org.apache.pig.test;
 
 import static org.apache.pig.builtin.mock.Storage.resetData;
 import static org.apache.pig.builtin.mock.Storage.tuple;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
-import junit.framework.TestCase;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigServer;
-import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-public class TestRank2 extends TestCase {
-
-    private final Log log = LogFactory.getLog(getClass());
+public class TestRank2 {
     private static PigServer pigServer;
     private static TupleFactory tf = TupleFactory.getInstance();
     private Data data;
 
-    @BeforeClass
-    public static void oneTimeSetUp() throws Exception {
-    }
-
-    @Override
     @Before
     public void setUp() throws Exception {
+        pigServer = new PigServer("local");
 
-        try {
-            pigServer = new PigServer("local");
+        data = resetData(pigServer);
+        data.set("test01", tuple("A", 1, "N"), tuple("B", 2, "N"),
+                tuple("C", 3, "M"), tuple("D", 4, "P"), tuple("E", 4, "Q"),
+                tuple("E", 4, "Q"), tuple("F", 8, "Q"), tuple("F", 7, "Q"),
+                tuple("F", 8, "T"), tuple("F", 8, "Q"), tuple("G", 10, "V"));
 
-            data = resetData(pigServer);
-            data.set("test01", tuple("A", 1, "N"), tuple("B", 2, "N"),
-                    tuple("C", 3, "M"), tuple("D", 4, "P"), tuple("E", 4, "Q"),
-                    tuple("E", 4, "Q"), tuple("F", 8, "Q"), tuple("F", 7, "Q"),
-                    tuple("F", 8, "T"), tuple("F", 8, "Q"), tuple("G", 10, "V"));
-
-            data.set(
-                    "test02",
-                    tuple("Michael", "Blythe", 1, 1, 1, 1, 4557045.046, 98027),
-                    tuple("Linda", "Mitchell", 2, 1, 1, 1, 5200475.231, 98027),
-                    tuple("Jillian", "Carson", 3, 1, 1, 1, 3857163.633, 98027),
-                    tuple("Garrett", "Vargas", 4, 1, 1, 1, 1764938.986, 98027),
-                    tuple("Tsvi", "Reiter", 5, 1, 1, 2, 2811012.715, 98027),
-                    tuple("Shu", "Ito", 6, 6, 2, 2, 3018725.486, 98055),
-                    tuple("Jose", "Saraiva", 7, 6, 2, 2, 3189356.247, 98055),
-                    tuple("David", "Campbell", 8, 6, 2, 3, 3587378.426, 98055),
-                    tuple("Tete", "Mensa-Annan", 9, 6, 2, 3, 1931620.184, 98055),
-                    tuple("Lynn", "Tsoflias", 10, 6, 2, 3, 1758385.926, 98055),
-                    tuple("Rachel", "Valdez", 11, 6, 2, 4, 2241204.042, 98055),
-                    tuple("Jae", "Pak", 12, 6, 2, 4, 5015682.375, 98055),
-                    tuple("Ranjit", "Varkey Chudukatil", 13, 6, 2, 4,
-                            3827950.238, 98055));
-
-        } catch (ExecException e) {
-            IOException ioe = new IOException("Failed to create Pig Server");
-            ioe.initCause(e);
-            throw ioe;
-        }
-    }
-
-    @Override
-    @After
-    public void tearDown() throws Exception {
-    }
-
-    @AfterClass
-    public static void oneTimeTearDown() throws Exception {
+        data.set(
+                "test02",
+                tuple("Michael", "Blythe", 1, 1, 1, 1, 4557045.046, 98027),
+                tuple("Linda", "Mitchell", 2, 1, 1, 1, 5200475.231, 98027),
+                tuple("Jillian", "Carson", 3, 1, 1, 1, 3857163.633, 98027),
+                tuple("Garrett", "Vargas", 4, 1, 1, 1, 1764938.986, 98027),
+                tuple("Tsvi", "Reiter", 5, 1, 1, 2, 2811012.715, 98027),
+                tuple("Shu", "Ito", 6, 6, 2, 2, 3018725.486, 98055),
+                tuple("Jose", "Saraiva", 7, 6, 2, 2, 3189356.247, 98055),
+                tuple("David", "Campbell", 8, 6, 2, 3, 3587378.426, 98055),
+                tuple("Tete", "Mensa-Annan", 9, 6, 2, 3, 1931620.184, 98055),
+                tuple("Lynn", "Tsoflias", 10, 6, 2, 3, 1758385.926, 98055),
+                tuple("Rachel", "Valdez", 11, 6, 2, 4, 2241204.042, 98055),
+                tuple("Jae", "Pak", 12, 6, 2, 4, 5015682.375, 98055),
+                tuple("Ranjit", "Varkey Chudukatil", 13, 6, 2, 4,
+                        3827950.238, 98055));
     }
 
     @Test
@@ -145,7 +114,6 @@ public class TestRank2 extends TestCase {
                 tf.newTuple(ImmutableList.of((long) 7, "G", 10, "V")));
 
         verifyExpected(data.get("result"), expected);
-
     }
 
     @Test
@@ -197,10 +165,8 @@ public class TestRank2 extends TestCase {
     }
 
     public void verifyExpected(List<Tuple> out, Set<Tuple> expected) {
-
         for (Tuple tup : out) {
             assertTrue(expected + " contains " + tup, expected.contains(tup));
         }
     }
-
 }

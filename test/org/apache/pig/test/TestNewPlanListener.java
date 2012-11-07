@@ -18,6 +18,10 @@
 
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.util.List;
 
 import org.apache.pig.data.DataType;
@@ -38,23 +42,21 @@ import org.apache.pig.newplan.logical.optimizer.ProjectionPatcher;
 import org.apache.pig.newplan.logical.optimizer.SchemaPatcher;
 import org.apache.pig.newplan.logical.relational.LOFilter;
 import org.apache.pig.newplan.logical.relational.LOJoin;
+import org.apache.pig.newplan.logical.relational.LOJoin.JOINTYPE;
 import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
-import org.apache.pig.newplan.logical.relational.LOJoin.JOINTYPE;
 import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
 import org.junit.Before;
 import org.junit.Test;
-
-import junit.framework.TestCase;
 
 /**
  * Tests for PlanTransformListerns
  *
  */
-public class TestNewPlanListener extends TestCase {
-    
+public class TestNewPlanListener {
+
     private LogicalPlan lp;
     private LogicalPlan changedPlan;
 
@@ -62,9 +64,7 @@ public class TestNewPlanListener extends TestCase {
      * @see junit.framework.TestCase#setUp()
      */
     @Before
-    protected void setUp() throws Exception {
-        super.setUp();
-        
+    public void setUp() throws Exception {
         // Build a plan that looks like it has just been transformed
         // It is roughly the logical plan for
         // A = load 'bla' as (x);
@@ -82,7 +82,7 @@ public class TestNewPlanListener extends TestCase {
         LOLoad A = new LOLoad(null, lp);
         A.neverUseForRealSetSchema(aschema);
         lp.add(A);
-        
+
         // B = load
         LogicalSchema bschema = new LogicalSchema();
         bschema.addField(new LogicalSchema.LogicalFieldSchema(
@@ -91,7 +91,7 @@ public class TestNewPlanListener extends TestCase {
         LOLoad B = new LOLoad(null, lp);
         B.neverUseForRealSetSchema(bschema);
         lp.add(B);
-        
+
         // C = join
         LogicalSchema cschema = new LogicalSchema();
         cschema.addField(new LogicalSchema.LogicalFieldSchema(
@@ -101,10 +101,10 @@ public class TestNewPlanListener extends TestCase {
         cschema.getField(0).uid = 1;
         cschema.getField(1).uid = 2;
 
-        MultiMap<Integer, LogicalExpressionPlan> mm = 
+        MultiMap<Integer, LogicalExpressionPlan> mm =
             new MultiMap<Integer, LogicalExpressionPlan>();
         LOJoin C = new LOJoin(lp, mm, JOINTYPE.HASH, new boolean[] {true, true});
-        
+
         LogicalExpressionPlan aprojplan = new LogicalExpressionPlan();
         ProjectExpression x = new ProjectExpression(aprojplan, 0, 0, C);
         x.neverUseForRealSetFieldSchema(new LogicalFieldSchema(null, null,
@@ -115,10 +115,10 @@ public class TestNewPlanListener extends TestCase {
                 DataType.INTEGER, 2));
         mm.put(0, aprojplan);
         mm.put(1, bprojplan);
-        
+
         C.neverUseForRealSetSchema(cschema);
         // Don't add it to the plan quite yet
-        
+
         // D = filter
         LogicalExpressionPlan filterPlan = new LogicalExpressionPlan();
         LOFilter D = new LOFilter(lp, filterPlan);
@@ -127,43 +127,43 @@ public class TestNewPlanListener extends TestCase {
                 DataType.INTEGER, 2));
         ConstantExpression fc = new ConstantExpression(filterPlan, new Integer(0));
         new EqualExpression(filterPlan, fy, fc);
-        
+
         D.neverUseForRealSetSchema(cschema);
         // Connect D to B, since the transform has happened.
         lp.add(D);
         lp.connect(B, D);
-        
+
         // Now add in C, connected to A and D.
         lp.add(C);
         lp.connect(A, C);
         lp.connect(D, C);
-        
+
         changedPlan = new LogicalPlan();
         changedPlan.add(D);
         changedPlan.add(C);
         changedPlan.connect(D, C);
     }
-    
+
     private static class SillySameVisitor extends AllSameRalationalNodesVisitor {
         StringBuffer buf = new StringBuffer();
 
         SillySameVisitor(OperatorPlan plan) throws FrontendException {
             super(plan, new DepthFirstWalker(plan));
         }
-        
+
         @Override
         protected void execute(LogicalRelationalOperator op) throws FrontendException {
             buf.append(op.getName());
             buf.append(" ");
         }
-        
+
         @Override
         public String toString() {
             return buf.toString();
         }
-        
+
     }
-    
+
     // Test that the AllSameVisitor calls execute on every node
     // in the plan.
     @Test
@@ -172,9 +172,9 @@ public class TestNewPlanListener extends TestCase {
         v.visit();
         assertTrue("LOLoad LOJoin(HASH) LOLoad LOFilter ".equals(v.toString()) ||
             "LOLoad LOFilter LOJoin(HASH) LOLoad ".equals(v.toString()));
-        
+
     }
-    
+
     private static class SillyExpressionVisitor extends LogicalExpressionVisitor {
         StringBuffer buf;
 
@@ -182,47 +182,47 @@ public class TestNewPlanListener extends TestCase {
             super(p, new DepthFirstWalker(p));
             buf = b;
         }
-        
+
         @Override
         public void visit(AndExpression andExpr) throws FrontendException {
             buf.append("and ");
         }
-        
+
         @Override
         public void visit(EqualExpression equal) throws FrontendException {
             buf.append("equal ");
         }
-        
+
         @Override
         public void visit(ProjectExpression p) throws FrontendException {
             buf.append("proj ");
         }
-        
+
         @Override
         public void visit(ConstantExpression c) throws FrontendException {
             buf.append("const ");
         }
     }
-    
+
     private static class SillyAllExpressionVisitor extends AllExpressionVisitor {
         StringBuffer buf = new StringBuffer();
 
         public SillyAllExpressionVisitor(OperatorPlan plan) throws FrontendException {
             super(plan, new DepthFirstWalker(plan));
         }
-     
+
 
         @Override
         protected LogicalExpressionVisitor getVisitor(LogicalExpressionPlan expr) throws FrontendException {
             return new SillyExpressionVisitor(expr, buf);
-        }   
-        
+        }
+
         @Override
         public String toString() {
             return buf.toString();
         }
     }
-    
+
     // Test that the AllExpressionVisitor executes on every
     // expression in the plan
     @Test
@@ -232,13 +232,13 @@ public class TestNewPlanListener extends TestCase {
         assertTrue("proj proj equal proj const ".equals(v.toString()) ||
             "equal proj const proj proj ".equals(v.toString()));
     }
-    
+
     // Test that schemas are patched up after a transform
     @Test
     public void testSchemaPatcher() throws FrontendException {
         SchemaPatcher patcher = new SchemaPatcher();
         patcher.transformed(lp, changedPlan);
-        
+
         // Check that the filter now has the proper schema.
         List<Operator> roots = changedPlan.getSources();
         assertEquals(1, roots.size());
@@ -250,13 +250,13 @@ public class TestNewPlanListener extends TestCase {
         assertEquals("y", y.alias);
         assertEquals(2, y.uid);
     }
-    
+
     // Test that projections are patched up after a transform
     @Test
     public void testProjectionPatcher() throws FrontendException {
         ProjectionPatcher patcher = new ProjectionPatcher();
         patcher.transformed(lp, changedPlan);
-        
+
         // Check that the projections in filter are now set properly
         List<Operator> roots = changedPlan.getSources();
         assertEquals(1, roots.size());
@@ -278,4 +278,3 @@ public class TestNewPlanListener extends TestCase {
     }
 
 }
-

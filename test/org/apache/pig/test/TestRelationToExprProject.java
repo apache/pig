@@ -17,34 +17,35 @@
  */
 package org.apache.pig.test;
 
-import static org.apache.pig.ExecType.MAPREDUCE;
+import static org.apache.pig.builtin.mock.Storage.resetData;
+import static org.apache.pig.builtin.mock.Storage.tuple;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
+import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.parser.ParserException;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-
-import junit.framework.TestCase;
 
 /**
  * Test PORelationToExprProject which is a special project
  * introduced to handle the following case:
  * This project is Project(*) introduced after a relational operator
  * to supply a bag as output (as an expression). This project is either
- * providing the bag as input to a successor expression operator or is 
+ * providing the bag as input to a successor expression operator or is
  * itself the leaf in a inner plan
  * If the predecessor relational operator sends an EOP
  * then send an empty bag first to signal "empty" output
@@ -56,21 +57,18 @@ import junit.framework.TestCase;
  * a = load 'baginp.txt' as (b:bag{t:tuple()}); b = foreach a generate $0; dump b;
  * will go through a regular project (without the following flag)
  */
-@RunWith(JUnit4.class)
-public class TestRelationToExprProject extends TestCase {
-
-    private static MiniCluster cluster = MiniCluster.buildCluster();
+public class TestRelationToExprProject {
     private PigServer pigServer;
-    private static final String TEST_FILTER_COUNT3_INPUT="test/org/apache/pig/test/data/TestRelationToExprProjectInput.txt"; 
-    
+    private static final String TEST_FILTER_COUNT3_INPUT="test/org/apache/pig/test/data/TestRelationToExprProjectInput.txt";
+
     /* (non-Javadoc)
      * @see junit.framework.TestCase#setUp()
      */
     @Before
     public void setUp() throws Exception {
-        pigServer = new PigServer(MAPREDUCE, cluster.getProperties());
+        pigServer = new PigServer(ExecType.LOCAL);
     }
-    
+
     /* (non-Javadoc)
      * @see junit.framework.TestCase#tearDown()
      */
@@ -78,28 +76,22 @@ public class TestRelationToExprProject extends TestCase {
     public void tearDown() throws Exception {
         pigServer.shutdown();
     }
-    
-    @AfterClass
-    public static void oneTimeTearDown() throws Exception {
-        cluster.shutDown();
-    }
-    
+
     // based on the script provided in the jira issue:PIG-514
     // tests that when a filter inside a foreach filters away all tuples
     // for a group, an empty bag is still provided to udfs whose
     // input is the filter
     @Test
     public void testFilterCount1() throws IOException, ParserException {
-        
-        String[] inputData = new String[] {"1\t1\t3","1\t2\t3", "2\t1\t3", "2\t1\t3"};
-        Util.createInputFile(cluster, "test.txt", inputData);
-        String script = "test   = load 'test.txt' as (col1: int, col2: int, col3: int);" +
-        		"test2 = group test by col1;" +
-        		"test3 = foreach test2 {" +
-        		"        filter_one    = filter test by (col2==1);" +
-        		"        filter_notone = filter test by (col2!=1);" +
-        		"        generate group as col1, COUNT(filter_one) as cnt_one, COUNT(filter_notone) as cnt_notone;};";
-        Util.registerMultiLineQuery(pigServer, script);
+        Data data = resetData(pigServer);
+        data.set("foo", tuple(1,1,3), tuple(1,2,3), tuple(2,1,3), tuple(2,1,3));
+        String script = "test   = load 'foo' using mock.Storage() as (col1: int, col2: int, col3: int);" +
+                "test2 = group test by col1;" +
+                "test3 = foreach test2 {" +
+                "        filter_one    = filter test by (col2==1);" +
+                "        filter_notone = filter test by (col2!=1);" +
+                "        generate group as col1, COUNT(filter_one) as cnt_one, COUNT(filter_notone) as cnt_notone;};";
+        pigServer.registerQuery(script);
         Iterator<Tuple> it = pigServer.openIterator("test3");
         Tuple[] expected = new DefaultTuple[2];
         expected[0] = (Tuple) Util.getPigConstant("(1,1L,1L)");
@@ -122,37 +114,37 @@ public class TestRelationToExprProject extends TestCase {
         for (int j = 0; j < expected.length; j++) {
             assertTrue(expected[j].equals(results[j]));
         }
-        Util.deleteFile(cluster, "test.txt");
     }
-    
+
     // based on jira PIG-710
     // tests that when a filter inside a foreach filters away all tuples
     // for a group, an empty bag is still provided to udfs whose
     // input is the filter
     @Test
     public void testFilterCount2() throws IOException, ParserException {
-        Util.createInputFile(cluster, "filterbug.data", new String[] {
-                "a\thello" ,
-                "a\tgoodbye" ,
-                "b\tgoodbye" ,
-                "c\thello" ,
-                "c\thello" ,
-                "c\thello" ,
-                "d\twhat"
-        });
-        String query = "A = load 'filterbug.data' using PigStorage() as ( id:chararray, str:chararray );" +
-        		"B = group A by ( id );" +
-        		"Cfiltered = foreach B {" +
-        		"        D = filter A by (" +
-        		"                str matches 'hello'" +
-        		"                );" +
-        		"        matchedcount = COUNT(D);" +
-        		"        generate" +
-        		"                group," +
-        		"                matchedcount as matchedcount," +
-        		"                A.str;" +
-        		"        };";  
-        Util.registerMultiLineQuery(pigServer, query);
+        Data data = resetData(pigServer);
+        data.set("foo",
+                tuple("a", "hello"),
+                tuple("a", "goodbye"),
+                tuple("b", "goodbye"),
+                tuple("c", "hello"),
+                tuple("c", "hello"),
+                tuple("c", "hello"),
+                tuple("d", "what")
+                );
+        String query = "A = load 'foo' using mock.Storage() as ( id:chararray, str:chararray );" +
+                "B = group A by ( id );" +
+                "Cfiltered = foreach B {" +
+                "        D = filter A by (" +
+                "                str matches 'hello'" +
+                "                );" +
+                "        matchedcount = COUNT(D);" +
+                "        generate" +
+                "                group," +
+                "                matchedcount as matchedcount," +
+                "                A.str;" +
+                "        };";
+        pigServer.registerQuery(query);
         Iterator<Tuple> it = pigServer.openIterator("Cfiltered");
         Map<String, Tuple> expected = new HashMap<String, Tuple>();
         expected.put("a", (Tuple) Util.getPigConstant("('a',1L,{('hello'),('goodbye')})"));
@@ -166,29 +158,27 @@ public class TestRelationToExprProject extends TestCase {
             i++;
         }
         assertEquals(4, i);
-        Util.deleteFile(cluster, "filterbug.data");
     }
-    
+
     // based on jira PIG-739
     // tests that when a filter inside a foreach filters away all tuples
     // for a group, an empty bag is still provided to udfs whose
     // input is the filter
     @Test
     public void testFilterCount3() throws IOException, ParserException {
-        Util.copyFromLocalToCluster(cluster, TEST_FILTER_COUNT3_INPUT, "testdata");
-        String query = "TESTDATA =  load 'testdata' using PigStorage() as (timestamp:chararray, testid:chararray, userid: chararray, sessionid:chararray, value:long, flag:int);" +
-        		"TESTDATA_FILTERED = filter TESTDATA by (timestamp gte '1230800400000' and timestamp lt '1230804000000' and value != 0);" +
-        		"TESTDATA_GROUP = group TESTDATA_FILTERED by testid;" +
-        		"TESTDATA_AGG = foreach TESTDATA_GROUP {" +
-        		"                        A = filter TESTDATA_FILTERED by (userid eq sessionid);" +
-        		"                        C = distinct A.userid;" +
-        		"                        generate group as testid, COUNT(TESTDATA_FILTERED) as counttestdata, COUNT(C) as distcount, SUM(TESTDATA_FILTERED.flag) as total_flags;" +
-        		"                }" +
-        		"TESTDATA_AGG_1 = group TESTDATA_AGG ALL;" +
-        		"TESTDATA_AGG_2 = foreach TESTDATA_AGG_1 generate COUNT(TESTDATA_AGG);" ;
-        Util.registerMultiLineQuery(pigServer, query);
+        String query = "TESTDATA =  load '"+TEST_FILTER_COUNT3_INPUT+"' using PigStorage() as (timestamp:chararray, testid:chararray, userid: chararray, sessionid:chararray, value:long, flag:int);" +
+                "TESTDATA_FILTERED = filter TESTDATA by (timestamp gte '1230800400000' and timestamp lt '1230804000000' and value != 0);" +
+                "TESTDATA_GROUP = group TESTDATA_FILTERED by testid;" +
+                "TESTDATA_AGG = foreach TESTDATA_GROUP {" +
+                "                        A = filter TESTDATA_FILTERED by (userid eq sessionid);" +
+                "                        C = distinct A.userid;" +
+                "                        generate group as testid, COUNT(TESTDATA_FILTERED) as counttestdata, COUNT(C) as distcount, SUM(TESTDATA_FILTERED.flag) as total_flags;" +
+                "                }" +
+                "TESTDATA_AGG_1 = group TESTDATA_AGG ALL;" +
+                "TESTDATA_AGG_2 = foreach TESTDATA_AGG_1 generate COUNT(TESTDATA_AGG);" ;
+        pigServer.registerQuery(query);
         Iterator<Tuple> it = pigServer.openIterator("TESTDATA_AGG_2");
-        
+
         int i = 0;
         while(it.hasNext()) {
             Tuple actual = it.next();
@@ -196,23 +186,22 @@ public class TestRelationToExprProject extends TestCase {
             i++;
         }
         assertEquals(1, i);
-        Util.deleteFile(cluster, "testdata");
     }
-    
+
     // test case where RelationToExprProject is present in the
     // single inner plan of foreach - this will test that it does
     // send an EOP eventually for each input of the foreach
     @Test
     public void testFilter1() throws IOException, ParserException {
-        
-        String[] inputData = new String[] {"1\t1\t3","1\t2\t3", "2\t1\t3", "2\t1\t3", "3\t4\t4"};
-        Util.createInputFile(cluster, "test.txt", inputData);
-        String script = "test   = load 'test.txt' as (col1: int, col2: int, col3: int);" +
+        Data data = resetData(pigServer);
+        data.set("foo", tuple(1,1,3), tuple(1,2,3), tuple(2,1,3), tuple(2,1,3), tuple(3,4,4));
+
+        String script = "test   = load 'foo' using mock.Storage() as (col1: int, col2: int, col3: int);" +
                 "test2 = group test by col1;" +
                 "test3 = foreach test2 {" +
                 "        filter_one    = filter test by (col2==1);" +
                 "        generate filter_one;};";
-        Util.registerMultiLineQuery(pigServer, script);
+        pigServer.registerQuery(script);
         Iterator<Tuple> it = pigServer.openIterator("test3");
         Map<Tuple, Integer> expected = new HashMap<Tuple, Integer>();
         expected.put((Tuple) Util.getPigConstant("({(1,1,3)})"), 0);
@@ -235,9 +224,8 @@ public class TestRelationToExprProject extends TestCase {
         for (Integer occurences : expected.values()) {
             assertEquals(new Integer(1), occurences);
         }
-        Util.deleteFile(cluster, "test.txt");
     }
-    
+
     // test case where RelationToExprProject is present in a
     // different inner plan along with another plan to project the group
     // in foreach - this will test that reset() correctly resets
@@ -245,10 +233,10 @@ public class TestRelationToExprProject extends TestCase {
     // input has been seen on a fresh input from foreach.
     @Test
     public void testFilter2() throws IOException, ParserException {
-        
-        String[] inputData = new String[] {"1\t1\t3","1\t2\t3", "2\t1\t3", "2\t1\t3", "3\t4\t4"};
-        Util.createInputFile(cluster, "test.txt", inputData);
-        String script = "test   = load 'test.txt' as (col1: int, col2: int, col3: int);" +
+        Data data = resetData(pigServer);
+        data.set("foo", tuple(1,1,3), tuple(1,2,3), tuple(2,1,3), tuple(2,1,3), tuple(3,4,4));
+
+        String script = "test   = load 'foo' using mock.Storage() as (col1: int, col2: int, col3: int);" +
                 "test2 = group test by col1;" +
                 "test3 = foreach test2 {" +
                 "        filter_one    = filter test by (col2==1);" +
@@ -275,10 +263,7 @@ public class TestRelationToExprProject extends TestCase {
             i++;
         }
         for (Integer occurences : expected.values()) {
-            assertEquals(new Integer(1), occurences);
+            assertEquals(Integer.valueOf(1), occurences);
         }
-        Util.deleteFile(cluster, "test.txt");
     }
-
-    
 }

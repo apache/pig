@@ -17,11 +17,11 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Iterator;
-
-import junit.framework.TestCase;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
@@ -34,7 +34,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestStreamingLocal extends TestCase {
+public class TestStreamingLocal {
 
     private TupleFactory tf = TupleFactory.getInstance();
     PigServer pigServer;
@@ -50,14 +50,12 @@ public class TestStreamingLocal extends TestCase {
     }
 
     @Before
-    @Override
-    protected void setUp() throws Exception {
-        pigServer = new PigServer("local");
+    public void setUp() throws Exception {
+        pigServer = new PigServer(ExecType.LOCAL);
     }
 
     @After
-    @Override
-    protected void tearDown() throws Exception {
+    public void tearDown() throws Exception {
         pigServer.shutdown();
     }
 
@@ -76,9 +74,9 @@ public class TestStreamingLocal extends TestCase {
     }
 
     @Test
-    public void testSimpleMapSideStreaming() 
+    public void testSimpleMapSideStreaming()
     throws Exception {
-        File input = Util.createInputFile("tmp", "", 
+        File input = Util.createInputFile("tmp", "",
                 new String[] {"A,1", "B,2", "C,3", "D,2",
                 "A,5", "B,5", "C,8", "A,8",
                 "D,8", "A,9"});
@@ -90,7 +88,7 @@ public class TestStreamingLocal extends TestCase {
         for (int i = 0; i < withTypes.length; i++) {
             Tuple[] expectedResults = null;
             if(withTypes[i] == true) {
-                expectedResults = 
+                expectedResults =
                     setupExpectedResults(expectedFirstFields, expectedSecondFields);
             } else {
                 expectedResults = setupExpectedResults(Util
@@ -119,9 +117,9 @@ public class TestStreamingLocal extends TestCase {
     }
 
     @Test
-    public void testSimpleMapSideStreamingWithOutputSchema() 
+    public void testSimpleMapSideStreamingWithOutputSchema()
     throws Exception {
-        File input = Util.createInputFile("tmp", "", 
+        File input = Util.createInputFile("tmp", "",
                 new String[] {"A,1", "B,2", "C,3", "D,2",
                 "A,5", "B,5", "C,8", "A,8",
                 "D,8", "A,9"});
@@ -134,7 +132,7 @@ public class TestStreamingLocal extends TestCase {
         for (int i = 0; i < withTypes.length; i++) {
             Tuple[] expectedResults = null;
             if(withTypes[i] == true) {
-                expectedResults = 
+                expectedResults =
                     setupExpectedResults(expectedFirstFields, expectedSecondFields);
             } else {
                 expectedResults = setupExpectedResults(Util
@@ -161,9 +159,9 @@ public class TestStreamingLocal extends TestCase {
     }
 
     @Test
-    public void testSimpleReduceSideStreamingAfterFlatten() 
+    public void testSimpleReduceSideStreamingAfterFlatten()
     throws Exception {
-        File input = Util.createInputFile("tmp", "", 
+        File input = Util.createInputFile("tmp", "",
                 new String[] {"A,1", "B,2", "C,3", "D,2",
                 "A,5", "B,5", "C,8", "A,8",
                 "D,8", "A,9"});
@@ -175,7 +173,7 @@ public class TestStreamingLocal extends TestCase {
         for (int i = 0; i < withTypes.length; i++) {
             Tuple[] expectedResults = null;
             if(withTypes[i] == true) {
-                expectedResults = 
+                expectedResults =
                     setupExpectedResults(expectedFirstFields, expectedSecondFields);
             } else {
                 expectedResults = setupExpectedResults(Util
@@ -208,7 +206,7 @@ public class TestStreamingLocal extends TestCase {
 
     @Test
     public void testSimpleOrderedReduceSideStreamingAfterFlatten() throws Exception {
-        File input = Util.createInputFile("tmp", "", 
+        File input = Util.createInputFile("tmp", "",
                 new String[] {"A,1,2,3", "B,2,4,5",
                 "C,3,1,2", "D,2,5,2",
                 "A,5,5,1", "B,5,7,4",
@@ -217,7 +215,7 @@ public class TestStreamingLocal extends TestCase {
         );
 
         // Expected results
-        String[] expectedFirstFields = 
+        String[] expectedFirstFields =
             new String[] {"A", "A", "A", "A", "B", "B", "C", "C", "D", "D"};
         Integer[] expectedSecondFields = new Integer[] {1, 9, 8, 5, 2, 5, 3, 8, 2, 8};
         Integer[] expectedThirdFields = new Integer[] {2, 2, 4, 5, 4, 7, 1, 9, 5, 8};
@@ -256,30 +254,30 @@ public class TestStreamingLocal extends TestCase {
     }
 
     @Test
-    public void testSimpleMapSideStreamingWithUnixPipes() 
+    public void testSimpleMapSideStreamingWithUnixPipes()
     throws Exception {
-        File input = Util.createInputFile("tmp", "", 
+        File input = Util.createInputFile("tmp", "",
                 new String[] {"A,1", "B,2", "C,3", "D,2",
                 "A,5", "B,5", "C,8", "A,8",
                 "D,8", "A,9"});
 
         // Expected results
-        String[] expectedFirstFields = 
+        String[] expectedFirstFields =
             new String[] {"A", "B", "C", "D", "A", "B", "C", "A", "D", "A"};
         Integer[] expectedSecondFields = new Integer[] {1, 2, 3, 2, 5, 5, 8, 8, 8, 9};
         boolean[] withTypes = {true, false};
         for (int i = 0; i < withTypes.length; i++) {
             Tuple[] expectedResults = null;
             if(withTypes[i] == true) {
-                expectedResults = 
+                expectedResults =
                     setupExpectedResults(expectedFirstFields, expectedSecondFields);
             } else {
-                expectedResults = 
+                expectedResults =
                     setupExpectedResults(Util.toDataByteArrays(expectedFirstFields), Util.toDataByteArrays(expectedSecondFields));
             }
 
             // Pig query to run
-            pigServer.registerQuery("define CMD `" + simpleEchoStreamingCommand + 
+            pigServer.registerQuery("define CMD `" + simpleEchoStreamingCommand +
                     " | " + simpleEchoStreamingCommand + "`;");
             pigServer.registerQuery("IP = load '" +
                     Util.generateURI(Util.encodeEscape(input.toString()), pigServer.getPigContext()) +
@@ -287,7 +285,7 @@ public class TestStreamingLocal extends TestCase {
             if(withTypes[i] == true) {
                 pigServer.registerQuery("OP = stream IP through CMD as (f0:chararray, f1:int);");
             } else {
-                pigServer.registerQuery("OP = stream IP through CMD;");                
+                pigServer.registerQuery("OP = stream IP through CMD;");
             }
 
             // Run the query and check the results
@@ -335,9 +333,9 @@ public class TestStreamingLocal extends TestCase {
         testNegativeLoadStoreOptimization(ExecType.LOCAL);
     }
 
-    private void testNegativeLoadStoreOptimization(ExecType execType) 
+    private void testNegativeLoadStoreOptimization(ExecType execType)
     throws Exception {
-        File input = Util.createInputFile("tmp", "", 
+        File input = Util.createInputFile("tmp", "",
                 new String[] {"A,1", "B,2", "C,3", "D,2",
                 "A,5", "B,5", "C,8", "A,8",
                 "D,8", "A,9"});
@@ -349,7 +347,7 @@ public class TestStreamingLocal extends TestCase {
         for (int i = 0; i < withTypes.length; i++) {
             Tuple[] expectedResults = null;
             if(withTypes[i] == true) {
-                expectedResults = 
+                expectedResults =
                     setupExpectedResults(expectedFirstFields, expectedSecondFields);
             } else {
                 expectedResults = setupExpectedResults(Util
@@ -358,7 +356,7 @@ public class TestStreamingLocal extends TestCase {
             }
 
             // Pig query to run
-            pigServer.registerQuery("define CMD `"+ simpleEchoStreamingCommand + 
+            pigServer.registerQuery("define CMD `"+ simpleEchoStreamingCommand +
             "` input(stdin);");
             pigServer.registerQuery("IP = load '" +
                     Util.generateURI(Util.encodeEscape(input.toString()), pigServer.getPigContext()) +
@@ -369,7 +367,7 @@ public class TestStreamingLocal extends TestCase {
                         simpleEchoStreamingCommand + "` as (f0:chararray, f1:int);");
             } else {
                 pigServer.registerQuery("OP = stream FILTERED_DATA through `" +
-                        simpleEchoStreamingCommand + "`;");                
+                        simpleEchoStreamingCommand + "`;");
             }
 
             // Run the query and check the results

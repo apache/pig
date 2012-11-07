@@ -18,65 +18,55 @@
 
 package org.apache.pig.test;
 
+import static org.apache.pig.builtin.mock.Storage.resetData;
+import static org.apache.pig.builtin.mock.Storage.tuple;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
 
-import junit.framework.TestCase;
-
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
-import org.junit.AfterClass;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 
-@RunWith(JUnit4.class)
-public class TestNullConstant extends TestCase {
-    
-    static MiniCluster cluster = MiniCluster.buildCluster();
+public class TestNullConstant {
     private PigServer pigServer;
 
     @Before
-    @Override
     public void setUp() throws Exception{
-        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        pigServer = new PigServer(ExecType.LOCAL);
     }
-    
-    @AfterClass
-    public static void oneTimeTearDown() throws Exception {
-        cluster.shutDown();
-    }
-    
+
     @Test
     public void testArithExpressions() throws IOException, ExecException {
-        String inputFileName = "testArithExpressions-input.txt";
-        Util.createInputFile(cluster, inputFileName, 
-                new String[] {"10\t11.0"});
-        pigServer.registerQuery("a = load '" + inputFileName + "' as (x:int, y:double);");
+        Data data = resetData(pigServer);
+        data.set("foo", tuple(10, 11.0));
+
+        pigServer.registerQuery("a = load 'foo' using mock.Storage() as (x:int, y:double);");
         pigServer.registerQuery("b = foreach a generate x + null, x * null, x / null, x - null, null % x, " +
-        		"y + null, y * null, y / null, y - null;");
+                "y + null, y * null, y / null, y - null;");
         Iterator<Tuple> it = pigServer.openIterator("b");
         Tuple t = it.next();
         for (int i = 0; i < 9; i++) {
-            assertEquals(null, t.get(i));
+            assertNull(t.get(i));
         }
-        Util.deleteFile(cluster, inputFileName);
     }
-    
+
     @Test
     public void testBinCond() throws IOException, ExecException {
-        String inputFileName = "testBinCond-input.txt";
-        Util.createInputFile(cluster, inputFileName, 
-                new String[] {"10\t11.0"});
-        pigServer.registerQuery("a = load '" + inputFileName + "' as (x:int, y:double);");
+        Data data = resetData(pigServer);
+        data.set("foo", tuple(10, 11.0));
+
+        pigServer.registerQuery("a = load 'foo' using mock.Storage() as (x:int, y:double);");
         pigServer.registerQuery("b = foreach a generate (2 > 1? null : 1), ( 2 < 1 ? null : 1), (2 > 1 ? 1 : null), ( 2 < 1 ? 1 : null);");
         Iterator<Tuple> it = pigServer.openIterator("b");
         Tuple t = it.next();
@@ -84,7 +74,7 @@ public class TestNullConstant extends TestCase {
         for (int i = 0; i < 4; i++) {
             assertEquals(result[i], t.get(i));
         }
-        
+
         // is null and is not null test
         pigServer.registerQuery("b = foreach a generate (null is null ? 1 : 2), ( null is not null ? 2 : 1);");
         it = pigServer.openIterator("b");
@@ -92,16 +82,14 @@ public class TestNullConstant extends TestCase {
         for (int i = 0; i < 2; i++) {
             assertEquals(1, t.get(i));
         }
-        Util.deleteFile(cluster, inputFileName);
-        
     }
 
     @Test
     public void testForeachGenerate() throws ExecException, IOException {
-        String inputFileName = "testForeachGenerate-input.txt";
-        Util.createInputFile(cluster, inputFileName, 
-                new String[] {"10\t11.0"});
-        pigServer.registerQuery("a = load '" + inputFileName + "' as (x:int, y:double);");
+        Data data = resetData(pigServer);
+        data.set("foo", tuple(10, 11.0));
+
+        pigServer.registerQuery("a = load 'foo' using mock.Storage() as (x:int, y:double);");
         pigServer.registerQuery("b = foreach a generate x, null, y, null;");
         Iterator<Tuple> it = pigServer.openIterator("b");
         Tuple t = it.next();
@@ -109,27 +97,22 @@ public class TestNullConstant extends TestCase {
         for (int i = 0; i < 4; i++) {
             assertEquals(result[i], t.get(i));
         }
-        Util.deleteFile(cluster, inputFileName);
-        
     }
-    
+
     @Test
     public void testOuterJoin() throws IOException, ExecException {
-        String inputFileName1 = "testOuterJoin-input1.txt";
-        Util.createInputFile(cluster, inputFileName1, 
-                new String[] {"10\twill_join", "11\twill_not_join"});
-        String inputFileName2 = "testOuterJoin-input2.txt";
-        Util.createInputFile(cluster, inputFileName2, 
-                new String[] {"10\twill_join", "12\twill_not_join"});
-        pigServer.registerQuery("a = load '" + inputFileName1 + "' as (x:int, y:chararray);");
-        pigServer.registerQuery("b = load '" + inputFileName2 + "' as (u:int, v:chararray);");
+        Data data = resetData(pigServer);
+        data.set("foo_left", tuple(10, "will_join"), tuple(11, "will_not_join"));
+        data.set("foo_right", tuple(10, "will_join"), tuple(12, "will_not_join"));
+        pigServer.registerQuery("a = load 'foo_left' using mock.Storage() as (x:int, y:chararray);");
+        pigServer.registerQuery("b = load 'foo_right' using mock.Storage() as (u:int, v:chararray);");
         pigServer.registerQuery("c = cogroup a by x, b by u;");
         pigServer.registerQuery("d = foreach c generate flatten((SIZE(a) == 0 ? null: a)), flatten((SIZE(b) == 0 ? null : b));");
         Iterator<Tuple> it = pigServer.openIterator("d");
         Object[][] results = new Object[][]{{10, "will_join", 10, "will_join"}, {11, "will_not_join", null}, {null, 12, "will_not_join"}};
         int i = 0;
         while(it.hasNext()) {
-          
+
             Tuple t = it.next();
             Object[] result = results[i++];
             assertEquals(result.length, t.size());
@@ -137,69 +120,56 @@ public class TestNullConstant extends TestCase {
                 assertEquals(result[j], t.get(j));
             }
         }
-        Util.deleteFile(cluster, inputFileName1);
-        Util.deleteFile(cluster, inputFileName2);
     }
-    
+
     @Test
     public void testConcatAndSize() throws IOException, ExecException {
-        String inputFileName = "testConcatAndSize-input.txt";
-        Util.createInputFile(cluster, inputFileName, 
-                new String[] {"10\t11.0\tstring"});
-        pigServer.registerQuery("a = load '" + inputFileName + "' as (x:int, y:double, str:chararray);");
+        Data data = resetData(pigServer);
+        data.set("foo", tuple(10, 11.0, "will_join"));
+
+        pigServer.registerQuery("a = load 'foo' using mock.Storage() as (x:int, y:double, str:chararray);");
         pigServer.registerQuery("b = foreach a generate SIZE(null), CONCAT(str, null), " +
-        		"CONCAT(null, str);");
+                "CONCAT(null, str);");
         Iterator<Tuple> it = pigServer.openIterator("b");
         Tuple t = it.next();
         for (int i = 0; i < 3; i++) {
-            assertEquals(null, t.get(i));
+            assertNull(t.get(i));
         }
-        Util.deleteFile(cluster, inputFileName);
     }
 
     @Test
     public void testExplicitCast() throws IOException, ExecException {
-        String inputFileName = "testExplicitCast-input.txt";
-        Util.createInputFile(cluster, inputFileName, 
-                new String[] {"10\t11.0\tstring"});
-        pigServer.registerQuery("a = load '" + inputFileName + "' as (x:int, y:double, str:chararray);");
+        Data data = resetData(pigServer);
+        data.set("foo", tuple(10, 11.0, "will_join"));
+
+        pigServer.registerQuery("a = load 'foo' using mock.Storage() as (x:int, y:double, str:chararray);");
         pigServer.registerQuery("b = foreach a generate (int)null, (double)null, (chararray)null, (map[])null;");
         Iterator<Tuple> it = pigServer.openIterator("b");
         Tuple t = it.next();
         for (int i = 0; i < 3; i++) {
-            assertEquals(null, t.get(i));
+            assertNull(t.get(i));
         }
-        Util.deleteFile(cluster, inputFileName);
     }
-    
+
     @Test
     public void testComplexNullConstants() throws IOException, ExecException {
-        String inputFileName = "testComplexNullConstants-input.txt";
-        Util.createInputFile(cluster, inputFileName, 
-                new String[] {"10\t11.0\tstring"});
-        pigServer.registerQuery("a = load '" + inputFileName + "' as (x:int, y:double, str:chararray);");
+        Data data = resetData(pigServer);
+        data.set("foo", tuple(10, 11.0, "will_join"));
+
+        pigServer.registerQuery("a = load 'foo' using mock.Storage() as (x:int, y:double, str:chararray);");
         pigServer.registerQuery("b = foreach a generate {(null)}, ['2'#null];");
         Iterator<Tuple> it = pigServer.openIterator("b");
         Tuple t = it.next();
-        assertEquals(null, ((DataBag)t.get(0)).iterator().next().get(0));
-        assertEquals(null, ((Map<String, Object>)t.get(1)).get("2"));
-        Util.deleteFile(cluster, inputFileName);
+        assertNull(((DataBag)t.get(0)).iterator().next().get(0));
+        assertNull(((Map<String, Object>)t.get(1)).get("2"));
     }
 
-    @Test
+    @Test(expected = FrontendException.class)
     public void testMapNullKeyFailure() throws IOException {
-        String inputFileName = "testMapNullKeyFailure-input.txt";
-        Util.createInputFile(cluster, inputFileName, 
-                new String[] {"10\t11.0\tstring"});
-        pigServer.registerQuery("a = load '" + inputFileName + "' as (x:int, y:double, str:chararray);");
+        Data data = resetData(pigServer);
+        data.set("foo", tuple(10, 11.0, "will_join"));
 
-        boolean exceptionOccured = false;
-        try {
-            pigServer.registerQuery("b = foreach a generate [null#'2'];");
-        } catch(Exception e) {
-            exceptionOccured = true;
-        }
-        Util.deleteFile(cluster, inputFileName);
-        if(!exceptionOccured) fail();        
+        pigServer.registerQuery("a = load 'foo' using mock.Storage() as (x:int, y:double, str:chararray);");
+        pigServer.registerQuery("b = foreach a generate [null#'2'];");
     }
 }

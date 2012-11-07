@@ -21,6 +21,11 @@ package org.apache.pig.test;
 import static org.apache.pig.builtin.mock.Storage.bag;
 import static org.apache.pig.builtin.mock.Storage.resetData;
 import static org.apache.pig.builtin.mock.Storage.tuple;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -34,8 +39,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import junit.framework.TestCase;
-
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.mock.Storage.Data;
@@ -45,202 +48,198 @@ import org.apache.pig.data.DefaultDataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.scripting.groovy.GroovyUtils;
-import org.junit.Assert;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
-public class TestUDFGroovy extends TestCase {
+public class TestUDFGroovy {
 
   @Test
   public void testPigToGroovy() throws Exception {
     Object pigObject = Boolean.TRUE;
     Object groovyObject = GroovyUtils.pigToGroovy(pigObject);
-    Assert.assertTrue(groovyObject instanceof Boolean);
-    Assert.assertEquals(true, groovyObject);
+    assertTrue(groovyObject instanceof Boolean);
+    assertEquals(true, groovyObject);
 
     pigObject = Integer.valueOf(42);
     groovyObject = GroovyUtils.pigToGroovy(pigObject);
-    Assert.assertTrue(groovyObject instanceof Integer);
-    Assert.assertEquals(42, groovyObject);
+    assertTrue(groovyObject instanceof Integer);
+    assertEquals(42, groovyObject);
 
     pigObject = Long.valueOf(0x100000000L);
     groovyObject = GroovyUtils.pigToGroovy(pigObject);
-    Assert.assertTrue(groovyObject instanceof Long);
-    Assert.assertEquals(0x100000000L, groovyObject);
+    assertTrue(groovyObject instanceof Long);
+    assertEquals(0x100000000L, groovyObject);
 
     pigObject = Float.MIN_VALUE;
     groovyObject = GroovyUtils.pigToGroovy(pigObject);
-    Assert.assertTrue(groovyObject instanceof Float);
-    Assert.assertEquals(Float.MIN_VALUE, groovyObject);
+    assertTrue(groovyObject instanceof Float);
+    assertEquals(Float.MIN_VALUE, groovyObject);
 
     pigObject = Double.MAX_VALUE;
     groovyObject = GroovyUtils.pigToGroovy(pigObject);
-    Assert.assertTrue(groovyObject instanceof Double);
-    Assert.assertEquals(Double.MAX_VALUE, groovyObject);
+    assertTrue(groovyObject instanceof Double);
+    assertEquals(Double.MAX_VALUE, groovyObject);
 
     pigObject = "Dans le cochon tout est bon !";
     groovyObject = GroovyUtils.pigToGroovy(pigObject);
-    Assert.assertTrue(groovyObject instanceof String);
-    Assert.assertEquals("Dans le cochon tout est bon !", groovyObject);
+    assertTrue(groovyObject instanceof String);
+    assertEquals("Dans le cochon tout est bon !", groovyObject);
 
     pigObject = new DataByteArray("Surtout le jambon".getBytes("UTF-8"));
     groovyObject = GroovyUtils.pigToGroovy(pigObject);
-    Assert.assertTrue(groovyObject instanceof byte[]);
-    Assert.assertArrayEquals("Surtout le jambon".getBytes("UTF-8"), (byte[]) groovyObject);
+    assertTrue(groovyObject instanceof byte[]);
+    assertArrayEquals("Surtout le jambon".getBytes("UTF-8"), (byte[]) groovyObject);
 
     pigObject = tuple("a","b","c");
     groovyObject = GroovyUtils.pigToGroovy(pigObject);
-    Assert.assertTrue(groovyObject instanceof groovy.lang.Tuple);
-    Assert.assertEquals(3, ((groovy.lang.Tuple) groovyObject).size());
-    Assert.assertEquals("a", ((groovy.lang.Tuple) groovyObject).get(0));
-    Assert.assertEquals("b", ((groovy.lang.Tuple) groovyObject).get(1));
-    Assert.assertEquals("c", ((groovy.lang.Tuple) groovyObject).get(2));
+    assertTrue(groovyObject instanceof groovy.lang.Tuple);
+    assertEquals(3, ((groovy.lang.Tuple) groovyObject).size());
+    assertEquals("a", ((groovy.lang.Tuple) groovyObject).get(0));
+    assertEquals("b", ((groovy.lang.Tuple) groovyObject).get(1));
+    assertEquals("c", ((groovy.lang.Tuple) groovyObject).get(2));
 
     pigObject = bag(tuple("a"), tuple("b"));
     groovyObject = GroovyUtils.pigToGroovy(pigObject);
-    Assert.assertTrue(groovyObject instanceof groovy.lang.Tuple);
-    Assert.assertEquals(2, ((groovy.lang.Tuple) groovyObject).size());
-    Assert.assertEquals(2L, ((groovy.lang.Tuple) groovyObject).get(0));
-    Assert.assertTrue(((groovy.lang.Tuple) groovyObject).get(1) instanceof Iterator);
+    assertTrue(groovyObject instanceof groovy.lang.Tuple);
+    assertEquals(2, ((groovy.lang.Tuple) groovyObject).size());
+    assertEquals(2L, ((groovy.lang.Tuple) groovyObject).get(0));
+    assertTrue(((groovy.lang.Tuple) groovyObject).get(1) instanceof Iterator);
     Iterator<groovy.lang.Tuple> iter = (Iterator) ((groovy.lang.Tuple) groovyObject).get(1);
     groovy.lang.Tuple t = iter.next();
-    Assert.assertEquals(1, t.size());
-    Assert.assertEquals("a", t.get(0));
+    assertEquals(1, t.size());
+    assertEquals("a", t.get(0));
     t = iter.next();
-    Assert.assertEquals(1, t.size());
-    Assert.assertEquals("b", t.get(0));
+    assertEquals(1, t.size());
+    assertEquals("b", t.get(0));
 
     pigObject = new HashMap<String, String>();
     ((Map) pigObject).put("Pate", "Henaff");
     ((Map) pigObject).put("Rillettes", "Bordeau Chesnel");
     groovyObject = GroovyUtils.pigToGroovy(pigObject);
-    Assert.assertTrue(groovyObject instanceof Map);
-    Assert.assertEquals(2, ((Map) groovyObject).size());
-    Assert.assertEquals("Henaff", ((Map) groovyObject).get("Pate"));
-    Assert.assertEquals("Bordeau Chesnel", ((Map) groovyObject).get("Rillettes"));
+    assertTrue(groovyObject instanceof Map);
+    assertEquals(2, ((Map) groovyObject).size());
+    assertEquals("Henaff", ((Map) groovyObject).get("Pate"));
+    assertEquals("Bordeau Chesnel", ((Map) groovyObject).get("Rillettes"));
 
     pigObject = null;
     groovyObject = GroovyUtils.pigToGroovy(pigObject);
-    Assert.assertNull(groovyObject);
+    assertNull(groovyObject);
   }
 
   @Test
   public void testGroovyToPig() throws Exception {
     Object groovyObject = Boolean.TRUE;
     Object pigObject = GroovyUtils.groovyToPig(groovyObject);
-    Assert.assertTrue(pigObject instanceof Boolean);
-    Assert.assertEquals(true, pigObject);
+    assertTrue(pigObject instanceof Boolean);
+    assertEquals(true, pigObject);
 
     groovyObject = Byte.MIN_VALUE;
     pigObject = GroovyUtils.groovyToPig(groovyObject);
-    Assert.assertTrue(pigObject instanceof Integer);
-    Assert.assertEquals((int) Byte.MIN_VALUE, pigObject);
+    assertTrue(pigObject instanceof Integer);
+    assertEquals((int) Byte.MIN_VALUE, pigObject);
 
     groovyObject = Short.MIN_VALUE;
     pigObject = GroovyUtils.groovyToPig(groovyObject);
-    Assert.assertTrue(pigObject instanceof Integer);
-    Assert.assertEquals((int) Short.MIN_VALUE, pigObject);
+    assertTrue(pigObject instanceof Integer);
+    assertEquals((int) Short.MIN_VALUE, pigObject);
 
     groovyObject = Integer.MIN_VALUE;
     pigObject = GroovyUtils.groovyToPig(groovyObject);
-    Assert.assertTrue(pigObject instanceof Integer);
-    Assert.assertEquals(Integer.MIN_VALUE, pigObject);
+    assertTrue(pigObject instanceof Integer);
+    assertEquals(Integer.MIN_VALUE, pigObject);
 
     groovyObject = Long.MIN_VALUE;
     pigObject = GroovyUtils.groovyToPig(groovyObject);
-    Assert.assertTrue(pigObject instanceof Long);
-    Assert.assertEquals(Long.MIN_VALUE, pigObject);
+    assertTrue(pigObject instanceof Long);
+    assertEquals(Long.MIN_VALUE, pigObject);
 
     groovyObject = BigInteger.TEN;
     pigObject = GroovyUtils.groovyToPig(groovyObject);
-    Assert.assertTrue(pigObject instanceof Long);
-    Assert.assertEquals(10L, pigObject);
+    assertTrue(pigObject instanceof Long);
+    assertEquals(10L, pigObject);
 
     groovyObject = Float.MIN_NORMAL;
     pigObject = GroovyUtils.groovyToPig(groovyObject);
-    Assert.assertTrue(pigObject instanceof Float);
-    Assert.assertEquals(Float.MIN_NORMAL, pigObject);
+    assertTrue(pigObject instanceof Float);
+    assertEquals(Float.MIN_NORMAL, pigObject);
 
     groovyObject = Double.MIN_VALUE;
     pigObject = GroovyUtils.groovyToPig(groovyObject);
-    Assert.assertTrue(pigObject instanceof Double);
-    Assert.assertEquals(Double.MIN_VALUE, pigObject);
+    assertTrue(pigObject instanceof Double);
+    assertEquals(Double.MIN_VALUE, pigObject);
 
     groovyObject = new BigDecimal("42.42");
     pigObject = GroovyUtils.groovyToPig(groovyObject);
-    Assert.assertTrue(pigObject instanceof Double);
-    Assert.assertEquals(42.42D, pigObject);
+    assertTrue(pigObject instanceof Double);
+    assertEquals(42.42D, pigObject);
 
     groovyObject = "Dans le cochon tout est bon !";
     pigObject = GroovyUtils.groovyToPig(groovyObject);
-    Assert.assertTrue(pigObject instanceof String);
-    Assert.assertEquals("Dans le cochon tout est bon !", pigObject);
+    assertTrue(pigObject instanceof String);
+    assertEquals("Dans le cochon tout est bon !", pigObject);
 
     groovyObject = "Surtout le jambon".getBytes("UTF-8");
     pigObject = GroovyUtils.groovyToPig(groovyObject);
-    Assert.assertTrue(pigObject instanceof DataByteArray);
-    Assert.assertArrayEquals("Surtout le jambon".getBytes("UTF-8"), ((DataByteArray) pigObject).get());
+    assertTrue(pigObject instanceof DataByteArray);
+    assertArrayEquals("Surtout le jambon".getBytes("UTF-8"), ((DataByteArray) pigObject).get());
 
     groovyObject = new Object[2];
     ((Object[]) groovyObject)[0] = "Pate";
     ((Object[]) groovyObject)[1] = "Henaff";
     pigObject = GroovyUtils.groovyToPig(groovyObject);
-    Assert.assertTrue(pigObject instanceof Tuple);
-    Assert.assertEquals(2, ((Tuple) pigObject).size());
-    Assert.assertEquals("Pate", ((Tuple) pigObject).get(0));
-    Assert.assertEquals("Henaff", ((Tuple) pigObject).get(1));
+    assertTrue(pigObject instanceof Tuple);
+    assertEquals(2, ((Tuple) pigObject).size());
+    assertEquals("Pate", ((Tuple) pigObject).get(0));
+    assertEquals("Henaff", ((Tuple) pigObject).get(1));
 
     groovyObject = new Object[2];
     ((Object[]) groovyObject)[0] = "Rillettes";
     ((Object[]) groovyObject)[1] = "Bordeau Chesnel";
     groovyObject = new groovy.lang.Tuple((Object[]) groovyObject);
     pigObject = GroovyUtils.groovyToPig(groovyObject);
-    Assert.assertTrue(pigObject instanceof Tuple);
-    Assert.assertEquals(2, ((Tuple) pigObject).size());
-    Assert.assertEquals("Rillettes", ((Tuple) pigObject).get(0));
-    Assert.assertEquals("Bordeau Chesnel", ((Tuple) pigObject).get(1));
+    assertTrue(pigObject instanceof Tuple);
+    assertEquals(2, ((Tuple) pigObject).size());
+    assertEquals("Rillettes", ((Tuple) pigObject).get(0));
+    assertEquals("Bordeau Chesnel", ((Tuple) pigObject).get(1));
 
     groovyObject = new ArrayList<Object>();
     ((List<Object>) groovyObject).add("Jaret");
     ((List<Object>) groovyObject).add("Filet Mignon");
     pigObject = GroovyUtils.groovyToPig(groovyObject);
-    Assert.assertTrue(pigObject instanceof DataBag);
-    Assert.assertEquals(2, ((DataBag) pigObject).size());
+    assertTrue(pigObject instanceof DataBag);
+    assertEquals(2, ((DataBag) pigObject).size());
     Iterator<Tuple> iter = ((DataBag) pigObject).iterator();
     Set<String> values = new HashSet<String>();
     while (iter.hasNext()) {
       Tuple t = iter.next();
-      Assert.assertEquals(1, t.size());
+      assertEquals(1, t.size());
       values.add((String) t.get(0));
     }
-    Assert.assertEquals(2, values.size());
-    Assert.assertTrue(values.contains("Jaret"));
-    Assert.assertTrue(values.contains("Filet Mignon"));
+    assertEquals(2, values.size());
+    assertTrue(values.contains("Jaret"));
+    assertTrue(values.contains("Filet Mignon"));
 
     groovyObject = new HashMap<String, String>();
     ((Map) groovyObject).put("Henaff", "a bord");
     ((Map) groovyObject).put("Copains", "comme cochons");
     pigObject = GroovyUtils.groovyToPig(groovyObject);
-    Assert.assertTrue(pigObject instanceof Map);
-    Assert.assertEquals(2, ((Map) pigObject).size());
-    Assert.assertEquals("a bord", ((Map) pigObject).get("Henaff"));
-    Assert.assertEquals("comme cochons", ((Map) pigObject).get("Copains"));
+    assertTrue(pigObject instanceof Map);
+    assertEquals(2, ((Map) pigObject).size());
+    assertEquals("a bord", ((Map) pigObject).get("Henaff"));
+    assertEquals("comme cochons", ((Map) pigObject).get("Copains"));
 
     groovyObject = TupleFactory.getInstance().newTuple(2);
     ((Tuple) groovyObject).set(0, "jambon");
     ((Tuple) groovyObject).set(1, "blanc");
     pigObject = GroovyUtils.groovyToPig(groovyObject);
-    Assert.assertSame(groovyObject, pigObject);
+    assertSame(groovyObject, pigObject);
 
     groovyObject = new DefaultDataBag();
     pigObject = GroovyUtils.groovyToPig(groovyObject);
-    Assert.assertSame(groovyObject, pigObject);
+    assertSame(groovyObject, pigObject);
 
     groovyObject = null;
     pigObject = GroovyUtils.groovyToPig(groovyObject);
-    Assert.assertNull(pigObject);
+    assertNull(pigObject);
   }
 
   @Test
@@ -280,10 +279,10 @@ public class TestUDFGroovy extends TestCase {
     pigServer.registerQuery("STORE B INTO 'bar0' USING mock.Storage();");
 
     List<Tuple> out = data.get("bar0");
-    Assert.assertEquals(tuple(1L), out.get(0));
-    Assert.assertEquals(tuple(4L), out.get(1));
-    Assert.assertEquals(tuple(9L), out.get(2));
-    Assert.assertEquals(tuple(16L), out.get(3));
+    assertEquals(tuple(1L), out.get(0));
+    assertEquals(tuple(4L), out.get(1));
+    assertEquals(tuple(9L), out.get(2));
+    assertEquals(tuple(16L), out.get(3));
   }
 
   @Test
@@ -324,7 +323,7 @@ public class TestUDFGroovy extends TestCase {
     pigServer.registerQuery("STORE B INTO 'bar1' USING mock.Storage();");
 
     List<Tuple> out = data.get("bar1");
-    Assert.assertEquals(tuple(42L), out.get(0));
+    assertEquals(tuple(42L), out.get(0));
   }
 
   @Test
@@ -387,7 +386,7 @@ public class TestUDFGroovy extends TestCase {
     pigServer.registerQuery("STORE C INTO 'bar2' USING mock.Storage();");
 
     List<Tuple> out = data.get("bar2");
-    Assert.assertEquals(tuple(10L), out.get(0));
+    assertEquals(tuple(10L), out.get(0));
   }
 
   @Test
@@ -443,7 +442,7 @@ public class TestUDFGroovy extends TestCase {
     pigServer.registerQuery("STORE C INTO 'bar3' USING mock.Storage();");
 
     List<Tuple> out = data.get("bar3");
-    Assert.assertEquals(tuple(10L,10L), out.get(0));
+    assertEquals(tuple(10L,10L), out.get(0));
   }
 
   @Test
@@ -485,7 +484,7 @@ public class TestUDFGroovy extends TestCase {
 
     List<Tuple> out = data.get("bar4");
     // Multiplying two floats leads to a double in Groovy, this is reflected here.
-    Assert.assertEquals(tuple(1,1L,1.0D,1.0D), out.get(0));
-    Assert.assertEquals(tuple(4,4L,4.0D,4.0D), out.get(1));
+    assertEquals(tuple(1,1L,1.0D,1.0D), out.get(0));
+    assertEquals(tuple(4,4L,4.0D,4.0D), out.get(1));
   }
 }
