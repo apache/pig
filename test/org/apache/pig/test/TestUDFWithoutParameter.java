@@ -17,55 +17,53 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.File;
 import java.io.FileWriter;
-import java.io.IOException;
 import java.util.Iterator;
-
-import junit.framework.TestCase;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
-public class TestUDFWithoutParameter extends TestCase {
+public class TestUDFWithoutParameter {
 
-	static String[] ScriptStatement = { "A = LOAD 'test/org/apache/pig/test/data/passwd' USING PigStorage();",
-			"B = FOREACH A GENERATE org.apache.pig.test.utils.MyUDFWithoutParameter();" };
+    static String[] ScriptStatement = { "A = LOAD 'test/org/apache/pig/test/data/passwd' USING PigStorage();",
+            "B = FOREACH A GENERATE org.apache.pig.test.utils.MyUDFWithoutParameter();" };
 
-	static File TempScriptFile = null;
+    static File TempScriptFile = null;
 
-	@Override
-	protected void setUp() throws Exception {
-		TempScriptFile = File.createTempFile("temp_jira_753", ".pig");
-		FileWriter writer=new FileWriter(TempScriptFile);
-		for (String line:ScriptStatement){
-			writer.write(line+"\n");
-		}
-		writer.close();
-	}
+    @Before
+    public void setUp() throws Exception {
+        TempScriptFile = File.createTempFile("temp_jira_753", ".pig");
+        FileWriter writer=new FileWriter(TempScriptFile);
+        for (String line:ScriptStatement){
+            writer.write(line+"\n");
+        }
+        writer.close();
+    }
 
-	public void testUDFWithoutParameter() {
-		try {
-			PigServer pig = new PigServer(ExecType.LOCAL);
-			pig.registerScript(TempScriptFile.getAbsolutePath());
-			
-			Iterator<Tuple> iterator=pig.openIterator("B");
-			int index=0;
-			while(iterator.hasNext()){
-				Tuple tuple=iterator.next();
-				index++;
-				int result=(Integer)tuple.get(0);
-				assertEquals(result, index);
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-			fail();
-		}
-	}
-	
-	@Override
-	protected void tearDown() throws Exception {
-		TempScriptFile.delete();
-	}
+    @Test
+    public void testUDFWithoutParameter() throws Exception {
+        PigServer pig = new PigServer(ExecType.LOCAL);
+        pig.registerScript(TempScriptFile.getAbsolutePath());
+
+        Iterator<Tuple> iterator=pig.openIterator("B");
+        int index=0;
+        while(iterator.hasNext()){
+            Tuple tuple=iterator.next();
+            index++;
+            int result=(Integer)tuple.get(0);
+            assertEquals(result, index);
+        }
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        TempScriptFile.delete();
+    }
 }

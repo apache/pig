@@ -17,6 +17,8 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -26,11 +28,10 @@ import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.util.Iterator;
 
-import junit.framework.TestCase;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.EvalFunc;
+import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -46,25 +47,23 @@ import org.apache.pig.test.utils.TestHelper;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestLocal extends TestCase {
+public class TestLocal {
 
     private Log log = LogFactory.getLog(getClass());
-    
+
 
     private PigServer pig;
-    
+
     @Before
-    @Override
-    protected void setUp() throws Exception {
-        //pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-        pig = new PigServer("local");
+    public void setUp() throws Exception {
+        pig = new PigServer(ExecType.LOCAL);
     }
 
     @Test
     public void testBigGroupAll() throws Throwable {
 
         int LOOP_COUNT = 4*1024;
-        File tmpFile = File.createTempFile( this.getName(), ".txt");
+        File tmpFile = File.createTempFile( this.getClass().getName(), ".txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < LOOP_COUNT; i++) {
             ps.println(i);
@@ -79,7 +78,7 @@ public class TestLocal extends TestCase {
     public void testBigGroupAllWithNull() throws Throwable {
 
         int LOOP_COUNT = 4*1024;
-        File tmpFile = File.createTempFile( this.getName(), ".txt");
+        File tmpFile = File.createTempFile( this.getClass().getName(), ".txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         long nonNullCnt = 0;
         for(int i = 0; i < LOOP_COUNT; i++) {
@@ -98,7 +97,6 @@ public class TestLocal extends TestCase {
 
     }
 
-    @Test
     public Double bigGroupAll( File tmpFile ) throws Throwable {
 
         String query = "foreach (group (load '"
@@ -106,13 +104,13 @@ public class TestLocal extends TestCase {
                 + "') all) generate " + COUNT.class.getName() + "($1) ;";
         System.out.println(query);
         pig.registerQuery("asdf_id = " + query);
-        Iterator it = pig.openIterator("asdf_id");
-        Tuple t = (Tuple)it.next();
+        Iterator<Tuple> it = pig.openIterator("asdf_id");
+        Tuple t = it.next();
 
         return  DataType.toDouble(t.get(0));
     }
 
-    
+
     static public class MyApply extends EvalFunc<DataBag> {
         String field0 = "Got";
         public MyApply() {}
@@ -121,23 +119,15 @@ public class TestLocal extends TestCase {
         }
         @Override
         public DataBag exec(Tuple input) throws IOException {
-            try {
-                DataBag output = BagFactory.getInstance().newDefaultBag();
-                Iterator<Tuple> it = (DataType.toBag(input.get(0))).iterator();
-                while(it.hasNext()) {
-                    Tuple t = it.next();
-                    Tuple newT = TupleFactory.getInstance().newTuple(2);
-                    newT.set(0, field0);
-                    newT.set(1, t.get(0).toString());
-                    output.add(newT);
-                }
-
-                return output;
-            } catch (ExecException ee) {
-                IOException ioe = new IOException(ee.getMessage());
-                ioe.initCause(ee);
-                throw ioe;
+            DataBag output = BagFactory.getInstance().newDefaultBag();
+            for (Tuple t : DataType.toBag(input.get(0))) {
+                Tuple newT = TupleFactory.getInstance().newTuple(2);
+                newT.set(0, field0);
+                newT.set(1, t.get(0).toString());
+                output.add(newT);
             }
+
+            return output;
         }
     }
     static public class MyGroup extends EvalFunc<Tuple> {
@@ -165,14 +155,14 @@ public class TestLocal extends TestCase {
         public void setNulls(boolean hasNulls ) { this.hasNulls=hasNulls; }
 
         /**
-         * 
+         *
          */
         public MyStorage() {
             // initialize delimiter to be "-" for output
             // since that is the delimiter in the tests below
             super("-");
         }
-        
+
         @Override
         public Tuple getNext() throws IOException {
             if (count < COUNT) {
@@ -242,7 +232,7 @@ public class TestLocal extends TestCase {
         String[][] data = genDataSetFile1( 10, true );
         storeFunction( data);
     }
-   
+
     public void storeFunction(String[][] data) throws Throwable {
 
         File tmpFile=TestHelper.createTempFile(data) ;
@@ -302,11 +292,11 @@ public class TestLocal extends TestCase {
         pig.registerQuery("asdf_id = " + query);
 
         //Verfiy query
-        Iterator it = pig.openIterator("asdf_id");
+        Iterator<Tuple> it = pig.openIterator("asdf_id");
         Tuple t;
         int count = 0;
         while(it.hasNext()) {
-            t = (Tuple) it.next();
+            t = it.next();
             assertEquals(t.get(0).toString(), "Got");
             Integer.parseInt(t.get(1).toString());
             count++;
@@ -315,7 +305,7 @@ public class TestLocal extends TestCase {
         assertEquals( MyStorage.COUNT, count );
         tmpFile.delete();
     }
-    
+
     @Test
     public void testQualifiedFunctionsWithNulls() throws Throwable {
 
@@ -354,7 +344,7 @@ public class TestLocal extends TestCase {
         assertEquals( MyStorage.COUNT, count );
         tmpFile.delete();
     }
-    
+
 
     @Test
     public void testDefinedFunctions() throws Throwable {
@@ -405,7 +395,6 @@ public class TestLocal extends TestCase {
     }
 
 
-    @Test
     public void definedFunctions(String[][] data) throws Throwable {
 
         File tmpFile=TestHelper.createTempFile(data) ;
@@ -477,11 +466,11 @@ public class TestLocal extends TestCase {
      *           3  3
      *           4  4
      *           5  5
-     *           6   
+     *           6
      *           7  7
-     *               
+     *
      *           9  9
-     *           
+     *
      */
     private String[][] genDataSetFile1( int dataLength, boolean hasNulls ) throws IOException {
 
@@ -498,7 +487,7 @@ public class TestLocal extends TestCase {
                     data[i][1] = new Integer(i).toString();
 
              } else if ( i == 6 ) {
-                   
+
                     data[i][0] = new Integer(i).toString();
                     data[i][1] = "";
 
@@ -526,6 +515,4 @@ public class TestLocal extends TestCase {
          return  data;
 
     }
-
-
 }

@@ -18,11 +18,12 @@
 
 package org.apache.pig.test;
 
-import junit.framework.TestCase;
-import org.junit.Test;
-import org.apache.pig.impl.PigContext;
+import static org.junit.Assert.fail;
 
-public class TestInstantiateFunc extends TestCase {
+import org.apache.pig.impl.PigContext;
+import org.junit.Test;
+
+public class TestInstantiateFunc {
 
     static final String TEST_CLASS
                     = "org.apache.pig.test.TestInstantiateFunc$TestClass" ;
