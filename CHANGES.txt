@@ -352,6 +352,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2405: some unit test case failed with open JDK (fang fang chen via cheolsoo)
+
 PIG-3018: Refactor TestScriptLanguage to remove duplication and write script in different files (julien)
 
 PIG-2973: TestStreaming test times out (cheolsoo)
