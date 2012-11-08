@@ -54,6 +54,7 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.newplan.logical.rules.ColumnPruneVisitor;
+import org.apache.pig.test.utils.TestHelper;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -206,6 +207,9 @@ public class TestPruneColumn extends TestCase {
             while ((line=reader.readLine())!=null)
             {
                 logMessages.add(line);
+            }
+            if (logMessages.size() > 0) {
+                logMessages = TestHelper.sortSubFields(logMessages);
             }
 
             // Check if all messages appear in the log
@@ -1197,7 +1201,7 @@ public class TestPruneColumn extends TestCase {
         assertFalse(iter.hasNext());
 
         assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $0",
-                "Map key required for A: $1->[key2, key1]"}));
+                "Map key required for A: $1->[key1, key2]"}));
     }
 
     @Test
@@ -1284,7 +1288,7 @@ public class TestPruneColumn extends TestCase {
 
         assertFalse(iter.hasNext());
 
-        assertTrue(checkLogFileMessage(new String[]{"Map key required for A: $0->[key2, key1]"}));
+        assertTrue(checkLogFileMessage(new String[]{"Map key required for A: $0->[key1, key2]"}));
     }
 
     @SuppressWarnings("rawtypes")
@@ -1610,7 +1614,7 @@ public class TestPruneColumn extends TestCase {
 
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
-        assertTrue(t.toString().equals("([2#1,1#1])"));
+        assertEquals("([1#1, 2#1])", TestHelper.sortString("\\[(.*)\\]", t.toString(), ","));
 
         assertFalse(iter.hasNext());
 
@@ -2102,8 +2106,8 @@ public class TestPruneColumn extends TestCase {
 
         Util.checkQueryOutputsAfterSortRecursive(iter, expected, org.apache.pig.newplan.logical.Util.translateSchema(pigServer.dumpSchema("event_serve_join")));
 
-        assertTrue(checkLogFileMessage(new String[]{"Map key required for event_serve: $0->[key4, key3]", 
-                "Map key required for cm_data_raw: $0->[key4, key3, key5]"}));
+        assertTrue(checkLogFileMessage(new String[]{"Map key required for event_serve: $0->[key3, key4]",
+                "Map key required for cm_data_raw: $0->[key3, key4, key5]"}));
     }
 
     // See PIG-2535
@@ -2126,8 +2130,8 @@ public class TestPruneColumn extends TestCase {
 
         pigServer.explain("event_serve_join", System.out);
 
-        assertTrue(checkLogFileMessage(new String[]{"Map key required for event_serve: $0->[event_guid, receive_time, filter_key]",
-                "Map key required for raw: $0->[source, p_url, cm_serve_timestamp_ms, cm_serve_id, type]"}));
+        assertTrue(checkLogFileMessage(new String[]{"Map key required for event_serve: $0->[event_guid, filter_key, receive_time]",
+                "Map key required for raw: $0->[cm_serve_id, cm_serve_timestamp_ms, p_url, source, type]"}));
     }
 
 }

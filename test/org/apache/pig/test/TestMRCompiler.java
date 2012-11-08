@@ -75,6 +75,7 @@ import org.apache.pig.impl.util.Utils;
 import org.apache.pig.test.junit.OrderedJUnit4Runner;
 import org.apache.pig.test.junit.OrderedJUnit4Runner.TestOrder;
 import org.apache.pig.test.utils.GenPhyOp;
+import org.apache.pig.test.utils.TestHelper;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -1121,7 +1122,7 @@ public class TestMRCompiler {
         System.out.println("Golden");
         System.out.println("<<<" + goldenPlan + ">>>");
         System.out.println("-------------");
-        assertEquals(removeSignature(goldenPlan), removeSignature(compiledPlan));
+        assertEquals(TestHelper.sortUDFs(removeSignature(goldenPlan)), TestHelper.sortUDFs(removeSignature(compiledPlan)));
     }
 
     /**
