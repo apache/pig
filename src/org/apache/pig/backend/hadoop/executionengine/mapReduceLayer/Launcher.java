@@ -562,10 +562,12 @@ public abstract class Launcher {
         items = fileDetails.split(":");
         //PigMapOnly.java
         String fileName = null;
-        int lineNumber = 0;
+        int lineNumber = -1;
         if(items.length > 0) {
             fileName = items[0];
-            lineNumber = Integer.parseInt(items[1]);
+            if (items.length > 1) {
+                lineNumber = Integer.parseInt(items[1]);
+            }
         }
         return new StackTraceElement(declaringClass, methodName, fileName, lineNumber);
     }
