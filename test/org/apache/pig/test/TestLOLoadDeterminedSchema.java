@@ -1,14 +1,12 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
+ * or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
+ * regarding copyright ownership. The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * with the License. You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,6 +14,10 @@
  * limitations under the License.
  */
 package org.apache.pig.test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -33,94 +35,85 @@ import org.apache.pig.test.utils.ScriptSchemaTestLoader;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 /**
- * 
+ *
  * Tests that the LOLoad class sets the script schema correctly as expected.<br/>
  * This way of passing the script schema is not an optimal solution but will be
  * used currently inorder not to break code by adding new methods the to
  * LoadFunc or other Classes. For more information please see
  * https://issues.apache.org/jira/browse/PIG-1717
- * 
+ *
  */
-@RunWith(JUnit4.class)
-public class TestLOLoadDeterminedSchema extends junit.framework.TestCase {
+public class TestLOLoadDeterminedSchema {
+    PigContext pc;
+    PigServer server;
 
-	PigContext pc;
-	PigServer server;
+    File baseDir;
+    File inputFile;
 
-	File baseDir;
-	File inputFile;
+    /**
+     * Loads a test file using ScriptSchemaTestLoader with a user defined schema
+     * a,b,c.<br/>
+     * Then tests the the ScriptSchemaTestLoader found the schema.
+     *
+     * @throws IOException
+     */
+    @Test
+    public void testDeterminedSchema() throws IOException {
+        FuncSpec funcSpec = new FuncSpec(ScriptSchemaTestLoader.class.getName()
+                + "()");
 
-	/**
-	 * Loads a test file using ScriptSchemaTestLoader with a user defined schema
-	 * a,b,c.<br/>
-	 * Then tests the the ScriptSchemaTestLoader found the schema.
-	 * 
-	 * @throws IOException
-	 */
-	@Test
-	public void testDeterminedSchema() throws IOException {
+        server.registerFunction(ScriptSchemaTestLoader.class.getName(),
+                funcSpec);
 
-		FuncSpec funcSpec = new FuncSpec(ScriptSchemaTestLoader.class.getName()
-				+ "()");
+        server.registerQuery("a = LOAD '" + Util.encodeEscape(inputFile.getAbsolutePath())
+                + "' using " + ScriptSchemaTestLoader.class.getName()
+                + "() as (a, b, c) ;");
 
-		server.registerFunction(ScriptSchemaTestLoader.class.getName(),
-				funcSpec);
+        server.openIterator("a");
 
-		server.registerQuery("a = LOAD '" + Util.encodeEscape(inputFile.getAbsolutePath())
-				+ "' using " + ScriptSchemaTestLoader.class.getName()
-				+ "() as (a, b, c) ;");
+        Schema scriptSchema = ScriptSchemaTestLoader.getScriptSchema();
 
-		server.openIterator("a");
+        assertNotNull(scriptSchema);
+        assertEquals(3, scriptSchema.size());
 
-		Schema scriptSchema = ScriptSchemaTestLoader.getScriptSchema();
+        assertNotNull(scriptSchema.getField("a"));
+        assertNotNull(scriptSchema.getField("b"));
+        assertNotNull(scriptSchema.getField("c"));
+    }
 
-		assertNotNull(scriptSchema);
-		assertEquals(3, scriptSchema.size());
+    @Before
+    public void setUp() throws Exception {
+        FileLocalizer.deleteTempFiles();
+        server = new PigServer(ExecType.LOCAL, new Properties());
 
-		assertNotNull(scriptSchema.getField("a"));
-		assertNotNull(scriptSchema.getField("b"));
-		assertNotNull(scriptSchema.getField("c"));
+        baseDir = new File("build/testLoLoadDeterminedSchema");
 
-	}
+        if (baseDir.exists()) {
+            FileUtil.fullyDelete(baseDir);
+        }
 
-	@Override
-	@Before
-	public void setUp() throws Exception {
-		FileLocalizer.deleteTempFiles();
-		server = new PigServer(ExecType.LOCAL, new Properties());
+        assertTrue(baseDir.mkdirs());
 
-		baseDir = new File("build/testLoLoadDeterminedSchema");
+        inputFile = new File(baseDir, "testInput.txt");
+        inputFile.createNewFile();
 
-		if (baseDir.exists()) {
-			FileUtil.fullyDelete(baseDir);
-		}
+        // write a short input
+        FileWriter writer = new FileWriter(inputFile);
+        try {
+            writer.write("a\tb\tc");
+        } finally {
+            writer.close();
+        }
+    }
 
-		assertTrue(baseDir.mkdirs());
+    @After
+    public void tearDown() throws Exception {
+        if (baseDir.exists())
+            FileUtil.fullyDelete(baseDir);
 
-		inputFile = new File(baseDir, "testInput.txt");
-		inputFile.createNewFile();
-
-		// write a short input
-		FileWriter writer = new FileWriter(inputFile);
-		try {
-			writer.write("a\tb\tc");
-		} finally {
-			writer.close();
-		}
-
-	}
-
-	@Override
-	@After
-	public void tearDown() throws Exception {
-		if (baseDir.exists())
-			FileUtil.fullyDelete(baseDir);
-
-		server.shutdown();
-	}
-
+        server.shutdown();
+    }
 }
+

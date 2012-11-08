@@ -123,13 +123,13 @@ public class TestPigScriptParser {
         Iterator<Tuple> it = ps.openIterator("B");
         int[] expectedResults = new int[] {2,0,1,0,0};
         int i = 0;
-        while(it.hasNext()) {
+        while (it.hasNext()) {
             Tuple t = it.next();
             assertEquals(expectedResults[i++], t.get(0));
         }
     }
 
-   @Test
+    @Test
     public void testSplitWithNotEvalCondition() throws Exception {
         String defineQ = "define minelogs org.apache.pig.test.RegexGroupCount('www\\\\.xyz\\\\.com/sports');";
         String defineL = "a = load 'nosuchfile' " +
@@ -150,17 +150,17 @@ public class TestPigScriptParser {
         ps.registerQuery(queryA);
         try {
             ps.registerQuery(queryB);
-        }catch (FrontendException e) {
+        } catch (FrontendException e) {
             assertTrue(e.getMessage().contains("Undefined alias:"));
             throw e;
         }
     }
 
     private void checkParsedConstContent(PigServer pigServer,
-                                             PigContext pigContext,
-                                             String query,
-                                             String expectedContent)
-                                        throws Exception {
+                                         PigContext pigContext,
+                                         String query,
+                                         String expectedContent)
+                                         throws Exception {
         pigContext.connect();
         LogicalPlan lp = Util.buildLp(pigServer, query + "store B into 'output';");
         // Digging down the tree
@@ -190,5 +190,5 @@ public class TestPigScriptParser {
         ps.close();
         return inputFile.getPath();
     }
-
 }
+

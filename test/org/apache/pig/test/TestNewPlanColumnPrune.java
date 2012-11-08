@@ -324,7 +324,7 @@ public class TestNewPlanColumnPrune {
 
         annotation =
             (Map<Integer, Set<String>>) loadb.getAnnotation(MapKeysPruneHelper.REQUIRED_MAPKEYS);
-        assertEquals(annotation.size(), 1);
+        assertEquals(1, annotation.size());
 
         s = new HashSet<String>();
         s.add("path");
@@ -441,3 +441,4 @@ public class TestNewPlanColumnPrune {
         }
     }
 }
+

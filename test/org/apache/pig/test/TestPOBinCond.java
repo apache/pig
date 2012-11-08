@@ -178,7 +178,6 @@ public class TestPOBinCond {
             plan.attachInput(t);
             Integer i = (Integer) t.get(0);
             assertEquals(1, i | (Integer)op.getNext(i).result);
-//            System.out.println(t + " " + op.getNext(i).result.toString());
         }
 
 
@@ -222,53 +221,51 @@ public class TestPOBinCond {
 
     @Test
     public void testPOBinCondWithLong() throws  ExecException, PlanException {
-           bag= getBag(DataType.LONG);
-           TestPoBinCondHelper testHelper= new TestPoBinCondHelper(DataType.LONG, new Long(1L) );
+        bag= getBag(DataType.LONG);
+        TestPoBinCondHelper testHelper= new TestPoBinCondHelper(DataType.LONG, new Long(1L) );
 
-           for (Tuple t : bag) {
-               testHelper.getPlan().attachInput(t);
-               Long value = (Long) t.get(0);
-               int expected = (value.longValue() == 1L )? 1:0 ;
-               Integer dummy = new Integer(0);
-               Integer result=(Integer)testHelper.getOperator().getNext(dummy).result;
-               int actual = result.intValue();
-               assertEquals( expected, actual );
+        for (Tuple t : bag) {
+            testHelper.getPlan().attachInput(t);
+            Long value = (Long) t.get(0);
+            int expected = (value.longValue() == 1L )? 1:0 ;
+            Integer dummy = new Integer(0);
+            Integer result=(Integer)testHelper.getOperator().getNext(dummy).result;
+            int actual = result.intValue();
+            assertEquals( expected, actual );
         }
     }
 
     @Test
     public void testPOBinCondWithFloat() throws  ExecException, PlanException {
+       bag= getBag(DataType.FLOAT);
+       TestPoBinCondHelper testHelper= new TestPoBinCondHelper(DataType.FLOAT, new Float(1.0f) );
 
-           bag= getBag(DataType.FLOAT);
-           TestPoBinCondHelper testHelper= new TestPoBinCondHelper(DataType.FLOAT, new Float(1.0f) );
-
-           for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
-               Tuple t = it.next();
-               testHelper.getPlan().attachInput(t);
-               Float value = (Float) t.get(0);
-               int expected = (value.floatValue() == 1.0f )? 1:0 ;
-               Integer dummy = new Integer(0);
-               Integer result=(Integer)testHelper.getOperator().getNext(dummy).result;
-               int actual = result.intValue();
-               assertEquals( expected, actual );
+       for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
+           Tuple t = it.next();
+           testHelper.getPlan().attachInput(t);
+           Float value = (Float) t.get(0);
+           int expected = (value.floatValue() == 1.0f )? 1:0 ;
+           Integer dummy = new Integer(0);
+           Integer result=(Integer)testHelper.getOperator().getNext(dummy).result;
+           int actual = result.intValue();
+           assertEquals( expected, actual );
         }
 
     }
 
     @Test
     public void testPOBinCondWithDouble() throws  ExecException, PlanException {
+       bag= getBag(DataType.DOUBLE);
+       TestPoBinCondHelper testHelper= new TestPoBinCondHelper(DataType.DOUBLE, new Double(1.0) );
 
-           bag= getBag(DataType.DOUBLE);
-           TestPoBinCondHelper testHelper= new TestPoBinCondHelper(DataType.DOUBLE, new Double(1.0) );
-
-           for (Tuple t : bag) {
-               testHelper.getPlan().attachInput(t);
-               Double value = (Double) t.get(0);
-               int expected = (value.doubleValue() == 1.0 )? 1:0 ;
-               Integer dummy = new Integer(0);
-               Integer result=(Integer)testHelper.getOperator().getNext(dummy).result;
-               int actual = result.intValue();
-               assertEquals( expected, actual );
+       for (Tuple t : bag) {
+           testHelper.getPlan().attachInput(t);
+           Double value = (Double) t.get(0);
+           int expected = (value.doubleValue() == 1.0 )? 1:0 ;
+           Integer dummy = new Integer(0);
+           Integer result=(Integer)testHelper.getOperator().getNext(dummy).result;
+           int actual = result.intValue();
+           assertEquals( expected, actual );
         }
 
     }
@@ -279,23 +276,22 @@ public class TestPOBinCond {
         TestPoBinCondHelper testHelper= new TestPoBinCondHelper(DataType.DATETIME, new DateTime(1L) );
 
         for (Tuple t : bag) {
-               testHelper.getPlan().attachInput(t);
-               DateTime value = (DateTime) t.get(0);
-               int expected = value.equals(new DateTime(1L))? 1:0 ;
-               Integer dummy = new Integer(0);
-               Integer result=(Integer)testHelper.getOperator().getNext(dummy).result;
-               int actual = result.intValue();
-               assertEquals( expected, actual );
+           testHelper.getPlan().attachInput(t);
+           DateTime value = (DateTime) t.get(0);
+           int expected = value.equals(new DateTime(1L))? 1:0 ;
+           Integer dummy = new Integer(0);
+           Integer result=(Integer)testHelper.getOperator().getNext(dummy).result;
+           int actual = result.intValue();
+           assertEquals( expected, actual );
         }
     }
 
     @Test
     public void testPOBinCondIntWithNull() throws  ExecException, PlanException {
+       bag= getBagWithNulls(DataType.INTEGER);
+       TestPoBinCondHelper testHelper= new TestPoBinCondHelper(DataType.INTEGER, new Integer(1) );
 
-           bag= getBagWithNulls(DataType.INTEGER);
-           TestPoBinCondHelper testHelper= new TestPoBinCondHelper(DataType.INTEGER, new Integer(1) );
-
-           for (Tuple t : bag) {
+       for (Tuple t : bag) {
             testHelper.getPlan().attachInput(t);
             Integer value = null;
             Integer result;
@@ -315,161 +311,147 @@ public class TestPOBinCond {
             } else {
                 assertNull(result);
             }
-
        }
-
    }
 
     @Test
     public void testPOBinCondLongWithNull() throws  ExecException, PlanException {
+       bag= getBagWithNulls(DataType.LONG);
+       TestPoBinCondHelper testHelper= new TestPoBinCondHelper(DataType.LONG, new Long(1L) );
 
-           bag= getBagWithNulls(DataType.LONG);
-           TestPoBinCondHelper testHelper= new TestPoBinCondHelper(DataType.LONG, new Long(1L) );
+       for (Tuple t : bag) {
+           testHelper.getPlan().attachInput(t);
 
-           for (Tuple t : bag) {
-               testHelper.getPlan().attachInput(t);
-
-               Long value=null;
-               if ( t.get(0)!=null){
-                   value = (Long) t.get(0);
-               }
-               Integer dummy = new Integer(0);
-               Integer result=(Integer)testHelper.getOperator().getNext(dummy).result;
-               int expected;
-               int actual;
-               if ( value!=null ) {
-                   expected=(value.intValue() == 1)? 1:0 ;
-                   actual  = result.intValue();
-                   assertEquals( expected, actual );
-               } else {
-                   assertNull(result);
-               }
+           Long value=null;
+           if ( t.get(0)!=null){
+               value = (Long) t.get(0);
            }
+           Integer dummy = new Integer(0);
+           Integer result=(Integer)testHelper.getOperator().getNext(dummy).result;
+           int expected;
+           int actual;
+           if ( value!=null ) {
+               expected=(value.intValue() == 1)? 1:0 ;
+               actual  = result.intValue();
+               assertEquals( expected, actual );
+           } else {
+               assertNull(result);
+           }
+       }
     }
 
     @Test
     public void testPOBinCondDoubleWithNull() throws  ExecException, PlanException {
+       bag= getBagWithNulls(DataType.DOUBLE);
+       TestPoBinCondHelper testHelper= new TestPoBinCondHelper(DataType.DOUBLE, new Double(1.0) );
 
-           bag= getBagWithNulls(DataType.DOUBLE);
-           TestPoBinCondHelper testHelper= new TestPoBinCondHelper(DataType.DOUBLE, new Double(1.0) );
+       for (Tuple t : bag) {
+           testHelper.getPlan().attachInput(t);
 
-           for (Tuple t : bag) {
-               testHelper.getPlan().attachInput(t);
-
-               Double value=null;
-               if ( t.get(0)!=null){
-                   value = (Double) t.get(0);
-               }
-               Integer dummy = new Integer(0);
-               Integer result=(Integer)testHelper.getOperator().getNext(dummy).result;
-
-               int expected;
-               int actual;
-               if ( value!=null ) {
-                   expected=(value.intValue() == 1)? 1:0 ;
-                   actual  = result.intValue();
-                   assertEquals( expected, actual );
-               } else {
-                   assertNull(result);
-               }
-
-
+           Double value=null;
+           if ( t.get(0)!=null){
+               value = (Double) t.get(0);
            }
+           Integer dummy = new Integer(0);
+           Integer result=(Integer)testHelper.getOperator().getNext(dummy).result;
 
+           int expected;
+           int actual;
+           if ( value!=null ) {
+               expected=(value.intValue() == 1)? 1:0 ;
+               actual  = result.intValue();
+               assertEquals( expected, actual );
+           } else {
+               assertNull(result);
+           }
+       }
     }
 
     @Test
     public void testPOBinCondDateTimeWithNull() throws  ExecException, PlanException {
-
         bag= getBagWithNulls(DataType.DATETIME);
         TestPoBinCondHelper testHelper= new TestPoBinCondHelper(DataType.DATETIME, new DateTime(1L) );
 
         for (Tuple t : bag) {
-               testHelper.getPlan().attachInput(t);
+           testHelper.getPlan().attachInput(t);
 
-               DateTime value=null;
-               if ( t.get(0)!=null){
-                   value = (DateTime) t.get(0);
-               }
-               Integer dummy = new Integer(0);
-               Integer result=(Integer)testHelper.getOperator().getNext(dummy).result;
-               int expected;
-               int actual;
-               if ( value!=null ) {
-                   expected=value.equals(new DateTime(1L))? 1:0 ;
-                   actual  = result.intValue();
-                   assertEquals( expected, actual );
-               } else {
-                   assertNull(result);
-               }
+           DateTime value=null;
+           if ( t.get(0)!=null){
+               value = (DateTime) t.get(0);
            }
+           Integer dummy = new Integer(0);
+           Integer result=(Integer)testHelper.getOperator().getNext(dummy).result;
+           int expected;
+           int actual;
+           if ( value!=null ) {
+               expected=value.equals(new DateTime(1L))? 1:0 ;
+               actual  = result.intValue();
+               assertEquals( expected, actual );
+           } else {
+               assertNull(result);
+           }
+       }
     }
 
     protected class TestPoBinCondHelper {
-
         PhysicalPlan plan= null;
         POBinCond op= null;
 
-
         public <U> TestPoBinCondHelper(   byte type,  U value  )  throws  ExecException, PlanException {
 
+            ConstantExpression rt = (ConstantExpression) GenPhyOp.exprConst();
+            rt.setValue(value);
+            rt.setResultType(type);
 
-                ConstantExpression rt = (ConstantExpression) GenPhyOp.exprConst();
-                rt.setValue(value);
-                rt.setResultType(type);
-
-                POProject prj1 = GenPhyOp.exprProject();
-                prj1.setColumn(0);
-                prj1.setResultType(type);
+            POProject prj1 = GenPhyOp.exprProject();
+            prj1.setColumn(0);
+            prj1.setResultType(type);
 
 
-                EqualToExpr equal = (EqualToExpr) GenPhyOp.compEqualToExpr();
-                equal.setLhs(prj1);
-                equal.setRhs(rt);
-                equal.setOperandType(type);
+            EqualToExpr equal = (EqualToExpr) GenPhyOp.compEqualToExpr();
+            equal.setLhs(prj1);
+            equal.setRhs(rt);
+            equal.setOperandType(type);
 
-                POProject prjLhs = GenPhyOp.exprProject();
-                prjLhs.setResultType(DataType.INTEGER);
-                prjLhs.setColumn(1);
+            POProject prjLhs = GenPhyOp.exprProject();
+            prjLhs.setResultType(DataType.INTEGER);
+            prjLhs.setColumn(1);
 
-                POProject prjRhs =prjRhs = GenPhyOp.exprProject();
-                prjRhs.setResultType(DataType.INTEGER);
-                prjRhs.setColumn(2);
+            POProject prjRhs =prjRhs = GenPhyOp.exprProject();
+            prjRhs.setResultType(DataType.INTEGER);
+            prjRhs.setColumn(2);
 
-                op = new POBinCond(new OperatorKey("", r.nextLong()), -1, equal, prjLhs, prjRhs);
-                op.setResultType(DataType.INTEGER);
+            op = new POBinCond(new OperatorKey("", r.nextLong()), -1, equal, prjLhs, prjRhs);
+            op.setResultType(DataType.INTEGER);
 
-                plan= new PhysicalPlan();
-                plan.add(op);
-                plan.add(prjLhs);
-                plan.add(prjRhs);
-                plan.add(equal);
-                plan.connect(equal, op);
-                plan.connect(prjLhs, op);
-                plan.connect(prjRhs, op);
+            plan= new PhysicalPlan();
+            plan.add(op);
+            plan.add(prjLhs);
+            plan.add(prjRhs);
+            plan.add(equal);
+            plan.connect(equal, op);
+            plan.connect(prjLhs, op);
+            plan.connect(prjRhs, op);
 
-                plan.add(prj1);
-                plan.add(rt);
-                plan.connect(prj1, equal);
-                plan.connect(rt, equal);
+            plan.add(prj1);
+            plan.add(rt);
+            plan.connect(prj1, equal);
+            plan.connect(rt, equal);
 
-               // File tmpFile = File.createTempFile("test", ".txt" );
-               //PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
-               //plan.explain(ps);
-               //ps.close();
+           // File tmpFile = File.createTempFile("test", ".txt" );
+           //PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+           //plan.explain(ps);
+           //ps.close();
 
-            }
+        }
 
         public PhysicalPlan getPlan(){
             return plan;
         }
 
-
         public POBinCond getOperator(){
             return op;
         }
-
-
     }
 
     private DataBag getBag(byte type) {
@@ -538,3 +520,4 @@ public class TestPOBinCond {
         return bag;
     }
 }
+

@@ -664,7 +664,7 @@ public class TestJoin {
         LogicalPlan lp = Util.buildLp(pigServer, query);
         Operator store = lp.getSinks().get(0);
         LOJoin join = (LOJoin) lp.getPredecessors( store ).get(0);
-       assertEquals(JOINTYPE.HASH, join.getJoinType());
+        assertEquals(JOINTYPE.HASH, join.getJoinType());
     }
 
     @Test
@@ -690,6 +690,7 @@ public class TestJoin {
         LogicalPlan lp = Util.buildLp(pigServer, query);
         Operator store = lp.getSinks().get(0);
         LOJoin join = (LOJoin) lp.getPredecessors( store ).get(0);
-       assertEquals(JOINTYPE.REPLICATED, join.getJoinType());
+        assertEquals(JOINTYPE.REPLICATED, join.getJoinType());
     }
 }
+
