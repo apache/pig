@@ -17,6 +17,11 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
@@ -26,6 +31,13 @@ import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFilter;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
@@ -36,21 +48,10 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFilter;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
 import org.apache.pig.test.utils.GenPhyOp;
 import org.apache.pig.test.utils.TestHelper;
-import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 /**
  *  Start Plan - --4430968173902769765
@@ -79,14 +80,12 @@ import org.junit.runners.JUnit4;
  *  and back to DataByteArray for comparison with input.
  */
 
-@RunWith(JUnit4.class)
-public class TestUnion extends junit.framework.TestCase {
+public class TestUnion {
     POUnion sp;
     DataBag expBag;
     PigContext pc;
     PigServer pigServer;
 
-    @Override
     @Before
     public void setUp() throws Exception {
         pigServer = new PigServer(ExecType.LOCAL, new Properties());
@@ -156,15 +155,6 @@ public class TestUnion extends junit.framework.TestCase {
         expBag = TestHelper.projectBag(fullBag, fields);
     }
 
-    @Override
-    @After
-    public void tearDown() throws Exception {
-    }
-
-    @AfterClass
-    public static void oneTimeTearDown() throws Exception {
-    }
-
     private Tuple castToDBA(Tuple in) throws ExecException{
         Tuple res = new DefaultTuple();
         for (int i=0;i<in.size();i++) {
@@ -181,7 +171,7 @@ public class TestUnion extends junit.framework.TestCase {
         for(Result res=sp.getNext(t);res.returnStatus!=POStatus.STATUS_EOP;res=sp.getNext(t)){
             outBag.add(castToDBA((Tuple)res.result));
         }
-        assertEquals(true, TestHelper.compareBags(expBag, outBag));
+        assertTrue(TestHelper.compareBags(expBag, outBag));
     }
 
     // Test the case when POUnion is one of the roots in a map reduce
@@ -260,13 +250,12 @@ public class TestUnion extends junit.framework.TestCase {
             i++;
         }
         for (int j = 0; j < expected.length; j++) {
-            assertTrue(expected[j].equals(results[j]));
+            assertEquals(expected[j], results[j]);
         }
     }
-    
+
     @Test
     public void testCastingAfterUnion() throws Exception {
-
         File f1 = Util.createInputFile("tmp", "i1.txt", new String[] {"aaa\t111"});
         File f2 = Util.createInputFile("tmp", "i2.txt", new String[] {"bbb\t222"});
 
@@ -289,6 +278,4 @@ public class TestUnion extends junit.framework.TestCase {
         assertEquals(2, recordCount);
 
     }
-
-
 }

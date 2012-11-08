@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-3016: Modernize more tests (jcoveney via cheolsoo)
+
 PIG-2582: Store size in bytes (not mbytes) in ResourceStatistics (prkommireddi via billgraham)
 
 PIG-3006: Modernize a chunk of the tests (jcoveney via cheolsoo)

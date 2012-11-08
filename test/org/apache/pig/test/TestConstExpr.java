@@ -1,14 +1,12 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
+ * or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
+ * regarding copyright ownership. The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * with the License. You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,34 +15,25 @@
  */
 package org.apache.pig.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import java.util.Map;
 import java.util.Random;
 
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
 import org.apache.pig.test.utils.GenPhyOp;
 import org.apache.pig.test.utils.GenRandomData;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
-public class TestConstExpr extends junit.framework.TestCase {
-    Random r = new Random();
-    ConstantExpression ce = (ConstantExpression) GenPhyOp.exprConst();
-    
-    @Before
-    public void setUp() throws Exception {
-    }
-
-    @After
-    public void tearDown() throws Exception {
-    }
+public class TestConstExpr {
+    Random r = new Random(42L);
+    ConstantExpression ce = (ConstantExpression)GenPhyOp.exprConst();
 
     @Test
     public void testGetNextInteger() throws ExecException {
@@ -57,8 +46,8 @@ public class TestConstExpr extends junit.framework.TestCase {
         // test with null input
         ce.setValue(null);
         resi = ce.getNext(inp);
-        ret  = (Integer)resi.result;
-        assertEquals(null, ret);
+        ret = (Integer)resi.result;
+        assertNull(ret);
     }
 
     @Test
@@ -72,8 +61,8 @@ public class TestConstExpr extends junit.framework.TestCase {
         // test with null input
         ce.setValue(null);
         resl = ce.getNext(inp);
-        ret  = (Long)resl.result;
-        assertEquals(null, ret);
+        ret = (Long)resl.result;
+        assertNull(ret);
     }
 
     @Test
@@ -87,8 +76,8 @@ public class TestConstExpr extends junit.framework.TestCase {
         // test with null input
         ce.setValue(null);
         resd = ce.getNext(inp);
-        ret  = (Double)resd.result;
-        assertEquals(null, ret);
+        ret = (Double)resd.result;
+        assertNull(ret);
     }
 
     @Test
@@ -102,8 +91,8 @@ public class TestConstExpr extends junit.framework.TestCase {
         // test with null input
         ce.setValue(null);
         resf = ce.getNext(inp);
-        ret  = (Float)resf.result;
-        assertEquals(null, ret);
+        ret = (Float)resf.result;
+        assertNull(ret);
     }
 
     @Test
@@ -117,8 +106,8 @@ public class TestConstExpr extends junit.framework.TestCase {
         // test with null input
         ce.setValue(null);
         ress = ce.getNext(inp);
-        ret  = (String)ress.result;
-        assertEquals(null, ret);
+        ret = (String)ress.result;
+        assertNull(ret);
     }
 
     @Test
@@ -132,23 +121,23 @@ public class TestConstExpr extends junit.framework.TestCase {
         // test with null input
         ce.setValue(null);
         resba = ce.getNext(inp);
-        ret  = (DataByteArray)resba.result;
-        assertEquals(null, ret);
+        ret = (DataByteArray)resba.result;
+        assertNull(ret);
     }
 
     @Test
     public void testGetNextMap() throws ExecException {
-        Map<String,Object> inp = GenRandomData.genRandMap(r, 10);
+        Map<String, Object> inp = GenRandomData.genRandMap(r, 10);
         ce.setValue(inp);
         Result resm = ce.getNext(inp);
-        Map<Integer,String> ret = (Map)resm.result;
+        Map<Integer, String> ret = (Map)resm.result;
         assertEquals(inp, ret);
 
         // test with null input
         ce.setValue(null);
         resm = ce.getNext(inp);
-        ret  = (Map)resm.result;
-        assertEquals(null, ret);
+        ret = (Map)resm.result;
+        assertNull(ret);
     }
 
     @Test
@@ -162,8 +151,8 @@ public class TestConstExpr extends junit.framework.TestCase {
         // test with null input
         ce.setValue(null);
         res = ce.getNext(inp);
-        ret  = (Boolean)res.result;
-        assertEquals(null, ret);
+        ret = (Boolean)res.result;
+        assertNull(ret);
     }
 
     @Test
@@ -177,8 +166,8 @@ public class TestConstExpr extends junit.framework.TestCase {
         // test with null input
         ce.setValue(null);
         rest = ce.getNext(inp);
-        ret  = (Tuple)rest.result;
-        assertEquals(null, ret);
+        ret = (Tuple)rest.result;
+        assertNull(ret);
     }
 
     @Test
@@ -192,8 +181,8 @@ public class TestConstExpr extends junit.framework.TestCase {
         // test with null input
         ce.setValue(null);
         res = ce.getNext(inp);
-        ret  = (DataBag)res.result;
-        assertEquals(null, ret);
+        ret = (DataBag)res.result;
+        assertNull(ret);
     }
 
 }

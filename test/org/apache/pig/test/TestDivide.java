@@ -17,55 +17,53 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import java.util.Map;
 import java.util.Random;
 
-import junit.framework.TestCase;
-
-import org.joda.time.DateTime;
-
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.Divide;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.Divide;
 import org.apache.pig.test.utils.GenRandomData;
+import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Test;
 
-
-public class TestDivide extends TestCase{
-
-    Random r = new Random();
+public class TestDivide {
+    Random r = new Random(42L);
     ConstantExpression lt, rt;
     Divide op = new Divide(new OperatorKey("", r.nextLong()));
 
     @Before
     public void setUp() throws Exception {
-        lt = new ConstantExpression(new OperatorKey("",r.nextLong()));
-        rt = new ConstantExpression(new OperatorKey("",r.nextLong()));
+        lt = new ConstantExpression(new OperatorKey("", r.nextLong()));
+        rt = new ConstantExpression(new OperatorKey("", r.nextLong()));
     }
 
     @Test
-    public void testOperator() throws ExecException{
-        //int TRIALS = 10;
-        byte[] types = { DataType.BAG, DataType.BOOLEAN, DataType.BYTEARRAY, DataType.CHARARRAY, 
-                DataType.DOUBLE, DataType.FLOAT, DataType.INTEGER, DataType.LONG, DataType.DATETIME, DataType.MAP, DataType.TUPLE};
-        //Map<Byte,String> map = GenRandomData.genTypeToNameMap();
+    public void testOperator() throws ExecException {
+        // int TRIALS = 10;
+        byte[] types = { DataType.BAG, DataType.BOOLEAN, DataType.BYTEARRAY, DataType.CHARARRAY,
+                        DataType.DOUBLE, DataType.FLOAT, DataType.INTEGER, DataType.LONG,
+                        DataType.DATETIME, DataType.MAP, DataType.TUPLE };
+        // Map<Byte,String> map = GenRandomData.genTypeToNameMap();
         System.out.println("Testing DIVIDE operator");
-        for(byte type : types) {
+        for (byte type : types) {
             lt.setResultType(type);
             rt.setResultType(type);
             op.setLhs(lt);
             op.setRhs(rt);
 
-            switch(type){
+            switch (type) {
             case DataType.BAG:
                 DataBag inpdb1 = GenRandomData.genRandSmallTupDataBag(r, 10, 100);
                 DataBag inpdb2 = GenRandomData.genRandSmallTupDataBag(r, 10, 100);

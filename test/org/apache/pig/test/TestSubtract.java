@@ -17,30 +17,28 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import java.util.Map;
 import java.util.Random;
 
-import junit.framework.TestCase;
-
-import org.joda.time.DateTime;
-
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.Subtract;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.Subtract;
 import org.apache.pig.test.utils.GenRandomData;
+import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Test;
 
-
-public class TestSubtract extends TestCase{
+public class TestSubtract {
 
     Random r = new Random();
     ConstantExpression lt, rt;
@@ -55,7 +53,7 @@ public class TestSubtract extends TestCase{
     @Test
     public void testOperator() throws ExecException{
         //int TRIALS = 10;
-        byte[] types = { DataType.BAG, DataType.BOOLEAN, DataType.BYTEARRAY, DataType.CHARARRAY, 
+        byte[] types = { DataType.BAG, DataType.BOOLEAN, DataType.BYTEARRAY, DataType.CHARARRAY,
                 DataType.DOUBLE, DataType.FLOAT, DataType.INTEGER, DataType.LONG, DataType.DATETIME, DataType.MAP, DataType.TUPLE};
         //Map<Byte,String> map = GenRandomData.genTypeToNameMap();
         System.out.println("Testing Subtract operator");
@@ -72,18 +70,18 @@ public class TestSubtract extends TestCase{
                 lt.setValue(inpdb1);
                 rt.setValue(inpdb2);
                 Result resdb = op.getNext(inpdb1);
-                assertEquals(resdb.returnStatus, POStatus.STATUS_ERR);
-                
+                assertEquals(POStatus.STATUS_ERR, resdb.returnStatus);
+
                 // test with null in lhs
                 lt.setValue(null);
                 rt.setValue(inpdb2);
                 resdb = op.getNext(inpdb1);
-                assertEquals(resdb.returnStatus, POStatus.STATUS_ERR);
+                assertEquals(POStatus.STATUS_ERR, resdb.returnStatus);
                 // test with null in rhs
                 lt.setValue(inpdb1);
                 rt.setValue(null);
                 resdb = op.getNext(inpdb1);
-                assertEquals(resdb.returnStatus, POStatus.STATUS_ERR);
+                assertEquals(POStatus.STATUS_ERR, resdb.returnStatus);
                 break;
             case DataType.BOOLEAN:
                 Boolean inpb1 = r.nextBoolean();
@@ -91,18 +89,18 @@ public class TestSubtract extends TestCase{
                 lt.setValue(inpb1);
                 rt.setValue(inpb2);
                 Result resb = op.getNext(inpb1);
-                assertEquals(resb.returnStatus, POStatus.STATUS_ERR);
-                
+                assertEquals(POStatus.STATUS_ERR, resb.returnStatus);
+
                 // test with null in lhs
                 lt.setValue(null);
                 rt.setValue(inpb2);
                 resb = op.getNext(inpb1);
-                assertEquals(resb.returnStatus, POStatus.STATUS_ERR);
+                assertEquals(POStatus.STATUS_ERR, resb.returnStatus);
                 // test with null in rhs
                 lt.setValue(inpb1);
                 rt.setValue(null);
                 resb = op.getNext(inpb1);
-                assertEquals(resb.returnStatus, POStatus.STATUS_ERR);
+                assertEquals(POStatus.STATUS_ERR, resb.returnStatus);
                 break;
             case DataType.BYTEARRAY: {
                 DataByteArray inpba1 = GenRandomData.genRandDBA(r);
@@ -113,17 +111,17 @@ public class TestSubtract extends TestCase{
                 //DataByteArray expected = new DataByteArray(inpba1.toString() + inpba2.toString());
                 //assertEquals(expected, (DataByteArray)resba.result);
                 assertEquals(POStatus.STATUS_ERR, resba.returnStatus);
-                
+
                 // test with null in lhs
                 lt.setValue(null);
                 rt.setValue(inpba2);
                 resba = op.getNext(inpba1);
-                assertEquals(resba.returnStatus, POStatus.STATUS_ERR);
+                assertEquals(POStatus.STATUS_ERR, resba.returnStatus);
                 // test with null in rhs
                 lt.setValue(inpba1);
                 rt.setValue(null);
                 resba = op.getNext(inpba1);
-                assertEquals(resba.returnStatus, POStatus.STATUS_ERR);
+                assertEquals(POStatus.STATUS_ERR, resba.returnStatus);
                 break;
             }
             case DataType.CHARARRAY: {
@@ -135,17 +133,17 @@ public class TestSubtract extends TestCase{
                 /*String expected = new String(inps1 + inps2);
                 assertEquals(expected, (String)ress.result);*/
                 assertEquals(POStatus.STATUS_ERR, ress.returnStatus);
-                
+
                 // test with null in lhs
                 lt.setValue(null);
                 rt.setValue(inps2);
                 ress = op.getNext(inps1);
-                assertEquals(ress.returnStatus, POStatus.STATUS_ERR);
+                assertEquals(POStatus.STATUS_ERR, ress.returnStatus);
                 // test with null in rhs
                 lt.setValue(inps1);
                 rt.setValue(null);
                 ress = op.getNext(inps1);
-                assertEquals(ress.returnStatus, POStatus.STATUS_ERR);
+                assertEquals(POStatus.STATUS_ERR, ress.returnStatus);
                 break;
             }
             case DataType.DOUBLE: {
@@ -156,17 +154,17 @@ public class TestSubtract extends TestCase{
                 Result resd = op.getNext(inpd1);
                 Double expected = new Double(inpd1 - inpd2);
                 assertEquals(expected, (Double)resd.result);
-                
+
                 // test with null in lhs
                 lt.setValue(null);
                 rt.setValue(inpd2);
                 resd = op.getNext(inpd1);
-                assertEquals(null, (Double)resd.result);
+                assertNull(resd.result);
                 // test with null in rhs
                 lt.setValue(inpd1);
                 rt.setValue(null);
                 resd = op.getNext(inpd1);
-                assertEquals(null, (Double)resd.result);
+                assertNull(resd.result);
                 break;
             }
             case DataType.FLOAT: {
@@ -182,12 +180,12 @@ public class TestSubtract extends TestCase{
                 lt.setValue(null);
                 rt.setValue(inpf2);
                 resf = op.getNext(inpf1);
-                assertEquals(null, (Float)resf.result);
+                assertNull(resf.result);
                 // test with null in rhs
                 lt.setValue(inpf1);
                 rt.setValue(null);
                 resf = op.getNext(inpf1);
-                assertEquals(null, (Float)resf.result);
+                assertNull(resf.result);
                 break;
             }
             case DataType.INTEGER: {
@@ -203,12 +201,12 @@ public class TestSubtract extends TestCase{
                 lt.setValue(null);
                 rt.setValue(inpi2);
                 resi = op.getNext(inpi1);
-                assertEquals(null, (Integer)resi.result);
+                assertNull(resi.result);
                 // test with null in rhs
                 lt.setValue(inpi1);
                 rt.setValue(null);
                 resi = op.getNext(inpi1);
-                assertEquals(null, (Integer)resi.result);
+                assertNull(resi.result);
                 break;
             }
             case DataType.LONG: {
@@ -224,12 +222,12 @@ public class TestSubtract extends TestCase{
                 lt.setValue(null);
                 rt.setValue(inpl2);
                 resl = op.getNext(inpl1);
-                assertEquals(null, (Long)resl.result);
+                assertNull(resl.result);
                 // test with null in rhs
                 lt.setValue(inpl1);
                 rt.setValue(null);
                 resl = op.getNext(inpl1);
-                assertEquals(null, (Long)resl.result);
+                assertNull(resl.result);
                 break;
             }
             case DataType.DATETIME: {
@@ -238,18 +236,18 @@ public class TestSubtract extends TestCase{
                 lt.setValue(inpdt1);
                 rt.setValue(inpdt2);
                 Result resdt = op.getNext(inpdt1);
-                assertEquals(resdt.returnStatus, POStatus.STATUS_ERR);
-                
+                assertEquals(POStatus.STATUS_ERR, resdt.returnStatus);
+
                 // test with null in lhs
                 lt.setValue(null);
                 rt.setValue(inpdt2);
                 resdt = op.getNext(inpdt1);
-                assertEquals(resdt.returnStatus, POStatus.STATUS_ERR);
+                assertEquals(POStatus.STATUS_ERR, resdt.returnStatus);
                 // test with null in rhs
                 lt.setValue(inpdt1);
                 rt.setValue(null);
                 resdt = op.getNext(inpdt1);
-                assertEquals(resdt.returnStatus, POStatus.STATUS_ERR);
+                assertEquals(POStatus.STATUS_ERR, resdt.returnStatus);
                 break;
             }
             case DataType.MAP: {
@@ -296,4 +294,3 @@ public class TestSubtract extends TestCase{
         }
     }
 }
-

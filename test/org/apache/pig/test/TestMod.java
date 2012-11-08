@@ -1,14 +1,12 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
+ * or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
+ * regarding copyright ownership. The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * with the License. You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,73 +15,71 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import java.util.Map;
 import java.util.Random;
 
-import junit.framework.TestCase;
-
-import org.joda.time.DateTime;
-
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.Mod;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.Mod;
 import org.apache.pig.test.utils.GenRandomData;
+import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Test;
 
-
-public class TestMod extends TestCase{
-
-    Random r = new Random();
+public class TestMod {
+    Random r = new Random(42L);
     ConstantExpression lt, rt;
     Mod op = new Mod(new OperatorKey("", r.nextLong()));
 
     @Before
     public void setUp() throws Exception {
-        lt = new ConstantExpression(new OperatorKey("",r.nextLong()));
-        rt = new ConstantExpression(new OperatorKey("",r.nextLong()));
+        lt = new ConstantExpression(new OperatorKey("", r.nextLong()));
+        rt = new ConstantExpression(new OperatorKey("", r.nextLong()));
     }
 
     @Test
-    public void testOperator() throws ExecException{
-        //int TRIALS = 10;
-        byte[] types = { DataType.BAG, DataType.BOOLEAN, DataType.BYTEARRAY, DataType.CHARARRAY, 
-                DataType.DOUBLE, DataType.FLOAT, DataType.INTEGER, DataType.LONG, DataType.DATETIME, DataType.MAP, DataType.TUPLE};
-        //Map<Byte,String> map = GenRandomData.genTypeToNameMap();
+    public void testOperator() throws ExecException {
+        // int TRIALS = 10;
+        byte[] types = { DataType.BAG, DataType.BOOLEAN, DataType.BYTEARRAY, DataType.CHARARRAY,
+                        DataType.DOUBLE, DataType.FLOAT, DataType.INTEGER, DataType.LONG,
+                        DataType.DATETIME, DataType.MAP, DataType.TUPLE };
+        // Map<Byte,String> map = GenRandomData.genTypeToNameMap();
         System.out.println("Testing Mod operator");
-        for(byte type : types) {
+        for (byte type : types) {
             lt.setResultType(type);
             rt.setResultType(type);
             op.setLhs(lt);
             op.setRhs(rt);
 
-            switch(type){
+            switch (type) {
             case DataType.BAG:
                 DataBag inpdb1 = GenRandomData.genRandSmallTupDataBag(r, 10, 100);
                 DataBag inpdb2 = GenRandomData.genRandSmallTupDataBag(r, 10, 100);
                 lt.setValue(inpdb1);
                 rt.setValue(inpdb2);
                 Result resdb = op.getNext(inpdb1);
-                assertEquals(resdb.returnStatus, POStatus.STATUS_ERR);
-                
+                assertEquals(POStatus.STATUS_ERR, resdb.returnStatus);
+
                 // test with null in lhs
                 lt.setValue(null);
                 rt.setValue(inpdb2);
                 resdb = op.getNext(inpdb1);
-                assertEquals(resdb.returnStatus, POStatus.STATUS_ERR);
+                assertEquals(POStatus.STATUS_ERR, resdb.returnStatus);
                 // test with null in rhs
                 lt.setValue(inpdb1);
                 rt.setValue(null);
                 resdb = op.getNext(inpdb1);
-                assertEquals(resdb.returnStatus, POStatus.STATUS_ERR);
+                assertEquals(POStatus.STATUS_ERR, resdb.returnStatus);
                 break;
             case DataType.BOOLEAN:
                 Boolean inpb1 = r.nextBoolean();
@@ -91,18 +87,18 @@ public class TestMod extends TestCase{
                 lt.setValue(inpb1);
                 rt.setValue(inpb2);
                 Result resb = op.getNext(inpb1);
-                assertEquals(resb.returnStatus, POStatus.STATUS_ERR);
-                
+                assertEquals(POStatus.STATUS_ERR, resb.returnStatus);
+
                 // test with null in lhs
                 lt.setValue(null);
                 rt.setValue(inpb2);
                 resb = op.getNext(inpb1);
-                assertEquals(resb.returnStatus, POStatus.STATUS_ERR);
+                assertEquals(POStatus.STATUS_ERR, resb.returnStatus);
                 // test with null in rhs
                 lt.setValue(inpb1);
                 rt.setValue(null);
                 resb = op.getNext(inpb1);
-                assertEquals(resb.returnStatus, POStatus.STATUS_ERR);
+                assertEquals(POStatus.STATUS_ERR, resb.returnStatus);
                 break;
             case DataType.BYTEARRAY: {
                 DataByteArray inpba1 = GenRandomData.genRandDBA(r);
@@ -110,20 +106,21 @@ public class TestMod extends TestCase{
                 lt.setValue(inpba1);
                 rt.setValue(inpba2);
                 Result resba = op.getNext(inpba1);
-                //DataByteArray expected = new DataByteArray(inpba1.toString() + inpba2.toString());
-                //assertEquals(expected, (DataByteArray)resba.result);
+                // DataByteArray expected = new DataByteArray(inpba1.toString() +
+                // inpba2.toString());
+                // assertEquals(expected, (DataByteArray)resba.result);
                 assertEquals(POStatus.STATUS_ERR, resba.returnStatus);
-                
+
                 // test with null in lhs
                 lt.setValue(null);
                 rt.setValue(inpba2);
                 resba = op.getNext(inpba1);
-                assertEquals(resba.returnStatus, POStatus.STATUS_ERR);
+                assertEquals(POStatus.STATUS_ERR, resba.returnStatus);
                 // test with null in rhs
                 lt.setValue(inpba1);
                 rt.setValue(null);
                 resba = op.getNext(inpba1);
-                assertEquals(resba.returnStatus, POStatus.STATUS_ERR);
+                assertEquals(POStatus.STATUS_ERR, resba.returnStatus);
                 break;
             }
             case DataType.CHARARRAY: {
@@ -132,20 +129,22 @@ public class TestMod extends TestCase{
                 lt.setValue(inps1);
                 rt.setValue(inps2);
                 Result ress = op.getNext(inps1);
-                /*String expected = new String(inps1 + inps2);
-                assertEquals(expected, (String)ress.result);*/
+                /*
+                 * String expected = new String(inps1 + inps2);
+                 * assertEquals(expected, (String)ress.result);
+                 */
                 assertEquals(POStatus.STATUS_ERR, ress.returnStatus);
-                
+
                 // test with null in lhs
                 lt.setValue(null);
                 rt.setValue(inps2);
                 ress = op.getNext(inps1);
-                assertEquals(ress.returnStatus, POStatus.STATUS_ERR);
+                assertEquals(POStatus.STATUS_ERR, ress.returnStatus);
                 // test with null in rhs
                 lt.setValue(inps1);
                 rt.setValue(null);
                 ress = op.getNext(inps1);
-                assertEquals(ress.returnStatus, POStatus.STATUS_ERR);
+                assertEquals(POStatus.STATUS_ERR, ress.returnStatus);
                 break;
             }
             case DataType.DOUBLE: {
@@ -195,18 +194,18 @@ public class TestMod extends TestCase{
                 rt.setValue(inpi2);
                 Result resi = op.getNext(inpi1);
                 Integer expected = new Integer(inpi1 % inpi2);
-                assertEquals(expected, (Integer) resi.result);
+                assertEquals(expected, (Integer)resi.result);
 
                 // test with null in lhs
                 lt.setValue(null);
                 rt.setValue(inpi2);
                 resi = op.getNext(inpi1);
-                assertEquals(null, (Integer)resi.result);
+                assertNull(resi.result);
                 // test with null in rhs
                 lt.setValue(inpi1);
                 rt.setValue(null);
                 resi = op.getNext(inpi1);
-                assertEquals(null, (Integer)resi.result);
+                assertNull(resi.result);
                 break;
             }
             case DataType.LONG: {
@@ -222,12 +221,12 @@ public class TestMod extends TestCase{
                 lt.setValue(null);
                 rt.setValue(inpl2);
                 resl = op.getNext(inpl1);
-                assertEquals(null, (Long)resl.result);
+                assertNull(resl.result);
                 // test with null in rhs
                 lt.setValue(inpl1);
                 rt.setValue(null);
                 resl = op.getNext(inpl1);
-                assertEquals(null, (Long)resl.result);
+                assertNull(resl.result);
                 break;
             }
             case DataType.DATETIME:
@@ -236,22 +235,22 @@ public class TestMod extends TestCase{
                 lt.setValue(inpdt1);
                 rt.setValue(inpdt2);
                 Result resdt = op.getNext(inpdt1);
-                assertEquals(resdt.returnStatus, POStatus.STATUS_ERR);
-                
+                assertEquals(POStatus.STATUS_ERR, resdt.returnStatus);
+
                 // test with null in lhs
                 lt.setValue(null);
                 rt.setValue(inpdt2);
                 resb = op.getNext(inpdt1);
-                assertEquals(resb.returnStatus, POStatus.STATUS_ERR);
+                assertEquals(POStatus.STATUS_ERR, resb.returnStatus);
                 // test with null in rhs
                 lt.setValue(inpdt1);
                 rt.setValue(null);
                 resb = op.getNext(inpdt1);
-                assertEquals(resb.returnStatus, POStatus.STATUS_ERR);
+                assertEquals(POStatus.STATUS_ERR, resb.returnStatus);
                 break;
             case DataType.MAP: {
-                Map<String,Object> inpm1 = GenRandomData.genRandMap(r, 10);
-                Map<String,Object> inpm2 = GenRandomData.genRandMap(r, 10);
+                Map<String, Object> inpm1 = GenRandomData.genRandMap(r, 10);
+                Map<String, Object> inpm2 = GenRandomData.genRandMap(r, 10);
                 lt.setValue(inpm1);
                 rt.setValue(inpm2);
                 Result resm = op.getNext(inpm1);
@@ -293,4 +292,3 @@ public class TestMod extends TestCase{
         }
     }
 }
-
