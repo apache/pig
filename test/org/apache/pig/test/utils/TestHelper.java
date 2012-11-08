@@ -24,6 +24,11 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
@@ -396,6 +401,56 @@ public class TestHelper {
         
         return true;
 
+    }
+
+    /**
+     * Find out the string which matches "regex" from "target", and sort the string with spacial
+     * order. The string elements are split by "split".
+     */
+    public static String sortString(String regex, String target, String split) {
+        Pattern p = Pattern.compile(regex);
+        Matcher matcher = p.matcher(target);
+        String original = null;
+        String replaceString = new String();
+
+        if (matcher.find()) {
+            original = matcher.group(1);
+            String[] out = original.split(split);
+            Collections.sort(Arrays.asList(out));
+            for (int j = 0; j < out.length; j++) {
+                replaceString += (j > 0 ? ", " + out[j] : out[j]);
+            }
+            return target.replace(original, replaceString);
+        }
+        return target;
+    }
+
+    /**
+     * Sort UDFs for golden plan
+     */
+    public static String sortUDFs(String goldenString) {
+        String regex = "MapReduce\\([0-9]*\\,(.*)\\) - -[0-9]*\\:";
+        String[] goldenArray = goldenString.split("\n");
+
+        for (int i = 0; i < goldenArray.length; i++) {
+            goldenString = goldenString.replace(goldenArray[i],
+                    sortString(regex, goldenArray[i], ","));
+        }
+
+        return goldenString;
+    }
+
+    /**
+     * sort subFields for LogMessages
+     */
+    public static List<String> sortSubFields(List<String> logMessages) {
+        String regex = "\\[(.*)\\]";
+
+        for (int i = 0; i < logMessages.size(); i++) {
+            logMessages.set(i, sortString(regex, logMessages.get(i), ", "));
+        }
+
+        return logMessages;
     }
 
 }

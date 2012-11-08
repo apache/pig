@@ -33,6 +33,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.LinkedHashMap;
 
 import org.junit.Test;
 
@@ -594,7 +595,7 @@ public class TestDataModel extends junit.framework.TestCase {
         bag.add(tf.newTuple(new Integer(4)));
         bag.add(tf.newTuple(new String("mary had a little lamb")));
 
-        Map<String, Object> map = new HashMap<String, Object>(2);
+        Map<String, Object> map = new LinkedHashMap<String, Object>(2);
         map.put(new String("hello"), new String("world"));
         map.put(new String("goodbye"), new String("all"));
 
