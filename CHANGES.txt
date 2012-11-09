@@ -356,6 +356,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2979: Pig.jar doesn't work with hadoop-2.0.x (cheolsoo)
+
 PIG-3035: With latest version of hadoop23 pig does not return the correct exception stack trace from backend (rohini)
 
 PIG-2405: some unit test case failed with open JDK (fang fang chen via cheolsoo)
