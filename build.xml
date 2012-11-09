@@ -700,7 +700,8 @@
             </manifest>
             <zipgroupfileset dir="${ivy.lib.dir}">
                 <include name="hadoop-core-${hadoop-core.version}.jar" />
-                <include name="hadoop-*-${hadoop-common.version}*.jar" />
+                <include name="hadoop-*-${hadoop-common.version}.jar" />
+                <exclude name="hadoop-hdfs-${hadoop-hdfs.version}.jar" />
                 <include name="antlr-runtime-${antlr.version}.jar" />
                 <include name="ST4-${stringtemplate.version}.jar" />
                 <include name="junit-${junit.version}.jar" />
@@ -715,6 +716,7 @@
                 <include name="avro-${avro.version}.jar" />
                 <include name="commons*.jar" />
                 <include name="log4j*.jar" />
+                <include name="slf4j*.jar" />
                 <include name="jsp-api*.jar" />
                 <include name="jansi-${jansi.version}.jar" />
             </zipgroupfileset>
