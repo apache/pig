@@ -64,6 +64,8 @@ Release 0.11.0 (unreleased)
 
 INCOMPATIBLE CHANGES
 
+PIG-3034: Remove Penny code from Pig repository (gates via cheolsoo)
+
 PIG-2931: $ signs in the replacement string make parameter substitution fail (cheolsoo via jcoveney)
 
 PIG-1891 Enable StoreFunc to make intelligent decision based on job success or failure (initialcontext via gates)

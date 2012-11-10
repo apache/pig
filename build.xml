@@ -367,10 +367,6 @@
         <ant target="clean" dir="contrib/zebra" inheritAll="false"/>
     </target>
 
-    <target name="clean-penny" description="Cleanup Penny">
-        <ant target="clean" dir="contrib/penny/java" inheritAll="false"/>
-    </target>
-
     <target name="clean-tutorial" description="Cleanup Tutorial">
         <ant target="clean" dir="tutorial" inheritAll="false"/>
     </target>
@@ -1240,7 +1236,7 @@
     <!-- ================================================================== -->
     <!-- Make release tarball                                               -->
     <!-- ================================================================== -->
-    <target name="src-release" depends="clean, clean-piggybank, clean-zebra, clean-penny, clean-test-e2e, clean-tutorial" description="Source distribution">
+    <target name="src-release" depends="clean, clean-piggybank, clean-zebra, clean-test-e2e, clean-tutorial" description="Source distribution">
         <mkdir dir="${build.dir}"/>
         <tar compression="gzip" longfile="gnu"
              destfile="${build.dir}/${final.name}-src-${pig.version}.tar.gz">

@@ -240,7 +240,6 @@
 <p>debugging
 <br></br>&nbsp;&nbsp;&nbsp; <a href="test.html#diagnostic-ops">diagnostic operators</a>
 <br></br>&nbsp;&nbsp;&nbsp; <a href="cmds.html#exec-debug">with exec and run commands</a>
-<br></br>&nbsp;&nbsp;&nbsp; <a href="test.html#penny">and Penny </a> 
 <br></br>&nbsp;&nbsp;&nbsp; <a href="start.html#debug">and Pig Latin</a>
 </p>
 
@@ -680,8 +679,6 @@
 </p>
 
 <p><a href="basic.html#comparison">pattern matching</a></p>
-
-<p><a href="test.html#penny">Penny</a> (monitoring and debugging)</p>
 
 <p>performance (writing efficient code)
 <br></br>&nbsp;&nbsp;&nbsp; <a href="perf.html#optimization-rules">optimization rules for</a>
