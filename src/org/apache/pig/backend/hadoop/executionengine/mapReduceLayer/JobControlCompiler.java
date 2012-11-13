@@ -326,7 +326,7 @@ public class JobControlCompiler{
             if (!completeFailedJobs.contains(job))
             {
                 MapReduceOper mro = jobMroMap.get(job);
-                if (mro.isCounterOperation() /*&& completeFailedJobs.size() > 0*/)
+                if (!pigContext.inIllustrator && mro.isCounterOperation())
                     saveCounters(job,mro.getOperationID());
                 plan.remove(mro);
             }
