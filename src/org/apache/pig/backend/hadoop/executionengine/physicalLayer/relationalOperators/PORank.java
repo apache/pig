@@ -156,6 +156,10 @@ public class PORank extends PhysicalOperator {
 
         Long rank = PigMapReduce.sJobConfInternal.get().getLong( nameCounter , -1L );
         
+        if(illustrator != null) {
+            rank = 0L;
+        }
+
         if(rank == -1) {
             log.error("Error on reading counter "+ nameCounter);
             throw new RuntimeException("Unable to read counter "+ nameCounter);
