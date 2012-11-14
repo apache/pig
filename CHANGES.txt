@@ -503,6 +503,8 @@ Release 0.10.1 - Unreleased
 
 BUG FIXES
 
+PIG-3045: Specifying sorting field(s) at nightly.conf - fix sortArgs (rohini via cheolsoo)
+
 PIG-2953: "which" utility does not exist on Windows (daijy)
 
 PIG-2960: Increase the timeout for unit test (daijy)
