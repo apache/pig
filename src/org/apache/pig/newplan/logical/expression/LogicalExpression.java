@@ -27,11 +27,11 @@ import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchem
 
 /**
  * Logical representation of expression operators.  Expression operators have
- * a data type and a uid.  Uid is a unique id for each expression. 
+ * a data type and a uid.  Uid is a unique id for each expression.
  *
  */
 public abstract class LogicalExpression extends Operator {
-    
+
     static long nextUid = 1;
     protected LogicalSchema.LogicalFieldSchema fieldSchema;
     protected LogicalSchema.LogicalFieldSchema uidOnlyFieldSchema;
@@ -45,14 +45,22 @@ public abstract class LogicalExpression extends Operator {
         nextUid = 1;
     }
     /**
-     * 
+     *
      * @param name of the operator
      * @param plan LogicalExpressionPlan this is part of
      */
     public LogicalExpression(String name, OperatorPlan plan) {
         super(name, plan);
     }
-    
+
+    /**
+     * This is a convenience method to avoid the side-effectful nature of getFieldSchema().
+     * It simply returns whether or not fieldSchema is currently null.
+     */
+    public boolean hasFieldSchema() {
+        return fieldSchema != null;
+    }
+
     /**
      * Get the field schema for the output of this expression operator.  This does
      * not merely return the field schema variable.  If schema is not yet set, this
@@ -62,11 +70,11 @@ public abstract class LogicalExpression extends Operator {
      * @throws FrontendException
      */
     abstract public LogicalSchema.LogicalFieldSchema getFieldSchema() throws FrontendException;
-    
+
     public void resetFieldSchema() {
         fieldSchema = null;
     }
-    
+
     /**
      * Get the data type for this expression.
      * @return data type, one of the static bytes of DataType
@@ -76,7 +84,7 @@ public abstract class LogicalExpression extends Operator {
             return getFieldSchema().type;
         return DataType.BYTEARRAY;
     }
-    
+
     public String toString() {
         StringBuilder msg = new StringBuilder();
         msg.append("(Name: " + name + " Type: ");
@@ -93,7 +101,7 @@ public abstract class LogicalExpression extends Operator {
 
         return msg.toString();
     }
-    
+
     public void neverUseForRealSetFieldSchema(LogicalFieldSchema fs) throws FrontendException {
         fieldSchema = fs;
         uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);

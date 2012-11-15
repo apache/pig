@@ -28,6 +28,8 @@ PIG-1891 Enable StoreFunc to make intelligent decision based on job success or f
 
 IMPROVEMENTS
 
+PIG-2937: generated field in nested foreach does not inherit the variable name as the field name (jcoveney)
+
 PIG-3019: Need a target in build.xml for source releases (gates)
 
 PIG-2832: org.apache.pig.pigunit.pig.PigServer does not initialize udf.import.list of PigContext (prkommireddi via rohini)
