@@ -318,6 +318,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-3039: Not possible to use custom version of jackson jars (rohini)
+
 PIG-2979: Pig.jar doesn't work with hadoop-2.0.x (cheolsoo)
 
 PIG-2405: some unit test case failed with open JDK (fang fang chen via cheolsoo)
