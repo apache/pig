@@ -39,11 +39,19 @@ import java.util.jar.JarInputStream;
 import java.util.jar.JarOutputStream;
 import java.util.zip.ZipEntry;
 
+import org.antlr.runtime.CommonTokenStream;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.impl.PigContext;
+import org.apache.tools.bzip2r.BZip2Constants;
+import org.codehaus.jackson.annotate.JsonPropertyOrder;
+import org.codehaus.jackson.map.annotate.JacksonStdImpl;
+import org.joda.time.DateTime;
 
+import com.google.common.collect.Multimaps;
+
+import dk.brics.automaton.Automaton;
 
 public class JarManager {
 
@@ -84,10 +92,34 @@ public class JarManager {
         }
     }
 
-    final static String pigPackagesToSend[] = { "org/apache/pig","org/apache/tools/bzip2r",
-        "dk/brics/automaton", "org/antlr/runtime", "com/google/common", "org/codehaus/jackson",
-        "org/joda/time"};
-    
+    private static enum DefaultPigPackages {
+
+        PIG("org/apache/pig", PigMapReduce.class),
+        BZIP2R("org/apache/tools/bzip2r", BZip2Constants.class),
+        AUTOMATON("dk/brics/automaton", Automaton.class),
+        ANTLR("org/antlr/runtime", CommonTokenStream.class),
+        GUAVA("com/google/common", Multimaps.class),
+        JACKSON_CORE("org/codehaus/jackson", JsonPropertyOrder.class),
+        JACKSON_MAPPER("org/codehaus/jackson", JacksonStdImpl.class),
+        JODATIME("org/joda/time", DateTime.class);
+
+        private final String pkgPrefix;
+        private final Class pkgClass;
+
+        DefaultPigPackages(String pkgPrefix, Class pkgClass) {
+            this.pkgPrefix = pkgPrefix;
+            this.pkgClass = pkgClass;
+        }
+
+        public String getPkgPrefix() {
+            return pkgPrefix;
+        }
+
+        public Class getPkgClass() {
+            return pkgClass;
+        }
+    }
+
     /**
      * Create a jarfile in a temporary path, that is a merge of all the jarfiles containing the
      * functions and the core pig classes.
@@ -101,10 +133,10 @@ public class JarManager {
     @SuppressWarnings("deprecation")
     public static void createJar(OutputStream os, Set<String> funcs, PigContext pigContext) throws ClassNotFoundException, IOException {
         Vector<JarListEntry> jarList = new Vector<JarListEntry>();
-        for(String toSend: pigPackagesToSend) {
-            addContainingJar(jarList, PigMapReduce.class, toSend, pigContext);
+        for (DefaultPigPackages pkgToSend : DefaultPigPackages.values()) {
+            addContainingJar(jarList, pkgToSend.getPkgClass(), pkgToSend.getPkgPrefix(), pigContext);
         }
-        
+
         for (String func: funcs) {
             Class clazz = pigContext.getClassForAlias(func);
             if (clazz != null) {
@@ -283,10 +315,19 @@ public class JarManager {
      * @throws IOException
      */
     public static String findContainingJar(Class my_class) {
-        ClassLoader loader = my_class.getClassLoader();
+        ClassLoader loader = PigContext.getClassLoader();
         String class_file = my_class.getName().replaceAll("\\.", "/") + ".class";
         try {
-            for (Enumeration itr = loader.getResources(class_file); itr.hasMoreElements();) {
+            Enumeration<URL> itr = null;
+            //Try to find the class in registered jars
+            if (loader instanceof URLClassLoader) {
+                itr = ((URLClassLoader) loader).findResources(class_file);
+            }
+            //Try system classloader if not URLClassLoader or no resources found in URLClassLoader
+            if (itr == null || !itr.hasMoreElements()) {
+                itr = loader.getResources(class_file);
+            }
+            for (; itr.hasMoreElements();) {
                 URL url = (URL) itr.nextElement();
                 if ("jar".equals(url.getProtocol())) {
                     String toReturn = url.getPath();

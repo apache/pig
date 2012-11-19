@@ -24,8 +24,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
+import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
 import java.util.zip.ZipEntry;
 
@@ -43,6 +46,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.Path;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
+import org.apache.pig.impl.util.JarManager;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -132,6 +136,33 @@ public class TestRegisteredJarVisibility {
 
         pigServer.openIterator("a");
         pigServer.shutdown();
+    }
+
+    // See PIG-3039
+    @Test
+    public void testRegisterJarOverridePigJarPackages() throws IOException, ClassNotFoundException {
+        // When jackson jar is not registered, jackson-core from the first jar in
+        // classpath (pig.jar) should be picked up (version 1.8.8 in this case).
+        PigServer pigServer = new PigServer(ExecType.LOCAL, new Properties());
+        File jobJarFile = Util.createTempFileDelOnExit("Job", ".jar");
+        FileOutputStream fos = new FileOutputStream(jobJarFile);
+        JarManager.createJar(fos, new HashSet<String>(), pigServer.getPigContext());
+        JarFile jobJar = new JarFile(jobJarFile);
+        // JsonClass present in 1.8.8 but not in 1.9.9
+        Assert.assertNotNull(jobJar.getJarEntry("org/codehaus/jackson/annotate/JsonClass.class"));
+        // JsonUnwrapped present in 1.9.9 but not in 1.8.8
+        Assert.assertNull(jobJar.getJarEntry("org/codehaus/jackson/annotate/JsonUnwrapped.class"));
+
+        // When jackson jar is registered, the registered version should be picked up.
+        pigServer = new PigServer(ExecType.LOCAL, new Properties());
+        pigServer.registerJar("test/resources/jackson-core-asl-1.9.9.jar");
+        pigServer.registerJar("test/resources/jackson-mapper-asl-1.9.9.jar");
+        jobJarFile = Util.createTempFileDelOnExit("Job", ".jar");
+        fos = new FileOutputStream(jobJarFile);
+        JarManager.createJar(fos, new HashSet<String>(), pigServer.getPigContext());
+        jobJar = new JarFile(jobJarFile);
+        Assert.assertNull(jobJar.getJarEntry("org/codehaus/jackson/annotate/JsonClass.class"));
+        Assert.assertNotNull(jobJar.getJarEntry("org/codehaus/jackson/annotate/JsonUnwrapped.class"));
     }
 
     private static List<File> compile(File[] javaFiles) {
