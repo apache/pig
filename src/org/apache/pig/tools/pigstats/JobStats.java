@@ -18,9 +18,8 @@
 
 package org.apache.pig.tools.pigstats;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -32,9 +31,6 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.Counters;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobID;
@@ -42,13 +38,16 @@ import org.apache.hadoop.mapred.RunningJob;
 import org.apache.hadoop.mapred.TaskReport;
 import org.apache.hadoop.mapred.Counters.Counter;
 import org.apache.pig.PigCounters;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.FileBasedOutputSizeReader;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigStatsOutputSizeReader;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.PlanVisitor;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.ObjectSerializer;
@@ -523,6 +522,39 @@ public final class JobStats extends Operator {
         }
     }
     
+    /**
+     * Looks up the output size reader from OUTPUT_SIZE_READER_KEY and invokes
+     * it to get the size of output. If OUTPUT_SIZE_READER_KEY is not set,
+     * defaults to FileBasedOutputSizeReader.
+     * @param sto POStore
+     * @param conf configuration
+     */
+    static long getOutputSize(POStore sto, Configuration conf) {
+        PigStatsOutputSizeReader reader = null;
+        String readerNames = conf.get(
+                PigStatsOutputSizeReader.OUTPUT_SIZE_READER_KEY,
+                FileBasedOutputSizeReader.class.getCanonicalName());
+
+        for (String className : readerNames.split(",")) {
+            reader = (PigStatsOutputSizeReader) PigContext.instantiateFuncFromSpec(className);
+            if (reader.supports(sto)) {
+                LOG.info("using output size reader: " + className);
+                try {
+                    return reader.getOutputSize(sto, conf);
+                } catch (FileNotFoundException e) {
+                    LOG.warn("unable to find the output file", e);
+                    return -1;
+                } catch (IOException e) {
+                    LOG.warn("unable to get byte written of the job", e);
+                    return -1;
+                }
+            }
+        }
+
+        LOG.warn("unable to find an output size reader");
+        return -1;
+    }
+
     private void addOneOutputStats(POStore sto) {
         long records = -1;
         if (sto.isMultiStore()) {
@@ -531,30 +563,9 @@ public final class JobStats extends Operator {
         } else {
             records = mapOutputRecords;
         }
-        String location = sto.getSFile().getFileName();        
-        URI uri = null;
-        try {
-            uri = new URI(location);
-        } catch (URISyntaxException e1) {
-            LOG.warn("invalid syntax for output location: " + location, e1);
-        }
-        long bytes = -1;
-        if (uri != null
-                && (uri.getScheme() == null || uri.getScheme()
-                        .equalsIgnoreCase("hdfs"))) {
-            try {
-                Path p = new Path(location);
-                FileSystem fs = p.getFileSystem(conf);
-                FileStatus[] lst = fs.listStatus(p);
-                if (lst != null) {
-                    for (FileStatus status : lst) {
-                        bytes += status.getLen();
-                    } 
-                }
-            } catch (IOException e) {
-                LOG.warn("unable to get byte written of the job", e);
-            }
-        }
+
+        long bytes = getOutputSize(sto, conf);
+        String location = sto.getSFile().getFileName();
         OutputStats ds = new OutputStats(location, bytes, records,
                 (state == JobState.SUCCESS));  
         ds.setPOStore(sto);

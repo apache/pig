@@ -18,17 +18,32 @@
 
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobID;
 import org.apache.hadoop.mapred.TaskReport;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.pig.FuncSpec;
+import org.apache.pig.StoreFuncInterface;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.FileBasedOutputSizeReader;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigStatsOutputSizeReader;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.backend.hadoop.hbase.HBaseStorage;
+import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
@@ -162,4 +177,143 @@ public class TestJobStats {
 		assertTrue(msg.startsWith(sb.toString()));
 		
 	}
+
+    /**
+     * Dummy output size reader class for testing JobStats.getOutputSize()
+     */
+    public static class DummyOutputSizeReader implements PigStatsOutputSizeReader {
+        public static final long SIZE = 12345;
+
+        /** 
+         * Returns true always
+         * @param sto POStore
+         */
+        @Override
+        public boolean supports(POStore sto) {
+            return true;
+        }
+
+        /**
+         * Returns a dummy constant value
+         * @param sto POStore
+         * @param conf configuration
+         */
+        @Override
+        public long getOutputSize(POStore sto, Configuration conf) throws IOException {
+            return SIZE;
+        }
+    }
+
+    private static POStore createPOStoreForFileBasedSystem(long size, StoreFuncInterface storeFunc,
+            Configuration conf) throws Exception {
+
+        File file = File.createTempFile("tempFile", ".tmp");
+        file.deleteOnExit();
+        RandomAccessFile f = new RandomAccessFile(file, "rw");
+        f.setLength(size);
+        f.close();
+
+        storeFunc.setStoreLocation(file.getAbsolutePath(), new Job(conf));
+        FuncSpec funcSpec = new FuncSpec(storeFunc.getClass().getCanonicalName());
+        POStore poStore = new POStore(new OperatorKey());
+        poStore.setSFile(new FileSpec(file.getAbsolutePath(), funcSpec));
+        poStore.setStoreFunc(storeFunc);
+        poStore.setUp();
+
+        return poStore;
+    }
+
+    private static POStore createPOStoreForNonFileBasedSystem(StoreFuncInterface storeFunc,
+            Configuration conf) throws Exception {
+
+        String nonFileBasedUri = "hbase://tableName";
+        storeFunc.setStoreLocation(nonFileBasedUri, new Job(conf));
+        FuncSpec funcSpec = new FuncSpec(storeFunc.getClass().getCanonicalName());
+        POStore poStore = new POStore(new OperatorKey());
+        poStore.setSFile(new FileSpec(nonFileBasedUri, funcSpec));
+        poStore.setStoreFunc(storeFunc);
+        poStore.setUp();
+
+        return poStore;
+    }
+
+    @Test
+    public void testGetOuputSizeUsingFileBasedStorage() throws Exception {
+        // By default, FileBasedOutputSizeReader is used to compute the size of output.
+        Configuration conf = new Configuration();
+
+        long size = 2L * 1024 * 1024 * 1024;
+        Method getOutputSize = getJobStatsMethod("getOutputSize", POStore.class, Configuration.class);
+        long outputSize = (Long) getOutputSize.invoke(
+                null, createPOStoreForFileBasedSystem(size, new PigStorageWithStatistics(), conf), conf);
+
+        assertEquals("The returned output size is expected to be the same as the file size",
+                size, outputSize);
+    }
+
+    @Test
+    public void testGetOuputSizeUsingNonFileBasedStorage1() throws Exception {
+        // By default, FileBasedOutputSizeReader is used to compute the size of output.
+        Configuration conf = new Configuration();
+
+        // ClientSystemProps is needed to instantiate HBaseStorage
+        UDFContext.getUDFContext().setClientSystemProps(new Properties());
+        Method getOutputSize = getJobStatsMethod("getOutputSize", POStore.class, Configuration.class);
+        long outputSize = (Long) getOutputSize.invoke(
+                null, createPOStoreForNonFileBasedSystem(new HBaseStorage("colName"), conf), conf);
+
+        assertEquals("The default output size reader returns -1 for a non-file-based uri",
+                -1, outputSize);
+    }
+
+    @Test
+    public void testGetOuputSizeUsingNonFileBasedStorage2() throws Exception {
+        // Register a custom output size reader in configuration
+        Configuration conf = new Configuration();
+        conf.set(PigStatsOutputSizeReader.OUTPUT_SIZE_READER_KEY,
+                DummyOutputSizeReader.class.getName());
+
+        // ClientSystemProps is needed to instantiate HBaseStorage
+        UDFContext.getUDFContext().setClientSystemProps(new Properties());
+        Method getOutputSize = getJobStatsMethod("getOutputSize", POStore.class, Configuration.class);
+        long outputSize = (Long) getOutputSize.invoke(
+                null, createPOStoreForNonFileBasedSystem(new HBaseStorage("colName"), conf), conf);
+
+        assertEquals("The dummy output size reader always returns " + DummyOutputSizeReader.SIZE,
+                DummyOutputSizeReader.SIZE, outputSize);
+    }
+
+    @Test(expected = InvocationTargetException.class)
+    public void testGetOuputSizeUsingNonFileBasedStorage3() throws Exception {
+        // Register an invalid output size reader in configuration, and verify
+        // that an exception is thrown at run-time.
+        Configuration conf = new Configuration();
+        conf.set(PigStatsOutputSizeReader.OUTPUT_SIZE_READER_KEY, "bad_output_size_reader");
+
+        // ClientSystemProps is needed to instantiate HBaseStorage
+        UDFContext.getUDFContext().setClientSystemProps(new Properties());
+        Method getOutputSize = getJobStatsMethod("getOutputSize", POStore.class, Configuration.class);
+
+        getOutputSize.invoke(
+                null, createPOStoreForNonFileBasedSystem(new HBaseStorage("colName"), conf), conf);
+    }
+
+    @Test
+    public void testGetOuputSizeUsingNonFileBasedStorage4() throws Exception {
+        // Register a comma-separated list of readers in configuration, and
+        // verify that the one that supports a non-file-based uri is used.
+        Configuration conf = new Configuration();
+        conf.set(PigStatsOutputSizeReader.OUTPUT_SIZE_READER_KEY,
+                FileBasedOutputSizeReader.class.getName() + ","
+                        + DummyOutputSizeReader.class.getName());
+
+        // ClientSystemProps needs to be initialized to instantiate HBaseStorage
+        UDFContext.getUDFContext().setClientSystemProps(new Properties());
+        Method getOutputSize = getJobStatsMethod("getOutputSize", POStore.class, Configuration.class);
+        long outputSize = (Long) getOutputSize.invoke(
+                null, createPOStoreForNonFileBasedSystem(new HBaseStorage("colName"), conf), conf);
+
+        assertEquals("The dummy output size reader always returns " + DummyOutputSizeReader.SIZE,
+                DummyOutputSizeReader.SIZE, outputSize);
+    }
 }
