@@ -197,6 +197,12 @@
     <property name="build.ivy.maven.pom" location="${build.ivy.maven.dir}/pig-${version}.pom" />
     <property name="build.ivy.maven.jar" location="${build.ivy.maven.dir}/pig-${version}-core.jar" />
     <property name="javacc.home" location="${ivy.lib.dir}" />
+    <property name="jackson_core.jar" location="${test.src.dir}/resources/jackson-core-asl-${jackson-pig-3039-test.version}.jar"/>
+    <property name="jackson_mapper.jar" location="${test.src.dir}/resources/jackson-mapper-asl-${jackson-pig-3039-test.version}.jar"/>
+    <property name="jackson_core_repo_url"
+              value="${mvnrepo}/org/codehaus/jackson/jackson-core-asl/${jackson-pig-3039-test.version}/jackson-core-asl-${jackson-pig-3039-test.version}.jar"/>
+    <property name="jackson_mapper_repo_url"
+              value="${mvnrepo}/org/codehaus/jackson/jackson-mapper-asl/${jackson-pig-3039-test.version}/jackson-mapper-asl-${jackson-pig-3039-test.version}.jar"/>
 
     <!--this is the naming policy for artifacts we want pulled down-->
     <property name="ivy.artifact.retrieve.pattern" value="${ant.project.name}/[artifact]-[revision](-[classifier]).[ext]"/>
@@ -356,7 +362,7 @@
         <ant dir="${test.e2e.dir}" target="clean"/>
     </target>
     
-    <target name="very-clean" unless="offline" depends="ivy-clean-cache,clean"
+    <target name="very-clean" unless="offline" depends="ivy-clean-cache,jackson-pig-3039-test-clean,clean"
             description="Clean build artifacts and flush Ivy cache" />
 
     <target name="clean-piggybank" description="Cleanup piggybank">
@@ -831,7 +837,7 @@
     <!-- ================================================================== -->
     <!-- Run unit tests                                                     -->
     <!-- ================================================================== -->
-    <target name="test-core" depends="compile-test,jar-withouthadoop,debugger.check" description="Run full set of unit tests">
+    <target name="test-core" depends="compile-test,jar-withouthadoop,debugger.check,jackson-pig-3039-test-download" description="Run full set of unit tests">
         <macro-test-runner test.file="${test.all.file}" />
     </target>
 
@@ -891,6 +897,7 @@
                        <excludesfile name="${test.exclude.file.23}" if="isHadoop23" />
                     </patternset>
                     <exclude name="**/${exclude.testcase}.java" if="exclude.testcase" />
+                    <exclude name="**/TestRegisteredJarVisibility.java" if="offline"/>
                     <exclude name="**/TestInvokerSpeed.java" if="clover.enabled"/>
                 </fileset>
             </batchtest>
@@ -1700,6 +1707,16 @@
      <target name="ivy-clean-cache" depends="ivy-init-antlib"
              description="Clean the Ivy cache">
          <ivy:cleancache />
+     </target>
+
+     <target name="jackson-pig-3039-test-download" description="To download jackson" unless="offline">
+        <get src="${jackson_core_repo_url}" dest="${jackson_core.jar}" usetimestamp="true"/>
+        <get src="${jackson_mapper_repo_url}" dest="${jackson_mapper.jar}" usetimestamp="true"/>
+     </target>
+
+     <target name="jackson-pig-3039-test-clean" description="Clean the jackson jar files">
+        <delete file="${jackson_core.jar}"/>
+        <delete file="${jackson_mapper.jar}"/>
      </target>
 
      <target name="assert-pig-jar-exists" depends="ivy-init">
