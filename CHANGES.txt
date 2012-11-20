@@ -78,6 +78,8 @@ PIG-1891 Enable StoreFunc to make intelligent decision based on job success or f
 
 IMPROVEMENTS
 
+PIG-2980: documentation for DateTime datatype (zjshen via thejas)
+
 PIG-2982: add unit tests for DateTime type that test setting timezone (zjshen via thejas)
 
 PIG-2937: generated field in nested foreach does not inherit the variable name as the field name (jcoveney)

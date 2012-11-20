@@ -3253,6 +3253,923 @@ Use the UPPER function to convert all characters in a string to upper case.
 </section>
 <!-- End String Functions -->
 
+<!-- ======================================================== -->
+<!-- ======================================================== -->   
+
+<!-- Datetime Functions -->
+<section id="datetime-functions">
+<title>Datetime Functions</title>
+
+<p>
+For general information about datetime type operations, see the <a href="http://download.oracle.com/javase/6/docs/api/">Java API Specification</a>, 
+<a href="http://docs.oracle.com/javase/6/docs/api/java/util/Date.html">Java Date class</a>, and <a href="http://joda-time.sourceforge.net/apidocs/index.html">JODA DateTime class</a>.
+And for the information of ISO date and time formats, please refer to <a href="http://www.w3.org/TR/NOTE-datetime">Date and Time Formats</a>.
+</p>
+
+<!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->
+ <section id="add-duration">
+   <title>AddDuration</title>
+   <p>Returns the result of a DateTime object plus a <a href="http://en.wikipedia.org/wiki/ISO_8601#Durations">Duration object</a>.</p>
+
+<section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>AddDuration(datetime, duration)</p>
+            </td>
+         </tr>
+   </table>
+ </section>
+   
+<section>
+   <title>Terms</title>
+   <table>
+       <tr>
+            <td>
+               <p>datetime</p>
+            </td>
+            <td>
+               <p>A datetime object.</p>
+            </td>
+         </tr> 
+                <tr>
+            <td>
+               <p>duration</p>
+            </td>
+            <td>
+               <p>The duration string in <a href="http://en.wikipedia.org/wiki/ISO_8601#Durations">ISO 8601 format</a>.</p>
+            </td>
+         </tr> 
+   </table>
+</section>
+
+<section>
+     <title>Usage</title>
+     <p>
+Use the AddDuration function to created a new datetime object by add some duration to a given datetime object.
+     </p>
+
+</section>
+</section> 
+
+<!-- ======================================================== -->  
+ <section id="current-time">
+   <title>CurrentTime</title>
+   <p>Returns the DateTime object of the current time.</p>
+
+<section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>CurrentTime()</p>
+            </td>
+         </tr>
+   </table>
+   </section>
+
+<section>
+     <title>Usage</title>
+     <p>
+Use the CurrentTime function to generate a datetime object of current timestamp with millisecond accuracy.
+     </p>
+</section>
+</section> 
+
+
+<!-- ======================================================== -->  
+ <section id="days-between">
+   <title>DaysBetween</title>
+   <p>Returns the number of days between two DateTime objects.</p>
+
+<section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>DaysBetween(datetime1, datetime2)</p>
+            </td>
+         </tr>
+   </table>
+ </section>
+   
+<section>
+   <title>Terms</title>
+   <table>
+       <tr>
+            <td>
+               <p>datetime1</p>
+            </td>
+            <td>
+               <p>A datetime object.</p>
+            </td>
+        </tr> 
+        <tr>
+            <td>
+               <p>datetime2</p>
+            </td>
+            <td>
+               <p>Another datetime object.</p>
+            </td>
+        </tr>
+   </table>
+</section>
+
+<section>
+     <title>Usage</title>
+     <p>
+Use the DaysBetween function to get the number of days between the two given datetime objects. 
+     </p>
+</section>
+</section>
+
+<!-- ======================================================== -->  
+ <section id="get-day">
+   <title>GetDay</title>
+   <p>Returns the day of a month from a DateTime object.</p>
+
+<section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>GetDay(datetime)</p>
+            </td>
+         </tr>
+   </table>
+ </section>
+   
+<section>
+   <title>Terms</title>
+   <table>
+       <tr>
+            <td>
+               <p>datetime</p>
+            </td>
+            <td>
+               <p>A datetime object.</p>
+            </td>
+        </tr>
+   </table>
+</section>
+
+<section>
+     <title>Usage</title>
+     <p>
+Use the GetDay function to extract the day of a month from the given datetime object. 
+     </p>
+</section>
+</section> 
+
+<!-- ======================================================== -->  
+ <section id="get-hour">
+   <title>GetHour</title>
+   <p>Returns the hour of a day from a DateTime object.</p>
+
+<section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>GetHour(datetime)</p>
+            </td>
+         </tr>
+   </table>
+ </section>
+   
+<section>
+   <title>Terms</title>
+   <table>
+       <tr>
+            <td>
+               <p>datetime</p>
+            </td>
+            <td>
+               <p>A datetime object.</p>
+            </td>
+        </tr>
+   </table>
+</section>
+
+<section>
+     <title>Usage</title>
+     <p>
+Use the GetHour function to extract the hour of a day from the given datetime object. 
+     </p>
+</section>
+</section>
+
+<!-- ======================================================== -->  
+ <section id="get-milli-second">
+   <title>GetMilliSecond</title>
+   <p>Returns the millisecond of a second from a DateTime object.</p>
+
+<section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>GetMilliSecond(datetime)</p>
+            </td>
+         </tr>
+   </table>
+ </section>
+   
+<section>
+   <title>Terms</title>
+   <table>
+       <tr>
+            <td>
+               <p>datetime</p>
+            </td>
+            <td>
+               <p>A datetime object.</p>
+            </td>
+        </tr>
+   </table>
+</section>
+
+<section>
+     <title>Usage</title>
+     <p>
+Use the GetMilliSecond function to extract the millsecond of a second from the given datetime object. 
+     </p>
+</section>
+</section>
+
+<!-- ======================================================== -->  
+ <section id="get-minute">
+   <title>GetMinute</title>
+   <p>Returns the minute of a hour from a DateTime object.</p>
+
+<section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>GetMinute(datetime)</p>
+            </td>
+         </tr>
+   </table>
+ </section>
+   
+<section>
+   <title>Terms</title>
+   <table>
+       <tr>
+            <td>
+               <p>datetime</p>
+            </td>
+            <td>
+               <p>A datetime object.</p>
+            </td>
+        </tr>
+   </table>
+</section>
+
+<section>
+     <title>Usage</title>
+     <p>
+Use the GetMinute function to extract the minute of a hour from the given datetime object. 
+     </p>
+</section>
+</section>
+
+<!-- ======================================================== -->  
+ <section id="get-month">
+   <title>GetMonth</title>
+   <p>Returns the month of a year from a DateTime object.</p>
+
+<section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>GetMonth(datetime)</p>
+            </td>
+         </tr>
+   </table>
+ </section>
+   
+<section>
+   <title>Terms</title>
+   <table>
+       <tr>
+            <td>
+               <p>datetime</p>
+            </td>
+            <td>
+               <p>A datetime object.</p>
+            </td>
+        </tr>
+   </table>
+</section>
+
+<section>
+     <title>Usage</title>
+     <p>
+Use the GetMonth function to extract the month of a year from the given datetime object. 
+     </p>
+</section>
+</section>
+
+<!-- ======================================================== -->  
+ <section id="get-second">
+   <title>GetSecond</title>
+   <p>Returns the second of a minute from a DateTime object.</p>
+
+<section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>GetSecond(datetime)</p>
+            </td>
+         </tr>
+   </table>
+ </section>
+   
+<section>
+   <title>Terms</title>
+   <table>
+       <tr>
+            <td>
+               <p>datetime</p>
+            </td>
+            <td>
+               <p>A datetime object.</p>
+            </td>
+        </tr>
+   </table>
+</section>
+
+<section>
+     <title>Usage</title>
+     <p>
+Use the GetSecond function to extract the second of a minute from the given datetime object. 
+     </p>
+</section>
+</section>
+
+<!-- ======================================================== -->  
+ <section id="get-week">
+   <title>GetWeek</title>
+   <p>Returns the week of a week year from a DateTime object.</p>
+
+<section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>GetWeek(datetime)</p>
+            </td>
+         </tr>
+   </table>
+ </section>
+   
+<section>
+   <title>Terms</title>
+   <table>
+       <tr>
+            <td>
+               <p>datetime</p>
+            </td>
+            <td>
+               <p>A datetime object.</p>
+            </td>
+        </tr>
+   </table>
+</section>
+
+<section>
+     <title>Usage</title>
+     <p>
+Use the GetWeek function to extract the week of a week year from the given datetime object.
+Note that week year may be different from year. 
+     </p>
+</section>
+</section>
+
+<!-- ======================================================== -->  
+ <section id="get-week-year">
+   <title>GetWeekYear</title>
+   <p>Returns the week year from a DateTime object.</p>
+
+<section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>GetWeekYear(datetime)</p>
+            </td>
+         </tr>
+   </table>
+ </section>
+   
+<section>
+   <title>Terms</title>
+   <table>
+       <tr>
+            <td>
+               <p>datetime</p>
+            </td>
+            <td>
+               <p>A datetime object.</p>
+            </td>
+        </tr>
+   </table>
+</section>
+
+<section>
+     <title>Usage</title>
+     <p>
+Use the GetWeekYear function to extract the week year from the given datetime object.
+Note that week year may be different from year.
+     </p>
+</section>
+</section>
+
+<!-- ======================================================== -->  
+ <section id="get-year">
+   <title>GetYear</title>
+   <p>Returns the year from a DateTime object.</p>
+
+<section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>GetYear(datetime)</p>
+            </td>
+         </tr>
+   </table>
+ </section>
+   
+<section>
+   <title>Terms</title>
+   <table>
+       <tr>
+            <td>
+               <p>datetime</p>
+            </td>
+            <td>
+               <p>A datetime object.</p>
+            </td>
+        </tr>
+   </table>
+</section>
+
+<section>
+     <title>Usage</title>
+     <p>
+Use the GetYear function to extract the year from the given datetime object. 
+     </p>
+</section>
+</section>
+
+<!-- ======================================================== -->  
+ <section id="hours-between">
+   <title>HoursBetween</title>
+   <p>Returns the number of hours between two DateTime objects.</p>
+
+<section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>HoursBetween(datetime1, datetime2)</p>
+            </td>
+         </tr>
+   </table>
+ </section>
+   
+<section>
+   <title>Terms</title>
+   <table>
+       <tr>
+            <td>
+               <p>datetime1</p>
+            </td>
+            <td>
+               <p>A datetime object.</p>
+            </td>
+        </tr> 
+        <tr>
+            <td>
+               <p>datetime2</p>
+            </td>
+            <td>
+               <p>Another datetime object.</p>
+            </td>
+        </tr>
+   </table>
+</section>
+
+<section>
+     <title>Usage</title>
+     <p>
+Use the HoursBetween function to get the number of hours between the two given datetime objects. 
+     </p>
+</section>
+</section>
+
+<!-- ======================================================== -->  
+ <section id="milli-seconds-between">
+   <title>MilliSecondsBetween</title>
+   <p>Returns the number of milliseconds between two DateTime objects.</p>
+
+<section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>MilliSecondsBetween(datetime1, datetime2)</p>
+            </td>
+         </tr>
+   </table>
+ </section>
+   
+<section>
+   <title>Terms</title>
+   <table>
+       <tr>
+            <td>
+               <p>datetime1</p>
+            </td>
+            <td>
+               <p>A datetime object.</p>
+            </td>
+        </tr> 
+        <tr>
+            <td>
+               <p>datetime2</p>
+            </td>
+            <td>
+               <p>Another datetime object.</p>
+            </td>
+        </tr>
+   </table>
+</section>
+
+<section>
+     <title>Usage</title>
+     <p>
+Use the MilliSecondsBetween function to get the number of millseconds between the two given datetime objects. 
+     </p>
+</section>
+</section> 
+
+<!-- ======================================================== -->  
+ <section id="minutes-between">
+   <title>MinutesBetween</title>
+   <p>Returns the number of minutes between two DateTime objects.</p>
+
+<section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>MinutesBetween(datetime1, datetime2)</p>
+            </td>
+         </tr>
+   </table>
+ </section>
+   
+<section>
+   <title>Terms</title>
+   <table>
+       <tr>
+            <td>
+               <p>datetime1</p>
+            </td>
+            <td>
+               <p>A datetime object.</p>
+            </td>
+        </tr> 
+        <tr>
+            <td>
+               <p>datetime2</p>
+            </td>
+            <td>
+               <p>Another datetime object.</p>
+            </td>
+        </tr>
+   </table>
+</section>
+
+<section>
+     <title>Usage</title>
+     <p>
+Use the MinutsBetween function to get the number of minutes between the two given datetime objects. 
+     </p>
+</section>
+</section> 
+
+<!-- ======================================================== -->  
+<section id="months-between">
+   <title>MonthsBetween</title>
+   <p>Returns the number of months between two DateTime objects.</p>
+
+<section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>MonthsBetween(datetime1, datetime2)</p>
+            </td>
+         </tr>
+   </table>
+ </section>
+   
+<section>
+   <title>Terms</title>
+   <table>
+       <tr>
+            <td>
+               <p>datetime1</p>
+            </td>
+            <td>
+               <p>A datetime object.</p>
+            </td>
+        </tr> 
+        <tr>
+            <td>
+               <p>datetime2</p>
+            </td>
+            <td>
+               <p>Another datetime object.</p>
+            </td>
+        </tr>
+   </table>
+</section>
+
+<section>
+     <title>Usage</title>
+     <p>
+Use the MonthsBetween function to get the number of months between the two given datetime objects. 
+     </p>
+</section>
+</section>
+
+<!-- ======================================================== -->  
+ <section id="seconds-between">
+   <title>SecondsBetween</title>
+   <p>Returns the number of seconds between two DateTime objects.</p>
+
+<section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>SecondsBetween(datetime1, datetime2)</p>
+            </td>
+         </tr>
+   </table>
+ </section>
+   
+<section>
+   <title>Terms</title>
+   <table>
+       <tr>
+            <td>
+               <p>datetime1</p>
+            </td>
+            <td>
+               <p>A datetime object.</p>
+            </td>
+        </tr> 
+        <tr>
+            <td>
+               <p>datetime2</p>
+            </td>
+            <td>
+               <p>Another datetime object.</p>
+            </td>
+        </tr>
+   </table>
+</section>
+
+<section>
+     <title>Usage</title>
+     <p>
+Use the SecondsBetween function to get the number of seconds between the two given datetime objects. 
+     </p>
+</section>
+</section>
+
+<!-- ======================================================== -->  
+ <section id="subtract-duratioin">
+   <title>SubtractDuration</title>
+   <p>Returns the result of a DateTime object minus a <a href="http://en.wikipedia.org/wiki/ISO_8601#Durations">Duration object</a>.</p>
+
+<section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>SubtractDuration(datetime, duration)</p>
+            </td>
+         </tr>
+   </table>
+ </section>
+   
+<section>
+   <title>Terms</title>
+   <table>
+       <tr>
+            <td>
+               <p>datetime</p>
+            </td>
+            <td>
+               <p>A datetime object.</p>
+            </td>
+         </tr> 
+                <tr>
+            <td>
+               <p>duration</p>
+            </td>
+            <td>
+               <p>The duration string in <a href="http://en.wikipedia.org/wiki/ISO_8601#Durations">ISO 8601 format</a>.</p>
+            </td>
+         </tr> 
+   </table>
+</section>
+
+<section>
+     <title>Usage</title>
+     <p>
+Use the AddDuration function to created a new datetime object by add some duration to a given datetime object.
+      </p>
+</section>
+</section> 
+
+<!-- ======================================================== -->  
+ <section id="to-date">
+   <title>ToDate</title>
+   <p>Returns a DateTime object according to parameters.</p>
+
+<section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>ToDate(milliseconds)</p>
+               <p>ToDate(iosstring)</p>
+               <p>ToDate(userstring, format)</p>
+               <p>ToDate(userstring, format, timezone)</p>
+            </td>
+         </tr>
+   </table>
+ </section>
+   
+<section>
+   <title>Terms</title>
+   <table>
+       <tr>
+            <td>
+               <p>millseconds</p>
+            </td>
+            <td>
+               <p>The offset from 1970-01-01T00:00:00.000Z in terms of the number milliseconds (either positive or negative).</p>
+            </td>
+        </tr> 
+        <tr>
+            <td>
+               <p>isostring</p>
+            </td>
+            <td>
+               <p>The datetime string in the <a href="http://www.w3.org/TR/NOTE-datetime">ISO 8601 format</a>.</p>
+            </td>
+        </tr>
+        <tr>
+            <td>
+               <p>userstring</p>
+            </td>
+            <td>
+               <p>The datetime string in the user defined format.</p>
+            </td>
+        </tr>
+        <tr>
+            <td>
+               <p>format</p>
+            </td>
+            <td>
+               <p>The date time format pattern string (see <a href="http://docs.oracle.com/javase/6/docs/api/java/text/SimpleDateFormat.html">Java SimpleDateFormat class</a>).</p>
+            </td>
+        </tr>
+        <tr>
+            <td>
+               <p>timezone</p>
+            </td>
+            <td>
+               <p>The timezone string. Either the UTC offset and the location based format can be used as a parameter, while internally the timezone will be converted to the UTC offset format.</p>
+            </td>
+        </tr>
+   </table>
+</section>
+
+<section>
+     <title>Usage</title>
+     <p>
+Use the ToDate function to generate a DateTime object. Note that if the timezone is not specified with the ISO datetime string or by the timezone parameter, the default timezone will be used.
+      </p>
+</section>
+</section>
+
+<!-- ======================================================== -->  
+ <section id="weeks-between">
+   <title>WeeksBetween</title>
+   <p>Returns the number of weeks between two DateTime objects.</p>
+
+<section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>WeeksBetween(datetime1, datetime2)</p>
+            </td>
+         </tr>
+   </table>
+ </section>
+   
+<section>
+   <title>Terms</title>
+   <table>
+       <tr>
+            <td>
+               <p>datetime1</p>
+            </td>
+            <td>
+               <p>A datetime object.</p>
+            </td>
+        </tr> 
+        <tr>
+            <td>
+               <p>datetime2</p>
+            </td>
+            <td>
+               <p>Another datetime object.</p>
+            </td>
+        </tr>
+   </table>
+</section>
+
+<section>
+     <title>Usage</title>
+     <p>
+Use the WeeksBetween function to get the number of weeks between the two given datetime objects. 
+     </p>
+</section>
+</section>
+
+<!-- ======================================================== -->  
+ <section id="years-between">
+   <title>YearsBetween</title>
+   <p>Returns the number of years between two DateTime objects.</p>
+
+<section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>YearsBetween(datetime1, datetime2)</p>
+            </td>
+         </tr>
+   </table>
+ </section>
+   
+<section>
+   <title>Terms</title>
+   <table>
+       <tr>
+            <td>
+               <p>datetime1</p>
+            </td>
+            <td>
+               <p>A datetime object.</p>
+            </td>
+        </tr> 
+        <tr>
+            <td>
+               <p>datetime2</p>
+            </td>
+            <td>
+               <p>Another datetime object.</p>
+            </td>
+        </tr>
+   </table>
+</section>
+
+<section>
+     <title>Usage</title>
+     <p>
+Use the YearsBetween function to get the number of years between the two given datetime objects. 
+     </p>
+</section>
+</section>
+</section>
+<!-- End DateTime Functions -->
 
 <!-- ======================================================== -->
 <!-- ======================================================== -->
