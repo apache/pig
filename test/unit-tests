@@ -7,6 +7,7 @@
 **/TestConversions.java
 **/TestDataBag.java
 **/TestDataModel.java
+**/TestDefaultDateTimeZone.java
 **/TestDeleteOnFail.java
 **/TestDivide.java
 **/TestEqualTo.java
