@@ -82,16 +82,16 @@ public class ToDate extends EvalFunc<DateTime> {
         funcList.add(new FuncSpec(this.getClass().getName(), s));
         s = new Schema();
         s.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
-        funcList.add(new FuncSpec(ToDateISO.class.getClass().getName(), s));
+        funcList.add(new FuncSpec(ToDateISO.class.getName(), s));
         s = new Schema();
         s.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
         s.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
-        funcList.add(new FuncSpec(ToDate2ARGS.class.getClass().getName(), s));
+        funcList.add(new FuncSpec(ToDate2ARGS.class.getName(), s));
         s = new Schema();
         s.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
         s.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
         s.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
-        funcList.add(new FuncSpec(ToDate3ARGS.class.getClass().getName(), s));
+        funcList.add(new FuncSpec(ToDate3ARGS.class.getName(), s));
         return funcList;
     }
     
