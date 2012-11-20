@@ -147,7 +147,7 @@
          
          <tr>
             <td> <p>-- D </p> </td>
-            <td> <p>%declare, %default, define, desc, describe, DIFF, distinct, double, du, dump</p> </td>
+            <td> <p>datetime, %declare, %default, define, desc, describe, DIFF, distinct, double, du, dump</p> </td>
          </tr>  
          
          <tr>
@@ -597,6 +597,17 @@ DUMP X;
             </td>
             <td>
                <p>true/false (case insensitive)</p>
+            </td>
+         </tr>
+         <tr>
+            <td>
+               <p>datetime</p>
+            </td>
+            <td>
+               <p>datetime</p>
+            </td>
+            <td>
+               <p>1970-01-01T00:00:00.000+00:00</p>
             </td>
          </tr>
          <tr>
@@ -1356,6 +1367,10 @@ dump X;
       <li>
          <p>Any numeric constant with decimal point (for example, 1.5) and/or exponent (for example, 5e+1) is treated as double unless it ends with f or F in which case it is assigned type float (for example,  1.5f). </p>
       </li>
+      <li>
+         <p>There is no native constant type for datetime field. You can use a ToDate udf with chararray constant as argument to generate a datetime value. </p>
+      </li>
+
    </ul>
    <p></p>
    <p>The data type definitions for tuples, bags, and maps apply to constants:</p>
@@ -1631,7 +1646,7 @@ X = FOREACH A GENERATE f1 as user, f2 as age, f3 as gpa;
      <!-- ++++++++++++++++++++++++++++++++++ -->  
    <section  id="schema-simple">
    <title>Schemas for Simple Data Types</title>
-   <p>Simple data types include int, long, float, double, chararray, bytearray, and boolean.</p>
+   <p>Simple data types include int, long, float, double, chararray, bytearray, boolean and datetime.</p>
    
    <section>
    <title>Syntax</title>
@@ -3680,10 +3695,16 @@ X = FILTER A BY (f1 matches '.*apache.*');
             <td>
                <p>boolean </p>
             </td>
+            <td>
+               <p>datetime </p>
+            </td>
          </tr>
          <tr>
             <td>
                <p>bag </p>
+            </td>
+            <td>
+               <p>error </p>
             </td>
             <td>
                <p>error </p>
@@ -3751,6 +3772,9 @@ X = FILTER A BY (f1 matches '.*apache.*');
             <td>
                <p>error </p>
             </td>
+            <td>
+               <p>error </p>
+            </td>
          </tr>
          <tr>
             <td>
@@ -3765,6 +3789,9 @@ X = FILTER A BY (f1 matches '.*apache.*');
             <td>
                <p>boolean </p>
                <p>(see Note 2)</p>
+            </td>
+            <td>
+               <p>error </p>
             </td>
             <td>
                <p>error </p>
@@ -3822,6 +3849,9 @@ X = FILTER A BY (f1 matches '.*apache.*');
             <td>
                <p>error </p>
             </td>
+            <td>
+               <p>error </p>
+            </td>
          </tr>
          <tr>
             <td>
@@ -3855,6 +3885,9 @@ X = FILTER A BY (f1 matches '.*apache.*');
                <p>cast as boolean </p>
             </td>
              <td>
+               <p>error </p>
+            </td>
+            <td>
                <p>error </p>
             </td>
          </tr>
@@ -3892,6 +3925,9 @@ X = FILTER A BY (f1 matches '.*apache.*');
              <td>
                <p>error </p>
             </td>
+            <td>
+               <p>error </p>
+            </td>
          </tr>
          <tr>
             <td>
@@ -3923,6 +3959,9 @@ X = FILTER A BY (f1 matches '.*apache.*');
             </td>
             <td>
                <p>cast as boolean  </p>
+            </td>
+            <td>
+               <p>error </p>
             </td>
             <td>
                <p>error </p>
@@ -3962,6 +4001,9 @@ X = FILTER A BY (f1 matches '.*apache.*');
             <td>
                <p>error </p>
             </td>
+            <td>
+               <p>error </p>
+            </td>
          </tr>
          <tr>
             <td>
@@ -3997,8 +4039,11 @@ X = FILTER A BY (f1 matches '.*apache.*');
             <td>
                <p>error </p>
             </td>
+            <td>
+               <p>error </p>
+            </td>
          </tr>
-                  <tr>
+         <tr>
             <td>
                <p>boolean </p>
             </td>
@@ -4031,6 +4076,47 @@ X = FILTER A BY (f1 matches '.*apache.*');
             </td>
             <td>
                <p>boolean </p>
+            </td>
+            <td>
+               <p>error </p>
+            </td>
+         </tr>
+         <tr>
+            <td>
+               <p>datetime </p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p>boolean</p>
             </td>
          </tr>
    </table>
@@ -4076,6 +4162,9 @@ X = FILTER A BY (f1 matches '.*apache.*');
             <td>
                <p>boolean </p>
             </td>
+            <td>
+               <p>datetime </p>
+            </td>
          </tr>
          <tr>
             <td>
@@ -4108,7 +4197,10 @@ X = FILTER A BY (f1 matches '.*apache.*');
             <td>
                <p>error </p>
             </td>
-          <td>
+            <td>
+               <p>error </p>
+            </td>
+            <td>
                <p>error </p>
             </td>
          </tr>
@@ -4118,6 +4210,9 @@ X = FILTER A BY (f1 matches '.*apache.*');
             </td>
             <td>
                <p></p>
+            </td>
+            <td>
+               <p>error </p>
             </td>
             <td>
                <p>error </p>
@@ -4156,6 +4251,9 @@ X = FILTER A BY (f1 matches '.*apache.*');
             </td>
             <td>
                <p></p>
+            </td>
+            <td>
+               <p>error </p>
             </td>
             <td>
                <p>error </p>
@@ -4216,6 +4314,9 @@ X = FILTER A BY (f1 matches '.*apache.*');
             <td>
                <p>error </p>
             </td>
+            <td>
+               <p>error </p>
+            </td>
          </tr>
          <tr>
             <td>
@@ -4247,6 +4348,9 @@ X = FILTER A BY (f1 matches '.*apache.*');
             </td>
             <td>
                <p>boolean (bytearray cast as long) </p>
+            </td>
+            <td>
+               <p>error </p>
             </td>
             <td>
                <p>error </p>
@@ -4286,6 +4390,9 @@ X = FILTER A BY (f1 matches '.*apache.*');
             <td>
                <p>error </p>
             </td>
+            <td>
+               <p>error </p>
+            </td>
          </tr>
          <tr>
             <td>
@@ -4317,6 +4424,9 @@ X = FILTER A BY (f1 matches '.*apache.*');
             </td>
             <td>
                <p>boolean (bytearray cast as double) </p>
+            </td>
+            <td>
+               <p>error </p>
             </td>
             <td>
                <p>error </p>
@@ -4356,10 +4466,54 @@ X = FILTER A BY (f1 matches '.*apache.*');
             <td>
                <p>error </p>
             </td>
+            <td>
+               <p>error </p>
+            </td>
          </tr>
          <tr>
             <td>
                <p>bytearray </p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p>boolean </p>
+            </td>
+            <td>
+               <p>error </p>
+            </td>
+            <td>
+               <p>error </p>
+            </td>
+         </tr>
+         <tr>
+            <td>
+               <p>boolean </p>
+            </td>
+            <td>
+               <p></p>
             </td>
             <td>
                <p></p>
@@ -4424,7 +4578,10 @@ X = FILTER A BY (f1 matches '.*apache.*');
                <p></p>
             </td>
             <td>
-               <p>error</p>
+               <p></p>
+            </td>
+            <td>
+               <p>boolean </p>
             </td>
          </tr>
    </table>
@@ -5042,6 +5199,14 @@ B = FOREACH A GENERATE -x, y;
             </td>
             <td>
                <p>double (as double) </p>
+            </td>
+         </tr>
+         <tr>
+            <td>
+               <p>datetime </p>
+            </td>
+            <td>
+               <p>error </p>
             </td>
          </tr>
    </table>
