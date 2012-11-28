@@ -26,6 +26,8 @@ PIG-3034: Remove Penny code from Pig repository (gates via cheolsoo)
 
 IMPROVEMENTS
 
+PIG-3062: Change HBaseStorage to permit overriding pushProjection (billgraham)
+
 PIG-3016: Modernize more tests (jcoveney via cheolsoo)
 
 PIG-2582: Store size in bytes (not mbytes) in ResourceStatistics (prkommireddi via billgraham)
