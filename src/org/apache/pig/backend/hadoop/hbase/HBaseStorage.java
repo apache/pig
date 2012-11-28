@@ -546,15 +546,33 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         scan.setFilter(scanFilter);
     }
 
-  /**
-   * Returns the ColumnInfo list for so external objects can inspect it. This
-   * is available for unit testing. Ideally, the unit tests and the main source
-   * would each mirror the same package structure and this method could be package
-   * private.
-   * @return ColumnInfo
-   */
+   /**
+    * Returns the ColumnInfo list so external objects can inspect it.
+    * @return List of ColumnInfo objects
+    */
     public List<ColumnInfo> getColumnInfoList() {
-      return columnInfo_;
+        return columnInfo_;
+    }
+
+   /**
+    * Updates the ColumnInfo List. Use this if you need to implement custom projections
+    */
+    protected void setColumnInfoList(List<ColumnInfo> columnInfoList) {
+        this.columnInfo_ = columnInfoList;
+    }
+
+   /**
+    * Stores the requiredFieldsList as a serialized object so it can be fetched on the cluster. If
+    * you plan to overwrite pushProjection, you need to call this with the requiredFieldList so it
+    * they can be accessed on the cluster.
+    */
+    protected void storeProjectedFieldNames(RequiredFieldList requiredFieldList) throws FrontendException {
+        try {
+            getUDFProperties().setProperty(projectedFieldsName(),
+              ObjectSerializer.serialize(requiredFieldList));
+        } catch (IOException e) {
+            throw new FrontendException(e);
+        }
     }
 
     @Override
@@ -1018,14 +1036,9 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         }
 
         // remember the projection
-        try {
-            getUDFProperties().setProperty( projectedFieldsName(),
-                    ObjectSerializer.serialize(requiredFieldList) );
-        } catch (IOException e) {
-            throw new FrontendException(e);
-        }
+        storeProjectedFieldNames(requiredFieldList);
 
-       if (loadRowKey_ &&
+        if (loadRowKey_ &&
                 ( requiredFields.size() < 1 || requiredFields.get(0).getIndex() != 0)) {
                 loadRowKey_ = false;
             projOffset = 0;
@@ -1042,7 +1055,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
                 LOG.debug("pushProjection -- col: " + colInfo);
         }
         }
-        columnInfo_ = newColumns;
+        setColumnInfoList(newColumns);
         return new RequiredFieldResponse(true);
     }
 
