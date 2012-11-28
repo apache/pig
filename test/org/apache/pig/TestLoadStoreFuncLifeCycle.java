@@ -36,6 +36,7 @@ import org.apache.pig.builtin.mock.Storage;
 import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.test.Util;
 import org.junit.Test;
 
 public class TestLoadStoreFuncLifeCycle {
@@ -267,7 +268,12 @@ public class TestLoadStoreFuncLifeCycle {
 
         String paramsString = null;
         for (Object param : params) {
-            String paramString = String.valueOf(param);
+            String paramString = null;
+            if (param instanceof Job) {
+                paramString = ((Job)param).getJobName();
+            } else {
+                paramString = String.valueOf(param);
+            }
             if (paramString.length() > MAX_PARAM_SIZE || paramString.contains("\n")) {
                 int end = paramString.indexOf('\n');
                 if (end == -1 || end > MAX_PARAM_SIZE) {
@@ -288,7 +294,7 @@ public class TestLoadStoreFuncLifeCycle {
             paramsString += ")";
         }
         String call = calledClass + "[" + id + "]." + called.getMethodName();
-        calls.add(call + paramsString /*+ " called by " + findSalient(stackTrace)*/);
+        calls.add(call + paramsString);
         if (called.getMethodName().equals("<init>")) {
             constructorCallers.add(call + " called by " + findSalient(stackTrace));
         }
@@ -340,7 +346,12 @@ public class TestLoadStoreFuncLifeCycle {
         assertEquals("c", out.get(2).get(0));
 
         assertTrue("loader instanciation count increasing: " + Loader.count, Loader.count <= 3);
-        assertTrue("storer instanciation count increasing: " + Storer.count, Storer.count <= 4);
+        // LocalJobRunner gets the outputcommitter to call setupJob in Hadoop
+        // 2.0.x which was not done in Hadoop 1.0.x. (MAPREDUCE-3563) As a
+        // result, the number of StoreFunc instances is greater by 1 in
+        // Hadoop-2.0.x.
+        assertTrue("storer instanciation count increasing: " + Storer.count,
+                Storer.count <= (Util.isHadoop2_0() ? 5 : 4));
 
     }
 

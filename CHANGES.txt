@@ -376,6 +376,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-2978: TestLoadStoreFuncLifeCycle fails with hadoop-2.0.x (cheolsoo)
+
 PIG-3039: Not possible to use custom version of jackson jars (rohini)
 
 PIG-3045: Specifying sorting field(s) at nightly.conf - fix sortArgs (rohini via cheolsoo)
