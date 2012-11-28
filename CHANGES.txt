@@ -22,8 +22,6 @@ Trunk (unreleased changes)
 
 INCOMPATIBLE CHANGES
 
-PIG-3034: Remove Penny code from Pig repository (gates via cheolsoo)
-
 IMPROVEMENTS
 
 PIG-3062: Change HBaseStorage to permit overriding pushProjection (billgraham)
@@ -75,6 +73,8 @@ PIG-2928: Fix e2e test failures in trunk: FilterBoolean_23/24 (cheolsoo via dvry
 Release 0.11.0 (unreleased)
 
 INCOMPATIBLE CHANGES
+
+PIG-3034: Remove Penny code from Pig repository (gates via cheolsoo)
 
 PIG-2931: $ signs in the replacement string make parameter substitution fail (cheolsoo via jcoveney)
 
