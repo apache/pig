@@ -264,10 +264,12 @@ public class MapReduceLauncher extends Launcher{
 
             // mark the times that the jobs were submitted so it's reflected in job history props
             for (Job job : jc.getWaitingJobs()) {
-                job.getJobConf().set("pig.script.submitted.timestamp",
-                                Long.toString(scriptSubmittedTimestamp));
-                job.getJobConf().set("pig.job.submitted.timestamp",
-                                Long.toString(System.currentTimeMillis()));
+                JobConf jobConfCopy = job.getJobConf();
+                jobConfCopy.set("pig.script.submitted.timestamp",
+                        Long.toString(scriptSubmittedTimestamp));
+                jobConfCopy.set("pig.job.submitted.timestamp",
+                        Long.toString(System.currentTimeMillis()));
+                job.setJobConf(jobConfCopy);
             }
 
             //All the setup done, now lets launch the jobs.
