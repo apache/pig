@@ -18,6 +18,7 @@
 package org.apache.pig.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -444,10 +445,10 @@ public class TestBuiltin {
         t13.set(0, new DateTime(1231290421000L));
         Long ut2 = func7.exec(t11);
         assertEquals(ut2.longValue(), 1231290421000L);
-        
+
         CurrentTime func8 = new CurrentTime();
         DateTime dt11 = func8.exec(null);
-        Assert.assertNotNull(dt11);
+        assertNotNull(dt11);
     }
 
     /**

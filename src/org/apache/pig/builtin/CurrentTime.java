@@ -18,37 +18,33 @@
 package org.apache.pig.builtin;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.joda.time.DateTime;
 
 import org.apache.pig.EvalFunc;
-import org.apache.pig.FuncSpec;
-import org.apache.pig.data.DataType;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.util.UDFContext;
+import org.joda.time.DateTime;
 
-/**
- * 
- *  <p>CURRENT_TIME generates the DateTime object of the current time.</p>
- *
- */
 public class CurrentTime extends EvalFunc<DateTime> {
+    private DateTime dateTime;
+    private boolean isInitialized = false;
 
+    /**
+     * This is a default constructor for Pig reflection purposes. It should
+     * never actually be used.
+     */
+    public CurrentTime() {}
+
+    @Override
     public DateTime exec(Tuple input) throws IOException {
-        return new DateTime();
+        if (!isInitialized) {
+            String dateTimeValue = UDFContext.getUDFContext().getJobConf().get("pig.job.submitted.timestamp");
+            if (dateTimeValue == null) {
+                throw new ExecException("pig.job.submitted.timestamp was not set!");
+            }
+            dateTime = new DateTime(Long.parseLong(dateTimeValue));
+            isInitialized  = true;
+        }
+        return dateTime;
     }
-
-    @Override
-    public Schema outputSchema(Schema input) {
-        return new Schema(new Schema.FieldSchema(getSchemaName(this.getClass().getName().toLowerCase(), input), DataType.DATETIME));
-    }
-
-    @Override
-    public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
-        return new ArrayList<FuncSpec>();
-    }
-    
 }
