@@ -445,10 +445,6 @@ public class TestBuiltin {
         t13.set(0, new DateTime(1231290421000L));
         Long ut2 = func7.exec(t11);
         assertEquals(ut2.longValue(), 1231290421000L);
-
-        CurrentTime func8 = new CurrentTime();
-        DateTime dt11 = func8.exec(null);
-        assertNotNull(dt11);
     }
 
     /**
