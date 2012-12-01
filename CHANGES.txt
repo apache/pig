@@ -30,6 +30,8 @@ PIG-1891 Enable StoreFunc to make intelligent decision based on job success or f
 
 IMPROVEMENTS
 
+PIG-2907: Publish pig jars for Hadoop2/23 to maven (rohini)
+
 PIG-2934: HBaseStorage filter optimizations (billgraham)
 
 PIG-2980: documentation for DateTime datatype (zjshen via thejas)
