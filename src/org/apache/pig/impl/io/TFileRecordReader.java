@@ -43,7 +43,6 @@ import org.apache.hadoop.io.file.tfile.TFile.Reader;
 public class TFileRecordReader extends RecordReader<Text, Tuple> {
 
     private long start;
-    private long pos;
     private long end;
     Reader reader = null;
     Reader.Scanner scanner = null;
@@ -102,12 +101,15 @@ public class TFileRecordReader extends RecordReader<Text, Tuple> {
     /**
      * Get the progress within the split
      */
-    public float getProgress() {
+    @Override
+    public float getProgress() throws IOException {
         if (start == end) {
             return 0.0f;
         }
         else {
-            return Math.min(1.0f, (pos - start) / (float) (end - start));
+            //TFile.Reader reads into buffer so progress is updated in chunks.
+            return Math.min(1.0f,
+                      (fileIn.getPos() - start) / (float) (end - start));
         }
     }
 

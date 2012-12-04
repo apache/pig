@@ -58,6 +58,8 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-3072: Pig job reporting negative progress (knoguchi via rohini)
+
 PIG-3014: CurrentTime() UDF has undesirable characteristics (jcoveney via cheolsoo)
 
 PIG-2924: PigStats should not be assuming all Storage classes to be file-based storage (cheolsoo)
