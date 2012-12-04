@@ -31,11 +31,20 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.mapreduce.TaskAttemptID;
+import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigRunner;
 import org.apache.pig.PigServer;
+import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.io.TFileRecordReader;
+import org.apache.pig.impl.io.TFileRecordWriter;
 import org.apache.pig.impl.io.TFileStorage;
 import org.apache.pig.impl.io.InterStorage;
 import org.apache.pig.tools.pigstats.OutputStats;
@@ -325,6 +334,67 @@ public class TestTmpFileCompression {
             new File("tfile.pig").delete(); 
             new File("tfile2.pig").delete(); 
             new File("1.txt").delete(); 
+        }
+    }
+
+    @Test
+    public void testTFileRecordWriterReaderAndProgress() throws Exception {
+        // Create a small tFile by pig tfilewriter, read by tfilereader and
+        // make sure that data matches,
+        // progress is above zero and increasing
+        File tFile = File.createTempFile("test", "tfile");
+        Path basicTFile = new Path(tFile.getAbsolutePath());
+        //delete the empty file and let TFileRecordWriter create it again.
+        tFile.delete();
+        Configuration conf = new Configuration();
+        conf.set("tfile.io.chunk.size","100");
+        conf.set("fs.default.name", "file:///");
+
+        for (String codec: new String [] {"none", "gz"} ) {
+            System.err.println("Testing RecordWriter/Reader with codec: "
+                               + codec);
+            try {
+                TFileRecordWriter writer = new TFileRecordWriter(basicTFile,
+                                                                 codec, conf);
+
+                Tuple tuple = TupleFactory.getInstance().newTuple(1);
+                int LOOP_SIZE = 25000;
+                for( int i=0; i <= LOOP_SIZE; i++) {
+                    String key = String.format("%010d",i);
+                    tuple.set(0,key);
+                    writer.write(null, tuple);
+                }
+                writer.close(null);
+                int size = (int) tFile.length();
+                FileSplit split = new FileSplit(basicTFile, 0, size, null);
+                TFileRecordReader reader = new TFileRecordReader();
+                reader.initialize(split,
+                    HadoopShims.createTaskAttemptContext(
+                        conf,
+                        HadoopShims.createTaskAttemptID("jt", 1, true, 1, 1)));
+
+                float progress = 0,  lastprogress = 0;
+                int curval = 0, prevval = -1;
+                while (reader.nextKeyValue()) {
+                    Tuple t = (Tuple) reader.getCurrentValue();
+                    curval = Integer.valueOf((String) t.get(0));
+                    assertEquals("Unexpected Value", curval, prevval + 1);
+                    prevval = curval;
+
+                    progress = reader.getProgress();
+                    if( progress != lastprogress ) {
+                        System.err.println("progress: " + progress);
+                    }
+                    assertTrue("Progress is not positive", progress > 0);
+                    assertTrue("Progress is not increasing",
+                               progress >= lastprogress);
+                    lastprogress = progress;
+                }
+                assertEquals("Last value does not match",
+                            curval, LOOP_SIZE );
+            } finally {
+                tFile.delete();
+            }
         }
     }
 }
