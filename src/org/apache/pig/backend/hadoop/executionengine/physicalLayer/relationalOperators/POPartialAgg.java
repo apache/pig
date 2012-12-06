@@ -44,6 +44,9 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.Spillable;
+import org.apache.pig.impl.util.SpillableMemoryManager;
+
 import com.google.common.collect.Maps;
 
 /**
@@ -53,7 +56,7 @@ import com.google.common.collect.Maps;
  * map. Once that map fills up or all input has been seen, results are
  * piped out into the next operator (caller of getNext()).
  */
-public class POPartialAgg extends PhysicalOperator {
+public class POPartialAgg extends PhysicalOperator implements Spillable {
     private static final Log LOG = LogFactory.getLog(POPartialAgg.class);
     private static final long serialVersionUID = 1L;
 
@@ -104,9 +107,10 @@ public class POPartialAgg extends PhysicalOperator {
     private transient boolean initialized = false;
     private int firstTierThreshold = FIRST_TIER_THRESHOLD;
     private int secondTierThreshold = SECOND_TIER_THRESHOLD;
-    private int sizeReduction;
+    private int sizeReduction = 1;
+    private int avgTupleSize = 0;
     private Iterator<Entry<Object, List<Tuple>>> spillingIterator;
-    private boolean estimatedMemThresholds;
+    private boolean estimatedMemThresholds = false;
 
 
     public POPartialAgg(OperatorKey k) {
@@ -121,6 +125,7 @@ public class POPartialAgg extends PhysicalOperator {
             disableMapAgg();
     }
         initialized = true;
+        SpillableMemoryManager.getInstance().registerSpillable(this);
     }
 
     @Override
@@ -222,6 +227,7 @@ public class POPartialAgg extends PhysicalOperator {
                     memLimits.addNewObjSize(mem);
                     }
             }
+            avgTupleSize = estTotalMem / estTuples;
             int totalTuples = memLimits.getCacheLimit();
             LOG.info("Estimated total tuples to buffer, based on " + estTuples + " tuples that took up " + estTotalMem + " bytes: " + totalTuples);
             firstTierThreshold = (int) (0.5 + totalTuples * (1f - (1f / sizeReduction)));
@@ -287,8 +293,8 @@ public class POPartialAgg extends PhysicalOperator {
        value.add(inpTuple);
        if (value.size() >= MAX_LIST_SIZE) {
            boolean isFirst = (map == rawInputMap);
-           if (LOG.isInfoEnabled()){
-               LOG.info("The cache for key " + key + " has grown too large. Aggregating " + ((isFirst) ? "first level." : "second level."));
+            if (LOG.isDebugEnabled()){
+                LOG.debug("The cache for key " + key + " has grown too large. Aggregating " + ((isFirst) ? "first level." : "second level."));
            }
            if (isFirst) {
                aggregateRawRow(key);
@@ -524,6 +530,22 @@ public class POPartialAgg extends PhysicalOperator {
         for (PhysicalPlan plan : valuePlans) {
             valueLeaves.add((ExpressionOperator) plan.getLeaves().get(0));
         }
+    }
+
+    @Override
+    public long spill() {
+        try {
+            LOG.info("Spill triggered by SpillableMemoryManager");
+            startSpill();
+        } catch (ExecException e) {
+            throw new RuntimeException(e);
+        }
+        return 0;
+    }
+
+    @Override
+    public long getMemorySize() {
+        return avgTupleSize * (numRecsInProcessedMap + numRecsInRawMap);
     }
 
 }

@@ -67,7 +67,7 @@ public abstract class DefaultAbstractBag implements DataBag {
 
     protected int mLastContentsSize = -1;
 
-    protected long mMemSize = 0;
+    protected long avgTupleSize = 0;
 
     private boolean spillableRegistered = false;
 
@@ -130,32 +130,39 @@ public abstract class DefaultAbstractBag implements DataBag {
      */
     @Override
     public long getMemorySize() {
-        int j;
+        int j = 0;
         int numInMem = 0;
-        long used = 0;
 
         synchronized (mContents) {
-            if (mLastContentsSize == mContents.size()) return mMemSize;
+            numInMem = mContents.size();
 
-            // I can't afford to talk through all the tuples every time the
+
+            // If we've already gotten the estimate
+            // and the number of tuples hasn't changed, or was above 100 and
+            // is still above 100, we can
+            // produce a new estimate without sampling the tuples again.
+            if (avgTupleSize != 0 && (mLastContentsSize == numInMem ||
+                    mLastContentsSize > 100 && numInMem > 100))
+                return totalSizeFromAvgTupleSize(avgTupleSize, numInMem);
+
+            // Measure only what's in memory, not what's on disk.
+            // I can't afford to walk through all the tuples every time the
             // memory manager wants to know if it's time to dump.  Just sample
             // the first 100 and see what we get.  This may not be 100%
             // accurate, but it's just an estimate anyway.
-            numInMem = mContents.size();
-            // Measure only what's in memory, not what's on disk.
             Iterator<Tuple> i = mContents.iterator();
             for (j = 0; i.hasNext() && j < 100; j++) { 
-                used += i.next().getMemorySize();
+                avgTupleSize += i.next().getMemorySize();
             }
-            mLastContentsSize = numInMem;
         }
 
-        if (numInMem > 100) {
-            // Estimate the per tuple size.  Do it in integer arithmetic
-            // (even though it will be slightly less accurate) for speed.
-            used /= j;
-            used *= numInMem;
+        mLastContentsSize = numInMem;
+        avgTupleSize /= j;
+        return totalSizeFromAvgTupleSize(avgTupleSize, numInMem);
         }
+
+    private long totalSizeFromAvgTupleSize(long avgTupleSize, int numInMem) {
+        long used = avgTupleSize * numInMem;
 
         // add up the overhead for this object and other object variables
         int bag_fix_size = 8 /* object header */ 
@@ -185,11 +192,9 @@ public abstract class DefaultAbstractBag implements DataBag {
                 used += mSpillFiles.size() * approx_per_entry_size;
             }
         }
-        
-        mMemSize = used;
         return used;
-    }
 
+    }
     
     /**
      * Memory size of objects are rounded to multiple of 8 bytes
