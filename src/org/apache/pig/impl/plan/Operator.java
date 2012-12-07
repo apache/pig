@@ -82,11 +82,7 @@ abstract public class Operator<V extends PlanVisitor> implements Serializable, C
 
     @Override
     public String toString() {
-        StringBuilder msg = new StringBuilder();
-
-        msg.append("(Name: " + name() + " Operator Key: " + mKey + ")");
-
-        return msg.toString();
+        return "(Name: " + name() + " Operator Key: " + mKey + ")";
     }
     
     /**
