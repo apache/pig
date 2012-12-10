@@ -209,7 +209,7 @@ public class GroovyUtils {
    * anything else raises an exception
    *
    * @param pigObject
-   * @return
+   * @return Object
    * @throws ExecException
    */
   public static Object pigToGroovy(Object pigObject) throws ExecException {
