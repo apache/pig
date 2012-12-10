@@ -477,6 +477,7 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
                              || name.equalsIgnoreCase("same")
                              || name.equalsIgnoreCase("schema")
                              || name.equalsIgnoreCase("schema_file")
+                             || name.equalsIgnoreCase("schema_uri")
                              || name.matches("field\\d+")) {
                     /* store value as string */
                     map.put(name, value);
@@ -541,6 +542,12 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
                 nullable = (Boolean) value;
             } else if (name.equalsIgnoreCase("schema")) {
                 outputAvroSchema = Schema.parse((String) value);
+            } else if (name.equalsIgnoreCase("schema_uri")) {
+                /* use the contents of the specified path as output schema */
+                Path path = new Path( ((String) value).trim());
+                AvroStorageLog.details("schema_uri path=" + path.toUri().toString());
+                FileSystem fs = FileSystem.get(path.toUri(), new Configuration());
+                outputAvroSchema = getSchemaFromFile(path, fs);
             } else if (name.matches("field\\d+")) {
                 /*set schema of dth field */
                 if (fields == null)
