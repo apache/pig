@@ -221,7 +221,7 @@ public abstract class PigStats {
          * Returns a List representation of the Job graph. Returned list is an
          * ArrayList
          * 
-         * @return
+         * @return List<JobStats>
          */
         @SuppressWarnings("unchecked")
         public List<JobStats> getJobList() {
