@@ -21,7 +21,7 @@ package org.apache.pig;
  * This is an interface which, if implemented, allows an Accumulator
  * function to signal that it can terminate early. Certain classes of
  * UDF to do not need access to an entire set of data in order to
- * finish processing. A model example is {@link IsEmpty}. IsEmpty
+ * finish processing. A model example is {org.apache.pig.builtin.IsEmpty}. IsEmpty
  * can be Accumulative as if it receives even one line, it knows that
  * it is not empty. Another example might be a UDF which does streaming
  * analysis, and once a given stream matches a criteria, can terminate

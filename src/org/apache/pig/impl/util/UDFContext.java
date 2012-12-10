@@ -208,7 +208,7 @@ public class UDFContext {
 
     /**
      * Convenience method for UDF code to check where it runs (see PIG-2576)
-     * @return
+     * @return boolean type value
      */
     public boolean isFrontend() {
         // mapred.task.id is for MR1

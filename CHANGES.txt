@@ -386,6 +386,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-3033: test-patch failed with javadoc warnings (fang fang chen via cheolsoo)
+
 PIG-3058: Upgrade junit to at least 4.8 (fang fang chen via cheolsoo)
 
 PIG-2978: TestLoadStoreFuncLifeCycle fails with hadoop-2.0.x (cheolsoo)

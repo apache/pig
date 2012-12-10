@@ -35,7 +35,7 @@ public enum ExecType implements Serializable {
 
     /**
      * Given a string, determine the exec type.
-     * @param str accepted values are 'local', 'mapreduce', and 'mapred'
+     * @param execString accepted values are 'local', 'mapreduce', and 'mapred'
      * @return exectype as ExecType
      */
     public static ExecType fromString(String execString) throws PigException {

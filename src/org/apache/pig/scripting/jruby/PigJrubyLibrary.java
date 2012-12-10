@@ -307,8 +307,7 @@ public class PigJrubyLibrary implements Library {
      * @param  ruby          the Ruby runtime to create objects in
      * @param  object        object to convert
      * @return               analogous Ruby type
-     * @throws ExecException object contained an object that
-     *                       {@link #pigToRuby(Object)} could not convert
+     * @throws ExecException object contained an object that could not convert
      */
     public static RubyArray pigToRuby(Ruby ruby, Tuple object) throws ExecException{
         RubyArray rubyArray = ruby.newArray();

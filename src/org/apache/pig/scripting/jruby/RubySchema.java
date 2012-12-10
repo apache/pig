@@ -932,7 +932,7 @@ public class RubySchema extends RubyObject {
      * Schema. This method only works if the Schema has one FieldSchema.
      *
      * @param context the context the method is being executed in
-     * @Return        the name of the Schema
+     * @return        the name of the Schema
      */
     @JRubyMethod(name = "name")
     public RubyString getName(ThreadContext context) {

@@ -48,8 +48,8 @@ public class SchemaTupleFactory implements TupleMaker<SchemaTuple<?>> {
      * not a SchemaTuple implementation can be generated
      * for the types present. Currently, bags and maps
      * are not supported.
-     * @param   schema
-     * @return  true if it is generatable
+     * @param   s as Schema
+     * @return  boolean type value, true if it is generatable
      */
     public static boolean isGeneratable(Schema s) {
         if (s == null || s.size() == 0) {
@@ -94,8 +94,8 @@ public class SchemaTupleFactory implements TupleMaker<SchemaTuple<?>> {
      * which will generate the SchemaTuple associated with the given identifier. This method
      * is primarily for internal use in cases where the problem SchemaTuple is known
      * based on the identifier associated with it (such as when deserializing).
-     * @param   identifier
-     * @return  a SchemaTupleFactory which will return SchemaTuple's of the given identifier
+     * @param   id as int, means identifier
+     * @return  SchemaTupleFactory which will return SchemaTuple's of the given identifier
      */
     protected static SchemaTupleFactory getInstance(int id) {
         return SchemaTupleBackend.newSchemaTupleFactory(id);
@@ -110,10 +110,10 @@ public class SchemaTupleFactory implements TupleMaker<SchemaTuple<?>> {
      * of SchemaTuple can be controlled -- it is possible that someone wants a
      * factory that generates code in the context of joins, but wants to disable such
      * use for udfs.
-     * @param   schema          the Schema generated
+     * @param   s          the Schema generated
      * @param   isAppendable    whether or not the SchemaTuple should be appendable
      * @param   context         the context in which we want a SchemaTupleFactory
-     * @return  a SchemaTupleFactory which will return SchemaTuple's of the desired Schema
+     * @return  SchemaTupleFactory which will return SchemaTuple's of the desired Schema
      */
     public static SchemaTupleFactory getInstance(Schema s, boolean isAppendable, GenContext context) {
         return SchemaTupleBackend.newSchemaTupleFactory(s, isAppendable, context);
