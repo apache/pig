@@ -130,7 +130,7 @@ public class SchemaTupleClassGenerator {
          * Checks the generated class to see if the annotation
          * associated with this enum is present.
          * @param clazz
-         * @return
+         * @return boolean type value
          */
         @SuppressWarnings({ "unchecked", "rawtypes" })
         public boolean shouldGenerate(Class clazz) {
@@ -141,7 +141,7 @@ public class SchemaTupleClassGenerator {
          * Given a job configuration file, this checks to see
          * if the default value has been overriden.
          * @param conf
-         * @return
+         * @return boolean type value
          */
         public boolean shouldGenerate(Configuration conf) {
             String shouldString = conf.get(key);
@@ -165,10 +165,10 @@ public class SchemaTupleClassGenerator {
 
     /**
      * This class actually generates the code for a given Schema.
-     * @param   schema
-     * @param   true or false depending on whether it should be appendable
-     * @param   identifier
-     * @param   a list of contexts in which the SchemaTuple is intended to be instantiated
+     * @param   s as Schema
+     * @param   appendable as boolean, true or false depending on whether it should be appendable
+     * @param   id as int, id means identifier
+     * @param   contexts which are a list of contexts in which the SchemaTuple is intended to be instantiated
      */
     protected static void generateSchemaTuple(Schema s, boolean appendable, int id, File codeDir, GenContext... contexts) {
         StringBuilder contextAnnotations = new StringBuilder();

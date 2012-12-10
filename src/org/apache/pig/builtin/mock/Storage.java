@@ -128,7 +128,7 @@ public class Storage extends LoadFunc implements StoreFuncInterface, LoadMetadat
   /**
    * reset the store and get the Data object to access it
    * @param pigServer
-   * @return
+   * @return Data
    */
   public static Data resetData(PigServer pigServer) {
     return resetData(pigServer.getPigContext());
@@ -137,7 +137,7 @@ public class Storage extends LoadFunc implements StoreFuncInterface, LoadMetadat
   /**
    * reset the store and get the Data object to access it
    * @param context
-   * @return
+   * @return data as Data
    */
   public static Data resetData(PigContext context) {
     Properties properties = context.getProperties();

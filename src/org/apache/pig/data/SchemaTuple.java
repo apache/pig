@@ -79,7 +79,7 @@ public abstract class SchemaTuple<T extends SchemaTuple<T>> extends AbstractTupl
      * was generated with. This is useful because when the classes
      * are resolved generically, this let's us know the identifier, which
      * is used when serlializing and deserializing tuples.
-     * @return
+     * @return the identifire as Int.
      */
     public abstract int getSchemaTupleIdentifier();
     protected abstract int schemaSize();

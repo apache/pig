@@ -534,7 +534,7 @@ public class PigContext implements Serializable {
      * @param classParamKey the property used to identify the class
      * @param argParamKey the property used to identify the class args
      * @param clazz The class that is expected
-     * @return
+     * @return <T> T
      */
     public static <T> T instantiateObjectFromParams(Configuration conf,
                                                     String classParamKey,
