@@ -80,6 +80,7 @@ public class TestAvroStorage {
     final private String testDir21AllFiles = getInputFile("{test_dir2,test_dir1}/test_glob*.avro");
     final private String testNoMatchedFiles = getInputFile("test_dir{1,2}/file_that_does_not_exist*.avro");
     final private String testArrayFile = getInputFile("test_array.avro");
+    final private String testArraySchema = getInputFile("test_array.avsc");
     final private String testRecordFile = getInputFile("test_record.avro");
     final private String testRecordSchema = getInputFile("test_record.avsc");
     final private String testGenericUnionFile = getInputFile("test_generic_union.avro");
@@ -687,17 +688,31 @@ public class TestAvroStorage {
         verifyResults(output, expected);
     }
 
-
     @Test
     public void testArrayWithSchema() throws IOException {
         String output= outbasedir + "testArrayWithSchema";
         String expected = basedir + "expected_testArrayWithSchema.avro";
         deleteDirectory(new File(output));
         String [] queries = {
+                " in = LOAD '" + testArrayFile + " ' USING org.apache.pig.piggybank.storage.avro.AvroStorage ();",
+                " STORE in INTO '" + output +
+                "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ( "  +
+                "   'schema', '{\"type\":\"array\",\"items\":\"float\"}'  );"
+        };
+        testAvroStorage( queries);
+        verifyResults(output, expected);
+    }
+
+    @Test
+    public void testArrayWithSchemaURI() throws IOException {
+        String output= outbasedir + "testArrayWithSchemaURI";
+        String expected = basedir + "expected_testArrayWithSchemaURI.avro"; // doubles (not floats) stored
+        deleteDirectory(new File(output));
+        String [] queries = {
            " in = LOAD '" + testArrayFile + " ' USING org.apache.pig.piggybank.storage.avro.AvroStorage ();",
            " STORE in INTO '" + output +
                "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ( "  +
-               "   'schema', '{\"type\":\"array\",\"items\":\"float\"}'  );"
+               "   'schema_uri', '" + testArraySchema  + "'  );"
             };
         testAvroStorage( queries);
         verifyResults(output, expected);

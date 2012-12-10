@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-3075: Allow AvroStorage STORE Operations To Use Schema Specified By URI (nwhite via cheolsoo)
+
 PIG-3062: Change HBaseStorage to permit overriding pushProjection (billgraham)
 
 PIG-3016: Modernize more tests (jcoveney via cheolsoo)
