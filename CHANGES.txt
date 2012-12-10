@@ -330,6 +330,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-3044: hotfix to remove divide by 0 error (jcoveney)
+
 PIG-3033: test-patch failed with javadoc warnings (fang fang chen via cheolsoo)
 
 PIG-3058: Upgrade junit to at least 4.8 (fang fang chen via cheolsoo)
