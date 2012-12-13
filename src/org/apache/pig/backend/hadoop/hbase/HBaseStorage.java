@@ -125,8 +125,7 @@ import com.google.common.collect.Lists;
  * <pre>{@code
  * copy = STORE raw INTO 'hbase://SampleTableCopy'
  *       USING org.apache.pig.backend.hadoop.hbase.HBaseStorage(
- *       'info:first_name info:last_name friends:* info:*')
- *       AS (info:first_name info:last_name buddies:* info:*);
+ *       'info:first_name info:last_name friends:* info:*');
  * }</pre>
  * Note that STORE will expect the first value in the tuple to be the row key.
  * Scalars values need to map to an explicit column descriptor and maps need to
