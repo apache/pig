@@ -1568,8 +1568,137 @@ a = load '1.txt' as (a0:{t:(m:map[int],d:double)});
 <source>
 A = LOAD 'data' USING TextLoader();
 </source>
-   </section></section></section>
-   
+   </section></section>
+
+  <!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->
+   <section id="HBaseStorage">
+   <title>HBaseStorage</title>
+   <p>Loads and stores data from an HBase table.</p>
+
+   <section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>HBaseStorage('columns', ['options'])</p>
+            </td>
+         </tr>
+   </table>
+   </section>
+
+   <section>
+   <title>Terms</title>
+   <table>
+       <tr>
+            <td>
+               <p>columns</p>
+            </td>
+            <td>
+               <p>A list of qualified HBase columns to read data from or store data to. 
+                  The column family name and column qualifier are seperated by a colon (:). 
+                  Only the columns used in the Pig script need to be specified. Columns are specified
+                  in one of three different ways as described below.</p>
+               <ul>
+               <li>Explicitly specify a column family and column qualifier (e.g., user_info:id). This
+                   will produce a scalar in the resultant tuple.</li>
+               <li>Specify a column family and a portion of column qualifier name as a prefix followed
+                   by an asterisk (i.e., user_info:address_*). This approach is used to read one or
+                   more columns from the same column family with a matching descriptor prefix.
+                   The datatype for this field will be a map of column descriptor name to field value. 
+                   Note that combining this style of prefix with a long list of fully qualified
+                   column descriptor names could cause perfomance degredation on the HBase scan.
+                   This will produce a Pig map in the resultant tuple with column descriptors as keys.</li>
+               <li>Specify all the columns of a column family using the column family name followed
+                   by an asterisk (i.e., user_info:*). This will produce a Pig map in the resultant
+                   tuple with column descriptors as keys.</li>
+               </ul>
+            </td>
+         </tr>
+       <tr>
+            <td>
+               <p>'options'</p>
+            </td>
+            <td>
+               <p>A string that contains space-separated options (&lsquo;-optionA=valueA -optionB=valueB -optionC=valueC&rsquo;)</p>
+               <p>Currently supported options are:</p>
+               <ul>
+                <li>-loadKey=(true|false) Load the row key as the first value in every tuple
+                    returned from HBase (default=false)</li>
+                <li>-gt=minKeyVal Return rows with a rowKey greater than minKeyVal</li>
+                <li>-lt=maxKeyVal Return rows with a rowKey less than maxKeyVal</li>
+                <li>-gte=minKeyVal Return rows with a rowKey greater than or equal to minKeyVal</li>
+                <li>-lte=maxKeyVal Return rows with a rowKey less than or equal to maxKeyVal</li>
+                <li>-limit=numRowsPerRegion Max number of rows to retrieve per region</li>
+                <li>-caching=numRows Number of rows to cache (faster scans, more memory)</li>
+                <li>-delim=delimiter Column delimiter in columns list (default is whitespace)</li>
+                <li>-ignoreWhitespace=(true|false) When delim is set to something other than
+                    whitespace, ignore spaces when parsing column list (default=true)</li>
+                <li>-caster=(HBaseBinaryConverter|Utf8StorageConverter) Class name of Caster to use
+                    to convert values (default=Utf8StorageConverter). The default caster can be
+                    overridden with the pig.hbase.caster config param. Casters must implement LoadStoreCaster.</li>
+                <li>-noWAL=(true|false) During storage, sets the write ahead to false for faster
+                    loading into HBase (default=false). To be used with extreme caution since this
+                    could result in data loss (see <a href="http://hbase.apache.org/book.html#perf.hbase.client.putwal">http://hbase.apache.org/book.html#perf.hbase.client.putwal</a>).</li>
+                <li>-minTimestamp=timestamp Return cell values that have a creation timestamp
+                    greater or equal to this value</li>
+                <li>-maxTimestamp=timestamp Return cell values that have a creation timestamp
+                    less than this value</li>
+                <li>-timestamp=timestamp Return cell values that have a creation timestamp equal to
+                    this value</li>
+               </ul>
+            </td>
+         </tr>
+   </table>
+   </section>
+
+   <section>
+   <title>Usage</title>
+   <p>HBaseStorage stores and loads data from HBase. The function takes two arguments. The first
+       argument is a space seperated list of columns. The second optional argument is a
+       space seperated list of options. Column syntax and available options are listed above.</p>
+   </section>
+
+   <section>
+   <title>Load Example</title>
+   <p>In this example HBaseStorage is used with the LOAD function with an explicit schema.</p>
+<source>
+raw = LOAD 'hbase://SomeTableName'
+      USING org.apache.pig.backend.hadoop.hbase.HBaseStorage(
+      'info:first_name info:last_name tags:work_* info:*', '-loadKey=true -limit=5') AS
+      (id:bytearray, first_name:chararray, last_name:chararray, tags_map:map[], info_map:map[]);
+</source>
+   <p>The datatypes of the columns are declared with the "AS" clause. The first_name and last_name
+       columns are specified as fully qualified column names with a chararray datatype. The third
+       specification of tags:work_* requests a set of columns in the tags column family that begin
+       with "work_". There can be zero, one or more columns of that type in the HBase table. The
+       type is specified as tags_map:map[]. This indicates that the set of column values returned
+       will be accessed as a map, where the key is the column name and the value is the cell value
+       of the column. The fourth column specification is also a map of column descriptors to cell
+       values.</p>
+   <p>When the type of the column is specified as a map in the "AS" clause, the map keys are the
+       column descriptor names and the data type is chararray. The datatype of the columns values can
+       be declared explicitly as shown in the examples below:</p>
+   <ul>
+   <li>tags_map[chararray] - In this case, the column values are all declared to be of type chararray</li>
+   <li>tags_map[int] - In this case, the column values are all declared to be of type int.</li>
+   </ul>
+   </section>
+
+   <section>
+   <title>Store Example</title>
+   <p>In this example HBaseStorage is used to store a relation into HBase.</p>
+<source>
+A = LOAD 'hdfs_users' AS (id:bytearray, first_name:chararray, last_name:chararray);
+STORE A INTO 'hbase://users_table' USING org.apache.pig.backend.hadoop.hbase.HBaseStorage(
+    'info:first_name info:last_name');
+</source>
+   <p>In the example above relation A is loaded from HDFS and stored in HBase. Note that the schema
+       of relation A is a tuple of size 3, but only two column descriptor names are passed to the
+       HBaseStorage constructor. This is because the first entry in the tuple is used as the HBase
+       rowKey.</p>
+   </section>
+   </section>
+</section>
 
 <!-- ======================================================== -->  
 <!-- ======================================================== -->  
