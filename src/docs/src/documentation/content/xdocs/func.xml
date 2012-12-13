@@ -1436,10 +1436,12 @@ STORE X INTO 'output' USING PigDump();
                <p>A string that contains space-separated options (‘optionA  optionB  optionC’)</p>
                <p>Currently supported options are:</p>
                <ul>
-					<li>(‘schema’) - Stores the schema of the relation using a hidden JSON file.</li>
-					<li>(‘noschema’) - Ignores a stored schema during the load.</li>
-                                        <li>('tagsource') - Add a first column indicates the input file of the record.</li>
-				</ul>
+                    <li>(‘schema’) - Stores the schema of the relation using a hidden JSON file.</li>
+                    <li>(‘noschema’) - Ignores a stored schema during the load.</li>
+                    <li>('tagsource') - (deprecated, Use tagPath instead) Add a first column indicates the input file of the record.</li>
+                    <li>('tagPath') - Add a first column indicates the input path of the record.</li>
+                    <li>('tagFile') - Add a first column indicates the input file name of the record.</li>
+               </ul>
             </td>
          </tr> 
    </table></section>
@@ -1471,7 +1473,7 @@ STORE X INTO 'output' USING PigDump();
 <p>Note that regardless of whether or not you store the schema, you always need to specify the correct delimiter to read your data. If you store reading delimiter "#" and then load using the default delimiter, your data will not be parsed correctly.</p>   
 
 <p><strong>Record Provenance</strong></p>
-<p>If tagsource option is specified, PigStorage will add a psudo-column INPUT_FILE_NAME to the beginning of the record. As the name suggests, it is the input file name containing this particular record.</p>
+<p>If tagPath or tagFile option is specified, PigStorage will add a pseudo-column INPUT_FILE_PATH or INPUT_FILE_NAME respectively to the beginning of the record. As the name suggests, it is the input file path/name containing this particular record. Please note tagsource is deprecated.</p>
    
   <p><strong>Complex Data Types</strong></p>   
   <p>The formats for complex data types are shown here:</p>
