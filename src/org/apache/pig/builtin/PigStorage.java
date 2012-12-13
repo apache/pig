@@ -41,8 +41,8 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.RecordWriter;
-import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.pig.Expression;
 import org.apache.pig.FileInputLoadFunc;
@@ -84,7 +84,8 @@ import org.apache.pig.parser.ParserException;
  * <li><code>-schema</code> Reads/Stores the schema of the relation using a 
  *  hidden JSON file.
  * <li><code>-noschema</code> Ignores a stored schema during loading.
- * <li><code>-tagsource</code> Appends input source file path to beginning of each tuple.
+ * <li><code>-tagFile</code> Appends input source file name to beginning of each tuple.
+ * <li><code>-tagPath</code> Appends input source file path to beginning of each tuple.
  * </ul>
  * <p>
  * <h3>Schemas</h3>
@@ -101,9 +102,12 @@ import org.apache.pig.parser.ParserException;
  * files with header lines easier (just cat the header to your data).
  * <p>
  * <h3>Source tagging</h3>
- * If<code>-tagsource</code> is specified, PigStorage will prepend input split path to each Tuple/row.
- * Usage: A = LOAD 'input' using PigStorage(',','-tagsource'); B = foreach A generate $0;
- * The first field (0th index) in each Tuple will contain input path 
+ * If<code>-tagFile</code> is specified, PigStorage will prepend input split name to each Tuple/row.
+ * Usage: A = LOAD 'input' using PigStorage(',','-tagFile'); B = foreach A generate $0;
+ * The first field (0th index) in each Tuple will contain input file name.
+ * If<code>-tagPath</code> is specified, PigStorage will prepend input split path to each Tuple/row.
+ * Usage: A = LOAD 'input' using PigStorage(',','-tagPath'); B = foreach A generate $0;
+ * The first field (0th index) in each Tuple will contain input file path 
  * <p>
  * Note that regardless of whether or not you store the schema, you <b>always</b> need to specify
  * the correct delimiter to read your data. If you store reading delimiter "#" and then load using
@@ -144,15 +148,19 @@ LoadPushDown, LoadMetadata, StoreMetadata {
     protected boolean[] mRequiredColumns = null;
     private boolean mRequiredColumnsInitialized = false;
     
-    //Indicates whether the input file path should be read.
-    private boolean tagSource = false;
-    private static final String TAG_SOURCE_PATH = "tagsource";
+    // Indicates whether the input file name/path should be read.
+    private boolean tagFile = false;
+    private static final String TAG_SOURCE_FILE = "tagFile";
+    private boolean tagPath = false;
+    private static final String TAG_SOURCE_PATH = "tagPath";
     private Path sourcePath = null;
 
     private void populateValidOptions() {
         validOptions.addOption("schema", false, "Loads / Stores the schema of the relation using a hidden JSON file.");
         validOptions.addOption("noschema", false, "Disable attempting to load data schema from the filesystem.");
-        validOptions.addOption(TAG_SOURCE_PATH, false, "Appends input source file path to beginning of each tuple. ");
+        validOptions.addOption(TAG_SOURCE_FILE, false, "Appends input source file name to beginning of each tuple.");
+        validOptions.addOption(TAG_SOURCE_PATH, false, "Appends input source file path to beginning of each tuple.");
+        validOptions.addOption("tagsource", false, "Appends input source file name to beginning of each tuple.");
     }
 
     public PigStorage() {
@@ -178,7 +186,8 @@ LoadPushDown, LoadMetadata, StoreMetadata {
      * <ul>
      * <li><code>-schema</code> Loads / Stores the schema of the relation using a hidden JSON file.
      * <li><code>-noschema</code> Ignores a stored schema during loading.
-     * <li><code>-tagsource</code> Appends input source file path to beginning of each tuple.
+     * <li><code>-tagFile</code> Appends input source file name to beginning of each tuple.
+     * <li><code>-tagPath</code> Appends input source file path to beginning of each tuple.
      * </ul>
      * @param delimiter the single byte character that is used to separate fields.
      * @param options a list of options that can be used to modify PigStorage behavior
@@ -192,7 +201,14 @@ LoadPushDown, LoadMetadata, StoreMetadata {
             configuredOptions = parser.parse(validOptions, optsArr);
             isSchemaOn = configuredOptions.hasOption("schema");
             dontLoadSchema = configuredOptions.hasOption("noschema");
-            tagSource = configuredOptions.hasOption(TAG_SOURCE_PATH);
+            tagFile = configuredOptions.hasOption(TAG_SOURCE_FILE);
+            tagPath = configuredOptions.hasOption(TAG_SOURCE_PATH);
+            // TODO: Remove -tagsource in 0.13. For backward compatibility, we
+            // need tagsource to be supported until at least 0.12
+            if (configuredOptions.hasOption("tagsource")) {
+                mLog.warn("'-tagsource' is deprecated. Use '-tagFile' instead.");
+                tagFile = true;
+            }
         } catch (ParseException e) {
             HelpFormatter formatter = new HelpFormatter();
             formatter.printHelp( "PigStorage(',', '[options]')", validOptions);
@@ -213,8 +229,10 @@ LoadPushDown, LoadMetadata, StoreMetadata {
             mRequiredColumnsInitialized = true;
         }
         //Prepend input source path if source tagging is enabled
-        if(tagSource) {
-        	mProtoTuple.add(new DataByteArray(sourcePath.getName()));
+        if(tagFile) {
+            mProtoTuple.add(new DataByteArray(sourcePath.getName()));
+        } else if (tagPath) {
+            mProtoTuple.add(new DataByteArray(sourcePath.toString()));
         }
 
         try {
@@ -362,8 +380,8 @@ LoadPushDown, LoadMetadata, StoreMetadata {
     @Override
     public void prepareToRead(RecordReader reader, PigSplit split) {
         in = reader;
-        if(tagSource) {
-        	sourcePath = ((FileSplit)split.getWrappedSplit()).getPath();
+        if (tagFile || tagPath) {
+            sourcePath = ((FileSplit)split.getWrappedSplit()).getPath();
         }
     }
 
@@ -471,8 +489,10 @@ LoadPushDown, LoadMetadata, StoreMetadata {
             schema = (new JsonMetadata()).getSchema(location, job, isSchemaOn);
 
             if (signature != null && schema != null) {
-                if(tagSource) {
-                    schema = Utils.getSchemaWithInputSourceTag(schema);
+                if(tagFile) {
+                    schema = Utils.getSchemaWithInputSourceTag(schema, "INPUT_FILE_NAME");
+                } else if(tagPath) {
+                    schema = Utils.getSchemaWithInputSourceTag(schema, "INPUT_FILE_PATH");
                 }
                 Properties p = UDFContext.getUDFContext().getUDFProperties(this.getClass(),
                         new String[] {signature});
