@@ -410,7 +410,7 @@ DUMP X;
    
    <section>
    <title>Example</title>
-   <p>In this example COUNT_STAR is used the count the tuples in a bag.</p>
+   <p>In this example COUNT_STAR is used to count the tuples in a bag.</p>
 <source>
 X = FOREACH B GENERATE COUNT_STAR(A);
 </source>
@@ -1339,7 +1339,7 @@ dump X;
    
     <p>Use JsonStorage to store JSON data.</p>
    
-   <p>Note that there is no concept of delimit in JsonLoader or JsonStorer. The data is encoded in standard JSON format. JsonLoader optionally takes a schema as the construct argument.</p>
+   <p>Note that there is no concept of delimit in JsonLoader or JsonStorage. The data is encoded in standard JSON format. JsonLoader optionally takes a schema as the construct argument.</p>
    </section>
    
    <section>
@@ -1453,7 +1453,7 @@ STORE X INTO 'output' USING PigDump();
  <p><strong>Load/Store Statements</strong></p> 
   <p>Load statements – PigStorage expects data to be formatted using field delimiters, either the tab character  ('\t') or other specified character.</p>
 
-   <p>Store statements – PigStorage outputs data using field deliminters, either the tab character  ('\t') or other specified character, and the line feed record delimiter ('\n').  </p>
+   <p>Store statements – PigStorage outputs data using field delimiters, either the tab character  ('\t') or other specified character, and the line feed record delimiter ('\n').  </p>
 
  <p><strong>Field/Record Delimiters</strong></p> 
    <p>Field Delimiters – For load and store statements the default field delimiter is the tab character ('\t'). You can use other characters as field delimiters, but separators such as ^A or Ctrl-A should be represented in Unicode (\u0001) using UTF-16 encoding (see Wikipedia <a href="http://en.wikipedia.org/wiki/ASCII">ASCII</a>, <a href="http://en.wikipedia.org/wiki/Unicode">Unicode</a>, and <a href="http://en.wikipedia.org/wiki/UTF-16">UTF-16</a>).</p>
@@ -1470,7 +1470,7 @@ STORE X INTO 'output' USING PigDump();
 
 <p>If the noschema option is NOT specified, and a schema is found, it gets loaded when loading data.</p>
 
-<p>Note that regardless of whether or not you store the schema, you always need to specify the correct delimiter to read your data. If you store reading delimiter "#" and then load using the default delimiter, your data will not be parsed correctly.</p>   
+<p>Note that regardless of whether or not you store the schema, you always need to specify the correct delimiter to read your data. If you store using delimiter "#" and then load using the default delimiter, your data will not be parsed correctly.</p>   
 
 <p><strong>Record Provenance</strong></p>
 <p>If tagPath or tagFile option is specified, PigStorage will add a pseudo-column INPUT_FILE_PATH or INPUT_FILE_NAME respectively to the beginning of the record. As the name suggests, it is the input file path/name containing this particular record. Please note tagsource is deprecated.</p>
@@ -1511,7 +1511,7 @@ A = LOAD 'student' USING PigStorage('\t') AS (name: chararray, age:int, gpa: flo
 A = LOAD 'student' AS (name: chararray, age:int, gpa: float);
 </source>
    
-   <p>In this example PigStorage stores the contents of X into files with fields that are delimited with an asterisk ( * ). The STORE function specifies that the files will be located in a directory named output and that the files will be named part-nnnnn (for example, part-00000).</p>
+   <p>In this example PigStorage stores the contents of X into files with fields that are delimited with an asterisk ( * ). The STORE statement specifies that the files will be located in a directory named output and that the files will be named part-nnnnn (for example, part-00000).</p>
 <source>
 STORE X INTO  'output' USING PigStorage('*');
 </source>
@@ -1708,8 +1708,8 @@ STORE A INTO 'hbase://users_table' USING org.apache.pig.backend.hadoop.hbase.HBa
 <section id="math-functions">
 <title>Math Functions</title>
 
-<p>For general information about these functions, see the <a href="http://download.oracle.com/javase/6/docs/api/">Java API Specification</a>, 
-<a href="http://download.oracle.com/javase/6/docs/api/java/lang/Math.html">Class Math</a>. Note the following:</p>
+<p>For general information about these functions, see the <a href="http://docs.oracle.com/javase/6/docs/api/">Java API Specification</a>, 
+<a href="http://docs.oracle.com/javase/6/docs/api/java/lang/Math.html">Class Math</a>. Note the following:</p>
 
 <ul>
 		<li>
@@ -2464,7 +2464,7 @@ Use the ROUND function to return the value of an expression rounded to an intege
                <p>x</p>
             </td>
             <td>
-               <p>CEIL(x)</p>
+               <p>ROUND(x)</p>
             </td>
          </tr>
         
@@ -2746,8 +2746,8 @@ Use the TANH function to return the hyperbolic tangent of an expression.
 <section id="string-functions">
 <title>String Functions</title>
 
-<p>For general information about these functions, see the <a href="http://download.oracle.com/javase/6/docs/api/">Java API Specification</a>, 
-<a href="http://download.oracle.com/javase/6/docs/api/java/lang/String.html">Class String</a>. Note the following:</p>
+<p>For general information about these functions, see the <a href="http://docs.oracle.com/javase/6/docs/api/">Java API Specification</a>, 
+<a href="http://docs.oracle.com/javase/6/docs/api/java/lang/String.html">Class String</a>. Note the following:</p>
 
 <ul>
 	<li>
@@ -2821,14 +2821,14 @@ Use the INDEXOF function to determine the index of the first occurrence of a cha
 <!-- ======================================================== -->  
  <section id="last-index-of">
    <title>LAST_INDEX_OF</title>
-   <p>Returns the index of the last occurrence of a character in a string, searching backward from a start index. </p>
+   <p>Returns the index of the last occurrence of a character in a string, searching backward from the end of the string. </p>
 
 <section>
    <title>Syntax</title>
    <table>
        <tr>
             <td>
-               <p>LAST_INDEX_OF(expression)</p>
+               <p>LAST_INDEX_OF(string, 'character')</p>
             </td>
          </tr>
    </table>
@@ -2853,22 +2853,13 @@ Use the INDEXOF function to determine the index of the first occurrence of a cha
                <p>The character being searched for, in quotes.</p>
             </td>
          </tr> 
-                <tr>
-            <td>
-               <p>startIndex</p>
-            </td>
-            <td>
-               <p>The index from which to begin the backward search.</p>
-               <p>The string index begins with zero (0).</p>
-            </td>
-         </tr> 
    </table>
 </section>
 
 <section>
      <title>Usage</title>
      <p>
-Use the LAST_INDEX_OF function to determine the index of the last occurrence of a character in a string. The backward search for the character begins at the designated start index.
+Use the LAST_INDEX_OF function to determine the index of the last occurrence of a character in a string. The backward search for the character begins at the end of the string.
      </p>
 </section>
 </section> 
@@ -3031,7 +3022,7 @@ REGEX_EXTRACT('192.168.1.5:8020', '(.*):(.*)', 1);
    <table>
        <tr>
             <td>
-               <p>REGEX_EXTRACT (string, regex)</p>
+               <p>REGEX_EXTRACT_ALL (string, regex)</p>
             </td>
          </tr>
    </table>
@@ -3137,7 +3128,7 @@ Use the REPLACE function to replace existing characters in a string with new cha
      </p>
      <p>
 For example, to change "open source software" to "open source wiki" use this statement: 
-REPLACE(string,'software','wiki');
+REPLACE(string,'software','wiki')
      </p>
      <p>
 Note that the REPLACE function is internally implemented using
@@ -3189,10 +3180,12 @@ by prefixing them with double backslashes (e.g. '\\[').
          </tr> 
                 <tr>
             <td>
-               <p>Limit</p>
+               <p>limit</p>
             </td>
             <td>
-               <p>The number of times the pattern (the compiled representation of the regular expression) is applied.</p>
+	       <p>If the value is positive, the pattern (the compiled representation of the regular expression) is applied at most limit-1 times, therefore the value of the argument means the maximum length of the result tuple. The last element of the result tuple will contain all input after the last match.</p>
+	       <p>If the value is negative, no limit is applied for the length of the result tuple.</p>
+	       <p>If the value is zero, no limit is applied for the length of the result tuple too, and trailing empty strings (if any) will be removed.</p>
             </td>
          </tr> 
    </table>
@@ -3392,7 +3385,7 @@ Use the UPPER function to convert all characters in a string to upper case.
 <title>Datetime Functions</title>
 
 <p>
-For general information about datetime type operations, see the <a href="http://download.oracle.com/javase/6/docs/api/">Java API Specification</a>, 
+For general information about datetime type operations, see the <a href="http://docs.oracle.com/javase/6/docs/api/">Java API Specification</a>, 
 <a href="http://docs.oracle.com/javase/6/docs/api/java/util/Date.html">Java Date class</a>, and <a href="http://joda-time.sourceforge.net/apidocs/index.html">JODA DateTime class</a>.
 And for the information of ISO date and time formats, please refer to <a href="http://www.w3.org/TR/NOTE-datetime">Date and Time Formats</a>.
 </p>
@@ -4580,7 +4573,7 @@ In this example the top 10 occurrences are returned.
  <source>
 A = LOAD 'data' as (first: chararray, second: chararray);
 B = GROUP A BY (first, second);
-C = FOREACH B generate FLATTEN(group), COUNT(*) as count;
+C = FOREACH B generate FLATTEN(group), COUNT(A) as count;
 D = GROUP C BY first; // again group by first
 topResults = FOREACH D {
     result = TOP(10, 2, C); // and retain top 10 occurrences of 'second' in first
