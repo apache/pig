@@ -27,6 +27,10 @@ import java.util.List;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.streaming.StreamingCommand;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+
 // Check and set files to be automatically shipped for the given StreamingCommand
 // Auto-shipping rules:
 // 1. If the command begins with either perl or python assume that the 
@@ -42,13 +46,20 @@ public class StreamingCommandUtils {
     private static final String PYTHON = "python";
     private static final char SINGLE_QUOTE = '\u005c'';
     private static final char DOUBLE_QUOTE = '"';
-    
+    /**
+     * "which" gets called by each {@link LogicalPlanBuilder} (there's one per pig
+     * statement) surprisingly many times (it's called to validate a command exists
+     * when the relevant node in the AST is created, and as we're back-tracking we 
+     * usually just throw the result away). 
+     */
+    private static final LoadingCache<String, String> whichCache = CacheBuilder.newBuilder().build(new Which());
+
     private final PigContext pigContext;
-    
+
     public StreamingCommandUtils(PigContext pigContext) {
         this.pigContext = pigContext;
     }
-    
+
     static String[] splitArgs(String command) throws ParserException {
         List<String> argv = new ArrayList<String>();
 
@@ -128,17 +139,17 @@ public class StreamingCommandUtils {
            checkAndShip(command, arg0);
        }
     }
-    
+
     private void checkAndShip(StreamingCommand command, String arg) 
     throws ParserException {
         // Don't auto-ship if it is an absolute path...
         if (arg.startsWith("/")) {
             return;
         }
-        
+
         // $ which arg
-        String argPath = which(arg);
-        if (argPath != null && !inSkipPaths(argPath)) {
+        String argPath = whichCache.getUnchecked(arg);
+        if (argPath.length() > 0 && !inSkipPaths(argPath)) {
             try {
                 command.addPathToShip(argPath);
             } catch(IOException e) {
@@ -153,7 +164,7 @@ public class StreamingCommandUtils {
     private static boolean isQuotedString(String s) {
          return (s.charAt(0) == '\'' && s.charAt(s.length()-1) == '\'');
      }
-     
+
      // Check if file is in the list paths to be skipped 
      private boolean inSkipPaths(String file) {
          for (String skipPath : pigContext.getPathsToSkip()) {
@@ -164,23 +175,30 @@ public class StreamingCommandUtils {
         return false;
      }
 
-     private static String which(String file) {
-         try {
-             String utility = "which";
-             if (System.getProperty("os.name").toUpperCase().startsWith("WINDOWS")) {
-                 utility = "where";
-             }
-             ProcessBuilder processBuilder = 
-                 new ProcessBuilder(new String[] {utility, file});
-             Process process = processBuilder.start();
-     
-             BufferedReader stdout = 
-                 new BufferedReader(new InputStreamReader(process.getInputStream()));
-             String fullPath = stdout.readLine();
+     private static final class Which extends CacheLoader<String, String> {
+        /**
+         * @return a non-null String as per {@link CacheLoader}'s Javadoc.
+         *         {@link StreamingCommand#addPathToShip(String)} will check
+         *         that this String is a path to a valid file, so we won't check
+         *         that again here.
+         */
+         public String load(String file) {
+             try {
+                 String utility = "which";
+                 if (System.getProperty("os.name").toUpperCase().startsWith("WINDOWS")) {
+                     utility = "where";
+                 }
+                 ProcessBuilder processBuilder = 
+                     new ProcessBuilder(new String[] {utility, file});
+                 Process process = processBuilder.start();
 
-             return (process.waitFor() == 0) ? fullPath : null;
-         } catch (Exception e) {}
-         return null;
-      }
+                 BufferedReader stdout = 
+                     new BufferedReader(new InputStreamReader(process.getInputStream()));
+                 String fullPath = stdout.readLine();
 
+                 return (process.waitFor() == 0 && fullPath != null) ? fullPath : "";
+             } catch (Exception e) {}
+             return "";
+         }
+     }
 }
