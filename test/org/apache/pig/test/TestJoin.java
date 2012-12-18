@@ -18,6 +18,8 @@
 
 package org.apache.pig.test;
 
+import static org.apache.pig.builtin.mock.Storage.resetData;
+import static org.apache.pig.builtin.mock.Storage.tuple;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -28,11 +30,13 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
@@ -40,6 +44,7 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.LogUtils;
+import org.apache.pig.impl.util.Utils;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.apache.pig.newplan.logical.relational.LOJoin.JOINTYPE;
@@ -48,6 +53,8 @@ import org.apache.pig.parser.ParserException;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.google.common.collect.Sets;
 
 /**
  * Test cases to test join statement
@@ -692,5 +699,29 @@ public class TestJoin {
         LOJoin join = (LOJoin) lp.getPredecessors( store ).get(0);
         assertEquals(JOINTYPE.REPLICATED, join.getJoinType());
     }
-}
 
+    // See: https://issues.apache.org/jira/browse/PIG-3093
+    @Test
+    public void testIndirectSelfJoinRealias() throws Exception {
+        setUp(ExecType.LOCAL);
+        Data data = resetData(pigServer);
+
+        Set<Tuple> tuples = Sets.newHashSet(tuple("a"), tuple("b"), tuple("c"));
+        data.set("foo", Utils.getSchemaFromString("field1:chararray"), tuples);
+        pigServer.registerQuery("A = load 'foo' using mock.Storage();");
+        pigServer.registerQuery("B = foreach A generate *;");
+        pigServer.registerQuery("C = join A by field1, B by field1;");
+        assertEquals(Utils.getSchemaFromString("A::field1:chararray, B::field1:chararray"), pigServer.dumpSchema("C"));
+        pigServer.registerQuery("D = foreach C generate B::field1, A::field1 as field2;");
+        assertEquals(Utils.getSchemaFromString("B::field1:chararray, field2:chararray"), pigServer.dumpSchema("D"));
+        pigServer.registerQuery("E = foreach D generate field1, field2;");
+        assertEquals(Utils.getSchemaFromString("B::field1:chararray, field2:chararray"), pigServer.dumpSchema("E"));
+        pigServer.registerQuery("F = foreach E generate field2;");
+        Iterator<Tuple> it = pigServer.openIterator("F");
+        assertTrue(it.hasNext());
+        while (it.hasNext()) {
+            assertTrue(tuples.remove(it.next()));
+        }
+        assertFalse(it.hasNext());
+    }
+}
