@@ -332,6 +332,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-3020: "Duplicate uid in schema" error when joining two relations derived from the same load statement (jcoveney)
+
 PIG-3044: hotfix to remove divide by 0 error (jcoveney)
 
 PIG-3033: test-patch failed with javadoc warnings (fang fang chen via cheolsoo)
