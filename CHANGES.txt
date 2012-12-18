@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-3020: "Duplicate uid in schema" error when joining two relations derived from the same load statement (jcoveney)
+
 PIG-2857: Add a -tagPath option to PigStorage (prkommireddi via cheolsoo)
 
 PIG-2341: Need better documentation on Pig/HBase integration (jthakrar and billgraham via billgraham)
