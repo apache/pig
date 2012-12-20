@@ -64,6 +64,8 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-3096: Make PigUnit thread safe (cheolsoo)
+
 PIG-3095: "which" is called many, many times for each Pig STREAM statement (nwhite via cheolsoo)
 
 PIG-3085: Errors and lacks in document "Built In Functions" (miyakawataku via cheolsoo)
