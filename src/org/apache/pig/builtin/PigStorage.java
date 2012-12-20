@@ -81,7 +81,7 @@ import org.apache.pig.parser.ParserException;
  * An optional second constructor argument is provided that allows one to customize
  * advanced behaviors. A list of available options is below:
  * <ul>
- * <li><code>-schema</code> Reads/Stores the schema of the relation using a 
+ * <li><code>-schema</code> Reads/Stores the schema of the relation using a
  *  hidden JSON file.
  * <li><code>-noschema</code> Ignores a stored schema during loading.
  * <li><code>-tagFile</code> Appends input source file name to beginning of each tuple.
@@ -94,7 +94,7 @@ import org.apache.pig.parser.ParserException;
  * field names and types of the data without the need for a user to explicitly provide the schema in an
  * <code>as</code> clause, unless <code>-noschema</code> is specified. No attempt to merge conflicting
  * schemas is made during loading. The first schema encountered during a file system scan is used.
- * If the schema file is not present while '-schema' option is used during loading, 
+ * If the schema file is not present while '-schema' option is used during loading,
  * it results in an error.
  * <p>
  * In addition, using <code>-schema</code> drops a ".pig_headers" file in the output directory.
@@ -107,7 +107,7 @@ import org.apache.pig.parser.ParserException;
  * The first field (0th index) in each Tuple will contain input file name.
  * If<code>-tagPath</code> is specified, PigStorage will prepend input split path to each Tuple/row.
  * Usage: A = LOAD 'input' using PigStorage(',','-tagPath'); B = foreach A generate $0;
- * The first field (0th index) in each Tuple will contain input file path 
+ * The first field (0th index) in each Tuple will contain input file path
  * <p>
  * Note that regardless of whether or not you store the schema, you <b>always</b> need to specify
  * the correct delimiter to read your data. If you store reading delimiter "#" and then load using
@@ -147,7 +147,7 @@ LoadPushDown, LoadMetadata, StoreMetadata {
 
     protected boolean[] mRequiredColumns = null;
     private boolean mRequiredColumnsInitialized = false;
-    
+
     // Indicates whether the input file name/path should be read.
     private boolean tagFile = false;
     private static final String TAG_SOURCE_FILE = "tagFile";
@@ -292,17 +292,20 @@ LoadPushDown, LoadMetadata, StoreMetadata {
             // only contains required fields.
             // We walk the requiredColumns array to find required fields,
             // and cast those.
-            for (int i = 0; i < fieldSchemas.length; i++) {
+            for (int i = 0; i < Math.min(fieldSchemas.length, tup.size()); i++) {
                 if (mRequiredColumns == null || (mRequiredColumns.length>i && mRequiredColumns[i])) {
                     Object val = null;
                     if(tup.get(tupleIdx) != null){
                         byte[] bytes = ((DataByteArray) tup.get(tupleIdx)).get();
                         val = CastUtils.convertToType(caster, bytes,
                                 fieldSchemas[i], fieldSchemas[i].getType());
+                        tup.set(tupleIdx, val);
                     }
-                    tup.set(tupleIdx, val);
                     tupleIdx++;
                 }
+            }
+            for (int i = tup.size(); i < fieldSchemas.length; i++) {
+                tup.append(null);
             }
         }
         return tup;

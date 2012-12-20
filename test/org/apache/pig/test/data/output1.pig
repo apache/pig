@@ -1,7 +1,3 @@
-define mymacro1(A, rate) returns B { 
-    C = group $A by $0 parallel $rate;
-    B = foreach C generate group, COUNT($A);
-};
 
 aa = load '/data/intermediate/pow/elcarobootstrap/account/full/weekly/data/20080228' using PigStorage('\x01');
 bb = filter aa by (ARITY == '16') and ( $4 eq '' or $4 eq 'NULL' or $4 eq 'ss') parallel 400;
