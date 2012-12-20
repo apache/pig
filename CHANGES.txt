@@ -332,6 +332,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-3076: make TestScalarAliases more reliable (julien)
+
 PIG-3020: "Duplicate uid in schema" error when joining two relations derived from the same load statement (jcoveney)
 
 PIG-3044: hotfix to remove divide by 0 error (jcoveney)
