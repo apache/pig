@@ -603,6 +603,8 @@ Release 0.10.1 - Unreleased
 
 BUG FIXES
 
+PIG-3099: Pig unit test fixes for TestGrunt(1), TestStore(2), TestEmptyInputDir(3) (vikram.dixit via daijy)
+
 PIG-2953: "which" utility does not exist on Windows (daijy)
 
 PIG-2960: Increase the timeout for unit test (daijy)
