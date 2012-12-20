@@ -82,7 +82,7 @@ public class TestEmptyInputDir {
             JobStats js = (JobStats)stats.getJobGraph().getSources().get(0);
             
             // This assert fails on 205 due to MAPREDUCE-3606
-            if (!Util.isHadoop205()&&!Util.isHadoop1_0())
+            if (!Util.isHadoop205()&&!Util.isHadoop1_x())
                 assertEquals(0, js.getNumberMaps()); 
             
             FileSystem fs = cluster.getFileSystem();
@@ -115,7 +115,7 @@ public class TestEmptyInputDir {
             JobStats js = (JobStats)stats.getJobGraph().getSources().get(0);
             
             // This assert fails on 205 due to MAPREDUCE-3606
-            if (!Util.isHadoop205()&&!Util.isHadoop1_0())
+            if (!Util.isHadoop205()&&!Util.isHadoop1_x())
                 assertEquals(0, js.getNumberMaps()); 
             
             FileSystem fs = cluster.getFileSystem();
@@ -149,7 +149,7 @@ public class TestEmptyInputDir {
             JobStats js = (JobStats)stats.getJobGraph().getSources().get(0);
             
             // This assert fails on 205 due to MAPREDUCE-3606
-            if (!Util.isHadoop205()&&!Util.isHadoop1_0())
+            if (!Util.isHadoop205()&&!Util.isHadoop1_x())
                 assertEquals(0, js.getNumberMaps()); 
             
             FileSystem fs = cluster.getFileSystem();
