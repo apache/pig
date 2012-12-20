@@ -531,6 +531,8 @@ Release 0.10.1 - Unreleased
 
 BUG FIXES
 
+PIG-3099: Pig unit test fixes for TestGrunt(1), TestStore(2), TestEmptyInputDir(3) (vikram.dixit via daijy)
+
 PIG-3045: Specifying sorting field(s) at nightly.conf - fix sortArgs (rohini via cheolsoo)
 
 PIG-2953: "which" utility does not exist on Windows (daijy)

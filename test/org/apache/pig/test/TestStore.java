@@ -408,7 +408,7 @@ public class TestStore extends junit.framework.TestCase {
                     Properties props = new Properties();                                          
                     props.setProperty(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
                     ps = new PigServer(ExecType.LOCAL, props);
-                    if (Util.isHadoop1_0()) {
+                    if (Util.isHadoop1_x()) {
                         // MAPREDUCE-1447/3563 (LocalJobRunner does not call methods of mapreduce
                         // OutputCommitter) is fixed only in 0.23.1
                         filesToVerify.put(DummyOutputCommitter.FILE_SETUPJOB_CALLED, Boolean.FALSE);
@@ -530,7 +530,7 @@ public class TestStore extends junit.framework.TestCase {
                     // LocalJobRunner does not call abortTask
                     filesToVerify.put(DummyOutputCommitter.FILE_ABORTTASK_CALLED + "1", Boolean.FALSE);
                     filesToVerify.put(DummyOutputCommitter.FILE_ABORTTASK_CALLED + "2", Boolean.FALSE);
-                    if (Util.isHadoop1_0()) {
+                    if (Util.isHadoop1_x()) {
                         // MAPREDUCE-1447/3563 (LocalJobRunner does not call methods of mapreduce
                         // OutputCommitter) is fixed only in 0.23.1
                         filesToVerify.put(DummyOutputCommitter.FILE_SETUPJOB_CALLED + "1", Boolean.FALSE);
