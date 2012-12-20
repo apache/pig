@@ -38,6 +38,8 @@ PIG-2727: PigStorage Source tagging does not need pig.splitCombination to be tur
 
 BUG FIXES
 
+PIG-3099: Pig unit test fixes for TestGrunt(1), TestStore(2), TestEmptyInputDir(3)
+
 PIG-3035: With latest version of hadoop23 pig does not return the correct exception stack trace from backend (rohini)
 
 PIG-2953: "which" utility does not exist on Windows (daijy)

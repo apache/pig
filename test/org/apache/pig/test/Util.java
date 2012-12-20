@@ -1194,9 +1194,9 @@ public class Util {
         return false;
     }
     
-    public static boolean isHadoop1_0() {
+    public static boolean isHadoop1_x() {
         String version = org.apache.hadoop.util.VersionInfo.getVersion();
-        if (version.matches("\\b1\\.0\\..+"))
+        if (version.matches("\\b1\\.*\\..+"))
             return true;
         return false;
     }
