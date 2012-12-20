@@ -89,6 +89,9 @@ public class MiniCluster extends MiniGenericCluster {
             //ConfigurationUtil.mergeConf(m_conf, m_dfs_conf);
             //ConfigurationUtil.mergeConf(m_conf, m_mr_conf);
 
+            m_conf.setInt("mapred.io.sort.mb", 200);
+            m_conf.set("mapred.child.java.opts", "-Xmx512m");
+
             m_conf.setInt("mapred.submit.replication", 2);
             m_conf.set("dfs.datanode.address", "0.0.0.0:0");
             m_conf.set("dfs.datanode.http.address", "0.0.0.0:0");
