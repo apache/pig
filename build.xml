@@ -67,12 +67,16 @@
     <!-- warnings option if all.warnings property is set on cmdline -->
     <property name="javac.args.all.warnings" value="-Xmaxwarns 1000000 -Xlint -Xlint:-deprecation" />
 
+    <!-- artifact jar file names -->
+    <property name="artifact.pig-h2.jar" value="${final.name}-h2.jar"/>
+    
     <!-- jar names. TODO we might want to use the svn reversion name in the name in case it is a dev version -->
     <property name="output.jarfile" value="${build.dir}/${final.name}.jar" />
     <property name="output.stage.jarfile" value="${build.dir}/${final.name}.stage.jar" />
     <property name="output.jarfile.withouthadoop" value="${build.dir}/${final.name}-withouthadoop.jar" />
     <property name="output.stage.jarfile.withouthadoop" value="${build.dir}/${final.name}-withouthadoop.stage.jar" />
     <property name="output.jarfile.core" value="${build.dir}/${final.name}-core.jar" />
+    <property name="output.jarfile.core-h2" value="${build.dir}/${artifact.pig-h2.jar}" />
     <property name="output.jarfile.sources" value="${build.dir}/${final.name}-sources.jar" />
     <property name="output.jarfile.javadoc" value="${build.dir}/${final.name}-javadoc.jar" />
     <!-- Maintain old pig.jar in top level directory. -->
@@ -590,7 +594,30 @@
         <antcall target="jarWithSvn" inheritRefs="true" inheritall="true"/>
         <antcall target="jarWithOutSvn" inheritRefs="true" inheritall="true"/>
     </target>
-    
+
+    <scriptdef name="propertyreset" language="javascript"
+        description="Allows to assign @{property} new value">
+        <attribute name="name"/>
+        <attribute name="value"/>
+           project.setProperty(attributes.get("name"), attributes.get("value"));
+    </scriptdef>
+
+    <target name="mvn-jar" description="Create pig.jar for maven deploy for Hadoop2/23 and Hadoop1/20">
+        <propertyreset name="hadoopversion" value="23" />
+        <propertyreset name="isHadoop" value="true" />
+        <propertyreset name="src.shims.dir" value="${basedir}/shims/src/hadoop${hadoopversion}" />
+        <antcall target="clean" inheritRefs="true" inheritall="true"/>
+        <antcall target="jar" inheritRefs="true" inheritall="true"/>
+        <!-- Move and rename pig jar for Hadoop2/23 to a different location before compiling for Hadoop1/20 -->
+        <move file="${output.jarfile.core}" tofile="${basedir}/${artifact.pig-h2.jar}"/>
+        <antcall target="clean" inheritRefs="true" inheritall="true"/>
+        <propertyreset name="hadoopversion" value="20" />
+        <propertyreset name="isHadoop" value="" />
+        <propertyreset name="src.shims.dir" value="${basedir}/shims/src/hadoop${hadoopversion}" />
+        <antcall target="jar" inheritRefs="true" inheritall="true"/>
+        <move file="${basedir}/${artifact.pig-h2.jar}" tofile="${output.jarfile.core-h2}"/>
+    </target>
+
     <target name="jarWithSvn" if="svn.revision">
         <antcall target="buildJar" inheritRefs="true" inheritall="true">
             <param name="svnString" value="${svn.revision}" />
@@ -1226,7 +1253,7 @@
          </artifact:install>
     </target>
 
-    <target name="mvn-deploy" depends="mvn-taskdef,jar,source-jar, javadoc-jar,
+    <target name="mvn-deploy" depends="mvn-taskdef, mvn-jar, source-jar, javadoc-jar,
          smoketests-jar, pigunit-jar, set-version, signanddeploy, simpledeploy"
          description="To deploy pig jar to apache snapshot's repository">
     </target>
@@ -1239,6 +1266,8 @@
         <pom refid="pig"/>
      	   <attach file="${pig-core.jar}.asc" type="jar.asc"/>
      	   <attach file="${pig.pom}.asc" type="pom.asc"/>
+           <attach file="${output.jarfile.core-h2}.asc" type="jar.asc" classifier="h2"/>
+           <attach file="${output.jarfile.core-h2}" classifier="h2" />
            <attach file="${output.jarfile.sources}.asc" type="jar.asc" classifier="sources"/>
            <attach file="${output.jarfile.sources}" classifier="sources" />
            <attach file="${output.jarfile.javadoc}.asc" type="jar.asc"  classifier="javadoc"/>
@@ -1252,6 +1281,7 @@
       <artifact:deploy file="${pig-core.jar}">
               <remoteRepository id="apache.snapshots.https" url="${asfsnapshotrepo}"/>
               <pom refid="pig"/>
+          <attach file="${output.jarfile.core-h2}" classifier="h2" />
           <attach file="${pig-sources.jar}" classifier="sources" />
       	  <attach file="${pig-javadoc.jar}" classifier="javadoc" />
       </artifact:deploy>
@@ -1290,6 +1320,8 @@
        </macrodef>
        <sign-artifact input.file="${pig-core.jar}"
         output.file="${pig-core.jar}.asc" gpg.passphrase="${gpg.passphrase}"/>
+       <sign-artifact input.file="${output.jarfile.core-h2}"
+        output.file="${output.jarfile.core-h2}.asc" gpg.passphrase="${gpg.passphrase}"/>
        <sign-artifact input.file="${output.jarfile.sources}"
         output.file="${output.jarfile.sources}.asc" gpg.passphrase="${gpg.passphrase}"/>
        <sign-artifact input.file="${output.jarfile.javadoc}"
