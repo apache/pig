@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2907: Publish pig jars for Hadoop2/23 to maven (rohini)
+
 PIG-3019: Need a target in build.xml for source releases (gates)
 
 PIG-2794: Pig test: add utils to simplify testing on Windows (jgordon via gates)
