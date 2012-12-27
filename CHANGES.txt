@@ -404,6 +404,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-3051: java.lang.IndexOutOfBoundsException failure with LimitOptimizer + ColumnPruning (knoguchi via rohini)
+
 PIG-3076: make TestScalarAliases more reliable (julien)
 
 PIG-3020: "Duplicate uid in schema" error when joining two relations derived from the same load statement (jcoveney)

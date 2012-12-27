@@ -202,9 +202,7 @@ public class LimitOptimizer extends Rule {
                             && greatGrandparants.size() != 0
                             && greatGrandparants.get(0) instanceof LOSort) {
                         LOSort sort = (LOSort) greatGrandparants.get(0);
-                        LOSort newSort = new LOSort(sort.getPlan(), sort
-                                .getSortColPlans(), sort.getAscendingCols(),
-                                sort.getUserFunc());
+                        LOSort newSort = LOSort.createCopy(sort);
                         newSort.setLimit(limit.getLimit());
 
                         currentPlan.replace(limit, newSort);
