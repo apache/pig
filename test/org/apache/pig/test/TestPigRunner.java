@@ -258,8 +258,18 @@ public class TestPigRunner {
             PigStats stats = PigRunner.run(args, new TestNotificationListener());
             assertTrue(stats.isSuccessful());
             assertTrue(stats.getJobGraph().size() == 1);
-            assertEquals(5, stats.getRecordWritten());
-            assertEquals(28, stats.getBytesWritten());
+            // Each output file should include the following:
+            // output:
+            //   1\t2\t3\n
+            //   3\t4\t5\n
+            //   3\t7\t8\n
+            // output2:
+            //   5\t3\t4\n
+            //   5\t6\t7\n
+            final int numOfRecords = 5;
+            final int numOfCharsPerRecord = 6;
+            assertEquals(numOfRecords, stats.getRecordWritten());
+            assertEquals(numOfRecords * numOfCharsPerRecord, stats.getBytesWritten());
             assertTrue(stats.getOutputNames().size() == 2);
             for (String fname : stats.getOutputNames()) {
                 assertTrue(fname.equals(OUTPUT_FILE) || fname.equals(OUTPUT_FILE_2));
@@ -297,8 +307,20 @@ public class TestPigRunner {
             PigStats stats = PigRunner.run(args, new TestNotificationListener());
             assertTrue(stats.isSuccessful());
             assertTrue(stats.getJobGraph().size() == 1);
-            assertEquals(4, stats.getRecordWritten());           
-            assertEquals(18, stats.getBytesWritten());
+            // Each output file should include the following:
+            // output:
+            //   5\t3\t4\n
+            //   5\t6\t7\n
+            // output2:
+            //   1\t1\n
+            //   3\t2\n
+            final int numOfRecords1 = 2;
+            final int numOfRecords2 = 2;
+            final int numOfCharsPerRecord1 = 6;
+            final int numOfCharsPerRecord2 = 4;
+            assertEquals(numOfRecords1 + numOfRecords2, stats.getRecordWritten());
+            assertEquals((numOfRecords1 * numOfCharsPerRecord1) + (numOfRecords2 * numOfCharsPerRecord2),
+                    stats.getBytesWritten());
             assertTrue(stats.getOutputNames().size() == 2);
             for (String fname : stats.getOutputNames()) {               
                 assertTrue(fname.equals(OUTPUT_FILE) || fname.equals(OUTPUT_FILE_2));
