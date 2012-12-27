@@ -172,7 +172,9 @@ public class POJoinPackage extends POPackage {
                     lastInputTuple = true;
                     break;
                 }
-                if(reporter!=null) reporter.progress();
+                if(getReporter()!=null) {
+                    getReporter().progress();
+                }
             }
             // If we don't have any tuple for input#n
             // we do not need any further process, return EOP

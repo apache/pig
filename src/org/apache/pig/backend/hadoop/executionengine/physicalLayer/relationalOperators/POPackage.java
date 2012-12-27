@@ -278,7 +278,9 @@ public class POPackage extends PhysicalOperator {
                     } else {
                         dbs[index].add(copy);
                     }
-                    if(reporter!=null) reporter.progress();
+                    if(getReporter()!=null) {
+                        getReporter().progress();
+                    }
                 }
             }
 

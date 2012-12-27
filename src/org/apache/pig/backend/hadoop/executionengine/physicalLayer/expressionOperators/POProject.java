@@ -574,7 +574,9 @@ public class POProject extends ExpressionOperator {
         }
         
         //Should be removed once the model is clear
-        if(reporter!=null) reporter.progress();
+        if(getReporter()!=null) {
+            getReporter().progress();
+        }
         
         if(!isInputAttached()) {
             if (inputs.get(0).getResultType()==DataType.BAG)

@@ -274,9 +274,10 @@ public class SchemaTupleBackend {
         } else {
             SchemaTupleFrontend.lazyReset(pigContext);
             SchemaTupleFrontend.reset();
-            stb = new SchemaTupleBackend(jConf, isLocal);
-        stb.copyAndResolve();
-    }
+            SchemaTupleBackend stbInstance = new SchemaTupleBackend(jConf, isLocal);
+            stbInstance.copyAndResolve();
+            stb = stbInstance;
+        }
     }
 
     public static SchemaTupleFactory newSchemaTupleFactory(Schema s, boolean isAppendable, GenContext context)  {

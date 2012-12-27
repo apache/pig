@@ -78,7 +78,7 @@ public class SpillableMemoryManager implements NotificationListener {
     // log notification on collection threshold exceeded only the first time
     private boolean firstCollectionThreshExceededLogged = false;
     
-    private static SpillableMemoryManager manager;
+    private static volatile SpillableMemoryManager manager;
 
     private SpillableMemoryManager() {
         ((NotificationEmitter)ManagementFactory.getMemoryMXBean()).addNotificationListener(this, null, null);

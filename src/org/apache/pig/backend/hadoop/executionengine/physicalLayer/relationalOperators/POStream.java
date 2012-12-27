@@ -52,8 +52,8 @@ public class POStream extends PhysicalOperator {
     private StreamingCommand command;               // Actual command to be run
     private Properties properties;
 
-    protected boolean initialized = false;
-    
+    private boolean initialized = false;
+
     protected BlockingQueue<Result> binaryOutputQueue = new ArrayBlockingQueue<Result>(1);
 
     protected BlockingQueue<Result> binaryInputQueue = new ArrayBlockingQueue<Result>(1);
@@ -178,7 +178,7 @@ public class POStream extends PhysicalOperator {
                     // in the course of the map/reduce - if we did
                     // then "initialized" will be true. If not, just
                     // send EOP down.
-                    if(initialized) {
+                    if(getInitialized()) {
                         // signal End of ALL input to the Executable Manager's 
                         // Input handler thread
                         binaryInputQueue.put(r);
@@ -240,6 +240,14 @@ public class POStream extends PhysicalOperator {
         }
             
         
+    }
+
+    public synchronized boolean getInitialized() {
+        return initialized;
+    }
+
+    public synchronized void setInitialized(boolean initialized) {
+        this.initialized = initialized;
     }
 
     public Result getNextHelper(Tuple t) throws ExecException {
