@@ -38,6 +38,12 @@ PIG-2712: Pig does not call OutputCommitter.abortJob() on the underlying OutputF
 
 PIG-2727: PigStorage Source tagging does not need pig.splitCombination to be turned off (prkommireddi via dvryaboy)
 
+PIG-2711: e2e harness: cache benchmark results between test runs (thw via daijy)
+
+PIG-2680: TOBAG output schema reporting (andy schlaikjer via jcoveney)
+
+PIG-2650: Convenience mock Loader and Storer to simplify unit testing of Pig scripts (julien)
+
 BUG FIXES
 
 PIG-3106: Missing license header in several java file (daijy)
@@ -104,19 +110,17 @@ PIG-2717: Tuple field mangled during flattening (daijy)
 
 PIG-2721: Wrong output generated while loading bags as input (knoguchi via daijy)
 
+PIG-2912: Pig should clone JobConf while creating JobContextImpl and TaskAttemptContextImpl in Hadoop23 (rohini via daijy)
+
+PIG-2775: Register jar does not goes to classpath in some cases (daijy)
+
 Release 0.10.0
 
 INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
-PIG-2711: e2e harness: cache benchmark results between test runs (thw via daijy)
-
-PIG-2680: TOBAG output schema reporting (andy schlaikjer via jcoveney)
-
 PIG-2685: Fix error in EvalFunc ctor when implementing Algebraic UDF whose return type is parameterized (andy schlaikjer via jcoveney)
-
-PIG-2650: Convenience mock Loader and Storer to simplify unit testing of Pig scripts (julien)
 
 PIG-2541: Automatic record provenance (source tagging) for PigStorage (prkommireddi via daijy)
 
@@ -273,10 +277,6 @@ PIG-2011: Speed up TestTypedMap.java (dvryaboy)
 PIG-2228: support partial aggregation in map task (thejas)
 
 BUG FIXES
-
-PIG-2912: Pig should clone JobConf while creating JobContextImpl and TaskAttemptContextImpl in Hadoop23 (rohini via daijy)
-
-PIG-2775: Register jar does not goes to classpath in some cases (daijy)
 
 PIG-2195: AvroStorage fails to STORE when LOADing via PigStorage (billgraham via gates)
 
