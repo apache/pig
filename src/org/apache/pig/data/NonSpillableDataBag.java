@@ -114,8 +114,8 @@ public class NonSpillableDataBag implements DataBag {
      * Report progress to HDFS.
      */
     protected void reportProgress() {
-        if (PhysicalOperator.reporter != null) {
-            PhysicalOperator.reporter.progress();
+        if (PhysicalOperator.getReporter() != null) {
+            PhysicalOperator.getReporter().progress();
         }
     }
 

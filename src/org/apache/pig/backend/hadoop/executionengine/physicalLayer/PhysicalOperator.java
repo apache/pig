@@ -102,7 +102,7 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     // Will be used by operators to report status or transmit heartbeat
     // Should be set by the backends to appropriate implementations that
     // wrap their own version of a reporter.
-    public static PigProgressable reporter;
+    private static ThreadLocal<PigProgressable> reporter = new ThreadLocal<PigProgressable>();
 
     // Will be used by operators to aggregate warning messages
     // Should be set by the backends to appropriate implementations that
@@ -300,8 +300,8 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
         }
 
         //Should be removed once the model is clear
-        if(reporter!=null) {
-            reporter.progress();
+        if(getReporter()!=null) {
+            getReporter().progress();
         }
 
         if (!isInputAttached()) {
@@ -455,8 +455,18 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     public void reset() {
     }
 
+    /**
+     * @return PigProgressable stored in threadlocal
+     */
+    public static PigProgressable getReporter() {
+        return PhysicalOperator.reporter.get();
+    }
+
+    /**
+     * @param reporter PigProgressable to be stored in threadlocal
+     */
     public static void setReporter(PigProgressable reporter) {
-        PhysicalOperator.reporter = reporter;
+        PhysicalOperator.reporter.set(reporter);
     }
 
     /**

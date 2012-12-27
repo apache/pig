@@ -51,7 +51,7 @@ public final class PigHadoopLogger implements PigLogger {
     public void warn(Object o, String msg, Enum warningEnum) {
         String displayMessage = o.getClass().getName() + ": " + msg;
         
-        if (aggregate) {
+        if (getAggregate()) {
             if (reporter != null) {
                 reporter.getCounter(warningEnum).increment(1);
             } else {
@@ -74,7 +74,7 @@ public final class PigHadoopLogger implements PigLogger {
         this.reporter = rep;
     }
     
-    public boolean getAggregate() {
+    public synchronized boolean getAggregate() {
         return aggregate;
     }
     

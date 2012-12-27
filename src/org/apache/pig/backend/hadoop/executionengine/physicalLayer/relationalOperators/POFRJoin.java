@@ -396,8 +396,8 @@ public class POFRJoin extends PhysicalOperator {
 
             log.debug("Completed setup. Trying to build replication hash table");
             for (Result res = lr.getNext(dummyTuple);res.returnStatus != POStatus.STATUS_EOP;res = lr.getNext(dummyTuple)) {
-                if (reporter != null)
-                    reporter.progress();               
+                if (getReporter() != null)
+                    getReporter().progress();
                 Tuple tuple = (Tuple) res.result;
                 if (isKeyNull(tuple.get(1))) continue;
                 Tuple key = mTupleFactory.newTuple(1);

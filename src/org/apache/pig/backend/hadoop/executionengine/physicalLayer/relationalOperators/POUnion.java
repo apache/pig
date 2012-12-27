@@ -161,7 +161,9 @@ public class POUnion extends PhysicalOperator {
                 Result res;
 
                 while(true){
-                    if(reporter!=null) reporter.progress();
+                    if(getReporter()!=null) {
+                        getReporter().progress();
+                    }
                     res = inputs.get(ind).getNext(t);
                     lastInd = ind + 1;
 
