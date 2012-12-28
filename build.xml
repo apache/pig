@@ -1273,6 +1273,7 @@
         <tar compression="gzip" longfile="gnu"
              destfile="${build.dir}/${final.name}-src-${pig.version}.tar.gz">
             <tarfileset dir="${basedir}" mode="644" prefix="${final.name}-src-${pig.version}">
+                <include name="bin/**"/>
                 <include name="conf/**"/>
                 <include name="contrib/**"/>
                 <include name="ivy/**"/>
@@ -1289,6 +1290,7 @@
                 <include name="*.xml"/>
                 <include name="doap_Pig.rdf"/>
                 <include name="KEYS"/>
+                <include name="autocomplete"/>
             </tarfileset>
             <tarfileset dir="" mode="755" prefix="${final.name}-src-${pig.version}">
                 <include name="bin/**"/>

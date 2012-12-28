@@ -535,6 +535,8 @@ Release 0.10.1 - Unreleased
 
 BUG FIXES
 
+PIG-3107: bin and autocomplete are missing in src release (daijy)
+
 PIG-3106: Missing license header in several java file (daijy)
 
 PIG-3099: Pig unit test fixes for TestGrunt(1), TestStore(2), TestEmptyInputDir(3) (vikram.dixit via daijy)
