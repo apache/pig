@@ -1271,9 +1271,8 @@
     <target name="src-release" depends="clean, clean-piggybank, clean-zebra, clean-test-e2e, clean-tutorial" description="Source distribution">
         <mkdir dir="${build.dir}"/>
         <tar compression="gzip" longfile="gnu"
-             destfile="${build.dir}/${final.name}-src-${pig.version}.tar.gz">
-            <tarfileset dir="${basedir}" mode="644" prefix="${final.name}-src-${pig.version}">
-                <include name="bin/**"/>
+             destfile="${build.dir}/${final.name}-src.tar.gz">
+            <tarfileset dir="${basedir}" mode="644" prefix="${final.name}-src">
                 <include name="conf/**"/>
                 <include name="contrib/**"/>
                 <include name="ivy/**"/>
@@ -1292,7 +1291,7 @@
                 <include name="KEYS"/>
                 <include name="autocomplete"/>
             </tarfileset>
-            <tarfileset dir="" mode="755" prefix="${final.name}-src-${pig.version}">
+            <tarfileset dir="" mode="755" prefix="${final.name}-src">
                 <include name="bin/**"/>
             </tarfileset>
         </tar>
