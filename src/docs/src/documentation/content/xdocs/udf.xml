@@ -28,7 +28,7 @@
 <section id="udfs">
 <title>Introduction</title>
 <p>
-Pig provides extensive support for user defined functions (UDFs) as a way to specify custom processing. Pig UDFs can currently be implemented in three languages: Java, Python, JavaScript, Ruby and Groovy. 
+Pig provides extensive support for user defined functions (UDFs) as a way to specify custom processing. Pig UDFs can currently be implemented in five languages: Java, Python, JavaScript, Ruby and Groovy. 
 </p>
 
 <p>
@@ -88,7 +88,7 @@ the first occurrence will be used consistently with Java semantics. </p>
 
 <p>The name of the UDF has to be fully qualified with the package name or an error will be reported: 
 <code>java.io.IOException:&nbsp;Cannot&nbsp;instantiate:UPPER</code>. Also, the function name is case sensitive (UPPER and upper are not the same). 
-A UDF can take one or more parameters. The exact signature of the function should clear from its documentation. </p>
+A UDF can take one or more parameters. The exact signature of the function should be clear from its documentation. </p>
 
 <p>The function provided in this example takes an ASCII string and produces its uppercase version. If you are familiar with column transformation functions 
 in SQL, you will recognize that UPPER fits this concept. However, as we will see later in the document, eval functions in Pig go beyond column 
@@ -506,7 +506,7 @@ public class TOKENIZE extends EvalFunc&lt;DataBag&gt; {
 <section id="schemas">
 <title>Schemas and Java UDFs</title>
 
-<p>Pig uses type information for validation and performance. It is important for UDFs to participate in type propagation. Our UDFs generally make no effort to communicate their output schema to Pig. This is because Pig can usually figure out this information by using Java's <a href="http://java.sun.com/developer/technicalArticles/ALT/Reflection/"> Reflection</a>. If your UDF returns a scalar or a map, no work is required. However, if your UDF returns a tuple or a bag (of tuples), it needs to help Pig figure out the structure of the tuple. </p>
+<p>Pig uses type information for validation and performance. It is important for UDFs to participate in type propagation. Our UDFs generally make no effort to communicate their output schema to Pig. This is because Pig can usually figure out this information by using Java's <a href="http://www.oracle.com/technetwork/articles/java/javareflection-1536171.html"> Reflection</a>. If your UDF returns a scalar or a map, no work is required. However, if your UDF returns a tuple or a bag (of tuples), it needs to help Pig figure out the structure of the tuple. </p>
 <p>If a UDF returns a tuple or a bag and schema information is not provided, Pig assumes that the tuple contains a single field of type bytearray. If this is not the case, then not specifying the schema can cause failures. We look at this next. </p>
 <p>Let's assume that we have UDF <code>Swap</code> that, given a tuple with two fields, swaps their order. Let's assume that the UDF does not specify a schema and look at the scripts below: </p>
 
@@ -693,12 +693,12 @@ public class ABS extends EvalFunc&lt;Double&gt; {
             System.err.println("Failed to process input; error - " + nfe.getMessage());
             return null;
         } catch (Exception e){
-            throw IOException("Caught exception processing input row ", e);
+            throw new IOException("Caught exception processing input row ", e);
         }
         return Math.abs(d);
     }
-    public List (FuncSpec) getArgToFuncMapping() throws FrontendException {
-        List (FuncSpec) funcList = new ArrayList (FuncSpec) ();
+    public List&lt;FuncSpec&gt; getArgToFuncMapping() throws FrontendException {
+        List&lt;FuncSpec&gt; funcList = new ArrayList&lt;FuncSpec&gt;();
         funcList.add(new FuncSpec(this.getClass().getName(), new Schema(new Schema.FieldSchema(null, DataType.BYTEARRAY))));
         funcList.add(new FuncSpec(DoubleAbs.class.getName(),  new Schema(new Schema.FieldSchema(null, DataType.DOUBLE))));
         funcList.add(new FuncSpec(FloatAbs.class.getName(),   new Schema(new Schema.FieldSchema(null, DataType.FLOAT))));
@@ -724,7 +724,7 @@ public class IntAbs extends EvalFunc&lt;Integer&gt; {
         try{
             d = (Integer)input.get(0);
         } catch (Exception e){
-            throw newIOException("Caught exception processing input row ", e);
+            throw new IOException("Caught exception processing input row ", e);
         }
         return Math.abs(d);
     }
@@ -737,8 +737,8 @@ public class IntAbs extends EvalFunc&lt;Integer&gt; {
 <p>For instance, let's consider function <code>MAX</code> which is part of the <code>piggybank</code> described later in this document. Given two values, the function returns the larger value. The function table for <code>MAX</code> looks like this: </p>
 
 <source>
-public List (FuncSpec) getArgToFuncMapping() throws FrontendException {
-    List (FuncSpec) funcList = new ArrayList (FuncSpec) ();
+public List&lt;FuncSpec&gt; getArgToFuncMapping() throws FrontendException {
+    List&lt;FuncSpec&gt; funcList = new ArrayList&lt;FuncSpec&gt;();
     Util.addToFunctionList(funcList, IntMax.class.getName(), DataType.INTEGER);
     Util.addToFunctionList(funcList, DoubleMax.class.getName(), DataType.DOUBLE);
     Util.addToFunctionList(funcList, FloatMax.class.getName(), DataType.FLOAT);
@@ -790,8 +790,8 @@ public class UPPER extends EvalFunc&lt;String&gt;
             return null;
         }
     }
-    public List (FuncSpec) getArgToFuncMapping() throws FrontendException {
-        List (FuncSpec) funcList = new ArrayList (FuncSpec) ();
+    public List&lt;FuncSpec&gt; getArgToFuncMapping() throws FrontendException {
+        List&lt;FuncSpec&gt; funcList = new ArrayList&lt;FuncSpec&gt;();
         funcList.add(new FuncSpec(this.getClass().getName(), new Schema(new Schema.FieldSchema(null, DataType.CHARARRAY))));
         return funcList;
     }
@@ -815,7 +815,7 @@ DUMP B;
 <title>Reporting Progress</title>
 
 <p>A challenge of running a large shared system is to make sure system resources are used efficiently. One aspect of this challenge is detecting runaway processes that are no longer making progress. Pig uses a heartbeat mechanism for this purpose. If any of the tasks stops sending a heartbeat, the system assumes that it is dead and kills it.   </p>
-<p>Most of the time, single-tuple processing within a UDF is very short and does not require a UDF to heartbeat. The same is true for aggregate functions that operate on large bags because bag iteration code takes care of it. However, if you have a function that performs a complex computation that can take an order of minutes to execute, you should add a progress indicator to your code. This is very easy to accomplish. The <code>EvalFunc</code> function provides a <code>progress</code> function that you need to call in your <code>exec</code> method. </p>
+<p>Most of the time, single-tuple processing within a UDF is very short and does not require a UDF to heartbeat. The same is true for aggregate functions that operate on large bags because bag iteration code takes care of it. However, if you have a function that performs a complex computation that can take an order of minutes to execute, you should add a progress indicator to your code. This is very easy to accomplish. The <code>EvalFunc</code> class provides a <code>progress</code> function that you need to call in your <code>exec</code> method. </p>
 <p>For instance, the <code>UPPER</code> function would now look as follows: </p>
 
 <source>
@@ -825,11 +825,11 @@ public class UPPER extends EvalFunc&lt;String&gt;
                 if (input == null || input.size() == 0)
                 return null;
                 try{
-                        reporter.progress();
+                        progress();
                         String str = (String)input.get(0);
                         return str.toUpperCase();
                 }catch(Exception e){
-                    throw new OException("Caught exception processing input row ", e);
+                    throw new IOException("Caught exception processing input row ", e);
                 }
         }
 }
@@ -839,7 +839,7 @@ public class UPPER extends EvalFunc&lt;String&gt;
 <!-- +++++++++++++++++++++++++++++++++++++++++++++++++ -->
 <section id="distributed-cache">
 	<title>Using Distributed Cache</title>
-	<p>Use getCacheFiles, an EvalFunc method, to return a list of HDFS files that need to be shipped to distributed cache. Inside EvalFunc, you can assume that these files already exist in distributed cache. For example:</p>
+	<p>Use getCacheFiles, an EvalFunc method, to return a list of HDFS files that need to be shipped to distributed cache. Inside exec method, you can assume that these files already exist in distributed cache. For example:</p>
 <source>
 public class Udfcachetest extends EvalFunc&lt;String&gt; { 
 
@@ -861,30 +861,6 @@ b = foreach a generate Udfcachetest(*);
 dump b;
 </source>
 </section>
-
-<!-- +++++++++++++++++++++++++++++++++++++++++++++++++ -->
-<section id="import-lists">
-<title>Import Lists</title>
-<p>An import list allows you to specify the package to which a UDF or a group of UDFs belong,
- eliminating the need to qualify the UDF on every call. An import list can be specified via the udf.import.list Java 
- property on the Pig command line: </p>
-<source>
-pig -Dudf.import.list=com.yahoo.yst.sds.ULT
-</source>
-<p>You can supply multiple locations as well: </p>
-<source>
-pig -Dudf.import.list=com.yahoo.yst.sds.ULT:org.apache.pig.piggybank.evaluation
-</source>
-</section>
-<p>To make use of import scripts, do the following:</p>
-<source>
-myscript.pig:
-A = load '/data/SDS/data/searcg_US/20090820' using ULTLoader as (s, m, l);
-....
-
-command:
-pig -cp sds.jar -Dudf.import.list=com.yahoo.yst.sds.ULT myscript.pig 
-</source>
 
 </section>
 
@@ -1075,8 +1051,8 @@ This interface has methods to interact with metadata systems to store schema and
 <ul>
 <li id="getOutputFormat">getOutputFormat(): This method will be called by Pig to get the OutputFormat used by the storer. The methods in the OutputFormat (and underlying RecordWriter and OutputCommitter) will be called by pig in the same manner (and in the same context) as by Hadoop in a map-reduce java program. If the OutputFormat is a hadoop packaged one, the implementation should use the new API based one under org.apache.hadoop.mapreduce. If it is a custom OutputFormat, it should be implemented using the new API under org.apache.hadoop.mapreduce. The checkOutputSpecs() method of the OutputFormat will be called by pig to check the output location up-front. This method will also be called as part of the Hadoop call sequence when the job is launched. So implementations should ensure that this method can be called multiple times without inconsistent side effects. </li>
 <li id="setStoreLocation">setStoreLocation(): This method is called by Pig to communicate the store location to the storer. The storer should use this method to communicate the same information to the underlying OutputFormat. This method is called multiple times by pig - implementations should bear in mind that this method is called multiple times and should ensure there are no inconsistent side effects due to the multiple calls. </li>
-<li id="prepareToWrite">prepareToWrite(): In the new API, writing of the data is through the OutputFormat provided by the StoreFunc. In prepareToWrite() the RecordWriter associated with the OutputFormat provided by the StoreFunc is passed to the StoreFunc. The RecordWriter can then be used by the implementation in putNext() to write a tuple representing a record of data in a manner expected by the RecordWriter. </li>
-<li id="putNext">putNext(): The meaning of putNext() has not changed and is called by Pig runtime to write the next tuple of data - in the new API, this is the method wherein the implementation will use the underlying RecordWriter to write the Tuple out.</li>
+<li id="prepareToWrite">prepareToWrite(): Writing of the data is through the OutputFormat provided by the StoreFunc. In prepareToWrite() the RecordWriter associated with the OutputFormat provided by the StoreFunc is passed to the StoreFunc. The RecordWriter can then be used by the implementation in putNext() to write a tuple representing a record of data in a manner expected by the RecordWriter. </li>
+<li id="putNext">putNext(): This method is called by Pig runtime to write the next tuple of data - this is the method wherein the implementation will use the underlying RecordWriter to write the Tuple out.</li>
 </ul>
 
 <p id="storefunc-default">The following methods have default implementations in StoreFunc and should be overridden only if necessary: </p>
@@ -1295,6 +1271,55 @@ public class SimpleTextStorer extends StoreFunc {
 <!-- END LOAD/STORE FUNCTIONS -->
 
 
+<!-- =============================================================== -->
+<section id="use-short-names">
+<title>Using Short Names</title>
+
+<p>There are two ways to call a Java UDF using a short name. One way is specifying the package to an import list via Java property, and the other is defining an alias of the UDF by DEFINE statement.</p>
+
+<!-- +++++++++++++++++++++++++++++++++++++++++++++++++ -->
+<section id="import-lists">
+<title>Import Lists</title>
+<p>An import list allows you to specify the package to which a UDF or a group of UDFs belong,
+ eliminating the need to qualify the UDF on every call. An import list can be specified via the udf.import.list Java 
+ property on the Pig command line: </p>
+<source>
+pig -Dudf.import.list=com.yahoo.yst.sds.ULT
+</source>
+<p>You can supply multiple locations as well: </p>
+<source>
+pig -Dudf.import.list=com.yahoo.yst.sds.ULT:org.apache.pig.piggybank.evaluation
+</source>
+<p>To make use of import scripts, do the following:</p>
+<source>
+myscript.pig:
+A = load '/data/SDS/data/searcg_US/20090820' using ULTLoader as (s, m, l);
+....
+
+command:
+pig -cp sds.jar -Dudf.import.list=com.yahoo.yst.sds.ULT myscript.pig 
+</source>
+</section>
+
+<!-- +++++++++++++++++++++++++++++++++++++++++++++++++ -->
+<section id="define-alias">
+<title>Defining Aliases</title>
+<p>You can define an alias for a function using <a href="basic.html#define-udfs">DEFINE statement</a>:</p>
+
+<source>
+REGISTER piggybank.jar
+DEFINE MAXNUM org.apache.pig.piggybank.evaluation.math.MAX;
+A = LOAD 'student_data' AS (name: chararray, gpa1: float, gpa2: double);
+B = FOREACH A GENERATE name, MAXNUM(gpa1, gpa2);
+DUMP B;
+</source>
+
+<p>The first parameter of DEFINE statement is an alias of the function. The second parameter is the fully-qualified name of the function. After the statement, you can call the function using the alias instead of the fually-qualified name.</p>
+
+</section>
+
+</section>
+
 
 
 <!-- =============================================================== -->
@@ -1323,7 +1348,7 @@ public class SimpleTextStorer extends StoreFunc {
 <title>Passing Configurations to UDFs</title>
 <p>The singleton UDFContext class provides two features to UDF writers. First, on the backend, it allows UDFs to get access to the JobConf object, by calling getJobConf. This is only available on the backend (at run time) as the JobConf has not yet been constructed on the front end (during planning time).</p>
 
-<p>Second, it allows UDFs to pass configuration information between instantiations of the UDF on the front and backends. UDFs can store information in a configuration object when they are constructed on the front end, or during other front end calls such as describeSchema. They can then read that information on the backend when exec (for EvalFunc) or getNext (for LoadFunc) is called. Note that information will not be passed between instantiations of the function on the backend. The communication channel only works from front end to back end.</p>
+<p>Second, it allows UDFs to pass configuration information between instantiations of the UDF on the front and backends. UDFs can store information in a configuration object when they are constructed on the front end, or during other front end calls such as checkSchema. They can then read that information on the backend when exec (for EvalFunc) or getNext (for LoadFunc) is called. Note that information will not be passed between instantiations of the function on the backend. The communication channel only works from front end to back end.</p>
 
 <p>To store information, the UDF calls getUDFProperties. This returns a Properties object which the UDF can record the information in or read the information from. To avoid name space conflicts UDFs are required to provide a signature when obtaining a Properties object. This can be done in two ways. The UDF can provide its Class object (via this.getClass()). In this case, every instantiation of the UDF will be given the same Properties object. The UDF can also provide its Class plus an array of Strings. The UDF can pass its constructor arguments, or some other identifying strings. This allows each instantiation of the UDF to have a different properties object thus avoiding name space collisions between instantiations of the UDF.</p>
 </section>
@@ -1451,7 +1476,7 @@ b = foreach a generate myfuncs.helloworld(), myfuncs.square(3);
  ##################
  # Math functions #
  ##################
- #Square - Square of a number of any data type
+ #square - Square of a number of any data type
  @outputSchemaFunction("squareSchema")
  def square(num):
    return ((num)*(num))
@@ -1543,7 +1568,7 @@ result = P.bind().runSingle();
 <!-- ++++++++++++++++++++++++++++++++++++++++++++++++ -->
  <section id="register-js">
  <title>Registering the UDF</title>
- <p>You can register JavaScript as shown here. This example uses org.apache.pig.scripting.js.JsScriptEngine to interpret JavaScript. You can develop and use custom script engines to support multiple programming languages and ways to interpret them. Currently, Pig identifies js as a keyword and ships the required scriptengine (js) to interpret it. </p>
+ <p>You can register JavaScript as shown here. This example uses org.apache.pig.scripting.js.JsScriptEngine to interpret JavaScript. You can develop and use custom script engines to support multiple programming languages and ways to interpret them. Currently, Pig identifies js as a keyword and ships the required scriptengine (Rhino) to interpret it. </p>
  <source>
  register 'test.js' using javascript as myfuncs;
  </source>
@@ -1575,7 +1600,7 @@ result = P.bind().runSingle();
  <title>Example Scripts</title> 
   <p>A simple JavaScript UDF (udf.js) is shown here.</p>
  <source>
- helloworld.outputSchema = "word:chararray";
+helloworld.outputSchema = "word:chararray";
 function helloworld() {
     return 'Hello, World';
 }
@@ -1949,7 +1974,7 @@ This will generate <code>piggybank.jar</code> in the same directory. </li>
 
 <p>(The exact package of the function can be seen in the javadocs or by navigating the source tree.) </p>
 
-<p>For example, to use the UPPER command: </p>
+<p>For example, to use the UPPER function: </p>
 
 <source>
 REGISTER /public/share/pig/contrib/piggybank/java/piggybank.jar ;
@@ -1969,10 +1994,10 @@ STORE TweetsInaug INTO 'meta/inaug/tweets_inaug' ;
 <li>Checkout the UDF code as described in <a href="#piggbank-access">Accessing Functions</a>. </li>
 <li>Place your java code in the directory that makes sense for your function. The directory structure currently has two levels: (1) function type, as described in <a href="#piggbank-access">Accessing Functions</a>, and (2) function subtype, for some of the types (like math or string for eval functions). If you think your function requires a new subtype, feel free to add one. </li>
 <li>Make sure that your function is well documented and uses the 
-<a href="http://download.oracle.com/javase/1.4.2/docs/tooldocs/solaris/javadoc.html">javadoc</a> style of documentation. </li>
-<li>Make sure that your code follows Pig coding conventions described in <a href="http://wiki.apache.org/pig/HowToContribute">How to Contribute to Pig</a>.</li>
+<a href="http://docs.oracle.com/javase/6/docs/technotes/tools/solaris/javadoc.html">javadoc</a> style of documentation. </li>
+<li>Make sure that your code follows Pig coding conventions described in <a href="https://cwiki.apache.org/confluence/display/PIG/HowToContribute">How to Contribute to Pig</a>.</li>
 <li>Make sure that for each function, you add a corresponding test class in the test part of the tree. </li>
-<li>Submit your patch following the process described in <a href="http://wiki.apache.org/pig/HowToContribute">How to Contribute to Pig</a>. </li>
+<li>Submit your patch following the process described in <a href="https://cwiki.apache.org/confluence/display/PIG/HowToContribute">How to Contribute to Pig</a>. </li>
 </ol>
 </section>
 </section> 
