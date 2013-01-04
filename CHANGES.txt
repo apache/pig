@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2362: Rework Ant build.xml to use macrodef instead of antcall (azaroth via cheolsoo)
+
 PIG-2857: Add a -tagPath option to PigStorage (prkommireddi via cheolsoo)
 
 PIG-2341: Need better documentation on Pig/HBase integration (jthakrar and billgraham via billgraham)
