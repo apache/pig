@@ -15,9 +15,9 @@
    limitations under the License.
 -->
 
-<project name="Pig" default="jar-all" 
-	xmlns:artifact="urn:maven-artifact-ant"
-	xmlns:ivy="antlib:org.apache.ivy.ant">
+<project name="Pig" default="jar-all"
+         xmlns:artifact="urn:maven-artifact-ant"
+         xmlns:ivy="antlib:org.apache.ivy.ant">
     <!-- Load all the default properties, and any the user wants    -->
     <!-- to contribute (without having to type -D or edit this file -->
     <property file="${user.home}/build.properties" />
@@ -61,10 +61,9 @@
     <property name="javac.deprecation" value="off" />
     <property name="javac.version" value="1.5" />
     <property name="javac.args" value="" />
-    <!-- default warnings option -->
-    <property name="javac.args.warnings" value="-Xmaxwarns 1000000" />
-    <!-- warnings option if all.warnings property is set on cmdline -->
-    <property name="javac.args.all.warnings" value="-Xmaxwarns 1000000 -Xlint -Xlint:-deprecation" />
+    <condition property="javac.args.warnings" value="-Xmaxwarns 1000000 -Xlint -Xlint:-deprecation" else="-Xmaxwarns 1000000">
+        <isset property="all.warnings" />
+    </condition>
 
     <!-- artifact jar file names -->
     <property name="artifact.pig.jar" value="${final.name}.jar"/>
@@ -84,8 +83,8 @@
     <property name="output.jarfile.sources" value="${build.dir}/${artifact.pig-sources.jar}" />
     <property name="output.jarfile.javadoc" value="${build.dir}/${artifact.pig-javadoc.jar}" />
     <!-- Maintain old pig.jar in top level directory. -->
-    <property name="output.jarfile.backcompat.withouthadoop" value="${basedir}/${name}-withouthadoop.jar" />
     <property name="output.jarfile.backcompat" value="${basedir}/${name}.jar" />
+    <property name="output.jarfile.backcompat.withouthadoop" value="${basedir}/${name}-withouthadoop.jar" />
 
     <!-- test properties -->
     <property name="test.src.dir" value="${basedir}/test" />
@@ -114,21 +113,21 @@
 
     <!-- e2e test properties -->
     <property name="test.e2e.dir" value="${basedir}/test/e2e/pig"/>
-	
-    <!-- javacc properties -->
+
+    <!-- parser properties -->
     <property name="src.gen.query.parser.dir" value="${src.gen.dir}/org/apache/pig/impl/logicalLayer/parser" />
     <property name="src.gen.script.parser.dir" value="${src.gen.dir}/org/apache/pig/tools/pigscript/parser" />
     <property name="src.gen.param.parser.dir" value="${src.gen.dir}/org/apache/pig/tools/parameters" />
     <property name="src.gen.dot.parser.dir" value="${test.src.dir}/org/apache/pig/test/utils/dotGraph/parser" />
     <property name="src.gen.textdata.parser.dir" value="${src.gen.dir}/org/apache/pig/data/parser" />
-    
-    <!-- Antlr Parser properties -->
+
+    <!-- Antlr properties -->
     <property name="grammar.name" value="Query"/>
     <property name="grammar.name.lower" value="query"/>
     <property name="grammar.package" value="org.apache.pig.parser"/>
     <property name="grammar.package.dir" value="org/apache/pig/parser"/>
     <property name="grammar.src.dir" value="${src.dir}/${grammar.package.dir}"/>
-    
+
     <!-- rats properties -->
     <property name="rat.reporting.classname" value="rat.Report"/>
 
@@ -151,16 +150,16 @@
 
     <!-- check if clover reports should be generated -->
     <condition property="clover.enabled">
-   	<and>
-        	<isset property="run.clover"/>
-        	<isset property="clover.present"/>
+        <and>
+            <isset property="run.clover"/>
+            <isset property="clover.present"/>
         </and>
     </condition>
     <condition property="staging">
         <equals arg1="${repo}" arg2="staging"/>
     </condition>
     <!-- IVY properteis set here -->
-	<property name="ivy.repo.dir" value="${user.home}/ivyrepo" />
+    <property name="ivy.repo.dir" value="${user.home}/ivyrepo" />
     <property name="ivy.dir" location="ivy" />
     <loadproperties srcfile="${ivy.dir}/libraries.properties"/>
 
@@ -178,15 +177,14 @@
     <property name="src.shims.test.dir" value="${basedir}/shims/test/hadoop${hadoopversion}" />
 
     <property name="hadoop.jar" value="hadoop-core-${hadoop-core.version}.jar" />
-	<property name="asfrepo" value="https://repository.apache.org"/>
-	<property name="asfsnapshotrepo" value="${asfrepo}/content/repositories/snapshots"/>
-	<property name="mvnrepo" value="http://repo2.maven.org/maven2"/>
-	<property name="asfstagingrepo" value="${asfrepo}/service/local/staging/deploy/maven2"/>
+    <property name="asfrepo" value="https://repository.apache.org"/>
+    <property name="asfsnapshotrepo" value="${asfrepo}/content/repositories/snapshots"/>
+    <property name="mvnrepo" value="http://repo2.maven.org/maven2"/>
+    <property name="asfstagingrepo" value="${asfrepo}/service/local/staging/deploy/maven2"/>
     <property name="ivy.jar" location="${ivy.dir}/ivy-${ivy.version}.jar"/>
-	<property name="ant_task.jar" location="${ivy.dir}/maven-ant-tasks-${ant-task.version}.jar"/>
-	<property name="ant_task_repo_url"
-	value="${mvnrepo}/org/apache/maven/maven-ant-tasks/${ant-task.version}/maven-ant-tasks-${ant-task.version}.jar"/>
-	<property name="ivy_repo_url" value="${mvnrepo}/org/apache/ivy/ivy/${ivy.version}/ivy-${ivy.version}.jar"/>
+    <property name="ant_task.jar" location="${ivy.dir}/maven-ant-tasks-${ant-task.version}.jar"/>
+    <property name="ant_task_repo_url"   value="${mvnrepo}/org/apache/maven/maven-ant-tasks/${ant-task.version}/maven-ant-tasks-${ant-task.version}.jar"/>
+    <property name="ivy_repo_url" value="${mvnrepo}/org/apache/ivy/ivy/${ivy.version}/ivy-${ivy.version}.jar"/>
     <property name="ivysettings.xml" location="${ivy.dir}/ivysettings.xml" />
     <property name="ivy.org" value="org.apache.pig"/>
     <property name="build.dir" location="build" />
@@ -215,10 +213,10 @@
     <!-- jdiff properties -->
     <property name="jdiff.jar" value="${ivy.lib.dir}/jdiff-${jdiff.version}.jar"/>
     <property name="xerces.jar" value="${ivy.lib.dir}/xerces-${xerces.version}.jar"/>
-    <property name="jdiff.build.dir" value="${build.docs}/jdiff"/>						
-    <property name="jdiff.xml.dir" value="${lib.dir}/jdiff"/>	
+    <property name="jdiff.build.dir" value="${build.docs}/jdiff"/>
+    <property name="jdiff.xml.dir" value="${lib.dir}/jdiff"/>
     <property name="jdiff.stable" value="0.10.0"/>
-    <property name="jdiff.stable.javadoc" value="http://hadoop.apache.org/${name}/docs/r${jdiff.stable}/api/"/>	
+    <property name="jdiff.stable.javadoc" value="http://hadoop.apache.org/${name}/docs/r${jdiff.stable}/api/"/>
 
     <!-- Packaging properties -->
     <property name="package.release" value="1"/>
@@ -227,74 +225,74 @@
     <property name="package.log.dir" value="/var/log/pig"/>
     <property name="package.buildroot" value="/tmp/pig_package_build_${user.name}"/>
     <property name="package.build.dir" value="/tmp/pig_package_build_${user.name}/BUILD"/>
- 
+
     <!-- Eclipse properties -->
     <property name="build.dir.eclipse" value="${build.dir}"/>
     <property name="build.dir.eclipse-main-classes" value="${build.classes}"/>
     <property name="build.dir.eclipse-test-classes" value="${test.build.classes}"/>
     <!--property name="build.dir.eclipse-test-generated-classes" value="${build.dir.eclipse}/classes-test-generated"/-->
- 
+
     <condition property="ant-eclipse.jar.exists">
-      <available file="${build.dir}/lib/ant-eclipse-1.0-jvm1.2.jar"/>
+        <available file="${build.dir}/lib/ant-eclipse-1.0-jvm1.2.jar"/>
     </condition>
-  
+
     <target name="ant-eclipse-download" unless="ant-eclipse.jar.exists"
             description="Downloads the ant-eclipse binary.">
-      <get src="http://downloads.sourceforge.net/project/ant-eclipse/ant-eclipse/1.0/ant-eclipse-1.0.bin.tar.bz2"
-           dest="${build.dir}/ant-eclipse-1.0.bin.tar.bz2" usetimestamp="false" />
-  
-      <untar src="${build.dir}/ant-eclipse-1.0.bin.tar.bz2"
-             dest="${build.dir}" compression="bzip2">
-        <patternset>
-          <include name="lib/ant-eclipse-1.0-jvm1.2.jar"/>
-        </patternset>
-      </untar>
-      <delete file="${build.dir}/ant-eclipse-1.0.bin.tar.bz2" />
+        <get src="http://downloads.sourceforge.net/project/ant-eclipse/ant-eclipse/1.0/ant-eclipse-1.0.bin.tar.bz2"
+             dest="${build.dir}/ant-eclipse-1.0.bin.tar.bz2" usetimestamp="false" />
+        <untar src="${build.dir}/ant-eclipse-1.0.bin.tar.bz2"
+               dest="${build.dir}" compression="bzip2">
+            <patternset>
+                <include name="lib/ant-eclipse-1.0-jvm1.2.jar"/>
+            </patternset>
+        </untar>
+        <delete file="${build.dir}/ant-eclipse-1.0.bin.tar.bz2" />
     </target>
- 
+
     <target name="eclipse-files"
             depends="init,ant-eclipse-download,ivy-compile,ivy-test"
             description="Create eclipse project files">
-  	     <pathconvert property="eclipse.project">
-  	       <path path="${basedir}"/>
-  	       <regexpmapper from="^.*/([^/]+)$$" to="\1" handledirsep="yes"/>
-  	     </pathconvert>
-             <path id="eclipse.classpath">
-               <fileset dir="${ivy.lib.dir}">
-                 <include name="**.*jar"/>
-               </fileset>
-               <fileset dir="${lib.dir}">
-                 <include name="**.*jar"/>
-               </fileset>
-             </path>
-      <taskdef name="eclipse"
-               classname="prantl.ant.eclipse.EclipseTask"
-               classpath="${build.dir}/lib/ant-eclipse-1.0-jvm1.2.jar" />
-      <eclipse updatealways="true" mode="java">
-        <project name="${eclipse.project}" />
-        <classpath>
-          <source path="${src.dir}"/>
-          <source path="${src.gen.dir}"/>
-          <source path="${src.lib.dir}/bzip2"/>
-          <source path="${src.lib.dir}/shock"/>
-          <source path="${test.e2e.dir}/udfs/java"/>
-          <source path="${src.shims.dir}"/>
-          <source path="${src.shims.test.dir}"/>
-          <source path="tutorial/src"/>
-          <source path="${test.src.dir}" excluding="e2e/pig/udfs/java/|resources/"/>
-          <output path="${build.dir.eclipse-main-classes}" />
-          <library pathref="eclipse.classpath" exported="true" />
-          <!--library pathref="classpath" exported="false"/-->
-        </classpath>
-      </eclipse>
+        <pathconvert property="eclipse.project">
+            <path path="${basedir}"/>
+            <regexpmapper from="^.*/([^/]+)$$" to="\1" handledirsep="yes"/>
+        </pathconvert>
+        <path id="eclipse.classpath">
+            <fileset dir="${ivy.lib.dir}">
+                <include name="**.*jar"/>
+            </fileset>
+            <fileset dir="${lib.dir}">
+                <include name="**.*jar"/>
+            </fileset>
+        </path>
+        <taskdef name="eclipse"
+                 classname="prantl.ant.eclipse.EclipseTask"
+                 classpath="${build.dir}/lib/ant-eclipse-1.0-jvm1.2.jar" />
+        <eclipse updatealways="true" mode="java">
+            <project name="${eclipse.project}" />
+            <classpath>
+                <source path="${src.dir}"/>
+                <source path="${src.gen.dir}"/>
+                <source path="${src.lib.dir}/bzip2"/>
+                <source path="${src.lib.dir}/shock"/>
+                <source path="${test.e2e.dir}/udfs/java"/>
+                <source path="${src.shims.dir}"/>
+                <source path="${src.shims.test.dir}"/>
+                <source path="tutorial/src"/>
+                <source path="${test.src.dir}" excluding="e2e/pig/udfs/java/|resources/"/>
+                <output path="${build.dir.eclipse-main-classes}" />
+                <library pathref="eclipse.classpath" exported="true" />
+                <!--library pathref="classpath" exported="false"/-->
+            </classpath>
+        </eclipse>
     </target>
- 
+
 
     <!-- ====================================================== -->
     <!-- Stuff needed by all targets                            -->
     <!-- ====================================================== -->
     <!-- setup the classpath -->
     <path id="classpath">
+        <path refid="compile.classpath"/>
         <fileset dir="${lib.dir}" includes="*.jar"/>
         <fileset file="${ivy.lib.dir}/${zookeeper.jarfile}"/>
         <fileset dir="${ivy.lib.dir}" includes="*.jar"/>
@@ -302,8 +300,8 @@
 
     <!-- javadoc-classpath -->
     <path id="javadoc-classpath">
-	    <path refid="javadoc.classpath"/>	
-    </path> 
+        <path refid="javadoc.classpath"/>
+    </path>
 
     <path id="test.classpath">
         <!-- need to put this first, otherwise junit-3 testcases can break -->
@@ -314,20 +312,56 @@
         <path refid="classpath"/>
     </path>
 
+    <fileset dir="${ivy.lib.dir}" id="runtime.dependencies-withouthadoop.jar">
+        <patternset id="pattern.runtime.dependencies-withouthadoop.jar">
+            <include name="antlr-runtime-${antlr.version}.jar"/>
+            <include name="ST4-${stringtemplate.version}.jar"/>
+            <include name="jline-${jline.version}.jar"/>
+            <include name="jackson-mapper-asl-${jackson.version}.jar"/>
+            <include name="jackson-core-asl-${jackson.version}.jar"/>
+            <include name="joda-time-${joda-time.version}.jar"/>
+            <include name="guava-${guava.version}.jar"/>
+            <include name="automaton-${automaton.version}.jar"/>
+            <include name="jansi-${jansi.version}.jar"/>
+        </patternset>
+    </fileset>
+
+    <fileset dir="${ivy.lib.dir}" id="runtime.dependencies.jar">
+        <patternset id="pattern.runtime.dependencies.jar">
+            <patternset refid="pattern.runtime.dependencies-withouthadoop.jar"/>
+            <include name="hadoop-core-${hadoop-core.version}.jar"/>
+            <include name="hadoop-*-${hadoop-common.version}.jar"/>
+            <exclude name="hadoop-hdfs-${hadoop-hdfs.version}.jar"/>
+            <include name="junit-${junit.version}.jar"/>
+            <include name="jsch-${jsch.version}.jar"/>
+            <include name="protobuf-java-${protobuf-java.version}.jar"/>
+            <include name="avro-${avro.version}.jar"/>
+            <include name="commons*.jar"/>
+            <include name="log4j*.jar"/>
+            <include name="slf4j*.jar"/>
+            <include name="jsp-api*.jar"/>
+        </patternset>
+    </fileset>
+
+    <fileset dir="${ivy.lib.dir}" id="core.dependencies.jar">
+        <exclude name="**.*jar"/>
+    </fileset>
+
     <target name="init" depends="ivy-compile" >
         <mkdir dir="${src.gen.query.parser.dir}" />
         <mkdir dir="${src.gen.script.parser.dir}" />
         <mkdir dir="${src.gen.param.parser.dir}" />
-<!--        <mkdir dir="${dist.dir}" /> -->
         <mkdir dir="${build.classes}" />
         <mkdir dir="${test.build.classes}" />
         <mkdir dir="${src.gen.dot.parser.dir}" />
         <mkdir dir="${src.gen.textdata.parser.dir}" />
-  	<move file="${ivy.lib.dir}/javacc-${javacc.version}.jar" tofile="${javacc.home}/javacc.jar"/>
+        <move file="${ivy.lib.dir}/javacc-${javacc.version}.jar" tofile="${javacc.home}/javacc.jar"/>
         <tstamp>
             <format property="timestamp" pattern="MMM dd yyyy, HH:mm:ss" />
         </tstamp>
         <svnversion outputproperty="svn.revision"/>
+        <!-- properties are immutable in Ant, so this gets set only if we get nothing out of svnversion -->
+        <property name="svn.revision" value=": unknown"/>
     </target>
 
     <macrodef name="svnversion">
@@ -363,7 +397,7 @@
         <delete file="${output.jarfile.backcompat.withouthadoop}" />
         <ant dir="${test.e2e.dir}" target="clean"/>
     </target>
-    
+
     <target name="very-clean" unless="offline" depends="ivy-clean-cache,jackson-pig-3039-test-clean,clean"
             description="Clean build artifacts and flush Ivy cache" />
 
@@ -386,12 +420,12 @@
     </target>
 
     <!--target name="eclipse-files" depends="compile, ivy-buildJar"
-			description="Generate files for Eclipse">
+         description="Generate files for Eclipse">
         <pathconvert property="eclipse.project">
             <path path="${basedir}"/>
             <regexpmapper from="^.*/([^/]+)$$" to="\1" handledirsep="yes"/>
         </pathconvert>
-	<copy todir="." overwrite="true">
+        <copy todir="." overwrite="true">
             <fileset dir=".eclipse.templates">
                 <exclude name="**/README.txt"/>
             </fileset>
@@ -411,107 +445,79 @@
         <jjtree target="${test.src.dir}/org/apache/pig/test/utils/dotGraph/DOTParser.jjt" outputdirectory="${src.gen.dot.parser.dir}" javacchome="${javacc.home}" />
         <javacc target="${src.gen.dot.parser.dir}/DOTParser.jj" outputdirectory="${src.gen.dot.parser.dir}" javacchome="${javacc.home}" />
     </target>
-	
-	  <target name="gen" depends="genTreeParser"
-	    description="generates lexer and parser code from an ANTLR grammar">
-	    <!-- Move generated Java code to the correct package directory. -->
-	    <move todir="${src.gen.dir}${grammar.package.dir}">
-	      <fileset dir="${src.gen.dir}" includes="*.java"/>
-	    </move>
-	    <!-- Copy generated .token files to current directory. -->
-	    <copy todir=".">
-	      <fileset dir="${src.gen.dir}" includes="*.tokens"/>
-	    </copy>
-	  </target>
 
-	  <target name="genLexer" depends="prepare, init, ivy-compile"
-	    unless="lexerGrammarProcessed"
-	    description="generates lexer class from an ANTLR grammar">
-	    <java classname="org.antlr.Tool"
-	      classpathref="classpath" fork="true" failonerror="true">
-	      <arg line="-o ${src.gen.dir}/${grammar.package.dir} ${src.dir}/${grammar.package.dir}/${grammar.name}Lexer.g"/>
-	    </java>
-	  </target>
+    <target name="gen" depends="genTreeParser"
+       description="generates lexer and parser code from an ANTLR grammar">
+       <!-- Move generated Java code to the correct package directory. -->
+       <move todir="${src.gen.dir}${grammar.package.dir}">
+         <fileset dir="${src.gen.dir}" includes="*.java"/>
+       </move>
+       <!-- Copy generated .token files to current directory. -->
+       <copy todir=".">
+         <fileset dir="${src.gen.dir}" includes="*.tokens"/>
+       </copy>
+    </target>
 
-	<target name="genParser" depends="genLexer"
-	    unless="parserGrammarProcessed"
-	    description="generates token parser class from an ANTLR grammar">
-	    <java classname="org.antlr.Tool"
-	      classpathref="classpath" fork="true" failonerror="true">
-		      <arg line="-o ${src.gen.dir}/${grammar.package.dir} ${src.dir}/${grammar.package.dir}/${grammar.name}Parser.g"/>
-	    </java>
-	  </target>
-	
-	  <target name="genTreeParser" depends="genParser"
-	    unless="treeGrammarProcessed"
-	    description="generates tree parser class from an ANTLR grammar">
-	    <java classname="org.antlr.Tool"
-	      classpathref="classpath" fork="true" failonerror="true">
-	      <arg line="-o ${src.gen.dir}/${grammar.package.dir} ${src.dir}/${grammar.package.dir}/AstPrinter.g ${src.dir}/${grammar.package.dir}/AliasMasker.g ${src.dir}/${grammar.package.dir}/AstValidator.g ${src.dir}/${grammar.package.dir}/LogicalPlanGenerator.g"/>
-	    </java>
-	  </target>
+    <target name="genLexer" depends="prepare, init, ivy-compile"
+       unless="lexerGrammarProcessed"
+       description="generates lexer class from an ANTLR grammar">
+       <java classname="org.antlr.Tool"
+         classpathref="classpath" fork="true" failonerror="true">
+         <arg line="-o ${src.gen.dir}/${grammar.package.dir} ${src.dir}/${grammar.package.dir}/${grammar.name}Lexer.g"/>
+       </java>
+    </target>
 
-	  <target name="prepare">
-	    <uptodate property="lexerGrammarProcessed" srcfile="${grammar.src.dir}/${grammar.name}Lexer.g">
-	      <mapper type="merge" to="${src.gen.dir}/${grammar.package.dir}/${grammar.name}Lexer.java"/>
-	    </uptodate><!--
-	    <uptodate property="parserGrammarProcessed" srcfile="${grammar.src.dir}/${grammar.name}Parser.g">
-	      <mapper type="merge" to="${src.gen.dir}/${grammar.package.dir}/${grammar.name}Parser.java"/>
-	    </uptodate>
-	    <uptodate property="treeGrammarProcessed" srcfile="${grammar.src.dir}/${grammar.name}Tree.g">
-	      <mapper type="merge" to="${src.gen.dir}/${gramar.package.dir}/${grammar.name}Tree.java"/>
-	    </uptodate>-->
-	    <!--mkdir dir="build/classes"/-->
-	    <mkdir dir="${src.gen.dir}/${grammar.package.dir}"/>
-	  </target>
+    <target name="genParser" depends="genLexer"
+       unless="parserGrammarProcessed"
+       description="generates token parser class from an ANTLR grammar">
+       <java classname="org.antlr.Tool"
+         classpathref="classpath" fork="true" failonerror="true">
+         <arg line="-o ${src.gen.dir}/${grammar.package.dir} ${src.dir}/${grammar.package.dir}/${grammar.name}Parser.g"/>
+       </java>
+    </target>
 
-	<!-- ================================================================== -->
-    <!-- Build sources                                          -->
+    <target name="genTreeParser" depends="genParser"
+       unless="treeGrammarProcessed"
+       description="generates tree parser class from an ANTLR grammar">
+       <java classname="org.antlr.Tool"
+         classpathref="classpath" fork="true" failonerror="true">
+         <arg line="-o ${src.gen.dir}/${grammar.package.dir} ${src.dir}/${grammar.package.dir}/AstPrinter.g ${src.dir}/${grammar.package.dir}/AliasMasker.g ${src.dir}/${grammar.package.dir}/AstValidator.g ${src.dir}/${grammar.package.dir}/LogicalPlanGenerator.g"/>
+       </java>
+    </target>
+
+    <target name="prepare">
+       <uptodate property="lexerGrammarProcessed" srcfile="${grammar.src.dir}/${grammar.name}Lexer.g">
+         <mapper type="merge" to="${src.gen.dir}/${grammar.package.dir}/${grammar.name}Lexer.java"/>
+       </uptodate><!--
+       <uptodate property="parserGrammarProcessed" srcfile="${grammar.src.dir}/${grammar.name}Parser.g">
+         <mapper type="merge" to="${src.gen.dir}/${grammar.package.dir}/${grammar.name}Parser.java"/>
+       </uptodate>
+       <uptodate property="treeGrammarProcessed" srcfile="${grammar.src.dir}/${grammar.name}Tree.g">
+         <mapper type="merge" to="${src.gen.dir}/${gramar.package.dir}/${grammar.name}Tree.java"/>
+       </uptodate>-->
+       <!--mkdir dir="build/classes"/-->
+       <mkdir dir="${src.gen.dir}/${grammar.package.dir}"/>
+    </target>
+
+    <!-- ================================================================== -->
+    <!-- Build sources                                                      -->
     <!-- ================================================================== -->
     <target name="compile" depends="cc-compile, gen" description="Compile all artifacts">
         <echo>*** Building Main Sources ***</echo>
         <echo>*** To compile with all warnings enabled, supply -Dall.warnings=1 on command line ***</echo>
-        <echo>*** If all.warnings property is supplied, compile-sources-all-warnings target will be executed ***</echo>
-        <echo>*** Else, compile-sources (which only warns about deprecations) target will be executed ***</echo>
-                
-        <antcall target="compile-sources" inheritRefs="true" inheritall="true">
-            <param name="sources" value="${src.dir};${src.gen.dir};${src.lib.dir}/shock;${src.lib.dir}/bzip2;${src.shims.dir}" />
-            <param name="dist" value="${build.classes}" />
-            <param name="cp" value="classpath" />
-        </antcall>
-    
-        <antcall target="compile-sources-all-warnings" inheritRefs="true" inheritall="true">
-            <param name="sources" value="${src.dir};${src.gen.dir};${src.lib.dir}/shock;${src.lib.dir}/bzip2;${src.shims.dir}" />
-            <param name="dist" value="${build.classes}" />
-            <param name="cp" value="classpath" />
-        </antcall>
-
+        <echo>*** Else, you will only be warned about deprecations ***</echo>
+        <compileSources sources="${src.dir};${src.gen.dir};${src.lib.dir}/shock;${src.lib.dir}/bzip2;${src.shims.dir}"
+            excludes="" dist="${build.classes}" cp="classpath" warnings="${javac.args.warnings}" />
     </target>
 
     <target name="compile-test" depends="compile, ivy-test">
         <echo>*** Building Test Sources ***</echo>
         <echo>*** To compile with all warnings enabled, supply -Dall.warnings=1 on command line ***</echo>
-        <echo>*** If all.warnings property is supplied, compile-sources-all-warnings target will be executed ***</echo>
-        <echo>*** Else, compile-sources (which only warns about deprecations) target will be executed ***</echo>
-        
-        <antcall target="compile-sources" inheritRefs="true" inheritall="true">
-            <param name="sources" value="${test.src.dir};${src.shims.test.dir}" />
-            <param name="dist" value="${test.build.classes}" />
-            <param name="cp" value="test.classpath" />
-            <!-- don't compile PigTestLoader -->
-            <param name="excludes" value="**/PigTestLoader.java **/resources/**" />
-        </antcall>
+        <echo>*** Else, you will only be warned about deprecations ***</echo>
+        <compileSources sources="${test.src.dir};${src.shims.test.dir}"
+            excludes="**/PigTestLoader.java **/resources/**" dist="${test.build.classes}" cp="test.classpath" warnings="${javac.args.warnings}" />
+        <copy file="${basedir}/test/hbase-site.xml" tofile="${test.build.classes}/hbase-site.xml"/>
 
-        <antcall target="compile-sources-all-warnings" inheritRefs="true" inheritall="true">
-            <param name="sources" value="${test.src.dir};${src.shims.test.dir}" />
-            <param name="dist" value="${test.build.classes}" />
-            <param name="cp" value="test.classpath" />
-            <!-- don't compile PigTestLoader -->
-            <param name="excludes" value="**/PigTestLoader.java **/resources/**" />
-        </antcall>
-    	
-    	<copy file="${basedir}/test/hbase-site.xml" tofile="${test.build.classes}/hbase-site.xml"/>
-   
         <ivy:cachepath pathid="mr-apps-test-ivy.classpath" conf="test" />
         <path id="mr-apps-test.classpath">
             <pathelement path="${build.classes}"/> <!--Include hadoop-site.xml for TestFRJoin -->
@@ -522,29 +528,25 @@
         <echo file="${test.build.classes}/mrapp-generated-classpath" message="${mr-apps-classpath}" />
     </target>
 
-    <!-- This target is for default compilation -->
-    <target name="compile-sources" unless="all.warnings">
-        <javac encoding="${build.encoding}" srcdir="${sources}" excludes="${excludes}"
-                includes="**/*.java" destdir="${dist}" debug="${javac.debug}"
-                optimize="${javac.optimize}" target="${javac.version}"
-                source="${javac.version}" deprecation="${javac.deprecation}">
-            <compilerarg line="${javac.args} ${javac.args.warnings}"/>
-    		<classpath refid="${cp}" />
-        </javac>
-        <copy file="${src.dir}/org/apache/pig/tools/grunt/autocomplete" todir="${build.classes}/org/apache/pig/tools/grunt"/>
-        <copy file="${src.dir}/org/apache/pig/tools/grunt/autocomplete_aliases" todir="${build.classes}/org/apache/pig/tools/grunt"/>
-    </target>
-        
-    <!-- this target is for compilation with all warnings enabled -->
-    <target name="compile-sources-all-warnings" if="all.warnings">
-         <javac encoding="${build.encoding}" srcdir="${sources}" excludes="${excludes}"
-                includes="**/*.java" destdir="${dist}" debug="${javac.debug}"
-                optimize="${javac.optimize}" target="${javac.version}"
-                source="${javac.version}" deprecation="${javac.deprecation}">
-            <compilerarg line="${javac.args} ${javac.args.all.warnings} "/>
-            <classpath refid="${cp}" />
-        </javac>
-    </target>
+    <macrodef name="compileSources">
+        <attribute name="sources"/>
+        <attribute name="excludes"/>
+        <attribute name="dist"/>
+        <attribute name="cp"/>
+        <attribute name="warnings"/>
+        <sequential>
+            <javac encoding="${build.encoding}" srcdir="@{sources}" excludes="@{excludes}"
+                    includes="**/*.java" destdir="@{dist}" debug="${javac.debug}"
+                    optimize="${javac.optimize}" target="${javac.version}"
+                    source="${javac.version}" deprecation="${javac.deprecation}"
+                    includeantruntime="false">
+                <compilerarg line="${javac.args} @{warnings}"/>
+                <classpath refid="@{cp}" />
+            </javac>
+            <copy file="${src.dir}/org/apache/pig/tools/grunt/autocomplete" todir="${build.classes}/org/apache/pig/tools/grunt"/>
+            <copy file="${src.dir}/org/apache/pig/tools/grunt/autocomplete_aliases" todir="${build.classes}/org/apache/pig/tools/grunt"/>
+        </sequential>
+    </macrodef>
 
     <!-- ================================================================== -->
     <!-- Documentation                                                      -->
@@ -556,7 +558,7 @@
             <link href="${javadoc.link.java}" />
             <classpath>
                 <path refid="javadoc-classpath" />
-            	<pathelement path="${output.jarfile.core}" />
+                <pathelement path="${output.jarfile.core}" />
             </classpath>
             <group title="pig" packages="org.apache.*" />
         </javadoc>
@@ -571,7 +573,7 @@
             <link href="${javadoc.link.java}" />
             <classpath>
                 <path refid="javadoc-classpath" />
-            	<pathelement path="${output.jarfile.withdependencies}" />
+                <pathelement path="${output.jarfile.withdependencies}" />
                 <fileset dir="build">
                     <include name="**/zebra-*-dev.jar"/>
                 </fileset>
@@ -581,25 +583,26 @@
             <group title="contrib: Zebra" packages="org.apache.hadoop.zebra*"/>
         </javadoc>
     </target>
+
     <!-- ================================================================== -->
     <!-- @deprecated, Documentation                                         -->
     <!-- ================================================================== -->
-    <target name="docs" depends="forrest.check, javadoc-all" description="Generate forrest-based documentation. 
-		To use, specify -Dforrest.home=&lt;base of Apache Forrest installation&gt; on the command line." if="forrest.home">
-    	<exec dir="${docs.dir}" executable="${forrest.home}/bin/forrest" failonerror="true">
-    	</exec>
-    	<copy todir="${build.docs}">
-      		<fileset dir="${docs.dir}/build/site/" />
-    	</copy>
+    <target name="docs" depends="forrest.check, javadoc-all" description="Generate forrest-based documentation.
+      To use, specify -Dforrest.home=&lt;base of Apache Forrest installation&gt; on the command line." if="forrest.home">
+       <exec dir="${docs.dir}" executable="${forrest.home}/bin/forrest" failonerror="true">
+       </exec>
+       <copy todir="${build.docs}">
+            <fileset dir="${docs.dir}/build/site/" />
+       </copy>
     </target>
 
     <target name="forrest.check" unless="forrest.home">
-    	<fail message="'forrest.home' is not defined. 
-		Please pass -Dforrest.home=&lt;base of Apache Forrest installation&gt; to Ant on the command-line." />
+       <fail message="'forrest.home' is not defined.
+      Please pass -Dforrest.home=&lt;base of Apache Forrest installation&gt; to Ant on the command-line." />
     </target>
 
     <target name="source-jar" depends="cc-compile">
-	    <jar duplicate="preserve" jarfile="${output.jarfile.sources}" basedir="${src.dir}/" excludes="docs/**, overview.html">
+       <jar duplicate="preserve" jarfile="${output.jarfile.sources}" basedir="${src.dir}/" excludes="docs/**, overview.html">
             <manifest>
                 <section name="org/apache/pig">
                     <attribute name="Implementation-Vendor" value="Apache" />
@@ -624,14 +627,25 @@
     </target>
 
     <!-- ================================================================== -->
-    <!-- Utility to build pig.jar and pig-withouthadoop.jar                 -->
+    <!-- Facede to build pig.jar and pig-withouthadoop.jar                  -->
     <!-- ================================================================== -->
-    <target name="jar-all" depends="jar,jar-withouthadoop" description="Create pig-all.jar and pig-withouthadoop.jar">
+    <target name="jar-all" depends="jar,jar-withouthadoop" description="Create pig, pig withdependencies and pig withouthadoop jar" />
+
+    <!-- ================================================================== -->
+    <!-- Make pig.jar                                                       -->
+    <!-- ================================================================== -->
+    <!-- TODO we should also exclude test here...                           -->
+    <!-- ================================================================== -->
+    <target name="jar" depends="compile,ivy-buildJar" description="Create pig withdependecies jar">
+        <buildJar svnString="${svn.revision}" outputFile="${output.jarfile.core}" includedJars="core.dependencies.jar"/>
+        <buildJar svnString="${svn.revision}" outputFile="${output.jarfile.withdependencies}" includedJars="runtime.dependencies.jar"/>
+        <copy file="${output.jarfile.withdependencies}" tofile="${output.jarfile.backcompat}"/>
+        <antcall target="include-meta" inheritRefs="true" inheritall="true"/>
     </target>
 
     <target name="include-meta" if="isHadoop23">
         <copy todir="${build.classes}/META-INF">
-            <fileset dir="${src.dir}/META-INF" includes="**"/>  
+            <fileset dir="${src.dir}/META-INF" includes="**"/>
         </copy>
         <move file="${output.jarfile.withdependencies}" tofile="${output.stage.jarfile.withdependencies}"/>
         <sleep seconds="1"/>
@@ -652,13 +666,12 @@
     </target>
 
     <!-- ================================================================== -->
-    <!-- Make pig.jar                                                       -->
+    <!-- Make pig-withouthadoop.jar                                         -->
     <!-- ================================================================== -->
-    <!-- TODO we should also exclude test here...                           -->
-    <!-- ================================================================== -->
-    <target name="jar" depends="compile" description="Create pig-all.jar">
-        <antcall target="jarWithSvn" inheritRefs="true" inheritall="true"/>
-        <antcall target="jarWithOutSvn" inheritRefs="true" inheritall="true"/>
+    <target name="jar-withouthadoop" depends="compile,ivy-buildJar" description="Create pig withouthadoop jar">
+        <buildJar svnString="${svn.revision}" outputFile="${output.jarfile.core}" includedJars="core.dependencies.jar"/>
+        <buildJar svnString="${svn.revision}" outputFile="${output.jarfile.withouthadoop}" includedJars="runtime.dependencies-withouthadoop.jar"/>
+        <copy file="${output.jarfile.withouthadoop}" tofile="${output.jarfile.backcompat.withouthadoop}"/>
     </target>
 
     <scriptdef name="propertyreset" language="javascript"
@@ -684,160 +697,53 @@
         <move file="${basedir}/${artifact.pig-h2.jar}" tofile="${output.jarfile.core-h2}"/>
     </target>
 
-    <target name="jarWithSvn" if="svn.revision">
-        <antcall target="buildJar" inheritRefs="true" inheritall="true">
-            <param name="svnString" value="${svn.revision}" />
-        </antcall>
-    </target>
-    
-    <target name="jarWithOutSvn" unless="svn.revision">
-        <antcall target="buildJar" inheritRefs="true" inheritall="true">
-            <param name="svnString" value=": unknown" />
-        </antcall>
-    </target>
-    
-    <target name="buildJar" depends="ivy-buildJar">
-        <echo>svnString ${svnString}</echo>
-        <jar jarfile="${output.jarfile.core}" basedir="${build.classes}">
-            <manifest>
-                <attribute name="Main-Class" value="org.apache.pig.Main" />
-                <section name="org/apache/pig">
-                    <attribute name="Implementation-Vendor" value="Apache" />
-                    <attribute name="Implementation-Title" value="Pig" />
-                    <attribute name="Implementation-Version" value="${version}" />
-                    <attribute name="Build-TimeStamp" value="${timestamp}" />
-                    <attribute name="Svn-Revision" value="${svnString}" />
-                </section>
-            </manifest>
-            <fileset file="${basedir}/src/pig-default.properties" />
-            <fileset file="${basedir}/src/main/jruby/pigudf.rb" />
-            <exclude name="hadoop-site.xml" />
-        </jar>
-        <!-- @deprecated -->
-        <jar jarfile="${output.jarfile.withdependencies}" basedir="${build.classes}">
-            <manifest>
-                <attribute name="Main-Class" value="org.apache.pig.Main" />
-                <section name="org/apache/pig">
-                    <attribute name="Implementation-Vendor" value="Apache" />
-                    <attribute name="Implementation-Title" value="Pig" />
-                    <attribute name="Implementation-Version" value="${version}" />
-                    <attribute name="Build-TimeStamp" value="${timestamp}" />
-                    <attribute name="Svn-Revision" value="${svnString}" />
-                </section>
-            </manifest>
-            <zipgroupfileset dir="${ivy.lib.dir}">
-                <include name="hadoop-core-${hadoop-core.version}.jar" />
-                <include name="hadoop-*-${hadoop-common.version}.jar" />
-                <exclude name="hadoop-hdfs-${hadoop-hdfs.version}.jar" />
-                <include name="antlr-runtime-${antlr.version}.jar" />
-                <include name="ST4-${stringtemplate.version}.jar" />
-                <include name="junit-${junit.version}.jar" />
-                <include name="jsch-${jsch.version}.jar" />
-                <include name="jline-${jline.version}.jar" />
-                <include name="jackson-mapper-asl-${jackson.version}.jar" />
-                <include name="jackson-core-asl-${jackson.version}.jar" />
-                <include name="joda-time-${joda-time.version}.jar" />
-                <include name="guava-${guava.version}.jar" />
-                <include name="protobuf-java-${protobuf-java.version}.jar" />
-                <include name="automaton-${automaton.version}.jar" />
-                <include name="avro-${avro.version}.jar" />
-                <include name="commons*.jar" />
-                <include name="log4j*.jar" />
-                <include name="slf4j*.jar" />
-                <include name="jsp-api*.jar" />
-                <include name="jansi-${jansi.version}.jar" />
-            </zipgroupfileset>
-            <fileset file="${basedir}/src/pig-default.properties" />
-            <fileset file="${basedir}/src/main/jruby/pigudf.rb" />
-            <exclude name="hadoop-site.xml" />
-        </jar>
-        <antcall target="include-meta" inheritRefs="true" inheritall="true"/>
-        <copy file="${output.jarfile.withdependencies}" tofile="${output.jarfile.backcompat}"/>
-    </target>
+    <!-- ================================================================== -->
+    <!-- macrodef: buildJar                                                 -->
+    <!-- ================================================================== -->
+    <macrodef name="buildJar">
+        <attribute name="svnString"/>
+        <attribute name="outputFile"/>
+        <attribute name="includedJars"/>
+        <sequential>
+            <echo>svnString @{svnString}</echo>
+            <jar jarfile="@{outputFile}" basedir="${build.classes}">
+                <manifest>
+                    <attribute name="Main-Class" value="org.apache.pig.Main" />
+                    <section name="org/apache/pig">
+                        <attribute name="Implementation-Vendor" value="Apache" />
+                        <attribute name="Implementation-Title" value="Pig" />
+                        <attribute name="Implementation-Version" value="${version}" />
+                        <attribute name="Build-TimeStamp" value="${timestamp}" />
+                        <attribute name="Svn-Revision" value="@{svnString}" />
+                    </section>
+                </manifest>
+                <zipgroupfileset refid="@{includedJars}" />
+                <fileset file="${basedir}/src/pig-default.properties" />
+                <fileset file="${basedir}/src/main/jruby/pigudf.rb" />
+                <exclude name="hadoop-site.xml" />
+            </jar>
+        </sequential>
+    </macrodef>
 
+    <!-- ================================================================== -->
+    <!-- Smoke tests                                                        -->
+    <!-- ================================================================== -->
     <target name="smoketests-jar" depends="pigunit-jar"
         description="Creating jar file for smoke tests">
-      <echo> *** Creating smoke tests jar for pigunit ***</echo>
-      <jar jarfile="${smoke.tests.jarfile}" basedir="${test.build.classes}"
-           includes="org/apache/pig/test/pigunit/**/*">
-        <fileset dir="${basedir}" includes="test/data/pigunit/**/*"/>
-          <manifest>
-              <section name="org/apache/pig/test/pigunit">
-                  <attribute name="Implementation-Vendor" value="Apache" />
-                  <attribute name="Implementation-Title" value="Pig" />
-                  <attribute name="Implementation-Version" value="${version}" />
-                  <attribute name="Build-TimeStamp" value="${timestamp}" />
-                  <attribute name="Svn-Revision" value="${svnString}" />
-              </section>
-          </manifest>
-      </jar>
-
-    </target>
-    <!-- ================================================================== -->
-    <!-- Make pig-withouthadoop.jar                                                       -->
-    <!-- ================================================================== -->
-    <target name="jar-withouthadoop" depends="compile" description="Create pig jar withouthadoop">
-        <antcall target="jar-withouthadoopWithSvn" inheritRefs="true" inheritall="true"/>
-        <antcall target="jar-withouthadoopWithOutSvn" inheritRefs="true" inheritall="true"/>
-    </target>
-    
-    <target name="jar-withouthadoopWithSvn" if="svn.revision">
-        <antcall target="buildJar-withouthadoop" inheritRefs="true" inheritall="true">
-            <param name="svnString" value="${svn.revision}" />
-        </antcall>
-    </target>
-    
-    <target name="jar-withouthadoopWithOutSvn" unless="svn.revision">
-        <antcall target="buildJar-withouthadoop" inheritRefs="true" inheritall="true">
-            <param name="svnString" value=": unknown" />
-        </antcall>
-    </target>
-    
-    <target name="buildJar-withouthadoop" depends="ivy-buildJar">
-        <echo>svnString ${svnString}</echo>
-        <jar jarfile="${output.jarfile.core}" basedir="${build.classes}">
+        <echo> *** Creating smoke tests jar for pigunit ***</echo>
+        <jar jarfile="${smoke.tests.jarfile}" basedir="${test.build.classes}"
+             includes="org/apache/pig/test/pigunit/**/*">
+            <fileset dir="${basedir}" includes="test/data/pigunit/**/*"/>
             <manifest>
-                <attribute name="Main-Class" value="org.apache.pig.Main" />
-                <section name="org/apache/pig">
-                    <attribute name="Implementation-Vendor" value="Apache" />
-                    <attribute name="Implementation-Title" value="Pig" />
-                    <attribute name="Implementation-Version" value="${version}" />
-                    <attribute name="Build-TimeStamp" value="${timestamp}" />
-                    <attribute name="Svn-Revision" value="${svnString}" />
+                <section name="org/apache/pig/test/pigunit">
+                     <attribute name="Implementation-Vendor" value="Apache" />
+                     <attribute name="Implementation-Title" value="Pig" />
+                     <attribute name="Implementation-Version" value="${version}" />
+                     <attribute name="Build-TimeStamp" value="${timestamp}" />
+                     <attribute name="Svn-Revision" value="${svnString}" />
                 </section>
             </manifest>
-            <fileset file="${basedir}/src/pig-default.properties" />
-            <fileset file="${basedir}/src/main/jruby/pigudf.rb" />
-            <exclude name="hadoop-site.xml" />
         </jar>
-        <!-- @deprecated -->
-        <jar jarfile="${output.jarfile.withouthadoop}" basedir="${build.classes}">
-            <manifest>
-                <attribute name="Main-Class" value="org.apache.pig.Main" />
-                <section name="org/apache/pig">
-                    <attribute name="Implementation-Vendor" value="Apache" />
-                    <attribute name="Implementation-Title" value="Pig" />
-                    <attribute name="Implementation-Version" value="${version}" />
-                    <attribute name="Build-TimeStamp" value="${timestamp}" />
-                    <attribute name="Svn-Revision" value="${svnString}" />
-                </section>
-            </manifest>
-            <zipgroupfileset dir="${ivy.lib.dir}">
-                <include name="antlr-runtime-${antlr.version}.jar" />
-                <include name="ST4-${stringtemplate.version}.jar" />
-                <include name="jline-${jline.version}.jar" />
-                <include name="jackson-mapper-asl-${jackson.version}.jar" />
-                <include name="jackson-core-asl-${jackson.version}.jar" />
-                <include name="joda-time-${joda-time.version}.jar" />
-                <include name="guava-${guava.version}.jar" />
-                <include name="automaton-${automaton.version}.jar" />
-                <include name="jansi-${jansi.version}.jar" />
-            </zipgroupfileset>
-            <fileset file="${basedir}/src/pig-default.properties" />
-            <fileset file="${basedir}/src/main/jruby/pigudf.rb" />
-            <exclude name="hadoop-site.xml" />
-        </jar>
-        <copy file="${output.jarfile.withouthadoop}" tofile="${output.jarfile.backcompat.withouthadoop}"/>
     </target>
 
     <!-- ================================================================== -->
@@ -893,8 +799,6 @@
             <sysproperty key="ssh.gateway" value="${ssh.gateway}" />
             <sysproperty key="hod.server" value="${hod.server}" />
             <sysproperty key="java.io.tmpdir" value="${junit.tmp.dir}" />
-            <!-- <sysproperty key="hod.command" value="${hod.command}"/>
-            			<sysproperty key="hod.param" value="${hod.param}"/> -->
             <sysproperty key="hadoop.log.dir" value="${test.log.dir}"/>
             <jvmarg line="${debugArgs}"/>
             <sysproperty key="java.security.krb5.realm" value="" />
@@ -904,11 +808,10 @@
                 <pathelement location="${output.jarfile.withouthadoop}" />
                 <pathelement location="${test.build.classes}" />
                 <pathelement location="." />
-		<pathelement path="${clover.jar}"/>
+                <pathelement path="${clover.jar}"/>
                 <path refid="test.classpath"/>
             </classpath>
             <formatter type="${test.junit.output.format}" />
-
 
             <batchtest fork="yes" todir="${test.log.dir}" unless="testcase">
                 <fileset dir="test">
@@ -935,13 +838,10 @@
         <fail if="tests.failed">Tests failed!</fail>
       </sequential>
     </macrodef>
-    
+
     <target name="test" description="to call the test-core and test-contrib target">
-	<antcall target="test-core" inheritRefs="true" inheritall="true"/>
-	<!-- temporarily disabling call to zebra tests
-	<antcall target="test-contrib-internal" inheritRefs="true" inheritall="true"/>
-	-->
-    </target>    
+        <antcall target="test-core" inheritRefs="true" inheritall="true"/>
+    </target>
 
     <target name="test-contrib-internal" unless="testcase">
         <antcall target="test-contrib" inheritRefs="true" inheritall="true"/>
@@ -949,7 +849,7 @@
 
     <target name="test-contrib" depends="compile-test" description="to call contrib tests">
         <subant target="pigtest" buildpath="contrib/zebra" antfile="build.xml"/>
-    </target>	
+    </target>
 
     <!-- ================================================================== -->
     <!-- End to end tests                                                   -->
@@ -986,7 +886,7 @@
                 <include name="**/org/apache/pig/pigunit/**"/>
                 <include name="**/org/apache/pig/test/Util.**"/>
             </fileset>
-      	    <zipfileset src="${ivy.lib.dir}/commons-lang-${commons-lang.version}.jar" />
+            <zipfileset src="${ivy.lib.dir}/commons-lang-${commons-lang.version}.jar" />
         </jar>
     </target>
 
@@ -995,7 +895,7 @@
     </target>
 
     <!-- ================================================================== -->
-    <!-- D I S T R I B U T I O N                                            -->
+    <!-- Distribution                                                       -->
     <!-- ================================================================== -->
     <target name="package-release" depends="docs, api-report" description="Create a Pig release for rpm/deb distribution">
         <mkdir dir="${rpm.dist.dir}" />
@@ -1066,7 +966,7 @@
     </target>
 
     <target name="package" depends="docs, api-report, jar" description="Create a Pig tar release">
-            <mkdir dir="${tar.dist.dir}" />
+        <mkdir dir="${tar.dist.dir}" />
         <mkdir dir="${tar.dist.dir}/lib" />
         <mkdir dir="${tar.dist.dir}/conf" />
         <mkdir dir="${tar.dist.dir}/scripts" />
@@ -1213,7 +1113,7 @@
         </copy>
         <delete dir="${package.buildroot}" quiet="true" verbose="false"/>
     </target>
-   
+
     <target name="deb" depends="package-release" description="Make deb package">
         <taskdef name="deb"
             classname="org.vafer.jdeb.ant.DebAntTask">
@@ -1303,30 +1203,30 @@
 
     <property name="findbugs.home" value=""/>
     <target name="findbugs" depends="check-for-findbugs, jar" if="findbugs.present" description="Run findbugs if present">
-    	<property name="findbugs.out.dir" value="${test.build.dir}/findbugs"/>
-        <property name="findbugs.exclude.file" value="${test.src.dir}/findbugsExcludeFile.xml"/>
-    	<property name="findbugs.report.htmlfile" value="${findbugs.out.dir}/pig-findbugs-report.html"/>
-    	<property name="findbugs.report.xmlfile" value="${findbugs.out.dir}/pig-findbugs-report.xml"/>
-    	<taskdef name="findbugs" classname="edu.umd.cs.findbugs.anttask.FindBugsTask"
-        		classpath="${findbugs.home}/lib/findbugs-ant.jar" />
-	<mkdir dir="${findbugs.out.dir}"/>
-    	<findbugs home="${findbugs.home}" output="xml:withMessages"
-        		outputFile="${findbugs.report.xmlfile}" effort="max" timeout="2400000"
-                excludeFilter="${findbugs.exclude.file}" jvmargs="-Xmx1024M">
-      		<auxClasspath>
-        		<fileset dir="${lib.dir}">
-          			<include name="**/*.jar"/>
-        		</fileset>
-      		</auxClasspath>
-      		<sourcePath path="${src.dir}"/>
-      		<class location="${output.jarfile.core}" />
-    	</findbugs>
-        <xslt style="${findbugs.home}/src/xsl/default.xsl" in="${findbugs.report.xmlfile}"
-        		out="${findbugs.report.htmlfile}"/>
+       <property name="findbugs.out.dir" value="${test.build.dir}/findbugs"/>
+       <property name="findbugs.exclude.file" value="${test.src.dir}/findbugsExcludeFile.xml"/>
+       <property name="findbugs.report.htmlfile" value="${findbugs.out.dir}/pig-findbugs-report.html"/>
+       <property name="findbugs.report.xmlfile" value="${findbugs.out.dir}/pig-findbugs-report.xml"/>
+       <taskdef name="findbugs" classname="edu.umd.cs.findbugs.anttask.FindBugsTask"
+                classpath="${findbugs.home}/lib/findbugs-ant.jar" />
+       <mkdir dir="${findbugs.out.dir}"/>
+       <findbugs home="${findbugs.home}" output="xml:withMessages"
+                 outputFile="${findbugs.report.xmlfile}" effort="max" timeout="2400000"
+                 excludeFilter="${findbugs.exclude.file}" jvmargs="-Xmx1024M">
+            <auxClasspath>
+              <fileset dir="${lib.dir}">
+                   <include name="**/*.jar"/>
+              </fileset>
+            </auxClasspath>
+            <sourcePath path="${src.dir}"/>
+            <class location="${output.jarfile.core}" />
+       </findbugs>
+       <xslt style="${findbugs.home}/src/xsl/default.xsl" in="${findbugs.report.xmlfile}"
+             out="${findbugs.report.htmlfile}"/>
     </target>
-	
+
     <target name="check-for-findbugs">
-    	<available property="findbugs.present" file="${findbugs.home}/lib/findbugs.jar" />
+       <available property="findbugs.present" file="${findbugs.home}/lib/findbugs.jar" />
     </target>
     <target name="ant-task-download" description="To download mvn-ant-task" unless="offline">
        <get src="${ant_task_repo_url}" dest="${ant_task.jar}" usetimestamp="true"/>
@@ -1357,11 +1257,11 @@
     </target>
 
     <target name="mvn-deploy" depends="mvn-taskdef, mvn-jar, source-jar, javadoc-jar,
-         smoketests-jar, pigunit-jar, set-version, signanddeploy, simpledeploy"
+       smoketests-jar, pigunit-jar, set-version, signanddeploy, simpledeploy"
          description="To deploy pig jar to apache snapshot's repository">
     </target>
 
-     <target name="signanddeploy" if="staging" depends="sign">
+    <target name="signanddeploy" if="staging" depends="sign">
         <artifact:pom file="${pig.pom}" id="pig"/>
         <artifact:install-provider artifactId="wagon-http" version="${wagon-http.version}"/>
         <artifact:deploy file="${output.jarfile.core}">
@@ -1384,9 +1284,9 @@
       <artifact:deploy file="${output.jarfile.core}">
               <remoteRepository id="apache.snapshots.https" url="${asfsnapshotrepo}"/>
               <pom refid="pig"/>
-          <attach file="${output.jarfile.core-h2}" classifier="h2" />
-          <attach file="${output.jarfile.sources}" classifier="sources" />
-          <attach file="${output.jarfile.javadoc}" classifier="javadoc" />
+              <attach file="${output.jarfile.core-h2}" classifier="h2" />
+              <attach file="${output.jarfile.sources}" classifier="sources" />
+              <attach file="${output.jarfile.javadoc}" classifier="javadoc" />
       </artifact:deploy>
       <artifact:pom file="${pigunit.pom}" id="pigunit"/>
       <artifact:deploy file="${pigunit.jarfile}">
@@ -1398,11 +1298,11 @@
               <remoteRepository id="apache.snapshots.https" url="${asfsnapshotrepo}"/>
               <pom refid="pigsmoke"/>
       </artifact:deploy>
-   </target>
+    </target>
 
     <target name="sign" depends="clean-sign" if="staging">
        <input message="password:>" addproperty="gpg.passphrase">
-        <handler classname="org.apache.tools.ant.input.SecureInputHandler" />
+         <handler classname="org.apache.tools.ant.input.SecureInputHandler" />
        </input>
        <macrodef name="sign-artifact" description="Signs the artifact">
          <attribute name="input.file"/>
@@ -1431,213 +1331,212 @@
         output.file="${output.jarfile.javadoc}.asc" gpg.passphrase="${gpg.passphrase}"/>
        <sign-artifact input.file="${pig.pom}"
         output.file="${pig.pom}.asc" gpg.passphrase="${gpg.passphrase}"/>
-     </target>
+    </target>
 
-     <target name="clean-sign" description="Clean.  Delete .asc files">
+    <target name="clean-sign" description="Clean.  Delete .asc files">
        <delete>
          <fileset dir="." includes="**/**/*.asc"/>
        </delete>
-     </target>
-	  <target name="set-version">
-	    <delete file="${basedir}/ivy/pig.pom"/>
-	    <copy file="${basedir}/ivy/pig-template.xml" tofile="${basedir}/ivy/pig.pom"/>
-	    <copy file="${basedir}/ivy/pigunit-template.xml" tofile="${basedir}/ivy/pigunit.pom"/>
-	    <copy file="${basedir}/ivy/pigsmoke-template.xml" tofile="${basedir}/ivy/pigsmoke.pom"/>
-	    <replaceregexp byline="true">
-	      <regexp pattern="@version"/>
-	      <substitution expression="${version}"/>
-	      <fileset dir="${basedir}/ivy">
-	        <include name="pig.pom"/>
-	        <include name="pigunit.pom"/>
-	        <include name="pigsmoke.pom"/>
-	      </fileset>
-	    </replaceregexp>
-	  </target>
-	
+    </target>
+    <target name="set-version">
+       <delete file="${basedir}/ivy/pig.pom"/>
+       <copy file="${basedir}/ivy/pig-template.xml" tofile="${basedir}/ivy/pig.pom"/>
+       <copy file="${basedir}/ivy/pigunit-template.xml" tofile="${basedir}/ivy/pigunit.pom"/>
+       <copy file="${basedir}/ivy/pigsmoke-template.xml" tofile="${basedir}/ivy/pigsmoke.pom"/>
+       <replaceregexp byline="true">
+         <regexp pattern="@version"/>
+         <substitution expression="${version}"/>
+         <fileset dir="${basedir}/ivy">
+           <include name="pig.pom"/>
+           <include name="pigunit.pom"/>
+           <include name="pigsmoke.pom"/>
+         </fileset>
+       </replaceregexp>
+    </target>
+
     <!-- ================================================================== -->
     <!-- Perform audit activities for the release                           -->
     <!-- ================================================================== -->
     <target name="releaseaudit" depends="ivy-releaseaudit, package" description="Release Audit activities">
-	<java classname="${rat.reporting.classname}" fork="true">
-            <classpath refid="releaseaudit.classpath"/>
-            <arg value="${tar.dist.dir}"/>
-        </java>
+       <java classname="${rat.reporting.classname}" fork="true">
+          <classpath refid="releaseaudit.classpath"/>
+          <arg value="${tar.dist.dir}"/>
+       </java>
     </target>
 
     <!--target name="checkstyle" depends="checkstyle.check, set-checkstyle-classpath" if="checkstyle.home"  -->
     <target name="checkstyle" depends="jar, ivy-checkstyle" description="Run optional third-party tool targets">
-    	<taskdef resource="checkstyletask.properties">
-       <!--	<classpath refid="checkstyle.classpath"/> -->
-        	<classpath refid="checkstyle-classpath"/> 
-        </taskdef>
-        <mkdir dir="${test.build.dir}"/>
-        <checkstyle config="${test.src.dir}/checkstyle.xml" failOnViolation="false">
-        	<fileset dir="${src.dir}" includes="**/*.java" excludes="**/generated/**"/>
-        	<formatter type="xml" toFile="${test.build.dir}/checkstyle-errors.xml"/>
-        </checkstyle>
-        <xslt style="${test.src.dir}/checkstyle-noframes-sorted.xsl" in="${test.build.dir}/checkstyle-errors.xml"
-        	out="${test.build.dir}/checkstyle-errors.html"/>
+       <taskdef resource="checkstyletask.properties">
+           <classpath refid="checkstyle-classpath"/>
+       </taskdef>
+       <mkdir dir="${test.build.dir}"/>
+       <checkstyle config="${test.src.dir}/checkstyle.xml" failOnViolation="false">
+           <fileset dir="${src.dir}" includes="**/*.java" excludes="**/generated/**"/>
+           <formatter type="xml" toFile="${test.build.dir}/checkstyle-errors.xml"/>
+       </checkstyle>
+       <xslt style="${test.src.dir}/checkstyle-noframes-sorted.xsl" in="${test.build.dir}/checkstyle-errors.xml"
+             out="${test.build.dir}/checkstyle-errors.html"/>
     </target>
 
     <target name="checkstyle.check" unless="checkstyle.home">
-    	<fail message="'checkstyle.home' is not defined. Please pass -Dcheckstyle.home=&lt;base of checkstyle installation&gt; 
-		to Ant on the command-line." />
+       <fail message="'checkstyle.home' is not defined. Please pass -Dcheckstyle.home=&lt;base of checkstyle installation&gt;
+      to Ant on the command-line." />
     </target>
-    
+
     <!--
     <target name="set-checkstyle-classpath">
-    	<path id="checkstyle-classpath">
-        	<fileset dir="${checkstyle.home}">
-			<include name="**/*.jar"/>
-         	</fileset>
- 	</path>
+       <path id="checkstyle-classpath">
+          <fileset dir="${checkstyle.home}">
+             <include name="**/*.jar"/>
+          </fileset>
+       </path>
     </target>
     -->
 
     <path id="checkstyle-classpath">
-        <path refid="checkstyle.classpath"/>	
+        <path refid="checkstyle.classpath"/>
         <fileset dir="${ivy.lib.dir}">
             <include name="*.jar"/>
         </fileset>
     </path>
 
     <target name="findbugs.check" depends="check-for-findbugs" unless="findbugs.present">
-    	<fail message="'findbugs.home' is not defined. Please pass -Dfindbugs.home=&lt;base of Findbugs installation&gt; 
-		to Ant on the command-line." />
+       <fail message="'findbugs.home' is not defined. Please pass -Dfindbugs.home=&lt;base of Findbugs installation&gt;
+      to Ant on the command-line." />
     </target>
 
     <target name="patch.check" unless="patch.file">
-  	<fail message="'patch.file' is not defined. Please pass -Dpatch.file=&lt;location of patch file&gt; 
-		to Ant on the command-line." />
+       <fail message="'patch.file' is not defined. Please pass -Dpatch.file=&lt;location of patch file&gt;
+      to Ant on the command-line." />
     </target>
 
     <target name="test-patch" depends="patch.check,findbugs.check,forrest.check">
-  	<exec executable="bash" failonerror="true">
-    		<arg value="${test_patch_sh}"/>
-    		<arg value="DEVELOPER"/>
-    		<arg value="${patch.file}"/>
-    		<arg value="${scratch.dir}"/>
-    		<arg value="${svn.cmd}"/>
-    		<arg value="${grep.cmd}"/>
-    		<arg value="${patch.cmd}"/>
-    		<arg value="${findbugs.home}"/>
-    		<arg value="${forrest.home}"/>
-    		<arg value="${basedir}"/>
-        	<arg value="${ant.project.name}"/>
-  	</exec>
+        <exec executable="bash" failonerror="true">
+          <arg value="${test_patch_sh}"/>
+          <arg value="DEVELOPER"/>
+          <arg value="${patch.file}"/>
+          <arg value="${scratch.dir}"/>
+          <arg value="${svn.cmd}"/>
+          <arg value="${grep.cmd}"/>
+          <arg value="${patch.cmd}"/>
+          <arg value="${findbugs.home}"/>
+          <arg value="${forrest.home}"/>
+          <arg value="${basedir}"/>
+          <arg value="${ant.project.name}"/>
+        </exec>
     </target>
 
     <target name="hudson-test-patch" depends="findbugs.check,forrest.check">
-  	<exec executable="bash" failonerror="true">
-    		<arg value="${test_patch_sh}"/>
-    		<arg value="HUDSON"/>
-    		<arg value="${scratch.dir}"/>
-    		<arg value="${support.dir}"/>
-    		<arg value="${ps.cmd}"/>
-    		<arg value="${wget.cmd}"/>
-    		<arg value="${jiracli.cmd}"/>
-    		<arg value="${svn.cmd}"/>
-    		<arg value="${grep.cmd}"/>
-    		<arg value="${patch.cmd}"/>
-    		<arg value="${findbugs.home}"/>
-    		<arg value="${forrest.home}"/>
-    		<arg value="${eclipse.home}"/>
-    		<arg value="${python.home}"/>
-    		<arg value="${basedir}"/>
-    		<arg value="${trigger.url}"/>
-    		<arg value="${jira.passwd}"/>
-    		<arg value="${curl.cmd}"/>
-    		<arg value="${defect}"/>
-		<arg value="${ant.project.name}"/>
-    	</exec>
+        <exec executable="bash" failonerror="true">
+          <arg value="${test_patch_sh}"/>
+          <arg value="HUDSON"/>
+          <arg value="${scratch.dir}"/>
+          <arg value="${support.dir}"/>
+          <arg value="${ps.cmd}"/>
+          <arg value="${wget.cmd}"/>
+          <arg value="${jiracli.cmd}"/>
+          <arg value="${svn.cmd}"/>
+          <arg value="${grep.cmd}"/>
+          <arg value="${patch.cmd}"/>
+          <arg value="${findbugs.home}"/>
+          <arg value="${forrest.home}"/>
+          <arg value="${eclipse.home}"/>
+          <arg value="${python.home}"/>
+          <arg value="${basedir}"/>
+          <arg value="${trigger.url}"/>
+          <arg value="${jira.passwd}"/>
+          <arg value="${curl.cmd}"/>
+          <arg value="${defect}"/>
+          <arg value="${ant.project.name}"/>
+        </exec>
      </target>
 
-     <target name="clover" depends="clover.setup, clover.info" description="Instrument the Unit tests using Clover.  
-		To use, specify -Dclover.home=&lt;base of clover installation&gt; -Drun.clover=true on the command line."/>
+     <target name="clover" depends="clover.setup, clover.info" description="Instrument the Unit tests using Clover.
+      To use, specify -Dclover.home=&lt;base of clover installation&gt; -Drun.clover=true on the command line."/>
 
      <target name="clover.setup" if="clover.enabled">
-     	<taskdef resource="cloverlib.xml" classpath="${clover.jar}"/>
+        <taskdef resource="cloverlib.xml" classpath="${clover.jar}"/>
         <mkdir dir="${clover.db.dir}"/>
         <clover-setup initString="${clover.db.dir}/pig_coverage.db">
-        	<fileset dir="src" includes="**/*.java"/>
+           <fileset dir="src" includes="**/*.java"/>
         </clover-setup>
      </target>
 
      <target name="clover.info" unless="clover.present">
-       	<echo>
-        	Clover not found. Code coverage reports disabled.
-       	</echo>
+          <echo>
+           Clover not found. Code coverage reports disabled.
+          </echo>
      </target>
 
      <target name="clover.check">
-     	<fail unless="clover.present">
-  		##################################################################
-   	  	Clover not found.
-   	  	Please specify -Dclover.home=&lt;base of clover installation&gt;
-   	  	on the command line.
-  	  	##################################################################
-  	 </fail>
+        <fail unless="clover.present">
+          ##################################################################
+           Clover not found.
+           Please specify -Dclover.home=&lt;base of clover installation&gt;
+           on the command line.
+          ##################################################################
+        </fail>
      </target>
 
      <target name="generate-clover-reports" depends="clover.check, clover">
-     	<mkdir dir="${clover.report.dir}"/>
-  	<clover-report>
-     		<current outfile="${clover.report.dir}" title="${final.name}">
-     	    		<format type="html"/>
-     	  	</current>
-  	</clover-report>
+        <mkdir dir="${clover.report.dir}"/>
         <clover-report>
-          	<current outfile="${clover.report.dir}/clover.xml" title="${final.name}">
-            		<format type="xml"/>
-          	</current>
+            <current outfile="${clover.report.dir}" title="${final.name}">
+                <format type="html"/>
+            </current>
+        </clover-report>
+        <clover-report>
+            <current outfile="${clover.report.dir}/clover.xml" title="${final.name}">
+                <format type="xml"/>
+            </current>
         </clover-report>
      </target>
 
      <target name="generate-pdf-clover-reports" depends="clover.check, clover">
-       <mkdir dir="${clover.pdf.report.dir}"/>
+        <mkdir dir="${clover.pdf.report.dir}"/>
         <clover-pdf-report outfile="${clover.pdf.report.dir}/clover_coverage.pdf" />
      </target>
 
-
      <target name="api-xml" depends="ivy-jdiff, javadoc-all, write-null">
         <javadoc>
-                <doclet name="jdiff.JDiff"
-                        path="${jdiff.jar}:${xerces.jar}">
-                        <param name="-apidir" value="${jdiff.xml.dir}"/>
-                        <param name="-apiname" value="${name} ${version}"/>
-                </doclet>
-                <packageset dir="${src.dir}"/>
-                <classpath>
-                        <path refid="javadoc-classpath" />
-                        <pathelement path="${output.jarfile.withdependencies}" />
-                </classpath>
+            <doclet name="jdiff.JDiff"
+                    path="${jdiff.jar}:${xerces.jar}">
+                <param name="-apidir" value="${jdiff.xml.dir}"/>
+                <param name="-apiname" value="${name} ${version}"/>
+            </doclet>
+            <packageset dir="${src.dir}"/>
+            <classpath>
+                <path refid="javadoc-classpath" />
+                <pathelement path="${output.jarfile.withdependencies}" />
+            </classpath>
         </javadoc>
-      </target>
-      <target name="write-null">
- 	<exec executable="touch">
- 		<arg value="${build.dir}/Null.java"/>
- 	</exec>
-      </target> 	
- 	
-      <target name="api-report" depends="api-xml">
- 	<mkdir dir="${jdiff.build.dir}"/>
- 	<javadoc sourcepath="${src.dir}"
- 		destdir="${jdiff.build.dir}"
- 		sourceFiles="${build.dir}/Null.java">
- 		<doclet name="jdiff.JDiff" path="${jdiff.jar}:${xerces.jar}">
- 			<param name="-oldapi" value="${name} ${jdiff.stable}"/>
- 			<param name="-newapi" value="${name} ${version}"/>
- 			<param name="-oldapidir" value="${jdiff.xml.dir}"/>
- 			<param name="-newapidir" value="${jdiff.xml.dir}"/>
- 			<param name="-javadocold" value="${jdiff.stable.javadoc}"/>
- 			<param name="-javadocnew" value="../../api/"/>
- 			<param name="-stats"/>
- 		</doclet>
- 		<classpath>
- 	        	<path refid="javadoc-classpath" />
- 			<pathelement path="${output.jarfile.withdependencies}" />	
-  	        </classpath>
- 	</javadoc>				
+    </target>
+
+    <target name="write-null">
+        <exec executable="touch">
+            <arg value="${build.dir}/Null.java"/>
+        </exec>
+    </target>
+
+    <target name="api-report" depends="api-xml">
+        <mkdir dir="${jdiff.build.dir}"/>
+        <javadoc sourcepath="${src.dir}"
+                 destdir="${jdiff.build.dir}"
+                 sourceFiles="${build.dir}/Null.java">
+           <doclet name="jdiff.JDiff" path="${jdiff.jar}:${xerces.jar}">
+              <param name="-oldapi" value="${name} ${jdiff.stable}"/>
+              <param name="-newapi" value="${name} ${version}"/>
+              <param name="-oldapidir" value="${jdiff.xml.dir}"/>
+              <param name="-newapidir" value="${jdiff.xml.dir}"/>
+              <param name="-javadocold" value="${jdiff.stable.javadoc}"/>
+              <param name="-javadocnew" value="../../api/"/>
+              <param name="-stats"/>
+           </doclet>
+           <classpath>
+              <path refid="javadoc-classpath" />
+              <pathelement path="${output.jarfile.withdependencies}" />
+           </classpath>
+        </javadoc>
      </target>
 
      <target name="ivy-init-dirs">
@@ -1649,7 +1548,7 @@
 
      <target name="ivy-probe-antlib" >
         <condition property="ivy.found">
-      	   <typefound uri="antlib:org.apache.ivy.ant" name="cleancache"/>
+            <typefound uri="antlib:org.apache.ivy.ant" name="cleancache"/>
         </condition>
      </target>
 
@@ -1679,21 +1578,20 @@
      </target>
 
      <target name="ivy-init" depends="ivy-init-antlib" >
-     <!--Configure Ivy by reading in the settings file
-        If anyone has already read in a settings file into this settings ID, it gets priority
-     -->
+       <!--Configure Ivy by reading in the settings file
+       If anyone has already read in a settings file into this settings ID, it gets priority  -->
        <ivy:configure settingsid="${ant.project.name}.ivy.settings" file="${ivysettings.xml}" override='false'/>
      </target>
 
      <target name="ivy-resolve" depends="ivy-init" unless="ivy.resolved" description="Resolve Ivy dependencies">
-              <property name="ivy.resolved" value="true"/>
-              <ivy:resolve settingsRef="${ant.project.name}.ivy.settings"/>
+       <property name="ivy.resolved" value="true"/>
+       <ivy:resolve settingsRef="${ant.project.name}.ivy.settings"/>
      </target>
 
      <target name="ivy-compile" depends="ivy-resolve" description="Retrieve Ivy-managed artifacts for compile configuration">
        <ivy:retrieve settingsRef="${ant.project.name}.ivy.settings"
                  pattern="${build.ivy.lib.dir}/${ivy.artifact.retrieve.pattern}" conf="compile"/>
-       <ivy:cachepath pathid="compile.classpath" conf="compile"/> 		
+       <ivy:cachepath pathid="compile.classpath" conf="compile"/>
      </target>
 
      <target name="ivy-test" depends="ivy-resolve" description="Retrieve Ivy-managed artifacts for test configuration">
@@ -1704,31 +1602,31 @@
      <target name="ivy-javadoc" depends="ivy-resolve" description="Retrieve Ivy-managed artifacts for javadoc configuration">
        <ivy:retrieve settingsRef="${ant.project.name}.ivy.settings"
                  pattern="${build.ivy.lib.dir}/${ivy.artifact.retrieve.pattern}" conf="javadoc"/>
-       <ivy:cachepath pathid="javadoc.classpath" conf="javadoc"/> 		
+       <ivy:cachepath pathid="javadoc.classpath" conf="javadoc"/>
      </target>
 
      <target name="ivy-releaseaudit" depends="ivy-resolve" description="Retrieve Ivy-managed artifacts for releaseaudit configuration">
        <ivy:retrieve settingsRef="${ant.project.name}.ivy.settings"
                  pattern="${build.ivy.lib.dir}/${ivy.artifact.retrieve.pattern}" conf="releaseaudit"/>
-       <ivy:cachepath pathid="releaseaudit.classpath" conf="releaseaudit"/> 		
+       <ivy:cachepath pathid="releaseaudit.classpath" conf="releaseaudit"/>
      </target>
 
      <target name="ivy-checkstyle" depends="ivy-resolve" description="Retrieve Ivy-managed artifacts for checkstyle configuration">
        <ivy:retrieve settingsRef="${ant.project.name}.ivy.settings"
                  pattern="${build.ivy.lib.dir}/${ivy.artifact.retrieve.pattern}" conf="checkstyle"/>
-       <ivy:cachepath pathid="checkstyle.classpath" conf="checkstyle"/> 		
+       <ivy:cachepath pathid="checkstyle.classpath" conf="checkstyle"/>
      </target>
-     
+
      <target name="ivy-buildJar" depends="ivy-resolve" description="Retrieve Ivy-managed artifacts for buildJar configuration">
        <ivy:retrieve settingsRef="${ant.project.name}.ivy.settings"
                  pattern="${build.ivy.lib.dir}/${ivy.artifact.retrieve.pattern}" conf="buildJar"/>
-       <ivy:cachepath pathid="buildJar.classpath" conf="buildJar"/> 		
+       <ivy:cachepath pathid="buildJar.classpath" conf="buildJar"/>
      </target>
-     
+
      <target name="ivy-jdiff" depends="ivy-resolve" description="Retrieve Ivy-managed artifacts for jdiff configuration">
        <ivy:retrieve settingsRef="${ant.project.name}.ivy.settings"
                  pattern="${build.ivy.lib.dir}/${ivy.artifact.retrieve.pattern}" conf="jdiff"/>
-       <ivy:cachepath pathid="jdiff.classpath" conf="jdiff"/> 		
+       <ivy:cachepath pathid="jdiff.classpath" conf="jdiff"/>
      </target>
 
      <target name="ivy-clean-cache" depends="ivy-init-antlib"
@@ -1753,22 +1651,22 @@
                      <available file="${output.jarfile.withdependencies}" />
                  </not>
              </condition>
-                 Not found: ${output.jarfile.withdependencies}
-                 Please run the target "jar" in the main build file
+             Not found: ${output.jarfile.withdependencies}
+             Please run the target "jar" in the main build file
          </fail>
      </target>
 
-     <target name="ready-to-publish" depends="jar, assert-pig-jar-exists, ivy-resolve"/>	
+     <target name="ready-to-publish" depends="jar, assert-pig-jar-exists, ivy-resolve"/>
 
      <target name="ivy-publish-local" depends="ready-to-publish,ivy-resolve">
         <ivy:publish settingsRef="${ant.project.name}.ivy.settings"
            resolver="local" pubrevision="${version}" overwrite="true"
            artifactspattern="${build.dir}/${ivy.publish.pattern}"/>
      </target>
-  
+
      <!-- this is here for curiosity, to see how well the makepom task works
-    makepom does not depend on the resolution as it translate the ivy file into a maven file
-    we map ivy configurations to maven scopes
+     makepom does not depend on the resolution as it translate the ivy file into a maven file
+     we map ivy configurations to maven scopes
      -->
      <target name="makepom" depends="ivy-init">
         <ivy:makepom settingsRef="${ant.project.name}.ivy.settings"
@@ -1803,7 +1701,7 @@
      <target name="published" depends="ivy-publish-local, maven-artifacts"/>
 
      <target name="piggybank" depends="jar">
-         <ant antfile="contrib/piggybank/java/build.xml" inheritAll="false"/> 
+         <ant antfile="contrib/piggybank/java/build.xml" inheritAll="false"/>
      </target>
 
      <import file="./build-site.xml" optional="true"/>
