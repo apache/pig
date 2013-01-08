@@ -29,7 +29,7 @@ import org.junit.Test;
 
 public class TestInputSizeReducerEstimator {
 
-    private static final Configuration CONF = new Configuration();
+    private static final Configuration CONF = new Configuration(false);
 
     @Test
     public void testGetInputSizeFromFs() throws Exception {

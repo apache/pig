@@ -35,6 +35,7 @@ import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.Utils;
+import org.apache.pig.test.TestEvalPipeline.MapUDF;
 import org.apache.pig.test.Util;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -345,13 +346,32 @@ public class TestLogicalPlanGenerator {
     }
 
     @Test
-    public void testFilter() throws Exception {
+    public void testFilter1() throws Exception {
         String query = "A = load 'x' as ( u:int, v:long, w:bytearray); " +
                        "B = filter A by 2 > 1;\n" +
                        "store B into 'y';";
         generateLogicalPlan( query );
     }
+    
+    @Test
+    public void testFilter2() throws Exception {
+        generateLogicalPlan(
+                "A = load 'x' as ( u:int, v:long, w:bytearray); " +
+                "B = filter A by u is null;\n");
+    }
+    
+    @Test
+    public void testFilter3() throws Exception {
+        generateLogicalPlan(
+                "A = load 'x' as ( u:int, v:long, w:bytearray); " +
+                "B = filter A by u is not null;\n");
+    }
 
+    @Test
+    public void testFilter4() throws Exception {
+        generateLogicalPlan("b = filter (load 'd.txt' as (id:int, v1, v2)) by (id > 3) AND (v1 is null);");
+    }
+    
     @Test
     public void testScopedAlias() throws Exception {
         String query = "A = load 'x' as ( u:int, v:long, w:bytearray);" +
@@ -474,7 +494,130 @@ public class TestLogicalPlanGenerator {
             + "C = rank A;";
         generateLogicalPlan(query);
     }
+    
+    @Test
+    public void testCast1() throws Exception {
+        String query = "data = LOAD 'data.txt' AS (num:CHARARRAY);" +
+            "numbers = FOREACH data GENERATE (INT) num;";
+        generateLogicalPlan(query);
+    }
 
+    @Test
+    public void testCast2() throws Exception {
+        generateLogicalPlan(
+                "sds = LOAD '/my/data/location' AS (simpleFields:map[], mapFields:map[], listMapFields:map[]); " +
+                "queries_rand = FOREACH sds GENERATE (CHARARRAY) (mapFields#'page_params'#'query') AS query_string;");
+    }
+    
+    @Test
+    public void testBoolean1() throws Exception {
+        generateLogicalPlan(
+            "A = load 'INPUT_FILE' as (id:int, fruit);" +
+            "B = group A by id;" +
+            "C = foreach B generate group,  " +
+                "((org.apache.pig.test.utils.AccumulatorBagCount(A)>1 and " +
+                "org.apache.pig.test.utils.AccumulatorBagCount(A)<3)?0:1);");
+    }
+
+    @Test
+    public void testBoolean2() throws Exception {
+        generateLogicalPlan(
+            "A = load 'INPUT_FILE' as (id:int, fruit);" +
+            "B = group A by id;" +
+            "C = foreach B generate group,  " +
+                "((org.apache.pig.test.utils.AccumulatorBagCount(A)>3 or " +
+                "org.apache.pig.test.utils.AccumulatorBagCount(A)<2)?0:1);");
+    }
+    
+    @Test
+    public void testBoolean3() throws Exception {
+        generateLogicalPlan(
+                "A = load 'INPUT_FILE' as (id:int, fruit);" +
+                "B = filter A by id < 5 and ( fruit neq 'cabbage' or id == 17 );");
+    }
+    
+    @Test
+    public void testBoolean4() throws Exception {
+        generateLogicalPlan(
+                "a = load '1.txt' as (a0, a1);" +
+                "b = foreach a generate (a0 is not null ? 0 : 1);");
+    }
+    
+    @Test
+    public void testBoolean5() throws Exception {
+        generateLogicalPlan(
+                "a = load '1.txt' as (a0, a1);" +
+                "b = foreach a generate (a0 is null ? 0 : 2);");
+    }
+    
+    @Test
+    public void testAccumWithRegexp() throws Exception {
+        generateLogicalPlan(
+                "A = load 'AccumulatorInput.txt' as (id:int, fruit);" +
+                "B = group A by id;" +
+                "C = foreach B generate group,  (((chararray)org.apache.pig.test.utils.AccumulatorBagCount(A)) matches '1*' ?0:1);");
+    }
+
+    @Test
+    public void testMapsideGroupByMultipleColumns() throws Exception {
+        generateLogicalPlan(
+                "A = LOAD 'MapSideGroupInput.txt' using org.apache.pig.test.TestCollectedGroup$DummyCollectableLoader() as (id, name, grade);" +
+                "B = group A by (id, name) using 'collected';");
+    }
+    
+    @Test
+    public void testMapUDF() throws Exception {
+        generateLogicalPlan(
+                "A = LOAD 'someData';" +
+                "B = foreach A generate " + MapUDF.class.getName() + "($0) as mymap;" +
+                "C = foreach B {" +
+                "generate (double)mymap#'double' as d, " +
+                "(long)mymap#'long' + (float)mymap#'float' as float_sum, " +
+                "CONCAT((chararray) mymap#'string', ' World!'), " +
+                "mymap#'int' * 10, " +
+                "(bag{tuple()}) mymap#'bag' as mybag, " +
+                "(tuple()) mymap#'tuple' as mytuple, " +
+                "(map[])mymap#'map' as mapInMap, " +
+                "mymap#'dba' as dba;" +
+                "};");
+    }
+
+    @Test
+    public void testSimpleMapCast() throws Exception {
+        generateLogicalPlan(
+                "a = load 'testSimpleMapCast' as (m);" + 
+                "b = foreach a generate ([int])m;");
+    }
+    
+    @Test
+    public void testComplexCast() throws Exception {
+        generateLogicalPlan(
+                "a = load 'testComplexCast' as (m);" +
+                "b = foreach a generate ([{(i:int,j:int)}])m;");
+    }
+    
+    @Test
+    public void testNullConstant() throws Exception {
+        generateLogicalPlan(
+                "a = load 'foo' as (x:int, y:double, str:chararray);" +
+                "b = foreach a generate {(null)}, ['2'#null];");
+    }
+    
+    @Test
+    public void testEmptyTupConst() throws Exception {
+        generateLogicalPlan( "a = foreach (load 'b') generate ({});");
+    }
+    
+    @Test
+    public void testJoin1() throws Exception {
+        generateLogicalPlan(
+                "A = load 'hat' as (m:map[]);" +
+                "B = filter A by m#'cond'==1;" +
+                "C = filter B by m#'key1'==1;" +
+                "D = filter B by m#'key2'==2;" +
+                "E = join C by m#'key1', D by m#'key1';");
+    }
+    
     // See: PIG-2937
     @Test
     public void testRelationAliasInNestedForeachWhereUnspecified() throws Exception {

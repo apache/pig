@@ -25,9 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import junit.framework.Assert;
-import junit.framework.AssertionFailedError;
-
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
@@ -64,6 +61,9 @@ import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.test.utils.Identity;
 import org.junit.Before;
 import org.junit.Test;
+
+import junit.framework.Assert;
+import junit.framework.AssertionFailedError;
 
 public class TestLogicalPlanBuilder {
     PigContext pigContext = new PigContext(ExecType.LOCAL, new Properties());
@@ -790,7 +790,12 @@ public class TestLogicalPlanBuilder {
     public void testQueryFail67() throws Exception {
         String q = " a = load 'input1' as (name, age, gpa);" +
         " b = foreach a generate age, age * 10L, gpa/0.2f, {16, 4.0e-2, 'hello'};";
-        buildPlan(q);
+        try {
+            buildPlan(q);
+        } catch (AssertionFailedError e) {
+            return;
+        }
+        Assert.fail( "query should fail" );
     }
 
     @Test

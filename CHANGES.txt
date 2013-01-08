@@ -66,6 +66,8 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-2769 a simple logic causes very long compiling time on pig 0.10.0 (nwhite via gates)
+
 PIG-2251: PIG leaks Zookeeper connections when using HBaseStorage (jamarkha via cheolsoo)
 
 PIG-3112: Errors and lacks in document "User Defined Functions" (miyakawataku via cheolsoo)
