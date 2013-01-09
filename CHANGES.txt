@@ -66,6 +66,8 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-2433: Jython import module not working if module path is in classpath (rohini)
+
 PIG-2769 a simple logic causes very long compiling time on pig 0.10.0 (nwhite via gates)
 
 PIG-2251: PIG leaks Zookeeper connections when using HBaseStorage (jamarkha via cheolsoo)

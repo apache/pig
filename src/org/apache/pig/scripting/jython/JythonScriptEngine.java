@@ -24,10 +24,13 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.apache.commons.logging.Log;
@@ -41,6 +44,7 @@ import org.apache.pig.impl.util.Utils;
 import org.apache.pig.parser.ParserException;
 import org.apache.pig.scripting.ScriptEngine;
 import org.apache.pig.tools.pigstats.PigStats;
+import org.python.core.ClasspathPyImporter;
 import org.python.core.Py;
 import org.python.core.PyException;
 import org.python.core.PyFrame;
@@ -52,6 +56,7 @@ import org.python.core.PyString;
 import org.python.core.PyStringMap;
 import org.python.core.PySystemState;
 import org.python.core.PyTuple;
+import org.python.modules.zipimport.zipimporter;
 import org.python.util.PythonInterpreter;
 
 /**
@@ -194,6 +199,19 @@ public class JythonScriptEngine extends ScriptEngine {
 
                 // determine the current module state
                 Map<String, String> before = pigContext != null ? getModuleState() : null;
+                if (before != null) {
+                    // os.py, stax.py and posixpath.py are part of the initial state
+                    // if Lib directory is present and without including os.py, modules
+                    // which import os fail
+                    Set<String> includePyModules = new HashSet<String>();
+                    for (String key : before.keySet()) {
+                        // $py.class is created if Lib folder is writable
+                        if (key.endsWith(".py") || key.endsWith("$py.class")) {
+                            includePyModules.add(key);
+                        }
+                    }
+                    before.keySet().removeAll(includePyModules);
+                }
 
                 // exec the code, arbitrary imports are processed
                 interpreter.execfile(script, path);
@@ -256,10 +274,10 @@ public class JythonScriptEngine extends ScriptEngine {
                 PyTuple tuple = (PyTuple) kvp;
                 String name = tuple.get(0).toString();
                 Object value = tuple.get(1);
-
                 // inspect the module to determine file location and status
                 try {
                     Object fileEntry = null;
+                    Object loader = null;
                     if (value instanceof PyJavaPackage ) {
                         fileEntry = ((PyJavaPackage) value).__file__;
                     } else if (value instanceof PyObject) {
@@ -267,11 +285,12 @@ public class JythonScriptEngine extends ScriptEngine {
                         PyObject dict = ((PyObject) value).getDict();
                         if (dict != null) {
                             fileEntry = dict.__finditem__("__file__");
+                            loader = dict.__finditem__("__loader__");
                         } // else built-in
                     }   // else some system module?
 
                     if (fileEntry != null) {
-                        File file = new File(fileEntry.toString());
+                        File file = resolvePyModulePath(fileEntry.toString(), loader);
                         if (file.exists()) {
                             String apath = file.getAbsolutePath();
                             if (apath.endsWith(".jar") || apath.endsWith(".zip")) {
@@ -296,6 +315,26 @@ public class JythonScriptEngine extends ScriptEngine {
             }
             return files;
         }
+    }
+    
+    private static File resolvePyModulePath(String path, Object loader) {
+        File file = new File(path);
+        if (!file.exists() && loader != null) {
+            if(path.startsWith(ClasspathPyImporter.PYCLASSPATH_PREFIX) && loader instanceof ClasspathPyImporter) {
+                path = path.replaceFirst(ClasspathPyImporter.PYCLASSPATH_PREFIX, "");
+                URL resource = ScriptEngine.class.getResource(path);
+                if (resource == null) {
+                    resource = ScriptEngine.class.getResource(File.separator + path);
+                }
+                if (resource != null) {
+                    return new File(resource.getFile());
+                }
+            } else if (loader instanceof zipimporter) {
+                zipimporter importer = (zipimporter) loader;
+                return new File(importer.archive);
+            } //JavaImporter??
+        }
+        return file;
     }
 
     @Override
