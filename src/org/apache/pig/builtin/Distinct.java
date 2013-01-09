@@ -83,7 +83,8 @@ public class Distinct  extends EvalFunc<DataBag> implements Algebraic {
             // representing the data we want to distinct. 
             // unwrap, put in a bag and send down
             try {
-                DataBag bag = new SingleTupleBag((Tuple)input.get(0));
+                Tuple single = (Tuple)input.get(0);
+                DataBag bag = single == null ? createDataBag() : new SingleTupleBag(single);
                 return tupleFactory.newTuple(bag);
             } catch (ExecException e) {
                 throw e;
@@ -133,6 +134,9 @@ public class Distinct  extends EvalFunc<DataBag> implements Algebraic {
         long progressCounter = 0;
         try {
             DataBag bg = (DataBag)input.get(0);
+            if (bg == null) {
+                return result;
+            }
             for (Tuple tuple : bg) {
                 // Each tuple has a single column
                 // which is a bag. Get tuples out of it
@@ -155,6 +159,9 @@ public class Distinct  extends EvalFunc<DataBag> implements Algebraic {
         try {
             DataBag inputBg = (DataBag)input.get(0);
             DataBag result = createDataBag();
+            if (inputBg == null) {
+                return result;
+            }
             long progressCounter = 0;
             for (Tuple tuple : inputBg) {
                 result.add(tuple);
