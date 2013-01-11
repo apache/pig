@@ -19,6 +19,7 @@
 package org.apache.pig.test;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -44,6 +45,10 @@ import org.junit.Test;
 
 public class TestMacroExpansion {
     
+    private static String groupAndCountMacro = "define group_and_count (A,group_key, reducers) returns B {\n" +
+            "    $B = distinct $A partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel $reducers;\n" +
+            "};\n";
+    private static String garbageMacroContent = "&?:#garbage-!";
     static File command;
     
     @BeforeClass
@@ -102,10 +107,6 @@ public class TestMacroExpansion {
     
     @Test
     public void distinctTest() throws Exception {
-        String macro = "define group_and_count (A,group_key, reducers) returns B {\n" +
-            "    $B = distinct $A partition by org.apache.pig.test.utils.SimpleCustomPartitioner parallel $reducers;\n" +
-            "};\n";
-        
         String script = 
             "alpha = load 'users' as (user, age, zip);\n" +
             "gamma = group_and_count (alpha, user, 23);\n" +
@@ -120,7 +121,7 @@ public class TestMacroExpansion {
             "store gamma INTO 'byuser';\n" +
             "store delta INTO 'byage';\n";
         
-        verify(macro + script, expected);
+        verify(groupAndCountMacro + script, expected);
     }   
     
     @Test
@@ -658,10 +659,6 @@ public class TestMacroExpansion {
     
     @Test
     public void duplicationTest() throws Throwable {
-        String macro = "define group_and_count (A,group_key, reducers) returns B {\n" +
-            "    $B = distinct $A partition by org.apache.pig.test.utils.SimpleCustomPartitioner parallel $reducers;\n" +
-            "};\n";
-        
         String script = 
             "alpha = load 'users' as (user, age, zip);\n" +
             "gamma = group_and_count (alpha, user, 23);\n" +
@@ -671,21 +668,12 @@ public class TestMacroExpansion {
         
         String expectedErr = "Reason: Duplicated macro name 'group_and_count'";
         
-        validateFailure(macro + macro + script, expectedErr);
+        validateFailure(groupAndCountMacro + groupAndCountMacro + script, expectedErr);
     }
     
     @Test
     public void simpleImportTest() throws Exception {
-        String macro = "define group_and_count (A,group_key, reducers) returns B {\n" +
-            "    $B = distinct $A partition by org.apache.pig.test.utils.SimpleCustomPartitioner parallel $reducers;\n" +
-            "};\n";
-        
-        File f = new File("mytest.pig");
-        f.deleteOnExit();
-        
-        FileWriter fw = new FileWriter(f);
-        fw.append(macro);
-        fw.close();
+        createFile("mytest.pig", groupAndCountMacro);
         
         String script =
             "import 'mytest.pig';\n" +
@@ -703,66 +691,55 @@ public class TestMacroExpansion {
     
     @Test 
     public void importUsingSearchPathTest() throws Exception {
-        String macro = "define group_and_count (A,group_key, reducers) returns B {\n" +
-            "    $B = distinct $A partition by org.apache.pig.test.utils.SimpleCustomPartitioner parallel $reducers;\n" +
-            "};\n";
-        
-        File f = new File("/tmp/mytest2.pig");
-        f.deleteOnExit();
-        
-        FileWriter fw = new FileWriter(f);
-        fw.append(macro);
-        fw.close();
-        
-        String script =
-            "import '/tmp/mytest2.pig';\n" +
-            "alpha = load 'users' as (user, age, zip);\n" +
-            "gamma = group_and_count (alpha, user, 23);\n" +
-            "store gamma into 'byuser';\n";
-        
-        File f1 = new File("myscript.pig");
-        f1.deleteOnExit();
-        
-        FileWriter fw1 = new FileWriter(f1);
-        fw1.append(script);
-        fw1.close();
-        
-        String[] args = { "-Dpig.import.search.path=/tmp", "-x", "local", "-c", "myscript.pig" };
-        PigStats stats = PigRunner.run(args, null);
- 
-        assertTrue(stats.isSuccessful());
+        createFile("/tmp/mytest2.pig", garbageMacroContent);
+        assertTrue(verifyImportUsingSearchPath("/tmp/mytest2.pig", "mytest2.pig", "/tmp"));
+    }
+
+    @Test
+    public void importUsingSearchPathTest2() throws Exception {
+        createFile("/tmp/mytest2.pig", garbageMacroContent);
+        assertTrue(verifyImportUsingSearchPath("mytest2.pig", "./mytest2.pig", "/tmp"));
+    }
+
+    @Test
+    public void importUsingSearchPathTest3() throws Exception {
+        createFile("/tmp/mytest2.pig", garbageMacroContent);
+        assertTrue(verifyImportUsingSearchPath("../mytest2.pig", "../mytest2.pig", "/tmp"));
+    }
+
+    @Test
+    public void importUsingSearchPathTest4() throws Exception {
+        createFile("/tmp/pigtestdir/tmp/mytest2.pig", garbageMacroContent);
+        assertTrue(verifyImportUsingSearchPath("/tmp/mytest2.pig", "/tmp/mytest2.pig", "/tmp/pigtestdir/"));
+    }
+
+    @Test
+    public void importUsingSearchPathTest5() throws Exception {
+        createFile("/tmp/mytest2a.pig", garbageMacroContent);
+        createFile("mytest2a.pig", groupAndCountMacro);
+        assertTrue(verifyImportUsingSearchPath("/tmp/mytest2a.pig", "mytest2a.pig", "/tmp", false));
     }
     
     @Test
-    public void negtiveUsingSearchPathTest() throws Exception {
-        String macro = "define group_and_count (A,group_key, reducers) returns B {\n" +
-            "    $B = distinct $A partition by org.apache.pig.test.utils.SimpleCustomPartitioner parallel $reducers;\n" +
-            "};\n";
-        
-        File f = new File("/tmp/mytest2.pig");
-        f.deleteOnExit();
-        
-        FileWriter fw = new FileWriter(f);
-        fw.append(macro);
-        fw.close();
-        
-        String script =
-            "import 'mytest2.pig';\n" +
-            "alpha = load 'users' as (user, age, zip);\n" +
-            "gamma = group_and_count (alpha, user, 23);\n" +
-            "store gamma into 'byuser';\n";
-        
-        File f1 = new File("myscript.pig");
-        f1.deleteOnExit();
-                
-        FileWriter fw1 = new FileWriter(f1);
-        fw1.append(script);
-        fw1.close();
-        
-        String[] args = { "-x", "local", "-c", "myscript.pig" };
-        PigStats stats = PigRunner.run(args, null);
- 
-        assertTrue(!stats.isSuccessful());
+    public void negativeUsingSearchPathTest() throws Exception {
+        /* Delete the mytest3.pig file in negativeUsingSearchPathTest, just in
+         * case negativeUsingSearchPathTest2 is executed first and a garbage mytest3.pig
+         * file is created.
+         */
+        new File("mytest3.pig").delete();
+        assertFalse(verifyImportUsingSearchPath("/tmp/mytest3.pig", "mytest3.pig", null));
+    }
+
+    @Test
+    public void negativeUsingSearchPathTest2() throws Exception {
+        createFile("mytest3.pig", garbageMacroContent);
+        assertFalse(verifyImportUsingSearchPath("/tmp/mytest3.pig", "mytest3.pig", "/tmp"));
+    }
+
+    @Test
+    public void negativeUsingSearchPathTest3() throws Exception {
+        createFile("/tmp/mytest3a.pig", garbageMacroContent);
+        assertFalse(verifyImportUsingSearchPath("/tmp/mytest3a.pig", "mytest3a.pig", "/tmp", false));
     }
     
     @Test
@@ -774,12 +751,7 @@ public class TestMacroExpansion {
             "    $B = distinct $A partition by org.apache.pig.test.utils.SimpleCustomPartitioner parallel $reducers;\n" +
             "};\n";
         
-        File f = new File("mytest.pig");
-        f.deleteOnExit();
-        
-        FileWriter fw = new FileWriter(f);
-        fw.append(macro);
-        fw.close();
+        createFile("mytest.pig", macro);
         
         String script =
             "import 'mytest.pig';\n" +
@@ -804,28 +776,16 @@ public class TestMacroExpansion {
         String macro1 = "define group_and_count (A, reducers) returns B {\n" +
             "    $B = distinct $A partition by org.apache.pig.test.utils.SimpleCustomPartitioner parallel $reducers;\n" +
             "};\n";
-        
         String macro2 = "define distinct_with_reducer(A, reducers) returns B {\n" +
             "    $B = distinct $A partition by org.apache.pig.test.utils.SimpleCustomPartitioner parallel $reducers;\n" +
             "};\n";
         
-        File f1 = new File("mytest1.pig");
-        f1.deleteOnExit();
-        
-        FileWriter fw1 = new FileWriter(f1);
-        fw1.append(macro1);
-        fw1.close();
-        
-        File f2 = new File("mytest2.pig");
-        f2.deleteOnExit();
-        
-        FileWriter fw2 = new FileWriter(f2);
-        fw2.append(macro2);
-        fw2.close();
+        createFile("mytest4.pig", macro1);
+        createFile("mytest5.pig", macro2);
         
         String script =
-            "import 'mytest1.pig';\n" +
-            "import 'mytest2.pig';\n" +
+            "import 'mytest4.pig';\n" +
+            "import 'mytest5.pig';\n" +
             "alpha = load 'users' as (user, age, zip);\n" +
             "gamma = group_and_count (alpha, 23);\n" +
             "beta = distinct_with_reducer(alpha, 32);\n" +
@@ -1419,6 +1379,17 @@ public class TestMacroExpansion {
         
         verify(macro + script, expected);
     }
+
+    @Test // PIG-2887
+    public void testNegativeNumber() throws Exception {
+        String query = "A = load 'x' as ( u:int, v:long, w:bytearray); " +
+                       "B = filter A by 2 > -1; " ;
+
+        String expected =
+            "macro_mymacro_A_0 = load 'x' as (u:int, v:long, w:bytearray);\n" +
+            "macro_mymacro_B_0 = filter macro_mymacro_A_0 BY (2 > -1);\n" ;
+        testMacro( query, expected );
+    }
     
     @Test
     public void test1() throws Exception {
@@ -2004,12 +1975,7 @@ public class TestMacroExpansion {
     // PIG-1988
     @Test
     public void test36() throws Exception {
-        File f = new File("mymacro.pig");
-        f.deleteOnExit();
-        
-        FileWriter fw = new FileWriter(f);
-        fw.append(" ");
-        fw.close();
+        createFile("mymacro.pig", " ");
 
         String query = "import 'mymacro.pig';" +
             "define macro1() returns void {}; " + 
@@ -2029,17 +1995,8 @@ public class TestMacroExpansion {
     // PIG-1987
     @Test
     public void test37() throws Exception {
-        String macro = "define group_and_count (A,group_key, reducers) returns B {\n" +
-        "    $B = distinct $A partition by org.apache.pig.test.utils.SimpleCustomPartitioner parallel $reducers;\n" +
-        "};\n";
-    
-        File f = new File("mytest.pig");
-        f.deleteOnExit();
-        
-        FileWriter fw = new FileWriter(f);
-        fw.append(macro);
-        fw.close();
-        
+        createFile("mytest.pig", groupAndCountMacro);
+
         String script =
             "set default_parallel 10\n" +
             "import 'mytest.pig';\n" +
@@ -2124,12 +2081,7 @@ public class TestMacroExpansion {
     }
     
     private void verify(String s, String expected) throws Exception {
-        File f1 = new File("myscript.pig");
-        f1.deleteOnExit();
-        
-        FileWriter fw1 = new FileWriter(f1);
-        fw1.append(s);
-        fw1.close();
+        createFile("myscript.pig", s);
         
         String[] args = { "-Dpig.import.search.path=/tmp", "-x", "local", "-c", "myscript.pig" };
         PigStats stats = PigRunner.run(args, null);
@@ -2230,6 +2182,55 @@ public class TestMacroExpansion {
     
     private void validateFailure(String piglatin, String expectedErr) throws Throwable {
         validateFailure(piglatin, expectedErr, "Reason:");
+    }
+
+    private void createFile(String filePath, String content) throws Exception {
+        createFile(filePath, content, true);
+    }
+
+    private void createFile(String filePath, String content, boolean deleteOnExit) throws Exception {
+        File f = new File(filePath);
+        if (f.getParent() != null && !(new File(f.getParent())).exists()) {
+            (new File(f.getParent())).mkdirs();
+        }
+        
+        if (deleteOnExit) {
+            f.deleteOnExit();
+        }
+
+        FileWriter fw = new FileWriter(f);
+        fw.append(content);
+        fw.close();
+    }
+
+    private boolean verifyImportUsingSearchPath(String macroFilePath, String importFilePath,
+            String importSearchPath) throws Exception {
+        return verifyImportUsingSearchPath(macroFilePath, importFilePath,
+                importSearchPath, true);
+    }
+
+    private boolean verifyImportUsingSearchPath(String macroFilePath, String importFilePath,
+            String importSearchPath, boolean createMacroFilePath) throws Exception {
+
+        if (createMacroFilePath) {
+            createFile(macroFilePath, groupAndCountMacro);
+        }
+
+        String script =
+            "import '" + importFilePath + "';\n" +
+            "alpha = load 'users' as (user, age, zip);\n" +
+            "gamma = group_and_count (alpha, user, 23);\n" +
+            "store gamma into 'byuser';\n";
+
+        createFile("myscript.pig", script);
+
+        String[] args = {
+                (importSearchPath != null ? "-Dpig.import.search.path=" + importSearchPath : ""),
+                "-x", "local", "-c", "myscript.pig"
+        };
+        PigStats stats = PigRunner.run(args, null);
+
+        return stats.isSuccessful();
     }
     
 }

@@ -29,7 +29,7 @@ import org.apache.pig.parser.SourceLocation;
 public class BinCondExpression extends LogicalExpression {
 
     /**
-     * Will add this operator to the plan and connect it to the 
+     * Will add this operator to the plan and connect it to the
      * left and right hand side operators and the condition operator
      * @param plan plan this operator is part of
      * @param lhs expression on its left hand side
@@ -45,7 +45,7 @@ public class BinCondExpression extends LogicalExpression {
         plan.connect(this, lhs);
         plan.connect(this, rhs);
     }
-    
+
     /**
      * Returns the operator which handles this condition
      * @return expression which handles the condition
@@ -58,16 +58,16 @@ public class BinCondExpression extends LogicalExpression {
     /**
      * Get the left hand side of this expression.
      * @return expression on the left hand side
-     * @throws FrontendException 
+     * @throws FrontendException
      */
     public LogicalExpression getLhs() throws FrontendException {
-        return (LogicalExpression)plan.getSuccessors(this).get(1);        
+        return (LogicalExpression)plan.getSuccessors(this).get(1);
     }
 
     /**
      * Get the right hand side of this expression.
      * @return expression on the right hand side
-     * @throws FrontendException 
+     * @throws FrontendException
      */
     public LogicalExpression getRhs() throws FrontendException {
         return (LogicalExpression)plan.getSuccessors(this).get(2);
@@ -83,32 +83,32 @@ public class BinCondExpression extends LogicalExpression {
         }
         ((LogicalExpressionVisitor)v).visit(this);
     }
-    
+
     @Override
     public boolean isEqual(Operator other) throws FrontendException {
         if (other != null && other instanceof BinCondExpression) {
             BinCondExpression ao = (BinCondExpression)other;
-            return ao.getCondition().isEqual(getCondition()) && 
+            return ao.getCondition().isEqual(getCondition()) &&
             ao.getLhs().isEqual(getLhs()) && ao.getRhs().isEqual(getRhs());
         } else {
             return false;
         }
     }
-    
+
     @Override
     public LogicalSchema.LogicalFieldSchema getFieldSchema() throws FrontendException {
         if (fieldSchema!=null)
             return fieldSchema;
-        
+
         //TypeCheckingExpVisitor will ensure that lhs and rhs have same schema
         LogicalFieldSchema argFs = getLhs().getFieldSchema();
         fieldSchema = argFs.deepCopy();
         fieldSchema.resetUid();
-        
+
         uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
         return fieldSchema;
     }
-  
+
     @Override
     public LogicalExpression deepCopy(LogicalExpressionPlan lgExpPlan) throws FrontendException {
         LogicalExpression copy = new BinCondExpression(

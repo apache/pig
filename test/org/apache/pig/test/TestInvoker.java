@@ -19,11 +19,9 @@
 package org.apache.pig.test;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 
-import org.apache.pig.EvalFunc;
 import org.apache.pig.builtin.InvokeForDouble;
 import org.apache.pig.builtin.InvokeForFloat;
 import org.apache.pig.builtin.InvokeForInt;
@@ -164,36 +162,5 @@ public class TestInvoker {
         bag.add(tf_.newTuple(o));
       }
       return bag;
-    }
-
-    @Test
-    public void testSpeed() throws IOException, SecurityException, ClassNotFoundException, NoSuchMethodException {
-        EvalFunc<Double> log = new Log();
-        Tuple tup = tf_.newTuple(1);
-        long start = System.currentTimeMillis();
-        for (int i=0; i < 1000000; i++) {
-            tup.set(0, (double) i);
-            log.exec(tup);
-        }
-        long staticSpeed = (System.currentTimeMillis()-start);
-        start = System.currentTimeMillis();
-        log = new InvokeForDouble("java.lang.Math.log", "Double", "static");
-        for (int i=0; i < 1000000; i++) {
-            tup.set(0, (double) i);
-            log.exec(tup);
-        }
-        long dynamicSpeed = System.currentTimeMillis()-start;
-        System.err.println("Dynamic to static ratio: "+((float) dynamicSpeed)/staticSpeed);
-        assertTrue( ((float) dynamicSpeed)/staticSpeed < 5);
-    }
-    
-    private class Log extends EvalFunc<Double> {
-
-        @Override
-        public Double exec(Tuple input) throws IOException {
-            Double d = (Double) input.get(0);
-            return Math.log(d);
-        }
-        
     }
 }

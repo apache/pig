@@ -32,10 +32,10 @@
   <property name="repo.maven.org" value="${mvnrepo}" override="true"/>
   <property name="repo.jboss.org" value="http://repository.jboss.com/nexus/content/groups/public/" override="false"/>
   <property name="repo.apache.snapshots" value="http://repository.apache.org/content/groups/snapshots-group/" override="false"/>
-  <property name="repo.dir" value="${user.home}/.m2/repository"/>
-  <property name="maven2.pattern"  value="[organisation]/[module]/[revision]/[module]-[revision](-[classifier])"/> 
+  <property name="repo.dir" value="${user.home}/.m2/repository" override="false"/>
+  <property name="maven2.pattern" value="[organisation]/[module]/[revision]/[module]-[revision](-[classifier])"/>
   <property name="maven2.pattern.ext" value="${maven2.pattern}.[ext]"/>
-  <property name="snapshot.pattern"  value="[organisation]/[module]/[revision]/[artifact]-[revision](-[classifier]).[ext]"/>
+  <property name="snapshot.pattern" value="[organisation]/[module]/[revision]/[artifact]-[revision](-[classifier]).[ext]"/>
   <property name="resolvers" value="default" override="false"/>
   <property name="force-resolve" value="false" override="false"/>
   <!-- pull in the local repository -->
@@ -51,18 +51,17 @@
       <artifact pattern="${repo.dir}/${maven2.pattern.ext}"/>
       <ivy pattern="${repo.dir}/[organisation]/[module]/[revision]/[module]-[revision].pom"/>
     </filesystem>
-    <chain name="default" dual="true">
-      <resolver ref="local"/>
+    <chain name="internal" checkmodified="true">
+      <resolver ref="fs"/>
+    </chain>
+    <chain name="external" dual="true">
       <resolver ref="maven2"/>
       <resolver ref="jboss-maven2"/>
       <resolver ref="apache-snapshots"/>
     </chain>
-    <chain name="internal">
-      <resolver ref="fs"/>
-      <resolver ref="maven2"/>
-    </chain>
-    <chain name="external">
-      <resolver ref="maven2"/>
+    <chain name="default" dual="true" checkmodified="true">
+      <resolver ref="internal"/>
+      <resolver ref="external"/>
     </chain>
   </resolvers>
   <modules>

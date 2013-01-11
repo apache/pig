@@ -63,10 +63,17 @@ public class JythonUtils {
             } else if (pyObject instanceof PyList) {
                 DataBag list = bagFactory.newDefaultBag();
                 for (PyObject bagTuple : ((PyList) pyObject).asIterable()) {
-                    // In jython, list need not be a bag of tuples, as it is in case of pig
-                    // So we fail with cast exception if we dont find tuples inside bag
-                    // This is consistent with java udf (bag should be filled with tuples)
-                    list.add((Tuple) pythonToPig(bagTuple));
+                    // If the item of the array is not a tuple, 
+                    // wrap it into tuple before adding to bag
+                    Object pigBagItem = pythonToPig(bagTuple);
+                    Tuple pigBagTuple;
+                    if (!(pigBagItem instanceof Tuple)) {
+                        pigBagTuple = TupleFactory.getInstance().newTuple(1);
+                        pigBagTuple.set(0, pigBagItem);
+                    } else {
+                        pigBagTuple = (Tuple)pigBagItem;
+                    }
+                    list.add(pigBagTuple);
                 }
                 javaObj = list;
             } else if (pyObject instanceof PyDictionary) {

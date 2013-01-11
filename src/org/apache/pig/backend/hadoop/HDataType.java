@@ -19,6 +19,8 @@ package org.apache.pig.backend.hadoop;
 
 import java.util.Map;
 
+import org.joda.time.DateTime;
+
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
@@ -32,6 +34,7 @@ import org.apache.pig.impl.io.NullableDoubleWritable;
 import org.apache.pig.impl.io.NullableFloatWritable;
 import org.apache.pig.impl.io.NullableIntWritable;
 import org.apache.pig.impl.io.NullableLongWritable;
+import org.apache.pig.impl.io.NullableDateTimeWritable;
 import org.apache.pig.impl.io.NullableText;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
@@ -48,6 +51,7 @@ public class HDataType {
     static NullableDoubleWritable doubleWrit = new NullableDoubleWritable();
     static NullableIntWritable intWrit = new NullableIntWritable();
     static NullableLongWritable longWrit = new NullableLongWritable();
+    static NullableDateTimeWritable dtWrit = new NullableDateTimeWritable();
     static NullableBag defDB = new NullableBag();
     static NullableTuple defTup = new NullableTuple();
     static Map<Byte, String> typeToName = null;
@@ -82,7 +86,10 @@ public class HDataType {
            
         case DataType.LONG:
             return new NullableLongWritable((Long)o);
-          
+
+        case DataType.DATETIME:
+            return new NullableDateTimeWritable((DateTime)o);
+
         case DataType.TUPLE:
             return new NullableTuple((Tuple)o);
          
@@ -126,6 +133,10 @@ public class HDataType {
                 NullableLongWritable nLongWrit = new NullableLongWritable();
                 nLongWrit.setNull(true);
                 return nLongWrit;
+            case DataType.DATETIME:
+                NullableDateTimeWritable nDateTimeWrit = new NullableDateTimeWritable();
+                nDateTimeWrit.setNull(true);
+                return nDateTimeWrit;
             case DataType.TUPLE:
                 NullableTuple ntuple = new NullableTuple();
                 ntuple.setNull(true);
@@ -178,6 +189,9 @@ public class HDataType {
         case DataType.LONG:
             wcKey = longWrit;
             break;
+        case DataType.DATETIME:
+            wcKey = dtWrit;
+            break;
         case DataType.TUPLE:
             wcKey = defTup;
             break;
@@ -212,6 +226,8 @@ public class HDataType {
             return DataType.INTEGER;
         else if (o instanceof NullableLongWritable)
             return DataType.LONG;
+        else if (o instanceof NullableDateTimeWritable)
+            return DataType.DATETIME;
         else if (o instanceof NullableBag)
             return DataType.BAG;
         else if (o instanceof NullableTuple)

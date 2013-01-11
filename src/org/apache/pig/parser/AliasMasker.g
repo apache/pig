@@ -123,6 +123,7 @@ op_clause : define_clause
           | limit_clause
           | sample_clause
           | order_clause
+          | rank_clause
           | cross_clause
           | join_clause
           | union_clause
@@ -130,6 +131,7 @@ op_clause : define_clause
           | mr_clause
           | split_clause
           | foreach_clause
+          | cube_clause
 ;
 
 define_clause 
@@ -209,7 +211,7 @@ type : simple_type | tuple_type | bag_type | map_type
 ;
 
 simple_type 
-    : BOOLEAN | INT | LONG | FLOAT | DOUBLE | CHARARRAY | BYTEARRAY 
+    : BOOLEAN | INT | LONG | FLOAT | DOUBLE | DATETIME | CHARARRAY | BYTEARRAY 
 ;
 
 tuple_type 
@@ -234,6 +236,34 @@ func_name
 
 func_args 
     : QUOTEDSTRING+ 
+;
+
+cube_clause
+    : ^( CUBE cube_item )
+;
+
+cube_item
+    : rel ( cube_by_clause )
+;
+
+cube_by_clause
+    : ^( BY cube_or_rollup )
+;
+
+cube_or_rollup
+    : cube_rollup_list+
+;
+
+cube_rollup_list
+    : ^( ( CUBE | ROLLUP ) cube_by_expr_list )
+;
+
+cube_by_expr_list
+    : cube_by_expr+
+;
+
+cube_by_expr 
+    : col_range | expr | STAR 
 ;
 
 group_clause
@@ -280,6 +310,7 @@ cond
     | ^( NULL expr NOT? )
     | ^( rel_op expr expr )
     | func_eval
+    | ^( BOOL_COND expr )
 ;
 
 func_eval
@@ -333,6 +364,7 @@ col_alias_or_index : col_alias | col_index
 
 col_alias 
     : GROUP 
+    | CUBE 
     | IDENTIFIER
 ;
 
@@ -343,48 +375,65 @@ col_index
 col_range :  ^(COL_RANGE col_ref? DOUBLE_PERIOD col_ref?)
 ;
 
-pound_proj 
+pound_proj
     : ^( POUND ( QUOTEDSTRING | NULL ) )
 ;
 
-bin_expr 
-    : ^( BIN_EXPR cond expr expr )     
+bin_expr
+    : ^( BIN_EXPR cond expr expr )
 ;
 
-limit_clause 
+limit_clause
     : ^( LIMIT rel ( INTEGER | LONGINTEGER | expr ) )
 ;
 
-sample_clause 
+sample_clause
     :	 ^( SAMPLE rel ( DOUBLENUMBER | expr ) )
 ;
 
-order_clause 
+rank_clause
+	: ^( RANK rel ( rank_by_statement )? )
+;
+
+rank_by_statement
+	: ^( BY rank_by_clause ( DENSE )? )
+;
+
+rank_by_clause
+	: STAR ( ASC | DESC )?
+    | rank_col+
+;
+
+rank_col
+	: ( col_range | col_ref ) ( ASC | DESC )?
+;
+
+order_clause
     : ^( ORDER rel order_by_clause func_clause? )
 ;
 
-order_by_clause 
+order_by_clause
     : STAR ( ASC | DESC )?
     | order_col+
 ;
 
-order_col 
-    : (col_range | col_ref) ( ASC | DESC )?    
+order_col
+    : (col_range | col_ref) ( ASC | DESC )?
 ;
 
-distinct_clause 
+distinct_clause
     : ^( DISTINCT rel partition_clause? )
 ;
 
-partition_clause 
-    : ^( PARTITION func_name )    
+partition_clause
+    : ^( PARTITION func_name )
 ;
 
-cross_clause 
-    : ^( CROSS rel_list partition_clause? )    
+cross_clause
+    : ^( CROSS rel_list partition_clause? )
 ;
 
-rel_list 
+rel_list
     : rel+
 ;
 
@@ -507,6 +556,7 @@ col_ref : alias_col_ref | dollar_col_ref
 
 alias_col_ref 
     : GROUP 
+    | CUBE
     | IDENTIFIER
       {
           String alias = $IDENTIFIER.text;
@@ -532,15 +582,10 @@ const_expr : literal
 literal : scalar | map | bag | tuple
 ;
 
-scalar 
-    : INTEGER
-    | LONGINTEGER
-    | FLOATNUMBER
-    | DOUBLENUMBER
-    | QUOTEDSTRING
-    | NULL
-    | TRUE
-    | FALSE
+scalar : num_scalar | QUOTEDSTRING | NULL | TRUE | FALSE
+;
+
+num_scalar : MINUS? ( INTEGER | LONGINTEGER | FLOATNUMBER | DOUBLENUMBER )
 ;
 
 map 
@@ -570,8 +615,11 @@ eid : rel_str_op
     | LOAD
     | FILTER
     | FOREACH
+    | CUBE
+    | ROLLUP
     | MATCHES
     | ORDER
+    | RANK
     | DISTINCT
     | COGROUP
     | JOIN
@@ -602,6 +650,7 @@ eid : rel_str_op
     | LONG
     | FLOAT
     | DOUBLE
+    | DATETIME
     | CHARARRAY
     | BYTEARRAY
     | BAG

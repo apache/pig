@@ -26,7 +26,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -36,6 +35,7 @@ import java.util.TreeSet;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
@@ -81,7 +81,7 @@ public class InternalDistinctBag extends SortedSpillBag {
         if (percent < 0) {
         	percent = 0.2F;            
         	if (PigMapReduce.sJobConfInternal.get() != null) {
-        		String usage = PigMapReduce.sJobConfInternal.get().get("pig.cachedbag.memusage");
+        		String usage = PigMapReduce.sJobConfInternal.get().get(PigConfiguration.PROP_CACHEDBAG_MEMUSAGE);
         		if (usage != null) {
         			percent = Float.parseFloat(usage);
         		}
@@ -95,15 +95,18 @@ public class InternalDistinctBag extends SortedSpillBag {
     	mContents = new HashSet<Tuple>();      
     }
     
+    @Override
     public boolean isSorted() {
         return false;
     }
     
+    @Override
     public boolean isDistinct() {
         return true;
     }
     
     
+    @Override
     public long size() {
         if (mSpillFiles != null && mSpillFiles.size() > 0){
             //We need to racalculate size to guarantee a count of unique 
@@ -121,6 +124,7 @@ public class InternalDistinctBag extends SortedSpillBag {
     }
     
     
+    @Override
     public Iterator<Tuple> iterator() {
         return new DistinctDataBagIterator();
     }
@@ -145,24 +149,9 @@ public class InternalDistinctBag extends SortedSpillBag {
                 memLimit.addNewObjSize(t.getMemorySize());
             }          
         }    	
+        markSpillableIfNecessary();
     }
 
-    public void addAll(DataBag b) {
-    	Iterator<Tuple> iter = b.iterator();
-    	while(iter.hasNext()) {
-    		add(iter.next());
-    	}
-    }
-
-    public void addAll(Collection<Tuple> c) {
-    	Iterator<Tuple> iter = c.iterator();
-    	while(iter.hasNext()) {
-    		add(iter.next());
-    	}
-    }
-    
-    
-   
     /**
      * An iterator that handles getting the next tuple from the bag.
      * Data can be stored in a combination of in memory and on disk.  
@@ -173,11 +162,13 @@ public class InternalDistinctBag extends SortedSpillBag {
             public Tuple tuple;
             public int fileNum;
 
+            @Override
             @SuppressWarnings("unchecked")
 			public int compareTo(TContainer other) {
                 return tuple.compareTo(other.tuple);
             }
             
+            @Override
             public boolean equals(Object obj) {
             	if (obj instanceof TContainer) {
             		return compareTo((TContainer)obj) == 0;
@@ -186,6 +177,7 @@ public class InternalDistinctBag extends SortedSpillBag {
             	return false;
             }
             
+            @Override
             public int hashCode() {
             	return tuple.hashCode();
             }
@@ -214,12 +206,14 @@ public class InternalDistinctBag extends SortedSpillBag {
             }            
         }
 
+        @Override
         public boolean hasNext() { 
             // See if we can find a tuple.  If so, buffer it.
             mBuf = next();
             return mBuf != null;
         }
 
+        @Override
         public Tuple next() {
             // This will report progress every 1024 times through next.
             // This should be much faster than using mod.
@@ -245,6 +239,7 @@ public class InternalDistinctBag extends SortedSpillBag {
         /**
          * Not implemented.
          */
+        @Override
         public void remove() {}
 
         private Tuple readFromTree() {
@@ -464,6 +459,7 @@ public class InternalDistinctBag extends SortedSpillBag {
         }
     }
 
+    @Override
     public long spill(){
         return proactive_spill(null);
     }

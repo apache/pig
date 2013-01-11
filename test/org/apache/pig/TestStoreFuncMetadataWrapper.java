@@ -66,6 +66,9 @@ public class TestStoreFuncMetadataWrapper {
         wrapper.setStoreFuncUDFContextSignature(null);
         assertEquals("setStoreFuncUDFContextSignature", storeFunc.getLastMethodCalled());
 
+        wrapper.cleanupOnSuccess(null, null);
+        assertEquals("cleanupOnSuccess", storeFunc.getLastMethodCalled());
+
         wrapper.cleanupOnFailure(null, null);
         assertEquals("cleanupOnFailure", storeFunc.getLastMethodCalled());
 

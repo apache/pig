@@ -163,16 +163,17 @@ public class CSVExcelStorage extends PigStorage implements StoreFuncInterface, L
     protected final static byte DOUBLE_QUOTE = '"';
 	protected final static byte RECORD_DEL = LINEFEED;
 	
-	private static byte FIELD_DEL = ',';
-	private static String MULTILINE_DEFAULT_STR = "NOMULTILINE";
-	private static String LINEBREAKS_DEFAULT_STR = "NOCHANGE";
-	private static Multiline MULTILINE_DEFAULT = Multiline.NO;
-	private static Linebreaks LINEBREAKS_DEFAULT = Linebreaks.NOCHANGE;
+	private static final byte FIELD_DEL_DEFAULT = ',';
+	private static final String MULTILINE_DEFAULT_STR = "NOMULTILINE";
+	private static final String LINEBREAKS_DEFAULT_STR = "NOCHANGE";
+	private static final Multiline MULTILINE_DEFAULT = Multiline.NO;
+	private static final Linebreaks LINEBREAKS_DEFAULT = Linebreaks.NOCHANGE;
     
 	long end = Long.MAX_VALUE;
 
-	Linebreaks eolTreatment = LINEBREAKS_DEFAULT;
-	Multiline multilineTreatment = MULTILINE_DEFAULT;
+	private byte fieldDelimiter = FIELD_DEL_DEFAULT;
+	private Linebreaks eolTreatment = LINEBREAKS_DEFAULT;
+	private Multiline multilineTreatment = MULTILINE_DEFAULT;
 	
     private ArrayList<Object> mProtoTuple = null;
     private TupleFactory mTupleFactory = TupleFactory.getInstance();
@@ -224,7 +225,7 @@ public class CSVExcelStorage extends PigStorage implements StoreFuncInterface, L
      * 
      */
     public CSVExcelStorage() {
-    	super(new String(new byte[] {FIELD_DEL}));
+    	super(new String(new byte[] {FIELD_DEL_DEFAULT}));
     }
     
     /**
@@ -297,7 +298,7 @@ public class CSVExcelStorage extends PigStorage implements StoreFuncInterface, L
 
     
     private void initializeInstance(String delimiter, String multilineStr, String theEofTreatment) {
-        FIELD_DEL = StorageUtil.parseFieldDel(delimiter);
+        fieldDelimiter = StorageUtil.parseFieldDel(delimiter);
         multilineTreatment = canonicalizeMultilineTreatmentRequest(multilineStr);
         eolTreatment = canonicalizeEOLTreatmentRequest(theEofTreatment);
     }
@@ -339,10 +340,6 @@ public class CSVExcelStorage extends PigStorage implements StoreFuncInterface, L
     @Override
     public void putNext(Tuple tupleToWrite) throws IOException {
     	
-    	if (tupleToWrite.isNull()) {
-    		logger.warn("putNext() called with null for a tuple.");
-    		return;
-    	}
     	ArrayList<Object> mProtoTuple = new ArrayList<Object>();
     	int embeddedNewlineIndex = -1;
     	String fieldStr = null;
@@ -369,7 +366,7 @@ public class CSVExcelStorage extends PigStorage implements StoreFuncInterface, L
     		// then the entire field must be enclosed in double quotes:
     		embeddedNewlineIndex =  fieldStr.indexOf(LINEFEED);
     		
-    		if ((fieldStr.indexOf(FIELD_DEL) != -1) || 
+    		if ((fieldStr.indexOf(fieldDelimiter) != -1) || 
     			(fieldStr.indexOf(DOUBLE_QUOTE) != -1) ||
     			(multilineTreatment == Multiline.YES) && (embeddedNewlineIndex != -1))  {
     			fieldStr = "\"" + fieldStr + "\"";
@@ -482,7 +479,6 @@ public class CSVExcelStorage extends PigStorage implements StoreFuncInterface, L
         			mProtoTuple.clear();
         			getNextInQuotedField = false;
         			evenQuotesSeen = true;
-        			sawEmbeddedRecordDelimiter = false;
         			getNextFieldID = 0;
         			recordLen = prevLineAndContinuation.length;
         			
@@ -498,16 +494,14 @@ public class CSVExcelStorage extends PigStorage implements StoreFuncInterface, L
         			recordLen = value.getLength();
         		}
         		
-        		sawEmbeddedRecordDelimiter = false;
-
         		nextTupleSkipChar = false;
 
         		ByteBuffer fieldBuffer = ByteBuffer.allocate(recordLen);
 
-        		sawEmbeddedRecordDelimiter = processOneInRecord(evenQuotesSeen,
-						sawEmbeddedRecordDelimiter, buf, recordLen, fieldBuffer);
-        		
-        		// The last field is never delimited by a FIELD_DEL, but by 
+                        sawEmbeddedRecordDelimiter = processOneInRecord(evenQuotesSeen,
+                                buf, recordLen, fieldBuffer);
+
+        		// The last field is never delimited by a FIELD_DEL, but by
         		// the end of the record. So we need to add that last field.
         		// The '!sawEmbeddedRecordDelimiter' handles the case of
         		// embedded newlines; we are amidst a field, not at
@@ -571,9 +565,9 @@ public class CSVExcelStorage extends PigStorage implements StoreFuncInterface, L
 	 * @param fieldBuffer
 	 * @return
 	 */
-	private boolean processOneInRecord(boolean evenQuotesSeen,
-			boolean sawEmbeddedRecordDelimiter, byte[] buf, int recordLen,
-			ByteBuffer fieldBuffer) {
+        private boolean processOneInRecord(boolean evenQuotesSeen,
+                                           byte[] buf, int recordLen,
+                                           ByteBuffer fieldBuffer) {
 		for (int i = 0; i < recordLen; i++) {
 			if (nextTupleSkipChar) {
 				nextTupleSkipChar = false;
@@ -592,20 +586,9 @@ public class CSVExcelStorage extends PigStorage implements StoreFuncInterface, L
 					if (evenQuotesSeen) {
 						fieldBuffer.put(DOUBLE_QUOTE);
 					}
-				} else if (i == recordLen - 1) {
-					// This is the last char we read from the input stream,
-					// but we have an open double quote.
-					// We either have a run-away quoted field (i.e. a missing
-					// closing field in the record), or we have a field with 
-					// a record delimiter in it. We assume the latter,
-					// and cause the outer while loop to run again, reading
-					// more from the stream. Write out the delimiter:
-					fieldBuffer.put(b);
-					sawEmbeddedRecordDelimiter = true;
-					continue;
 				} else
 					if (!evenQuotesSeen &&
-							(b == FIELD_DEL || b == RECORD_DEL)) {
+							(b == fieldDelimiter || b == RECORD_DEL)) {
 						getNextInQuotedField = false;
 						readField(fieldBuffer, getNextFieldID++);
 					} else {
@@ -622,14 +605,14 @@ public class CSVExcelStorage extends PigStorage implements StoreFuncInterface, L
 				// that entire field is quoted:
 				getNextInQuotedField = true;
 				evenQuotesSeen = true;
-			} else if (b == FIELD_DEL) {
+			} else if (b == fieldDelimiter) {
 				readField(fieldBuffer, getNextFieldID++); // end of the field
 			} else {
 				evenQuotesSeen = true;
 				fieldBuffer.put(b);
 			}
-		} // end for
-		return sawEmbeddedRecordDelimiter && (multilineTreatment == Multiline.YES);
+                } // end for
+                return getNextInQuotedField && (multilineTreatment == Multiline.YES);
 	}
 
     private void readField(ByteBuffer buf, int fieldID) {

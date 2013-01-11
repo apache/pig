@@ -17,6 +17,7 @@
  */
 package org.apache.pig.impl.io;
 
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -27,11 +28,12 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Deque;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
-import java.util.Stack;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -426,11 +428,11 @@ public class FileLocalizer {
      * Thread local toDelete Stack to hold descriptors to be deleted upon calling
      * deleteTempFiles. Use the toDelete() method to access this stack.
      */
-    private static ThreadLocal<Stack<ElementDescriptor>> toDelete =
-        new ThreadLocal<Stack<ElementDescriptor>>() {
+    private static ThreadLocal<Deque<ElementDescriptor>> toDelete =
+        new ThreadLocal<Deque<ElementDescriptor>>() {
 
-        protected Stack<ElementDescriptor> initialValue() {
-            return new Stack<ElementDescriptor>();
+        protected Deque<ElementDescriptor> initialValue() {
+            return new LinkedList<ElementDescriptor>();
         }
     };
 
@@ -447,7 +449,7 @@ public class FileLocalizer {
      * Convenience accessor method to the toDelete Stack bound to this thread.
      * @return A Stack of ElementDescriptors that should be deleted.
      */
-    private static Stack<ElementDescriptor> toDelete() {
+    private static Deque<ElementDescriptor> toDelete() {
         return toDelete.get();
     }
 
@@ -483,7 +485,7 @@ public class FileLocalizer {
     }
 
     public static void deleteTempFiles() {
-        while (!toDelete().empty()) {
+        while (!toDelete().isEmpty()) {
             try {
                 ElementDescriptor elem = toDelete().pop();
                 elem.delete();
@@ -817,5 +819,37 @@ public class FileLocalizer {
         }
 
         return fetchFiles;
+    }
+    
+    /**
+     * Ensures that the passed resource is available from the local file system, fetching
+     * it to a temporary directory.
+     * 
+     * @throws ResourceNotFoundException 
+     */
+    public static FetchFileRet fetchResource(String name) throws IOException, ResourceNotFoundException {
+      FetchFileRet localFileRet = null;
+      InputStream resourceStream = PigContext.getClassLoader().getResourceAsStream(name);
+      if (resourceStream != null) {        
+        File dest = new File(localTempDir, name);
+        dest.getParentFile().mkdirs();        
+        dest.deleteOnExit();
+                
+        OutputStream outputStream = new BufferedOutputStream(new FileOutputStream(dest));
+        byte[] buffer = new byte[1024];
+        int len;
+        while ((len=resourceStream.read(buffer)) > 0) {
+          outputStream.write(buffer,0,len);
+        }
+        outputStream.close();
+        
+        localFileRet = new FetchFileRet(dest,false);
+      }
+      else
+      {
+        throw new ResourceNotFoundException(name);
+      }
+      
+      return localFileRet;
     }
 }

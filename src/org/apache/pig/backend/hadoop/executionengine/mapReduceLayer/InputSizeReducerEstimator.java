@@ -28,6 +28,7 @@ import org.apache.pig.LoadFunc;
 import org.apache.pig.LoadMetadata;
 import org.apache.pig.ResourceStatistics;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.impl.util.UriUtil;
 import org.apache.pig.impl.util.Utils;
 
@@ -64,19 +65,25 @@ public class InputSizeReducerEstimator implements PigReducerEstimator {
     /**
      * Determines the number of reducers to be used.
      *
-     * @param conf the job configuration
-     * @param lds list of POLoads used in the jobs physical plan
      * @param job job instance
+     * @param mapReduceOper
      * @throws java.io.IOException
      */
     @Override
-    public int estimateNumberOfReducers(Configuration conf, List<POLoad> lds, Job job) throws IOException {
+    public int estimateNumberOfReducers(Job job, MapReduceOper mapReduceOper) throws IOException {
+        Configuration conf = job.getConfiguration();
+
         long bytesPerReducer = conf.getLong(BYTES_PER_REDUCER_PARAM, DEFAULT_BYTES_PER_REDUCER);
         int maxReducers = conf.getInt(MAX_REDUCER_COUNT_PARAM, DEFAULT_MAX_REDUCER_COUNT_PARAM);
-        long totalInputFileSize = getTotalInputFileSize(conf, lds, job);
+
+        List<POLoad> poLoads = PlanHelper.getPhysicalOperators(mapReduceOper.mapPlan, POLoad.class);
+        long totalInputFileSize = getTotalInputFileSize(conf, poLoads, job);
 
         log.info("BytesPerReducer=" + bytesPerReducer + " maxReducers="
             + maxReducers + " totalInputFileSize=" + totalInputFileSize);
+
+        // if totalInputFileSize == -1, we couldn't get the input size so we can't estimate.
+        if (totalInputFileSize == -1) { return -1; }
 
         int reducers = (int)Math.ceil((double)totalInputFileSize / bytesPerReducer);
         reducers = Math.max(1, reducers);
@@ -92,8 +99,10 @@ public class InputSizeReducerEstimator implements PigReducerEstimator {
     static long getTotalInputFileSize(Configuration conf,
                                       List<POLoad> lds, Job job) throws IOException {
         long totalInputFileSize = 0;
+        boolean foundSize = false;
         for (POLoad ld : lds) {
             long size = getInputSizeFromLoader(ld, job);
+            if (size > -1) { foundSize = true; }
             if (size > 0) {
                 totalInputFileSize += size;
                 continue;
@@ -108,12 +117,13 @@ public class InputSizeReducerEstimator implements PigReducerEstimator {
                     if (status != null) {
                         for (FileStatus s : status) {
                             totalInputFileSize += Utils.getPathLength(fs, s);
+                            foundSize = true;
                         }
                     }
                 }
             }
         }
-        return totalInputFileSize;
+        return foundSize ? totalInputFileSize : -1;
     }
 
     /**
@@ -121,7 +131,7 @@ public class InputSizeReducerEstimator implements PigReducerEstimator {
      * loaders that implement @{link LoadMetadata}.
      * @param ld
      * @param job
-     * @return total input size in bytes, or 0 if unknown or incomplete
+     * @return total input size in bytes, or -1 if unknown or incomplete
      * @throws IOException on error
      */
     static long getInputSizeFromLoader(POLoad ld, Job job) throws IOException {
@@ -129,7 +139,7 @@ public class InputSizeReducerEstimator implements PigReducerEstimator {
                 || !(ld.getLoadFunc() instanceof LoadMetadata)
                 || ld.getLFile() == null
                 || ld.getLFile().getFileName() == null) {
-            return 0;
+            return -1;
         }
 
         ResourceStatistics statistics;
@@ -138,11 +148,11 @@ public class InputSizeReducerEstimator implements PigReducerEstimator {
                         .getStatistics(ld.getLFile().getFileName(), job);
         } catch (Exception e) {
             log.warn("Couldn't get statistics from LoadFunc: " + ld.getLoadFunc(), e);
-            return 0;
+            return -1;
         }
 
         if (statistics == null || statistics.getSizeInBytes() == null) {
-            return 0;
+            return -1;
         }
 
         return statistics.getSizeInBytes();

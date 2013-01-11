@@ -17,20 +17,16 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.Iterator;
 import java.util.Random;
 import java.util.zip.GZIPOutputStream;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.DIFF;
@@ -38,19 +34,17 @@ import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.test.utils.TestHelper;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.Test;
 
-import junit.framework.Assert;
-import junit.framework.TestCase;
-
-@RunWith(JUnit4.class)
-public class TestCompressedFiles extends TestCase {
-    
-    private final Log log = LogFactory.getLog(getClass());
+public class TestCompressedFiles {
     static MiniCluster cluster = MiniCluster.buildCluster();
 
     File datFile;
     File gzFile;
-    @Override
+
     @Before
     public void setUp() throws Exception {
         datFile = File.createTempFile("compTest", ".dat");
@@ -74,18 +68,17 @@ public class TestCompressedFiles extends TestCase {
         gz.close();
     }
 
-    @Override
     @After
     public void tearDown() throws Exception {
         datFile.delete();
         gzFile.delete();
     }
-    
+
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
         cluster.shutDown();
     }
-    
+
     @Test
     public void testCompressed1() throws Throwable {
         PigServer pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
@@ -96,30 +89,25 @@ public class TestCompressedFiles extends TestCase {
                 + "') by $1) generate flatten( " + DIFF.class.getName()
                 + "($1.$1,$2.$1)) ;");
         Iterator<Tuple> it = pig.openIterator("A");
-        boolean success = true;
-        while(it.hasNext()) {
-            success = false;
-            log.info(it.next());
-        }
-        assertTrue(success);
+        assertFalse(it.hasNext());
     }
-    
+
     @Test
     public void testCompressed2() throws Throwable {
         PigServer pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         pig.registerQuery("A = load '"
                 + Util.generateURI(gzFile.toString(), pig.getPigContext())
                 + "';");
- 
+
         DataBag dbGz = BagFactory.getInstance().newDefaultBag(), dbDt = BagFactory.getInstance().newDefaultBag();
         {
             Iterator<Tuple> iter = pig.openIterator("A");
 
             while(iter.hasNext()) {
                 dbGz.add(iter.next());
-            }            
+            }
         }
-        pig.registerQuery("B = load '"        
+        pig.registerQuery("B = load '"
                 + Util.generateURI(datFile.toString(), pig.getPigContext())
                 + "';");
         Iterator<Tuple> iter = pig.openIterator("B");
@@ -127,10 +115,10 @@ public class TestCompressedFiles extends TestCase {
         while(iter.hasNext()) {
             dbDt.add(iter.next());
         }
-        
-        Assert.assertTrue(dbGz.size() > 0);
-        Assert.assertTrue(dbDt.size() > 0);
-        Assert.assertEquals(dbGz.size(), dbDt.size());
-        Assert.assertEquals(true, TestHelper.compareBags(dbGz, dbDt));       
+
+        assertTrue(dbGz.size() > 0);
+        assertTrue(dbDt.size() > 0);
+        assertEquals(dbGz.size(), dbDt.size());
+        assertTrue(TestHelper.compareBags(dbGz, dbDt));
     }
 }

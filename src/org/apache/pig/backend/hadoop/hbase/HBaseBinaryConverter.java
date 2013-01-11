@@ -20,6 +20,8 @@ package org.apache.pig.backend.hadoop.hbase;
 import java.io.IOException;
 import java.util.Map;
 
+import org.joda.time.DateTime;
+
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.pig.LoadStoreCaster;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
@@ -78,6 +80,14 @@ public class HBaseBinaryConverter implements LoadStoreCaster {
         } else {
             return Bytes.toBoolean(Bytes.head(b, Bytes.SIZEOF_BOOLEAN));
         }
+    }
+
+    /**
+     * NOT IMPLEMENTED
+     */
+    @Override
+    public DateTime bytesToDateTime(byte[] b) throws IOException {
+        throw new ExecException("Can't generate a DateTime from byte[]");
     }
 
     @Override
@@ -144,6 +154,14 @@ public class HBaseBinaryConverter implements LoadStoreCaster {
     @Override
     public byte[] toBytes(Boolean b) throws IOException {
         return Bytes.toBytes(b);
+    }
+
+    /**
+     * NOT IMPLEMENTED
+     */
+    @Override
+    public byte[] toBytes(DateTime dt) throws IOException {
+        throw new IOException("Can't generate bytes from DateTime");
     }
 
     /**

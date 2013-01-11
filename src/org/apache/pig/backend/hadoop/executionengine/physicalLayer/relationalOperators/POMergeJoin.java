@@ -20,8 +20,6 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOp
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
@@ -39,22 +37,24 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.SchemaTuple;
+import org.apache.pig.data.SchemaTupleBackend;
+import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
+import org.apache.pig.data.SchemaTupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.data.TupleMaker;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.builtin.DefaultIndexableLoader;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.impl.util.IdentityHashSet;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.newplan.logical.relational.LOJoin;
-import org.apache.pig.pen.util.ExampleTuple;
-import org.apache.pig.pen.util.LineageTracer;
 
 /** This operator implements merge join algorithm to do map side joins. 
  *  Currently, only two-way joins are supported. One input of join is identified as left
@@ -87,8 +87,6 @@ public class POMergeJoin extends PhysicalOperator {
 
     private Result prevRightInp;
 
-    private transient TupleFactory mTupleFactory;
-
     //boolean denoting whether we are generating joined tuples in this getNext() call or do we need to read in more data.
     private boolean doingJoin;
 
@@ -99,7 +97,7 @@ public class POMergeJoin extends PhysicalOperator {
     private String indexFile;
 
     // Buffer to hold accumulated left tuples.
-    private List<Tuple> leftTuples;
+    private transient TuplesToSchemaTupleList leftTuples;
 
     private MultiMap<PhysicalOperator, PhysicalPlan> inpPlans;
 
@@ -125,6 +123,20 @@ public class POMergeJoin extends PhysicalOperator {
 
     private String signature;
 
+    // This serves as the default TupleFactory
+    private transient TupleFactory mTupleFactory;
+
+    /**
+     * These TupleFactories are used for more efficient Tuple generation. This should
+     * decrease the amount of memory needed for a given map task to successfully perform
+     * a merge join.
+     */
+    private transient TupleMaker mergedTupleMaker;
+    private transient TupleMaker leftTupleMaker;
+
+    private Schema leftInputSchema;
+    private Schema mergedInputSchema;
+
     /**
      * @param k
      * @param rp
@@ -133,18 +145,18 @@ public class POMergeJoin extends PhysicalOperator {
      * Ex. join A by ($0,$1), B by ($1,$2);
      */
     public POMergeJoin(OperatorKey k, int rp, List<PhysicalOperator> inp, MultiMap<PhysicalOperator, PhysicalPlan> inpPlans,
-            List<List<Byte>> keyTypes, LOJoin.JOINTYPE joinType) throws PlanException{
+            List<List<Byte>> keyTypes, LOJoin.JOINTYPE joinType, Schema leftInputSchema, Schema rightInputSchema, Schema mergedInputSchema) throws PlanException{
 
         super(k, rp, inp);
         this.opKey = k;
         this.doingJoin = false;
         this.inpPlans = inpPlans;
         LRs = new POLocalRearrange[2];
-        mTupleFactory = TupleFactory.getInstance();
-        leftTuples = new ArrayList<Tuple>(arrayListSize);
         this.createJoinPlans(inpPlans,keyTypes);
         this.indexFile = null;
         this.joinType = joinType;  
+        this.leftInputSchema = leftInputSchema;
+        this.mergedInputSchema = mergedInputSchema;
     }
 
     /**
@@ -169,6 +181,92 @@ public class POMergeJoin extends PhysicalOperator {
         }
     }
 
+    /**
+     * This is a helper method that sets up all of the TupleFactory members.
+     */
+    private void prepareTupleFactories() {
+        mTupleFactory = TupleFactory.getInstance();
+
+        if (leftInputSchema != null) {
+            leftTupleMaker = SchemaTupleBackend.newSchemaTupleFactory(leftInputSchema, false, GenContext.MERGE_JOIN);
+        }
+        if (leftTupleMaker == null) {
+            log.debug("No SchemaTupleFactory available for combined left merge join schema: " + leftInputSchema);
+            leftTupleMaker = mTupleFactory;
+        } else {
+            log.debug("Using SchemaTupleFactory for left merge join schema: " + leftInputSchema);
+        }
+
+        if (mergedInputSchema != null) {
+            mergedTupleMaker = SchemaTupleBackend.newSchemaTupleFactory(mergedInputSchema, false, GenContext.MERGE_JOIN);
+        }
+        if (mergedTupleMaker == null) {
+            log.debug("No SchemaTupleFactory available for combined left/right merge join schema: " + mergedInputSchema);
+            mergedTupleMaker = mTupleFactory;
+        } else {
+            log.debug("Using SchemaTupleFactory for left/right merge join schema: " + mergedInputSchema);
+        }
+
+    }
+
+    /**
+     * This provides a List to store Tuples in. The implementation of that list depends on whether
+     * or not there is a TupleFactory available.
+     * @return the list object to store Tuples in
+     */
+    private TuplesToSchemaTupleList newLeftTupleArray() {
+        return new TuplesToSchemaTupleList(arrayListSize, leftTupleMaker);
+    }
+
+    /**
+     * This is a class that extends ArrayList, making it easy to provide on the fly conversion
+     * from Tuple to SchemaTuple. This is necessary because we are not getting SchemaTuples
+     * from the source, though in the future that is what we would like to do.
+     */
+    protected static class TuplesToSchemaTupleList {
+        private List<Tuple> tuples;
+        private SchemaTupleFactory tf;
+
+        protected TuplesToSchemaTupleList(int ct, TupleMaker<?> tf) {
+            tuples = new ArrayList<Tuple>(ct);
+            if (tf instanceof SchemaTupleFactory) {
+                this.tf = (SchemaTupleFactory)tf;
+            }
+        }
+
+        public static SchemaTuple<?> convert(Tuple t, SchemaTupleFactory tf) {
+            if (t instanceof SchemaTuple<?>) {
+                return (SchemaTuple<?>)t;
+            }
+            SchemaTuple<?> st = tf.newTuple();
+            try {
+                return st.set(t);
+            } catch (ExecException e) {
+                throw new RuntimeException("Unable to set SchemaTuple with schema ["
+                        + st.getSchemaString() + "] with given Tuple in merge join.");
+            }
+        }
+
+        public boolean add(Tuple t) {
+            if (tf != null) {
+                t = convert(t, tf);
+            }
+            return tuples.add(t);
+        }
+
+        public Tuple get(int i) {
+            return tuples.get(i);
+        }
+
+        public int size() {
+            return tuples.size();
+        }
+
+        public List<Tuple> getList() {
+            return tuples;
+        }
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public Result getNext(Tuple t) throws ExecException {
@@ -177,6 +275,9 @@ public class POMergeJoin extends PhysicalOperator {
         Result curLeftInp;
 
         if(firstTime){
+            prepareTupleFactories();
+            leftTuples = newLeftTupleArray();
+
             // Do initial setup.
             curLeftInp = processInput();
             if(curLeftInp.returnStatus != POStatus.STATUS_OK)
@@ -191,7 +292,7 @@ public class POMergeJoin extends PhysicalOperator {
             } catch (IOException e) {
                 throwProcessingException(true, e);
             } catch (ClassCastException e) {
-                throwProcessingException(true, e);;
+                throwProcessingException(true, e);
             }
             leftTuples.add((Tuple)curLeftInp.result);
             firstTime = false;
@@ -205,13 +306,15 @@ public class POMergeJoin extends PhysicalOperator {
             if(counter > 0){    // We have left tuples to join with current right tuple.
                 Tuple joiningLeftTup = leftTuples.get(--counter);
                 leftTupSize = joiningLeftTup.size();
-                Tuple joinedTup = mTupleFactory.newTuple(leftTupSize+rightTupSize);
+                Tuple joinedTup = mergedTupleMaker.newTuple(leftTupSize + rightTupSize);
 
-                for(int i=0; i<leftTupSize; i++)
+                for(int i=0; i<leftTupSize; i++) {
                     joinedTup.set(i, joiningLeftTup.get(i));
+                }
 
-                for(int i=0; i < rightTupSize; i++)
+                for(int i=0; i < rightTupSize; i++) {
                     joinedTup.set(i+leftTupSize, curJoiningRightTup.get(i));
+                }
 
                 return new Result(POStatus.STATUS_OK, joinedTup);
             }
@@ -246,7 +349,8 @@ public class POMergeJoin extends PhysicalOperator {
                             prevRightKey = rightKey;
                             prevRightInp = rightInp;
                             // There cant be any more join on this key.
-                            leftTuples = new ArrayList<Tuple>(arrayListSize);
+                            leftTuples = newLeftTupleArray();
+
                             leftTuples.add((Tuple)prevLeftInp.result);
                         }
 
@@ -315,7 +419,7 @@ public class POMergeJoin extends PhysicalOperator {
 
             // This will happen when we accumulated inputs on left side and moved on, but are still behind the right side
             // In that case, throw away the tuples accumulated till now and add the one we read in this function call.
-            leftTuples = new ArrayList<Tuple>(arrayListSize);
+            leftTuples = newLeftTupleArray();
             leftTuples.add((Tuple)curLeftInp.result);
             prevLeftInp = curLeftInp;
             prevLeftKey = curLeftKey;
@@ -387,7 +491,7 @@ public class POMergeJoin extends PhysicalOperator {
                 prevRightKey = rightKey;
                 prevRightInp = rightInp;
                 // Since we didn't find any matching right tuple we throw away the buffered left tuples and add the one read in this function call. 
-                leftTuples = new ArrayList<Tuple>(arrayListSize);
+                leftTuples = newLeftTupleArray();
                 leftTuples.add((Tuple)curLeftInp.result);
                 prevLeftInp = curLeftInp;
                 prevLeftKey = curLeftKey;

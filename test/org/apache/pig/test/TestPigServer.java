@@ -18,20 +18,20 @@
 
 package org.apache.pig.test;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
+import static junit.framework.Assert.assertEquals;
+import static org.apache.pig.builtin.mock.Storage.resetData;
+import static org.apache.pig.builtin.mock.Storage.tuple;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.lang.reflect.Method;
 import java.net.URL;
@@ -45,50 +45,43 @@ import java.util.Properties;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.pig.impl.PigContext;
-
-
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
+import org.apache.pig.builtin.mock.Storage.Data;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.util.Utils;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
+import com.google.common.io.Files;
+
 public class TestPigServer {
     private PigServer pig = null;
     static MiniCluster cluster = MiniCluster.buildCluster();
-    private File stdOutRedirectedFile;
+    private File tempDir;
 
     @Before
     public void setUp() throws Exception{
         FileLocalizer.setInitialized(false);
         pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-        stdOutRedirectedFile = new File("stdout.redirected");
-        // Create file if it does not exist
-        try {
-            if(!stdOutRedirectedFile.createNewFile())
-                Assert.fail("Unable to create input files");
-        } catch (IOException e) {
-            Assert.fail("UAssert.assertTruee to create input files:" + e.getMessage());
-        }
+
+        tempDir = Files.createTempDir();
+        tempDir.deleteOnExit();
+        registerNewResource(tempDir.getAbsolutePath());
     }
     
     @After
     public void tearDown() throws Exception{
         pig = null;
-        stdOutRedirectedFile.delete();
+        tempDir.delete();
     }
     
     @AfterClass
@@ -101,23 +94,18 @@ public class TestPigServer {
     // make sure that name is included or not (depending on flag "included") 
     // in the given list of stings
     private static void verifyStringContained(List<URL> list, String name, boolean included) {
-        Iterator<URL> iter = list.iterator();
-        boolean nameIsSubstring = false;
         int count = 0;
         
-        while (iter.hasNext()) {
-            if (iter.next().toString().contains(name)) {
-                nameIsSubstring = true;
-                ++count;
+        for (URL url : list) {
+            if (url.toString().contains(name)) {
+                if (!included) {
+                    fail("Included is false, but url ["+url+"] contains name ["+name+"]");
             }
+                assertEquals("Too many urls contain name: " + name, 1, ++count);
         }
-        
+        }
         if (included) {
-            Assert.assertTrue(nameIsSubstring);
-            Assert.assertTrue(count == 1);
-        }
-        else {
-            Assert.assertFalse(nameIsSubstring);
+            assertEquals("Number of urls that contain name [" + name + "] != 1", 1, count);
         }
     }
     
@@ -135,7 +123,7 @@ public class TestPigServer {
         Path dir = new Path(location);
         fs.mkdirs(dir);
 
-        Assert.assertTrue(fs.createNewFile(new Path(dir, name)));
+        assertTrue(fs.createNewFile(new Path(dir, name)));
     }
     
     // dynamically add more resources to the system class loader
@@ -160,15 +148,13 @@ public class TestPigServer {
         
         // jar name is not present to start with
         verifyStringContained(pig.getPigContext().extraJars, jarName, false);
-
-        boolean exceptionRaised = false;
+        boolean raisedException = false;
         try {
             pig.registerJar(jarName);
+        } catch (IOException e) {
+            raisedException = true;
         }
-        catch (IOException e) {
-            exceptionRaised = true;
-        }        
-        Assert.assertTrue(exceptionRaised);
+        assertTrue("registerJar on jarName ["+jarName+"] should have raised an exception", raisedException);
         verifyStringContained(pig.getPigContext().extraJars, jarName, false);
     }
 
@@ -189,18 +175,11 @@ public class TestPigServer {
         
         verifyStringContained(pig.getPigContext().extraJars, jarName, false);
         
-        boolean exceptionRaised = false;
-        try {
             pig.registerJar(jarLocation + jarName);
-        }
-        catch (IOException e) {
-            exceptionRaised = true;
-        }        
-        Assert.assertFalse(exceptionRaised);
         verifyStringContained(pig.getPigContext().extraJars, jarName, true);
 
         // clean-up
-        Assert.assertTrue((new File(jarLocation + jarName)).delete());
+        assertTrue((new File(jarLocation + jarName)).delete());
         (new File(dir1 + FILE_SEPARATOR + dir2)).delete();
         (new File(dir1)).delete();
     }
@@ -228,19 +207,12 @@ public class TestPigServer {
         registerNewResource(jarLocation1);
         registerNewResource(jarLocation2);
         
-        boolean exceptionRaised = false;
-        try {
             pig.registerJar(jarName);
-        }
-        catch (IOException e) {
-            exceptionRaised = true;
-        }
-        Assert.assertFalse(exceptionRaised);
         verifyStringContained(pig.getPigContext().extraJars, jarName, true);
 
         // clean-up
-        Assert.assertTrue((new File(jarLocation1 + jarName)).delete());
-        Assert.assertTrue((new File(jarLocation2 + jarName)).delete());
+        assertTrue((new File(jarLocation1 + jarName)).delete());
+        assertTrue((new File(jarLocation2 + jarName)).delete());
         (new File(jarLocation1)).delete();
         (new File(jarLocation2)).delete();
         (new File(dir)).delete();
@@ -276,7 +248,7 @@ public class TestPigServer {
         int status;
         status = Util.executeJavaCommand("javac " + dir + FILE_SEPARATOR + subDir +
                                FILE_SEPARATOR + className + ".java");
-        Assert.assertTrue(status==0);
+        assertEquals(0, status);
 
         // remove src file
         (new File(dir + FILE_SEPARATOR + subDir +
@@ -285,7 +257,7 @@ public class TestPigServer {
         // generate jar file
         status = Util.executeJavaCommand("jar -cf " + dir + FILE_SEPARATOR + jarName + " " +
                               "-C " + dir + " " + subDir);
-        Assert.assertTrue(status==0);
+        assertEquals(0, status);
         
         // remove class file and sub_dir
         (new File(dir + FILE_SEPARATOR + subDir +
@@ -305,7 +277,7 @@ public class TestPigServer {
         }
         
         // verify proper jar file is located
-        Assert.assertFalse(exceptionRaised);
+        assertFalse(exceptionRaised);
         verifyStringContained(pig.getPigContext().extraJars, jarName, true);
 
         // clean up Jar file and test dir
@@ -323,20 +295,13 @@ public class TestPigServer {
         createFakeJarFile(jarLocation, jar1Name);
         createFakeJarFile(jarLocation, jar2Name);
         
-        boolean exceptionRaised = false;
-        try {
             pig.registerJar(jarLocation + "TestRegisterJarGlobbing*.jar");
-        }
-        catch (IOException e) {
-            exceptionRaised = true;
-        }        
-        Assert.assertFalse(exceptionRaised);
         verifyStringContained(pig.getPigContext().extraJars, jar1Name, true);
         verifyStringContained(pig.getPigContext().extraJars, jar2Name, true);
 
         // clean-up
-        Assert.assertTrue((new File(jarLocation + jar1Name)).delete());
-        Assert.assertTrue((new File(jarLocation + jar2Name)).delete());
+        assertTrue((new File(jarLocation + jar1Name)).delete());
+        assertTrue((new File(jarLocation + jar2Name)).delete());
         (new File(dir)).delete();
     }
     
@@ -350,21 +315,14 @@ public class TestPigServer {
         createFakeJarFile(jarLocation, jar1Name);
         createFakeJarFile(jarLocation, jar2Name);
         
-        boolean exceptionRaised = false;
         String currentDir = System.getProperty("user.dir");
-        try {
             pig.registerJar(new File(currentDir, dir) + FILE_SEPARATOR + "TestRegisterJarGlobbing*.jar");
-        }
-        catch (IOException e) {
-            exceptionRaised = true;
-        }        
-        Assert.assertFalse(exceptionRaised);
         verifyStringContained(pig.getPigContext().extraJars, jar1Name, true);
         verifyStringContained(pig.getPigContext().extraJars, jar2Name, true);
 
         // clean-up
-        Assert.assertTrue((new File(jarLocation + jar1Name)).delete());
-        Assert.assertTrue((new File(jarLocation + jar2Name)).delete());
+        assertTrue((new File(jarLocation + jar1Name)).delete());
+        assertTrue((new File(jarLocation + jar2Name)).delete());
         (new File(dir)).delete();
     }
 
@@ -383,196 +341,65 @@ public class TestPigServer {
         // depend on configuration
         String absPath = fs.getFileStatus(new Path(jarLocation)).getPath().toString();
 
-        boolean exceptionRaised = false;
-        try {
             pig.registerJar(absPath + FILE_SEPARATOR + "TestRegister{Remote}Jar*.jar");
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-            exceptionRaised = true;
-        }
-        Assert.assertFalse(exceptionRaised);
+
         verifyStringContained(pig.getPigContext().extraJars, jar1Name, true);
         verifyStringContained(pig.getPigContext().extraJars, jar2Name, true);
 
         // clean-up
-        Assert.assertTrue(fs.delete(new Path(jarLocation), true));
-    }
-    
-    @Test
-    public void testRegisterRemoteMacro() throws Throwable {
-        String macroName = "util.pig";
-        File macroFile = File.createTempFile("tmp", "");
-        PrintWriter pw = new PrintWriter(new FileWriter(macroFile));
-        pw.println("DEFINE row_count(X) RETURNS Z { Y = group $X all; $Z = foreach Y generate COUNT($X); };");
-        pw.close();
-        
-        FileSystem fs = cluster.getFileSystem();
-        fs.copyFromLocalFile(new Path(macroFile.getAbsolutePath()), new Path(macroName));
-        
-        // find the absolute path for the directory so that it does not
-        // depend on configuration
-        String absPath = fs.getFileStatus(new Path(macroName)).getPath().toString();
-        
-        Util.createInputFile(cluster, "testRegisterRemoteMacro_input", new String[]{"1", "2"});
-        
-        pig.registerQuery("import '" + absPath + "';");
-        pig.registerQuery("a = load 'testRegisterRemoteMacro_input';");
-        pig.registerQuery("b = row_count(a);");
-        Iterator<Tuple> iter = pig.openIterator("b");
-        
-        Assert.assertTrue(((Long)iter.next().get(0))==2);
-    }
-    
-    @Test
-    public void testRegisterRemoteScript() throws Throwable {
-        String scriptName = "script.py";
-        File scriptFile = File.createTempFile("tmp", "");
-        PrintWriter pw = new PrintWriter(new FileWriter(scriptFile));
-        pw.println("@outputSchema(\"word:chararray\")\ndef helloworld():\n    return 'Hello, World'");
-        pw.close();
-        
-        FileSystem fs = cluster.getFileSystem();
-        fs.copyFromLocalFile(new Path(scriptFile.getAbsolutePath()), new Path(scriptName));
-        
-        // find the absolute path for the directory so that it does not
-        // depend on configuration
-        String absPath = fs.getFileStatus(new Path(scriptName)).getPath().toString();
-        
-        Util.createInputFile(cluster, "testRegisterRemoteScript_input", new String[]{"1", "2"});
-        pig.registerCode(absPath, "jython", "pig");
-        pig.registerQuery("a = load 'testRegisterRemoteScript_input';");
-        pig.registerQuery("b = foreach a generate pig.helloworld($0);");
-        Iterator<Tuple> iter = pig.openIterator("b");
-        
-        Assert.assertTrue(iter.next().get(0).equals("Hello, World"));
-        Assert.assertTrue(iter.next().get(0).equals("Hello, World"));
-        Assert.assertFalse(iter.hasNext());
+        assertTrue(fs.delete(new Path(jarLocation), true));
     }
 
-    @Test
     public void testDescribeLoad() throws Throwable {
-        PrintStream console = System.out;
-        PrintStream out = new PrintStream(new BufferedOutputStream(new FileOutputStream(stdOutRedirectedFile)));
-
         pig.registerQuery("a = load 'a' as (field1: int, field2: float, field3: chararray );") ;
-        System.setOut(out);
-        pig.dumpSchema("a") ;
-        out.close(); // Remember this!
-        System.setOut(console);
-
-        String s;
-        InputStream fileWithStdOutContents = new DataInputStream( new BufferedInputStream( new FileInputStream(stdOutRedirectedFile)));
-        BufferedReader reader = new BufferedReader(new InputStreamReader(fileWithStdOutContents));
-        while ((s = reader.readLine()) != null) {
-            Assert.assertTrue(s.equals("a: {field1: int,field2: float,field3: chararray}") == true);
-        }
-        reader.close();
+        Schema dumpedSchema = pig.dumpSchema("a") ;
+        Schema expectedSchema = Utils.getSchemaFromString("field1: int,field2: float,field3: chararray");
+        assertEquals(expectedSchema, dumpedSchema);
     }
 
     @Test
     public void testDescribeFilter() throws Throwable {
-        PrintStream console = System.out;
-        PrintStream out = new PrintStream(new BufferedOutputStream(new FileOutputStream(stdOutRedirectedFile)));
-
         pig.registerQuery("a = load 'a' as (field1: int, field2: float, field3: chararray );") ;
         pig.registerQuery("b = filter a by field1 > 10;") ;
-        System.setOut(out);
-        pig.dumpSchema("b") ;
-        out.close(); // Remember this!
-        System.setOut(console);
-
-        String s;
-        InputStream fileWithStdOutContents = new DataInputStream( new BufferedInputStream( new FileInputStream(stdOutRedirectedFile)));
-        BufferedReader reader = new BufferedReader(new InputStreamReader(fileWithStdOutContents));
-        while ((s = reader.readLine()) != null) {
-            Assert.assertTrue(s.equals("b: {field1: int,field2: float,field3: chararray}") == true);
-        }
-        fileWithStdOutContents.close();
+        Schema dumpedSchema = pig.dumpSchema("b") ;
+        Schema expectedSchema = Utils.getSchemaFromString("field1: int,field2: float,field3: chararray");
+        assertEquals(expectedSchema, dumpedSchema);
     }
 
     @Test
     public void testDescribeDistinct() throws Throwable {
-        PrintStream console = System.out;
-        PrintStream out = new PrintStream(new BufferedOutputStream(new FileOutputStream(stdOutRedirectedFile)));
-
         pig.registerQuery("a = load 'a' as (field1: int, field2: float, field3: chararray );") ;
         pig.registerQuery("b = distinct a ;") ;
-        System.setOut(out);
-        pig.dumpSchema("b") ;
-        out.close(); // Remember this!
-        System.setOut(console);
-
-        String s;
-        InputStream fileWithStdOutContents = new DataInputStream( new BufferedInputStream( new FileInputStream(stdOutRedirectedFile)));
-        BufferedReader reader = new BufferedReader(new InputStreamReader(fileWithStdOutContents));
-        while ((s = reader.readLine()) != null) {
-            Assert.assertTrue(s.equals("b: {field1: int,field2: float,field3: chararray}") == true);
-        }
-        fileWithStdOutContents.close();
+        Schema dumpedSchema = pig.dumpSchema("b") ;
+        Schema expectedSchema = Utils.getSchemaFromString("field1: int,field2: float,field3: chararray");
+        assertEquals(expectedSchema, dumpedSchema);
     }
 
     @Test
     public void testDescribeSort() throws Throwable {
-        PrintStream console = System.out;
-        PrintStream out = new PrintStream(new BufferedOutputStream(new FileOutputStream(stdOutRedirectedFile)));
-
         pig.registerQuery("a = load 'a' as (field1: int, field2: float, field3: chararray );") ;
         pig.registerQuery("b = order a by * desc;") ;
-        System.setOut(out);
-        pig.dumpSchema("b") ;
-        out.close(); // Remember this!
-        System.setOut(console);
-
-        String s;
-        InputStream fileWithStdOutContents = new DataInputStream( new BufferedInputStream( new FileInputStream(stdOutRedirectedFile)));
-        BufferedReader reader = new BufferedReader(new InputStreamReader(fileWithStdOutContents));
-        while ((s = reader.readLine()) != null) {
-            Assert.assertTrue(s.equals("b: {field1: int,field2: float,field3: chararray}") == true);
-        }
-        fileWithStdOutContents.close();
+        Schema dumpedSchema = pig.dumpSchema("b") ;
+        Schema expectedSchema = Utils.getSchemaFromString("field1: int,field2: float,field3: chararray");
+        assertEquals(expectedSchema, dumpedSchema);
     }
 
     @Test
     public void testDescribeLimit() throws Throwable {
-        PrintStream console = System.out;
-        PrintStream out = new PrintStream(new BufferedOutputStream(new FileOutputStream(stdOutRedirectedFile)));
-
         pig.registerQuery("a = load 'a' as (field1: int, field2: float, field3: chararray );") ;
         pig.registerQuery("b = limit a 10;") ;
-        System.setOut(out);
-        pig.dumpSchema("b") ;
-        out.close(); // Remember this!
-        System.setOut(console);
-
-        String s;
-        InputStream fileWithStdOutContents = new DataInputStream( new BufferedInputStream( new FileInputStream(stdOutRedirectedFile)));
-        BufferedReader reader = new BufferedReader(new InputStreamReader(fileWithStdOutContents));
-        while ((s = reader.readLine()) != null) {
-            Assert.assertTrue(s.equals("b: {field1: int,field2: float,field3: chararray}") == true);
-        }
-        fileWithStdOutContents.close();
+        Schema dumpedSchema = pig.dumpSchema("b") ;
+        Schema expectedSchema = Utils.getSchemaFromString("field1: int,field2: float,field3: chararray");
+        assertEquals(expectedSchema, dumpedSchema);
     }
 
     @Test
     public void testDescribeForeach() throws Throwable {
-        PrintStream console = System.out;
-        PrintStream out = new PrintStream(new BufferedOutputStream(new FileOutputStream(stdOutRedirectedFile)));
-
         pig.registerQuery("a = load 'a' as (field1: int, field2: float, field3: chararray );") ;
         pig.registerQuery("b = foreach a generate field1 + 10;") ;
-        System.setOut(out);
-        pig.dumpSchema("b") ;
-        out.close(); 
-        System.setOut(console);
-
-        String s;
-        InputStream fileWithStdOutContents = new DataInputStream( new BufferedInputStream( new FileInputStream(stdOutRedirectedFile)));
-        BufferedReader reader = new BufferedReader(new InputStreamReader(fileWithStdOutContents));
-        while ((s = reader.readLine()) != null) {
-            Assert.assertTrue(s.equals("b: {int}") == true);
-        }
-        fileWithStdOutContents.close();
+        Schema dumpedSchema = pig.dumpSchema("b") ;
+        Schema expectedSchema = new Schema(new Schema.FieldSchema(null, DataType.INTEGER));
+        assertEquals(expectedSchema, dumpedSchema);
     }
 
     @Test
@@ -582,152 +409,106 @@ public class TestPigServer {
         pig.registerQuery("b = foreach a generate field1 + 10;") ;
         try {
             pig.dumpSchema("c") ;
-            Assert.fail("Error expected");
+            fail("Error expected");
         } catch (Exception e) {
-            Assert.assertTrue(e.getMessage().contains("Unable to describe schema for alias c"));
+            assertTrue(e.getMessage().contains("Unable to describe schema for alias c"));
         }
     }
 
     @Test
     public void testDescribeForeachNoSchema() throws Throwable {
-        PrintStream console = System.out;
-        PrintStream out = new PrintStream(new BufferedOutputStream(new FileOutputStream(stdOutRedirectedFile)));
-
         pig.registerQuery("a = load 'a' ;") ;
         pig.registerQuery("b = foreach a generate *;") ;
-        System.setOut(out);
-        pig.dumpSchema("b") ;
-        out.close(); 
-        System.setOut(console);
-
-        String s;
-        InputStream fileWithStdOutContents = new DataInputStream( new BufferedInputStream( new FileInputStream(stdOutRedirectedFile)));
-        BufferedReader reader = new BufferedReader(new InputStreamReader(fileWithStdOutContents));
-        while ((s = reader.readLine()) != null) {
-            Assert.assertTrue(s.equals("Schema for b unknown."));
-        }
-        fileWithStdOutContents.close();
+        Schema dumpedSchema = pig.dumpSchema("b") ;
+        assertNull(dumpedSchema);
     }
 
     @Test
     public void testDescribeCogroup() throws Throwable {
-        PrintStream console = System.out;
-        PrintStream out = new PrintStream(new BufferedOutputStream(new FileOutputStream(stdOutRedirectedFile)));
-
         pig.registerQuery("a = load 'a' as (field1: int, field2: float, field3: chararray );") ;
         pig.registerQuery("b = load 'b' as (field4, field5: double, field6: chararray );") ;
         pig.registerQuery("c = cogroup a by field1, b by field4;") ;
-        System.setOut(out);
-        pig.dumpSchema("c") ;
-        out.close(); 
-        System.setOut(console);
-
-        String s;
-        InputStream fileWithStdOutContents = new DataInputStream( new BufferedInputStream( new FileInputStream(stdOutRedirectedFile)));
-        BufferedReader reader = new BufferedReader(new InputStreamReader(fileWithStdOutContents));
-        while ((s = reader.readLine()) != null) {
-            Assert.assertTrue(s.equals("c: {group: int,a: {(field1: int,field2: float,field3: chararray)},b: {(field4: bytearray,field5: double,field6: chararray)}}") == true);
-        }
-        fileWithStdOutContents.close();
+        Schema dumpedSchema = pig.dumpSchema("c") ;
+        Schema expectedSchema = Utils.getSchemaFromString("group:int,a:{(field1:int,field2:float,field3:chararray)},b:{(field4:bytearray,field5:double,field6:chararray)}");
+        assertEquals(expectedSchema, dumpedSchema);
     }
 
     @Test
     public void testDescribeCross() throws Throwable {
-        PrintStream console = System.out;
-        PrintStream out = new PrintStream(new BufferedOutputStream(new FileOutputStream(stdOutRedirectedFile)));
-
         pig.registerQuery("a = load 'a' as (field1: int, field2: float, field3: chararray );") ;
         pig.registerQuery("b = load 'b' as (field4, field5: double, field6: chararray );") ;
         pig.registerQuery("c = cross a, b;") ;
-        System.setOut(out);
-        pig.dumpSchema("c") ;
-        out.close(); 
-        System.setOut(console);
-
-        String s;
-        InputStream fileWithStdOutContents = new DataInputStream( new BufferedInputStream( new FileInputStream(stdOutRedirectedFile)));
-        BufferedReader reader = new BufferedReader(new InputStreamReader(fileWithStdOutContents));
-        while ((s = reader.readLine()) != null) {
-            Assert.assertTrue(s.equals("c: {a::field1: int,a::field2: float,a::field3: chararray,b::field4: bytearray,b::field5: double,b::field6: chararray}") == true);
-        }
-        fileWithStdOutContents.close();
+        Schema dumpedSchema = pig.dumpSchema("c") ;
+        Schema expectedSchema = Utils.getSchemaFromString("a::field1: int,a::field2: float,a::field3: chararray,b::field4: bytearray,b::field5: double,b::field6: chararray");
+        assertEquals(expectedSchema, dumpedSchema);
     }
 
     @Test
     public void testDescribeJoin() throws Throwable {
-        PrintStream console = System.out;
-        PrintStream out = new PrintStream(new BufferedOutputStream(new FileOutputStream(stdOutRedirectedFile)));
-
         pig.registerQuery("a = load 'a' as (field1: int, field2: float, field3: chararray );") ;
         pig.registerQuery("b = load 'b' as (field4, field5: double, field6: chararray );") ;
         pig.registerQuery("c = join a by field1, b by field4;") ;
-        System.setOut(out);
-        pig.dumpSchema("c") ;
-        out.close(); 
-        System.setOut(console);
-
-        String s;
-        InputStream fileWithStdOutContents = new DataInputStream( new BufferedInputStream( new FileInputStream(stdOutRedirectedFile)));
-        BufferedReader reader = new BufferedReader(new InputStreamReader(fileWithStdOutContents));
-        while ((s = reader.readLine()) != null) {
-            Assert.assertEquals("c: {a::field1: int,a::field2: float,a::field3: chararray,b::field4: bytearray,b::field5: double,b::field6: chararray}", s );
-        }
-        fileWithStdOutContents.close();
+        Schema dumpedSchema = pig.dumpSchema("c");
+        Schema expectedSchema = Utils.getSchemaFromString("a::field1: int,a::field2: float,a::field3: chararray,b::field4: bytearray,b::field5: double,b::field6: chararray");
+        assertEquals(expectedSchema, dumpedSchema);
     }
 
     @Test
     public void testDescribeUnion() throws Throwable {
-        PrintStream console = System.out;
-        PrintStream out = new PrintStream(new BufferedOutputStream(new FileOutputStream(stdOutRedirectedFile)));
-
         pig.registerQuery("a = load 'a' as (field1: int, field2: float, field3: chararray );") ;
         pig.registerQuery("b = load 'b' as (field4, field5: double, field6: chararray );") ;
         pig.registerQuery("c = union a, b;") ;
-        System.setOut(out);
-        pig.dumpSchema("c") ;
-        out.close(); 
-        System.setOut(console);
-
-        String s;
-        InputStream fileWithStdOutContents = new DataInputStream( new BufferedInputStream( new FileInputStream(stdOutRedirectedFile)));
-        BufferedReader reader = new BufferedReader(new InputStreamReader(fileWithStdOutContents));
-        while ((s = reader.readLine()) != null) {
-            Assert.assertTrue(s.equals("c: {field1: int,field2: double,field3: chararray}") == true);
-        }
-        fileWithStdOutContents.close();
+        Schema dumpedSchema = pig.dumpSchema("c") ;
+        Schema expectedSchema = Utils.getSchemaFromString("field1: int,field2: double,field3: chararray");
+        assertEquals(expectedSchema, dumpedSchema);
     }
 
     @Test
     public void testDescribeComplex() throws Throwable {
-        PrintStream console = System.out;
-        PrintStream out = new PrintStream(new BufferedOutputStream(new FileOutputStream(stdOutRedirectedFile)));
-
         pig.registerQuery("a = load 'a' as (site: chararray, count: int, itemCounts: bag { itemCountsTuple: tuple (type: chararray, typeCount: int, f: float, m: map[]) } ) ;") ;
         pig.registerQuery("b = foreach a generate site, count, FLATTEN(itemCounts);") ;
-        System.setOut(out);
-        pig.dumpSchema("b") ;
-        out.close();
-        System.setOut(console);
-
-        String s;
-        InputStream fileWithStdOutContents = new DataInputStream( new BufferedInputStream( new FileInputStream(stdOutRedirectedFile)));
-        BufferedReader reader = new BufferedReader(new InputStreamReader(fileWithStdOutContents));
-        while ((s = reader.readLine()) != null) {
-            // strip away the initial schema alias and the
-            // curlies surrounding the schema to construct
-            // the schema object from the schema string
-            s = s.replaceAll("^.*\\{", "");
-            s = s.replaceAll("\\}$", "");
-            Schema actual = Utils.getSchemaFromString( s);
-            Schema expected = Utils.getSchemaFromString(
+        Schema dumpedSchema = pig.dumpSchema("b") ;
+        Schema expectedSchema = Utils.getSchemaFromString(
                     "site: chararray,count: int," +
                     "itemCounts::type: chararray,itemCounts::typeCount: int," +
                     "itemCounts::f: float,itemCounts::m: map[ ]");
-            Assert.assertEquals(expected, actual);
-        }
-        fileWithStdOutContents.close();
+        assertEquals(expectedSchema, dumpedSchema);
     }
     
+    @Test
+    public void testRegisterRemoteScript() throws Throwable {
+        String scriptName = "script.py";
+        File scriptFile = File.createTempFile("tmp", "");
+        PrintWriter pw = new PrintWriter(new FileWriter(scriptFile));
+        pw.println("@outputSchema(\"word:chararray\")\ndef helloworld():\n    return 'Hello, World'");
+        pw.close();
+
+        FileSystem fs = cluster.getFileSystem();
+        fs.copyFromLocalFile(new Path(scriptFile.getAbsolutePath()), new Path(scriptName));
+
+        // find the absolute path for the directory so that it does not
+        // depend on configuration
+        String absPath = fs.getFileStatus(new Path(scriptName)).getPath().toString();
+
+        Util.createInputFile(cluster, "testRegisterRemoteScript_input", new String[]{"1", "2"});
+        pig.registerCode(absPath, "jython", "pig");
+        pig.registerQuery("a = load 'testRegisterRemoteScript_input';");
+        pig.registerQuery("b = foreach a generate pig.helloworld($0);");
+        Iterator<Tuple> iter = pig.openIterator("b");
+
+        assertTrue(iter.hasNext());
+        Tuple t = iter.next();
+        assertTrue(t.size() > 0);
+        assertEquals("Hello, World", t.get(0));
+
+        assertTrue(iter.hasNext());
+        t = iter.next();
+        assertTrue(t.size() > 0);
+        assertEquals("Hello, World", t.get(0));
+
+        assertFalse(iter.hasNext());
+    }
+
     @Test
     public void testParamSubstitution() throws Exception{
         // using params map
@@ -741,7 +522,7 @@ public class TestPigServer {
         List<Tuple> expectedTuples=Util.readFile2TupleList("test/org/apache/pig/test/data/passwd", ":");
         while(iter.hasNext()){
             Tuple tuple=iter.next();
-            Assert.assertEquals(tuple.get(0).toString(), expectedTuples.get(index).get(0).toString());
+            assertEquals(tuple.get(0).toString(), expectedTuples.get(index).get(0).toString());
             index++;
         }
         
@@ -755,7 +536,7 @@ public class TestPigServer {
         expectedTuples=Util.readFile2TupleList("test/org/apache/pig/test/data/passwd2", ":");
         while(iter.hasNext()){
             Tuple tuple=iter.next();
-            Assert.assertEquals(tuple.get(0).toString(), expectedTuples.get(index).get(0).toString());
+            assertEquals(tuple.get(0).toString(), expectedTuples.get(index).get(0).toString());
             index++;
         }
         
@@ -767,7 +548,7 @@ public class TestPigServer {
         expectedTuples=Util.readFile2TupleList("test/org/apache/pig/test/data/passwd", ":");
         while(iter.hasNext()){
             Tuple tuple=iter.next();
-            Assert.assertEquals(tuple.get(0).toString(), expectedTuples.get(index).get(0).toString());
+            assertEquals(tuple.get(0).toString(), expectedTuples.get(index).get(0).toString());
             index++;
         }
     }
@@ -786,7 +567,7 @@ public class TestPigServer {
         List<Tuple> expectedTuples=Util.readFile2TupleList("test/org/apache/pig/test/data/passwd", ":");
         while(iter.hasNext()){
             Tuple tuple=iter.next();
-            Assert.assertEquals(tuple.get(0).toString(), expectedTuples.get(index).get(0).toString());
+            assertEquals(tuple.get(0).toString(), expectedTuples.get(index).get(0).toString());
             index++;
         }
         
@@ -800,7 +581,7 @@ public class TestPigServer {
         expectedTuples=Util.readFile2TupleList("test/org/apache/pig/test/data/passwd2", ":");
         while(iter.hasNext()){
             Tuple tuple=iter.next();
-            Assert.assertEquals(tuple.get(0).toString(), expectedTuples.get(index).get(0).toString());
+            assertEquals(tuple.get(0).toString(), expectedTuples.get(index).get(0).toString());
             index++;
         }
         
@@ -812,26 +593,30 @@ public class TestPigServer {
         expectedTuples=Util.readFile2TupleList("test/org/apache/pig/test/data/passwd", ":");
         while(iter.hasNext()){
             Tuple tuple=iter.next();
-            Assert.assertEquals(tuple.get(0).toString(), expectedTuples.get(index).get(0).toString());
+            assertEquals(tuple.get(0).toString(), expectedTuples.get(index).get(0).toString());
             index++;
         }
     }
     
     @Test
     public void testPigProperties() throws Throwable {
-        File propertyFile = new File("pig.properties");
+        File propertyFile = new File(tempDir, "pig.properties");
+        propertyFile.deleteOnExit();
+        TestPigServer.registerNewResource(propertyFile.getAbsolutePath());
         File cliPropertyFile = new File("commandLine_pig.properties");
+        cliPropertyFile.deleteOnExit();
+        TestPigServer.registerNewResource(cliPropertyFile.getAbsolutePath());
         
         Properties properties = PropertiesUtil.loadDefaultProperties();
-        Assert.assertTrue(properties.getProperty("pig.spill.gc.activation.size").equals("40000000"));
-        Assert.assertTrue(properties.getProperty("test123")==null);
+        assertEquals("40000000", properties.getProperty("pig.spill.gc.activation.size"));
+        assertNull(properties.getProperty("test123"));
 
         PrintWriter out = new PrintWriter(new FileWriter(propertyFile));
         out.println("test123=properties");
         out.close();
-
         properties = PropertiesUtil.loadDefaultProperties();
-        Assert.assertTrue(properties.getProperty("test123").equals("properties"));
+
+        assertEquals("properties", properties.getProperty("test123"));
         
         out = new PrintWriter(new FileWriter(cliPropertyFile));
         out.println("test123=cli_properties");
@@ -840,7 +625,7 @@ public class TestPigServer {
         properties = PropertiesUtil.loadDefaultProperties();
         PropertiesUtil.loadPropertiesFromFile(properties,
                 "commandLine_pig.properties");
-        Assert.assertTrue(properties.getProperty("test123").equals("cli_properties"));
+        assertEquals("cli_properties", properties.getProperty("test123"));
         
         propertyFile.delete();
         cliPropertyFile.delete();
@@ -848,7 +633,8 @@ public class TestPigServer {
 
     @Test
     public void testPigTempDir() throws Throwable {
-        File propertyFile = new File("pig.properties");
+        File propertyFile = new File(tempDir, "pig.properties");
+        propertyFile.deleteOnExit();
         PrintWriter out = new PrintWriter(new FileWriter(propertyFile));
         out.println("pig.temp.dir=/opt/temp");
         out.close();
@@ -857,7 +643,7 @@ public class TestPigServer {
         pigContext.connect();
         FileLocalizer.setInitialized(false);
         String tempPath= FileLocalizer.getTemporaryPath(pigContext).toString();
-        Assert.assertTrue(tempPath.startsWith("file:/opt/temp"));
+        assertTrue(tempPath.startsWith("file:/opt/temp"));
         propertyFile.delete();
         FileLocalizer.setInitialized(false);
     }
@@ -868,7 +654,7 @@ public class TestPigServer {
         pig.registerQuery("b = group a by $0;") ;
         pig.registerQuery("c = foreach b generate flatten(a);") ;
         Schema s = pig.dumpSchema("c") ;
-        Assert.assertTrue(s==null);
+        assertNull(s);
     }
 
     @Test // PIG-2059
@@ -877,13 +663,12 @@ public class TestPigServer {
         pig.registerQuery("A = load 'x' as (u, v);") ;
         try {
             pig.registerQuery("B = foreach A generate $2;") ;
+            fail("Query is supposed to fail.");
         } catch(FrontendException ex) {
             String msg = "Out of bound access. " +
             "Trying to access non-existent column: 2";
             Util.checkMessageInException(ex, msg);
-            return;
         }
-        Assert.fail( "Query is supposed to fail." );
     }
 
     @Test
@@ -892,24 +677,20 @@ public class TestPigServer {
     	PigServer pigServer = new PigServer(ExecType.MAPREDUCE);
     	Properties properties = pigServer.getPigContext().getProperties();
     	
-    	Assert
-		.assertTrue(properties.getProperty(
-				"pig.exec.reducers.max").equals("999"));
-		Assert.assertTrue(properties.getProperty("aggregate.warning").equals("true"));
-		Assert.assertTrue(properties.getProperty("opt.multiquery").equals("true"));
-		Assert.assertTrue(properties.getProperty("stop.on.failure").equals("false"));
+        assertEquals("999", properties.getProperty("pig.exec.reducers.max"));
+        assertEquals("true", properties.getProperty("aggregate.warning"));
+        assertEquals("true", properties.getProperty("opt.multiquery"));
+        assertEquals("false", properties.getProperty("stop.on.failure"));
     	
 		//Test with properties file
-		File propertyFile = new File("pig.properties");
+		File propertyFile = new File(tempDir, "pig.properties");
 
 		properties = PropertiesUtil.loadDefaultProperties();
 		
-		Assert
-		.assertTrue(properties.getProperty(
-				"pig.exec.reducers.max").equals("999"));
-		Assert.assertTrue(properties.getProperty("aggregate.warning").equals("true"));
-		Assert.assertTrue(properties.getProperty("opt.multiquery").equals("true"));
-		Assert.assertTrue(properties.getProperty("stop.on.failure").equals("false"));
+		assertEquals("999", properties.getProperty("pig.exec.reducers.max"));
+        assertEquals("true", properties.getProperty("aggregate.warning"));
+        assertEquals("true", properties.getProperty("opt.multiquery"));
+        assertEquals("false", properties.getProperty("stop.on.failure"));
 		
 		PrintWriter out = new PrintWriter(new FileWriter(propertyFile));
 		out.println("aggregate.warning=false");
@@ -919,13 +700,31 @@ public class TestPigServer {
 		out.close();
 
 		properties = PropertiesUtil.loadDefaultProperties();
-		Assert.assertTrue(properties.getProperty("aggregate.warning")
-				.equals("false"));
-		Assert.assertTrue(properties.getProperty("opt.multiquery")
-				.equals("false"));
-		Assert.assertTrue(properties.getProperty("stop.on.failure")
-				.equals("true"));
+		assertEquals("false", properties.getProperty("aggregate.warning"));
+		assertEquals("false", properties.getProperty("opt.multiquery"));
+		assertEquals("true", properties.getProperty("stop.on.failure"));
 
 		propertyFile.delete();
 	}
+
+    @Test
+    public void testSecondarySort() throws Exception {
+        PigServer pigServer = new PigServer(ExecType.LOCAL);
+        Data data = resetData(pigServer);
+
+        data.set("foo",
+            tuple("a", 1, "b"),
+            tuple("b", 2, "c"),
+            tuple("c", 3, "d")
+            );
+
+        pigServer.registerQuery("A = LOAD 'foo' USING mock.Storage() AS (f1:chararray,f2:int,f3:chararray);");
+        pigServer.registerQuery("B = order A by f1,f2,f3 DESC;");
+        pigServer.registerQuery("STORE B INTO 'bar' USING mock.Storage();");
+
+        List<Tuple> out = data.get("bar");
+        assertEquals(tuple("a", 1, "b"), out.get(0));
+        assertEquals(tuple("b", 2, "c"), out.get(1));
+        assertEquals(tuple("c", 3, "d"), out.get(2));
+    }
 }

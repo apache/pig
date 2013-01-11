@@ -78,12 +78,14 @@ import org.apache.pig.newplan.logical.expression.ScalarExpression;
 import org.apache.pig.newplan.logical.expression.SubtractExpression;
 import org.apache.pig.newplan.logical.expression.UserFuncExpression;
 import org.apache.pig.newplan.logical.relational.LOCogroup;
+import org.apache.pig.newplan.logical.relational.LOCube;
 import org.apache.pig.newplan.logical.relational.LOFilter;
 import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOGenerate;
 import org.apache.pig.newplan.logical.relational.LOLimit;
 import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.apache.pig.newplan.logical.relational.LOSort;
+import org.apache.pig.newplan.logical.relational.LORank;
 import org.apache.pig.newplan.logical.relational.LOSplitOutput;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
@@ -212,12 +214,14 @@ op_clause returns[String alias] :
           | limit_clause { $alias = $limit_clause.alias; }
           | sample_clause { $alias = $sample_clause.alias; }
           | order_clause { $alias = $order_clause.alias; }
+          | rank_clause { $alias = $rank_clause.alias; }
           | cross_clause { $alias = $cross_clause.alias; }
           | join_clause { $alias = $join_clause.alias; }
           | union_clause { $alias = $union_clause.alias; }
           | stream_clause { $alias = $stream_clause.alias; }
           | mr_clause { $alias = $mr_clause.alias; }
           | foreach_clause { $alias = $foreach_clause.alias; }
+          | cube_clause { $alias = $cube_clause.alias; }
 ;
 
 define_clause 
@@ -384,6 +388,7 @@ simple_type returns[byte datatype]
  | LONG { $datatype = DataType.LONG; }
  | FLOAT { $datatype = DataType.FLOAT; }
  | DOUBLE { $datatype = DataType.DOUBLE; }
+ | DATETIME { $datatype = DataType.DATETIME; }
  | CHARARRAY { $datatype = DataType.CHARARRAY; }
  | BYTEARRAY { $datatype = DataType.BYTEARRAY; }
 ;
@@ -462,6 +467,89 @@ func_args returns[List<String> args]
 : ( QUOTEDSTRING { $args.add( builder.unquote( $QUOTEDSTRING.text ) ); } 
     | MULTILINE_QUOTEDSTRING { $args.add( builder.unquote( $MULTILINE_QUOTEDSTRING.text ) ); }
   )+
+;
+
+// Sets the current operator as CUBE and creates LogicalExpressionPlans based on the user input.
+// Ex: x = CUBE inp BY CUBE(a,b), ROLLUP(c,d);
+// For the above example this grammar creates LogicalExpressionPlan with ProjectExpression for a,b and c,d dimensions.
+// It also outputs the order of operations i.e in this case CUBE operation followed by ROLLUP operation
+// These inputs are passed to buildCubeOp methods which then builds the logical plan for CUBE operator.
+// If user specifies STAR or RANGE expression for dimensions then it will be expanded inside buildCubeOp.
+cube_clause returns[String alias]
+scope {
+    LOCube cubeOp;
+    MultiMap<Integer, LogicalExpressionPlan> cubePlans;
+    List<String> operations;
+    int inputIndex;
+}
+scope GScope;
+@init {
+    $cube_clause::cubeOp = builder.createCubeOp();
+    $GScope::currentOp = $cube_clause::cubeOp;
+    $cube_clause::cubePlans = new MultiMap<Integer, LogicalExpressionPlan>();
+    $cube_clause::operations = new ArrayList<String>();
+}
+ : ^( CUBE cube_item )
+   {
+       SourceLocation loc = new SourceLocation( (PigParserNode)$cube_clause.start );
+       $alias = builder.buildCubeOp( loc, $cube_clause::cubeOp, $statement::alias, 
+       $statement::inputAlias, $cube_clause::operations, $cube_clause::cubePlans );
+   }
+;
+
+cube_item
+ : rel ( cube_by_clause 
+   { 
+       $cube_clause::cubePlans = $cube_by_clause.plans;
+       $cube_clause::operations = $cube_by_clause.operations;
+   } )
+;
+
+cube_by_clause returns[List<String> operations, MultiMap<Integer, LogicalExpressionPlan> plans]
+@init {
+    $operations = new ArrayList<String>();
+    $plans = new MultiMap<Integer, LogicalExpressionPlan>();
+}
+ : ^( BY cube_or_rollup { $operations = $cube_or_rollup.operations; $plans = $cube_or_rollup.plans; })
+;
+
+cube_or_rollup returns[List<String> operations, MultiMap<Integer, LogicalExpressionPlan> plans]
+@init {
+    $operations = new ArrayList<String>();
+    $plans = new MultiMap<Integer, LogicalExpressionPlan>();
+}
+ : ( cube_rollup_list 
+   { 
+       $operations.add($cube_rollup_list.operation); 
+       $plans.put( $cube_clause::inputIndex, $cube_rollup_list.plans); 
+       $cube_clause::inputIndex++;
+   } )+
+;
+
+cube_rollup_list returns[String operation, List<LogicalExpressionPlan> plans]
+@init {
+    $plans = new ArrayList<LogicalExpressionPlan>();
+}
+ : ^( ( CUBE { $operation = "CUBE"; } | ROLLUP { $operation = "ROLLUP"; } ) cube_by_expr_list { $plans = $cube_by_expr_list.plans; } ) 
+;
+
+cube_by_expr_list returns[List<LogicalExpressionPlan> plans]
+@init {
+    $plans = new ArrayList<LogicalExpressionPlan>();
+}
+ : ( cube_by_expr { $plans.add( $cube_by_expr.plan ); } )+
+;
+
+cube_by_expr returns[LogicalExpressionPlan plan]
+@init {
+    $plan = new LogicalExpressionPlan();
+}
+ : col_range[$plan]
+ | expr[$plan]
+ | STAR 
+   {
+       builder.buildProjectExpr( new SourceLocation( (PigParserNode)$STAR ), $plan, $GScope::currentOp, 0, null, -1 );
+   }
 ;
 
 group_clause returns[String alias]
@@ -667,7 +755,13 @@ cond[LogicalExpressionPlan exprPlan] returns[LogicalExpression expr]
    {
        $expr = $func_eval.expr;
    }
+ | ^( BOOL_COND e1 = expr[$exprPlan] )
+   {
+   	   $expr = $e1.expr;
+       $expr.setLocation( new SourceLocation( (PigParserNode)$BOOL_COND ) );
+   }   
 ;
+
 
 func_eval[LogicalExpressionPlan plan] returns[LogicalExpression expr]
 @init { 
@@ -882,6 +976,7 @@ col_alias_or_index returns[Object col]
 
 col_alias returns[Object col]
  : GROUP { $col = $GROUP.text; }
+ | CUBE { $col = $CUBE.text; }
  | IDENTIFIER { $col = $IDENTIFIER.text; }
 ;
 
@@ -957,6 +1052,76 @@ scope GScope;
            (LOFilter)$GScope::currentOp, $statement::alias, $statement::inputAlias, exprPlan, $expr.expr);
    }
   ) )
+;
+
+rank_clause returns[String alias]
+scope {
+	LORank rankOp;
+}
+scope GScope;
+@init {
+	$GScope::currentOp = builder.createRankOp();
+}
+@after {
+}
+ : ^( RANK rel rank_by_statement? )
+ {
+	SourceLocation loc = new SourceLocation( (PigParserNode) $rank_clause.start );
+
+	List<LogicalExpressionPlan> tempPlans = $rank_by_statement.plans;
+	List<Boolean> tempAscFlags = $rank_by_statement.ascFlags;
+
+	if(tempPlans == null && tempAscFlags == null) {
+		tempPlans = new ArrayList<LogicalExpressionPlan>();
+		tempAscFlags = new ArrayList<Boolean>();
+
+		((LORank)$GScope::currentOp).setIsRowNumber( true );
+	}
+
+	((LORank)$GScope::currentOp).setIsDenseRank( $rank_by_statement.isDenseRank != null?$rank_by_statement.isDenseRank:false );
+
+	$alias = builder.buildRankOp( loc, (LORank)$GScope::currentOp, $statement::alias, $statement::inputAlias, tempPlans, tempAscFlags );
+ }
+;
+
+rank_by_statement returns[List<LogicalExpressionPlan> plans, List<Boolean> ascFlags, Boolean isDenseRank]
+@init {
+    $plans = new ArrayList<LogicalExpressionPlan>();
+    $ascFlags = new ArrayList<Boolean>();
+    $isDenseRank = false;
+}
+ : ^( BY rank_by_clause ( DENSE { $isDenseRank =  true; }  )? )
+ {
+	$plans = $rank_by_clause.plans;
+	$ascFlags = $rank_by_clause.ascFlags;
+ }
+;
+
+rank_by_clause returns[List<LogicalExpressionPlan> plans, List<Boolean> ascFlags]
+@init {
+    $plans = new ArrayList<LogicalExpressionPlan>();
+    $ascFlags = new ArrayList<Boolean>();
+}
+ : STAR {
+		LogicalExpressionPlan plan = new LogicalExpressionPlan();
+		builder.buildProjectExpr( new SourceLocation( (PigParserNode)$STAR ), plan, $GScope::currentOp, $statement::inputIndex, null, -1 );
+		$plans.add( plan );
+   }
+   ( ASC { $ascFlags.add( true ); } | DESC { $ascFlags.add( false ); } )?
+ | ( rank_col
+   {
+       $plans.add( $rank_col.plan );
+       $ascFlags.add( $rank_col.ascFlag );
+   } )+
+;
+
+rank_col returns[LogicalExpressionPlan plan, Boolean ascFlag]
+@init {
+    $plan = new LogicalExpressionPlan();
+    $ascFlag = true;
+}
+ : col_range[$plan] (ASC | DESC { $ascFlag = false; } )?
+ | col_ref[$plan] ( ASC | DESC { $ascFlag = false; } )?
 ;
 
 order_clause returns[String alias]
@@ -1430,6 +1595,11 @@ alias_col_ref[LogicalExpressionPlan plan] returns[LogicalExpression expr]
        $expr = builder.buildProjectExpr( new SourceLocation( (PigParserNode)$GROUP ), $plan, $GScope::currentOp, 
            $statement::inputIndex, $GROUP.text, 0 );
    }
+ | CUBE 
+   {
+       $expr = builder.buildProjectExpr( new SourceLocation( (PigParserNode)$CUBE ), $plan, $GScope::currentOp, 
+           $statement::inputIndex, $CUBE.text, 0 );
+   }
  | IDENTIFIER
    {
        SourceLocation loc = new SourceLocation( (PigParserNode)$IDENTIFIER );
@@ -1606,6 +1776,8 @@ eid returns[String id] : rel_str_op { $id = $rel_str_op.id; }
     | ORDER { $id = $ORDER.text; }
     | DISTINCT { $id = $DISTINCT.text; }
     | COGROUP { $id = $COGROUP.text; }
+    | CUBE { $id = $CUBE.text; }
+    | ROLLUP { $id = $ROLLUP.text; }
     | JOIN { $id = $JOIN.text; }
     | CROSS { $id = $CROSS.text; }
     | UNION { $id = $UNION.text; }
@@ -1634,6 +1806,7 @@ eid returns[String id] : rel_str_op { $id = $rel_str_op.id; }
     | LONG { $id = $LONG.text; }
     | FLOAT { $id = $FLOAT.text; }
     | DOUBLE { $id = $DOUBLE.text; }
+    | DATETIME { $id = $DATETIME.text; }
     | CHARARRAY { $id = $CHARARRAY.text; }
     | BYTEARRAY { $id = $BYTEARRAY.text; }
     | BAG { $id = $BAG.text; }

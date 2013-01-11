@@ -189,7 +189,7 @@ public class TFileStorage extends FileInputLoadFunc implements
     @Override
     public ResourceStatistics getStatistics(String location, Job job)
                     throws IOException {
-        throw new UnsupportedOperationException();
+        return null;
     }
 
     @Override
@@ -206,4 +206,8 @@ public class TFileStorage extends FileInputLoadFunc implements
         StoreFunc.cleanupOnFailureImpl(location, job);
     }
 
+    @Override
+    public void cleanupOnSuccess(String location, Job job) throws IOException {
+        // DEFAULT: do nothing
+    }
 }

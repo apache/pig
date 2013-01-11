@@ -18,7 +18,6 @@
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -29,33 +28,32 @@ import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.filecache.DistributedCache;
-import org.apache.hadoop.fs.Path;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin.TuplesToSchemaTupleList;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.NonSpillableDataBag;
+import org.apache.pig.data.SchemaTupleBackend;
+import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
+import org.apache.pig.data.SchemaTupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.impl.util.ObjectSerializer;
 
 /**
  * The operator models the join keys using the Local Rearrange operators which
@@ -94,7 +92,7 @@ public class POFRJoin extends PhysicalOperator {
     // The array of Hashtables one per replicated input. replicates[fragment] =
     // null
     // fragment is the input which is fragmented and not replicated.
-    private Map<Tuple, List<Tuple>> replicates[];
+    private TupleToMapKey replicates[];
     // varaible which denotes whether we are returning tuples from the foreach
     // operator
     private boolean processingPlan;
@@ -109,11 +107,22 @@ public class POFRJoin extends PhysicalOperator {
 
     // This list contains nullTuples according to schema of various inputs 
     private DataBag nullBag;
+    private Schema[] inputSchemas;
+    private Schema[] keySchemas;
 
     public POFRJoin(OperatorKey k, int rp, List<PhysicalOperator> inp,
             List<List<PhysicalPlan>> ppLists, List<List<Byte>> keyTypes,
             FileSpec[] replFiles, int fragment, boolean isLeftOuter,
-            Tuple nullTuple)
+            Tuple nullTuple) throws ExecException {
+        this(k, rp, inp, ppLists, keyTypes, replFiles, fragment, isLeftOuter, nullTuple, null, null);
+    }
+
+    public POFRJoin(OperatorKey k, int rp, List<PhysicalOperator> inp,
+            List<List<PhysicalPlan>> ppLists, List<List<Byte>> keyTypes,
+            FileSpec[] replFiles, int fragment, boolean isLeftOuter,
+            Tuple nullTuple,
+            Schema[] inputSchemas,
+            Schema[] keySchemas)
             throws ExecException {
         super(k, rp, inp);
 
@@ -121,7 +130,7 @@ public class POFRJoin extends PhysicalOperator {
         this.fragment = fragment;
         this.keyTypes = keyTypes;
         this.replFiles = replFiles;
-        replicates = new Map[ppLists.size()];
+        replicates = new TupleToMapKey[ppLists.size()];
         LRs = new POLocalRearrange[ppLists.size()];
         constExps = new ConstantExpression[ppLists.size()];
         createJoinPlans(k);
@@ -131,6 +140,16 @@ public class POFRJoin extends PhysicalOperator {
         tupList.add(nullTuple);
         nullBag = new NonSpillableDataBag(tupList);
         this.isLeftOuterJoin = isLeftOuter;
+        if (inputSchemas != null) {
+            this.inputSchemas = inputSchemas;
+        } else {
+            this.inputSchemas = new Schema[replFiles == null ? 0 : replFiles.length];
+        }
+        if (keySchemas != null) {
+            this.keySchemas = keySchemas;
+        } else {
+            this.keySchemas = new Schema[replFiles == null ? 0 : replFiles.length];
+        }
     }
 
     public List<List<PhysicalPlan>> getJoinPlans() {
@@ -269,15 +288,15 @@ public class POFRJoin extends PhysicalOperator {
                     ce.setValue(value);
                     continue;
                 }
-                Map<Tuple, List<Tuple>> replicate = replicates[i];
-                if (!replicate.containsKey(key)) {
+                TupleToMapKey replicate = replicates[i];
+                if (replicate.get(key) == null) {
                     if (isLeftOuterJoin) {
                         ce.setValue(nullBag);
                     }
                     noMatch = true;
                     break;
                 }
-                ce.setValue(new NonSpillableDataBag(replicate.get(key)));
+                ce.setValue(new NonSpillableDataBag(replicate.get(key).getList()));
             }
 
             // If this is not LeftOuter Join and there was no match we
@@ -299,6 +318,30 @@ public class POFRJoin extends PhysicalOperator {
         }
     }
 
+    private static class TupleToMapKey {
+        private HashMap<Tuple, TuplesToSchemaTupleList> tuples;
+        private SchemaTupleFactory tf;
+
+        public TupleToMapKey(int ct, SchemaTupleFactory tf) {
+            tuples = new HashMap<Tuple, TuplesToSchemaTupleList>(ct);
+            this.tf = tf;
+        }
+
+        public TuplesToSchemaTupleList put(Tuple key, TuplesToSchemaTupleList val) {
+            if (tf != null) {
+                key = TuplesToSchemaTupleList.convert(key, tf);
+            }
+            return tuples.put(key, val);
+        }
+
+        public TuplesToSchemaTupleList get(Tuple key) {
+            if (tf != null) {
+                key = TuplesToSchemaTupleList.convert(key, tf);
+            }
+            return tuples.get(key);
+        }
+    }
+
     /**
      * Builds the HashMaps by reading each replicated input from the DFS using a
      * Load operator
@@ -306,10 +349,28 @@ public class POFRJoin extends PhysicalOperator {
      * @throws ExecException
      */
     private void setUpHashMap() throws ExecException {
+        SchemaTupleFactory[] inputSchemaTupleFactories = new SchemaTupleFactory[inputSchemas.length];
+        SchemaTupleFactory[] keySchemaTupleFactories = new SchemaTupleFactory[inputSchemas.length];
+        for (int i = 0; i < inputSchemas.length; i++) {
+            Schema schema = inputSchemas[i];
+            if (schema != null) {
+                log.debug("Using SchemaTuple for FR Join Schema: " + schema);
+                inputSchemaTupleFactories[i] = SchemaTupleBackend.newSchemaTupleFactory(schema, false, GenContext.FR_JOIN);
+            }
+            schema = keySchemas[i];
+            if (schema != null) {
+                log.debug("Using SchemaTuple for FR Join key Schema: " + schema);
+                keySchemaTupleFactories[i] = SchemaTupleBackend.newSchemaTupleFactory(schema, false, GenContext.FR_JOIN);
+            }
+        }
+
         int i = -1;
         long time1 = System.currentTimeMillis();
         for (FileSpec replFile : replFiles) {
             ++i;
+
+            SchemaTupleFactory inputSchemaTupleFactory = inputSchemaTupleFactories[i];
+            SchemaTupleFactory keySchemaTupleFactory = keySchemaTupleFactories[i];
 
             if (i == fragment) {
                 replicates[i] = null;
@@ -330,25 +391,26 @@ public class POFRJoin extends PhysicalOperator {
             // same thing, so utilizing its functionality
             POLocalRearrange lr = LRs[i];
             lr.setInputs(Arrays.asList((PhysicalOperator) ld));
-            Map<Tuple, List<Tuple>> replicate = new HashMap<Tuple, List<Tuple>>(
-                    1000);
+
+            TupleToMapKey replicate = new TupleToMapKey(1000, keySchemaTupleFactory);
+
             log.debug("Completed setup. Trying to build replication hash table");
-            int cnt = 0;
             for (Result res = lr.getNext(dummyTuple);res.returnStatus != POStatus.STATUS_EOP;res = lr.getNext(dummyTuple)) {
-                ++cnt;
-                if (reporter != null)
-                    reporter.progress();               
+                if (getReporter() != null)
+                    getReporter().progress();
                 Tuple tuple = (Tuple) res.result;
                 if (isKeyNull(tuple.get(1))) continue;
                 Tuple key = mTupleFactory.newTuple(1);
                 key.set(0, tuple.get(1));
                 Tuple value = getValueTuple(lr, tuple);
-                if (!replicate.containsKey(key))
-                    replicate.put(key, new ArrayList<Tuple>(1));
+
+                if (replicate.get(key) == null) {
+                    replicate.put(key, new TuplesToSchemaTupleList(1, inputSchemaTupleFactory));
+                }
+
                 replicate.get(key).add(value);
             }
             replicates[i] = replicate;
-
         }
         long time2 = System.currentTimeMillis();
         log.debug("Hash Table built. Time taken: " + (time2 - time1));

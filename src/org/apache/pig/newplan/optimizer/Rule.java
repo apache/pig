@@ -19,11 +19,12 @@
 package org.apache.pig.newplan.optimizer;
 
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import java.util.Stack;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -238,7 +239,7 @@ public abstract class Rule {
             }
             
             for(int i=0; i<planOps.size(); i++) {
-                Stack<Operator> s = new Stack<Operator>();
+                Deque<Operator> s = new LinkedList<Operator>();
                 if (!check(planOps.get(i), patternOps.get(i), s)) {
                     return false;
                 }
@@ -266,7 +267,7 @@ public abstract class Rule {
          * if we are looking for join->load pattern, only one match will be returned instead
          * of two, so that the matched subsets don't share nodes.
          */ 
-        private boolean check(Operator planOp, Operator patternOp, Stack<Operator> opers) throws FrontendException {
+        private boolean check(Operator planOp, Operator patternOp, Deque<Operator> opers) throws FrontendException {
             if (!match(planOp, patternOp)) {
                 return false;
             }

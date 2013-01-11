@@ -21,17 +21,16 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Iterator;
+
+import org.joda.time.DateTimeZone;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.InputSplit;
-import org.apache.hadoop.mapreduce.TaskAttemptID;
-import org.apache.hadoop.mapreduce.Mapper.Context;
+import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.log4j.PropertyConfigurator;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -43,8 +42,9 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
-import org.apache.pig.data.Tuple;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.SchemaTupleBackend;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.PigNullableWritable;
@@ -52,8 +52,8 @@ import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.ObjectSerializer;
-import org.apache.pig.impl.util.SpillableMemoryManager;
 import org.apache.pig.impl.util.Pair;
+import org.apache.pig.impl.util.SpillableMemoryManager;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
 
 /**
@@ -170,13 +170,17 @@ public abstract class PigGenericMapBase extends Mapper<Text, Tuple, PigNullableW
         
         PigContext.setPackageImportList((ArrayList<String>)ObjectSerializer.deserialize(job.get("udf.import.list")));
         pigContext = (PigContext)ObjectSerializer.deserialize(job.get("pig.pigContext"));
+
+        // This attempts to fetch all of the generated code from the distributed cache, and resolve it
+        SchemaTupleBackend.initialize(job, pigContext);
+
         if (pigContext.getLog4jProperties()!=null)
             PropertyConfigurator.configure(pigContext.getLog4jProperties());
         
         if (mp == null)
             mp = (PhysicalPlan) ObjectSerializer.deserialize(
                 job.get("pig.mapPlan"));
-        stores = PlanHelper.getStores(mp);
+        stores = PlanHelper.getPhysicalOperators(mp, POStore.class);
         
         // To be removed
         if(mp.isEmpty())
@@ -208,6 +212,13 @@ public abstract class PigGenericMapBase extends Mapper<Text, Tuple, PigNullableW
         
         PigStatusReporter.setContext(context);
  
+        log.info("Aliases being processed per job phase (AliasName[line,offset]): " + job.get("pig.alias.location"));
+        
+        String dtzStr = PigMapReduce.sJobConfInternal.get().get("pig.datetime.default.tz");
+        if (dtzStr != null && dtzStr.length() > 0) {
+            // ensure that the internal timezone is uniformly in UTC offset style
+            DateTimeZone.setDefault(DateTimeZone.forOffsetMillis(DateTimeZone.forID(dtzStr).getOffset(null)));
+        }
     }
     
     /**
@@ -246,6 +257,7 @@ public abstract class PigGenericMapBase extends Mapper<Text, Tuple, PigNullableW
             pigHadoopLogger.setReporter(PigStatusReporter.getInstance());
 
             PhysicalOperator.setPigLogger(pigHadoopLogger);
+
         }
         
         if (mp.isEmpty()) {

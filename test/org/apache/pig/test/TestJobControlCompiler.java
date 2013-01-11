@@ -42,12 +42,12 @@ import javax.tools.JavaFileObject;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
 
-import com.google.common.collect.Lists;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
@@ -60,12 +60,36 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestJobControlCompiler {
 
     private static final Configuration CONF = new Configuration();
 
+    
+    @BeforeClass
+    public static void setupClass() throws Exception {
+        // creating a hadoop-site.xml and making it visible to Pig
+        // making sure it is at the same location as for other tests to not pick
+        // up a conf from a previous test
+        File conf_dir = new File("build/classes");
+        File hadoopSite = new File(conf_dir, "hadoop-site.xml");
+        hadoopSite.deleteOnExit();
+        FileWriter fw = new FileWriter(hadoopSite);
+        try {
+            fw.write("<?xml version=\"1.0\"?>\n");
+            fw.write("<?xml-stylesheet type=\"text/xsl\" href=\"nutch-conf.xsl\"?>\n");
+            fw.write("<configuration>\n");
+            fw.write("</configuration>\n");
+        } finally {
+            fw.close();
+        }
+        // making hadoop-site.xml visible to Pig as it REQUIRES!!! one when
+        // running in mapred mode
+        Thread.currentThread().setContextClassLoader(
+                new URLClassLoader(new URL[] { conf_dir.toURI().toURL() }));
+    }
   /**
    * specifically tests that REGISTERED jars get added to distributed cache instead of merged into 
    * the job jar
@@ -79,25 +103,6 @@ public class TestJobControlCompiler {
     tmpFile.deleteOnExit();
     String className = createTestJar(tmpFile);
     final String testUDFFileName = className+".class";
-
-    // creating a hadoop-site.xml and making it visible to Pig
-    // making sure it is at the same location as for other tests to not pick up a 
-    // conf from a previous test
-    File conf_dir = new File("build/classes");
-    File hadoopSite = new File(conf_dir, "hadoop-site.xml");
-    hadoopSite.deleteOnExit();
-    FileWriter fw = new FileWriter(hadoopSite);
-    try {
-      fw.write("<?xml version=\"1.0\"?>\n");
-      fw.write("<?xml-stylesheet type=\"text/xsl\" href=\"nutch-conf.xsl\"?>\n");
-      fw.write("<configuration>\n");
-      fw.write("</configuration>\n");
-    } finally {
-      fw.close();
-    }
-    // making hadoop-site.xml visible to Pig as it REQUIRES!!! one when running in mapred mode
-    Thread.currentThread().setContextClassLoader(
-        new URLClassLoader(new URL[] {conf_dir.toURI().toURL()}));
 
     // JobControlCompiler setup
     PigContext pigContext = new PigContext(ExecType.MAPREDUCE, new Properties());
@@ -134,20 +139,20 @@ public class TestJobControlCompiler {
 
     @Test
     public void testEstimateNumberOfReducers() throws Exception {
-        Assert.assertEquals(2, JobControlCompiler.estimateNumberOfReducers(CONF,
-                Lists.newArrayList(createPOLoadWithSize(2L * 1000 * 1000 * 999,
-                        new PigStorage())),
-                new org.apache.hadoop.mapreduce.Job(CONF)));
+        Assert.assertEquals(2, JobControlCompiler.estimateNumberOfReducers(
+            new Job(CONF), createMockPOLoadMapReduceOper(2L * 1000 * 1000 * 999)));
 
-        Assert.assertEquals(2, JobControlCompiler.estimateNumberOfReducers(CONF,
-                Lists.newArrayList(createPOLoadWithSize(2L * 1000 * 1000 * 1000,
-                        new PigStorage())),
-                new org.apache.hadoop.mapreduce.Job(CONF)));
+        Assert.assertEquals(2, JobControlCompiler.estimateNumberOfReducers(
+            new Job(CONF), createMockPOLoadMapReduceOper(2L * 1000 * 1000 * 1000)));
 
-        Assert.assertEquals(3, JobControlCompiler.estimateNumberOfReducers(CONF,
-                Lists.newArrayList(createPOLoadWithSize(2L * 1000 * 1000 * 1001,
-                        new PigStorage())),
-                new org.apache.hadoop.mapreduce.Job(CONF)));
+        Assert.assertEquals(3, JobControlCompiler.estimateNumberOfReducers(
+            new Job(CONF), createMockPOLoadMapReduceOper(2L * 1000 * 1000 * 1001)));
+    }
+
+    private static MapReduceOper createMockPOLoadMapReduceOper(long size) throws Exception {
+        MapReduceOper mro = new MapReduceOper(new OperatorKey());
+        mro.mapPlan.add(createPOLoadWithSize(size, new PigStorage()));
+        return mro;
     }
 
     public static POLoad createPOLoadWithSize(long size, LoadFunc loadFunc) throws Exception {

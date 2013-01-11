@@ -22,7 +22,6 @@ import java.io.ObjectInputStream;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -30,26 +29,16 @@ import org.apache.pig.ComparisonFunc;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.CountingMap;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.DiscreteProbabilitySampleGenerator;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
-import org.apache.pig.data.DefaultDataBag;
 import org.apache.pig.data.InternalMap;
+import org.apache.pig.data.NonSpillableDataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.io.NullableBytesWritable;
-import org.apache.pig.impl.io.NullableDoubleWritable;
-import org.apache.pig.impl.io.NullableFloatWritable;
-import org.apache.pig.impl.io.NullableIntWritable;
-import org.apache.pig.impl.io.NullableLongWritable;
-import org.apache.pig.impl.io.NullableText;
-import org.apache.pig.impl.io.NullableTuple;
-import org.apache.pig.impl.io.PigNullableWritable;
 
 
 public class FindQuantiles extends EvalFunc<Map<String, Object>>{
@@ -65,6 +54,7 @@ public class FindQuantiles extends EvalFunc<Map<String, Object>>{
     State mState;
     
     private class SortComparator implements Comparator<Tuple> {
+        @Override
         @SuppressWarnings("unchecked")
         public int compare(Tuple t1, Tuple t2) {
             switch (mState) {
@@ -263,7 +253,7 @@ public class FindQuantiles extends EvalFunc<Map<String, Object>>{
                     probVec.set(l, new Float(0.0));
                 }
                 // for each partition that this sample item is present in,
-                // compute the fraction of the total occurences for that
+                // compute the fraction of the total occurrences for that
                 // partition - this will be the probability with which we
                 // will pick this partition in the final sort reduce job
                 // for this sample item
@@ -272,7 +262,7 @@ public class FindQuantiles extends EvalFunc<Map<String, Object>>{
                 }
                 weightedParts.put(key, probVec);
             }
-            output.put(QUANTILES_LIST, mBagFactory.newDefaultBag(quantilesList));
+            output.put(QUANTILES_LIST, new NonSpillableDataBag(quantilesList));
             output.put(WEIGHTED_PARTS, weightedParts);
             return output;
         }catch (Exception e){

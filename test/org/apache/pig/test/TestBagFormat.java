@@ -18,36 +18,32 @@
 
 package org.apache.pig.test;
 
-import junit.framework.TestCase;
+import static org.junit.Assert.assertEquals;
 
-import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.util.BagFormat;
+import org.junit.Test;
 
-public class TestBagFormat extends TestCase {
+public class TestBagFormat {
 
-    public static void testBagFormat() {
-        try {
-            DataBag bag = BagFactory.getInstance().newDefaultBag();
+    @Test
+    public void testBagFormat() throws Exception {
+        DataBag bag = BagFactory.getInstance().newDefaultBag();
 
-            Tuple tuple_1 = TupleFactory.getInstance().newTuple(1);
-            tuple_1.set(0, 12);
-            bag.add(tuple_1);
+        Tuple tuple_1 = TupleFactory.getInstance().newTuple(1);
+        tuple_1.set(0, 12);
+        bag.add(tuple_1);
 
-            Tuple tuple_2 = TupleFactory.getInstance().newTuple(1);
-            DataBag innerBag = BagFactory.getInstance().newDefaultBag();
-            innerBag.add(tuple_1);
-            tuple_2.set(0, (innerBag));
-            bag.add(tuple_2);
+        Tuple tuple_2 = TupleFactory.getInstance().newTuple(1);
+        DataBag innerBag = BagFactory.getInstance().newDefaultBag();
+        innerBag.add(tuple_1);
+        tuple_2.set(0, (innerBag));
+        bag.add(tuple_2);
 
-            System.out.println(BagFormat.format(bag));
-            assertEquals("{(12),({(12)})}", BagFormat.format(bag));
-        } catch (ExecException e) {
-            e.printStackTrace();
-            fail();
-        }
+        System.out.println(BagFormat.format(bag));
+        assertEquals("{(12),({(12)})}", BagFormat.format(bag));
     }
 }

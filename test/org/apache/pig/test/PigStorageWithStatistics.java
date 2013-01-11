@@ -1,5 +1,7 @@
 package org.apache.pig.test;
 
+import java.io.IOException;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -7,10 +9,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.ResourceStatistics;
 import org.apache.pig.builtin.PigStorage;
-import org.apache.pig.impl.util.UriUtil;
 import org.apache.pig.impl.util.Utils;
-
-import java.io.IOException;
 
 public class PigStorageWithStatistics extends PigStorage {
     private String loc = null;
@@ -25,11 +24,11 @@ public class PigStorageWithStatistics extends PigStorage {
     @Override
     public ResourceStatistics getStatistics(String location, Job job) throws IOException {
         ResourceStatistics stats = new ResourceStatistics();
-        stats.setmBytes(getInputmBytes());
+        stats.setSizeInBytes(getInputSizeInBytes());
         return stats;
     }
-
-    private Long getInputmBytes() throws IOException {
+    
+    private Long getInputSizeInBytes() throws IOException {
         if (loc == null) {
             return 0L;
         }
@@ -45,6 +44,6 @@ public class PigStorageWithStatistics extends PigStorage {
                 }
             }
         }
-        return inputBytes / 1024 / 1024;
+        return inputBytes;
     }
 }

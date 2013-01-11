@@ -36,6 +36,7 @@ import org.apache.pig.newplan.logical.relational.LOInnerLoad;
 import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.apache.pig.newplan.logical.relational.LOLimit;
 import org.apache.pig.newplan.logical.relational.LONative;
+import org.apache.pig.newplan.logical.relational.LORank;
 import org.apache.pig.newplan.logical.relational.LOSort;
 import org.apache.pig.newplan.logical.relational.LOSplit;
 import org.apache.pig.newplan.logical.relational.LOSplitOutput;
@@ -54,11 +55,11 @@ public class SchemaAliasVisitor extends LogicalRelationalNodesVisitor {
 
     /***
      * The logic here is to check if we have duplicate alias in each schema
-     * @throws FrontendException 
+     * @throws FrontendException
      */
     protected void validate(LogicalRelationalOperator op) throws FrontendException {
         LogicalSchema schema = op.getSchema();
-        
+
         Set<String> seenAliases = new HashSet<String>();
         if( schema != null){
             for( int i = 0; i < schema.size(); i++){
@@ -88,22 +89,22 @@ public class SchemaAliasVisitor extends LogicalRelationalNodesVisitor {
     public void visit(LOFilter filter) throws FrontendException {
         validate( filter );
     }
-    
+
     @Override
     public void visit(LOJoin join) throws FrontendException {
         validate( join );
     }
-    
+
     @Override
     public void visit(LOForEach foreach) throws FrontendException {
         new SchemaAliasVisitor( foreach.getInnerPlan() ).visit();
     }
-    
+
     @Override
     public void visit(LOGenerate gen) throws FrontendException {
         validate( gen );
     }
-    
+
     @Override
     public void visit(LOInnerLoad load) throws FrontendException {
         validate( load );
@@ -113,42 +114,47 @@ public class SchemaAliasVisitor extends LogicalRelationalNodesVisitor {
     public void visit(LOCogroup group) throws FrontendException {
         validate( group );
     }
-    
+
     @Override
     public void visit(LOSplit split) throws FrontendException {
         validate( split );
     }
-    
+
     @Override
     public void visit(LOSplitOutput splitOutput) throws FrontendException {
         validate( splitOutput );
     }
-    
+
     @Override
     public void visit(LOUnion union) throws FrontendException {
         validate( union );
     }
-    
+
     @Override
     public void visit(LOSort sort) throws FrontendException {
         validate( sort );
     }
-    
+
+    @Override
+    public void visit(LORank rank) throws FrontendException {
+        validate( rank );
+    }
+
     @Override
     public void visit(LODistinct distinct) throws FrontendException {
         validate( distinct );
     }
-    
+
     @Override
     public void visit(LOLimit limit) throws FrontendException {
         validate( limit );
     }
-    
+
     @Override
     public void visit(LOCross cross) throws FrontendException {
         validate( cross );
     }
-    
+
     @Override
     public void visit(LOStream stream) throws FrontendException {
         validate( stream );

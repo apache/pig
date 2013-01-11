@@ -87,6 +87,11 @@ public class StoreFuncWrapper implements StoreFuncInterface {
         storeFunc().cleanupOnFailure(location, job);
     }
 
+    @Override
+    public void cleanupOnSuccess(String location, Job job) throws IOException {
+        storeFunc().cleanupOnSuccess(location, job);
+    }
+
     private StoreFuncInterface storeFunc() {
         if (this.storeFunc == null) {
             // Pig does not re-throw the exception with a stack trace in the parse phase.
@@ -101,7 +106,7 @@ public class StoreFuncWrapper implements StoreFuncInterface {
      * Returns a method in the call stack at the given depth. Depth 0 will return the method that
      * called this getMethodName, depth 1 the method that called it, etc...
      * @param depth
-     * @return
+     * @return method name as String
      */
     protected String getMethodName(final int depth) {
         final StackTraceElement[] ste = Thread.currentThread().getStackTrace();

@@ -46,11 +46,23 @@ esac
 debug=false
 
 remaining=()
+includeHCatalog="";
+addJarString=-Dpig.additional.jars\=;
+additionalJars="";
 # filter command line parameter
 for f in "$@"; do
-     if [[ $f = "-secretDebugCmd" ]]; then
+     if [[ $f == "-secretDebugCmd" || $f == "-printCmdDebug" ]]; then
         debug=true
-     else
+      elif [[ $f == "-useHCatalog" ]]; then
+        # if need to use hcatalog, we need to add the hcatalog and hive jars
+        # to the classpath and also include the hive configuration xml file
+        # for pig to work correctly with hcatalog
+        # because of PIG-2532, including the jars in the classpath is 
+        # sufficient to ensure that they are registered as well
+        includeHCatalog=true;
+      elif [[ "$includeHCatalog" == "true" && $f == $addJarString* ]]; then
+        additionalJars=`echo $f | sed s/$addJarString//`
+      else
         remaining[${#remaining[@]}]="$f"
      fi
 done
@@ -105,6 +117,52 @@ fi
 # CLASSPATH initially contains $PIG_CONF_DIR
 CLASSPATH="${PIG_CONF_DIR}"
 CLASSPATH=${CLASSPATH}:$JAVA_HOME/lib/tools.jar
+if [ "$includeHCatalog" == "true" ]; then
+  # need to provide the hcatalog jar file path as well as
+  # the location of the hive jars on which hcatalog depends
+  hiveMetaStoreJar=hive-metastore-*.jar
+  thriftJar=libthrift-*.jar
+  hiveExecJar=hive-exec-*.jar
+  fbJar=libfb303-*.jar
+  jdoECJar=jdo2-api-*-ec.jar
+  slfJar=slf4j-api-*.jar
+  hbaseHiveJar=hive-hbase-handler-*.jar
+  if [ "$HIVE_HOME" == "" ]; then
+    if [ -d "/usr/lib/hive" ]; then
+      HIVE_HOME=/usr/lib/hive
+    else
+      echo "Please initialize HIVE_HOME"
+      exit -1
+    fi
+  fi
+
+  hiveMetaStoreVersion=`ls $HIVE_HOME/lib/$hiveMetaStoreJar`
+  thriftVersion=`ls $HIVE_HOME/lib/$thriftJar`
+  hiveExecVersion=`ls $HIVE_HOME/lib/$hiveExecJar`
+  fbJarVersion=`ls $HIVE_HOME/lib/$fbJar`
+  jdoECJarVersion=`ls $HIVE_HOME/lib/$jdoECJar`
+  slfJarVersion=`ls $HIVE_HOME/lib/$slfJar`
+  hbaseHiveVersion=`ls $HIVE_HOME/lib/$hbaseHiveJar`
+
+  hcatJar=hcatalog-*.jar
+  hbaseHCatJar=hbase-storage-handler-*.jar
+  if [ "$HCAT_HOME" == "" ]; then
+    if [ -d "/usr/lib/hcatalog" ]; then
+      HCAT_HOME=/usr/lib/hcatalog
+    else
+      echo "Please initialize HCAT_HOME"
+      exit -1
+    fi
+  fi
+  hcatVersion=`ls $HCAT_HOME/share/hcatalog/$hcatJar | grep -v server`
+  hbaseHCatVersion=`ls $HCAT_HOME/lib/$hbaseHCatJar`
+
+  ADDITIONAL_CLASSPATHS=$hiveMetaStoreVersion:$thriftVersion:$hiveExecVersion:$fbJarVersion:$jdoECJarVersion:$slfJarVersion:$hbaseHiveVersion:$hcatVersion:$hbaseHCatVersion
+  if [ "$additionalJars" != "" ]; then
+    ADDITIONAL_CLASSPATHS=$ADDITIONAL_CLASSPATHS:$additionalJars
+  fi
+  CLASSPATH=${CLASSPATH}:$ADDITIONAL_CLASSPATHS:$HIVE_HOME/conf
+fi
 
 # add user-specified CLASSPATH
 if [ "$PIG_CLASSPATH" != "" ]; then
@@ -238,6 +296,14 @@ unset IFS
 PIG_OPTS="$PIG_OPTS -Dpig.log.dir=$PIG_LOG_DIR"
 PIG_OPTS="$PIG_OPTS -Dpig.log.file=$PIG_LOGFILE"
 PIG_OPTS="$PIG_OPTS -Dpig.home.dir=$PIG_HOME"
+if [ "$includeHCatalog" == "true" ]; then
+  addJars=`echo $PIG_OPTS | awk '{ for (i=1; i<=NF; i++) print $i; }' | grep "\-Dpig.additional.jars=" | sed s/-Dpig.additional.jars=//`
+  if [ "$addJars" != "" ]; then
+    ADDITIONAL_CLASSPATHS=$addJars:$ADDITIONAL_CLASSPATHS
+    PIG_OPTS=`echo $PIG_OPTS | sed 's/-Dpig.additional.jars=[^ ]*//'`
+  fi
+  PIG_OPTS="$PIG_OPTS -Dpig.additional.jars=$ADDITIONAL_CLASSPATHS"
+fi
 
 # run it
 if [ -n "$HADOOP_BIN" ]; then

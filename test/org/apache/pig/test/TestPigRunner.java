@@ -258,8 +258,18 @@ public class TestPigRunner {
             PigStats stats = PigRunner.run(args, new TestNotificationListener());
             assertTrue(stats.isSuccessful());
             assertTrue(stats.getJobGraph().size() == 1);
-            assertEquals(5, stats.getRecordWritten());
-            assertEquals(28, stats.getBytesWritten());
+            // Each output file should include the following:
+            // output:
+            //   1\t2\t3\n
+            //   3\t4\t5\n
+            //   3\t7\t8\n
+            // output2:
+            //   5\t3\t4\n
+            //   5\t6\t7\n
+            final int numOfRecords = 5;
+            final int numOfCharsPerRecord = 6;
+            assertEquals(numOfRecords, stats.getRecordWritten());
+            assertEquals(numOfRecords * numOfCharsPerRecord, stats.getBytesWritten());
             assertTrue(stats.getOutputNames().size() == 2);
             for (String fname : stats.getOutputNames()) {
                 assertTrue(fname.equals(OUTPUT_FILE) || fname.equals(OUTPUT_FILE_2));
@@ -297,8 +307,20 @@ public class TestPigRunner {
             PigStats stats = PigRunner.run(args, new TestNotificationListener());
             assertTrue(stats.isSuccessful());
             assertTrue(stats.getJobGraph().size() == 1);
-            assertEquals(4, stats.getRecordWritten());           
-            assertEquals(18, stats.getBytesWritten());
+            // Each output file should include the following:
+            // output:
+            //   5\t3\t4\n
+            //   5\t6\t7\n
+            // output2:
+            //   1\t1\n
+            //   3\t2\n
+            final int numOfRecords1 = 2;
+            final int numOfRecords2 = 2;
+            final int numOfCharsPerRecord1 = 6;
+            final int numOfCharsPerRecord2 = 4;
+            assertEquals(numOfRecords1 + numOfRecords2, stats.getRecordWritten());
+            assertEquals((numOfRecords1 * numOfCharsPerRecord1) + (numOfRecords2 * numOfCharsPerRecord2),
+                    stats.getBytesWritten());
             assertTrue(stats.getOutputNames().size() == 2);
             for (String fname : stats.getOutputNames()) {               
                 assertTrue(fname.equals(OUTPUT_FILE) || fname.equals(OUTPUT_FILE_2));
@@ -580,7 +602,7 @@ public class TestPigRunner {
     @Test
     public void classLoaderTest() throws Exception {
         // Skip in hadoop 23 test, see PIG-2449
-        if (Util.isHadoop23())
+        if (Util.isHadoop23() || Util.isHadoop2_0())
             return;
         PrintWriter w = new PrintWriter(new FileWriter(PIG_FILE));
         w.println("register test/org/apache/pig/test/data/pigtestloader.jar");
@@ -863,6 +885,49 @@ public class TestPigRunner {
         }
     }
     
+    /**
+     * PIG-2780: In this test case, Pig submits three jobs at the same time and
+     * one of them will fail due to nonexistent input file. If users enable
+     * stop.on.failure, then Pig should immediately stop if anyone of the three
+     * jobs has failed.
+     */
+    @Test
+    public void testStopOnFailure() throws Exception {
+        
+        PrintWriter w1 = new PrintWriter(new FileWriter(PIG_FILE));
+        w1.println("A1 = load '" + INPUT_FILE + "';");
+        w1.println("B1 = load 'nonexist';");
+        w1.println("C1 = load '" + INPUT_FILE + "';");
+        w1.println("A2 = distinct A1;");
+        w1.println("B2 = distinct B1;");
+        w1.println("C2 = distinct C1;");
+        w1.println("ret = union A2,B2,C2;");
+        w1.println("store ret into 'tmp/output';");
+        w1.close();
+        
+        try {
+            String[] args = { "-F", PIG_FILE };
+            PigStats stats = PigRunner.run(args, new TestNotificationListener());
+     
+            assertTrue(!stats.isSuccessful());
+            
+            int successfulJobs = 0;
+            Iterator<Operator> it = stats.getJobGraph().getOperators();
+            while (it.hasNext()){
+                JobStats js = (JobStats)it.next();
+                if (js.isSuccessful())
+                    successfulJobs++;
+            }
+            
+            // we should have less than 2 successful jobs
+            assertTrue("Should have less than 2 successful jobs", successfulJobs < 2);
+            
+        } finally {
+            new File(PIG_FILE).delete();
+            Util.deleteFile(cluster, OUTPUT_FILE);
+            Util.deleteFile(cluster, "tmp/output");
+        }
+    }
     public static class TestNotificationListener implements PigProgressNotificationListener {
         
         private Map<String, int[]> numMap = new HashMap<String, int[]>();

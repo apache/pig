@@ -56,17 +56,17 @@ import org.apache.pig.newplan.logical.expression.UserFuncExpression;
 import org.apache.pig.newplan.DepthFirstWalker;
 
 /**
- * This Visitor works on the filter condition of a LOFilter which immediately 
- * follows a LOLoad that interacts with a metadata system (currently OWL) to 
+ * This Visitor works on the filter condition of a LOFilter which immediately
+ * follows a LOLoad that interacts with a metadata system (currently OWL) to
  * read table data. The visitor looks for conditions on partition columns in the
  * filter condition and extracts those conditions out of the filter condition.
  * The condition on partition cols will be used to prune partitions of the table.
  *
  */
 public class PColFilterExtractor extends PlanVisitor {
-    
+
     private static final Log LOG = LogFactory.getLog(PColFilterExtractor.class);
-    
+
 	/**
 	 * partition columns associated with the table
 	 * present in the load on which the filter whose
@@ -93,14 +93,14 @@ public class PColFilterExtractor extends PlanVisitor {
 	private Side replaceSide = Side.NONE;
 
 	private boolean filterRemovable = false;
-	
+
     private boolean canPushDown = true;
-	
+
 	@Override
 	public void visit() throws FrontendException {
 		// we will visit the leaf and it will recursively walk the plan
 		LogicalExpression leaf = (LogicalExpression)plan.getSources().get( 0 );
-		// if the leaf is a unary operator it should be a FilterFunc in 
+		// if the leaf is a unary operator it should be a FilterFunc in
 		// which case we don't try to extract partition filter conditions
 		if(leaf instanceof BinaryExpression) {
 			BinaryExpression binExpr = (BinaryExpression)leaf;
@@ -119,7 +119,7 @@ public class PColFilterExtractor extends PlanVisitor {
 	}
 
 	/**
-	 * 
+	 *
 	 * @param plan logical plan corresponding the filter's comparison condition
 	 * @param partitionCols list of partition columns of the table which is
 	 * being loaded in the LOAD statement which is input to the filter
@@ -138,23 +138,14 @@ public class PColFilterExtractor extends PlanVisitor {
 		if(partitionCols.contains(fieldName)) {
 			sawKey = true;
 			// The condition on partition column will be used to prune the
-			// scan and removed from the filter condition. Hence the condition 
+			// scan and removed from the filter condition. Hence the condition
 			// on the partition column will not be re applied when data is read,
 			// so the following cases should throw error until that changes.
 			List<Class<?>> opsToCheckFor = new ArrayList<Class<?>>();
-			opsToCheckFor.add(RegexExpression.class);
+                        opsToCheckFor.add(UserFuncExpression.class);
 			if(checkSuccessors(project, opsToCheckFor)) {
             LOG.warn("No partition filter push down: " +
-                "You have an partition column (" 
-                + fieldName + ") inside a regexp operator in the " +
-                "filter condition.");
-            canPushDown = false;
-            return;
-			} 
-			opsToCheckFor.set(0, UserFuncExpression.class);
-			if(checkSuccessors(project, opsToCheckFor)) {
-            LOG.warn("No partition filter push down: " +
-                "You have an partition column (" 
+                "You have an partition column ("
                 + fieldName + ") inside a function in the " +
                 "filter condition.");
             canPushDown = false;
@@ -163,7 +154,7 @@ public class PColFilterExtractor extends PlanVisitor {
 			opsToCheckFor.set(0, CastExpression.class);
 			if(checkSuccessors(project, opsToCheckFor)) {
             LOG.warn("No partition filter push down: " +
-                "You have an partition column (" 
+                "You have an partition column ("
                 + fieldName + ") inside a cast in the " +
                 "filter condition.");
             canPushDown = false;
@@ -172,7 +163,7 @@ public class PColFilterExtractor extends PlanVisitor {
 			opsToCheckFor.set(0, IsNullExpression.class);
 			if(checkSuccessors(project, opsToCheckFor)) {
             LOG.warn("No partition filter push down: " +
-                "You have an partition column (" 
+                "You have an partition column ("
                 + fieldName + ") inside a null check operator in the " +
                 "filter condition.");
             canPushDown = false;
@@ -181,7 +172,7 @@ public class PColFilterExtractor extends PlanVisitor {
 			opsToCheckFor.set(0, BinCondExpression.class);
 			if(checkSuccessors(project, opsToCheckFor)) {
             LOG.warn("No partition filter push down: " +
-                "You have an partition column (" 
+                "You have an partition column ("
                 + fieldName + ") inside a bincond operator in the " +
                 "filter condition.");
             canPushDown = false;
@@ -204,10 +195,10 @@ public class PColFilterExtractor extends PlanVisitor {
 	}
 
 	private void visit(BinaryExpression binOp) throws FrontendException {
-		boolean lhsSawKey = false;        
-		boolean rhsSawKey = false;        
-		boolean lhsSawNonKeyCol = false;        
-		boolean rhsSawNonKeyCol = false;        
+		boolean lhsSawKey = false;
+		boolean rhsSawKey = false;
+		boolean lhsSawNonKeyCol = false;
+		boolean rhsSawNonKeyCol = false;
 
 		sawKey = false;
 		sawNonKeyCol = false;
@@ -223,12 +214,12 @@ public class PColFilterExtractor extends PlanVisitor {
 		rhsSawKey = sawKey;
 		rhsSawNonKeyCol = sawNonKeyCol;
 
-		// only in the case of an AND, we potentially split the AND to 
-		// remove conditions on partition columns out of the AND. For this 
+		// only in the case of an AND, we potentially split the AND to
+		// remove conditions on partition columns out of the AND. For this
 		// we set replaceSide accordingly so that when we reach a predecessor
-		// we can trim the appropriate side. If both sides of the AND have 
-		// conditions on partition columns, we will remove the AND completely - 
-		// in this case, we will not set replaceSide, but sawKey will be 
+		// we can trim the appropriate side. If both sides of the AND have
+		// conditions on partition columns, we will remove the AND completely -
+		// in this case, we will not set replaceSide, but sawKey will be
 		// true so that as we go to higher predecessor ANDs we can trim later.
 		if(binOp instanceof AndExpression) {
 			if(lhsSawKey && rhsSawNonKeyCol){
@@ -277,13 +268,13 @@ public class PColFilterExtractor extends PlanVisitor {
 	/**
 	 * check for the presence of a certain operator type in the Successors
 	 * @param opToStartFrom
-	 * @param opsToCheckFor operators to be checked for at each level of 
-	 * Successors - the ordering in the list is the order in which the ops 
+	 * @param opsToCheckFor operators to be checked for at each level of
+	 * Successors - the ordering in the list is the order in which the ops
 	 * will be checked.
 	 * @return true if opsToCheckFor are found
-	 * @throws IOException 
+	 * @throws IOException
 	 */
-	private boolean checkSuccessors(Operator opToStartFrom, 
+	private boolean checkSuccessors(Operator opToStartFrom,
 			List<Class<?>> opsToCheckFor) throws FrontendException {
 		boolean done = checkSuccessorsHelper(opToStartFrom, opsToCheckFor);
 		if(!done && !opsToCheckFor.isEmpty()) {
@@ -296,7 +287,7 @@ public class PColFilterExtractor extends PlanVisitor {
 		return opsToCheckFor.isEmpty();
 	}
 
-	private boolean checkSuccessorsHelper(Operator opToStartFrom, 
+	private boolean checkSuccessorsHelper(Operator opToStartFrom,
 			List<Class<?>> opsToCheckFor) throws FrontendException {
 		List<Operator> successors = plan.getPredecessors(
 				opToStartFrom);
@@ -329,12 +320,12 @@ public class PColFilterExtractor extends PlanVisitor {
 
 		// eg if replaceSide == Side.LEFT
 		//    binexpop
-		//   /   \ \ 
+		//   /   \ \
 		// child (this is the childExpr argument send in)
 		//  /  \
-		// Lt   Rt 
+		// Lt   Rt
 		//
-		// gets converted to 
+		// gets converted to
 		//  binexpop
 		//  /
 		// Rt
@@ -344,10 +335,10 @@ public class PColFilterExtractor extends PlanVisitor {
 	         return;
 		}
 		// child's lhs operand
-		LogicalExpression leftChild = 
+		LogicalExpression leftChild =
 			((BinaryExpression)childExpr).getLhs();
 		// child's rhs operand
-		LogicalExpression rightChild = 
+		LogicalExpression rightChild =
 			((BinaryExpression)childExpr).getRhs();
 
 		plan.disconnect( childExpr, leftChild );
@@ -365,12 +356,12 @@ public class PColFilterExtractor extends PlanVisitor {
 		     logInternalErrorAndSetFlag();
 	         return;
 		}
-		//reset 
+		//reset
 		replaceSide = Side.NONE;
 		sawKey = false;
 
 	}
-	
+
 	private void replace(Operator oldOp, Operator newOp) throws FrontendException {
 		List<Operator> grandParents = plan.getPredecessors( oldOp );
 		if( grandParents == null || grandParents.size() == 0 ) {
@@ -386,19 +377,19 @@ public class PColFilterExtractor extends PlanVisitor {
 
 	/**
 	 * @param op
-	 * @throws IOException 
-	 * @throws IOException 
-	 * @throws IOException 
+	 * @throws IOException
+	 * @throws IOException
+	 * @throws IOException
 	 */
 	private void remove(LogicalExpression op) throws FrontendException {
 		pColConditions.add( getExpression( op ) );
 		removeTree( op );
 	}
-	
+
 	/**
 	 * Assume that the given operator is already disconnected from its predecessors.
 	 * @param op
-	 * @throws FrontendException 
+	 * @throws FrontendException
 	 */
 	private void removeTree(Operator op) throws FrontendException {
 		List<Operator> succs = plan.getSuccessors( op );
@@ -406,17 +397,17 @@ public class PColFilterExtractor extends PlanVisitor {
 			plan.remove( op );
 			return;
 		}
-		
+
 		Operator[] children = new Operator[succs.size()];
 		for( int i = 0; i < succs.size(); i++ ) {
 			children[i] = succs.get(i);
 		}
-		
+
 		for( Operator succ : children ) {
 			plan.disconnect( op, succ );
 			removeTree( succ );
 		}
-		
+
 		plan.remove( op );
 	}
 
@@ -461,6 +452,8 @@ public class PColFilterExtractor extends PlanVisitor {
 				return getExpression(binOp, OpType.OP_LT);
 			} else if(binOp instanceof LessThanEqualExpression) {
 				return getExpression(binOp, OpType.OP_LE);
+                        } else if(binOp instanceof RegexExpression) {
+                                return getExpression(binOp, OpType.OP_MATCH);
 			} else {
             logInternalErrorAndSetFlag();
 			}
@@ -468,12 +461,12 @@ public class PColFilterExtractor extends PlanVisitor {
 		return null;
 	}
 
-    private Expression getExpression(BinaryExpression binOp, OpType 
+    private Expression getExpression(BinaryExpression binOp, OpType
             opType) throws FrontendException {
         return new Expression.BinaryExpression(getExpression(binOp.getLhs())
                 ,getExpression(binOp.getRhs()), opType);
     }
-    
+
     private void logInternalErrorAndSetFlag() throws FrontendException {
         LOG.warn("No partition filter push down: "
                 + "Internal error while processing any partition filter "
@@ -482,7 +475,7 @@ public class PColFilterExtractor extends PlanVisitor {
     }
 
 	// this might get called from some visit() - in that case, delegate to
-	// the other visit()s which we have defined here 
+	// the other visit()s which we have defined here
 	private void visit(LogicalExpression op) throws FrontendException {
 		if(op instanceof ProjectExpression) {
 			visit((ProjectExpression)op);
@@ -510,11 +503,11 @@ public class PColFilterExtractor extends PlanVisitor {
 	}
 
 	private void visit(NotExpression not) throws FrontendException {
-		visit(not.getExpression());   
+		visit(not.getExpression());
 	}
 
 	private void visit(RegexExpression regexp) throws FrontendException {
-		visit((BinaryExpression)regexp);    
+		visit((BinaryExpression)regexp);
 	}
 
 	private void visit(BinCondExpression binCond) throws FrontendException {

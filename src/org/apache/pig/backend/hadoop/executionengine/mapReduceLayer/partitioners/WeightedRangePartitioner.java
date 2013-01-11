@@ -43,6 +43,7 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.builtin.FindQuantiles;
 import org.apache.pig.impl.io.NullableBooleanWritable;
 import org.apache.pig.impl.io.NullableBytesWritable;
+import org.apache.pig.impl.io.NullableDateTimeWritable;
 import org.apache.pig.impl.io.NullableDoubleWritable;
 import org.apache.pig.impl.io.NullableFloatWritable;
 import org.apache.pig.impl.io.NullableIntWritable;
@@ -106,8 +107,6 @@ public class WeightedRangePartitioner extends Partitioner<PigNullableWritable, W
         }
         
         try{
-            
-            
             // use local file system to get the quantilesFile
             Configuration conf;
             if (pigContext.getExecType()==ExecType.MAPREDUCE) {
@@ -115,15 +114,17 @@ public class WeightedRangePartitioner extends Partitioner<PigNullableWritable, W
             } else {
                 conf = new Configuration(false);
             }
-            if (configuration.get("fs.file.impl")!=null)
+            if (configuration.get("fs.file.impl") != null) {
                 conf.set("fs.file.impl", configuration.get("fs.file.impl"));
-            if (configuration.get("fs.hdfs.impl")!=null)
+            }
+            if (configuration.get("fs.hdfs.impl") != null) {
                 conf.set("fs.hdfs.impl", configuration.get("fs.hdfs.impl"));
-            if (configuration.getBoolean("pig.tmpfilecompression", false))
-            {
+            }
+            if (configuration.getBoolean("pig.tmpfilecompression", false)) {
                 conf.setBoolean("pig.tmpfilecompression", true);
-                if (configuration.get("pig.tmpfilecompression.codec")!=null)
+                if (configuration.get("pig.tmpfilecompression.codec") != null) {
                     conf.set("pig.tmpfilecompression.codec", configuration.get("pig.tmpfilecompression.codec"));
+            }
             }
             conf.set(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
             
@@ -131,8 +132,7 @@ public class WeightedRangePartitioner extends Partitioner<PigNullableWritable, W
                     conf, quantilesFile, 0);
             DataBag quantilesList;
             Tuple t = loader.getNext();
-            if(t!=null)
-            {
+            if (t != null) {
                 // the Quantiles file has a tuple as under:
                 // (numQuantiles, bag of samples) 
                 // numQuantiles here is the reduce parallelism
@@ -211,6 +211,8 @@ public class WeightedRangePartitioner extends Partitioner<PigNullableWritable, W
             quantiles = quantilesList.toArray(new NullableIntWritable[0]);
         } else if (quantilesList.get(0).getClass().equals(NullableLongWritable.class)) {
             quantiles = quantilesList.toArray(new NullableLongWritable[0]);
+        } else if (quantilesList.get(0).getClass().equals(NullableDateTimeWritable.class)) {
+            quantiles = quantilesList.toArray(new NullableDateTimeWritable[0]);
         } else if (quantilesList.get(0).getClass().equals(NullableText.class)) {
             quantiles = quantilesList.toArray(new NullableText[0]);
         } else {

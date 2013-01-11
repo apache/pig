@@ -18,19 +18,20 @@
 
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
-import junit.framework.TestCase;
-
-import org.apache.pig.ExecType;
 import org.apache.pig.EvalFunc;
+import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.DataType;
@@ -43,154 +44,120 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
-public class TestUDF extends TestCase {
+public class TestUDF {
 
-	static String[] ScriptStatement = {
-			"A = LOAD 'test/org/apache/pig/test/data/passwd' USING PigStorage();",
-			"B = FOREACH A GENERATE org.apache.pig.test.utils.MyUDFReturnMap(1);" };
+    static String[] ScriptStatement = {
+            "A = LOAD 'test/org/apache/pig/test/data/passwd' USING PigStorage();",
+            "B = FOREACH A GENERATE org.apache.pig.test.utils.MyUDFReturnMap(1);" };
 
-	static File TempScriptFile = null;
+    static File TempScriptFile = null;
 
-	static MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniCluster cluster = MiniCluster.buildCluster();
 
-	@Override
-	@Before
-	public void setUp() throws Exception {
-            FileLocalizer.setInitialized(false);
-		TempScriptFile = File.createTempFile("temp_jira_851", ".pig");
-		FileWriter writer = new FileWriter(TempScriptFile);
-		for (String line : ScriptStatement) {
-			writer.write(line + "\n");
-		}
-		writer.close();
-
-	}
-
-	@AfterClass
-	public static void oneTimeTearDown() throws Exception {
-	    cluster.shutDown();
-	}
-	
-	@Test
-	public void testUDFReturnMap_LocalMode() {
-		try {
-			PigServer pig = new PigServer(ExecType.LOCAL);
-			pig.registerScript(TempScriptFile.getAbsolutePath());
-
-			Iterator<Tuple> iterator = pig.openIterator("B");
-			int index = 0;
-			while (iterator.hasNext()) {
-				Tuple tuple = iterator.next();
-				index++;
-				Map<Object, Object> result = (Map<Object, Object>) tuple.get(0);
-				assertEquals(result, MyUDFReturnMap.map);
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-			fail();
-		}
-	}
-
-	@Test
-	public void testUDFReturnMap_MapReduceMode() {
-		try {
-			Util.createInputFile(cluster, "a.txt", new String[] { "dummy",
-					"dummy" });
-			FileLocalizer.deleteTempFiles();
-			PigServer pig = new PigServer(ExecType.MAPREDUCE, cluster
-					.getProperties());
-			pig.registerQuery("A = LOAD 'a.txt';");
-			pig
-					.registerQuery("B = FOREACH A GENERATE org.apache.pig.test.utils.MyUDFReturnMap();");
-
-			Iterator<Tuple> iterator = pig.openIterator("B");
-			int index = 0;
-			while (iterator.hasNext()) {
-				Tuple tuple = iterator.next();
-				index++;
-				Map<Object, Object> result = (Map<Object, Object>) tuple.get(0);
-				assertEquals(result, MyUDFReturnMap.map);
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-			fail();
-		}
-	}
-	
-	@Test
-	public void testUDFMultiLevelOutputSchema() {
-        try {
-            PigServer pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-            pig.registerQuery("A = LOAD 'a.txt';");
-            pig.registerQuery("B = FOREACH A GENERATE org.apache.pig.test.utils.MultiLevelDerivedUDF1();");
-            pig.registerQuery("C = FOREACH A GENERATE org.apache.pig.test.utils.MultiLevelDerivedUDF2();");
-            pig.registerQuery("D = FOREACH A GENERATE org.apache.pig.test.utils.MultiLevelDerivedUDF3();");
-            Schema s = pig.dumpSchema("B");
-            assertTrue(s.getField(0).type == DataType.DOUBLE);
-            s = pig.dumpSchema("C");
-            assertTrue(s.getField(0).type == DataType.DOUBLE);
-            s = pig.dumpSchema("D");
-            assertTrue(s.getField(0).type == DataType.DOUBLE);
-        } catch (IOException e) {
-            e.printStackTrace();
-            fail();
+    @Before
+    public void setUp() throws Exception {
+        FileLocalizer.setInitialized(false);
+        TempScriptFile = File.createTempFile("temp_jira_851", ".pig");
+        FileWriter writer = new FileWriter(TempScriptFile);
+        for (String line : ScriptStatement) {
+            writer.write(line + "\n");
         }
+        writer.close();
+
+    }
+
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
+    }
+
+    @Test
+    public void testUDFReturnMap_LocalMode() throws Exception {
+        PigServer pig = new PigServer(ExecType.LOCAL);
+        pig.registerScript(TempScriptFile.getAbsolutePath());
+
+        Iterator<Tuple> iterator = pig.openIterator("B");
+        while (iterator.hasNext()) {
+            Tuple tuple = iterator.next();
+            Map<Object, Object> result = (Map<Object, Object>) tuple.get(0);
+            assertEquals(result, MyUDFReturnMap.map);
+        }
+    }
+
+    @Test
+    public void testUDFReturnMap_MapReduceMode() throws Exception {
+        Util.createInputFile(cluster, "a.txt", new String[] { "dummy",
+                "dummy" });
+        FileLocalizer.deleteTempFiles();
+        PigServer pig = new PigServer(ExecType.MAPREDUCE, cluster
+                .getProperties());
+        pig.registerQuery("A = LOAD 'a.txt';");
+        pig.registerQuery("B = FOREACH A GENERATE org.apache.pig.test.utils.MyUDFReturnMap();");
+
+        Iterator<Tuple> iterator = pig.openIterator("B");
+        while (iterator.hasNext()) {
+            Tuple tuple = iterator.next();
+            Map<Object, Object> result = (Map<Object, Object>) tuple.get(0);
+            assertEquals(result, MyUDFReturnMap.map);
+        }
+    }
+
+    @Test
+    public void testUDFMultiLevelOutputSchema() throws Exception {
+        PigServer pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        pig.registerQuery("A = LOAD 'a.txt';");
+        pig.registerQuery("B = FOREACH A GENERATE org.apache.pig.test.utils.MultiLevelDerivedUDF1();");
+        pig.registerQuery("C = FOREACH A GENERATE org.apache.pig.test.utils.MultiLevelDerivedUDF2();");
+        pig.registerQuery("D = FOREACH A GENERATE org.apache.pig.test.utils.MultiLevelDerivedUDF3();");
+        Schema s = pig.dumpSchema("B");
+        assertTrue(s.getField(0).type == DataType.DOUBLE);
+        s = pig.dumpSchema("C");
+        assertTrue(s.getField(0).type == DataType.DOUBLE);
+        s = pig.dumpSchema("D");
+        assertTrue(s.getField(0).type == DataType.DOUBLE);
     }
 
     //see PIG-2430
     @Test
-    public void testEvalFuncGetArgToFunc() throws Throwable {
+    public void testEvalFuncGetArgToFunc() throws Exception {
         String input = "udf_test_jira_2430.txt";
         Util.createLocalInputFile(input, new String[]{"1,hey"});
-        try {
-            PigServer pigServer = new PigServer(ExecType.LOCAL);
-            pigServer.registerQuery("A = LOAD '"+input+"' USING PigStorage(',') AS (x:int,y:chararray);");
-            pigServer.registerQuery("B = FOREACH A GENERATE org.apache.pig.test.TestUDF$UdfWithFuncSpecWithArgs(x);");
-            pigServer.registerQuery("C = FOREACH A GENERATE org.apache.pig.test.TestUDF$UdfWithFuncSpecWithArgs(y);");
-            pigServer.registerQuery("D = FOREACH A GENERATE org.apache.pig.test.TestUDF$UdfWithFuncSpecWithArgs((long)x);");
-            pigServer.registerQuery("E = FOREACH A GENERATE org.apache.pig.test.TestUDF$UdfWithFuncSpecWithArgs((double)x);");
-            pigServer.registerQuery("F = FOREACH A GENERATE org.apache.pig.test.TestUDF$UdfWithFuncSpecWithArgs((float)x);");
-            Iterator<Tuple> it = pigServer.openIterator("B");
-            assertEquals(Integer.valueOf(2),(Integer)it.next().get(0));
-            it = pigServer.openIterator("C");
-            assertEquals(Integer.valueOf(1), (Integer)it.next().get(0));
-            it = pigServer.openIterator("D");
-            assertEquals(Integer.valueOf(3),(Integer)it.next().get(0));
-            it = pigServer.openIterator("E");
-            assertEquals(Integer.valueOf(4),(Integer)it.next().get(0));
-            it = pigServer.openIterator("F");
-            assertEquals(Integer.valueOf(5),(Integer)it.next().get(0));
-        } catch (IOException e) {
-            e.printStackTrace();
-            fail();
-        }
+        PigServer pigServer = new PigServer(ExecType.LOCAL);
+        pigServer.registerQuery("A = LOAD '"+input+"' USING PigStorage(',') AS (x:int,y:chararray);");
+        pigServer.registerQuery("B = FOREACH A GENERATE org.apache.pig.test.TestUDF$UdfWithFuncSpecWithArgs(x);");
+        pigServer.registerQuery("C = FOREACH A GENERATE org.apache.pig.test.TestUDF$UdfWithFuncSpecWithArgs(y);");
+        pigServer.registerQuery("D = FOREACH A GENERATE org.apache.pig.test.TestUDF$UdfWithFuncSpecWithArgs((long)x);");
+        pigServer.registerQuery("E = FOREACH A GENERATE org.apache.pig.test.TestUDF$UdfWithFuncSpecWithArgs((double)x);");
+        pigServer.registerQuery("F = FOREACH A GENERATE org.apache.pig.test.TestUDF$UdfWithFuncSpecWithArgs((float)x);");
+        Iterator<Tuple> it = pigServer.openIterator("B");
+        assertEquals(Integer.valueOf(2),(Integer)it.next().get(0));
+        it = pigServer.openIterator("C");
+        assertEquals(Integer.valueOf(1), (Integer)it.next().get(0));
+        it = pigServer.openIterator("D");
+        assertEquals(Integer.valueOf(3),(Integer)it.next().get(0));
+        it = pigServer.openIterator("E");
+        assertEquals(Integer.valueOf(4),(Integer)it.next().get(0));
+        it = pigServer.openIterator("F");
+        assertEquals(Integer.valueOf(5),(Integer)it.next().get(0));
     }
 
     //see PIG-2430
     @Test
-    public void testNormalDefine() throws Throwable {
+    public void testNormalDefine() throws Exception {
         String input = "udf_test_jira_2430_2.txt";
         Util.createLocalInputFile(input, new String[]{"1"});
-        try {
-            PigServer pigServer = new PigServer(ExecType.LOCAL);
-            pigServer.registerQuery("A = LOAD '"+input+"' as (x:int);");
-            pigServer.registerQuery("DEFINE udftest1 org.apache.pig.test.TestUDF$UdfWithFuncSpecWithArgs('1');");
-            pigServer.registerQuery("DEFINE udftest2 org.apache.pig.test.TestUDF$UdfWithFuncSpecWithArgs('2');");
-            pigServer.registerQuery("DEFINE udftest3 org.apache.pig.test.TestUDF$UdfWithFuncSpecWithArgs('3');");
-            pigServer.registerQuery("B = FOREACH A GENERATE udftest1(x), udftest2(x), udftest3(x);");
-            Iterator<Tuple> its = pigServer.openIterator("B");
-            Tuple t = its.next();
-            assertEquals(Integer.valueOf(1),t.get(0));
-            assertEquals(Integer.valueOf(2),t.get(1));
-            assertEquals(Integer.valueOf(3),t.get(2));
-        } catch (IOException e) {
-            e.printStackTrace();
-            fail();
-        }
+        PigServer pigServer = new PigServer(ExecType.LOCAL);
+        pigServer.registerQuery("A = LOAD '"+input+"' as (x:int);");
+        pigServer.registerQuery("DEFINE udftest1 org.apache.pig.test.TestUDF$UdfWithFuncSpecWithArgs('1');");
+        pigServer.registerQuery("DEFINE udftest2 org.apache.pig.test.TestUDF$UdfWithFuncSpecWithArgs('2');");
+        pigServer.registerQuery("DEFINE udftest3 org.apache.pig.test.TestUDF$UdfWithFuncSpecWithArgs('3');");
+        pigServer.registerQuery("B = FOREACH A GENERATE udftest1(x), udftest2(x), udftest3(x);");
+        Iterator<Tuple> its = pigServer.openIterator("B");
+        Tuple t = its.next();
+        assertEquals(Integer.valueOf(1),t.get(0));
+        assertEquals(Integer.valueOf(2),t.get(1));
+        assertEquals(Integer.valueOf(3),t.get(2));
     }
 
     @Test
@@ -228,11 +195,10 @@ public class TestUDF extends TestCase {
         }
     }
 
-	@Override
-	@After
-	public void tearDown() throws Exception {
-		TempScriptFile.delete();
-	}
+    @After
+    public void tearDown() throws Exception {
+        TempScriptFile.delete();
+    }
 
     public static class UdfWithFuncSpecWithArgs extends EvalFunc<Integer> {
         private Integer ret = 0;

@@ -57,6 +57,7 @@ TOKEN : { <BOOL : "boolean"> }
 TOKEN : { <LONG : "long"> }
 TOKEN : { <FLOAT : "float"> }
 TOKEN : { <DOUBLE : "double"> }
+TOKEN : { <DATETIME : "datetime"> }
 TOKEN : { <STRING : "string"> }
 TOKEN : { <BYTES : "bytes"> }
 TOKEN : { <COLLECTION : "collection"> }

@@ -19,7 +19,6 @@ package org.apache.pig.test;
 
 import java.io.File;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Random;
 
 import junit.framework.Assert;
@@ -27,8 +26,6 @@ import junit.framework.Assert;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.BagFactory;
-import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.FileLocalizer;
@@ -141,15 +138,13 @@ public class TestScriptUDF{
         Assert.assertFalse(iter.hasNext());
     }
 
-    /** See Pig-1824
+    /** See Pig-1824, PIG-2433
      * test importing a second module/file from the local fs from within
      * the first module.
      *
-     * NOTE: this unit test also covers the "import re" test case.
-     * not all users have a jython install, so there is no explicit unit test
-     * for "import re".
      * to use a jython install, the Lib dir must be in the jython search path
-     * via env variable JYTHON_HOME=jy_home or JYTHON_PATH=jy_home/Lib:...
+     * via env variable JYTHON_HOME=jy_home or JYTHON_PATH=jy_home/Lib:... or
+     * jython-standalone.jar should be in the classpath
      * 
      * Left in for now as we don't have paths to include other scripts in a
      * script in the e2e harness.
@@ -157,57 +152,126 @@ public class TestScriptUDF{
      * @throws Exception
      */
     @Test
-    public void testPythonNestedImport() throws Exception {
-        // Skip for hadoop 23 until PIG-2433 fixed
-        if (Util.isHadoop23())
-            return;
-        
-        String[] scriptA = {
+    public void testPythonNestedImportCwdInClassPath() throws Exception {
+        testPythonNestedImport(".", "scriptA.py", "scriptB.py");
+    }
+
+    @Test
+    public void testPythonNestedImportClassPath() throws Exception {
+        // Use different names for the script as PythonInterpreter is static in JythonScriptEngine 
+        testPythonNestedImport("build/classes", "scriptC.py", "scriptD.py");
+    }
+
+    public void testPythonNestedImport(String importScriptLocation, String script1Name,
+            String script2Name) throws Exception {
+        String[] script1 = {
                 "#!/usr/bin/python",
                 "def square(number):" ,
                 " return (number * number)"
         };
-        String[] scriptB = {
+        String script1ModuleName = script1Name.replace(".py", "");
+        String[] script2 = {
                 "#!/usr/bin/python",
-                "import scriptA",
+                "import " + script1ModuleName,
                 "@outputSchema(\"x:{t:(num:double)}\")",
                 "def sqrt(number):" ,
                 " return (number ** .5)",
                 "@outputSchema(\"x:{t:(num:long)}\")",
                 "def square(number):" ,
-                " return long(scriptA.square(number))"
+                " return long(" + script1ModuleName + ".square(number))"
         };
         String[] input = {
                 "1\t3",
                 "2\t4",
                 "3\t5"
         };
-
+        Util.deleteFile(cluster, "table_testPythonNestedImport");
         Util.createInputFile(cluster, "table_testPythonNestedImport", input);
-        Util.createLocalInputFile("scriptA.py", scriptA);
-        File scriptFileB = Util.createLocalInputFile("scriptB.py", scriptB);
+        Util.createLocalInputFile(importScriptLocation + "/" + script1Name, script1);
+        String script2FilePath = Util.createLocalInputFile(script2Name, script2).getAbsolutePath();
 
-        // Test the namespace: import B, which, in turn, imports A
-        pigServer.registerCode(scriptFileB.getAbsolutePath(), "jython", "pig");
+        // Test the namespace: import file2, which, in turn, imports file1
+        pigServer.registerCode(script2FilePath, "jython", "pig");
         pigServer.registerQuery("A = LOAD 'table_testPythonNestedImport' as (a0:long, a1:long);");
         pigServer.registerQuery("B = foreach A generate pig.square(a0);");
 
         Iterator<Tuple> iter = pigServer.openIterator("B");
         Assert.assertTrue(iter.hasNext());
         Tuple t = iter.next();
-
         Assert.assertTrue(t.toString().equals("(1)"));
-
         Assert.assertTrue(iter.hasNext());
         t = iter.next();
-
         Assert.assertTrue(t.toString().equals("(4)"));
-
         Assert.assertTrue(iter.hasNext());
         t = iter.next();
-
         Assert.assertTrue(t.toString().equals("(9)"));
-        
+        Assert.assertFalse(iter.hasNext());
+    }
+
+    @Test
+    public void testPythonBuiltinModuleImport1() throws Exception {
+        String[] script = {
+                "#!/usr/bin/python",
+                "import os",
+                "@outputSchema(\"env:chararray\")",
+                "def getEnv(envkey):" ,
+                " return os.getenv(envkey);"
+        };
+        String[] input = {
+                "USER",
+                "PATH"
+        };
+
+        Util.createInputFile(cluster, "testPythonBuiltinModuleImport1", input);
+        File scriptFile = Util.createLocalInputFile("importos.py", script);
+
+        pigServer.registerCode(scriptFile.getAbsolutePath(), "jython", "pig");
+        pigServer.registerQuery("A = LOAD 'testPythonBuiltinModuleImport1' as (a0:chararray);");
+        pigServer.registerQuery("B = foreach A generate pig.getEnv(a0);");
+
+        Iterator<Tuple> iter = pigServer.openIterator("B");
+        Assert.assertTrue(iter.hasNext());
+        Tuple t = iter.next();
+        Assert.assertTrue(t.get(0).toString().equals(System.getenv(input[0])));
+        Assert.assertTrue(iter.hasNext());
+        t = iter.next();
+        Assert.assertTrue(t.get(0).toString().equals(System.getenv(input[1])));
+        Assert.assertFalse(iter.hasNext());
+    }
+
+    @Test
+    public void testPythonBuiltinModuleImport2() throws Exception {
+        String[] script = {
+                "#!/usr/bin/python",
+                "import re",
+                "@outputSchema(\"word:chararray\")",
+                "def resplit(content,regex,index):" ,
+                " return re.compile(regex).split(content)[index];"
+        };
+        String[] input = {
+                "Hello world",
+                "The quick brown fox jumps over the lazy dog"
+        };
+
+        Util.createInputFile(cluster, "testPythonBuiltinModuleImport2", input);
+        File scriptFile = Util.createLocalInputFile("importre.py", script);
+
+        String[] pigScript = {
+                "register '" + scriptFile.getAbsolutePath() + "' using jython as pig;",
+                "A = LOAD 'testPythonBuiltinModuleImport2' as (a0:chararray);",
+                "B = foreach A generate pig.resplit(a0, '\\\\s+', 0);"
+        };
+
+        String pigScriptFile = Util.createLocalInputFile("importre.pig", pigScript).getPath();
+        pigServer.registerScript(pigScriptFile);
+
+        Iterator<Tuple> iter = pigServer.openIterator("B");
+        Assert.assertTrue(iter.hasNext());
+        Tuple t = iter.next();
+        Assert.assertTrue(t.get(0).toString().equals(input[0].split("\\s+")[0]));
+        Assert.assertTrue(iter.hasNext());
+        t = iter.next();
+        Assert.assertTrue(t.get(0).toString().equals(input[1].split("\\s+")[0]));
         Assert.assertFalse(iter.hasNext());
     }
 }

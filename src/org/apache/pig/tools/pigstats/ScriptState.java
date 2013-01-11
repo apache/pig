@@ -46,6 +46,7 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOpe
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.NativeMapReduceOper;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator.OriginalLocation;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCollectedGroup;
@@ -60,6 +61,8 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeCogroup;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPartialAgg;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCounter;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PORank;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSkewedJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
@@ -81,6 +84,7 @@ import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.apache.pig.newplan.logical.relational.LOLimit;
 import org.apache.pig.newplan.logical.relational.LONative;
+import org.apache.pig.newplan.logical.relational.LORank;
 import org.apache.pig.newplan.logical.relational.LOSort;
 import org.apache.pig.newplan.logical.relational.LOSplit;
 import org.apache.pig.newplan.logical.relational.LOStream;
@@ -92,14 +96,14 @@ import org.apache.pig.newplan.logical.relational.LOJoin.JOINTYPE;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 
 /**
- * ScriptStates encapsulates settings for a Pig script that runs on a hadoop 
- * cluster. These settings are added to all MR jobs spawned by the script and 
- * in turn are persisted in the hadoop job xml. With the properties already in 
+ * ScriptStates encapsulates settings for a Pig script that runs on a hadoop
+ * cluster. These settings are added to all MR jobs spawned by the script and
+ * in turn are persisted in the hadoop job xml. With the properties already in
  * the job xml, users who want to know the relations between the script and MR
- * jobs can derive them from the job xmls.  
+ * jobs can derive them from the job xmls.
  */
 public class ScriptState {
-    
+
     /**
      * Keys of Pig settings added in MR job
      */
@@ -115,25 +119,26 @@ public class ScriptState {
         JOB_PARENTS         ("pig.parent.jobid"),
         JOB_FEATURE         ("pig.job.feature"),
         SCRIPT_FEATURES     ("pig.script.features"),
-        JOB_ALIAS           ("pig.alias");        
-       
+        JOB_ALIAS           ("pig.alias"),
+        JOB_ALIAS_LOCATION  ("pig.alias.location");
+
         private String displayStr;
-        
+
         private PIG_PROPERTY(String s) {
             displayStr = s;
         }
-        
+
         @Override
         public String toString() { return displayStr; }
     };
-    
+
     /**
      * Features used in a Pig script
      */
     static enum PIG_FEATURE {
         UNKNOWN,
-        MERGE_JION,
-        MERGE_SPARSE_JION,
+        MERGE_JOIN,
+        MERGE_SPARSE_JOIN,
         REPLICATED_JOIN,
         SKEWED_JOIN,
         HASH_JOIN,
@@ -142,6 +147,7 @@ public class ScriptState {
         COGROUP,
         GROUP_BY,
         ORDER_BY,
+        RANK,
         DISTINCT,
         STREAMING,
         SAMPLER,
@@ -156,41 +162,42 @@ public class ScriptState {
         NATIVE,
         MAP_PARTIALAGG;
     };
-    
+
     /**
      * Pig property that allows user to turn off the inclusion of settings
-     * in the jobs 
+     * in the jobs
      */
     public static final String INSERT_ENABLED = "pig.script.info.enabled";
-    
+
     /**
-     * Restricts the size of Pig script stored in job xml 
+     * Restricts the size of Pig script stored in job xml
      */
-    public static final int MAX_SCRIPT_SIZE = 10240; 
-    
+    public static final int MAX_SCRIPT_SIZE = 10240;
+
     private static final Log LOG = LogFactory.getLog(ScriptState.class);
 
     private static ThreadLocal<ScriptState> tss = new ThreadLocal<ScriptState>();
-       
+
     private String id;
-    
+
     private String script;
     private String commandLine;
     private String fileName;
-    
+
     private String pigVersion;
     private String hodoopVersion;
-    
+
     private long scriptFeatures;
-    
+
     private PigContext pigContext;
-    
+
     private Map<MapReduceOper, String> featureMap = null;
-    private Map<MapReduceOper, String> aliasMap = null;
-    
+    private Map<MapReduceOper, String> aliasMap = new HashMap<MapReduceOper, String>();
+    private Map<MapReduceOper, String> aliasLocationMap = new HashMap<MapReduceOper, String>();
+
     private List<PigProgressNotificationListener> listeners
             = new ArrayList<PigProgressNotificationListener>();
-    
+
     public static ScriptState start(String commandLine, PigContext pigContext) {
         ScriptState ss = new ScriptState(UUID.randomUUID().toString());
         ss.setCommandLine(commandLine);
@@ -198,10 +205,10 @@ public class ScriptState {
         tss.set(ss);
         return ss;
     }
-    
+
     private ScriptState(String id) {
         this.id = id;
-        this.script = ""; 
+        this.script = "";
     }
 
     public static ScriptState get() {
@@ -209,16 +216,16 @@ public class ScriptState {
             ScriptState.start("", null);
         }
         return tss.get();
-    }           
-       
+    }
+
     public void registerListener(PigProgressNotificationListener listener) {
         listeners.add(listener);
     }
-    
+
     public List<PigProgressNotificationListener> getAllListeners() {
         return listeners;
     }
-        
+
     public void emitInitialPlanNotification(MROperPlan plan) {
         for (PigProgressNotificationListener listener: listeners) {
             try {
@@ -237,6 +244,7 @@ public class ScriptState {
         }
     }
     
+
     public void emitJobsSubmittedNotification(int numJobsSubmitted) {        
         for (PigProgressNotificationListener listener: listeners) {
             listener.jobsSubmittedNotification(id, numJobsSubmitted);
@@ -288,7 +296,7 @@ public class ScriptState {
         conf.set(PIG_PROPERTY.COMMAND_LINE.toString(), getCommandLine());
         
         try {
-            LinkedList<POStore> stores = PlanHelper.getStores(mro.mapPlan);
+            LinkedList<POStore> stores = PlanHelper.getPhysicalOperators(mro.mapPlan, POStore.class);
             ArrayList<String> outputDirs = new ArrayList<String>();
             for (POStore st: stores) {  
                 outputDirs.add(st.getSFile().getFileName()); 
@@ -299,7 +307,7 @@ public class ScriptState {
         }
         if (!mro.reducePlan.isEmpty()) {
             try {
-                LinkedList<POStore> stores = PlanHelper.getStores(mro.reducePlan);
+                LinkedList<POStore> stores = PlanHelper.getPhysicalOperators(mro.reducePlan, POStore.class);
                 ArrayList<String> outputDirs = new ArrayList<String>();
                 for (POStore st: stores) {  
                     outputDirs.add(st.getSFile().getFileName()); 
@@ -310,7 +318,7 @@ public class ScriptState {
             }
         }        
         try {
-            List<POLoad> lds = PlanHelper.getLoads(mro.mapPlan);
+            List<POLoad> lds = PlanHelper.getPhysicalOperators(mro.mapPlan, POLoad.class);
             ArrayList<String> inputDirs = new ArrayList<String>();
             if (lds != null && lds.size() > 0){
                 for (POLoad ld : lds) {
@@ -323,11 +331,11 @@ public class ScriptState {
         }
 
         setPigFeature(mro, conf);
-        
+
         setJobParents(mro, conf);
     }
- 
-    public void setScript(File file) {            
+
+    public void setScript(File file) {
         try {
             setScript(new BufferedReader(new FileReader(file)));
         } catch (FileNotFoundException e) {
@@ -335,19 +343,19 @@ public class ScriptState {
         }
     }
 
-    public void setScript(String script) {        
+    public void setScript(String script) {
         if (script == null) return;
-        
+
         // restrict the size of the script to be stored in job conf
         script = (script.length() > MAX_SCRIPT_SIZE) ? script.substring(0,
                 MAX_SCRIPT_SIZE) : script;
-        
+
         // XML parser cann't handle certain characters, including
         // the control character (&#1). Use Base64 encoding to
-        // get around this problem        
+        // get around this problem
         this.script = new String(Base64.encodeBase64(script.getBytes()));
     }
-   
+
     public void setScriptFeatures(LogicalPlan plan) {
         BitSet bs = new BitSet();
         try {
@@ -355,55 +363,59 @@ public class ScriptState {
         } catch (FrontendException e) {
             LOG.warn("unable to get script feature", e);
         }
-        scriptFeatures = bitSetToLong(bs);        
-        
+        scriptFeatures = bitSetToLong(bs);
+
         LOG.info("Pig features used in the script: "
                 + featureLongToString(scriptFeatures));
     }
-    
+
     public String getHadoopVersion() {
         if (hodoopVersion == null) {
             hodoopVersion = VersionInfo.getVersion();
         }
         return (hodoopVersion == null) ? "" : hodoopVersion;
     }
-    
+
     public String getPigVersion() {
         if (pigVersion == null) {
             String findContainingJar = JarManager.findContainingJar(ScriptState.class);
-            try { 
-                JarFile jar = new JarFile(findContainingJar); 
-                final Manifest manifest = jar.getManifest(); 
-                final Map <String,Attributes> attrs = manifest.getEntries(); 
+            if (findContainingJar != null) {
+                try {
+                    JarFile jar = new JarFile(findContainingJar);
+                    final Manifest manifest = jar.getManifest();
+                    final Map <String,Attributes> attrs = manifest.getEntries();
                 Attributes attr = attrs.get("org/apache/pig");
                 pigVersion = attr.getValue("Implementation-Version");
-            } catch (Exception e) { 
-                LOG.warn("unable to read pigs manifest file"); 
-            } 
+                } catch (Exception e) {
+                    LOG.warn("unable to read pigs manifest file");
+                }
+            } else {
+                LOG.warn("unable to read pigs manifest file. Not running from the Pig jar");
+        }
         }
         return (pigVersion == null) ? "" : pigVersion;
     }
-        
+
     public String getFileName() { return fileName; }
-    
+
     public void setFileName(String fileName) {
         this.fileName = fileName;
     }
-    
+
     String getId() { return id; }
-        
+
     private String getCommandLine() {
         return (commandLine == null) ? "" : commandLine;
     }
-    
+
     private void setCommandLine(String commandLine) {
-        this.commandLine = commandLine;
+        this.commandLine = new String(Base64.encodeBase64(commandLine.getBytes()));
     }
-    
+
     private String getScript() {
         return (script == null) ? "" : script;
     }
-    
+
     private void setScript(BufferedReader reader) {
         StringBuilder sb = new StringBuilder();
         try {
@@ -419,20 +431,21 @@ public class ScriptState {
         }
         setScript(sb.toString());
     }
-    
+
     private void setPigFeature(MapReduceOper mro, Configuration conf) {
         conf.set(PIG_PROPERTY.JOB_FEATURE.toString(), getPigFeature(mro));
         if (scriptFeatures != 0) {
-            conf.set(PIG_PROPERTY.SCRIPT_FEATURES.toString(), 
+            conf.set(PIG_PROPERTY.SCRIPT_FEATURES.toString(),
                     String.valueOf(scriptFeatures));
         }
-        conf.set(PIG_PROPERTY.JOB_ALIAS.toString(), getAlias(mro));    
+        conf.set(PIG_PROPERTY.JOB_ALIAS.toString(), getAlias(mro));
+        conf.set(PIG_PROPERTY.JOB_ALIAS_LOCATION.toString(), getAliasLocation(mro));
     }
-    
+
     private void setJobParents(MapReduceOper mro, Configuration conf) {
         // PigStats maintains a job DAG with the job id being updated
-        // upon available. Therefore, before a job is submitted, the ids 
-        // of its parent jobs are already available. 
+        // upon available. Therefore, before a job is submitted, the ids
+        // of its parent jobs are already available.
         JobGraph jg = PigStats.get().getJobGraph();
         JobStats js = null;
         Iterator<JobStats> iter = jg.iterator();
@@ -456,63 +469,81 @@ public class ScriptState {
             }
         }
     }
-    
+
     String getScriptFeatures() {
         return featureLongToString(scriptFeatures);
     }
-    
+
     public String getAlias(MapReduceOper mro) {
-        if (aliasMap == null) {
-            aliasMap = new HashMap<MapReduceOper, String>();
+        if (!aliasMap.containsKey(mro)) {
+            setAlias(mro);
         }
-        String retStr = aliasMap.get(mro);
-        if (retStr == null) {
+        return aliasMap.get(mro);
+    }
+
+    private void setAlias(MapReduceOper mro) {
             ArrayList<String> alias = new ArrayList<String>();
+        String aliasLocationStr = "";
             try {
-                new AliasVisitor(mro.mapPlan, alias).visit();
-                new AliasVisitor(mro.reducePlan, alias).visit();
+            ArrayList<String> aliasLocation = new ArrayList<String>();
+            new AliasVisitor(mro.mapPlan, alias, aliasLocation).visit();
+            aliasLocationStr += "M: "+LoadFunc.join(aliasLocation, ",");
+            if (mro.combinePlan != null) {
+                aliasLocation = new ArrayList<String>();
+                new AliasVisitor(mro.combinePlan, alias, aliasLocation).visit();
+                aliasLocationStr += " C: "+LoadFunc.join(aliasLocation, ",");
+            }
+            aliasLocation = new ArrayList<String>();
+            new AliasVisitor(mro.reducePlan, alias, aliasLocation).visit();
+            aliasLocationStr += " R: "+LoadFunc.join(aliasLocation, ",");
                 if (!alias.isEmpty()) {
                     Collections.sort(alias);
                 }              
             } catch (VisitorException e) {
                 LOG.warn("unable to get alias", e);
             }
-            retStr = LoadFunc.join(alias, ",");
-            aliasMap.put(mro, retStr);
+        aliasMap.put(mro, LoadFunc.join(alias, ","));
+        aliasLocationMap.put(mro, aliasLocationStr);
         }
-        return retStr;
+
+    public String getAliasLocation(MapReduceOper mro) {
+        if (!aliasLocationMap.containsKey(mro)) {
+            setAlias(mro);
     }
+        return aliasLocationMap.get(mro);
+    }
+
 
     public String getPigFeature(MapReduceOper mro) {
         if (featureMap == null) {
             featureMap = new HashMap<MapReduceOper, String>();
         }
-        
+
         String retStr = featureMap.get(mro);
-        if (retStr == null) {       
+        if (retStr == null) {
             BitSet feature = new BitSet();
             feature.clear();
             if (mro.isSkewedJoin()) {
                 feature.set(PIG_FEATURE.SKEWED_JOIN.ordinal());
-            } 
+            }
             if (mro.isGlobalSort()) {
                 feature.set(PIG_FEATURE.ORDER_BY.ordinal());
-            } 
-            if (mro.isSampler()) { 
+            }
+            if (mro.isSampler()) {
                 feature.set(PIG_FEATURE.SAMPLER.ordinal());
-            } 
-            if (mro.isIndexer()) { 
+            }
+            if (mro.isIndexer()) {
                 feature.set(PIG_FEATURE.INDEXER.ordinal());
             }
             if (mro.isCogroup()) {
                 feature.set(PIG_FEATURE.COGROUP.ordinal());
-            } 
+            }
             if (mro.isGroupBy()) {
                 feature.set(PIG_FEATURE.GROUP_BY.ordinal());
-            } 
+            }
             if (mro.isRegularJoin()) {
                 feature.set(PIG_FEATURE.HASH_JOIN.ordinal());
-            }  
+            }
             if (mro.needsDistinctCombiner()) {
                 feature.set(PIG_FEATURE.DISTINCT.ordinal());
             }
@@ -543,8 +574,8 @@ public class ScriptState {
             featureMap.put(mro, retStr);
         }
         return retStr;
-    }    
-    
+    }
+
     private long bitSetToLong(BitSet bs) {
         long ret = 0;
         for (int i = bs.nextSetBit(0); i >= 0; i = bs.nextSetBit(i+1)) {
@@ -552,10 +583,10 @@ public class ScriptState {
         }
         return ret;
     }
-    
+
     private String featureLongToString(long l) {
         if (l == 0) return PIG_FEATURE.UNKNOWN.name();
-        
+
         StringBuilder sb = new StringBuilder();
         for (int i=0; i<PIG_FEATURE.values().length; i++) {
             if (((l >> i) & 0x00000001) != 0) {
@@ -565,7 +596,7 @@ public class ScriptState {
         }
         return sb.toString();
     }
-    
+
     public void setPigContext(PigContext pigContext) {
         this.pigContext = pigContext;
     }
@@ -576,74 +607,74 @@ public class ScriptState {
 
     private static class FeatureVisitor extends PhyPlanVisitor {
         private BitSet feature;
-        
+
         public FeatureVisitor(PhysicalPlan plan, BitSet feature) {
             super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(
                     plan));
             this.feature = feature;
         }
-        
+
         @Override
         public void visitFRJoin(POFRJoin join) throws VisitorException {
             feature.set(PIG_FEATURE.REPLICATED_JOIN.ordinal());
         }
-        
+
         @Override
         public void visitMergeJoin(POMergeJoin join) throws VisitorException {
             if (join.getJoinType()==LOJoin.JOINTYPE.MERGESPARSE)
-                feature.set(PIG_FEATURE.MERGE_SPARSE_JION.ordinal());
+                feature.set(PIG_FEATURE.MERGE_SPARSE_JOIN.ordinal());
             else
-                feature.set(PIG_FEATURE.MERGE_JION.ordinal());
+                feature.set(PIG_FEATURE.MERGE_JOIN.ordinal());
         }
-        
+
         @Override
         public void visitMergeCoGroup(POMergeCogroup mergeCoGrp)
                 throws VisitorException {
             feature.set(PIG_FEATURE.MERGE_COGROUP.ordinal());;
         }
-        
+
         @Override
         public void visitCollectedGroup(POCollectedGroup mg)
-                throws VisitorException {           
+        throws VisitorException {
             feature.set(PIG_FEATURE.COLLECTED_GROUP.ordinal());
         }
-        
+
         @Override
         public void visitDistinct(PODistinct distinct) throws VisitorException {
             feature.set(PIG_FEATURE.DISTINCT.ordinal());
         }
-        
+
         @Override
         public void visitStream(POStream stream) throws VisitorException {
             feature.set(PIG_FEATURE.STREAMING.ordinal());
         }
-        
+
         @Override
         public void visitSplit(POSplit split) throws VisitorException {
             feature.set(PIG_FEATURE.MULTI_QUERY.ordinal());
         }
-        
+
         @Override
         public void visitDemux(PODemux demux) throws VisitorException {
-            feature.set(PIG_FEATURE.MULTI_QUERY.ordinal());         
+            feature.set(PIG_FEATURE.MULTI_QUERY.ordinal());
         }
-        
+
         @Override
         public void visitPartialAgg(POPartialAgg partAgg){
             feature.set(PIG_FEATURE.MAP_PARTIALAGG.ordinal());
         }
-        
-    }    
-    
+
+    }
+
     static class LogicalPlanFeatureVisitor extends LogicalRelationalNodesVisitor {
-        
+
         private BitSet feature;
-        
+
         protected LogicalPlanFeatureVisitor(LogicalPlan plan, BitSet feature) throws FrontendException {
-            super(plan, new org.apache.pig.newplan.DepthFirstWalker(plan));            
+            super(plan, new org.apache.pig.newplan.DepthFirstWalker(plan));
             this.feature = feature;
         }
-        
+
         @Override
         public void visit(LOCogroup op) {
             if (op.getGroupType() == GROUPTYPE.COLLECTED) {
@@ -658,162 +689,183 @@ public class ScriptState {
                 }
             }
         }
-        
+
         @Override
         public void visit(LOCross op) {
             feature.set(PIG_FEATURE.CROSS.ordinal());
         }
-        
+
         @Override
         public void visit(LODistinct op) {
             feature.set(PIG_FEATURE.DISTINCT.ordinal());
         }
-        
+
         @Override
         public void visit(LOFilter op) {
             feature.set(PIG_FEATURE.FILTER.ordinal());
         }
-        
+
         @Override
         public void visit(LOForEach op) {
-            
+
         }
-                
+
         @Override
         public void visit(LOJoin op) {
             if (op.getJoinType() == JOINTYPE.HASH) {
                 feature.set(PIG_FEATURE.HASH_JOIN.ordinal());
             } else if (op.getJoinType() == JOINTYPE.MERGE) {
-                feature.set(PIG_FEATURE.MERGE_JION.ordinal());
+                feature.set(PIG_FEATURE.MERGE_JOIN.ordinal());
             } else if (op.getJoinType() == JOINTYPE.MERGESPARSE) {
-                feature.set(PIG_FEATURE.MERGE_SPARSE_JION.ordinal());
+                feature.set(PIG_FEATURE.MERGE_SPARSE_JOIN.ordinal());
             } else if (op.getJoinType() == JOINTYPE.REPLICATED) {
                 feature.set(PIG_FEATURE.REPLICATED_JOIN.ordinal());
             } else if (op.getJoinType() == JOINTYPE.SKEWED) {
                 feature.set(PIG_FEATURE.SKEWED_JOIN.ordinal());
             }
         }
-        
+
         @Override
         public void visit(LOLimit op) {
             feature.set(PIG_FEATURE.LIMIT.ordinal());
         }
-        
+
         @Override
+        public void visit(LORank op) {
+            feature.set(PIG_FEATURE.RANK.ordinal());
+        }
+
         public void visit(LOSort op) {
             feature.set(PIG_FEATURE.ORDER_BY.ordinal());
         }
-        
+
         @Override
         public void visit(LOStream op) {
             feature.set(PIG_FEATURE.STREAMING.ordinal());
         }
-        
+
         @Override
         public void visit(LOSplit op) {
-            
+
         }
-        
+
         @Override
         public void visit(LOUnion op) {
             feature.set(PIG_FEATURE.UNION.ordinal());
         }
-        
+
         @Override
         public void visit(LONative n) {
             feature.set(PIG_FEATURE.NATIVE.ordinal());
         }
 
     }
-    
+
     private static class AliasVisitor extends PhyPlanVisitor {
-        
+
         private HashSet<String> aliasSet;
-        
+
         private List<String> alias;
-        
-        public AliasVisitor(PhysicalPlan plan, List<String> alias) {
+
+        private final List<String> aliasLocation;
+
+        public AliasVisitor(PhysicalPlan plan, List<String> alias, List<String> aliasLocation) {
             super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(
                     plan));
             this.alias = alias;
+            this.aliasLocation = aliasLocation;
             aliasSet = new HashSet<String>();
             if (!alias.isEmpty()) {
                 for (String s : alias) aliasSet.add(s);
             }
         }
-        
+
         @Override
         public void visitLoad(POLoad load) throws VisitorException {
             setAlias(load);
+            super.visitLoad(load);
         }
-        
+
         @Override
         public void visitFRJoin(POFRJoin join) throws VisitorException {
             setAlias(join);
+            super.visitFRJoin(join);
         }
-        
+
         @Override
         public void visitMergeJoin(POMergeJoin join) throws VisitorException {
             setAlias(join);
+            super.visitMergeJoin(join);
         }
-        
+
         @Override
         public void visitMergeCoGroup(POMergeCogroup mergeCoGrp)
                 throws VisitorException {
             setAlias(mergeCoGrp);
+            super.visitMergeCoGroup(mergeCoGrp);
         }
-        
+
         @Override
         public void visitCollectedGroup(POCollectedGroup mg)
-                throws VisitorException {           
+        throws VisitorException {
             setAlias(mg);
+            super.visitCollectedGroup(mg);
         }
-        
+
         @Override
         public void visitDistinct(PODistinct distinct) throws VisitorException {
             setAlias(distinct);
+            super.visitDistinct(distinct);
         }
-        
+
         @Override
         public void visitStream(POStream stream) throws VisitorException {
             setAlias(stream);
+            super.visitStream(stream);
         }
-        
+
         @Override
         public void visitFilter(POFilter fl) throws VisitorException {
             setAlias(fl);
+            super.visitFilter(fl);
         }
-         
+
         @Override
         public void visitLocalRearrange(POLocalRearrange lr) throws VisitorException {
             setAlias(lr);
+            super.visitLocalRearrange(lr);
         }
-        
+
         @Override
         public void visitPOForEach(POForEach nfe) throws VisitorException {
             setAlias(nfe);
+            super.visitPOForEach(nfe);
         }
-        
+
         @Override
         public void visitUnion(POUnion un) throws VisitorException {
             setAlias(un);
+            super.visitUnion(un);
         }
 
         @Override
         public void visitSort(POSort sort) throws VisitorException {
             setAlias(sort);
+            super.visitSort(sort);
         }
- 
+
         @Override
         public void visitLimit(POLimit lim) throws VisitorException {
             setAlias(lim);
+            super.visitLimit(lim);
         }
-        
+
         @Override
         public void visitSkewedJoin(POSkewedJoin sk) throws VisitorException {
             setAlias(sk);
+            super.visitSkewedJoin(sk);
         }
-        
+
         private void setAlias(PhysicalOperator op) {
             String s = op.getAlias();
             if (s != null) {
@@ -822,7 +874,11 @@ public class ScriptState {
                     aliasSet.add(s);
                 }
             }
+            List<OriginalLocation> originalLocations = op.getOriginalLocations();
+            for (OriginalLocation originalLocation : originalLocations) {
+                aliasLocation.add(originalLocation.toString());
         }
     }
-    
+    }
+
 }

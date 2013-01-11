@@ -20,6 +20,8 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOp
 import java.util.List;
 import java.util.Map;
 
+import org.joda.time.DateTime;
+
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
@@ -134,6 +136,11 @@ public class POMapLookUp extends ExpressionOperator {
 
     @Override
     public Result getNext(Long l) throws ExecException {
+        return getNext();
+    }
+
+    @Override
+    public Result getNext(DateTime dt) throws ExecException {
         return getNext();
     }
 

@@ -103,7 +103,7 @@ abstract public class LogicalRelationalOperator extends Operator {
      * Get the requestedParallelism for this operator.
      * @return requestedParallelsim
      */
-    public int getRequestedParallelisam() {
+    public int getRequestedParallelism() {
         return requestedParallelism;
     } 
 

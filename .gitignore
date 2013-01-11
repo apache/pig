@@ -9,3 +9,10 @@ pig-withouthadoop.jar
 *.iml
 *.ipr
 *.iws
+*.patch
+*.log
+*.orig
+*.rej
+*.class
+*.classpath
+*.project

@@ -19,9 +19,10 @@ package org.apache.pig.newplan.logical.expression;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Deque;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Stack;
 
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.EvalFunc;
@@ -69,7 +70,6 @@ import org.apache.pig.newplan.DependencyOrderWalker;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanWalker;
-import org.apache.pig.newplan.logical.Util;
 import org.apache.pig.newplan.logical.relational.LOGenerate;
 import org.apache.pig.newplan.logical.relational.LOInnerLoad;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
@@ -90,12 +90,12 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
         currentOp = op;
         logToPhyMap = map;
         currentPlan = phyPlan;
-        currentPlans = new Stack<PhysicalPlan>();
+        currentPlans = new LinkedList<PhysicalPlan>();
     }
     
     protected Map<Operator, PhysicalOperator> logToPhyMap;
 
-    protected Stack<PhysicalPlan> currentPlans;
+    protected Deque<PhysicalPlan> currentPlans;
 
     protected PhysicalPlan currentPlan;
 
@@ -287,7 +287,7 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
                 nodeGen.getNextNodeId(DEFAULT_SCOPE)));
         ((POMapLookUp)physOp).setLookUpKey(op.getLookupKey() );
         physOp.setResultType(op.getType());
-        physOp.setAlias(op.getFieldSchema().alias);
+        physOp.addOriginalLocation(op.getFieldSchema().alias, op.getLocation());
         currentPlan.add(physOp);
 
         logToPhyMap.put(op, physOp);
@@ -537,6 +537,7 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
             Operator refOp = ((ScalarExpression)op).getImplicitReferencedOperator();
             ((POUserFunc)p).setReferencedOperator( logToPhyMap.get( refOp ) );
         }
+
     }
     
     @Override

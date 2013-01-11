@@ -62,6 +62,8 @@ B = GROUP A ALL using 'collected';
 
 I = foreach A generate flatten(B::c);
 
+J = CUBE A BY CUBE($0, $1), ROLLUP($2, $3);
+
 CMD = `ls -l`;
 A = stream through CMD;
 
@@ -71,7 +73,13 @@ A = LOAD 'data' AS (f1:int,f2:int,f3:int);
 
 X = SAMPLE A 0.01;
 
+R = rank A by f1;
 
+R = rank A by f1 ASC, f2 DESC, f3;
+
+R = rank A by *;
+
+R = rank A by * DESC DENSE;
 
 
 

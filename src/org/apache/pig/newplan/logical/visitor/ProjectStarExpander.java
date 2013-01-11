@@ -37,10 +37,12 @@ import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionVisitor;
 import org.apache.pig.newplan.logical.expression.ProjectExpression;
 import org.apache.pig.newplan.logical.relational.LOCogroup;
+import org.apache.pig.newplan.logical.relational.LOCube;
 import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOGenerate;
 import org.apache.pig.newplan.logical.relational.LOInnerLoad;
 import org.apache.pig.newplan.logical.relational.LOJoin;
+import org.apache.pig.newplan.logical.relational.LORank;
 import org.apache.pig.newplan.logical.relational.LOSort;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalNodesVisitor;
@@ -112,9 +114,53 @@ public class ProjectStarExpander extends LogicalRelationalNodesVisitor{
                 );
             }
         }
-        
+
         sort.setSortColPlans(newExpPlans);
         sort.setAscendingCols(newAscOrder);
+    }
+
+    @Override
+    public void visit(LORank rank) throws FrontendException {
+
+        List<LogicalExpressionPlan> expPlans = rank.getRankColPlans();
+        List<Boolean> ascOrder = rank.getAscendingCol();
+
+        List<LogicalExpressionPlan> newExpPlans = new ArrayList<LogicalExpressionPlan>();
+        List<Boolean> newAscOrder = new ArrayList<Boolean>();
+
+        if (expPlans.size() != ascOrder.size()) {
+            throw new AssertionError(
+                    "Size of expPlans and ascorder should be same");
+        }
+
+        for (int i = 0; i < expPlans.size(); i++) {
+            // expand the plan
+            LogicalExpressionPlan ithExpPlan = expPlans.get(i);
+            List<LogicalExpressionPlan> expandedPlans = expandPlan(ithExpPlan,
+                    0);
+            newExpPlans.addAll(expandedPlans);
+
+            // add corresponding isAsc flags
+            Boolean isAsc = ascOrder.get(i);
+            for (int j = 0; j < expandedPlans.size(); j++) {
+                newAscOrder.add(isAsc);
+            }
+        }
+
+        // check if there is a project-star-to-end followed by another sort plan
+        // in the expanded plans (can happen if there is no input schema)
+        for (int i = 0; i < newExpPlans.size(); i++) {
+            ProjectExpression proj = getProjectStar(newExpPlans.get(i));
+            if (proj != null && proj.isRangeProject() && proj.getEndCol() == -1
+                    && i != newExpPlans.size() - 1) {
+                String msg = "Project-range to end (eg. x..)"
+                        + " is supported in rank-by only as last rank column";
+                throw new FrontendException(msg, 1128, PigException.INPUT);
+            }
+        }
+
+        rank.setRankColPlan(newExpPlans);
+        rank.setAscendingCol(newAscOrder);
     }
 
     /**
@@ -188,6 +234,15 @@ public class ProjectStarExpander extends LogicalRelationalNodesVisitor{
 
     }
 
+    @Override
+    public void visit(LOCube cu) throws FrontendException {
+
+	MultiMap<Integer, LogicalExpressionPlan> inpExprPlans = cu.getExpressionPlans();
+
+	// modify the plans if they have project-star
+	expandPlans(inpExprPlans);
+
+    }
 
     @Override
     public void visit(LOJoin join) throws FrontendException{

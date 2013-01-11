@@ -22,6 +22,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
+import org.joda.time.DateTime;
+
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.data.DataBag;
@@ -188,6 +190,7 @@ public class GenRandomData {
         t.append(genRandMap(r, num));
         t.append(genRandSmallTuple(r, 100));
         t.append(new Boolean(r.nextBoolean()));
+        t.append(new DateTime(r.nextLong()));
         return t;
     }
     
@@ -219,10 +222,13 @@ public class GenRandomData {
 
         ResourceFieldSchema boolfs = new ResourceFieldSchema();
         boolfs.setType(DataType.BOOLEAN);
+
+        ResourceFieldSchema dtfs = new ResourceFieldSchema();
+        dtfs.setType(DataType.DATETIME);
         
         ResourceSchema outSchema = new ResourceSchema();
         outSchema.setFields(new ResourceFieldSchema[]{bagfs, dbafs, stringfs, doublefs, floatfs,
-                intfs, longfs, mapfs, tuplefs, boolfs});
+                intfs, longfs, mapfs, tuplefs, boolfs, dtfs});
         ResourceFieldSchema outfs = new ResourceFieldSchema();
         outfs.setSchema(outSchema);
         outfs.setType(DataType.TUPLE);
@@ -251,6 +257,7 @@ public class GenRandomData {
         t.append(genRandMap(r, num));
         t.append(genRandSmallTuple(r, 100));
         t.append(new Boolean(r.nextBoolean()));
+        t.append(new DateTime(r.nextLong()));
         return t;
     }
     
@@ -313,6 +320,7 @@ public class GenRandomData {
         t.append(genRandMap(r, num));
         t.append(genRandSmallTuple(r, 100));
         t.append(new Boolean(r.nextBoolean()));
+        t.append(new DateTime(r.nextLong()));
         t.append(null);
         return t;
     }
@@ -338,6 +346,7 @@ public class GenRandomData {
         t.append(genRandMap(r, num));
         t.append(genRandSmallTuple(r, 100));
         t.append(new Boolean(r.nextBoolean()));
+        t.append(new DateTime(r.nextLong()));
         t.append(null);
         return t;
     }
@@ -395,6 +404,7 @@ public class GenRandomData {
             t.append("true");
         else
             t.append("false");
+        t.append(new DateTime(r.nextLong()));
         return t;
     }
     
@@ -411,9 +421,11 @@ public class GenRandomData {
         doublefs.setType(DataType.DOUBLE);
         ResourceFieldSchema boolfs = new ResourceFieldSchema();
         boolfs.setType(DataType.BOOLEAN);
+        ResourceFieldSchema dtfs = new ResourceFieldSchema();
+        dtfs.setType(DataType.DATETIME);
         
         ResourceSchema tupleSchema = new ResourceSchema();
-        tupleSchema.setFields(new ResourceFieldSchema[]{stringfs, longfs, intfs, doublefs, floatfs, stringfs, intfs, doublefs, floatfs, boolfs});
+        tupleSchema.setFields(new ResourceFieldSchema[]{stringfs, longfs, intfs, doublefs, floatfs, stringfs, intfs, doublefs, floatfs, boolfs, dtfs});
         ResourceFieldSchema tuplefs = new ResourceFieldSchema();
         tuplefs.setSchema(tupleSchema);
         tuplefs.setType(DataType.TUPLE);

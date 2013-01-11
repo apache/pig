@@ -40,17 +40,17 @@ import org.junit.Test;
 public class TestCSVExcelStorage {
 
     protected static final Log LOG = LogFactory.getLog(TestCSVExcelStorage.class);
-    
+
     private PigServer pigServer;
     //private MiniCluster cluster;
-    
+
     Properties props = new Properties();
     ArrayList<String> testMsgs = new ArrayList<String>();
-    
+
     String testFileCommaName = "testFileComma.csv";
     String testFileTabName = "testFileTab.csv";
 
-    String testStrComma = 
+    String testStrComma =
     	"John,Doe,10\n" +
     	"Jane, \"nee, Smith\",20\n" +
     	",,\n" +
@@ -62,16 +62,18 @@ public class TestCSVExcelStorage {
     	"do we\n" +
     	"handle that?\",Good,Fairy\n";
 
-    String[] testStrCommaArray = 
+    String[] testStrCommaArray =
     	new String[] {
     		"John,Doe,10",
     		"Jane, \"nee, Smith\",20",
     		",,",
     		"\"Mac \"\"the knife\"\"\",Cohen,30",
     		"\"Conrad\nEmil\",Dinger,40",
+                "Emil,\"\nDinger\",40",
+                "Quote problem,\"My \"\"famous\"\"\nsong\",60",
     		"1st Field,\"A poem that continues\nfor several lines\ndo we\nhandle that?\",Good,Fairy",
     };
-    
+
     @SuppressWarnings("serial")
 	ArrayList<Tuple> testStrCommaYesMultilineResultTuples =
     	new ArrayList<Tuple>() {
@@ -81,10 +83,12 @@ public class TestCSVExcelStorage {
     		add(Util.createTuple(new String[] {"", "", ""}));
     		add(Util.createTuple(new String[] {"Mac \"the knife\"", "Cohen", "30"}));
     		add(Util.createTuple(new String[] {"Conrad\nEmil", "Dinger", "40"}));
+                add(Util.createTuple(new String[] {"Emil", "\nDinger", "40"}));
+                add(Util.createTuple(new String[] {"Quote problem", "My \"famous\"\nsong", "60"}));
     		add(Util.createTuple(new String[] {"1st Field", "A poem that continues\nfor several lines\ndo we\nhandle that?", "Good", "Fairy"}));
     	}
     };
-    
+
     @SuppressWarnings("serial")
 	ArrayList<Tuple> testStrCommaNoMultilineResultTuples =
     	new ArrayList<Tuple>() {
@@ -95,26 +99,30 @@ public class TestCSVExcelStorage {
     		add(Util.createTuple(new String[] {"Mac \"the knife\"", "Cohen", "30"}));
     		add(Util.createTuple(new String[] {"Conrad"}));
     		add(Util.createTuple(new String[] {"Emil,Dinger,40"}));  // Trailing double quote after Emil eats rest of line
+                add(Util.createTuple(new String[] {"Emil"}));
+                add(Util.createTuple(new String[] {"Dinger,40"}));  // Trailing double quote after Emil eats rest of line
+                add(Util.createTuple(new String[] {"Quote problem", "My \"famous\""}));
+                add(Util.createTuple(new String[] {"song,60"}));
     		add(Util.createTuple(new String[] {"1st Field", "A poem that continues"}));
     		add(Util.createTuple(new String[] {"for several lines"}));
     		add(Util.createTuple(new String[] {"do we"}));
     		add(Util.createTuple(new String[] {"handle that?,Good,Fairy"})); // Trailing double quote eats rest of line
     	}
     };
-    
-    String testStrTab   = 
+
+    String testStrTab   =
     	"John\tDoe\t50\n" +
     	"\"Foo and CR last\n" +
     	"bar.\"\t\t\n" +
     	"Frank\tClean\t70";
 
-    String[] testStrTabArray   = 
+    String[] testStrTabArray   =
     	new String[] {
     		"John\tDoe\t50",
     		"\"Foo and CR last\nbar.\"\t\t",
     		"Frank\tClean\t70"
     };
-    
+
     @SuppressWarnings("serial")
 	ArrayList<Tuple> testStrTabYesMultilineResultTuples =
     	new ArrayList<Tuple>() {
@@ -124,7 +132,7 @@ public class TestCSVExcelStorage {
     		add(Util.createTuple(new String[] {"Frank","Clean","70"}));
     	}
     };
-    
+
     public TestCSVExcelStorage() throws ExecException, IOException {
 
         pigServer = new PigServer(ExecType.LOCAL);
@@ -132,7 +140,9 @@ public class TestCSVExcelStorage {
                 .setProperty("mapred.map.max.attempts", "1");
         pigServer.getPigContext().getProperties()
                 .setProperty("mapred.reduce.max.attempts", "1");
-        
+        pigServer.getPigContext().getProperties()
+        .setProperty("mapreduce.job.end-notification.retry.interval", "100");
+
         Util.createLocalInputFile(testFileCommaName, testStrCommaArray);
         Util.createLocalInputFile(testFileTabName, testStrTabArray);
     }
@@ -147,8 +157,8 @@ public class TestCSVExcelStorage {
         Iterator<Tuple> it = pigServer.openIterator("a");
         assertEquals(Util.createTuple(new String[] {"foo", "bar", "baz"}), it.next());
     }
-   
-    @Test 
+
+    @Test
     public void testQuotedCommas() throws IOException {
         String inputFileName = "TestCSVExcelStorage-quotedcommas.txt";
         Util.createLocalInputFile(inputFileName, new String[] {"\"foo,bar,baz\"", "fee,foe,fum"});
@@ -159,11 +169,11 @@ public class TestCSVExcelStorage {
         assertEquals(Util.createTuple(new String[] {"foo,bar,baz", null, null}), it.next());
         assertEquals(Util.createTuple(new String[] {"fee", "foe", "fum"}), it.next());
     }
-    
+
     @Test
     public void testQuotedQuotes() throws IOException {
         String inputFileName = "TestCSVExcelStorage-quotedquotes.txt";
-        Util.createLocalInputFile(inputFileName, 
+        Util.createLocalInputFile(inputFileName,
                 new String[] {"\"foo,\"\"bar\"\",baz\"", "\"\"\"\"\"\"\"\""});
         String script = "a = load '" + inputFileName + "' using org.apache.pig.piggybank.storage.CSVExcelStorage() " +
         "   as (a:chararray); ";
@@ -176,26 +186,26 @@ public class TestCSVExcelStorage {
     @Test
     public void testMultiline() throws IOException {
     	// Read the test file:
-        String script = 
-        	"a = LOAD '" + testFileCommaName + "' " +   	
+        String script =
+        	"a = LOAD '" + testFileCommaName + "' " +
         	"USING org.apache.pig.piggybank.storage.CSVExcelStorage(',', 'YES_MULTILINE');";
         Util.registerMultiLineQuery(pigServer, script);
         compareExpectedActual(testStrCommaYesMultilineResultTuples, "a");
-        
+
         // Store the test file back down into another file using YES_MULTILINE:
         String testOutFileName = createOutputFileName();
         script = "STORE a INTO '" + testOutFileName + "' USING " +
 					"org.apache.pig.piggybank.storage.CSVExcelStorage(',', 'YES_MULTILINE');";
         pigServer.registerQuery(script);
-        
+
         // Read it back out using YES_MULTILINE, and see whether it's still correct:
-        script = "b = LOAD '" + testOutFileName + "' " +   	
+        script = "b = LOAD '" + testOutFileName + "' " +
         	"USING org.apache.pig.piggybank.storage.CSVExcelStorage(',', 'YES_MULTILINE');";
         Util.registerMultiLineQuery(pigServer, script);
         compareExpectedActual(testStrCommaYesMultilineResultTuples, "b");
-        
+
         // Now read it back again, but multilines turned off:
-        script = "c = LOAD '" + testOutFileName + "' " +   	
+        script = "c = LOAD '" + testOutFileName + "' " +
         	"USING org.apache.pig.piggybank.storage.CSVExcelStorage(',', 'NO_MULTILINE');";
         Util.registerMultiLineQuery(pigServer, script);
         compareExpectedActual(testStrCommaNoMultilineResultTuples, "c");
@@ -205,32 +215,32 @@ public class TestCSVExcelStorage {
         script = "STORE c INTO '" + testOutFileName + "' USING " +
 					"org.apache.pig.piggybank.storage.CSVExcelStorage(',', 'NO_MULTILINE');";
         pigServer.registerQuery(script);
-        
+
         // Read it back in, again with NO_MULTILINE and see whether it's still correct:
-        script = "d = LOAD '" + testOutFileName + "' " +   	
+        script = "d = LOAD '" + testOutFileName + "' " +
         	"USING org.apache.pig.piggybank.storage.CSVExcelStorage(',', 'NO_MULTILINE');";
         Util.registerMultiLineQuery(pigServer, script);
         compareExpectedActual(testStrCommaNoMultilineResultTuples, "d");
 
     }
-    
+
     @Test
     public void testTabDelimiter() throws IOException {
     	// Read the test file:
-        String script = 
-        	"e = LOAD '" + testFileTabName + "' " +   	
+        String script =
+        	"e = LOAD '" + testFileTabName + "' " +
         	"USING org.apache.pig.piggybank.storage.CSVExcelStorage('\t', 'YES_MULTILINE');";
         Util.registerMultiLineQuery(pigServer, script);
         compareExpectedActual(testStrTabYesMultilineResultTuples, "e");
-        
+
         // Store the test file back down into another file using YES_MULTILINE:
         String testOutFileName = createOutputFileName();
         script = "STORE e INTO '" + testOutFileName + "' USING " +
 					"org.apache.pig.piggybank.storage.CSVExcelStorage('\t', 'YES_MULTILINE');";
         pigServer.registerQuery(script);
-        
+
         // Read it back out using YES_MULTILINE, and see whether it's still correct:
-        script = "f = LOAD '" + testOutFileName + "' " +   	
+        script = "f = LOAD '" + testOutFileName + "' " +
         	"USING org.apache.pig.piggybank.storage.CSVExcelStorage('\t', 'YES_MULTILINE');";
         Util.registerMultiLineQuery(pigServer, script);
         compareExpectedActual(testStrTabYesMultilineResultTuples, "f");
@@ -239,13 +249,13 @@ public class TestCSVExcelStorage {
     private void compareExpectedActual(ArrayList<Tuple> theExpected, String theActualPigVarAlias) throws IOException {
     	Iterator<Tuple> actualIt = pigServer.openIterator(theActualPigVarAlias);
     	Iterator<Tuple> expIt = theExpected.iterator();
-    	
+
     	while (actualIt.hasNext()) {
     		Tuple  actual = actualIt.next();
     		if (!expIt.hasNext())
     			Assert.fail("The input contains more records than expected. First unexpected record: " + actual);
     		Tuple  expected = expIt.next();
-    		// The following assert does not work, even if 
+    		// The following assert does not work, even if
     		// the two tuples are identical in class (BinSedesTuple)
     		// and content. We need to compare element by element:
     		//assertEquals(expected, actual);
@@ -256,24 +266,24 @@ public class TestCSVExcelStorage {
     		}
     	}
     }
-    
+
 	/*
 	 * Hack to get a temp file name to store data into.
 	 * The file must not exist when the caller subsequently
-	 * tries to write to it. In non-testing code this 
+	 * tries to write to it. In non-testing code this
 	 * would be an intolerable race condition. There's
-	 * likely a better way. 
+	 * likely a better way.
 	 */
 	private String createOutputFileName() throws IOException {
 		File f = File.createTempFile("CSVExcelStorageTest", "csv");
         f.deleteOnExit();
         f.delete();
-        // On Windows this path will be C:\\..., which 
-        // causes errors in the Hadoop environment. Replace 
+        // On Windows this path will be C:\\..., which
+        // causes errors in the Hadoop environment. Replace
         // the backslashes with forward slashes:
 		return f.getAbsolutePath().replaceAll("\\\\", "/");
-	}    
-    
+	}
+
     public static void main(String[] args) {
     	TestCSVExcelStorage tester = null;
     	try {
@@ -282,14 +292,14 @@ public class TestCSVExcelStorage {
 			tester.testQuotedCommas();
 			tester.testQuotedQuotes();
     		tester.testMultiline();
-    		tester.testTabDelimiter(); 
+    		tester.testTabDelimiter();
 System.out.println("CSVExcelStorage() passed all tests.");
-    		
+
 		} catch (ExecException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
     }
-    
+
 }

@@ -127,9 +127,17 @@ public class PhyPlanVisitor extends PlanVisitor<PhysicalOperator,PhysicalPlan> {
             popWalker();
         }
     }
-    
+
+    public void visitCounter(POCounter poCounter) throws VisitorException {
+        //do nothing
+    }
+
+    public void visitRank(PORank rank) throws VisitorException {
+        //do nothing
+    }
+
 	public void visitDistinct(PODistinct distinct) throws VisitorException {
-        //do nothing		
+        //do nothing
 	}
 
 	public void visitSort(POSort sort) throws VisitorException {

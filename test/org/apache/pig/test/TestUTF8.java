@@ -17,6 +17,9 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -25,29 +28,22 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Iterator;
-import java.util.Properties;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
-import org.apache.pig.data.*;
+import org.apache.pig.data.DataType;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.tools.grunt.Grunt;
 import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
-
-import junit.framework.TestCase;
-@RunWith(JUnit4.class)
-public class TestUTF8 extends TestCase {
+import org.junit.Before;
+import org.junit.Test;
+public class TestUTF8 {
     private PigServer pigServer;
 
     @Before
-    @Override
-    public void setUp() throws Exception{
-        pigServer = new PigServer(ExecType.LOCAL, new Properties());
+    public void setUp() throws Exception {
+        pigServer = new PigServer(ExecType.LOCAL);
     }
 
     @Test

@@ -114,19 +114,22 @@ public class Main {
        Attributes attr=null;
        try {
             String findContainingJar = JarManager.findContainingJar(Main.class);
-            JarFile jar = new JarFile(findContainingJar);
-            final Manifest manifest = jar.getManifest();
-            final Map<String,Attributes> attrs = manifest.getEntries();
-            attr = attrs.get("org/apache/pig");
+            if (findContainingJar != null) {
+                JarFile jar = new JarFile(findContainingJar);
+                final Manifest manifest = jar.getManifest();
+                final Map<String,Attributes> attrs = manifest.getEntries();
+                attr = attrs.get("org/apache/pig");
+            } else {
+                log.info("Unable to read pigs manifest file as we are not running from a jar, version information unavailable");
+            }
         } catch (Exception e) {
-            log.warn("Unable to read pigs manifest file, version information unavailable");
-            log.warn("Exception: "+e);
+            log.warn("Unable to read pigs manifest file, version information unavailable", e);
         }
         if (attr!=null) {
             version = attr.getValue("Implementation-Version");
             svnRevision = attr.getValue("Svn-Revision");
             buildTime = attr.getValue("Build-TimeStamp");
-            String[] split = version.split("-")[0].split("\\.");
+            String[] split = version.split("\\.");
             majorVersion=split[0];
             minorVersion=split[1];
             patchVersion=split[2];
@@ -213,7 +216,7 @@ static int run(String args[], PigProgressNotificationListener listener) {
         ExecType execType = ExecType.MAPREDUCE ;
         String execTypeString = properties.getProperty("exectype");
         if(execTypeString!=null && execTypeString.length()>0){
-            execType = PigServer.parseExecType(execTypeString);
+            execType = ExecType.fromString(execTypeString);
         }
 
         // set up client side system properties in UDF context
@@ -327,7 +330,7 @@ static int run(String args[], PigProgressNotificationListener listener) {
 
             case 'x':
                 try {
-                    execType = PigServer.parseExecType(opts.getValStr());
+                    execType = ExecType.fromString(opts.getValStr());
                     } catch (IOException e) {
                         throw new RuntimeException("ERROR: Unrecognized exectype.", e);
                     }
@@ -394,9 +397,6 @@ static int run(String args[], PigProgressNotificationListener listener) {
         if(optimizerRules.size() > 0) {
             pigContext.getProperties().setProperty("pig.optimizer.rules", ObjectSerializer.serialize(optimizerRules));
         }
-
-        if (properties.get("udf.import.list")!=null)
-            PigContext.initializeImportList((String)properties.get("udf.import.list"));
 
         PigContext.setClassLoader(pigContext.createCl(null));
 
@@ -495,6 +495,8 @@ static int run(String args[], PigProgressNotificationListener listener) {
                 sb.append(remainders[i]);
             }
 
+            sb.append('\n');
+
             scriptState.setScript(sb.toString());
 
             in = new BufferedReader(new StringReader(sb.toString()));
@@ -537,7 +539,7 @@ static int run(String args[], PigProgressNotificationListener listener) {
             return ReturnCode.SUCCESS;
         } else {
             pigContext.getProperties().setProperty(PigContext.PIG_CMD_ARGS_REMAINDERS, ObjectSerializer.serialize(remainders));
-            
+
             // They have a pig script they want us to run.
             mode = ExecMode.FILE;
 
@@ -867,6 +869,8 @@ public static void usage()
         System.out.println("    -F, -stop_on_failure - Aborts execution on the first failed job; default is off");
         System.out.println("    -M, -no_multiquery - Turn multiquery optimization off; default is on");
         System.out.println("    -P, -propertyFile - Path to property file");
+        System.out.println("    -printCmdDebug - Overrides anything else and prints the actual command used to run Pig, including");
+        System.out.println("                     any environment variables that are set by the pig command.");
 }
 
 public static void printProperties(){
@@ -917,11 +921,11 @@ private static String validateLogFile(String logFileName, String scriptName) {
             String scriptFileAbsPath;
             try {
                 scriptFileAbsPath = scriptFile.getCanonicalPath();
+                strippedDownScriptName = getFileFromCanonicalPath(scriptFileAbsPath);
             } catch (IOException ioe) {
                 log.warn("Could not compute canonical path to the script file " + ioe.getMessage());
-                return null;
+                strippedDownScriptName = null;
             }
-            strippedDownScriptName = getFileFromCanonicalPath(scriptFileAbsPath);
         }
     }
 

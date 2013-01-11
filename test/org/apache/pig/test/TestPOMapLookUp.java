@@ -17,38 +17,38 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.Map;
 import java.util.Random;
 
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POMapLookUp;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POMapLookUp;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.test.utils.GenRandomData;
 import org.junit.Test;
 
-import junit.framework.TestCase;
+public class TestPOMapLookUp {
 
-public class TestPOMapLookUp extends TestCase {
-	
 	Random r = new Random();
 	Map<String, Object> map;// = GenRandomData.genRandMap(r, 10);
-	
+
 	@Test
 	public void testMapLookUp() throws PlanException, ExecException {
-		
+
 		POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
 		POMapLookUp op = new POMapLookUp(new OperatorKey("", r.nextLong()), -1);
 		PhysicalPlan plan = new PhysicalPlan();
 		plan.add(op);
 		plan.add(prj);
 		plan.connect(prj, op);
-		
+
 		for(int i = 0 ; i < 10; i++) {
 			map = GenRandomData.genRandMap(r, 10);
 			Tuple t = TupleFactory.getInstance().newTuple();
@@ -60,9 +60,9 @@ public class TestPOMapLookUp extends TestCase {
 				//System.out.println(e.getValue() + " : " + res.result);
 				assertEquals(e.getValue(), res.result);
 			}
-			
-			
+
+
 		}
-		
+
 	}
 }

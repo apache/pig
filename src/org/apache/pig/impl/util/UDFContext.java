@@ -208,10 +208,14 @@ public class UDFContext {
 
     /**
      * Convenience method for UDF code to check where it runs (see PIG-2576)
-     * @return
+     * @return boolean type value
      */
     public boolean isFrontend() {
-    	return (this.jconf == null || jconf.get("mapred.task.id") == null);
+        // mapred.task.id is for MR1
+        // mapreduce.job.application.attempt.id is for MR2
+        return (this.jconf == null
+                || (jconf.get("mapred.task.id") == null &&
+                    jconf.get("mapreduce.job.application.attempt.id") == null));
     }
     
     /**

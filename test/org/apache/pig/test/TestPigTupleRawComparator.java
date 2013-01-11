@@ -29,6 +29,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
+import org.joda.time.DateTime;
+
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigTupleDefaultRawComparator;
@@ -65,7 +67,7 @@ public class TestPigTupleRawComparator {
         oldComparator.setConf(jobConf);
         list = Arrays.<Object> asList(1f, 2, 3.0, 4l, (byte) 5, true,
                 new DataByteArray(new byte[] { 0x10, 0x2a, 0x5e }), "hello world!",
-                tf.newTuple(Arrays.<Object> asList(8.0, 9f, 10l, 11)));
+                tf.newTuple(Arrays.<Object> asList(8.0, 9f, 10l, 11)), new DateTime(12L));
         prototype = new NullableTuple(tf.newTuple(list));
         baos1.reset();
         baos2.reset();
@@ -359,6 +361,15 @@ public class TestPigTupleRawComparator {
     }
 
     @Test
+    public void testCompareDateTime() throws IOException {
+        list.set(9, ((DateTime) list.get(9)).plus(1L));
+        NullableTuple t = new NullableTuple(tf.newTuple(list));
+        int res = compareHelper(prototype, t, comparator);
+        assertEquals(Math.signum(prototype.compareTo(t)), Math.signum(res), 0);
+        assertTrue(res < 0);
+    }
+
+    @Test
     public void testCompareDiffertTypes() throws IOException {
         // DataType.INTEGER < DataType.LONG
         list.set(3, 4);
@@ -442,6 +453,10 @@ public class TestPigTupleRawComparator {
         case 8:
             length = rand.nextInt(6);
             t.set(pos, getRandomTuple(rand));
+            break;
+        case 9:
+            t.set(pos, new DateTime(rand.nextLong()));
+            break;
         default:
         }
         return t;

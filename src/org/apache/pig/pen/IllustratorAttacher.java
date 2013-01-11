@@ -27,7 +27,9 @@ import java.util.List;
 
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCounter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PORank;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFilter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCollectedGroup;
@@ -93,13 +95,13 @@ public class IllustratorAttacher extends PhyPlanVisitor {
     LineageTracer lineage;
 
     HashMap<PhysicalOperator, Collection<IdentityHashSet<Tuple>>> poToEqclassesMap;
-    
+
     private HashMap<PhysicalOperator, DataBag> poToDataMap;
     private int maxRecords;
     private boolean revisit = false;
     private ArrayList<Boolean[]> subExpResults = null;
     private final Map<POLoad, LogicalSchema> poloadToSchemaMap;
-    
+
     public IllustratorAttacher(PhysicalPlan plan, LineageTracer lineage, int maxRecords,
         Map<POLoad, LogicalSchema> poLoadToSchemaMap, PigContext hadoopPigContext) throws VisitorException {
         super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(plan));
@@ -124,7 +126,7 @@ public class IllustratorAttacher extends PhyPlanVisitor {
         mPlan = oriPlan;
         popWalker();
     }
-    
+
     private void setIllustrator(PhysicalOperator po, int nEqClasses) {
         if (revisit && po.getIllustrator() != null)
             return;
@@ -139,7 +141,7 @@ public class IllustratorAttacher extends PhyPlanVisitor {
         po.setIllustrator(illustrator);
         poToDataMap.put(po, illustrator.getData());
     }
-    
+
     private void setIllustrator(PhysicalOperator po, LinkedList<IdentityHashSet<Tuple>> eqClasses) {
         if (revisit && po.getIllustrator() != null)
             return;
@@ -161,20 +163,20 @@ public class IllustratorAttacher extends PhyPlanVisitor {
         poToEqclassesMap.put(po, eqClasses);
         poToDataMap.put(po, illustrator.getData());
     }
-    
+
     public Map<PhysicalOperator, DataBag> getDataMap() {
         return poToDataMap;
     }
-    
+
     @Override
     public void visitLoad(POLoad ld) throws VisitorException{
-        // LOAD from temporary files need no illustrator 
+        // LOAD from temporary files need no illustrator
         if (revisit)
             return;
-        
+
         LinkedList<IdentityHashSet<Tuple>> eqClasses = new LinkedList<IdentityHashSet<Tuple>>();
         poToEqclassesMap.put(ld, eqClasses);
-        
+
         IdentityHashSet<Tuple> eqClass = new IdentityHashSet<Tuple>();
         eqClasses.add(eqClass);
         Illustrator illustrator;
@@ -182,12 +184,12 @@ public class IllustratorAttacher extends PhyPlanVisitor {
         ld.setIllustrator(illustrator);
         poToDataMap.put(ld, illustrator.getData());
     }
-    
+
     @Override
     public void visitStore(POStore st) throws VisitorException{
         setIllustrator(st, 1);
     }
-    
+
     @Override
     public void visitFilter(POFilter fl) throws VisitorException{
         setIllustrator(fl, 0);
@@ -195,13 +197,13 @@ public class IllustratorAttacher extends PhyPlanVisitor {
         innerPlanAttach(fl, fl.getPlan());
         subExpResults = null;
     }
-    
+
     @Override
     public void visitLocalRearrange(POLocalRearrange lr) throws VisitorException{
       super.visitLocalRearrange(lr);
       setIllustrator(lr);
     }
-    
+
     @Override
     public void visitPackage(POPackage pkg) throws VisitorException{
         if (!(pkg instanceof POPackageLite) && pkg.isDistinct())
@@ -209,17 +211,17 @@ public class IllustratorAttacher extends PhyPlanVisitor {
         else
             setIllustrator(pkg, null);
     }
-    
+
     @Override
     public void visitCombinerPackage(POCombinerPackage pkg) throws VisitorException{
         setIllustrator(pkg);
     }
- 
+
     @Override
     public void visitMultiQueryPackage(POMultiQueryPackage pkg) throws VisitorException{
       setIllustrator(pkg);
     }
-    
+
     @Override
     public void visitPOForEach(POForEach nfe) throws VisitorException {
         if (revisit && nfe.getIllustrator() != null)
@@ -239,14 +241,14 @@ public class IllustratorAttacher extends PhyPlanVisitor {
         } else
             setIllustrator(nfe, 1);
     }
-    
+
     @Override
     public void visitUnion(POUnion un) throws VisitorException{
         if (revisit && un.getIllustrator() != null)
           return;
         setIllustrator(un, null);
     }
-    
+
     @Override
     public void visitSplit(POSplit spl) throws VisitorException{
         if (revisit && spl.getIllustrator() != null)
@@ -265,63 +267,73 @@ public class IllustratorAttacher extends PhyPlanVisitor {
         innerPlanAttach(demux, innerPlan);
       setIllustrator(demux);
     }
-    
+
     @Override
 	public void visitDistinct(PODistinct distinct) throws VisitorException {
         setIllustrator(distinct, 1);
 	}
-    
+
     @Override
 	public void visitSort(POSort sort) throws VisitorException {
         setIllustrator(sort, 1);
 	}
-    
+
+    @Override
+    public void visitRank(PORank rank) throws VisitorException {
+        setIllustrator(rank, 3);
+    }
+
+    @Override
+    public void visitCounter(POCounter counter) throws VisitorException {
+        setIllustrator(counter, 1);
+    }
+
     @Override
     public void visitProject(POProject proj) throws VisitorException{
     }
-    
+
     @Override
     public void visitGreaterThan(GreaterThanExpr grt) throws VisitorException{
         setIllustrator(grt, 0);
         if (!revisit && subExpResults != null)
             subExpResults.add(grt.getIllustrator().getSubExpResult());
     }
-    
+
     @Override
     public void visitLessThan(LessThanExpr lt) throws VisitorException{
         setIllustrator(lt, 0);
         if (!revisit && subExpResults != null)
             subExpResults.add(lt.getIllustrator().getSubExpResult());
     }
-    
+
     @Override
     public void visitGTOrEqual(GTOrEqualToExpr gte) throws VisitorException{
         setIllustrator(gte, 0);
         if (!revisit && subExpResults != null)
             subExpResults.add(gte.getIllustrator().getSubExpResult());
     }
-    
+
     @Override
     public void visitLTOrEqual(LTOrEqualToExpr lte) throws VisitorException{
         setIllustrator(lte, 0);
         if (!revisit && subExpResults != null)
             subExpResults.add(lte.getIllustrator().getSubExpResult());
     }
-    
+
     @Override
     public void visitEqualTo(EqualToExpr eq) throws VisitorException{
         setIllustrator(eq, 0);
         if (!revisit && subExpResults != null)
             subExpResults.add(eq.getIllustrator().getSubExpResult());
     }
-    
+
     @Override
     public void visitNotEqualTo(NotEqualToExpr eq) throws VisitorException{
         setIllustrator(eq, 0);
         if (!revisit && subExpResults != null)
             subExpResults.add(eq.getIllustrator().getSubExpResult());
     }
-    
+
     @Override
     public void visitRegexp(PORegexp re) throws VisitorException{
         setIllustrator(re, 0);
@@ -335,12 +347,12 @@ public class IllustratorAttacher extends PhyPlanVisitor {
         if (!revisit && subExpResults != null)
             subExpResults.add(isNull.getIllustrator().getSubExpResult());
     }
-    
+
     @Override
     public void visitAnd(POAnd and) throws VisitorException {
         setIllustrator(and, 0);
     }
-    
+
     @Override
     public void visitOr(POOr or) throws VisitorException {
         setIllustrator(or, 0);
@@ -362,11 +374,11 @@ public class IllustratorAttacher extends PhyPlanVisitor {
     public void visitNegative(PONegative negative) {
       setIllustrator(negative, 1);
     }
-    
+
     @Override
     public void visitUserFunc(POUserFunc userFunc) throws VisitorException {
     }
-    
+
     @Override
     public void visitComparisonFunc(POUserComparisonFunc compFunc) throws VisitorException {
         // one each for >, ==, and <
@@ -377,7 +389,7 @@ public class IllustratorAttacher extends PhyPlanVisitor {
     public void visitMapLookUp(POMapLookUp mapLookUp) {
       setIllustrator(mapLookUp, 1);
     }
-    
+
     @Override
     public void visitJoinPackage(POJoinPackage joinPackage) throws VisitorException{
         if (revisit &&  joinPackage.getIllustrator() != null)
@@ -389,12 +401,12 @@ public class IllustratorAttacher extends PhyPlanVisitor {
     @Override
     public void visitCast(POCast cast) {
     }
-    
+
     @Override
     public void visitLimit(POLimit lim) throws VisitorException {
         setIllustrator(lim, 1);
     }
-    
+
     @Override
     public void visitStream(POStream stream) throws VisitorException {
         setIllustrator(stream, 1);
@@ -407,7 +419,7 @@ public class IllustratorAttacher extends PhyPlanVisitor {
     public void visitPOOptimizedForEach(POOptimizedForEach optimizedForEach) throws VisitorException {
         visitPOForEach(optimizedForEach);
     }
-    
+
     private void innerPlanAttach(PhysicalOperator po, PhysicalPlan plan) throws VisitorException {
         PlanWalker<PhysicalOperator, PhysicalPlan> childWalker =
               mCurrentWalker.spawnChildWalker(plan);

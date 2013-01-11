@@ -16,24 +16,6 @@
  * limitations under the License.
  */
 
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package org.apache.pig.test;
 
 import java.io.IOException;
@@ -883,12 +865,21 @@ public class TestSchema {
             "a,b,t:tuple(x,b:bag{t:tuple(a,b,c,x:tuple(z:bag{r:tuple(z)}))},z)",
             "a:bag{t:tuple(a:bag{t:tuple(a:bag{t:tuple(a:bag{t:tuple(a:bag{t:tuple(a:bag{t:tuple(a:int,b:float)})})})})})}",
             "a:bag{}",
-            "b:{null:(a:int)}"
+            "b:{null:(a:int)}",
+            "int,int,int,int,int,int,int,int,int,int",
+            "long,long,long,long,long,long,long,long,long,long",
+            "float,float,float,float,float,float,float,float,float,float",
+            "double,double,double,double,double,double,double,double,double,double",
+            "boolean,boolean,boolean,boolean,boolean,boolean,boolean,boolean,boolean,boolean",
+            "datetime,datetime,datetime,datetime,datetime,datetime,datetime,datetime,datetime,datetime",
+            "{},{},{},{},{},{},{},{},{},{}",
+            "map[],map[],map[],map[],map[],map[],map[],map[],map[],map[]",
+            "int,int,long,long,float,float,double,double,boolean,boolean,datetime,datetime(int,long,float,double,boolean,datetime),{(int,long,float,double,boolean,datetime)},map[(int,long,float,double,boolean,datetime)]"
         };
         for (String schemaString : schemaStrings) {
             Schema s1 = Utils.getSchemaFromString(schemaString);
             String s=s1.toString();
-            Schema s2 = Utils.getSchemaFromString(s.substring(1,s.length()-1)); //have to cut out the brackets that surround it
+            Schema s2 = Utils.getSchemaFromBagSchemaString(s); // removes outer curly-braces added by Schema#toString
             Assert.assertTrue(Schema.equals(s1,s2,false,true));
         }
     }

@@ -20,7 +20,6 @@ package org.apache.pig.parser;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -36,8 +35,10 @@ import org.apache.pig.LoadFunc;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.builtin.CubeDimensions;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.builtin.RANDOM;
+import org.apache.pig.builtin.RollupDimensions;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
@@ -67,6 +68,7 @@ import org.apache.pig.newplan.logical.optimizer.SchemaResetter;
 import org.apache.pig.newplan.logical.relational.LOCogroup;
 import org.apache.pig.newplan.logical.relational.LOCogroup.GROUPTYPE;
 import org.apache.pig.newplan.logical.relational.LOCross;
+import org.apache.pig.newplan.logical.relational.LOCube;
 import org.apache.pig.newplan.logical.relational.LODistinct;
 import org.apache.pig.newplan.logical.relational.LOFilter;
 import org.apache.pig.newplan.logical.relational.LOForEach;
@@ -77,6 +79,7 @@ import org.apache.pig.newplan.logical.relational.LOJoin.JOINTYPE;
 import org.apache.pig.newplan.logical.relational.LOLimit;
 import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LONative;
+import org.apache.pig.newplan.logical.relational.LORank;
 import org.apache.pig.newplan.logical.relational.LOSort;
 import org.apache.pig.newplan.logical.relational.LOSplit;
 import org.apache.pig.newplan.logical.relational.LOSplitOutput;
@@ -92,18 +95,25 @@ import org.apache.pig.newplan.logical.visitor.ProjStarInUdfExpander;
 import org.apache.pig.newplan.logical.visitor.ProjectStarExpander;
 
 public class LogicalPlanBuilder {
+
     private LogicalPlan plan = new LogicalPlan();
 
     private Map<String, Operator> operators = new HashMap<String, Operator>();
-    
+
     Map<String, String> fileNameMap;
-    
+
     private PigContext pigContext = null;
     private String scope = null;
     private IntStream intStream;
-    
+    private int storeIndex = 0;
+    private int loadIndex = 0;
+
     private static NodeIdGenerator nodeIdGen = NodeIdGenerator.getGenerator();
-    
+
+    public static long getNextId(String scope) {
+        return nodeIdGen.getNextNodeId( scope );
+    }
+
     LogicalPlanBuilder(PigContext pigContext, String scope, Map<String, String> fileNameMap,
             IntStream input) {
         this.pigContext = pigContext;
@@ -111,7 +121,7 @@ public class LogicalPlanBuilder {
         this.fileNameMap = fileNameMap;
         this.intStream = input;
     }
-    
+
     LogicalPlanBuilder(IntStream input) throws ExecException {
         pigContext = new PigContext( ExecType.LOCAL, new Properties() );
         pigContext.connect();
@@ -119,7 +129,7 @@ public class LogicalPlanBuilder {
         this.fileNameMap = new HashMap<String, String>();
         this.intStream = input;
     }
-    
+
     Operator lookupOperator(String alias) {
         return operators.get( alias );
     }
@@ -127,27 +137,27 @@ public class LogicalPlanBuilder {
     FuncSpec lookupFunction(String alias) {
         return pigContext.getFuncSpecFromAlias( alias );
     }
-    
+
     StreamingCommand lookupCommand(String alias) {
         return pigContext.getCommandForAlias( alias );
     }
-    
+
     void defineCommand(String alias, StreamingCommand command) {
         pigContext.registerStreamCmd( alias, command );
     }
-    
+
     void defineFunction(String alias, FuncSpec fs) {
         pigContext.registerFunction( alias, fs );
     }
-    
+
     LogicalPlan getPlan() {
         return plan;
     }
-    
+
     Map<String, Operator> getOperators() {
         return operators;
     }
-    
+
     LOFilter createFilterOp() {
         return new LOFilter( plan );
     }
@@ -155,26 +165,26 @@ public class LogicalPlanBuilder {
     LOLimit createLimitOp() {
         return new LOLimit( plan );
     }
-    
+
     LOFilter createSampleOp() {
         return new LOFilter( plan, true );
     }
-    
-    String buildFilterOp(SourceLocation loc, LOFilter op, String alias, 
+
+    String buildFilterOp(SourceLocation loc, LOFilter op, String alias,
             String inputAlias, LogicalExpressionPlan expr)
                     throws ParserValidationException {
-        
+
         op.setFilterPlan( expr );
-        alias = buildOp( loc, op, alias, inputAlias, null ); // it should actually return same alias 
+        alias = buildOp( loc, op, alias, inputAlias, null ); // it should actually return same alias
         try {
             (new ProjStarInUdfExpander(op.getPlan())).visit(op);
             new SchemaResetter(op.getPlan(), true).visit(op);
         } catch (FrontendException e) {
             throw new ParserValidationException( intStream, loc, e );
-        }   
+        }
         return alias;
     }
-    
+
     String buildDistinctOp(SourceLocation loc, String alias, String inputAlias, String partitioner) throws ParserValidationException {
         LODistinct op = new LODistinct( plan );
         return buildOp( loc, op, alias, inputAlias, partitioner );
@@ -184,16 +194,16 @@ public class LogicalPlanBuilder {
         LOLimit op = new LOLimit( plan, limit );
         return buildOp( loc, op, alias, inputAlias, null );
     }
-    
+
     String buildLimitOp(SourceLocation loc, LOLimit op, String alias, String inputAlias, LogicalExpressionPlan expr) throws ParserValidationException {
         op.setLimitPlan(expr);
         return buildOp(loc, op, alias, inputAlias, null);
     }
-    
+
     String buildSampleOp(SourceLocation loc, String alias, String inputAlias, double value,
             SourceLocation valLoc)
                     throws ParserValidationException {
-        
+
         LogicalExpressionPlan filterPlan = new LogicalExpressionPlan();
         //  Generate a filter condition.
         LogicalExpression konst = new ConstantExpression( filterPlan, value);
@@ -203,16 +213,16 @@ public class LogicalPlanBuilder {
         LOFilter filter = new LOFilter( plan, true );
         return buildFilterOp( loc, filter, alias, inputAlias, filterPlan );
     }
-    
+
     String buildSampleOp(SourceLocation loc, LOFilter filter, String alias, String inputAlias,
             LogicalExpressionPlan samplePlan, LogicalExpression expr)
                     throws ParserValidationException {
-        
+
         UserFuncExpression udf = new UserFuncExpression( samplePlan, new FuncSpec( RANDOM.class.getName() ) );
         new LessThanExpression( samplePlan, udf, expr );
         return buildFilterOp( loc, filter, alias, inputAlias, samplePlan );
     }
-    
+
     String buildUnionOp(SourceLocation loc, String alias, List<String> inputAliases, boolean onSchema) throws ParserValidationException {
         LOUnion op = new LOUnion( plan, onSchema );
         return buildOp( loc, op, alias, inputAliases, null );
@@ -222,17 +232,17 @@ public class LogicalPlanBuilder {
         LOSplit op = new LOSplit( plan );
         return buildOp( loc, op, null, inputAlias, null );
     }
-    
+
     LOSplitOutput createSplitOutputOp() {
         return  new LOSplitOutput( plan );
     }
-    
+
     String buildSplitOutputOp(SourceLocation loc, LOSplitOutput op, String alias, String inputAlias,
             LogicalExpressionPlan filterPlan) throws ParserValidationException {
         op.setFilterPlan( filterPlan );
         return buildOp ( loc, op, alias, inputAlias, null );
     }
-    
+
     String buildSplitOtherwiseOp(SourceLocation loc, LOSplitOutput op, String alias, String inputAlias)
             throws ParserValidationException, PlanGenerationFailureException {
         LogicalExpressionPlan splitPlan = new LogicalExpressionPlan();
@@ -274,17 +284,17 @@ public class LogicalPlanBuilder {
         op.setFilterPlan(splitPlan);
         return buildOp(loc, op, alias, inputAlias, null);
     }
-    
+
     String buildCrossOp(SourceLocation loc, String alias, List<String> inputAliases, String partitioner) throws ParserValidationException {
         LOCross op = new LOCross( plan );
         return buildOp ( loc, op, alias, inputAliases, partitioner );
     }
-    
+
     LOSort createSortOp() {
         return new LOSort( plan );
     }
-    
-    String buildSortOp(SourceLocation loc, LOSort sort, String alias, String inputAlias, List<LogicalExpressionPlan> plans, 
+
+    String buildSortOp(SourceLocation loc, LOSort sort, String alias, String inputAlias, List<LogicalExpressionPlan> plans,
             List<Boolean> ascFlags, FuncSpec fs) throws ParserValidationException {
         sort.setSortColPlans( plans );
         sort.setUserFunc( fs );
@@ -294,16 +304,31 @@ public class LogicalPlanBuilder {
         }
         sort.setAscendingCols( ascFlags );
         alias = buildOp( loc, sort, alias, inputAlias, null );
-        try {
-            (new ProjectStarExpander(sort.getPlan())).visit(sort);
-            (new ProjStarInUdfExpander(sort.getPlan())).visit(sort);
-            new SchemaResetter(sort.getPlan(), true).visit(sort);
-        } catch (FrontendException e) {
-            throw new ParserValidationException( intStream, loc, e );
-        }
+        expandAndResetVisitor(loc, sort);
         return alias;
     }
-    
+
+    LORank createRankOp() {
+        return new LORank( plan );
+    }
+
+    String buildRankOp(SourceLocation loc, LORank rank, String alias, String inputAlias, List<LogicalExpressionPlan> plans,
+            List<Boolean> ascFlags) throws ParserValidationException {
+
+        //Rank
+        rank.setRankColPlan(plans);
+        if (ascFlags.isEmpty()) {
+            for (int i=0;i<plans.size();i++)
+                ascFlags.add(true);
+        }
+        rank.setAscendingCol(ascFlags);
+
+        buildOp( loc, rank, alias, inputAlias, null );
+        expandAndResetVisitor(loc, rank);
+
+        return alias;
+    }
+
     LOJoin createJoinOp() {
         return new LOJoin( plan );
     }
@@ -317,15 +342,15 @@ public class LogicalPlanBuilder {
         else {
             op.pinOption(LOJoin.OPTION_JOIN);
         }
-        
+
         int inputCount = inputAliases.size();
-        
+
         if( jt == JOINTYPE.SKEWED ) {
             if( partitioner != null ) {
                 throw new ParserValidationException( intStream, loc,
                         "Custom Partitioner is not supported for skewed join" );
             }
-            
+
             if( inputCount != 2 ) {
                 throw new ParserValidationException( intStream, loc,
                         "Skewed join can only be applied for 2-way joins" );
@@ -355,29 +380,412 @@ public class LogicalPlanBuilder {
         op.setInnerFlags( flags );
         op.setJoinPlans( joinPlans );
         alias = buildOp( loc, op, alias, inputAliases, partitioner );
-        try {
-            (new ProjectStarExpander(op.getPlan())).visit(op);
-            (new ProjStarInUdfExpander(op.getPlan())).visit(op);
-            new SchemaResetter(op.getPlan(), true).visit(op);
-        } catch (FrontendException e) {
-            throw new ParserValidationException( intStream, loc, e );
-        }
+        expandAndResetVisitor(loc, op);
         return alias;
+    }
+
+    private void expandAndResetVisitor(SourceLocation loc,
+	    LogicalRelationalOperator lrop) throws ParserValidationException {
+        try {
+	    (new ProjectStarExpander(lrop.getPlan())).visit();
+	    (new ProjStarInUdfExpander(lrop.getPlan())).visit();
+	    new SchemaResetter(lrop.getPlan(), true).visit();
+	} catch (FrontendException e) {
+	    throw new ParserValidationException(intStream, loc, e);
+	}
+    }
+
+    LOCube createCubeOp() {
+	return new LOCube(plan);
+    }
+
+    String buildCubeOp(SourceLocation loc, LOCube op, String alias, String inputAlias,
+	    List<String> operations, MultiMap<Integer, LogicalExpressionPlan> expressionPlans)
+	    throws ParserValidationException {
+
+	// check if continuously occurring cube operations be combined
+	combineCubeOperations((ArrayList<String>) operations, expressionPlans);
+
+	// set the expression plans for cube operator and build cube operator
+	op.setExpressionPlans(expressionPlans);
+	op.setOperations(operations);
+	buildOp(loc, op, alias, inputAlias, null);
+	expandAndResetVisitor(loc, op);
+	try {
+	    alias = convertCubeToFGPlan(loc, op, inputAlias, operations, expressionPlans);
+	} catch (FrontendException e) {
+	    throw new ParserValidationException(intStream, loc, e);
+	}
+	return alias;
+    }
+
+    // if multiple CUBE operations occur continuously then it can be combined
+    // together CUBE rel BY CUBE(a,b), CUBE(c,d); => CUBE rel BY CUBE(a,b,c,d)
+    private void combineCubeOperations(ArrayList<String> operations,
+	    MultiMap<Integer, LogicalExpressionPlan> expressionPlans) {
+
+	int startIdx = -1;
+	int endIdx = -1;
+	int i = 0;
+	boolean isMerged = false;
+
+	// scan and perform merge of column projections
+	for (i = 0; i < operations.size(); i++) {
+	    if ((startIdx == -1) && (operations.get(i).equals("CUBE") == true)) {
+		startIdx = i;
+	    } else {
+		if (operations.get(i).equals("CUBE") == true) {
+		    endIdx = i;
+		} else {
+		    if (endIdx > startIdx) {
+			mergeAndMarkForDelete(operations, expressionPlans, startIdx, endIdx);
+			isMerged = true;
+			startIdx = -1;
+			endIdx = -1;
+		    } else {
+			startIdx = -1;
+			endIdx = -1;
+		    }
+		}
+	    }
+	}
+
+	// this check is required for the case when the sequence of CUBE
+	// operations occurs at the end, like (CUBE, ROLLUP, CUBE, CUBE)
+	// in which case endIdx will be greater than startIdx
+	if (endIdx > startIdx) {
+	    isMerged = true;
+	    mergeAndMarkForDelete(operations, expressionPlans, startIdx, endIdx);
+	}
+
+	// if merged then remove the column projections that were marked for
+	// deletion
+	if (isMerged) {
+	    performDeletion(expressionPlans, operations);
+	}
+    }
+
+    private void performDeletion(MultiMap<Integer, LogicalExpressionPlan> expressionPlans,
+	    ArrayList<String> operations) {
+
+	MultiMap<Integer, LogicalExpressionPlan> ep = new MultiMap<Integer, LogicalExpressionPlan>();
+	List<String> op = new ArrayList<String>();
+	int idx = 0;
+	// rearranging indices
+	for (int i = 0; i < operations.size(); i++) {
+	    if (operations.get(i) != null) {
+		op.add(idx, operations.get(i));
+	    }
+
+	    if (expressionPlans.get(i) != null) {
+		ep.put(idx, expressionPlans.get(i));
+		idx++;
+	    }
+	}
+
+	// performing deletions
+	operations.clear();
+	operations.addAll(op);
+
+	expressionPlans.clear();
+	for (Integer i : ep.keySet()) {
+	    expressionPlans.put(i, ep.get(i));
+	}
+    }
+
+    // performs merging of dimensions of merged cube operation
+    // Ex: CUBE(a,b), CUBE(c,d) ==> CUBE(a,b,c,d)
+    // in the above example CUBE operator and dimensions are merged
+    private void mergeAndMarkForDelete(ArrayList<String> operations,
+	    MultiMap<Integer, LogicalExpressionPlan> expressionPlans, int startIdx, int endIdx) {
+	// mark for delete
+	for (int i = startIdx + 1; i <= endIdx; i++) {
+	    expressionPlans.put(startIdx, expressionPlans.get(i));
+	    expressionPlans.removeKey(i);
+	    operations.remove(i);
+	    operations.add(i, null);
+	}
+    }
+
+    // This function creates logical plan for foreach and groupby operators.
+    // It connects the predecessors of cube operator with foreach plan and
+    // disconnects cube operator from the logical plan. It also connects foreach
+    // plan with groupby plan.
+    private String convertCubeToFGPlan(SourceLocation loc, LOCube op, String inputAlias,
+	    List<String> operations, MultiMap<Integer, LogicalExpressionPlan> expressionPlans)
+	    throws FrontendException {
+
+	LOForEach foreach = new LOForEach(plan);
+	LOCogroup groupby = new LOCogroup(plan);
+	LogicalPlan innerPlan = new LogicalPlan();
+	LogicalRelationalOperator gen = new LOGenerate(innerPlan);
+
+	injectForeachOperator(loc, op, foreach);
+
+	// Get all column attributes from the input relation.
+	// Create ProjectExpression for all columns. Based on the
+	// dimensions specified by the user, specified columns will be attached
+	// to CubeDimension/RollupDimension UDF and rest will be pushed down
+	List<Operator> inpOpers = foreach.getPlan().getPredecessors(foreach);
+	List<LogicalExpressionPlan> allExprPlan = new ArrayList<LogicalExpressionPlan>();
+	for (Operator oper : inpOpers) {
+	    LogicalSchema schema = new LogicalSchema();
+	    schema = ((LogicalRelationalOperator) oper).getSchema();
+
+	    if (schema != null) {
+		ArrayList<LogicalFieldSchema> fields = (ArrayList<LogicalFieldSchema>) schema
+		        .getFields();
+		for (int i = 0; i < fields.size(); i++) {
+		    LogicalExpressionPlan lEplan = new LogicalExpressionPlan();
+		    new ProjectExpression(lEplan, i, fields.get(i).alias, gen);
+		    allExprPlan.add(lEplan);
+		}
+	    }
+	}
+
+	// iterate over all operations and generate corresponding UDFs
+	for (int operIdx = 0; operIdx < operations.size(); operIdx++) {
+	    List<LogicalExpressionPlan> lexpPlanList = new ArrayList<LogicalExpressionPlan>();
+	    List<LogicalExpression> lexpList = new ArrayList<LogicalExpression>();
+
+	    lexpPlanList.addAll(expressionPlans.get(operIdx));
+
+	    // If duplicates exists in the dimension list then exception is
+	    // thrown
+	    checkDuplicateProject(lexpPlanList);
+
+	    // Construct ProjectExpression from the LogicalExpressionPlans
+	    lexpList = getProjectExpList(lexpPlanList, gen);
+
+	    for (int i = 0; i < lexpList.size(); i++) {
+		// Retain the columns that needs to be pushed down.
+		// Remove the dimension columns from the input column list
+		// as it will be attached to CubeDimension UDF
+		for (int j = 0; j < allExprPlan.size(); j++) {
+		    LogicalExpression lexp = (LogicalExpression) allExprPlan.get(j).getSources()
+			    .get(0);
+		    String colAlias = ((ProjectExpression) lexpList.get(i)).getColAlias();
+		    if (colAlias == null) {
+			colAlias = ((ProjectExpression) lexpList.get(i)).getFieldSchema().alias;
+		    }
+
+		    String projExpAlias = null;
+		    try {
+			projExpAlias = ((ProjectExpression) lexp).getColAlias();
+		    } catch (ClassCastException e) {
+			// if it is not projection then it should be
+			// UserFuncExpr.
+			// ignore and continue till next ProjExpr is encountered
+			continue;
+		    }
+		    if (colAlias.equals(projExpAlias) == true) {
+			allExprPlan.remove(j);
+		    } else {
+			// if projected exp alias is a namespaced alias
+			if (projExpAlias.lastIndexOf(":") != -1) {
+			    projExpAlias = projExpAlias.substring(
+				    projExpAlias.lastIndexOf(":") + 1, projExpAlias.length());
+			    if (colAlias.equals(projExpAlias) == true) {
+				allExprPlan.remove(j);
+			    }
+			}
+		    }
+		}
+	    }
+
+	    // Create UDF with user specified dimensions
+	    LogicalExpressionPlan uexpPlan = new LogicalExpressionPlan();
+	    if (operations.get(operIdx).equals("CUBE")) {
+		new UserFuncExpression(uexpPlan, new FuncSpec(CubeDimensions.class.getName()),
+		        lexpList);
+	    } else {
+		new UserFuncExpression(uexpPlan, new FuncSpec(RollupDimensions.class.getName()),
+		        lexpList);
+	    }
+
+	    for (LogicalExpressionPlan lexp : lexpPlanList) {
+		Iterator<Operator> it = lexp.getOperators();
+		while (it.hasNext()) {
+		    uexpPlan.add(it.next());
+		}
+	    }
+	    // Add the UDF to logical expression plan that contains dependent
+	    // attributes (pushed down from input columns)
+	    allExprPlan.add(operIdx, uexpPlan);
+	}
+
+	// If the operator is a UserFuncExpression then set the flatten flags.
+	List<Boolean> flattenFlags = new ArrayList<Boolean>();
+	for (int idx = 0; idx < allExprPlan.size(); idx++) {
+	    List<Operator> opers = allExprPlan.get(idx).getSources();
+	    for (Operator oper : opers) {
+		if (oper instanceof ProjectExpression) {
+		    flattenFlags.add(false);
+		} else if (oper instanceof UserFuncExpression) {
+		    flattenFlags.add(true);
+		}
+	    }
+	}
+
+	// Generate and Foreach operator creation
+	String falias = null;
+	try {
+	    buildGenerateOp(loc, (LOForEach) foreach, (LOGenerate) gen, operators, allExprPlan,
+		    flattenFlags, getUserDefinedSchema(allExprPlan));
+	    falias = buildForeachOp(loc, (LOForEach) foreach, "cube", inputAlias, innerPlan);
+	} catch (ParserValidationException pve) {
+	    throw new FrontendException(pve);
+	}
+
+	List<Boolean> innerFlags = new ArrayList<Boolean>();
+	List<String> inpAliases = new ArrayList<String>();
+	inpAliases.add(falias);
+	innerFlags.add(false);
+
+	// Get the output schema of foreach operator and reconstruct the
+	// LogicalExpressionPlan for each dimensional attributes
+	MultiMap<Integer, LogicalExpressionPlan> exprPlansCopy = new MultiMap<Integer, LogicalExpressionPlan>();
+
+	for (LogicalExpressionPlan exp : expressionPlans.values()) {
+	    LogicalExpression lexp = (LogicalExpression) exp.getSources().get(0);
+	    LogicalExpressionPlan epGrp = new LogicalExpressionPlan();
+	    new ProjectExpression(epGrp, 0, lexp.getFieldSchema().alias, groupby);
+	    exprPlansCopy.put(0, epGrp);
+	}
+
+	// build group by operator
+	try {
+	    return buildGroupOp(loc, (LOCogroup) groupby, op.getAlias(), inpAliases, exprPlansCopy,
+		    GROUPTYPE.REGULAR, innerFlags, null);
+	} catch (ParserValidationException pve) {
+	    throw new FrontendException(pve);
+	}
+    }
+
+    // User defined schema for generate operator. If not specified output schema
+    // of UDF will be used which will prefix "dimensions" namespace to all fields
+    private List<LogicalSchema> getUserDefinedSchema(List<LogicalExpressionPlan> allExprPlan)
+	    throws FrontendException {
+	List<LogicalSchema> genOutputSchema = new ArrayList<LogicalSchema>();
+	for (int i = 0; i < allExprPlan.size(); i++) {
+	    List<Operator> opers = allExprPlan.get(i).getSources();
+	    for (Operator oper : opers) {
+
+		// add a logical schema for dimensions that are pushed from
+		// predecessor of cube/rollup
+		if (oper instanceof ProjectExpression) {
+		    LogicalSchema output = new LogicalSchema();
+		    output.addField(new LogicalFieldSchema(
+			    ((ProjectExpression) oper).getColAlias(), null, DataType.NULL));
+		    genOutputSchema.add(output);
+		} else if (oper instanceof UserFuncExpression) {
+		    // add logical schema for dimensions specified in
+		    // cube/rollup operator
+		    LogicalSchema output = new LogicalSchema();
+		    for (Operator op : ((UserFuncExpression) oper).getPlan().getSinks()) {
+			output.addField(new LogicalFieldSchema(((ProjectExpression) op)
+			        .getFieldSchema()));
+		    }
+		    genOutputSchema.add(output);
+		}
+
+	    }
+	}
+	return genOutputSchema;
+    }
+
+    private List<LogicalExpression> getProjectExpList(List<LogicalExpressionPlan> lexpPlanList,
+	    LogicalRelationalOperator lro) throws FrontendException {
+
+	List<LogicalExpression> leList = new ArrayList<LogicalExpression>();
+	for (int i = 0; i < lexpPlanList.size(); i++) {
+	    LogicalExpressionPlan lexp = lexpPlanList.get(i);
+	    LogicalExpression lex = (LogicalExpression) lexp.getSources().get(0);
+	    Iterator<Operator> opers = lexp.getOperators();
+
+	    // ProjExpr are initially attached to CubeOp. So re-attach it to
+	    // specified operator
+	    while (opers.hasNext()) {
+		Operator oper = opers.next();
+		try {
+		    ((ProjectExpression) oper).setAttachedRelationalOp(lro);
+		} catch (ClassCastException cce) {
+		    throw new FrontendException("Column project expected.", cce);
+		}
+	    }
+
+	    leList.add(lex);
+	}
+
+	return leList;
+    }
+
+    // This method connects the predecessors of cube operator with foreach
+    // operator and disconnects the cube operator from its predecessors
+    private void injectForeachOperator(SourceLocation loc, LOCube op, LOForEach foreach)
+	    throws FrontendException {
+	// connect the foreach operator with predecessors of cube operator
+	List<Operator> opers = op.getPlan().getPredecessors(op);
+	for (Operator oper : opers) {
+	    OperatorPlan foreachPlan = foreach.getPlan();
+	    foreachPlan.connect(oper, (Operator) foreach);
+	}
+
+	// disconnect the cube operator from the plan
+	opers = foreach.getPlan().getPredecessors(foreach);
+	for (Operator lop : opers) {
+	    List<Operator> succs = lop.getPlan().getSuccessors(lop);
+	    for (Operator succ : succs) {
+		if (succ instanceof LOCube) {
+		    succ.getPlan().disconnect(lop, succ);
+		    succ.getPlan().remove(succ);
+		}
+	    }
+	}
+    }
+
+    // This methods if the dimensions specified by the user has duplicates
+    private void checkDuplicateProject(List<LogicalExpressionPlan> lExprPlan)
+	    throws FrontendException {
+
+	for (int i = 0; i < lExprPlan.size(); i++) {
+	    for (int j = i + 1; j < lExprPlan.size(); j++) {
+		LogicalExpression outer = (LogicalExpression) lExprPlan.get(i).getSources().get(0);
+		LogicalExpression inner = (LogicalExpression) lExprPlan.get(j).getSources().get(0);
+		String outColAlias = ((ProjectExpression) outer).getColAlias();
+		String inColAlias = ((ProjectExpression) inner).getColAlias();
+
+		if (outColAlias == null) {
+		    outColAlias = outer.getFieldSchema().alias;
+		}
+
+		if (inColAlias == null) {
+		    inColAlias = inner.getFieldSchema().alias;
+		}
+
+		if (outColAlias.equals(inColAlias) == true) {
+		    lExprPlan.remove(j);
+		    throw new FrontendException("Duplicate dimensions detected. Dimension name: "
+			    + inColAlias);
+		}
+	    }
+	}
+
     }
 
     LOCogroup createGroupOp() {
         return new LOCogroup( plan );
     }
-    
-    String buildGroupOp(SourceLocation loc, LOCogroup op, String alias, List<String> inputAliases, 
+
+    String buildGroupOp(SourceLocation loc, LOCogroup op, String alias, List<String> inputAliases,
         MultiMap<Integer, LogicalExpressionPlan> expressionPlans, GROUPTYPE gt, List<Boolean> innerFlags,
         String partitioner) throws ParserValidationException {
         if( gt == GROUPTYPE.COLLECTED ) {
             if( inputAliases.size() > 1 ) {
-                throw new ParserValidationException( intStream, loc, 
+                throw new ParserValidationException( intStream, loc,
                         "Collected group is only supported for single input" );
             }
-            
+
             List<LogicalExpressionPlan> exprPlans = expressionPlans.get( 0 );
             for( LogicalExpressionPlan exprPlan : exprPlans ) {
                 Iterator<Operator> it = exprPlan.getOperators();
@@ -389,7 +797,7 @@ public class LogicalPlanBuilder {
                 }
             }
         }
-        
+
         boolean[] flags = new boolean[innerFlags.size()];
         for( int i = 0; i < innerFlags.size(); i++ ) {
             flags[i] = innerFlags.get( i );
@@ -398,60 +806,55 @@ public class LogicalPlanBuilder {
         op.setGroupType( gt );
         op.setInnerFlags( flags );
         alias = buildOp( loc, op, alias, inputAliases, partitioner );
-        try {
-            (new ProjectStarExpander(op.getPlan())).visit(op);
-            (new ProjStarInUdfExpander(op.getPlan())).visit(op);
-            new SchemaResetter(op.getPlan(), true).visit(op);
-        } catch (FrontendException e) {
-            throw new ParserValidationException( intStream, loc, e );
-        }
+        expandAndResetVisitor(loc, op);
+
         return alias;
     }
-    
-    private String getAbolutePathForLoad(String filename, FuncSpec funcSpec)
-    throws IOException, URISyntaxException {
-        if( funcSpec == null ){
-            funcSpec = new FuncSpec( PigStorage.class.getName() );
-        }
 
-        LoadFunc loFunc = (LoadFunc)PigContext.instantiateFuncFromSpec( funcSpec );
-        String sig = QueryParserUtils.constructFileNameSignature( filename, funcSpec );
-        String absolutePath = fileNameMap.get( sig );
-        if (absolutePath == null) {
-            absolutePath = loFunc.relativeToAbsolutePath( filename, QueryParserUtils.getCurrentDir( pigContext ) );
-
-            if (absolutePath!=null) {
-                QueryParserUtils.setHdfsServers( absolutePath, pigContext );
-            }
-            fileNameMap.put( sig, absolutePath );
-        }
-        
-        return absolutePath;
-    }
-     
     String buildLoadOp(SourceLocation loc, String alias, String filename, FuncSpec funcSpec, LogicalSchema schema)
     throws ParserValidationException {
-        String absolutePath = filename;
+        String absolutePath;
+        LoadFunc loFunc;
         try {
-            absolutePath = getAbolutePathForLoad( filename, funcSpec );
+            FuncSpec instantiatedFuncSpec =
+                    funcSpec == null ?
+                        new FuncSpec(PigStorage.class.getName()) :
+                        funcSpec;
+            loFunc = (LoadFunc)PigContext.instantiateFuncFromSpec(instantiatedFuncSpec);
+            String fileNameKey = QueryParserUtils.constructFileNameSignature(filename, instantiatedFuncSpec) + "_" + (loadIndex++);
+            absolutePath = fileNameMap.get(fileNameKey);
+            if (absolutePath == null) {
+                absolutePath = loFunc.relativeToAbsolutePath( filename, QueryParserUtils.getCurrentDir( pigContext ) );
+
+                if (absolutePath!=null) {
+                    QueryParserUtils.setHdfsServers( absolutePath, pigContext );
+                }
+                fileNameMap.put( fileNameKey, absolutePath );
+            }
         } catch(Exception ex) {
             throw new ParserValidationException( intStream, loc, ex );
         }
-        
-        FileSpec loader = new FileSpec( absolutePath, funcSpec );
-        LOLoad op = new LOLoad( loader, schema, plan, ConfigurationUtil.toConfiguration( pigContext.getProperties() ) );
+
+        FileSpec loader = new FileSpec(absolutePath, funcSpec);
+        LOLoad op = new LOLoad(
+                loader,
+                schema,
+                plan,
+                ConfigurationUtil.toConfiguration(pigContext.getProperties()),
+                loFunc,
+                alias + "_" + newOperatorKey());
         return buildOp( loc, op, alias, new ArrayList<String>(), null );
     }
-    
-    private String buildOp(SourceLocation loc, LogicalRelationalOperator op, String alias, 
+
+    private String buildOp(SourceLocation loc, LogicalRelationalOperator op, String alias,
     		String inputAlias, String partitioner) throws ParserValidationException {
         List<String> inputAliases = new ArrayList<String>();
         if( inputAlias != null )
             inputAliases.add( inputAlias );
         return buildOp( loc, op, alias, inputAliases, partitioner );
     }
-    
-    private String buildOp(SourceLocation loc, LogicalRelationalOperator op, String alias, 
+
+    private String buildOp(SourceLocation loc, LogicalRelationalOperator op, String alias,
     		List<String> inputAliases, String partitioner) throws ParserValidationException {
         setAlias( op, alias );
         setPartitioner( op, partitioner );
@@ -465,88 +868,99 @@ public class LogicalPlanBuilder {
             plan.connect( pred, op );
         }
         operators.put( op.getAlias(), op );
-        pigContext.setLastAlias(op.getAlias());	
+        pigContext.setLastAlias(op.getAlias());
         return op.getAlias();
-    }
-
-    private String getAbolutePathForStore(String inputAlias, String filename, FuncSpec funcSpec)
-    throws IOException, URISyntaxException {
-        if( funcSpec == null ){
-            funcSpec = new FuncSpec( PigStorage.class.getName() );
-        }
-        
-        Object obj = PigContext.instantiateFuncFromSpec( funcSpec );
-        StoreFuncInterface stoFunc = (StoreFuncInterface)obj;
-        String sig = QueryParserUtils.constructSignature( inputAlias, filename, funcSpec);
-        stoFunc.setStoreFuncUDFContextSignature( sig );
-        String absolutePath = fileNameMap.get( sig );
-        if (absolutePath == null) {
-            absolutePath = stoFunc.relToAbsPathForStoreLocation( filename, 
-                    QueryParserUtils.getCurrentDir( pigContext ) );
-            if (absolutePath!=null) {
-                QueryParserUtils.setHdfsServers( absolutePath, pigContext );
-            }
-            fileNameMap.put( sig, absolutePath );
-        }
-        
-        return absolutePath;
     }
 
     String buildStoreOp(SourceLocation loc, String alias, String inputAlias, String filename, FuncSpec funcSpec)
     throws ParserValidationException {
-        String absPath = filename;
         try {
-            absPath = getAbolutePathForStore( inputAlias, filename, funcSpec );
+            FuncSpec instantiatedFuncSpec =
+                    funcSpec == null ?
+                            new FuncSpec(PigStorage.class.getName()):
+                            funcSpec;
+
+            StoreFuncInterface stoFunc = (StoreFuncInterface)PigContext.instantiateFuncFromSpec(instantiatedFuncSpec);
+            String fileNameKey = inputAlias + "_" + (storeIndex++) ;
+
+            String signature = inputAlias + "_" + newOperatorKey();
+            stoFunc.setStoreFuncUDFContextSignature(signature);
+
+            String absolutePath = fileNameMap.get(fileNameKey);
+            if (absolutePath == null) {
+                absolutePath = stoFunc.relToAbsPathForStoreLocation(
+                        filename,
+                        QueryParserUtils.getCurrentDir(pigContext));
+                if (absolutePath!=null) {
+                    QueryParserUtils.setHdfsServers(absolutePath, pigContext);
+                }
+                fileNameMap.put(fileNameKey, absolutePath);
+            }
+            FileSpec fileSpec = new FileSpec(absolutePath, funcSpec);
+
+            LOStore op = new LOStore(plan, fileSpec, stoFunc, signature);
+            return buildOp(loc, op, alias, inputAlias, null);
         } catch(Exception ex) {
-            throw new ParserValidationException( intStream, loc, ex );
+            throw new ParserValidationException(intStream, loc, ex);
         }
-        
-        FileSpec fileSpec = new FileSpec( absPath, funcSpec );
-        LOStore op = new LOStore( plan, fileSpec );
-        return buildOp( loc, op, alias, inputAlias, null );
     }
-    
+
+    private String newOperatorKey() {
+        return new OperatorKey( scope, getNextId() ).toString();
+    }
+
+    public static String newOperatorKey(String scope) {
+        return new OperatorKey( scope, getNextId(scope)).toString();
+    }
+
     LOForEach createForeachOp() {
         return new LOForEach( plan );
     }
-    
+
     String buildForeachOp(SourceLocation loc, LOForEach op, String alias, String inputAlias, LogicalPlan innerPlan)
     throws ParserValidationException {
         op.setInnerPlan( innerPlan );
         alias = buildOp( loc, op, alias, inputAlias, null );
-        try {
-            (new ProjectStarExpander(op.getPlan())).visit(op);
-            (new ProjStarInUdfExpander(op.getPlan())).visit(op);
-            new SchemaResetter(op.getPlan(), true).visit(op);
-        } catch (FrontendException e) {
-            throw new ParserValidationException( intStream, loc, e );
-        }
+        expandAndResetVisitor(loc, op);
         return alias;
     }
-    
+
     LOGenerate createGenerateOp(LogicalPlan plan) {
         return new LOGenerate( plan );
     }
-    
+
     void buildGenerateOp(SourceLocation loc, LOForEach foreach, LOGenerate gen,
             Map<String, Operator> operators,
             List<LogicalExpressionPlan> exprPlans, List<Boolean> flattenFlags,
             List<LogicalSchema> schemas)
-    throws ParserValidationException{
-        
+    throws ParserValidationException {
+
         boolean[] flags = new boolean[ flattenFlags.size() ];
         for( int i = 0; i < flattenFlags.size(); i++ )
             flags[i] = flattenFlags.get( i );
         LogicalPlan innerPlan = (LogicalPlan)gen.getPlan();
         ArrayList<Operator> inputs = new ArrayList<Operator>();
+        int idx = 0;
         for( LogicalExpressionPlan exprPlan : exprPlans ) {
+            LogicalExpression expr = (LogicalExpression)exprPlan.getSources().get(0);
+            LogicalSchema userSchema = schemas.get(idx);
+            if (userSchema == null && expr.hasFieldSchema()) {
+                LogicalSchema ls = new LogicalSchema();
+                try {
+                    ls.addField(expr.getFieldSchema());
+                    schemas.set(idx, ls);
+                } catch (FrontendException e) {
+                    // if we get an exception, then we have no schema to set
+                }
+            }
+            idx++;
             try {
                 processExpressionPlan( foreach, innerPlan, exprPlan, operators, inputs );
             } catch (FrontendException e) {
                 throw new ParserValidationException(intStream, loc, e);
             }
         }
-        
+
         gen.setOutputPlans( exprPlans );
         gen.setFlattenFlags( flags );
         gen.setUserDefinedSchema( schemas );
@@ -556,21 +970,21 @@ public class LogicalPlanBuilder {
             innerPlan.connect( input, gen );
         }
     }
-    
+
     /**
      * Process expression plans of LOGenerate and set inputs relation
      * for the ProjectExpression
-     * @param foreach 
+     * @param foreach
      * @param lp Logical plan in which the LOGenerate is in
      * @param plan One of the output expression of the LOGenerate
      * @param operators All logical operators in lp;
      * @param inputs  inputs of the LOGenerate
-     * @throws FrontendException 
+     * @throws FrontendException
      */
     private static void processExpressionPlan(LOForEach foreach,
-                                      LogicalPlan lp,  
-                                      LogicalExpressionPlan plan,  
-                                      Map<String, Operator> operators,  
+                                      LogicalPlan lp,
+                                      LogicalExpressionPlan plan,
+                                      Map<String, Operator> operators,
                                       ArrayList<Operator> inputs ) throws FrontendException {
         Iterator<Operator> it = plan.getOperators();
         while( it.hasNext() ) {
@@ -580,7 +994,7 @@ public class LogicalPlanBuilder {
                 ProjectExpression projExpr = (ProjectExpression)sink;
                 String colAlias = projExpr.getColAlias();
                 if( projExpr.isRangeProject()){
-                 
+
                     LOInnerLoad innerLoad = new LOInnerLoad( lp, foreach,
                             new ProjectExpression(projExpr, new LogicalExpressionPlan())
                     );
@@ -593,7 +1007,7 @@ public class LogicalPlanBuilder {
                         // this means the project expression refers to a relation
                         // in the nested foreach
 
-                        //add the relation to inputs of LOGenerate and set 
+                        //add the relation to inputs of LOGenerate and set
                         // projection input
                         int index = inputs.indexOf( op );
                         if( index == -1 ) {
@@ -618,7 +1032,7 @@ public class LogicalPlanBuilder {
             }
         }
     }
-    
+
     private static void setupInnerLoadAndProj(LOInnerLoad innerLoad,
             ProjectExpression projExpr, LogicalPlan lp,
             ArrayList<Operator> inputs) {
@@ -627,10 +1041,10 @@ public class LogicalPlanBuilder {
         projExpr.setColNum( -1 ); // Projection Expression on InnerLoad is always (*).
         lp.add( innerLoad );
         inputs.add( innerLoad );
-        
+
     }
 
-    Operator buildNestedOperatorInput(SourceLocation loc, LogicalPlan innerPlan, LOForEach foreach, 
+    Operator buildNestedOperatorInput(SourceLocation loc, LogicalPlan innerPlan, LOForEach foreach,
             Map<String, Operator> operators, LogicalExpression expr)
     throws NonProjectExpressionException, ParserValidationException {
         OperatorPlan plan = expr.getPlan();
@@ -655,7 +1069,7 @@ public class LogicalPlanBuilder {
         }
         return op;
     }
-    
+
     private LOInnerLoad createInnerLoad(SourceLocation loc, LogicalPlan innerPlan, LOForEach foreach,
             String colAlias) throws ParserValidationException {
         try {
@@ -671,7 +1085,7 @@ public class LogicalPlanBuilder {
         StreamingCommand command = null;
         try {
             command = buildCommand( loc, cmd );
-            
+
             // Process ship paths
             if( shipPaths != null ) {
                 if( shipPaths.size() == 0 ) {
@@ -681,25 +1095,25 @@ public class LogicalPlanBuilder {
                         command.addPathToShip( path );
                 }
             }
-            
+
             // Process cache paths
             if( cachePaths != null ) {
                 for( String path : cachePaths )
                     command.addPathToCache( path );
             }
-            
+
             // Process input handle specs
             if( inputHandleSpecs != null ) {
                 for( HandleSpec spec : inputHandleSpecs )
                     command.addHandleSpec( Handle.INPUT, spec );
             }
-            
+
             // Process output handle specs
             if( outputHandleSpecs != null ) {
                 for( HandleSpec spec : outputHandleSpecs )
                     command.addHandleSpec( Handle.OUTPUT, spec );
             }
-            
+
             // error handling
             if( logDir != null )
                 command.setLogDir( logDir );
@@ -708,10 +1122,10 @@ public class LogicalPlanBuilder {
         } catch(IOException e) {
             throw new PlanGenerationFailureException( intStream, loc, e );
         }
-        
+
         return command;
     }
-    
+
     StreamingCommand buildCommand(SourceLocation loc, String cmd) throws RecognitionException {
         try {
             String[] args = StreamingCommandUtils.splitArgs( cmd );
@@ -723,7 +1137,7 @@ public class LogicalPlanBuilder {
             throw new InvalidCommandException( intStream, loc, cmd );
         }
     }
-    
+
     String buildStreamOp(SourceLocation loc, String alias, String inputAlias, StreamingCommand command,
             LogicalSchema schema, IntStream input)
     throws RecognitionException {
@@ -734,7 +1148,7 @@ public class LogicalPlanBuilder {
             throw new PlanGenerationFailureException( input, loc, ex );
         }
     }
-    
+
     String buildNativeOp(SourceLocation loc, String inputJar, String cmd,
             List<String> paths, String storeAlias, String loadAlias, IntStream input)
     throws RecognitionException {
@@ -756,55 +1170,55 @@ public class LogicalPlanBuilder {
             throw new InvalidPathException( input, loc, e);
         }
     }
-    
+
     void setAlias(LogicalRelationalOperator op, String alias) {
         if( alias == null )
-            alias = new OperatorKey( scope, getNextId() ).toString();
+            alias = newOperatorKey();
         op.setAlias( alias );
     }
-    
+
     void setParallel(LogicalRelationalOperator op, Integer parallel) {
         if( parallel != null ) {
             op.setRequestedParallelism( pigContext.getExecType() == ExecType.LOCAL ? 1 : parallel );
         }
     }
-    
+
     static void setPartitioner(LogicalRelationalOperator op, String partitioner) {
         if( partitioner != null )
             op.setCustomPartitioner( partitioner );
     }
-    
+
     FuncSpec buildFuncSpec(SourceLocation loc, String funcName, List<String> args, byte ft) throws RecognitionException {
         String[] argArray = new String[args.size()];
         FuncSpec funcSpec = new FuncSpec( funcName, args.size() == 0 ? null : args.toArray( argArray ) );
         validateFuncSpec( loc, funcSpec, ft );
         return funcSpec;
     }
-    
+
     private void validateFuncSpec(SourceLocation loc, FuncSpec funcSpec, byte ft) throws RecognitionException {
-        switch( ft ) {
+        switch (ft) {
         case FunctionType.COMPARISONFUNC:
         case FunctionType.LOADFUNC:
         case FunctionType.STOREFUNC:
         case FunctionType.STREAMTOPIGFUNC:
         case FunctionType.PIGTOSTREAMFUNC:
-            Object func = PigContext.instantiateFuncFromSpec( funcSpec );
             try{
-                FunctionType.tryCasting( func, ft );
+                Class<?> func = PigContext.resolveClassName(funcSpec.getClassName());
+                FunctionType.tryCasting(func, ft);
             } catch(Exception ex){
-                throw new ParserValidationException( intStream, loc, ex );
+                throw new ParserValidationException(intStream, loc, ex);
             }
         }
     }
-    
+
     static String unquote(String s) {
         return StringUtils.unescapeInputString( s.substring(1, s.length() - 1 ) );
     }
-    
+
     static int undollar(String s) {
-        return Integer.parseInt( s.substring( 1, s.length() ) );    
+        return Integer.parseInt( s.substring( 1, s.length() ) );
     }
-    
+
     /**
      * Parse the long given as a string such as "34L".
      */
@@ -817,23 +1231,23 @@ public class LogicalPlanBuilder {
         TupleFactory tf = TupleFactory.getInstance();
         return tf.newTuple( objList );
     }
-    
+
     static DataBag createDataBag() {
         BagFactory bagFactory = BagFactory.getInstance();
         return bagFactory.newDefaultBag();
     }
-    
+
     /**
      *  Build a project expression in foreach inner plan.
      *  The only difference here is that the projection can be for an expression alias, for which
      *  we will return whatever the expression alias represents.
-     * @throws RecognitionException 
+     * @throws RecognitionException
      */
     LogicalExpression buildProjectExpr(SourceLocation loc, LogicalExpressionPlan plan, LogicalRelationalOperator op,
             Map<String, LogicalExpressionPlan> exprPlans, String colAlias, int col)
     throws RecognitionException {
         ProjectExpression result = null;
-        
+
         if( colAlias != null ) {
             LogicalExpressionPlan exprPlan = exprPlans.get( colAlias );
             if( exprPlan != null ) {
@@ -845,7 +1259,7 @@ public class LogicalPlanBuilder {
                     throw new PlanGenerationFailureException( intStream, loc, ex );
                 }
                 // The projected alias is actually expression alias, so the projections in the represented
-                // expression doesn't have any operator associated with it. We need to set it when we 
+                // expression doesn't have any operator associated with it. We need to set it when we
                 // substitute the expression alias with the its expression.
                 if( op != null ) {
                     Iterator<Operator> it = plan.getOperators();
@@ -857,7 +1271,17 @@ public class LogicalPlanBuilder {
                         }
                     }
                 }
-                return (LogicalExpression)planCopy.getSources().get( 0 );// get the root of the plan
+                LogicalExpression root = (LogicalExpression)planCopy.getSources().get( 0 );// get the root of the plan
+                LogicalFieldSchema schema;
+                try {
+                    schema = root.getFieldSchema();
+                    if (schema.alias == null) {
+                        schema.alias = colAlias;
+                    }
+                } catch (FrontendException e) {
+                    // Sometimes it can throw an exception. If it does, then there is no schema to get
+                }
+                return root;
             } else {
                 result = new ProjectExpression( plan, 0, colAlias, op );
                 result.setLocation( loc );
@@ -871,9 +1295,9 @@ public class LogicalPlanBuilder {
 
     /**
      * Build a project expression for a projection present in global plan (not in nested foreach plan).
-     * @throws ParserValidationException 
+     * @throws ParserValidationException
      */
-    LogicalExpression buildProjectExpr(SourceLocation loc, 
+    LogicalExpression buildProjectExpr(SourceLocation loc,
             LogicalExpressionPlan plan, LogicalRelationalOperator relOp,
             int input, String colAlias, int col)
     throws ParserValidationException {
@@ -887,28 +1311,28 @@ public class LogicalPlanBuilder {
 
     /**
      * Build a project expression that projects a range of columns
-     * @param loc 
+     * @param loc
      * @param plan
      * @param relOp
      * @param input
-     * @param startExpr the first expression to be projected, null 
+     * @param startExpr the first expression to be projected, null
      *        if everything from first is to be projected
-     * @param endExpr the last expression to be projected, null 
+     * @param endExpr the last expression to be projected, null
      *        if everything to the end is to be projected
      * @return project expression
-     * @throws ParserValidationException 
+     * @throws ParserValidationException
      */
     LogicalExpression buildRangeProjectExpr(SourceLocation loc, LogicalExpressionPlan plan, LogicalRelationalOperator relOp,
             int input, LogicalExpression startExpr, LogicalExpression endExpr)
     throws ParserValidationException {
-        
+
         if(startExpr == null && endExpr == null){
             // should not reach here as the parser is enforcing this condition
             String msg = "in range project (..) at least one of start or end " +
             "has to be specified. Use project-star (*) instead.";
             throw new ParserValidationException(intStream, loc, msg);
         }
-        
+
         ProjectExpression proj = new ProjectExpression(plan, input, relOp);
 
         //set first column to be projected
@@ -927,7 +1351,7 @@ public class LogicalPlanBuilder {
         }else{
             proj.setStartCol(0);//project from first column
         }
-        
+
         //set last column to be projected
         if(endExpr != null){
             checkRangeProjectExpr(loc, endExpr);
@@ -944,7 +1368,7 @@ public class LogicalPlanBuilder {
         }else{
             proj.setEndCol(-1); //project to last column
         }
-        
+
         try {
             if(startExpr != null)
                 plan.removeAndReconnect(startExpr);
@@ -953,8 +1377,8 @@ public class LogicalPlanBuilder {
         } catch (FrontendException e) {
             throw new ParserValidationException(intStream, loc, e);
         }
-        
-        
+
+
         return proj;
     }
 
@@ -966,50 +1390,51 @@ public class LogicalPlanBuilder {
             " Found :" + startExpr;
             throw new ParserValidationException(intStream, loc, msg);
         }
-        
+
     }
 
     LogicalExpression buildUDF(SourceLocation loc, LogicalExpressionPlan plan,
             String funcName, List<LogicalExpression> args)
     throws RecognitionException {
-        Object func;
+
+        Class<?> func;
         try {
-            func = pigContext.instantiateFuncFromAlias( funcName );
-            FunctionType.tryCasting( func, FunctionType.EVALFUNC );
+            func = pigContext.getClassForAlias(funcName);
+            FunctionType.tryCasting(func, FunctionType.EVALFUNC);
         } catch (Exception e) {
-            throw new PlanGenerationFailureException( intStream, loc, e );
+            throw new PlanGenerationFailureException(intStream, loc, e);
         }
-        
-        FuncSpec funcSpec = pigContext.getFuncSpecFromAlias( funcName );
+
+        FuncSpec funcSpec = pigContext.getFuncSpecFromAlias(funcName);
         LogicalExpression le;
         if( funcSpec == null ) {
-            funcName = func.getClass().getName();
-            funcSpec = new FuncSpec( funcName );
+            funcName = func.getName();
+            funcSpec = new FuncSpec(funcName);
             //this point is only reached if there was no DEFINE statement for funcName
             //in which case, we pass that information along
-            le = new UserFuncExpression( plan, funcSpec, args, false );
+            le = new UserFuncExpression(plan, funcSpec, args, false);
         } else {
-            le = new UserFuncExpression( plan, funcSpec, args, true );
+            le = new UserFuncExpression(plan, funcSpec, args, true);
         }
-        
-        le.setLocation( loc );
+
+        le.setLocation(loc);
         return le;
     }
-    
+
     private long getNextId() {
-        return nodeIdGen.getNextNodeId( scope );
+        return getNextId(scope);
     }
 
     static LOFilter createNestedFilterOp(LogicalPlan plan) {
         return new LOFilter( plan );
     }
-    
+
     static LOLimit createNestedLimitOp(LogicalPlan plan) {
         return new LOLimit ( plan );
     }
-    
+
     // Build operator for foreach inner plan.
-    Operator buildNestedFilterOp(SourceLocation loc, LOFilter op, LogicalPlan plan, String alias, 
+    Operator buildNestedFilterOp(SourceLocation loc, LOFilter op, LogicalPlan plan, String alias,
             Operator inputOp, LogicalExpressionPlan expr) {
         op.setFilterPlan( expr );
         buildNestedOp( loc, plan, op, alias, inputOp );
@@ -1027,21 +1452,21 @@ public class LogicalPlanBuilder {
         buildNestedOp( loc, plan, op, alias, inputOp );
         return op;
     }
-    
-    Operator buildNestedLimitOp(SourceLocation loc, LOLimit op, LogicalPlan plan, String alias, 
+
+    Operator buildNestedLimitOp(SourceLocation loc, LOLimit op, LogicalPlan plan, String alias,
             Operator inputOp, LogicalExpressionPlan expr) {
         op.setLimitPlan( expr );
         buildNestedOp( loc, plan, op, alias, inputOp );
         return op;
     }
-    
+
     Operator buildNestedCrossOp(SourceLocation loc, LogicalPlan plan, String alias, List<Operator> inputOpList) {
         LOCross op = new LOCross( plan );
         op.setNested(true);
         buildNestedOp( loc, plan, op, alias, inputOpList );
         return op;
     }
-    
+
     private void buildNestedOp(SourceLocation loc, LogicalPlan plan, LogicalRelationalOperator op,
             String alias, Operator inputOp) {
         op.setLocation( loc );
@@ -1049,7 +1474,7 @@ public class LogicalPlanBuilder {
         plan.add( op );
         plan.connect( inputOp, op );
     }
-    
+
     private void buildNestedOp(SourceLocation loc, LogicalPlan plan, LogicalRelationalOperator op,
             String alias, List<Operator> inputOpList) {
         op.setLocation( loc );
@@ -1063,7 +1488,7 @@ public class LogicalPlanBuilder {
     static LOSort createNestedSortOp(LogicalPlan plan) {
         return new LOSort( plan );
     }
-    
+
     /**
      * For any UNKNOWN type in the schema fields, set the type to BYTEARRAY
      * @param sch
@@ -1078,13 +1503,13 @@ public class LogicalPlanBuilder {
             }
         }
     }
-    
+
     static LOForEach createNestedForeachOp(LogicalPlan plan) {
     	return new LOForEach(plan);
     }
-    
+
     Operator buildNestedSortOp(SourceLocation loc, LOSort op, LogicalPlan plan, String alias, Operator inputOp,
-            List<LogicalExpressionPlan> plans, 
+            List<LogicalExpressionPlan> plans,
             List<Boolean> ascFlags, FuncSpec fs) {
         op.setSortColPlans( plans );
         if (ascFlags.isEmpty()) {
@@ -1096,8 +1521,8 @@ public class LogicalPlanBuilder {
         buildNestedOp( loc, plan, op, alias, inputOp );
         return op;
     }
-    
-    Operator buildNestedForeachOp(SourceLocation loc, LOForEach op, LogicalPlan plan, String alias, 
+
+    Operator buildNestedForeachOp(SourceLocation loc, LOForEach op, LogicalPlan plan, String alias,
     		Operator inputOp, LogicalPlan innerPlan)
     throws ParserValidationException
     {
@@ -1105,8 +1530,8 @@ public class LogicalPlanBuilder {
     	buildNestedOp(loc, plan, op, alias, inputOp);
     	return op;
     }
-    
-    Operator buildNestedProjectOp(SourceLocation loc, LogicalPlan innerPlan, LOForEach foreach, 
+
+    Operator buildNestedProjectOp(SourceLocation loc, LogicalPlan innerPlan, LOForEach foreach,
             Map<String, Operator> operators,
             String alias,
             ProjectExpression projExpr,
@@ -1130,19 +1555,19 @@ public class LogicalPlanBuilder {
             input = new LOInnerLoad( innerPlan, foreach, projExpr.getColNum() );
             input.setLocation( projExpr.getLocation() );
         }
-        
+
         LogicalPlan lp = new LogicalPlan(); // f's inner plan
         LOForEach f = new LOForEach( innerPlan );
         f.setInnerPlan( lp );
         f.setLocation( loc );
         LOGenerate gen = new LOGenerate( lp );
         boolean[] flatten = new boolean[exprPlans.size()];
-        
+
         List<Operator> innerLoads = new ArrayList<Operator>( exprPlans.size() );
         for( LogicalExpressionPlan plan : exprPlans ) {
             ProjectExpression pe = (ProjectExpression)plan.getSinks().get( 0 );
             String al = pe.getColAlias();
-            LOInnerLoad iload = ( al == null ) ?  
+            LOInnerLoad iload = ( al == null ) ?
                     new LOInnerLoad( lp, f, pe.getColNum() ) : createInnerLoad(loc, lp, f, al );
             iload.setLocation( pe.getLocation() );
             pe.setColNum( -1 );
@@ -1150,7 +1575,7 @@ public class LogicalPlanBuilder {
             pe.setAttachedRelationalOp( gen );
             innerLoads.add( iload );
         }
-        
+
         gen.setOutputPlans( exprPlans );
         gen.setFlattenFlags( flatten );
         lp.add( gen );
@@ -1159,7 +1584,7 @@ public class LogicalPlanBuilder {
             lp.add( il );
             lp.connect( il, gen );
         }
-        
+
         // Connect the inner load operators to gen
         setAlias( f, alias );
         innerPlan.add( input );
@@ -1167,10 +1592,10 @@ public class LogicalPlanBuilder {
         innerPlan.connect( input, f );
         return f;
     }
-    
+
     GROUPTYPE parseGroupType(String hint, SourceLocation loc) throws ParserValidationException {
         String modifier = unquote( hint );
-        
+
         if( modifier.equalsIgnoreCase( "collected" ) ) {
             return GROUPTYPE.COLLECTED;
         } else if( modifier.equalsIgnoreCase( "regular" ) ){
@@ -1182,12 +1607,12 @@ public class LogicalPlanBuilder {
                 "Only COLLECTED, REGULAR or MERGE are valid GROUP modifiers." );
         }
     }
-    
+
     JOINTYPE parseJoinType(String hint, SourceLocation loc) throws ParserValidationException {
         String modifier = unquote( hint );
 
         if( modifier.equalsIgnoreCase( "repl" ) || modifier.equalsIgnoreCase( "replicated" ) ) {
-                  return JOINTYPE.REPLICATED; 
+                  return JOINTYPE.REPLICATED;
           } else if( modifier.equalsIgnoreCase( "hash" ) || modifier.equalsIgnoreCase( "default" ) ) {
                   return LOJoin.JOINTYPE.HASH;
           } else if( modifier.equalsIgnoreCase( "skewed" ) ) {
@@ -1201,7 +1626,7 @@ public class LogicalPlanBuilder {
                       "Only REPL, REPLICATED, HASH, SKEWED, MERGE, and MERGE-SPARSE are vaild JOIN modifiers." );
           }
     }
-    
+
     void putOperator(String alias, Operator op) {
         operators.put(alias, op);
     }

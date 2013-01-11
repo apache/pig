@@ -48,6 +48,7 @@ import org.apache.pig.newplan.logical.relational.LOInnerLoad;
 import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.apache.pig.newplan.logical.relational.LOLimit;
 import org.apache.pig.newplan.logical.relational.LOLoad;
+import org.apache.pig.newplan.logical.relational.LORank;
 import org.apache.pig.newplan.logical.relational.LOSort;
 import org.apache.pig.newplan.logical.relational.LOSplit;
 import org.apache.pig.newplan.logical.relational.LOSplitOutput;
@@ -70,20 +71,20 @@ public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
         this.columnPrune = columnPrune;
         this.requiredItems = requiredItems;
     }
-    
+
     public void addRequiredItems(LOLoad load, Pair<Map<Integer,Set<String>>,Set<Integer>> requiredItem) {
         requiredItems.put(load, requiredItem);
     }
-    
+
     @Override
     public void visit(LOLoad load) throws FrontendException {
         if(! requiredItems.containsKey( load ) ) {
             return;
         }
-        
-        Pair<Map<Integer,Set<String>>,Set<Integer>> required = 
+
+        Pair<Map<Integer,Set<String>>,Set<Integer>> required =
             requiredItems.get(load);
-        
+
         RequiredFieldList requiredFields = new RequiredFieldList();
 
         LogicalSchema s = load.getSchema();
@@ -109,15 +110,15 @@ public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
                 requiredField = new RequiredField();
                 requiredField.setIndex(i);
                 requiredField.setAlias(s.getField(i).alias);
-                requiredField.setType(s.getField(i).type);      
+                requiredField.setType(s.getField(i).type);
                 requiredFields.add(requiredField);
             }
         }
-        
+
         boolean[] columnRequired = new boolean[s.size()];
         for (RequiredField rf : requiredFields.getFields())
             columnRequired[rf.getIndex()] = true;
-        
+
         List<Pair<Integer, Integer>> pruneList = new ArrayList<Pair<Integer, Integer>>();
         for (int i=0;i<columnRequired.length;i++)
         {
@@ -136,7 +137,7 @@ public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
             }
             log.info(message);
         }
-        
+
         message = new StringBuffer();
         for(RequiredField rf: requiredFields.getFields()) {
             List<RequiredField> sub = rf.getSubFields();
@@ -146,71 +147,71 @@ public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
         }
         if (message.length()!=0)
             log.info(message);
-        
+
         LoadPushDown.RequiredFieldResponse response = null;
         try {
             LoadFunc loadFunc = load.getLoadFunc();
             if (loadFunc instanceof LoadPushDown) {
                 response = ((LoadPushDown)loadFunc).pushProjection(requiredFields);
             }
-                                
+
         } catch (FrontendException e) {
             log.warn("pushProjection on "+load+" throw an exception, skip it");
-        }                      
-        
-        // Loader does not support column pruning, insert foreach      
+        }
+
+        // Loader does not support column pruning, insert foreach
         if (columnPrune) {
             if (response==null || !response.getRequiredFieldResponse()) {
-                LogicalPlan p = (LogicalPlan)load.getPlan();                        
-                Operator next = p.getSuccessors(load).get(0); 
-                // if there is already a LOForEach after load, we don't need to 
+                LogicalPlan p = (LogicalPlan)load.getPlan();
+                Operator next = p.getSuccessors(load).get(0);
+                // if there is already a LOForEach after load, we don't need to
                 // add another LOForEach
                 if (next instanceof LOForEach) {
                     return;
                 }
-                
+
                 LOForEach foreach = new LOForEach(load.getPlan());
-                
-                // add foreach to the base plan                       
+
+                // add foreach to the base plan
                 p.add(foreach);
-                               
+
                 p.insertBetween(load, foreach, next);
-                
+
                 LogicalPlan innerPlan = new LogicalPlan();
                 foreach.setInnerPlan(innerPlan);
-                
+
                 // build foreach inner plan
-                List<LogicalExpressionPlan> exps = new ArrayList<LogicalExpressionPlan>();              
+                List<LogicalExpressionPlan> exps = new ArrayList<LogicalExpressionPlan>();
                 LOGenerate gen = new LOGenerate(innerPlan, exps, new boolean[requiredFields.getFields().size()]);
                 innerPlan.add(gen);
-                
+
                 for (int i=0; i<requiredFields.getFields().size(); i++) {
                     LoadPushDown.RequiredField rf = requiredFields.getFields().get(i);
-                    LOInnerLoad innerLoad = new LOInnerLoad(innerPlan, foreach, rf.getIndex());                    
-                    innerPlan.add(innerLoad);          
+                    LOInnerLoad innerLoad = new LOInnerLoad(innerPlan, foreach, rf.getIndex());
+                    innerPlan.add(innerLoad);
                     innerPlan.connect(innerLoad, gen);
-                    
+
                     LogicalExpressionPlan exp = new LogicalExpressionPlan();
                     ProjectExpression prj = new ProjectExpression(exp, i, -1, gen);
                     exp.add(prj);
                     exps.add(exp);
-                }                
-               
+                }
+
             } else {
                 // columns are pruned, reset schema for LOLoader
                 List<Integer> requiredIndexes = new ArrayList<Integer>();
                 List<LoadPushDown.RequiredField> fieldList = requiredFields.getFields();
-                for (int i=0; i<fieldList.size(); i++) {                    
+                for (int i=0; i<fieldList.size(); i++) {
                     requiredIndexes.add(fieldList.get(i).getIndex());
                 }
 
                 load.setRequiredFields(requiredIndexes);
-                
+
                 LogicalSchema newSchema = new LogicalSchema();
-                for (int i=0; i<fieldList.size(); i++) {                    
+                for (int i=0; i<fieldList.size(); i++) {
                     newSchema.addField(s.getField(fieldList.get(i).getIndex()));
                 }
-                
+
                 load.setSchema(newSchema);
             }
         }
@@ -219,15 +220,15 @@ public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
     @Override
     public void visit(LOFilter filter) throws FrontendException {
     }
-    
+
     @Override
     public void visit(LOLimit limit) throws FrontendException {
     }
-    
+
     @Override
     public void visit(LOSplitOutput splitOutput) throws FrontendException {
     }
-    
+
     @SuppressWarnings("unchecked")
     @Override
     public void visit(LOSplit split) throws FrontendException {
@@ -235,15 +236,15 @@ public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
         for (int i=0;i<branchOutputs.size();i++) {
             Operator branchOutput = branchOutputs.get(i);
             Set<Long> branchOutputUids = (Set<Long>)branchOutput.getAnnotation(ColumnPruneHelper.INPUTUIDS);
-            
+
             if (branchOutputUids!=null) {
                 Set<Integer> columnsToDrop = new HashSet<Integer>();
-                
+
                 for (int j=0;j<split.getSchema().size();j++) {
                     if (!branchOutputUids.contains(split.getSchema().getField(j).uid))
                         columnsToDrop.add(j);
                 }
-                
+
                 if (!columnsToDrop.isEmpty()) {
                     LOForEach foreach = Util.addForEachAfter((LogicalPlan)split.getPlan(), split, i, columnsToDrop);
                     foreach.getSchema();
@@ -251,38 +252,42 @@ public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
             }
         }
     }
-    
+
     @Override
     public void visit(LOSort sort) throws FrontendException {
     }
-    
+
+    @Override
+    public void visit(LORank rank) throws FrontendException {
+    }
+
     @Override
     public void visit(LOStore store) throws FrontendException {
     }
-    
+
     @Override
     public void visit( LOCogroup cg ) throws FrontendException {
         addForEachIfNecessary(cg);
     }
-    
+
     @Override
     public void visit(LOJoin join) throws FrontendException {
     }
-    
+
     @Override
     public void visit(LOCross cross) throws FrontendException {
     }
-    
+
     @Override
     @SuppressWarnings("unchecked")
     public void visit(LOForEach foreach) throws FrontendException {
         if (!columnPrune) {
             return;
         }
-        
+
         // get column numbers from input uids
         Set<Long> inputUids = (Set<Long>)foreach.getAnnotation(ColumnPruneHelper.INPUTUIDS);
-        
+
         // Get all top level projects
         LogicalPlan innerPlan = foreach.getInnerPlan();
         List<LOInnerLoad> innerLoads= new ArrayList<LOInnerLoad>();
@@ -291,7 +296,7 @@ public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
             if (s instanceof LOInnerLoad)
                 innerLoads.add((LOInnerLoad)s);
         }
-        
+
         // If project of the innerLoad is not in INPUTUIDS, remove this innerLoad
         Set<LOInnerLoad> innerLoadsToRemove = new HashSet<LOInnerLoad>();
         for (LOInnerLoad innerLoad: innerLoads) {
@@ -308,7 +313,7 @@ public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
                     innerLoadsToRemove.add(innerLoad);
             }
         }
-        
+
         // Find the logical operator immediate precede LOGenerate which should be removed (the whole branch)
         Set<LogicalRelationalOperator> branchHeadToRemove = new HashSet<LogicalRelationalOperator>();
         for (LOInnerLoad innerLoad : innerLoadsToRemove) {
@@ -318,16 +323,16 @@ public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
             }
             branchHeadToRemove.add((LogicalRelationalOperator)op);
         }
-        
+
         // Find the expression plan to remove
         LOGenerate gen = (LOGenerate)innerPlan.getSinks().get(0);
         List<LogicalExpressionPlan> genPlansToRemove = new ArrayList<LogicalExpressionPlan>();
-        
+
         List<LogicalExpressionPlan> genPlans = gen.getOutputPlans();
         for (int i=0;i<genPlans.size();i++) {
             LogicalExpressionPlan expPlan = genPlans.get(i);
             List<Operator> expSources = expPlan.getSinks();
-            
+
             for (Operator expSrc : expSources) {
                 if (expSrc instanceof ProjectExpression) {
                     LogicalRelationalOperator reference = ((ProjectExpression)expSrc).findReferent();
@@ -337,7 +342,7 @@ public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
                 }
             }
         }
-        
+
         // Build the temporary structure based on genPlansToRemove, which include:
         // * flattenList
         // * outputPlanSchemas
@@ -352,10 +357,10 @@ public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
         List<LogicalSchema> outputPlanSchemas = new ArrayList<LogicalSchema>();
         List<LogicalSchema> uidOnlySchemas = new ArrayList<LogicalSchema>();
         List<LogicalSchema> userDefinedSchemas = null;
-        
+
         if (gen.getUserDefinedSchema()!=null)
             userDefinedSchemas = new ArrayList<LogicalSchema>();
-        
+
         for (int i=0;i<genPlans.size();i++) {
             LogicalExpressionPlan genPlan = genPlans.get(i);
             if (!genPlansToRemove.contains(genPlan)) {
@@ -373,17 +378,17 @@ public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
                 }
             }
         }
-        
+
         List<Operator> preds = innerPlan.getPredecessors(gen);
-        
+
         if (preds!=null) {  // otherwise, all gen plan are based on constant, no need to adjust
             for (int i=0;i<preds.size();i++) {
                 if (!inputsNeeded.contains(i))
                     inputsRemoved.add(i);
             }
         }
-        
-        
+
+
         // Change LOGenerate: remove unneeded output expression plan
         // change flatten flag, outputPlanSchema, uidOnlySchemas
         boolean[] flatten = new boolean[flattenList.size()];
@@ -394,11 +399,11 @@ public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
         gen.setOutputPlanSchemas(outputPlanSchemas);
         gen.setUidOnlySchemas(uidOnlySchemas);
         gen.setUserDefinedSchema(userDefinedSchemas);
-        
+
         for (LogicalExpressionPlan genPlanToRemove : genPlansToRemove) {
             genPlans.remove(genPlanToRemove);
         }
-        
+
         // shift project input
         if (!inputsRemoved.isEmpty()) {
             for (LogicalExpressionPlan genPlan : genPlans) {
@@ -416,7 +421,7 @@ public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
                 }
             }
         }
-        
+
         // Prune unneeded LOInnerLoad
         List<LogicalRelationalOperator> predToRemove = new ArrayList<LogicalRelationalOperator>();
         for (int i : inputsRemoved) {
@@ -426,35 +431,35 @@ public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
             removeSubTree(pred);
         }
     }
-    
+
     @Override
     public void visit(LOUnion union) throws FrontendException {
         // AddForEach before union if necessary.
         List<Operator> preds = new ArrayList<Operator>();
         preds.addAll(plan.getPredecessors(union));
-        
+
         for (Operator pred : preds) {
             addForEachIfNecessary((LogicalRelationalOperator)pred);
         }
     }
-    
+
     // remove all the operators starting from an operator
     private void removeSubTree(LogicalRelationalOperator op) throws FrontendException {
         LogicalPlan p = (LogicalPlan)op.getPlan();
         List<Operator> ll = p.getPredecessors(op);
         if (ll != null) {
-            for(Operator pred: ll) {
+            for(Operator pred: ll.toArray(new Operator[ll.size()])) {
                 removeSubTree((LogicalRelationalOperator)pred);
             }
         }
-                
+
         if (p.getSuccessors(op) != null) {
-            Operator[] succs = p.getSuccessors(op).toArray(new Operator[0]);            
+            Operator[] succs = p.getSuccessors(op).toArray(new Operator[0]);
             for(Operator s: succs) {
                 p.disconnect(op, s);
             }
         }
-        
+
         p.remove(op);
     }
 
@@ -465,16 +470,16 @@ public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
         if (outputUids!=null) {
             LogicalSchema schema = op.getSchema();
             Set<Integer> columnsToDrop = new HashSet<Integer>();
-            
+
             for (int i=0;i<schema.size();i++) {
                 if (!outputUids.contains(schema.getField(i).uid))
                     columnsToDrop.add(i);
             }
-            
+
             if (!columnsToDrop.isEmpty()) {
                 LOForEach foreach = Util.addForEachAfter((LogicalPlan)op.getPlan(), op, 0, columnsToDrop);
                 foreach.getSchema();
             }
         }
-    }    
+    }
 }

@@ -18,38 +18,41 @@
 
 package org.apache.pig.test;
 
-import org.apache.pig.PigServer;
-import org.apache.pig.test.utils.TestHelper;
-import org.apache.pig.data.Tuple;
-import org.junit.Test;
-import junit.framework.TestCase;
-import junit.framework.Assert;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.text.DecimalFormat;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
-import java.io.*;
-import java.text.DecimalFormat;
 
-public class TestForEachNestedPlanLocal extends TestCase {
+import org.apache.pig.ExecType;
+import org.apache.pig.PigServer;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.test.utils.TestHelper;
+import org.junit.Test;
 
-    private String initString = "local";
+public class TestForEachNestedPlanLocal {
 
     private PigServer pig ;
 
     public TestForEachNestedPlanLocal() throws Throwable {
-        pig = new PigServer(initString) ;
+        pig = new PigServer(ExecType.LOCAL) ;
     }
 
     Boolean[] nullFlags = new Boolean[]{ false, true };
-    
+
     @Test
     public void testInnerOrderBy() throws Exception {
         for (int i = 0; i < nullFlags.length; i++) {
             System.err.println("Running testInnerOrderBy with nullFlags set to :" + nullFlags[i]);
             File tmpFile = genDataSetFile1(nullFlags[i]);
             pig.registerQuery("a = load '"
-                    + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                    + Util.generateURI(Util.encodeEscape(tmpFile.toString()), pig.getPigContext())
                     + "'; ");
             pig.registerQuery("b = group a by $0; ");
             pig.registerQuery("c = foreach b { " + "     c1 = order $1 by *; "
@@ -62,7 +65,7 @@ public class TestForEachNestedPlanLocal extends TestCase {
                 System.out.println(count + ":" + t);
                 count++;
             }
-            Assert.assertEquals(count, 30);
+            assertEquals(count, 30);
         }
     }
 
@@ -70,7 +73,7 @@ public class TestForEachNestedPlanLocal extends TestCase {
     public void testInnerLimit() throws Exception {
         File tmpFile = genDataSetFileOneGroup();
         pig.registerQuery("a = load '"
-                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                + Util.generateURI(Util.encodeEscape(tmpFile.toString()), pig.getPigContext())
                 + "'; ");
         pig.registerQuery("b = group a by $0; ");
         pig.registerQuery("c = foreach b { " + "     c1 = limit $1 5; "
@@ -82,13 +85,13 @@ public class TestForEachNestedPlanLocal extends TestCase {
             t = it.next();
             count[i] = (Long)t.get(0);
         }
-        
-        Assert.assertFalse(it.hasNext());
+
+        assertFalse(it.hasNext());
 
         // Pig's previous local mode was screwed up correcting that
-        Assert.assertEquals(5L, count[0]);
-        Assert.assertEquals(5L, count[1]);
-        Assert.assertEquals(3L, count[2]);
+        assertEquals(5L, count[0]);
+        assertEquals(5L, count[1]);
+        assertEquals(3L, count[2]);
     }
 
     @Test
@@ -118,7 +121,7 @@ public class TestForEachNestedPlanLocal extends TestCase {
         }
         assertEquals(expectedItr.hasNext(), actualItr.hasNext());
     }
-    
+
     @Test
     public void testNestedCrossTwoRelationsComplex() throws Exception {
         File[] tmpFiles = generateDataSetFilesForNestedCross();
@@ -198,7 +201,7 @@ public class TestForEachNestedPlanLocal extends TestCase {
             System.out.println(count + ":" + t) ;
             count++ ;
         }
-        Assert.assertEquals(count, 15);
+        assertEquals(count, 15);
     }
     */
 
@@ -213,7 +216,7 @@ public class TestForEachNestedPlanLocal extends TestCase {
         DecimalFormat formatter = new DecimalFormat("0000000");
 
         Random r = new Random();
-        
+
         for (int i = 0; i < dataLength; i++) {
             data[i] = new String[2] ;
             // inject nulls randomly
@@ -256,7 +259,7 @@ public class TestForEachNestedPlanLocal extends TestCase {
 
         return fp1;
     }
-    
+
     private File[] generateDataSetFilesForNestedCross() throws IOException {
         File userFile = File.createTempFile("user", "txt");
         PrintStream userPS = new PrintStream(new FileOutputStream(userFile));
@@ -286,5 +289,4 @@ public class TestForEachNestedPlanLocal extends TestCase {
         profilePS.close();
         return new File[] { userFile, sessionFile, profileFile };
     }
-
 }

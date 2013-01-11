@@ -18,8 +18,9 @@
 package org.apache.pig.newplan.logical.relational;
 
 import java.util.ArrayList;
+import java.util.Deque;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Stack;
 
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.Pair;
@@ -92,7 +93,7 @@ public class LOForEach extends LogicalRelationalOperator {
             		continue;
             	}
             	
-            	Stack<Operator> stack = new Stack<Operator>();
+            	Deque<Operator> stack = new LinkedList<Operator>();
                 List<Operator> succs = referred.getPlan().getSuccessors( src );
                 if( succs != null ) {
                 	for( Operator succ : succs ) {

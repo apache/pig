@@ -21,8 +21,9 @@ package org.apache.pig;
 import java.io.IOException;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.Deque;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Stack;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -96,7 +97,7 @@ public abstract class EvalFunc<T>  {
         Class<?> superClass = getClass();
         Type superType = getClass();
         
-        Stack<Type> geneticsStack = new Stack<Type>();
+        Deque<Type> geneticsStack = new LinkedList<Type>();
         
         // Go up the hierachy of the class up to the EvalFunc
         while (!superClass.isAssignableFrom(EvalFunc.class))

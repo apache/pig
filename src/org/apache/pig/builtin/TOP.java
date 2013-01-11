@@ -111,6 +111,9 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
             int n = (Integer) tuple.get(0);
             int fieldNum = (Integer) tuple.get(1);
             DataBag inputBag = (DataBag) tuple.get(2);
+            if (inputBag == null) {
+                return null;
+            }
             PriorityQueue<Tuple> store = new PriorityQueue<Tuple>(n + 1,
                     new TupleComparator(fieldNum));
             updateTop(store, n, inputBag);
@@ -130,7 +133,7 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
         } catch (ExecException e) {
             throw new RuntimeException("ExecException executing function: ", e);
         } catch (Exception e) {
-            throw new RuntimeException("General Exception executing function: " + e);
+            throw new RuntimeException("General Exception executing function: ", e);
         }
     }
 
@@ -205,6 +208,9 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
                 int n = (Integer) tuple.get(0);
                 int fieldNum = (Integer) tuple.get(1);
                 DataBag inputBag = (DataBag) tuple.get(2);
+                if (inputBag == null) {
+                    return null;
+                }
                 Tuple retTuple = mTupleFactory.newTuple(3);
                 DataBag outputBag = mBagFactory.newDefaultBag();
                 // initially, there should only be one, so not much point in doing the priority queue
@@ -249,25 +255,36 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
                 int n = (Integer) peekTuple.get(0);
                 int fieldNum = (Integer) peekTuple.get(1);
                 DataBag inputBag = (DataBag) peekTuple.get(2);
+                boolean allInputBagsNull = true;
 
                 PriorityQueue<Tuple> store = new PriorityQueue<Tuple>(n + 1,
                         new TupleComparator(fieldNum));
 
-                updateTop(store, n, inputBag);
+                if (inputBag != null) {
+                    allInputBagsNull = false;
+                    updateTop(store, n, inputBag);
+                }
 
                 while (intermediateIterator.hasNext()) {
                     Tuple t = intermediateIterator.next();
                     if (t == null || t.size() < 3 ) continue;
-                    updateTop(store, n, (DataBag) t.get(2));
+                    inputBag = (DataBag) t.get(2);
+                    if (inputBag != null) {
+                        allInputBagsNull = false;
+                        updateTop(store, n, inputBag);
+                    }
                 }   
 
-                DataBag outputBag = mBagFactory.newDefaultBag();
-                for (Tuple t : store) {
-                    outputBag.add(t);
-                }
                 Tuple retTuple = mTupleFactory.newTuple(3);
                 retTuple.set(0, n);
                 retTuple.set(1,fieldNum);
+                DataBag outputBag = null;
+                if (!allInputBagsNull) {
+                    outputBag = mBagFactory.newDefaultBag();
+                    for (Tuple t : store) {
+                        outputBag.add(t);
+                    }
+                }
                 retTuple.set(2, outputBag);
                 if (log.isDebugEnabled()) { 
                     if (randomizer.nextInt(1000) == 1) log.debug("outputting "+retTuple.toDelimitedString("\t")); 
@@ -315,18 +332,30 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
                 int n = (Integer) peekTuple.get(0);
                 int fieldNum = (Integer) peekTuple.get(1);
                 DataBag inputBag = (DataBag) peekTuple.get(2);
+                boolean allInputBagsNull = true;
 
                 PriorityQueue<Tuple> store = new PriorityQueue<Tuple>(n + 1,
                         new TupleComparator(fieldNum));
 
-                updateTop(store, n, inputBag);
+                if (inputBag != null) {
+                    allInputBagsNull = false;
+                    updateTop(store, n, inputBag);
+                }
 
                 while (intermediateIterator.hasNext()) {
                     Tuple t = intermediateIterator.next();
                     if (t == null || t.size() < 3 ) continue;
-                    updateTop(store, n, (DataBag) t.get(2));
+                    inputBag = (DataBag) t.get(2);
+                    if (inputBag != null) {
+                        allInputBagsNull = false;
+                        updateTop(store, n, inputBag);
+                    }
                 }   
 
+                if (allInputBagsNull) {
+                    return null;
+                }
+                
                 DataBag outputBag = mBagFactory.newDefaultBag();
                 for (Tuple t : store) {
                     outputBag.add(t);

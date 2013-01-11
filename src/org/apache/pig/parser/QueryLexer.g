@@ -60,6 +60,9 @@ public String getErrorHeader(RecognitionException ex) {
 VOID    : 'VOID'
 ;
 
+NULL    : 'NULL'
+;
+
 IMPORT  : 'IMPORT'
 ;
 
@@ -79,6 +82,18 @@ FOREACH : 'FOREACH'
 ;
 
 ORDER   :  'ORDER'
+;
+
+RANK   :  'RANK'
+;
+
+DENSE   :  'DENSE'
+;
+
+CUBE    : 'CUBE'
+;
+
+ROLLUP	: 'ROLLUP'
 ;
 
 DISTINCT : 'DISTINCT'
@@ -172,6 +187,9 @@ FLOAT : 'FLOAT'
 ;
 
 DOUBLE : 'DOUBLE'
+;
+
+DATETIME : 'DATETIME'
 ;
 
 CHARARRAY : 'CHARARRAY'
@@ -300,8 +318,12 @@ fragment ID: LETTER ( DIGIT | LETTER | SPECIALCHAR )*
 DCOLON : '::'
 ;
 
-IDENTIFIER_L : ( ID DCOLON ) => ( ID DCOLON IDENTIFIER_L )
-           | ID
+IDENTIFIER 
+    @after { 
+        if("null".equalsIgnoreCase(getText())){
+            state.type = NULL;
+        } 
+    } : ( ID DCOLON ) => ( ID DCOLON IDENTIFIER ) | ID
 ;
 
 fragment FLOATINGPOINT : INTEGER ( PERIOD INTEGER )? | PERIOD INTEGER 
@@ -310,7 +332,7 @@ fragment FLOATINGPOINT : INTEGER ( PERIOD INTEGER )? | PERIOD INTEGER
 INTEGER: ( DIGIT )+
 ;
 
-LONGINTEGER: INTEGER ( 'L' )?
+LONGINTEGER: INTEGER 'L'
 ;
 
 DOLLARVAR : DOLLAR INTEGER
@@ -319,7 +341,7 @@ DOLLARVAR : DOLLAR INTEGER
 DOUBLENUMBER : FLOATINGPOINT ( 'E' ( MINUS | PLUS )? INTEGER )?
 ;
     
-FLOATNUMBER : DOUBLENUMBER ( 'F' )?
+FLOATNUMBER : DOUBLENUMBER 'F'
 ;
 
 QUOTEDSTRING :  '\'' (   ( ~ ( '\'' | '\\' | '\n' | '\r' ) )

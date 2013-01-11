@@ -483,7 +483,6 @@ public class TestCollection {
     scanner.getValue(RowValue);
     System.out.println("row: " + RowValue.toString());
     System.out.println("row1: " + RowValue.get(0));
-    Assert.assertEquals(false, RowValue.isNull());
     Assert.assertEquals(null, RowValue.get(0));
     Assert.assertEquals(1, RowValue.size());
     reader.close();

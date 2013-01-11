@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Properties;
 
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
@@ -171,36 +172,6 @@ public class PoissonSampleLoader extends SampleLoader {
         return t;
     }
 
-    /**
-     * Computes the number of samples for the loader
-     * 
-     * @param inputs : Set to pig inputs
-     * @param pc : PigContext object
-     * 
-     */
-    @Override
-    public void computeSamples(ArrayList<Pair<FileSpec, Boolean>> inputs, 
-            PigContext pc) throws ExecException {
-        Properties pcProps = pc.getProperties();
-
-        // % of memory available for the records
-        heapPerc = PartitionSkewedKeys.DEFAULT_PERCENT_MEMUSAGE;
-        if (pcProps.getProperty(PERC_MEM_AVAIL) != null) {
-            try {
-                heapPerc = Float.valueOf(pcProps.getProperty(PERC_MEM_AVAIL));
-            }catch(NumberFormatException e) {
-                // ignore, use default value
-            }
-        }
-
-        try {
-            sampleRate = Integer.valueOf(pcProps.getProperty(SAMPLE_RATE));
-        } catch (NumberFormatException e) {
-            sampleRate = DEFAULT_SAMPLE_RATE;
-        }
-
-    }
-    
     @Override
     public void prepareToRead(RecordReader reader, PigSplit split) throws IOException {
         super.prepareToRead(reader, split);
@@ -210,9 +181,11 @@ public class PoissonSampleLoader extends SampleLoader {
         skipInterval = -1;
         memToSkipPerSample = 0;
         numRowSplTupleReturned = false;
-        sampleRate = DEFAULT_SAMPLE_RATE;
-        heapPerc = PartitionSkewedKeys.DEFAULT_PERCENT_MEMUSAGE;
         newSample = null;
+
+        Configuration conf = split.getConf();
+        sampleRate = conf.getInt(SAMPLE_RATE, DEFAULT_SAMPLE_RATE);
+        heapPerc = conf.getFloat(PERC_MEM_AVAIL, PartitionSkewedKeys.DEFAULT_PERCENT_MEMUSAGE);
     }
 
 }

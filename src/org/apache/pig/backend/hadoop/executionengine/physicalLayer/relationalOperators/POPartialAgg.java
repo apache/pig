@@ -18,13 +18,15 @@
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.WeakHashMap;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
@@ -34,73 +36,375 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ExpressionOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
-import org.apache.pig.data.DefaultDataBag;
 import org.apache.pig.data.SelfSpillBag.MemoryLimits;
-import org.apache.pig.data.SizeUtil;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.Spillable;
+import org.apache.pig.impl.util.SpillableMemoryManager;
+
+import com.google.common.collect.Maps;
 
 /**
- * Do partial aggregation in map plan. It uses a hash-map to aggregate. If
- * consecutive records have same key, it will aggregate those without adding
- * them to the hash-map. As future optimization, the use of hash-map could be
- * disabled when input data is sorted on group-by keys
+ * Do partial aggregation in map plan. Inputs are buffered up in
+ * a hashmap until a threshold is reached; then the combiner functions
+ * are fed these buffered up inputs, and results stored in a secondary
+ * map. Once that map fills up or all input has been seen, results are
+ * piped out into the next operator (caller of getNext()).
  */
-public class POPartialAgg extends PhysicalOperator {
-
-    public static final String PROP_PARTAGG_MINREDUCTION = "pig.exec.mapPartAgg.minReduction";
-
-    private static final Log log = LogFactory.getLog(POPartialAgg.class);
+public class POPartialAgg extends PhysicalOperator implements Spillable {
+    private static final Log LOG = LogFactory.getLog(POPartialAgg.class);
     private static final long serialVersionUID = 1L;
+
+    private static final Result ERR_RESULT = new Result();
+    private static final Result EOP_RESULT = new Result(POStatus.STATUS_EOP,
+            null);
+
+    // number of records to sample to determine average size used by each
+    // entry in hash map and average seen reduction
+    private static final int NUM_RECS_TO_SAMPLE = 10000;
+
+    // We want to avoid massive ArrayList copies as they get big.
+    // Array Lists grow by prevSize + prevSize/2. Given default initial size of 10,
+    // 9369 is the size of the array after 18 such resizings. This seems like a sufficiently
+    // large value to trigger spilling/aggregation instead of paying for yet another data
+    // copy.
+    private static final int MAX_LIST_SIZE = 9368;
+
+    private static final int DEFAULT_MIN_REDUCTION = 10;
+
+    // TODO: these are temporary. The real thing should be using memory usage estimation.
+    private static final int FIRST_TIER_THRESHOLD = 20000;
+    private static final int SECOND_TIER_THRESHOLD = FIRST_TIER_THRESHOLD / DEFAULT_MIN_REDUCTION;
+
+    private static final WeakHashMap<POPartialAgg, Byte> ALL_POPARTS = new WeakHashMap<POPartialAgg, Byte>();
+
+    private static final TupleFactory TF = TupleFactory.getInstance();
+    private static final BagFactory BG = BagFactory.getInstance();
 
     private PhysicalPlan keyPlan;
     private ExpressionOperator keyLeaf;
 
     private List<PhysicalPlan> valuePlans;
     private List<ExpressionOperator> valueLeaves;
-    private static final Result ERR_RESULT = new Result();
-    private static final Result EOP_RESULT = new Result(POStatus.STATUS_EOP,
-            null);
 
-    // run time variables
-    private transient Object currentKey = null;
-    private transient Map<Object, Tuple> aggMap;
-    // tuple of the format - (null(key),bag-val1,bag-val2,...)
-    // attach this to the plans with algebraic udf before evaluating the plans
-    private transient Tuple valueTuple = null;
+    private int numRecsInRawMap = 0;
+    private int numRecsInProcessedMap = 0;
 
-    private boolean isFinished = false;
-
-    private transient Iterator<Tuple> mapDumpIterator;
-    private transient int numToDump;
-
-    // maximum bag size of currentValues cached before aggregation is done
-    private static final int MAX_SIZE_CURVAL_CACHE = 1024;
-
-    // number of records to sample to determine average size used by each
-    // entry in hash map
-    private static final int NUM_RESRECS_TO_SAMPLE_SZ_ESTIMATE = 100;
-
-    // params for auto disabling map aggregation
-    private static final int NUM_INPRECS_TO_SAMPLE_SZ_REDUCTION = 1000;
-
-    private static final int DEFAULT_MIN_REDUCTION = 10;
+    private Map<Object, List<Tuple>> rawInputMap = Maps.newHashMap();
+    private Map<Object, List<Tuple>> processedInputMap = Maps.newHashMap();
 
     private boolean disableMapAgg = false;
-    private int num_inp_recs;
     private boolean sizeReductionChecked = false;
-
-    private transient int maxHashMapSize;
-
-    private transient TupleFactory tupleFact;
+    private boolean inputsExhausted = false;
+    private boolean doSpill = false;
     private transient MemoryLimits memLimits;
+
+    private transient boolean initialized = false;
+    private int firstTierThreshold = FIRST_TIER_THRESHOLD;
+    private int secondTierThreshold = SECOND_TIER_THRESHOLD;
+    private int sizeReduction = 1;
+    private int avgTupleSize = 0;
+    private Iterator<Entry<Object, List<Tuple>>> spillingIterator;
+    private boolean estimatedMemThresholds = false;
+
 
     public POPartialAgg(OperatorKey k) {
         super(k);
+    }
+
+    private void init() throws ExecException {
+        ALL_POPARTS.put(this, null);
+        float percent = getPercentUsageFromProp();
+        if (percent <= 0) {
+            LOG.info("No memory allocated to intermediate memory buffers. Turning off partial aggregation.");
+            disableMapAgg();
+    }
+        initialized = true;
+        SpillableMemoryManager.getInstance().registerSpillable(this);
+    }
+
+    @Override
+    public Result getNext(Tuple __ignored__) throws ExecException {
+        // accumulate tuples from processInput in rawInputMap.
+        // when the maps grow to mem limit, go over each item in map, and call
+        // combiner aggs on each collection.
+        // Store the results into processedInputMap. Clear out rawInputMap.
+        // Mem usage is updated every time we modify either of the maps.
+        // When processedInputMap is >= 20% of allotted memory, run aggs on it,
+        // and output the results as returns of successive calls of this method.
+        // Then reset processedInputMap.
+        // The fact that we are in the latter stage is communicated via the doSpill
+        // flag.
+
+        if (!initialized && !ALL_POPARTS.containsKey(this)) {
+            init();
+                }
+
+        while (true) {
+            if (!sizeReductionChecked && numRecsInRawMap >= NUM_RECS_TO_SAMPLE) {
+                checkSizeReduction();
+            }
+            if (!estimatedMemThresholds && numRecsInRawMap >= NUM_RECS_TO_SAMPLE) {
+                estimateMemThresholds();
+        }
+            if (doSpill) {
+                Result result = spillResult();
+                if (result == EOP_RESULT) {
+                    doSpill = false;
+            }
+                if (result != EOP_RESULT || inputsExhausted) {
+                    return result;
+        }
+        }
+            if (mapAggDisabled()) {
+                // disableMapAgg() sets doSpill, so we can't get here while there is still contents in the buffered maps.
+                // if we get to this point, everything is flushed, so we can simply return the raw tuples from now on.
+                return processInput();
+            } else {
+            Result inp = processInput();
+            if (inp.returnStatus == POStatus.STATUS_ERR) {
+                return inp;
+                } else if (inp.returnStatus == POStatus.STATUS_EOP) {
+                if (parentPlan.endOfAllInput) {
+                        // parent input is over. flush what we have.
+                        inputsExhausted = true;
+                        startSpill();
+                        LOG.info("Spilling last bits.");
+                        continue;
+                } else {
+                        return EOP_RESULT;
+            }
+                } else if (inp.returnStatus == POStatus.STATUS_NULL) {
+                continue;
+                } else {
+                    // add this input to map.
+            Tuple inpTuple = (Tuple) inp.result;
+            keyPlan.attachInput(inpTuple);
+
+            // evaluate the key
+            Result keyRes = getResult(keyLeaf);
+            if (keyRes == ERR_RESULT) {
+                return ERR_RESULT;
+            }
+            Object key = keyRes.result;
+            keyPlan.detachInput();
+                    numRecsInRawMap += 1;
+                    addKeyValToMap(rawInputMap, key, inpTuple);
+
+                    if (shouldAggregateFirstLevel()) {
+                        aggregateFirstLevel();
+                    }
+                    if (shouldAggregateSecondLevel()) {
+                        aggregateSecondLevel();
+                    }
+                    if (shouldSpill()) {
+                        LOG.info("Starting spill.");
+                        startSpill(); // next time around, we'll start emitting.
+                    }
+                }
+            }
+        }
+    }
+
+    private void estimateMemThresholds() {
+        if (!mapAggDisabled()) {
+            LOG.info("Getting mem limits; considering " + ALL_POPARTS.size() + " POPArtialAgg objects.");
+
+            float percent = getPercentUsageFromProp();
+            memLimits = new MemoryLimits(ALL_POPARTS.size(), percent);
+            int estTotalMem = 0;
+            int estTuples = 0;
+            for (Map.Entry<Object, List<Tuple>> entry : rawInputMap.entrySet()) {
+                for (Tuple t : entry.getValue()) {
+                    estTuples += 1;
+                    int mem = (int) t.getMemorySize();
+                    estTotalMem += mem;
+                    memLimits.addNewObjSize(mem);
+                    }
+            }
+            avgTupleSize = estTotalMem / estTuples;
+            int totalTuples = memLimits.getCacheLimit();
+            LOG.info("Estimated total tuples to buffer, based on " + estTuples + " tuples that took up " + estTotalMem + " bytes: " + totalTuples);
+            firstTierThreshold = (int) (0.5 + totalTuples * (1f - (1f / sizeReduction)));
+            secondTierThreshold = (int) (0.5 + totalTuples *  (1f / sizeReduction));
+            LOG.info("Setting thresholds. Primary: " + firstTierThreshold + ". Secondary: " + secondTierThreshold);
+        }
+        estimatedMemThresholds = true;
+                    }
+                    
+    private void checkSizeReduction() throws ExecException {
+        int numBeforeReduction = numRecsInProcessedMap + numRecsInRawMap;
+        aggregateFirstLevel();
+        aggregateSecondLevel();
+        int numAfterReduction = numRecsInProcessedMap + numRecsInRawMap;
+        LOG.info("After reduction, processed map: " + numRecsInProcessedMap + "; raw map: " + numRecsInRawMap);
+        int minReduction = getMinOutputReductionFromProp();
+        LOG.info("Observed reduction factor: from " + numBeforeReduction +
+                " to " + numAfterReduction +
+                " => " + numBeforeReduction / numAfterReduction + ".");
+        if ( numBeforeReduction / numAfterReduction < minReduction) {
+            LOG.info("Disabling in-memory aggregation, since observed reduction is less than " + minReduction);
+            disableMapAgg();
+        }
+        sizeReduction = numBeforeReduction / numAfterReduction;
+        sizeReductionChecked = true;
+
+    }
+    private void disableMapAgg() throws ExecException {
+        startSpill();
+        disableMapAgg = true;
+    }
+
+    private boolean mapAggDisabled() {
+        return disableMapAgg;
+                    }
+
+    private boolean shouldAggregateFirstLevel() {
+        if (LOG.isInfoEnabled() && numRecsInRawMap > firstTierThreshold) {
+            LOG.info("Aggregating " + numRecsInRawMap + " raw records.");
+        }
+        return (numRecsInRawMap > firstTierThreshold);
+                    }
+
+    private boolean shouldAggregateSecondLevel() {
+        if (LOG.isInfoEnabled() && numRecsInProcessedMap > secondTierThreshold) {
+            LOG.info("Aggregating " + numRecsInProcessedMap + " secondary records.");
+        }
+        return (numRecsInProcessedMap > secondTierThreshold);
+    }
+
+    private boolean shouldSpill() {
+        // is this always the same as shouldAgg?
+        return shouldAggregateSecondLevel();
+    }
+
+    private void addKeyValToMap(Map<Object, List<Tuple>> map,
+            Object key, Tuple inpTuple) throws ExecException {
+        List<Tuple> value = map.get(key);
+        if (value == null) {
+            value = new ArrayList<Tuple>();
+            map.put(key, value);
+        }
+       value.add(inpTuple);
+       if (value.size() >= MAX_LIST_SIZE) {
+           boolean isFirst = (map == rawInputMap);
+            if (LOG.isDebugEnabled()){
+                LOG.debug("The cache for key " + key + " has grown too large. Aggregating " + ((isFirst) ? "first level." : "second level."));
+           }
+           if (isFirst) {
+               aggregateRawRow(key);
+                    } else {
+               aggregateSecondLevel();
+           }
+       }
+                    }
+
+    private void startSpill() throws ExecException {
+        if (!rawInputMap.isEmpty()) {
+            if (LOG.isInfoEnabled()) {
+                LOG.info("In startSpill(), aggregating raw inputs. " + numRecsInRawMap + " tuples.");
+            }
+            aggregateFirstLevel();
+            if (LOG.isInfoEnabled()) {
+                LOG.info("processed inputs: " + numRecsInProcessedMap + " tuples.");
+            }
+        }
+        if (!processedInputMap.isEmpty()) {
+            if (LOG.isInfoEnabled()) {
+                LOG.info("In startSpill(), aggregating processed inputs. " + numRecsInProcessedMap + " tuples.");
+            }
+            aggregateSecondLevel();
+            if (LOG.isInfoEnabled()) {
+                LOG.info("processed inputs: " + numRecsInProcessedMap + " tuples.");
+            }
+                }
+        doSpill = true;
+        spillingIterator = processedInputMap.entrySet().iterator();
+            }
+
+    private Result spillResult() throws ExecException {
+        // if no more to spill, return EOP_RESULT.
+        if (processedInputMap.isEmpty()) {
+            LOG.info("In spillResults(), processed map is empty -- done spilling.");
+            return EOP_RESULT;
+        } else {
+            Map.Entry<Object, List<Tuple>> entry = spillingIterator.next();
+            Tuple valueTuple = createValueTuple(entry.getKey(), entry.getValue());
+            numRecsInProcessedMap -= entry.getValue().size();
+            spillingIterator.remove();
+            Result res = getOutput(entry.getKey(), valueTuple);
+            return res;
+        }
+    }
+
+    private void aggregateRawRow(Object key) throws ExecException {
+        List<Tuple> value = rawInputMap.get(key);
+        Tuple valueTuple = createValueTuple(key, value);
+        Result res = getOutput(key, valueTuple);
+        rawInputMap.remove(key);
+        addKeyValToMap(processedInputMap, key, getAggResultTuple(res.result));
+        numRecsInProcessedMap += valueTuple.size() - 1;
+    }
+
+    /**
+     * For each entry in rawInputMap, feed the list of tuples into the aggregator funcs
+     * and add the results to processedInputMap. Remove the entries from rawInputMap as we go.
+     * @throws ExecException
+     */
+    private int aggregate(Map<Object, List<Tuple>> fromMap, Map<Object, List<Tuple>> toMap, int numEntriesInTarget) throws ExecException {
+        Iterator<Map.Entry<Object, List<Tuple>>> iter = fromMap.entrySet().iterator();
+        while (iter.hasNext()) {
+            Map.Entry<Object, List<Tuple>> entry = iter.next();
+            Tuple valueTuple = createValueTuple(entry.getKey(), entry.getValue());
+            Result res = getOutput(entry.getKey(), valueTuple);
+            iter.remove();
+            addKeyValToMap(toMap, entry.getKey(), getAggResultTuple(res.result));
+            numEntriesInTarget += valueTuple.size() - 1;
+            }
+        return numEntriesInTarget;
+        }
+
+    private void aggregateFirstLevel() throws ExecException {
+        numRecsInProcessedMap = aggregate(rawInputMap, processedInputMap, numRecsInProcessedMap);
+        numRecsInRawMap = 0;
+    }
+
+    private void aggregateSecondLevel() throws ExecException {
+        Map<Object, List<Tuple>> newMap = Maps.newHashMapWithExpectedSize(processedInputMap.size());
+        numRecsInProcessedMap = aggregate(processedInputMap, newMap, 0);
+        processedInputMap = newMap;
+    }
+
+    private Tuple createValueTuple(Object key, List<Tuple> inpTuples) throws ExecException {
+        Tuple valueTuple = TF.newTuple(valuePlans.size() + 1);
+        valueTuple.set(0, key);
+
+        for (int i = 0; i < valuePlans.size(); i++) {
+            DataBag bag = BG.newDefaultBag();
+            valueTuple.set(i + 1, bag);
+        }
+        for (Tuple t : inpTuples) {
+            for (int i = 1; i < t.size(); i++) {
+                DataBag bag = (DataBag) valueTuple.get(i);
+                bag.add((Tuple) t.get(i));
+            }
+        }
+
+        return valueTuple;
+    }
+
+    private Tuple getAggResultTuple(Object result) throws ExecException {
+        try {
+            return (Tuple) result;
+        } catch (ClassCastException ex) {
+            throw new ExecException("Intermediate Algebraic "
+                    + "functions must implement EvalFunc<Tuple>");
+        }
     }
 
     @Override
@@ -115,351 +419,31 @@ public class POPartialAgg extends PhysicalOperator {
         v.visitPartialAgg(this);
     }
 
-    @Override
-    public Result getNext(Tuple t) throws ExecException {
-
-        if (disableMapAgg) {
-            // map aggregation has been automatically disabled
-            if (mapDumpIterator != null) {
-                // there are some accumulated entries in map to be dumped
-                return getNextResFromMap();
-            } else {
-                Result inp = processInput();
-                if (disableMapAgg) {
-                    // the in-map partial aggregation is an optional step, just
-                    // like the combiner.
-                    // act as if this operator was never there, by just 
-                    // returning the input
-                    return inp;
-                }
-            }
-        }
-
-        if (mapDumpIterator != null) {
-            // if this iterator is not null, we are process of dumping records
-            // from the map
-            if (isFinished) {
-                return getNextResFromMap();
-            } else if (numToDump > 0) {
-                // there are some tuples yet to be dumped, to free memory
-                --numToDump;
-                return getNextResFromMap();
-            } else {
-                mapDumpIterator = null;
-            }
-        }
-
-        if (isFinished) {
-            // done with dumping all records
-            return new Result(POStatus.STATUS_EOP, null);
-        }
-
-        while (true) {
-            //process each input until EOP
-            Result inp = processInput();
-            if (inp.returnStatus == POStatus.STATUS_ERR) {
-                // error
-                return inp;
-            }
-            if (inp.returnStatus == POStatus.STATUS_EOP) {
-                if (parentPlan.endOfAllInput) {
-                    // it is actually end of all input
-                    // start dumping results
-                    isFinished = true;
-                    logCapacityOfAggMap();
-                    // check if there was ANY input
-                    if (valueTuple == null) {
-                        return EOP_RESULT;
-                    }
-
-                    // first return agg for currentKey
-                    Result output = getOutput();
-                    aggMap.remove(currentKey);
-
-                    mapDumpIterator = aggMap.values().iterator();
-
-                    // free the variables not needed anymore
-                    currentKey = null;
-                    valueTuple = null;
-
-                    return output;
-                } else {
-                    // return EOP
-                    return inp;
-                }
-            }
-            if (inp.returnStatus == POStatus.STATUS_NULL) {
-                continue;
-            }
-
-            // check if this operator is doing a good job of reducing the number
-            // of records going to output to justify the costs of itself
-            // if not , disable map partial agg
-            if ((!sizeReductionChecked)) {
-                checkSizeReduction();
-
-                if (disableMapAgg) {
-                    // in-map partial aggregation just got disabled
-                    // return the new input record, it has not been aggregated
-                    return inp;
-                }
-            }
-
-            // we have some real input data
-
-            // setup input for keyplan
-            Tuple inpTuple = (Tuple) inp.result;
-            keyPlan.attachInput(inpTuple);
-
-            // evaluate the key
-            Result keyRes = getResult(keyLeaf);
-            if (keyRes == ERR_RESULT) {
-                return ERR_RESULT;
-            }
-            Object key = keyRes.result;
-            keyPlan.detachInput();
-
-            if (valueTuple == null) {
-                // this is the first record the operator is seeing
-                // do initializations
-                init(key, inpTuple);
-                continue;
-            } else {
-                // check if key changed
-                boolean keyChanged = (currentKey != null && key == null)
-                        || ((key != null) && (!key.equals(currentKey)));
-
-                if (!keyChanged) {
-                    addToCurrentValues(inpTuple);
-
-                    // if there are enough number of values,
-                    // aggregate the values accumulated in valueTuple
-                    if (((DefaultDataBag) valueTuple.get(1)).size() >= MAX_SIZE_CURVAL_CACHE) {
-                        // not a key change, so store the agg result back to bag
-                        aggregateCurrentValues();
-                    }
-                    continue;
-                } else {// new key
-
-                    // compute aggregate for currentKey
-                    Result output = getOutput();
-                    if (output.returnStatus != POStatus.STATUS_OK) {
-                        return ERR_RESULT;
-                    }
-                    
-                    // set new current key, value
-                    currentKey = key;
-                    resetCurrentValues();
-                    addToCurrentValues(inpTuple);
-
-                    // get existing result from map (if any) and add it to
-                    // current values
-                    Tuple existingResult = aggMap.get(key);
-
-                    // existingResult will be null only if key is absent in
-                    // aggMap
-                    if (existingResult != null) {
-                        addToCurrentValues(existingResult);
-                    }
-
-                    // storing a new entry in the map, so update estimate of
-                    // num of entries that will fit into the map
-                    if (memLimits.getNumObjectsSizeAdded() < NUM_RESRECS_TO_SAMPLE_SZ_ESTIMATE) {
-                        updateMaxMapSize(output.result);
-                    }
-
-                    // check if it is time to dump some aggs from the hashmap
-                    if (aggMap.size() >= maxHashMapSize) {
-                        // dump 10% of max hash size because dumping just one
-                        // record at a time might result in most group key being
-                        // dumped (depending on hashmap implementation)
-                        // TODO: dump the least recently/frequently used entries
-                        numToDump = maxHashMapSize / 10;
-                        mapDumpIterator = aggMap.values().iterator();
-
-                        return output;
-                    } else {
-                        // there is space available in the hashmap, store the
-                        // output there
-                        addOutputToAggMap(output);
-                    }
-
-                    continue;
-                }
-            }
-        }
-    }
-
-    private void updateMaxMapSize(Object result) {
-        long size = SizeUtil.getMapEntrySize(currentKey,
-                result);
-        memLimits.addNewObjSize(size);
-        maxHashMapSize = memLimits.getCacheLimit();
-    }
-
-    /**
-     * Aggregate values accumulated in
-     * 
-     * @throws ExecException
-     */
-    private void aggregateCurrentValues() throws ExecException {
-        for (int i = 0; i < valuePlans.size(); i++) {
-            valuePlans.get(i).attachInput(valueTuple);
-            Result valRes = getResult(valueLeaves.get(i));
-            if (valRes == ERR_RESULT) {
-                throw new ExecException(
-                        "Error computing aggregate during in-map partial aggregation");
-            }
-
-            Tuple aggVal = getAggResultTuple(valRes.result);
-
-            // i'th plan should read only from i'th bag
-            // so we are done with i'th bag, clear it and
-            // add the new agg result to it
-            DataBag valBag = (DataBag) valueTuple.get(i + 1);
-            valBag.clear();
-            valBag.add(aggVal);
-
-            valuePlans.get(i).detachInput();
-        }
-    }
-
-    private void init(Object key, Tuple inpTuple) throws ExecException {
-        tupleFact = TupleFactory.getInstance();
-
-        // value tuple has bags of values for currentKey
-        valueTuple = tupleFact.newTuple(valuePlans.size() + 1);
-
-        for (int i = 0; i < valuePlans.size(); i++) {
-            valueTuple.set(i + 1, new DefaultDataBag(new ArrayList<Tuple>(
-                    MAX_SIZE_CURVAL_CACHE)));
-        }
-
-        // set current key, add value
-        currentKey = key;
-        addToCurrentValues(inpTuple);
-        aggMap = new HashMap<Object, Tuple>();
-
-        // TODO: keep track of actual number of objects that share the
-        // memory limit. For now using a default of 3, which is what is
-        // used by InternalCachedBag
-        memLimits = new MemoryLimits(3, -1);
-        maxHashMapSize = Integer.MAX_VALUE;
-
-    }
-
-    private Tuple getAggResultTuple(Object result) throws ExecException {
-        try {
-            return (Tuple) result;
-        } catch (ClassCastException ex) {
-            throw new ExecException("Intermediate Algebraic "
-                    + "functions must implement EvalFunc<Tuple>");
-        }
-    }
-
-    private void checkSizeReduction() throws ExecException {
-
-        num_inp_recs++;
-        if (num_inp_recs == NUM_INPRECS_TO_SAMPLE_SZ_REDUCTION
-                || (aggMap != null && aggMap.size() == maxHashMapSize - 1)) {
-            // the above check for the hashmap current size is
-            // done to avoid having to keep track of any dumps that
-            // could
-            // happen before NUM_INPRECS_TO_SAMPLE_SZ_REDUCTION is
-            // reached
-
-            sizeReductionChecked = true;
-
-            // find out how many output records we have for this many
-            // input records
-
-            int outputReduction = aggMap.size() == 0 ? Integer.MAX_VALUE
-                    : num_inp_recs / aggMap.size();
-            int min_output_reduction = getMinOutputReductionFromProp();
-            if (outputReduction < min_output_reduction) {
-                disableMapAgg = true;
-                log.info("Disabling in-map partial aggregation because the "
-                        + "reduction in tuples (" + outputReduction
-                        + ") is lower than threshold (" + min_output_reduction
-                        + ")");
-                logCapacityOfAggMap();
-                // get current key vals output
-                Result output = getOutput();
-
-                // free the variables not needed anymore
-                currentKey = null;
-                valueTuple = null;
-
-                // store the output into hash map for now
-                addOutputToAggMap(output);
-
-                mapDumpIterator = aggMap.values().iterator();
-            }
-        }
-
-    }
-
-    private void logCapacityOfAggMap() {
-        log.info("Maximum capacity of hashmap used for map"
-                + " partial aggregation was " + maxHashMapSize + " entries");
-    }
-
-    private void addOutputToAggMap(Result output) throws ExecException {
-        aggMap.put(((Tuple) output.result).get(0), (Tuple) output.result);
-    }
-
     private int getMinOutputReductionFromProp() {
         int minReduction = PigMapReduce.sJobConfInternal.get().getInt(
-                PROP_PARTAGG_MINREDUCTION, 0);
-     
+                PigConfiguration.PARTAGG_MINREDUCTION, DEFAULT_MIN_REDUCTION);
         if (minReduction <= 0) {
-            // the default minimum reduction is 10
+            LOG.info("Specified reduction is < 0 (" + minReduction + "). Using default " + DEFAULT_MIN_REDUCTION);
             minReduction = DEFAULT_MIN_REDUCTION;
         }
         return minReduction;
     }
 
-    private Result getNextResFromMap() {
-        if (!mapDumpIterator.hasNext()) {
-            mapDumpIterator = null;
-            return EOP_RESULT;
+    private float getPercentUsageFromProp() {
+        float percent = 0.2F;
+        if (PigMapReduce.sJobConfInternal.get() != null) {
+            String usage = PigMapReduce.sJobConfInternal.get().get(
+                    PigConfiguration.PROP_CACHEDBAG_MEMUSAGE);
+            if (usage != null) {
+                percent = Float.parseFloat(usage);
         }
-        Tuple outTuple = mapDumpIterator.next();
-        mapDumpIterator.remove();
-        return new Result(POStatus.STATUS_OK, outTuple);
+        }
+        return percent;
     }
 
-    private Result getOutput() throws ExecException {
-        Tuple output = tupleFact.newTuple(valuePlans.size() + 1);
-        output.set(0, currentKey);
-
-        for (int i = 0; i < valuePlans.size(); i++) {
-            valuePlans.get(i).attachInput(valueTuple);
-            Result valRes = getResult(valueLeaves.get(i));
-            if (valRes == ERR_RESULT) {
-                return ERR_RESULT;
-            }
-            output.set(i + 1, valRes.result);
-        }
-        return new Result(POStatus.STATUS_OK, output);
-    }
-
-    private void resetCurrentValues() throws ExecException {
-        for (int i = 1; i < valueTuple.size(); i++) {
-            ((DataBag) valueTuple.get(i)).clear();
-        }
-    }
-
-    private void addToCurrentValues(Tuple inpTuple) throws ExecException {
-        for (int i = 1; i < inpTuple.size(); i++) {
-            DataBag bag = (DataBag) valueTuple.get(i);
-            bag.add((Tuple) inpTuple.get(i));
-        }
-    }
 
     private Result getResult(ExpressionOperator op) throws ExecException {
         Result res = ERR_RESULT;
-
         switch (op.getResultType()) {
         case DataType.BAG:
         case DataType.BOOLEAN:
@@ -469,6 +453,7 @@ public class POPartialAgg extends PhysicalOperator {
         case DataType.FLOAT:
         case DataType.INTEGER:
         case DataType.LONG:
+        case DataType.DATETIME:
         case DataType.MAP:
         case DataType.TUPLE:
             res = op.getNext(getDummy(op.getResultType()), op.getResultType());
@@ -485,6 +470,28 @@ public class POPartialAgg extends PhysicalOperator {
             return res;
         }
         return ERR_RESULT;
+    }
+
+    /**
+     * Runs the provided key-value pair through the aggregator plans.
+     * @param key
+     * @param value
+     * @return Result, containing a tuple of form (key, tupleReturnedByPlan1, tupleReturnedByPlan2, ...)
+     * @throws ExecException
+     */
+    private Result getOutput(Object key, Tuple value) throws ExecException {
+        Tuple output = TF.newTuple(valuePlans.size() + 1);
+        output.set(0, key);
+
+        for (int i = 0; i < valuePlans.size(); i++) {
+            valuePlans.get(i).attachInput(value);
+            Result valRes = getResult(valueLeaves.get(i));
+            if (valRes == ERR_RESULT) {
+                return ERR_RESULT;
+            }
+            output.set(i + 1, valRes.result);
+        }
+        return new Result(POStatus.STATUS_OK, output);
     }
 
     @Override
@@ -523,6 +530,22 @@ public class POPartialAgg extends PhysicalOperator {
         for (PhysicalPlan plan : valuePlans) {
             valueLeaves.add((ExpressionOperator) plan.getLeaves().get(0));
         }
+    }
+
+    @Override
+    public long spill() {
+        try {
+            LOG.info("Spill triggered by SpillableMemoryManager");
+            startSpill();
+        } catch (ExecException e) {
+            throw new RuntimeException(e);
+        }
+        return 0;
+    }
+
+    @Override
+    public long getMemorySize() {
+        return avgTupleSize * (numRecsInProcessedMap + numRecsInRawMap);
     }
 
 }

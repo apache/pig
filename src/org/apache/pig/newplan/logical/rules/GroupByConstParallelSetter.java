@@ -88,7 +88,7 @@ public class GroupByConstParallelSetter extends Rule {
                 Operator op = iter.next();
                 if (op instanceof LOCogroup) {
                     LOCogroup group = (LOCogroup)op;
-                    if(group.getRequestedParallelisam() > 1){
+                    if(group.getRequestedParallelism() > 1){
                         log.warn("Resetting parallism to 1 for the group/cogroup " +
                                 group.getAlias() +
                         " as the group by expressions returns a constant");

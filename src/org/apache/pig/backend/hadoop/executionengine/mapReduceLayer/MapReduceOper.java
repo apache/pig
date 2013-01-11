@@ -18,7 +18,10 @@
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
 import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.pig.impl.plan.OperatorKey;
@@ -26,6 +29,7 @@ import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROpPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PORank;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
 import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.PlanException;
@@ -118,6 +122,12 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
     
     int requestedParallelism = -1;
     
+    // estimated at runtime
+    int estimatedParallelism = -1;
+    
+    // calculated at runtime 
+    int runtimeParallelism = -1;
+    
     /* Name of the Custom Partitioner used */ 
     String customPartitioner = null;
     
@@ -127,10 +137,18 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
 
     // POLimit can also have an expression. See PIG-1926
     PhysicalPlan limitPlan = null;
-    
-    // Indicates that this MROper is a splitter MROper. 
+
+    // Indicates that this MROper is a splitter MROper.
     // That is, this MROper ends due to a POSPlit operator.
     private boolean splitter = false;
+
+    // Indicates that there is a counter operation in the MR job.
+    private boolean isCounterOperation = false;
+
+    // Indicates that there is a rank operation without sorting (row number) in the MR job.
+    private boolean isRowNumber = false;
+
+    private String operationID;
 
 	// Set to true if it is skewed join
 	private boolean skewedJoin = false;
@@ -472,12 +490,53 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
     protected void useTypedComparator(boolean useTypedComparator) {
         this.usingTypedComparator = useTypedComparator;
     }
-    
+
     protected void noCombineSmallSplits() {
         combineSmallSplits = false;
     }
-    
+
     public boolean combineSmallSplits() {
         return combineSmallSplits;
+    }
+
+    public void setIsCounterOperation(boolean counter) {
+        this.isCounterOperation = counter;
+    }
+
+    public boolean isCounterOperation() {
+        return isCounterOperation;
+    }
+
+    public boolean isRankOperation() {
+        return getRankOperationId().size() != 0;
+    }
+    
+    public ArrayList<String> getRankOperationId() {
+        ArrayList<String> operationIDs = new ArrayList<String>();
+        Iterator<PhysicalOperator> mapRoots = this.mapPlan.getRoots().iterator();
+
+        while(mapRoots.hasNext()) {
+            PhysicalOperator operation = mapRoots.next();
+            if(operation instanceof PORank)
+                operationIDs.add(((PORank) operation).getOperationID());
+        }
+
+        return operationIDs;
+    }
+
+    public void setIsRowNumber(boolean isRowNumber) {
+        this.isRowNumber = isRowNumber;
+    }
+
+    public boolean isRowNumber() {
+        return isRowNumber;
+    }
+
+    public void setOperationID(String operationID) {
+        this.operationID = operationID;
+    }
+
+    public String getOperationID() {
+        return operationID;
     }
 }

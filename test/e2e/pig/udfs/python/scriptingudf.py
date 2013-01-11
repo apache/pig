@@ -15,6 +15,11 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
+
+import sys
+sys.path.append("./libexec/python")
+import stringutil
+
 from org.apache.hadoop.fs import Path # Test for PIG-1824
 p = Path('foo')
 
@@ -87,3 +92,7 @@ def isretired(age):
         return True
     else:
         return False
+
+outputSchema("words:{(word:chararray)}")
+def tokenize(sentence):
+    return stringutil.tokenize(sentence)

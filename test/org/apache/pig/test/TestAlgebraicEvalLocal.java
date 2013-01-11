@@ -17,14 +17,14 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.util.Iterator;
 import java.util.Properties;
 import java.util.Random;
-
-import junit.framework.TestCase;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
@@ -34,19 +34,17 @@ import org.apache.pig.data.Tuple;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestAlgebraicEvalLocal extends TestCase {
-    
+public class TestAlgebraicEvalLocal {
+
     private int LOOP_COUNT = 512;
 
-
     private PigServer pig;
-    
+
     @Before
-    @Override
-    protected void setUp() throws Exception {
+    public void setUp() throws Exception {
         pig = new PigServer(ExecType.LOCAL, new Properties());
     }
-    
+
     Boolean[] nullFlags = new Boolean[]{ false, true};
 
     @Test
@@ -67,7 +65,7 @@ public class TestAlgebraicEvalLocal extends TestCase {
                 }
                 ps.close();
             } else {
-                // generate data with nulls                
+                // generate data with nulls
                 PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
                 Random r = new Random();
                 for(int i = 0; i < LOOP_COUNT; i++) {
@@ -82,19 +80,19 @@ public class TestAlgebraicEvalLocal extends TestCase {
                         }
                     } else if (rand > (0.4 * LOOP_COUNT) && rand <= (0.6 * LOOP_COUNT)) {
                         for(int j=0; j< LOOP_COUNT; j++) {
-                            ps.println("\t" + "\t" + j%2);                            
+                            ps.println("\t" + "\t" + j%2);
                         }
                         groupKeyWithNulls++;
                     } else {
                         for(int j=0; j< LOOP_COUNT; j++) {
                             ps.println(i + "\t" + i + "\t" + j%2);
                         }
-                    }                    
+                    }
                 }
-                ps.close();                
+                ps.close();
             }
             pig.registerQuery(" a = group (load '"
-                    + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                    + Util.generateURI(Util.encodeEscape(tmpFile.toString()), pig.getPigContext())
                     + "') by ($0,$1);");
             pig.registerQuery("b = foreach a generate flatten(group), SUM($1.$2);");
             Iterator<Tuple> it = pig.openIterator("b");
@@ -115,7 +113,7 @@ public class TestAlgebraicEvalLocal extends TestCase {
                     assertEquals(
                             "Running testGroupCountWithMultipleFields with nullFlags set to "
                                     + nullFlags[k], LOOP_COUNT / 2, sum);
-                    
+
                 count++;
             }
             System.err.println("XX done");
@@ -128,22 +126,22 @@ public class TestAlgebraicEvalLocal extends TestCase {
                         "Running testGroupCountWithMultipleFields with nullFlags set to "
                                 + nullFlags[k], LOOP_COUNT - groupKeyWithNulls
                                 + 1, count);
-            
+
         }
         tmpFile.delete();
-        
+
     }
-    
+
     @Test
     public void testSimpleCount() throws Exception {
         File tmpFile = File.createTempFile("test", "txt");
         for (int i = 0; i < nullFlags.length; i++) {
             System.err.println("Testing testSimpleCount with null flag:" + nullFlags[i]);
-        
+
             PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
             generateInput(ps, nullFlags[i]);
             String query = "myid =  foreach (group (load '"
-                    + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                    + Util.generateURI(Util.encodeEscape(tmpFile.toString()), pig.getPigContext())
                     + "') all) generate COUNT($1);";
             System.out.println(query);
             pig.registerQuery(query);
@@ -151,7 +149,7 @@ public class TestAlgebraicEvalLocal extends TestCase {
             tmpFile.delete();
             Tuple t = it.next();
             Long count = DataType.toLong(t.get(0));
-            assertEquals(this.getName() + "with nullFlags set to: "
+            assertEquals(this.getClass().getName() + "with nullFlags set to: "
                     + nullFlags[i], count.longValue(), LOOP_COUNT);
         }
     }
@@ -161,11 +159,11 @@ public class TestAlgebraicEvalLocal extends TestCase {
         File tmpFile = File.createTempFile("test", "txt");
         for (int i = 0; i < nullFlags.length; i++) {
             System.err.println("Testing testGroupCount with null flag:" + nullFlags[i]);
-        
+
             PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
             generateInput(ps, nullFlags[i]);
             String query = "myid = foreach (group (load '"
-                    + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                    + Util.generateURI(Util.encodeEscape(tmpFile.toString()), pig.getPigContext())
                     + "') all) generate group, COUNT($1) ;";
             System.out.println(query);
             pig.registerQuery(query);
@@ -173,11 +171,11 @@ public class TestAlgebraicEvalLocal extends TestCase {
             tmpFile.delete();
             Tuple t = it.next();
             Long count = DataType.toLong(t.get(1));
-            assertEquals(this.getName() + "with nullFlags set to: "
+            assertEquals(this.getClass().getName() + "with nullFlags set to: "
                     + nullFlags[i], count.longValue(), LOOP_COUNT);
         }
     }
-    
+
     @Test
     public void testGroupReorderCount() throws Throwable {
         File tmpFile = File.createTempFile("test", "txt");
@@ -186,7 +184,7 @@ public class TestAlgebraicEvalLocal extends TestCase {
             PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
             generateInput(ps, nullFlags[i]);
             String query = "myid = foreach (group (load '"
-                    + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                    + Util.generateURI(Util.encodeEscape(tmpFile.toString()), pig.getPigContext())
                     + "') all) generate COUNT($1), group ;";
             System.out.println(query);
             pig.registerQuery(query);
@@ -194,7 +192,7 @@ public class TestAlgebraicEvalLocal extends TestCase {
             tmpFile.delete();
             Tuple t = it.next();
             Long count = DataType.toLong(t.get(0));
-            assertEquals(this.getName() + "with nullFlags set to: "
+            assertEquals(this.getClass().getName() + "with nullFlags set to: "
                     + nullFlags[i], count.longValue(), LOOP_COUNT);
         }
     }
@@ -226,10 +224,10 @@ public class TestAlgebraicEvalLocal extends TestCase {
                         ps.println(j%10 + ":" + j);
                     }
                 }
-            }         
+            }
             ps.close();
             String query = "myid = foreach (group (load '"
-                    + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                    + Util.generateURI(Util.encodeEscape(tmpFile.toString()), pig.getPigContext())
                     + "' using " + PigStorage.class.getName()
                     + "(':')) by $0) generate group, COUNT($1.$1) ;";
             System.out.println(query);
@@ -244,8 +242,8 @@ public class TestAlgebraicEvalLocal extends TestCase {
                 Double group = Double.valueOf(a.toString());
                 if(group == 0.0) {
                     Long count = DataType.toLong(t.get(1));
-                    assertEquals(this.getName() + "with nullFlags set to: "
-                            + nullFlags[i], groupsize, count.longValue());                    
+                    assertEquals(this.getClass().getName() + "with nullFlags set to: "
+                            + nullFlags[i], groupsize, count.longValue());
                 }
             }
         }
@@ -280,7 +278,7 @@ public class TestAlgebraicEvalLocal extends TestCase {
             }
             ps.close();
             String query = "myid = foreach (group (load '"
-                    + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                    + Util.generateURI(Util.encodeEscape(tmpFile.toString()), pig.getPigContext())
                     + "' using "
                     + PigStorage.class.getName()
                     + "(':')) by $0) generate group, COUNT($1.$1), COUNT($1.$0) ;";
@@ -296,16 +294,16 @@ public class TestAlgebraicEvalLocal extends TestCase {
                 Double group = Double.valueOf(a.toString());
                 if(group == 0.0) {
                     Long count = DataType.toLong(t.get(2));
-                    assertEquals(this.getName() + "with nullFlags set to: "
+                    assertEquals(this.getClass().getName() + "with nullFlags set to: "
                             + nullFlags[i], groupsize, count.longValue());
                     count = DataType.toLong(t.get(1));
-                    assertEquals(this.getName() + "with nullFlags set to: "
+                    assertEquals(this.getClass().getName() + "with nullFlags set to: "
                             + nullFlags[i], nonNullCnt, count.longValue());
                 }
             }
         }
     }
-    
+
     private int generateInput(PrintStream ps, boolean withNulls ) {
         int numNulls = 0;
         if(withNulls) {
@@ -327,5 +325,4 @@ public class TestAlgebraicEvalLocal extends TestCase {
         ps.close();
         return numNulls;
     }
-
 }

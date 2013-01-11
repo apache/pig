@@ -49,6 +49,9 @@ class SchemaConverter {
         case DataType.BOOLEAN:
             ret = ColumnType.BOOL; 
             break;
+        case DataType.DATETIME:
+            ret = ColumnType.DATETIME; 
+            break;
         case DataType.BAG:
             ret = ColumnType.COLLECTION; 
             break;

@@ -58,6 +58,7 @@ public class MiniCluster extends MiniGenericCluster {
             m_conf.set("dfs.datanode.http.address", "0.0.0.0:0");
             m_conf.set("mapred.map.max.attempts", "2");
             m_conf.set("mapred.reduce.max.attempts", "2");
+            m_conf.set("pig.jobcontrol.sleep", "100");
             m_conf.writeXml(new FileOutputStream(conf_file));
 
             // Set the system properties needed by Pig

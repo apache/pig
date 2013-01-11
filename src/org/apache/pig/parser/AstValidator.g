@@ -138,6 +138,7 @@ op_clause : define_clause
           | limit_clause
           | sample_clause
           | order_clause
+          | rank_clause
           | cross_clause
           | join_clause
           | union_clause
@@ -145,6 +146,7 @@ op_clause : define_clause
           | mr_clause
           | split_clause
           | foreach_clause
+          | cube_clause
 ;
 
 define_clause : ^( DEFINE alias ( cmd | func_clause ) )
@@ -229,6 +231,7 @@ simple_type returns [byte typev]
   | LONG { $typev = DataType.LONG; }
   | FLOAT { $typev = DataType.FLOAT; }
   | DOUBLE { $typev = DataType.DOUBLE; }
+  | DATETIME { $typev = DataType.DATETIME; }
   | CHARARRAY { $typev = DataType.CHARARRAY; }
   | BYTEARRAY { $typev = DataType.BYTEARRAY; }
 ;
@@ -253,6 +256,34 @@ func_args_string : QUOTEDSTRING | MULTILINE_QUOTEDSTRING
 ;
 
 func_args : func_args_string+
+;
+
+cube_clause
+ : ^( CUBE cube_item )
+;
+
+cube_item
+ : rel ( cube_by_clause )
+;
+
+cube_by_clause
+ : ^( BY cube_or_rollup )
+;
+
+cube_or_rollup
+ : cube_rollup_list+
+;
+
+cube_rollup_list
+ : ^( ( CUBE | ROLLUP ) cube_by_expr_list )
+;
+
+cube_by_expr_list
+ : cube_by_expr+
+;
+
+cube_by_expr 
+ : col_range | expr | STAR 
 ;
 
 group_clause
@@ -303,6 +334,7 @@ cond : ^( OR cond cond )
      | ^( NULL expr NOT? )
      | ^( rel_op expr expr )
      | func_eval
+     | ^( BOOL_COND expr )     
 ;
 
 func_eval: ^( FUNC_EVAL func_name real_arg* )
@@ -345,7 +377,7 @@ dot_proj : ^( PERIOD col_alias_or_index+ )
 col_alias_or_index : col_alias | col_index
 ;
 
-col_alias : GROUP | IDENTIFIER
+col_alias : GROUP | CUBE | IDENTIFIER
 ;
 
 col_index : DOLLARVAR
@@ -365,6 +397,20 @@ limit_clause : ^( LIMIT rel ( INTEGER | LONGINTEGER | expr ) )
 ;
 
 sample_clause : ^( SAMPLE rel ( DOUBLENUMBER | expr ) )
+;
+
+rank_clause : ^( RANK rel ( rank_by_statement )? )
+;
+
+rank_by_statement : ^( BY rank_by_clause ( DENSE )? )
+;
+
+rank_by_clause : STAR ( ASC | DESC )?
+               | rank_col+
+;
+
+rank_col : col_range (ASC | DESC)?
+         | col_ref ( ASC | DESC )?
 ;
 
 order_clause : ^( ORDER rel order_by_clause func_clause? )
@@ -523,7 +569,7 @@ split_otherwise 	: ^( OTHERWISE alias )
 col_ref : alias_col_ref | dollar_col_ref
 ;
 
-alias_col_ref : GROUP | IDENTIFIER
+alias_col_ref : GROUP | CUBE | IDENTIFIER
 ;
 
 dollar_col_ref : DOLLARVAR
@@ -564,8 +610,11 @@ eid : rel_str_op
     | LOAD
     | FILTER
     | FOREACH
+    | CUBE
+    | ROLLUP
     | MATCHES
     | ORDER
+    | RANK
     | DISTINCT
     | COGROUP
     | JOIN
@@ -596,6 +645,7 @@ eid : rel_str_op
     | LONG
     | FLOAT
     | DOUBLE
+    | DATETIME
     | CHARARRAY
     | BYTEARRAY
     | BAG

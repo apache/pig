@@ -17,75 +17,85 @@
  */
 package org.apache.pig.test;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.PrintStream;
+import static org.apache.pig.builtin.mock.Storage.resetData;
+import static org.apache.pig.builtin.mock.Storage.tuple;
+import static org.junit.Assert.assertEquals;
+
 import java.io.IOException;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.ArrayList;
 
-import junit.framework.TestCase;
-import junit.framework.Assert;
-
-import org.junit.Test;
-
+import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
-import org.apache.pig.test.utils.TestHelper;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.junit.Before;
+import org.junit.Test;
 
-public class TestOrderBy2 extends TestCase {
+import com.google.common.collect.Lists;
 
-    private String initString = "mapreduce";
-    MiniCluster cluster = MiniCluster.buildCluster();
+public class TestOrderBy2 {
+    private PigServer pig;
 
-    private PigServer pig ;
+    @Before
+    public void setUp() throws Exception {
+        pig = new PigServer(ExecType.LOCAL);
 
-    public TestOrderBy2() throws Throwable {
-        pig = new PigServer(initString) ;
+        Schema s = new Schema();
+        s.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
+        s.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
+        Data data = resetData(pig);
+        data.set("foo1", s, genDataSetFile1());
+
+        s = new Schema();
+        s.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
+        s.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
+        data.set("foo2", s, genDataSetFile2());
+
+        s = new Schema();
+        s.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
+        s.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
+        data.set("foo3", s, genDataSetFile3());
     }
 
     //////////////////////// Simple Order Tests ///////////////////////
 
     @Test
     public void testTopLevelOrderBy_Col0_ASC_NoUsing() throws Exception {
-        File tmpFile = genDataSetFile1() ;
-        runTest("myid = order (load 'file:" + tmpFile + "') BY $0;",
+        runTest("myid = order (load 'foo1' using mock.Storage()) BY $0;",
                 new int[] { 0 } ,
                 new boolean[] { false } ) ;
     }
 
     @Test
     public void testTopLevelOrderBy_Col0_DESC_NoUsing() throws Exception {
-        File tmpFile = genDataSetFile1() ;
-        runTest("myid = order (load 'file:" + tmpFile + "') BY $0 DESC ;",
+        runTest("myid = order (load 'foo1' using mock.Storage()) BY $0 DESC ;",
                 new int[] { 0 } ,
                 new boolean[] { true } ) ;
     }
 
     @Test
     public void testTopLeveleeOrderBy_Col1_ASC_NoUsing() throws Exception {
-        File tmpFile = genDataSetFile1() ;
-        runTest("myid = order (load 'file:" + tmpFile + "') BY $1 ASC ;",
+        runTest("myid = order (load 'foo1' using mock.Storage()) BY $1 ASC ;",
                 new int[] { 1 } ,
                 new boolean[] { false } ) ;
     }
 
     @Test
     public void testTopLeveleeOrderBy_Col1_DESC_NoUsing() throws Exception {
-        File tmpFile = genDataSetFile1() ;
-        runTest("myid = order (load 'file:" + tmpFile + "') BY $1 DESC ;",
+        runTest("myid = order (load 'foo1' using mock.Storage()) BY $1 DESC ;",
                 new int[] { 1 } ,
                 new boolean[] { true } ) ;
     }
 
     @Test
     public void testTopLeveleeOrderBy_Col0Col1_NoUsing() throws Exception {
-        File tmpFile = genDataSetFile2() ;
-        runTest("myid = order (load 'file:" + tmpFile + "') BY $0, $1 ;",
+        runTest("myid = order (load 'foo2' using mock.Storage()) BY $0, $1 ;",
                 new int[] { 0, 1 } ,
                 new boolean[] { false, false } ) ;
     }
@@ -93,16 +103,14 @@ public class TestOrderBy2 extends TestCase {
 
     @Test
     public void testTopLeveleeOrderBy_Col0Col1_DESC_NoUsing() throws Exception {
-        File tmpFile = genDataSetFile2() ;
-        runTest("myid = order (load 'file:" + tmpFile + "') BY $0 DESC, $1 DESC ;",
+        runTest("myid = order (load 'foo2' using mock.Storage()) BY $0 DESC, $1 DESC ;",
                 new int[] { 0, 1 } ,
                 new boolean[] { true, true } ) ;
     }
 
     @Test
     public void testTopLeveleeOrderBy_Col1Col0_NoUsing() throws Exception {
-        File tmpFile = genDataSetFile3() ;
-        runTest("myid = order (load 'file:" + tmpFile + "') BY $1, $0 ;",
+        runTest("myid = order (load 'foo3' using mock.Storage()) BY $1, $0 ;",
                 new int[] { 1, 0 } ,
                 new boolean[] { false, false } ) ;
     }
@@ -110,35 +118,31 @@ public class TestOrderBy2 extends TestCase {
 
     @Test
     public void testTopLeveleeOrderBy_Col1Col0_DESC_NoUsing() throws Exception {
-        File tmpFile = genDataSetFile3() ;
-        runTest("myid = order (load 'file:" + tmpFile + "') BY $1 DESC, $0 DESC ;",
+        runTest("myid = order (load 'foo3' using mock.Storage()) BY $1 DESC, $0 DESC ;",
                 new int[] { 1, 0 } ,
                 new boolean[] { true, true } ) ;
     }
 
     @Test
     public void testTopLeveleeOrderBy_Col1Col0_ASCDESC_NoUsing() throws Exception {
-        File tmpFile = genDataSetFile3() ;
-        runTest("myid = order (load 'file:" + tmpFile + "') BY $1 ASC, $0 DESC ;",
+        runTest("myid = order (load 'foo3' using mock.Storage()) BY $1 ASC, $0 DESC ;",
                 new int[] { 1, 0 } ,
                 new boolean[] { false, true } ) ;
     }
 
 
     //////////////////////// Star Order Tests ///////////////////////
-    
+
     @Test
     public void testTopLevelOrderBy_Star_NoUsing() throws Exception {
-        File tmpFile = genDataSetFile3() ;
-        runTest("myid = order (load 'file:" + tmpFile + "') BY * ; ",
+        runTest("myid = order (load 'foo3' using mock.Storage()) BY * ; ",
                 new int[] { 0, 1 } ,
                 new boolean[] { false, false } ) ;
     }
 
     @Test
     public void testTopLevelOrderBy_Star_DESC_NoUsing() throws Exception {
-        File tmpFile = genDataSetFile3() ;
-        runTest("myid = order (load 'file:" + tmpFile + "') BY * DESC ; ",
+        runTest("myid = order (load 'foo3' using mock.Storage()) BY * DESC ; ",
                 new int[] { 0, 1 } ,
                 new boolean[] { true, true } ) ;
     }
@@ -156,7 +160,7 @@ public class TestOrderBy2 extends TestCase {
                             boolean[] descFlags)
                                         throws ExecException {
 
-        Assert.assertEquals("checkOrder params have to be of the same size",
+        assertEquals("checkOrder params have to be of the same size",
                                         sortCols.length, descFlags.length);
 
         List<String> error = new ArrayList<String>() ;
@@ -202,7 +206,7 @@ public class TestOrderBy2 extends TestCase {
             lastTuple = current ;
         }
 
-        Assert.assertTrue(error.size()==0);
+        assertEquals(0, error.size());
 
     }
 
@@ -223,58 +227,47 @@ public class TestOrderBy2 extends TestCase {
     /***
      * For generating a sample dataset
      */
-    private File genDataSetFile1() throws IOException {
-
+    private List<Tuple> genDataSetFile1() throws IOException {
         int dataLength = 256;
-        String[][] data = new String[dataLength][] ;
+        List<Tuple> tuples = Lists.newArrayList();
 
         DecimalFormat formatter = new DecimalFormat("0000000");
-
         for (int i = 0; i < dataLength; i++) {
-            data[i] = new String[2] ;
-            data[i][0] = formatter.format(i);
-            data[i][1] = formatter.format(dataLength - i - 1);
+            tuples.add(tuple(formatter.format(i), formatter.format(dataLength - i - 1)));
         }
 
-        return TestHelper.createTempFile(data) ;
+        return tuples;
     }
 
 
     /***
      * For generating a sample dataset
      */
-    private File genDataSetFile2() throws IOException {
-
+    private List<Tuple> genDataSetFile2() throws IOException {
         int dataLength = 256;
-        String[][] data = new String[dataLength][] ;
+        List<Tuple> tuples = Lists.newArrayList();
 
         DecimalFormat formatter = new DecimalFormat("0000000");
-
         for (int i = 0; i < dataLength; i++) {
-            data[i] = new String[2] ;
-            data[i][0] = formatter.format(i % 20);
-            data[i][1] = formatter.format(dataLength - i - 1);
+            tuples.add(tuple(formatter.format(i % 20), formatter.format(dataLength - i - 1)));
         }
 
-        return TestHelper.createTempFile(data) ;
+        return tuples;
     }
 
     /***
      * For generating a sample dataset
      */
-    private File genDataSetFile3() throws IOException {
+    private List<Tuple> genDataSetFile3() throws IOException {
 
         int dataLength = 256;
-        String[][] data = new String[dataLength][] ;
+        List<Tuple> tuples = Lists.newArrayList();
 
         DecimalFormat formatter = new DecimalFormat("0000000");
-
         for (int i = 0; i < dataLength; i++) {
-            data[i] = new String[2] ;
-            data[i][0] = formatter.format(i);
-            data[i][1] = formatter.format(i % 20);
+            tuples.add(tuple(formatter.format(i), formatter.format(i % 20)));
         }
 
-        return TestHelper.createTempFile(data) ;
+        return tuples;
     }
 }

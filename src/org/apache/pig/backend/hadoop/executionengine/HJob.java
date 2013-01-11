@@ -91,7 +91,7 @@ public class HJob implements ExecJob {
              
              p = (LoadFunc) new ReadToEndLoader(originalLoadFunc, 
                      ConfigurationUtil.toConfiguration(
-                     pigContext.getProperties()), outFileSpec.getFileName(), 0);
+                     pigContext.getProperties()), outFileSpec.getFileName(), 0, pigContext);
 
         }catch (Exception e){
             int errCode = 2088;

@@ -168,7 +168,9 @@ public class POPackageLite extends POPackage {
         //Create numInputs bags
         ReadOnceBag db = null;
         db = new ReadOnceBag(this, tupIter, key);
-        if(reporter!=null) reporter.progress();
+        if(getReporter()!=null) {
+            getReporter().progress();
+        }
         
         //Construct the output tuple by appending
         //the key and all the above constructed bags

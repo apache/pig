@@ -90,6 +90,7 @@ op_clause : define_clause
           | limit_clause
           | sample_clause
           | order_clause
+          | rank_clause
           | cross_clause
           | join_clause
           | union_clause
@@ -97,6 +98,7 @@ op_clause : define_clause
           | mr_clause
           | split_clause
           | foreach_clause
+          | cube_clause
 ;
 
 define_clause 
@@ -175,6 +177,7 @@ simple_type
     | LONG { sb.append($LONG.text); }
     | FLOAT { sb.append($FLOAT.text); }
     | DOUBLE { sb.append($DOUBLE.text); }
+    | DATETIME { sb.append($DATETIME.text); }
     | CHARARRAY { sb.append($CHARARRAY.text); }
     | BYTEARRAY { sb.append($BYTEARRAY.text); }
 ;
@@ -202,6 +205,34 @@ func_name
 func_args 
     : a=QUOTEDSTRING { sb.append($a.text); }
         (b=QUOTEDSTRING { sb.append(", ").append($b.text); } )*
+;
+
+cube_clause
+    : ^( CUBE { sb.append($CUBE.text).append(" "); } cube_item )
+;
+
+cube_item
+    : rel ( cube_by_clause )
+;
+
+cube_by_clause
+    : ^( BY { sb.append(" ").append($BY.text); } cube_or_rollup )
+;
+
+cube_or_rollup
+    : cube_rollup_list ( { sb.append(", "); } cube_rollup_list )* 
+;
+
+cube_rollup_list
+    : ^( ( CUBE { sb.append($CUBE.text).append("("); } | ROLLUP { sb.append($ROLLUP.text).append("("); } ) cube_by_expr_list { sb.append(")"); }) 
+;
+
+cube_by_expr_list
+    : ( cube_by_expr ( { sb.append(", "); } cube_by_expr )* )
+;
+
+cube_by_expr 
+    : col_range | expr | STAR { sb.append($STAR.text); }
 ;
 
 group_clause
@@ -249,6 +280,7 @@ cond
     | ^( NULL expr { sb.append(" IS "); } (NOT { sb.append($NOT.text).append(" "); } )?  { sb.append($NULL.text); } )
     | ^( rel_op expr { sb.append(" ").append($rel_op.result).append(" "); } expr )
     | func_eval
+    | ^( BOOL_COND expr )
 ;
 
 func_eval
@@ -304,6 +336,7 @@ col_alias_or_index : col_alias | col_index
 
 col_alias 
     : GROUP { sb.append($GROUP.text); }
+    | CUBE { sb.append($CUBE.text); }
     | IDENTIFIER { sb.append($IDENTIFIER.text); }
 ;
 
@@ -314,25 +347,42 @@ col_index
 col_range :  ^(COL_RANGE col_ref? { sb.append(".."); } DOUBLE_PERIOD col_ref?)
 ;
 
-pound_proj 
+pound_proj
     : ^( POUND { sb.append($POUND.text); }
         ( QUOTEDSTRING { sb.append($QUOTEDSTRING.text); } | NULL { sb.append($NULL.text); } ) )
 ;
 
-bin_expr 
-    : ^( BIN_EXPR { sb.append(" ("); } cond { sb.append(" ? "); } expr { sb.append(" : "); } expr { sb.append(") "); } )     
+bin_expr
+    : ^( BIN_EXPR { sb.append(" ("); } cond { sb.append(" ? "); } expr { sb.append(" : "); } expr { sb.append(") "); } )
 ;
 
-limit_clause 
-    : ^( LIMIT { sb.append($LIMIT.text).append(" "); } rel 
+limit_clause
+    : ^( LIMIT { sb.append($LIMIT.text).append(" "); } rel
         ( INTEGER { sb.append(" ").append($INTEGER.text); } | LONGINTEGER { sb.append(" ").append($LONGINTEGER.text); } | expr ) )
 ;
 
-sample_clause 
-    : ^( SAMPLE { sb.append($SAMPLE.text).append(" "); } rel ( DOUBLENUMBER { sb.append(" ").append($DOUBLENUMBER.text); } | expr ) )    
+sample_clause
+    : ^( SAMPLE { sb.append($SAMPLE.text).append(" "); } rel ( DOUBLENUMBER { sb.append(" ").append($DOUBLENUMBER.text); } | expr ) )
 ;
 
-order_clause 
+rank_clause
+    : ^( RANK { sb.append($RANK.text).append(" "); } rel ( rank_by_statement )? )
+;
+
+rank_by_statement
+	: ^( BY { sb.append(" ").append($BY.text); } rank_by_clause ( DENSE { sb.append(" ").append($DENSE.text); } )? )
+;
+
+rank_by_clause
+	: STAR { sb.append($STAR.text); } ( ASC { sb.append(" ").append($ASC.text); } | DESC { sb.append(" ").append($DESC.text); } )?
+    | rank_col ( { sb.append(", "); } rank_col )*
+;
+
+rank_col
+	: ( col_range | col_ref ) ( ASC { sb.append(" ").append($ASC.text); } | DESC { sb.append(" ").append($DESC.text); } )?
+;
+
+order_clause
     : ^( ORDER { sb.append($ORDER.text).append(" "); } rel
         { sb.append(" BY "); } order_by_clause
         ( { sb.append(" USING "); } func_clause )? )
@@ -494,6 +544,7 @@ col_ref : alias_col_ref | dollar_col_ref
 
 alias_col_ref 
     : GROUP { sb.append($GROUP.text); }
+    | CUBE { sb.append($CUBE.text); }
     | IDENTIFIER { sb.append($IDENTIFIER.text); }
 ;
 
@@ -552,8 +603,11 @@ eid : rel_str_op
     | LOAD      { sb.append($LOAD.text); }
     | FILTER    { sb.append($FILTER.text); }
     | FOREACH   { sb.append($FOREACH.text); }
+    | CUBE      { sb.append($CUBE.text); }
+    | ROLLUP    { sb.append($ROLLUP.text); }
     | MATCHES   { sb.append($MATCHES.text); }
     | ORDER     { sb.append($ORDER.text); }
+    | RANK      { sb.append($RANK.text); }
     | DISTINCT  { sb.append($DISTINCT.text); }
     | COGROUP   { sb.append($COGROUP.text); }
     | JOIN      { sb.append($JOIN.text); }
@@ -584,6 +638,7 @@ eid : rel_str_op
     | LONG      { sb.append($LONG.text); }
     | FLOAT     { sb.append($FLOAT.text); }
     | DOUBLE    { sb.append($DOUBLE.text); }
+    | DATETIME  { sb.append($DATETIME.text); }
     | CHARARRAY { sb.append($CHARARRAY.text); }
     | BYTEARRAY { sb.append($BYTEARRAY.text); }
     | BAG       { sb.append($BAG.text); }

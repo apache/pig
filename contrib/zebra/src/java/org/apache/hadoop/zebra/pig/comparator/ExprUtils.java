@@ -109,6 +109,8 @@ public class ExprUtils {
         return new IntExpr(index);
       case DataType.LONG:
         return new LongExpr(index);
+      case DataType.DATETIME:
+        return new DateTimeExpr(index);
       default:
         throw new RuntimeException("Not a prmitive PIG type");
     }

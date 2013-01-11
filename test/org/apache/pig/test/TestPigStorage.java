@@ -19,9 +19,11 @@
 package org.apache.pig.test;
 
 import static org.apache.pig.ExecType.MAPREDUCE;
+import static org.apache.pig.builtin.mock.Storage.tuple;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
@@ -35,6 +37,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.mapreduce.Job;
@@ -58,9 +61,9 @@ import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.Assert;
 
 public class TestPigStorage  {
 
@@ -108,7 +111,7 @@ public class TestPigStorage  {
     @Test
     public void testBlockBoundary() throws ExecException {
 
-        // This tests PigStorage loader with records exectly
+        // This tests PigStorage loader with records exactly
         // on the boundary of the file blocks.
         Properties props = new Properties();
         for (Entry<Object, Object> entry : cluster.getProperties().entrySet()) {
@@ -191,7 +194,7 @@ public class TestPigStorage  {
         assertFalse(it.hasNext());
 
     }
-    
+
     @Test
     public void testPigStorageNoSchema() throws Exception {
         //if the schema file does not exist, and '-schema' option is used
@@ -199,10 +202,11 @@ public class TestPigStorage  {
         pigContext.connect();
         String query = "a = LOAD '" + datadir + "originput' using PigStorage('\\t', '-schema') " +
         "as (f1:chararray, f2:int);";
-        pig.registerQuery(query);
         try{
+            pig.registerQuery(query);
             pig.dumpSchema("a");
         }catch(FrontendException ex){
+            assertEquals(ex.toString(), 1000, ex.getErrorCode());
             return;
         }
         fail("no exception caught");
@@ -402,15 +406,15 @@ public class TestPigStorage  {
         header = Util.readOutput(pig.getPigContext(), outPath);
         Assert.assertArrayEquals("Headers are not the same.", new String[] {"foo\tbar"}, header);
     }
-    
+
     private void putInputFile(String filename) throws IOException {
         Util.createLocalInputFile(filename, new String[] {});
     }
-    
+
     private void putSchemaFile(String schemaFilename, ResourceSchema testSchema) throws JsonGenerationException, JsonMappingException, IOException {
         new ObjectMapper().writeValue(new File(schemaFilename), testSchema);
     }
-    
+
     @Test
     public void testPigStorageSchemaSearch() throws Exception {
         String globtestdir = "build/test/tmpglobbingdata/";
@@ -426,28 +430,28 @@ public class TestPigStorage  {
             putInputFile(globtestdir+"a/b0/input");
             pig.mkdirs(globtestdir+"b");
         } catch (IOException e) {};
-        
+
         // if schema file is not found, schema is null
         ResourceSchema schema = pigStorage.getSchema(globtestdir, new Job(ConfigurationUtil.toConfiguration(pigContext.getProperties())));
         Assert.assertTrue(schema==null);
-        
+
         // if .pig_schema is in the input directory
         putSchemaFile(globtestdir+"a/a0/.pig_schema", testSchema);
         schema = pigStorage.getSchema(globtestdir+"a/a0", new Job(ConfigurationUtil.toConfiguration(pigContext.getProperties())));
         Assert.assertTrue(ResourceSchema.equals(schema, testSchema));
         new File(globtestdir+"a/a0/.pig_schema").delete();
-        
+
         // .pig_schema in one of globStatus returned directory
         putSchemaFile(globtestdir+"a/.pig_schema", testSchema);
         schema = pigStorage.getSchema(globtestdir+"*", new Job(ConfigurationUtil.toConfiguration(pigContext.getProperties())));
         Assert.assertTrue(ResourceSchema.equals(schema, testSchema));
         new File(globtestdir+"a/.pig_schema").delete();
-        
+
         putSchemaFile(globtestdir+"b/.pig_schema", testSchema);
         schema = pigStorage.getSchema(globtestdir+"*", new Job(ConfigurationUtil.toConfiguration(pigContext.getProperties())));
         Assert.assertTrue(ResourceSchema.equals(schema, testSchema));
         new File(globtestdir+"b/.pig_schema").delete();
-        
+
         // if .pig_schema is deep in the globbing, it will not get used
         putSchemaFile(globtestdir+"a/a0/.pig_schema", testSchema);
         schema = pigStorage.getSchema(globtestdir+"*", new Job(ConfigurationUtil.toConfiguration(pigContext.getProperties())));
@@ -457,18 +461,18 @@ public class TestPigStorage  {
         Assert.assertTrue(ResourceSchema.equals(schema, testSchema));
         new File(globtestdir+"a/a0/.pig_schema").delete();
         new File(globtestdir+"a/.pig_schema").delete();
-        
+
         pigStorage = new PigStorage("\t", "-schema");
         putSchemaFile(globtestdir+"a/.pig_schema", testSchema);
         schema = pigStorage.getSchema(globtestdir+"{a,b}", new Job(ConfigurationUtil.toConfiguration(pigContext.getProperties())));
         Assert.assertTrue(ResourceSchema.equals(schema, testSchema));
     }
-    
+
     /**
      * This is for testing source tagging option on PigStorage. When a user
-     * specifies '-tagsource' as an option, PigStorage must prepend the input
+     * specifies '-tagFile' as an option, PigStorage must prepend the input
      * source path to the tuple and "INPUT_FILE_NAME" to schema.
-     * 
+     *
      * @throws Exception
      */
     @Test
@@ -480,26 +484,37 @@ public class TestPigStorage  {
         pig.store("a", datadir + "aout", "PigStorage('\\t', '-schema')");
         // aout now has a schema.
 
-        // Verify that loading a-out with '-tagsource' produces
+        // Verify that loading a-out with '-tagFile' produces
         // the original schema, and prepends 'INPUT_FILE_NAME' to
         // original schema.
-        pig.registerQuery("b = LOAD '" + datadir + "aout' using PigStorage('\\t', '-tagsource');");
+        pig.registerQuery("b = LOAD '" + datadir + "aout' using PigStorage('\\t', '-tagFile');");
         Schema genSchema = pig.dumpSchema("b");
-        // Verify that -tagsource schema works
-        String[] aliases = {"INPUT_FILE_NAME", "f1", "f2"};
-        byte[] types = {DataType.CHARARRAY, DataType.CHARARRAY, DataType.INTEGER};
+        String[] fileAliases = {"INPUT_FILE_NAME", "f1", "f2"};
+        byte[] fileTypes = {DataType.CHARARRAY, DataType.CHARARRAY, DataType.INTEGER};
         Schema newSchema = TypeCheckingTestUtil.genFlatSchema(
-                aliases,types);
-        Assert.assertTrue("schema with -tagsource preprends INPUT_FILE_NAME",
+                fileAliases,fileTypes);
+        Assert.assertTrue("schema with -tagFile preprends INPUT_FILE_NAME",
                 Schema.equals(newSchema, genSchema, true, false));
-        
+
+        // Verify that loading a-out with '-tagPath' produces
+        // the original schema, and prepends 'INPUT_FILE_PATH' to
+        // original schema.
+        pig.registerQuery("b = LOAD '" + datadir + "aout' using PigStorage('\\t', '-tagPath');");
+        genSchema = pig.dumpSchema("b");
+        String[] pathAliases = {"INPUT_FILE_PATH", "f1", "f2"};
+        byte[] pathTypes = {DataType.CHARARRAY, DataType.CHARARRAY, DataType.INTEGER};
+        newSchema = TypeCheckingTestUtil.genFlatSchema(pathAliases,pathTypes);
+        Assert.assertTrue("schema with -tagPath preprends INPUT_FILE_PATH",
+                Schema.equals(newSchema, genSchema, true, false));
+
+
         // Verify that explicitly requesting no schema works
         pig.registerQuery("d = LOAD '" + datadir + "aout' using PigStorage('\\t', '-noschema');");
         genSchema = pig.dumpSchema("d");
         assertNull(genSchema);
 
         // Verify specifying your own schema works
-        pig.registerQuery("b = LOAD '" + datadir + "aout' using PigStorage('\\t', '-tagsource') " +
+        pig.registerQuery("b = LOAD '" + datadir + "aout' using PigStorage('\\t', '-tagFile') " +
         "as (input_file:chararray, foo:chararray, bar:int);");
         genSchema = pig.dumpSchema("b");
         String[] newAliases = {"input_file", "foo", "bar"};
@@ -508,7 +523,7 @@ public class TestPigStorage  {
         Assert.assertTrue("explicit schema overrides metadata",
                 Schema.equals(newSchema, genSchema, true, false));
     }
-    
+
     @Test
     public void testPigStorageSourceTagValue() throws Exception {
         final String storeFileName = "part-m-00000";
@@ -519,15 +534,42 @@ public class TestPigStorage  {
         pig.registerQuery(query);
         // Storing in 'aout' directory will store contents in part-m-00000
         pig.store("a", datadir + "aout", "PigStorage('\\t', '-schema')");
-        
-        // Verify input source tag is present when using -tagsource
-        pig.registerQuery("b = LOAD '" + datadir + "aout' using PigStorage('\\t', '-tagsource');");
+
+        // Verify input source tag is present when using -tagFile or -tagPath
+        pig.registerQuery("b = LOAD '" + datadir + "aout' using PigStorage('\\t', '-tagFile');");
         pig.registerQuery("c = foreach b generate INPUT_FILE_NAME;");
         Iterator<Tuple> iter = pig.openIterator("c");
         while(iter.hasNext()) {
             Tuple tuple = iter.next();
             String inputFileName = (String)tuple.get(0);
-            assertEquals("tagsource value must be part-m-00000", inputFileName, storeFileName);
+            assertEquals("tagFile value must be part-m-00000", inputFileName, storeFileName);
         }
-    }    
+    }
+
+    @Test
+    public void testIncompleteDataWithPigSchema() throws Exception {
+        File parent = new File(datadir, "incomplete_data_with_pig_schema_1");
+        parent.deleteOnExit();
+        parent.mkdirs();
+        File tmpInput = File.createTempFile("tmp", "tmp");
+        tmpInput.deleteOnExit();
+        File outFile = new File(parent, "out");
+        pig.registerQuery("a = load '"+tmpInput.getAbsolutePath()+"' as (x:int, y:chararray, z:chararray);");
+        pig.store("a", outFile.getAbsolutePath(), "PigStorage('\\t', '-schema')");
+        File schemaFile = new File(outFile, ".pig_schema");
+
+        parent = new File(datadir, "incomplete_data_with_pig_schema_2");
+        parent.deleteOnExit();
+        File inputDir = new File(parent, "input");
+        inputDir.mkdirs();
+        File inputSchemaFile = new File(inputDir, ".pig_schema");
+        FileUtils.moveFile(schemaFile, inputSchemaFile);
+        File inputFile = new File(inputDir, "data");
+        Util.writeToFile(inputFile, new String[]{"1"});
+        pig.registerQuery("a = load '"+inputDir.getAbsolutePath()+"';");
+        Iterator<Tuple> it = pig.openIterator("a");
+        assertTrue(it.hasNext());
+        assertEquals(tuple(1,null,null), it.next());
+        assertFalse(it.hasNext());
+    }
 }

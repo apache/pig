@@ -29,6 +29,9 @@ import java.io.PrintWriter;
 import junit.framework.Assert;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
@@ -41,10 +44,13 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.tools.pigstats.PigStats;
+import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 import org.apache.pig.tools.pigstats.ScriptState;
 import org.junit.Test;
 
 public class TestPigStats  {
+
+    private static final Log LOG = LogFactory.getLog(TestPigStats.class);
 
     @Test
     public void testPigScriptInConf() throws Exception {
@@ -123,7 +129,8 @@ public class TestPigStats  {
 
         File outputFile = null;
         try {
-            outputFile = File.createTempFile("JIAR_1027", ".out");
+            String fileName = this.getClass().getName() + "_" + "testBytesWritten_JIRA_1027";
+            outputFile = File.createTempFile(fileName, ".out");
             String filePath = outputFile.getAbsolutePath();
             outputFile.delete();
             PigServer pig = new PigServer(ExecType.LOCAL);
@@ -133,9 +140,8 @@ public class TestPigStats  {
             File dataFile = new File( outputFile.getAbsoluteFile() + File.separator + "part-00000" );
             assertEquals(dataFile.length(), stats.getBytesWritten());
         } catch (IOException e) {
-            e.printStackTrace();
-            System.err.println( e.getMessage() );
-            fail("IOException happened");
+            LOG.error("Error while generating file", e);
+            fail("Encountered IOException");
         } finally {
             if (outputFile != null) {
                 // Hadoop Local mode creates a directory
@@ -181,18 +187,43 @@ public class TestPigStats  {
         }
     }
     
-    private void deleteDirectory( File dir ) {
-        File[] files = dir.listFiles();
-        for( File file : files ) {
-            if( file.isDirectory() ) {
-                deleteDirectory(file);
-            } else {
-                file.delete();
+    @Test
+    public void testPigStatsGetList() {
+        File outputFile = null;
+        try {
+            String filename = this.getClass().getSimpleName() + "_" + "testPigStatsGetList";
+            outputFile = File.createTempFile(filename, ".out");
+            String filePath = outputFile.getAbsolutePath();
+            outputFile.delete();
+            PigServer pigServer = new PigServer(ExecType.LOCAL);
+            pigServer.registerQuery("a = load 'test/org/apache/pig/test/data/passwd';");
+            pigServer.registerQuery("b = group a by $0;");
+            pigServer.registerQuery("c = foreach b generate group, COUNT(a) as cnt;");
+            pigServer.registerQuery("d = group c by cnt;");
+            pigServer.registerQuery("e = foreach d generate group;");
+            ExecJob job = pigServer.store("e", filePath);
+            JobGraph jobGraph = job.getStatistics().getJobGraph();
+            assertEquals(2, jobGraph.getJobList().size());
+
+        } catch (IOException e) {
+            LOG.error("IOException while creating file ", e);
+            fail("Encountered IOException");
+        } finally {
+            if (outputFile != null) {
+                // delete the directory before returning
+                deleteDirectory(outputFile);
             }
         }
-        dir.delete();
     }
     
+    private void deleteDirectory(File dir) {
+        try {
+            FileUtils.deleteDirectory(dir);
+        } catch (IOException e) {
+            LOG.error("Could not delete directory " + dir, e);
+        }
+    }
+
     public static LogicalPlan getLogicalPlan(PigServer pig) throws Exception {
         java.lang.reflect.Method buildLp = pig.getClass().getDeclaredMethod("buildLp");
         buildLp.setAccessible(true);

@@ -18,46 +18,30 @@
 
 package org.apache.pig.test;
 
-//import static org.apache.pig.PigServer.ExecType.LOCAL;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PrintWriter;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 
-import junit.framework.TestCase;
-
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.pig.LoadFunc;
-import org.apache.pig.builtin.BinStorage;
-import org.apache.pig.builtin.PigStorage;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ExpressionOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.impl.io.BufferedPositionedInputStream;
-import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ExpressionOperator;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
-import org.apache.pig.test.utils.GenRandomData;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestPOGenerate extends TestCase {
+public class TestPOGenerate {
 
     DataBag cogroup;
     DataBag partialFlatten;
@@ -65,7 +49,7 @@ public class TestPOGenerate extends TestCase {
     Random r = new Random();
     BagFactory bf = BagFactory.getInstance();
     TupleFactory tf = TupleFactory.getInstance();
-    
+
     @Before
     public void setUp() throws Exception {
         Tuple [] inputA = new Tuple[4];
@@ -113,43 +97,44 @@ public class TestPOGenerate extends TestCase {
         tIn[2].set(1, emptyBag);
         tIn[3].set(0, emptyBag);
         tIn[3].set(1, cg42);
-        
+
         cogroup = bf.newDefaultBag();
         for(int i = 0; i < 4; ++i) {
             cogroup.add(tIn[i]);
         }
-        
+
         Tuple[] tPartial = new Tuple[4];
         for(int i = 0; i < 4; ++i) {
             tPartial[i] = tf.newTuple(2);
             tPartial[i].set(0, inputA[i].get(0));
             tPartial[i].set(1, inputA[i].get(1));
         }
-        
+
         tPartial[0].append(cg12);
-        
+
         tPartial[1].append(cg22);
-        
+
         tPartial[2].append(cg12);
-        
+
         tPartial[3].append(emptyBag);
-        
+
         partialFlatten = bf.newDefaultBag();
         for(int i = 0; i < 4; ++i) {
             partialFlatten.add(tPartial[i]);
         }
-        
+
         simpleGenerate = bf.newDefaultBag();
         for(int i = 0; i < 4; ++i) {
             simpleGenerate.add(inputA[i]);
         }
-        
+
         //System.out.println("Cogroup : " + cogroup);
         //System.out.println("Partial : " + partialFlatten);
         //System.out.println("Simple : " + simpleGenerate);
-        
+
     }
-    
+
+    @Test
     public void testJoin() throws Exception {
         ExpressionOperator prj1 = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
         ExpressionOperator prj2 = new POProject(new OperatorKey("", r.nextLong()), -1, 1);
@@ -163,13 +148,12 @@ public class TestPOGenerate extends TestCase {
         PhysicalPlan plan2 = new PhysicalPlan();
         plan2.add(prj2);
         List<PhysicalPlan> inputs = new LinkedList<PhysicalPlan>();
-        inputs.add(plan1); 
+        inputs.add(plan1);
         inputs.add(plan2);
         PhysicalOperator poGen = new POForEach(new OperatorKey("", r.nextLong()), 1, inputs, toBeFlattened);
         //DataBag obtained = bf.newDefaultBag();
-        for(Iterator<Tuple> it = cogroup.iterator(); it.hasNext(); ) {
-            Tuple t = it.next();
-            /*plan1.attachInput(t); 
+        for (Tuple t : cogroup) {
+            /*plan1.attachInput(t);
             plan2.attachInput(t);*/
             poGen.attachInput(t);
             Result output = poGen.getNext(t);
@@ -181,9 +165,10 @@ public class TestPOGenerate extends TestCase {
                 output = poGen.getNext(t);
             }
         }
-        
+
     }
-    
+
+    @Test
     public void testPartialJoin() throws Exception {
         ExpressionOperator prj1 = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
         ExpressionOperator prj2 = new POProject(new OperatorKey("", r.nextLong()), -1, 1);
@@ -197,15 +182,14 @@ public class TestPOGenerate extends TestCase {
         PhysicalPlan plan2 = new PhysicalPlan();
         plan2.add(prj2);
         List<PhysicalPlan> inputs = new LinkedList<PhysicalPlan>();
-        inputs.add(plan1); 
+        inputs.add(plan1);
         inputs.add(plan2);
         PhysicalOperator poGen = new POForEach(new OperatorKey("", r.nextLong()), 1, inputs, toBeFlattened);
-        
+
         //DataBag obtained = bf.newDefaultBag();
         List<String> obtained = new LinkedList<String>();
-        for(Iterator<Tuple> it = cogroup.iterator(); it.hasNext(); ) {
-            Tuple t = it.next();
-            /*plan1.attachInput(t); 
+        for (Tuple t : cogroup) {
+            /*plan1.attachInput(t);
             plan2.attachInput(t);*/
             poGen.attachInput(t);
             Result output = poGen.getNext(t);
@@ -216,15 +200,15 @@ public class TestPOGenerate extends TestCase {
             }
         }
         int count = 0;
-        for(Iterator<Tuple> it = partialFlatten.iterator(); it.hasNext(); ) {
-            Tuple t = it.next();
+        for (Tuple t : partialFlatten) {
             assertTrue(obtained.contains(t.toString()));
             ++count;
         }
         assertEquals(partialFlatten.size(), count);
-        
+
     }
-    
+
+    @Test
     public void testSimpleGenerate() throws Exception {
         ExpressionOperator prj1 = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
         ExpressionOperator prj2 = new POProject(new OperatorKey("", r.nextLong()), -1, 1);
@@ -238,15 +222,14 @@ public class TestPOGenerate extends TestCase {
         PhysicalPlan plan2 = new PhysicalPlan();
         plan2.add(prj2);
         List<PhysicalPlan> inputs = new LinkedList<PhysicalPlan>();
-        inputs.add(plan1); 
+        inputs.add(plan1);
         inputs.add(plan2);
         PhysicalOperator poGen = new POForEach(new OperatorKey("", r.nextLong()), 1, inputs, toBeFlattened);
-        
+
         //DataBag obtained = bf.newDefaultBag();
         List<String> obtained = new LinkedList<String>();
-        for(Iterator<Tuple> it = simpleGenerate.iterator(); it.hasNext(); ) {
-            Tuple t = it.next();
-            /*plan1.attachInput(t); 
+        for (Tuple t : simpleGenerate) {
+            /*plan1.attachInput(t);
             plan2.attachInput(t);*/
             poGen.attachInput(t);
             Result output = poGen.getNext(t);
@@ -256,14 +239,13 @@ public class TestPOGenerate extends TestCase {
                 output = poGen.getNext(t);
             }
         }
-        
+
         int count = 0;
-        for(Iterator<Tuple> it = simpleGenerate.iterator(); it.hasNext(); ) {
-            Tuple t = it.next();
+        for (Tuple t : simpleGenerate) {
             assertTrue(obtained.contains(t.toString()));
             ++count;
         }
         assertEquals(simpleGenerate.size(), count);
-        
+
     }
 }

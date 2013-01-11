@@ -5,9 +5,9 @@
  * licenses this file to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -67,27 +67,43 @@ import org.json.simple.parser.ParseException;
 public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface, LoadMetadata {
 
     /* storeFunc parameters */
-    private static final String NOTNULL = "NOTNULL"; 
+    private static final String NOTNULL = "NOTNULL";
     private static final String AVRO_OUTPUT_SCHEMA_PROPERTY = "avro_output_schema";
     private static final String SCHEMA_DELIM = "#";
     private static final String SCHEMA_KEYVALUE_DELIM = "@";
-    
+    private static final String NO_SCHEMA_CHECK = "no_schema_check";
+    private static final String IGNORE_BAD_FILES = "ignore_bad_files";
+    private static final String MULTIPLE_SCHEMAS = "multiple_schemas";
+
     /* FIXME: we use this variable to distinguish schemas specified
-     * by different AvroStorage calls and will remove this once 
-     * StoreFunc provides access to Pig output schema in backend. 
+     * by different AvroStorage calls and will remove this once
+     * StoreFunc provides access to Pig output schema in backend.
      * Default value is 0.
      */
     private int storeFuncIndex = 0;
     private PigAvroRecordWriter writer = null;    /* avro record writer */
-    private Schema outputAvroSchema = null;  /* output avro schema */ 
+    private Schema outputAvroSchema = null;  /* output avro schema */
     /* indicate whether data is nullable */
-    private boolean nullable = true;                    
-    
+    private boolean nullable = true;
+
     /* loadFunc parameters */
     private PigAvroRecordReader reader = null;   /* avro record writer */
     private Schema inputAvroSchema = null;    /* input avro schema */
 
+    /* if multiple avro record schemas are merged, this map associates each input
+     * record with a remapping of its fields relative to the merged schema. please
+     * see AvroStorageUtils.getSchemaToMergedSchemaMap() for more details.
+     */
+    private Map<Path, Map<Integer, Integer>> schemaToMergedSchemaMap = null;
+
+    /* whether input avro files have the same schema or not. If input avro files
+     * do not have the same schema, we merge these schemas into a single schema
+     * and derive the pig schema from it.
+     */
+    private boolean useMultipleSchemas = false;
+
     private boolean checkSchema = true; /*whether check schema of input directories*/
+    private boolean ignoreBadFiles = false; /* whether ignore corrupted files during load */
 
     /**
      * Empty constructor. Output schema is derived from pig schema.
@@ -107,53 +123,84 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
      * @throws ParseException
      */
     public AvroStorage(String[] parts) throws IOException, ParseException {
-
         outputAvroSchema = null;
         nullable = true;
-
         checkSchema = true;
-        if (parts.length == 1 && parts[0].equalsIgnoreCase("no_schema_check")) {
-            checkSchema = false;
-        } else {
-            /*parse input parameters */
-            Map<String, Object> map = parts.length > 1 ? parseStringList(parts) : parseJsonString(parts[0]);
 
-            init(map);  /* initialize */
+        if (parts.length == 1
+                && !parts[0].equalsIgnoreCase(NO_SCHEMA_CHECK)
+                && !parts[0].equalsIgnoreCase(IGNORE_BAD_FILES)
+                && !parts[0].equalsIgnoreCase(MULTIPLE_SCHEMAS)) {
+            /* If one parameter is given, and that is not 'no_schema_check',
+             * 'ignore_bad_files', or 'multiple_schemas', then it must be a
+             * json string.
+             */
+            init(parseJsonString(parts[0]));
+        } else {
+            /* parse parameters */
+            init(parseStringList(parts));
         }
     }
 
-    
     /**
-     * Set input location and obtain input schema. 
-     * 
-     * FIXME: currently we assume all avro files under the same "location" 
-     * share the same schema and will throw exception if not. 
+     * Set input location and obtain input schema.
      */
     @Override
     public void setLocation(String location, Job job) throws IOException {
-        HashSet<Path> paths = new HashSet<Path>();
-        if(AvroStorageUtils.getAllSubDirs(URI.create(location), job, paths) && inputAvroSchema == null) {
+        if (inputAvroSchema != null) {
+            return;
+        }
+        Set<Path> paths = new HashSet<Path>();
+        Configuration conf = job.getConfiguration();
+        if (AvroStorageUtils.getAllSubDirs(new Path(location), conf, paths)) {
+            setInputAvroSchema(paths, conf);
             FileInputFormat.setInputPaths(job, paths.toArray(new Path[0]));
-            inputAvroSchema = getAvroSchema(location, job);
+        } else {
+            throw new IOException("Input path \'" + location + "\' is not found");
         }
     }
 
-    protected Schema getAvroSchema(String location, Job job) throws IOException {
-        Configuration conf = job.getConfiguration();
-        FileSystem fs = FileSystem.get(URI.create(location), conf);
-        Path path = new Path(location);
+    /**
+     * Set input avro schema. If the 'multiple_schemas' option is enabled, we merge multiple
+     * schemas and use that merged schema; otherwise, we simply use the schema from the first
+     * file in the paths set.
+     *
+     * @param paths  set of input files
+     * @param conf  configuration
+     * @return avro schema
+     * @throws IOException
+     */
+    protected void setInputAvroSchema(Set<Path> paths, Configuration conf) throws IOException {
+        inputAvroSchema = useMultipleSchemas ? getMergedSchema(paths, conf)
+                                             : getAvroSchema(paths, conf);
+    }
+
+    /**
+     * Get avro schema of first input file that matches the location pattern.
+     *
+     * @param paths  set of input files
+     * @param conf  configuration
+     * @return avro schema
+     * @throws IOException
+     */
+    protected Schema getAvroSchema(Set<Path> paths, Configuration conf) throws IOException {
+        if (paths == null || paths.isEmpty()) {
+            return null;
+        }
+        Path path = paths.iterator().next();
+        FileSystem fs = FileSystem.get(path.toUri(), conf);
         return getAvroSchema(path, fs);
     }
 
     /**
      * Get avro schema of input path. There are three cases:
      * 1. if path is a file, then return its avro schema;
-     * 2. if path is a first-level directory (no sub-directories), then 
-     * return the avro schema of one underlying file; 
-     * 3. if path contains sub-directories, then recursively check 
-     * whether all of them share the same schema and return it 
+     * 2. if path is a first-level directory (no sub-directories), then
+     * return the avro schema of one underlying file;
+     * 3. if path contains sub-directories, then recursively check
+     * whether all of them share the same schema and return it
      * if so or throw an exception if not.
-     * 
+     *
      * @param path input path
      * @param fs file system
      * @return avro schema of data
@@ -168,13 +215,13 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
         if (!fs.isDirectory(path)) {
             return getSchema(path, fs);
         }
-        
+
         FileStatus[] ss = fs.listStatus(path, AvroStorageUtils.PATH_FILTER);
         Schema schema = null;
         if (ss.length > 0) {
             if (AvroStorageUtils.noDir(ss))
                 return getSchema(path, fs);
-            
+
             /*otherwise, check whether schemas of underlying directories are the same */
             for (FileStatus s : ss) {
                 Schema newSchema = getAvroSchema(s.getPath(), fs);
@@ -190,19 +237,43 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
                 }
             }
         }
-        
+
         if (schema == null)
             System.err.println("Cannot get avro schema! Input path " + path + " might be empty.");
-        
-        System.err.println(schema.toString());
+
         return schema;
     }
 
     /**
-     * This method is called by {@link #getAvroSchema}. The default implementation 
-     * returns the schema of an avro file; or the schema of the last file in a first-level 
+     * Merge multiple input avro schemas into one. Note that we can't merge arbitrary schemas.
+     * Please see AvroStorageUtils.mergeSchema() for what's allowed and what's not allowed.
+     *
+     * @param paths  set of input files
+     * @param conf  configuration
+     * @return avro schema
+     * @throws IOException
+     */
+    protected Schema getMergedSchema(Set<Path> paths, Configuration conf) throws IOException {
+        Schema result = null;
+        Map<Path, Schema> mergedFiles = new HashMap<Path, Schema>();
+        for (Path path : paths) {
+            FileSystem fs = FileSystem.get(path.toUri(), conf);
+            Schema schema = getSchema(path, fs);
+            result = AvroStorageUtils.mergeSchema(result, schema);
+            mergedFiles.put(path, schema);
+        }
+        // schemaToMergedSchemaMap is only needed when merging multiple records.
+        if (mergedFiles.size() > 1 && result.getType().equals(Schema.Type.RECORD)) {
+            schemaToMergedSchemaMap = AvroStorageUtils.getSchemaToMergedSchemaMap(result, mergedFiles);
+        }
+        return result;
+    }
+
+    /**
+     * This method is called by {@link #getAvroSchema}. The default implementation
+     * returns the schema of an avro file; or the schema of the last file in a first-level
      * directory (it does not contain sub-directories).
-     * 
+     *
      * @param path  path of a file or first level directory
      * @param fs  file system
      * @return avro schema
@@ -250,13 +321,24 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
     @Override
     public InputFormat getInputFormat() throws IOException {
         AvroStorageLog.funcCall("getInputFormat");
-        if(inputAvroSchema != null)
-            return new PigAvroInputFormat(inputAvroSchema);
-        else
-            return new TextInputFormat();
+        InputFormat result = null;
+        if(inputAvroSchema != null) {
+            if (useMultipleSchemas) {
+                // When merging multiple avro schemas, we use embedded schemas
+                // to load input files. So no input avro schema is passed.
+                result = new PigAvroInputFormat(
+                        null, ignoreBadFiles, schemaToMergedSchemaMap);
+            } else {
+                result = new PigAvroInputFormat(
+                        inputAvroSchema, ignoreBadFiles, schemaToMergedSchemaMap);
+            }
+        } else {
+            result = new TextInputFormat();
+        }
+        return result;
     }
 
-    @SuppressWarnings("rawtypes") 
+    @SuppressWarnings("rawtypes")
     @Override
     public void prepareToRead(RecordReader reader, PigSplit split)
     throws IOException {
@@ -276,21 +358,24 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
         }
     }
 
-    
+
     /* implement LoadMetadata */
-    
+
     /**
      * Get avro schema from "location" and return the converted
      * PigSchema.
      */
     @Override
-    public ResourceSchema getSchema(String location, Job job)
-                                    throws IOException {
+    public ResourceSchema getSchema(String location, Job job) throws IOException {
 
         /* get avro schema */
         AvroStorageLog.funcCall("getSchema");
         if (inputAvroSchema == null) {
-            inputAvroSchema = getAvroSchema(location, job);
+            Set<Path> paths = new HashSet<Path>();
+            Configuration conf = job.getConfiguration();
+            if (AvroStorageUtils.getAllSubDirs(new Path(location), conf, paths)) {
+                setInputAvroSchema(paths, conf);
+            }
         }
         if(inputAvroSchema != null) {
             AvroStorageLog.details( "avro input schema:"  + inputAvroSchema);
@@ -299,11 +384,12 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
             ResourceSchema pigSchema = AvroSchema2Pig.convert(inputAvroSchema);
             AvroStorageLog.details("pig input schema:" + pigSchema);
             if (pigSchema.getFields().length == 1){
-            	pigSchema = pigSchema.getFields()[0].getSchema();
+                pigSchema = pigSchema.getFields()[0].getSchema();
             }
             return pigSchema;
-        } else
+        } else {
             return null;
+        }
     }
 
     @Override
@@ -322,8 +408,8 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
     }
 
     /**
-     * build a property map from a json object 
-     * 
+     * build a property map from a json object
+     *
      * @param jsonString  json object in string format
      * @return a property map
      * @throws ParseException
@@ -350,14 +436,14 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
                /* convert avro schema (as json object) to string */
                 obj.put(key, value.toString().trim());
             }
- 
+
         }
         return obj;
     }
 
     /**
-     * build a property map from a string list 
-     * 
+     * build a property map from a string list
+     *
      * @param parts  input string list
      * @return a property map
      * @throws IOException
@@ -367,25 +453,43 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
 
         Map<String, Object> map = new HashMap<String, Object>();
 
-        for (int i = 0; i < parts.length - 1; i += 2) {
+        for (int i = 0; i < parts.length; ) {
             String name = parts[i].trim();
-            String value = parts[i+1].trim();
-            if (name.equalsIgnoreCase("debug")
-                         || name.equalsIgnoreCase("index")) {
-                /* store value as integer */
-                map.put(name, Integer.parseInt(value));
-            } else if (name.equalsIgnoreCase("data")
-                         || name.equalsIgnoreCase("same")
-                         || name.equalsIgnoreCase("schema")
-                         || name.equalsIgnoreCase("schema_file")
-                         || name.matches("field\\d+")) {
-                /* store value as string */
-                map.put(name, value);
-            } else if (name.equalsIgnoreCase("nullable")) {
-                /* store value as boolean */
-                map.put(name, Boolean.getBoolean(value));
-            } else
-                throw new IOException("Invalid parameter:" + name);
+            if (name.equalsIgnoreCase(NO_SCHEMA_CHECK)) {
+                checkSchema = false;
+                /* parameter only, so increase iteration counter by 1 */
+                i += 1;
+            } else if (name.equalsIgnoreCase(IGNORE_BAD_FILES)) {
+                ignoreBadFiles = true;
+                /* parameter only, so increase iteration counter by 1 */
+                i += 1;
+            } else if (name.equalsIgnoreCase(MULTIPLE_SCHEMAS)) {
+                useMultipleSchemas = true;
+                /* parameter only, so increase iteration counter by 1 */
+                i += 1;
+            } else {
+                String value = parts[i+1].trim();
+                if (name.equalsIgnoreCase("debug")
+                             || name.equalsIgnoreCase("index")) {
+                    /* store value as integer */
+                    map.put(name, Integer.parseInt(value));
+                } else if (name.equalsIgnoreCase("data")
+                             || name.equalsIgnoreCase("same")
+                             || name.equalsIgnoreCase("schema")
+                             || name.equalsIgnoreCase("schema_file")
+                             || name.equalsIgnoreCase("schema_uri")
+                             || name.matches("field\\d+")) {
+                    /* store value as string */
+                    map.put(name, value);
+                } else if (name.equalsIgnoreCase("nullable")) {
+                    /* store value as boolean */
+                    map.put(name, Boolean.getBoolean(value));
+                } else {
+                    throw new IOException("Invalid parameter:" + name);
+                }
+                /* parameter/value pair, so increase iteration counter by 2 */
+                i += 2;
+            }
         }
         return map;
     }
@@ -425,7 +529,7 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
             String name = entry.getKey().trim();
             Object value = entry.getValue();
 
-            if (name.equalsIgnoreCase("index")) { 
+            if (name.equalsIgnoreCase("index")) {
                 /* set index of store function */
                 storeFuncIndex = (Integer) value;
             } else if (name.equalsIgnoreCase("same")) {
@@ -438,6 +542,12 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
                 nullable = (Boolean) value;
             } else if (name.equalsIgnoreCase("schema")) {
                 outputAvroSchema = Schema.parse((String) value);
+            } else if (name.equalsIgnoreCase("schema_uri")) {
+                /* use the contents of the specified path as output schema */
+                Path path = new Path( ((String) value).trim());
+                AvroStorageLog.details("schema_uri path=" + path.toUri().toString());
+                FileSystem fs = FileSystem.get(path.toUri(), new Configuration());
+                outputAvroSchema = getSchemaFromFile(path, fs);
             } else if (name.matches("field\\d+")) {
                 /*set schema of dth field */
                 if (fields == null)
@@ -511,7 +621,7 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
     }
 
     /**
-     * Append newly specified schema 
+     * Append newly specified schema
      */
     @Override
     public void checkSchema(ResourceSchema s) throws IOException {
@@ -522,7 +632,7 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
         AvroStorageLog.details("Previously defined schemas=" + prevSchemaStr);
 
         String key = getSchemaKey();
-        Map<String, String> schemaMap = (prevSchemaStr != null) 
+        Map<String, String> schemaMap = (prevSchemaStr != null)
                                                                 ? parseSchemaMap(prevSchemaStr)
                                                                 : null;
 
@@ -532,21 +642,22 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
         }
 
         /* validate and convert output schema */
-        Schema schema = outputAvroSchema != null 
-                                      ? PigSchema2Avro.validateAndConvert(outputAvroSchema, s)
-                                      : PigSchema2Avro.convert(s, nullable);
+        Schema schema = outputAvroSchema != null
+                                  ? (checkSchema
+                                          ? PigSchema2Avro.validateAndConvert(outputAvroSchema, s)
+                                          : outputAvroSchema)
+                                  : PigSchema2Avro.convert(s, nullable);
 
         AvroStorageLog.info("key=" + key + " outputSchema=" + schema);
 
         String schemaStr = schema.toString();
         String append = key + SCHEMA_KEYVALUE_DELIM + schemaStr;
 
-        String newSchemaStr = (schemaMap != null) 
-                                                ? prevSchemaStr + SCHEMA_DELIM + append 
+        String newSchemaStr = (schemaMap != null)
+                                                ? prevSchemaStr + SCHEMA_DELIM + append
                                                 : append;
         property.setProperty(AVRO_OUTPUT_SCHEMA_PROPERTY, newSchemaStr);
         AvroStorageLog.details("New schemas=" + newSchemaStr);
-
     }
 
     private String getSchemaKey() {
@@ -591,7 +702,7 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
         return new PigAvroOutputFormat(schema);
     }
 
-    @SuppressWarnings("rawtypes") 
+    @SuppressWarnings("rawtypes")
     @Override
     public  void  prepareToWrite(RecordWriter writer) throws IOException {
         this.writer = (PigAvroRecordWriter) writer;
@@ -608,6 +719,11 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
     }
 
     @Override
+    public void cleanupOnSuccess(String location, Job job) throws IOException {
+        // Nothing to do
+    }
+
+    @Override
     public void putNext(Tuple t) throws IOException {
         try {
             this.writer.write(NullWritable.get(), t.getAll().size() == 1 ? t.get(0) : t);
@@ -615,5 +731,4 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
             e.printStackTrace();
         }
     }
-
 }

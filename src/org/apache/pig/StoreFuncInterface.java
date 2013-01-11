@@ -139,4 +139,17 @@ public interface StoreFuncInterface {
      * any runtime job information. 
      */
     void cleanupOnFailure(String location, Job job) throws IOException;
+
+    /**
+     * This method will be called by Pig if the job which contains this store
+     * is successful, and some cleanup of intermediate resources is required.
+     * Implementations can clean up output locations in this method to
+     * ensure that no incorrect/incomplete results are left in the output location
+     * @param location Location returned by 
+     * {@link StoreFuncInterface#relToAbsPathForStoreLocation(String, Path)}
+     * @param job The {@link Job} object - this should be used only to obtain 
+     * cluster properties through {@link Job#getConfiguration()} and not to set/query
+     * any runtime job information. 
+     */
+    void cleanupOnSuccess(String location, Job job) throws IOException;
 }

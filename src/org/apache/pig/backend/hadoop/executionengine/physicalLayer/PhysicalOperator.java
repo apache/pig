@@ -17,26 +17,31 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer;
 
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.joda.time.DateTime;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.pen.util.LineageTracer;
-import org.apache.pig.pen.Illustrator;
+import org.apache.pig.parser.SourceLocation;
 import org.apache.pig.pen.Illustrable;
+import org.apache.pig.pen.Illustrator;
+import org.apache.pig.pen.util.LineageTracer;
 
 /**
  *
@@ -97,7 +102,7 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     // Will be used by operators to report status or transmit heartbeat
     // Should be set by the backends to appropriate implementations that
     // wrap their own version of a reporter.
-    public static PigProgressable reporter;
+    private static ThreadLocal<PigProgressable> reporter = new ThreadLocal<PigProgressable>();
 
     // Will be used by operators to aggregate warning messages
     // Should be set by the backends to appropriate implementations that
@@ -120,6 +125,8 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
 
     static final protected Boolean dummyBool = null;
 
+    static final protected DateTime dummyDateTime = null;
+
     static final protected Tuple dummyTuple = null;
 
     static final protected DataBag dummyBag = null;
@@ -136,6 +143,8 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
 
     private boolean accum;
     private transient boolean accumStart;
+
+    private List<OriginalLocation> originalLocations =  new ArrayList<OriginalLocation>();
 
     public PhysicalOperator(OperatorKey k) {
         this(k, -1, null);
@@ -185,8 +194,18 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
         return (alias == null) ? "" : (alias + ": ");
     }
 
-    public void setAlias(String alias) {
+    public void addOriginalLocation(String alias, SourceLocation sourceLocation) {
         this.alias = alias;
+        this.originalLocations.add(new OriginalLocation(alias, sourceLocation.line(), sourceLocation.offset()));
+    }
+
+    public void addOriginalLocation(String alias, List<OriginalLocation> originalLocations) {
+        this.alias = alias;
+        this.originalLocations.addAll(originalLocations);
+    }
+
+    public List<OriginalLocation> getOriginalLocations() {
+        return Collections.unmodifiableList(originalLocations);
     }
 
     public void setAccumulative() {
@@ -273,7 +292,6 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
      * @throws ExecException
      */
     public Result processInput() throws ExecException {
-
         Result res = new Result();
         if (input == null && (inputs == null || inputs.size()==0)) {
 //            log.warn("No inputs found. Signaling End of Processing.");
@@ -282,8 +300,8 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
         }
 
         //Should be removed once the model is clear
-        if(reporter!=null) {
-            reporter.progress();
+        if(getReporter()!=null) {
+            getReporter().progress();
         }
 
         if (!isInputAttached()) {
@@ -311,29 +329,35 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
      */
     @SuppressWarnings("rawtypes")  // For legacy use of untemplatized Map.
     public Result getNext(Object obj, byte dataType) throws ExecException {
-        switch (dataType) {
-        case DataType.BAG:
-            return getNext((DataBag) obj);
-        case DataType.BOOLEAN:
-            return getNext((Boolean) obj);
-        case DataType.BYTEARRAY:
-            return getNext((DataByteArray) obj);
-        case DataType.CHARARRAY:
-            return getNext((String) obj);
-        case DataType.DOUBLE:
-            return getNext((Double) obj);
-        case DataType.FLOAT:
-            return getNext((Float) obj);
-        case DataType.INTEGER:
-            return getNext((Integer) obj);
-        case DataType.LONG:
-            return getNext((Long) obj);
-        case DataType.MAP:
-            return getNext((Map) obj);
-        case DataType.TUPLE:
-            return getNext((Tuple) obj);
-        default:
-            throw new ExecException("Unsupported type for getNext: " + DataType.findTypeName(dataType));
+        try {
+            switch (dataType) {
+            case DataType.BAG:
+                return getNext((DataBag) obj);
+            case DataType.BOOLEAN:
+                return getNext((Boolean) obj);
+            case DataType.BYTEARRAY:
+                return getNext((DataByteArray) obj);
+            case DataType.CHARARRAY:
+                return getNext((String) obj);
+            case DataType.DOUBLE:
+                return getNext((Double) obj);
+            case DataType.FLOAT:
+                return getNext((Float) obj);
+            case DataType.INTEGER:
+                return getNext((Integer) obj);
+            case DataType.LONG:
+                return getNext((Long) obj);
+            case DataType.DATETIME:
+                return getNext((DateTime) obj);
+            case DataType.MAP:
+                return getNext((Map) obj);
+            case DataType.TUPLE:
+                return getNext((Tuple) obj);
+            default:
+                throw new ExecException("Unsupported type for getNext: " + DataType.findTypeName(dataType));
+            }
+        } catch (RuntimeException e) {
+            throw new ExecException("Exception while executing " + this.toString() + ": " + e.toString(), e);
         }
     }
 
@@ -355,6 +379,8 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
             return dummyFloat;
         case DataType.LONG:
             return dummyLong;
+        case DataType.DATETIME:
+            return dummyDateTime;
         case DataType.MAP:
             return dummyMap;
         case DataType.TUPLE:
@@ -377,6 +403,10 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     }
 
     public Result getNext(Float f) throws ExecException {
+        return res;
+    }
+
+    public Result getNext(DateTime dt) throws ExecException {
         return res;
     }
 
@@ -425,8 +455,18 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     public void reset() {
     }
 
+    /**
+     * @return PigProgressable stored in threadlocal
+     */
+    public static PigProgressable getReporter() {
+        return PhysicalOperator.reporter.get();
+    }
+
+    /**
+     * @param reporter PigProgressable to be stored in threadlocal
+     */
     public static void setReporter(PigProgressable reporter) {
-        PhysicalOperator.reporter = reporter;
+        PhysicalOperator.reporter.set(reporter);
     }
 
     /**
@@ -441,6 +481,7 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
 
     protected void cloneHelper(PhysicalOperator op) {
         resultType = op.resultType;
+        originalLocations.addAll(op.originalLocations);
     }
 
     /**
@@ -462,4 +503,33 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     	return pigLogger;
     }
 
+    public static class OriginalLocation implements Serializable {
+        private String alias;
+        private int line;
+        private int offset;
+
+        public OriginalLocation(String alias, int line, int offset) {
+            super();
+            this.alias = alias;
+            this.line = line;
+            this.offset = offset;
+}
+
+        public String getAlias() {
+            return alias;
+        }
+
+        public int getLine() {
+            return line;
+        }
+
+        public int getOffset() {
+            return offset;
+        }
+
+        @Override
+        public String toString() {
+            return alias+"["+line+","+offset+"]";
+        }
+    }
 }

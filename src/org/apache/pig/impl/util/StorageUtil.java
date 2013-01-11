@@ -23,6 +23,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.joda.time.DateTime;
+
 import org.apache.hadoop.io.Text;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -133,6 +135,10 @@ public final class StorageUtil {
 
         case DataType.DOUBLE:
             out.write(((Double)field).toString().getBytes());
+            break;
+
+        case DataType.DATETIME:
+            out.write(((DateTime)field).toString().getBytes());
             break;
 
         case DataType.BYTEARRAY: 

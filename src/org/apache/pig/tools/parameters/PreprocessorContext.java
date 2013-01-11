@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/** 
+/**
  * This is helper class for parameter substitution
  */
 
@@ -35,18 +35,18 @@ import java.util.regex.Pattern;
 public class PreprocessorContext {
 
     private Hashtable<String , String> param_val ;
-    
+
     private final Log log = LogFactory.getLog(getClass());
 
     /**
      * @param limit - max number of parameters. Passing
      *                smaller number only impacts performance
-     */         
+     */
     public PreprocessorContext(int limit){
         param_val = new Hashtable<String, String> (limit);
     }
-    
-    /* 
+
+    /*
     public  void processLiteral(String key, String val) {
         processLiteral(key, val, true);
     } */
@@ -107,7 +107,7 @@ public class PreprocessorContext {
         String sub_val = substitute(val);
         sub_val = executeShellCommand(sub_val);
         param_val.put(key, sub_val);
-    } 
+    }
 
     /**
      * This method generates value for the specified key by
@@ -129,13 +129,13 @@ public class PreprocessorContext {
 
         String sub_val = substitute(val);
         param_val.put(key, sub_val);
-    } 
+    }
 
 
     /*
      * executes the 'cmd' in shell and returns result
      */
-    private String executeShellCommand (String cmd) 
+    private String executeShellCommand (String cmd)
     {
         Process p;
         String streamData="";
@@ -188,7 +188,7 @@ public class PreprocessorContext {
         } finally {
             if (br != null) try {br.close();} catch(Exception e) {}
         }
-       
+
         try {
             InputStreamReader isr = new InputStreamReader(p.getErrorStream());
             br = new BufferedReader(isr);
@@ -211,14 +211,14 @@ public class PreprocessorContext {
     }
 
     private Pattern id_pattern = Pattern.compile("\\$[_]*[a-zA-Z][a-zA-Z_0-9]*");
-    
+
     public  String substitute(String line) {
 
         int index = line.indexOf('$');
         if (index == -1)	return line;
 
         String replaced_line = line;
-        
+
         Matcher keyMatcher = id_pattern.matcher( line );
         String key="";
         String val="";
@@ -232,8 +232,10 @@ public class PreprocessorContext {
                     throw new RuntimeException("Undefined parameter : "+key);
                 }
                 val = param_val.get(key);
-                //String litVal = Matcher.quoteReplacement(val);
-                replaced_line = replaced_line.replaceFirst("\\$"+key, val); 
+                if (val.contains("$")) {
+                    val = val.replaceAll("(?<!\\\\)\\$", "\\\\\\$");
+                }
+                replaced_line = replaced_line.replaceFirst("\\$"+key, val);
             }
         }
 

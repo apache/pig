@@ -29,7 +29,9 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanVisitor;
+import org.apache.pig.newplan.ReverseDependencyOrderWalker;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
+import org.apache.pig.newplan.logical.expression.LogicalExpressionVisitor;
 import org.apache.pig.newplan.logical.expression.ProjectExpression;
 
 public class LOSort extends LogicalRelationalOperator{
@@ -182,13 +184,13 @@ public class LOSort extends LogicalRelationalOperator{
             LOSort otherSort = (LOSort)other;
             if (!mAscCols.equals(otherSort.getAscendingCols()))
                 return false;
-            if (mSortFunc.equals(otherSort.getUserFunc()))
+            if (!mSortFunc.equals(otherSort.getUserFunc()))
                 return false;
             if (mIsStar!=otherSort.isStar())
                 return false;
             if (limit!=otherSort.getLimit())
                 return false;
-            if (mSortColPlans.equals(otherSort.getSortColPlans()))
+            if (!mSortColPlans.equals(otherSort.getSortColPlans()))
                 return false;
         }
         return checkEquality((LogicalRelationalOperator)other);
@@ -196,5 +198,43 @@ public class LOSort extends LogicalRelationalOperator{
     
     public Operator getInput(LogicalPlan plan) {
         return plan.getPredecessors(this).get(0);
+    }
+
+    private static class ResetProjectionAttachedRelationalOpVisitor
+        extends LogicalExpressionVisitor {
+        private LogicalRelationalOperator attachedRelationalOp;
+
+        ResetProjectionAttachedRelationalOpVisitor (
+            LogicalExpressionPlan plan, LogicalRelationalOperator op )
+            throws FrontendException {
+            super(plan, new ReverseDependencyOrderWalker(plan));
+            this.attachedRelationalOp = op;
+
+        }
+        @Override
+        public void visit(ProjectExpression pe) throws FrontendException {
+            pe.setAttachedRelationalOp(attachedRelationalOp);
+        }
+    }
+
+    public static LOSort createCopy(LOSort sort) throws FrontendException {
+        LOSort newSort = new LOSort(sort.getPlan(), null,
+                                    sort.getAscendingCols(),
+                                    sort.getUserFunc());
+
+        List<LogicalExpressionPlan> newSortColPlans =
+            new ArrayList<LogicalExpressionPlan>(sort.getSortColPlans().size());
+
+        for(LogicalExpressionPlan lep:sort.getSortColPlans() ) {
+            LogicalExpressionPlan new_lep = lep.deepCopy();
+
+            // Resetting the attached LOSort operator of the ProjectExpression
+            // to the newSort 
+            new ResetProjectionAttachedRelationalOpVisitor(
+                new_lep, newSort ).visit();
+            newSortColPlans.add(new_lep);
+        }
+        newSort.setSortColPlans(newSortColPlans);
+        return newSort;
     }
 }

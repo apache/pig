@@ -17,13 +17,8 @@
  */
 package org.apache.pig.impl.plan;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-import java.util.Stack;
+import java.util.Deque;
+import java.util.LinkedList;
 
 /**
  * A visitor mechanism for navigating and operating on a plan of 
@@ -41,7 +36,7 @@ abstract public class PlanVisitor <O extends Operator, P extends OperatorPlan<O>
      */
     protected PlanWalker<O, P> mCurrentWalker;
 
-    private Stack<PlanWalker<O, P>> mWalkers;
+    private Deque<PlanWalker<O, P>> mWalkers;
 
     /**
      * Entry point for visiting the plan.
@@ -62,7 +57,7 @@ abstract public class PlanVisitor <O extends Operator, P extends OperatorPlan<O>
     protected PlanVisitor(P plan, PlanWalker<O, P> walker) {
         mPlan = plan;
         mCurrentWalker = walker;
-        mWalkers = new Stack<PlanWalker<O, P>>();
+        mWalkers = new LinkedList<PlanWalker<O, P>>();
     }
 
     /**
@@ -82,7 +77,7 @@ abstract public class PlanVisitor <O extends Operator, P extends OperatorPlan<O>
      * this case the current walker is not reset.
      */
     protected void popWalker() throws VisitorException {
-        if (mWalkers.empty()) {
+        if (mWalkers.isEmpty()) {
             throw new VisitorException("No more walkers to pop.");
         }
         mCurrentWalker = mWalkers.pop();

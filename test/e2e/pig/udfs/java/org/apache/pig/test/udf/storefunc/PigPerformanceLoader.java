@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.joda.time.DateTime;
+
 import org.apache.pig.LoadCaster;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -54,13 +56,8 @@ public class PigPerformanceLoader extends PigStorage {
     class Caster implements LoadCaster {
         
         Utf8StorageConverter helper = new Utf8StorageConverter();
-        /**
-         * 
-         */
-        public Caster() {
-            // TODO Auto-generated constructor stub
-        }
         
+        @Override
         public DataBag bytesToBag(byte[] b, ResourceFieldSchema fs) throws IOException {
             if (b == null) return null;
 
@@ -100,10 +97,12 @@ public class PigPerformanceLoader extends PigStorage {
             return bag;
         }
 
+		@Override
 		public Map<String, Object> bytesToMap(byte[] b, ResourceFieldSchema fieldSchema) throws IOException {
-			throw new UnsupportedOperationException();
+			return helper.bytesToMap(b);
 		}
 
+        @Override
         public Map<String, Object> bytesToMap(byte[] b) throws IOException {
             if (b == null) return null;
 
@@ -158,6 +157,11 @@ public class PigPerformanceLoader extends PigStorage {
         @Override
         public Boolean bytesToBoolean(byte[] arg0) throws IOException {
             return helper.bytesToBoolean(arg0);
+        }
+
+        @Override
+        public DateTime bytesToDateTime(byte[] arg0) throws IOException {
+            return helper.bytesToDateTime(arg0);
         }
 
         @Override

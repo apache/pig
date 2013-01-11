@@ -23,12 +23,11 @@ import java.io.IOException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.mapred.JobConf;
-
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.data.BinInterSedes;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
@@ -41,10 +40,8 @@ public class PigTupleDefaultRawComparator extends WritableComparator implements 
     private final Log mLog = LogFactory.getLog(getClass());
     private boolean[] mAsc;
     private boolean mWholeTuple;
-    private TupleFactory mFact;
     private boolean mHasNullField;
 
-    @SuppressWarnings("unchecked")
     public PigTupleDefaultRawComparator() {
         super(TupleFactory.getInstance().tupleClass());
     }
@@ -68,7 +65,6 @@ public class PigTupleDefaultRawComparator extends WritableComparator implements 
         // If there's only one entry in mAsc, it means it's for the whole
         // tuple. So we can't be looking for each column.
         mWholeTuple = (mAsc.length == 1);
-        mFact = TupleFactory.getInstance();
     }
 
     public Configuration getConf() {
@@ -80,6 +76,8 @@ public class PigTupleDefaultRawComparator extends WritableComparator implements 
         return mHasNullField;
     }
     
+    private static final BinInterSedes bis = new BinInterSedes();
+
     /**
      * Compare two NullableTuples as raw bytes. If neither are null, then
      * IntWritable.compare() is used. If both are null then the indices are
@@ -89,21 +87,22 @@ public class PigTupleDefaultRawComparator extends WritableComparator implements 
         int rc = 0;
         mHasNullField = false;
 
+        Tuple t1;
+        Tuple t2;
+
         // This can't be done on the raw data. Users are allowed to
         // implement their own versions of tuples, which means we have no
         // idea what the underlying representation is. So step one is to
         // instantiate each object as a tuple.
-        Tuple t1 = mFact.newTuple();
-        Tuple t2 = mFact.newTuple();
         try {
-            t1.readFields(new DataInputStream(new ByteArrayInputStream(b1, s1, l1)));
-            t2.readFields(new DataInputStream(new ByteArrayInputStream(b2, s2, l2)));
+            t1 = bis.readTuple(new DataInputStream(new ByteArrayInputStream(b1, s1, l1)));
+            t2 = bis.readTuple(new DataInputStream(new ByteArrayInputStream(b2, s2, l2)));
         } catch (IOException ioe) {
             mLog.error("Unable to instantiate tuples for comparison: " + ioe.getMessage());
             throw new RuntimeException(ioe.getMessage(), ioe);
         }
 
-        rc = compareTuple(t1, t2);
+        rc = compareTuple(t1, t2); //TODO think about how SchemaTuple could speed this up
 
         return rc;
     }

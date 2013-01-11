@@ -28,16 +28,16 @@ import org.apache.pig.classification.InterfaceStability;
 @InterfaceStability.Evolving
 public abstract class Expression {
 
- // Operator type                                                                                                                                                                                                                                                                                       
+ // Operator type
     public static  enum OpType {
-        
+
         // binary arith ops
         OP_PLUS (" + "),
         OP_MINUS(" - "),
         OP_TIMES(" * "),
         OP_DIV(" / "),
         OP_MOD(" % "),
-          
+
         //binary ops
         OP_EQ(" == "),
         OP_NE(" != "),
@@ -45,29 +45,30 @@ public abstract class Expression {
         OP_GE(" >= "),
         OP_LT(" < "),
         OP_LE(" <= "),
+        OP_MATCH(" matches "),
 
         //binary logical
         OP_AND(" and "),
         OP_OR(" or "),
         TERM_COL(" Column "),
         TERM_CONST(" Constant ");
-        
+
         private String str = "";
         private OpType(String rep){
             this.str = rep;
         }
         private OpType(){
         }
-        
+
         @Override
         public String toString(){
             return this.str;
         }
-        
+
     }
-    
+
     protected OpType opType;
-    
+
     /**
      * @return the opType
      */
@@ -75,22 +76,22 @@ public abstract class Expression {
         return opType;
     }
 
-    
-    
-    
+
+
+
     public static class BinaryExpression extends Expression {
-        
+
         /**
          * left hand operand
          */
         Expression lhs;
-        
+
         /**
          * right hand operand
          */
         Expression rhs;
-    
-        
+
+
         /**
          * @param lhs
          * @param rhs
@@ -100,35 +101,35 @@ public abstract class Expression {
             this.lhs = lhs;
             this.rhs = rhs;
         }
-    
+
         /**
          * @return the left hand operand
          */
         public Expression getLhs() {
             return lhs;
         }
-    
+
         /**
          * @return the right hand operand
          */
         public Expression getRhs() {
             return rhs;
         }
-        
+
         @Override
         public String toString() {
             return "(" + lhs.toString() + opType.toString() + rhs.toString()
                                 + ")";
         }
     }
-    
+
     public static class Column extends Expression {
-        
+
         /**
          * name of column
          */
         private String name;
-    
+
         /**
          * @param name
          */
@@ -136,7 +137,7 @@ public abstract class Expression {
             this.opType = OpType.TERM_COL;
             this.name = name;
         }
-        
+
         @Override
         public String toString() {
             return name;
@@ -156,21 +157,21 @@ public abstract class Expression {
             this.name = name;
         }
     }
-    
+
     public static class Const extends Expression {
-        
+
         /**
          * value of the constant
          */
         Object value;
-    
+
         /**
          * @return the value
          */
         public Object getValue() {
             return value;
         }
-    
+
         /**
          * @param value
          */
@@ -178,10 +179,10 @@ public abstract class Expression {
             this.opType = OpType.TERM_CONST;
             this.value = value;
         }
-        
+
         @Override
         public String toString() {
-            return (value instanceof String) ? "\'" + value + "\'": 
+            return (value instanceof String) ? "\'" + value + "\'":
                 value.toString();
         }
     }

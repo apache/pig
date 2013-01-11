@@ -46,6 +46,7 @@ import org.apache.pig.newplan.logical.relational.LOInnerLoad;
 import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.apache.pig.newplan.logical.relational.LOLimit;
 import org.apache.pig.newplan.logical.relational.LOLoad;
+import org.apache.pig.newplan.logical.relational.LORank;
 import org.apache.pig.newplan.logical.relational.LOSort;
 import org.apache.pig.newplan.logical.relational.LOSplit;
 import org.apache.pig.newplan.logical.relational.LOSplitOutput;
@@ -544,6 +545,45 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
             msgCollector.collect(msg, MessageType.Error);
             throwTypeCheckerException(sort, msg, errCode, PigException.INPUT, fee) ;
         }
+    }
+
+    /***
+     * The schema of rank output will be the same as input, plus a rank field.
+     * @throws FrontendException
+     *
+     */
+    public void visit(LORank rank) throws FrontendException {
+        rank.resetSchema();
+
+        // Type checking internal plans.
+        List<LogicalExpressionPlan> rankColPlans = rank.getRankColPlans();
+
+        for(int i=0;i < rankColPlans.size(); i++) {
+            LogicalExpressionPlan rankColPlan = rankColPlans.get(i) ;
+
+            // Check that the inner plan has only 1 output port
+            if (rankColPlan.getSources().size() != 1) {
+                int errCode = 1057;
+                String msg = "Rank's inner plan can only have one output (leaf)" ;
+                msgCollector.collect(msg, MessageType.Error) ;
+                throwTypeCheckerException(rank, msg, errCode, PigException.INPUT, null) ;
+            }
+
+            visitExpressionPlan(rankColPlan, rank);
+
+        }
+
+        try {
+            // Compute the schema
+            rank.getSchema() ;
+        }
+        catch (FrontendException fee) {
+            int errCode = 1059;
+            String msg = "Problem while reconciling output schema of Rank" ;
+            msgCollector.collect(msg, MessageType.Error);
+            throwTypeCheckerException(rank, msg, errCode, PigException.INPUT, fee) ;
+        }
+
     }
 
     /***

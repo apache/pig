@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2909 Add a new option for ignoring corrupted files to AvroStorage load func (cheolsoo via gates)
+
 PIG-2202 AvroStorage doesn't work with Avro 1.5.1 (billgraham via gates)
 
 PIG-1959 Penny: a framework for workflow instrumentation (olston, breed via gates)
@@ -55,6 +57,8 @@ PIG-1331 Add Owl as a contrib project (ajaykidave via gates)
 OPTIMIZATIONS
 
 BUG FIXES
+
+PIG-2893  fix DBStorage compile issue (thejas via gates)
 
 PIG-2195 AvroStorage fails to STORE when LOADing via PigStorage (billgraham via gates)
 

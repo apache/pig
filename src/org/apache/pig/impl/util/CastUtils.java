@@ -56,6 +56,7 @@ public class CastUtils {
 	    case (DataType.INTEGER): return caster.bytesToInteger(bytes);
 	    case (DataType.LONG): return caster.bytesToLong(bytes);
 	    case (DataType.BOOLEAN): return caster.bytesToBoolean(bytes);
+	    case (DataType.DATETIME): return caster.bytesToDateTime(bytes);
 	    case (DataType.MAP): return caster.bytesToMap(bytes);
 	    case (DataType.TUPLE): return caster.bytesToTuple(bytes, fieldSchema);
 	    default: throw new IOException("Unknown type " + dataType);

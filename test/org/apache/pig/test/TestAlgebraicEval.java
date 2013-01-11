@@ -17,13 +17,13 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.util.Iterator;
 import java.util.Random;
-
-import junit.framework.TestCase;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
@@ -33,27 +33,23 @@ import org.apache.pig.data.Tuple;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
-public class TestAlgebraicEval extends TestCase {
-    
+public class TestAlgebraicEval {
+
     private int LOOP_COUNT = 1024;
 
     private PigServer pig;
-    
+
     @Before
-    @Override
     public void setUp() throws Exception {
         pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
     }
-    
+
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
         cluster.shutDown();
     }
-    
+
     Boolean[] nullFlags = new Boolean[]{ false, true};
 
     static MiniCluster cluster = MiniCluster.buildCluster();
@@ -75,7 +71,7 @@ public class TestAlgebraicEval extends TestCase {
                 }
                 ps.close();
             } else {
-                // generate data with nulls                
+                // generate data with nulls
                 PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
                 Random r = new Random();
                 for(int i = 0; i < LOOP_COUNT; i++) {
@@ -90,18 +86,18 @@ public class TestAlgebraicEval extends TestCase {
                         }
                     } else if (rand > (0.4 * LOOP_COUNT) && rand <= (0.6 * LOOP_COUNT)) {
                         for(int j=0; j< LOOP_COUNT; j++) {
-                            ps.println("\t" + "\t" + j%2);                            
+                            ps.println("\t" + "\t" + j%2);
                         }
                         groupKeyWithNulls++;
                     } else {
                         for(int j=0; j< LOOP_COUNT; j++) {
                             ps.println(i + "\t" + i + "\t" + j%2);
                         }
-                    }                    
+                    }
                 }
-                ps.close();                
+                ps.close();
             }
-            pig.registerQuery(" a = group (load '" 
+            pig.registerQuery(" a = group (load '"
                     + Util.generateURI(tmpFile.toString(), pig.getPigContext()) + "') by ($0,$1);");
             pig.registerQuery("b = foreach a generate flatten(group), SUM($1.$2);");
             Iterator<Tuple> it = pig.openIterator("b");
@@ -113,38 +109,38 @@ public class TestAlgebraicEval extends TestCase {
                 int sum = ((Double)t.get(2)).intValue();
                 // if the first two fields (output of flatten(group))
                 // are both nulls then we should change the sum accordingly
-                if(t.get(0) == null && t.get(1) == null)                
-                    assertEquals( "Running testGroupCountWithMultipleFields with nullFlags set to " 
+                if(t.get(0) == null && t.get(1) == null)
+                    assertEquals( "Running testGroupCountWithMultipleFields with nullFlags set to "
                             + nullFlags[k], (LOOP_COUNT/2)*groupKeyWithNulls, sum);
                 else
-                    assertEquals("Running testGroupCountWithMultipleFields with nullFlags set to " 
+                    assertEquals("Running testGroupCountWithMultipleFields with nullFlags set to "
                             + nullFlags[k], LOOP_COUNT/2, sum);
-                    
+
                 count++;
             }
             System.err.println("XX done");
             if(groupKeyWithNulls == 0)
-                assertEquals("Running testGroupCountWithMultipleFields with nullFlags set to " 
+                assertEquals("Running testGroupCountWithMultipleFields with nullFlags set to "
                         + nullFlags[k], LOOP_COUNT, count);
             else
-                assertEquals("Running testGroupCountWithMultipleFields with nullFlags set to " 
+                assertEquals("Running testGroupCountWithMultipleFields with nullFlags set to "
                         + nullFlags[k], LOOP_COUNT - groupKeyWithNulls + 1, count);
-            
+
         }
         tmpFile.delete();
-        
+
     }
-    
+
     @Test
     public void testSimpleCount() throws Exception {
         File tmpFile = File.createTempFile("test", "txt");
         for (int i = 0; i < nullFlags.length; i++) {
             System.err.println("Testing testSimpleCount with null flag:" + nullFlags[i]);
-        
+
             PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
             generateInput(ps, nullFlags[i]);
-            String query = "myid =  foreach (group (load '" 
-                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) 
+            String query = "myid =  foreach (group (load '"
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
                 + "') all) generate COUNT($1);";
             System.out.println(query);
             pig.registerQuery(query);
@@ -152,7 +148,7 @@ public class TestAlgebraicEval extends TestCase {
             tmpFile.delete();
             Tuple t = it.next();
             Long count = DataType.toLong(t.get(0));
-            assertEquals(this.getName() + "with nullFlags set to: " 
+            assertEquals(this.getClass().getName() + "with nullFlags set to: "
                     + nullFlags[i], count.longValue(), LOOP_COUNT);
         }
     }
@@ -162,11 +158,11 @@ public class TestAlgebraicEval extends TestCase {
         File tmpFile = File.createTempFile("test", "txt");
         for (int i = 0; i < nullFlags.length; i++) {
             System.err.println("Testing testGroupCount with null flag:" + nullFlags[i]);
-        
+
             PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
             generateInput(ps, nullFlags[i]);
-            String query = "myid = foreach (group (load '" 
-                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) 
+            String query = "myid = foreach (group (load '"
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
                 + "') all) generate group, COUNT($1) ;";
             System.out.println(query);
             pig.registerQuery(query);
@@ -174,11 +170,11 @@ public class TestAlgebraicEval extends TestCase {
             tmpFile.delete();
             Tuple t = it.next();
             Long count = DataType.toLong(t.get(1));
-            assertEquals(this.getName() + "with nullFlags set to: " 
+            assertEquals(this.getClass().getName() + "with nullFlags set to: "
                     + nullFlags[i], count.longValue(), LOOP_COUNT);
         }
     }
-    
+
     @Test
     public void testGroupReorderCount() throws Throwable {
         File tmpFile = File.createTempFile("test", "txt");
@@ -186,8 +182,8 @@ public class TestAlgebraicEval extends TestCase {
             System.err.println("Testing testGroupCount with null flag:" + nullFlags[i]);
             PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
             generateInput(ps, nullFlags[i]);
-            String query = "myid = foreach (group (load '" 
-                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) 
+            String query = "myid = foreach (group (load '"
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
                 + "') all) generate COUNT($1), group ;";
             System.out.println(query);
             pig.registerQuery(query);
@@ -195,7 +191,7 @@ public class TestAlgebraicEval extends TestCase {
             tmpFile.delete();
             Tuple t = it.next();
             Long count = DataType.toLong(t.get(0));
-            assertEquals(this.getName() + "with nullFlags set to: " 
+            assertEquals(this.getClass().getName() + "with nullFlags set to: "
                     + nullFlags[i], count.longValue(), LOOP_COUNT);
         }
     }
@@ -225,11 +221,11 @@ public class TestAlgebraicEval extends TestCase {
                         ps.println(j%10 + ":" + j);
                     }
                 }
-            }         
+            }
             ps.close();
-            String query = "myid = foreach (group (load '" 
-                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) 
-                + "' using " + PigStorage.class.getName() 
+            String query = "myid = foreach (group (load '"
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                + "' using " + PigStorage.class.getName()
                 + "(':')) by $0) generate group, COUNT($1.$1) ;";
             System.out.println(query);
             pig.registerQuery(query);
@@ -243,8 +239,8 @@ public class TestAlgebraicEval extends TestCase {
                 Double group = Double.valueOf(a.toString());
                 if(group == 0.0) {
                     Long count = DataType.toLong(t.get(1));
-                    assertEquals(this.getName() + "with nullFlags set to: " 
-                            + nullFlags[i], groupsize, count.longValue());                    
+                    assertEquals(this.getClass().getName() + "with nullFlags set to: "
+                            + nullFlags[i], groupsize, count.longValue());
                 }
             }
         }
@@ -278,9 +274,9 @@ public class TestAlgebraicEval extends TestCase {
                 }
             }
             ps.close();
-            String query = "myid = foreach (group (load '" 
-                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) 
-                + "' using " + PigStorage.class.getName() 
+            String query = "myid = foreach (group (load '"
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                + "' using " + PigStorage.class.getName()
                 + "(':')) by $0) generate group, COUNT($1.$1), COUNT($1.$0) ;";
             System.out.println(query);
             pig.registerQuery(query);
@@ -294,16 +290,16 @@ public class TestAlgebraicEval extends TestCase {
                 Double group = Double.valueOf(a.toString());
                 if(group == 0.0) {
                     Long count = DataType.toLong(t.get(2));
-                    assertEquals(this.getName() + "with nullFlags set to: " 
+                    assertEquals(this.getClass().getName() + "with nullFlags set to: "
                             + nullFlags[i],groupsize, count.longValue());
                     count = DataType.toLong(t.get(1));
-                    assertEquals(this.getName() + "with nullFlags set to: " 
+                    assertEquals(this.getClass().getName() + "with nullFlags set to: "
                             + nullFlags[i],nonNullCnt, count.longValue());
                 }
             }
         }
     }
-    
+
     private int generateInput(PrintStream ps, boolean withNulls ) {
         int numNulls = 0;
         if(withNulls) {
@@ -325,5 +321,4 @@ public class TestAlgebraicEval extends TestCase {
         ps.close();
         return numNulls;
     }
-
 }

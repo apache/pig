@@ -17,7 +17,7 @@
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/jline-0.9.94.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/joda-time-1.6.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/jsch-0.1.38.jar"/>
-	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/junit-4.5.jar"/>
+	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/junit-4.11.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/antlr-3.4.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/antlr-runtime-3.4.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/hbase-0.90.0.jar"/>
@@ -25,7 +25,7 @@
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/js-1.7R2.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/zookeeper-3.3.3.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/guava-r06.jar"/>
-	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/jython-2.5.0.jar"/>
+	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/jython-2.5.2.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/hadoop-core-0.20.2.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/commons-logging-1.1.1.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/commons-cli-1.2.jar"/>

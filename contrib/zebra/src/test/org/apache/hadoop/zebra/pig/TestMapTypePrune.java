@@ -384,7 +384,6 @@ public class TestMapTypePrune extends BaseTestCase
       System.out.println(RowValue);
       row++;
       if (row == 1) {
-        Assert.assertEquals(false, RowValue.isNull());
         Assert.assertEquals(null, RowValue.get(0));
         Assert.assertEquals(1, RowValue.size());
       }
@@ -407,7 +406,6 @@ public class TestMapTypePrune extends BaseTestCase
     scanner.getKey(key);
     Assert.assertEquals(key, new BytesWritable("k11".getBytes()));
     scanner.getValue(RowValue);
-    Assert.assertEquals(false, RowValue.isNull());
     Assert.assertEquals(null, RowValue.get(0));
     Assert.assertEquals(1, RowValue.size());
 
@@ -415,7 +413,6 @@ public class TestMapTypePrune extends BaseTestCase
     scanner.getKey(key);
     Assert.assertEquals(key, new BytesWritable("k12".getBytes()));
     scanner.getValue(RowValue);
-    Assert.assertEquals(false, RowValue.isNull());
     Assert.assertEquals(null, RowValue.get(0));
     Assert.assertEquals(1, RowValue.size());
     reader.close();

@@ -1,0 +1,11 @@
+{
+  "type" : "record",
+  "name" : "recursive_record",
+  "fields" : [ {
+    "name" : "value",
+    "type" : "int"
+  }, {
+    "name" : "next",
+    "type" : [ "null", "recursive_record" ]
+  } ]
+}

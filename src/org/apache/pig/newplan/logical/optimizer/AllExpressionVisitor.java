@@ -27,12 +27,14 @@ import org.apache.pig.newplan.PlanWalker;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionVisitor;
 import org.apache.pig.newplan.logical.relational.LOCogroup;
+import org.apache.pig.newplan.logical.relational.LOCube;
 import org.apache.pig.newplan.logical.relational.LOFilter;
 import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOGenerate;
 import org.apache.pig.newplan.logical.relational.LOInnerLoad;
 import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.apache.pig.newplan.logical.relational.LOLimit;
+import org.apache.pig.newplan.logical.relational.LORank;
 import org.apache.pig.newplan.logical.relational.LOSort;
 import org.apache.pig.newplan.logical.relational.LOSplitOutput;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalNodesVisitor;
@@ -64,6 +66,13 @@ public abstract class AllExpressionVisitor extends LogicalRelationalNodesVisitor
      */
     abstract protected LogicalExpressionVisitor getVisitor(LogicalExpressionPlan expr) throws FrontendException;
     
+    private void visitAll(Collection<LogicalExpressionPlan> lexpPlans) throws FrontendException {
+	for (LogicalExpressionPlan plan : lexpPlans) {
+	    LogicalExpressionVisitor v = getVisitor(plan);
+	    v.visit();
+	}
+    }
+    
     @Override
     public void visit(LOFilter filter) throws FrontendException {
         currentOp = filter;
@@ -83,10 +92,15 @@ public abstract class AllExpressionVisitor extends LogicalRelationalNodesVisitor
     @Override
     public void visit(LOJoin join) throws FrontendException {
         currentOp = join;
-        Collection<LogicalExpressionPlan> c = join.getExpressionPlanValues();
-        for (LogicalExpressionPlan plan : c) {
-            LogicalExpressionVisitor v = getVisitor(plan);
-            v.visit();
+        visitAll(join.getExpressionPlanValues());
+    }
+    
+    @Override
+    public void visit(LOCube cu) throws FrontendException {
+	currentOp = cu;
+	MultiMap<Integer, LogicalExpressionPlan> expressionPlans = cu.getExpressionPlans();
+	for (Integer key : expressionPlans.keySet()) {
+	    visitAll(expressionPlans.get(key));
         }
     }
     
@@ -95,11 +109,7 @@ public abstract class AllExpressionVisitor extends LogicalRelationalNodesVisitor
         currentOp = cg;
         MultiMap<Integer, LogicalExpressionPlan> expressionPlans = cg.getExpressionPlans();
         for( Integer key : expressionPlans.keySet() ) {
-            Collection<LogicalExpressionPlan> exprPlans = expressionPlans.get(key);
-            for( LogicalExpressionPlan plan : exprPlans ) {
-                LogicalExpressionVisitor v = getVisitor(plan);
-                v.visit();
-            }
+            visitAll(expressionPlans.get(key));
         }
     }
     
@@ -118,11 +128,7 @@ public abstract class AllExpressionVisitor extends LogicalRelationalNodesVisitor
     @Override
     public void visit(LOGenerate gen ) throws FrontendException {
         currentOp = gen;
-        Collection<LogicalExpressionPlan> plans = gen.getOutputPlans();
-        for( LogicalExpressionPlan plan : plans ) {
-            LogicalExpressionVisitor v = getVisitor(plan);
-            v.visit();
-        }
+        visitAll(gen.getOutputPlans());
     }
     
     @Override
@@ -142,14 +148,16 @@ public abstract class AllExpressionVisitor extends LogicalRelationalNodesVisitor
         LogicalExpressionVisitor v = getVisitor(splitOutput.getFilterPlan());
         v.visit();
     }
-    
+
+    @Override
+    public void visit(LORank rank) throws FrontendException{
+        currentOp = rank;
+        visitAll(rank.getRankColPlans());
+    }
+
     @Override
     public void visit(LOSort sort) throws FrontendException {
         currentOp = sort;
-        Collection<LogicalExpressionPlan> c = sort.getSortColPlans();
-        for (LogicalExpressionPlan plan : c) {
-            LogicalExpressionVisitor v = getVisitor(plan);
-            v.visit();
-        }
+        visitAll(sort.getSortColPlans());
     }
 }

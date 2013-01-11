@@ -39,7 +39,7 @@
     <property name="src.dir" value="src/main/java/org/apache/pig/piggybank" />
     <property name="hsqldb.jar" value="../../../build/ivy/lib/Pig/hsqldb-1.8.0.10.jar"/>
 
-	<!-- JobHistoryLoader currently does not support 0.23 -->
+    <!-- JobHistoryLoader currently does not support 0.23 -->
     <condition property="build.classes.excludes" value="**/HadoopJobHistoryLoader.java" else="">
         <equals arg1="${hadoopversion}" arg2="23"/>
     </condition>
@@ -85,6 +85,7 @@
     </target>
     <target name="clean">
         <delete dir="build"/>
+        <delete file="${udfjar}"/>
     </target>
     <target depends="init" name="compile" description="compile all of the class files">
         <echo> *** Compiling Pig UDFs ***</echo>
@@ -117,6 +118,7 @@
         <junit printsummary="yes" haltonfailure="no" fork="yes" maxmemory="512m" dir="${basedir}" timeout="${test.timeout}" errorProperty="tests.failed" failureProperty="tests.failed">        
             <sysproperty key="hadoop.log.dir" value="${test.logs}"/>
             <sysproperty key="java.io.tmpdir" value="${junit.tmp.dir}" />
+            <env key="MALLOC_ARENA_MAX" value="4"/>
             <classpath refid="test.classpath"/>
             <formatter type="${test.junit.output.format}" />
             <batchtest fork="yes" todir="${test.logs}" unless="testcase">

@@ -256,11 +256,16 @@ public class Schema implements Serializable, Cloneable {
                 }
                 else if (DataType.isNumberType(inputType) && (castType == DataType.CHARARRAY
                         || castType == DataType.BYTEARRAY || DataType.isNumberType(castType)
-                        || castType == DataType.BOOLEAN)) {
+                        || castType == DataType.BOOLEAN || castType == DataType.DATETIME)) {
+                    // good
+                }
+                else if (inputType == DataType.DATETIME && (castType == DataType.CHARARRAY
+                        || castType == DataType.BYTEARRAY || DataType.isNumberType(castType))) {
                     // good
                 }
                 else if (inputType == DataType.CHARARRAY && (castType == DataType.BYTEARRAY
-                        || DataType.isNumberType(castType) || castType == DataType.BOOLEAN)) {
+                        || DataType.isNumberType(castType) || castType == DataType.BOOLEAN
+                        || castType == DataType.DATETIME)) {
                     // good
                 } 
                 else if (inputType == DataType.BYTEARRAY) {
@@ -925,9 +930,17 @@ public class Schema implements Serializable, Cloneable {
 
     @Override
     public String toString() {
+        return toIndentedString(Integer.MIN_VALUE);
+    }
+
+    public String prettyPrint() {
+        return toIndentedString(0);
+    }
+
+    private String toIndentedString(int indentLevel) {
         StringBuilder sb = new StringBuilder();
         try {
-            stringifySchema(sb, this, DataType.BAG) ;
+            stringifySchema(sb, this, DataType.BAG, indentLevel) ;
         }
         catch (FrontendException fee) {
             throw new RuntimeException("PROBLEM PRINTING SCHEMA")  ;
@@ -935,12 +948,17 @@ public class Schema implements Serializable, Cloneable {
         return sb.toString();
     }
 
+    public static void stringifySchema(StringBuilder sb, Schema schema, byte type)
+            throws FrontendException {
+        stringifySchema(sb, schema, type, 0);
+    }
 
     // This is used for building up output string
     // type can only be BAG or TUPLE
     public static void stringifySchema(StringBuilder sb,
                                        Schema schema,
-                                       byte type)
+                                       byte type,
+                                       int indentLevel)
                                             throws FrontendException{
 
         if (type == DataType.TUPLE) {
@@ -949,7 +967,8 @@ public class Schema implements Serializable, Cloneable {
         else if (type == DataType.BAG) {
             sb.append("{") ;
         }
-        // TODO: Map Support
+
+        indentLevel++;
 
         if (schema != null) {
             boolean isFirst = true ;
@@ -961,6 +980,8 @@ public class Schema implements Serializable, Cloneable {
                 else {
                     isFirst = false ;
                 }
+
+                indent(sb, indentLevel);
 
                 FieldSchema fs = schema.getField(i) ;
 
@@ -980,7 +1001,7 @@ public class Schema implements Serializable, Cloneable {
                           (fs.type == DataType.BAG) ) {
                     // safety net
                     if (schema != fs.schema) {
-                        stringifySchema(sb, fs.schema, fs.type) ;
+                        stringifySchema(sb, fs.schema, fs.type, indentLevel) ;
                     }
                     else {
                         throw new AssertionError("Schema refers to itself "
@@ -989,13 +1010,16 @@ public class Schema implements Serializable, Cloneable {
                 } else if (fs.type == DataType.MAP) {
                     sb.append(DataType.findTypeName(fs.type) + "[");
                     if (fs.schema!=null)
-                        stringifySchema(sb, fs.schema, fs.type);
+                        stringifySchema(sb, fs.schema, fs.type, indentLevel);
                     sb.append("]");
                 } else {
                     sb.append(DataType.findTypeName(fs.type)) ;
                 }
             }
         }
+
+        indentLevel--;
+        indent(sb, indentLevel);
 
         if (type == DataType.TUPLE) {
             sb.append(")") ;
@@ -1004,6 +1028,19 @@ public class Schema implements Serializable, Cloneable {
             sb.append("}") ;
         }
 
+    }
+
+    /**
+     * no-op if indentLevel is negative.<br>
+     * otherwise, print newline and 4*indentLevel spaces.
+     */
+    private static void indent(StringBuilder sb, int indentLevel) {
+        if (indentLevel >= 0) {
+          sb.append("\n");
+        }
+        while (indentLevel-- > 0) {
+            sb.append("    "); // 4 spaces.
+        }
     }
 
     public void add(FieldSchema f) {

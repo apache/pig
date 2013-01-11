@@ -163,8 +163,14 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends
           else if(node instanceof POCollectedGroup){
             sb.append(planString(((POCollectedGroup)node).getPlans()));
           }
+          else if(node instanceof PORank){
+              sb.append(planString(((PORank)node).getRankPlans()));
+          }
+          else if(node instanceof POCounter){
+              sb.append(planString(((POCounter)node).getCounterPlans()));
+          }
           else if(node instanceof POSort){
-            sb.append(planString(((POSort)node).getSortPlans())); 
+            sb.append(planString(((POSort)node).getSortPlans()));
           }
           else if(node instanceof POForEach){
             sb.append(planString(((POForEach)node).getInputPlans()));

@@ -27,6 +27,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -36,12 +37,11 @@ import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.util.ObjectSerializer;
-import org.apache.pig.impl.util.TupleFormat;
 
 /**
  * A default implementation of Tuple. This class will be created by the DefaultTupleFactory.
  */
-public class DefaultTuple implements Tuple {
+public class DefaultTuple extends AbstractTuple {
 
     protected boolean isNull = false;
     private static final long serialVersionUID = 2L;
@@ -93,18 +93,6 @@ public class DefaultTuple implements Tuple {
     }
 
     /**
-     * Make this tuple reference the contents of another. This method does not copy the underlying data. It maintains
-     * references to the data from the original tuple (and possibly even to the data structure holding the data).
-     * 
-     * @param t
-     *            Tuple to reference.
-     */
-    @Override
-    public void reference(Tuple t) {
-        mFields = t.getAll();
-    }
-
-    /**
      * Find the size of the tuple. Used to be called arity().
      * 
      * @return number of fields in the tuple.
@@ -112,35 +100,6 @@ public class DefaultTuple implements Tuple {
     @Override
     public int size() {
         return mFields.size();
-    }
-
-    /**
-     * Find out if a given field is null.
-     * 
-     * @param fieldNum
-     *            Number of field to check for null.
-     * @return true if the field is null, false otherwise.
-     * @throws ExecException
-     *             if the field number given is greater than or equal to the number of fields in the tuple.
-     */
-    @Override
-    public boolean isNull(int fieldNum) throws ExecException {
-        return (mFields.get(fieldNum) == null);
-    }
-
-    /**
-     * Find the type of a given field.
-     * 
-     * @param fieldNum
-     *            Number of field to get the type for.
-     * @return type, encoded as a byte value. The values are taken from the class DataType. If the field is null, then
-     *         DataType.UNKNOWN will be returned.
-     * @throws ExecException
-     *             if the field number is greater than or equal to the number of fields in the tuple.
-     */
-    @Override
-    public byte getType(int fieldNum) throws ExecException {
-        return DataType.findType(mFields.get(fieldNum));
     }
 
     /**
@@ -221,33 +180,6 @@ public class DefaultTuple implements Tuple {
             sum += SizeUtil.getPigObjMemSize(i.next());
         }
         return sum;
-    }
-
-
-    /**
-     * Write a tuple of atomic values into a string. All values in the tuple must be atomic (no bags, tuples, or maps).
-     * 
-     * @param delim
-     *            Delimiter to use in the string.
-     * @return A string containing the tuple.
-     * @throws ExecException
-     *             if a non-atomic value is found.
-     */
-    @Override
-    public String toDelimitedString(String delim) throws ExecException {
-        StringBuilder buf = new StringBuilder();
-        for (Iterator<Object> it = mFields.iterator(); it.hasNext();) {
-            Object field = it.next();
-            buf.append(field == null ? "" : field.toString());
-            if (it.hasNext())
-                buf.append(delim);
-        }
-        return buf.toString();
-    }
-
-    @Override
-    public String toString() {
-        return TupleFormat.format(this);
     }
 
     @Override
@@ -391,6 +323,13 @@ public class DefaultTuple implements Tuple {
                             double dv2 = bb2.getDouble();
                             rc = Double.compare(dv1, dv2);
                             break;
+                        case DataType.DATETIME:
+                            long dtv1 = bb1.getLong();
+                            bb1.position(bb1.position() + 2); // move cursor forward without read the timezone bytes
+                            long dtv2 = bb2.getLong();
+                            bb2.position(bb2.position() + 2);
+                            rc = (dtv1 < dtv2 ? -1 : (dtv1 == dtv2 ? 0 : 1));
+                            break;
                         case DataType.BYTEARRAY:
                             int basz1 = bb1.getInt();
                             int basz2 = bb2.getInt();
@@ -513,13 +452,8 @@ public class DefaultTuple implements Tuple {
     }
 
     @Override
-    public boolean equals(Object other) {
-        return (compareTo(other) == 0);
-    }
-
-    @Override
     public int hashCode() {
-        int hash = 1;
+        int hash = 17;
         for (Iterator<Object> it = mFields.iterator(); it.hasNext();) {
             Object o = it.next();
             if (o != null) {
@@ -564,16 +498,5 @@ public class DefaultTuple implements Tuple {
 
     public static Class<? extends TupleRawComparator> getComparatorClass() {
         return DefaultTupleRawComparator.class;
-    }
-
-    @Override
-    @Deprecated
-    public boolean isNull() {
-        return false;
-    }
-    
-    @Override
-    @Deprecated
-    public void setNull(boolean isNull) {
     }
 }

@@ -44,21 +44,22 @@ public class ResourceStatistics implements Cloneable {
     // setters disallow setting them to null.
     
     private static final long serialVersionUID = 1L;
-    public Long mBytes; // size in megabytes
-    public Long numRecords;  // number of records
-    public Long avgRecordSize;
-    public ResourceFieldStatistics[] fields = new ResourceFieldStatistics[0];
+    private Long numRecords; // number of records
+    private Long avgRecordSize; // average record size in bytes
+    private ResourceFieldStatistics[] fields = new ResourceFieldStatistics[0];
+    private Long bytes;
 
     /**
      * Statistics for a given field in the data.
      */
     public static class ResourceFieldStatistics implements Serializable {
 
-        public static final long serialVersionUID = 1L;
+        private static final long serialVersionUID = 1L;
 
-        public int version;
+        private int version;
 
-        public Long numDistinctValues;  // number of distinct values represented in this field
+        private Long numDistinctValues; // number of distinct values represented
+                                        // in this field
 
         /**
          * We need some way to represent a histogram of values in the field,
@@ -71,14 +72,14 @@ public class ResourceStatistics implements Cloneable {
          * an ordered array of the most common values, 
          * in descending order of frequency
          */
-        public Object[] mostCommonValues = new Object[0];
+        private Object[] mostCommonValues = new Object[0];
         
         /**
          * an array that matches the mostCommonValues array, and lists
          * the frequencies of those values as a fraction (0 through 1) of
          * the total number of records
          */
-        public float[] mostCommonValuesFreq = new float[0];
+        private float[] mostCommonValuesFreq = new float[0];
         
         /**
          * an ordered array of values, from min val to max val
@@ -88,7 +89,7 @@ public class ResourceStatistics implements Cloneable {
          * NOTE: if mostCommonValues is non-empty, the values in that array
          * should not be included in the histogram. Adjust accordingly.
          */
-        public Object[] valueHistogram = new Object[0];
+        private Object[] valueHistogram = new Object[0];
 
         
         public int getVersion() {
@@ -191,47 +192,66 @@ public class ResourceStatistics implements Cloneable {
             return sb.toString();
         }
     }
-
     
     public Long getmBytes() {
-        return mBytes;
-    }
-    public ResourceStatistics setmBytes(Long mBytes) {
-        this.mBytes = mBytes;
-        return this;
+        return this.bytes / 1024 / 1024;
     }
 
     /**
-     * @return getmBytes as bytes.
+     * 
+     * @param mBytes
+     * @deprecated Use {@link ResourceStatistics#setSizeInBytes(Long)} instead
+     */
+    @Deprecated
+    public ResourceStatistics setmBytes(Long mBytes) {
+        this.bytes = mBytes * 1024 * 1024;
+        return this;
+    }
+    
+    /**
+     * Sets the size in bytes
+     * 
+     * @param bytes
+     */
+    public void setSizeInBytes(Long bytes) {
+        this.bytes = bytes;
+    }
+
+    /**
+     * @return size in bytes.
      */
     public Long getSizeInBytes() {
-        // Ideally size would be stored in bytes, and getmBytes would convert
-        // that number. However, mBytes is public so we cannot remove it, or
-        // guarantee it stays in sync with size in bytes.
-        return getmBytes() == null ? null : getmBytes() * 1024 * 1024;
+        return this.bytes;
     }
 
     public Long getNumRecords() {
         return numRecords;
     }
+    
     public ResourceStatistics setNumRecords(Long numRecords) {
         this.numRecords = numRecords;
         return this;
     }
-    
-    /* 
-     * returns average record size. This number can be explicitly specified by statistics, or
-     * if absent, computed using totalbytes/totalrecords. Will return null if can't be computed.
+
+    /*
+     * returns average record size in bytes. This number can be explicitly
+     * specified by statistics, or if absent, computed using
+     * totalbytes/totalrecords. Will return null if can't be computed.
      */
     public Long getAvgRecordSize() {
-        if (avgRecordSize == null && (mBytes != null && numRecords != null))
-            return mBytes / numRecords;
+        if (avgRecordSize == null && (bytes != null && numRecords != null))
+            return bytes / numRecords;
         else 
             return avgRecordSize;
     }
     
-    public void setAvgRecordSize(Long size) {
-        avgRecordSize = size;
+    /**
+     * Set average record size in bytes
+     * 
+     * @param sizeInBytes
+     */
+    public void setAvgRecordSize(Long sizeInBytes) {
+        avgRecordSize = sizeInBytes;
     }
     
     public ResourceFieldStatistics[] getFields() {
@@ -256,8 +276,8 @@ public class ResourceStatistics implements Cloneable {
             return false;        
         ResourceStatistics other = (ResourceStatistics) anOther;
         return (Arrays.equals(fields, other.fields) &&
-                ((mBytes==null) 
-                        ? (other.mBytes==null) : mBytes.equals(other.mBytes)) &&
+                ((bytes == null) ? (other.bytes == null) : bytes
+                        .equals(other.bytes)) &&
                 ((numRecords == null) 
                         ? (other.numRecords==null) : numRecords.equals(other.numRecords)) 
         );
@@ -267,7 +287,7 @@ public class ResourceStatistics implements Cloneable {
     public int hashCode() {
         int hash = 1;
         hash = 31*hash + Arrays.hashCode(fields);
-        hash = 31*hash + (mBytes == null ? 0 : mBytes.hashCode());
+        hash = 31 * hash + (bytes == null ? 0 : bytes.hashCode());
         hash = 31*hash + (numRecords == null ? 0 : numRecords.hashCode());
         return hash;
     }
@@ -277,7 +297,7 @@ public class ResourceStatistics implements Cloneable {
     public String toString() {
         StringBuilder sb = new StringBuilder("Field Stats: \n");
         for (ResourceFieldStatistics f : fields) sb.append(f.toString());
-        sb.append("mBytes: "+mBytes);
+        sb.append("bytes: " + bytes);
         sb.append("numRecords: "+numRecords);
         return sb.toString();
     }

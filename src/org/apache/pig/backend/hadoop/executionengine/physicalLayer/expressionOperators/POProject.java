@@ -22,6 +22,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.joda.time.DateTime;
+
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -368,6 +370,11 @@ public class POProject extends ExpressionOperator {
     }
 
     @Override
+    public Result getNext(DateTime dt) throws ExecException {
+        return getNext();
+    }
+
+    @Override
     public Result getNext(Map m) throws ExecException {
         return getNext();
     }
@@ -567,7 +574,9 @@ public class POProject extends ExpressionOperator {
         }
         
         //Should be removed once the model is clear
-        if(reporter!=null) reporter.progress();
+        if(getReporter()!=null) {
+            getReporter().progress();
+        }
         
         if(!isInputAttached()) {
             if (inputs.get(0).getResultType()==DataType.BAG)

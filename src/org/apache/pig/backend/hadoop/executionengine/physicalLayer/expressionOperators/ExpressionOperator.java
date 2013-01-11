@@ -21,6 +21,8 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOp
 import java.util.List;
 import java.util.Map;
 
+import org.joda.time.DateTime;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -58,7 +60,7 @@ public abstract class ExpressionOperator extends PhysicalOperator {
     public void setIllustrator(Illustrator illustrator) {
         this.illustrator = illustrator;
     }
-    
+
     @Override
     public boolean supportsMultipleOutputs() {
         return false;
@@ -183,6 +185,14 @@ public abstract class ExpressionOperator extends PhysicalOperator {
     /**
      * Drive all the UDFs in accumulative mode
      */
+    protected Result accumChild(List<ExpressionOperator> child, DateTime dt) throws ExecException {
+        return accumChild(child, dt, DataType.DATETIME);
+
+    }
+
+    /**
+     * Drive all the UDFs in accumulative mode
+     */
     protected Result accumChild(List<ExpressionOperator> child, String s) throws ExecException {
         return accumChild(child, s, DataType.CHARARRAY);
 
@@ -214,5 +224,10 @@ public abstract class ExpressionOperator extends PhysicalOperator {
      */
     protected Result accumChild(List<ExpressionOperator> child, DataBag db) throws ExecException {
         return accumChild(child, db, DataType.BAG);
+    }
+
+    @Override
+    public String toString() {
+        return "[" + this.getClass().getSimpleName() + " " + super.toString() + " children: " + getChildExpressions() + " at " + getOriginalLocations() + "]";
     }
 }

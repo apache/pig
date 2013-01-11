@@ -19,8 +19,13 @@
 package org.apache.pig.parser;
 
 import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -37,9 +42,13 @@ import org.antlr.runtime.tree.CommonTreeNodeStream;
 import org.antlr.runtime.tree.Tree;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.fs.Path;
+import org.apache.pig.PigException;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileLocalizer.FetchFileRet;
+import org.apache.pig.impl.io.ResourceNotFoundException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
@@ -49,28 +58,28 @@ import org.apache.pig.tools.pigstats.ScriptState;
 
 public class QueryParserDriver {
     private static final Log LOG = LogFactory.getLog(QueryParserDriver.class);
-    
+
     private static final String MACRO_DEF = "MACRO_DEF";
     private static final String MACRO_INLINE = "MACRO_INLINE";
     private static final String IMPORT_DEF = "import";
-    
+
     private PigContext pigContext;
     private String scope;
     private Map<String, String>fileNameMap;
     private Map<String, Operator> operators;
     private Set<String> importSeen;
     private Set<String> macroSeen;
-    
+
     private static Map<String, FetchFileRet> fnameMap = new HashMap<String, FetchFileRet>();
-    
+
     public QueryParserDriver(PigContext pigContext, String scope, Map<String, String> fileNameMap) {
         this.pigContext = pigContext;
         this.scope = scope;
         this.fileNameMap = fileNameMap;
         importSeen = new HashSet<String>();
-        macroSeen = new HashSet<String>();        
+        macroSeen = new HashSet<String>();
     }
-    
+
     private static Tree parseSchema(CommonTokenStream tokens) throws ParserException {
         QueryParser parser = QueryParserUtils.createParser(tokens);
 
@@ -95,14 +104,14 @@ public class QueryParserDriver {
         CommonTokenStream tokenStream = tokenize( input, null );
         LogicalSchema schema = null;
         Tree ast = parseSchema( tokenStream );
-        
-        try{       
+
+        try{
             CommonTreeNodeStream nodes = new CommonTreeNodeStream( ast );
             AstValidator walker = new AstValidator( nodes );
             ast = (Tree)walker.field_def_list().getTree();
             checkError( walker );
-            
-            LogicalPlanGenerator planGenerator = 
+
+            LogicalPlanGenerator planGenerator =
                 new LogicalPlanGenerator( new CommonTreeNodeStream( ast ), pigContext, scope, fileNameMap );
             schema = planGenerator.field_def_list().schema;
             checkError( planGenerator );
@@ -111,7 +120,7 @@ public class QueryParserDriver {
         } catch(Exception ex) {
             throw new ParserException( ex.getMessage(), ex );
         }
-        
+
         return schema;
     }
 
@@ -139,14 +148,14 @@ public class QueryParserDriver {
         CommonTokenStream tokenStream = tokenize( input, null );
         Object value = null;
         Tree ast = parseConstant( tokenStream );
-        
-        try{       
+
+        try{
             CommonTreeNodeStream nodes = new CommonTreeNodeStream( ast );
             AstValidator walker = new AstValidator( nodes );
             ast = (Tree)walker.literal().getTree();
             checkError( walker );
 
-            LogicalPlanGenerator planGenerator = 
+            LogicalPlanGenerator planGenerator =
                 new LogicalPlanGenerator( new CommonTreeNodeStream( ast ), pigContext, scope, fileNameMap );
             value = planGenerator.literal().value;
             checkError( planGenerator );
@@ -155,27 +164,27 @@ public class QueryParserDriver {
         } catch(Exception ex) {
             throw new ParserException( ex.getMessage(), ex );
         }
-        
+
         return value;
     }
 
     public LogicalPlan parse(String query) throws ParserException {
         LogicalPlan plan = null;
-        
+
         ScriptState ss = ScriptState.get();
         CommonTokenStream tokenStream = tokenize(query, ss.getFileName());
-        
+
         Tree ast = parse( tokenStream );
         ast = expandMacro( ast );
 
-        try{       
+        try{
             ast = validateAst( ast );
-            LogicalPlanGenerator planGenerator = 
+            LogicalPlanGenerator planGenerator =
                 new LogicalPlanGenerator( new CommonTreeNodeStream( ast ), pigContext, scope, fileNameMap );
             planGenerator.query();
-            
+
             checkError( planGenerator );
-            
+
             plan = planGenerator.getLogicalPlan();
             operators = planGenerator.getOperators();
         } catch(RecognitionException ex) {
@@ -183,10 +192,10 @@ public class QueryParserDriver {
         } catch(Exception ex) {
             throw new ParserException( ex.getMessage(), ex );
         }
-        
+
         return plan;
     }
-        
+
     public Map<String, Operator> getOperators() {
         return operators;
     }
@@ -205,7 +214,7 @@ public class QueryParserDriver {
         checkError(lexer);
         return tokens;
     }
-    
+
     private static void checkError(BaseRecognizer recognizer)
             throws ParserException {
         int errorCount = recognizer.getNumberOfSyntaxErrors();
@@ -226,25 +235,25 @@ public class QueryParserDriver {
             throw new ParserException(msg);
         } catch(RuntimeException ex) {
             throw new ParserException( ex.getMessage() );
-        }          
+        }
 
         Tree ast = (Tree) result.getTree();
         checkError(parser);
 
         return ast;
     }
-    
+
     private static Tree validateAst(Tree ast) throws RecognitionException, ParserException {
         CommonTreeNodeStream nodes = new CommonTreeNodeStream( ast );
         AstValidator walker = new AstValidator( nodes );
         AstValidator.query_return newResult = walker.query();
         Tree newAst = (Tree)newResult.getTree();
-        
+
         checkError( walker );
-        
+
         return newAst;
     }
-    
+
     Tree expandMacro(Tree ast) throws ParserException {
         LOG.debug("Original macro AST:\n" + ast.toStringTree() + "\n");
 
@@ -275,16 +284,16 @@ public class QueryParserDriver {
 
         return ast;
     }
-     
+
     private void inlineMacro(List<CommonTree> inlineNodes,
             List<PigMacro> macroDefs) throws ParserException {
         for (CommonTree t : inlineNodes) {
             Set<String> macroStack = new HashSet<String>();
             CommonTree newTree = PigMacro.macroInline(t, macroDefs, macroStack);
-            
+
             List<CommonTree> nodes = new ArrayList<CommonTree>();
             traverseInline(newTree, nodes);
-   
+
             if (nodes.isEmpty()) {
                 QueryParserUtils.replaceNodeWithNodeList(t, newTree, null);
             } else {
@@ -292,7 +301,7 @@ public class QueryParserDriver {
             }
         }
     }
-    
+
     private void traverseInline(Tree t, List<CommonTree> nodes) {
         if (t.getText().equals(MACRO_INLINE)) {
             nodes.add((CommonTree)t);
@@ -301,21 +310,21 @@ public class QueryParserDriver {
         for (int i = 0; i < n; i++) {
             Tree t0 = t.getChild(i);
             traverseInline(t0, nodes);
-        }       
+        }
     }
-    
+
     private boolean expandImport(Tree ast) throws ParserException {
         List<CommonTree> nodes = new ArrayList<CommonTree>();
         traverseImport(ast, nodes);
         if (nodes.isEmpty()) return false;
-        
+
         for (CommonTree t : nodes) {
             macroImport(t);
         }
-        
+
         return true;
     }
-    
+
     static void traverseImport(Tree t, List<CommonTree> nodes) {
         if (t.getText().equalsIgnoreCase(IMPORT_DEF)) {
             nodes.add((CommonTree)t);
@@ -326,11 +335,11 @@ public class QueryParserDriver {
             traverseImport(t0, nodes);
         }
     }
-    
+
     static void traverse(Tree t, List<CommonTree> macroNodes,
             List<CommonTree> inlineNodes) {
         if (t.getText().equals(MACRO_DEF)) {
-            macroNodes.add((CommonTree) t.getParent());  
+            macroNodes.add((CommonTree) t.getParent());
         } else if (t.getText().equals(MACRO_INLINE)) {
             inlineNodes.add((CommonTree) t);
         }
@@ -340,22 +349,48 @@ public class QueryParserDriver {
             traverse(t0, macroNodes, inlineNodes);
         }
     }
-    
+
     private FetchFileRet getMacroFile(String fname) {
         FetchFileRet localFileRet = null;
         try {
-            if (fnameMap.get(fname)!=null) {
+            if (fnameMap.get(fname) != null) {
                 localFileRet = fnameMap.get(fname);
             } else {
-                localFileRet = FileLocalizer.fetchFile(pigContext.getProperties(), fname);
-                fnameMap.put(fname, localFileRet);
+              try {
+                File localFile = QueryParserUtils.getFileFromImportSearchPath(fname);
+                localFileRet = localFile == null ?
+                        FileLocalizer.fetchFile(pigContext.getProperties(), fname)
+                        : new FetchFileRet(localFile.getCanonicalFile(), false);
+              } catch (FileNotFoundException e) {
+                // ignore this since we'll attempt to load as a resource before failing
+                LOG.debug(String.format("Macro file %s was not found", fname));
+              }
+
+              // try loading the macro file as a resource in case it is packaged in a registered jar
+              if (localFileRet == null) {
+                LOG.debug(String.format("Attempting to load macro file %s as a resource", fname));
+
+                try
+                {
+                  localFileRet = FileLocalizer.fetchResource(fname);
+                  LOG.debug(String.format("Found macro file %s as resource", fname));
+                }
+                catch (ResourceNotFoundException e)
+                {
+                  LOG.debug(String.format("Macro file %s was not found as resource either", fname));
+                  LOG.error(String.format("Failed to find macro file %s", fname));
+                  throw new ExecException("file '" + fname + "' does not exist.", 101, PigException.INPUT);
+                }
+              }
+
+              fnameMap.put(fname, localFileRet);
             }
         } catch (IOException e) {
             throw new RuntimeException("Unable to fetch macro file '" + fname + "'", e);
         }
         return localFileRet;
     }
-    
+
     /*
      * MacroDef node has two child nodes:
      *      1. name
@@ -364,7 +399,7 @@ public class QueryParserDriver {
     private PigMacro makeMacroDef(CommonTree t, Map<String, PigMacro> seen)
             throws ParserException {
         String mn = t.getChild(0).getText();
- 
+
         if (!macroSeen.add(mn)) {
             String msg = getErrorMessage(null, t, null,
                     "Duplicated macro name '" + mn + "'");
@@ -376,13 +411,13 @@ public class QueryParserDriver {
                 macroSeen.add(s);
             }
         }
-        
+
         String fname = ((PigParserNode)t).getFileName();
 
         Tree defNode = t.getChild(1);
 
         // get parameter markers
-        ArrayList<String> params = new ArrayList<String>(); 
+        ArrayList<String> params = new ArrayList<String>();
         Tree paramNode = defNode.getChild(0);
         int n = paramNode.getChildCount();
         for (int i = 0; i < n; i++) {
@@ -390,7 +425,7 @@ public class QueryParserDriver {
         }
 
         // get return alias markers
-        ArrayList<String> returns = new ArrayList<String>(); 
+        ArrayList<String> returns = new ArrayList<String>();
         Tree retNode = defNode.getChild(1);
         int m = retNode.getChildCount();
         for (int i = 0; i < m; i++) {
@@ -402,11 +437,16 @@ public class QueryParserDriver {
         String body = bodyNode.getChild(0).getText();
 
         body = body.substring(1, body.length() - 1);
-        
-        FetchFileRet localFileRet = getMacroFile(fname);
 
-        PigMacro pm = new PigMacro(mn, localFileRet.file.getAbsolutePath(), params, returns, body, seen);
-        
+        // sometimes the script has no filename, like when a string is passed to PigServer for
+        // example. See PIG-2866.
+        if (fname != null) {
+            FetchFileRet localFileRet = getMacroFile(fname);
+            fname = localFileRet.file.getAbsolutePath();
+        }
+
+        PigMacro pm = new PigMacro(mn, fname, params, returns, body, seen);
+
         try {
             pm.validate();
         } catch (IOException e) {
@@ -414,11 +454,11 @@ public class QueryParserDriver {
                     "Invalid macro definition: ", e.getMessage());
             throw new ParserException(msg);
         }
-        
-        // set the starting line number of the macro 
+
+        // set the starting line number of the macro
         PigParserNode pnode = (PigParserNode)bodyNode.getChild(0);
         pm.setStartLine(pnode.getStartLine());
-        
+
         seen.put(mn, pm);
 
         // delete this node
@@ -428,7 +468,7 @@ public class QueryParserDriver {
 
         return pm;
     }
-        
+
     private void macroImport(CommonTree t) throws ParserException {
         // remove quote
         String fname = t.getChild(0).getText();
@@ -436,20 +476,22 @@ public class QueryParserDriver {
         if (!importSeen.add(fname)) {
             String msg = getErrorMessage(fname, t,
                     ": Duplicated import file '" + fname + "'", null);
-            throw new ParserException(msg);
+            LOG.warn(msg);
+            // Disabling this exception, see https://issues.apache.org/jira/browse/PIG-2279
+            // throw new ParserException(msg);
         }
-        
+
         FetchFileRet localFileRet = getMacroFile(fname);
-        
+
         BufferedReader in = null;
         try {
-            in = QueryParserUtils.getImportScriptAsReader(localFileRet.file.getAbsolutePath());
+            in = new BufferedReader(new FileReader(localFileRet.file));
         } catch (FileNotFoundException e) {
             String msg = getErrorMessage(fname, t,
                     "Failed to import file '" + fname + "'", e.getMessage());
             throw new ParserException(msg);
         }
-        
+
         StringBuilder sb = new StringBuilder();
         String line = null;
         try {
@@ -463,20 +505,20 @@ public class QueryParserDriver {
                     "Failed to read file '" + fname + "'", e.getMessage());
             throw new ParserException(msg);
         }
-        
+
         // parse
         CommonTokenStream tokenStream = tokenize(sb.toString(), fname);
-        
+
         Tree ast = null;
         try {
             ast = parse( tokenStream );
         } catch(RuntimeException ex) {
             throw new ParserException( ex.getMessage() );
-        } 
-        
+        }
+
         QueryParserUtils.replaceNodeWithNodeList(t, (CommonTree)ast, fname);
     }
-    
+
     private String getErrorMessage(String importFile,
             CommonTree t, String header, String reason) {
         StringBuilder sb = new StringBuilder();
@@ -495,5 +537,5 @@ public class QueryParserDriver {
             sb.append(". Reason: ").append(reason);
         }
         return sb.toString();
-    }   
+    }
 }

@@ -24,6 +24,10 @@ package TestDriver;
 use TestDriverFactory;
 use TestReport;
 use File::Path;
+use Parallel::ForkManager;
+use FileHandle;
+use File::Copy;
+use File::Basename;
 
 my $passedStr = 'passed';
 my $failedStr = 'failed';
@@ -31,6 +35,27 @@ my $abortedStr = 'aborted';
 my $skippedStr = 'skipped';
 my $dependStr = 'failed_dependency';
 
+# A constant to be used as a key in hash:
+my $keyGlobalSetupConditionalDone = 'globalSetupConditionaldone';
+
+################################################################################
+# Sub: appendToLength
+# static mathod to make a string not shorter than N characters in length: 
+# appends spaces unlit the desired length achieved.
+#
+# Paramaters:
+# str - the string
+# len - the min deired length 
+#
+# Returns: the modified string
+#
+sub appendToLength($$) {
+   my ($str, $len) = @_; 
+   while (length($str) < $len) {
+      $str .= " ";
+   }   
+   return $str;
+}
 
 ##############################################################################
 #  Sub: printResults
@@ -47,7 +72,7 @@ my $dependStr = 'failed_dependency';
 #
 sub printResults
 {
-	my ($testStatuses, $log, $prefix) = @_;
+	my ($testStatuses, $log, $prefix, $confFile, $groupName) = @_;
 
 	my ($pass, $fail, $abort, $depend, $skipped) = (0, 0, 0, 0, 0);
 
@@ -59,11 +84,86 @@ sub printResults
 		($testStatuses->{$_} eq $skippedStr) && $skipped++;
 	}
 
-	my $msg = "$prefix, PASSED: $pass FAILED: $fail SKIPPED: $skipped ABORTED: $abort "
-		. "FAILED DEPENDENCY: $depend";
+        my $context = "";
+        if (defined($confFile) && (length(confFile) > 0)) {
+           $context = " [$confFile-$groupName]"; 
+        } 
+        # XXX why comma is added there?
+	my $msg = appendToLength($prefix . ",", 18) 
+            . " PASSED: " . appendToLength($pass,4) 
+            . " FAILED: " . appendToLength($fail,4) 
+            . " SKIPPED: " . appendToLength($skipped,4) 
+            . " ABORTED: " . appendToLength($abort,4) 
+            . " FAILED DEPENDENCY: " . appendToLength($depend,4)
+            . $context;
 	print $log "$msg\n";
- 	print "$msg\n";
-         
+ 	print "$msg\n";      
+}
+
+##############################################################################
+# Puts all the k-v pairs from sourceHash to the targetHash.
+# Returns: void
+# parameters: 
+#   1: targetHash, 
+#   2: sourceHash.
+sub putAll($$)
+{
+    my ($targetHash, $sourceHash) = @_;
+    while (my ($key, $value) = each(%$sourceHash)) {
+        $targetHash->{ $key } = $value;
+    }
+}
+
+##############################################################################
+# appends one file to another.
+# parameters: 
+#   1: sourceFileName, 
+#   2: targetFileName.
+# Returns: void
+sub appendFile($$) {
+    my ($source, $target) = @_;
+    dbg("Appending file [" . Cwd::realpath($source) . "] >> [" . Cwd::realpath($target) . "]\n");
+    $sourceHandle = FileHandle->new("<$source");
+    if (! defined $sourceHandle) {
+        die "Cannot open source file [$source].";
+    }
+    $targetHandle = FileHandle->new(">>$target");
+    if (defined $targetHandle) {
+        copy($sourceHandle, $targetHandle);
+        $targetHandle->close(); 
+        $sourceHandle->close(); 
+    } else {
+        die "cannot open target file [$target].";
+    }
+}
+
+##############################################################################
+# Diagnostic sub to print a hash contents
+# Paramaters: 
+#   1: the hash reference;
+# Returns: void
+sub dbgDumpHash($;$)
+{
+    if ($ENV{'E2E_DEBUG'} eq 'true') {
+       my ($myhash, $msg) = @_;
+       print "Dump of hash $msg:\n";
+       while (my ($key, $value) = each(%$myhash)) {
+           print "  [$key] = [$value]\n";
+       }
+    }
+}
+
+##############################################################################
+# Diagnostic sub to print a debug output.
+# This is useful when debugging the harness perl scripts.
+# Paramaters: 
+#   1*: object(s) to be printed, typically one string;
+# Returns: void
+sub dbg(@) 
+{
+    if ($ENV{'E2E_DEBUG'} eq 'true') {
+       print @_;
+    }
 }
 
 ##############################################################################
@@ -97,7 +197,6 @@ sub printGroupResultsXml
 
         my $total= $pass + $fail + $abort;
         $report->totals( $groupName, $total, $fail, $abort, $totalDuration );
-
 }
 
 ##############################################################################
@@ -124,9 +223,12 @@ sub new
 
 ##############################################################################
 #  Sub: globalSetup
-# Set up before any tests are run.  This gives each individual driver a chance to do
+# Set up before any tests from the group are run.  This gives each individual driver a chance to do
 # setup.  This function will only be called once, before all the tests are
 # run.  A driver need not implement it.  It is a virtual function.
+#
+# This method invoked unconditionally (always), even if there are no test to run in the group. See
+# also #globalSetupConditional() description. 
 #
 # Paramaters:
 # globalHash - Top level hash from config file (does not have any group
@@ -140,11 +242,32 @@ sub globalSetup
 {
 }
 
+##############################################################################
+#  Sub: globalSetupConditional 
+# Set up before any tests from the test config file (in sequential mode) or test group (in parallel mode) are run. 
+# Executes after #globalSetup(). Executes *only* if there is at least one test to run. Introduced for performance
+# optimization in parallel execution mode.
+# It is a virtual function. Subclasses may override it.
+#
+# Paramaters:
+# globalHash - Top level hash from config file (does not have any group
+# or test information in it).
+# log - log file handle
+#
+# Returns:
+# None
+#
+sub globalSetupConditional
+{
+}
+
 ###############################################################################
 # Sub: globalCleanup
 # Clean up after all tests have run.  This gives each individual driver a chance to do
 # cleanup.  This function will only be called once, after all the tests are
 # run.  A driver need not implement it.  It is a virtual function.
+# This method invoked unconditionally, even if no test in the group was executed. 
+# See #globalCleanupConditional() method description.
 #
 # Paramaters:
 # globalHash - Top level hash from config file (does not have any group
@@ -155,6 +278,22 @@ sub globalSetup
 # None
 sub globalCleanup
 {
+}
+
+###############################################################################
+# Sub: globalCleanupConditional
+# Clean up after all tests have run, before #globalCleanup(). Invoked iff #globalSetupConditional()
+# was previously invoked gor this config file (sequential mode) or test group (parallel mode).
+# It is a virtual function. Subclasses may override it.
+#
+# Paramaters:
+# globalHash - Top level hash from config file (does not have any group
+# or test information in it).
+# log - log file handle
+#
+# Returns:
+# None
+sub globalCleanupConditional() {
 }
 
 ###############################################################################
@@ -280,12 +419,8 @@ sub run
 	my ($self, $testsToRun, $testsToMatch, $cfg, $log, $dbh, $testStatuses,
 		$confFile, $startat, $logname ) = @_;
 
-        my $subName      = (caller(0))[3];
-        my $msg="";
-        my $duration=0;
-        my $totalDuration=0;
-        my $groupDuration=0;
-	my $sawstart = !(defined $startat);
+    my $subName = (caller(0))[3];
+    my $msg="";
 	# Rather than make each driver handle our multi-level cfg, we'll flatten
 	# the hashes into one for it.
 	my %globalHash;
@@ -298,20 +433,129 @@ sub run
 		$globalHash{$_} = $cfg->{$_};
 	}
 
-	$globalHash{$_} = $cfg->{$_};
-	# Do the global setup
-	$self->globalSetup(\%globalHash, $log);
+    my $report=0;
+    my $properties= new Properties(0, $globalHash{'propertiesFile'});
 
-        my $report=0;
-        my $properties= new Properties(0, $globalHash{'propertiesFile'});
+    my $fileForkFactor = int($ENV{'FORK_FACTOR_FILE'});
+    my $groupForkFactor = int($ENV{'FORK_FACTOR_GROUP'});
+    # NB: this is to distinguish the sequential mode from parallel one: 
+    my $productForkFactor = $fileForkFactor * $groupForkFactor;
+    my $pm;
+    if ($groupForkFactor > 1) {
+        print $log "Group fork factor: $groupForkFactor\n";
+        # Create the fork manager:
+        $pm = new Parallel::ForkManager($groupForkFactor);
+        # this is a callback method that will run in the main process on each job subprocess completion:
+        $pm -> run_on_finish (
+           sub {
+              my ($pid, $exit_code, $identification, $exit_signal, $core_dump, $data_structure_reference) = @_; 
+              # see what the child sent us, if anything
+              if (defined($data_structure_reference)) { 
+                  dbg("Group subprocess [$identification] finished, pid=${pid}, sent back: [$data_structure_reference].\n");
+                  dbgDumpHash($data_structure_reference, "The hash passed in in the run_on_finish callback:");
+                  putAll($testStatuses, $data_structure_reference);
+                  dbgDumpHash($testStatuses, "The statuses after merge in the run_on_finish callback:");
+              } else {
+                  print "ERROR: Group subprocess [$identification] did not send back anything. Exit code = $exit_code\n";
+              }
+              my $subLogAgain = "$logname-$identification";
+              appendFile($subLogAgain,$logname);
+           }
+       );
+    } else {
+    	# Do the global setup:
+    	$self->globalSetup(\%globalHash, $log);
+    }
 
-        my %groupExecuted;
+    my $localStartAt = $startat;
 	foreach my $group (@{$cfg->{'groups'}}) {
- 
-                print $log "INFO $subName at ".__LINE__.": Running TEST GROUP(".$group->{'name'}.")\n";
+        my $groupName = $group->{'name'};
+
+        my $subLog;
+        my $subLogName;
+        if ($groupForkFactor > 1) {
+            # use group name as the Job id:
+            my $jobId = $groupName;
+
+            $subLogName = "$logname-$jobId";
+            open $subLog, ">$subLogName" or die "FATAL ERROR $0 at ".__LINE__." : Can't open $subLogName, $!\n";
+
+            dbg("**** Logging to [$subLogName].\n");
+            # PARALLEL SECTION START: ===============================================================================
+            $pm->start($jobId) and next;
+            dbg("Started test group job \"$jobId\"\n");
+
+            dbg("Doing setup for test group [$groupName]...\n");
+            # Set the group-specific ID:
+            # NB: note that '$globalHash' here is an object cloned for this subprocess.
+            # So, there is no concurrency issue in using '$globalHash' there:
+            $globalHash{'job-id'} = $globalHash{'job-id'} . "-" . $jobId;
+            # Do the global setup which is specific for *this group*:
+        	$self->globalSetup(\%globalHash, $subLog);
+        } else {
+            $subLog = $log;
+            $subLogName = $logname;
+        }
+
+        # Run the group of tests.
+        # NB: the processing of $localStartAt parameter happens only if the groupForkFactor < 1.
+        my $sawStart = $self -> runTestGroup($groupName, $subLog, $confFile, \%globalHash, $group, $runAll, $testsToRun, $testsToMatch, $localStartAt, $testStatuses, $productForkFactor);
+        if ((defined $localStartAt) && $sawStart) {
+            undef $localStartAt;
+        }
+
+        if ($groupForkFactor > 1) {
+            # do the clanups that are specific for *this group*.
+            dbg("Doing cleanup for test group [$groupName]...\n");
+            # NB: invoke it in such way to emphasize the fact that this method is not virtual:
+            globalCleanupConditionalIf($self, \%globalHash, $subLog);
+            $self->globalCleanup(\%globalHash, $subLog);
+
+            dbg("Finishing test group [$groupName].\n");
+            dbgDumpHash($testStatuses, "The satatuses hash at the fork section end");
+            # NB: send the "testStatuses" hash object reference (which is local to this subprocess) to the parent process: 
+            $subLog -> close();
+
+            # TODO: may also consider the #runTestGroup block exit status and use it there.
+            $pm -> finish(0, $testStatuses);
+            # PARALLEL SECTION END. ===============================================================================
+        }
+	} # foreach $group  
+
+    if ($groupForkFactor > 1) {
+        $pm->wait_all_children;
+    } else {
+    	# Do the global cleanups:
+        # NB: invoke it in such way to emphasize the fact that this method is not virtual:
+        globalCleanupConditionalIf($self, \%globalHash, $log);
+    	$self->globalCleanup(\%globalHash, $log);
+    }
+}
+
+# Servce method to conditionally perform the virtual #globalCleanupConditional().
+# NB: This sub should be "final" in Java terms,
+# subclasses should not override it.
+sub globalCleanupConditionalIf() {
+    my ($self, $globalHash, $log) = @_;
+    if (defined($globalHash->{$keyGlobalSetupConditionalDone})) {
+        $self -> globalCleanupConditional($globalHash, $log);
+    }
+}
+
+################################################################################
+# Separated sub to run a test group.
+# Parameters: (same named values from #run(...) sub with the same meaning).
+# Returns: 'true' if the test defined by '$startat' was found, and 'false' otherwise.
+#   (If the '$startat' is null, always returns true.)   
+sub runTestGroup() {
+        my ($self, $groupName, $subLog, $confFile, $globalHash, $group, $runAll, $testsToRun, $testsToMatch, $startat, $testStatuses, $productForkFactor) = @_;
+
+        my $subName = (caller(0))[3];
+        print $subLog "INFO $subName at ".__LINE__.": Running TEST GROUP(".$groupName.")\n";
+        my $sawstart = !(defined $startat);
                 
-		my %groupHash = %globalHash;
-		$groupHash{'group'} = $group->{'name'};
+		my %groupHash = %$globalHash; 
+		$groupHash{'group'} = $groupName;
 
 		# Read the group keys
 		foreach (keys(%$group)) {
@@ -319,8 +563,10 @@ sub run
 			$groupHash{$_} = $group->{$_};
 		}
 
+        my $groupDuration=0;
+        my $duration=0;
 
-		# Run each test
+		# Run each test in the group:
 		foreach my $test (@{$group->{'tests'}}) {
 			# Check if we're supposed to run this one or not.
 			if (!$runAll) {
@@ -361,17 +607,19 @@ sub run
 						}
 					}
 				}
-
 				next unless $foundIt;
 			}
 
 			# This is a test, so run it.
 			my %testHash = %groupHash;
+            my $tmpTestHash = \%testHash;
+
 			foreach (keys(%$test)) {
 				$testHash{$_} = $test->{$_};
 			}
 
 			my $testName = $testHash{'group'} . "_" . $testHash{'num'};
+            dbg("################### Executing test [$testName]...\n");
 
 #            if ( $groupExecuted{ $group->{'name'} }== 0 ){
 #                $groupExecuted{ $group->{'name'} }=1;
@@ -386,13 +634,13 @@ sub run
 
 			# Check that ignore isn't set for this file, group, or test
 			if (defined $testHash{'ignore'}) {
-				print $log "Ignoring test $testName, ignore message: " .
+				print $subLog "Ignoring test $testName, ignore message: " .
 					$testHash{'ignore'} . "\n";
 				next;
 			}
 
 			# Have we not reached the starting point yet?
-			if (!$sawstart) {
+			if (!$sawstart) { 
 				if ($testName eq $startat) {
 					$sawstart = 1;
 				} else {
@@ -407,7 +655,7 @@ sub run
 			foreach (keys(%testHash)) {
 				if (/^depends_on/ && defined($testStatuses->{$testHash{$_}}) &&
 						$testStatuses->{$testHash{$_}} ne $passedStr) {
-					print $log "Skipping test $testName, it depended on " .
+					print $subLog "Skipping test $testName, it depended on " .
 						"$testHash{$_} which returned a status of " .
 						"$testStatuses->{$testHash{$_}}\n";
 					$testStatuses->{$testName} = $dependStr;
@@ -416,14 +664,28 @@ sub run
 				}
 			}
 			if ($skipThisOne) {
-				printResults($testStatuses, $log, "Results so far");
-				next;
+                            if ($productForkFactor > 1) {
+				printResults($testStatuses, $subLog, "Results so far", basename($confFile), $groupName);
+                            } else {
+				printResults($testStatuses, $subLog, "Results so far");
+                            }
+			    next;
 			}
 
-			print $log "\n******************************************************\n";
-			print $log "\nTEST: $confFile::$testName\n";
-			print $log  "******************************************************\n";
-			print $log "Beginning test $testName at " . time . "\n";
+			print $subLog "\n******************************************************\n";
+			print $subLog "\nTEST: $confFile::$testName\n";
+			print $subLog  "******************************************************\n";
+			print $subLog "Beginning test $testName at " . time . "\n";
+            
+            # At this point we're going to run the test for sure. 
+            # So, do the preparation for that, if not yet done: 
+            if (!defined($globalHash->{$keyGlobalSetupConditionalDone})) {
+                $self -> globalSetupConditional($globalHash, $subLog);
+                # this preparation should be done only *once* per each $globalHash instance,
+                # so, set special flag to prevent #globalSetupConditional from being executed again:
+                $globalHash->{$keyGlobalSetupConditionalDone} = 'true';
+            }
+
 			my %dbinfo = (
 				'testrun_id' => $testHash{'trid'},
 				'test_type' => $testHash{'driver'},
@@ -436,11 +698,11 @@ sub run
 			my $endTime = 0;
 			my ($testResult, $benchmarkResult);
 			eval {
-				$testResult = $self->runTest(\%testHash, $log);
+				$testResult = $self->runTest(\%testHash, $subLog);
 				$endTime = time;
-				$benchmarkResult = $self->generateBenchmark(\%testHash, $log);
+				$benchmarkResult = $self->generateBenchmark(\%testHash, $subLog);
 				my $result =
-					$self->compare($testResult, $benchmarkResult, $log, \%testHash);
+					$self->compare($testResult, $benchmarkResult, $subLog, \%testHash);
 				$msg = "INFO: $subName() at ".__LINE__.":Test $testName";
 
                 if ($result eq $self->{'wrong_execution_mode'}) {
@@ -457,23 +719,20 @@ sub run
 				}
 				$msg= "$msg at " . time . "\n";
 				#print $msg;
-				print $log $msg;
+				print $subLog $msg;
 				$duration = $endTime - $beginTime;
 				$dbinfo{'duration'} = $duration;
 				$self->recordResults($result, $testResult
-                                          , $benchmarkResult, \%dbinfo, $log);
-                                  
+                                          , $benchmarkResult, \%dbinfo, $subLog);
 			};
-
 
 			if ($@) {
 				$msg= "ERROR $subName at : ".__LINE__." Failed to run test $testName <$@>\n";
 				#print $msg;
-				print $log $msg;
+				print $subLog $msg;
 				$testStatuses->{$testName} = $abortedStr;
 				$dbinfo{'duration'} = $duration;
 			}
-
 
 			eval {
 				$dbinfo{'status'} = $testStatuses->{$testName};
@@ -487,27 +746,26 @@ sub run
 			}
 
 			$self->cleanup($testStatuses->{$testName}, \%testHash, $testResult,
-				$benchmarkResult, $log);
-                        #$report->testcase( $group->{'name'}, $testName, $duration, $msg, $testStatuses->{$testName}, $testResult ) if ( $report );
-                        $report->testcase( $group->{'name'}, $testName, $duration, $msg, $testStatuses->{$testName} ) if ( $report );
-                        $groupDuration = $groupDuration + $duration;
-                        $totalDuration = $totalDuration + $duration;
-			printResults( $testStatuses, $log, "Results so far" );
-		}
+				$benchmarkResult, $subLog);
+            #$report->testcase( $group->{'name'}, $testName, $duration, $msg, $testStatuses->{$testName}, $testResult ) if ( $report );
+            $report->testcase( $group->{'name'}, $testName, $duration, $msg, $testStatuses->{$testName} ) if ( $report );
+            $groupDuration = $groupDuration + $duration;
+                        if ($productForkFactor > 1) {
+			   printResults( $testStatuses, $subLog, "Results so far", basename($confFile), $groupName );
+                        } else {
+			   printResults( $testStatuses, $subLog, "Results so far" );
+                        }
+		}  # for each test
 
-                if ( $report ) {
-	           $report->systemOut( $logname, $group->{'name'});
-	           printGroupResultsXml( $report, $group->{'name'}, $testStatuses, $groupDuration );
-                }
-                $report = 0;
-                $groupDuration=0;
-
-
-	}
-
-	# Do the global cleanup
-	$self->globalCleanup(\%globalHash, $log);
+        if ( $report ) {
+            $report->systemOut( $subLogName, $group->{'name'});
+            printGroupResultsXml( $report, $group->{'name'}, $testStatuses, $groupDuration );
+        }
+        $report = 0;
+        return $sawstart;
 }
+
+
 
 # TODO These should be removed
 

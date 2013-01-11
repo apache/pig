@@ -32,6 +32,16 @@ our @lastName = ("allen", "brown", "carson", "davidson", "ellison", "falkner",
     "nixon", "ovid", "polk", "quirinius", "robinson", "steinbeck", "thompson",
     "underhill", "van buren", "white", "xylophone", "young", "zipper");
 
+our @rankedTuples = (
+	"1,21,5,7,1,1,0,8,8","2,26,2,3,2,5,1,9,10","3,30,24,21,2,3,1,3,10","4,6,10,8,3,4,1,7,2",
+	"5,8,28,25,3,2,1,0,2","6,28,11,12,4,6,2,7,10","7,9,26,22,5,7,3,2,3","8,5,6,5,6,8,3,8,1",
+	"9,29,16,15,7,9,4,6,10","10,18,12,10,8,11,5,7,6","11,14,17,14,9,10,5,6,5","12,6,12,8,10,11,5,7,2",
+	"13,2,17,13,11,10,5,6,0","14,26,3,3,12,14,6,9,10","15,15,20,18,13,13,6,4,5","16,3,29,24,14,12,6,0,0",
+	"17,23,21,19,15,16,7,4,8","18,19,19,16,16,17,7,5,6","19,20,30,26,16,15,7,0,6","20,12,21,17,17,16,7,4,4",
+	"21,4,1,1,18,19,7,10,1","22,1,7,4,19,18,7,8,0","23,24,14,11,20,21,8,7,9","24,16,25,20,21,20,8,3,5",
+	"25,25,27,23,22,22,9,1,9","26,21,8,7,23,25,9,8,8","27,17,4,2,24,26,9,9,6","28,10,8,6,25,25,9,8,4",
+	"29,11,15,9,25,24,9,7,4","30,12,23,17,25,23,9,4,4");
+
 sub randomName()
 {
     return sprintf("%s %s", $firstName[int(rand(26))],
@@ -472,6 +482,23 @@ sub getBulkCopyCmd(){
             my $rand1000 = int(rand(1000)) + 1;
             my $randf = rand(10);
             printf HDFS "%d:%d:%d:%d:%d:%dL:%.2ff:%.2f\n", $tid, $i, $rand5, $rand100, $rand1000, $rand1000, $randf, $randf;
+        }
+    }  elsif ($filetype eq "ranking") {
+        for (my $i = 0; $i < $numRows; $i++) {
+            my $tuple = $rankedTuples[int($i)];
+            printf HDFS "$tuple,";
+            for my $j ( 0 .. 1000000) {
+				printf HDFS "%d",$j;
+			}
+			printf HDFS "\n";
+        }
+    } elsif ($filetype eq "biggish") {
+        for (my $i = 1; $i < $numRows; $i++) {
+            printf HDFS "$i,$i,";
+            for my $j ( 0 .. 1000) {
+				printf HDFS "%d",$j;
+            }
+            printf HDFS "\n";
         }
     } else {
         warn "Unknown filetype $filetype\n";

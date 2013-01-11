@@ -40,7 +40,10 @@ import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
+import org.apache.pig.data.utils.SedesHelper;
 import org.apache.pig.impl.util.ObjectSerializer;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 
 /**
  * A class to handle reading and writing of intermediate results of data types. The serialization format used by this
@@ -50,6 +53,8 @@ import org.apache.pig.impl.util.ObjectSerializer;
 @InterfaceAudience.Private
 @InterfaceStability.Stable
 public class BinInterSedes implements InterSedes {
+    
+    private static final int ONE_MINUTE = 60000;
 
     public static final byte BOOLEAN_TRUE = 0;
     public static final byte BOOLEAN_FALSE = 1;
@@ -92,44 +97,98 @@ public class BinInterSedes implements InterSedes {
 
     public static final byte NULL = 27;
 
-    // These are special bytes to mark optimized "primitive" tuples.
-    public static final byte PINT_TUPLE = 28;
-    public static final byte PFLOAT_TUPLE = 29;
-    public static final byte PLONG_TUPLE = 30;
-    public static final byte PDOUBLE_TUPLE = 31;
-    public static final byte PSTRING_TUPLE = 32;
-    public static final byte PBOOL_TUPLE = 33;
-    public static final byte PRIMITIVE_TUPLE = 34;
+    public static final byte SCHEMA_TUPLE_BYTE_INDEX = 28;
+    public static final byte SCHEMA_TUPLE_SHORT_INDEX = 29;
+    public static final byte SCHEMA_TUPLE = 30;
 
+    public static final byte LONG_INBYTE = 31;
+    public static final byte LONG_INSHORT = 32;
+    public static final byte LONG_ININT = 33;
+    public static final byte LONG_0 = 34;
+    public static final byte LONG_1 = 35;
 
+    public static final byte DATETIME = 50;
+
+    public static final byte TUPLE_0 = 36;
+    public static final byte TUPLE_1 = 37;
+    public static final byte TUPLE_2 = 38;
+    public static final byte TUPLE_3 = 39;
+    public static final byte TUPLE_4 = 40;
+    public static final byte TUPLE_5 = 41;
+    public static final byte TUPLE_6 = 42;
+    public static final byte TUPLE_7 = 43;
+    public static final byte TUPLE_8 = 44;
+    public static final byte TUPLE_9 = 45;
 
     private static TupleFactory mTupleFactory = TupleFactory.getInstance();
     private static BagFactory mBagFactory = BagFactory.getInstance();
-    static final int UNSIGNED_SHORT_MAX = 65535;
-    static final int UNSIGNED_BYTE_MAX = 255;
+    public static final int UNSIGNED_SHORT_MAX = 65535;
+    public static final int UNSIGNED_BYTE_MAX = 255;
     public static final String UTF8 = "UTF-8";
 
-    private Tuple readTuple(DataInput in, byte type) throws IOException {
-        // Read the size.
-        int sz = getTupleSize(in, type);
-
-        Tuple t = mTupleFactory.newTuple(sz);
-        for (int i = 0; i < sz; i++) {
-            t.set(i, readDatum(in));
+    public Tuple readTuple(DataInput in, byte type) throws IOException {
+        switch (type) {
+        case TUPLE_0:
+        case TUPLE_1:
+        case TUPLE_2:
+        case TUPLE_3:
+        case TUPLE_4:
+        case TUPLE_5:
+        case TUPLE_6:
+        case TUPLE_7:
+        case TUPLE_8:
+        case TUPLE_9:
+        case TUPLE:
+        case TINYTUPLE:
+        case SMALLTUPLE:
+            return SedesHelper.readGenericTuple(in, type);
+        case SCHEMA_TUPLE_BYTE_INDEX:
+        case SCHEMA_TUPLE_SHORT_INDEX:
+        case SCHEMA_TUPLE:
+            return readSchemaTuple(in, type);
+        default:
+            throw new ExecException("Unknown Tuple type found in stream: " + type);
         }
-        return t;
+        }
 
+    private Tuple readSchemaTuple(DataInput in, byte type) throws IOException {
+        int id;
+        switch (type) {
+        case (SCHEMA_TUPLE_BYTE_INDEX): id = in.readUnsignedByte(); break;
+        case (SCHEMA_TUPLE_SHORT_INDEX): id = in.readUnsignedShort(); break;
+        case (SCHEMA_TUPLE): id = in.readInt(); break;
+        default: throw new RuntimeException("Invalid type given to readSchemaTuple: " + type);
     }
 
-    private Tuple readPrimitiveTuple(DataInput in) throws IOException {
-        PrimitiveTuple t = new PrimitiveTuple();
-        t.readFields(in);
-        return t;
+        Tuple st = SchemaTupleFactory.getInstance(id).newTuple();
+        st.readFields(in);
+
+        return st;
     }
 
-    private int getTupleSize(DataInput in, byte type) throws IOException {
+    public int getTupleSize(DataInput in, byte type) throws IOException {
         int sz;
         switch (type) {
+        case TUPLE_0:
+            return 0;
+        case TUPLE_1:
+            return 1;
+        case TUPLE_2:
+            return 2;
+        case TUPLE_3:
+            return 3;
+        case TUPLE_4:
+            return 4;
+        case TUPLE_5:
+            return 5;
+        case TUPLE_6:
+            return 6;
+        case TUPLE_7:
+            return 7;
+        case TUPLE_8:
+            return 8;
+        case TUPLE_9:
+            return 9;
         case TINYTUPLE:
             sz = in.readUnsignedByte();
             break;
@@ -219,17 +278,6 @@ public class BinInterSedes implements InterSedes {
         return m;
     }
 
-    private static String readCharArray(DataInput in) throws IOException {
-        return in.readUTF();
-    }
-
-    private static String readBigCharArray(DataInput in) throws IOException {
-        int size = in.readInt();
-        byte[] ba = new byte[size];
-        in.readFully(ba);
-        return new String(ba, UTF8);
-    }
-
     private WritableComparable readWritable(DataInput in) throws IOException {
         String className = (String) readDatum(in);
         // create the writeable class . It needs to have a default constructor
@@ -280,10 +328,20 @@ public class BinInterSedes implements InterSedes {
     @Override
     public Object readDatum(DataInput in, byte type) throws IOException, ExecException {
         switch (type) {
+        case TUPLE_0:
+        case TUPLE_1:
+        case TUPLE_2:
+        case TUPLE_3:
+        case TUPLE_4:
+        case TUPLE_5:
+        case TUPLE_6:
+        case TUPLE_7:
+        case TUPLE_8:
+        case TUPLE_9:
         case TUPLE:
         case TINYTUPLE:
         case SMALLTUPLE:
-            return readTuple(in, type);
+            return SedesHelper.readGenericTuple(in, type);
 
         case BAG:
         case TINYBAG:
@@ -309,8 +367,21 @@ public class BinInterSedes implements InterSedes {
         case INTEGER:
             return Integer.valueOf(in.readInt());
 
+        case LONG_0:
+            return Long.valueOf(0);
+        case LONG_1:
+            return Long.valueOf(1);
+        case LONG_INBYTE:
+            return Long.valueOf(in.readByte());
+        case LONG_INSHORT:
+            return Long.valueOf(in.readShort());
+        case LONG_ININT:
+            return Long.valueOf(in.readInt());
         case LONG:
             return Long.valueOf(in.readLong());
+
+        case DATETIME:
+            return new DateTime(in.readLong(), DateTimeZone.forOffsetMillis(in.readShort() * ONE_MINUTE));
 
         case FLOAT:
             return Float.valueOf(in.readFloat());
@@ -327,60 +398,26 @@ public class BinInterSedes implements InterSedes {
         case BYTE:
             return Byte.valueOf(in.readByte());
 
-        case TINYBYTEARRAY: {
-            int size = in.readUnsignedByte();
-            return readBytes(in, size);
-        }
-
-        case SMALLBYTEARRAY: {
-            int size = in.readUnsignedShort();
-            return readBytes(in, size);
-        }
-
-        case BYTEARRAY: {
-            int size = in.readInt();
-            return readBytes(in, size);
-        }
+        case TINYBYTEARRAY:
+        case SMALLBYTEARRAY:
+        case BYTEARRAY:
+            return new DataByteArray(SedesHelper.readBytes(in, type));
 
         case CHARARRAY:
-            return readBigCharArray(in);
-
         case SMALLCHARARRAY:
-            return readCharArray(in);
+            return SedesHelper.readChararray(in, type);
 
         case GENERIC_WRITABLECOMPARABLE:
             return readWritable(in);
 
-        case PRIMITIVE_TUPLE:
-            return readPrimitiveTuple(in);
+        case SCHEMA_TUPLE_BYTE_INDEX:
+        case SCHEMA_TUPLE_SHORT_INDEX:
+        case SCHEMA_TUPLE:
+            return readSchemaTuple(in, type);
 
         case NULL:
             return null;
 
-        case PINT_TUPLE:
-            Tuple t = new PIntTuple();
-            t.readFields(in);
-            return t;
-        case PFLOAT_TUPLE:
-            t = new PFloatTuple();
-            t.readFields(in);
-            return t;
-        case PLONG_TUPLE:
-            t = new PLongTuple();
-            t.readFields(in);
-            return t;
-        case PDOUBLE_TUPLE:
-            t = new PDoubleTuple();
-            t.readFields(in);
-            return t;
-        case PSTRING_TUPLE:
-            t = new PStringTuple();
-            t.readFields(in);
-            return t;
-        case PBOOL_TUPLE:
-            t = new PBooleanTuple();
-            t.readFields(in);
-            return t;
         default:
             throw new RuntimeException("Unexpected data type " + type + " found in stream.");
         }
@@ -444,14 +481,35 @@ public class BinInterSedes implements InterSedes {
                 out.writeByte(INTEGER);
                 out.writeInt(i);
             }
-
             break;
 
         case DataType.LONG:
+            long lng = (Long) val;
+            if (lng == 0) {
+                out.writeByte(LONG_0);
+            } else if (lng == 1) {
+                out.writeByte(LONG_1);
+            } else if (Byte.MIN_VALUE <= lng && lng <= Byte.MAX_VALUE) {
+                out.writeByte(LONG_INBYTE);
+                out.writeByte((int)lng);
+            } else if (Short.MIN_VALUE <= lng && lng <= Short.MAX_VALUE) {
+                out.writeByte(LONG_INSHORT);
+                out.writeShort((int)lng);
+            } else if (Integer.MIN_VALUE <= lng && lng <= Integer.MAX_VALUE) {
+                out.writeByte(LONG_ININT);
+                out.writeInt((int)lng);
+            } else {
             out.writeByte(LONG);
-            out.writeLong((Long) val);
+                out.writeLong(lng);
+            }
             break;
 
+        case DataType.DATETIME:
+            out.writeByte(DATETIME);
+            out.writeLong(((DateTime) val).getMillis());
+            out.writeShort(((DateTime) val).getZone().getOffset((DateTime) val) / ONE_MINUTE);
+            break;
+            
         case DataType.FLOAT:
             out.writeByte(FLOAT);
             out.writeFloat((Float) val);
@@ -476,38 +534,13 @@ public class BinInterSedes implements InterSedes {
 
         case DataType.BYTEARRAY: {
             DataByteArray bytes = (DataByteArray) val;
-            final int sz = bytes.size();
-            if (sz < UNSIGNED_BYTE_MAX) {
-                out.writeByte(TINYBYTEARRAY);
-                out.writeByte(sz);
-            } else if (sz < UNSIGNED_SHORT_MAX) {
-                out.writeByte(SMALLBYTEARRAY);
-                out.writeShort(sz);
-            } else {
-                out.writeByte(BYTEARRAY);
-                out.writeInt(sz);
-            }
-            out.write(bytes.mData);
-
+            SedesHelper.writeBytes(out, bytes.mData);
             break;
 
         }
 
         case DataType.CHARARRAY: {
-            String s = (String) val;
-            // a char can take up to 3 bytes in the modified utf8 encoding
-            // used by DataOutput.writeUTF, so use UNSIGNED_SHORT_MAX/3
-            if (s.length() < UNSIGNED_SHORT_MAX / 3) {
-                out.writeByte(SMALLCHARARRAY);
-                out.writeUTF(s);
-            } else {
-                byte[] utfBytes = s.getBytes(UTF8);
-                int length = utfBytes.length;
-
-                out.writeByte(CHARARRAY);
-                out.writeInt(length);
-                out.write(utfBytes);
-            }
+            SedesHelper.writeChararray(out, (String) val);
             break;
         }
         case DataType.GENERIC_WRITABLECOMPARABLE:
@@ -577,21 +610,7 @@ public class BinInterSedes implements InterSedes {
         if (t instanceof TypeAwareTuple) {
             t.write(out);
         } else {
-        final int sz = t.size();
-        if (sz < UNSIGNED_BYTE_MAX) {
-            out.writeByte(TINYTUPLE);
-            out.writeByte(sz);
-        } else if (sz < UNSIGNED_SHORT_MAX) {
-            out.writeByte(SMALLTUPLE);
-            out.writeShort(sz);
-        } else {
-            out.writeByte(TUPLE);
-            out.writeInt(sz);
-        }
-
-        for (int i = 0; i < sz; i++) {
-            writeDatum(out, t.get(i));
-        }
+            SedesHelper.writeGenericTuple(out, t);
     }
     }
 
@@ -603,16 +622,10 @@ public class BinInterSedes implements InterSedes {
     @Override
     public void addColsToTuple(DataInput in, Tuple t) throws IOException {
         byte type = in.readByte();
-        switch (type) {
-        case PRIMITIVE_TUPLE:
-            t.readFields(in);
-            break;
-        default:
         int sz = getTupleSize(in, type);
         for (int i = 0; i < sz; i++) {
             t.append(readDatum(in));
         }
-    }
     }
     
     public static class BinInterSedesTupleRawComparator extends WritableComparator implements TupleRawComparator {
@@ -794,12 +807,29 @@ public class BinInterSedes implements InterSedes {
                 }
                 break;
             }
+            case BinInterSedes.LONG_0:
+            case BinInterSedes.LONG_1:
+            case BinInterSedes.LONG_INBYTE:
+            case BinInterSedes.LONG_INSHORT:
+            case BinInterSedes.LONG_ININT:
             case BinInterSedes.LONG: {
                 type1 = DataType.LONG;
                 type2 = getGeneralizedDataType(dt2);
                 if (type1 == type2) {
+                    long lv1 = readLong(bb1, dt1);
+                    long lv2 = readLong(bb2, dt2);
+                    rc = (lv1 < lv2 ? -1 : (lv1 == lv2 ? 0 : 1));
+                }
+                break;
+            }
+            case BinInterSedes.DATETIME: {
+                type1 = DataType.DATETIME;
+                type2 = getGeneralizedDataType(dt2);
+                if (type1 == type2) {
                     long lv1 = bb1.getLong();
+                    bb1.position(bb1.position() + 2); // move cursor forward without read the timezone bytes
                     long lv2 = bb2.getLong();
+                    bb2.position(bb2.position() + 2);
                     rc = (lv1 < lv2 ? -1 : (lv1 == lv2 ? 0 : 1));
                 }
                 break;
@@ -832,11 +862,11 @@ public class BinInterSedes implements InterSedes {
                 if (type1 == type2) {
                     int basz1 = readSize(bb1, dt1);
                     int basz2 = readSize(bb2, dt2);
-                    byte[] ba1 = new byte[basz1];
-                    byte[] ba2 = new byte[basz2];
-                    bb1.get(ba1);
-                    bb2.get(ba2);
-                    rc = DataByteArray.compare(ba1, ba2);
+                    rc = WritableComparator.compareBytes(
+                          bb1.array(), bb1.position(), basz1,
+                          bb2.array(), bb2.position(), basz2);
+                    bb1.position(bb1.position() + basz1);
+                    bb2.position(bb2.position() + basz2);
                 }
                 break;
             }
@@ -847,23 +877,32 @@ public class BinInterSedes implements InterSedes {
                 if (type1 == type2) {
                     int casz1 = readSize(bb1, dt1);
                     int casz2 = readSize(bb2, dt2);
-                    byte[] ca1 = new byte[casz1];
-                    byte[] ca2 = new byte[casz2];
-                    bb1.get(ca1);
-                    bb2.get(ca2);
                     String str1 = null, str2 = null;
                     try {
-                        str1 = new String(ca1, BinInterSedes.UTF8);
-                        str2 = new String(ca2, BinInterSedes.UTF8);
+                        str1 = new String(bb1.array(), bb1.position(), casz1, BinInterSedes.UTF8);
+                        str2 = new String(bb2.array(), bb2.position(), casz2, BinInterSedes.UTF8);
                     } catch (UnsupportedEncodingException uee) {
                         mLog.warn("Unsupported string encoding", uee);
                         uee.printStackTrace();
+                    } finally {
+                        bb1.position(bb1.position() + casz1);
+                        bb2.position(bb2.position() + casz2);
                     }
                     if (str1 != null && str2 != null)
                         rc = str1.compareTo(str2);
                 }
                 break;
             }
+            case BinInterSedes.TUPLE_0:
+            case BinInterSedes.TUPLE_1:
+            case BinInterSedes.TUPLE_2:
+            case BinInterSedes.TUPLE_3:
+            case BinInterSedes.TUPLE_4:
+            case BinInterSedes.TUPLE_5:
+            case BinInterSedes.TUPLE_6:
+            case BinInterSedes.TUPLE_7:
+            case BinInterSedes.TUPLE_8:
+            case BinInterSedes.TUPLE_9:
             case BinInterSedes.TINYTUPLE:
             case BinInterSedes.SMALLTUPLE:
             case BinInterSedes.TUPLE: {
@@ -1086,8 +1125,15 @@ public class BinInterSedes implements InterSedes {
             case BinInterSedes.INTEGER_INSHORT:
             case BinInterSedes.INTEGER:
                 return DataType.INTEGER;
+            case BinInterSedes.LONG_0:
+            case BinInterSedes.LONG_1:
+            case BinInterSedes.LONG_INBYTE:
+            case BinInterSedes.LONG_INSHORT:
+            case BinInterSedes.LONG_ININT:
             case BinInterSedes.LONG:
                 return DataType.LONG;
+            case BinInterSedes.DATETIME:
+                return DataType.DATETIME;
             case BinInterSedes.FLOAT:
                 return DataType.FLOAT;
             case BinInterSedes.DOUBLE:
@@ -1099,6 +1145,16 @@ public class BinInterSedes implements InterSedes {
             case BinInterSedes.SMALLCHARARRAY:
             case BinInterSedes.CHARARRAY:
                 return DataType.CHARARRAY;
+            case BinInterSedes.TUPLE_0:
+            case BinInterSedes.TUPLE_1:
+            case BinInterSedes.TUPLE_2:
+            case BinInterSedes.TUPLE_3:
+            case BinInterSedes.TUPLE_4:
+            case BinInterSedes.TUPLE_5:
+            case BinInterSedes.TUPLE_6:
+            case BinInterSedes.TUPLE_7:
+            case BinInterSedes.TUPLE_8:
+            case BinInterSedes.TUPLE_9:
             case BinInterSedes.TUPLE:
             case BinInterSedes.TINYTUPLE:
             case BinInterSedes.SMALLTUPLE:
@@ -1115,6 +1171,20 @@ public class BinInterSedes implements InterSedes {
                 return DataType.INTERNALMAP;
             case BinInterSedes.GENERIC_WRITABLECOMPARABLE:
                 return DataType.GENERIC_WRITABLECOMPARABLE;
+            default:
+                throw new RuntimeException("Unexpected data type " + type + " found in stream.");
+            }
+        }
+
+        private static long readLong(ByteBuffer bb, byte type) {
+            int bytesToRead = 0;
+            switch (type) {
+            case BinInterSedes.LONG_0: return 0L;
+            case BinInterSedes.LONG_1: return 1L;
+            case BinInterSedes.LONG_INBYTE: return bb.get();
+            case BinInterSedes.LONG_INSHORT: return bb.getShort();
+            case BinInterSedes.LONG_ININT: return bb.getInt();
+            case BinInterSedes.LONG: return bb.getLong();
             default:
                 throw new RuntimeException("Unexpected data type " + type + " found in stream.");
             }
@@ -1170,6 +1240,26 @@ public class BinInterSedes implements InterSedes {
             case BinInterSedes.BAG:
             case BinInterSedes.MAP:
                 return bb.getInt();
+            case BinInterSedes.TUPLE_0:
+                return 0;
+            case BinInterSedes.TUPLE_1:
+                return 1;
+            case BinInterSedes.TUPLE_2:
+                return 2;
+            case BinInterSedes.TUPLE_3:
+                return 3;
+            case BinInterSedes.TUPLE_4:
+                return 4;
+            case BinInterSedes.TUPLE_5:
+                return 5;
+            case BinInterSedes.TUPLE_6:
+                return 6;
+            case BinInterSedes.TUPLE_7:
+                return 7;
+            case BinInterSedes.TUPLE_8:
+                return 8;
+            case BinInterSedes.TUPLE_9:
+                return 9;
             default:
                 throw new RuntimeException("Unexpected data type " + type + " found in stream.");
             }
@@ -1189,5 +1279,28 @@ public class BinInterSedes implements InterSedes {
     @Override
     public Class<? extends TupleRawComparator> getTupleRawComparatorClass() {
         return BinInterSedesTupleRawComparator.class;
+    }
+
+    public Tuple readTuple(DataInput in) throws IOException {
+        return readTuple(in, in.readByte());
+    }
+
+    public static boolean isTupleByte(byte b) {
+        return b == BinInterSedes.TUPLE
+            || b == BinInterSedes.SMALLTUPLE
+            || b == BinInterSedes.TINYTUPLE
+            || b == BinInterSedes.SCHEMA_TUPLE
+            || b == BinInterSedes.SCHEMA_TUPLE_BYTE_INDEX
+            || b == BinInterSedes.SCHEMA_TUPLE_SHORT_INDEX
+            || b == BinInterSedes.TUPLE_0
+            || b == BinInterSedes.TUPLE_1
+            || b == BinInterSedes.TUPLE_2
+            || b == BinInterSedes.TUPLE_3
+            || b == BinInterSedes.TUPLE_4
+            || b == BinInterSedes.TUPLE_5
+            || b == BinInterSedes.TUPLE_6
+            || b == BinInterSedes.TUPLE_7
+            || b == BinInterSedes.TUPLE_8
+            || b == BinInterSedes.TUPLE_9;
     }
 }

@@ -17,6 +17,9 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.util.Map;
 
@@ -32,43 +35,45 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.DefaultBagFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.junit.Test;
 
-public class TestTextDataParser extends junit.framework.TestCase {
+public class TestTextDataParser {
 
     private final Log log = LogFactory.getLog(getClass());
     private TupleFactory tupleFactory = TupleFactory.getInstance();
     private BagFactory bagFactory = DefaultBagFactory.getInstance();
     PigStorage ps = new PigStorage();
-    
+
 
     ResourceFieldSchema getTupleFieldSchema() throws IOException {
         ResourceFieldSchema stringfs = new ResourceFieldSchema();
         stringfs.setType(DataType.CHARARRAY);
         ResourceFieldSchema intfs = new ResourceFieldSchema();
         intfs.setType(DataType.INTEGER);
-        
+
         ResourceSchema tupleSchema = new ResourceSchema();
         tupleSchema.setFields(new ResourceFieldSchema[]{intfs, stringfs});
         ResourceFieldSchema tuplefs = new ResourceFieldSchema();
         tuplefs.setSchema(tupleSchema);
         tuplefs.setType(DataType.TUPLE);
-        
+
         return tuplefs;
     }
-    
+
     public ResourceFieldSchema getBagFieldSchema() throws IOException{
         ResourceFieldSchema tuplefs = getTupleFieldSchema();
-        
+
         ResourceSchema outBagSchema = new ResourceSchema();
         outBagSchema.setFields(new ResourceFieldSchema[]{tuplefs});
         ResourceFieldSchema outBagfs = new ResourceFieldSchema();
         outBagfs.setSchema(outBagSchema);
         outBagfs.setType(DataType.BAG);
-        
+
         return outBagfs;
     }
-    
+
     ResourceFieldSchema getLongFieldSchema() {
         ResourceFieldSchema longfs = new ResourceFieldSchema();
         longfs.setType(DataType.LONG);
@@ -79,44 +84,51 @@ public class TestTextDataParser extends junit.framework.TestCase {
     public void testBoolean() throws Exception{
         String myBoolean = "true";
         Boolean b = ps.getLoadCaster().bytesToBoolean(myBoolean.getBytes());
-        assertTrue(b.equals(Boolean.TRUE));
+        assertEquals(Boolean.TRUE, b);
     }
-    
+
     @Test
     public void testInteger() throws Exception{
         String myInteger = "1";
         Integer i = ps.getLoadCaster().bytesToInteger(myInteger.getBytes());
-        assertTrue(i.equals(1));
+        assertEquals(Integer.valueOf(1), i);
     }
 
     @Test
     public void testLong() throws Exception{
         String myLong = "1";
         Long l = ps.getLoadCaster().bytesToLong(myLong.getBytes());
-        assertTrue(l.equals(1l));
+        assertEquals(Long.valueOf(1L), l);
     }
-    
+
     @Test
     public void testFloat() throws Exception{
         String myFloat = "0.1";
         Float f = ps.getLoadCaster().bytesToFloat(myFloat.getBytes());
-        assertTrue(f.equals(0.1f));
+        assertEquals(Float.valueOf(0.1f), f);
     }
-    
+
     @Test
     public void testDouble() throws Exception{
         String myDouble = "0.1";
         Double d = ps.getLoadCaster().bytesToDouble(myDouble.getBytes());
-        assertTrue(d.equals(0.1));
+        assertEquals(Double.valueOf(0.1), d);
     }
-    
+
+    @Test
+    public void testDateTime() throws Exception{
+        String myDateTime = "1970-01-01T00:00:00.000Z";
+        DateTime d = ps.getLoadCaster().bytesToDateTime(myDateTime.getBytes());
+        assertEquals(new DateTime(myDateTime, DateTimeZone.forID("+00:00")), d);
+    }
+
     @Test
     public void testString() throws Exception{
         String myString = "1a";
         String s = ps.getLoadCaster().bytesToCharArray(myString.getBytes());
-        assertTrue(s.equals(myString));
+        assertEquals(myString, s);
     }
-    
+
 
     //the value types of a map should always be a byte array
     //irrespective of the actual type
@@ -125,14 +137,14 @@ public class TestTextDataParser extends junit.framework.TestCase {
     public void testMapStringValueType() throws Exception{
         String myMap = "[key1#value1]";
         Map<String, Object> map = ps.getLoadCaster().bytesToMap(myMap.getBytes());
-        String key = map.keySet().iterator().next();        
+        String key = map.keySet().iterator().next();
         Object v = map.get("key1");
-        assertTrue(key.equals("key1"));
+        assertEquals("key1", key);
         assertTrue(v instanceof DataByteArray);
         String value = new String(((DataByteArray)v).get());
-        assertTrue(value.equals("value1"));
+        assertEquals("value1", value);
     }
-    
+
     //the value types of a map should always be a byte array
     //irrespective of the actual type
     @SuppressWarnings("unchecked")
@@ -140,12 +152,12 @@ public class TestTextDataParser extends junit.framework.TestCase {
     public void testMapIntegerValueType() throws Exception{
         String myMap = "[key1#1]";
         Map<String, Object> map = ps.getLoadCaster().bytesToMap(myMap.getBytes());
-        String key = map.keySet().iterator().next();        
+        String key = map.keySet().iterator().next();
         Object v = map.get("key1");
-        assertTrue(key.equals("key1"));
+        assertEquals("key1", key);
         assertTrue(v instanceof DataByteArray);
         String value = new String(((DataByteArray)v).get());
-        assertTrue(value.equals("1"));
+        assertEquals("1", value);
     }
 
     //the value types of a map should always be a byte array
@@ -155,12 +167,12 @@ public class TestTextDataParser extends junit.framework.TestCase {
     public void testMapLongValueType() throws Exception{
         String myMap = "[key1#1l]";
         Map<String, Object> map = ps.getLoadCaster().bytesToMap(myMap.getBytes());
-        String key = map.keySet().iterator().next();        
+        String key = map.keySet().iterator().next();
         Object v = map.get("key1");
-        assertTrue(key.equals("key1"));
+        assertEquals("key1", key);
         assertTrue(v instanceof DataByteArray);
         String value = new String(((DataByteArray)v).get());
-        assertTrue(value.equals("1l"));
+        assertEquals("1l", value);
     }
 
     //the value types of a map should always be a byte array
@@ -170,12 +182,12 @@ public class TestTextDataParser extends junit.framework.TestCase {
     public void testMapFloatValueType() throws Exception{
         String myMap = "[key1#0.1f]";
         Map<String, Object> map = ps.getLoadCaster().bytesToMap(myMap.getBytes());
-        String key = map.keySet().iterator().next();        
+        String key = map.keySet().iterator().next();
         Object v = map.get("key1");
-        assertTrue(key.equals("key1"));
+        assertEquals("key1", key);
         assertTrue(v instanceof DataByteArray);
         String value = new String(((DataByteArray)v).get());
-        assertTrue(value.equals("0.1f"));
+        assertEquals("0.1f", value);
     }
 
     //the value types of a map should always be a byte array
@@ -185,12 +197,12 @@ public class TestTextDataParser extends junit.framework.TestCase {
     public void testMapDoubleValueType() throws Exception{
         String myMap = "[key1#0.1]";
         Map<String, Object> map = ps.getLoadCaster().bytesToMap(myMap.getBytes());
-        String key = map.keySet().iterator().next();        
+        String key = map.keySet().iterator().next();
         Object v = map.get("key1");
-        assertTrue(key.equals("key1"));
+        assertEquals("key1", key);
         assertTrue(v instanceof DataByteArray);
         String value = new String(((DataByteArray)v).get());
-        assertTrue(value.equals("0.1"));
+        assertEquals("0.1", value);
     }
 
     @Test
@@ -202,7 +214,7 @@ public class TestTextDataParser extends junit.framework.TestCase {
         Tuple expectedTuple = tupleFactory.newTuple(2);
         expectedTuple.set(0, 1);
         expectedTuple.set(1, "a");
-        assertTrue(t.equals(expectedTuple));
+        assertEquals(expectedTuple, t);
     }
 
     @Test
@@ -220,15 +232,15 @@ public class TestTextDataParser extends junit.framework.TestCase {
         expectedTuple.set(0, 2);
         expectedTuple.set(1, "b");
         expectedBag.add(expectedTuple);
-        assertTrue(b.equals(expectedBag));
+        assertEquals(expectedBag, b);
     }
-    
+
     @Test
     public void testEmptyBag() throws Exception{
         String myBag = "{}";
         Object o = ps.getLoadCaster().bytesToBag(myBag.getBytes(), getBagFieldSchema());
         assertTrue(o instanceof DataBag);
         DataBag b = (DataBag)o;
-        assertTrue(b.size()==0);
-    }    
+        assertEquals(0, b.size());
+    }
 }
