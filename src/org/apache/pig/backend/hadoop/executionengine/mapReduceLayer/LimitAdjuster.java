@@ -134,6 +134,8 @@ public class LimitAdjuster extends MROpPlanVisitor {
             st.setSFile(oldSpec);
             st.setIsTmpStore(oldIsTmpStore);
             st.setSchema(((POStore)mpLeaf).getSchema());
+            st.setSignature(((POStore)mpLeaf).getSignature());
+            
             limitAdjustMROp.reducePlan.addAsLeaf(st);
             limitAdjustMROp.requestedParallelism = 1;
             limitAdjustMROp.setLimitOnly(true);
