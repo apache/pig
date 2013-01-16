@@ -3738,16 +3738,17 @@ public class TestTypeCheckingValidatorNewLP {
         public void testMapLookupCast() throws Exception {
              String input[] = { "[k1#hello,k2#bye]",
                      "[k1#good,k2#morning]" };
+             PigServer ps = new PigServer(ExecType.LOCAL);
              File f = org.apache.pig.test.Util.createInputFile("test", ".txt", input);
-             String inputFileName = f.getAbsolutePath();
+             String inputFileName = Util.generateURI(Util.encodeEscape(f.getAbsolutePath()), ps.getPigContext());
              // load as bytearray and use as map
-             String query = "a= load 'file://" + inputFileName + "' as (m);"
+             String query = "a= load '" + inputFileName + "' as (m);"
              + " b = foreach a generate m#'k1';";
 
              checkLastForeachCastLoadFunc(query, "org.apache.pig.builtin.PigStorage", 0);
 
              // load as map and use as map
-             query = "a= load 'file://" + inputFileName + "' as (m:[]);"
+             query = "a= load '" + inputFileName + "' as (m:[]);"
              + "b = foreach a generate m#'k1';";
 
              LOForEach foreach = getForeachFromPlan(query);
@@ -3755,9 +3756,8 @@ public class TestTypeCheckingValidatorNewLP {
              Operator outExp = loGen.getOutputPlans().get(0).getSources().get(0);
              assertFalse("outExp is not cast", outExp instanceof CastExpression);
 
-             PigServer ps = new PigServer(ExecType.LOCAL);
              // load as bytearray and use as map
-             ps.registerQuery("a = load 'file://" + inputFileName + "' as (m);");
+             ps.registerQuery("a = load '" + inputFileName + "' as (m);");
              ps.registerQuery("b = foreach a generate m#'k1';");
              Iterator<Tuple> it = ps.openIterator("b");
              String[] expectedResults = new String[] {"(hello)", "(good)"};
@@ -3767,7 +3767,7 @@ public class TestTypeCheckingValidatorNewLP {
              }
 
              // load as map and use as map
-             ps.registerQuery("a = load 'file://" + inputFileName + "' as (m:[]);");
+             ps.registerQuery("a = load '"+ inputFileName + "' as (m:[]);");
              ps.registerQuery("b = foreach a generate m#'k1';");
              it = ps.openIterator("b");
              expectedResults = new String[] {"(hello)", "(good)"};

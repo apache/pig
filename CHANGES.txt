@@ -66,6 +66,8 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-3029 TestTypeCheckingValidatorNewLP has some path reference issues for cross-platform execution (jgordon via gates)
+
 PIG-3120: setStoreFuncUDFContextSignature called with null signature (jdler via cheolsoo)
 
 PIG-3115: Distinct Build-in Function Doesn't Handle Null Bags (njw45 via daijy)
