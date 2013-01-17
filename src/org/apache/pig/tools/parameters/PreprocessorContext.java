@@ -22,15 +22,15 @@
 
 package org.apache.pig.tools.parameters;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.log4j.Logger;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.BufferedReader;
 import java.util.Hashtable;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 public class PreprocessorContext {
 
@@ -210,7 +210,8 @@ public class PreprocessorContext {
         return streamData.trim();
     }
 
-    private Pattern id_pattern = Pattern.compile("\\$[_]*[a-zA-Z][a-zA-Z_0-9]*");
+    private Pattern bracketIdPattern = Pattern.compile("\\$\\{([_]*[a-zA-Z][a-zA-Z_0-9]*)\\}");
+    private Pattern id_pattern = Pattern.compile("\\$([_]*[a-zA-Z][a-zA-Z_0-9]*)");
 
     public  String substitute(String line) {
 
@@ -219,15 +220,35 @@ public class PreprocessorContext {
 
         String replaced_line = line;
 
-        Matcher keyMatcher = id_pattern.matcher( line );
+        Matcher bracketKeyMatcher = bracketIdPattern.matcher(line);
+
         String key="";
         String val="";
+
+        while (bracketKeyMatcher.find()) {
+            if ( (bracketKeyMatcher.start() == 0) || (line.charAt( bracketKeyMatcher.start() - 1)) != '\\' ) {
+                key = bracketKeyMatcher.group(1);
+                if (!(param_val.containsKey(key))) {
+                    throw new RuntimeException("Undefined parameter : "+key);
+                }
+                val = param_val.get(key);
+                if (val.contains("$")) {
+                    val = val.replaceAll("(?<!\\\\)\\$", "\\\\\\$");
+                }
+                replaced_line = replaced_line.replaceFirst("\\$\\{"+key+"\\}", val);
+            }
+        }
+
+        Matcher keyMatcher = id_pattern.matcher( replaced_line );
+
+        key="";
+        val="";
 
         while (keyMatcher.find()) {
             // make sure that we don't perform parameter substitution
             // for escaped vars of the form \$<id>
             if ( (keyMatcher.start() == 0) || (line.charAt( keyMatcher.start() - 1)) != '\\' ) {
-                key = keyMatcher.group().substring(1);  	//skip the '$'
+                key = keyMatcher.group(1);
                 if (!(param_val.containsKey(key))) {
                     throw new RuntimeException("Undefined parameter : "+key);
                 }
