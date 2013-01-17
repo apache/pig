@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2788: improved string interpolation of variables (jcoveney)
+
 PIG-2362: Rework Ant build.xml to use macrodef instead of antcall (azaroth via cheolsoo)
 
 PIG-2857: Add a -tagPath option to PigStorage (prkommireddi via cheolsoo)

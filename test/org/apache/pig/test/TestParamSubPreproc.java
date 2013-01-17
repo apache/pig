@@ -1304,4 +1304,39 @@ public class TestParamSubPreproc {
 
         log.info("Done");
     }
+
+    @Test
+    public void testCmdlineParamCurlySyntax() throws Exception{
+        ParameterSubstitutionPreprocessor ps = new ParameterSubstitutionPreprocessor(50);
+        pigIStream = new BufferedReader(new FileReader(basedir + "/input7.pig"));
+        pigOStream = new FileWriter(basedir + "/output1.pig");
+
+        String[] arg = {"date=20080228"};
+        String[] argFiles = null;
+        ps.genSubstitutedFile(pigIStream , pigOStream , arg , argFiles);
+
+        FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
+        pigExResultStream = new FileInputStream(basedir + "/ExpectedResult7.pig");
+        BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
+        BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
+
+        String exLine;
+        String resLine;
+        int lineNum=0;
+
+        while (true) {
+            lineNum++;
+            exLine = inExpected.readLine();
+            resLine = inResult.readLine();
+            if (exLine==null || resLine==null)
+                break;
+            assertEquals("Command line parameter substitution failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum ,exLine.trim(), resLine.trim());
+        }
+        if (!(exLine==null && resLine==null)) {
+            fail ("Command line parameter substitution failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum);
+        }
+
+        inExpected.close();
+        inResult.close();
+    }
 }
