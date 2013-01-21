@@ -72,4 +72,9 @@ class ZebraTupleFactory extends TupleFactory {
     }
     return self;
   }
+
+  @Override
+  public boolean isFixedSize() {
+    return false;
+  }
 }
