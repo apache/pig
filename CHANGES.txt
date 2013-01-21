@@ -332,6 +332,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-3125: Fix zebra compilation error (cheolsoo)
+
 PIG-3029: TestTypeCheckingValidatorNewLP has some path reference issues for cross-platform execution (jgordon via gates)
 
 PIG-3051: java.lang.IndexOutOfBoundsException failure with LimitOptimizer + ColumnPruning (knoguchi via rohini)
