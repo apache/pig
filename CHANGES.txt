@@ -422,6 +422,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-3125: Fix zebra compilation error (cheolsoo)
+
 PIG-3051: java.lang.IndexOutOfBoundsException failure with LimitOptimizer + ColumnPruning (knoguchi via rohini)
 
 PIG-3076: make TestScalarAliases more reliable (julien)
