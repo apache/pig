@@ -332,6 +332,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-3022: TestRegisteredJarVisibility.testRegisteredJarVisibility fails with hadoop-2.0.x (rohini via cheolsoo)
+
 PIG-3125: Fix zebra compilation error (cheolsoo)
 
 PIG-3029: TestTypeCheckingValidatorNewLP has some path reference issues for cross-platform execution (jgordon via gates)
