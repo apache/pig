@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-3090: Introduce a syntax to be able to easily refer to the previously defined relation (jcoveney)
+
 PIG-3057: Make PigStorage.readField() protected (pablomar and billgraham via billgraham)
 
 PIG-2788: improved string interpolation of variables (jcoveney)
