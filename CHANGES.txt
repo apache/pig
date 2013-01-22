@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-3078: Make a UDF that, given a string, returns just the columns prefixed by that string (jcoveney)
+
 PIG-3090: Introduce a syntax to be able to easily refer to the previously defined relation (jcoveney)
 
 PIG-3057: Make PigStorage.readField() protected (pablomar and billgraham via billgraham)
