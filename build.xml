@@ -520,8 +520,9 @@
 
         <ivy:cachepath pathid="mr-apps-test-ivy.classpath" conf="test" />
         <path id="mr-apps-test.classpath">
-            <pathelement path="${build.classes}"/> <!--Include hadoop-site.xml for TestFRJoin -->
-            <pathelement path="${clover.jar}"/>
+            <fileset dir="${clover.home}" erroronmissingdir="false">
+                <include name="lib/clover.jar"/>
+            </fileset>
             <path refid="mr-apps-test-ivy.classpath"/>
         </path>
         <property name="mr-apps-classpath" refid="mr-apps-test.classpath" />
