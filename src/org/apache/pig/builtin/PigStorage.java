@@ -248,14 +248,14 @@ LoadPushDown, LoadMetadata, StoreMetadata {
             for (int i = 0; i < len; i++) {
                 if (buf[i] == fieldDel) {
                     if (mRequiredColumns==null || (mRequiredColumns.length>fieldID && mRequiredColumns[fieldID]))
-                        readField(buf, start, i);
+                        addTupleValue(mProtoTuple, buf, start, i);
                     start = i + 1;
                     fieldID++;
                 }
             }
             // pick up the last field
             if (start <= len && (mRequiredColumns==null || (mRequiredColumns.length>fieldID && mRequiredColumns[fieldID]))) {
-                readField(buf, start, len);
+                addTupleValue(mProtoTuple, buf, start, len);
             }
             Tuple t =  mTupleFactory.newTupleNoCopy(mProtoTuple);
 
@@ -320,12 +320,22 @@ LoadPushDown, LoadMetadata, StoreMetadata {
         }
     }
 
-    private void readField(byte[] buf, int start, int end) {
+    private void addTupleValue(ArrayList<Object> tuple, byte[] buf, int start, int end) {
+        tuple.add(readField(buf, start, end));
+    }
+
+    /**
+     * Read the bytes between start and end into a DataByteArray for inclusion in the return tuple.
+     * @param bytes byte array to copy data from
+     * @param start starting point to copy from
+     * @param end ending point to copy to, exclusive.
+     * @return
+     */
+    protected DataByteArray readField(byte[] bytes, int start, int end) {
         if (start == end) {
-            // NULL value
-            mProtoTuple.add(null);
+            return null;
         } else {
-            mProtoTuple.add(new DataByteArray(buf, start, end));
+            return new DataByteArray(bytes, start, end);
         }
     }
 

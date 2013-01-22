@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-3057: Make PigStorage.readField() protected (pablomar and billgraham via billgraham)
+
 PIG-2788: improved string interpolation of variables (jcoveney)
 
 PIG-2362: Rework Ant build.xml to use macrodef instead of antcall (azaroth via cheolsoo)
