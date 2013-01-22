@@ -144,8 +144,12 @@ if [ "$includeHCatalog" == "true" ]; then
   slfJarVersion=`ls $HIVE_HOME/lib/$slfJar`
   hbaseHiveVersion=`ls $HIVE_HOME/lib/$hbaseHiveJar`
 
-  hcatJar=hcatalog-*.jar
+  # hcatalog jar name for 0.4 and earlier
+  hcatJarOld=hcatalog-*.jar
+  # hcatalog jar name for 0.5
+  hcatJar=hcatalog-core-*.jar
   hbaseHCatJar=hbase-storage-handler-*.jar
+  pigHCatJar=hcatalog-pig-adapter-*.jar
   if [ "$HCAT_HOME" == "" ]; then
     if [ -d "/usr/lib/hcatalog" ]; then
       HCAT_HOME=/usr/lib/hcatalog
@@ -154,10 +158,24 @@ if [ "$includeHCatalog" == "true" ]; then
       exit -1
     fi
   fi
-  hcatVersion=`ls $HCAT_HOME/share/hcatalog/$hcatJar | grep -v server`
-  hbaseHCatVersion=`ls $HCAT_HOME/lib/$hbaseHCatJar`
+  hcatJarPath=`ls $HCAT_HOME/share/hcatalog/$hcatJar`
+  # if hcat jar is not found may be we are on hcatalog 0.4 or older
+  if [ 'xx' == "x${hcatJarPath}x" ]; then
+    hcatJarPath=`ls $HCAT_HOME/share/hcatalog/$hcatJarOld | grep -v server`
+  fi
 
-  ADDITIONAL_CLASSPATHS=$hiveMetaStoreVersion:$thriftVersion:$hiveExecVersion:$fbJarVersion:$jdoECJarVersion:$slfJarVersion:$hbaseHiveVersion:$hcatVersion:$hbaseHCatVersion
+  # if we are using an older hcatalog version then the jar is on a different path
+  if [ -d "$HCAT_HOME/share/hcatalog/storage-handlers/hbase/lib" ]; then
+    # in 0.5 and newer we need to add multiple jars to the class path
+    hbaseHCatJarPath="$HCAT_HOME/share/hcatalog/storage-handlers/hbase/lib/*"
+  else
+    hbaseHCatJarPath=`ls $HCAT_HOME/lib/$hbaseHCatJar`
+  fi
+  
+  # get the pig storage handler jar
+  pigHCatJarPath=`ls $HCAT_HOME/share/hcatalog/${pigHCatJar}`
+
+  ADDITIONAL_CLASSPATHS=$hiveMetaStoreVersion:$thriftVersion:$hiveExecVersion:$fbJarVersion:$jdoECJarVersion:$slfJarVersion:$hbaseHiveVersion:$hcatJarPath:$hbaseHCatJarPath:$pigHCatJarPath
   if [ "$additionalJars" != "" ]; then
     ADDITIONAL_CLASSPATHS=$ADDITIONAL_CLASSPATHS:$additionalJars
   fi
