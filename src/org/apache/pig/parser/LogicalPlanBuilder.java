@@ -98,7 +98,15 @@ public class LogicalPlanBuilder {
 
     private LogicalPlan plan = new LogicalPlan();
 
-    private Map<String, Operator> operators = new HashMap<String, Operator>();
+    private String lastRel = null;
+
+    private Map<String, Operator> operators = new HashMap<String, Operator>() {
+        @Override
+        public Operator put(String k, Operator v) {
+            lastRel = k;
+            return super.put(k, v);
+        }
+    };
 
     Map<String, String> fileNameMap;
 
@@ -1630,5 +1638,12 @@ public class LogicalPlanBuilder {
     void putOperator(String alias, Operator op) {
         operators.put(alias, op);
     }
+
+    public String getLastRel(SourceLocation loc) throws ParserValidationException {
+      if (lastRel == null) {
+          throw new ParserValidationException(intStream, loc, "Asked for last relation -- no relations have been defined");
+      }
+      return lastRel;
+  }
 
 }

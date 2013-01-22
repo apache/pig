@@ -59,10 +59,10 @@ public class TestCommit {
         pigServer.registerQuery("c = filter a by age < 50;");
         pigServer.registerQuery("d = filter b by age < 50;");
         pigServer.registerQuery("e = cogroup c by (name, age), d by (name, age);");
-        pigServer.registerQuery("f = foreach e generate flatten(c), flatten(d);");
-        pigServer.registerQuery("g = group f by registration;");
-        pigServer.registerQuery("h = foreach g generate (chararray)group, SUM(f.d::contributions);");
-        pigServer.registerQuery("i = order h by $1;");
+        pigServer.registerQuery("f = foreach @ generate flatten(c), flatten(d);");
+        pigServer.registerQuery("g = group @ by registration;");
+        pigServer.registerQuery("h = foreach @ generate (chararray)group, SUM(f.d::contributions);");
+        pigServer.registerQuery("i = order @ by $1;");
 
         Iterator<Tuple> iter = pigServer.openIterator("i");
         int count = 0;
@@ -95,15 +95,15 @@ public class TestCommit {
         expected2.set(3, 55);
 
         pigServer.registerQuery("a = load '" + Util.encodeEscape(testFile.getAbsolutePath()) + "' using " + PigStorage.class.getName() + "(':') as (name: chararray, age: int, gpa: float);");
-        pigServer.registerQuery("b = group a by age;");
-        pigServer.registerQuery("c = foreach b { d = filter a by gpa > 2.5;  " +
+        pigServer.registerQuery("b = group @ by age;");
+        pigServer.registerQuery("c = foreach @ { d = filter a by gpa > 2.5;  " +
                                 "e = order a by name; f = a.age; g = distinct f; " +
                                 " generate group, COUNT(d), MAX (e.name), MIN(g.$0);};");
         pigServer.registerQuery("h = order c by $1;");
-        pigServer.registerQuery("i = limit h 2;");
+        pigServer.registerQuery("i = limit @ 2;");
         pigServer.store("i", "testCheckin2-output.txt");
         pigServer.registerQuery("x = load 'testCheckin2-output.txt' as (age: int, cnt: long, max: chararray, min: int);");
-        pigServer.registerQuery("y = foreach x generate age, cnt, max, min;");
+        pigServer.registerQuery("y = foreach @ generate age, cnt, max, min;");
         Iterator<Tuple> iter = pigServer.openIterator("y");
         int count = 0;
         boolean contain1=false, contain2=false;
