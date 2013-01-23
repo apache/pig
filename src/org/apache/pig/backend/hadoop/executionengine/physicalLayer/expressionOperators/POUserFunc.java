@@ -27,8 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import org.joda.time.DateTime;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -60,6 +58,7 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
+import org.joda.time.DateTime;
 
 public class POUserFunc extends ExpressionOperator {
     private static final Log LOG = LogFactory.getLog(POUserFunc.class);
@@ -166,8 +165,6 @@ public class POUserFunc extends ExpressionOperator {
             if (jobConf != null) {
                 doTiming = "true".equalsIgnoreCase(jobConf.get(TIME_UDFS_PROP, "false"));
                 counterGroup = funcSpec.toString();
-            } else {
-                LOG.warn("jobConf not available. Not tracking UDF timing regardless of user preference.");
             }
             // We initialize here instead of instantiateFunc because this is called
             // when actual processing has begun, whereas a function can be instantiated
@@ -318,7 +315,7 @@ public class POUserFunc extends ExpressionOperator {
                             // so that udf gets called both when isAccumStarted
                             // is first true and then set to false, even
                             //when the input relation is empty.
-                            // so the STATUS_EOP has to be sent from POUserFunc, 
+                            // so the STATUS_EOP has to be sent from POUserFunc,
                             // after the results have been sent.
                             result.result = null;
                             result.returnStatus = POStatus.STATUS_EOP;
@@ -421,7 +418,7 @@ public class POUserFunc extends ExpressionOperator {
 
         return getNext();
     }
- 
+
     @Override
     public Result getNext(Map m) throws ExecException {
 
@@ -590,16 +587,16 @@ public class POUserFunc extends ExpressionOperator {
     public void setResultType(byte resultType) {
         this.resultType = resultType;
     }
-    
+
     @Override
     public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
         return (Tuple) out;
     }
-    
+
     public EvalFunc getFunc() {
         return func;
     }
-    
+
     public void setSignature(String signature) {
         this.signature = signature;
         if (this.func!=null) {
