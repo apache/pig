@@ -47,7 +47,7 @@ public class UserFuncExpression extends LogicalExpression {
     private String signature;
     private static int sigSeq=0;
     private boolean viaDefine=false; //this represents whether the function was instantiate via a DEFINE statement or not
-    
+
     public UserFuncExpression(OperatorPlan plan, FuncSpec funcSpec) {
         super("UserFunc", plan);
         mFuncSpec = funcSpec;
@@ -56,11 +56,11 @@ public class UserFuncExpression extends LogicalExpression {
             signature = Integer.toString(sigSeq++);
         }
     }
-    
-    
+
+
     public UserFuncExpression(OperatorPlan plan, FuncSpec funcSpec, List<LogicalExpression> args) {
         this( plan, funcSpec );
-        
+
         for( LogicalExpression arg : args ) {
             plan.connect( this, arg );
         }
@@ -79,7 +79,7 @@ public class UserFuncExpression extends LogicalExpression {
     public FuncSpec getFuncSpec() {
         return mFuncSpec;
     }
-    
+
     @Override
     public void accept(PlanVisitor v) throws FrontendException {
         if (!(v instanceof LogicalExpressionVisitor)) {
@@ -90,21 +90,21 @@ public class UserFuncExpression extends LogicalExpression {
 
     @Override
     public boolean isEqual(Operator other) throws FrontendException {
-        
+
         //For the purpose of optimization rules (specially LogicalExpressionSimplifier)
         // a non deterministic udf is not equal to another. So returning false for
         //such cases.
         // Note that the function is also invoked by implementations of OperatorPlan.isEqual
         // that function is called from test cases to compare logical plans, and
-        // it will return false even if the plans are clones. 
+        // it will return false even if the plans are clones.
         if(!this.isDeterministic())
             return false;
-        
+
         if( other instanceof UserFuncExpression ) {
             UserFuncExpression exp = (UserFuncExpression)other;
             if (!mFuncSpec.equals(exp.mFuncSpec ))
                 return false;
-            
+
             List<Operator> mySuccs = getPlan().getSuccessors(this);
             List<Operator> theirSuccs = other.getPlan().getSuccessors(other);
             if(mySuccs == null || theirSuccs == null){
@@ -126,7 +126,7 @@ public class UserFuncExpression extends LogicalExpression {
             return false;
         }
     }
-    
+
     public boolean isDeterministic() throws FrontendException{
         Class<?> udfClass;
         try {
@@ -139,9 +139,9 @@ public class UserFuncExpression extends LogicalExpression {
             return true;
         }
         return false;
-        
+
     }
-    
+
 
     public List<LogicalExpression> getArguments() throws FrontendException {
         List<Operator> successors = null;
@@ -168,12 +168,12 @@ public class UserFuncExpression extends LogicalExpression {
         mFuncSpec = funcSpec;
         ef = (EvalFunc<?>) PigContext.instantiateFuncFromSpec(mFuncSpec);
     }
-    
+
     @Override
     public LogicalSchema.LogicalFieldSchema getFieldSchema() throws FrontendException {
         if (fieldSchema!=null)
             return fieldSchema;
-        
+
         LogicalSchema inputSchema = new LogicalSchema();
         List<Operator> succs = plan.getSuccessors(this);
 
@@ -191,7 +191,7 @@ public class UserFuncExpression extends LogicalExpression {
         // This significantly optimize the performance of frontend (PIG-1738)
         if (ef==null)
             ef = (EvalFunc<?>) PigContext.instantiateFuncFromSpec(mFuncSpec);
-        
+
         ef.setUDFContextSignature(signature);
         Properties props = UDFContext.getUDFContext().getUDFProperties(ef.getClass());
         Schema translatedInputSchema = Util.translateSchema(inputSchema);
@@ -200,9 +200,12 @@ public class UserFuncExpression extends LogicalExpression {
         }
         // Store inputSchema into the UDF context
         ef.setInputSchema(translatedInputSchema);
-;
+
         Schema udfSchema = ef.outputSchema(translatedInputSchema);
-        
+        if (udfSchema != null && udfSchema.size() > 1) {
+            throw new FrontendException("Given UDF returns an improper Schema. Schema should only contain one field of a Tuple, Bag, or a single type. Returns: " + udfSchema);
+        }
+
         //TODO appendability should come from a setting
         SchemaTupleFrontend.registerToGenerateIfPossible(translatedInputSchema, false, GenContext.UDF);
         SchemaTupleFrontend.registerToGenerateIfPossible(udfSchema, false, GenContext.UDF);
@@ -224,16 +227,16 @@ public class UserFuncExpression extends LogicalExpression {
         uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
         return fieldSchema;
     }
-    
+
     @Override
     public LogicalExpression deepCopy(LogicalExpressionPlan lgExpPlan) throws FrontendException {
-        UserFuncExpression copy =  null; 
+        UserFuncExpression copy =  null;
         try {
             copy = new UserFuncExpression(
                     lgExpPlan,
                     this.getFuncSpec().clone(),
                     viaDefine);
-            
+
             copy.signature = signature;
             // Deep copy the input expressions.
             List<Operator> inputs = plan.getSuccessors( this );
@@ -245,14 +248,14 @@ public class UserFuncExpression extends LogicalExpression {
                     lgExpPlan.connect( copy, inputCopy );
                 }
             }
-            
+
         } catch(CloneNotSupportedException e) {
              e.printStackTrace();
         }
         copy.setLocation( new SourceLocation( location ) );
         return copy;
     }
-    
+
     public String toString() {
         StringBuilder msg = new StringBuilder();
         msg.append("(Name: " + name + "(" + getFuncSpec() + ")" + " Type: ");
@@ -269,7 +272,7 @@ public class UserFuncExpression extends LogicalExpression {
 
         return msg.toString();
     }
-    
+
     public String getSignature() {
         return signature;
     }

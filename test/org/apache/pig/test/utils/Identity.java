@@ -18,7 +18,9 @@
 package org.apache.pig.test.utils;
 
 import org.apache.pig.EvalFunc;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 
@@ -34,7 +36,10 @@ public class Identity extends EvalFunc<Tuple> {
 
     @Override
     public Schema outputSchema(Schema input) {
-        return input; 
+        try {
+            return new Schema(new Schema.FieldSchema(null, input, DataType.TUPLE));
+        } catch (FrontendException e) {
+            throw new RuntimeException(e);
+        }
     }
-
 }

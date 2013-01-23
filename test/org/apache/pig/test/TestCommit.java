@@ -22,7 +22,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.util.Iterator;
-import java.util.Properties;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
@@ -40,7 +39,7 @@ public class TestCommit {
 
     @Before
     public void setUp() throws Exception{
-        pigServer = new PigServer(ExecType.LOCAL, new Properties());
+        pigServer = new PigServer(ExecType.LOCAL);
     }
 
     @Test
@@ -77,7 +76,7 @@ public class TestCommit {
                 assertEquals(t.get(1), expected2.get(1));
             }
         }
-        assertEquals(count, 2);
+        assertEquals(2, count);
     }
 
     @Test
@@ -120,7 +119,7 @@ public class TestCommit {
 
         }
         pigServer.deleteFile("testCheckin2-output.txt");
-        assertEquals(count, 2);
+        assertEquals(2, count);
         assertTrue(contain1);
         assertTrue(contain2);
     }
