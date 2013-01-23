@@ -69,6 +69,17 @@ public class GruntParser extends org.apache.pig.tools.grunt.GruntParser {
    * @return The same query, or a modified query, or blank.
    */
   public String override(String query) {
+    // a path to be prepended to all the file names in the script
+    String fsRoot = System.getProperty("pigunit.filesystem.prefix");
+    if(fsRoot != null) {
+      query = Pattern.compile("(LOAD\\s+'(([^:/?#]+)://)?)", Pattern.CASE_INSENSITIVE).
+        matcher(query).
+        replaceFirst("$1" + fsRoot);
+      query = Pattern.compile("(STORE\\s+([^']+)\\s+INTO\\s+'(([^:/?#]+)://)?)", Pattern.CASE_INSENSITIVE).
+        matcher(query).
+        replaceFirst("$1" + fsRoot);
+    }
+
     Map<String, String> metaData = new HashMap<String, String>();
 
     for (Entry<String, String> alias : aliasOverride.entrySet()) {

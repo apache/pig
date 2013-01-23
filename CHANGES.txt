@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-3086: Allow A Prefix To Be Added To URIs In PigUnit Tests (nwhite via gates)
+
 PIG-3091: Make schema, header and stats file configurable in JsonMetadata (pkommireddi via jcoveney)
 
 PIG-3078: Make a UDF that, given a string, returns just the columns prefixed by that string (jcoveney)

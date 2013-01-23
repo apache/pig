@@ -69,4 +69,21 @@ public class TestGruntParser {
     parser.override("STORE output INTO '/path'");
     Assert.assertEquals("output", override.get("LAST_STORE_ALIAS"));
   }
+
+  @Test
+  public void testChangeRootDirectory() throws Exception {
+    Assert.assertEquals(
+        "A = LOAD 'input.txt';",
+        parser.override("A = LOAD 'input.txt';"));
+
+    System.setProperty("pigunit.filesystem.prefix", "/tmp/pigunit/");
+    Assert.assertEquals(
+        "A = LOAD '/tmp/pigunit/input.txt';",
+        parser.override("A = LOAD 'input.txt';"));
+
+    System.clearProperty("pigunit.filesystem.prefix");
+    Assert.assertEquals(
+        "A = LOAD 'input.txt';",
+        parser.override("A = LOAD 'input.txt';"));
+  }
 }
