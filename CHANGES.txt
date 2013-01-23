@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-3073: POUserFunc creating log spam for large scripts (jcoveney)
+
 PIG-3082: outputSchema of a UDF allows two usages when describing a Tuple schema (jcoveney)
 
 PIG-3124:  Push FLATTENs After FILTERs If Possible (nwhite via daijy)
