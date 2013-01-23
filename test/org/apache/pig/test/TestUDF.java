@@ -39,6 +39,8 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.util.Utils;
+import org.apache.pig.parser.ParserException;
 import org.apache.pig.test.utils.MyUDFReturnMap;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -192,6 +194,53 @@ public class TestUDF {
                     }
                 }
             }
+        }
+    }
+
+    @Test
+    public void testEnsureProperSchema1() throws Exception {
+        PigServer pig = new PigServer(ExecType.LOCAL);
+        pig.registerQuery("DEFINE goodSchema1 org.apache.pig.test.TestUDF$MirrorSchema('a:int');");
+        pig.registerQuery("DEFINE goodSchema2 org.apache.pig.test.TestUDF$MirrorSchema('t:(a:int, b:int, c:int)');");
+        pig.registerQuery("DEFINE goodSchema3 org.apache.pig.test.TestUDF$MirrorSchema('b:{(a:int, b:int, c:int)}');");
+        pig.registerQuery("a = load 'thing';");
+        pig.registerQuery("b = foreach a generate goodSchema1();");
+        pig.registerQuery("c = foreach a generate goodSchema2();");
+        pig.registerQuery("d = foreach a generate goodSchema3();");
+        pig.dumpSchema("b");
+        pig.dumpSchema("c");
+        pig.dumpSchema("d");
+    }
+
+    @Test(expected = FrontendException.class)
+    public void testEnsureProperSchema2() throws Exception {
+        PigServer pig = new PigServer(ExecType.LOCAL);
+        pig.registerQuery("DEFINE badSchema org.apache.pig.test.TestUDF$MirrorSchema('a:int, b:int, c:int');");
+        pig.registerQuery("a = load 'thing';");
+        pig.registerQuery("b = foreach a generate badSchema();");
+        pig.dumpSchema("b");
+    }
+
+    public static class MirrorSchema extends EvalFunc<Object> {
+        private String schemaString;
+        private Schema schema;
+
+        public MirrorSchema(String schemaString) {
+            this.schemaString = schemaString;
+            try {
+                schema = Utils.getSchemaFromString(schemaString);
+            } catch (ParserException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public Object exec(Tuple input) throws IOException {
+            return schemaString;
+        }
+
+        public Schema outputSchema(Schema input) {
+            return schema;
         }
     }
 

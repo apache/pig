@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-3082: outputSchema of a UDF allows two usages when describing a Tuple schema (jcoveney)
+
 PIG-3124:  Push FLATTENs After FILTERs If Possible (nwhite via daijy)
 
 PIG-3086: Allow A Prefix To Be Added To URIs In PigUnit Tests (nwhite via gates)
