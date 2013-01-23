@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-3124:  Push FLATTENs After FILTERs If Possible (nwhite via daijy)
+
 PIG-3086: Allow A Prefix To Be Added To URIs In PigUnit Tests (nwhite via gates)
 
 PIG-3091: Make schema, header and stats file configurable in JsonMetadata (pkommireddi via jcoveney)
