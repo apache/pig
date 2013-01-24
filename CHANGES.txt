@@ -440,6 +440,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-3109: Missing license headers (jarcec via cheolsoo)
+
 PIG-3022: TestRegisteredJarVisibility.testRegisteredJarVisibility fails with hadoop-2.0.x (rohini via cheolsoo)
 
 PIG-3125: Fix zebra compilation error (cheolsoo)
