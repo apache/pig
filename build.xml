@@ -1363,11 +1363,24 @@
     <!-- ================================================================== -->
     <!-- Perform audit activities for the release                           -->
     <!-- ================================================================== -->
-    <target name="releaseaudit" depends="ivy-releaseaudit, package" description="Release Audit activities">
-       <java classname="${rat.reporting.classname}" fork="true">
-          <classpath refid="releaseaudit.classpath"/>
-          <arg value="${tar.dist.dir}"/>
-       </java>
+
+    <target name="releaseaudit" depends="ivy-releaseaudit" description="generate a release audit report">
+        <get src="${mvnrepo}/org/apache/rat/apache-rat/${apacherat.version}/apache-rat-${apacherat.version}.jar"
+             dest="${basedir}/build/apache-rat-${apacherat.version}.jar"
+             usetimestamp="true"
+             skipexisting="true"/>
+        <java jar="${basedir}/build/apache-rat-${apacherat.version}.jar"
+              fork="true"
+              output="${basedir}/build/releaseaudit_report.txt">
+            <arg value="--dir"/>
+            <arg value="${basedir}"/>
+            <arg value="-e"/>
+            <arg value=".svn"/>
+            <arg value=".git"/>
+            <arg value=".gitignore"/>
+            <arg value=".*/build/.*"/>
+        </java>
+        <echo message="releaseaudit report generated at ${basedir}/build/releaseaudit_report.txt"/>
     </target>
 
     <!--target name="checkstyle" depends="checkstyle.check, set-checkstyle-classpath" if="checkstyle.home"  -->
