@@ -15,7 +15,7 @@
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/javacc-4.2.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/javacc.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/jline-0.9.94.jar"/>
-	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/joda-time-1.6.jar"/>
+	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/joda-time-2.1.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/jsch-0.1.38.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/junit-4.11.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/antlr-3.4.jar"/>

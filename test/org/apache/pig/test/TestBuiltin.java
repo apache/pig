@@ -404,7 +404,7 @@ public class TestBuiltin {
         Tuple t7 = TupleFactory.getInstance().newTuple(3);
         t7.set(0, "2009.01.07 AD at 01:07:01 +0800");
         t7.set(1, "yyyy.MM.dd G 'at' HH:mm:ss Z");
-        t7.set(2, "asia/singapore");
+        t7.set(2, "Asia/Singapore");
         DateTime dt7 = func4.exec(t7);
         assertEquals(dt7, new DateTime("2009-01-07T01:07:01.000+08:00", DateTimeZone.forID("+08:00")));
 
