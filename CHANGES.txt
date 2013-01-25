@@ -84,6 +84,8 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-2645: PigSplit does not handle the case where SerializationFactory returns null (shami via gates)
+
 PIG-3031: Update Pig to use a newer version of joda-time (zjshen via cheolsoo)
 
 PIG-3071: Update hcatalog jar and path to hbase storage handler jar in pig script (arpitgupta via cheolsoo)
