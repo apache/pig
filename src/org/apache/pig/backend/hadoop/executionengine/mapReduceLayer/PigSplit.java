@@ -251,6 +251,11 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
         SerializationFactory sf = new SerializationFactory(conf);
         Serializer s = 
             sf.getSerializer(wrappedSplits[0].getClass());
+         
+        //Checks if Serializer is NULL or not before calling open() method on it.         
+        if (s == null) {
+            	throw new IllegalArgumentException("Could not find Serializer for class "+wrappedSplits[0].getClass()+". InputSplits must implement Writable.");
+        }        
         s.open((OutputStream) os);
         for (int i = 0; i < wrappedSplits.length; i++)
         {
