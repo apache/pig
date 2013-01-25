@@ -1,6 +1,7 @@
 #!/bin/sh -e
-export RPM_VERSION=${VERSION}.${BUILD_NUMBER}
-export RPM_NAME=`echo pig_${VERSION} | sed s/[.]/_/g`
+export DATE_STRING=`date +"%Y%m%d%H%M"`
+export RPM_VERSION=0.${DATE_STRING}
+export RPM_NAME=`echo verticloud-pig_${VERSION}`
 echo "Building Pig Version ${VERSION} to RPM version ${RPM_VERSION} with RPM name ${RPM_NAME}"
 
 rm -rf ${WORKSPACE}/install-*
@@ -25,8 +26,8 @@ fpm --verbose \
 -s dir \
 -t rpm \
 -n ${RPM_NAME} \
--v ${VERSION} \
---iteration ${BUILD_NUMBER} \
+-v ${RPM_VERSION} \
+--iteration ${DATE_STRING} \
 --rpm-user root \
 --rpm-group root \
 -C ${WORKSPACE}/install-${BUILD_NUMBER} \
