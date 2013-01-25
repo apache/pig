@@ -4188,6 +4188,7 @@ Use the AddDuration function to created a new datetime object by add some durati
             </td>
             <td>
                <p>The timezone string. Either the UTC offset and the location based format can be used as a parameter, while internally the timezone will be converted to the UTC offset format.</p>
+               <p>Please see <a href="http://joda-time.sourceforge.net/timezones.html">the Joda-Time doc</a> for available timezone IDs.</p>
             </td>
         </tr>
    </table>
