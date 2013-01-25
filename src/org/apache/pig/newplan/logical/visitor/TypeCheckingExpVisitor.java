@@ -37,9 +37,9 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.impl.logicalLayer.validators.TypeCheckerException;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
+import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
@@ -68,13 +68,14 @@ import org.apache.pig.newplan.logical.expression.NegativeExpression;
 import org.apache.pig.newplan.logical.expression.NotEqualExpression;
 import org.apache.pig.newplan.logical.expression.NotExpression;
 import org.apache.pig.newplan.logical.expression.OrExpression;
-import org.apache.pig.newplan.logical.expression.ProjectExpression;
 import org.apache.pig.newplan.logical.expression.RegexExpression;
 import org.apache.pig.newplan.logical.expression.SubtractExpression;
 import org.apache.pig.newplan.logical.expression.UserFuncExpression;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
+
+import sun.tools.java.BinaryExceptionHandler;
 
 
 
@@ -83,10 +84,10 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
     private CompilationMessageCollector msgCollector;
     private LogicalRelationalOperator currentRelOp;
     private static final int INF = -1;
-    
+
     public TypeCheckingExpVisitor(
             OperatorPlan expPlan,
-            CompilationMessageCollector msgCollector, 
+            CompilationMessageCollector msgCollector,
             LogicalRelationalOperator relOp
     )
     throws FrontendException {
@@ -122,7 +123,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
     }
 
     /**
-     * Add casts to promote numeric type to larger of two input numeric types of 
+     * Add casts to promote numeric type to larger of two input numeric types of
      * the {@link BinaryExpression}  binOp . If one of the inputs is numeric
      * and other bytearray, cast the bytearray type to other numeric type.
      * If both inputs are bytearray, cast them to double.
@@ -173,7 +174,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
         }
 
     }
-    
+
     @Override
     public void visit(ModExpression binOp) throws FrontendException {
         LogicalExpression lhs = binOp.getLhs() ;
@@ -181,32 +182,42 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
 
         byte lhsType = lhs.getType() ;
         byte rhsType = rhs.getType() ;
+        boolean error = false;
 
-        if ( (lhsType == DataType.INTEGER) &&
-             (rhsType == DataType.INTEGER)
-           ) {
-           //do nothing
-        }
-        else if ( (lhsType == DataType.LONG) &&
-                  ( (rhsType == DataType.INTEGER) || (rhsType == DataType.LONG) )
-                ) {
+        if (lhsType == DataType.INTEGER) {
             if (rhsType == DataType.INTEGER) {
-                insertCast(binOp, DataType.LONG, binOp.getRhs());
+                //do nothing
+            } else if (rhsType == DataType.LONG || rhsType == DataType.BIGINTEGER) {
+                insertCast(binOp, rhsType, binOp.getLhs());
+            } else {
+                error = true;
             }
-        }
-        else if ( (rhsType == DataType.LONG) &&
-                  ( (lhsType == DataType.INTEGER) || (lhsType == DataType.LONG) )
-                ) {
-            if (lhsType == DataType.INTEGER) {
-                insertCast(binOp, DataType.LONG, binOp.getLhs());
+        } else if (lhsType == DataType.LONG) {
+            if (rhsType == DataType.INTEGER) {
+                insertCast(binOp, lhsType, binOp.getRhs());
+            } else if (rhsType == DataType.BIGINTEGER) {
+                insertCast(binOp, rhsType, binOp.getLhs());
+            } else if (rhsType == DataType.LONG) {
+                //do nothing
+            } else {
+                error = true;
             }
+        } else if (lhsType == DataType.BIGINTEGER) {
+            if (rhsType == DataType.INTEGER || rhsType == DataType.LONG) {
+                insertCast(binOp, lhsType, binOp.getRhs());
+            } else if (rhsType == DataType.BIGINTEGER) {
+                //do nothing
+            } else {
+                error = true;
+            }
+        } else if (lhsType == DataType.BYTEARRAY) {
+            if (rhsType == DataType.INTEGER || rhsType == DataType.LONG || rhsType == DataType.BIGINTEGER) {
+                insertCast(binOp, rhsType, binOp.getLhs());
+            }
+        } else {
+            error = true;
         }
-        else if ( (lhsType == DataType.BYTEARRAY) &&
-                  ( (rhsType == DataType.INTEGER) || (rhsType == DataType.LONG) )
-                ) {
-            insertCast(binOp, rhsType, binOp.getLhs());
-        }
-        else {
+        if (error) {
             int errCode = 1039;
             String msg = generateIncompatibleTypesMessage(binOp);
             msgCollector.collect(msg, MessageType.Error);
@@ -216,21 +227,21 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
 
     private String generateIncompatibleTypesMessage(BinaryExpression binOp)
     throws FrontendException {
-        String msg = binOp.toString(); 
+        String msg = binOp.toString();
         if (currentRelOp.getAlias()!=null){
             msg = "In alias " + currentRelOp.getAlias() + ", ";
         }
         LogicalFieldSchema lhsFs = binOp.getLhs().getFieldSchema();
         LogicalFieldSchema rhsFs = binOp.getRhs().getFieldSchema();
-        
+
         msg = msg + "incompatible types in " + binOp.getName() + " Operator"
-        + " left hand side:" + DataType.findTypeName(lhsFs.type) 
-        + (lhsFs.schema == null ? "" : " " + lhsFs.schema.toString(false) + " ") 
-        + " right hand side:" + DataType.findTypeName(rhsFs.type) 
+        + " left hand side:" + DataType.findTypeName(lhsFs.type)
+        + (lhsFs.schema == null ? "" : " " + lhsFs.schema.toString(false) + " ")
+        + " right hand side:" + DataType.findTypeName(rhsFs.type)
         + (rhsFs.schema == null ? "" : " " + rhsFs.schema.toString(false) + " ") ;
         return msg;
     }
-    
+
     @Override
     public void visit(NegativeExpression negExp) throws FrontendException {
         byte type = negExp.getExpression().getType() ;
@@ -249,7 +260,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
         }
 
     }
-    
+
     @Override
     public void visit(NotExpression notExp) throws FrontendException {
         if (notExp.getExpression()  instanceof ConstantExpression
@@ -300,26 +311,26 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
     throws FrontendException {
         addCastsToCompareBinaryExp(binOp, false /*not equality op*/);
     }
-    
+
     @Override
     public void visit(LessThanEqualExpression binOp)
     throws FrontendException {
         addCastsToCompareBinaryExp(binOp, false /*not equality op*/);
     }
-    
+
 
     @Override
     public void visit(GreaterThanExpression binOp)
     throws FrontendException {
         addCastsToCompareBinaryExp(binOp, false /*not equality op*/);
     }
-    
+
     @Override
     public void visit(GreaterThanEqualExpression binOp)
     throws FrontendException {
         addCastsToCompareBinaryExp(binOp, false /*not equality op*/);
     }
-    
+
 
     @Override
     public void visit(EqualExpression binOp)
@@ -332,7 +343,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
     throws FrontendException {
         addCastsToCompareBinaryExp(binOp, true /*equality op*/);
     }
-    
+
     private void addCastsToCompareBinaryExp(BinaryExpression binOp, boolean isEquality)
     throws FrontendException {
         LogicalExpression lhs = binOp.getLhs() ;
@@ -377,7 +388,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             // Cast byte array to the type on lhs
             insertCast(binOp, lhsType, binOp.getRhs());
         }else if (isEquality){
-            
+
             //in case of equality condition, allow boolean, tuples and maps as args
             if((lhsType == DataType.BOOLEAN) &&
                     (rhsType == DataType.BOOLEAN) ) {
@@ -391,7 +402,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
                     (rhsType == DataType.MAP) ) {
                 // good
             }
-            else if (lhsType == DataType.BYTEARRAY && 
+            else if (lhsType == DataType.BYTEARRAY &&
                     (rhsType == DataType.MAP || rhsType == DataType.TUPLE)){
                 // Cast byte array to the type on lhs
                 insertCast(binOp, rhsType, binOp.getLhs());
@@ -430,11 +441,11 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
 
     /**
      * add cast to convert the input of {@link BinaryExceptionHandler} exp
-     *  {@link LogicalExpression} arg to type toType 
+     *  {@link LogicalExpression} arg to type toType
      * @param exp
      * @param toType
      * @param arg
-     * @throws FrontendException 
+     * @throws FrontendException
      */
     private void insertCast(LogicalExpression exp, byte toType, LogicalExpression arg)
     throws FrontendException {
@@ -442,14 +453,14 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
         insertCast(exp, toFs, arg);
     }
 
-    private void insertCast(LogicalExpression node, LogicalFieldSchema toFs, 
-            LogicalExpression arg) 
+    private void insertCast(LogicalExpression node, LogicalFieldSchema toFs,
+            LogicalExpression arg)
     throws FrontendException {
         collectCastWarning(node, arg.getType(), toFs.type, msgCollector);
 
-        CastExpression cast = new CastExpression(plan, arg, toFs); 
+        CastExpression cast = new CastExpression(plan, arg, toFs);
         try {
-            // disconnect cast and arg because the connection is already 
+            // disconnect cast and arg because the connection is already
             // added by cast constructor and insertBetween call is going
             // to do it again
             plan.disconnect(cast, arg);
@@ -462,17 +473,17 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
         }
         this.visit(cast);
     }
-    
-    
+
+
     /**
      * For Basic Types:
      * 0) Casting to itself is always ok
-     * 1) Casting from number to number is always ok 
+     * 1) Casting from number to number is always ok
      * 2) ByteArray to anything is ok
      * 3) number to chararray is ok
      * For Composite Types:
      * Recursively traverse the schemas till you get a basic type
-     * @throws FrontendException 
+     * @throws FrontendException
      */
     @Override
     public void visit(CastExpression cast) throws FrontendException {
@@ -482,17 +493,17 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             int errCode = 1051;
             String msg = "Cannot cast to bytearray";
             msgCollector.collect(msg, MessageType.Error) ;
-            throw new TypeCheckerException(cast, msg, errCode, PigException.INPUT) ; 
+            throw new TypeCheckerException(cast, msg, errCode, PigException.INPUT) ;
         }
-        
+
         LogicalFieldSchema inFs = cast.getExpression().getFieldSchema();
         LogicalFieldSchema outFs = cast.getFieldSchema();
-        
+
         if(inFs == null){
             //replace null schema with bytearray schema.
             inFs = new LogicalFieldSchema(null, null, DataType.BYTEARRAY);
         }
-        
+
         //check if the field schemas are castable
         boolean castable = LogicalFieldSchema.castable(inFs, outFs);
         if(!castable) {
@@ -504,18 +515,18 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
                            + DataType.findTypeName(outType)
                            + ((DataType.isSchemaType(outType))? " with schema " + outFs.toString(false) : "");
             msgCollector.collect(msg, MessageType.Error) ;
-            throw new TypeCheckerException(cast, msg, errCode, PigException.INPUT) ; 
+            throw new TypeCheckerException(cast, msg, errCode, PigException.INPUT) ;
         }
-       
+
     }
-        
-    
+
+
 
     /**
      * {@link RegexExpression} expects CharArray as input
      * Itself always returns Boolean
      * @param rg
-     * @throws FrontendException 
+     * @throws FrontendException
      */
     @Override
     public void visit(RegexExpression rg) throws FrontendException {
@@ -524,11 +535,11 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             insertCast(rg, DataType.CHARARRAY, rg.getLhs());
         }
         if (rg.getRhs().getType() == DataType.BYTEARRAY){
-            insertCast(rg, DataType.CHARARRAY, rg.getRhs());   
+            insertCast(rg, DataType.CHARARRAY, rg.getRhs());
         }
 
         // Other than that if it's not CharArray just say goodbye
-        if (rg.getLhs().getType() != DataType.CHARARRAY || 
+        if (rg.getLhs().getType() != DataType.CHARARRAY ||
                 rg.getRhs().getType() != DataType.CHARARRAY)
         {
             int errCode = 1037;
@@ -537,7 +548,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             throw new TypeCheckerException(rg, msg, errCode, PigException.INPUT) ;
         }
     }
-    
+
     @Override
     public void visit(BinCondExpression binCond) throws FrontendException{
         // high-level type checking
@@ -546,11 +557,11 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             String msg = "Condition in BinCond must be boolean" ;
             msgCollector.collect(msg, MessageType.Error);
             throw new TypeCheckerException(binCond, msg, errCode, PigException.INPUT) ;
-        }       
-        
+        }
+
         byte lhsType = binCond.getLhs().getType() ;
         byte rhsType = binCond.getRhs().getType() ;
-        
+
         // If both sides are number, we can convert the smaller type to the bigger type
         if (DataType.isNumberType(lhsType) && DataType.isNumberType(rhsType)) {
             byte biggerType = lhsType > rhsType ? lhsType:rhsType ;
@@ -560,7 +571,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             else if (biggerType > rhsType) {
                 insertCast(binCond, biggerType, binCond.getRhs());
             }
-        } 
+        }
         else if ((lhsType == DataType.BYTEARRAY)
                 && ((rhsType == DataType.CHARARRAY) || (DataType
                         .isNumberType(rhsType))) || (rhsType == DataType.DATETIME)) { // need to add boolean as well
@@ -572,13 +583,13 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             // Cast byte array to the type on lhs
             insertCast(binCond, lhsType, binCond.getRhs());
         }
-        
+
         // A constant null is always bytearray - so cast it
         // to rhs type
         else if (binCond.getLhs() instanceof ConstantExpression
                 && ((ConstantExpression) binCond.getLhs()).getValue() == null) {
             try {
-                insertCast(binCond, binCond.getRhs().getFieldSchema(), binCond.getLhs());       
+                insertCast(binCond, binCond.getRhs().getFieldSchema(), binCond.getLhs());
             } catch (FrontendException e) {
                 int errCode = 2216;
                 String msg = "Problem getting fieldSchema for " +binCond.getRhs();
@@ -595,19 +606,19 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             }
         } else if (lhsType == rhsType) {
             // Matching schemas if we're working with tuples/bags
-            if (DataType.isSchemaType(lhsType)) {            
+            if (DataType.isSchemaType(lhsType)) {
                 try {
                     if(! binCond.getLhs().getFieldSchema().isEqual(binCond.getRhs().getFieldSchema())){
                         int errCode = 1048;
-                        String msg = "Two inputs of BinCond must have compatible schemas." 
-                            + " left hand side: " + binCond.getLhs().getFieldSchema() 
+                        String msg = "Two inputs of BinCond must have compatible schemas."
+                            + " left hand side: " + binCond.getLhs().getFieldSchema()
                             + " right hand side: " + binCond.getRhs().getFieldSchema();
                         msgCollector.collect(msg, MessageType.Error) ;
                         throw new TypeCheckerException(binCond, msg, errCode, PigException.INPUT) ;
                     }
                     // TODO: We may have to merge the schema here
                     //       if the previous check is not exact match
-                } 
+                }
                 catch (FrontendException fe) {
                     int errCode = 1049;
                     String msg = "Problem during evaluaton of BinCond output type" ;
@@ -618,14 +629,14 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
         }
         else {
             int errCode = 1050;
-            String msg = "Unsupported input type for BinCond: left hand side: " 
-                + DataType.findTypeName(lhsType) + "; right hand side: " 
+            String msg = "Unsupported input type for BinCond: left hand side: "
+                + DataType.findTypeName(lhsType) + "; right hand side: "
                 + DataType.findTypeName(rhsType);
-            
+
             msgCollector.collect(msg, MessageType.Error) ;
             throw new TypeCheckerException(binCond, msg, errCode, PigException.INPUT) ;
         }
-        
+
 
     }
 
@@ -638,7 +649,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             insertCast(map, DataType.MAP, map.getMap());
         }
     }
-    
+
     @Override
     public void visit(DereferenceExpression deref) throws FrontendException{
         byte inputType = deref.getReferredExpression().getType();
@@ -650,7 +661,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             break;
         default:
             int errCode = 1129;
-            String msg = "Referring to column(s) within a column of type " + 
+            String msg = "Referring to column(s) within a column of type " +
             DataType.findTypeName(inputType)
             + " is not allowed";
             throw new TypeCheckerException(deref, msg, errCode, PigException.INPUT);
@@ -672,21 +683,21 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
                 throw new TypeCheckerException(func, msg, errCode, PigException.INPUT) ;
             }
             try {
-                currentArgSchema.add(Util.translateFieldSchema(op.getFieldSchema()));    
+                currentArgSchema.add(Util.translateFieldSchema(op.getFieldSchema()));
             } catch (FrontendException e) {
                 int errCode = 1043;
                 String msg = "Unable to retrieve field schema.";
                 throw new TypeCheckerException(func, msg, errCode, PigException.INPUT, e);
             }
-            
+
         }
 
         EvalFunc<?> ef = (EvalFunc<?>) PigContext.instantiateFuncFromSpec(func.getFuncSpec());
-        
+
         // ask the EvalFunc what types of inputs it can handle
         List<FuncSpec> funcSpecs = null;
         try {
-            funcSpecs = ef.getArgToFuncMapping();    
+            funcSpecs = ef.getArgToFuncMapping();
             if (funcSpecs!=null) {
                 for (FuncSpec funcSpec : funcSpecs) {
                     Schema s = funcSpec.getInputArgsSchema();
@@ -700,43 +711,43 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             String msg = "Unable to get list of overloaded methods.";
             throw new TypeCheckerException(func, msg, errCode, PigException.INPUT, e);
         }
-        
+
         /**
          * Here is an explanation of the way the matching UDF funcspec will be chosen
          * based on actual types in the input schema.
          * First an "exact" match is tried for each of the fields in the input schema
-         * with the corresponding fields in the candidate funcspecs' schemas. 
-         * 
+         * with the corresponding fields in the candidate funcspecs' schemas.
+         *
          * If exact match fails, then first a check if made if the input schema has any
-         * bytearrays in it. 
-         * 
+         * bytearrays in it.
+         *
          * If there are NO bytearrays in the input schema, then a best fit match is attempted
          * for the different fields. Essential a permissible cast from one type to another
          * is given a "score" based on its position in the "castLookup" table. A final
-         * score for a candidate funcspec is deduced as  
-         *               SUM(score_of_particular_cast*noOfCastsSoFar). 
-         * If no permissible casts are possible, the score for the candidate is -1. Among 
-         * the non -1 score candidates, the candidate with the lowest score is chosen. 
-         * 
+         * score for a candidate funcspec is deduced as
+         *               SUM(score_of_particular_cast*noOfCastsSoFar).
+         * If no permissible casts are possible, the score for the candidate is -1. Among
+         * the non -1 score candidates, the candidate with the lowest score is chosen.
+         *
          * If there are bytearrays in the input schema, a modified exact match is tried. In this
          * matching, bytearrays in the input schema are not considered. As a result of
          * ignoring the bytearrays, we could get multiple candidate funcspecs which match
          * "exactly" for the other columns - if this is the case, we notify the user of
-         * the ambiguity and error out. Else if all other (non byte array) fields 
+         * the ambiguity and error out. Else if all other (non byte array) fields
          * matched exactly, then we can cast bytearray(s) to the corresponding type(s)
-         * in the matched udf schema. If this modified exact match fails, the above best fit 
-         * algorithm is attempted by initially coming up with scores and candidate funcSpecs 
-         * (with bytearray(s) being ignored in the scoring process). Then a check is 
+         * in the matched udf schema. If this modified exact match fails, the above best fit
+         * algorithm is attempted by initially coming up with scores and candidate funcSpecs
+         * (with bytearray(s) being ignored in the scoring process). Then a check is
          * made to ensure that the positions which have bytearrays in the input schema
          * have the same type (for a given position) in the corresponding positions in
          * all the candidate funcSpecs. If this is not the case, it indicates a conflict
          * and the user is notified of the error (because we have more than
          * one choice for the destination type of the cast for the bytearray). If this is the case,
-         * the candidate with the lowest score is chosen. 
+         * the candidate with the lowest score is chosen.
          */
-        
-        
-        
+
+
+
         FuncSpec matchingSpec = null;
         boolean notExactMatch = false;
         if(funcSpecs!=null && funcSpecs.size()!=0){
@@ -747,7 +758,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
                 //have mappings that we can fit using casts.
                 notExactMatch = true;
                 if(byteArrayFound(func, currentArgSchema)){
-                    // try "exact" matching all other fields except the byte array 
+                    // try "exact" matching all other fields except the byte array
                     // fields and if they all exact match and we have only one candidate
                     // for the byte array cast then that's the matching one!
                     if((matchingSpec = exactMatchWithByteArrays(funcSpecs, currentArgSchema, func))==null){
@@ -793,20 +804,20 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             }
             func.setFuncSpec(matchingSpec);
             insertCastsForUDF(func, currentArgSchema, matchingSpec.getInputArgsSchema());
-            
+
         }
     }
-    
+
     /**
      * Tries to find the schema supported by one of funcSpecs which can be
      * obtained by inserting a set of casts to the input schema
-     * 
+     *
      * @param funcSpecs -
      *            mappings provided by udf
      * @param s -
      *            input schema
-     * @param func - 
-     *             udf expression           
+     * @param func -
+     *             udf expression
      * @return the funcSpec that supports the schema that is best suited to s.
      *         The best suited schema is one that has the lowest score as
      *         returned by fitPossible().
@@ -827,23 +838,23 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
         // if no candidates found, return null
         if(scoreFuncSpecList.size() == 0)
             return null;
-        
+
         if(scoreFuncSpecList.size() > 1) {
             // sort the candidates based on score
             Collections.sort(scoreFuncSpecList, new ScoreFuncSpecListComparator());
-            
+
             // if there are two (or more) candidates with the same *lowest* score
             // we cannot choose one of them - notify the user
             if (scoreFuncSpecList.get(0).first == scoreFuncSpecList.get(1).first) {
                 int errCode = 1046;
                 String msg = "Multiple matching functions for "
                         + func.getFuncSpec() + " with input schemas: " + "("
-                        + scoreFuncSpecList.get(0).second.getInputArgsSchema() + ", " 
+                        + scoreFuncSpecList.get(0).second.getInputArgsSchema() + ", "
                         + scoreFuncSpecList.get(1).second.getInputArgsSchema() + "). Please use an explicit cast.";
                 msgCollector.collect(msg, MessageType.Error);
                 throw new TypeCheckerException(func, msg, errCode, PigException.INPUT);
             }
-        
+
             // now consider the bytearray fields
             List<Integer> byteArrayPositions = getByteArrayPositions(func, s);
             // make sure there is only one type to "cast to" for the byte array
@@ -867,9 +878,9 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
                             if (sch.getField(i).type != existingPair.second) {
                                 int errCode = 1046;
                                 String msg = "Multiple matching functions for "
-                                        + func.getFuncSpec() + " with input schema: " 
-                                        + "(" + existingPair.first.getInputArgsSchema() 
-                                        + ", " + funcSpec.getInputArgsSchema() 
+                                        + func.getFuncSpec() + " with input schema: "
+                                        + "(" + existingPair.first.getInputArgsSchema()
+                                        + ", " + funcSpec.getInputArgsSchema()
                                         + "). Please use an explicit cast.";
                                 msgCollector.collect(msg, MessageType.Error);
                                 throw new TypeCheckerException(func, msg, errCode, PigException.INPUT);
@@ -883,14 +894,14 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
                 }
             }
         }
-        
+
         // if we reached here, it means we have >= 1 candidates and these candidates
         // have the same type for position which have bytearray in the input
         // Also the candidates are stored sorted by score in a list - we can now
         // just return the first candidate (the one with the lowest score)
         return scoreFuncSpecList.get(0).second;
     }
-    
+
 
     private static class ScoreFuncSpecListComparator implements Comparator<Pair<Long, FuncSpec>> {
 
@@ -905,9 +916,9 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             else
                 return 0;
         }
-        
+
     }
-    
+
     /**
      * Finds if there is an exact match between the schema supported by
      * one of the funcSpecs and the input schema s. Here first exact match
@@ -918,7 +929,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
      * @param s - input schema
      * @param func - UserFuncExpression for which matching is requested
      * @return the matching spec if found else null
-     * @throws FrontendException 
+     * @throws FrontendException
      */
     private FuncSpec exactMatchWithByteArrays(List<FuncSpec> funcSpecs,
             Schema s, UserFuncExpression func) throws FrontendException {
@@ -935,7 +946,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
      * @param s - input schema
      * @param func - UserFuncExpression for which matching is requested
      * @return the matching spec if found else null
-     * @throws FrontendException 
+     * @throws FrontendException
      */
     private FuncSpec exactMatch(List<FuncSpec> funcSpecs, Schema s,
             UserFuncExpression func) throws FrontendException {
@@ -971,10 +982,10 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
 
         return null;
     }
-    
+
     /**
      * Checks to see if any field of the input schema is a byte array
-     * @param func 
+     * @param func
      * @param s - input schema
      * @return true if found else false
      * @throws VisitorException
@@ -999,8 +1010,8 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
 
     /**
      * Gets the positions in the schema which are byte arrays
-     * @param func 
-     * 
+     * @param func
+     *
      * @param s -
      *            input schema
      * @throws VisitorException
@@ -1031,9 +1042,9 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
      * @param ignoreByteArrays - flag for whether the exact match is to computed
      * after ignoring bytearray (if true) or without ignoring bytearray (if false)
      * @return the matching spec if found else null
-     * @throws FrontendException 
+     * @throws FrontendException
      */
-    private FuncSpec exactMatchHelper(List<FuncSpec> funcSpecs, Schema s, 
+    private FuncSpec exactMatchHelper(List<FuncSpec> funcSpecs, Schema s,
             UserFuncExpression func, boolean ignoreByteArrays)
     throws FrontendException {
         List<FuncSpec> matchingSpecs = new ArrayList<FuncSpec>();
@@ -1046,18 +1057,18 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
         }
         if(matchingSpecs.size() == 0)
             return null;
-        
+
         if(matchingSpecs.size() > 1) {
             int errCode = 1046;
             String msg = "Multiple matching functions for "
-                                        + func.getFuncSpec() + " with input schema: " 
-                                        + "(" + matchingSpecs.get(0).getInputArgsSchema() 
-                                        + ", " + matchingSpecs.get(1).getInputArgsSchema() 
+                                        + func.getFuncSpec() + " with input schema: "
+                                        + "(" + matchingSpecs.get(0).getInputArgsSchema()
+                                        + ", " + matchingSpecs.get(1).getInputArgsSchema()
                                         + "). Please use an explicit cast.";
             msgCollector.collect(msg, MessageType.Error);
             throw new TypeCheckerException(func, msg, errCode, PigException.INPUT);
         }
-        
+
         // exactly one matching spec - return it
         return matchingSpecs.get(0);
     }
@@ -1069,18 +1080,18 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
      * schema is for a complex type AND if the inner schema is NOT null, check
      * for schema equality of the inner schemas of the UDF field schema and
      * input field schema
-     * 
+     *
      * @param inputSchema
      * @param udfSchema
      * @param ignoreByteArrays
      * @return true if FieldSchemas are equal for argument matching, false
      *         otherwise
-     * @throws FrontendException 
+     * @throws FrontendException
      */
     public static boolean schemaEqualsForMatching(Schema inputSchema,
             Schema udfSchema, boolean ignoreByteArrays) throws FrontendException {
-        
-        
+
+
         // If both of them are null, they are equal
         if ((inputSchema == null) && (udfSchema == null)) {
             return true;
@@ -1094,12 +1105,12 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
         if (udfSchema == null) {
             return false;
         }
-        
+
         // the old udf schemas might not have tuple inside bag
         // fix that!
         udfSchema = Util.fixSchemaAddTupleInBag(udfSchema);
-        
-        
+
+
         if (inputSchema.size() != udfSchema.size())
             return false;
 
@@ -1112,12 +1123,12 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             FieldSchema udfFieldSchema = j.next();
             if(inputFieldSchema == null)
                 return false;
-            
-            
+
+
             if(ignoreByteArrays && inputFieldSchema.type == DataType.BYTEARRAY) {
                 continue;
             }
-            
+
             if (inputFieldSchema.type != udfFieldSchema.type) {
                 return false;
             }
@@ -1129,7 +1140,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             // for a complex type AND if the inner schema IS null it means
             // the udf is applicable for all input which has the same type
             // for that field (irrespective of inner schema)
-            // if it is a bag with empty tuple, then just rely on the field type 
+            // if it is a bag with empty tuple, then just rely on the field type
             if (DataType.isSchemaType(udfFieldSchema.type)
                     && udfFieldSchema.schema != null
                     && isNotBagWithEmptyTuple(udfFieldSchema)
@@ -1138,16 +1149,16 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
                 if (!FieldSchema.equals(inputFieldSchema, udfFieldSchema,
                         false, true)) {
                     //try modifying any empty tuple to type of bytearray
-                    // and see if that matches. Need to do this for 
+                    // and see if that matches. Need to do this for
                     // backward compatibility -
                     // User might have specified tuple with a bytearray
                     // and this should also match an empty tuple
-                    
+
                     FieldSchema inputFSWithBytearrayinTuple =
                         new FieldSchema(inputFieldSchema);
-                    
+
                     convertEmptyTupleToBytearrayTuple(inputFSWithBytearrayinTuple);
-                    
+
                     if (!FieldSchema.equals(inputFSWithBytearrayinTuple, udfFieldSchema,
                             false, true)) {
                         return false;
@@ -1158,18 +1169,18 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
         }
         return true;
     }
-    
+
     /**
      * Check if the fieldSch is a bag with empty tuple schema
      * @param fieldSch
      * @return
-     * @throws FrontendException 
+     * @throws FrontendException
      */
     private static boolean isNotBagWithEmptyTuple(FieldSchema fieldSch)
     throws FrontendException {
         boolean isBagWithEmptyTuple = false;
-        if(fieldSch.type == DataType.BAG 
-                && fieldSch.schema != null 
+        if(fieldSch.type == DataType.BAG
+                && fieldSch.schema != null
                 && fieldSch.schema.getField(0) != null
                 && fieldSch.schema.getField(0).type == DataType.TUPLE
                 && fieldSch.schema.getField(0).schema == null
@@ -1181,13 +1192,13 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
 
     private static void convertEmptyTupleToBytearrayTuple(
             FieldSchema fs) {
-        if(fs.type == DataType.TUPLE 
+        if(fs.type == DataType.TUPLE
                 && fs.schema != null
                 && fs.schema.size() == 0){
             fs.schema.add(new FieldSchema(null, DataType.BYTEARRAY));
             return;
         }
-                
+
         if(fs.schema != null){
             for(FieldSchema inFs : fs.schema.getFields()){
                 convertEmptyTupleToBytearrayTuple(inFs);
@@ -1203,33 +1214,52 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
         //over conversion to a bigger type where ordering of types is:
         //INTEGER, LONG, FLOAT, DOUBLE, DATETIME, CHARARRAY, TUPLE, BAG, MAP
         //from small to big
-        
+
         List<Byte> boolToTypes = Arrays.asList(
                 DataType.INTEGER,
                 DataType.LONG,
                 DataType.FLOAT,
-                DataType.DOUBLE
+                DataType.DOUBLE,
+                DataType.BIGINTEGER,
+                DataType.BIGDECIMAL
                 // maybe more bigger types
         );
         castLookup.put(DataType.BOOLEAN, boolToTypes);
 
         List<Byte> intToTypes = Arrays.asList(
-                DataType.LONG, 
-                DataType.FLOAT, 
-                DataType.DOUBLE
+                DataType.LONG,
+                DataType.FLOAT,
+                DataType.DOUBLE,
+                DataType.BIGINTEGER,
+                DataType.BIGDECIMAL
         );
         castLookup.put(DataType.INTEGER, intToTypes);
 
         List<Byte> longToTypes = Arrays.asList(
-                DataType.FLOAT, 
-                DataType.DOUBLE
+                DataType.FLOAT,
+                DataType.DOUBLE,
+                DataType.BIGINTEGER,
+                DataType.BIGDECIMAL
         );
         castLookup.put(DataType.LONG, longToTypes);
 
         List<Byte> floatToTypes = Arrays.asList(
-                DataType.DOUBLE
+                DataType.DOUBLE,
+                DataType.BIGINTEGER,
+                DataType.BIGDECIMAL
         );
         castLookup.put(DataType.FLOAT, floatToTypes);
+
+        List<Byte> doubleToTypes = Arrays.asList(
+                DataType.BIGINTEGER,
+                DataType.BIGDECIMAL
+        );
+        castLookup.put(DataType.DOUBLE, doubleToTypes);
+
+        List<Byte> bigIntegerToTypes = Arrays.asList(
+                DataType.BIGDECIMAL
+        );
+        castLookup.put(DataType.BIGINTEGER, bigIntegerToTypes);
 
         List<Byte> byteArrayToTypes = Arrays.asList(
                 DataType.BOOLEAN,
@@ -1239,27 +1269,29 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
                 DataType.DOUBLE,
                 DataType.DATETIME,
                 DataType.CHARARRAY,
+                DataType.BIGINTEGER,
+                DataType.BIGDECIMAL,
                 DataType.TUPLE,
                 DataType.BAG,
                 DataType.MAP
         );
         castLookup.put(DataType.BYTEARRAY, byteArrayToTypes);
-        
+
     }
 
 
     /**
-     * Computes a modified version of manhattan distance between 
+     * Computes a modified version of manhattan distance between
      * the two schemas: s1 & s2. Here the value on the same axis
      * are preferred over values that change axis as this means
      * that the number of casts required will be lesser on the same
-     * axis. 
-     * 
+     * axis.
+     *
      * However, this function ceases to be a metric as the triangle
      * inequality does not hold.
-     * 
+     *
      * Each schema is an s1.size() dimensional vector.
-     * The ordering for each axis is as defined by castLookup. 
+     * The ordering for each axis is as defined by castLookup.
      * Unallowed casts are returned a dist of INFINITY.
      * @param s1
      * @param s2
@@ -1287,7 +1319,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
                 continue;
 
             FieldSchema fsFS = fsFields.get(i);
-            
+
             if(DataType.isSchemaType(sFS.type)){
                 if(!FieldSchema.equals(sFS, fsFS, false, true))
                     return INF;
@@ -1302,7 +1334,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
         }
         return score * castCnt;
     }
-    
+
     private void insertCastsForUDF(UserFuncExpression func, Schema fromSch, Schema toSch)
     throws FrontendException {
         List<FieldSchema> fsLst = fromSch.getFields();
@@ -1311,14 +1343,14 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
         int i=-1;
         for (FieldSchema fFSch : fsLst) {
             ++i;
-            FieldSchema tFSch = tsLst.get(i); 
+            FieldSchema tFSch = tsLst.get(i);
             if(fFSch.type==tFSch.type) {
                 continue;
             }
             insertCast(func, Util.translateFieldSchema(tFSch), args.get(i));
         }
     }
-    
+
     /***
      * Helper for collecting warning when casting is inserted
      * to the plan (implicit casting)
@@ -1367,13 +1399,19 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
         case DataType.TUPLE:
             kind = PigWarning.IMPLICIT_CAST_TO_TUPLE;
             break;
+        case DataType.BIGINTEGER:
+            kind = PigWarning.IMPLICIT_CAST_TO_BIGINTEGER;
+            break;
+        case DataType.BIGDECIMAL:
+            kind = PigWarning.IMPLICIT_CAST_TO_BIGDECIMAL;
+            break;
         }
         msgCollector.collect(originalTypeName + " is implicitly cast to "
                 + toTypeName +" under " + opName + " Operator",
                 MessageType.Warning, kind) ;
     }
 
-    
+
 
     static class FieldSchemaResetter extends AllSameExpressionVisitor {
 

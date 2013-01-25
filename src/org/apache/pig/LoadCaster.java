@@ -17,6 +17,8 @@
 package org.apache.pig;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Map;
 
 import org.joda.time.DateTime;
@@ -40,7 +42,7 @@ import org.apache.pig.data.Tuple;
 public interface LoadCaster {
 
     /**
-     * Cast data from bytearray to boolean value.  
+     * Cast data from bytearray to boolean value.
      * @param b bytearray to be cast.
      * @return Boolean value.
      * @throws IOException if the value cannot be cast.
@@ -48,7 +50,7 @@ public interface LoadCaster {
     public Boolean bytesToBoolean(byte[] b) throws IOException;
 
     /**
-     * Cast data from bytearray to long value.  
+     * Cast data from bytearray to long value.
      * @param b bytearray to be cast.
      * @return Long value.
      * @throws IOException if the value cannot be cast.
@@ -56,7 +58,7 @@ public interface LoadCaster {
     public Long bytesToLong(byte[] b) throws IOException;
 
     /**
-     * Cast data from bytearray to float value.  
+     * Cast data from bytearray to float value.
      * @param b bytearray to be cast.
      * @return Float value.
      * @throws IOException if the value cannot be cast.
@@ -64,7 +66,7 @@ public interface LoadCaster {
     public Float bytesToFloat(byte[] b) throws IOException;
 
     /**
-     * Cast data from bytearray to double value.  
+     * Cast data from bytearray to double value.
      * @param b bytearray to be cast.
      * @return Double value.
      * @throws IOException if the value cannot be cast.
@@ -72,7 +74,7 @@ public interface LoadCaster {
     public Double bytesToDouble(byte[] b) throws IOException;
 
     /**
-     * Cast data from bytearray to datetime value.  
+     * Cast data from bytearray to datetime value.
      * @param b bytearray to be cast.
      * @return datetime value.
      * @throws IOException if the value cannot be cast.
@@ -80,15 +82,15 @@ public interface LoadCaster {
     public DateTime bytesToDateTime(byte[] b) throws IOException;
 
     /**
-     * Cast data from bytearray to integer value.  
+     * Cast data from bytearray to integer value.
      * @param b bytearray to be cast.
      * @return Double value.
      * @throws IOException if the value cannot be cast.
      */
     public Integer bytesToInteger(byte[] b) throws IOException;
-    
+
     /**
-     * Cast data from bytearray to chararray value.  
+     * Cast data from bytearray to chararray value.
      * @param b bytearray to be cast.
      * @return String value.
      * @throws IOException if the value cannot be cast.
@@ -96,7 +98,7 @@ public interface LoadCaster {
     public String bytesToCharArray(byte[] b) throws IOException;
 
     /**
-     * Cast data from bytearray to map value.  
+     * Cast data from bytearray to map value.
      * @param b bytearray to be cast.
      * @return Map value.
      * @throws IOException if the value cannot be cast.
@@ -105,16 +107,16 @@ public interface LoadCaster {
     public Map<String, Object> bytesToMap(byte[] b) throws IOException;
 
     /**
-     * Cast data from bytearray to map value.  
+     * Cast data from bytearray to map value.
      * @param b bytearray to be cast.
      * @param fieldSchema field schema for the output map
      * @return Map value.
      * @throws IOException if the value cannot be cast.
      */
     public Map<String, Object> bytesToMap(byte[] b, ResourceFieldSchema fieldSchema) throws IOException;
-    
+
     /**
-     * Cast data from bytearray to tuple value.  
+     * Cast data from bytearray to tuple value.
      * @param b bytearray to be cast.
      * @param fieldSchema field schema for the output tuple
      * @return Tuple value.
@@ -123,12 +125,30 @@ public interface LoadCaster {
     public Tuple bytesToTuple(byte[] b, ResourceFieldSchema fieldSchema) throws IOException;
 
     /**
-     * Cast data from bytearray to bag value.  
+     * Cast data from bytearray to bag value.
      * @param b bytearray to be cast.
      * @param fieldSchema field schema for the output bag
      * @return Bag value.
      * @throws IOException if the value cannot be cast.
      */
     public DataBag bytesToBag(byte[] b, ResourceFieldSchema fieldSchema) throws IOException;
+
+    /**
+     * Cast data from bytearray to BigInteger value.
+     * @param b bytearray to be cast.
+     * @param fieldSchema field schema for the output bag
+     * @return BigInteger value.
+     * @throws IOException if the value cannot be cast.
+     */
+    public BigInteger bytesToBigInteger(byte[] b) throws IOException;
+
+    /**
+     * Cast data from bytearray to BigDecimal value.
+     * @param b bytearray to be cast.
+     * @param fieldSchema field schema for the output bag
+     * @return BigInteger value.
+     * @throws IOException if the value cannot be cast.
+     */
+    public BigDecimal bytesToBigDecimal(byte[] b) throws IOException;
 
 }

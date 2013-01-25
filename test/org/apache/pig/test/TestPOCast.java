@@ -20,6 +20,8 @@ package org.apache.pig.test;
 import static org.junit.Assert.*;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -1547,6 +1549,14 @@ public class TestPOCast {
             return null;
         }
 
+        public BigInteger bytesToBigInteger(byte[] b) throws IOException {
+            return new BigInteger(new DataByteArray(b).toString());
+        }
+
+        public BigDecimal bytesToBigDecimal(byte[] b) throws IOException {
+            return new BigDecimal(new DataByteArray(b).toString());
+        }
+
         public byte[] toBytes(DataBag bag) throws IOException {
             return null;
         }
@@ -1585,6 +1595,14 @@ public class TestPOCast {
 
         public byte[] toBytes(Tuple t) throws IOException {
             return null;
+        }
+
+        public byte[] toBytes(BigInteger bi) throws IOException {
+            return bi.toString().getBytes();
+        }
+
+        public byte[] toBytes(BigDecimal bd) throws IOException {
+            return bd.toString().getBytes();
         }
 
         @Override

@@ -99,6 +99,8 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import java.util.Arrays;
+import java.math.BigInteger;
+import java.math.BigDecimal;
 }
 
 @members {
@@ -388,6 +390,8 @@ simple_type returns[byte datatype]
  | LONG { $datatype = DataType.LONG; }
  | FLOAT { $datatype = DataType.FLOAT; }
  | DOUBLE { $datatype = DataType.DOUBLE; }
+ | BIGINTEGER { $datatype = DataType.BIGINTEGER; }
+ | BIGDECIMAL { $datatype = DataType.BIGDECIMAL; }
  | DATETIME { $datatype = DataType.DATETIME; }
  | CHARARRAY { $datatype = DataType.CHARARRAY; }
  | BYTEARRAY { $datatype = DataType.BYTEARRAY; }
@@ -1732,6 +1736,22 @@ num_scalar returns[Object value, byte type]
          $type = DataType.DOUBLE;
          $value = sign * Double.valueOf( $DOUBLENUMBER.text );
      }
+   | BIGINTEGERNUMBER
+     {
+         $type = DataType.BIGINTEGER;
+         $value = builder.parseBigInteger( $BIGINTEGERNUMBER.text );
+         if ( sign == -1 ) {
+             $value = ((BigInteger)$value).negate();
+         }
+     }
+   | BIGDECIMALNUMBER
+     {
+         $type = DataType.BIGDECIMAL;
+         $value = builder.parseBigDecimal( $BIGDECIMALNUMBER.text );
+         if ( sign == -1 ) {
+             $value = ((BigDecimal)$value).negate();
+         }
+     }
    )
 ;
 
@@ -1813,6 +1833,8 @@ eid returns[String id] : rel_str_op { $id = $rel_str_op.id; }
     | LONG { $id = $LONG.text; }
     | FLOAT { $id = $FLOAT.text; }
     | DOUBLE { $id = $DOUBLE.text; }
+    | BIGINTEGER { $id = $BIGINTEGER.text; }
+    | BIGDECIMAL { $id = $BIGDECIMAL.text; }
     | DATETIME { $id = $DATETIME.text; }
     | CHARARRAY { $id = $CHARARRAY.text; }
     | BYTEARRAY { $id = $BYTEARRAY.text; }

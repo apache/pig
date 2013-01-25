@@ -17,13 +17,16 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.data.DataType;
-import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 
 public class Add extends BinaryExpressionOperator {
@@ -66,6 +69,10 @@ public class Add extends BinaryExpressionOperator {
             return (T) Long.valueOf((Long) a + (Long) b);
         case DataType.FLOAT:
             return (T) Float.valueOf((Float) a + (Float) b);
+        case DataType.BIGINTEGER:
+            return (T) ((BigInteger) a).add((BigInteger) b);
+        case DataType.BIGDECIMAL:
+            return (T) ((BigDecimal) a).add((BigDecimal) b);
         default:
             throw new ExecException("called on unsupported Number class " + DataType.findTypeName(dataType));
         }
@@ -117,6 +124,16 @@ public class Add extends BinaryExpressionOperator {
     @Override
     public Result getNext(Long l) throws ExecException {
         return genericGetNext(l, DataType.LONG);
+    }
+
+    @Override
+    public Result getNext(BigInteger bi) throws ExecException {
+        return genericGetNext(bi, DataType.BIGINTEGER);
+    }
+
+    @Override
+    public Result getNext(BigDecimal bd) throws ExecException {
+        return genericGetNext(bd, DataType.BIGDECIMAL);
     }
 
     @Override

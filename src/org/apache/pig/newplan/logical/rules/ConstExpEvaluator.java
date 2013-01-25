@@ -17,30 +17,55 @@
  */
 package org.apache.pig.newplan.logical.rules;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Stack;
 
+import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.newplan.logical.expression.*;
-import org.apache.pig.newplan.ReverseDependencyOrderWalker;
+import org.apache.pig.impl.util.Pair;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
-import org.apache.pig.data.DataType;
-import org.apache.pig.impl.util.Pair;
+import org.apache.pig.newplan.ReverseDependencyOrderWalker;
+import org.apache.pig.newplan.logical.expression.AddExpression;
+import org.apache.pig.newplan.logical.expression.AndExpression;
+import org.apache.pig.newplan.logical.expression.BinCondExpression;
+import org.apache.pig.newplan.logical.expression.CastExpression;
+import org.apache.pig.newplan.logical.expression.ConstantExpression;
+import org.apache.pig.newplan.logical.expression.DereferenceExpression;
+import org.apache.pig.newplan.logical.expression.DivideExpression;
+import org.apache.pig.newplan.logical.expression.EqualExpression;
+import org.apache.pig.newplan.logical.expression.GreaterThanEqualExpression;
+import org.apache.pig.newplan.logical.expression.GreaterThanExpression;
+import org.apache.pig.newplan.logical.expression.IsNullExpression;
+import org.apache.pig.newplan.logical.expression.LessThanExpression;
+import org.apache.pig.newplan.logical.expression.LogicalExpression;
+import org.apache.pig.newplan.logical.expression.LogicalExpressionVisitor;
+import org.apache.pig.newplan.logical.expression.MapLookupExpression;
+import org.apache.pig.newplan.logical.expression.ModExpression;
+import org.apache.pig.newplan.logical.expression.MultiplyExpression;
+import org.apache.pig.newplan.logical.expression.NegativeExpression;
+import org.apache.pig.newplan.logical.expression.NotExpression;
+import org.apache.pig.newplan.logical.expression.OrExpression;
+import org.apache.pig.newplan.logical.expression.ProjectExpression;
+import org.apache.pig.newplan.logical.expression.RegexExpression;
+import org.apache.pig.newplan.logical.expression.SubtractExpression;
+import org.apache.pig.newplan.logical.expression.UserFuncExpression;
 
 /**
  *  a constant expression evaluation visitor that will evaluate the constant expressions.
  *  It works by traversing the expression tree in a bottom-up manner and evaluate all
  *   subexpressions that have all constant subexpressions. All results from constant
- *    children are pushed to a stack for the parent to digest for its own evaluation. 
+ *    children are pushed to a stack for the parent to digest for its own evaluation.
  *    Any non-constant expression will push a null to the stack and consequently will
  *     cause all of its ancestors not to be evaluated.
- *     
+ *
  *  For simplicity, only constant binary expressions and constant unary expressions are
- *   evaluated. More complex expressions are not evaluated at this moment. For UDF, 
- *   this evaluation is not planned at all for fear of possible stateful consequences 
+ *   evaluated. More complex expressions are not evaluated at this moment. For UDF,
+ *   this evaluation is not planned at all for fear of possible stateful consequences
  *   resulting from the original evaluations
  *
  */
@@ -104,6 +129,16 @@ class ConstExpEvaluator extends LogicalExpressionVisitor {
                                         plan,
                                         (Double) lhs.getValue() + (Double) rhs.getValue());
                         break;
+                    case DataType.BIGINTEGER:
+                        newExp = new ConstantExpression(
+                                        plan,
+                                        ((BigInteger) lhs.getValue()).add((BigInteger) rhs.getValue()));
+                        break;
+                    case DataType.BIGDECIMAL:
+                        newExp = new ConstantExpression(
+                                        plan,
+                                        ((BigDecimal) lhs.getValue()).add((BigDecimal) rhs.getValue()));
+                        break;
                     default:
                         throw new FrontendException("Invalid type");
                 }
@@ -130,6 +165,16 @@ class ConstExpEvaluator extends LogicalExpressionVisitor {
                         newExp = new ConstantExpression(
                                         plan,
                                         (Double) lhs.getValue() - (Double) rhs.getValue());
+                        break;
+                    case DataType.BIGINTEGER:
+                        newExp = new ConstantExpression(
+                                        plan,
+                                        ((BigInteger) lhs.getValue()).subtract((BigInteger) rhs.getValue()));
+                        break;
+                    case DataType.BIGDECIMAL:
+                        newExp = new ConstantExpression(
+                                        plan,
+                                        ((BigDecimal) lhs.getValue()).subtract((BigDecimal) rhs.getValue()));
                         break;
                     default:
                         throw new FrontendException("Invalid type");
@@ -158,6 +203,16 @@ class ConstExpEvaluator extends LogicalExpressionVisitor {
                                         plan,
                                         (Double) lhs.getValue() * (Double) rhs.getValue());
                         break;
+                    case DataType.BIGINTEGER:
+                        newExp = new ConstantExpression(
+                                        plan,
+                                        ((BigInteger) lhs.getValue()).multiply((BigInteger) rhs.getValue()));
+                        break;
+                    case DataType.BIGDECIMAL:
+                        newExp = new ConstantExpression(
+                                        plan,
+                                        ((BigDecimal) lhs.getValue()).multiply((BigDecimal) rhs.getValue()));
+                        break;
                     default:
                         throw new FrontendException("Invalid type");
                 }
@@ -174,6 +229,11 @@ class ConstExpEvaluator extends LogicalExpressionVisitor {
                         newExp = new ConstantExpression(
                                         plan,
                                         (Long) lhs.getValue() % (Long) rhs.getValue());
+                        break;
+                    case DataType.BIGINTEGER:
+                        newExp = new ConstantExpression(
+                                        plan,
+                                        ((BigInteger) lhs.getValue()).mod((BigInteger) rhs.getValue()));
                         break;
                     default:
                         throw new FrontendException("Invalid type");
@@ -206,6 +266,16 @@ class ConstExpEvaluator extends LogicalExpressionVisitor {
                                             plan,
                                             (Double) lhs.getValue() / (Double) rhs.getValue());
                         break;
+                    case DataType.BIGINTEGER:
+                        newExp = new ConstantExpression(
+                                        plan,
+                                        ((BigInteger) lhs.getValue()).divide((BigInteger) rhs.getValue()));
+                        break;
+                    case DataType.BIGDECIMAL:
+                        newExp = new ConstantExpression(
+                                        plan,
+                                        ((BigDecimal) lhs.getValue()).divide((BigDecimal) rhs.getValue()));
+                        break;
                     default:
                         throw new FrontendException("Invalid type");
                 }
@@ -219,7 +289,7 @@ class ConstExpEvaluator extends LogicalExpressionVisitor {
                 plan.add(newExp);
                 List<Operator> predList = plan.getPredecessors(parent);
                 if (predList != null) {
-                    Operator[] preds = predList.toArray(new Operator[0]); 
+                    Operator[] preds = predList.toArray(new Operator[0]);
                     for (Object p : preds) {
                         Operator pred = (Operator) p;
                         Pair<Integer, Integer> pos = plan.disconnect(pred, parent);
@@ -274,6 +344,16 @@ class ConstExpEvaluator extends LogicalExpressionVisitor {
                         newExp = new ConstantExpression(
                                         plan,
                                         -1.0D * ((Integer) operand.getValue()));
+                        break;
+                    case DataType.BIGINTEGER:
+                        newExp = new ConstantExpression(
+                                        plan,
+                                        ((BigInteger) operand.getValue()).negate());
+                        break;
+                    case DataType.BIGDECIMAL:
+                        newExp = new ConstantExpression(
+                                        plan,
+                                        ((BigDecimal) operand.getValue()).negate());
                         break;
                     default:
                         throw new FrontendException("Invalid type");

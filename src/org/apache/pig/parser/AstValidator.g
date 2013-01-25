@@ -254,6 +254,8 @@ simple_type returns [byte typev]
   | LONG { $typev = DataType.LONG; }
   | FLOAT { $typev = DataType.FLOAT; }
   | DOUBLE { $typev = DataType.DOUBLE; }
+  | BIGINTEGER { $typev = DataType.BIGINTEGER; }
+  | BIGDECIMAL { $typev = DataType.BIGDECIMAL; }
   | DATETIME { $typev = DataType.DATETIME; }
   | CHARARRAY { $typev = DataType.CHARARRAY; }
   | BYTEARRAY { $typev = DataType.BYTEARRAY; }
@@ -608,7 +610,7 @@ literal : scalar | map | bag | tuple
 scalar : num_scalar | QUOTEDSTRING | NULL | TRUE | FALSE
 ;
 
-num_scalar : MINUS? ( INTEGER | LONGINTEGER | FLOATNUMBER | DOUBLENUMBER )
+num_scalar : MINUS? ( INTEGER | LONGINTEGER | FLOATNUMBER | DOUBLENUMBER | BIGINTEGERNUMBER | BIGDECIMALNUMBER )
 ;
 
 map : ^( MAP_VAL keyvalue* )
@@ -669,6 +671,8 @@ eid : rel_str_op
     | LONG
     | FLOAT
     | DOUBLE
+    | BIGINTEGER
+    | BIGDECIMAL
     | DATETIME
     | CHARARRAY
     | BYTEARRAY

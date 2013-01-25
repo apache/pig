@@ -17,14 +17,17 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+
 import org.apache.pig.PigWarning;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.data.DataType;
-import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 
 public class Divide extends BinaryExpressionOperator {
@@ -67,6 +70,10 @@ public class Divide extends BinaryExpressionOperator {
             return (T) Long.valueOf((Long) a / (Long) b);
         case DataType.FLOAT:
             return (T) Float.valueOf((Float) a / (Float) b);
+        case DataType.BIGINTEGER:
+            return (T) ((BigInteger) a).divide((BigInteger) b);
+        case DataType.BIGDECIMAL:
+            return (T) ((BigDecimal) a).divide((BigDecimal) b);
         default:
             throw new ExecException("called on unsupported Number class " + DataType.findTypeName(dataType));
         }
@@ -86,6 +93,10 @@ public class Divide extends BinaryExpressionOperator {
             return ((Long) a).equals(0L);
         case DataType.FLOAT:
             return ((Float) a).equals(0.0f);
+        case DataType.BIGINTEGER:
+            return BigInteger.ZERO.equals((BigInteger) a);
+        case DataType.BIGDECIMAL:
+            return BigDecimal.ZERO.equals((BigDecimal) a);
         default:
             throw new ExecException("Called on unsupported Number class " + DataType.findTypeName(dataType));
         }
@@ -146,6 +157,16 @@ public class Divide extends BinaryExpressionOperator {
     @Override
     public Result getNext(Long l) throws ExecException {
         return genericGetNext(l, DataType.LONG);
+    }
+
+    @Override
+    public Result getNext(BigInteger bi) throws ExecException {
+        return genericGetNext(bi, DataType.BIGINTEGER);
+    }
+
+    @Override
+    public Result getNext(BigDecimal bd) throws ExecException {
+        return genericGetNext(bd, DataType.BIGDECIMAL);
     }
 
     @Override

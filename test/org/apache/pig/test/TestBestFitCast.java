@@ -94,7 +94,7 @@ public class TestBestFitCast {
          * (non-Javadoc)
          * @see org.apache.pig.EvalFunc#getArgToFuncMapping()
          */
-        @Override
+        @Override //TODO add BigInteger and BigDecimal
         public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
             List<FuncSpec> funcList = new ArrayList<FuncSpec>();
             funcList.add(new FuncSpec(this.getClass().getName(), new Schema(Arrays.asList(

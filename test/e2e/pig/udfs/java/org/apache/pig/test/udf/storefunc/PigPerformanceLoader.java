@@ -18,6 +18,8 @@
 package org.apache.pig.test.udf.storefunc;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -30,8 +32,8 @@ import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.builtin.Utf8StorageConverter;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
-import org.apache.pig.data.TupleFactory;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 
 /**
  * A load function for the performance tests.
@@ -52,11 +54,11 @@ public class PigPerformanceLoader extends PigStorage {
     public LoadCaster getLoadCaster() throws IOException {
         return new Caster();
     }
-        
+
     class Caster implements LoadCaster {
-        
+
         Utf8StorageConverter helper = new Utf8StorageConverter();
-        
+
         @Override
         public DataBag bytesToBag(byte[] b, ResourceFieldSchema fs) throws IOException {
             if (b == null) return null;
@@ -126,7 +128,7 @@ public class PigPerformanceLoader extends PigStorage {
                 m.put(key, val);
                 pos++; // move past ^C
             }
-            return m; 
+            return m;
         }
 
         @Override
@@ -153,7 +155,7 @@ public class PigPerformanceLoader extends PigStorage {
         public Long bytesToLong(byte[] arg0) throws IOException {
             return helper.bytesToLong(arg0);
         }
-        
+
         @Override
         public Boolean bytesToBoolean(byte[] arg0) throws IOException {
             return helper.bytesToBoolean(arg0);
@@ -168,7 +170,17 @@ public class PigPerformanceLoader extends PigStorage {
         public Tuple bytesToTuple(byte[] arg0, ResourceFieldSchema fs) throws IOException {
             return helper.bytesToTuple(arg0, fs);
         }
-        
+
+        @Override
+        public BigInteger bytesToBigInteger(byte[] b) throws IOException {
+            return helper.bytesToBigInteger(b);
+        }
+
+        @Override
+        public BigDecimal bytesToBigDecimal(byte[] b) throws IOException {
+            return helper.bytesToBigDecimal(b);
+        }
+
     }
 
 }

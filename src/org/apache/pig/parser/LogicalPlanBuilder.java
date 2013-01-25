@@ -19,6 +19,8 @@
 package org.apache.pig.parser;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -1233,6 +1235,16 @@ public class LogicalPlanBuilder {
     static long parseLong(String s) {
         String num = s.substring( 0, s.length() - 1 );
         return Long.parseLong( num );
+    }
+
+    static BigInteger parseBigInteger(String s) {
+        String num = s.substring( 0, s.length() - 1 );
+        return new BigInteger( num );
+    }
+
+    static BigDecimal parseBigDecimal(String s) {
+        String num = s.substring( 0, s.length() - 1 );
+        return new BigDecimal( num );
     }
 
     static Tuple buildTuple(List<Object> objList) {

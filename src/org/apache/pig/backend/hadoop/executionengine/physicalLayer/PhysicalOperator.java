@@ -18,6 +18,8 @@
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -130,6 +132,10 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     static final protected Tuple dummyTuple = null;
 
     static final protected DataBag dummyBag = null;
+
+    static final protected BigInteger dummyBigInteger = null;
+
+    static final protected BigInteger dummyBigDecimal = null;
 
     static final protected Map dummyMap = null;
 
@@ -347,6 +353,10 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
                 return getNext((Integer) obj);
             case DataType.LONG:
                 return getNext((Long) obj);
+            case DataType.BIGINTEGER:
+                return getNext((BigInteger) obj);
+            case DataType.BIGDECIMAL:
+                return getNext((BigDecimal) obj);
             case DataType.DATETIME:
                 return getNext((DateTime) obj);
             case DataType.MAP:
@@ -379,6 +389,10 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
             return dummyFloat;
         case DataType.LONG:
             return dummyLong;
+        case DataType.BIGINTEGER:
+            return dummyBigInteger;
+        case DataType.BIGDECIMAL:
+            return dummyBigDecimal;
         case DataType.DATETIME:
             return dummyDateTime;
         case DataType.MAP:
@@ -442,6 +456,14 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
         ret.result = tmpBag;
         ret.returnStatus = (tmpBag.size() == 0)? POStatus.STATUS_EOP : POStatus.STATUS_OK;
         return ret;
+    }
+
+    public Result getNext(BigInteger t) throws ExecException {
+        return res;
+    }
+
+    public Result getNext(BigDecimal t) throws ExecException {
+        return res;
     }
 
     /**

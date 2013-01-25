@@ -188,6 +188,8 @@ public class POSort extends PhysicalOperator {
             case DataType.BOOLEAN:
             case DataType.INTEGER:
             case DataType.LONG:
+            case DataType.BIGINTEGER:
+            case DataType.BIGDECIMAL:
             case DataType.DATETIME:
             case DataType.TUPLE:
                 res = Op.getNext(getDummy(resultType), resultType);
@@ -376,7 +378,7 @@ public class POSort extends PhysicalOperator {
             requestedParallelism, null, clonePlans, cloneAsc, cloneFunc);
     }
 
-   
+
     public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
         if(illustrator != null) {
           illustrator.getEquivalenceClasses().get(eqClassIndex).add((Tuple) in);

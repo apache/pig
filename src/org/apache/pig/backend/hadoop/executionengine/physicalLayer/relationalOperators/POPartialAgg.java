@@ -236,7 +236,7 @@ public class POPartialAgg extends PhysicalOperator implements Spillable {
         }
         estimatedMemThresholds = true;
                     }
-                    
+
     private void checkSizeReduction() throws ExecException {
         int numBeforeReduction = numRecsInProcessedMap + numRecsInRawMap;
         aggregateFirstLevel();
@@ -453,6 +453,8 @@ public class POPartialAgg extends PhysicalOperator implements Spillable {
         case DataType.FLOAT:
         case DataType.INTEGER:
         case DataType.LONG:
+        case DataType.BIGINTEGER:
+        case DataType.BIGDECIMAL:
         case DataType.DATETIME:
         case DataType.MAP:
         case DataType.TUPLE:

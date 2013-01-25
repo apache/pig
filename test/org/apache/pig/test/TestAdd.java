@@ -52,7 +52,7 @@ public class TestAdd {
         // int TRIALS = 10;
         byte[] types = { DataType.BAG, DataType.BOOLEAN, DataType.BYTEARRAY, DataType.CHARARRAY,
                         DataType.DOUBLE, DataType.FLOAT, DataType.INTEGER, DataType.LONG,
-                        DataType.DATETIME, DataType.MAP, DataType.TUPLE };
+                        DataType.DATETIME, DataType.MAP, DataType.TUPLE, DataType.BIGINTEGER, DataType.BIGDECIMAL };
         // Map<Byte,String> map = GenRandomData.genTypeToNameMap();
         System.out.println("Testing Add operator");
         for (byte type : types) {
@@ -289,7 +289,7 @@ public class TestAdd {
                 rest = op.getNext(inpt1);
                 assertEquals(POStatus.STATUS_ERR, rest.returnStatus);
                 break;
-            }
+            } //TODO add case for BigInteger and BigDecimal
             }
         }
     }

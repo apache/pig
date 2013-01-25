@@ -17,13 +17,15 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators;
 
+import java.math.BigInteger;
+
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.data.DataType;
-import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 
 public class Mod extends BinaryExpressionOperator {
@@ -58,6 +60,8 @@ public class Mod extends BinaryExpressionOperator {
             return (T) Integer.valueOf((Integer) a % (Integer) b);
         case DataType.LONG:
             return (T) Long.valueOf((Long) a % (Long) b);
+        case DataType.BIGINTEGER:
+            return (T) ((BigInteger)a).mod((BigInteger)b);
         default:
             throw new ExecException("called on unsupported Number class " + DataType.findTypeName(dataType));
         }
@@ -99,6 +103,11 @@ public class Mod extends BinaryExpressionOperator {
     @Override
     public Result getNext(Long i) throws ExecException{
         return genericGetNext(i, DataType.LONG);
+    }
+
+    @Override
+    public Result getNext(BigInteger i) throws ExecException{
+        return genericGetNext(i, DataType.BIGINTEGER);
     }
 
     @Override

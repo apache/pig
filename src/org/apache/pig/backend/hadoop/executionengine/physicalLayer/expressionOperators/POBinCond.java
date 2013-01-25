@@ -17,6 +17,8 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -145,6 +147,16 @@ public class POBinCond extends ExpressionOperator {
     @Override
     public Result getNext(Tuple t) throws ExecException {
         return genericGetNext(t, DataType.TUPLE);
+    }
+
+    @Override
+    public Result getNext(BigInteger bi) throws ExecException {
+        return genericGetNext(bi, DataType.BIGINTEGER);
+    }
+
+    @Override
+    public Result getNext(BigDecimal bd) throws ExecException {
+        return genericGetNext(bd, DataType.BIGDECIMAL);
     }
 
     @Override

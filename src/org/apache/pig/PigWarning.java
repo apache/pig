@@ -19,7 +19,7 @@ package org.apache.pig;
 
 /**
  * An enum to enumerate the warning types in Pig
- * 
+ *
  */
 public enum PigWarning {
     ACCESSING_NON_EXISTENT_FIELD,
@@ -33,6 +33,8 @@ public enum PigWarning {
     IMPLICIT_CAST_TO_FLOAT,
     IMPLICIT_CAST_TO_INT,
     IMPLICIT_CAST_TO_LONG,
+    IMPLICIT_CAST_TO_BIGINTEGER,
+    IMPLICIT_CAST_TO_BIGDECIMAL,
     IMPLICIT_CAST_TO_BOOLEAN,
     IMPLICIT_CAST_TO_DATETIME,
     IMPLICIT_CAST_TO_MAP,
