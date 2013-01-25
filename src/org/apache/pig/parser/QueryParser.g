@@ -257,6 +257,8 @@ parameter
     : IDENTIFIER
     | INTEGER
     | DOUBLENUMBER
+    | BIGDECIMALNUMBER
+    | BIGINTEGERNUMBER
     | QUOTEDSTRING
     | DOLLARVAR
 ;
@@ -271,7 +273,7 @@ inline_clause : inline_return_clause IDENTIFIER inline_param_clause
 
 // TYPES
 
-simple_type : BOOLEAN | INT | LONG | FLOAT | DOUBLE | DATETIME | CHARARRAY | BYTEARRAY
+simple_type : BOOLEAN | INT | LONG | FLOAT | DOUBLE | DATETIME | BIGINTEGER | BIGDECIMAL | CHARARRAY | BYTEARRAY
 ;
 
 implicit_tuple_type : LEFT_PAREN field_def_list? RIGHT_PAREN -> ^( TUPLE_TYPE field_def_list? )
@@ -899,6 +901,8 @@ eid_without_columns : rel_str_op
     | ASC
     | DESC
     | BOOL
+    | BIGINTEGER
+    | BIGDECIMAL
     | DATETIME
     | CHARARRAY
     | BYTEARRAY

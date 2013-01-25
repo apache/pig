@@ -23,6 +23,8 @@ import static org.apache.pig.PigConfiguration.TIME_UDFS_PROP;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.lang.reflect.Type;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -397,19 +399,26 @@ public class POUserFunc extends ExpressionOperator {
 
     @Override
     public Result getNext(Double d) throws ExecException {
+        return getNext();
+    }
 
+    @Override
+    public Result getNext(BigInteger bi) throws ExecException {
+        return getNext();
+    }
+
+    @Override
+    public Result getNext(BigDecimal bd) throws ExecException {
         return getNext();
     }
 
     @Override
     public Result getNext(Float f) throws ExecException {
-
         return getNext();
     }
 
     @Override
     public Result getNext(Long l) throws ExecException {
-
         return getNext();
     }
 
@@ -421,13 +430,11 @@ public class POUserFunc extends ExpressionOperator {
 
     @Override
     public Result getNext(Map m) throws ExecException {
-
         return getNext();
     }
 
     @Override
     public Result getNext(String s) throws ExecException {
-
         return getNext();
     }
 

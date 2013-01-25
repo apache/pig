@@ -23,8 +23,8 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.data.DataType;
-import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 
 public class POIsNull extends UnaryComparisonOperator {
@@ -65,6 +65,8 @@ public class POIsNull extends UnaryComparisonOperator {
         case DataType.BYTEARRAY:
         case DataType.DOUBLE:
         case DataType.INTEGER:
+        case DataType.BIGINTEGER:
+        case DataType.BIGDECIMAL:
         case DataType.CHARARRAY:
         case DataType.BOOLEAN:
         case DataType.LONG:

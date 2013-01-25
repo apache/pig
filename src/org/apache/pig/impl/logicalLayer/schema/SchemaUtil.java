@@ -28,11 +28,11 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 
 /**
- * 
+ *
  * A utility class for simplify the schema creation, especially for bag and
  * tuple schema. Currently, it only support simple schema creation, nested tuple
  * and bag is not supported
- * 
+ *
  */
 
 public class SchemaUtil {
@@ -52,12 +52,14 @@ public class SchemaUtil {
         SUPPORTED_TYPE_SET.add(DataType.FLOAT);
         SUPPORTED_TYPE_SET.add(DataType.DATETIME);
         SUPPORTED_TYPE_SET.add(DataType.MAP);
+        SUPPORTED_TYPE_SET.add(DataType.BIGINTEGER);
+        SUPPORTED_TYPE_SET.add(DataType.BIGDECIMAL);
     }
 
     /**
      * Create a new tuple schema according the tuple name and two list: names of
      * fields, types of fields
-     * 
+     *
      * @param tupleName
      * @param fieldNames
      * @param dataTypes
@@ -86,7 +88,7 @@ public class SchemaUtil {
     /**
      * Create a new tuple schema according the tuple name and two arrays: names
      * of fields, types of fields
-     * 
+     *
      * @param tupleName
      * @param fieldNames
      * @param dataTypes
@@ -102,7 +104,7 @@ public class SchemaUtil {
     /**
      * Create a new tuple schema according the two list: names of fields, types
      * of fields, the default tuple name is t.
-     * 
+     *
      * @param fieldNames
      * @param dataTypes
      * @return tuple schema
@@ -116,7 +118,7 @@ public class SchemaUtil {
     /**
      * Create a new tuple schema according one list: types of fields, the
      * default names of fields are f0,f1,f2..., and the tuple name is t.
-     * 
+     *
      * @param dataTypes
      * @return tuple schema
      * @throws FrontendException
@@ -130,7 +132,7 @@ public class SchemaUtil {
     /**
      * Create a new tuple schema according the two arrays: names of fields,
      * types of fields, the default tuple name is t.
-     * 
+     *
      * @param names
      * @param dataTypes
      * @return tuple schema
@@ -145,7 +147,7 @@ public class SchemaUtil {
     /**
      * Create a new tuple schema according one array: types of fields, the
      * default names of fields are f0,f1,f2..., and the tuple name is t.
-     * 
+     *
      * @param dataTypes
      * @return tuple schema
      * @throws FrontendException
@@ -166,7 +168,7 @@ public class SchemaUtil {
     /**
      * Create a bag schema according the bag name,tuple name and two list: name
      * of fields, type of fields
-     * 
+     *
      * @param bagName
      * @param tupleName
      * @param fieldNames
@@ -195,7 +197,7 @@ public class SchemaUtil {
     /**
      * Create a bag schema according two list: name of fields, type of fields,
      * and the default bag name is b, the default tuple name is t.
-     * 
+     *
      * @param names
      * @param dataTypes
      * @return bag schema
@@ -216,7 +218,7 @@ public class SchemaUtil {
      * Create a new tuple schema according one list: types of fields, the
      * default names of fields are f0,f1,f2..., and the tuple is t, the bag name
      * is b.
-     * 
+     *
      * @param dataTypes
      * @return bag schema
      * @throws FrontendException
@@ -230,7 +232,7 @@ public class SchemaUtil {
     /**
      * Create a new tuple schema according two arrays: names of field,types of
      * fields. The default tuple name is t, and the bag is b.
-     * 
+     *
      * @param names
      * @param dataTypes
      * @return bag schema
@@ -244,7 +246,7 @@ public class SchemaUtil {
     /**
      * Create a new tuple schema according one array: the type of fields, the
      * tuple name is t, and the bag name is b.
-     * 
+     *
      * @param dataTypes
      * @return bag schema
      * @throws FrontendException

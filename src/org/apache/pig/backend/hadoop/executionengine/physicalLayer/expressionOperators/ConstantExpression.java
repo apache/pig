@@ -17,6 +17,8 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
 
@@ -31,8 +33,8 @@ import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 
 
@@ -170,6 +172,16 @@ public class ConstantExpression extends ExpressionOperator {
     }
 
     @Override
+    public Result getNext(BigInteger bi) throws ExecException {
+        return genericGetNext(bi, DataType.BIGINTEGER);
+    }
+
+    @Override
+    public Result getNext(BigDecimal bd) throws ExecException {
+        return genericGetNext(bd, DataType.BIGDECIMAL);
+    }
+
+    @Override
     public ConstantExpression clone() throws CloneNotSupportedException {
         ConstantExpression clone =
             new ConstantExpression(new OperatorKey(mKey.scope,
@@ -186,7 +198,7 @@ public class ConstantExpression extends ExpressionOperator {
     public List<ExpressionOperator> getChildExpressions() {
         return null;
     }
-    
+
     @Override
     public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
         return (Tuple) out;

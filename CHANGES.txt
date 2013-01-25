@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2764: Add a biginteger and bigdecimal type to pig (jcoveney)
+
 PIG-3073: POUserFunc creating log spam for large scripts (jcoveney)
 
 PIG-3082: outputSchema of a UDF allows two usages when describing a Tuple schema (jcoveney)

@@ -18,15 +18,17 @@
 
 package org.apache.pig.pen;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.HashSet;
 import java.util.Set;
-import java.util.Collection;
 
 import org.joda.time.DateTime;
 
@@ -34,59 +36,59 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLimit;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.newplan.logical.expression.BinaryExpression;
+import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.util.MultiMap;
+import org.apache.pig.newplan.Operator;
+import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.logical.expression.AddExpression;
 import org.apache.pig.newplan.logical.expression.AndExpression;
+import org.apache.pig.newplan.logical.expression.BinaryExpression;
 import org.apache.pig.newplan.logical.expression.CastExpression;
-import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
-import org.apache.pig.newplan.logical.relational.LOCogroup;
-import org.apache.pig.newplan.logical.relational.LOJoin;
-import org.apache.pig.newplan.logical.relational.LOLimit;
 import org.apache.pig.newplan.logical.expression.ConstantExpression;
-import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
-import org.apache.pig.newplan.logical.relational.LOCross;
-import org.apache.pig.newplan.logical.relational.LODistinct;
 import org.apache.pig.newplan.logical.expression.DivideExpression;
 import org.apache.pig.newplan.logical.expression.EqualExpression;
-import org.apache.pig.newplan.logical.relational.LOFilter;
-import org.apache.pig.newplan.logical.relational.LOForEach;
-import org.apache.pig.newplan.logical.expression.GreaterThanExpression;
 import org.apache.pig.newplan.logical.expression.GreaterThanEqualExpression;
-import org.apache.pig.newplan.logical.expression.LessThanExpression;
-import org.apache.pig.newplan.logical.expression.LessThanEqualExpression;
-import org.apache.pig.newplan.logical.relational.LOLoad;
-import org.apache.pig.newplan.logical.relational.LogicalPlan;
+import org.apache.pig.newplan.logical.expression.GreaterThanExpression;
 import org.apache.pig.newplan.logical.expression.IsNullExpression;
-import org.apache.pig.newplan.logical.expression.ModExpression;
+import org.apache.pig.newplan.logical.expression.LessThanEqualExpression;
+import org.apache.pig.newplan.logical.expression.LessThanExpression;
 import org.apache.pig.newplan.logical.expression.LogicalExpression;
+import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
+import org.apache.pig.newplan.logical.expression.ModExpression;
 import org.apache.pig.newplan.logical.expression.MultiplyExpression;
-import org.apache.pig.newplan.logical.expression.NotExpression;
 import org.apache.pig.newplan.logical.expression.NotEqualExpression;
+import org.apache.pig.newplan.logical.expression.NotExpression;
 import org.apache.pig.newplan.logical.expression.OrExpression;
 import org.apache.pig.newplan.logical.expression.ProjectExpression;
 import org.apache.pig.newplan.logical.expression.RegexExpression;
+import org.apache.pig.newplan.logical.expression.SubtractExpression;
 import org.apache.pig.newplan.logical.expression.UserFuncExpression;
+import org.apache.pig.newplan.logical.relational.LOCogroup;
+import org.apache.pig.newplan.logical.relational.LOCross;
+import org.apache.pig.newplan.logical.relational.LODistinct;
+import org.apache.pig.newplan.logical.relational.LOFilter;
+import org.apache.pig.newplan.logical.relational.LOForEach;
+import org.apache.pig.newplan.logical.relational.LOJoin;
+import org.apache.pig.newplan.logical.relational.LOLimit;
+import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LOSort;
 import org.apache.pig.newplan.logical.relational.LOSplit;
 import org.apache.pig.newplan.logical.relational.LOStore;
-import org.apache.pig.newplan.logical.expression.SubtractExpression;
 import org.apache.pig.newplan.logical.relational.LOUnion;
-import org.apache.pig.newplan.OperatorPlan;
-import org.apache.pig.newplan.Operator;
-import org.apache.pig.newplan.logical.relational.LogicalSchema;
+import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalNodesVisitor;
+import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
+import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.pen.util.ExampleTuple;
 import org.apache.pig.pen.util.PreOrderDepthFirstWalker;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLimit;
-import org.apache.pig.impl.util.MultiMap;
-import org.apache.pig.impl.io.FileSpec;
 
 //This is used to generate synthetic data
 //Synthetic data generation is done by making constraint tuples for each operator as we traverse the plan
@@ -121,14 +123,14 @@ public class AugmentBaseDataVisitor extends LogicalRelationalNodesVisitor {
     public void setLimit() {
         limit = true;
     }
-    
+
     public Map<LOLoad, DataBag> getNewBaseData() throws ExecException {
         // consolidate base data from different LOADs on the same inputs
         MultiMap<FileSpec, DataBag> inputDataMap = new MultiMap<FileSpec, DataBag>();
         for (Map.Entry<LOLoad, DataBag> e : newBaseData.entrySet()) {
             inputDataMap.put(e.getKey().getFileSpec(), e.getValue());
         }
-        
+
         int index = 0;
         for (FileSpec fs : inputDataMap.keySet()) {
             int maxSchemaSize = 0;
@@ -157,8 +159,8 @@ public class AugmentBaseDataVisitor extends LogicalRelationalNodesVisitor {
             }
             index++;
         }
-        
-        
+
+
         for (Map.Entry<LOLoad, DataBag> e : baseData.entrySet()) {
             DataBag bag = newBaseData.get(e.getKey());
             if (bag == null) {
@@ -173,7 +175,7 @@ public class AugmentBaseDataVisitor extends LogicalRelationalNodesVisitor {
     public Map<LOLimit, Long> getOriLimitMap() {
         return oriLimitMap;
     }
-    
+
     @Override
     public void visit(LOCogroup cg) throws FrontendException {
         if (limit && !((PreOrderDepthFirstWalker) currentWalker).getBranchFlag())
@@ -188,7 +190,7 @@ public class AugmentBaseDataVisitor extends LogicalRelationalNodesVisitor {
         int numCols = -1;
 
         for (int index = 0; index < cg.getInputs((LogicalPlan)plan).size(); ++index) {
-            Collection<LogicalExpressionPlan> groupByPlans = 
+            Collection<LogicalExpressionPlan> groupByPlans =
                 cg.getExpressionPlans().get(index);
             List<Integer> groupCols = new ArrayList<Integer>();
             for (LogicalExpressionPlan plan : groupByPlans) {
@@ -303,7 +305,7 @@ public class AugmentBaseDataVisitor extends LogicalRelationalNodesVisitor {
         int numCols = -1;
 
         for (int index = 0; index < join.getInputs((LogicalPlan)plan).size(); ++index) {
-            Collection<LogicalExpressionPlan> groupByPlans = 
+            Collection<LogicalExpressionPlan> groupByPlans =
                 join.getExpressionPlans().get(index);
             List<Integer> groupCols = new ArrayList<Integer>();
             for (LogicalExpressionPlan plan : groupByPlans) {
@@ -404,7 +406,7 @@ public class AugmentBaseDataVisitor extends LogicalRelationalNodesVisitor {
     public void visit(LODistinct dt) throws FrontendException {
         if (limit && !((PreOrderDepthFirstWalker) currentWalker).getBranchFlag())
             return;
-    
+
         DataBag outputConstraints = outputConstraintsMap.get(dt);
         outputConstraintsMap.remove(dt);
 
@@ -413,14 +415,14 @@ public class AugmentBaseDataVisitor extends LogicalRelationalNodesVisitor {
             inputConstraints = BagFactory.getInstance().newDefaultBag();
             outputConstraintsMap.put(dt.getInput((LogicalPlan) plan), inputConstraints);
         }
-    
+
         if (outputConstraints != null && outputConstraints.size() > 0) {
             for (Iterator<Tuple> it = outputConstraints.iterator(); it.hasNext();)
             {
                 inputConstraints.add(it.next());
             }
         }
-        
+
         boolean emptyInputConstraints = inputConstraints.size() == 0;
         if (emptyInputConstraints) {
             DataBag inputData = derivedData.get(dt.getInput((LogicalPlan) plan));
@@ -453,7 +455,7 @@ public class AugmentBaseDataVisitor extends LogicalRelationalNodesVisitor {
     public void visit(LOFilter filter) throws FrontendException {
         if (limit && !((PreOrderDepthFirstWalker) currentWalker).getBranchFlag())
             return;
-        
+
         DataBag outputConstraints = outputConstraintsMap.get(filter);
         outputConstraintsMap.remove(filter);
 
@@ -604,9 +606,9 @@ public class AugmentBaseDataVisitor extends LogicalRelationalNodesVisitor {
                     "Error visiting Load during Augmentation phase of Example Generator! "
                             + e.getMessage());
         }
-        
+
         Tuple exampleTuple = inputData.iterator().next();
-        
+
         DataBag outputConstraints = outputConstraintsMap.get(load);
         outputConstraintsMap.remove(load);
 
@@ -666,7 +668,7 @@ public class AugmentBaseDataVisitor extends LogicalRelationalNodesVisitor {
                     inputTuple.synthetic = true;
 
                     newInputData.add(inputTuple);
-                    
+
                     if (!newInput)
                         newInput = true;
                 }
@@ -694,7 +696,7 @@ public class AugmentBaseDataVisitor extends LogicalRelationalNodesVisitor {
         }
         return false;
     }
-    
+
     @Override
     public void visit(LOSort s) throws FrontendException {
         if (limit && !((PreOrderDepthFirstWalker) currentWalker).getBranchFlag())
@@ -769,10 +771,10 @@ public class AugmentBaseDataVisitor extends LogicalRelationalNodesVisitor {
     public void visit(LOLimit lm) throws FrontendException {
         if (!limit) // not augment for LIMIT in this traversal
             return;
-        
+
         if (oriLimitMap == null)
             oriLimitMap = new HashMap<LOLimit, Long>();
-        
+
         DataBag outputConstraints = outputConstraintsMap.get(lm);
         outputConstraintsMap.remove(lm);
 
@@ -783,7 +785,7 @@ public class AugmentBaseDataVisitor extends LogicalRelationalNodesVisitor {
         }
 
         DataBag inputData = derivedData.get(lm.getInput((LogicalPlan) plan));
-        
+
         if (outputConstraints != null && outputConstraints.size() > 0) { // there
             // 's
             // one
@@ -819,7 +821,7 @@ public class AugmentBaseDataVisitor extends LogicalRelationalNodesVisitor {
         poLimit.setLimit(inputConstraints.size()-1);
         lm.setLimit(poLimit.getLimit());
     }
-    
+
     Tuple GetGroupByInput(Object groupLabel, List<Integer> groupCols,
             int numFields) throws ExecException {
         Tuple t = TupleFactory.getInstance().newTuple(numFields);
@@ -856,7 +858,7 @@ public class AugmentBaseDataVisitor extends LogicalRelationalNodesVisitor {
 
         return t;
     }
-    
+
     Tuple GetJoinInput(Tuple group, List<Integer> groupCols,
         int numFields) throws ExecException {
         Tuple t = TupleFactory.getInstance().newTuple(numFields);
@@ -874,7 +876,7 @@ public class AugmentBaseDataVisitor extends LogicalRelationalNodesVisitor {
 
         return t;
     }
-    
+
     Tuple BackPropConstraint(Tuple outputConstraint, List<Integer> cols,
             LogicalSchema inputSchema, boolean cast) throws ExecException {
         Tuple inputConst = TupleFactory.getInstance().newTuple(
@@ -954,7 +956,7 @@ public class AugmentBaseDataVisitor extends LogicalRelationalNodesVisitor {
             GenerateMatchingTupleHelper(t, (IsNullExpression) pred, invert);
         else if (pred instanceof UserFuncExpression)
             // Don't know how to generate input tuple for UDF, return null
-            // to suppress the generation 
+            // to suppress the generation
             t = null;
         else
             throw new FrontendException("Unknown operator in filter predicate");
@@ -1161,7 +1163,7 @@ public class AugmentBaseDataVisitor extends LogicalRelationalNodesVisitor {
         GenerateMatchingTupleHelper(t, input, !invert);
 
     }
-    
+
     void GenerateMatchingTupleHelper(Tuple t, IsNullExpression op, boolean invert)
             throws FrontendException, ExecException {
         byte type = op.getExpression().getType();
@@ -1214,6 +1216,10 @@ public class AugmentBaseDataVisitor extends LogicalRelationalNodesVisitor {
             return Float.valueOf((Float) v - 1);
         case DataType.DOUBLE:
             return Double.valueOf((Double) v - 1);
+        case DataType.BIGINTEGER:
+            return ((BigInteger)v).subtract(BigInteger.ONE);
+        case DataType.BIGDECIMAL:
+            return ((BigDecimal)v).subtract(BigDecimal.ONE);
         case DataType.DATETIME:
             DateTime dt = (DateTime) v;
             if (dt.getMillisOfSecond() != 0) {
@@ -1255,6 +1261,10 @@ public class AugmentBaseDataVisitor extends LogicalRelationalNodesVisitor {
             return Float.valueOf((Float) v + 1);
         case DataType.DOUBLE:
             return Double.valueOf((Double) v + 1);
+        case DataType.BIGINTEGER:
+            return ((BigInteger)v).add(BigInteger.ONE);
+        case DataType.BIGDECIMAL:
+            return ((BigDecimal)v).add(BigDecimal.ONE);
         case DataType.DATETIME:
             DateTime dt = (DateTime) v;
             if (dt.getMillisOfSecond() != 0) {
@@ -1293,6 +1303,10 @@ public class AugmentBaseDataVisitor extends LogicalRelationalNodesVisitor {
             return Integer.valueOf(data);
         case DataType.LONG:
             return Long.valueOf(data);
+        case DataType.BIGINTEGER:
+            return new BigInteger(data);
+        case DataType.BIGDECIMAL:
+            return new BigDecimal(data);
         case DataType.DATETIME:
             return new DateTime(data);
         case DataType.CHARARRAY:

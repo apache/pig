@@ -20,27 +20,23 @@ package org.apache.pig.data;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.lang.reflect.Constructor;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import org.apache.hadoop.io.Writable;
-
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
-import org.apache.pig.backend.executionengine.ExecException;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 
 /**
  * This class was used to handle reading and writing of intermediate
  *  results of data types. Now that functionality is in {@link BinInterSedes}
- *  This class could also be used for storing permanent results, it used 
+ *  This class could also be used for storing permanent results, it used
  *  by BinStorage and Zebra through DefaultTuple class.
  */
 @InterfaceAudience.Private
@@ -71,11 +67,11 @@ public class DataReaderWriter {
         return t;
 
     }
-    
+
     public static DataBag bytesToBag(DataInput in) throws IOException {
         DataBag bag = mBagFactory.newDefaultBag();
         long size = in.readLong();
-        
+
         for (long i = 0; i < size; i++) {
             try {
                 Object o = readDatum(in);
@@ -86,27 +82,27 @@ public class DataReaderWriter {
         }
         return bag;
     }
-    
+
     public static Map<String, Object> bytesToMap(DataInput in) throws IOException {
-        int size = in.readInt();    
+        int size = in.readInt();
         Map<String, Object> m = new HashMap<String, Object>(size);
         for (int i = 0; i < size; i++) {
             String key = (String)readDatum(in);
             m.put(key, readDatum(in));
         }
-        return m;    
+        return m;
     }
 
     public static InternalMap bytesToInternalMap(DataInput in) throws IOException {
-        int size = in.readInt();    
+        int size = in.readInt();
         InternalMap m = new InternalMap(size);
         for (int i = 0; i < size; i++) {
             Object key = readDatum(in);
             m.put(key, readDatum(in));
         }
-        return m;    
+        return m;
     }
-    
+
     public static String bytesToCharArray(DataInput in) throws IOException{
         int size = in.readUnsignedShort();
         byte[] ba = new byte[size];
@@ -120,7 +116,7 @@ public class DataReaderWriter {
         in.readFully(ba);
         return new String(ba, DataReaderWriter.UTF8);
     }
-    
+
     public static Writable bytesToWritable(DataInput in) throws IOException {
         String className = (String) readDatum(in);
         // create the writeable class . It needs to have a default constructor
@@ -128,42 +124,42 @@ public class DataReaderWriter {
         try {
             objClass = Class.forName(className);
         } catch (ClassNotFoundException e) {
-            throw new IOException("Could not find class " + className + 
+            throw new IOException("Could not find class " + className +
                     ", while attempting to de-serialize it ", e);
         }
         Writable writable = null;
         try {
             writable = (Writable) objClass.newInstance();
         } catch (Exception e) {
-            String msg = "Could create instance of class " + className + 
+            String msg = "Could create instance of class " + className +
             ", while attempting to de-serialize it. (no default constructor ?)";
             throw new IOException(msg, e);
-        } 
-        
+        }
+
         //read the fields of the object from DataInput
         writable.readFields(in);
         return writable;
     }
-    
+
     public static Object readDatum(DataInput in) throws IOException, ExecException {
         // Read the data type
         byte b = in.readByte();
         return readDatum(in, b);
     }
-        
+
     public static Object readDatum(DataInput in, byte type) throws IOException, ExecException {
         switch (type) {
-            case DataType.TUPLE: 
+            case DataType.TUPLE:
                 return bytesToTuple(in);
-            
-            case DataType.BAG: 
+
+            case DataType.BAG:
                 return bytesToBag(in);
 
-            case DataType.MAP: 
-                return bytesToMap(in);    
+            case DataType.MAP:
+                return bytesToMap(in);
 
-            case DataType.INTERNALMAP: 
-                return bytesToInternalMap(in);    
+            case DataType.INTERNALMAP:
+                return bytesToInternalMap(in);
 
             case DataType.INTEGER:
                 return Integer.valueOf(in.readInt());
@@ -177,12 +173,18 @@ public class DataReaderWriter {
             case DataType.DOUBLE:
                 return Double.valueOf(in.readDouble());
 
+            case DataType.BIGINTEGER:
+                return new BigInteger(((DataByteArray)readDatum(in, in.readByte())).get());
+
+            case DataType.BIGDECIMAL:
+                return new BigDecimal((String)readDatum(in, in.readByte()));
+
             case DataType.BOOLEAN:
                 return Boolean.valueOf(in.readBoolean());
 
             case DataType.BYTE:
                 return Byte.valueOf(in.readByte());
-                
+
             case DataType.DATETIME:
                 return new DateTime(in.readLong(), DateTimeZone.forOffsetMillis(in.readShort() * ONE_MINUTE));
 
@@ -193,16 +195,16 @@ public class DataReaderWriter {
                 return new DataByteArray(ba);
                                      }
 
-            case DataType.BIGCHARARRAY: 
+            case DataType.BIGCHARARRAY:
                 return bytesToBigCharArray(in);
-            
 
-            case DataType.CHARARRAY: 
+
+            case DataType.CHARARRAY:
                 return bytesToCharArray(in);
-                
+
             case DataType.GENERIC_WRITABLECOMPARABLE :
                 return bytesToWritable(in);
-                
+
             case DataType.NULL:
                 return null;
 
@@ -228,7 +230,7 @@ public class DataReaderWriter {
                     DataReaderWriter.writeDatum(out, t.get(i));
                 }
                 break;
-                
+
             case DataType.BAG:
                 DataBag bag = (DataBag)val;
                 out.writeByte(DataType.BAG);
@@ -236,7 +238,7 @@ public class DataReaderWriter {
                 Iterator<Tuple> it = bag.iterator();
                 while (it.hasNext()) {
                     DataReaderWriter.writeDatum(out, it.next());
-                }  
+                }
                 break;
 
             case DataType.MAP: {
@@ -252,7 +254,7 @@ public class DataReaderWriter {
                 }
                 break;
                                }
-            
+
             case DataType.INTERNALMAP: {
                 out.writeByte(DataType.INTERNALMAP);
                 Map<Object, Object> m = (Map<Object, Object>)val;
@@ -266,7 +268,7 @@ public class DataReaderWriter {
                 }
                 break;
                                }
-            
+
             case DataType.INTEGER:
                 out.writeByte(DataType.INTEGER);
                 out.writeInt((Integer)val);
@@ -310,11 +312,21 @@ public class DataReaderWriter {
                 break;
                                      }
 
+            case DataType.BIGINTEGER:
+                out.writeByte(DataType.BIGINTEGER);
+                writeDatum(out, ((BigInteger)val).toByteArray());
+                break;
+
+            case DataType.BIGDECIMAL:
+                out.writeByte(DataType.BIGDECIMAL);
+                writeDatum(out, ((BigDecimal)val).toString());
+                break;
+
             case DataType.CHARARRAY: {
                 String s = (String)val;
                 byte[] utfBytes = s.getBytes(DataReaderWriter.UTF8);
                 int length = utfBytes.length;
-                
+
                 if(length < DataReaderWriter.UNSIGNED_SHORT_MAX) {
                     out.writeByte(DataType.CHARARRAY);
                     out.writeShort(length);

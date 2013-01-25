@@ -19,6 +19,8 @@ package org.apache.pig.impl.util;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map;
@@ -28,42 +30,42 @@ import org.joda.time.DateTime;
 import org.apache.hadoop.io.Text;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.builtin.PigStorage;
+import org.apache.pig.builtin.PigStreaming;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.builtin.PigStorage;
-import org.apache.pig.builtin.PigStreaming;
 
 /**
- * This util class provides methods that are shared by storage class 
- * {@link PigStorage} and streaming class {@link PigStreaming} 
- * 
+ * This util class provides methods that are shared by storage class
+ * {@link PigStorage} and streaming class {@link PigStreaming}
+ *
  */
 public final class StorageUtil {
 
     private static final String UTF8 = "UTF-8";
-    
+
     /**
      * Transform a <code>String</code> into a byte representing the
-     * field delimiter. 
-     * 
-     * @param delimiter a string that may be in single-quoted form   
+     * field delimiter.
+     *
+     * @param delimiter a string that may be in single-quoted form
      * @return the field delimiter in byte form
      */
     public static byte parseFieldDel(String delimiter) {
         if (delimiter == null) {
             throw new IllegalArgumentException("Null delimiter");
         }
-        
+
         delimiter = parseSingleQuotedString(delimiter);
-        
+
         if (delimiter.length() > 1 && delimiter.charAt(0) != '\\') {
             throw new IllegalArgumentException("Delimeter must be a " +
             		"single character " + delimiter);
         }
-        
+
         byte fieldDel = '\t';
 
         if (delimiter.length() == 1) {
@@ -83,25 +85,25 @@ public final class StorageUtil {
                     Integer.valueOf(delimiter.substring(2)).byteValue();
                 break;
 
-            default:                
-                throw new IllegalArgumentException("Unknown delimiter " + 
+            default:
+                throw new IllegalArgumentException("Unknown delimiter " +
                         delimiter);
             }
         }
-        
+
         return fieldDel;
     }
-    
+
     /**
-     * Serialize an object to an {@link OutputStream} in the 
-     * field-delimited form.  
-     * 
-     * @param out an OutputStream object 
+     * Serialize an object to an {@link OutputStream} in the
+     * field-delimited form.
+     *
+     * @param out an OutputStream object
      * @param field an object to be serialized
      * @throws IOException if serialization fails.
      */
     @SuppressWarnings("unchecked")
-    public static void putField(OutputStream out, Object field) 
+    public static void putField(OutputStream out, Object field)
     throws IOException {
         //string constants for each delimiter
         String tupleBeginDelim = "(";
@@ -137,11 +139,19 @@ public final class StorageUtil {
             out.write(((Double)field).toString().getBytes());
             break;
 
+        case DataType.BIGINTEGER:
+            out.write(((BigInteger)field).toString().getBytes());
+            break;
+
+        case DataType.BIGDECIMAL:
+            out.write(((BigDecimal)field).toString().getBytes());
+            break;
+
         case DataType.DATETIME:
             out.write(((DateTime)field).toString().getBytes());
             break;
 
-        case DataType.BYTEARRAY: 
+        case DataType.BYTEARRAY:
             byte[] b = ((DataByteArray)field).get();
             out.write(b, 0, b.length);
             break;
@@ -201,50 +211,50 @@ public final class StorageUtil {
             }
             out.write(bagEndDelim.getBytes(UTF8));
             break;
-            
+
         default: {
             int errCode = 2108;
             String msg = "Could not determine data type of field: " + field;
             throw new ExecException(msg, errCode, PigException.BUG);
         }
-        
+
         }
     }
-    
+
     /**
      * Transform a line of <code>Text</code> to a <code>Tuple</code>
-     * 
+     *
      * @param val a line of text
      * @param fieldDel the field delimiter
      * @return tuple constructed from the text
      */
     public static Tuple textToTuple(Text val, byte fieldDel) {
-                                                                                  
+
         byte[] buf = val.getBytes();
         int len = val.getLength();
         int start = 0;
-        
+
         ArrayList<Object> protoTuple = new ArrayList<Object>();
-        
+
         for (int i = 0; i < len; i++) {
             if (buf[i] == fieldDel) {
                 readField(protoTuple, buf, start, i);
                 start = i + 1;
             }
         }
-        
+
         // pick up the last field
         if (start <= len) {
             readField(protoTuple, buf, start, len);
         }
-        
+
         return TupleFactory.getInstance().newTupleNoCopy(protoTuple);
     }
-    
+
     //---------------------------------------------------------------
-    // private methods 
-    
-    private static void readField(ArrayList<Object> protoTuple, 
+    // private methods
+
+    private static void readField(ArrayList<Object> protoTuple,
                           byte[] buf, int start, int end) {
         if (start == end) {
             // NULL value
@@ -253,22 +263,22 @@ public final class StorageUtil {
             protoTuple.add(new DataByteArray(buf, start, end));
         }
     }
-    
+
     private static String parseSingleQuotedString(String delimiter) {
         int startIndex = 0;
         int endIndex;
-        while (startIndex < delimiter.length() 
+        while (startIndex < delimiter.length()
                 && delimiter.charAt(startIndex++) != '\'')
             ;
         endIndex = startIndex;
-        while (endIndex < delimiter.length() 
+        while (endIndex < delimiter.length()
                 && delimiter.charAt(endIndex) != '\'') {
             if (delimiter.charAt(endIndex) == '\\') {
                 endIndex++;
             }
             endIndex++;
         }
-           
+
         return (endIndex < delimiter.length()) ?
                 delimiter.substring(startIndex, endIndex) : delimiter;
     }

@@ -19,15 +19,14 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOp
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.data.DataType;
-import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 
 public class GTOrEqualToExpr extends BinaryComparisonOperator {
@@ -67,6 +66,8 @@ public class GTOrEqualToExpr extends BinaryComparisonOperator {
         case DataType.FLOAT:
         case DataType.INTEGER:
         case DataType.LONG:
+        case DataType.BIGINTEGER:
+        case DataType.BIGDECIMAL:
         case DataType.DATETIME:
         case DataType.CHARARRAY: {
             Object dummy = getDummy(operandType);

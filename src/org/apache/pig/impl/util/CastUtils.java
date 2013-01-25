@@ -33,7 +33,7 @@ public class CastUtils {
 	private static Integer mMaxInt = Integer.valueOf(Integer.MAX_VALUE);
 
 	private static Long mMaxLong = Long.valueOf(Long.MAX_VALUE);
-	
+
 	protected static final Log mLog = LogFactory.getLog(CastUtils.class);
 
 	/**
@@ -54,6 +54,8 @@ public class CastUtils {
 	    case (DataType.DOUBLE): return caster.bytesToDouble(bytes);
 	    case (DataType.FLOAT): return caster.bytesToFloat(bytes);
 	    case (DataType.INTEGER): return caster.bytesToInteger(bytes);
+	    case (DataType.BIGINTEGER): return caster.bytesToBigInteger(bytes);
+	    case (DataType.BIGDECIMAL): return caster.bytesToBigDecimal(bytes);
 	    case (DataType.LONG): return caster.bytesToLong(bytes);
 	    case (DataType.BOOLEAN): return caster.bytesToBoolean(bytes);
 	    case (DataType.DATETIME): return caster.bytesToDateTime(bytes);
@@ -186,7 +188,7 @@ public class CastUtils {
 			}
 		}
 	}
-	
+
 	public static Boolean stringToBoolean(String str) {
         if (str == null) {
             return null;

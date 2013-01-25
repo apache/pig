@@ -5,9 +5,9 @@
  * licenses this file to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -21,6 +21,8 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.lang.reflect.Method;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.util.ArrayList;
@@ -79,6 +81,7 @@ import org.apache.pig.OrderedLoadFunc;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.StoreFuncInterface;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.backend.hadoop.hbase.HBaseTableInputFormat.HBaseTableIFBuilder;
 import org.apache.pig.builtin.Utf8StorageConverter;
@@ -130,10 +133,10 @@ import com.google.common.collect.Lists;
  * map to a column family name. In the above examples, the <code>friends</code>
  * column family data from <code>SampleTable</code> will be written to a
  * <code>buddies</code> column family in the <code>SampleTableCopy</code> table.
- * 
+ *
  */
 public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPushDown, OrderedLoadFunc {
-    
+
     private static final Log LOG = LogFactory.getLog(HBaseStorage.class);
 
     private final static String STRING_CASTER = "UTF8StorageConverter";
@@ -179,11 +182,11 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
     private ResourceSchema schema_;
     private RequiredFieldList requiredFieldList;
 
-    private static void populateValidOptions() { 
+    private static void populateValidOptions() {
         validOptions_.addOption("loadKey", false, "Load Key");
         validOptions_.addOption("gt", true, "Records must be greater than this value " +
                 "(binary, double-slash-escaped)");
-        validOptions_.addOption("lt", true, "Records must be less than this value (binary, double-slash-escaped)");   
+        validOptions_.addOption("lt", true, "Records must be less than this value (binary, double-slash-escaped)");
         validOptions_.addOption("gte", true, "Records must be greater than or equal to this value");
         validOptions_.addOption("lte", true, "Records must be less than or equal to this value");
         validOptions_.addOption("caching", true, "Number of rows scanners should cache");
@@ -202,7 +205,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
     /**
      * Constructor. Construct a HBase Table LoadFunc and StoreFunc to load or store the cells of the
      * provided columns.
-     * 
+     *
      * @param columnList
      *        columnlist that is a presented string delimited by space and/or
      *        commas. To retreive all columns in a column family <code>Foo</code>,
@@ -215,19 +218,19 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
      *        family is specified.
      *
      * @throws ParseException when unable to parse arguments
-     * @throws IOException 
+     * @throws IOException
      */
     public HBaseStorage(String columnList) throws ParseException, IOException {
         this(columnList,"");
     }
 
     /**
-     * Constructor. Construct a HBase Table LoadFunc and StoreFunc to load or store. 
+     * Constructor. Construct a HBase Table LoadFunc and StoreFunc to load or store.
      * @param columnList
      * @param optString Loader options. Known options:<ul>
      * <li>-loadKey=(true|false)  Load the row key as the first column
      * <li>-gt=minKeyVal
-     * <li>-lt=maxKeyVal 
+     * <li>-lt=maxKeyVal
      * <li>-gte=minKeyVal
      * <li>-lte=maxKeyVal
      * <li>-limit=numRowsPerRegion max number of rows to retrieve per region
@@ -242,8 +245,8 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
      * To be used with extreme caution, since this could result in data loss
      * (see http://hbase.apache.org/book.html#perf.hbase.client.putwal).
      * </ul>
-     * @throws ParseException 
-     * @throws IOException 
+     * @throws ParseException
+     * @throws IOException
      */
     public HBaseStorage(String columnList, String optString) throws ParseException, IOException {
         populateValidOptions();
@@ -295,13 +298,13 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         caching_ = Integer.valueOf(configuredOptions_.getOptionValue("caching", "100"));
         limit_ = Long.valueOf(configuredOptions_.getOptionValue("limit", "-1"));
         noWAL_ = configuredOptions_.hasOption("noWAL");
-        
+
         if (configuredOptions_.hasOption("minTimestamp")){
             minTimestamp_ = Long.parseLong(configuredOptions_.getOptionValue("minTimestamp"));
         } else {
             minTimestamp_ = Long.MIN_VALUE;
         }
-        
+
         if (configuredOptions_.hasOption("maxTimestamp")){
             maxTimestamp_ = Long.parseLong(configuredOptions_.getOptionValue("maxTimestamp"));
         } else {
@@ -313,7 +316,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         } else {
             timestamp_ = 0;
         }
-        
+
         initScan();
     }
 
@@ -653,7 +656,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
     }
 
     @Override
-    public InputFormat getInputFormat() {      
+    public InputFormat getInputFormat() {
         TableInputFormat inputFormat = new HBaseTableIFBuilder()
         .withLimit(limit_)
         .withGt(gt_)
@@ -809,18 +812,18 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
     }
 
     /**
-     * Set up the caster to use for reading values out of, and writing to, HBase. 
+     * Set up the caster to use for reading values out of, and writing to, HBase.
      */
     @Override
     public LoadCaster getLoadCaster() throws IOException {
         return caster_;
     }
-    
+
     /*
      * StoreFunc Methods
      * @see org.apache.pig.StoreFuncInterface#getOutputFormat()
      */
-    
+
     @Override
     public OutputFormat getOutputFormat() throws IOException {
         if (outputFormat == null) {
@@ -919,7 +922,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
 
         return put;
     }
-    
+
     @SuppressWarnings("unchecked")
     private byte[] objToBytes(Object o, byte type) throws IOException {
         LoadStoreCaster caster = (LoadStoreCaster) caster_;
@@ -932,13 +935,15 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         case DataType.FLOAT: return caster.toBytes((Float) o);
         case DataType.INTEGER: return caster.toBytes((Integer) o);
         case DataType.LONG: return caster.toBytes((Long) o);
+        case DataType.BIGINTEGER: return caster.toBytes((BigInteger) o);
+        case DataType.BIGDECIMAL: return caster.toBytes((BigDecimal) o);
         case DataType.BOOLEAN: return caster.toBytes((Boolean) o);
         case DataType.DATETIME: return caster.toBytes((DateTime) o);
 
-        // The type conversion here is unchecked. 
+        // The type conversion here is unchecked.
         // Relying on DataType.findType to do the right thing.
         case DataType.MAP: return caster.toBytes((Map<String, Object>) o);
-        
+
         case DataType.NULL: return null;
         case DataType.TUPLE: return caster.toBytes((Tuple) o);
         case DataType.ERROR: throw new IOException("Unable to determine type of " + o.getClass());
@@ -991,7 +996,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
     /*
      * LoadPushDown Methods.
      */
-    
+
     @Override
     public List<OperatorSet> getFeatures() {
         return Arrays.asList(LoadPushDown.OperatorSet.PROJECTION);
@@ -1038,7 +1043,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
                 loadRowKey_ = false;
             projOffset = 0;
             }
-        
+
         for (int i = projOffset; i < requiredFields.size(); i++) {
             int fieldIndex = requiredFields.get(i).getIndex();
             newColumns.add(columnInfo_.get(fieldIndex - colOffset));
