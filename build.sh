@@ -15,7 +15,7 @@ ant -Dforrest.home=/opt/apache-forrest-0.9 -Dant.home=/opt/verticloud/ant-1.8.4/
 export RPM_BUILD_DIR=${WORKSPACE}/install-${BUILD_NUMBER}/opt
 mkdir --mode=0755 -p ${RPM_BUILD_DIR}
 cd ${RPM_BUILD_DIR}
-tar -xvzpf ${WORKSPACE}/pig-${VERSION}.tar.gz
+tar -xvzpf ${WORKSPACE}/build/pig-${VERSION}.tar.gz
 
 cd ${WORKSPACE}
 fpm --verbose \
