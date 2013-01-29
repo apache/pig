@@ -30,6 +30,8 @@ PIG-1891 Enable StoreFunc to make intelligent decision based on job success or f
 
 IMPROVEMENTS
 
+PIG-3139: Document reducer estimation (billgraham)
+
 PIG-2341: Need better documentation on Pig/HBase integration (jthakrar and billgraham via billgraham)
 
 PIG-3044: Trigger POPartialAgg compaction under GC pressure (dvryaboy)
