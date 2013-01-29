@@ -1267,6 +1267,7 @@ public class MRCompiler extends PhyPlanVisitor {
                             .instantiateFuncFromSpec(ld.getLFile()
                                     .getFuncSpec());
                             Job job = new Job(conf);
+                            loader.setUDFContextSignature(ld.getSignature());
                             loader.setLocation(location, job);
                             InputFormat inf = loader.getInputFormat();
                             List<InputSplit> splits = inf.getSplits(HadoopShims.cloneJobContext(job));
