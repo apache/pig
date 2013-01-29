@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-3140: Document PigProgressNotificationListener configs (billgraham)
+
 PIG-3139: Document reducer estimation (billgraham)
 
 PIG-2764: Add a biginteger and bigdecimal type to pig (jcoveney)
