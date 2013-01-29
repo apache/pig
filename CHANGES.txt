@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-3139: Document reducer estimation (billgraham)
+
 PIG-2764: Add a biginteger and bigdecimal type to pig (jcoveney)
 
 PIG-3073: POUserFunc creating log spam for large scripts (jcoveney)
