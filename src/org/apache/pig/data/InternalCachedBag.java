@@ -128,7 +128,6 @@ public class InternalCachedBag extends SelfSpillBag {
         if(numTuplesSpilled > 0)
             updateSpillRecCounter();
         addDone = true;
-        markSpillableIfNecessary();
     }
 
     @Override
