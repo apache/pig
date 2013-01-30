@@ -336,6 +336,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-3147: Spill failing with "java.lang.RuntimeException: InternalCachedBag.spill() should not be called (knoguchi via dvryaboy)
+
 PIG-2645: PigSplit does not handle the case where SerializationFactory returns null (shami via gates)
 
 PIG-3109: Missing license headers (jarcec via cheolsoo)
