@@ -19,10 +19,13 @@
 
   <property name="pig.dir" value="${basedir}/../../.."/>
   <property name="pig.jar" value="${pig.dir}/pig.jar"/>
+  <property name="ivy.dir" location="${pig.dir}/ivy" />
+  <loadproperties srcfile="${ivy.dir}/libraries.properties"/>
+
   <property name="jython.jar"
-    value="${pig.dir}/build/ivy/lib/Pig/jython-2.5.0.jar"/>
+    value="${pig.dir}/build/ivy/lib/Pig/jython-standalone-${jython.version}.jar"/>
   <property name="jruby.jar"
-    value="${pig.dir}/build/ivy/lib/Pig/jruby-complete-1.6.7.jar"/>
+    value="${pig.dir}/build/ivy/lib/Pig/jruby-complete-${jruby.version}.jar"/>
 
   <!-- Separate property name for udfs' build.xml -->
   <property name="pig.jarfile" value="${pig.jar}"/>
