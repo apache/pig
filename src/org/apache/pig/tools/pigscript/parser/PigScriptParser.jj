@@ -151,9 +151,12 @@ TOKEN: {<COPY: "cp">}
 TOKEN: {<COPYFROMLOCAL: "copyFromLocal">}
 TOKEN: {<COPYTOLOCAL: "copyToLocal">}
 TOKEN: {<DUMP: "dump">}
+TOKEN: {<DUMP_SHORT: "\\d">}
 TOKEN: {<DESCRIBE: "describe">}
+TOKEN: {<DESCRIBE_SHORT: "\\de">}
 TOKEN: {<ALIASES: "aliases">}
 TOKEN: {<EXPLAIN: "explain">}
+TOKEN: {<EXPLAIN_SHORT: "\\e">}
 TOKEN: {<HELP: "help">}
 TOKEN: {<HISTORY: "history">}
 TOKEN: {<KILL: "kill">}
@@ -162,6 +165,7 @@ TOKEN: {<MOVE: "mv">}
 TOKEN: {<MKDIR: "mkdir">}
 TOKEN: {<PWD: "pwd">}
 TOKEN: {<QUIT: "quit">}
+TOKEN: {<QUIT_SHORT: "\\q">}
 TOKEN: {<REGISTER: "register">}
 TOKEN: {<USING: "using">}
 TOKEN: {<AS: "as"> }
@@ -169,6 +173,7 @@ TOKEN: {<REMOVE: "rm">}
 TOKEN: {<REMOVEFORCE: "rmf">}
 TOKEN: {<SET: "set">}
 TOKEN: {<ILLUSTRATE: "illustrate">}
+TOKEN: {<ILLUSTRATE_SHORT: "\\i">}
 TOKEN: {<RUN: "run">}
 TOKEN: {<EXEC: "exec">}
 TOKEN: {<PARAM: "-param">}
@@ -481,17 +486,21 @@ void parse() throws IOException:
 	t2 = GetPath()
 	{processCopyToLocal(t1.image, t2.image);}	
 	|
-	<DUMP>
-	t1 = <IDENTIFIER>
-	{processDump(t1.image);}
+	(<DUMP> | <DUMP_SHORT>)
+	(
+		t1 = <IDENTIFIER>
+		{processDump(t1.image);}
+		|
+		{processDump(null);}
+	)
 	|
     Illustrate()
 	|
-	<DESCRIBE>
+	(<DESCRIBE> | <DESCRIBE_SHORT>)
 	(
-	t1 = <IDENTIFIER>
-	{processDescribe(t1.image);}
-	|
+		t1 = <IDENTIFIER>
+		{processDescribe(t1.image);}
+		|
 		{processDescribe(null);}
 	)
 	|
@@ -535,7 +544,7 @@ void parse() throws IOException:
 	<PWD>
 	{processPWD();}
 	|
-	<QUIT>
+	(<QUIT> | <QUIT_SHORT>)
 	{quit();}
 	|
 	<REGISTER>
@@ -605,7 +614,7 @@ void Illustrate() throws IOException:
 
 }
 {
-	<ILLUSTRATE>
+	(<ILLUSTRATE> | <ILLUSTRATE_SHORT>)
 	{
 		params = new ArrayList<String>(); 
 		files = new ArrayList<String>();
@@ -660,7 +669,7 @@ void Explain() throws IOException:
 
 }
 {
-	<EXPLAIN>
+	(<EXPLAIN> | <EXPLAIN_SHORT>)
 	{
 		params = new ArrayList<String>(); 
 		files = new ArrayList<String>();
@@ -789,11 +798,21 @@ Token GetReserved () :
 	|
 	t = <DUMP>
 	|
+	t = <DUMP_SHORT>
+	|
 	t = <DESCRIBE>
+	|
+	t = <DESCRIBE_SHORT>
 	|
 	t = <ALIASES>
 	|
 	t = <EXPLAIN>
+	|
+	t = <EXPLAIN_SHORT>
+	|
+	t = <ILLUSTRATE>
+	|
+	t = <ILLUSTRATE_SHORT>
 	|
 	t = <HELP>
 	|
@@ -810,6 +829,8 @@ Token GetReserved () :
 	t = <PWD>
 	|
 	t = <QUIT>
+	|
+	t = <QUIT_SHORT>
 	|
 	t = <REGISTER>
 	|
