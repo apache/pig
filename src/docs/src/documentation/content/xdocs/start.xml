@@ -380,17 +380,36 @@ However, in a production environment you always want to use the STORE operator t
    <p>Pig Latin provides operators that can help you debug your Pig Latin statements:</p>
    <ul>
       <li>
-         <p>Use the  <a href="test.html#DUMP">DUMP</a> operator to display results to your terminal screen. </p>
+         <p>Use the  <a href="test.html#dump">DUMP</a> operator to display results to your terminal screen. </p>
       </li>
       <li>
-         <p>Use the  <a href="test.html#DESCRIBE">DESCRIBE</a> operator to review the schema of a relation.</p>
+         <p>Use the  <a href="test.html#describe">DESCRIBE</a> operator to review the schema of a relation.</p>
       </li>
       <li>
-         <p>Use the  <a href="test.html#EXPLAIN">EXPLAIN</a> operator to view the logical, physical, or map reduce execution plans to compute a relation.</p>
+         <p>Use the  <a href="test.html#explain">EXPLAIN</a> operator to view the logical, physical, or map reduce execution plans to compute a relation.</p>
       </li>
       <li>
-         <p>Use the  <a href="test.html#ILLUSTRATE">ILLUSTRATE</a> operator to view the step-by-step execution of a series of statements.</p>
+         <p>Use the  <a href="test.html#illustrate">ILLUSTRATE</a> operator to view the step-by-step execution of a series of statements.</p>
       </li>
+   </ul>
+   <p><strong>Shortcuts for Debugging Operators</strong></p>
+   <p>Pig provides shortcuts for the frequently used debugging operators (DUMP, DESCRIBE, EXPLAIN, ILLUSTRATE). These shortcuts can be used in Grunt shell or within pig scripts. Following are the shortcuts supported by pig</p>
+   <ul>
+    <li>
+        <p> \d alias - shourtcut for <a href="test.html#dump">DUMP</a> operator. If alias is ignored last defined alias will be used.</p>
+    </li>
+    <li>
+        <p> \de alias - shourtcut for <a href="test.html#describe">DESCRIBE</a> operator. If alias is ignored last defined alias will be used.</p>
+    </li>
+    <li>
+        <p> \e alias - shourtcut for <a href="test.html#explain">EXPLAIN</a> operator. If alias is ignored last defined alias will be used.</p>
+    </li>
+    <li>
+        <p> \i alias - shourtcut for <a href="test.html#illustrate">ILLUSTRATE</a> operator. If alias is ignored last defined alias will be used.</p>
+    </li>
+    <li>
+        <p> \q - To quit grunt shell </p>
+    </li>
    </ul>
 </section> 
 </section>  
