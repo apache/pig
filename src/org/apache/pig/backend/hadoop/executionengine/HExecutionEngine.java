@@ -172,15 +172,10 @@ public class HExecutionEngine {
             jc.addResource("mapred-default.xml");
             jc.addResource("yarn-default.xml");
             recomputeProperties(jc, properties);
-            
-            properties.setProperty("mapreduce.framework.name", "local");
-            properties.setProperty(JOB_TRACKER_LOCATION, LOCAL );
-            properties.setProperty(FILE_SYSTEM_LOCATION, "file:///");
-            properties.setProperty(ALTERNATIVE_FILE_SYSTEM_LOCATION, "file:///");
         }
         
-        cluster = properties.getProperty(JOB_TRACKER_LOCATION);
-        nameNode = properties.getProperty(FILE_SYSTEM_LOCATION);
+        cluster = jc.get(JOB_TRACKER_LOCATION);
+        nameNode = jc.get(FILE_SYSTEM_LOCATION);
         if (nameNode==null)
             nameNode = (String)pigContext.getProperties().get(ALTERNATIVE_FILE_SYSTEM_LOCATION);
 
