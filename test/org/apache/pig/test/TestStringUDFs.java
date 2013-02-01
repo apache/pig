@@ -33,6 +33,7 @@ import org.apache.pig.builtin.STARTSWITH;
 import org.apache.pig.builtin.STRSPLIT;
 import org.apache.pig.builtin.SUBSTRING;
 import org.apache.pig.builtin.TRIM;
+import org.apache.pig.builtin.EqualsIgnoreCase;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.junit.Test;
@@ -186,4 +187,20 @@ public class TestStringUDFs {
         Tuple testTuple2 = Util.buildTuple("foobaz", "foo");
         assertTrue("String prefix should match", startsWith.exec(testTuple2));
     }
+    
+    @Test
+    public void testEqualsIgnoreCase() throws IOException {
+    	EqualsIgnoreCase equalsIgnoreCase = new EqualsIgnoreCase ();
+        Tuple testTuple = Util.buildTuple("ABC","abc");
+        assertEquals("Strings are NOT equalsIgnoreCase", "ABC".equalsIgnoreCase("abc"), equalsIgnoreCase.exec(testTuple));
+        testTuple = Util.buildTuple("ABC", "aBC");
+        assertEquals("strings are NOT equalsIgnoreCase", "ABC".equalsIgnoreCase("aBC"), equalsIgnoreCase.exec(testTuple));
+        testTuple = Util.buildTuple("abc", "abc");
+        assertEquals("strings are NOT equalsIgnoreCase", "abc".equalsIgnoreCase("abc"), equalsIgnoreCase.exec(testTuple));
+        testTuple = Util.buildTuple("abcd", "abc");
+        assertEquals("strings are NOT equalsIgnoreCase", "abcd".equalsIgnoreCase("abc"), equalsIgnoreCase.exec(testTuple));
+       
+    }
+
+
 }

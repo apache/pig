@@ -24,6 +24,9 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-2878: Pig current releases lack a UDF equalIgnoreCase.This function returns a Boolean value indicating whether string left is equal to string right. This
+check is case insensitive. (shami via gates)
+
 PIG-2994: Grunt shortcuts (prasanth_j via cheolsoo)
 
 PIG-3140: Document PigProgressNotificationListener configs (billgraham)
