@@ -1,4 +1,4 @@
-These notes are for Pig 0.3.0 release.
+These notes are for Pig 0.11.0 release.
 
 Highlights
 ==========
@@ -18,9 +18,9 @@ Java installation
 Trying the Release
 ==================
 
-1. Download pig-0.3.0.tar.gz
-2. Unpack the file: tar -xzvf pig-0.3.0.tar.gz
-3. Move into the installation directory: cd pig-0.3.0
+1. Download pig-0.11.0.tar.gz
+2. Unpack the file: tar -xzvf pig-0.11.0.tar.gz
+3. Move into the installation directory: cd pig-0.11.0
 4. To run pig without Hadoop cluster, execute the command below. This will
 take you into an interactive shell called grunt that allows you to navigate
 the local file system and execute Pig commands against the local files
