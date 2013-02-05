@@ -32,6 +32,7 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobCreationException;
+import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.piggybank.storage.avro.AvroStorage;
 import org.apache.pig.piggybank.storage.avro.PigSchema2Avro;
@@ -59,7 +60,7 @@ public class TestAvroStorage {
 
     final private static String basedir = "src/test/java/org/apache/pig/piggybank/test/storage/avro/avro_test_files/";
 
-    final private static String outbasedir = "/tmp/TestAvroStorage/";
+    private static String outbasedir;
 
     public static final PathFilter hiddenPathFilter = new PathFilter() {
         public boolean accept(Path p) {
@@ -164,8 +165,11 @@ public class TestAvroStorage {
     final private String testMultipleSchemas2File = getInputFile("test_complex_types/*");
 
     @BeforeClass
-    public static void setup() throws ExecException {
+    public static void setup() throws ExecException, IOException {
         pigServerLocal = new PigServer(ExecType.LOCAL);
+        String TMP_DIR = System.getProperty("user.dir") + "/build/test/tmp/";
+        pigServerLocal.getPigContext().getProperties().setProperty("pig.temp.dir", TMP_DIR);
+        outbasedir = FileLocalizer.getTemporaryPath(pigServerLocal.getPigContext()).toString() + "/TestAvroStorage/";
         deleteDirectory(new File(outbasedir));
     }
 

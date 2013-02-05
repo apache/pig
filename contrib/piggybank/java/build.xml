@@ -113,7 +113,7 @@
         <echo> *** Running UDF tests ***</echo>
         <delete dir="${test.logs}"/>
         <mkdir dir="${test.logs}"/>
-        <tempfile property="junit.tmp.dir" prefix="piggybank_junit_tmp" destDir="${java.io.tmpdir}" />
+        <tempfile property="junit.tmp.dir" prefix="piggybank_junit_tmp" destDir="${user.dir}/build/test" />
         <mkdir dir="${junit.tmp.dir}/"/>
         <junit printsummary="yes" haltonfailure="no" fork="yes" maxmemory="512m" dir="${basedir}" timeout="${test.timeout}" errorProperty="tests.failed" failureProperty="tests.failed">        
             <sysproperty key="hadoop.log.dir" value="${test.logs}"/>

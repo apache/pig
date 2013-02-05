@@ -51,10 +51,10 @@ public class TestDBStorage extends TestCase {
 	private Server dbServer;
 	private String driver = "org.hsqldb.jdbcDriver";
 	// private String url = "jdbc:hsqldb:mem:.";
-	private String dblocation = "/tmp/batchtest";
-	private String url = "jdbc:hsqldb:file:" + dblocation
-			+ ";hsqldb.default_table_type=cached;hsqldb.cache_rows=100";
-	  private String dbUrl = "jdbc:hsqldb:hsql://localhost/" + "batchtest";
+    private String TMP_DIR;
+    private String dblocation;
+    private String url;
+    private String dbUrl = "jdbc:hsqldb:hsql://localhost/" + "batchtest";
 	private String user = "sa";
 	private String password = "";
 
@@ -69,12 +69,16 @@ public class TestDBStorage extends TestCase {
 		pigServer.getPigContext().getProperties()
 				.setProperty("mapred.reduce.max.attempts", "1");
 		System.out.println("Pig server initialized successfully");
+        TMP_DIR = System.getProperty("user.dir") + "/build/test/";
+        dblocation = TMP_DIR + "batchtest";
+        url = "jdbc:hsqldb:file:" + dblocation
+               + ";hsqldb.default_table_type=cached;hsqldb.cache_rows=100";
 		// Initialise DBServer
 		dbServer = new Server();
 		dbServer.setDatabaseName(0, "batchtest");
 		// dbServer.setDatabasePath(0, "mem:test;sql.enforce_strict_size=true");
 		dbServer.setDatabasePath(0,
-				"file:/tmp/batchtest;sql.enforce_strict_size=true");
+                            "file:" + TMP_DIR + "batchtest;sql.enforce_strict_size=true");
 		dbServer.setLogWriter(null);
 		dbServer.setErrWriter(null);
 		dbServer.start();                                                                     
@@ -111,7 +115,7 @@ public class TestDBStorage extends TestCase {
 			Statement st = con.createStatement();
 			st.executeUpdate(sql);
 			st.close();
-			 con.commit();
+			con.commit();
 			con.close();
 		} catch (SQLException sqe) {
 			throw new IOException("Cannot create table", sqe);
@@ -131,7 +135,7 @@ public class TestDBStorage extends TestCase {
 		pigServer.shutdown();
 		dbServer.stop();
 
-		File[] dbFiles = new File("/tmp").listFiles(new FilenameFilter() {
+		File[] dbFiles = new File(TMP_DIR).listFiles(new FilenameFilter() {
 			@Override
 			public boolean accept(File dir, String name) {
 				if (name.startsWith("batchtest")) {
