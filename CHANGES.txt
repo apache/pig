@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-3160: GFCross uses unnecessary loop (sandyr via cheolsoo)
+
 PIG-3138: Decouple PigServer.executeBatch() from compilation of batch (pkommireddi via cheolsoo)
 
 PIG-2878: Pig current releases lack a UDF equalIgnoreCase.This function returns a Boolean value indicating whether string left is equal to string right. This

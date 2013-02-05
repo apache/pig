@@ -66,14 +66,8 @@ public class GFCross extends EvalFunc<DataBag> {
         try{
                
             int[] digits = new int[numInputs];
-            for (int i=0; i<numInputs; i++){
-                if (i == myNumber){
-                    digits[i] = r.nextInt(numGroupsPerInput);
-                }else{
-                    digits[i] = 0;
-                }
-            }
-                
+            digits[myNumber] = r.nextInt(numGroupsPerInput);
+
             for (int i=0; i<numGroupsGoingTo; i++){
                 output.add(toTuple(digits));
                 next(digits);
