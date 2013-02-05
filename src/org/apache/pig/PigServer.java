@@ -156,6 +156,9 @@ public class PigServer {
 
     private boolean validateEachStatement = false;
 
+    // PigStats object used in execution of script
+    private PigStats pigStatsForExecute = null;
+
     private String constructScope() {
         // scope servers for now as a session id
 
@@ -252,6 +255,14 @@ public class PigServer {
     }
 
     /**
+     * Current DAG
+     * 
+     * @return
+     */
+    public Graph getCurrentDAG() {
+        return this.currDAG;
+    }
+    /**
      * Set the logging level to DEBUG.
      */
     public void debugOn() {
@@ -316,17 +327,17 @@ public class PigServer {
     }
 
     /**
-     * Submits a batch of Pig commands for execution.
-     *
-     * @return list of jobs being executed
+     * This method parses the scripts and builds the LogicalPlan. This method
+     * should be followed by {@link PigServer#executeBatch(boolean)} with
+     * argument as false. Do Not use {@link PigServer#executeBatch()} after
+     * calling this method as that will re-parse and build the script.
+     * 
      * @throws IOException
      */
-    public List<ExecJob> executeBatch() throws IOException {
-        PigStats stats = null;
-
+    public void parseAndBuild() throws IOException {
         if( !isMultiQuery ) {
             // ignore if multiquery is off
-            stats = PigStats.get();
+            pigStatsForExecute = PigStats.get();
         } else {
             if (currDAG == null || !isBatchOn()) {
                 int errCode = 1083;
@@ -335,10 +346,36 @@ public class PigServer {
             }
             currDAG.parseQuery();
             currDAG.buildPlan( null );
-            stats = execute();
+        }
+    }
+
+    /**
+     * Submits a batch of Pig commands for execution.
+     * 
+     * @return list of jobs being executed
+     * @throws IOException
+     */
+    public List<ExecJob> executeBatch() throws IOException {
+        return executeBatch(true);
+    }
+
+    /**
+     * Submits a batch of Pig commands for execution. Parse and build of script
+     * should be skipped if user called {@link PigServer#parseAndBuild()}
+     * before. Pass false as an argument in which case.
+     * 
+     * @param parseAndBuild
+     * @return
+     * @throws IOException
+     */
+    public List<ExecJob> executeBatch(boolean parseAndBuild) throws IOException {
+        if (parseAndBuild) {
+            parseAndBuild();
         }
 
-        return getJobs(stats);
+        pigStatsForExecute = execute();
+
+        return getJobs(pigStatsForExecute);
     }
 
     /**
@@ -1406,6 +1443,10 @@ public class PigServer {
         }
 
         void markAsExecuted() {
+        }
+
+        public LogicalPlan getLogicalPlan() {
+            return this.lp;
         }
 
         /**
