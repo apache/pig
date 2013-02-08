@@ -466,7 +466,7 @@ public class TestMultiQueryBasic {
         "F2  = FOREACH F GENERATE f0, f7, f8;" +
         "I = GROUP F2 BY (f7, f8);" +
         "STORE I into 'foo4'  using BinStorage();" +
-        "explain;";
+        "explain I;";
         myPig.setBatchOn();
         Util.registerMultiLineQuery(myPig, query);
         myPig.executeBatch();
