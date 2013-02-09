@@ -1,2 +1,0 @@
-date = 'skip this'
-date = 20080228

@@ -1,5 +1,0 @@
-digraph graph1 {
-    LOLoad -> LOLimit;
-    LOLimit [limit="10"];
-    LOLimit -> LOStore;
-}

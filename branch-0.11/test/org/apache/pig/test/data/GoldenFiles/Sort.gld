@@ -1,7 +1,0 @@
-test-4: Store()
-|
-|---test-3: POSort[bag]() - scope-11
-    |   |
-    |   Project[bytearray][0] - scope-10
-    |
-    |---test-2: Load()

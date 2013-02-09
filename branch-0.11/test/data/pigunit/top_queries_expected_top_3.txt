@@ -1,3 +1,0 @@
-(yahoo,25)
-(facebook,15)
-(twitter,7)
