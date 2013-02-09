@@ -3,8 +3,33 @@ These notes are for Pig 0.11.0 release.
 Highlights
 ==========
 
-The main focus of this release is multiquery support that allows to optimize
-multiple queries within the same script that share a computation.
+This release include several new features and improvements, some of which are
+highlighted below. For a more complete list of changes see CHANGES.txt.
+
+- New RANK, CUBE and ROLLUP operators
+- New DateType data type
+- Support for Groovy UDFs
+- Support for loading macros from jars
+- Support for custom PigReducerEstimators
+- Suoport for custom PigProgressNotificatonListeners
+- Support for schema-based Tuples for reduced memory footprint
+- Support for passing environment variables to streaming jobs
+- Support for invoking HCatalog DDL commands from Pig
+- Support for .pigbootup file for defaults
+- Improved support for working with Maps in Pig scripts
+- Grunt improvements: history and clear
+- New cleanupOnSuccess method in StoreFunc interface
+- UDF timing utilities
+- UDF lifecycle improvements
+- UDFs for DateType support
+- Performance improvements to merge join
+- Performance improvements to local mode
+- Performance improvements to in memory aggregation
+- Performance improvements to Spillable management
+- Improvements to HBaseStorage and AvroStorage
+- Penny has been removed
+- 300+ bug fixes
+
 
 System Requirements
 ===================
@@ -13,7 +38,7 @@ System Requirements
 Java installation
 2. Ant build tool:  http://ant.apache.org - to build source only
 3. Cygwin: http://www.cygwin.com/ - to run under Windows 
-4. This release is compatible with Hadoop 0.18.x releases
+4. This release is compatible with all Hadoop 0.20.X, 1.X, 0.23.X and 2.X releases
 
 Trying the Release
 ==================
