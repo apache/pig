@@ -99,6 +99,8 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-3154: TestPackage.testOperator fails in trunk (dreambird via cheolsoo)
+
 PIG-3168: TestMultiQueryBasic.testMultiQueryWithSplitInMapAndMultiMerge fails in trunk (cheolsoo)
 
 PIG-3137: Fix Piggybank test to not using /tmp dir (dreambird via cheolsoo)

@@ -20,6 +20,8 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -148,6 +150,12 @@ public class TestPackage {
             return; // map not key type
         case DataType.TUPLE:
             runTest(GenRandomData.genRandSmallBagTuple(r, 10, 100), inner, DataType.TUPLE);
+            break;
+        case DataType.BIGINTEGER:
+            runTest(new BigInteger(256, r), inner, DataType.BIGINTEGER);
+            break;
+        case DataType.BIGDECIMAL:
+            runTest(new BigDecimal(r.nextDouble()), inner, DataType.BIGDECIMAL);
             break;
         default:
             fail("No test case for type " + DataType.findTypeName(t));
