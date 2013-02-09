@@ -1,0 +1,6 @@
+1. put zebra.jar to /grid/0/dev/hadoopqa/jars
+2. put 1.txt 2.txt  hdfs /users/hadoopqa/.
+3. run each pig script.
+java  -cp /grid/0/dev/hadoopqa/jing1234/conf:/grid/0/dev/hadoopqa/jars/pig.jar:/grid/0/dev/hadoopqa/jars/zebra.jar  org.apache.pig.Main -M <my.pig>               
+  
+

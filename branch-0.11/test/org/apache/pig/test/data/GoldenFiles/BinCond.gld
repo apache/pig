@@ -1,0 +1,35 @@
+test-16: Store()
+|
+|---A: New For Each(false)[bag] - scope-106
+    |   |
+    |   POBinCond[double] - scope-100
+    |   |
+    |   |---Equal To[boolean] - scope-89
+    |   |   |
+    |   |   |---Cast[chararray] - scope-87
+    |   |   |   |
+    |   |   |   |---Project[bytearray][1] - scope-86
+    |   |   |
+    |   |   |---Constant(3) - scope-88
+    |   |
+    |   |---Add[double] - scope-94
+    |   |   |
+    |   |   |---Cast[double] - scope-91
+    |   |   |   |
+    |   |   |   |---Project[bytearray][2] - scope-90
+    |   |   |
+    |   |   |---Cast[double] - scope-93
+    |   |       |
+    |   |       |---Project[bytearray][3] - scope-92
+    |   |
+    |   |---Subtract[double] - scope-99
+    |       |
+    |       |---Cast[double] - scope-96
+    |       |   |
+    |       |   |---Project[bytearray][2] - scope-95
+    |       |
+    |       |---Cast[double] - scope-98
+    |           |
+    |           |---Project[bytearray][3] - scope-97
+    |
+    |---test-15: Load()

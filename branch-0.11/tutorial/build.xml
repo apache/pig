@@ -1,0 +1,84 @@
+<!--
+   Licensed to the Apache Software Foundation (ASF) under one or more
+   contributor license agreements.  See the NOTICE file distributed with
+   this work for additional information regarding copyright ownership.
+   The ASF licenses this file to You under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-->
+
+<project basedir="." default="tar" name="pigudf">
+    <!-- javac properties -->
+    <property name="javac.version" value="1.5" />
+
+    <!-- build properties -->
+    <property name="build.dir" value="${basedir}/build" />
+    <property name="build.classes" value="${build.dir}/classes" />
+    <property name="tar.file" value="${build.dir}/pigtutorial.tar" />
+    <property name="tar.dir" value="${build.dir}/output" />
+    <property name="tar.dir.final" value="${tar.dir}/pigtmp" />
+    <property name="zip.file" value="pigtutorial.tar.gz"/>
+    <property name="tutorialjar" value="${tar.dir.final}/tutorial.jar" />
+    <property name="src.dir" value="src/org/apache/pig/tutorial" />
+    <property name="data.dir" value="data" />
+    <property name="scripts.dir" value="scripts" />
+
+    <path id="pigjar.id">
+      <fileset dir="..">
+        <include name="pig*.jar"/>
+        <exclude name="pig*-withouthadoop.jar"/>
+      </fileset>
+    </path>
+
+    <property name="pigjar" refid="pigjar.id"/> 
+
+    <path id="tutorial.classpath">
+        <pathelement location="${build.classes}"/>
+        <pathelement location="${pigjar}"/>
+    </path>
+
+    <target name="init">
+        <mkdir dir="${build.dir}"/>
+        <mkdir dir="${build.classes}"/>
+        <mkdir dir="${tar.dir}"/>
+        <mkdir dir="${tar.dir.final}"/>
+    </target>
+    <target name="clean">
+        <delete dir="build"/>
+        <delete file="${zip.file}"/>
+    </target>
+    <target depends="jar" name="cp" description="prepare tar creation">
+        <echo> *** Preparing tar creation ***</echo>
+        <copy includeemptydirs="false" todir="${tar.dir.final}">
+        <fileset dir="${data.dir}"/>
+        <fileset dir="${scripts.dir}"/>
+        <fileset file="${pigjar}"/>
+        </copy>
+    </target>
+    <target depends="init" name="compile" description="compiles tutorial udfs">
+        <echo> *** Compiling Tutorial files ***</echo>
+        <javac srcdir="${src.dir}" destdir="${build.classes}" source="${javac.version}"
+        target="${javac.version}">
+            <classpath refid="tutorial.classpath"/>
+        </javac>
+    </target>
+    <target depends="compile" name="jar" description="create tutorial jar file">
+        <echo> *** Creating tutorial.jar ***</echo>
+      <jar destfile="${tutorialjar}">
+        <fileset dir="${build.classes}"/>
+      </jar>
+    </target>
+    <target depends="cp" name="tar" description="constract tutorial tar file">
+        <echo> *** Creating tutorial.jar ***</echo>
+        <tar destfile="${tar.file}" basedir="${tar.dir}" />
+        <gzip zipfile="${zip.file}" src="${tar.file}"/>
+    </target>
+</project>

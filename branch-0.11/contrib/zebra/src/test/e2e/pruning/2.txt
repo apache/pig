@@ -1,0 +1,4 @@
+100	100.1	100	50e+2	something	someting	(0,0)	[b#0,c#0,a#0]
+2	1.2	12	1.2	somee	somee	(1,1)	[a#1,b#1,c#1]
+-99	-99.1	-99	-40e+2	soo	soo	(2,2)	[a#2,b#2,c#2]
+3	1.1	11	1.1	some	some	(3,3)	[b#3,c#3,a#3]

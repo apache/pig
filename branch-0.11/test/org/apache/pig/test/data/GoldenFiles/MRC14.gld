@@ -1,0 +1,79 @@
+MapReduce(100) - -21:
+Reduce Plan Empty
+|   Store(DummyFil:DummyLdr) - -7034055442337723447
+|   |
+|   |---Union[tuple] - -2910267342587130351
+|       |
+|       |---Filter[tuple] - --2136667002319908593
+|       |   |   |
+|       |   |   Constant(true) - --6380139708906526553
+|       |   |
+|       |   |---Load(file:/tmp/temp-1456742965/tmp-586682361:org.apache.pig.impl.io.InterStorage) - -17
+|       |
+|       |---Filter[tuple] - -2468262982799101733
+|           |   |
+|           |   Constant(true) - -7123718043666602037
+|           |
+|           |---Load(file:/tmp/temp-1456742965/tmp-586682361:org.apache.pig.impl.io.InterStorage) - -19
+|
+|---MapReduce(40) - -14:
+    |   Store(file:/tmp/temp-1456742965/tmp-586682361:org.apache.pig.impl.io.InterStorage) - -16
+    |   |
+    |   |---Package[tuple]{Unknown} - --7096529877081178520
+    |   Union[tuple] - -15
+    |   |
+    |   |---Local Rearrange[tuple]{Unknown}(false) - --7868505214447593853
+    |   |   |
+    |   |   |---Filter[tuple] - -4721502244557927278
+    |   |       |   |
+    |   |       |   Constant(true) - -8729990799028586395
+    |   |       |
+    |   |       |---Load(file:/tmp/temp-1456742965/tmp-26634357:org.apache.pig.impl.io.InterStorage) - -5
+    |   |
+    |   |---Local Rearrange[tuple]{Unknown}(false) - --5177745552827005198
+    |   |   |
+    |   |   |---Filter[tuple] - --7681398237172009051
+    |   |       |   |
+    |   |       |   Constant(true) - --5723332042410534632
+    |   |       |
+    |   |       |---Load(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.impl.io.InterStorage) - -10
+    |   |
+    |   |---Local Rearrange[tuple]{Unknown}(false) - -1236980712440527800
+    |       |
+    |       |---Filter[tuple] - -6790164331631653200
+    |           |   |
+    |           |   Constant(true) - --6430355428631435461
+    |           |
+    |           |---Load(file:/tmp/temp-1456742965/tmp-26634357:org.apache.pig.impl.io.InterStorage) - -12
+    |
+    |---MapReduce(20) - -3:
+    |   Reduce Plan Empty
+    |   |   Store(file:/tmp/temp-1456742965/tmp-26634357:org.apache.pig.impl.io.InterStorage) - -4
+    |   |   |
+    |   |   |---Filter[tuple] - -5984722006991913573
+    |   |       |   |
+    |   |       |   Constant(true) - --7231511798448197372
+    |   |       |
+    |   |       |---Load(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.io.InterStorage) - -2
+    |   |
+    |   |---MapReduce(-1) - -0:
+    |       Reduce Plan Empty
+    |       |   Store(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.io.InterStorage) - -1
+    |       |   |
+    |       |   |---Load(DummyFil:DummyLdr) - -8816201798088731301
+    |
+    |---MapReduce(10) - -8:
+        Reduce Plan Empty
+        |   Store(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.impl.io.InterStorage) - -9
+        |   |
+        |   |---Filter[tuple] - -8205341881606740757
+        |       |   |
+        |       |   Constant(true) - --7091196022628815072
+        |       |
+        |       |---Load(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.io.InterStorage) - -7
+        |
+        |---MapReduce(-1) - -0:
+            Reduce Plan Empty
+            |   Store(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.io.InterStorage) - -1
+            |   |
+            |   |---Load(DummyFil:DummyLdr) - -8816201798088731301

@@ -1,0 +1,17 @@
+test-1: Store()
+|
+|---C: New For Each(false)[bag] - scope-7
+    |   |
+    |   RelationToExpressionProject[bag][*] - scope-1
+    |   |
+    |   |---B: Filter[bag] - scope-3
+    |       |   |
+    |       |   Equal To[boolean] - scope-6
+    |       |   |
+    |       |   |---Project[bytearray][1] - scope-4
+    |       |   |
+    |       |   |---Project[bytearray][2] - scope-5
+    |       |
+    |       |---Project[bag][0] - scope-2
+    |
+    |---test-0: Load()

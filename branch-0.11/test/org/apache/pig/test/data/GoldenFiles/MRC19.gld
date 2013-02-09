@@ -1,0 +1,11 @@
+MapReduce(1) - -0:
+|   Store(DummyFil:DummyLdr) - -3088212343542276753
+|   |
+|   |---New For Each(false)[tuple] - --274910157919533456
+|       |   |
+|       |   POSortedDistinct[tuple] - --881122551222328650
+|       |
+|       |---Package[tuple]{Unknown} - -49912403876500969
+|   Local Rearrange[tuple]{Unknown}(false) - --790930717481674068
+|   |
+|   |---Load(DummyFil:DummyLdr) - -4086340370247387675

@@ -1,0 +1,29 @@
+y: Filter[bag] - scope-157
+|   |
+|   Greater Than[boolean] - scope-161
+|   |
+|   |---Cast[chararray] - scope-159
+|   |   |
+|   |   |---Project[bytearray][0] - scope-158
+|   |
+|   |---Constant(7) - scope-160
+|
+|---test-24: Split - scope-156
+    |
+    |---test-23: Load()
+
+test-25: Store()
+|
+|---x: Filter[bag] - scope-162
+    |   |
+    |   Less Than[boolean] - scope-166
+    |   |
+    |   |---Cast[chararray] - scope-164
+    |   |   |
+    |   |   |---Project[bytearray][0] - scope-163
+    |   |
+    |   |---Constant(7) - scope-165
+    |
+    |---test-24: Split - scope-156
+        |
+        |---test-23: Load()

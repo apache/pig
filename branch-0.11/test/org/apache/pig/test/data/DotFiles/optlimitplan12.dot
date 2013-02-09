@@ -1,0 +1,5 @@
+digraph graph1 {
+    LOLoad2082 -> LOStream2083;
+    LOStream2083 -> LOLimit2084;
+    LOLimit2084 [limit="10"];
+}

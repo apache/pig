@@ -1,0 +1,17 @@
+MapReduce(-1) - -2:
+Reduce Plan Empty
+|   Store(DummyFil:DummyLdr) - -7127277012934370361
+|   |
+|   |---Union[tuple] - --1036765666284482668
+|       |
+|       |---Filter[tuple] - --5111685507913827932
+|       |   |   |
+|       |   |   Constant(true) - -7860460526876129822
+|       |   |
+|       |   |---Load(DummyFil:DummyLdr) - --2426993543147308005
+|       |
+|       |---Filter[tuple] - -3683227376238667289
+|           |   |
+|           |   Constant(true) - --8622295867288126988
+|           |
+|           |---Load(DummyFil:DummyLdr) - -810744320494301308

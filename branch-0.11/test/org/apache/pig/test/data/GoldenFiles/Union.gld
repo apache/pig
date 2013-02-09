@@ -1,0 +1,9 @@
+test-22: Store()
+|
+|---A: Union[bag] - scope-153
+    |
+    |---test-19: Load()
+    |
+    |---test-20: Load()
+    |
+    |---test-21: Load()

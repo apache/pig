@@ -1,0 +1,35 @@
+MapReduce(-1) - -9:
+|   Store(DummyFil:DummyLdr) - --6047015131487356012
+|   |
+|   |---Package[tuple]{Unknown} - --2771799342014688397
+|   Union[tuple] - -10
+|   |
+|   |---Local Rearrange[tuple]{Unknown}(false) - --4160312061837144266
+|   |   |
+|   |   |---Load(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.io.InterStorage) - -2
+|   |
+|   |---Filter[tuple] - --1524666447399813617
+|   |   |   |
+|   |   |   Constant(true) - --997494992827460962
+|   |   |
+|   |   |---Load(DummyFil:DummyLdr) - -7955165653808522445
+|   |
+|   |---Local Rearrange[tuple]{Unknown}(false) - -4636081797237532954
+|       |
+|       |---Load(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.impl.io.InterStorage) - -7
+|
+|---MapReduce(-1) - -0:
+|   |   Store(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.io.InterStorage) - -1
+|   |   |
+|   |   |---Package[tuple]{Unknown} - --8706893458091286727
+|   |   Local Rearrange[tuple]{Unknown}(false) - -6693653468874366867
+|   |   |
+|   |   |---Load(DummyFil:DummyLdr) - --3347320220748403847
+|
+|---MapReduce(-1) - -5:
+    |   Store(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.impl.io.InterStorage) - -6
+    |   |
+    |   |---Package[tuple]{Unknown} - -2997708366016271267
+    |   Local Rearrange[tuple]{Unknown}(false) - --1195368474144577564
+    |   |
+    |   |---Load(DummyFil:DummyLdr) - -3615014757987062850

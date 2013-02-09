@@ -1,0 +1,11 @@
+digraph graph1 {
+    LOLoad -> LOLimit;
+    LOLimit [limit="100"];
+    LOLimit -> LOCross;
+    LOLoad -> LOLimit;
+    LOLimit [limit="100"];
+    LOLimit -> LOCross;
+    LOCross -> LOLimit;
+    LOLimit [limit="100"];
+    LOLimit -> LOStore;
+}

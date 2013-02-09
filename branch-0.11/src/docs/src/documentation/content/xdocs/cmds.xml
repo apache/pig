@@ -1,0 +1,744 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<!DOCTYPE document PUBLIC "-//APACHE//DTD Documentation V2.0//EN" "http://forrest.apache.org/dtd/document-v20.dtd">
+
+<document>
+  <header>
+    <title>Shell and Utility Commands</title>
+  </header>
+  <body>
+
+<!-- ====================================================================== -->
+<!-- Shell COMMANDS-->
+   <section id="shell-cmds">
+   <title>Shell Commands</title>
+   
+<!-- +++++++++++++++++++++++++++++++++++++++ -->
+      <section id="fs">
+   <title>fs</title>
+   <p>Invokes any FsShell command from within a Pig script or the Grunt shell.</p>
+   
+   <section>
+   <title>Syntax </title>
+   <table>
+       <tr>
+            <td>
+               <p>fs subcommand subcommand_parameters </p>
+            </td>
+         </tr> 
+   </table></section>
+   
+   <section>
+   <title>Terms</title>
+   <table>
+      <tr>
+            <td>
+               <p>subcommand</p>
+            </td>
+            <td>
+               <p>The FsShell command.</p>
+            </td>
+         </tr>
+               <tr>
+            <td>
+               <p>subcommand_parameters</p>
+            </td>
+            <td>
+               <p>The FsShell command parameters.</p>
+            </td>
+         </tr>
+   </table>
+   
+   </section>
+   
+   <section>
+   <title>Usage</title>
+   <p>Use the fs command to invoke any FsShell command from within a Pig script or Grunt shell. 
+   The fs command greatly extends the set of supported file system commands and the capabilities
+   supported for existing commands such as ls that will now support globing. For a complete list of
+   FsShell commands, see 
+   <a href="http://hadoop.apache.org/common/docs/current/file_system_shell.html">File System Shell Guide</a></p>
+   </section>
+   
+   <section>
+   <title>Examples</title>
+   <p>In these examples a directory is created, a file is copied, a file is listed.</p>
+<source>
+fs -mkdir /tmp
+fs -copyFromLocal file-x file-y
+fs -ls file-y
+</source>
+   </section>
+       </section>  
+       
+ 
+<!-- +++++++++++++++++++++++++++++++++++++++ -->
+     <section id="sh">
+   <title>sh</title>
+   <p>Invokes any sh shell command from within a Pig script or the Grunt shell.</p>
+   
+   <section>
+   <title>Syntax </title>
+   <table>
+       <tr>
+            <td>
+               <p>sh subcommand subcommand_parameters </p>
+            </td>
+         </tr> 
+   </table></section>
+   
+   <section>
+   <title>Terms</title>
+   <table>
+      <tr>
+            <td>
+               <p>subcommand</p>
+            </td>
+            <td>
+               <p>The sh shell command.</p>
+            </td>
+         </tr>
+               <tr>
+            <td>
+               <p>subcommand_parameters</p>
+            </td>
+            <td>
+               <p>The sh shell command parameters.</p>
+            </td>
+         </tr>
+   </table>
+   
+   </section>
+   
+   <section>
+   <title>Usage</title>
+   <p>Use the sh command to invoke any sh shell command from within a Pig script or Grunt shell.</p>
+   
+<p> 
+ Note that only real programs can be run form the sh command. Commands such as cd are not programs 
+ but part of the shell environment and as such cannot be executed unless the user invokes the shell explicitly, like "bash cd".
+</p>
+   </section>
+   
+   <section>
+   <title>Example</title>
+   <p>In this example the ls command is invoked.</p>
+<source>
+grunt> sh ls 
+bigdata.conf 
+nightly.conf 
+..... 
+grunt> 
+</source>
+   </section>
+ 
+   </section>
+    
+   </section>
+ 
+ <!-- ======================================================== -->         
+        
+   <section id="utillity-cmds">
+   <title>Utility Commands</title>
+   
+   <!-- +++++++++++++++++++++++++++++++++++++++ -->
+       <section id="clear">
+           <title>clear</title>
+           <p>Clear the screen of Pig grunt shell and position the cursor at top of the screen.</p>
+           
+           <section>
+               <title>Syntax </title>
+               <table>
+                   <tr>
+                       <td>
+                           <p>clear</p>
+                       </td>
+                   </tr> 
+               </table>
+           </section>
+           
+           <section>
+               <title>Terms</title>
+               <table>
+                   <tr>
+                       <td>
+                           <p>key</p>
+                       </td>
+                       <td>
+                           <p>Description.</p>
+                       </td>
+                   </tr>
+                   <tr>
+                       <td>
+                           <p>none</p>
+                       </td>
+                       <td>
+                           <p>no parameters</p>
+                       </td>
+                   </tr> 
+               </table></section>
+           <section>
+               <title>Example</title>
+               <p>In this example the clear command clean up Pig grunt shell.</p>
+               <source>
+grunt&gt; clear</source>
+           </section>
+           
+       </section>
+
+   <!-- +++++++++++++++++++++++++++++++++++++++ -->
+  <section id="exec">
+   <title>exec</title>
+   <p>Run a Pig script.</p>
+   
+   <section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>exec [–param param_name = param_value] [–param_file file_name] [script]  </p>
+            </td>
+         </tr> 
+   </table></section>
+   
+   <section>
+   <title>Terms</title>
+   <table>
+    
+        <tr>
+            <td>
+               <p>–param param_name = param_value</p>
+            </td>
+            <td>
+               <p>See <a href="cont.html#Parameter-Sub">Parameter Substitution</a>.</p>
+            </td>
+        </tr>
+
+        <tr>
+            <td>
+               <p>–param_file file_name</p>
+            </td>
+            <td>
+               <p>See <a href="cont.html#Parameter-Sub">Parameter Substitution</a>. </p>
+            </td>
+        </tr>
+   
+      <tr>
+            <td>
+               <p>script</p>
+            </td>
+            <td>
+               <p>The name of a Pig script.</p>
+            </td>
+         </tr>
+         
+    
+   </table></section>
+   
+   <section>
+   <title>Usage</title>
+   <p>Use the exec command to run a Pig script with no interaction between the script and the Grunt shell (batch mode). Aliases defined in the script are not available to the shell; however, the files produced as the output of the script and stored on the system are visible after the script is run. Aliases defined via the shell are not available to the script. </p>
+   <p>With the exec command, store statements will not trigger execution; rather, the entire script is parsed before execution starts. Unlike the run command, exec does not change the command history or remembers the handles used inside the script. Exec without any parameters can be used in scripts to force execution up to the point in the script where the exec occurs. </p>
+   <p id="exec-debug">For comparison, see the <a href="#run">run</a> command. Both the exec and run commands are useful for debugging because you can modify a Pig script in an editor and then rerun the script in the Grunt shell without leaving the shell. Also, both commands promote Pig script modularity as they allow you to reuse existing components.</p>
+   </section>
+   
+   <section>
+   <title>Examples</title>
+   <p>In this example the script is displayed and run.</p>
+
+<source>
+grunt&gt; cat myscript.pig
+a = LOAD 'student' AS (name, age, gpa);
+b = LIMIT a 3;
+DUMP b;
+
+grunt&gt; exec myscript.pig
+(alice,20,2.47)
+(luke,18,4.00)
+(holly,24,3.27)
+</source>
+
+   <p>In this example parameter substitution is used with the exec command.</p>
+<source>
+grunt&gt; cat myscript.pig
+a = LOAD 'student' AS (name, age, gpa);
+b = ORDER a BY name;
+
+STORE b into '$out';
+
+grunt&gt; exec –param out=myoutput myscript.pig
+</source>
+
+      <p>In this example multiple parameters are specified.</p>
+<source>
+grunt&gt; exec –param p1=myparam1 –param p2=myparam2 myscript.pig
+</source>
+   </section>
+   </section>   
+   
+   <!-- +++++++++++++++++++++++++++++++++++++++ -->   
+   <section id="help">
+   <title>help</title>
+   <p>Prints a list of Pig commands or properties.</p>
+   
+   <section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>-help [properties]  </p>
+            </td>
+         </tr> 
+   </table></section>
+   
+   <section>
+   <title>Terms</title>
+   <table>
+       <tr>
+            <td>
+               <p>properties</p>
+            </td>
+            <td>
+               <p>List Pig properties.</p>
+            </td>
+         </tr> 
+   </table></section>
+   
+   <section>
+   <title>Usage</title>
+   <p>The help command prints a list of Pig commands or properties.</p></section>
+   
+   <section>
+   <title>Example</title>
+   <p>Use "-help" to get a list of commands.</p>
+<source>
+$ pig -help
+
+Apache Pig version 0.8.0-dev (r987348)
+compiled Aug 19 2010, 16:38:44
+
+USAGE: Pig [options] [-] : Run interactively in grunt shell.
+       Pig [options] -e[xecute] cmd [cmd ...] : Run cmd(s).
+       Pig [options] [-f[ile]] file : Run cmds found in file.
+  options include:
+    -4, -log4jconf - Log4j configuration file, overrides log conf
+    -b, -brief - Brief logging (no timestamps)
+    -c, -check - Syntax check
+<em>etc …</em></source>
+
+<p>Use "-help properties" to get a list of properties.</p>
+<source>
+$ pig -help properties
+
+The following properties are supported:
+    Logging:
+        verbose=true|false; default is false. This property is the same as -v switch
+        brief=true|false; default is false. This property is the same as -b switch
+        debug=OFF|ERROR|WARN|INFO|DEBUG; default is INFO. This property is the same as -d switch
+        aggregate.warning=true|false; default is true. If true, prints count of warnings
+            of each type rather than logging each warning.
+<em>etc …</em></source>
+
+   </section>
+   </section>
+   
+   <!-- +++++++++++++++++++++++++++++++++++++++ -->      
+       <section id="history">
+           <title>history</title>
+           <p>Display the list of statements used so far.</p>
+           
+           <section>
+               <title>Syntax</title>
+               <table>
+                   <tr>
+                       <td>
+                           <p>history [-n]</p>
+                       </td>
+                   </tr> 
+               </table>
+           </section>
+           
+           <section>
+               <title>Terms</title>
+               <table>
+                   <tr>
+                       <td>
+                           <p>key</p>
+                       </td>
+                       <td>
+                           <p>Description.</p>
+                       </td>
+                   </tr>
+                   <tr>
+                       <td>
+                           <p>-n</p>
+                       </td>
+                       <td>
+                           <p>Omit line numbers in the list.</p>
+                       </td>
+                   </tr>
+               </table>
+           </section>
+           
+           <section>
+               <title>Usage</title>
+               <p>The history command shows the statements used so far.</p></section>
+           
+           <section>
+               <title>Example</title>
+               <p>In this example the history command shows all the statements with line numbers and without them.</p>
+               <source>
+grunt&gt; a = LOAD 'student' AS (name, age, gpa);
+grunt&gt; b = order a by name;
+grunt&gt; history
+1 a = LOAD 'student' AS (name, age, gpa);
+2 b = order a by name;
+
+grunt&gt; c = order a by name;
+grunt&gt; history -n
+a = LOAD 'student' AS (name, age, gpa);
+b = order a by name;
+c = order a by name;</source>
+           </section>
+           
+       </section>
+
+   <!-- +++++++++++++++++++++++++++++++++++++++ -->      
+   <section id="kill">
+   <title>kill</title>
+   <p>Kills a job.</p>
+   
+   <section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>kill jobid</p>
+            </td>
+         </tr> 
+   </table></section>
+   
+   <section>
+   <title>Terms</title>
+   <table>
+       <tr>
+            <td>
+               <p>jobid</p>
+            </td>
+            <td>
+               <p>The job id.</p>
+            </td>
+         </tr> 
+   </table></section>
+   
+   <section>
+   <title>Usage</title>
+   <p>Use the kill command to kill a Pig job based on the job id.</p>
+   <p>The kill command will attempt to kill any MapReduce jobs associated with the Pig job. Under certain conditions, however, this may fail; for example, when a Pig job is killed and does not have a chance to call its shutdown procedures.</p>
+   </section>
+   
+   <section>
+   <title>Example</title>
+   <p>In this example the job with id job_0001 is killed.</p>
+<source>
+grunt&gt; kill job_0001
+</source>
+   </section></section>
+   
+   <!-- +++++++++++++++++++++++++++++++++++++++ -->
+   <section id="quit">
+   <title>quit</title>
+   <p>Quits from the Pig grunt shell.</p>
+   
+   <section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>exit</p>
+            </td>
+         </tr> 
+   </table></section>
+   
+   <section>
+   <title>Terms</title>
+   <table>
+       <tr>
+            <td>
+               <p>none</p>
+            </td>
+            <td>
+               <p>no parameters</p>
+            </td>
+         </tr> 
+   </table></section>
+   
+   <section>
+   <title>Usage</title>
+   <p>The quit command enables you to quit or exit the Pig grunt shell.</p></section>
+   
+   <section>
+   <title>Example</title>
+   <p>In this example the quit command exits the Pig grunt shall.</p>
+<source>
+grunt&gt; quit
+</source>
+   </section>
+   </section>
+   
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->     
+   <section id="run">
+   <title>run</title>
+   <p>Run a Pig script.</p>
+   
+   <section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>run [–param param_name = param_value] [–param_file file_name] script </p>
+            </td>
+         </tr> 
+   </table></section>
+   
+   <section>
+   <title>Terms</title>
+   <table>
+    
+         <tr>
+            <td>
+               <p>–param param_name = param_value</p>
+            </td>
+            <td>
+               <p>See <a href="cont.html#Parameter-Sub">Parameter Substitution</a>.</p>
+            </td>
+         </tr>
+
+         <tr>
+            <td>
+               <p>–param_file file_name</p>
+            </td>
+            <td>
+               <p>See <a href="cont.html#Parameter-Sub">Parameter Substitution</a>. </p>
+            </td>
+         </tr>
+      <tr>
+            <td>
+               <p>script</p>
+            </td>
+            <td>
+               <p>The name of a Pig script.</p>
+            </td>
+         </tr>
+         
+    
+   </table></section>
+   
+   <section>
+   <title>Usage</title>
+   <p>Use the run command to run a Pig script that can interact with the Grunt shell (interactive mode). The script has access to aliases defined externally via the Grunt shell. The Grunt shell has access to aliases defined within the script. All commands from the script are visible in the command history. </p>   
+	<p>With the run command, every store triggers execution. The statements from the script are put into the command history and all the aliases defined in the script can be referenced in subsequent statements after the run command has completed. Issuing a run command on the grunt command line has basically the same effect as typing the statements manually. </p>   
+   <p>For comparison, see the <a href="#exec">exec</a> command. Both the run and exec commands are useful for debugging because you can modify a Pig script in an editor and then rerun the script in the Grunt shell without leaving the shell. Also, both commands promote Pig script modularity as they allow you to reuse existing components.</p>
+  </section>
+   
+   <section>
+   <title>Example</title>
+   <p>In this example the script interacts with the results of commands issued via the Grunt shell.</p>
+<source>
+grunt&gt; cat myscript.pig
+b = ORDER a BY name;
+c = LIMIT b 10;
+
+grunt&gt; a = LOAD 'student' AS (name, age, gpa);
+
+grunt&gt; run myscript.pig
+
+grunt&gt; d = LIMIT c 3;
+
+grunt&gt; DUMP d;
+(alice,20,2.47)
+(alice,27,1.95)
+(alice,36,2.27)
+</source>
+
+   <p>In this example parameter substitution is used with the run command.</p>
+<source>
+grunt&gt; a = LOAD 'student' AS (name, age, gpa);
+
+grunt&gt; cat myscript.pig
+b = ORDER a BY name;
+STORE b into '$out';
+
+grunt&gt; run –param out=myoutput myscript.pig
+</source>
+</section></section>   
+   
+   <!-- +++++++++++++++++++++++++++++++++++++++ -->   
+   <section id="set">
+   <title>set</title>
+   <p>Assigns values to keys used in Pig.</p>
+   
+   <section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>set key 'value'</p>
+            </td>
+         </tr> 
+   </table></section>
+   
+   <section>
+   <title>Terms</title>
+   <table>
+       <tr>
+            <td>
+               <p>key</p>
+            </td>
+            <td>
+               <p>Key (see table). Case sensitive.</p>
+            </td>
+         </tr>
+         <tr>
+            <td>
+               <p>value</p>
+            </td>
+            <td>
+               <p>Value for key (see table). Case sensitive.</p>
+            </td>
+         </tr> 
+   </table>
+   </section>
+   
+   <section>
+   <title>Usage</title>
+   <p>Use the set command to assign values to keys, as shown in the table. All keys and their corresponding values (for Pig and Hadoop) are case sensitive.  </p>
+
+   <table>
+       
+      <tr>
+            <td>
+               <p>Key </p>
+            </td>
+            <td>
+               <p>Value </p>
+            </td>
+            <td>
+               <p>Description </p>
+            </td>
+         </tr>
+                     <tr>
+            <td>
+               <p>default_parallel</p>
+            </td>
+            <td>
+               <p>a whole number </p>
+            </td>
+            <td>
+               <p>Sets the number of reducers for all MapReduce jobs generated by Pig 
+              (see  <a href="perf.html#Parallel">Use the Parallel Features</a>).</p>
+            </td>
+         </tr>
+         <tr>
+            <td>
+               <p>debug </p>
+            </td>
+            <td>
+               <p>on/off </p>
+            </td>
+            <td>
+               <p>Turns debug-level logging on or off. </p>
+            </td>
+         </tr>
+         <tr>
+            <td>
+               <p>job.name </p>
+            </td>
+            <td>
+               <p>Single-quoted string that contains the job name.</p>
+            </td>
+            <td>
+               <p>Sets user-specified name for the job </p>
+            </td>
+            </tr>
+
+         <tr>
+            <td>
+               <p>job.priority </p>
+            </td>
+            <td>
+               <p>Acceptable values (case insensitive): very_low, low, normal, high, very_high </p>
+            </td>
+            <td>
+               <p>Sets the priority of a Pig job.</p>
+            </td>
+            </tr>
+
+         <tr>
+            <td>
+               <p>stream.skippath</p>
+            </td>
+            <td>
+               <p>String that contains the path.</p>
+            </td>
+            <td>
+               <p>For streaming, sets the path from which not to ship data (see <a href="basic.html#DEFINE-udfs">DEFINE (UDFs, streaming)</a> and <a href="basic.html#autoship"> About Auto-Ship</a>).</p>
+            </td>
+            </tr>
+   </table>
+   <p></p>
+   
+   <p>
+All Pig and Hadoop properties can be set, either in the Pig script or via the Grunt command line.
+   </p>
+   </section>
+   
+   <section>
+   <title>Examples</title>
+   <p>In this example key value pairs are set at the command line.</p>
+<source>
+grunt&gt; SET debug 'on'
+grunt&gt; SET job.name 'my job'
+grunt&gt; SET default_parallel 100
+</source>
+
+<p>In this example default_parallel is set in the Pig script; all MapReduce jobs that get launched will use 20 reducers.</p>
+<source>
+SET default_parallel 20;
+A = LOAD 'myfile.txt' USING PigStorage() AS (t, u, v);
+B = GROUP A BY t;
+C = FOREACH B GENERATE group, COUNT(A.t) as mycount;
+D = ORDER C BY mycount;
+STORE D INTO 'mysortedcount' USING PigStorage();
+</source>
+
+<p>In this example multiple key value pairs are set in the Pig script. These key value pairs are put in job-conf by Pig (making the pairs available to Pig and Hadoop). This is a script-wide setting; if a key value is defined multiple times in the script the last value will take effect and will be set for all jobs generated by the script. </p>
+<source>
+...
+SET mapred.map.tasks.speculative.execution false; 
+SET pig.logfile mylogfile.log; 
+SET my.arbitrary.key my.arbitary.value; 
+...
+</source>
+</section>
+</section>
+</section>
+
+
+  </body>
+</document>

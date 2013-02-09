@@ -1,0 +1,37 @@
+test-14: Store()
+|
+|---A: Filter[bag] - scope-67
+    |   |
+    |   Greater Than[boolean] - scope-83
+    |   |
+    |   |---Add[double] - scope-72
+    |   |   |
+    |   |   |---Cast[double] - scope-69
+    |   |   |   |
+    |   |   |   |---Project[bytearray][0] - scope-68
+    |   |   |
+    |   |   |---Cast[double] - scope-71
+    |   |       |
+    |   |       |---Project[bytearray][1] - scope-70
+    |   |
+    |   |---Multiply[double] - scope-82
+    |       |
+    |       |---Subtract[double] - scope-77
+    |       |   |
+    |       |   |---Cast[double] - scope-74
+    |       |   |   |
+    |       |   |   |---Project[bytearray][0] - scope-73
+    |       |   |
+    |       |   |---Cast[double] - scope-76
+    |       |       |
+    |       |       |---Project[bytearray][1] - scope-75
+    |       |
+    |       |---Cast[double] - scope-81
+    |           |
+    |           |---Divide[int] - scope-80
+    |               |
+    |               |---Constant(4) - scope-78
+    |               |
+    |               |---Constant(2) - scope-79
+    |
+    |---test-13: Load()

@@ -1,0 +1,483 @@
+<?xml version="1.0"?>
+
+<!--
+   Licensed to the Apache Software Foundation (ASF) under one or more
+   contributor license agreements.  See the NOTICE file distributed with
+   this work for additional information regarding copyright ownership.
+   The ASF licenses this file to You under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-->
+
+<!-- 
+Before you can run these subtargets directly, you need 
+to call at top-level: ant deploy-contrib compile-core-test
+-->
+<project name="zebra" default="jar">
+
+  <import file="build-contrib.xml"/>
+
+  <!-- Override jar target to specify main class -->
+  <target name="jar" depends="compile" description="Build zebra jar">
+    <tstamp>
+       <format property="timestamp" pattern="MMM dd yyyy, HH:mm:ss" />
+    </tstamp>
+    <svnversion outputproperty="svn.revision"/>
+
+    <jar
+      jarfile="${build.dir}/${name}-${version}.jar"
+      basedir="${build.classes}"      
+    >
+  	<manifest>
+          <section name="org/apache/hadoop/zebra">
+             <attribute name="Implementation-Vendor" value="Apache" />
+             <attribute name="Implementation-Title" value="Zebra" />
+             <attribute name="Implementation-Version" value="${version}" />
+             <attribute name="Build-TimeStamp" value="${timestamp}" />
+             <attribute name="Svn-Revision" value="${svn.revision}" />
+          </section>
+	</manifest>
+    </jar>
+  </target>
+
+  <macrodef name="svnversion">
+     <!-- the path needs to be small content otherwise it will take AGES ! -->
+     <attribute name="wcpath" default="${basedir}" />
+     <attribute name="outputproperty" />
+     <sequential>
+        <exec executable="svnversion" outputproperty="@{outputproperty}" failonerror="false" failifexecutionfails="false" >
+           <arg value="@{wcpath}" />
+           <redirector>
+             <outputfilterchain>
+                <tokenfilter>
+                   <!-- version can be xxxx, xxxx:yyyy, xxxxM, xxxxS or xxxx:yyyyMS , ... just get the working copy one -->
+                   <replaceregex pattern="((\d+).*)" replace="\2" />
+                   </tokenfilter>
+                </outputfilterchain>
+           </redirector>
+        </exec>
+    </sequential>
+  </macrodef>
+
+  <target name="schema-jar" depends="compile">
+    <jar
+      jarfile="${build.dir}/schema-${version}.jar"
+      basedir="${build.classes}"      
+      includes="**/schema/**"
+    >
+    </jar>
+  </target>
+
+  <!-- Temp check for hadoop jar file --> 
+  <target name="hadoop-jar-exists">
+     <fail message="${hadoop.jarfile} is missing. ${line.separator}
+     ####### Build can not proceed. Please read the following ######### ${line.separator}
+       ${line.separator}
+       ${hadoop.jarfile} is not found. This usually implies that you need to follow ${line.separator}
+       following extra steps to be able to build zebra. These steps are required ${line.separator}
+       until PIG-660 is committed : ${line.separator}
+          * Place hadoop20.jar atatched to PIG-833 under lib in top level directory ${line.separator}
+          * Apply the latest working patch from PIG-660 so that Pig works with ${line.separator}
+            Hadoop-20 ${line.separator}
+          * run 'ant clean jar' under top level Pig directory ${line.separator}
+       ${line.separator}
+     ###################################################################">
+       <condition>
+         <not>
+           <available file="${pig.root}/lib/${hadoop.jarfile}"/>
+         </not>
+       </condition>
+     </fail>
+  </target>
+
+
+  <target name="javadoc" depends="jar">
+	  <mkdir dir="${build.javadoc}" />
+	  <javadoc packagenames="org.apache.pig.*" overview="${src.docs.dir}/overview.html" destdir="${build.javadoc}" author="true" version="true" use="true" windowtitle="Hadoop Zebra API" doctitle="Hadoop Zebra API" bottom="Copyright &amp;copy; ${year} The Apache Software Foundation">
+		  <packageset dir="${src.dir}" excludes="**/examples" />
+		  <link href="${javadoc.link}" />
+          <classpath refid="classpath"/>
+		  <!--
+		  <classpath>
+			  <path refid="classpath" />
+			  <pathelement path="${java.class.path}" />
+			  <pathelement path="${output.jarfile}" />
+		  </classpath>
+		  -->
+		  <group title="zebra" packages="org.apache.hadoop.zebra.*" />
+	  </javadoc>
+  </target>
+
+  <!-- Override jar target to specify main class -->
+  <target name="jar-test" depends="jar, compile-test">
+    <jar
+      jarfile="${build.dir}/pig-${version}-${name}-test.jar"
+      basedir="${test.build.dir}"      
+    >
+    </jar>
+  </target>
+
+  <!-- ================================================================== -->
+  <!-- Run checkin tests                                                  -->
+  <!-- ================================================================== -->
+  <target name="test" depends="compile-test, compile" if="test.available" description="Run check-in test">
+    <echo message="contrib: ${name}"/>
+    <delete dir="${pig.log.dir}"/>
+    <mkdir dir="${pig.log.dir}"/>
+    <delete dir="${test.build.dir}/data"/>
+    <mkdir dir="${test.build.dir}/data"/>
+    <junit
+      printsummary="yes" showoutput="${test.output}" 
+      haltonfailure="no" fork="yes" maxmemory="1024m"
+      errorProperty="tests.failed" failureProperty="tests.failed"
+      timeout="${test.timeout}">
+      
+      <sysproperty key="test.build.data" value="${test.build.dir}/data"/>
+      <sysproperty key="test.build.dir" value="${test.build.dir}"/>
+      <sysproperty key="contrib.name" value="${name}"/>
+      <sysproperty key="hadoop.log.dir" value="${pig.log.dir}"/>
+       <sysproperty key="whichCluster" value="miniCluster"/>
+	      
+      <!-- requires fork=yes for: 
+        relative File paths to use the specified user.dir 
+        classpath to use build/contrib/*.jar
+      -->
+      <sysproperty key="user.dir" value="${test.build.dir}/data"/>
+      <syspropertyset>	
+    	<propertyset>
+    	  <propertyref name="fs.default.name"/>
+      	  <propertyref name="pig.test.localoutputfile"/>
+          <propertyref name="pig.log.dir"/>
+    	</propertyset>
+      </syspropertyset>	
+
+      <classpath refid="test.classpath"/>
+      <formatter type="${test.junit.output.format}" />
+
+      <batchtest todir="${test.build.dir}" unless="testcase">
+        <fileset dir="${src.test}"
+                 includes="**/TestCheckin*.java" excludes="**/${test.exclude}.java" />
+      </batchtest>
+      <batchtest todir="${test.build.dir}"  if="testcase">
+        <fileset dir="${src.test}"
+                 includes="**/${testcase}.java"/>
+      </batchtest>
+
+
+    </junit>
+    <fail if="tests.failed">Tests failed!</fail>
+  </target>
+
+  <target name="test-unit" depends="compile-test, compile" if="test.available" description="Run unit test">
+    <echo message="contrib: ${name}"/>
+    <delete dir="${pig.log.dir}"/>
+    <mkdir dir="${pig.log.dir}"/>
+    <delete dir="${test.build.dir}/data"/>
+    <mkdir dir="${test.build.dir}/data"/>
+    <junit
+      printsummary="yes" showoutput="${test.output}" 
+      haltonfailure="no" fork="yes" maxmemory="1024m"
+      errorProperty="tests.failed" failureProperty="tests.failed"
+      timeout="${test.timeout}">
+      
+      <sysproperty key="test.build.data" value="${test.build.dir}/data"/>
+      <sysproperty key="test.build.dir" value="${test.build.dir}"/>
+      <sysproperty key="contrib.name" value="${name}"/>
+      <sysproperty key="hadoop.log.dir" value="${pig.log.dir}"/>
+       <sysproperty key="whichCluster" value="miniCluster"/>
+	      
+      <!-- requires fork=yes for: 
+        relative File paths to use the specified user.dir 
+        classpath to use build/contrib/*.jar
+      -->
+      <sysproperty key="user.dir" value="${test.build.dir}/data"/>
+      
+      <sysproperty key="fs.default.name" value="${fs.default.name}"/>
+      <sysproperty key="pig.test.localoutputfile" value="${pig.test.localoutputfile}"/>
+      <sysproperty key="pig.log.dir" value="${pig.log.dir}"/> 
+      <classpath refid="test.classpath"/>
+      <formatter type="${test.junit.output.format}" />
+
+      <batchtest todir="${test.build.dir}" unless="testcase">
+        <fileset dir="${src.test}"
+          includes="**/io/*.java **/tfile/*.java **/types/*.java" excludes="**/TestCheckin*.java **/tfile/KVGenerator.java **/tfile/KeySampler.java **/tfile/NanoTimer.java **/tfile/RandomDistribution.java **/tfile/Timer.java"/>
+      </batchtest>
+      <batchtest todir="${test.build.dir}"  if="testcase">
+        <fileset dir="${src.test}"
+                 includes="**/${testcase}.java"/>
+      </batchtest>
+
+
+    </junit>
+    <fail if="tests.failed">Tests failed!</fail>
+  </target>
+  <!-- ================================================================== -->
+  <!-- Run smoke tests                                                  -->
+  <!-- ================================================================== -->
+  <target name="test-smoke" depends="compile-test, compile" if="test.available" description="Run smoke test">
+    <echo message="contrib: ${name}"/>
+    <delete dir="${pig.log.dir}"/>
+    <mkdir dir="${pig.log.dir}"/>
+    <delete dir="${test.build.dir}/data"/>
+    <mkdir dir="${test.build.dir}/data"/>
+    <junit
+      printsummary="yes" showoutput="${test.output}"
+      haltonfailure="no" fork="yes" maxmemory="1024m"
+      errorProperty="tests.failed" failureProperty="tests.failed"
+      timeout="${test.timeout}">
+
+      <sysproperty key="test.build.data" value="${test.build.dir}/data"/>
+      <sysproperty key="test.build.dir" value="${test.build.dir}"/>
+      <sysproperty key="contrib.name" value="${name}"/>
+      <sysproperty key="hadoop.log.dir" value="${pig.log.dir}"/>
+       <sysproperty key="whichCluster" value="miniCluster"/>
+
+      <!-- requires fork=yes for:
+        relative File paths to use the specified user.dir
+        classpath to use build/contrib/*.jar
+      -->
+      <sysproperty key="user.dir" value="${test.build.dir}/data"/>
+
+      <sysproperty key="fs.default.name" value="${fs.default.name}"/>
+      <sysproperty key="pig.test.localoutputfile" value="${pig.test.localoutputfile}"/>
+      <sysproperty key="pig.log.dir" value="${pig.log.dir}"/>
+      <classpath refid="test.classpath"/>
+      <formatter type="${test.junit.output.format}" />
+
+      <batchtest todir="${test.build.dir}" unless="testcase">
+        <fileset dir="${src.test}"
+                 includes="**/TestMultipleOutputs.java, **/TestTableLoaderP*.java" excludes="**/${test.exclude}.java" />
+      </batchtest>
+      <batchtest todir="${test.build.dir}"  if="testcase">
+        <fileset dir="${src.test}"
+                 includes="**/${testcase}.java"/>
+      </batchtest>
+
+
+    </junit>
+    <fail if="tests.failed">Tests failed!</fail>
+  </target>
+
+
+  <!-- ================================================================== -->
+  <!-- Run nightly tests                                                  -->
+  <!-- ================================================================== -->
+  <target name="nightly" depends="compile-test, compile" if="test.available">
+    <echo message="contrib: ${name}"/>
+    <delete dir="${pig.log.dir}"/>
+    <mkdir dir="${pig.log.dir}"/>
+    <junit
+      printsummary="yes" showoutput="${test.output}" 
+      haltonfailure="no" fork="yes" maxmemory="1024m"
+      errorProperty="tests.failed" failureProperty="tests.failed"
+      timeout="${test.timeout}">
+      
+      <sysproperty key="test.build.data" value="${test.build.dir}/data"/>
+      <sysproperty key="test.build.dir" value="${test.build.dir}"/>
+      <sysproperty key="contrib.name" value="${name}"/>
+      <sysproperty key="hadoop.log.dir" value="${pig.log.dir}"/>
+      <sysproperty key="whichCluster" value="miniCluster"/>
+      <!-- requires fork=yes for: 
+        relative File paths to use the specified user.dir 
+        classpath to use build/contrib/*.jar
+      -->
+      <sysproperty key="user.dir" value="${test.build.dir}/data"/>
+      
+      <sysproperty key="fs.default.name" value="${fs.default.name}"/>
+      <sysproperty key="pig.test.localoutputfile" value="${pig.test.localoutputfile}"/>
+      <sysproperty key="pig.log.dir" value="${pig.log.dir}"/> 
+      <classpath refid="test.classpath"/>
+      <formatter type="${test.junit.output.format}" />
+
+      <!-- For the time being, we disable two test cases that need a real cluster to run -->
+      <batchtest todir="${test.build.dir}">
+        <fileset dir="${src.test}" includes="**/Test*.java" excludes="**/TestCheckin*.java">
+          <not>
+            <filename name="**/TestSmoke*.java"/>
+          </not>
+
+        </fileset> 
+      </batchtest>
+    </junit>
+    <fail if="tests.failed">Tests failed!</fail>
+  </target>
+
+	  <!-- ================================================================== -->
+	  <!-- Run pig-related test cases only                                    -->
+	  <!-- ================================================================== -->
+	  <target name="pigtest" depends="compile-test, compile" if="test.available">
+	    <echo message="contrib: ${name}"/>
+	    <delete dir="${pig.log.dir}"/>
+	    <mkdir dir="${pig.log.dir}"/>
+	    <junit
+	      printsummary="yes" showoutput="${test.output}" 
+	      haltonfailure="no" fork="yes" maxmemory="1024m"
+	      errorProperty="tests.failed" failureProperty="tests.failed"
+	      timeout="${test.timeout}">
+	      
+	      <sysproperty key="test.build.data" value="${test.build.dir}/data"/>
+	      <sysproperty key="test.build.dir" value="${test.build.dir}"/>
+	      <sysproperty key="contrib.name" value="${name}"/>
+	      <sysproperty key="hadoop.log.dir" value="${pig.log.dir}"/>
+	      <sysproperty key="whichCluster" value="miniCluster"/>
+	      <!-- requires fork=yes for: 
+	        relative File paths to use the specified user.dir 
+	        classpath to use build/contrib/*.jar
+	      -->
+	      <sysproperty key="user.dir" value="${test.build.dir}/data"/>
+	      
+	      <sysproperty key="fs.default.name" value="${fs.default.name}"/>
+	      <sysproperty key="pig.test.localoutputfile" value="${pig.test.localoutputfile}"/>
+	      <sysproperty key="pig.log.dir" value="${pig.log.dir}"/> 
+	      <classpath refid="test.classpath"/>
+	      <formatter type="${test.junit.output.format}" />
+
+	      <!-- For the time being, we disable some test case to reduce the running time -->
+	      <batchtest todir="${test.build.dir}">
+	        <fileset dir="${src.test}" includes="**/pig/Test*.java" excludes="**/pig/TestCheckin*.java">
+	          <not>
+	            <filename name="**/pig/TestRealCluster.java"/> <!-- This requires a real cluster anyway-->
+	          </not>
+	        </fileset> 
+	      </batchtest>
+	    </junit>
+	    <fail if="tests.failed">Tests failed!</fail>
+	  </target>
+
+	<!-- ================================================================== -->
+  <!-- findbugs                                                           -->
+  <!-- ================================================================== -->
+  <target name="findbugs" depends="check-for-findbugs, jar" if="findbugs.present" description="Run findbugs if present">
+      <property name="findbugs.out.dir" value="${build.dir}/findbugs"/>
+      <property name="findbugs.report.htmlfile" value="${findbugs.out.dir}/zebra-findbugs-report.html"/>
+      <property name="findbugs.report.xmlfile" value="${findbugs.out.dir}/zebra-findbugs-report.xml"/>
+      <taskdef name="findbugs" classname="edu.umd.cs.findbugs.anttask.FindBugsTask"
+              classpath="${findbugs.home}/lib/findbugs-ant.jar" />
+      <mkdir dir="${findbugs.out.dir}"/>
+      <findbugs home="${findbugs.home}" output="xml:withMessages"
+              outputFile="${findbugs.report.xmlfile}" effort="max" jvmargs="-Xmx512M">
+            <sourcePath path="${src.dir}"/>
+            <class location="${build.dir}" />
+      </findbugs>
+      <xslt style="${findbugs.home}/src/xsl/default.xsl" in="${findbugs.report.xmlfile}"
+              out="${findbugs.report.htmlfile}"/>
+  </target>
+  
+  <target name="check-for-findbugs">
+      <available property="findbugs.present" file="${findbugs.home}/lib/findbugs.jar" />
+  </target>
+
+  <!-- ================================================================== -->
+  <!-- checkstyle                                                         -->
+  <!-- ================================================================== -->
+	<target name="checkstyle" depends="checkstyle.check, set-checkstyle-classpath" if="checkstyle.home"
+	        description="Run optional third-party tool targets">
+      <property name="checkstyle.dir" value="${build.dir}/checkstyle"/>
+	    <taskdef resource="checkstyletask.properties">
+	        <classpath refid="classpath"/>
+	        <classpath refid="checkstyle-classpath"/>
+	    </taskdef>
+	    <mkdir dir="${checkstyle.dir}"/>
+	    <checkstyle config="${checkstyle.dir}/checkstyle.xml" failOnViolation="false">
+	        <!--fileset dir="${src.dir}" includes="**/*.java" excludes="**/generated/**"/-->
+	        <fileset dir="${src.dir}" includes="**/*.java"/>
+	        <formatter type="xml" toFile="${checkstyle.dir}/checkstyle-errors.xml"/>
+	    </checkstyle>
+	    <xslt style="${checkstyle.dir}/checkstyle-noframes-sorted.xsl" in="${checkstyle.dir}/checkstyle-errors.xml"
+	        out="${checkstyle.dir}/checkstyle-errors.html"/>
+	</target>
+	
+	<target name="checkstyle.check" unless="checkstyle.home">
+	    <!--<fail message="'checkstyle.home' is not defined. Please pass -Dcheckstyle.home=&lt;base of checkstyle installation&gt; to Ant on the command-line." />-->
+	    <echo>
+        Checkstyle not found. Checkstyle disabled.
+      </echo>
+	</target>
+	
+	<target name="set-checkstyle-classpath">
+	    <path id="checkstyle-classpath">
+	        <fileset dir="${checkstyle.home}">
+	        <include name="**/*.jar"/>
+	         </fileset>
+	 </path>
+	</target>
+
+
+  <!-- ================================================================== -->
+  <!-- clover                                                             -->
+  <!-- ================================================================== -->
+  <target name="clover" depends="clover.setup, clover.info" description="Instrument the Unit tests using Clover.  
+ 	   To use, specify -Dclover.home=&lt;base of clover installation&gt; -Drun.clover=true on the command line."/>
+
+  <target name="clover.setup" if="clover.enabled">
+  	<taskdef resource="cloverlib.xml" classpath="${clover.jar}"/>
+     <mkdir dir="${clover.db.dir}"/>
+     <clover-setup initString="${clover.db.dir}/zebra_coverage.db">
+     	<fileset dir="src" includes="**/*.java"/>
+	 </clover-setup>
+  </target>
+
+  <target name="clover.info" unless="clover.present">
+    	<echo>
+     	Clover not found. Code coverage reports disabled.
+    	</echo>
+  </target>
+  
+  <target name="clover.check">
+    <fail unless="clover.present">
+      ##################################################################
+  	  	Clover not found.
+  	  	Please specify -Dclover.home=&lt;base of clover installation&gt;
+  	  	on the command line.
+      ##################################################################
+ 	  </fail>
+  </target>
+
+  <target name="generate-clover-reports" depends="clover.check, clover">
+    	<mkdir dir="${clover.report.dir}"/>
+ 	<clover-report>
+    		<current outfile="${clover.report.dir}" title="${final.name}">
+    	    		<format type="html"/>
+   	  	</current>
+ 	</clover-report>
+  <clover-report>
+         	<current outfile="${clover.report.dir}/clover.xml" title="${final.name}">
+           		<format type="xml"/>
+         	</current>
+       </clover-report>
+  </target> 
+  <target name="smoke-jar" depends="compile,test">
+      <jar destfile="${test.build.dir}/zebra_smoke.jar"
+	       basedir="${test.build.dir}"
+		   includes="**/TestSmokeMR*.class, **/TestTableLoaderP*.class"
+	  />
+  </target>
+  <target name="package-tests" depends="smoke-jar">
+    <tar longfile="gnu" destfile="${test.build.dir}/zebra_smoke.tar">
+    <tarfileset dir="${src.test}/smoke"
+             fullpath="bin/zebra_smoke_run.pl"
+             preserveLeadingSlashes="true">
+      <include name="zebra_smoke_run.pl"/>
+    </tarfileset>
+    <tarfileset dir="${test.build.dir}/../../../ivy/lib/Pig"
+             fullpath="lib/junit-4.5.jar"
+             preserveLeadingSlashes="true">
+      <include name="junit-4.5.jar"/>
+    </tarfileset>
+    <tarfileset dir="${test.build.dir}"
+             fullpath="lib/zebra_smoke.jar"
+             preserveLeadingSlashes="true">
+      <include name="zebra_smoke.jar"/>
+    </tarfileset>
+   </tar>
+  </target>
+</project>
+

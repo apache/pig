@@ -1,0 +1,14 @@
+digraph graph1 {
+    graph [pigScript=" a = load 'a' as (field1: int, field2: long);
+                       b = load 'a' as (field1: bytearray, field2: double);
+                       c = group a by (field1,field2) , b by (field1,field2) ; "] ;
+
+    load1 [key="10", type="LOLoad", schema="field1: int, field2: long"] ;
+    load2 [key="15", type="LOLoad", schema="field1: bytearray, field2: double"] ;
+    group [key="20", type="LOCogroup" , schema="group2: tuple([NoAlias]:int, [NoAlias]:double) ,
+                                                a: bag{tuple1:tuple(field1: int,field2: long)},
+                                                b: bag{tuple1:tuple(field1: bytearray,field2: double)} "] ;
+
+    load1 -> group ;
+    load2 -> group ;
+}

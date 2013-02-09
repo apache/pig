@@ -1,0 +1,61 @@
+test-18: Store()
+|
+|---A: New For Each(false,false,false,false,false,false)[bag] - scope-148
+    |   |
+    |   Add[double] - scope-113
+    |   |
+    |   |---Cast[double] - scope-110
+    |   |   |
+    |   |   |---Project[bytearray][1] - scope-109
+    |   |
+    |   |---Cast[double] - scope-112
+    |       |
+    |       |---Project[bytearray][2] - scope-111
+    |   |
+    |   Subtract[double] - scope-120
+    |   |
+    |   |---Cast[double] - scope-117
+    |   |   |
+    |   |   |---Project[bytearray][1] - scope-116
+    |   |
+    |   |---Cast[double] - scope-119
+    |       |
+    |       |---Project[bytearray][2] - scope-118
+    |   |
+    |   Multiply[double] - scope-127
+    |   |
+    |   |---Cast[double] - scope-124
+    |   |   |
+    |   |   |---Project[bytearray][1] - scope-123
+    |   |
+    |   |---Cast[double] - scope-126
+    |       |
+    |       |---Project[bytearray][2] - scope-125
+    |   |
+    |   Divide[double] - scope-134
+    |   |
+    |   |---Cast[double] - scope-131
+    |   |   |
+    |   |   |---Project[bytearray][1] - scope-130
+    |   |
+    |   |---Cast[double] - scope-133
+    |       |
+    |       |---Project[bytearray][2] - scope-132
+    |   |
+    |   Mod[int] - scope-141
+    |   |
+    |   |---Cast[int] - scope-138
+    |   |   |
+    |   |   |---Project[bytearray][1] - scope-137
+    |   |
+    |   |---Cast[int] - scope-140
+    |       |
+    |       |---Project[bytearray][2] - scope-139
+    |   |
+    |   PONegative[double] - scope-146
+    |   |
+    |   |---Cast[double] - scope-145
+    |       |
+    |       |---Project[bytearray][1] - scope-144
+    |
+    |---test-17: Load()

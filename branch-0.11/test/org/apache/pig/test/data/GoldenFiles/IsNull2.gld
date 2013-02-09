@@ -1,0 +1,21 @@
+Filter[tuple] - Test-Plan-Builder-258
+|   |
+|   Not[boolean] - Test-Plan-Builder-261
+|   |
+|   |---POIsNull[tuple] - Test-Plan-Builder-260
+|       |
+|       |---Project[bytearray][0] - Test-Plan-Builder-259
+|
+|---Split - Test-Plan-Builder-257
+    |
+    |---Load(a:org.apache.pig.builtin.PigStorage) - Test-Plan-Builder-256
+
+Filter[tuple] - Test-Plan-Builder-262
+|   |
+|   POIsNull[tuple] - Test-Plan-Builder-264
+|   |
+|   |---Project[bytearray][0] - Test-Plan-Builder-263
+|
+|---Split - Test-Plan-Builder-257
+    |
+    |---Load(a:org.apache.pig.builtin.PigStorage) - Test-Plan-Builder-256

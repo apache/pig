@@ -1,0 +1,10 @@
+1. run pig scritp,for example,
+java -cp /grid/0/dev/hadoopqa/jing1234/conf:/grid/0/dev/hadoopqa/jars/pig.jar:/grid/0/dev/hadoopqa/jars/tfile.jar:/grid/0/dev/hadoopqa/jars/zebra.jar org.apache.pig.Main -m config -M stress_union_02.pig
+
+2.compile ToolTestComparator.java from contrib/zebra/src/test/org/apache/hadoop/zebra/mapred/ToolTestComparator.java
+and ship the ToolTestComparator.class to cluster 
+run the tool to verifiy, for example,
+java -DwhichCluster="realCluster" -DHADOOP_HOME=$HADOOP_HOME -DUSER=$USER org.apache.hadoop.zebra.mapred.ToolTestComparator -verifyOption merge-join -pathTable1 /data/zebraStress/output/join4 -sortCol 4 -numbCols 5 -sortString byte1,int1
+
+3. For details on how to run,please refer to 
+http://twiki.corp.yahoo.com/pub/Grid/Release2TestPlan/zebra_stress_test.html

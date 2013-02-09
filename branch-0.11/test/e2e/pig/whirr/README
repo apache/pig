@@ -1,0 +1,108 @@
+-------------------------------------------------------------------------
+| Licensed to the Apache Software Foundation (ASF) under one
+| or more contributor license agreements.  See the NOTICE file
+| distributed with this work for additional information
+| regarding copyright ownership.  The ASF licenses this file
+| to you under the Apache License, Version 2.0 (the
+| "License"); you may not use this file except in compliance
+| with the License.  You may obtain a copy of the License at
+|  
+|     http://www.apache.org/licenses/LICENSE-2.0
+|  
+| Unless required by applicable law or agreed to in writing, software
+| distributed under the License is distributed on an "AS IS" BASIS,
+| WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+| See the License for the specific language governing permissions and
+| limitations under the License.
+-------------------------------------------------------------------------
+ 
+The tools in this directory can be used to run Pig's end-to-end tests on
+Amazon via Apache Whirr.  This is useful for those who do not have a cluster
+available to run them on.  In the following text any value that starts
+"your_" is a value you should fill in.
+
+Prerequisites:
+1)  An account in Amazon's AWS.  http://aws.amazon.com/
+2)  An Amazon Access Key ID and Secret Access Key.  These are not ssh keys.
+    See
+    http://aws-portal.amazon.com/gp/aws/developer/account/index.html?action=access-key
+    Under Access Credentials, you need an Access Key.
+3)  An RSA SSH key pair that is passphraseless.  You may want to generate a
+    pair just for use with the tool to avoid forcing your regular ssh key
+    pair to be passphraseless.  They must be RSA, Whirr does not work with any
+    of the other key types.  You can generate a pair with the command:
+        ssh-keygen -f your_private_rsa_key_file -t rsa -P ''
+    where your_private_rsa_key_file is the file to store the private key in.
+4)  Apache Whirr version 0.5 or later.  You can download it from
+    http://www.apache.org/dyn/closer.cgi/incubator/whirr/
+
+To Start a Cluster:
+export AWS_ACCESS_KEY_ID=your_amazon_access_key
+export AWS_SECRET_ACCESS_KEY_ID=your_secret_amazon_access_key
+export SSH_PRIVATE_KEY_FILE=your_private_rsa_key_file
+cd your_path_to_apache_whirr/bin
+./whirr launch-cluster --config your_path_to_pig_trunk/test/e2e/pig/whirr/pigtest.properties
+
+This will take ~5 minutes and spew various messages on your screen.
+
+DO NOT FORGET TO SHUTDOWN YOUR CLUSTER (see below) (unless you think Amazon
+a worthy cause and wish to donate your extra cash to them).
+
+Running the tests:
+Open the file ~/.whirr/pigtest/hadoop-site.xml and find the line that has
+"mapred.job.tracker".  The next line should have the hostname that is
+running your Job Tracker.  Copy that host name, but NOT the port numbers
+(ie the :nnnn where nnnn is 9001 or something similar).  This value will be
+referred to as "your_namenode".
+
+cd your_path_to_pig_src
+scp -i your_private_rsa_key_file test/e2e/pig/whirr/whirr_test_patch.sh your_namenode:~
+
+if you have a patch you want to run
+    scp -i your_private_rsa_key_file your_patch your_namenode:~
+
+ssh -i your_private_rsa_key_file your_namenode
+
+Now you can run the whirr_test_patch to run some or all of the tests against
+trunk or against your patch.  To run all the tests against trunk, do
+./whirr_test_patch.sh
+
+To apply your patch and then run the tests, do
+./whirr_test_patch.sh -p your_patch
+
+To run just some of the tests, do
+./whirr_test_patch.sh -t Checkin
+
+Multiple -t options can be passed.  It takes test group names or individual
+test names just as the -Dtests.to.run option takes in "ant test-e2e".
+
+whirr_test_patch is not idempotent.  It downloads necessary packages, checks
+out trunk, applies your patch if appropriate, and generates the test data and
+loads into your cluster.  Once you have successfully run it once, you should
+not run it again.  If you wish to do additional testing cd src/trunk and run
+the end-to-end tests via ant as you normally would.
+
+Initial setup takes around 5 minutes.  Running all of the nightly tests
+currently (August 2011) takes about 10 hours.  When you are just testing a
+patch for submission your are not expected to run the full suite of tests. 
+Checkin, plus any tests you've added, plus all that cover the area of your
+change is sufficient.
+
+Shutting down your cluster:
+In the same shell you started the cluster:
+./whirr destroy-cluster --config your_path_to_pig_trunk/test/e2e/pig/whirr/pigtest.properties
+
+Notes:
+1)  As noted above, running all of the tests takes about 10 hours.  Once you
+    setup your cluster, you are paying for at least one hour.  You should
+    easily be able to run a handful of tests in this time to test your
+    patch.
+2)  This sets up a cluster with 1 machine as Name Node/Job Tracker and 3
+    Data Nodes/Task Trackers.  It uses m1.large images.  This is adequate
+    for Pig functional tests, but not for performance testing.
+3)  The pigtest.properties file is set to default us-east, which has lower
+    rental rates than us-west.
+4)  You can monitor your Amazon EC2 usage (including billing) at
+    https://console.aws.amazon.com/ec2/  Personally I am paranoid and always
+    check this after shutdown to make sure I'm not still paying for a
+    cluster.

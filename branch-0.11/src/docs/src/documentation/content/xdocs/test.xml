@@ -1,0 +1,1012 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<!DOCTYPE document PUBLIC "-//APACHE//DTD Documentation V2.0//EN" "http://forrest.apache.org/dtd/document-v20.dtd">
+<document>
+  <header>
+    <title>Testing and Diagnostics</title>
+  </header>
+  <body>
+
+<!-- =========================================================================== -->
+<!-- DIAGNOSTIC OPERATORS -->    
+<section id="diagnostic-ops">
+	<title>Diagnostic Operators</title>
+	
+ <!-- +++++++++++++++++++++++++++++++++++++++ --> 
+   <section id="describe">
+   <title>DESCRIBE</title>
+   <p>Returns the schema of a relation.</p>
+   
+   <section>
+   <title>Syntax</title>
+   <table>
+      <tr> 
+            <td>
+               <p>DESCRIBE alias;        </p>
+            </td>
+         </tr> 
+   </table></section>
+   
+   <section>
+   <title>Terms</title>
+   <table>
+      <tr>
+            <td>
+               <p>alias</p>
+            </td>
+            <td>
+               <p>The name of a relation.</p>
+            </td>
+         </tr> 
+   </table></section>
+   
+   <section>
+   <title>Usage</title>
+   <p>Use the DESCRIBE operator to view the schema of a relation. 
+   You can view outer relations as well as relations defined in a nested FOREACH statement.</p>
+   </section>
+   
+   <section>
+   <title>Example</title>
+   <p>In this example a schema is specified using the AS clause. If all data conforms to the schema, Pig will use the assigned types.</p>
+<source>
+A = LOAD 'student' AS (name:chararray, age:int, gpa:float);
+
+B = FILTER A BY name matches 'J.+';
+
+C = GROUP B BY name;
+
+D = FOREACH B GENERATE COUNT(B.age);
+
+DESCRIBE A;
+A: {group, B: (name: chararray,age: int,gpa: float}
+
+DESCRIBE B;
+B: {group, B: (name: chararray,age: int,gpa: float}
+
+DESCRIBE C;
+C: {group, chararry,B: (name: chararray,age: int,gpa: float}
+
+DESCRIBE D;
+D: {long}
+</source>
+   
+   <p>In this example no schema is specified. All fields default to type bytearray or long (see Data Types).</p>
+<source>
+a = LOAD 'student';
+
+b = FILTER a BY $0 matches 'J.+';
+
+c = GROUP b BY $0;
+
+d = FOREACH c GENERATE COUNT(b.$1);
+
+DESCRIBE a;
+Schema for a unknown.
+
+DESCRIBE b;
+2008-12-05 01:17:15,316 [main] WARN  org.apache.pig.PigServer - bytearray is implicitly cast to chararray under LORegexp Operator
+Schema for b unknown.
+
+DESCRIBE c;
+2008-12-05 01:17:23,343 [main] WARN  org.apache.pig.PigServer - bytearray is implicitly caste to chararray under LORegexp Operator
+c: {group: bytearray,b: {null}}
+
+DESCRIBE d;
+2008-12-05 03:04:30,076 [main] WARN  org.apache.pig.PigServer - bytearray is implicitly caste to chararray under LORegexp Operator
+d: {long}
+</source>
+   
+ <p>This example shows how to view the schema of a nested relation using the :: operator.</p>  
+ <source>
+A = LOAD 'studentab10k' AS (name, age, gpa); 
+B = GROUP A BY name; 
+C = FOREACH B { 
+     D = DISTINCT A.age; 
+     GENERATE COUNT(D), group;} 
+
+DESCRIBE C::D; 
+D: {age: bytearray} 
+</source>
+</section></section>
+   
+ <!-- +++++++++++++++++++++++++++++++++++++++ -->   
+ <section id="dump">
+   <title>DUMP</title>
+   <p>Dumps or displays results to screen.</p>
+   
+   <section>
+   <title>Syntax</title>
+   <table>
+      <tr> 
+            <td>
+               <p>DUMP alias;        </p>
+            </td>
+         </tr> 
+   </table></section>
+   
+   <section>
+   <title>Terms</title>
+   <table>
+      <tr>
+            <td>
+               <p>alias</p>
+            </td>
+            <td>
+               <p>The name of a relation.</p>
+            </td>
+         </tr> 
+   </table></section>
+   
+   <section>
+   <title>Usage</title>
+   <p>Use the DUMP operator to run (execute) Pig Latin statements and display the results to your screen. DUMP is meant for interactive mode; statements are executed immediately and the results are not saved (persisted). You can use DUMP as a debugging device to make sure that the results you are expecting are actually generated. </p>
+   
+   <p>
+   Note that production scripts SHOULD NOT use DUMP as it will disable multi-query optimizations and is likely to slow down execution 
+   (see <a href="perf.html#Store-Dump">Store vs. Dump</a>).
+   </p>
+   </section>
+   
+   <section>
+   <title>Example</title>
+   <p>In this example a dump is performed after each statement.</p>
+<source>
+A = LOAD 'student' AS (name:chararray, age:int, gpa:float);
+
+DUMP A;
+(John,18,4.0F)
+(Mary,19,3.7F)
+(Bill,20,3.9F)
+(Joe,22,3.8F)
+(Jill,20,4.0F)
+
+B = FILTER A BY name matches 'J.+';
+
+DUMP B;
+(John,18,4.0F)
+(Joe,22,3.8F)
+(Jill,20,4.0F)
+</source>
+</section></section>      
+   
+ <!-- +++++++++++++++++++++++++++++++++++++++ -->
+   <section id="explain">
+   <title>EXPLAIN</title>
+   <p>Displays execution plans.</p>
+   
+   <section>
+   <title>Syntax</title>
+   <table>
+      <tr> 
+            <td>
+               <p>EXPLAIN [–script pigscript] [–out path] [–brief] [–dot] [–param param_name = param_value] [–param_file file_name] alias; </p>
+            </td>
+         </tr> 
+   </table></section>
+   
+   <section>
+   <title>Terms</title>
+   <table>
+    
+         <tr>
+            <td>
+               <p>–script</p>
+            </td>
+            <td>
+               <p>Use to specify a Pig script.</p>
+            </td>
+         </tr>      
+
+         <tr>
+            <td>
+               <p>–out</p>
+            </td>
+            <td>
+               <p>Use to specify the output path (directory).</p>
+               <p>Will generate a logical_plan[.txt|.dot], physical_plan[.text|.dot], exec_plan[.text|.dot] file in the specified path.</p>
+               <p>Default (no path specified): Stdout </p>
+            </td>
+         </tr>
+
+         <tr>
+            <td>
+               <p>–brief</p>
+            </td>
+            <td>
+               <p>Does not expand nested plans (presenting a smaller graph for overview). </p>
+            </td>
+         </tr>
+         
+         <tr>
+            <td>
+               <p>–dot</p>
+            </td>
+            <td>
+
+               <p>Text mode (default): multiple output (split) will be broken out in sections.  </p>
+               <p>Dot mode: outputs a format that can be passed to the dot utility for graphical display – 
+               will generate a directed-acyclic-graph (DAG) of the plans in any supported format (.gif, .jpg ...).</p>
+            </td>
+         </tr>
+
+         <tr>
+            <td>
+               <p>–param param_name = param_value</p>
+            </td>
+            <td>
+               <p>See <a href="cont.html#Parameter-Sub">Parameter Substitution</a>.</p>
+            </td>
+         </tr>
+
+         <tr>
+            <td>
+               <p>–param_file file_name</p>
+            </td>
+            <td>
+               <p>See <a href="cont.html#Parameter-Sub">Parameter Substitution</a>. </p>
+            </td>
+         </tr>
+      
+      <tr>
+            <td>
+               <p>alias</p>
+            </td>
+            <td>
+               <p>The name of a relation.</p>
+            </td>
+         </tr>
+   </table></section>
+   
+   <section id="execution-plans">
+   <title>Usage</title>
+   <p>Use the EXPLAIN operator to review the logical, physical, and map reduce execution plans that are used to compute the specified relationship. </p>
+   <p>If no script is given:</p>
+
+   <ul>	
+      <li id="logical-plan">
+         <p >The logical plan shows a pipeline of operators to be executed to build the relation. Type checking and backend-independent optimizations (such as applying filters early on) also apply.</p>
+      </li>
+      <li id="physical-plan">
+         <p >The physical plan shows how the logical operators are translated to backend-specific physical operators. Some backend optimizations also apply.</p>
+      </li>
+      <li id="mapreduce-plan">
+         <p >The mapreduce plan shows how the physical operators are grouped into map reduce jobs.</p>
+      </li>
+  </ul> 
+  <p></p>
+   <p>If a script without an alias is specified, it will output the entire execution graph (logical, physical, or map reduce). </p>
+   <p>If a script with a alias is specified, it will output the plan for the given alias. </p>
+   </section>
+   
+   <section>
+   <title>Example</title>
+   <p>In this example the EXPLAIN operator produces all three plans. (Note that only a portion of the output is shown in this example.)</p>
+
+ <source>
+A = LOAD 'student' AS (name:chararray, age:int, gpa:float);
+
+B = GROUP A BY name;
+
+C = FOREACH B GENERATE COUNT(A.age);
+
+EXPLAIN C;
+-----------------------------------------------
+Logical Plan:
+-----------------------------------------------
+Store xxx-Fri Dec 05 19:42:29 UTC 2008-23 Schema: {long} Type: Unknown
+|
+|---ForEach xxx-Fri Dec 05 19:42:29 UTC 2008-15 Schema: {long} Type: bag
+ <em>etc ... </em> 
+
+-----------------------------------------------
+Physical Plan:
+-----------------------------------------------
+Store(fakefile:org.apache.pig.builtin.PigStorage) - xxx-Fri Dec 05 19:42:29 UTC 2008-40
+|
+|---New For Each(false)[bag] - xxx-Fri Dec 05 19:42:29 UTC 2008-39
+    |   |
+    |   POUserFunc(org.apache.pig.builtin.COUNT)[long] - xxx-Fri Dec 05 
+ <em>etc ... </em> 
+
+--------------------------------------------------
+| Map Reduce Plan                               
+-------------------------------------------------
+MapReduce node xxx-Fri Dec 05 19:42:29 UTC 2008-41
+Map Plan
+Local Rearrange[tuple]{chararray}(false) - xxx-Fri Dec 05 19:42:29 UTC 2008-34
+|   |
+|   Project[chararray][0] - xxx-Fri Dec 05 19:42:29 UTC 2008-35
+ <em>etc ... </em> 
+
+</source> 
+ </section></section>
+  
+  
+ <!-- +++++++++++++++++++++++++++++++++++++++ -->
+      <section id="illustrate">
+   <title>ILLUSTRATE</title>
+   <p>Displays a step-by-step execution of a sequence of statements.</p>
+
+   <section>
+   <title>Syntax</title>
+   <table>
+      <tr> 
+            <td>
+               <p>ILLUSTRATE {alias | -script scriptfile}; </p>
+            </td>
+         </tr> 
+   </table></section>
+   
+   <section>
+   <title>Terms</title>
+   <table>
+      <tr>
+            <td>
+               <p>alias</p>
+            </td>
+            <td>
+               <p>The name of a relation.</p>
+            </td>
+         </tr> 
+            
+      <tr>
+            <td>
+               <p>-script scriptfile</p>
+            </td>
+            <td>
+               <p>The script keyword followed by the name of a Pig script (for example, myscript.pig). </p>
+               <p>The script file should not contain an ILLUSTRATE statement.</p>
+            </td>
+         </tr> 
+   </table></section>
+   
+   <section>
+   <title>Usage</title>
+   <p>Use the ILLUSTRATE operator to review how data is transformed through a sequence of Pig Latin statements.
+   ILLUSTRATE allows you to test your programs on small datasets and get faster turnaround times. </p>
+
+<p id="example-generator">ILLUSTRATE is based on an example generator 
+(see <a href="http://research.yahoo.com/files/paper_5.pdf">Generating Example Data for Dataflow Programs</a>).
+
+The algorithm works by retrieving a small sample of the input data and then propagating this data through the pipeline. However, some operators, such as JOIN and FILTER, can eliminate tuples from the data - and this could result in no data following through the pipeline. To address this issue, the algorithm will automatically generate example data, in near real-time. Thus, you might see data propagating through the pipeline that was not found in the original input data, but this data changes nothing and ensures that you will be able to examine the semantics of your Pig Latin statements.</p>    
+   
+     <p>As shown in the examples below, you can use ILLUSTRATE to review a relation or an entire Pig script.</p>
+ </section>
+   
+   <section>
+   <title>Example - Relation</title>
+   <p>This example demonstrates how to use ILLUSTRATE with a relation. Note that the LOAD statement must include a schema (the AS clause).</p>
+ <source>
+grunt> visits = LOAD 'visits.txt' AS (user:chararray, url:chararray, timestamp:chararray);
+grunt> DUMP visits;
+
+(Amy,yahoo.com,19990421)
+(Fred,harvard.edu,19991104)
+(Amy,cnn.com,20070218)
+(Frank,nba.com,20070305)
+(Fred,berkeley.edu,20071204)
+(Fred,stanford.edu,20071206)
+
+grunt> recent_visits = FILTER visits BY timestamp >= '20071201';
+grunt> user_visits = GROUP recent_visits BY user;
+grunt> num_user_visits = FOREACH user_visits GENERATE group, COUNT(recent_visits);
+grunt> DUMP num_user_visits;
+
+(Fred,2)
+
+grunt> ILLUSTRATE num_user_visits;
+------------------------------------------------------------------------
+| visits     | user: chararray | url: chararray | timestamp: chararray |
+------------------------------------------------------------------------
+|            | Fred            | berkeley.edu   | 20071204             |
+|            | Fred            | stanford.edu   | 20071206             |
+|            | Frank           | nba.com        | 20070305             |
+------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+| recent_visits     | user: chararray | url: chararray | timestamp: chararray |
+-------------------------------------------------------------------------------
+|                   | Fred            | berkeley.edu   | 20071204             |
+|                   | Fred            | stanford.edu   | 20071206             |
+-------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------
+| user_visits     | group: chararray | recent_visits: bag({user: chararray,url: chararray,timestamp: chararray}) |
+------------------------------------------------------------------------------------------------------------------
+|                 | Fred             | {(Fred, berkeley.edu, 20071204), (Fred, stanford.edu, 20071206)}          |
+------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------
+| num_user_visits     | group: chararray | long  |
+--------------------------------------------------
+|                     | Fred             | 2     |
+--------------------------------------------------
+</source>
+</section>
+
+   <section>
+   <title>Example - Script</title>
+ <p>This example demonstrates how to use ILLUSTRATE with a Pig script. Note that the script itself should not contain an ILLUSTRATE statement.</p>
+</section>
+<source>
+grunt> cat visits.txt
+Amy     yahoo.com       19990421
+Fred    harvard.edu     19991104
+Amy     cnn.com 20070218
+Frank   nba.com 20070305
+Fred    berkeley.edu    20071204
+Fred    stanford.edu    20071206
+
+grunt> cat visits.pig
+visits = LOAD 'visits.txt' AS (user, url, timestamp);
+recent_visits = FILTER visits BY timestamp &gt;= '20071201';
+historical_visits = FILTER visits BY timestamp &lt;= '20000101';
+DUMP recent_visits;
+DUMP historical_visits;
+STORE recent_visits INTO 'recent';
+STORE historical_visits INTO 'historical';
+
+grunt> exec visits.pig
+
+(Fred,berkeley.edu,20071204)
+(Fred,stanford.edu,20071206)
+
+(Amy,yahoo.com,19990421)
+(Fred,harvard.edu,19991104)
+
+
+grunt> illustrate -script visits.pig
+
+------------------------------------------------------------------------
+| visits     | user: bytearray | url: bytearray | timestamp: bytearray |
+------------------------------------------------------------------------
+|            | Amy             | yahoo.com      | 19990421             |
+|            | Fred            | stanford.edu   | 20071206             |
+------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+| recent_visits     | user: bytearray | url: bytearray | timestamp: bytearray |
+-------------------------------------------------------------------------------
+|                   | Fred            | stanford.edu   | 20071206             |
+-------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------
+| Store : recent_visits     | user: bytearray | url: bytearray | timestamp: bytearray |
+---------------------------------------------------------------------------------------
+|                           | Fred            | stanford.edu   | 20071206             |
+---------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------
+| historical_visits     | user: bytearray | url: bytearray | timestamp: bytearray |
+-----------------------------------------------------------------------------------
+|                       | Amy             | yahoo.com      | 19990421             |
+-----------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------
+| Store : historical_visits     | user: bytearray | url: bytearray | timestamp: bytearray |
+-------------------------------------------------------------------------------------------
+|                               | Amy             | yahoo.com      | 19990421             |
+-------------------------------------------------------------------------------------------
+</source>
+
+</section>
+</section>
+
+<!-- =========================================================================== -->
+<!-- DIAGNOSTIC OPERATORS -->    
+<section id="mapreduce-job-ids">
+<title>Pig Scripts and MapReduce Job IDs</title>
+   <p>Complex Pig scripts often generate many MapReduce jobs. To help you debug a script, Pig prints a summary of the execution that shows which relations (aliases) are mapped to each MapReduce job. </p>
+<source>
+JobId Maps Reduces MaxMapTime MinMapTIme AvgMapTime MaxReduceTime 
+    MinReduceTime AvgReduceTime Alias Feature Outputs
+job_201004271216_12712 1 1 3 3 3 12 12 12 B,C GROUP_BY,COMBINER
+job_201004271216_12713 1 1 3 3 3 12 12 12 D SAMPLER
+job_201004271216_12714 1 1 3 3 3 12 12 12 D ORDER_BY,COMBINER 
+    hdfs://mymachine.com:9020/tmp/temp743703298/tmp-2019944040,
+</source>
+
+</section>
+
+<!-- ==================================================================== -->
+<!-- PIG STATISTICS-->
+<section id="pig-statistics">
+<title>Pig Statistics</title>
+
+<p>Pig Statistics is a framework for collecting and storing script-level statistics for Pig Latin. Characteristics of Pig Latin scripts and the resulting MapReduce jobs are collected while the script is executed. These statistics are then available for Pig users and tools using Pig (such as Oozie) to retrieve after the job is done.</p>
+
+<p>The new Pig statistics and the existing Hadoop statistics can also be accessed via the Hadoop job history file (and job xml file). Piggybank has a HadoopJobHistoryLoader which acts as an example of using Pig itself to query these statistics (the loader can be used as a reference implementation but is NOT supported for production use).</p>
+
+<!-- +++++++++++++++++++++++++++++++++++++++ -->
+<section>
+<title>Java API</title>
+
+<p>Several new public classes make it easier for external tools such as Oozie to integrate with Pig statistics. </p>
+
+<p>The Pig statistics are available here: <a href="http://pig.apache.org/docs/r0.9.0/api/">http://pig.apache.org/docs/r0.9.0/api/</a></p>
+
+<p id="stats-classes">The stats classes are in the package: org.apache.pig.tools.pigstats</p>
+<ul>
+<li>PigStats</li>
+<li>JobStats</li>
+<li>OutputStats</li>
+<li>InputStats</li>
+</ul>
+<p></p>
+
+<p>The PigRunner class mimics the behavior of the Main class but gives users a statistics object back. Optionally, you can call the API with an implementation of progress listener which will be invoked by Pig runtime during the execution. </p>
+
+<source>
+package org.apache.pig;
+
+public abstract class PigRunner {
+    public static PigStats run(String[] args, PigProgressNotificationListener listener)
+}
+
+public interface PigProgressNotificationListener extends java.util.EventListener {
+    // just before the launch of MR jobs for the script
+    public void LaunchStartedNotification(int numJobsToLaunch);
+    // number of jobs submitted in a batch
+    public void jobsSubmittedNotification(int numJobsSubmitted);
+    // a job is started
+    public void jobStartedNotification(String assignedJobId);
+    // a job is completed successfully
+    public void jobFinishedNotification(JobStats jobStats);
+    // a job is failed
+    public void jobFailedNotification(JobStats jobStats);
+    // a user output is completed successfully
+    public void outputCompletedNotification(OutputStats outputStats);
+    // updates the progress as percentage
+    public void progressUpdatedNotification(int progress);
+    // the script execution is done
+    public void launchCompletedNotification(int numJobsSucceeded);
+}
+</source>
+</section>
+
+<!-- +++++++++++++++++++++++++++++++++++++++ -->
+<section>
+<title>Job XML</title>
+<p>The following entries are included in job conf: </p>
+
+<table>
+<tr>
+<td>
+<p> <strong>Pig Statistic</strong> </p>
+</td>
+<td>
+<p> <strong>Description</strong></p>
+</td>
+</tr>
+<tr>
+<td>
+<p id="pig-script-id">pig.script.id</p>
+</td>
+<td>
+<p>The UUID for the script. All jobs spawned by the script have the same script ID.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p id="pig-script">pig.script</p>
+</td>
+<td>
+<p>The base64 encoded script text.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p id="pig-command-line">pig.command.line</p>
+</td>
+<td>
+<p>The command line used to invoke the script.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p id="pig-hadoop-version">pig.hadoop.version</p>
+</td>
+<td>
+<p>The Hadoop version installed.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p id="pig-version">pig.version</p>
+</td>
+<td>
+<p>The Pig version used.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p id="pig-input-dirs">pig.input.dirs</p>
+</td>
+<td>
+<p>A comma-separated list of input directories for the job.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p id="pig-map-output-dirs">pig.map.output.dirs</p>
+</td>
+<td>
+<p>A comma-separated list of output directories in the map phase of the job.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p id="pig-reduce-output-dirs">pig.reduce.output.dirs</p>
+</td>
+<td>
+<p>A comma-separated list of output directories in the reduce phase of the job.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p id="pig-parent-jobid">pig.parent.jobid</p>
+</td>
+<td>
+<p>A comma-separated list of parent job ids.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p id="pig-script-features">pig.script.features</p>
+</td>
+<td>
+<p>A list of Pig features used in the script.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p id="pig-job-feature">pig.job.feature</p>
+</td>
+<td>
+<p>A list of Pig features used in the job.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p id="pig-alias">pig.alias</p>
+</td>
+<td>
+<p>The alias associated with the job.</p>
+</td>
+</tr>
+</table>
+</section>
+
+
+<!-- +++++++++++++++++++++++++++++++++++++++ -->
+<section id="hadoop-job-history-loader">
+<title>Hadoop Job History Loader</title>
+<p>The HadoopJobHistoryLoader in Piggybank loads Hadoop job history files and job xml files from file system. For each MapReduce job, the loader produces a tuple with schema (j:map[], m:map[], r:map[]). The first map in the schema contains job-related entries. Here are some of important key names in the map: </p>
+
+<table>
+<tr>
+<td>
+<p>PIG_SCRIPT_ID</p>
+<p>CLUSTER </p>
+<p>QUEUE_NAME</p>
+<p>JOBID</p>
+<p>JOBNAME</p>
+<p>STATUS</p>
+</td>
+<td>
+<p>USER </p>
+<p>HADOOP_VERSION  </p>
+<p>PIG_VERSION</p>
+<p>PIG_JOB_FEATURE</p>
+<p>PIG_JOB_ALIAS </p>
+<p>PIG_JOB_PARENTS</p>
+</td>
+<td>
+<p>SUBMIT_TIME</p>
+<p>LAUNCH_TIME</p>
+<p>FINISH_TIME</p>
+<p>TOTAL_MAPS</p>
+<p>TOTAL_REDUCES</p>
+</td>
+</tr>
+</table>
+<p></p>
+<p>Examples that use the loader to query Pig statistics are shown below.</p>
+</section>
+
+<!-- +++++++++++++++++++++++++++++++++++++++ -->
+<section>
+<title>Examples</title>
+<p>Find scripts that generate more then three MapReduce jobs:</p>
+<source>
+a = load '/mapred/history/done' using HadoopJobHistoryLoader() as (j:map[], m:map[], r:map[]);
+b = group a by (j#'PIG_SCRIPT_ID', j#'USER', j#'JOBNAME');
+c = foreach b generate group.$1, group.$2, COUNT(a);
+d = filter c by $2 > 3;
+dump d;
+</source>
+
+<p>Find the running time of each script (in seconds): </p>
+<source>
+a = load '/mapred/history/done' using HadoopJobHistoryLoader() as (j:map[], m:map[], r:map[]);
+b = foreach a generate j#'PIG_SCRIPT_ID' as id, j#'USER' as user, j#'JOBNAME' as script_name, 
+         (Long) j#'SUBMIT_TIME' as start, (Long) j#'FINISH_TIME' as end;
+c = group b by (id, user, script_name)
+d = foreach c generate group.user, group.script_name, (MAX(b.end) - MIN(b.start)/1000;
+dump d;
+</source>
+
+<p>Find the number of scripts run by user and queue on a cluster: </p>
+<source>
+a = load '/mapred/history/done' using HadoopJobHistoryLoader() as (j:map[], m:map[], r:map[]);
+b = foreach a generate j#'PIG_SCRIPT_ID' as id, j#'USER' as user, j#'QUEUE_NAME' as queue;
+c = group b by (id, user, queue) parallel 10;
+d = foreach c generate group.user, group.queue, COUNT(b);
+dump d;
+</source>
+
+<p>Find scripts that have failed jobs: </p>
+<source>
+a = load '/mapred/history/done' using HadoopJobHistoryLoader() as (j:map[], m:map[], r:map[]);
+b = foreach a generate (Chararray) j#'STATUS' as status, j#'PIG_SCRIPT_ID' as id, j#'USER' as user, j#'JOBNAME' as script_name, j#'JOBID' as job;
+c = filter b by status != 'SUCCESS';
+dump c;
+</source>
+
+<p>Find scripts that use only the default parallelism: </p>
+<source>
+a = load '/mapred/history/done' using HadoopJobHistoryLoader() as (j:map[], m:map[], r:map[]);
+b = foreach a generate j#'PIG_SCRIPT_ID' as id, j#'USER' as user, j#'JOBNAME' as script_name, (Long) r#'NUMBER_REDUCES' as reduces;
+c = group b by (id, user, script_name) parallel 10;
+d = foreach c generate group.user, group.script_name, MAX(b.reduces) as max_reduces;
+e = filter d by max_reduces == 1;
+dump e;
+</source>
+</section>
+</section>   
+
+<!-- =========================================================================== -->
+<!-- PIG PROGRESS NOTIFICATION LISTENER -->
+<section id="ppnl">
+<title>Pig Progress Notification Listener</title>
+ <p>
+Pig provides the ability to register a listener to receive event notifications during the
+execution of a script. Events include MapReduce plan creation, script launch, script progress,
+script completion, job submit, job start, job completion and job failure.
+</p>
+<p>To register a listener, set the pig.notification.listener parameter
+to the fully qualified class name of an implementation of
+<a href="http://svn.apache.org/repos/asf/pig/trunk/src/org/apache/pig/tools/pigstats/PigProgressNotificationListener.java">org.apache.pig.tools.pigstats.PigProgressNotificationListener</a>.
+The class must exist on the classpath of the process submitting the Pig job. If the
+pig.notification.listener.arg parameter is set, the value will be passed to a constructor
+of the implementing class that takes a single String.
+ </p>
+
+</section>
+
+<!-- =========================================================================== -->
+<!-- PIGUNIT -->    
+
+  <section id="pigunit">
+      <title>PigUnit</title>
+      <p>PigUnit is a simple xUnit framework that enables you to easily test your Pig scripts.
+        With PigUnit you can perform unit testing, regression testing, and rapid prototyping. 
+        No cluster set up is required if you run Pig in local mode.
+      </p>
+
+<!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <section>
+      <title>Build PigUnit</title>
+      <p>To compile PigUnit run the command shown below from the Pig trunk. The compile will create the pigunit.jar file.</p>
+      <source>
+$pig_trunk ant pigunit-jar   
+</source>
+    </section>
+ 
+ <!-- +++++++++++++++++++++++++++++++++++++++ -->   
+      <section>
+      <title>Run PigUnit</title>
+      <p>You can run PigUnit using Pig's local mode or mapreduce mode.</p>
+    <section>
+      <title>Local Mode</title>
+      <p>
+        PigUnit runs in Pig's local mode by default.
+        Local mode is fast and enables you to use your local file system as the HDFS cluster.
+        Local mode does not require a real cluster but a new local one is created each time. 
+      </p>
+    </section>
+
+<!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <section>
+      <title>Mapreduce Mode</title>
+      <p>PigUnit also runs in Pig's mapreduce mode. Mapreduce mode requires you to use a Hadoop cluster and HDFS installation.
+        It is enabled when the Java system property pigunit.exectype.cluster is set to any value: e.g. -Dpigunit.exectype.cluster=true or System.getProperties().setProperty("pigunit.exectype.cluster", "true"). The cluster you select must be specified in the CLASSPATH (similar to the HADOOP_CONF_DIR variable). 
+      </p>
+    </section>
+    </section>
+
+<!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <section>
+      <title>PigUnit Example</title>
+      
+       <p>
+        Many PigUnit examples are available in the
+        <a href="http://svn.apache.org/viewvc/pig/trunk/test/org/apache/pig/test/pigunit/TestPigTest.java">PigUnit tests</a>. 
+      </p>
+      
+      <p>The example included here computes the top N of the most common queries. 
+        The Pig script, top_queries.pig, is similar to the 
+        <a href="start.html#Pig-Script-1">Query Phrase Popularity</a> 
+        in the Pig tutorial. It expects an input a file of queries and a parameter n (n is 2 in our case in order to do a top 2). 
+      </p>
+      
+      <p>Setting up a test for this script is easy because the argument and the input data are
+        specified by two text arrays. It is the same for the expected output of the
+        script that will be compared to the actual result of the execution of the Pig script. 
+      </p>
+
+<!-- +++++++++++++++++++++++++++++++++++++++ -->
+      <section>
+        <title>Java Test</title>
+        <source>
+  @Test
+  public void testTop2Queries() {
+    String[] args = {
+        "n=2",
+        };
+ 
+    PigTest test = new PigTest("top_queries.pig", args);
+ 
+    String[] input = {
+        "yahoo",
+        "yahoo",
+        "yahoo",
+        "twitter",
+        "facebook",
+        "facebook",
+        "linkedin",
+    };
+ 
+    String[] output = {
+        "(yahoo,3)",
+        "(facebook,2)",
+    };
+ 
+    test.assertOutput("data", input, "queries_limit", output);
+  }
+</source>
+ </section>
+
+<!-- +++++++++++++++++++++++++++++++++++++++ -->
+      <section>
+        <title>top_queries.pig</title>
+        <source>
+data =
+    LOAD 'input'
+    AS (query:CHARARRAY);
+     
+queries_group =
+    GROUP data
+    BY query; 
+    
+queries_count = 
+    FOREACH queries_group 
+    GENERATE 
+        group AS query, 
+        COUNT(data) AS total;
+        
+queries_ordered =
+    ORDER queries_count
+    BY total DESC, query;
+            
+queries_limit =
+    LIMIT queries_ordered $n;
+
+STORE queries_limit INTO 'output';
+</source>
+</section>
+
+<!-- +++++++++++++++++++++++++++++++++++++++ -->
+      <section>
+        <title>Run</title>
+
+        <p>The test can be executed by JUnit (or any other Java testing framework). It requires:
+        </p>
+        <ol>
+          <li>pig.jar</li>
+          <li>pigunit.jar</li>
+        </ol>
+
+        <p>The test takes about 25s to run and should pass. In case of error (for example change the
+          parameter n to n=3), the diff of output is displayed:
+        </p>
+
+        <source>
+junit.framework.ComparisonFailure: null expected:&lt;...ahoo,3)
+(facebook,2)[]&gt; but was:&lt;...ahoo,3)
+(facebook,2)[
+(linkedin,1)]&gt;
+        at junit.framework.Assert.assertEquals(Assert.java:81)
+        at junit.framework.Assert.assertEquals(Assert.java:87)
+        at org.apache.pig.pigunit.PigTest.assertEquals(PigTest.java:272)
+</source>
+      </section>
+    </section>
+
+<!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <section>
+      <title>Troubleshooting Tips</title>
+      <p>Common problems you may encounter are discussed below.</p>
+      <section>
+        <title>Classpath in Mapreduce Mode</title>
+        <p>When using PigUnit in mapreduce mode, be sure to include the $HADOOP_CONF_DIR of the
+          cluster in your CLASSPATH.</p>
+        <p>
+          MiniCluster generates one in build/classes.
+        </p>
+        <source>
+org.apache.pig.backend.executionengine.ExecException: 
+ERROR 4010: Cannot find hadoop configurations in classpath 
+(neither hadoop-site.xml nor core-site.xml was found in the classpath).
+If you plan to use local mode, please put -x local option in command line
+</source>
+      </section>
+
+<!-- +++++++++++++++++++++++++++++++++++++++ -->
+      <section>
+        <title>UDF jars Not Found</title>
+        <p>This error means that you are missing some jars in your test environment.</p>
+        <source>
+WARN util.JarManager: Couldn't find the jar for 
+org.apache.pig.piggybank.evaluation.string.LOWER, skip it
+</source>
+      </section>
+
+<!-- +++++++++++++++++++++++++++++++++++++++ -->
+      <section>
+        <title>Storing Data</title>
+        <p>Pig currently drops all STORE and DUMP commands. You can tell PigUnit to keep the
+          commands and execute the script:</p>
+        <source>
+test = new PigTest(PIG_SCRIPT, args);   
+test.unoverride("STORE");
+test.runScript();
+</source>
+      </section>
+
+<!-- +++++++++++++++++++++++++++++++++++++++ -->
+      <section>
+        <title>Cache Archive</title>
+        <p>For cache archive to work, your test environment needs to have the cache archive options
+          specified by Java properties or in an additional XML configuration in its CLASSPATH.</p>
+        <p>If you use a local cluster, you need to set the required environment variables before
+          starting it:</p>
+        <source>export LD_LIBRARY_PATH=/home/path/to/lib</source>
+      </section>
+    </section>
+
+<!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <section>
+      <title>Future Enhancements</title>
+      <p>Improvements and other components based on PigUnit that could be built later.</p>
+      <p>For example, we could build a PigTestCase and PigTestSuite on top of PigTest to:</p>
+      <ol>
+        <li>Add the notion of workspaces for each test.</li>
+        <li>Remove the boiler plate code appearing when there is more than one test methods.</li>
+        <li>Add a standalone utility that reads test configurations and generates a test report.
+        </li>
+      </ol>
+    </section>
+    </section>
+    
+</body>
+</document>

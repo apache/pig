@@ -1,0 +1,388 @@
+<!--
+   Licensed to the Apache Software Foundation (ASF) under one or more
+   contributor license agreements.  See the NOTICE file distributed with
+   this work for additional information regarding copyright ownership.
+   The ASF licenses this file to You under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-->
+
+<project name="TestHarnessPigTests" default="test">
+
+  <property name="pig.dir" value="${basedir}/../../.."/>
+  <property name="pig.jar" value="${pig.dir}/pig.jar"/>
+  <property name="jython.jar"
+    value="${pig.dir}/build/ivy/lib/Pig/jython-2.5.0.jar"/>
+  <property name="jruby.jar"
+    value="${pig.dir}/build/ivy/lib/Pig/jruby-complete-1.6.7.jar"/>
+
+  <!-- Separate property name for udfs' build.xml -->
+  <property name="pig.jarfile" value="${pig.jar}"/>
+  <property name="udf.dir" value="${basedir}/udfs"/>
+  <property name="udf.java.dir" value="${udf.dir}/java"/>
+  <property name="udf.jar" value="${udf.java.dir}/testudf.jar"/>
+  <property name="python.udf.dir" value="${udf.dir}/python"/>
+  <property name="ruby.udf.dir" value="${udf.dir}/ruby" />
+  <property name="params.dir" value="${basedir}/paramfiles"/>
+  <property name="e2e.lib.dir" value="${basedir}/lib"/>
+  <property name="streaming.dir" value="${basedir}/streaming"/>
+  <property name="macro.dir" value="${basedir}/macros"/>
+
+  <property name="tar.name" value="${basedir}/pigtests.tar"/>
+  <property name="tar.dir" value="${basedir}/tar"/>
+  <property name="test.src" value="${basedir}/tests"/>
+  <property name="driver.src" value="${basedir}/drivers"/>
+  <property name="deployer.src" value="${basedir}/deployers"/>
+  <property name="conf.src" value="${basedir}/conf"/>
+  <property name="tool.src" value="${basedir}/tools"/>
+
+  <property name="harness.dir" value="${basedir}/../harness"/>
+  <property name="harness.tar" value="${harness.dir}/harness.tar"/>
+  <property name="harness.PH_LOCAL" value="."/>
+  <property name="harness.PH_OUT" value="."/>
+  <property name="harness.PERL5LIB" value="./libexec"/>
+
+  <property name="test.location" value="${basedir}/testdist"/>
+  <property name="benchmark.location" value="${test.location}/benchmarks"/>
+
+
+  <condition property="HADOOP_PREFIX" value="">
+    <not>  
+      <isset property="HADOOP_PREFIX"/>
+    </not>
+  </condition>
+
+  <condition property="HADOOP_COMMON_HOME" value="">
+    <not>  
+      <isset property="HADOOP_COMMON_HOME"/>
+    </not>
+  </condition>
+
+  <condition property="HADOOP_HDFS_HOME" value="">
+    <not>  
+      <isset property="HADOOP_HDFS_HOME"/>
+    </not>
+  </condition>
+
+  <condition property="HADOOP_MAPRED_HOME" value="">
+    <not>  
+      <isset property="HADOOP_MAPRED_HOME"/>
+    </not>
+  </condition>
+
+  <condition property="YARN_CONF_DIR" value="">
+    <not>  
+      <isset property="YARN_CONF_DIR"/>
+    </not>
+  </condition>
+
+  <condition property="YARN_HOME" value="">
+    <not>  
+      <isset property="YARN_HOME"/>
+    </not>
+  </condition>
+
+  <condition property="OLD_HADOOP_HOME" value="">
+    <not>  
+      <isset property="OLD_HADOOP_HOME"/>
+    </not>
+  </condition>
+
+  <condition property="PH_OLD_CLUSTER_CONF" value="">
+    <not>  
+      <isset property="PH_OLD_CLUSTER_CONF"/>
+    </not>
+  </condition>
+
+  <condition property="hcat.bin" value="/usr/local/hcat/bin/hcat">
+    <not>
+      <isset property="hcat.bin"/>
+    </not>
+  </condition>
+
+  <condition property="PH_BENCHMARK_CACHE_PATH" value="">
+    <not>  
+      <isset property="PH_BENCHMARK_CACHE_PATH"/>
+    </not>
+  </condition>
+
+  <!-- Build the UDFs -->
+  <target name="pig-jar-available">
+    <available property="pig.jar.available" file="${pig.jar}"/>
+    <fail message="You must build the main Pig jar before running these tests"
+        unless="pig.jar.available"/>
+  </target>
+
+  <target name="udfs" depends="pig-jar-available">
+    <ant dir="${udf.java.dir}"/>
+  </target>
+
+  <!-- Build an archive to use in the tests -->
+  <target name="tar" description="Create tar file with pig modules">
+    <mkdir dir="${tar.dir}"/>
+    <mkdir dir="${tar.dir}/tests"/>
+    <mkdir dir="${tar.dir}/drivers"/>
+    <mkdir dir="${tar.dir}/deployers"/>
+    <mkdir dir="${tar.dir}/conf"/>
+    <mkdir dir="${tar.dir}/libexec"/>
+    <mkdir dir="${tar.dir}/libexec/PigTest"/>
+    <mkdir dir="${tar.dir}/libexec/PigTest/test"/>
+    <mkdir dir="${tar.dir}/libexec/PigTest/generate"/>
+    <mkdir dir="${tar.dir}/libexec/python"/>
+    <mkdir dir="${tar.dir}/libexec/ruby"/>
+    <mkdir dir="${tar.dir}/lib"/>
+    <mkdir dir="${tar.dir}/lib/java"/>
+    <mkdir dir="${tar.dir}/paramfiles"/>
+
+    <copy todir="${tar.dir}/tests">
+        <fileset dir="${test.src}">
+        </fileset>
+    </copy>
+
+    <copy todir="${tar.dir}">
+      <fileset dir="${driver.src}">
+        <exclude name="TestDriverScript.pm"/>
+      </fileset>
+      <fileset dir="${deployer.src}"/>
+    </copy>
+
+
+    <copy todir="${tar.dir}/conf">
+      <fileset dir="${conf.src}"/>
+    </copy>
+
+    <copy todir="${tar.dir}/libexec/PigTest">
+      <fileset dir="${tool.src}/test"/>
+      <fileset dir="${tool.src}/generate"/>
+    </copy>
+
+    <copy todir="${tar.dir}/lib">
+      <fileset dir="${e2e.lib.dir}"/>
+    </copy>
+
+    <copy todir="${tar.dir}/lib/java">
+      <fileset file="${udf.jar}"/>
+    </copy>
+
+    <copy todir="${tar.dir}/libexec">
+      <fileset dir="${streaming.dir}"/>
+      <fileset dir="${macro.dir}"/>
+    </copy>
+
+    <copy todir="${tar.dir}/libexec/python">
+      <fileset dir="${python.udf.dir}"/>
+    </copy>
+
+    <copy todir="${tar.dir}/libexec/ruby">
+      <fileset dir="${ruby.udf.dir}"/>
+    </copy>
+
+    <copy todir="${tar.dir}/paramfiles">
+      <fileset file="${params.dir}/params_3"/>
+    </copy>
+
+    <tar destfile="${tar.name}" basedir="${tar.dir}"/>
+  </target>
+
+  <!-- Get the tarball for the harness -->
+  <target name="build-harness">
+    <ant dir="${harness.dir}" inheritAll="false"/>
+  </target>
+
+  <!-- Check that the necessary properties are setup -->
+  <target name="property-check">
+    <fail message="Please set the property harness.old.pig to the directory where your old version of Pig is installed"
+      unless="harness.old.pig"/>
+     <fail message="Please set the property harness.cluster.conf to the conf directory of your hadoop installation or harness.hadoop.home to HADOOP_HOME for your Hadoop installation.">
+        <condition>
+            <not>
+                <or>
+                <isset property="harness.cluster.conf"/>
+                <isset property="harness.hadoop.home"/>
+                </or>
+            </not>
+        </condition>
+    </fail>
+    <fail message="Please set the property harness.cluster.bin to the binary executable of your hadoop installation or harness.hadoop.home to HADOOP_HOME for your Hadoop installation.">
+        <condition>
+            <not>
+                <or>
+                <isset property="harness.cluster.bin"/>
+                <isset property="harness.hadoop.home"/>
+                </or>
+            </not>
+        </condition>
+    </fail>
+  </target>
+
+  <!-- Prep the test area -->
+  <target name="init-test" depends="build-harness">
+    <mkdir dir="${test.location}"/>
+    <mkdir dir="${benchmark.location}"/>
+
+    <untar src="${tar.name}" dest="${test.location}"/>
+    <untar src="${harness.tar}" dest="${test.location}"/>
+
+    <chmod perm="ugo+x" type="file">
+      <fileset dir="${test.location}/libexec" />
+      <fileset file="${test.location}/test_harness.pl"/>
+    </chmod>
+
+  </target>
+
+
+  <!-- By default this runs in mapred mode on a cluster.  To run it in local
+  mode set -Dharness.exec.mode=local -->
+
+  <target name="test-base" depends="property-check, udfs, tar, init-test">
+    <!-- If they have not specified tests to run then null it out -->
+    <property name="tests.to.run" value=""/>
+    <!-- fork (parallelization) factors for e2e tests execution. 
+	Defaults are 1, which means *no* parellelization: -->
+    <property name="fork.factor.group" value="1"/>
+    <property name="fork.factor.conf.file" value="1"/>
+    <property name="hadoop.mapred.local.dir" value="/tmp/hadoop/mapred/local"/>
+    <property name="e2e.debug" value="false"/>
+
+    <exec executable="./test_harness.pl" dir="${test.location}" failonerror="true">
+      <env key="HARNESS_ROOT" value="."/>
+      <env key="HADOOP_VERSION" value="${hadoopversion}"/>
+      <env key="PH_LOCAL" value="${harness.PH_LOCAL}"/>
+      <env key="PH_OUT" value="${harness.PH_OUT}"/>
+      <env key="PH_ROOT" value="."/>
+      <env key="PH_PIG" value="${pig.dir}"/>
+      <env key="PH_OLDPIG" value="${harness.old.pig}"/>
+      <env key="HADOOP_CONF_DIR" value="${harness.cluster.conf}"/>
+      <env key="PH_CLUSTER_BIN" value="${harness.cluster.bin}"/>
+      <env key="PH_JYTHON_JAR" value="${jython.jar}"/>
+      <env key="PH_JRUBY_JAR" value="${jruby.jar}"/>
+      <env key="JRUBY_OPTS" value="--1.9"/>
+      <env key="HARNESS_CONF" value="${harness.conf.file}"/>
+      <env key="HADOOP_HOME" value="${harness.hadoop.home}"/>
+      <env key="HADOOP_PREFIX" value="${HADOOP_PREFIX}"/>
+      <env key="HADOOP_COMMON_HOME" value="${HADOOP_COMMON_HOME}"/>
+      <env key="HADOOP_HDFS_HOME" value="${HADOOP_HDFS_HOME}"/>
+      <env key="HADOOP_MAPRED_HOME" value="${HADOOP_MAPRED_HOME}"/>
+      <env key="YARN_CONF_DIR" value="${YARN_CONF_DIR}"/>
+      <env key="YARN_HOME" value="${YARN_HOME}"/>
+      <env key="OLD_HADOOP_HOME" value="${OLD_HADOOP_HOME}"/>
+      <env key="PH_OLD_CLUSTER_CONF" value="${PH_OLD_CLUSTER_CONF}"/>
+      <env key="PH_BENCHMARK_CACHE_PATH" value="${PH_BENCHMARK_CACHE_PATH}"/>
+      <env key="HCAT_BIN" value="${hcat.bin}"/>
+      <env key="PERL5LIB" value="${harness.PERL5LIB}"/>
+      <env key="FORK_FACTOR_GROUP" value="${fork.factor.group}"/>
+      <env key="FORK_FACTOR_FILE" value="${fork.factor.conf.file}"/>
+      <env key="HADOOP_MAPRED_LOCAL_DIR" value="${hadoop.mapred.local.dir}"/>
+      <env key="E2E_DEBUG" value="${e2e.debug}"/>
+
+      <arg line="${tests.to.run}"/>
+      <arg value="${test.location}/tests/cmdline.conf"/>
+      <arg value="${test.location}/tests/multiquery.conf"/>
+      <arg value="${test.location}/tests/negative.conf"/>
+      <arg value="${test.location}/tests/nightly.conf"/>
+      <arg value="${test.location}/tests/streaming.conf"/>
+      <arg value="${test.location}/tests/streaming_local.conf"/>
+      <arg value="${test.location}/tests/turing_jython.conf"/>
+      <arg value="${test.location}/tests/bigdata.conf"/>
+      <arg value="${test.location}/tests/grunt.conf"/>
+      <arg value="${test.location}/tests/macro.conf"/>
+      <arg value="${test.location}/tests/hcat.conf"/>
+    </exec>
+  </target>
+
+  <target name="test">
+    <antcall target="test-base">
+      <param name="harness.conf.file" value="${basedir}/conf/default.conf"/>
+    </antcall>
+  </target>
+
+  <target name="test-local">
+    <antcall target="test-base">
+      <param name="harness.conf.file" value="${basedir}/conf/local.conf"/>
+    </antcall>
+  </target>
+
+  <target name="deploy-base" depends="property-check, tar, init-test">
+    <exec executable="./test_harness.pl" dir="${test.location}" failonerror="true">
+      <env key="HARNESS_ROOT" value="."/>
+      <env key="PH_LOCAL" value="${harness.PH_LOCAL}"/>
+      <env key="PH_OUT" value="${harness.PH_OUT}"/>
+      <env key="PH_ROOT" value="."/>
+      <env key="PH_PIG" value="${pig.dir}"/>
+      <env key="PH_OLDPIG" value="${harness.old.pig}"/>
+      <env key="HADOOP_CONF_DIR" value="${harness.cluster.conf}"/>
+      <env key="PH_CLUSTER_BIN" value="${harness.cluster.bin}"/>
+      <env key="PH_JYTHON_JAR" value="${jython.jar}"/>
+      <env key="PH_JRUBY_JAR" value="${jruby.jar}"/>
+      <env key="JRUBY_OPTS" value="--1.9"/>
+      <env key="HARNESS_CONF" value="${harness.conf.file}"/>
+      <env key="HADOOP_HOME" value="${harness.hadoop.home}"/>
+
+      <arg value="-deploycfg"/>
+      <arg value="${deploy.conf}"/>
+      <arg value="${deploy.opt}"/>
+      <!-- Give a bogus test so it just does the deployment -->
+      <arg value="-t"/>
+      <arg value="NoSuchTest"/>
+      <arg value="${test.location}/tests/nightly.conf"/>
+    </exec>
+  </target>
+
+  <target name="deploy">
+    <antcall target="deploy-base">
+      <param name="deploy.opt" value="-deploy"/>
+      <param name="deploy.conf"
+        value="${test.location}/conf/existing_deployer.conf"/>
+      <param name="harness.conf.file" value="${basedir}/conf/default.conf"/>
+    </antcall>
+  </target>
+
+  <target name="undeploy">
+    <antcall target="deploy-base">
+      <param name="deploy.opt" value="-undeploy"/>
+      <param name="deploy.conf"
+        value="${test.location}/conf/existing_deployer.conf"/>
+      <param name="harness.conf.file" value="${basedir}/conf/default.conf"/>
+    </antcall>
+  </target>
+
+  <target name="deploy-local">
+    <antcall target="deploy-base">
+      <param name="deploy.opt" value="-deploy"/>
+      <param name="deploy.conf"
+        value="${test.location}/conf/local_deployer.conf"/>
+      <param name="harness.conf.file" value="${basedir}/conf/local.conf"/>
+    </antcall>
+  </target>
+
+  <target name="undeploy-local">
+    <antcall target="deploy-base">
+      <param name="deploy.opt" value="-undeploy"/>
+      <param name="deploy.conf"
+        value="${test.location}/conf/local_deployer.conf"/>
+      <param name="harness.conf.file" value="${basedir}/conf/local.conf"/>
+    </antcall>
+  </target>
+
+  <target name="deploy-test" depends="deploy, test"/>
+
+  <target name="deploy-test-undeploy" depends="deploy, test, undeploy"/>
+
+  <target name="clean">
+    <delete dir="${test.location}"/>
+    <delete file="${tar.name}"/>
+    <delete dir="${tar.dir}"/>
+    <ant dir="${udf.java.dir}" target="clean"/>
+  </target>
+
+</project>
+
+

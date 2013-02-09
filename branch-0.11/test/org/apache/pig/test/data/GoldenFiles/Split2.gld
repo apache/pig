@@ -1,0 +1,23 @@
+Filter[tuple] - Test-Plan-Builder-240
+|   |
+|   Less Than[boolean] - Test-Plan-Builder-243
+|   |
+|   |---Project[bytearray][0] - Test-Plan-Builder-241
+|   |
+|   |---Constant(7) - Test-Plan-Builder-242
+|
+|---Split - Test-Plan-Builder-239
+    |
+    |---Load(a:org.apache.pig.builtin.PigStorage) - Test-Plan-Builder-238
+
+Filter[tuple] - Test-Plan-Builder-244
+|   |
+|   Greater Than[boolean] - Test-Plan-Builder-247
+|   |
+|   |---Project[bytearray][0] - Test-Plan-Builder-245
+|   |
+|   |---Constant(7) - Test-Plan-Builder-246
+|
+|---Split - Test-Plan-Builder-239
+    |
+    |---Load(a:org.apache.pig.builtin.PigStorage) - Test-Plan-Builder-238

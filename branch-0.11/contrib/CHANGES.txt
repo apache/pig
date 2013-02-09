@@ -1,0 +1,165 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+Pig Change Log
+
+Trunk (unreleased changes)
+
+INCOMPATIBLE CHANGES
+
+IMPROVEMENTS
+
+PIG-2909 Add a new option for ignoring corrupted files to AvroStorage load func (cheolsoo via gates)
+
+PIG-2202 AvroStorage doesn't work with Avro 1.5.1 (billgraham via gates)
+
+PIG-1959 Penny: a framework for workflow instrumentation (olston, breed via gates)
+
+PIG-1924 CSV Loader/Store that handles newlines in fields, and other Excel CSV
+features. (paepcke via gates)
+
+PIG-1842 Improve Scalability of the XMLLoader for large datasets such as
+wikipedia (vivekp via gates)
+
+PIG-1781 Piggybank: ISOToDay disregards timezone (should use ISODateTimeFormat
+instead of DateTime to parse) (misterbeebee via gates)
+
+PIG-1722 PiggyBank AllLoader - Load multiple file formats in one load
+statement (gerritjw via gates)
+
+PIG-1502 Remove Owl as a contrib project (gates)
+
+PIG-1386 UDF to extend functionalities of MaxTupleBy1stField (hcbusy via olgan)
+
+PIG-1526 improvements to HiveColumnarLoader - Partitioning Support (gerritjvv via olgan)
+
+PIG-1229 allow pig to write output into a JDBC db (ankur via hashutosh)
+
+PIG-1385 UDF to create tuples and bags (hcbusy via gates)
+
+PIG-1331 Add Owl as a contrib project (ajaykidave via gates)
+
+OPTIMIZATIONS
+
+BUG FIXES
+
+PIG-2893  fix DBStorage compile issue (thejas via gates)
+
+PIG-2195 AvroStorage fails to STORE when LOADing via PigStorage (billgraham via gates)
+
+PIG-1839 XMLLoader will always add an extra empty tuple even if no tags are
+matched (vikekp via gates)
+
+PIG-1449 RegExLoader hangs on lines that don't match the regular expression
+(Christian Hargraves via hashutosh)
+
+PIG 0.7.0
+
+INCOMPATIBLE CHANGES
+
+IMPROVEMENTS
+
+PIG-1310 
+ISO Date UDFs: Conversion, Trucation and Date Math (piggybank) (rjurney via
+gates)
+
+PIG-1284 Added XMLLoader to piggybank (aloknsingh via gates)
+
+OPTIMIZATIONS
+
+BUG FIXES
+
+Release 0.6.0
+
+INCOMPATIBLE CHANGES
+
+PIG-1126: updated fieldsToRead function for piggybank loaders (olgan)
+
+IMPROVEMENTS
+
+PIG-1015: [piggybank] DateExtractor should take into account timezones
+(dryaboy via  olgan)
+
+OPTIMIZATIONS
+
+BUG FIXES
+
+Release 0.5.0 - Released
+
+INCOMPATIBLE CHANGES
+
+IMPROVEMENTS
+
+PIG-911: Added SequenceFileLoader to piggybank (dryaboy via gates)
+
+OPTIMIZATIONS
+
+BUG FIXES
+
+Release 0.4.0 - Released
+
+INCOMPATIBLE CHANGES
+
+IMPROVEMENTS
+
+PIG-885: New UDFs for piggybank (Bin, Decode, LookupInFiles, RegexExtract, RegexMatch, HashFVN, DiffDate) (daijy)
+
+PIG-868: added strin manipulation functions to piggybank (bennies via olgan)
+
+OPTIMIZATIONS
+
+BUG FIXES
+
+Release 0.3.0 - Released
+
+INCOMPATIBLE CHANGES
+
+IMPROVEMENTS
+
+PIG-732: addition of Top and SearchQuery UDFs to piggybank (ankur via olgan)
+
+OPTIMIZATIONS
+
+BUG FIXES
+
+Release 0.2.0 - Released
+
+INCOMPATIBLE CHANGES
+
+IMPROVEMENTS
+
+OPTIMIZATIONS
+
+BUG FIXES
+
+Release 0.1.0 - Released
+
+INCOMPATIBLE CHANGES
+
+IMPROVEMENTS
+
+PIG-246: created UDF repository (olgan)
+
+PIG-245: UDF wrappers for Java Math functions added to piggybank (ajaygarg via olgan)
+
+PIG-277: UDF for computing correlation and covariance between data sets added to piggybank (ajaygarg via olgan)
+
+OPTIMIZATIONS
+
+BUG FIXES
+

@@ -1,0 +1,53 @@
+test-10: Store()
+|
+|---A: Package[tuple]{tuple} - scope-19
+    |
+    |---A: Global Rearrange[tuple] - scope-18
+        |
+        |---A: Local Rearrange[tuple]{tuple}(false) - scope-20
+        |   |   |
+        |   |   Add[double] - scope-25
+        |   |   |
+        |   |   |---Cast[double] - scope-22
+        |   |   |   |
+        |   |   |   |---Project[bytearray][0] - scope-21
+        |   |   |
+        |   |   |---Cast[double] - scope-24
+        |   |       |
+        |   |       |---Project[bytearray][1] - scope-23
+        |   |   |
+        |   |   Subtract[double] - scope-30
+        |   |   |
+        |   |   |---Cast[double] - scope-27
+        |   |   |   |
+        |   |   |   |---Project[bytearray][0] - scope-26
+        |   |   |
+        |   |   |---Cast[double] - scope-29
+        |   |       |
+        |   |       |---Project[bytearray][1] - scope-28
+        |   |
+        |   |---test-8: Load()
+        |
+        |---A: Local Rearrange[tuple]{tuple}(false) - scope-31
+            |   |
+            |   Add[double] - scope-36
+            |   |
+            |   |---Cast[double] - scope-33
+            |   |   |
+            |   |   |---Project[bytearray][0] - scope-32
+            |   |
+            |   |---Cast[double] - scope-35
+            |       |
+            |       |---Project[bytearray][1] - scope-34
+            |   |
+            |   Subtract[double] - scope-41
+            |   |
+            |   |---Cast[double] - scope-38
+            |   |   |
+            |   |   |---Project[bytearray][0] - scope-37
+            |   |
+            |   |---Cast[double] - scope-40
+            |       |
+            |       |---Project[bytearray][1] - scope-39
+            |
+            |---test-9: Load()

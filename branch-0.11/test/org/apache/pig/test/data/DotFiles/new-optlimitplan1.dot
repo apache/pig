@@ -1,0 +1,5 @@
+digraph graph1 {
+    LOLoad -> LOSort;
+    LOSort [limit="100"];
+    LOSort -> LOStore;
+}

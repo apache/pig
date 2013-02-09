@@ -1,0 +1,114 @@
+#-----------------------------------------------
+# New Logical Plan:
+#-----------------------------------------------
+digraph plan {
+compound=true;
+node [shape=rect];
+s26567569_in [label="", style=invis, height=0, width=0];
+s26567569_out [label="", style=invis, height=0, width=0];
+subgraph cluster_26567569 {
+label="LOSort"labelloc=b;
+12318634 [label="Project0:1"];
+s26567569_in -> 12318634 [style=invis];
+};
+12318634 -> s26567569_out [style=invis];
+s7897563_in [label="", style=invis, height=0, width=0];
+s7897563_out [label="", style=invis, height=0, width=0];
+subgraph cluster_7897563 {
+label="LOForEach"labelloc=b;
+10714218 [label="LOInnerLoad"];
+20783574 [label="LOInnerLoad"];
+s30276889_in [label="", style=invis, height=0, width=0];
+s30276889_out [label="", style=invis, height=0, width=0];
+subgraph cluster_30276889 {
+label="LOGenerate"labelloc=b;
+12984448 [label="Project0:(*)"];
+25150543 [label="Cast"];
+12984448 -> 25150543
+s30276889_in -> 12984448 [style=invis];
+20002533 [label="Project1:(*)"];
+732260 [label="Dereference"];
+26179329 [label="UserFunc"];
+20002533 -> 732260
+732260 -> 26179329
+s30276889_in -> 20002533 [style=invis];
+};
+25150543 -> s30276889_out [style=invis];
+26179329 -> s30276889_out [style=invis];
+10714218 -> s30276889_in [lhead=cluster_30276889]
+20783574 -> s30276889_in [lhead=cluster_30276889]
+s7897563_in -> 10714218 [style=invis];
+s7897563_in -> 20783574 [style=invis];
+};
+s30276889_out -> s7897563_out [style=invis];
+s18554240_out [label="", style=invis, height=0, width=0];
+subgraph cluster_18554240 {
+label="LOCogroup"labelloc=b;
+subgraph cluster_18554240_26867942 {
+label="";
+s18554240_26867942_in [label="", style=invis, height=0, width=0];
+19783652 [label="Project0:2"];
+s18554240_26867942_in -> 19783652 [style=invis];
+};
+};
+19783652 -> s18554240_out [style=invis];
+s5875509_in [label="", style=invis, height=0, width=0];
+s5875509_out [label="", style=invis, height=0, width=0];
+subgraph cluster_5875509 {
+label="LOFilter"labelloc=b;
+27967613 [label="Project0:1"];
+253899 [label="Constant"];
+21192393 [label="LessThan"];
+7713774 [label="Cast"];
+7713774 -> 21192393
+253899 -> 21192393
+27967613 -> 7713774
+s5875509_in -> 27967613 [style=invis];
+s5875509_in -> 253899 [style=invis];
+};
+21192393 -> s5875509_out [style=invis];
+32545329 [label="LOLoad", style="filled", fillcolor="gray"];
+17330894 [label="LOStore", style="filled", fillcolor="gray"];
+s26867942_in [label="", style=invis, height=0, width=0];
+s26867942_out [label="", style=invis, height=0, width=0];
+subgraph cluster_26867942 {
+label="LOForEach"labelloc=b;
+s27525999_in [label="", style=invis, height=0, width=0];
+s27525999_out [label="", style=invis, height=0, width=0];
+subgraph cluster_27525999 {
+label="LOGenerate"labelloc=b;
+11705501 [label="Project0:(*)"];
+s27525999_in -> 11705501 [style=invis];
+4729773 [label="Project1:(*)"];
+s27525999_in -> 4729773 [style=invis];
+2861196 [label="Project2:(*)"];
+s27525999_in -> 2861196 [style=invis];
+4629854 [label="Project3:(*)"];
+s27525999_in -> 4629854 [style=invis];
+};
+11705501 -> s27525999_out [style=invis];
+4729773 -> s27525999_out [style=invis];
+2861196 -> s27525999_out [style=invis];
+4629854 -> s27525999_out [style=invis];
+14518777 [label="LOInnerLoad"];
+9263789 [label="LOInnerLoad"];
+3945981 [label="LOInnerLoad"];
+16555307 [label="LOInnerLoad"];
+14518777 -> s27525999_in [lhead=cluster_27525999]
+9263789 -> s27525999_in [lhead=cluster_27525999]
+3945981 -> s27525999_in [lhead=cluster_27525999]
+16555307 -> s27525999_in [lhead=cluster_27525999]
+s26867942_in -> 14518777 [style=invis];
+s26867942_in -> 9263789 [style=invis];
+s26867942_in -> 3945981 [style=invis];
+s26867942_in -> 16555307 [style=invis];
+};
+s27525999_out -> s26867942_out [style=invis];
+s26567569_out -> 17330894
+s7897563_out -> s26567569_in [lhead=cluster_26567569]
+s18554240_out -> s7897563_in [lhead=cluster_7897563]
+s5875509_out -> s26867942_in [lhead=cluster_26867942]
+32545329 -> s5875509_in [lhead=cluster_5875509]
+s26867942_out -> s18554240_26867942_in [lhead=cluster_18554240_26867942]
+}
+

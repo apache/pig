@@ -1,0 +1,37 @@
+test-12: Store()
+|
+|---A: New For Each(false,false,false)[bag] - scope-64
+    |   |
+    |   Add[double] - scope-51
+    |   |
+    |   |---Add[double] - scope-48
+    |   |   |
+    |   |   |---Cast[double] - scope-45
+    |   |   |   |
+    |   |   |   |---Project[bytearray][0] - scope-44
+    |   |   |
+    |   |   |---Cast[double] - scope-47
+    |   |       |
+    |   |       |---Project[bytearray][1] - scope-46
+    |   |
+    |   |---Cast[double] - scope-50
+    |       |
+    |       |---Constant(5) - scope-49
+    |   |
+    |   Subtract[int] - scope-60
+    |   |
+    |   |---Subtract[int] - scope-57
+    |   |   |
+    |   |   |---Cast[int] - scope-55
+    |   |   |   |
+    |   |   |   |---Project[bytearray][0] - scope-54
+    |   |   |
+    |   |   |---Constant(5) - scope-56
+    |   |
+    |   |---Cast[int] - scope-59
+    |       |
+    |       |---Project[bytearray][1] - scope-58
+    |   |
+    |   Constant(hello) - scope-63
+    |
+    |---test-11: Load()

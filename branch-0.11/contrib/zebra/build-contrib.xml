@@ -1,0 +1,263 @@
+<?xml version="1.0"?>
+
+<!--
+   Licensed to the Apache Software Foundation (ASF) under one or more
+   contributor license agreements.  See the NOTICE file distributed with
+   this work for additional information regarding copyright ownership.
+   The ASF licenses this file to You under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-->
+
+<!-- Imported by contrib/*/build.xml files to share generic targets. -->
+
+<project name="pigbuildcontrib">
+
+  <property name="name" value="${ant.project.name}"/>
+  <property name="root" value="${basedir}"/>
+  <property name="version" value="0.8.0-dev"/>
+
+  <!-- Load all the default properties, and any the user wants    -->
+  <!-- to contribute (without having to type -D or edit this file -->
+  <property file="${user.home}/${name}.build.properties" />
+  <property file="${root}/build.properties" />
+
+  <property name="pig.root" location="${root}/../../"/>
+
+  <property name="src.dir"  location="${root}/src/java"/>
+  <property name="src.docs.dir"  location="${root}/docs"/>
+  <property name="pig.src.dir"  location="${pig.root}/src"/>
+  <property name="src.test" location="${root}/src/test"/>
+  <property name="src.examples" location="${root}/src/examples"/>
+
+  <available file="${src.examples}" type="dir" property="examples.available"/>
+  <available file="${src.test}" type="dir" property="test.available"/>
+
+  <property name="conf.dir" location="${pig.root}/conf"/>
+  <property name="test.junit.output.format" value="plain"/>
+  <property name="test.output" value="no"/>
+  <property name="test.timeout" value="9000000"/>
+  <property name="build.dir" location="${pig.root}/build/contrib/${name}"/>
+  <property name="build.javadoc"
+	  location="${pig.root}/build/contrib/${name}/docs"/>
+  <property name="build.classes" location="${build.dir}/classes"/>
+  <property name="test.build.dir" location="${build.dir}/test"/>
+  <property name="build.examples" location="${build.dir}/examples"/>
+  <property name="pig.log.dir" location="${test.build.dir}/logs"/>
+  <property name="hadoop.jarfile" value="hadoop20.jar" />
+  <property name="pig.jarfile" value="pig-0.8.0-dev-core.jar" />
+  <property name="hbase.jarfile" value="hbase-0.18.1.jar" />
+  <property name="hbase.test.jarfile" value="hbase-0.18.1-test.jar" />
+
+  <!-- IVY properteis set here -->
+  <property name="build.ivy.dir" location="${pig.root}/build/ivy" />
+  <property name="build.ivy.lib.dir" location="${build.ivy.dir}/lib" />
+  <property name="ivy.lib.dir" location="${build.ivy.lib.dir}/Pig"/>
+
+  <property name="clover.db.dir" location="${test.build.dir}/clover/db"/>
+    <property name="clover.report.dir" location="${test.build.dir}/clover/reports"/>
+    <property name="clover.jar" location="${clover.home}/lib/clover.jar"/>
+    <available property="clover.present" file="${clover.jar}" />
+    <!-- check if clover reports should be generated -->
+    <condition property="clover.enabled">
+      <and>
+        <isset property="run.clover"/>
+        <isset property="clover.present"/>
+      </and>
+    </condition>
+
+  <!-- javacc properties -->
+  <property name="src.gen.dir" value="${basedir}/src-gen/" />
+  <property name="src.gen.zebra.parser.dir" value="${src.gen.dir}/org/apache/hadoop/zebra/parser" />
+
+  <!-- convert spaces to _ so that mac os doesn't break things -->
+  <exec executable="sed" inputstring="${os.name}"
+        outputproperty="nonspace.os">
+     <arg value="s/ /_/g"/>
+  </exec>
+  <property name="build.platform"
+            value="${nonspace.os}-${os.arch}-${sun.arch.data.model}"/>
+
+  <!-- all jars together -->
+  <property name="javac.deprecation" value="off"/>
+  <property name="javac.debug" value="on"/>
+
+  <property name="javadoc.link"
+	  value="http://java.sun.com/j2se/1.5.0/docs/api/"/>
+
+  <property name="build.encoding" value="ISO-8859-1"/>
+
+  <fileset id="lib.jars" dir="${root}" includes="lib/*.jar"/>
+
+  <!-- the normal classpath -->
+  <path id="classpath">
+    <fileset dir="${pig.root}/lib">
+      <include name="*.jar" />
+    </fileset>
+    <fileset dir="${pig.root}/build">
+      <include name="${pig.jarfile}" />
+    </fileset>
+    <fileset dir="${pig.root}/build/ivy/lib">
+       <include name="**/*.jar"/>
+    </fileset>
+    <fileset refid="lib.jars"/>
+    <pathelement location="${build.classes}"/>
+    <pathelement location="${pig.root}/build/classes"/>
+  </path>
+
+  <!-- the unit test classpath -->
+  <path id="test.classpath">
+    <pathelement location="${test.build.dir}" />
+    <pathelement location="${pig.root}/build/test/classes"/>
+    <pathelement location="${pig.root}/src/contrib/test"/>
+    <pathelement location="${conf.dir}"/>
+    <pathelement location="${pig.root}/build"/>
+    <pathelement location="${build.examples}"/>
+	<pathelement path="${clover.jar}"/>
+    <path refid="classpath"/>
+  </path>
+
+
+  <!-- to be overridden by sub-projects -->
+  <target name="check-contrib"/>
+  <target name="init-contrib"/>
+
+  <!-- ====================================================== -->
+  <!-- Stuff needed by all targets                            -->
+  <!-- ====================================================== -->
+  <target name="init" depends="check-contrib" unless="skip.contrib">
+    <echo message="contrib: ${name}"/>
+    <mkdir dir="${src.gen.zebra.parser.dir}"/>
+    <mkdir dir="${build.dir}"/>
+    <mkdir dir="${build.classes}"/>
+    <mkdir dir="${test.build.dir}"/>
+    <mkdir dir="${build.examples}"/>
+    <mkdir dir="${pig.log.dir}"/>
+    <antcall target="init-contrib"/>
+  </target>
+
+
+  <!-- ====================================================== -->
+  <!-- Compile a Pig contrib's files                          -->
+  <!-- ====================================================== -->
+  <target name="compile" depends="init, cc-compile" unless="skip.contrib">
+    <echo message="contrib: ${name}"/>
+    <javac
+     encoding="${build.encoding}"
+     srcdir="${src.dir};${src.gen.dir}"
+     includes="**/*.java"
+	 excludes="**/doc-files/examples/*.java"
+     destdir="${build.classes}"
+     debug="${javac.debug}"
+	 deprecation="${javac.deprecation}">
+	  <compilerarg value="-Xlint:deprecation" />
+      <classpath refid="classpath"/>
+    </javac>
+  </target>
+
+  <property name="javacc.home" location="${ivy.lib.dir}" />
+
+  <target name="cc-compile" depends="init, javacc-exists" description="Create and Compile Parser">
+    <javacc target="${root}/src/java/org/apache/hadoop/zebra/schema/SchemaParser.jjt" outputdirectory="${src.gen.zebra.parser.dir}" javacchome="${javacc.home}" />
+    <javacc target="${root}/src/java/org/apache/hadoop/zebra/types/TableStorageParser.jjt" outputdirectory="${src.gen.zebra.parser.dir}" javacchome="${javacc.home}" />
+  </target>
+
+  <target name="javacc-exists">
+    <fail>
+      <condition >
+        <not>
+          <available file="${javacc.home}/javacc.jar" />
+        </not>
+      </condition>
+          Not found: ${javacc.home}/javacc.jar
+          Please run the target "cc-compile" in the main build file
+    </fail>
+  </target>
+  <!-- ======================================================= -->
+  <!-- Compile a Pig contrib's example files (if available)    -->
+  <!-- ======================================================= -->
+  <target name="compile-examples" depends="compile" if="examples.available">
+    <echo message="contrib: ${name}"/>
+    <javac
+     encoding="${build.encoding}"
+     srcdir="${src.examples}"
+     includes="**/*.java"
+     destdir="${build.examples}"
+     debug="${javac.debug}">
+      <classpath refid="classpath"/>
+    </javac>
+  </target>
+
+
+  <!-- ================================================================== -->
+  <!-- Compile test code                                                  -->
+  <!-- ================================================================== -->
+  <target name="compile-test" depends="compile-examples" if="test.available">
+    <echo message="contrib: ${name}"/>
+    <javac
+     encoding="${build.encoding}"
+     srcdir="${src.test}"
+     includes="**/*.java"
+     destdir="${test.build.dir}"
+     debug="${javac.debug}">
+      <classpath refid="test.classpath"/>
+    </javac>
+  </target>
+  
+
+  <!-- ====================================================== -->
+  <!-- Make a Pig contrib's jar                               -->
+  <!-- ====================================================== -->
+  <target name="jar" depends="compile" unless="skip.contrib">
+    <echo message="contrib: ${name}"/>
+    <jar
+      jarfile="${build.dir}/pig-${version}-${name}.jar"
+      basedir="${build.classes}"      
+    />
+  </target>
+
+  
+  <!-- ====================================================== -->
+  <!-- Make a Pig contrib's examples jar                      -->
+  <!-- ====================================================== -->
+  <target name="jar-examples" depends="compile-examples"
+          if="examples.available" unless="skip.contrib">
+    <echo message="contrib: ${name}"/>
+    <jar jarfile="${build.dir}/pig-${version}-${name}-examples.jar">
+      <fileset dir="${build.classes}">
+      </fileset>
+      <fileset dir="${build.examples}">
+      </fileset>
+    </jar>
+  </target>
+  
+  <!-- ====================================================== -->
+  <!-- Package a Pig contrib                                  -->
+  <!-- ====================================================== -->
+  <target name="package" depends="jar, jar-examples" unless="skip.contrib"> 
+    <mkdir dir="${dist.dir}/contrib/${name}"/>
+    <copy todir="${dist.dir}/contrib/${name}" includeEmptyDirs="false" flatten="true">
+      <fileset dir="${build.dir}">
+        <include name="pig-${version}-${name}.jar" />
+      </fileset>
+    </copy>
+  </target>
+
+  <!-- ================================================================== -->
+  <!-- Clean.  Delete the build files, and their directories              -->
+  <!-- ================================================================== -->
+  <target name="clean">
+    <echo message="contrib: ${name}"/>
+    <delete dir="${build.dir}"/>
+    <delete dir="${src.gen.dir}" />
+  </target>
+
+</project>

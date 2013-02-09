@@ -1,0 +1,360 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+options {
+      STATIC = false ;
+		IGNORE_CASE = true;
+}
+
+PARSER_BEGIN(TableSchemaParser)
+package org.apache.hadoop.zebra.parser;
+import java.io.*;
+import org.apache.hadoop.zebra.schema.Schema;
+import org.apache.hadoop.zebra.schema.ColumnType;
+import org.apache.hadoop.zebra.types.Projection;
+
+public class TableSchemaParser {
+           public static void main( String[] args )
+           throws ParseException, TokenMgrError , java.io.FileNotFoundException, java.io.IOException {
+                TableSchemaParser parser = new TableSchemaParser( System.in ) ;
+					Schema schema = parser.RecordSchema(null);
+					System.out.println("OK");
+					FileOutputStream output = new FileOutputStream("/tmp/schema");
+					ObjectOutputStream objout = new ObjectOutputStream(output);
+					objout.writeObject(schema);
+					objout.close();
+					System.out.println(schema.toString());
+      }
+}
+PARSER_END(TableSchemaParser)
+
+// Skip all the new lines, tabs and spaces
+SKIP : { " " |	"\r" |	"\t" |	"\n" }
+
+// Skip comments(single line and multiline)
+SKIP : {
+   <"--"(~["\r","\n"])*>
+|  <"/*" (~["*"])* "*" ("*" | (~["*","/"] (~["*"])* "*"))* "/">
+}
+
+TOKEN : { <INT : "int"> }
+TOKEN : { <BOOL : "boolean"> }
+TOKEN : { <LONG : "long"> }
+TOKEN : { <FLOAT : "float"> }
+TOKEN : { <DOUBLE : "double"> }
+TOKEN : { <DATETIME : "datetime"> }
+TOKEN : { <STRING : "string"> }
+TOKEN : { <BYTES : "bytes"> }
+TOKEN : { <COLLECTION : "collection"> }
+TOKEN : { <RECORD : "record"> }
+TOKEN : { <MAP : "map"> }
+
+TOKEN:
+{
+ 	<#LETTER : ["a"-"z", "A"-"Z"] >
+|	<#DIGIT : ["0"-"9"] >
+|   <#SPECIALCHAR : ["_", ".", "#"] >
+| <#SCOPEOP : "::">
+|	<IDENTIFIER: ( <LETTER> )+ ( <DIGIT> | <LETTER> | <SPECIALCHAR> )* ( <SCOPEOP>  ( <LETTER> )+ ( <DIGIT> | <LETTER> | <SPECIALCHAR> )*)* >
+}
+
+ColumnType Type() : 
+{ 
+	ColumnType type;
+}
+{
+ (type = BasicType() | type = CompositeType()) 
+ {
+ 	return type;
+ }	
+}
+
+ColumnType CompositeType() : 
+{ 
+	Token t = null;
+	ColumnType type;
+}
+{
+ (t = <MAP>| t = <COLLECTION>| t = <RECORD>) 
+ {
+ 	type = ColumnType.getTypeByName(t.image);
+ 	return type;
+ }
+}
+
+ColumnType BasicType() : 
+{ 
+	Token t = null;
+	ColumnType type;
+}
+{
+ (t = <INT>| t = <LONG>| t = <FLOAT>| t = <DOUBLE>| t = <STRING>| t = <BYTES>| t = <BOOL>) 
+ {
+   String typeName = t.image;
+ 	type = ColumnType.getTypeByName(typeName);
+ 	return type;
+ }
+}
+
+Schema.ColumnSchema ColumnSchema() throws ParseException: 
+{
+	Token t1; 
+	Schema item = null; 
+	Schema.ColumnSchema fs = null; 
+}
+{
+	(
+  LOOKAHEAD(3) fs = SchemaRecord()
+|	LOOKAHEAD(3) fs = SchemaCollection()
+|	LOOKAHEAD(3) fs = SchemaMap()
+|	fs = AtomSchema()
+	)
+	{
+		return fs;
+	}
+}
+
+Schema.ColumnSchema ProjectionColumnSchema() throws ParseException: 
+{
+	Token t1; 
+	Schema item = null; 
+	Schema.ColumnSchema fs = null; 
+}
+{
+  (
+	(
+  LOOKAHEAD(3) fs = SchemaRecord()
+|	LOOKAHEAD(3) fs = SchemaCollection()
+|	LOOKAHEAD(3) fs = SchemaMap()
+|	fs = AtomSchema()
+  )
+  { return fs; }
+|
+  { return null; }
+	)
+}
+
+Schema.ColumnSchema AtomSchema() throws ParseException : 
+{
+	Token t1 = null;
+	ColumnType type = ColumnType.BYTES;
+	Schema.ColumnSchema fs;
+}
+{
+	(	( t1 = <IDENTIFIER> [":" type = BasicType() ] )
+		{ 
+			fs = new Schema.ColumnSchema(t1.image, type); 
+			return fs;
+		}
+	)
+}
+
+Schema.ColumnSchema SchemaMap() throws ParseException :
+{
+	Token t1 = null; 
+	Schema s;
+	Schema.ColumnSchema fs;
+}
+{
+	t1 = <IDENTIFIER> ":" <MAP>  s = MapSchema()
+	{
+		fs = new Schema.ColumnSchema(t1.image, s, ColumnType.MAP);
+		return fs;
+	} 
+}
+
+Schema.ColumnSchema SchemaRecord() throws ParseException : 
+{
+	Token t1 = null; 
+	Schema s;
+	Schema.ColumnSchema fs;
+}
+{ 
+	t1 = <IDENTIFIER> ":" <RECORD> "(" s = RecordSchemaInternal() ")" 
+	{
+		fs = new Schema.ColumnSchema(t1.image, s, ColumnType.RECORD);
+		return fs;
+	} 
+}
+
+Schema.ColumnSchema SchemaCollection() throws ParseException : 
+{
+	Token t1 = null; 
+	Schema.ColumnSchema fs = null;
+}
+{ 
+	t1 = <IDENTIFIER> ":" <COLLECTION> "(" fs = SchemaCollectionEntry(t1.image) ")" 
+	{
+		return fs;
+	}
+}
+
+Schema.ColumnSchema SchemaCollectionEntry(String id) throws ParseException :
+{
+	Schema.ColumnSchema fs = null;
+}
+{
+  (
+  	fs = AnonymousSchemaRecord() | fs = SchemaRecord()
+  )
+  {
+    return new Schema.ColumnSchema(id, new Schema(fs), ColumnType.COLLECTION);
+  }
+}
+
+Schema.ColumnSchema AnonymousColumnSchema() throws ParseException : 
+{
+	Token t1; 
+	Schema item = null; 
+	Schema.ColumnSchema fs = null; 
+}
+{
+	(
+	fs = AnonymousSchemaRecord()
+|	fs = AnonymousSchemaCollection()
+|	fs = AnonymousSchemaMap()
+|	fs = AnonymousAtomSchema()
+	)
+	{
+		return fs;
+	}
+}
+
+Schema.ColumnSchema AnonymousAtomSchema() throws ParseException : 
+{
+	ColumnType type = ColumnType.BYTES;
+	Schema.ColumnSchema fs;
+}
+{
+	(  ( [ type = BasicType() ] )
+		{ 
+			fs = new Schema.ColumnSchema(null, type); 
+			return fs;
+		} 
+	)
+}
+
+Schema.ColumnSchema AnonymousSchemaMap() throws ParseException :
+{
+	Schema s;
+	Schema.ColumnSchema fs;
+}
+{
+	<MAP> s = MapSchema()
+	{
+		fs = new Schema.ColumnSchema(null, s, ColumnType.MAP);
+		return fs;
+	} 
+}
+
+Schema.ColumnSchema AnonymousSchemaRecord() throws ParseException : 
+{
+	Token t1 = null; 
+	Schema s;
+	Schema.ColumnSchema fs;
+}
+{ 
+	<RECORD> "(" s = RecordSchemaInternal() ")" 
+	{
+		fs = new Schema.ColumnSchema(null, s, ColumnType.RECORD);
+		return fs;
+	} 
+}
+
+Schema.ColumnSchema AnonymousSchemaCollection() throws ParseException : 
+{
+	Schema s;
+	Schema.ColumnSchema fs;
+}
+{ 
+	( <COLLECTION> "(" fs = SchemaCollectionEntry(null) ")"  )
+	{
+    s = new Schema(fs);
+		fs = new Schema.ColumnSchema(null, s, ColumnType.COLLECTION);
+		return fs;
+	} 
+}
+
+Schema RecordSchemaInternal() throws ParseException : 
+{
+  Schema list = new Schema(); 
+	Schema.ColumnSchema fs = null;
+}
+{
+  fs = ColumnSchema() {list.add(fs);} ( "," fs = ColumnSchema() {list.add(fs);})*
+	{ return list; }
+}
+
+Schema RecordSchema(Schema list) throws ParseException : 
+{
+	if (list == null)
+		list = new Schema(); 
+	Schema.ColumnSchema fs = null;
+}
+{
+	(
+      try {
+        fs = ColumnSchema() { if (fs != null && Projection.isVirtualColumn(fs.getName())) throw new ParseException("["+fs.getName()+"] is a reserved virtual column name"); list.add(fs);}
+		( "," fs = ColumnSchema() { if (fs != null && Projection.isVirtualColumn(fs.getName())) throw new ParseException("["+fs.getName()+"] is a reserved virtual column name"); list.add(fs);})* <EOF>
+      } catch (TokenMgrError e) {
+		throw new ParseException(e.getMessage());
+	  }
+	)	
+	{ return (list.getNumColumns() == 0 || (list.getNumColumns() == 1 && list.getColumn(0) == null) ? null : list); }
+}
+
+Schema ProjectionSchema(Schema list) throws ParseException : 
+{
+	if (list == null)
+		list = new Schema(); 
+	Schema.ColumnSchema fs = null;
+}
+{
+	(
+      try {
+		fs = ProjectionColumnSchema() { list.add(fs);}
+		( "," fs = ProjectionColumnSchema() { list.add(fs);})* <EOF>
+      } catch (TokenMgrError e) {
+		throw new ParseException(e.getMessage());
+	  }
+	)	
+	{ return (list.getNumColumns() == 0 || (list.getNumColumns() == 1 && list.getColumn(0) == null) ? null : list); }
+}
+
+Schema MapSchema() throws ParseException : 
+{
+	Schema list = new Schema(); 
+	Schema.ColumnSchema fs = null;
+}
+{
+	(
+	(
+		"(" fs = AnonymousColumnSchema() ")"
+	)
+|	{}
+	)
+	{
+	if (fs == null)
+	{
+		list.add(new Schema.ColumnSchema("", ColumnType.BYTES));
+	} else {
+		list.add(fs);
+	}
+	return list;
+	}
+}

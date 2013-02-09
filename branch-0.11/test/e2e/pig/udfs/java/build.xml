@@ -1,0 +1,60 @@
+<!--  Licensed to the Apache Software Foundation (ASF) under one or more                  
+   contributor license agreements.  See the NOTICE file distributed with               
+   this work for additional information regarding copyright ownership.                 
+   The ASF licenses this file to You under the Apache License, Version 2.0             
+   (the "License"); you may not use this file except in compliance with                
+   the License.  You may obtain a copy of the License at                               
+                                                                                       
+       http://www.apache.org/licenses/LICENSE-2.0                                      
+                                                                                       
+   Unless required by applicable law or agreed to in writing, software                 
+   distributed under the License is distributed on an "AS IS" BASIS,                   
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.            
+   See the License for the specific language governing permissions and                 
+   limitations under the License.-->
+                                                                                       
+<project name="Pig-internal" default="udf-jar">
+
+    <property name="udf.jarfile" value="testudf.jar" />
+    <property name="udf.build.dir" value="${basedir}/build" />
+    <!-- <property name="lib.dir" value="${basedir}/lib" />
+    <property name="pig.jarfile" value="${lib.dir}/pig.jar" /> -->
+    <property name="udf.src.dir" value="${basedir}/org/" />
+
+
+    <path id="udf-classpath">
+    <!-- <fileset dir="lib">
+            <include name="**/*.jar"/> 
+    </fileset>-->
+        <fileset file="${pig.jarfile}" />
+    </path>
+
+    <target name="init">
+        <mkdir dir="${udf.build.dir}" />
+    </target>
+
+    <target name="clean">
+        <delete dir="${udf.build.dir}" />
+        <delete file="${udf.jarfile}" />
+    </target>
+
+    <target name="udf-compile" depends="init, pig.jar.check">
+        <echo>*** Compiling UDFs ***</echo>
+        <javac srcdir="${udf.src.dir}" destdir="${udf.build.dir}" debug="on">
+            <classpath refid="udf-classpath" />
+        </javac>
+    </target>
+
+    <target name="udf-jar" depends="udf-compile">
+        <echo>*** Creating UDF jar ***</echo>
+        <jar duplicate="preserve" jarfile="${udf.jarfile}">
+	    <fileset dir="build"/>
+        </jar>
+    </target>
+
+	<target name="pig.jar.check" unless="pig.jarfile">
+	 	<fail message="'pig.jarfile' is not defined. 
+		Please pass -Dpig.jarfile=&lt;Pig jar to use&gt; to Ant on the command-line." />
+	</target>
+
+</project>

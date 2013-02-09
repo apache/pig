@@ -1,0 +1,49 @@
+<html>
+<body>
+
+<p>
+This package contains implementations of Pig specific data types as well as
+support functions for reading, writing, and using all Pig data types.
+<p>
+Whenever possible, Pig utilizes Java provided data types.  These include
+Integer, Long, Float, Double, Boolean, String, and Map.  Tuple, Bag, and
+DataByteArray are implemented in this package.  
+
+<h2> Design </h2>
+<p>
+The choice was made to utilize Java provided types for two main reasons.  One,
+it minimizes the burden on UDF developers, as they will have full access to
+these types with no need to convert to and from Pig specific types.  Two,
+maintenance costs will be lower as there is no need to implement and maintain
+Pig specific data classes.  The drawback is that the only common parent of all
+these types is Object.  Thus Pig is often required to treat its data objects
+as Objects and then implement static methods to manipulate these Objects,
+rather than being able to define a PigDatum class with common funcitons.
+<p>
+Three data types were implemented as Pig specific classes: 
+{@link org.apache.pig.data.DataByteArray}, {@link org.apache.pig.data.Tuple},
+and {@link org.apache.pig.data.DataBag}.  
+<p>
+DataByteArray represents an array of bytes, with no interpretation of those
+bytes provided or assumed.  This could have been represented as byte[], but a
+separate class was constructed to provide common functions needed to
+manipulate these objects.
+<p>
+Tuple represents an ordered collection of data elements.  Every field in a
+tuple can contain any Pig data type.  Tuple is presented as an interface to
+allow differing implementations in cases where users have unique
+representations of their data that they wish to preserve in their in memory
+representations.  The {@link org.apache.pig.data.TupleFactory} is an
+abstract class, to enable a user who has defined his own tuples to provide a
+factory that creates those tuples.  Default implementations of Tuple and
+TupleFactory are provided and used by default. 
+<p>
+DataBag represents a collection of Tuples.  DataBags can be of default type
+(no extra features), sorted (tuples are sorted according to a provided
+comparator function), or distinct (no duplicate tuples).  As with Tuple,
+DataBag is presented as an interface, and 
+{@link org.apache.pig.data.BagFactory} is an abstract class.  Default implementations of DataBag,
+BagFactory, and all three types of bags are provided.
+
+</body>
+</html>

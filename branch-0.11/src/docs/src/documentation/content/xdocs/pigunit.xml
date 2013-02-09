@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+  <!--
+    Copyright 2002-2004 The Apache Software Foundation Licensed under the Apache License, Version
+    2.0 (the "License"); you may not use this file except in compliance with the License. You may
+    obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by
+    applicable law or agreed to in writing, software distributed under the License is distributed on
+    an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See
+    the License for the specific language governing permissions and limitations under the License.
+  -->
+
+<!DOCTYPE document PUBLIC "-//APACHE//DTD Documentation V2.0//EN"
+          "http://forrest.apache.org/dtd/document-v20.dtd">
+
+<document>
+  <header>
+    <title>PigUnit - Pig script testing simplified.</title>
+  </header>
+  <body>
+
+    <section>
+      <title>Overview</title>
+      <p>PigUnit is a simple xUnit framework that enables you to easily test your Pig scripts.
+        With
+        PigUnit you can perform unit testing, regression testing, and rapid prototyping.
+        No cluster
+        set up is required if you run Pig in local mode.
+      </p>
+    </section>
+
+    <section>
+      <title>PigUnit Example</title>
+      <p>We want to compute a top N of the most common queries.
+        The Pig script is basic and very
+        similar to the Query Phrase Popularity in the Pig tutorial.
+        It
+        expects in input a file of
+        queries and a parameter n
+        (n is 2 in our case in order to do a top 2). 
+      </p>
+      <p>Setting up a test for this script is simple as the argument and the input data are
+        specified by just two arrays of text. It is the same for the expected output of the
+        script
+        that will be compared to the actual result of the execution of the Pig script. 
+      </p>
+      <p>
+        Many examples are available in the
+        <a
+          href="http://svn.apache.org/viewvc/pig/trunk/test/org/apache/pig/test/pigunit/TestPigTest.java"
+        >PigUnit tests</a>
+        .
+      </p>
+
+      <section>
+        <title>Java test</title>
+        <source>
+  @Test
+  public void testTop2Queries() {
+    String[] args = {
+        "n=2",
+        };
+ 
+    PigTest test = new PigTest("top_queries.pig", args);
+ 
+    String[] input = {
+        "yahoo",
+        "yahoo",
+        "yahoo",
+        "twitter",
+        "facebook",
+        "facebook",
+        "linkedin",
+    };
+ 
+    String[] output = {
+        "(yahoo,3)",
+        "(facebook,2)",
+    };
+ 
+    test.assertOutput("data", input, "queries_limit", output);
+  }
+</source>
+      </section>
+
+      <section>
+        <title>top_queries.pig</title>
+        <source>
+data =
+    LOAD 'input'
+    AS (query:CHARARRAY);
+     
+queries_group =
+    GROUP data
+    BY query; 
+    
+queries_count = 
+    FOREACH queries_group 
+    GENERATE 
+        group AS query, 
+        COUNT(data) AS total;
+        
+queries_ordered =
+    ORDER queries_count
+    BY total DESC, query;
+            
+queries_limit =
+    LIMIT queries_ordered $n;
+
+STORE queries_limit INTO 'output';
+</source>
+      </section>
+
+      <section>
+        <title>Run</title>
+
+        <p>Then the test can be executed by JUnit (or any other Java testing framework). It
+          requires:
+        </p>
+        <ol>
+          <li>pig.jar</li>
+          <li>pigunit.jar</li>
+        </ol>
+
+        <p>It takes about 25s to run and should pass.
+          In case of error (for example change the
+          parameter n to n=3),
+          the diff of output is displayed:
+        </p>
+
+        <source>
+junit.framework.ComparisonFailure: null expected:&lt;...ahoo,3)
+(facebook,2)[]&gt; but was:&lt;...ahoo,3)
+(facebook,2)[
+(linkedin,1)]&gt;
+        at junit.framework.Assert.assertEquals(Assert.java:81)
+        at junit.framework.Assert.assertEquals(Assert.java:87)
+        at org.apache.pig.pigunit.PigTest.assertEquals(PigTest.java:272)
+</source>
+      </section>
+    </section>
+
+    <section>
+      <title>Running in Local Mode</title>
+      <p>
+        Pig runs in local mode by default.
+        Local mode is fast and enables you to use your local file
+        system as the HDFS cluster.
+        Local mode does not require a real cluster but a new local one is
+        created each time. 
+      </p>
+    </section>
+
+    <section>
+      <title>Running in Mapreduce Mode</title>
+      <p>Pig also runs in mapreduce mode.
+        This mode requires you to use a Hadoop cluster.
+        The cluster
+        you select must be specified in the CLASSPATH
+        (similar to the HADOOP_CONF_DIR variable).
+      </p>
+
+      <p>Notice that PigUnit comes with a standalone MiniCluster that
+        can be started
+        externally with:
+      </p>
+
+      <source>
+java -cp .../pig.jar:.../pigunit.jar org.apache.pig.pigunit.MiniClusterRunner
+</source>
+      <p>This is useful when doing some prototyping in order to have a test cluster
+        ready.
+     </p>
+    </section>
+
+    <section>
+      <title>Building PigUnit</title>
+      <p>To compile PigUnit (pigunit.jar), run this command from the Pig trunk:</p>
+      <source>
+$pig_trunk ant pigunit-jar   
+</source>
+    </section>
+
+    <section>
+      <title>Troubleshooting Tips</title>
+      <p>Common problems you may encounter are discussed below.</p>
+      <section>
+        <title>Classpath in Mapreduce mode</title>
+        <p>When using PigUnit in mapreduce mode, be sure to include the $HADOOP_CONF_DIR of the
+          cluster in your CLASSPATH.</p>
+        <p>
+          MiniCluster generates one in build/classes.
+        </p>
+        <source>
+org.apache.pig.backend.executionengine.ExecException: ERROR 4010: Cannot find hadoop configurations in classpath (neither hadoop-site.xml nor core-site.xml was found in the classpath).If you plan to use local mode, please put -x local option in command line
+         </source>
+      </section>
+
+      <section>
+        <title>UDF jars Not Found</title>
+        <p>This error means that you are missing some jars in your test environment.</p>
+        <source>
+WARN util.JarManager: Couldn't find the jar for org.apache.pig.piggybank.evaluation.string.LOWER, skip it
+         </source>
+      </section>
+
+      <section>
+        <title>Storing data</title>
+        <p>Pig currently drops all STORE and DUMP commands. You can tell PigUnit to keep the
+          commands and execute the script:</p>
+        <source>
+test = new PigTest(PIG_SCRIPT, args);   
+test.unoverride("STORE");
+test.runScript();
+</source>
+      </section>
+
+      <section>
+        <title>Cache archive</title>
+        <p>For cache archive to work, your test environment needs to have the cache archive options
+          specified by Java properties or in an additional XML configuration in its CLASSPATH.</p>
+        <p>If you use a local cluster, you need to set the required environment variables before
+          starting it:</p>
+        <source>export LD_LIBRARY_PATH=/home/path/to/lib</source>
+      </section>
+    </section>
+
+    <section>
+      <title>Future Enhancements</title>
+      <p>Improvement and other components based on PigUnit that could be built later.</p>
+      <p>For example, we could build a PigTestCase and PigTestSuite on top of PigTest to:</p>
+      <ol>
+        <li>Add the notion of workspaces for each test.</li>
+        <li>Remove the boiler plate code appearing when there is more than one test methods.</li>
+        <li>Add a standalone utility that reads test configurations and generates a test report.
+        </li>
+      </ol>
+    </section>
+  </body>
+</document>

@@ -1,0 +1,46 @@
+# This is auto-complete file for grunt. Put this file anywhere in
+# your CLASSPATH or your working directory. Auto-complete entry
+# can be anything include piggy bank tokens, commonly used paths,
+# etc. The only constraint is that entry can not contain whitespace
+# (include tab).
+#
+UPPER
+getExponent
+CEIL
+RANDOM
+LOG
+toDegrees
+LOG1P
+NEXTUP
+MIN
+MAX
+SIN
+TANH
+ASIN
+COSH
+EXP
+IEEEremainder
+nextAfter
+ULP
+SINH
+SIGNUM
+HYPOT
+ATAN2
+ABS
+POW
+RINT
+FLOOR
+LOG10
+TAN
+ATAN
+toRadians
+COS
+SCALB
+ACOS
+ROUND
+SQRT
+CBRT
+EXPM1
+copySign
+COR
+COV

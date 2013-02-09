@@ -1,0 +1,5 @@
+zebraJar=/grid/0/dev/hadoopqa/jars/zebra.jar
+inputDir=/data/zebraStress/input
+outputDir=/data/zebraStress/output
+unsorted1=unsorted1
+unsorted2=unsorted2

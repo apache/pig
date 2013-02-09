@@ -1,0 +1,162 @@
+Zebra Change Log
+
+Trunk (unreleased changes)
+
+  INCOMPATIBLE CHANGES
+
+    PIG-1455 Addition of test-unit as an ant target (yanz)
+
+    PIG-1451 Change the build.test property in build to test.build.dir to be consistent with PIG (yanz)
+
+    PIG-1444 Addition of test-smoke ant target (gauravj via yanz)
+
+    PIG-1357 Addition of Test cases of map-side GROUP-BY (yanz)
+
+    PIG-1282 make Zebra's pig test cases run on real cluster (chaow via yanz)
+
+    PIG-1164 Addition of smoke tests (gauravj via yanz)
+
+    PIG-1122 Changed version number of pig dev core jar used in Zebra build from 0.6.0 to 0.7.0
+        to match Pig version number (yanz)
+
+    PIG-1099 Changed version number to be 0.7.0 to match Pig version number
+	change (yanz via gates)
+
+  IMPROVEMENTS
+
+    PIG-1425 support of source table index on unsorted table in the mapred APIs (yanz)
+
+    PIG-1375 Support of multiple Zebra table writing through Pig (chaow via yanz)
+
+    PIG-1351 Addition of type check when writing to basic table (chaow via yanz)
+
+    PIG-1361 Zebra TableLoader.getSchema() should return the projectionSchema specified in the constructor of TableLoader instead of pruned proejction by pig (gauravj via daijy)
+
+    PIG-1291 Support of virtual column "source_table" on unsorted table (yanz)
+
+    PIG-1315 Implementing OrderedLoadFunc interface for Zebra TableLoader (xuefux via yanz)
+
+    PIG-1306 Support of locally sorted input splits (yanz)
+
+    PIG-1268 Need an ant target that runs all pig-related tests in Zebra (xuefuz via yanz)
+
+    PIG-1207 Data sanity check should be performed at the end of writing instead of later at query time (yanz)
+
+    PIG-1206 Storing descendingly sorted PIG table as unsorted table (yanz)
+
+    PIG-1240 zebra manifest file enhancement (gauravj via yanz)
+
+    PIG-1140 Support of Hadoop 2.0 API (xuefuz via yanz)
+
+    PIG-1170 new end-to-end and stress test cases (jing1234 via yanz)
+
+    PIG-1136 Support of map split on hash keys with leading underscore (xuefuz via yanz)
+
+    PIG-1125 Map/Reduce API Changes (Chao Wang via yanz)
+
+    PIG-1104 Streaming Support (Chao Wang via yanz)
+
+    PIG-1119 Support of "group" as a column name (Gaurav Jain via yanz)
+
+    PIG-653  Pig Projection Push Down (Gaurav Jain via yanz)
+
+    PIG-1111 Multiple Outputs Support (Gaurav Jain via yanz)
+
+    PIG-1098 Zebra Performance Optimizations (yanz via gates)
+
+	PIG-1074 Zebra store function should allow '::' in column names in output
+	schema (yanz via gates)
+
+    PIG-1077 Support record(row)-based file split in Zebra's
+	TableInputFormat (chaow via gates)
+
+    PIG-1089 Use Pig's version for Zebra's own versi (chaow via olgan)
+
+    PIG-1069  Order Preserving Sorted Table Union (yanz via gates)
+
+    PIG-997 Sorted Table Support by Zebra (yanz via gates)
+  	
+	PIG-996 Add findbugs, checkstyle, and clover to zebra build file (chaow via
+	        gates)
+
+	PIG-993 Ability to drop a column group in a table (yanz and rangadi via gates)
+
+    PIG-992 Separate schema related files into a schema package (yanz via
+	gates)
+
+  OPTIMIZATIONS
+
+    PIG-1198: performance improvements through use of unsorted input splits that span multiple files (yanz)
+
+  BUG FIXES
+
+    PIG-1453 Intermittent failure in pigtest (yanz)
+
+    PIG-1432 There are some debuging info output to STDOUT in PIG's TableStorer call path (yanz)
+
+    PIG-1421 Name node calls made by each mapper (xuefuz via yanz)
+
+    PIG-1342 Avoid making unnecessary name node calls for writes in Zebra (chaow via yanz) 
+
+    PIG-1356 TableLoader makes unnecessary calls to build a Job instance that create a new JobClient in the hadoop 0.20.9 (yanz)
+
+    PIG-1349 Hubson test failure in test case TestBasicUnion (xuefuz via yanz)
+
+    PIG-1340 The zebra version number should be changed from 0.7 to 0.8 (yanz)
+
+    PIG-1318 Invalid type for source_table field when using order-preserving Sorted Table Union (gauravj via yanz)
+
+    PIG-1258 Number of sorted input splits is unusually high (yanz)
+
+    PIG-1269 Restrict schema definition for collection (xuefuz via yanz)
+
+    PIG-1253: make map/reduce test cases run on real cluster (chaow via yanz)
+
+    PIG-1276: Pig resource schema interface changed, so Zebra needs to catch exception thrown from the new interfaces. (xuefuz via yanz)
+
+    PIG-1256: Bag field should always contain a tuple type as the field schema in ResourceSchema object converted from Zebra Schema (xuefuz via yanz)
+
+    PIG-1227: Throw exception if column group meta file is missing for an unsorted table (yanz)
+
+    PIG-1201: unnecessary name node calls by each mapper; too big input split serialization size by Pig's Slice implementation (yanz)
+
+    PIG-1115: cleanup of temp files left by failed tasks (gauravj via yanz)
+
+    PIG-1167: Hadoop file glob support (yanz)
+
+    PIG-1153: Record split exception fix (yanz)
+
+    PIG-1145: Merge Join on Large Table throws an EOF exception (yanz)
+
+    PIG-1095: Schema support of anonymous fields in COLECTION fails (yanz via
+	gates)
+
+    PIG-1078: merge join with empty table failed (yanz via gates)
+
+    PIG-1091: Exception when load with projection of map keys on a map column
+	that is not map split (yanz via gates).
+
+    PIG-1026: [zebra] map split returns null (yanz via pradeepkth)
+
+	PIG-1057 Zebra does not support concurrent deletions of column groups now
+	(chaow via gates).
+
+	PIG-944  Change schema to be taken from StoreConfig instead of
+	TableStorer's constructor (yanz via gates).
+
+    PIG-918. Fix infinite loop only columns in first column group are
+    specified. (Yan Zhou via rangadi)
+ 
+    PIG-949. If an entire map is placed in non default column group, 
+    and a specific key placed in another CG, the second CG did not 
+    work as expected. (Yan Zhou, Jing Huang (tests) via rangadi)
+
+    PIG-987. Access control for column groups. Users can specifify
+    desired group, owner, and, permissions for a column group.
+    (Yan Zhou via rangadi)
+    
+    PIG-991. Various minor bugs. (Yan Zhou via rangadi)
+
+    PIG-986. Column groups can have explicit names specified in
+    storage hint. (Yan Zhou via rangadi)
+

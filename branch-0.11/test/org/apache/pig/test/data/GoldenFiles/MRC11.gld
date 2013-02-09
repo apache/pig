@@ -1,0 +1,55 @@
+MapReduce(-1) - -10:
+Reduce Plan Empty
+|   Store(DummyFil:DummyLdr) - -3900012572437255236
+|   |
+|   |---Union[tuple] - -8760996681222683693
+|       |
+|       |---Load(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.impl.io.InterStorage) - -11
+|       |
+|       |---Load(file:/tmp/temp-1456742965/tmp-26634357:org.apache.pig.impl.io.InterStorage) - -13
+|
+|---MapReduce(-1) - -2:
+|   |   Store(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.impl.io.InterStorage) - -12
+|   |   |
+|   |   |---Filter[tuple] - -956528893337238225
+|   |       |   |
+|   |       |   Constant(true) - -7391599663069134339
+|   |       |
+|   |       |---Package[tuple]{Unknown} - -4024598850351165272
+|   |   Union[tuple] - -3
+|   |   |
+|   |   |---Local Rearrange[tuple]{Unknown}(false) - -913150185705910016
+|   |   |   |
+|   |   |   |---Filter[tuple] - -3943647700946858188
+|   |   |       |   |
+|   |   |       |   Constant(true) - -3055962796670893316
+|   |   |       |
+|   |   |       |---Load(DummyFil:DummyLdr) - -4962214768762054129
+|   |   |
+|   |   |---Local Rearrange[tuple]{Unknown}(false) - -2288440041178982968
+|   |       |
+|   |       |---Load(DummyFil:DummyLdr) - -7577375165361647685
+|
+|---MapReduce(-1) - -6:
+    |   Store(file:/tmp/temp-1456742965/tmp-26634357:org.apache.pig.impl.io.InterStorage) - -14
+    |   |
+    |   |---Package[tuple]{Unknown} - -3742910951635599848
+    |   Union[tuple] - -7
+    |   |
+    |   |---Load(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.io.InterStorage) - -8
+    |   |
+    |   |---Local Rearrange[tuple]{Unknown}(false) - -689137294940608050
+    |       |
+    |       |---Filter[tuple] - -6108697957385222190
+    |           |   |
+    |           |   Constant(true) - --8723304958939002625
+    |           |
+    |           |---Load(DummyFil:DummyLdr) - --961974426096759446
+    |
+    |---MapReduce(-1) - -4:
+        |   Store(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.io.InterStorage) - -9
+        |   |
+        |   |---Package[tuple]{Unknown} - --5733160635931065595
+        |   Local Rearrange[tuple]{Unknown}(false) - --1115934782004129477
+        |   |
+        |   |---Load(DummyFil:DummyLdr) - -2833954415250116776

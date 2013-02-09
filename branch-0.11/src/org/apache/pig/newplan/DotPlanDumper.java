@@ -1,0 +1,345 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.pig.newplan;
+
+import java.io.PrintStream;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
+
+import org.apache.pig.impl.util.MultiMap;
+
+/**
+ * This class puts everything that is needed to dump a plan in a
+ * format readable by graphviz's dot algorithm. Out of the box it does
+ * not print any nested plans.
+ */
+public class DotPlanDumper extends PlanDumper {
+
+    protected Set<Operator> mSubgraphs;
+    protected Set<Operator> mMultiInputSubgraphs;    
+    protected Set<Operator> mMultiOutputSubgraphs;
+    private boolean isSubGraph = false;
+  
+    public DotPlanDumper(BaseOperatorPlan plan, PrintStream ps) {
+        this(plan, ps, false, new HashSet<Operator>(), new HashSet<Operator>(),
+             new HashSet<Operator>());
+    }
+
+    protected DotPlanDumper(BaseOperatorPlan plan, PrintStream ps, boolean isSubGraph, 
+                            Set<Operator> mSubgraphs, 
+                            Set<Operator> mMultiInputSubgraphs,
+                            Set<Operator> mMultiOutputSubgraphs) {
+        super(plan, ps);
+        this.isSubGraph = isSubGraph;
+        this.mSubgraphs = mSubgraphs;
+        this.mMultiInputSubgraphs = mMultiInputSubgraphs;
+        this.mMultiOutputSubgraphs = mMultiOutputSubgraphs;
+    }
+
+    @Override
+    public void dump() {
+        if (!isSubGraph) {
+            ps.println("digraph plan {");
+            ps.println("compound=true;");
+            ps.println("node [shape=rect];");
+        }
+        super.dump();
+        if (!isSubGraph) {
+            ps.println("}");
+        }
+    }
+
+    @Override
+    protected void dumpMultiInputNestedOperator(Operator op, MultiMap<Operator, BaseOperatorPlan> plans) {
+        dumpInvisibleOutput(op);
+
+        ps.print("subgraph ");
+        ps.print(getClusterID(op));
+        ps.println(" {");
+        join("; ", getAttributes(op));
+        ps.println("labelloc=b;");
+        
+        mMultiInputSubgraphs.add(op);
+
+        for (Operator o: plans.keySet()) {
+            ps.print("subgraph ");
+            ps.print(getClusterID(op, o));
+            ps.println(" {");
+            ps.println("label=\"\";");
+            dumpInvisibleInput(op, o);
+            for (BaseOperatorPlan plan : plans.get(o)) {
+                PlanDumper dumper = makeDumper(plan, ps);
+                dumper.dump();
+                connectInvisibleInput(op, o, plan);
+            }
+            ps.println("};");
+        }
+        ps.println("};");
+        
+        for (Operator o: plans.keySet()) {
+            for (BaseOperatorPlan plan: plans.get(o)) {
+                connectInvisibleOutput(op, plan);
+            }
+        }
+    }
+
+    @Override 
+    protected void dumpMultiOutputNestedOperator(Operator op, Collection<BaseOperatorPlan> plans) {
+        super.dumpMultiOutputNestedOperator(op, plans);
+
+        mMultiOutputSubgraphs.add(op);
+        
+        dumpInvisibleOutput(op);
+        for (BaseOperatorPlan plan: plans) {
+            connectInvisibleOutput(op, plan);
+        }
+    }
+
+    @Override
+    protected void dumpNestedOperator(Operator op, Collection<BaseOperatorPlan> plans) {
+        dumpInvisibleOperators(op);
+        ps.print("subgraph ");
+        ps.print(getClusterID(op));
+        ps.println(" {");
+        join("; ", getAttributes(op));
+        ps.println("labelloc=b;");
+
+        mSubgraphs.add(op);
+        
+        for (BaseOperatorPlan plan: plans) {
+            PlanDumper dumper = makeDumper(plan, ps);
+            dumper.dump();
+            connectInvisibleInput(op, plan);
+        }
+        ps.println("};");
+
+        for (BaseOperatorPlan plan: plans) {
+            connectInvisibleOutput(op, plan);
+        }
+    }
+
+    @Override
+    protected void dumpOperator(Operator op) {
+        ps.print(getID(op));
+        ps.print(" [");
+        join(", ", getAttributes(op));
+        ps.println("];");
+    }
+
+    @Override
+    protected void dumpEdge(Operator op, Operator suc) {
+        String in = getID(op);
+        String out = getID(suc);
+        String attributes = "";
+
+        if (mMultiInputSubgraphs.contains(op) 
+            || mSubgraphs.contains(op) 
+            || mMultiOutputSubgraphs.contains(op)) {
+            in = getSubgraphID(op, false);
+        }
+
+        if (mMultiInputSubgraphs.contains(suc)) {
+            out = getSubgraphID(suc, op, true);
+            attributes = " [lhead="+getClusterID(suc,op)+"]";
+        }
+
+        if (mSubgraphs.contains(suc)) {
+            out = getSubgraphID(suc, true);
+            attributes = " [lhead="+getClusterID(suc)+"]";
+        }
+        
+        if (reverse(plan)) {
+            ps.print(out);
+            ps.print(" -> ");
+            ps.print(in);
+        } else {
+            ps.print(in);
+            ps.print(" -> ");
+            ps.print(out);
+        }
+        ps.println(attributes);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    protected PlanDumper makeDumper(BaseOperatorPlan plan, PrintStream ps) {
+        return new DotPlanDumper(plan, ps, true, 
+                                 mSubgraphs, mMultiInputSubgraphs, 
+                                 mMultiOutputSubgraphs);
+    }
+
+    /**
+     * Used to generate the label for an operator.
+     * @param op operator to dump
+     */
+    protected String getName(Operator op) {
+        return op.getName();
+    }
+    
+    /**
+     * Used to generate the the attributes of a node
+     * @param op operator
+     */
+    protected String[] getAttributes(Operator op) {
+        String[] attributes = new String[1];
+        attributes[0] =  "label=\""+getName(op)+"\"";
+        return attributes;
+    }
+
+
+    private void connectInvisibleInput(Operator op1, Operator op2, BaseOperatorPlan plan) {
+        String in = getSubgraphID(op1, op2, true);
+        
+        List<Operator> sources;
+        if (reverse(plan))
+            sources = plan.getSinks();
+        else
+            sources = plan.getSources();
+        
+        for (Operator l: sources) {
+            dumpInvisibleEdge(in, getID(l));
+        }
+    }
+
+    private void connectInvisibleInput(Operator op, BaseOperatorPlan plan) {
+        String in = getSubgraphID(op, true);
+
+        List<Operator> sources;
+        if (reverse(plan))
+            sources = plan.getSinks();
+        else
+            sources = plan.getSources();
+        
+        for (Operator l: sources) {
+            String out;
+            if (mSubgraphs.contains(l) || mMultiInputSubgraphs.contains(l)) {
+                out = getSubgraphID(l, true);
+            } else {
+                out = getID(l);
+            }
+
+            dumpInvisibleEdge(in, out);
+        }
+    }
+
+    private void connectInvisibleOutput(Operator op, 
+                                        BaseOperatorPlan plan) {
+        String out = getSubgraphID(op, false);
+
+        List<Operator> sinks;
+        if (reverse(plan))
+            sinks = plan.getSources();
+        else
+            sinks = plan.getSinks();
+        
+        for (Operator l: sinks) {
+            String in;
+            if (mSubgraphs.contains(l) 
+                || mMultiInputSubgraphs.contains(l)
+                || mMultiOutputSubgraphs.contains(l)) {
+                in = getSubgraphID(l, false);
+            } else {
+                in = getID(l);
+            }
+
+            dumpInvisibleEdge(in, out);
+        }
+    }
+
+    private void connectInvisible(Operator op, BaseOperatorPlan plan) {
+        connectInvisibleInput(op, plan);
+        connectInvisibleOutput(op, plan);
+    }        
+
+    private void dumpInvisibleInput(Operator op1, Operator op2) {
+        ps.print(getSubgraphID(op1, op2, true));
+        ps.print(" ");
+        ps.print(getInvisibleAttributes(op1));
+        ps.println(";");
+    }
+    
+    private void dumpInvisibleInput(Operator op) {
+        ps.print(getSubgraphID(op, true));
+        ps.print(" ");
+        ps.print(getInvisibleAttributes(op));
+        ps.println(";");
+    }
+
+    private void dumpInvisibleOutput(Operator op) {
+        ps.print(getSubgraphID(op, false));
+        ps.print(" ");
+        ps.print(getInvisibleAttributes(op));
+        ps.println(";");
+    }
+
+    protected void dumpInvisibleOperators(Operator op) {
+        dumpInvisibleInput(op);
+        dumpInvisibleOutput(op);
+    }
+
+    private String getClusterID(Operator op1, Operator op2) {
+        return getClusterID(op1)+"_"+getID(op2);
+    }
+
+    private String getClusterID(Operator op) {
+        return "cluster_"+getID(op);
+    }
+
+    private String getSubgraphID(Operator op1, Operator op2, boolean in) {
+        String id = "s"+getID(op1)+"_"+getID(op2);
+        if (in) {
+            id += "_in";
+        }
+        else {
+            id += "_out";
+        }
+        return id;
+    }
+
+    private String getSubgraphID(Operator op, boolean in) {
+        String id =  "s"+getID(op);
+        if (in) {
+            id += "_in";
+        }
+        else {
+            id += "_out";
+        }
+        return id;
+    }
+
+    private String getID(Operator op) {
+        return ""+Math.abs(op.hashCode());
+    }
+
+    private String getInvisibleAttributes(Operator op) {
+        return "[label=\"\", style=invis, height=0, width=0]";
+    }
+    
+    private void dumpInvisibleEdge(String op, String suc) {
+        ps.print(op);
+        ps.print(" -> ");
+        ps.print(suc);
+        ps.println(" [style=invis];");
+    }
+    
+    protected boolean reverse(BaseOperatorPlan plan) {
+        return false;
+    }
+}

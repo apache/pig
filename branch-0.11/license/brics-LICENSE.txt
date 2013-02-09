@@ -1,0 +1,2 @@
+website: http://www.brics.dk/automaton/
+link to the license from the wewsite above: http://www.opensource.org/licenses/bsd-license.php

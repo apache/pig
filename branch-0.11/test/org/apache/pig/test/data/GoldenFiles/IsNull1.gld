@@ -1,0 +1,23 @@
+y: Filter[bag] - scope-170
+|   |
+|   Not[boolean] - scope-173
+|   |
+|   |---POIsNull[boolean] - scope-172
+|       |
+|       |---Project[bytearray][0] - scope-171
+|
+|---test-27: Split - scope-169
+    |
+    |---test-26: Load()
+
+test-28: Store()
+|
+|---x: Filter[bag] - scope-174
+    |   |
+    |   POIsNull[boolean] - scope-176
+    |   |
+    |   |---Project[bytearray][0] - scope-175
+    |
+    |---test-27: Split - scope-169
+        |
+        |---test-26: Load()

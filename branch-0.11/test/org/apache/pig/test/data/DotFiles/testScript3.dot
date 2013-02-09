@@ -1,0 +1,9 @@
+digraph graph1 {
+    graph [pigScript=" a = load 'a' as (field1: long, field2: tuple(inner1 : bytearray, inner2 : float) ) ;
+                       b = group a by field2; "] ;
+
+    load [key="10", type="LOLoad", schema="field1: long, field2: tuple(inner1 : bytearray, inner2 : float)"] ;
+    group [key="20", type="LOCogroup" , schema="group: chararray,a: bag{ tuple1:tuple(field1: long,field2: tuple(inner1: bytearray,inner2: integer))}"] ;
+
+    load -> group ;
+}

@@ -1,0 +1,4 @@
+100	100.1	100	50e+2	something	someting
+1	1.1	11	1.1	some	some
+-100	-100.1	-100	-50e+2	so	so
+3	1.1	11	1.1	some	some
