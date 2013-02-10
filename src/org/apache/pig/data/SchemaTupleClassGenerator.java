@@ -742,7 +742,7 @@ public class SchemaTupleClassGenerator {
             } else if (isBag()) {
                 size += 8; //the ptr
                 s += "(pos_"+fieldPos+" == null ? 0 : pos_"+fieldPos+".getMemorySize()) + ";
-            } else if (isMap() || isString()) {
+            } else if (isMap() || isString() || isBigDecimal() || isBigInteger()) {
                 size += 8; //the ptr
                 s += "(pos_"+fieldPos+" == null ? 0 : SizeUtil.getPigObjMemSize(pos_"+fieldPos+")) + ";
             } else if (isTuple()) {
@@ -775,6 +775,8 @@ public class SchemaTupleClassGenerator {
             case (DataType.DOUBLE): add("    return 0.0;"); break;
             case (DataType.BOOLEAN): add("    return true;"); break;
             case (DataType.DATETIME): add("    return new DateTime();"); break;
+            case (DataType.BIGDECIMAL): add("    return (BigDecimal)null;"); break;
+            case (DataType.BIGINTEGER): add("    return (BigInteger)null;"); break;
             case (DataType.BYTEARRAY): add("    return (byte[])null;"); break;
             case (DataType.CHARARRAY): add("    return (String)null;"); break;
             case (DataType.TUPLE): add("    return (Tuple)null;"); break;
@@ -1044,6 +1046,8 @@ public class SchemaTupleClassGenerator {
             listOfFutureMethods.add(new TypeAwareSetString(DataType.CHARARRAY));
             listOfFutureMethods.add(new TypeAwareSetString(DataType.BOOLEAN));
             listOfFutureMethods.add(new TypeAwareSetString(DataType.DATETIME));
+            listOfFutureMethods.add(new TypeAwareSetString(DataType.BIGDECIMAL));
+            listOfFutureMethods.add(new TypeAwareSetString(DataType.BIGINTEGER));
             listOfFutureMethods.add(new TypeAwareSetString(DataType.TUPLE));
             listOfFutureMethods.add(new TypeAwareSetString(DataType.BAG));
             listOfFutureMethods.add(new TypeAwareSetString(DataType.MAP));
@@ -1055,6 +1059,8 @@ public class SchemaTupleClassGenerator {
             listOfFutureMethods.add(new TypeAwareGetString(DataType.CHARARRAY));
             listOfFutureMethods.add(new TypeAwareGetString(DataType.BOOLEAN));
             listOfFutureMethods.add(new TypeAwareGetString(DataType.DATETIME));
+            listOfFutureMethods.add(new TypeAwareGetString(DataType.BIGDECIMAL));
+            listOfFutureMethods.add(new TypeAwareGetString(DataType.BIGINTEGER));
             listOfFutureMethods.add(new TypeAwareGetString(DataType.TUPLE));
             listOfFutureMethods.add(new TypeAwareGetString(DataType.BAG));
             listOfFutureMethods.add(new TypeAwareGetString(DataType.MAP));
@@ -1079,6 +1085,8 @@ public class SchemaTupleClassGenerator {
                     .append("import java.io.DataOutput;\n")
                     .append("import java.io.DataInput;\n")
                     .append("import java.io.IOException;\n")
+                    .append("import java.math.BigDecimal;\n")
+                    .append("import java.math.BigInteger;\n")
                     .append("\n")
                     .append("import com.google.common.collect.Lists;\n")
                     .append("\n")
@@ -1206,6 +1214,14 @@ public class SchemaTupleClassGenerator {
             return type == DataType.DATETIME;
         }
 
+        public boolean isBigDecimal() {
+            return type == DataType.BIGDECIMAL;
+        }
+
+        public boolean isBigInteger() {
+            return type == DataType.BIGINTEGER;
+        }
+
         public boolean isPrimitive() {
             return isInt() || isLong() || isFloat() || isDouble() || isBoolean();
         }
@@ -1252,6 +1268,8 @@ public class SchemaTupleClassGenerator {
                 case (DataType.CHARARRAY): return "String";
                 case (DataType.BOOLEAN): return "boolean";
                 case (DataType.DATETIME): return "DateTime";
+                case (DataType.BIGDECIMAL): return "BigDecimal";
+                case (DataType.BIGINTEGER): return "BigInteger";
                 case (DataType.TUPLE): return "Tuple";
                 case (DataType.BAG): return "DataBag";
                 case (DataType.MAP): return "Map";
