@@ -109,10 +109,6 @@ PIG-3168: TestMultiQueryBasic.testMultiQueryWithSplitInMapAndMultiMerge fails in
 
 PIG-3137: Fix Piggybank test to not using /tmp dir (dreambird via cheolsoo)
 
-PIG-3135: HExecutionEngine should look for resources in user passed Properties (prkommireddi via cheolsoo)
-
-PIG-3145: Parameters in core-site.xml and mapred-site.xml are not correctly substituted (cheolsoo)
-
 PIG-3149: e2e build.xml still refers to jython 2.5.0 jar even though it's replaced by jython standalone 2.5.2 jar (cheolsoo)
 
 PIG-2266: Bug with input file joining optimization in Pig (jadler via cheolsoo)
