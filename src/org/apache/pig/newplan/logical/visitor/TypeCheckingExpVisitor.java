@@ -209,6 +209,8 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
         } else if (lhsType == DataType.BYTEARRAY) {
             if (rhsType == DataType.INTEGER || rhsType == DataType.LONG || rhsType == DataType.BIGINTEGER) {
                 insertCast(binOp, rhsType, binOp.getLhs());
+            } else {
+                error = true;
             }
         } else {
             error = true;
