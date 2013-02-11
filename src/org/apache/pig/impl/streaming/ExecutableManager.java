@@ -447,11 +447,10 @@ public class ExecutableManager {
                     }
                 }
             } catch (Throwable t) {
-
-
                 // Note that an error occurred
                 outerrThreadsError = t;
-                LOG.error(t);
+                LOG.error( "Error while reading from POStream and " +
+                           "passing it to the streaming process", t);
                 try {
                     killProcess(process);
                 } catch (IOException ioe) {

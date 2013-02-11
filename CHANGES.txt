@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-3178: Print a stacktrace when ExecutableManager hits an OOM (knoguchi via rohini)
+
 PIG-3160: GFCross uses unnecessary loop (sandyr via cheolsoo)
 
 PIG-3138: Decouple PigServer.executeBatch() from compilation of batch (pkommireddi via cheolsoo)
