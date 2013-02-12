@@ -441,21 +441,33 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
      * addFamily on the scan
      */
     private void addFiltersWithoutColumnPrefix(List<ColumnInfo> columnInfos) {
-        for (ColumnInfo columnInfo : columnInfos) {
-            if (columnInfo.columnName != null) {
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("Adding column to scan via addColumn with cf:name = " +
-                            Bytes.toString(columnInfo.getColumnFamily()) + ":" +
-                            Bytes.toString(columnInfo.getColumnName()));
+        // Need to check for mixed types in a family, so we don't call addColumn 
+        // after addFamily on the same family
+        Map<String, List<ColumnInfo>> groupedMap = groupByFamily(columnInfos);
+        for (Entry<String, List<ColumnInfo>> entrySet : groupedMap.entrySet()) {
+            boolean onlyColumns = true;
+            for (ColumnInfo columnInfo : entrySet.getValue()) {
+                if (columnInfo.isColumnMap()) {
+                    onlyColumns = false;
+                    break;
                 }
-                scan.addColumn(columnInfo.getColumnFamily(), columnInfo.getColumnName());
             }
-            else {
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("Adding column family to scan via addFamily with cf:name = " +
-                            Bytes.toString(columnInfo.getColumnFamily()));
+            if (onlyColumns) {
+                for (ColumnInfo columnInfo : entrySet.getValue()) {
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug("Adding column to scan via addColumn with cf:name = "
+                                + Bytes.toString(columnInfo.getColumnFamily()) + ":"
+                                + Bytes.toString(columnInfo.getColumnName()));
+                    }
+                    scan.addColumn(columnInfo.getColumnFamily(), columnInfo.getColumnName());                    
                 }
-                scan.addFamily(columnInfo.getColumnFamily());
+            } else {
+                String family = entrySet.getKey();
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Adding column family to scan via addFamily with cf:name = "
+                            + family);
+                }
+                scan.addFamily(Bytes.toBytes(family));                
             }
         }
     }
@@ -703,18 +715,8 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
             // update columnInfo_
             pushProjection((RequiredFieldList) ObjectSerializer.deserialize(projectedFields));
         }
+        addFiltersWithoutColumnPrefix(columnInfo_);
 
-        for (ColumnInfo columnInfo : columnInfo_) {
-            // do we have a column family, or a column?
-            if (columnInfo.isColumnMap()) {
-                scan.addFamily(columnInfo.getColumnFamily());
-            }
-            else {
-                scan.addColumn(columnInfo.getColumnFamily(),
-                               columnInfo.getColumnName());
-            }
-
-        }
         if (requiredFieldList != null) {
             Properties p = UDFContext.getUDFContext().getUDFProperties(this.getClass(),
                     new String[] {contextSignature});

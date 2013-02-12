@@ -436,6 +436,51 @@ public class TestHBaseStorage {
     }
 
     /**
+     *     * Test Load from hbase with map parameters and with a
+     *     static column in different order
+     *
+     */
+    @Test
+    public void testLoadOrderWithFixedAndPrefixedCols() throws IOException {
+        prepareTable(TESTTABLE_1, true, DataFormat.UTF8PlainText);
+
+        pig.registerQuery("a = load 'hbase://"
+                + TESTTABLE_1
+                + "' using "
+                + "org.apache.pig.backend.hadoop.hbase.HBaseStorage('"
+                + "pig:col_* pig:prefixed_col_d"
+                + "','-loadKey') as (rowKey:chararray, cols:map[], prefixed_col_d:chararray);");
+        pig.registerQuery("b = load 'hbase://"
+                + TESTTABLE_1
+                + "' using "
+                + "org.apache.pig.backend.hadoop.hbase.HBaseStorage('"
+                + "pig:prefixed_col_d pig:col_*"
+                + "','-loadKey') as (rowKey:chararray, prefixed_col_d:chararray, cols:map[]);");
+        Iterator<Tuple> it = pig.openIterator("a");
+        Iterator<Tuple> it2 = pig.openIterator("b");
+        int count = 0;
+        LOG.info("LoadFromHBase Starting");
+        while (it.hasNext() && it2.hasNext()) {
+            Tuple t = it.next();
+            Tuple t2 = it2.next();
+            LOG.info("LoadFromHBase a:" + t);
+            LOG.info("LoadFromHBase b:" + t2);
+            String rowKey = (String) t.get(0);
+            String rowKey2 = (String) t2.get(0);
+            Assert.assertEquals(rowKey, rowKey2);
+            Assert.assertEquals(t.size(), t2.size());
+            @SuppressWarnings("rawtypes")
+            Map cols_a = (Map) t.get(1);
+            @SuppressWarnings("rawtypes")
+            Map cols_b = (Map) t2.get(2);
+            Assert.assertEquals(cols_a.size(), cols_b.size());
+            count++;
+        }
+        Assert.assertEquals(TEST_ROW_COUNT, count);
+        LOG.info("LoadFromHBase done");
+    }
+
+    /**
      * load from hbase test
      *
      * @throws IOException
