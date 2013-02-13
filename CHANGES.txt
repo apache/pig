@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-3179: Task Information Header only prints out the first split for each task (knoguchi via rohini)
+
 PIG-3108: HBaseStorage returns empty maps when mixing wildcard with other columns (christoph.bauer via billgraham)
 
 PIG-3178: Print a stacktrace when ExecutableManager hits an OOM (knoguchi via rohini)

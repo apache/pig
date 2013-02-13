@@ -199,15 +199,23 @@ public class HadoopExecutableManager extends ExecutableManager {
         if (job.getBoolean("mapred.task.is.map", false)) {
             MapContext context = (MapContext)PigMapReduce.sJobContext;
             PigSplit pigSplit = (PigSplit)context.getInputSplit();
-            InputSplit wrappedSplit = pigSplit.getWrappedSplit();
-            if (wrappedSplit instanceof FileSplit) {
-                FileSplit mapInputFileSplit = (FileSplit)wrappedSplit;
-                processError("\nInput-split file: " + 
-                             mapInputFileSplit.getPath().toString());
-                processError("\nInput-split start-offset: " + 
-                             Long.toString(mapInputFileSplit.getStart()));
-                processError("\nInput-split length: " + 
-                             Long.toString(mapInputFileSplit.getLength()));
+            int numPaths = pigSplit.getNumPaths();
+            processError("\nPigSplit contains " + numPaths + " wrappedSplits.");
+
+            StringBuilder sb = new StringBuilder();
+            for(int i = 0; i < numPaths; i++) {
+              InputSplit wrappedSplit = pigSplit.getWrappedSplit(i);
+              if (wrappedSplit instanceof FileSplit) {
+                  FileSplit mapInputFileSplit = (FileSplit)wrappedSplit;
+                  sb.append("\nInput-split: file=");
+                  sb.append(mapInputFileSplit.getPath());
+                  sb.append(" start-offset=");
+                  sb.append(Long.toString(mapInputFileSplit.getStart()));
+                  sb.append(" length=");
+                  sb.append(Long.toString(mapInputFileSplit.getLength()));
+                  processError(sb.toString());
+                  sb.setLength(0);
+              }
             }
         }
         processError("\n=====          * * *          =====\n");
