@@ -61,7 +61,6 @@ export PIG_CLASSPATH=/hadoop/conf
 7. To run unit tests run
     ant test 
 8. To build jar file with available user defined functions run commands below.
-This currently only works with Java 1.6.x.
     cd contrib/piggybank/java
     ant
 9. To build the tutorial:
