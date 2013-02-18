@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-3129: Document syntax to refer to previous relation (rjurney via jcoveney)
+
 PIG-2553: Pig shouldn't allow attempts to write multiple relations into same directory (prkommireddi via cheolsoo)
 
 PIG-3179: Task Information Header only prints out the first split for each task (knoguchi via rohini)
