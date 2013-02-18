@@ -48,6 +48,7 @@ See http://forrest.apache.org/docs/linking.html for more info
     <cmds label="Shell and Utililty Commands" href="cmds.html" />
     <perform label="Performance and Efficiency" href="perf.html" />
     <test label="Testing and Diagnostics" href="test.html" />
+    <admin label="Administration" href="admin.html" />
     <index label="Index" href="pig-index.html" />
     </docs>  
       

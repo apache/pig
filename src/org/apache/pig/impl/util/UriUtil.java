@@ -17,8 +17,6 @@
  */
 package org.apache.pig.impl.util;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class UriUtil {
     public static boolean isHDFSFile(String uri){
