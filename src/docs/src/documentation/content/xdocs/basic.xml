@@ -137,7 +137,7 @@
       
          <tr>
             <td> <p>-- B </p> </td>
-            <td> <p>bag, BinStorage, by, bytearray </p> </td>
+            <td> <p>bag, BinStorage, by, bytearray, BIGINTEGER, BIGDECIMAL</p> </td>
          </tr>   
 
          <tr>
@@ -217,7 +217,7 @@
          
          <tr>
             <td> <p>-- R </p> </td>
-            <td> <p>register, right, rm, rmf, run</p> </td>
+            <td> <p>register, right, rm, rmf, run, RANK</p> </td>
          </tr>  
 
          <tr>
