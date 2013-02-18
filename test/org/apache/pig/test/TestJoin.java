@@ -76,7 +76,7 @@ public class TestJoin {
 
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
-        cluster.shutDown();
+        if (cluster != null) cluster.shutDown();
     }
 
     private void setUp(ExecType execType) throws ExecException {
@@ -717,11 +717,34 @@ public class TestJoin {
         pigServer.registerQuery("E = foreach D generate field1, field2;");
         assertEquals(Utils.getSchemaFromString("B::field1:chararray, field2:chararray"), pigServer.dumpSchema("E"));
         pigServer.registerQuery("F = foreach E generate field2;");
-        Iterator<Tuple> it = pigServer.openIterator("F");
-        assertTrue(it.hasNext());
-        while (it.hasNext()) {
-            assertTrue(tuples.remove(it.next()));
+        pigServer.registerQuery("store F into 'foo_out' using mock.Storage();");
+        List<Tuple> out = data.get("foo_out");
+        assertEquals("Expected size was "+tuples.size()+" but was "+out.size(), tuples.size(), out.size());
+        for (Tuple t : out) {
+            assertTrue("Should have found tuple "+t+" in expected: "+tuples, tuples.remove(t));
         }
-        assertFalse(it.hasNext());
+        assertTrue("All expected tuples should have been found, remaining: "+tuples, tuples.isEmpty());
+    }
+
+    @Test
+    public void testIndirectSelfJoinData() throws Exception {
+        setUp(ExecType.LOCAL);
+        Data data = resetData(pigServer);
+
+        Set<Tuple> tuples = Sets.newHashSet(tuple("a", 1), tuple("b", 2), tuple("c", 3));
+        data.set("foo", Utils.getSchemaFromString("field1:chararray,field2:int"), tuples);
+        pigServer.registerQuery("A = load 'foo' using mock.Storage();");
+        pigServer.registerQuery("B = foreach A generate field1, field2*2 as field2;");
+        pigServer.registerQuery("C = join A by field1, B by field1;");
+        pigServer.registerQuery("D = foreach C generate A::field1 as field1_a, B::field1 as field1_b, A::field2 as field2_a, B::field2 as field2_b;");
+        pigServer.registerQuery("store D into 'foo_out' using mock.Storage();");
+
+        Set<Tuple> expected = Sets.newHashSet(tuple("a", "a", 1, 2), tuple("b", "b", 2, 4), tuple("c", "c", 3, 6));
+        List<Tuple> out = data.get("foo_out");
+        assertEquals("Expected size was "+expected.size()+" but was "+out.size(), expected.size(), out.size());
+        for (Tuple t : out) {
+            assertTrue("Should have found tuple "+t+" in expected: "+expected, expected.remove(t));
+        }
+        assertTrue("All expected tuples should have been found, remaining: "+expected, expected.isEmpty());
     }
 }
