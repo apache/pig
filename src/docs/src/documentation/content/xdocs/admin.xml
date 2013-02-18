@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<!DOCTYPE document PUBLIC "-//APACHE//DTD Documentation V2.0//EN" "http://forrest.apache.org/dtd/document-v20.dtd">
+<document>
+  <header>
+    <title>Administration</title>
+  </header>
+  <body>
+  
+<!-- ========================================================== -->  
+
+<!-- SET UP OUTPUT LOCATION STRICT CHECK -->
+    <section>
+        <title>Output location strict check</title>
+            <p>Pig scripts could contain multiple STORE statements. There are cases when one would like to avoid writing to the same output location. Pig provides admins/script writers with a property to check if multiple STORE statements make an attempt to write to the same output directory. And fail fast letting the user know of the same.</p>
+            <p>Specifically this makes sense for file-based output locations (HDFS, Local FS, S3..) to avoid Pig script from failing when multiple MR jobs write to the same location. </p>   
+            <p>To enforce strict checking of output location, set <strong>pig.location.check.strict=true</strong>. See also <a href="start.html#properties">Pig Properties</a> on how to set this property.</p>
+    </section>
+  </body>
+</document>
