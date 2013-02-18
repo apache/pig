@@ -2006,8 +2006,20 @@ A = LOAD 'mydata' AS (T1:tuple(f1:int, f2:int), B:bag{T2:tuple(t1:float,t2:float
 
 A = LOAD 'mydata' AS (T1:(f1:int, f2:int), B:{T2:(t1:float,t2:float)}, M:[] );
 </source>
-</section></section></section>
+</section>
+   <section id="previous-relation-shortcut">
+     <title>Previous Relation Shortcut</title>
+     <p>There is a shortcut form to reference the relation on the previous line of a pig script or grunt session:</p>
+<source>
+a = load 'thing' as (x:int);
+b = foreach @ generate x;
+c = foreach @ generate x;
+d = foreach @ generate x;
+</source>
    </section>
+</section>
+</section>
+</section>
    
 <!-- =================================================================== -->    
 <!-- ARITHMETIC OPERATORS, ETC -->
