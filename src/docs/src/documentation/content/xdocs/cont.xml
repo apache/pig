@@ -126,11 +126,11 @@ public static void main(String[] args) {
 
 <p>You invoke Pig in the host scripting language through an embedded <a href="#pig-Object">Pig object</a>. </p>  
 
-<p><strong>Compile:</strong> Compile is a static function on the Pig object and in its simplest form takes a fragment of Pig Latin that defines the pipeline as its input:</p>  
+<p><strong>Compile:</strong> Compile is a static function on the Pig class and in its simplest form takes a fragment of Pig Latin that defines the pipeline as its input:</p>  
 
 <source>
 # COMPILE: complie method returns a Pig object that represents the pipeline
-P = Pig.compile("""A = load '$in’; store A into '$out’;""")
+P = Pig.compile("""A = load '$in'; store A into '$out';""")
 </source>
 
 <p>Compile returns an instance of Pig object. This object can have certain values undefined. For example, you may want to define a pipeline without yet specifying the location of the input to the pipeline. The parameter will be indicated by a dollar sign followed by a sequence of alpha-numeric or underscore characters. Values for these parameters must be provided later at the time bind() is called on the Pig object. To call run() on a Pig object without all parameters being bound is an error. </p>
@@ -161,13 +161,13 @@ result = Q.runSingle()
 <p><strong>Embedded Python Example</strong></p>
 <p>A complete embedded example is shown below.</p>
 <source>
+#!/usr/bin/python
 
-#! /usr/bin/python
-
-# explicitly import Pig class from org.apache.pig.scripting import Pig
+# explicitly import Pig class
+from org.apache.pig.scripting import Pig
 
 # COMPILE: compile method returns a Pig object that represents the pipeline
-P = Pig.compile("""A = load '$in’; store A into '$out’;""")
+P = Pig.compile("""A = load '$in'; store A into '$out';""")
 
 input = "original”
 output = "output”
@@ -190,15 +190,16 @@ else:
 OR, SIMPLY DO THIS:
 
 
-#! /usr/bin/python
+#!/usr/bin/python
 
-# explicitly import Pig class from org.apache.pig.scripting import Pig
+# explicitly import Pig class
+from org.apache.pig.scripting import Pig
 
 in = "original”
 out = "output”
 
 # implicitly bind the parameters to the local variables 
-result= Pig.compile("""A = load '$in’; store A into '$out’;""").bind().runSingle() 
+result= Pig.compile("""A = load '$in'; store A into '$out';""").bind().runSingle() 
 
 if result.isSuccessful():
     print "Pig job succeeded"
@@ -240,11 +241,8 @@ P = Pig.compileFromFile("P2", "myscript.pig")
 <p>In its simplest form, bind takes no parameters. In this case, an implicit bind is performed; Pig internally constructs a map of parameters from the local variables specified by the user in the script.</p>
 
 <source>
-
-Q = P.bind () 
+Q = P.bind() 
 </source>
-
-<p>In the case where parameter substitution is needed, a map of parameters (parameter name &gt; parameter value) must be provided as was illustrated in the example above.</p>
 
 <p>Finally, you might want to run the same pipeline in parallel with a different set of parameters, for instance for multiple dates. In this case, bind function, needs to be passed a list of maps with each element of the list containing parameters for a single invocation. In the example below, the pipeline is run for the US, the UK, and Brazil.</p>
 
@@ -271,11 +269,10 @@ for i in [0, 1, 2]:
 <section>
 <title>Run</title>
 
-<p>We have already seen that the simplest way to run a script is to call runSingle without any parameters. Additionally, a Java Properties object and or file containing a list of properties can be passed to this call. The properties are passed to Pig and a treated as any other properties passed from command line.</p>
+<p>We have already seen that the simplest way to run a script is to call runSingle without any parameters. Additionally, a Java Properties object or a file containing a list of properties can be passed to this call. The properties are passed to Pig and a treated as any other properties passed from command line.</p>
 
 <source>
-
-// In a jython script 
+# In a jython script 
 
 from java.util import Properties
 ... ...
@@ -287,15 +284,16 @@ props.put(key2, val2)
 
 Pig.compile(...).bind(...).runSingle(props)
 </source>
-<p>A more general version of run allows to run one or more pipelines concurrently. In this case, a list of PigStats results is returned – one for each pipeline run. The example above shows how to make use of this call.</p>
+<p>A more general version of run allows to run one or more pipelines concurrently. In this case, a list of PigStats results is returned – one for each pipeline run. The example in the previous section shows how to make use of this call.</p>
 <p>As the case with runSingle, a set of Java Properties or a property file can be passed to the call.</p>
 </section>
 
 <section>
 <title>Passing Parameters to a Script</title>
 <p>Inside your script, you can define parameters and then pass parameters from command line to your script.  There are two ways to pass parameters to your script:</p>
+<section>
+<title>1. -param</title>
 <p>
-1. -param
 Similar to regular Pig parameter substitution, you can define parameters using -param/–param_file on Pig's command line.  This variable will be treated as one of the binding variables when binding the Pig Latin script. For example, you can invoke the below Python script using: pig –param loadfile=student.txt script.py. </p>
 <source>
 #!/usr/bin/python
@@ -308,13 +306,16 @@ Q = P.bind()
 
 result = Q.runSingle()
 </source>
+</section>
 
+<section>
+<title>2. Command line arguments</title>
 <p>
-2. Command line arguments
 Currently this feature is only available in Python and Groovy. You can pass command line arguments (the arguments after the script file name) to Python. These will become sys.argv in Python and will be passed as main's arguments in Groovy.  For example: pig script.py student.txt. The corresponding script is:
 </p>
 <source>
 #!/usr/bin/python
+import sys
 from org.apache.pig.scripting import Pig
 
 P = Pig.compile("A = load '" + sys.argv[1] + "' as (name, age, gpa);" +
@@ -343,6 +344,8 @@ public static void main(String[] args) {
 
 </section>
 
+</section>
+
 </section> 
 
 <section id="pigrunner-api">
@@ -353,7 +356,7 @@ public static void main(String[] args) {
 <p>To do this and to preserve backward compatibility PigStats and related objects were expanded as shown below:</p>
 <ul>
 
-<li id="PigStats">PigStats is now an abstract class. (PigStats as it is today will become SimplePigStats.)</li>
+<li id="PigStats">PigStats is now an abstract class. (PigStats as it was before has become SimplePigStats.)</li>
 
 
 <li id="SimplePigStats">SimplePigStats is a new class that extends PigStats. SimplePigStats.getAllStats() will return null. </li>
@@ -381,7 +384,7 @@ public static void main(String[] args) {
 <p>This example shows you how to pass an entire Pig script to the compile call.</p>
 
 <source>
-#! /usr/bin/python
+#!/usr/bin/python
 
 from org.apache.pig.scripting import Pig
 
@@ -441,19 +444,7 @@ for i in range(1, 4):
 
 <section id="automated-pig-latin">
 <title>Automated Pig Latin Generation</title>
-<p>A number of user frameworks do automated generation of Pig Latin, such as setting the proper date for data loads.</p>
-
-<source>
-today = sys.argv[1]
-P = Pig.compile("""A = load 'fact' using HowlLoader();
-                   B = filter A by datestamp = '$date';
-                   ...
-                   store Z into 'aggregated' using HowlStorage('datestamp = $date');
-                """)
-P.bind({'date':today}).runSingle()
-</source>
-</section>
-
+<p>A number of user frameworks do automated generation of Pig Latin.</p>
 
 <section>
 <title>Conditional Compilation</title>
@@ -493,7 +484,7 @@ for i in [0, 1, 2]:
     ... # check result for each pipeline
 </source>
 </section>
-
+</section>
 </section> 
    
    
@@ -503,7 +494,7 @@ for i in [0, 1, 2]:
 
 <!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->
  <section id="pig-object">
-<title>pig.java Object</title>
+<title>Pig Object</title>
 <source>
 public class Pig {    
     /**
@@ -648,7 +639,7 @@ public class Pig {
 
 <!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->
 <section id="BoundScript-Object">
-<title>BoundScript.java Object</title>
+<title>BoundScript Object</title>
 <source>
 public class BoundScript {
     
@@ -736,7 +727,7 @@ public class BoundScript {
 
 <!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->
 <section id="PigStats-Object">
-<title>PigStats.java Object</title>
+<title>PigStats Object</title>
 <source>
 public abstract class PigStats {
     public abstract boolean isEmbedded();
@@ -755,10 +746,11 @@ public abstract class PigStats {
 
 <!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->
 <section id="PigProgressNotificationListener">
-<title>PigProgressNotificationListener.java Object</title>
+<title>PigProgressNotificationListener Object</title>
 <source>
+public interface PigProgressNotificationListener extends java.util.EventListener {
 
-/** 
+    /** 
      * Invoked just before launching MR jobs spawned by the script.
      * @param scriptId id of the script
      * @param numJobsToLaunch the total number of MR jobs spawned by the script
@@ -830,7 +822,7 @@ public abstract class PigStats {
 
 <section id="pigserver">
 <title>PigServer Interface</title>
-<p>Currently, <a href="http://pig.apache.org/docs/r0.9.0/api/org/apache/pig/PigServer.html">PigServer</a> is the main interface for embedding Pig in Java. PigServer can now be instantiated from multiple threads. (In the past, PigServer contained references to static data that prevented multiple instances of the object to be created from different threads within your application.) Please note that PigServer is NOT thread safe; the same object can't be shared across multiple threads. </p>
+<p>Currently, <a href="http://pig.apache.org/docs/r0.10.0/api/org/apache/pig/PigServer.html">PigServer</a> is the main interface for embedding Pig in Java. PigServer can now be instantiated from multiple threads. (In the past, PigServer contained references to static data that prevented multiple instances of the object to be created from different threads within your application.) Please note that PigServer is NOT thread safe; the same object can't be shared across multiple threads. </p>
 </section>
 
 <section>
@@ -854,19 +846,19 @@ Copy the /etc/passwd file to your local working directory.</p>
 import java.io.IOException;
 import org.apache.pig.PigServer;
 public class idlocal{ 
-public static void main(String[] args) {
-try {
-    PigServer pigServer = new PigServer("local");
-    runIdQuery(pigServer, "passwd");
+    public static void main(String[] args) {
+        try {
+            PigServer pigServer = new PigServer("local");
+            runIdQuery(pigServer, "passwd");
+        }
+        catch(Exception e) {
+        }
     }
-    catch(Exception e) {
+    public static void runIdQuery(PigServer pigServer, String inputFile) throws IOException {
+        pigServer.registerQuery("A = load '" + inputFile + "' using PigStorage(':');");
+        pigServer.registerQuery("B = foreach A generate $0 as id;");
+        pigServer.store("B", "id.out");
     }
- }
-public static void runIdQuery(PigServer pigServer, String inputFile) throws IOException {
-    pigServer.registerQuery("A = load '" + inputFile + "' using PigStorage(':');");
-    pigServer.registerQuery("B = foreach A generate $0 as id;");
-    pigServer.store("B", "id.out");
- }
 }
 </source>
 <p> </p>
@@ -891,24 +883,24 @@ Cygwin: $ java –cp '.;pig.jar;$HADOOPDIR' idmapreduce
 </source>
 
 <p>idmapreduce.java - The sample code is based on Pig Latin statements that extract all user IDs from the /etc/passwd file. 
-Copy the /etc/passwd file to your local working directory.</p>
+Copy the /etc/passwd file to your home directory on the HDFS.</p>
 <source>
 import java.io.IOException;
 import org.apache.pig.PigServer;
 public class idmapreduce{
-   public static void main(String[] args) {
-   try {
-     PigServer pigServer = new PigServer("mapreduce");
-     runIdQuery(pigServer, "passwd");
-   }
-   catch(Exception e) {
-   }
-}
-public static void runIdQuery(PigServer pigServer, String inputFile) throws IOException {
-   pigServer.registerQuery("A = load '" + inputFile + "' using PigStorage(':');")
-   pigServer.registerQuery("B = foreach A generate $0 as id;");
-   pigServer.store("B", "idout");
-   }
+    public static void main(String[] args) {
+        try {
+            PigServer pigServer = new PigServer("mapreduce");
+            runIdQuery(pigServer, "passwd");
+        }
+        catch(Exception e) {
+        }
+    }
+    public static void runIdQuery(PigServer pigServer, String inputFile) throws IOException {
+        pigServer.registerQuery("A = load '" + inputFile + "' using PigStorage(':');")
+        pigServer.registerQuery("B = foreach A generate $0 as id;");
+        pigServer.store("B", "idout");
+    }
 }
 </source>
 </section>
@@ -1088,12 +1080,12 @@ STORE Z into 'byage';
 DEFINE my_macro(A, sortkey) RETURNS void {     
       B = FILTER $A BY my_filter(*);     
       C = ORDER B BY $sortkey;
-      STORE C INTO ‘my_output’;  
+      STORE C INTO 'my_output';  
 };
 
 /* To expand this macro, use the following */
 
-my_macro(alpha, ‘user’);
+my_macro(alpha, 'user');
 </source>
 
 <p>
@@ -1102,7 +1094,7 @@ In this example a name collision will occur. Here letter B is used as alias name
 DEFINE my_macro(A, sortkey) RETURNS E {     
       B = FILTER $A BY my_filter(*);     
       C = ORDER B BY $sortkey;
-      D = LOAD ‘in’ as (B:bag{});
+      D = LOAD 'in' as (B:bag{});
    $E = FOREACH D GENERATE COUNT(B); 
    };
 </source>
@@ -1112,7 +1104,7 @@ DEFINE my_macro(A, sortkey) RETURNS E {
 -- A: an alias
 -- outfile: output file path (quoted string)
 DEFINE my_macro1(A, outfile) RETURNS void {     
-       STORE $A INTO ‘$outfile’; 
+       STORE $A INTO '$outfile'; 
    };
 
 -- A: an alias
@@ -1121,11 +1113,11 @@ DEFINE my_macro1(A, outfile) RETURNS void {
 DEFINE my_macro2(A, sortkey, outfile) RETURNS void {     
       B = FILTER $A BY my_filter(*);     
       C = ORDER B BY $sortkey;
-      my_macro1(C, ‘$outfile’);
+      my_macro1(C, '$outfile');
    };
 
-   alpha = Load ‘input’ as (user, age, gpa);
-   my_macro2(alpha, ‘age’, ‘order_by_age.txt’);
+   alpha = Load 'input' as (user, age, gpa);
+   my_macro2(alpha, 'age', 'order_by_age.txt');
 </source>
 
 
@@ -1232,7 +1224,7 @@ IMPORT 'my_macro.pig';
    <table>
       <tr>
             <td>
-               <p>pig {–param param_name = param_value | –param_file file_name} [-debug | -dryrun] script</p>
+               <p>pig {-param param_name = param_value | -param_file file_name} [-debug | -dryrun] script</p>
             </td>
          </tr>
    </table>
@@ -1263,7 +1255,7 @@ IMPORT 'my_macro.pig';
          </tr>
          <tr>
             <td>
-               <p>–param</p>
+               <p>-param</p>
             </td>
             <td>
                <p>Flag. Use this option when the parameter is included in the command line.</p>
@@ -1303,7 +1295,7 @@ IMPORT 'my_macro.pig';
          </tr>
          <tr>
             <td>
-               <p>–param_file</p>
+               <p>-param_file</p>
             </td>
             <td>
                <p>Flag. Use this option when the parameter is included in a file. </p>
@@ -1322,18 +1314,18 @@ IMPORT 'my_macro.pig';
          </tr>
          <tr>
             <td>
-               <p>–debug</p>
+               <p>-debug</p>
             </td>
             <td>
-               <p>Flag. With this option, the script is run and a fully substituted Pig script produced in the current working directory named original_script_name.substituted </p>
+               <p>Flag. With this option, the script is run and a fully substituted Pig script is produced in the current working directory named original_script_name.substituted </p>
             </td>
          </tr>
          <tr>
             <td>
-               <p>–dryrun</p>
+               <p>-dryrun</p>
             </td>
             <td>
-               <p>Flag. With this option, the script is not run and a fully substituted Pig script produced in the current working directory named original_script_name.substituted</p>
+               <p>Flag. With this option, the script is not run and a fully substituted Pig script is produced in the current working directory named original_script_name.substituted</p>
             </td>
          </tr>
          <tr>
@@ -1408,18 +1400,21 @@ IMPORT 'my_macro.pig';
    
    <section>
    <title>Precedence</title>
-   <p>Precedence for parameters is as follows:</p>
-   <ul>
+   <p>Precedence for parameters is as follows, from highest to lowest:</p>
+   <ol>
       <li>
-         <p>Highest - parameters defined using the declare statement</p>
+         <p>Parameters defined using the declare statement</p>
       </li>
       <li>
-         <p>Next - parameters defined in the command line</p>
+         <p>Parameters defined in the command line using -param</p>
       </li>
       <li>
-         <p>Lowest - parameters defined in a script</p>
+         <p>Parameters defined in parameter files specified by -param_file</p>
       </li>
-   </ul>
+      <li>
+         <p>Parameters defined using the default statement</p>
+      </li>
+   </ol>
    </section>
    
    <section>
@@ -1461,7 +1456,7 @@ DUMP A;
 
 <p>In this example the parameter (data) and the parameter value (mydata) are specified in the command line. If the parameter name in the command line (data) and the parameter name in the script ($data) do not match, the script will not run. If the value for the parameter (mydata) is not found, an error is generated.</p>
 <source>
-$ pig –param data=mydata myscript.pig
+$ pig -param data=mydata myscript.pig
 
 (1,2,3)
 (4,2,1)
@@ -1482,7 +1477,7 @@ cmd = `generate_name`
    
    <p>In this example the parameters and values are passed to the script using the parameter file.</p>
 <source>
-$ pig –param_file myparams script2.pig
+$ pig -param_file myparams script2.pig
 </source>
    
    </section>
@@ -1528,7 +1523,7 @@ B = FILTER A BY description == '$DES';
    
    <p>In this example single word values that don't use special characters (in this case, mydata) don't have to be enclosed in quotes.</p>
 <source>
-$ pig –param data=mydata myscript.pig
+$ pig -param data=mydata myscript.pig
 </source>   
 </section>
    
@@ -1537,7 +1532,7 @@ $ pig –param data=mydata myscript.pig
    <title>Specifying Parameter Values as a Command</title>
    <p>In this example the command is enclosed in back ticks. First, the parameters mycmd and date are substituted when the declare statement is encountered. Then the resulting command is executed and its stdout is placed in the path before the load statement is run.</p>
 <source>
-%declare CMD '$mycmd $date';
+%declare CMD `$mycmd $date`;
 A = LOAD '/data/mydata/$CMD';
 B = FILTER A BY $0>'5';
  
