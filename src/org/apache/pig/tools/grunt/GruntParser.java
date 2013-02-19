@@ -723,6 +723,7 @@ public class GruntParser extends PigScriptParser {
                 Tuple t = result.next();
                 System.out.println(TupleFormat.format(t));
             }
+            FileLocalizer.deleteTempFiles();
         } else {
             log.warn("'dump' statement is ignored while processing 'explain -script' or '-check'");
         }
