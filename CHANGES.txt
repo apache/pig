@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-3131: Document PluckTuple UDF (rjurney via jcoveney) 
+
 PIG-3098: Add another test for the self join case (jcoveney)
 
 PIG-3129: Document syntax to refer to previous relation (rjurney via jcoveney)
