@@ -315,16 +315,16 @@ public final class JobStats extends Operator {
             sb.append(id).append("\t")
                 .append(numberMaps).append("\t")
                 .append(numberReduces).append("\t");
-            if (maxMapTime < 0) {
-                sb.append("n/a\t").append("n/a\t").append("n/a\t");
+            if (numberMaps == 0) {
+                sb.append("n/a\t").append("n/a\t").append("n/a\t").append("n/a\t");
             } else { 
                 sb.append(maxMapTime/1000).append("\t")
                     .append(minMapTime/1000).append("\t")
                     .append(avgMapTime/1000).append("\t")
                     .append(medianMapTime/1000).append("\t");
             }
-            if (maxReduceTime < 0) {
-                sb.append("n/a\t").append("n/a\t").append("n/a\t");
+            if (numberReduces == 0) {
+                sb.append("n/a\t").append("n/a\t").append("n/a\t").append("n/a\t");
             } else {
                 sb.append(maxReduceTime/1000).append("\t")
                     .append(minReduceTime/1000).append("\t")
