@@ -297,11 +297,11 @@ public class GruntParser extends PigScriptParser {
                                   String format, String target, 
                                   List<String> params, List<String> files) 
     throws IOException, ParseException {
-        if (alias == null) {
+        if (alias == null && script == null) {
             alias = mPigServer.getPigContext().getLastAlias();
             // if explain is used immediately after launching grunt shell then
             // last defined alias will be null
-            if (alias == null && script == null) {
+            if (alias == null) {
                 throw new ParseException("'explain' statement must be on an alias or on a script.");
             }
         }
