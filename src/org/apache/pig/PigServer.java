@@ -158,9 +158,6 @@ public class PigServer {
 
     private boolean validateEachStatement = false;
 
-    // PigStats object used in execution of script
-    private PigStats pigStatsForExecute = null;
-
     private String constructScope() {
         // scope servers for now as a session id
 
@@ -337,18 +334,13 @@ public class PigServer {
      * @throws IOException
      */
     public void parseAndBuild() throws IOException {
-        if( !isMultiQuery ) {
-            // ignore if multiquery is off
-            pigStatsForExecute = PigStats.get();
-        } else {
-            if (currDAG == null || !isBatchOn()) {
-                int errCode = 1083;
-                String msg = "setBatchOn() must be called first.";
-                throw new FrontendException(msg, errCode, PigException.INPUT);
-            }
-            currDAG.parseQuery();
-            currDAG.buildPlan( null );
+        if (currDAG == null || !isBatchOn()) {
+            int errCode = 1083;
+            String msg = "setBatchOn() must be called first.";
+            throw new FrontendException(msg, errCode, PigException.INPUT);
         }
+        currDAG.parseQuery();
+        currDAG.buildPlan( null );
     }
 
     /**
@@ -375,9 +367,15 @@ public class PigServer {
             parseAndBuild();
         }
 
-        pigStatsForExecute = execute();
+        PigStats stats = null;
+        if( !isMultiQuery ) {
+            // ignore if multiquery is off
+            stats = PigStats.get();
+        } else {
+            stats = execute();
+        }
 
-        return getJobs(pigStatsForExecute);
+        return getJobs(stats);
     }
 
     /**
