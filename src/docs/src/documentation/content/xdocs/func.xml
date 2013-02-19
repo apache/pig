@@ -764,6 +764,61 @@ DUMP X;
    </table>
    </section></section>
    
+   <section id="plucktuple">
+     <title>PluckTuple</title>
+     <p>Allows the user to specify a string prefix, and then filter for the columns in a relation that begin with that prefix.</p>
+     
+     <section>
+       <title>Syntax</title>
+       <table>
+         <tr>
+           <td>
+             <p>DEFINE pluck PluckTuple(expression1)</p>
+             <p>pluck(expression2)</p>
+            </td>
+          </tr>
+        </table>
+     </section>
+   </section>
+   
+   <section>
+     <title>Terms</title>
+     <table>
+       <tr>
+         <td>
+           <p>expression1</p>
+         </td>
+         <td>
+           <p>A prefix to pluck by</p>
+         </td>
+       </tr>
+       <tr>
+         <td>
+           <p>expression2</p>
+         </td>
+         <td>
+           <p>The fields to apply the pluck to, usually '*'</p>
+         </td>
+       </tr>
+     </table>
+   </section>
+   
+   <section>
+   <title>Usage</title>
+   <p>Example:</p>
+<source>
+a = load 'a' as (x, y);
+b = load 'b' as (x, y);
+c = join a by x, b by x;
+DEFINE pluck PluckTuple('a::');
+d = foreach c generate FLATTEN(pluck(*));
+describe c;
+c: {a::x: bytearray,a::y: bytearray,b::x: bytearray,b::y: bytearray}
+describe d;
+d: {plucked::a::x: bytearray,plucked::a::y: bytearray}
+</source>
+   </section>
+ </section>
    
      <!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->
    <section id="size">
