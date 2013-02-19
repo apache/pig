@@ -22,7 +22,7 @@
     <title>Overview </title>
   </header>
   <body>
-      <p>The Pig Documentation provides the information you need to get started using Pig.</p>  
+      <p>The Pig Documentation provides the information you need to get started using Pig. If you haven't already, download Pig now: <a href="http://pig.apache.org/releases.html#Download"/>.</p>
       
       <p>Begin with the <a href="start.html">Getting Started</a> guide which shows you how to set up Pig and how to form simple Pig Latin statements.
       When you are ready to start writing your own scripts, review the <a href="basic.html">Pig Latin Basics</a> manual to 
