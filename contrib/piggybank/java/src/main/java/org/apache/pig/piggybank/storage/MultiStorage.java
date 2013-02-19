@@ -252,9 +252,12 @@ public class MultiStorage extends StoreFunc {
              codec = (CompressionCodec) ReflectionUtils.newInstance(codecClass, ctx.getConfiguration());
              extension = codec.getDefaultExtension();
           }
-          
+
+          NumberFormat nf = NumberFormat.getInstance();
+          nf.setMinimumIntegerDigits(4);
+
           Path path = new Path(fieldValue+extension, fieldValue + '-'
-                + NumberFormat.getInstance().format(taskId.getId())+extension);
+                + nf.format(taskId.getId())+extension);
           Path workOutputPath = ((FileOutputCommitter)getOutputCommitter(ctx)).getWorkPath();
           Path file = new Path(workOutputPath, path);
           FileSystem fs = file.getFileSystem(conf);                
