@@ -26,6 +26,8 @@ PIG-3191: [piggybank] MultiStorage output filenames are not sortable (Danny Anto
 
 IMPROVEMENTS
 
+PIG-3169: Remove temporary files that are not needed (Mark Wagner via jcoveney)
+
 PIG-3131: Document PluckTuple UDF (rjurney via jcoveney) 
 
 PIG-3098: Add another test for the self join case (jcoveney)
