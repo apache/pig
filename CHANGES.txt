@@ -26,6 +26,8 @@ PIG-3191: [piggybank] MultiStorage output filenames are not sortable (Danny Anto
 
 IMPROVEMENTS
 
+PIG-3192: Better call to action to download Pig in docs (rjurney via jcoveney)
+
 PIG-3167: Job stats are printed incorrectly for map-only jobs (Mark Wagner via jcoveney)
 
 PIG-3169: Remove temporary files that are not needed (Mark Wagner via jcoveney)
