@@ -818,7 +818,6 @@ describe d;
 d: {plucked::a::x: bytearray,plucked::a::y: bytearray}
 </source>
    </section>
- </section>
    
      <!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->
    <section id="size">
