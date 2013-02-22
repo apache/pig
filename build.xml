@@ -1262,9 +1262,19 @@
          </artifact:install>
     </target>
 
-    <target name="mvn-deploy" depends="mvn-taskdef, mvn-jar, source-jar, javadoc-jar,
-       smoketests-jar, pigunit-jar, set-version, signanddeploy, simpledeploy"
-         description="To deploy pig jar to apache snapshot's repository">
+    <target name="mvn-build" depends="mvn-jar, source-jar,
+                                      javadoc-jar, smoketests-jar, pigunit-jar"
+         description="To build the pig jar artifacts to be deployed to apache maven repository">
+    </target>
+
+    <!-- Expects that mvn-build has already been run but does not run it. In some cases building
+    might happen on one host and signing/uploading on another. Hence the decoupled tasks. -->
+    <target name="mvn-publish" depends="mvn-taskdef, set-version, signanddeploy, simpledeploy"
+        description="To publish the pig jar artifacts to the apache maven repository">
+    </target>
+
+    <target name="mvn-deploy" depends="mvn-build, mvn-publish"
+         description="To build and upload pig jar to apache maven repository">
     </target>
 
     <target name="signanddeploy" if="staging" depends="sign">
@@ -1346,6 +1356,8 @@
     </target>
     <target name="set-version">
        <delete file="${basedir}/ivy/pig.pom"/>
+       <delete file="${basedir}/ivy/pigunit.pom"/>
+       <delete file="${basedir}/ivy/pigsmoke.pom"/>
        <copy file="${basedir}/ivy/pig-template.xml" tofile="${basedir}/ivy/pig.pom"/>
        <copy file="${basedir}/ivy/pigunit-template.xml" tofile="${basedir}/ivy/pigunit.pom"/>
        <copy file="${basedir}/ivy/pigsmoke-template.xml" tofile="${basedir}/ivy/pigsmoke.pom"/>
