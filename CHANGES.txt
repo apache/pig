@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 PIG-3191: [piggybank] MultiStorage output filenames are not sortable (Danny Antonelli via jcoveney)
 
+PIG-3174:  Remove rpm and deb artifacts from build.xml (gates)
+
 IMPROVEMENTS
 
 PIG-3189: Remove ivy/pig.pom and improve build mvn targets (billgraham)
