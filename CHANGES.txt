@@ -125,6 +125,8 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-3200: MiniCluster should delete hadoop-site.xml on shutDown (prkommireddi via cheolsoo)
+
 PIG-3158: Errors in the document "Control Structures" (miyakawataku via cheolsoo)
 
 PIG-3161: Update reserved keywords in Pig docs (russell.jurney via cheolsoo)
