@@ -39,6 +39,7 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -140,20 +141,26 @@ public class HExecutionEngine {
            
         JobConf jc = null;
         if ( this.pigContext.getExecType() == ExecType.MAPREDUCE ) {
-            
-            // Check existence of hadoop-site.xml or core-site.xml
-            Configuration testConf = new Configuration();
-            ClassLoader cl = testConf.getClassLoader();
-            URL hadoop_site = cl.getResource( HADOOP_SITE );
-            URL core_site = cl.getResource( CORE_SITE );
-            
-            if( hadoop_site == null && core_site == null ) {
-                throw new ExecException("Cannot find hadoop configurations in classpath (neither hadoop-site.xml nor core-site.xml was found in the classpath)." +
-                        " If you plan to use local mode, please put -x local option in command line", 
-                        4010);
+            // Check existence of user provided configs
+            String isHadoopConfigsOverriden = properties.getProperty("pig.use.overriden.hadoop.configs");
+            if (isHadoopConfigsOverriden != null && isHadoopConfigsOverriden.equals("true")) {
+                jc = new JobConf(ConfigurationUtil.toConfiguration(properties));
             }
+            else {
+                // Check existence of hadoop-site.xml or core-site.xml in classpath
+                // if user provided confs are not being used
+                Configuration testConf = new Configuration();
+                ClassLoader cl = testConf.getClassLoader();
+                URL hadoop_site = cl.getResource( HADOOP_SITE );
+                URL core_site = cl.getResource( CORE_SITE );
 
-            jc = new JobConf();
+                if( hadoop_site == null && core_site == null ) {
+                        throw new ExecException("Cannot find hadoop configurations in classpath (neither hadoop-site.xml nor core-site.xml was found in the classpath)." +
+                                " If you plan to use local mode, please put -x local option in command line", 
+                                4010);
+                }
+                jc = new JobConf();
+            }
             jc.addResource("pig-cluster-hadoop-site.xml");
             jc.addResource(YARN_SITE);
             
