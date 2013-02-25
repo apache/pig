@@ -1609,7 +1609,6 @@ public class PigServer {
                             throw new FrontendException(msg, errCode,
                                     PigException.INPUT, e);
                         }
-                        FileLocalizer.deleteTempFiles();
                         break; // We should have at most one store, so break here.
                     }
                 }
