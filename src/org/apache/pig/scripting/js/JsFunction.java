@@ -213,8 +213,10 @@ public class JsFunction extends EvalFunc<Object> {
             LOG.debug( "call "+functionName+"("+Arrays.toString(passedParams)+") => "+toString(result));
         }
 
-        // result is always a tuple: automatically wrapping when necessary to simplify UDFs 
-        if (outputSchema.size() == 1 && !(result instanceof NativeObject)) {
+        // We wrap the result with an object in the following cases:
+        //   1. Result is not an object type.
+        //   2. OutputSchema is a tuple type. 
+        if (!(result instanceof NativeObject) || outputSchema.getField(0).type == DataType.TUPLE) {
             Scriptable wrapper = jsScriptEngine.jsNewObject();
             wrapper.put(outputSchema.getField(0).alias, wrapper, result);
             result = wrapper;

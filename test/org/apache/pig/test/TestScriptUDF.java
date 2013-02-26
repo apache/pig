@@ -59,7 +59,7 @@ public class TestScriptUDF{
                 "function helloworld() {",
                 "return 'Hello, World';",
                 "}",
-                "complex.outputSchema = \"word:chararray,num:long\";",
+                "complex.outputSchema = \"(word:chararray,num:long)\";",
                 "function complex(word) {",
                 "return {word:word, num:word.length};",
                 "}",
