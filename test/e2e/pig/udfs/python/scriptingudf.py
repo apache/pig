@@ -40,7 +40,7 @@ def concat(word):
 def byteconcat(word):
     return word + word
 
-@outputSchema("outm:[], outt:(name:chararray, age:int, gpa:double), outb:{t:(name:chararray, age:int, gpa:double)}")
+@outputSchema("(outm:[], outt:(name:chararray, age:int, gpa:double), outb:{t:(name:chararray, age:int, gpa:double)})")
 def complexTypes(m, t, b):
     outm = {}
     if m == None:

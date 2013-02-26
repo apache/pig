@@ -125,6 +125,8 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-3150: e2e Scripting_5 fails in trunk (dreambird via cheolsoo)
+
 PIG-3153: TestScriptUDF.testJavascriptExampleScript fails in trunk (cheolsoo)
 
 PIG-3145: Parameters in core-site.xml and mapred-site.xml are not correctly substituted (cheolsoo)
