@@ -203,7 +203,20 @@ PIG-2885: TestJobSumission and TestHBaseStorage don't work with HBase 0.94 and Z
 
 PIG-2928: Fix e2e test failures in trunk: FilterBoolean_23/24 (cheolsoo via dvryaboy)
 
-Release 0.11.0 (unreleased)
+Release 0.11.1 (unreleased)
+
+INCOMPATIBLE CHANGES
+
+IMPROVEMENTS
+
+OPTIMIZATIONS
+
+BUG FIXES
+
+PIG-3206: HBaseStorage does not work with Oozie pig action and secure HBase (rohini)
+
+
+Release 0.11.0
 
 INCOMPATIBLE CHANGES
 
@@ -728,7 +741,7 @@ PIG-2355: ant clean does not clean e2e test build artifacts (daijy)
 
 PIG-2352: e2e test harness' use of environment variables causes unintended effects between tests (gates)
 
-Release 0.10.1 - Unreleased
+Release 0.10.1
 
 BUG FIXES
 

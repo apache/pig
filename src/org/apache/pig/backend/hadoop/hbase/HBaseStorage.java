@@ -771,17 +771,24 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         }
 
         if ("kerberos".equalsIgnoreCase(hbaseConf.get(HBASE_SECURITY_CONF_KEY))) {
+            // Will not be entering this block for 0.20.2 as it has no security.
             try {
                 // getCurrentUser method is not public in 0.20.2
                 Method m1 = UserGroupInformation.class.getMethod("getCurrentUser");
                 UserGroupInformation currentUser = (UserGroupInformation) m1.invoke(null,(Object[]) null);
-                // Class and method are available only from 0.92 security release
-                Class tokenUtilClass = Class
-                        .forName("org.apache.hadoop.hbase.security.token.TokenUtil");
-                Method m2 = tokenUtilClass.getMethod("obtainTokenForJob",
-                        new Class[] { Configuration.class, UserGroupInformation.class, Job.class });
-                m2.invoke(null,
-                        new Object[] { hbaseConf, currentUser, job });
+                // hasKerberosCredentials method not available in 0.20.2
+                Method m2 = UserGroupInformation.class.getMethod("hasKerberosCredentials");
+                boolean hasKerberosCredentials = (Boolean) m2.invoke(currentUser, (Object[]) null);
+                if (hasKerberosCredentials) {
+                    // Class and method are available only from 0.92 security release
+                    Class tokenUtilClass = Class
+                            .forName("org.apache.hadoop.hbase.security.token.TokenUtil");
+                    Method m3 = tokenUtilClass.getMethod("obtainTokenForJob", new Class[] {
+                            Configuration.class, UserGroupInformation.class, Job.class });
+                    m3.invoke(null, new Object[] { hbaseConf, currentUser, job });
+                } else {
+                    LOG.info("Not fetching hbase delegation token as no Kerberos TGT is available");
+                }
             } catch (ClassNotFoundException cnfe) {
                 throw new RuntimeException("Failure loading TokenUtil class, "
                         + "is secure RPC available?", cnfe);
