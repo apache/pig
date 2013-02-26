@@ -18,6 +18,19 @@
 
 Pig Change Log
 
+Release 0.11.1 (unreleased)
+
+INCOMPATIBLE CHANGES
+
+IMPROVEMENTS
+
+OPTIMIZATIONS
+
+BUG FIXES
+
+PIG-3206: HBaseStorage does not work with Oozie pig action and secure HBase (rohini)
+
+
 Release 0.11.0 (2013-02-02)
 
 INCOMPATIBLE CHANGES
