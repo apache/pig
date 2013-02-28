@@ -28,8 +28,6 @@ PIG-3174:  Remove rpm and deb artifacts from build.xml (gates)
 
 IMPROVEMENTS
 
-PIG-3202: CUBE operator not documented in user docs (prasanth_j via billgraham)
-
 PIG-3189: Remove ivy/pig.pom and improve build mvn targets (billgraham)
 
 PIG-3192: Better call to action to download Pig in docs (rjurney via jcoveney)
@@ -209,9 +207,13 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-3202: CUBE operator not documented in user docs (prasanth_j via billgraham)
+
 OPTIMIZATIONS
 
 BUG FIXES
+
+PIGG-3212: Race Conditions in POSort and (Internal)SortedBag during Proactive Spill (kadeng via dvryaboy)
 
 PIG-3206: HBaseStorage does not work with Oozie pig action and secure HBase (rohini)
 
