@@ -110,25 +110,27 @@ public class InternalSortedBag extends SortedSpillBag{
     
     @Override
     public void add(Tuple t) {
-    	if(mReadStarted) {
-            throw new IllegalStateException("InternalSortedBag is closed for adding new tuples");
-        }
-                
-    	if (mContents.size() > memLimit.getCacheLimit()) {    		
-    		proactive_spill(mComp);
+    	synchronized(mContents) {
+	    	if(mReadStarted) {
+	            throw new IllegalStateException("InternalSortedBag is closed for adding new tuples");
+	        }
+	                
+	    	if (mContents.size() > memLimit.getCacheLimit()) {    		
+	    		proactive_spill(mComp);
+	    	}
+	    	        
+	        mContents.add(t);
+	        
+	        // check how many tuples memory can hold by getting average
+	        // size of first 100 tuples
+	        if(mSize < 100 && (mSpillFiles == null || mSpillFiles.isEmpty())&&t!=null)
+	        {
+	            memLimit.addNewObjSize(t.getMemorySize());
+	        }
+	                
+	        mSize++;
+	        markSpillableIfNecessary();
     	}
-    	        
-        mContents.add(t);
-        
-        // check how many tuples memory can hold by getting average
-        // size of first 100 tuples
-        if(mSize < 100 && (mSpillFiles == null || mSpillFiles.isEmpty())&&t!=null)
-        {
-            memLimit.addNewObjSize(t.getMemorySize());
-        }
-                
-        mSize++;
-        markSpillableIfNecessary();
     }
     
     @Override
@@ -192,12 +194,14 @@ public class InternalSortedBag extends SortedSpillBag{
         private int mCntr = 0;
 
         SortedDataBagIterator() {
-            // If this is the first read, we need to sort the data.            
-        	if (!mReadStarted) {
-                preMerge();
-                Collections.sort((ArrayList<Tuple>)mContents, mComp);
-                mReadStarted = true;
-            }            
+            // If this is the first read, we need to sort the data.
+        	synchronized(mContents) {
+	        	if (!mReadStarted) {
+	                preMerge();
+	                Collections.sort((ArrayList<Tuple>)mContents, mComp);
+	                mReadStarted = true;
+	            }            
+        	}
         }
 
         @Override
@@ -436,7 +440,17 @@ public class InternalSortedBag extends SortedSpillBag{
 
     @Override
     public long spill(){
-        return proactive_spill(mComp);
+    	return proactive_spill(mComp);
     }
+
+	@Override
+	public long proactive_spill(Comparator<Tuple> comp) {
+		synchronized(mContents) {
+	    	if (this.mReadStarted) {
+	    		return 0L;
+	    	}
+	    	return super.proactive_spill(comp);
+		}
+	}
 
 }
