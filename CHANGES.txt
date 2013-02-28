@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-3202: CUBE operator not documented in user docs (prasanth_j via billgraham)
+
 OPTIMIZATIONS
 
 BUG FIXES
@@ -44,8 +46,6 @@ PIG-2931: $ signs in the replacement string make parameter substitution fail (ch
 PIG-1891 Enable StoreFunc to make intelligent decision based on job success or failure (initialcontext via gates)
 
 IMPROVEMENTS
-
-PIG-3202: CUBE operator not documented in user docs (prasanth_j via billgraham)
 
 PIG-3140: Document PigProgressNotificationListener configs (billgraham)
 
