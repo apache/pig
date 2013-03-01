@@ -1866,7 +1866,7 @@ class GroovyUDFs {",
 <title>Advanced Topics</title>
 <p>You can also write Algebraic and Accumulator UDFs using Groovy. Both types of UDFs are declared using annotations, a single Groovy file can therefore enclose several Algebraic/Accumulator UDFs, all mixed with regular UDFs.</p>
 
-<p>Algebraic UDFs are declared using three annotations, @AlgebraicInitial, @AlgebraicIntermed and @AlgebraicFinali which are to annotate methods that correspond to the initial, intermed and final steps of an Algebraic UDF. Those annotations have a single parameter which is the name of the Algebraic UDF that will be available in Pig. The methods annotated with @AlgebraicInitial and @AlgebraicIntermed accept a Tuple as parameter and return a Tuple. The return type of the method annotated with @AlgebraicFinal will determine the return type of the Algebraic UDF. Here is an example of an Algebraic UDF named 'sum' defined in Groovy:</p>
+<p>Algebraic UDFs are declared using three annotations, @AlgebraicInitial, @AlgebraicIntermed and @AlgebraicFinal which are to annotate methods that correspond to the initial, intermed and final steps of an Algebraic UDF. Those annotations have a single parameter which is the name of the Algebraic UDF that will be available in Pig. The methods annotated with @AlgebraicInitial and @AlgebraicIntermed accept a Tuple as parameter and return a Tuple. The return type of the method annotated with @AlgebraicFinal will determine the return type of the Algebraic UDF. Here is an example of an Algebraic UDF named 'sum' defined in Groovy:</p>
  <source>
 import org.apache.pig.scripting.groovy.AlgebraicInitial;
 import org.apache.pig.scripting.groovy.AlgebraicIntermed;
@@ -1904,7 +1904,7 @@ class GroovyUDFs {
 
 <p>Since Accumulator UDFs maintain state, the methods annotated with the @AccumulatorXXX annotations cannot be static. A single instance of the enclosing class will be used when invoking them, thus enabling them to access a single state.</p>
 
-<p>The following example defines an Accumulator UDF named 'sum':</p>
+<p>The following example defines an Accumulator UDF named 'sumacc':</p>
  <source>
 import org.apache.pig.builtin.OutputSchema;
 import org.apache.pig.scripting.groovy.AccumulatorAccumulate;

@@ -209,6 +209,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-3216: Groovy UDFs documentation has minor typos (herberts via rohini)
+
 PIG-3202: CUBE operator not documented in user docs (prasanth_j via billgraham)
 
 OPTIMIZATIONS
