@@ -134,6 +134,38 @@ public class TestPigTest {
     }
 
     @Test
+    public void testDelimiter() throws ParseException, IOException {
+        String[] args = {
+                        "n=3",
+                        "reducers=1",
+                        "input=top_queries_input_data.txt",
+                        "output=top_3_queries",
+        };
+        test = new PigTest(PIG_SCRIPT, args);
+
+        String[] input = {
+                        "yahoo,10",
+                        "twitter,7",
+                        "facebook,10",
+                        "yahoo,15",
+                        "facebook,5",
+                        "a,1",
+                        "b,2",
+                        "c,3",
+                        "d,4",
+                        "e,5",
+        };
+
+        String[] output = {
+                        "(yahoo,25)",
+                        "(facebook,15)",
+                        "(twitter,7)",
+        };
+
+        test.assertOutput("data", input, "queries_limit", output, ",");
+    }
+
+    @Test
     public void testSubset() throws ParseException, IOException {
         String[] args = {
                         "n=3",

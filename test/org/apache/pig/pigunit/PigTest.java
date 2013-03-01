@@ -259,6 +259,11 @@ public class PigTest {
 
   public void assertOutput(String aliasInput, String[] input, String alias, String[] expected)
       throws IOException, ParseException {
+    assertOutput(aliasInput, input, alias, expected, "\\t");
+  }
+
+  public void assertOutput(String aliasInput, String[] input, String alias, String[] expected, String delimiter)
+      throws IOException, ParseException {
     registerScript();
 
     StringBuilder sb = new StringBuilder();
@@ -267,7 +272,7 @@ public class PigTest {
     final String destination = FileLocalizer.getTemporaryPath(getPigServer().getPigContext()).toString();
     getCluster().copyFromLocalFile(input, destination, true);
     override(aliasInput,
-        String.format("%s = LOAD '%s' AS %s;", aliasInput, destination, sb.toString()));
+        String.format("%s = LOAD '%s' USING PigStorage('%s') AS %s;", aliasInput, destination, delimiter, sb.toString()));
 
     assertOutput(alias, expected);
   }
