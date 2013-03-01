@@ -694,21 +694,25 @@ public class MapReduceLauncher extends Launcher{
                     nullCounterCount++;
                     aggMap.put(PigWarning.NULL_COUNTER_COUNT, nullCounterCount);
                 }
-                for (Enum e : PigWarning.values()) {
-                    if (e != PigWarning.NULL_COUNTER_COUNT) {
-                        Long currentCount = aggMap.get(e);
-                        currentCount = (currentCount == null ? 0 : currentCount);
-                        // This code checks if the counters is null, if it is,
-                        // we need to report to the user that the number
-                        // of warning aggregations may not be correct. In fact,
-                        // Counters should not be null, it is
-                        // a hadoop bug, once this bug is fixed in hadoop, the
-                        // null handling code should never be hit.
-                        // See Pig-943
-                        if (counters != null)
-                            currentCount += counters.getCounter(e);
-                        aggMap.put(e, currentCount);
+                try {
+                    for (Enum e : PigWarning.values()) {
+                        if (e != PigWarning.NULL_COUNTER_COUNT) {
+                            Long currentCount = aggMap.get(e);
+                            currentCount = (currentCount == null ? 0 : currentCount);
+                            // This code checks if the counters is null, if it is,
+                            // we need to report to the user that the number
+                            // of warning aggregations may not be correct. In fact,
+                            // Counters should not be null, it is
+                            // a hadoop bug, once this bug is fixed in hadoop, the
+                            // null handling code should never be hit.
+                            // See Pig-943
+                            if (counters != null)
+                                currentCount += counters.getCounter(e);
+                            aggMap.put(e, currentCount);
+                        }
                     }
+                } catch (Exception e) {
+                    log.warn("Exception getting counters.", e);
                 }
             }
         } catch (IOException ioe) {
