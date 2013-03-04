@@ -19,11 +19,17 @@
 package org.apache.pig.newplan.logical.relational;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
+import org.apache.pig.newplan.logical.expression.LogicalExpression;
+import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
+
+import com.google.common.collect.Sets;
 
 /**
  * Logical representation of relational operators.  Relational operators have
@@ -204,5 +210,31 @@ abstract public class LogicalRelationalOperator extends Operator {
     
     public boolean isPinnedOption(Integer opt) {
         return mPinnedOptions.contains(opt);
+    }
+
+    private static void addFieldSchemaUidsToSet(Set<Long> uids, LogicalFieldSchema lfs) {
+        while (!uids.add(lfs.uid)) {
+            lfs.uid = LogicalExpression.getNextUid();
+        }
+        LogicalSchema ls = lfs.schema;
+        if (ls != null) {
+            for (LogicalFieldSchema lfs2 : ls.getFields()) {
+                addFieldSchemaUidsToSet(uids, lfs2);
+            }
+        }
+    }
+
+    /**
+     * In the case of an operation which manipualtes columns (such as a foreach or a join)
+     * it is possible for multiple columns to have been derived from the same
+     * column and thus have duplicate UID's. This detects that case and resets the uid.
+     * See PIG-3020 and PIG-3093 for more information.
+     * @param fss a list of LogicalFieldSchemas to check the uids of
+     */
+    public static void fixDuplicateUids(List<LogicalFieldSchema> fss) {
+        Set<Long> uids = Sets.newHashSet();
+        for (LogicalFieldSchema lfs : fss) {
+            LogicalRelationalOperator.addFieldSchemaUidsToSet(uids, lfs);
+        }
     }
 }

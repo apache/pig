@@ -62,8 +62,9 @@ public class LOGenerate extends LogicalRelationalOperator {
         
         if (uidOnlySchemas == null) {
             uidOnlySchemas = new ArrayList<LogicalSchema>();
-            for (int i=0;i<outputPlans.size();i++)
+            for (int i=0;i<outputPlans.size();i++) {
                 uidOnlySchemas.add(null);
+            }
         }
         
         schema = new LogicalSchema();
@@ -191,6 +192,11 @@ public class LOGenerate extends LogicalRelationalOperator {
             schema = null;
             outputPlanSchemas = null;
         }
+        
+        if (schema != null) {
+            LogicalRelationalOperator.fixDuplicateUids(schema.getFields());
+        }
+        
         return schema;
     }
 
