@@ -34,6 +34,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-3144: Erroneous map entry alias resolution leading to "Duplicate schema alias" errors (jcoveney via cheolsoo)
+
 PIG-3212: Race Conditions in POSort and (Internal)SortedBag during Proactive Spill (kadeng via dvryaboy)
 
 PIG-3206: HBaseStorage does not work with Oozie pig action and secure HBase (rohini)

@@ -21,17 +21,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.PlanVisitor;
-import org.apache.pig.newplan.logical.expression.LogicalExpression;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
-import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
 
-import com.google.common.collect.Sets;
 
 
 public class LOJoin extends LogicalRelationalOperator {
@@ -160,7 +156,7 @@ public class LOJoin extends LogicalRelationalOperator {
             }
         }
 
-        fixDuplicateUids(fss);
+        LogicalRelationalOperator.fixDuplicateUids(fss);
 
         schema = new LogicalSchema();
         for(LogicalSchema.LogicalFieldSchema fieldSchema: fss) {
@@ -168,31 +164,6 @@ public class LOJoin extends LogicalRelationalOperator {
         }
 
         return schema;
-    }
-
-    /**
-     * In the case of a join it is possible for multiple columns to have been derived from the same
-     * column and thus have duplicate UID's. This detects that case and resets the uid.
-     * See PIG-3022 and PIG-3093 for more information.
-     * @param fss a list of LogicalFieldSchemas to check the uids of
-     */
-    private void fixDuplicateUids(List<LogicalFieldSchema> fss) {
-        Set<Long> uids = Sets.newHashSet();
-        for (LogicalFieldSchema lfs : fss) {
-            addFieldSchemaUidsToSet(uids, lfs);
-        }
-    }
-
-    private void addFieldSchemaUidsToSet(Set<Long> uids, LogicalFieldSchema lfs) {
-        while (!uids.add(lfs.uid)) {
-            lfs.uid = LogicalExpression.getNextUid();
-        }
-        LogicalSchema ls = lfs.schema;
-        if (ls != null) {
-            for (LogicalFieldSchema lfs2 : ls.getFields()) {
-                addFieldSchemaUidsToSet(uids, lfs2);
-            }
-        }
     }
 
     @Override
