@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-3148: OutOfMemory exception while spilling stale DefaultDataBag. Extra option to gc() before spilling large bag. (knoguchi via rohini)
+
 PIG-3216: Groovy UDFs documentation has minor typos (herberts via rohini)
 
 PIG-3202: CUBE operator not documented in user docs (prasanth_j via billgraham)
