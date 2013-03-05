@@ -319,9 +319,10 @@ public class MapReduceLauncher extends Launcher{
             	jobsWithoutIds.removeAll(jobsAssignedIdInThisRun);
 
             	double prog = (numMRJobsCompl+calculateProgress(jc, jobClient))/totalMRJobs;
-            	notifyProgress(prog, lastProg);
-            	lastProg = prog;
-            	
+            	if (notifyProgress(prog, lastProg)) {
+                    lastProg = prog;
+                }
+
             	// collect job stats by frequently polling of completed jobs (PIG-1829)
             	PigStatsUtil.accumulateStats(jc);
             	
@@ -507,15 +508,16 @@ public class MapReduceLauncher extends Launcher{
      * @param prog current progress
      * @param lastProg progress last time
      */
-    private void notifyProgress(double prog, double lastProg) {
-        if(prog>=(lastProg+0.01)){
+    private boolean notifyProgress(double prog, double lastProg) {
+        if (prog >= (lastProg + 0.04)) {
             int perCom = (int)(prog * 100);
             if(perCom!=100) {
                 log.info( perCom + "% complete");
-                
                 ScriptState.get().emitProgressUpdatedNotification(perCom);
             }
-        }      
+            return true;
+        }
+        return false;
     }
 
     @Override
