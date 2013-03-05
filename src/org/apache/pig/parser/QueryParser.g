@@ -75,6 +75,7 @@ tokens {
     TOBAG;
     TOMAP;
     TOTUPLE;
+    FAT_ARROW;
 }
 
 @header {
@@ -209,14 +210,17 @@ nested_op_clause : LEFT_PAREN! op_clause parallel_clause? RIGHT_PAREN!
                     -> ^( FOREACH rel foreach_plan_complex? foreach_plan_simple? ) parallel_clause?
 ;
 
-general_statement : ( IDENTIFIER EQUAL )? ( ( op_clause parallel_clause? ) | nested_op_clause ) -> ^( STATEMENT IDENTIFIER? op_clause? parallel_clause? nested_op_clause? )
+general_statement : FAT_ARROW ( ( op_clause parallel_clause? ) | nested_op_clause ) -> ^( STATEMENT IDENTIFIER["____RESERVED____"] op_clause? parallel_clause? nested_op_clause? )
+                  | ( IDENTIFIER EQUAL )? ( ( op_clause parallel_clause? ) | nested_op_clause ) -> ^( STATEMENT IDENTIFIER? op_clause? parallel_clause? nested_op_clause? )
 ;
 
 // Statement represented by a foreach operator with a nested block. Simple foreach statement
 // is covered by general_statement.
 // We need to handle foreach specifically because of the ending ';', which is not required
 // if there is a nested block. This is ugly, but it gets the job done.
-foreach_statement : ( IDENTIFIER EQUAL )? FOREACH rel ( foreach_plan_complex | ( foreach_plan_simple parallel_clause? SEMI_COLON ) )
+foreach_statement : FAT_ARROW FOREACH rel ( foreach_plan_complex | ( foreach_plan_simple parallel_clause? SEMI_COLON ) )
+    -> ^( STATEMENT IDENTIFIER["____RESERVED____"] ^( FOREACH rel foreach_plan_complex? foreach_plan_simple? ) parallel_clause? )
+                  | ( IDENTIFIER EQUAL )? FOREACH rel ( foreach_plan_complex | ( foreach_plan_simple parallel_clause? SEMI_COLON ) )
     -> ^( STATEMENT IDENTIFIER? ^( FOREACH rel foreach_plan_complex? foreach_plan_simple? ) parallel_clause? )
 ;
 

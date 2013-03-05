@@ -1658,4 +1658,8 @@ public class LogicalPlanBuilder {
       return lastRel;
   }
 
+    public String getLastRel() {
+        return lastRel;
+    }
+
 }

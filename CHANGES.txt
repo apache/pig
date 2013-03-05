@@ -28,6 +28,8 @@ PIG-3174:  Remove rpm and deb artifacts from build.xml (gates)
 
 IMPROVEMENTS
 
+PIG-3136: Introduce a syntax making declared aliases optional (jcoveney via cheolsoo)
+
 PIG-3142: [piggybank] Fixed-width load and store functions for the Piggybank (jpacker via cheolsoo)
 
 PIG-3162: PigTest.assertOutput doesn't allow non-default delimiter (dreambird via cheolsoo)
