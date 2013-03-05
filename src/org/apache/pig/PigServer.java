@@ -196,7 +196,7 @@ public class PigServer {
     public PigServer(ExecType execType, Properties properties) throws ExecException {
         this(new PigContext(execType, properties));
     }
-    
+
     public PigServer(ExecType execType, Configuration conf) throws ExecException {
         this(new PigContext(execType, conf));
     }
@@ -765,6 +765,9 @@ public class PigServer {
      */
     public Schema dumpSchema(String alias) throws IOException {
         try {
+            if ("@".equals(alias)) {
+                alias = getLastRel();
+            }
             LogicalRelationalOperator op = getOperatorForAlias( alias );
             LogicalSchema schema = op.getSchema();
 
@@ -796,6 +799,9 @@ public class PigServer {
      * @throws IOException
      */
     public Schema dumpSchemaNested(String alias, String nestedAlias) throws IOException {
+        if ("@".equals(alias)) {
+            alias = getLastRel();
+        }
         Operator op = getOperatorForAlias( alias );
         if( op instanceof LOForEach ) {
             LogicalSchema nestedSc = ((LOForEach)op).dumpNestedSchema(alias, nestedAlias);
@@ -969,6 +975,9 @@ public class PigServer {
 
     private PigStats storeEx(String alias, String filename, String func)
     throws IOException {
+        if ("@".equals(alias)) {
+            alias = getLastRel();
+        }
         currDAG.parseQuery();
         currDAG.buildPlan( alias );
 
@@ -1237,14 +1246,14 @@ public class PigServer {
 
     public void printHistory(boolean withNumbers) {
 
-    	List<String> sc = currDAG.getScriptCache();
+        List<String> sc = currDAG.getScriptCache();
 
-    	if(!sc.isEmpty()) {
-    		for(int i = 0 ; i < sc.size(); i++) {
-    			if(withNumbers) System.out.print((i+1)+"   ");
-    			System.out.println(sc.get(i));
-    		}
-    	}
+        if(!sc.isEmpty()) {
+            for(int i = 0 ; i < sc.size(); i++) {
+                if(withNumbers) System.out.print((i+1)+"   ");
+                System.out.println(sc.get(i));
+            }
+        }
 
     }
 
@@ -1389,6 +1398,7 @@ public class PigServer {
         private final Map<LogicalRelationalOperator, LogicalPlan> aliases = new HashMap<LogicalRelationalOperator, LogicalPlan>();
 
         private Map<String, Operator> operators = new HashMap<String, Operator>();
+        private String lastRel;
 
         private final List<String> scriptCache = new ArrayList<String>();
 
@@ -1628,7 +1638,7 @@ public class PigServer {
         }
 
         public List<String> getScriptCache() {
-        	return scriptCache;
+            return scriptCache;
         }
 
         /**
@@ -1649,6 +1659,7 @@ public class PigServer {
                 QueryParserDriver parserDriver = new QueryParserDriver( pigContext, scope, fileNameMap );
                 lp = parserDriver.parse( query );
                 operators = parserDriver.getOperators();
+                lastRel = parserDriver.getLastRel();
             } catch(Exception ex) {
                 scriptCache.remove( scriptCache.size() -1 ); // remove the bad script from the cache.
                 PigException pe = LogUtils.getPigException(ex);
@@ -1657,6 +1668,10 @@ public class PigServer {
                         + (pe == null ? ex.getMessage() : pe.getMessage());
                 throw new FrontendException (msg, errCode, PigException.INPUT , ex );
             }
+        }
+
+        public String getLastRel() {
+            return lastRel;
         }
 
         private String buildQuery() {
@@ -1815,5 +1830,9 @@ public class PigServer {
      */
     public void setValidateEachStatement(boolean validateEachStatement) {
         this.validateEachStatement = validateEachStatement;
+    }
+
+    public String getLastRel() {
+        return currDAG.getLastRel();
     }
 }

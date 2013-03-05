@@ -120,6 +120,10 @@ public Map<String, Operator> getOperators() {
     return builder.getOperators();
 }
 
+public String getLastRel() {
+    return builder.getLastRel();
+}
+
 @Override
 protected Object recoverFromMismatchedToken(IntStream input, int ttype, BitSet follow)
 throws RecognitionException {

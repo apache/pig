@@ -19,13 +19,10 @@
 package org.apache.pig.parser;
 
 import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -42,7 +39,6 @@ import org.antlr.runtime.tree.CommonTreeNodeStream;
 import org.antlr.runtime.tree.Tree;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.fs.Path;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.PigContext;
@@ -67,6 +63,7 @@ public class QueryParserDriver {
     private String scope;
     private Map<String, String>fileNameMap;
     private Map<String, Operator> operators;
+    private String lastRel;
     private Set<String> importSeen;
     private Set<String> macroSeen;
 
@@ -187,6 +184,7 @@ public class QueryParserDriver {
 
             plan = planGenerator.getLogicalPlan();
             operators = planGenerator.getOperators();
+            lastRel = planGenerator.getLastRel();
         } catch(RecognitionException ex) {
             throw new ParserException( ex );
         } catch(Exception ex) {
@@ -537,5 +535,9 @@ public class QueryParserDriver {
             sb.append(". Reason: ").append(reason);
         }
         return sb.toString();
+    }
+
+    public String getLastRel() {
+        return lastRel;
     }
 }
