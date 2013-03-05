@@ -34,6 +34,7 @@ import org.antlr.runtime.RecognitionException;
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
@@ -826,12 +827,10 @@ public class LogicalPlanBuilder {
         String absolutePath;
         LoadFunc loFunc;
         try {
-            FuncSpec instantiatedFuncSpec =
-                    funcSpec == null ?
-                        new FuncSpec(PigStorage.class.getName()) :
-                        funcSpec;
-            loFunc = (LoadFunc)PigContext.instantiateFuncFromSpec(instantiatedFuncSpec);
-            String fileNameKey = QueryParserUtils.constructFileNameSignature(filename, instantiatedFuncSpec) + "_" + (loadIndex++);
+            // Load LoadFunc class from default properties if funcSpec is null. Fallback on PigStorage if LoadFunc is not specified in properties.
+            funcSpec = funcSpec == null ? new FuncSpec(pigContext.getProperties().getProperty(PigConfiguration.PIG_DEFAULT_LOAD_FUNC, PigStorage.class.getName())) : funcSpec;
+            loFunc = (LoadFunc)PigContext.instantiateFuncFromSpec(funcSpec);
+            String fileNameKey = QueryParserUtils.constructFileNameSignature(filename, funcSpec) + "_" + (loadIndex++);
             absolutePath = fileNameMap.get(fileNameKey);
             if (absolutePath == null) {
                 absolutePath = loFunc.relativeToAbsolutePath( filename, QueryParserUtils.getCurrentDir( pigContext ) );
@@ -885,12 +884,9 @@ public class LogicalPlanBuilder {
     String buildStoreOp(SourceLocation loc, String alias, String inputAlias, String filename, FuncSpec funcSpec)
     throws ParserValidationException {
         try {
-            FuncSpec instantiatedFuncSpec =
-                    funcSpec == null ?
-                            new FuncSpec(PigStorage.class.getName()):
-                            funcSpec;
-
-            StoreFuncInterface stoFunc = (StoreFuncInterface)PigContext.instantiateFuncFromSpec(instantiatedFuncSpec);
+            // Load StoreFunc class from default properties if funcSpec is null. Fallback on PigStorage if StoreFunc is not specified in properties.
+            funcSpec = funcSpec == null ? new FuncSpec(pigContext.getProperties().getProperty(PigConfiguration.PIG_DEFAULT_STORE_FUNC, PigStorage.class.getName())) : funcSpec;
+            StoreFuncInterface stoFunc = (StoreFuncInterface)PigContext.instantiateFuncFromSpec(funcSpec);
             String fileNameKey = inputAlias + "_" + (storeIndex++) ;
 
             String signature = inputAlias + "_" + newOperatorKey();

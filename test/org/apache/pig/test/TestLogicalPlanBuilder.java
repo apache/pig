@@ -33,6 +33,7 @@ import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
@@ -56,6 +57,7 @@ import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOGenerate;
 import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LOSort;
+import org.apache.pig.newplan.logical.relational.LOStore;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.test.utils.Identity;
@@ -2113,9 +2115,71 @@ public class TestLogicalPlanBuilder {
         }
         Assert.assertEquals("C", pigServer.getPigContext().getLastAlias());
     }
-
-    private void printPlan(LogicalExpressionPlan lp) {
-        System.err.println( lp.toString() );
+    
+    @Test
+    public void testBuildLoadOpWithDefaultFunc() throws Exception {
+        String query = "a = load '1.txt';" +
+                "store a into 'output';";
+        LogicalPlan lp = buildPlan(query);
+        FuncSpec funcSpec = getFirstLoadFuncSpec(lp);
+        assertEquals("org.apache.pig.builtin.PigStorage", funcSpec.getClassName());
+        
+        // set default load func in config
+        pigServer.getPigContext().getProperties().setProperty(PigConfiguration.PIG_DEFAULT_LOAD_FUNC, "org.apache.pig.test.PigStorageWithSchema");
+        query = "a = load '1.txt';" +
+                "store a into 'output';";
+        lp = buildPlan(query);
+        funcSpec = getFirstLoadFuncSpec(lp);
+        assertEquals("org.apache.pig.test.PigStorageWithSchema", funcSpec.getClassName());    
+        
+        // unset default load func
+        pigServer.getPigContext().getProperties().remove(PigConfiguration.PIG_DEFAULT_LOAD_FUNC);      
+    }
+    
+    @Test
+    public void testBuildStoreOpWithDefaultFunc() throws Exception {
+        String query = "a = load '1.txt';" +
+                "store a into 'output';";
+        LogicalPlan lp = buildPlan(query);
+        FuncSpec funcSpec = getFirstStoreFuncSpec(lp);
+        assertEquals("org.apache.pig.builtin.PigStorage", funcSpec.getClassName());
+        
+        // set default load func in config
+        pigServer.getPigContext().getProperties().setProperty(PigConfiguration.PIG_DEFAULT_STORE_FUNC, "org.apache.pig.test.PigStorageWithSchema");
+        query = "a = load '1.txt';" +
+                "store a into 'output';";
+        lp = buildPlan(query);
+        funcSpec = getFirstStoreFuncSpec(lp);
+        assertEquals("org.apache.pig.test.PigStorageWithSchema", funcSpec.getClassName());    
+        
+        // unset default load func
+        pigServer.getPigContext().getProperties().remove(PigConfiguration.PIG_DEFAULT_STORE_FUNC);      
+    }
+    
+    /**
+     * This method is not generic. Expects logical plan to have atleast
+     * 1 source and returns the corresponding FuncSpec.
+     * Specific to {@link #testBuildLoadOpWithDefaultFunc()}.
+     * 
+     * @param lp LogicalPlan
+     * @return FuncSpec associated with 1st source
+     */
+    private FuncSpec getFirstLoadFuncSpec(LogicalPlan lp) {
+        List<Operator> sources = lp.getSources();
+        return ((LOLoad)sources.get(0)).getFileSpec().getFuncSpec();
+    }
+    
+    /**
+     * This method is not generic. Expects logical plan to have atleast
+     * 1 sink and returns the corresponding FuncSpec
+     * Specific to {@link #testBuildStoreOpWithDefaultFunc()}.
+     * 
+     * @param lp LogicalPlan
+     * @return FuncSpec associated with 1st sink
+     */
+    private FuncSpec getFirstStoreFuncSpec(LogicalPlan lp) {
+        List<Operator> sinks = lp.getSinks();
+        return ((LOStore)sinks.get(0)).getFileSpec().getFuncSpec();
     }
 
     private boolean checkPlanForProjectStar(LogicalExpressionPlan lp) {
