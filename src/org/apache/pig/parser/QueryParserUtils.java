@@ -27,14 +27,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.antlr.runtime.tree.CommonTree;
-import org.antlr.runtime.tree.Tree;
 import org.antlr.runtime.CommonTokenStream;
 import org.antlr.runtime.RecognitionException;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.antlr.runtime.tree.CommonTree;
+import org.antlr.runtime.tree.Tree;
 import org.apache.hadoop.fs.Path;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.datastorage.ContainerDescriptor;
 import org.apache.pig.backend.datastorage.DataStorage;
@@ -49,7 +48,6 @@ import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.tools.pigstats.ScriptState;
 
 public class QueryParserUtils {
-    private static Log log = LogFactory.getLog( LogicalPlanGenerator.class );
 
     public static String removeQuotes(String str) {
         if (str.startsWith("\u005c'") && str.endsWith("\u005c'"))
@@ -60,9 +58,7 @@ public class QueryParserUtils {
 
     public static void attachStorePlan(String scope, LogicalPlan lp, String fileName, String func, 
             Operator input, String alias, PigContext pigContext) throws FrontendException {
-        if( func == null ) {
-            func = PigStorage.class.getName();
-        }
+        func = func == null ? pigContext.getProperties().getProperty(PigConfiguration.PIG_DEFAULT_STORE_FUNC, PigStorage.class.getName()) : func;
 
         FuncSpec funcSpec = new FuncSpec( func );
         StoreFuncInterface stoFunc = (StoreFuncInterface)PigContext.instantiateFuncFromSpec( funcSpec );

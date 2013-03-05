@@ -28,6 +28,8 @@ PIG-3174:  Remove rpm and deb artifacts from build.xml (gates)
 
 IMPROVEMENTS
 
+PIG-3211: Allow default Load/Store funcs to be configurable (prkommireddi via cheolsoo)
+
 PIG-3136: Introduce a syntax making declared aliases optional (jcoveney via cheolsoo)
 
 PIG-3142: [piggybank] Fixed-width load and store functions for the Piggybank (jpacker via cheolsoo)

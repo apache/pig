@@ -81,4 +81,16 @@ public class PigConfiguration {
      * will be set in the environment.
      */
     public static final String PIG_STREAMING_ENVIRONMENT = "pig.streaming.environment";
+    
+    /**
+     * This key is used to define the default load func. Pig will fallback on PigStorage
+     * as default in case this is undefined.
+     */
+    public static final String PIG_DEFAULT_LOAD_FUNC = "pig.default.load.func";
+    
+    /**
+     * This key is used to define the default store func. Pig will fallback on PigStorage
+     * as default in case this is undefined.
+     */
+    public static final String PIG_DEFAULT_STORE_FUNC = "pig.default.store.func";
 }
