@@ -231,6 +231,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-3241: ConcurrentModificationException in POPartialAgg (dvryaboy)
+
 PIG-3144: Erroneous map entry alias resolution leading to "Duplicate schema alias" errors (jcoveney via cheolsoo)
 
 PIGG-3212: Race Conditions in POSort and (Internal)SortedBag during Proactive Spill (kadeng via dvryaboy)
