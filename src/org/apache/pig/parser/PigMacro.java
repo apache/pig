@@ -298,7 +298,7 @@ class PigMacro {
                 testSet.add(st.sval.substring(1));
             } else if (matchDollarAlias(st, false)) {
                 String prevWord = st.sval;
-                if (matchWord(st, "if", true)) {
+                if (matchWord(st, "if", true) || matchWord(st, "otherwise", true)) {
                     testSet.add(prevWord.substring(1));
                 } else if (matchChar(st, '=', true) && !matchChar(st, '=', true)) {
                      testSet.add(prevWord.substring(1)); 

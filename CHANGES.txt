@@ -137,6 +137,8 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-3239: Unable to return multiple values from a macro using SPLIT (dreambird via cheolsoo)
+
 PIG-3077: TestMultiQueryLocal should not write in /tmp (dreambird via cheolsoo)
 
 PIG-3081: Pig progress stays at 0% for the first job in hadoop 23 (rohini)
