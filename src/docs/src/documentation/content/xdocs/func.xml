@@ -1711,7 +1711,8 @@ A = LOAD 'data' USING TextLoader();
    <title>Usage</title>
    <p>HBaseStorage stores and loads data from HBase. The function takes two arguments. The first
        argument is a space seperated list of columns. The second optional argument is a
-       space seperated list of options. Column syntax and available options are listed above.</p>
+       space seperated list of options. Column syntax and available options are listed above.  
+       Note that HBaseStorage always disable split combination.</p>
    </section>
 
    <section>
