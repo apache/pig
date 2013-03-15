@@ -30,6 +30,7 @@
     <property name="pig.pom" value="${basedir}/ivy/pig.pom" />
     <property name="pigsmoke.pom" value="${basedir}/ivy/pigsmoke.pom" />
     <property name="pigunit.pom" value="${basedir}/ivy/pigunit.pom" />
+    <property name="piggybank.pom" value="${basedir}/ivy/piggybank.pom" />
     <property name="pig.version" value="0.12.0" />
     <property name="pig.version.suffix" value="-SNAPSHOT" />
     <property name="version" value="${pig.version}${pig.version.suffix}" />
@@ -99,6 +100,7 @@
     <property name="test.exclude.file" value="${test.src.dir}/excluded-tests"/>
     <property name="test.exclude.file.23" value="${test.src.dir}/excluded-tests-23"/>
     <property name="pigunit.jarfile" value="pigunit.jar" />
+    <property name="piggybank.jarfile" value="${basedir}/contrib/piggybank/java/piggybank.jar" />
     <property name="smoke.tests.jarfile" value="${build.dir}/${final.name}-smoketests.jar" />
     <property name="test.pigunit.src.dir" value="${test.src.dir}/org/apache/pig/test/pigunit" />
     <property name="test.pigunit.file" value="${test.src.dir}/pigunit-tests"/>
@@ -307,7 +309,7 @@
         <pathelement location="${ivy.lib.dir}/junit-3.8.1.jar"/>
         <pathelement location="${build.classes}"/>
         <pathelement location="${test.src.dir}"/>
-        <pathelement location="contrib/piggybank/java/piggybank.jar"/>
+        <pathelement location="${piggybank.jarfile}"/>
         <path refid="classpath"/>
     </path>
 
@@ -1071,7 +1073,7 @@
           classpathref="mvn-ant-task.classpath"/>
     </target>
     <target name="mvn-install" depends="mvn-taskdef,jar, set-version, source-jar,
-      javadoc-jar, pigunit-jar, smoketests-jar"
+      javadoc-jar, pigunit-jar, smoketests-jar, piggybank"
          description="To install pig to local filesystem's m2 cache">
          <artifact:pom file="${pig.pom}" id="pig"/>
           <artifact:install file="${output.jarfile.core}">
@@ -1087,10 +1089,14 @@
           <artifact:install file="${smoke.tests.jarfile}">
                <pom refid="pigsmoke"/>
          </artifact:install>
+         <artifact:pom file="${piggybank.pom}" id="piggybank"/>
+         <artifact:install file="${piggybank.jarfile}">
+               <pom refid="piggybank"/>
+         </artifact:install>
     </target>
 
     <target name="mvn-build" depends="mvn-jar, source-jar,
-                                      javadoc-jar, smoketests-jar, pigunit-jar"
+                                      javadoc-jar, smoketests-jar, pigunit-jar, piggybank"
          description="To build the pig jar artifacts to be deployed to apache maven repository">
     </target>
 
@@ -1131,6 +1137,12 @@
            <attach file="${smoke.tests.jarfile}.asc" type="jar.asc"/>
            <attach file="${pigsmoke.pom}.asc" type="pom.asc"/>
         </artifact:deploy>
+        <artifact:deploy file="${piggybank.jarfile}">
+           <remoteRepository id="apache.staging.https" url="${asfstagingrepo}"/>
+           <pom refid="piggybank"/>
+           <attach file="${piggybank.jarfile}.asc" type="jar.asc"/>
+           <attach file="${piggybank.pom}.asc" type="pom.asc"/>
+        </artifact:deploy>
     </target>
 
     <target name="simpledeploy" unless="staging">
@@ -1152,6 +1164,11 @@
       <artifact:deploy file="${smoke.tests.jarfile}">
               <remoteRepository id="apache.snapshots.https" url="${asfsnapshotrepo}"/>
               <pom refid="pigsmoke"/>
+      </artifact:deploy>
+      <artifact:pom file="${piggybank.pom}" id="piggybank"/>
+      <artifact:deploy file="${piggybank.jarfile}">
+              <remoteRepository id="apache.snapshots.https" url="${asfsnapshotrepo}"/>
+              <pom refid="piggybank"/>
       </artifact:deploy>
     </target>
 
@@ -1194,6 +1211,10 @@
         output.file="${pigsmoke.pom}.asc" gpg.passphrase="${gpg.passphrase}"/>
        <sign-artifact input.file="${smoke.tests.jarfile}"
         output.file="${smoke.tests.jarfile}.asc" gpg.passphrase="${gpg.passphrase}"/>
+       <sign-artifact input.file="${piggybank.jarfile}"
+        output.file="${piggybank.jarfile}.asc" gpg.passphrase="${gpg.passphrase}"/>
+       <sign-artifact input.file="${piggybank.pom}"
+        output.file="${piggybank.pom}.asc" gpg.passphrase="${gpg.passphrase}"/>
     </target>
 
     <target name="clean-sign" description="Clean.  Delete .asc files">
@@ -1202,19 +1223,19 @@
        </delete>
     </target>
     <target name="set-version">
-       <delete file="${basedir}/ivy/pig.pom"/>
-       <delete file="${basedir}/ivy/pigunit.pom"/>
-       <delete file="${basedir}/ivy/pigsmoke.pom"/>
-       <copy file="${basedir}/ivy/pig-template.xml" tofile="${basedir}/ivy/pig.pom"/>
-       <copy file="${basedir}/ivy/pigunit-template.xml" tofile="${basedir}/ivy/pigunit.pom"/>
-       <copy file="${basedir}/ivy/pigsmoke-template.xml" tofile="${basedir}/ivy/pigsmoke.pom"/>
+       <delete file="${pig.pom}"/>
+       <delete file="${pigunit.pom}"/>
+       <delete file="${pigsmoke.pom}"/>
+       <delete file="${piggybank.pom}"/>
+       <copy file="${basedir}/ivy/pig-template.xml" tofile="${pig.pom}"/>
+       <copy file="${basedir}/ivy/pigunit-template.xml" tofile="${pigunit.pom}"/>
+       <copy file="${basedir}/ivy/pigsmoke-template.xml" tofile="${pigsmoke.pom}"/>
+       <copy file="${basedir}/ivy/piggybank-template.xml" tofile="${piggybank.pom}"/>
        <replaceregexp byline="true">
          <regexp pattern="@version"/>
          <substitution expression="${version}"/>
          <fileset dir="${basedir}/ivy">
-           <include name="pig.pom"/>
-           <include name="pigunit.pom"/>
-           <include name="pigsmoke.pom"/>
+           <include name="*.pom"/>
          </fileset>
        </replaceregexp>
     </target>
