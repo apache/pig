@@ -76,7 +76,9 @@ script="$(basename -- "$this")"
 this="$bin/$script"
 
 # the root of the Pig installation
-export PIG_HOME=`dirname "$this"`/..
+if [ -z "$PIG_HOME" ]; then
+    export PIG_HOME=`dirname "$this"`/..
+fi
 
 if [ -z "$PIG_CONF_DIR" ]; then
     if [ -f ${PIG_HOME}/conf/pig.properties ]; then
