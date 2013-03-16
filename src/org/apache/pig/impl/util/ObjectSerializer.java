@@ -22,16 +22,15 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
 
 import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 public class ObjectSerializer {
-    private static final Log log = LogFactory.getLog(ObjectSerializer.class);
 
     public static String serialize(Serializable obj) throws IOException {
         if (obj == null)
@@ -61,11 +60,11 @@ public class ObjectSerializer {
         }
     }
 
-    public static String encodeBytes(byte[] bytes) {
-        return Base64.encodeBase64URLSafeString(bytes);
+    public static String encodeBytes(byte[] bytes) throws UnsupportedEncodingException {
+        return bytes == null ? null : new String(Base64.encodeBase64(bytes), Charset.forName("UTF-8"));
     }
 
-    public static byte[] decodeBytes(String str) {
-        return Base64.decodeBase64(str);
+    public static byte[] decodeBytes(String str) throws UnsupportedEncodingException {
+        return Base64.decodeBase64(str.getBytes(Charset.forName("UTF-8")));
     }
 }
