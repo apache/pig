@@ -31,6 +31,7 @@ import java.util.Properties;
 import java.util.Random;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.util.VersionInfo;
 import org.apache.pig.CollectableLoadFunc;
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.ExecType;
@@ -984,7 +985,8 @@ public class TestMRCompiler {
     }
 
     @Test
-    public void testMergeJoin() throws Exception{
+    public void testMergeJoin() throws Exception {
+        org.junit.Assume.assumeFalse("Skip this test for hadoop 0.20.2. See PIG-3194", VersionInfo.getVersion().equals("0.20.2"));
         String query = "a = load '/tmp/input1';" +
         "b = load '/tmp/input2';" +
         "c = join a by $0, b by $0 using 'merge';" +
