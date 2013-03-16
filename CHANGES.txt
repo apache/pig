@@ -28,6 +28,8 @@ PIG-3174:  Remove rpm and deb artifacts from build.xml (gates)
 
 IMPROVEMENTS
 
+PIG-3235: Add log4j.properties for unit tests (cheolsoo)
+
 PIG-3236: parametrize snapshot and staging repo id (gkesavan via daijy)
 
 PIG-3244: Make PIG_HOME configurable (robert.schooley@gmail.com via daijy)
