@@ -18,6 +18,8 @@
 
 package org.apache.pig.scripting.groovy;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
@@ -282,6 +284,44 @@ public abstract class GroovyAlgebraicEvalFunc<T> extends AlgebraicEvalFunc<T> {
     }
 
     public static class Final extends GroovyAlgebraicEvalFunc.Final<Boolean> {
+      public Final(String path, String namespace, String methodName, String initialMethod, String intermedMethod,
+          String finalMethod) throws IOException {
+        super(path, namespace, methodName, initialMethod, intermedMethod, finalMethod);
+      }
+    }
+  }
+
+  public static class BigIntegerGroovyAlgebraicEvalFunc extends GroovyAlgebraicEvalFunc<BigInteger> {
+    public BigIntegerGroovyAlgebraicEvalFunc(String path, String namespace, String methodName, String initialMethod,
+        String intermedMethod, String finalMethod) throws IOException {
+      super(path, namespace, methodName, initialMethod, intermedMethod, finalMethod);
+    }
+
+    @Override
+    public String getFinal() {
+      return Final.class.getName();
+    }
+
+    public static class Final extends GroovyAlgebraicEvalFunc.Final<BigInteger> {
+      public Final(String path, String namespace, String methodName, String initialMethod, String intermedMethod,
+          String finalMethod) throws IOException {
+        super(path, namespace, methodName, initialMethod, intermedMethod, finalMethod);
+      }
+    }
+  }
+
+  public static class BigDecimalGroovyAlgebraicEvalFunc extends GroovyAlgebraicEvalFunc<BigDecimal> {
+    public BigDecimalGroovyAlgebraicEvalFunc(String path, String namespace, String methodName, String initialMethod,
+        String intermedMethod, String finalMethod) throws IOException {
+      super(path, namespace, methodName, initialMethod, intermedMethod, finalMethod);
+    }
+
+    @Override
+    public String getFinal() {
+      return Final.class.getName();
+    }
+
+    public static class Final extends GroovyAlgebraicEvalFunc.Final<BigDecimal> {
       public Final(String path, String namespace, String methodName, String initialMethod, String intermedMethod,
           String finalMethod) throws IOException {
         super(path, namespace, methodName, initialMethod, intermedMethod, finalMethod);

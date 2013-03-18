@@ -1838,6 +1838,8 @@ class GroovyUDFs {",
   <li>chararray: String</li>
   <li>bytearray: byte[] (content is copied)</li>
   <li>boolean: boolean</li>
+  <li>biginteger: BigInteger</li>
+  <li>bigdecimal: BigDecimal</li>
   <li>null: null </li>
 </ul>
 <p>Anything else raises an exception</p>
@@ -1851,12 +1853,14 @@ class GroovyUDFs {",
   <li>java.util.Map: Map</li>
   <li>java.util.List: DataBag</li>
   <li>Byte/Short/Integer: int</li>
-  <li>Long/BigInteger: long</li>
+  <li>Long: long</li>
   <li>Float: float</li>
-  <li>Double/BigDecimal: double</li>
+  <li>Double: double</li>
   <li>String: chararray</li>
   <li>byte[]: DataByteArray (content is copied)</li>
   <li>Boolean: boolean</li>
+  <li>BigInteger: biginteger</li>
+  <li>BigDecimal: bigdecimal</li>
   <li>null: null</li>
 </ul>
 <p>Anything else raises an exception</p>
