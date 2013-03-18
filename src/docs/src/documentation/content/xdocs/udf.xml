@@ -1833,6 +1833,7 @@ class GroovyUDFs {",
 <ul>
   <li>Tuple: groovy.lang.Tuple</li>
   <li>DataBag: groovy.lang.Tuple containing the bag's size and an iterator on its content</li>
+  <li>org.joda.time.DateTime: org.joda.time.DateTime</li>
   <li>Map: java.util.Map</li>
   <li>int/long/float/double: as is</li>
   <li>chararray: String</li>
@@ -1850,6 +1851,7 @@ class GroovyUDFs {",
   <li>groovy.lang.Tuple: Tuple</li>
   <li>org.apache.pig.data.Tuple: Tuple</li>
   <li>org.apache.pig.data.DataBag: DataBag</li>
+  <li>org.joda.time.DateTime: org.joda.time.DateTime</li>
   <li>java.util.Map: Map</li>
   <li>java.util.List: DataBag</li>
   <li>Byte/Short/Integer: int</li>

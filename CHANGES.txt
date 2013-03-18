@@ -28,6 +28,8 @@ PIG-3174:  Remove rpm and deb artifacts from build.xml (gates)
 
 IMPROVEMENTS
 
+PIG-3217: Add support for DateTime type in Groovy UDFs (herberts via daijy)
+
 PIG-3218: Add support for biginteger/bigdecimal type in Groovy UDFs (herberts via daijy)
 
 PIG-3248: Upgrade hadoop-2.0.0-alpha to hadoop-2.0.3-alpha (daijy)

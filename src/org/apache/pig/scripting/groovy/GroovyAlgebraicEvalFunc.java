@@ -174,6 +174,25 @@ public abstract class GroovyAlgebraicEvalFunc<T> extends AlgebraicEvalFunc<T> {
     }
   }
 
+  public static class DateTimeGroovyAlgebraicEvalFunc extends GroovyAlgebraicEvalFunc<org.joda.time.DateTime> {
+    public DateTimeGroovyAlgebraicEvalFunc(String path, String namespace, String methodName, String initialMethod,
+        String intermedMethod, String finalMethod) throws IOException {
+      super(path, namespace, methodName, initialMethod, intermedMethod, finalMethod);
+    }
+
+    @Override
+    public String getFinal() {
+      return Final.class.getName();
+    }
+
+    public static class Final extends GroovyAlgebraicEvalFunc.Final<org.joda.time.DateTime> {
+      public Final(String path, String namespace, String methodName, String initialMethod, String intermedMethod,
+          String finalMethod) throws IOException {
+        super(path, namespace, methodName, initialMethod, intermedMethod, finalMethod);
+      }
+    }
+  }
+
   public static class DoubleGroovyAlgebraicEvalFunc extends GroovyAlgebraicEvalFunc<Double> {
     public DoubleGroovyAlgebraicEvalFunc(String path, String namespace, String methodName, String initialMethod,
         String intermedMethod, String finalMethod) throws IOException {
