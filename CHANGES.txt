@@ -143,6 +143,8 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-3205: Passing arguments to python script does not work with -f option (rohini)
+
 PIG-2507: Semicolon in paramenters for UDF results in parsing error (tnachen via daijy)
 
 PIG-3239: Unable to return multiple values from a macro using SPLIT (dreambird via cheolsoo)

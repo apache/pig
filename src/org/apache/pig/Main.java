@@ -412,6 +412,11 @@ static int run(String args[], PigProgressNotificationListener listener) {
         switch (mode) {
 
         case FILE: {
+            String remainders[] = opts.getRemainingArgs();
+            if (remainders != null) {
+                pigContext.getProperties().setProperty(PigContext.PIG_CMD_ARGS_REMAINDERS,
+                        ObjectSerializer.serialize(remainders));
+            }
             FileLocalizer.FetchFileRet localFileRet = FileLocalizer.fetchFile(properties, file);
             if (localFileRet.didFetch) {
                 properties.setProperty("pig.jars.relative.to.dfs", "true");
