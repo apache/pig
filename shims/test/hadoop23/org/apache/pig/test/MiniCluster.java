@@ -69,6 +69,8 @@ public class MiniCluster extends MiniGenericCluster {
 
             // Builds and starts the mini dfs and mapreduce clusters
             Configuration config = new Configuration();
+            config.set("yarn.scheduler.capacity.root.queues", "default");
+            config.set("yarn.scheduler.capacity.root.default.capacity", "100");
             m_dfs = new MiniDFSCluster(config, dataNodes, true, null);
             m_fileSys = m_dfs.getFileSystem();
             m_dfs_conf = m_dfs.getConfiguration(0);

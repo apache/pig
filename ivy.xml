@@ -160,6 +160,8 @@
       rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
     <dependency org="org.apache.hadoop" name="hadoop-yarn-server-resourcemanager" 
       rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
+    <dependency org="org.apache.hadoop" name="hadoop-yarn-client" 
+      rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
     <dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-hs" 
       rev="${hadoop-mapreduce.version}" conf="hadoop23->master"/>
     <dependency org="org.mortbay.jetty" name="jetty" rev="${jetty.version}"
