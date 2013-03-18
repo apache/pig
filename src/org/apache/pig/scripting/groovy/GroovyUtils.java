@@ -60,6 +60,7 @@ public class GroovyUtils {
    * String chararray
    * byte[] DataByteArray (copy)
    * Boolean boolean
+   * org.joda.time.DateTime org.joda.time.DateTime
    * null null
    *
    * anything else raises an exception
@@ -183,6 +184,11 @@ public class GroovyUtils {
       pigObject = groovyObject;
     } else if (groovyObject instanceof Boolean) {
       pigObject = groovyObject;
+    } else if (groovyObject instanceof org.joda.time.DateTime) {
+      //
+      // jodatime's DateTime is immutable, so reuse the same instance
+      //
+      pigObject = groovyObject;
     } else if (null == groovyObject) {
       pigObject = null;
     } else {
@@ -208,6 +214,7 @@ public class GroovyUtils {
    * boolean boolean
    * BigInteger BigInteger
    * BigDecimal BigDecimal
+   * org.joda.time.DateTime org.joda.time.DateTime
    * null null
    *
    * anything else raises an exception
@@ -262,6 +269,11 @@ public class GroovyUtils {
     } else if (pigObject instanceof BigInteger) {
       groovyObject = pigObject;
     } else if (pigObject instanceof BigDecimal) {
+      groovyObject = pigObject;
+    }else if (pigObject instanceof org.joda.time.DateTime) {
+      //
+      // jodatime's DateTime is immutable, so reuse the same instance
+      //
       groovyObject = pigObject;
     } else if (null == pigObject) {
       groovyObject = null;

@@ -23,6 +23,7 @@ import static org.apache.pig.builtin.mock.Storage.resetData;
 import static org.apache.pig.builtin.mock.Storage.tuple;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -87,7 +88,13 @@ public class TestUDFGroovy {
     pigObject = new DataByteArray("Surtout le jambon".getBytes("UTF-8"));
     groovyObject = GroovyUtils.pigToGroovy(pigObject);
     assertTrue(groovyObject instanceof byte[]);
+    assertNotSame(groovyObject, pigObject);
     assertArrayEquals("Surtout le jambon".getBytes("UTF-8"), (byte[]) groovyObject);
+
+    pigObject = new org.joda.time.DateTime();
+    groovyObject = GroovyUtils.pigToGroovy(pigObject);
+    assertTrue(groovyObject instanceof org.joda.time.DateTime);
+    assertSame(groovyObject, pigObject);
 
     pigObject = tuple("a","b","c");
     groovyObject = GroovyUtils.pigToGroovy(pigObject);
@@ -241,6 +248,11 @@ public class TestUDFGroovy {
 
     groovyObject = new DefaultDataBag();
     pigObject = GroovyUtils.groovyToPig(groovyObject);
+    assertSame(groovyObject, pigObject);
+
+    groovyObject = new org.joda.time.DateTime();
+    pigObject = GroovyUtils.groovyToPig(groovyObject);
+    assertTrue(pigObject instanceof org.joda.time.DateTime);
     assertSame(groovyObject, pigObject);
 
     groovyObject = null;

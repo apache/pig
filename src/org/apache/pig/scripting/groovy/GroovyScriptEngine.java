@@ -50,6 +50,7 @@ import org.apache.pig.scripting.groovy.GroovyAlgebraicEvalFunc.BooleanGroovyAlge
 import org.apache.pig.scripting.groovy.GroovyAlgebraicEvalFunc.ChararrayGroovyAlgebraicEvalFunc;
 import org.apache.pig.scripting.groovy.GroovyAlgebraicEvalFunc.DataBagGroovyAlgebraicEvalFunc;
 import org.apache.pig.scripting.groovy.GroovyAlgebraicEvalFunc.DataByteArrayGroovyAlgebraicEvalFunc;
+import org.apache.pig.scripting.groovy.GroovyAlgebraicEvalFunc.DateTimeGroovyAlgebraicEvalFunc;
 import org.apache.pig.scripting.groovy.GroovyAlgebraicEvalFunc.DoubleGroovyAlgebraicEvalFunc;
 import org.apache.pig.scripting.groovy.GroovyAlgebraicEvalFunc.FloatGroovyAlgebraicEvalFunc;
 import org.apache.pig.scripting.groovy.GroovyAlgebraicEvalFunc.IntegerGroovyAlgebraicEvalFunc;
@@ -356,6 +357,8 @@ public class GroovyScriptEngine extends ScriptEngine {
           className = TupleGroovyAlgebraicEvalFunc.class.getName();
         } else if (returnType.equals(List.class) || returnType.equals(DataBag.class)) {
           className = DataBagGroovyAlgebraicEvalFunc.class.getName();
+        } else if (returnType.equals(org.joda.time.DateTime.class)) {
+          className = DateTimeGroovyAlgebraicEvalFunc.class.getName();
         } else if (returnType.equals(Boolean.class) || returnType.equals(boolean.class)) {
           className = BooleanGroovyAlgebraicEvalFunc.class.getName();
         } else if (returnType.equals(byte[].class) || returnType.equals(DataByteArray.class)) {
