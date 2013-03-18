@@ -108,7 +108,7 @@ public class TestPigSplit {
         createInput(new String[] { "0\ta" });
 
         pigServer.registerQuery("a = load '" + inputFileName + "';");
-        for (int i = 0; i < 500; i++) {
+        for (int i = 0; i < 200; i++) {
             pigServer.registerQuery("a = filter a by $0 == '1';");
         }
         Iterator<Tuple> iter = pigServer.openIterator("a");
