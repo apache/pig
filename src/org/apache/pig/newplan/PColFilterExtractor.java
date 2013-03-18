@@ -25,7 +25,6 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.Expression;
-import org.apache.pig.PigException;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.Pair;
 
@@ -36,6 +35,7 @@ import org.apache.pig.newplan.logical.expression.BinCondExpression;
 import org.apache.pig.newplan.logical.expression.BinaryExpression;
 import org.apache.pig.newplan.logical.expression.CastExpression;
 import org.apache.pig.newplan.logical.expression.ConstantExpression;
+import org.apache.pig.newplan.logical.expression.DereferenceExpression;
 import org.apache.pig.newplan.logical.expression.DivideExpression;
 import org.apache.pig.newplan.logical.expression.EqualExpression;
 import org.apache.pig.newplan.logical.expression.GreaterThanEqualExpression;
@@ -44,6 +44,7 @@ import org.apache.pig.newplan.logical.expression.IsNullExpression;
 import org.apache.pig.newplan.logical.expression.LessThanEqualExpression;
 import org.apache.pig.newplan.logical.expression.LessThanExpression;
 import org.apache.pig.newplan.logical.expression.LogicalExpression;
+import org.apache.pig.newplan.logical.expression.MapLookupExpression;
 import org.apache.pig.newplan.logical.expression.ModExpression;
 import org.apache.pig.newplan.logical.expression.MultiplyExpression;
 import org.apache.pig.newplan.logical.expression.NotEqualExpression;
@@ -493,7 +494,11 @@ public class PColFilterExtractor extends PlanVisitor {
 			visit( (NotExpression)op );
 		} else if( op instanceof RegexExpression ) {
 			visit( (RegexExpression)op );
-		}
+        } else if (op instanceof MapLookupExpression) {
+            visit((MapLookupExpression) op);
+        } else if (op instanceof DereferenceExpression) {
+            visit((DereferenceExpression) op);
+        }
 	}
 
 	// some specific operators which are of interest to catch some
@@ -525,7 +530,15 @@ public class PColFilterExtractor extends PlanVisitor {
 	private void visit(IsNullExpression isNull) throws FrontendException {
 		visit(isNull.getExpression());
 	}
-
+	
+	private void visit(MapLookupExpression mapLookup) throws FrontendException {
+        visit(mapLookup.getMap());
+    }
+	
+	private void visit(DereferenceExpression deref) throws FrontendException {
+        visit(deref.getReferredExpression());
+    }
+	
     public boolean canPushDown() {
         return canPushDown;
     }
