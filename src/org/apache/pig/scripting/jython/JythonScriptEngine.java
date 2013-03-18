@@ -185,9 +185,9 @@ public class JythonScriptEngine extends ScriptEngine {
                   } catch (IOException e) {
                       throw new ExecException("Cannot deserialize command line arguments", e);
                   }
+                  PySystemState  state = Py.getSystemState();
+                  state.argv.clear();
                   if( argv != null ) {
-                    PySystemState  state = Py.getSystemState();
-                    state.argv.clear();
                     for (String str : argv ) {
                       state.argv.append(new PyString(str));
                     }
