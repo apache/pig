@@ -72,7 +72,8 @@ import org.junit.Test;
  */
 public class TestPartitionFilterPushDown {
     static PigContext pc = new PigContext(ExecType.LOCAL, new Properties());
-    String query = "a = load 'foo' as (srcid:int, mrkt:chararray, dstid:int, name:chararray, age:int);";
+    String query = "a = load 'foo' as (srcid:int, mrkt:chararray, dstid:int, name:chararray, " +
+    		"age:int, browser:map[], location:tuple(country:chararray, zip:int));";
 
     @BeforeClass
     public static void setup() throws Exception {
@@ -295,6 +296,47 @@ public class TestPartitionFilterPushDown {
         test(q, Arrays.asList("srcid", "dstid", "mrkt"),
                 "((mrkt == 'us') and ((srcid * 10) == (150 + 20)))",
         "(age != 15)");
+    }
+
+    /**
+     * test case where there is a single expression on partition columns in the
+     * filter expression along with an expression on non partition column of
+     * type map
+     * @throws Exception
+     */
+    @Test
+    public void testMixedNonPartitionTypeMap() throws Exception {
+        String q = query + "b = filter a by srcid == 10 and browser#'type' == 'IE';" +
+                "store b into 'out';";
+        test(q, Arrays.asList("srcid"), "(srcid == 10)");
+
+        q = query + "b = filter a by srcid == 10 and browser#'type' == 'IE' and " +
+                "browser#'version'#'major' == '8.0';" + "store b into 'out';";
+        test(q, Arrays.asList("srcid"), "(srcid == 10)");
+
+        // Some complex partition filters with a non-partition filter
+        q = query + "b = filter a by srcid == 10 and mrkt > '1' and mrkt < '5';" +
+                "c = filter b by browser#'type' == 'IE';" + "store b into 'out';";
+        test(q, Arrays.asList("srcid", "mrkt"),
+                "(((srcid == 10) and (mrkt > '1')) and (mrkt < '5'))");
+
+        q = query + "b = filter a by srcid == 10 and (mrkt > '1' and mrkt < '5');" +
+                "c = filter b by browser#'type' == 'IE';" + "store b into 'out';";
+        test(q, Arrays.asList("srcid", "mrkt"),
+                "((srcid == 10) and ((mrkt > '1') and (mrkt < '5')))");
+    }
+
+    /**
+     * test case where there is a single expression on partition columns in the
+     * filter expression along with an expression on non partition column of
+     * type tuple
+     * @throws Exception
+     */
+    @Test
+    public void testMixedNonPartitionTypeTuple() throws Exception {
+        String q = query + "b = filter a by srcid == 10 and location.country == 'US';" +
+                "store b into 'out';";
+        test(q, Arrays.asList("srcid"), "(srcid == 10)");
     }
 
     @Test
@@ -589,7 +631,17 @@ public class TestPartitionFilterPushDown {
     //// helper methods ///////
 
     private PColFilterExtractor test(String query, List<String> partitionCols,
-            String expPartFilterString, String expFilterString)
+            String expPartFilterString) throws Exception {
+        return test(query, partitionCols, expPartFilterString, null, true);
+    }
+
+    private PColFilterExtractor test(String query, List<String> partitionCols,
+            String expPartFilterString, String expFilterString) throws Exception {
+        return test(query, partitionCols, expPartFilterString, expFilterString, false);
+    }
+
+    private PColFilterExtractor test(String query, List<String> partitionCols,
+            String expPartFilterString, String expFilterString, boolean skipTrimmedFilterCheck)
     throws Exception {
         PigServer pigServer = new PigServer( pc );
         LogicalPlan newLogicalPlan = Util.buildLp(pigServer, query);
@@ -608,15 +660,23 @@ public class TestPartitionFilterPushDown {
                     pColExtractor.getPColCondition().toString().toLowerCase());
         }
 
-        if(expFilterString == null) {
-            Assert.assertTrue("Check that filter can be removed:",
-                    pColExtractor.isFilterRemovable());
-        } else {
-            String actual = pColExtractor.getExpression(
-                    (LogicalExpression)filter.getFilterPlan().getSources().get(0)).
-                    toString().toLowerCase();
-            Assert.assertEquals("checking trimmed filter expression:", expFilterString,
-                    actual);
+        // The getExpression() in PColFilterExtractor was written to get the
+        // pushdown filter expression and does not have support for columns of
+        // type tuple or map as partition columns are expected to be of
+        // primitive data type. But we are using the method in the tests for forming
+        // trimmed filter after pushdown. So skip check in cases where we expect a
+        // trimmed filter to have a map or tuple in the condition.
+        if (!skipTrimmedFilterCheck) {
+            if (expFilterString == null) {
+                Assert.assertTrue("Check that filter can be removed:",
+                        pColExtractor.isFilterRemovable());
+            } else {
+                String actual = pColExtractor
+                        .getExpression(
+                                (LogicalExpression) filter.getFilterPlan().getSources().get(0))
+                        .toString().toLowerCase();
+                Assert.assertEquals("checking trimmed filter expression:", expFilterString, actual);
+            }
         }
         return pColExtractor;
     }
