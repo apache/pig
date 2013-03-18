@@ -106,6 +106,8 @@ public class ReadToEndLoader extends LoadFunc implements LoadMetadata {
     private InputFormat inputFormat = null;
     
     private PigContext pigContext;
+    
+    private String udfContextSignature = null;
 
     /**
      * @param wrappedLoadFunc
@@ -131,6 +133,16 @@ public class ReadToEndLoader extends LoadFunc implements LoadMetadata {
         this.conf = conf;
         this.curSplitIndex = splitIndex;
         this.pigContext = pigContext;
+        init();
+    }
+    
+    public ReadToEndLoader(LoadFunc wrappedLoadFunc, Configuration conf,
+            String inputLocation, int splitIndex, String signature) throws IOException {
+        this.udfContextSignature = signature;
+        this.wrappedLoadFunc = wrappedLoadFunc;
+        this.inputLocation = inputLocation;
+        this.conf = conf;
+        this.curSplitIndex = splitIndex;
         init();
     }
 
@@ -167,6 +179,7 @@ public class ReadToEndLoader extends LoadFunc implements LoadMetadata {
 
         // let's initialize the wrappedLoadFunc 
         Job job = new Job(conf);
+        wrappedLoadFunc.setUDFContextSignature(this.udfContextSignature);
         wrappedLoadFunc.setLocation(inputLocation, 
                 job);
         // The above setLocation call could write to the conf within
@@ -277,7 +290,7 @@ public class ReadToEndLoader extends LoadFunc implements LoadMetadata {
 
     @Override
     public void setLocation(String location, Job job) throws IOException {
-        //no-op
+        wrappedLoadFunc.setLocation(location, job);
     }
 
     @Override
@@ -312,5 +325,10 @@ public class ReadToEndLoader extends LoadFunc implements LoadMetadata {
         if (wrappedLoadFunc instanceof LoadMetadata) {
              ((LoadMetadata) wrappedLoadFunc).setPartitionFilter(partitionFilter);
         }
+    }
+    
+    @Override
+    public void setUDFContextSignature(String signature) {
+        this.udfContextSignature = signature;
     }
 }
