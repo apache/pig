@@ -120,6 +120,14 @@ public class TestUDFGroovy {
     assertEquals("Henaff", ((Map) groovyObject).get("Pate"));
     assertEquals("Bordeau Chesnel", ((Map) groovyObject).get("Rillettes"));
 
+    pigObject = BigInteger.ONE;
+    groovyObject = GroovyUtils.pigToGroovy(pigObject);
+    assertSame(pigObject, groovyObject);
+
+    pigObject = new BigDecimal("42.42");
+    groovyObject = GroovyUtils.pigToGroovy(pigObject);
+    assertSame(pigObject, groovyObject);
+
     pigObject = null;
     groovyObject = GroovyUtils.pigToGroovy(pigObject);
     assertNull(groovyObject);
@@ -154,8 +162,7 @@ public class TestUDFGroovy {
 
     groovyObject = BigInteger.TEN;
     pigObject = GroovyUtils.groovyToPig(groovyObject);
-    assertTrue(pigObject instanceof Long);
-    assertEquals(10L, pigObject);
+    assertSame(groovyObject, pigObject);
 
     groovyObject = Float.MIN_NORMAL;
     pigObject = GroovyUtils.groovyToPig(groovyObject);
@@ -169,8 +176,7 @@ public class TestUDFGroovy {
 
     groovyObject = new BigDecimal("42.42");
     pigObject = GroovyUtils.groovyToPig(groovyObject);
-    assertTrue(pigObject instanceof Double);
-    assertEquals(42.42D, pigObject);
+    assertSame(groovyObject, pigObject);
 
     groovyObject = "Dans le cochon tout est bon !";
     pigObject = GroovyUtils.groovyToPig(groovyObject);
