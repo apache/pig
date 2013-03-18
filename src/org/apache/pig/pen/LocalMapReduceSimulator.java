@@ -105,6 +105,7 @@ public class LocalMapReduceSimulator {
         // jc is null only when mrp.size == 0
         boolean needFileInput;
         final ArrayList<OperatorKey> emptyInpTargets = new ArrayList<OperatorKey>();
+        pc.getProperties().setProperty("pig.illustrating", "true");
         while(mrp.size() != 0) {
             jc = jcc.compile(mrp, "Illustrator");
             if(jc == null) {
