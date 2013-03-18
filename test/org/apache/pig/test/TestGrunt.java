@@ -1322,6 +1322,26 @@ public class TestGrunt {
     }
     
     @Test
+    public void testCheckScriptSyntaxWithSemiColonUDFErr() throws Throwable {
+        // Should able to handle semicolons in udf
+        String query = "a = load 'i1' as (f1:chararray);" +
+        			   "c = foreach a generate REGEX_EXTRACT(f1, '.;' ,1); dump c;";
+                
+        ArrayList<String> msgs = new ArrayList<String>();                //
+        validate(query, true, msgs.toArray(new String[0]));
+    }
+    
+    @Test
+    public void testCheckScriptSyntaxWithSemiColonUDFErr() throws Throwable {
+        // Should able to handle semicolons in udf
+        String query = "a = load 'i1' as (f1:chararray);" +
+        			   "c = foreach a generate REGEX_EXTRACT(f1, '.;' ,1); dump c;";
+                
+        ArrayList<String> msgs = new ArrayList<String>();                //
+        validate(query, true, msgs.toArray(new String[0]));
+    }
+    
+    @Test
     public void testCheckScriptTypeCheckErr() throws Throwable {
         // a query which has grunt commands intermixed with pig statements - this
         // should fail with the -check option with a type checking error

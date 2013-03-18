@@ -311,6 +311,12 @@ TOKEN_MGR_DECLS : {
         saveState(prevState);
         prevState = GENERATE;
      } : SCHEMA_DEFINITION
+|   <"'">
+    {
+        prevState = getState(prevState);
+        saveState(prevState);
+        prevState = GENERATE;
+    } : IN_STRING
 |	<";">
     {
         prevState = getState(prevState);
