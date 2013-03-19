@@ -36,6 +36,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-3252: AvroStorage gives wrong schema for schemas with named records (mwagner via cheolsoo)
+
 PIG-3132: NPE when illustrating a relation with HCatLoader (daijy)
 
 PIG-3194: Changes to ObjectSerializer.java break compatibility with Hadoop 0.20.2 (prkommireddi via dvryaboy)

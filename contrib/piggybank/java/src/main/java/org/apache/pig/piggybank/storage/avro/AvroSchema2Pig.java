@@ -102,6 +102,7 @@ public class AvroSchema2Pig {
 
                 tupleSchema.setFields(childFields);
                 fieldSchema.setSchema(tupleSchema);
+                visitedRecords.remove(in);
             }
 
         } else if (avroType.equals(Schema.Type.ARRAY)) {
