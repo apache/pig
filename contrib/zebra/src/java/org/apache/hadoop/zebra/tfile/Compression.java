@@ -124,7 +124,6 @@ final class Compression {
         } else {
           bis1 = downStream;
         }
-        conf.setInt("io.compression.codec.lzo.buffersize", 64 * 1024);
         CompressionInputStream cis =
             codec.createInputStream(bis1, decompressor);
         BufferedInputStream bis2 = new BufferedInputStream(cis, DATA_IBUF_SIZE);
@@ -146,7 +145,6 @@ final class Compression {
         } else {
           bos1 = downStream;
         }
-        conf.setInt("io.compression.codec.lzo.buffersize", 64 * 1024);
         CompressionOutputStream cos =
             codec.createOutputStream(bos1, compressor);
         BufferedOutputStream bos2 =
