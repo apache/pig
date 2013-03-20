@@ -149,6 +149,8 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-3253: Misleading comment w.r.t getSplitIndex() method in PigSplit.java (cheolsoo)
+
 PIG-3208: [zebra] TFile should not set io.compression.codec.lzo.buffersize (ekoontz via daijy)
 
 PIG-3172: Partition filter push down does not happen when there is a non partition key map column filter (rohini)

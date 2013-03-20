@@ -289,9 +289,6 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
         }
     }
 
-    // package level access because we don't want LoadFunc implementations
-    // to get this information - this is to be used only from
-    // MergeJoinIndexer
     public int getSplitIndex() {
         return splitIndex;
     }
