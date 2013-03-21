@@ -20,7 +20,7 @@
   <property name="pig.dir" value="${basedir}/../../.."/>
   <property name="pig.jar" value="${pig.dir}/pig.jar"/>
   <property name="jython.jar"
-    value="${pig.dir}/build/ivy/lib/Pig/jython-2.5.0.jar"/>
+    value="${pig.dir}/build/ivy/lib/Pig/jython-standalone-2.5.3.jar"/>
   <property name="jruby.jar"
     value="${pig.dir}/build/ivy/lib/Pig/jruby-complete-1.6.7.jar"/>
 
