@@ -30,7 +30,7 @@
     <property name="pig.pom" value="${basedir}/ivy/pig.pom" />
     <property name="pigsmoke.pom" value="${basedir}/ivy/pigsmoke.pom" />
     <property name="pigunit.pom" value="${basedir}/ivy/pigunit.pom" />
-    <property name="pig.version" value="0.11.1" />
+    <property name="pig.version" value="0.11.2" />
     <property name="pig.version.suffix" value="-SNAPSHOT" />
     <property name="version" value="${pig.version}${pig.version.suffix}" />
     <property name="final.name" value="${name}-${version}" />
