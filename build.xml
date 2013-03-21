@@ -532,7 +532,7 @@
         <!-- Remove jython jar from mrapp-generated-classpath -->
         <script language="javascript">
           project.setProperty('mr-apps-classpath', project.getProperty('mr-apps-classpath').
-           replace(":" + project.getProperty('ivy.default.ivy.user.dir') + "/cache/org.python/jython-standalone/jars/jython-standalone-2.5.2.jar", ""));
+           replace(":" + project.getProperty('ivy.default.ivy.user.dir') + "/cache/org.python/jython-standalone/jars/jython-standalone-" + project.getProperty('jython.version') + ".jar", ""));
         </script>
         <echo file="${test.build.classes}/mrapp-generated-classpath" message="${mr-apps-classpath}" />
     </target>

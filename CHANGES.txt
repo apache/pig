@@ -253,6 +253,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-3256: Upgrade jython to 2.5.3 (legal concern) (daijy)
+
 PIG-2988: start deploying pigunit maven artifact part of Pig release process (njw45 via rohini)
 
 PIG-3148: OutOfMemory exception while spilling stale DefaultDataBag. Extra option to gc() before spilling large bag. (knoguchi via rohini)
