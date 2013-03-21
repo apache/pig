@@ -24,15 +24,10 @@ import java.io.PushbackInputStream;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
-import java.util.EmptyStackException;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
-import java.util.Stack;
-
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -47,6 +42,8 @@ import org.apache.pig.data.DefaultBagFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.util.LogUtils;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 
 /**
  * This abstract class provides standard conversions between utf8 encoded data
@@ -356,8 +353,10 @@ public class Utf8StorageConverter implements LoadStoreCaster {
 
     @Override
     public Double bytesToDouble(byte[] b) {
-        if(b == null)
+        if(b == null || b.length == 0) {
             return null;
+        }
+        
         try {
             return Double.valueOf(new String(b));
         } catch (NumberFormatException nfe) {
@@ -371,8 +370,10 @@ public class Utf8StorageConverter implements LoadStoreCaster {
 
     @Override
     public Float bytesToFloat(byte[] b) throws IOException {
-        if(b == null)
+        if(b == null || b.length == 0) {
             return null;
+        }
+        
         String s;
         if (b.length > 0 && (b[b.length - 1] == 'F' || b[b.length - 1] == 'f')) {
             s = new String(b, 0, b.length - 1);
@@ -426,9 +427,12 @@ public class Utf8StorageConverter implements LoadStoreCaster {
 
     @Override
     public Integer bytesToInteger(byte[] b) throws IOException {
-        if(b == null)
+        if(b == null || b.length == 0) {
             return null;
+        }
+        
         String s = new String(b);
+        s = s.trim();
         Integer ret = null;
 
         // See PIG-2835. Using exception handling to check if it's a double is very expensive.
@@ -467,13 +471,13 @@ public class Utf8StorageConverter implements LoadStoreCaster {
 
     @Override
     public Long bytesToLong(byte[] b) throws IOException {
-        if (b == null)
+        if (b == null || b.length == 0) {
             return null;
-        String s;
-        if (b.length > 0 && (b[b.length - 1] == 'L' || b[b.length - 1] == 'l')) {
-            s = new String(b, 0, b.length - 1);
-        } else {
-            s = new String(b);
+        }
+        
+        String s = new String(b).trim();
+        if(s.endsWith("l") || s.endsWith("L")) {
+            s = s.substring(0, s.length()-1);
         }
 
         // See PIG-2835. Using exception handling to check if it's a double is very expensive.
@@ -535,7 +539,6 @@ public class Utf8StorageConverter implements LoadStoreCaster {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public Map<String, Object> bytesToMap(byte[] b, ResourceFieldSchema fieldSchema) throws IOException {
         if(b == null)
             return null;
@@ -584,7 +587,7 @@ public class Utf8StorageConverter implements LoadStoreCaster {
 
     @Override
     public BigInteger bytesToBigInteger(byte[] b) throws IOException {
-        if (b == null) {
+        if (b == null || b.length == 0) {
             return null;
         }
         return new BigInteger(new String(b));
@@ -592,7 +595,7 @@ public class Utf8StorageConverter implements LoadStoreCaster {
 
     @Override
     public BigDecimal bytesToBigDecimal(byte[] b) throws IOException {
-        if (b == null) {
+        if (b == null || b.length == 0) {
             return null;
         }
         return new BigDecimal(new String(b));

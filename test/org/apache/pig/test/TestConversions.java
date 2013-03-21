@@ -87,8 +87,8 @@ public class TestConversions {
     public  void testBytesToInteger() throws IOException
     {
         // valid ints
-        String[] a = {"1", "-2345",  "1234567", "1.1", "-23.45", ""};
-        Integer[] ia = {1, -2345, 1234567, 1, -23};
+        String[] a = {"1234 ", " 4321", " 12345 ", "1", "-2345",  "1234567", "1.1", "-23.45", ""};
+        Integer[] ia = {1234, 4321, 12345, 1, -2345, 1234567, 1, -23};
 
         for (int i = 0; i < ia.length; i++) {
             byte[] b = a[i].getBytes();
@@ -96,7 +96,7 @@ public class TestConversions {
         }
 
         // invalid ints
-        a = new String[]{"1234567890123456", "This is an int", ""};
+        a = new String[]{"1234567890123456", "This is an int", "", "   "};
         for (String s : a) {
             byte[] b = s.getBytes();
             Integer i = ps.getLoadCaster().bytesToInteger(b);
@@ -120,7 +120,7 @@ public class TestConversions {
         }
 
         // invalid floats
-        a = new String[]{"1a.1", "23.1234567a890123456",  "This is a float", ""};
+        a = new String[]{"1a.1", "23.1234567a890123456",  "This is a float", "", "  "};
         for (String s : a) {
             byte[] b = s.getBytes();
             Float fl = ps.getLoadCaster().bytesToFloat(b);
@@ -141,7 +141,7 @@ public class TestConversions {
         }
 
         // invalid doubles
-        a = new String[]{"-0x1.1", "-23a.45",  "This is a double", ""};
+        a = new String[]{"-0x1.1", "-23a.45",  "This is a double", "", "   "};
         for (String s : a) {
             byte[] b = s.getBytes();
             Double dl = ps.getLoadCaster().bytesToDouble(b);
@@ -154,9 +154,9 @@ public class TestConversions {
     public  void testBytesToLong() throws IOException
     {
         // valid Longs
-        String[] a = {"1", "-2345",  "123456789012345678", "1.1", "-23.45",
+        String[] a = {"1703598819951657279 ", " 999888123L  ", " 1234 ", " 1234", "1234 ", "1", "-2345",  "123456789012345678", "1.1", "-23.45",
               "21345345", "3422342", ""};
-        Long[] la = {1L, -2345L, 123456789012345678L, 1L, -23L,
+        Long[] la = {1703598819951657279L, 999888123L, 1234L, 1234L, 1234L, 1L, -2345L, 123456789012345678L, 1L, -23L,
              21345345L, 3422342L};
 
         for (int i = 0; i < la.length; i++) {
@@ -165,7 +165,7 @@ public class TestConversions {
         }
 
         // invalid longs
-        a = new String[]{"This is a long", "1.0e1000", ""};
+        a = new String[]{"This is a long", "1.0e1000", "", "    "};
         for (String s : a) {
             byte[] b = s.getBytes();
             Long l = ps.getLoadCaster().bytesToLong(b);
