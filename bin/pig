@@ -362,10 +362,6 @@ if [ -n "$HADOOP_BIN" ]; then
     fi
 else
     # fall back to use fat pig.jar
-    if [ "$debug" == "true" ]; then
-        echo "Cannot find local hadoop installation, using bundled hadoop 20.2"
-    fi
-
     if [ -f $PIG_HOME/pig.jar ]; then
         PIG_JAR=$PIG_HOME/pig.jar
     else
@@ -377,6 +373,10 @@ else
     else
         echo "Cannot locate pig.jar. do 'ant jar', and try again"
         exit 1
+    fi
+
+    if [ "$debug" == "true" ]; then
+        echo "Cannot find local hadoop installation, using bundled `java -cp $PIG_JAR org.apache.hadoop.util.VersionInfo | head -1`"
     fi
 
     CLASS=org.apache.pig.Main
