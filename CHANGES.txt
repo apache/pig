@@ -149,6 +149,8 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-3110: pig corrupts chararrays with trailing whitespace when converting them to long (prkommireddi via daijy)
+
 PIG-3253: Misleading comment w.r.t getSplitIndex() method in PigSplit.java (cheolsoo)
 
 PIG-3208: [zebra] TFile should not set io.compression.codec.lzo.buffersize (ekoontz via daijy)
