@@ -1,35 +1,9 @@
-These notes are for Pig 0.11.0 release.
+These notes are for Pig 0.11.1 release.
 
 Highlights
 ==========
 
-This release include several new features and improvements, some of which are
-highlighted below. For a more complete list of changes see CHANGES.txt.
-
-- New RANK, CUBE and ROLLUP operators
-- New DateType data type
-- Support for Groovy UDFs
-- Support for loading macros from jars
-- Support for custom PigReducerEstimators
-- Suoport for custom PigProgressNotificatonListeners
-- Support for schema-based Tuples for reduced memory footprint
-- Support for passing environment variables to streaming jobs
-- Support for invoking HCatalog DDL commands from Pig
-- Support for .pigbootup file for defaults
-- Improved support for working with Maps in Pig scripts
-- Grunt improvements: history and clear
-- New cleanupOnSuccess method in StoreFunc interface
-- UDF timing utilities
-- UDF lifecycle improvements
-- UDFs for DateType support
-- Performance improvements to merge join
-- Performance improvements to local mode
-- Performance improvements to in memory aggregation
-- Performance improvements to Spillable management
-- Improvements to HBaseStorage and AvroStorage
-- Penny has been removed
-- 300+ bug fixes
-
+This is a maintenance release of Pig 0.11. See CHANGES.txt for a list of changes.
 
 System Requirements
 ===================

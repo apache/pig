@@ -18,7 +18,7 @@
 
 Pig Change Log
 
-Release 0.11.1 (unreleased)
+Release 0.11.1
 
 INCOMPATIBLE CHANGES
 
