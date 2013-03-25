@@ -28,7 +28,7 @@
 <section id="udfs">
 <title>Introduction</title>
 <p>
-Pig provides extensive support for user defined functions (UDFs) as a way to specify custom processing. Pig UDFs can currently be implemented in three languages: Java, Python, JavaScript, Ruby and Groovy. 
+Pig provides extensive support for user defined functions (UDFs) as a way to specify custom processing. Pig UDFs can currently be implemented in five languages: Java, Python, JavaScript, Ruby and Groovy. 
 </p>
 
 <p>
