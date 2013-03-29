@@ -26,6 +26,7 @@
     <property name="javac.args" value="" />
     <!-- TODO we should use warning...   <property name="javac.args.warnings" value="-Xlint:unchecked" /> -->
     <property name="javac.args.warnings" value="" />
+    <property name="build.encoding" value="UTF8" />
 
     <!-- build properties -->
     <property name="build.dir" value="${basedir}/build" />
@@ -90,7 +91,7 @@
     <target depends="init" name="compile" description="compile all of the class files">
         <echo> *** Compiling Pig UDFs ***</echo>
         <javac srcdir="${src.dir}" debug="${javac.debug}" debuglevel="${javac.level}" destdir="${build.classes}" source="${javac.version}"
-        target="${javac.version}" optimize="${javac.optimize}" deprecation="${javac.deprecation}" excludes="${build.classes.excludes}">
+        target="${javac.version}" optimize="${javac.optimize}" deprecation="${javac.deprecation}" excludes="${build.classes.excludes}" encoding="${build.encoding}">
             <compilerarg line="${javac.args} ${javac.args.warnings}" />
             <classpath refid="pigudf.classpath"/>
         </javac>
