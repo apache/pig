@@ -1128,18 +1128,21 @@
            <attach file="${output.jarfile.javadoc}.asc" type="jar.asc"  classifier="javadoc"/>
            <attach file="${output.jarfile.javadoc}" classifier="javadoc" />
         </artifact:deploy>
+        <artifact:pom file="${pigunit.pom}" id="pigunit"/>
         <artifact:deploy file="${pigunit.jarfile}">
            <remoteRepository id="${staging_repo_id}" url="${asfstagingrepo}"/>
            <pom refid="pigunit"/>
            <attach file="${pigunit.jarfile}.asc" type="jar.asc"/>
            <attach file="${pigunit.pom}.asc" type="pom.asc"/>
         </artifact:deploy>
+        <artifact:pom file="${pigsmoke.pom}" id="pigsmoke"/>
         <artifact:deploy file="${smoke.tests.jarfile}">
            <remoteRepository id="${staging_repo_id}" url="${asfstagingrepo}"/>
            <pom refid="pigsmoke"/>
            <attach file="${smoke.tests.jarfile}.asc" type="jar.asc"/>
            <attach file="${pigsmoke.pom}.asc" type="pom.asc"/>
         </artifact:deploy>
+        <artifact:pom file="${piggybank.pom}" id="piggybank"/>
         <artifact:deploy file="${piggybank.jarfile}">
            <remoteRepository id="${staging_repo_id}" url="${asfstagingrepo}"/>
            <pom refid="piggybank"/>
