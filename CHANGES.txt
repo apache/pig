@@ -151,6 +151,8 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-3264: mvn signanddeploy target broken for pigunit, pigsmoke and piggybank (billgraham)
+
 PIG-3262: Pig contrib 0.11 doesn't compile on certain rpm systems (mgrover via cheolsoo)
 
 PIG-3249: Pig startup script prints out a wrong version of hadoop when using fat jar (prkommireddi via daijy)
