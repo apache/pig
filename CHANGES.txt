@@ -18,6 +18,19 @@
 
 Pig Change Log
 
+Release 0.11.2 (Unreleased)
+
+INCOMPATIBLE CHANGES
+
+IMPROVEMENTS
+
+OPTIMIZATIONS
+
+BUG FIXES
+
+PIG-3264: mvn signanddeploy target broken for pigunit, pigsmoke and piggybank (billgraham)
+
+
 Release 0.11.1
 
 INCOMPATIBLE CHANGES
