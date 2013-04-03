@@ -39,6 +39,8 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.pig.parser.PigParserNode.InvocationPoint;
 import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
 
+import com.google.common.collect.ImmutableSet;
+
 class PigMacro {
 
     private static final Log LOG = LogFactory.getLog(PigMacro.class);
@@ -135,7 +137,18 @@ class PigMacro {
                             + ((outputs == null) ? 0 : outputs.length));
             throw new ParserException(msg);
         }
-        
+
+        int distinct = ImmutableSet.copyOf(inputs).asList().size();
+        if (distinct != inputs.length) {
+            String msg = getErrorMessage(file, line, "Cannot expand macro '"
+                    + name + "'",
+                    " Duplicated arguments names are passed in macro:"
+                              + " number of arguments: " + inputs.length
+                              + " number of distinct arguments: "
+                              + distinct);
+            throw new ParserException(msg);
+        }
+
         String[] args = new String[params.size()];
         for (int i=0; i<params.size(); i++) {
         	 if (inputs[i].startsWith("$"))
