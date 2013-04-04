@@ -22,20 +22,17 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 
-import junit.framework.Assert;
-
 import org.antlr.runtime.CharStream;
 import org.antlr.runtime.CommonTokenStream;
-import org.antlr.runtime.MismatchedTokenException;
 import org.antlr.runtime.RecognitionException;
 import org.antlr.runtime.tree.CommonTree;
 import org.antlr.runtime.tree.Tree;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigRunner;
 import org.apache.pig.PigServer;
-import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.test.Util;
 import org.apache.pig.tools.pigstats.PigStats;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class TestQueryParser {
@@ -303,7 +300,7 @@ public class TestQueryParser {
     @Test //PIG-2083
     public void testNullInBinCondNoSpace() throws IOException{
         String query = "a = load '1.txt' as (a0, a1);" +
-        "b = foreach a generate (a0==0?null:2);"; //no space around the null keyword
+        "b = foreach a generate (a0==0?null:2);"; //no space around the null keyword, so the lexer doesn't emit a NULL token
         PigServer pig = new PigServer(ExecType.LOCAL);
         Util.registerMultiLineQuery(pig, query);
         pig.explain("b", System.out);
@@ -472,5 +469,182 @@ public class TestQueryParser {
         String query = "A = load 'data' as (x:int, y:chararray, z:int, rz:chararray);";
         query += "B = rank A by * DENSE;";
         shouldPass(query);
+    }
+    
+    @Test // PIG-2769
+    public void testSlowQuery() throws Exception {
+        String query = "A = load 'A.txt' using PigStorage() AS (m: int);";
+        query += "B = FOREACH A { days_str = (chararray) (m == 1 ? 31: (m == 2 ? 28: (m == 3 ? 31: (m == 4 ? 30: (m == 5 ? 31: (m == 6 ? 30: (m == 7 ? 31: (m == 8 ? 31: (m == 9 ? 30: (m == 10 ? 31: (m == 11 ? 30:31))))))))))); GENERATE days_str as days_str; }";
+        query += "store B into 'B';";
+        shouldPass(query);
+    }
+    
+    @Test
+    public void testFunction1() throws Exception {
+        shouldPass("B = foreach A generate org.apache.pig.builtin.CONCAT(b, c);");
+    }
+    
+    @Test
+    public void testFunction2() throws Exception {
+        shouldPass("B = foreach A generate flatten(myudfs.Swap(name, age)), gpa;");
+    }
+    
+    @Test
+    public void testFilter1() throws Exception {
+        shouldPass("E = FILTER D BY not IsEmpty(B);");
+    }
+    
+    @Test
+    public void testFilter2() throws Exception {
+        shouldPass("C = filter B by 2 > 1;");
+    }
+    
+    @Test
+    public void testFilter3() throws Exception {
+        shouldPass("C = filter B by a is null;");
+    }
+    
+    @Test
+    public void testFilter4() throws Exception {
+        shouldPass("C = filter B by a is not null;");
+    }
+    
+    @Test
+    public void testGroup1() throws Exception {
+        shouldPass("B = group A by ( a, $2 );");
+    }
+    
+    @Test
+    public void testCast1() throws Exception {
+        shouldPass("B = FOREACH A GENERATE (int)$0 + 1;");
+    }
+    
+    @Test
+    public void testCast2() throws Exception {
+        shouldPass("B = FOREACH A GENERATE (tuple(int,int,float))fld;");
+    }
+    
+    @Test
+    public void testCast3() throws Exception {
+        shouldPass("B = FOREACH A GENERATE (bag{tuple(long)})fld; ");
+    }
+    
+    @Test
+    public void testCast4() throws Exception {
+        shouldPass("B = FOREACH A GENERATE (map[])fld;");
+    }
+    
+    @Test
+    public void testCast5() throws Exception {
+        shouldPass("E = foreach D generate userid, clicks/(double)C.total, cnt;");
+    }
+    
+    @Test
+    public void testCast6() throws Exception {
+        shouldPass("X = FOREACH B GENERATE group, (chararray)COUNT(A) AS total;");
+    }
+    
+    @Test
+    public void testCast7() throws Exception {
+        shouldPass("B = FOREACH A GENERATE a + (int)null;");
+    }
+    
+    @Test
+    public void testCast8() throws Exception {
+        shouldPass("a = load '1.txt' as(map[int]); --Map value is int");
+    }
+    
+    @Test
+    public void testCast9() throws Exception {
+        shouldPass("b = foreach a generate (map[(i:int)])a0; -- Map value is tuple");
+    }
+    
+    @Test
+    public void testCast10() throws Exception {
+        shouldPass("b = stream a through `cat` as (m:map[{(i:int,j:chararray)}]); -- Map value is bag");
+    }
+    
+    @Test
+    public void testNull1() throws Exception {
+        shouldPass("B = FOREACH A GENERATE a, null;");
+    }
+    
+    @Test
+    public void testNull2() throws Exception {
+        shouldPass("D = FOREACH C GENERATE FLATTEN((IsEmpty(A) ? null : A)), FLATTEN((IsEmpty(B) ? null : B));");
+    }
+    
+    @Test
+    public void testNull3() throws Exception {
+        shouldPass("B = FOREACH A GENERATE a + null;");
+    }
+    
+    @Test
+    public void testStar1() throws Exception {
+        shouldPass("B = FOREACH A GENERATE *, MyUDF(name, age);");
+    }
+    
+    @Test
+    public void testStar2() throws Exception {
+        shouldPass("C = FOREACH A GENERATE name, age, MyUDF(*);");
+    }
+    
+    @Test
+    public void testProjectRange1() throws Exception {
+        shouldPass("F = foreach IN generate (int)col0, col1 .. col3; ");
+    }
+    
+    @Test
+    public void testProjectRange2() throws Exception {
+        shouldPass("SORT = order IN by col2 .. col3, col0, col4 ..; ");
+    }
+
+    @Test
+    public void testProjectRange3() throws Exception {
+        shouldPass("J = join IN1 by $0 .. $3, IN2 by $0 .. $3; ");
+    }
+    
+    @Test
+    public void testProjectRange4() throws Exception {
+        shouldPass("g = group l1 by b .. c; ");
+    }
+    
+    @Test
+    public void testProjection1() throws Exception {
+        shouldPass("b = foreach a generate flatten(group), SUM($1.$2);");
+    }
+    
+    @Test
+    public void testProjection2() throws Exception {
+        shouldPass("a = group (load '/var/folders/bs/cy3sndf95ng5ljgy5nxs1j080000gn/T/test6322762304144938425txt') by ($0,$1);");
+    }
+    
+    @Test
+    public void testPartition() throws Exception {
+        shouldPass("B = group A by $0 PARTITION BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 2;");
+    }
+    
+    @Test
+    public void testBoolean1() throws Exception {
+        shouldPass("C = foreach B generate group,  " +
+                "((org.apache.pig.test.utils.AccumulatorBagCount(A)>1 and " +
+                "org.apache.pig.test.utils.AccumulatorBagCount(A)<3)?0:1);");
+    }
+    
+    @Test
+    public void testBoolean2() throws Exception {
+        shouldPass("C = foreach B generate group,  " +
+                "((org.apache.pig.test.utils.AccumulatorBagCount(A)>3 or " +
+                "org.apache.pig.test.utils.AccumulatorBagCount(A)<2)?0:1);");
+    }
+    
+    @Test
+    public void testSplit1() throws Exception {
+        shouldPass("split a into b if id > 3, c if id < 3, d otherwise;");
+    }
+    
+    @Test
+    public void testSplit2() throws Exception {
+        shouldPass("SPLIT logs INTO logins IF command == 'login', all_quits IF command == 'quit';");
     }
 }
