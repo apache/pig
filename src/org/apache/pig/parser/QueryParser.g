@@ -30,7 +30,7 @@ parser grammar QueryParser;
 options {
     tokenVocab=QueryLexer;
     output=AST;
-    backtrack=true;
+    backtrack=false; // greatly slows down parsing!
 }
 
 tokens {
@@ -86,6 +86,9 @@ import java.util.Collections;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.parser.PigMacro;
+
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableMap;
 }
 
 @members {
@@ -137,6 +140,45 @@ public String getErrorHeader(RecognitionException ex) {
 	return QueryParserUtils.generateErrorHeader( ex, this.getSourceName() );
 }
 
+private static final Map<Integer, Integer> FUNC_TO_LITERAL = ImmutableMap.of(
+    TOBAG, BAG_VAL,
+    TOMAP, MAP_VAL,
+    TOTUPLE, TUPLE_VAL);
+
+private static final Set<Integer> BOOLEAN_TOKENS = ImmutableSet.of(
+    STR_OP_EQ,
+    STR_OP_NE,
+    STR_OP_GT,
+    STR_OP_LT,
+    STR_OP_GTE,
+    STR_OP_LTE,
+    STR_OP_MATCHES,
+    AND,
+    OR,
+    NOT,
+    NULL,
+    NUM_OP_EQ,
+    NUM_OP_NE,
+    NUM_OP_GT,
+    NUM_OP_GTE,
+    NUM_OP_LT,
+    NUM_OP_LTE);
+
+private static final Set<Integer> LITERAL_TOKENS = ImmutableSet.of(
+    INTEGER,
+    LONGINTEGER,
+    FLOATNUMBER,
+    DOUBLENUMBER,
+    QUOTEDSTRING,
+    NULL,
+    TRUE,
+    FALSE,
+    MAP_VAL, 
+    BAG_VAL,
+    TUPLE_VAL,
+    PERIOD,
+    POUND);
+
 } // End of @members
 
 @rulecatch {
@@ -145,71 +187,149 @@ catch(RecognitionException re) {
 }
 }
 
-query : statement* EOF
-     -> ^( QUERY statement* )
+query : statement* EOF -> ^( QUERY statement* )
 ;
+
+// STATEMENTS
 
 statement : SEMI_COLON!
-          | general_statement
+          | general_statement SEMI_COLON!
+          | split_clause SEMI_COLON!
+          | inline_clause SEMI_COLON!
+          | import_clause SEMI_COLON!
+          | realias_clause SEMI_COLON!
+          // semicolons after foreach_complex_statement are optional for backwards compatibility, but to keep
+          // the grammar unambiguous if there is one then we'll parse it as a single, standalone semicolon 
+          // (which matches the first statement rule)
           | foreach_statement
-          | split_statement  
-          | inline_statement        
-          | import_statement
-          | realias_statement
 ;
 
-import_statement : import_clause SEMI_COLON!
+nested_op_clause : LEFT_PAREN! op_clause parallel_clause? RIGHT_PAREN!
+                 | LEFT_PAREN FOREACH rel ( foreach_plan_complex | ( foreach_plan_simple parallel_clause? ) ) RIGHT_PAREN 
+                    -> ^( FOREACH rel foreach_plan_complex? foreach_plan_simple? ) parallel_clause?
 ;
 
-inline_statement : inline_clause SEMI_COLON!
-;
-
-split_statement : split_clause SEMI_COLON!
-;
-
-general_statement : ( alias EQUAL )? (op_clause parallel_clause? | LEFT_PAREN op_clause parallel_clause? RIGHT_PAREN) SEMI_COLON 
-                 -> ^( STATEMENT alias? op_clause parallel_clause? )
-;
-
-realias_statement : realias_clause SEMI_COLON!
-;
-
-realias_clause : alias EQUAL identifier 
-    -> ^(REALIAS alias identifier)
-;
-
-parallel_clause : PARALLEL^ INTEGER
+general_statement : ( IDENTIFIER EQUAL )? ( ( op_clause parallel_clause? ) | nested_op_clause ) -> ^( STATEMENT IDENTIFIER? op_clause? parallel_clause? nested_op_clause? )
 ;
 
 // Statement represented by a foreach operator with a nested block. Simple foreach statement
 // is covered by general_statement.
 // We need to handle foreach specifically because of the ending ';', which is not required 
 // if there is a nested block. This is ugly, but it gets the job done.
-foreach_statement : ( ( alias EQUAL )?  FOREACH rel LEFT_CURLY ) => foreach_complex_statement
-                  | foreach_simple_statement
+foreach_statement : ( IDENTIFIER EQUAL )? FOREACH rel ( foreach_plan_complex | ( foreach_plan_simple parallel_clause? SEMI_COLON ) )
+    -> ^( STATEMENT IDENTIFIER? ^( FOREACH rel foreach_plan_complex? foreach_plan_simple? ) parallel_clause? )
 ;
 
-foreach_complex_statement : ( alias EQUAL )? foreach_clause_complex SEMI_COLON?
-                         -> ^( STATEMENT alias? foreach_clause_complex )
+foreach_plan_complex : LEFT_CURLY nested_blk RIGHT_CURLY -> ^( FOREACH_PLAN_COMPLEX nested_blk )
 ;
 
-foreach_simple_statement : ( alias EQUAL )? (foreach_clause_simple parallel_clause? 
-                                                | LEFT_PAREN foreach_clause_simple parallel_clause? RIGHT_PAREN) SEMI_COLON
-                        -> ^( STATEMENT alias? foreach_clause_simple parallel_clause? )
+foreach_plan_simple : GENERATE flatten_generated_item ( COMMA flatten_generated_item )* -> ^( FOREACH_PLAN_SIMPLE ^( GENERATE flatten_generated_item+ ) )
 ;
 
-alias : identifier
+// MACRO grammar
+
+macro_content : LEFT_CURLY ( macro_content | ~(LEFT_CURLY | RIGHT_CURLY) )* RIGHT_CURLY
+;
+
+macro_param_clause : LEFT_PAREN ( IDENTIFIER (COMMA IDENTIFIER)* )? RIGHT_PAREN
+    -> ^(PARAMS IDENTIFIER*)
+;
+
+macro_return_clause 
+    : RETURNS ((IDENTIFIER (COMMA IDENTIFIER)*) | VOID)
+        -> ^(RETURN_VAL IDENTIFIER*)
+;
+
+macro_body_clause : macro_content -> ^(MACRO_BODY { new PigParserNode(new CommonToken(1, $macro_content.text), this.getSourceName(), $macro_content.start) } )
+;
+
+macro_clause : macro_param_clause macro_return_clause macro_body_clause
+    -> ^(MACRO_DEF macro_param_clause macro_return_clause macro_body_clause)
+;
+
+inline_return_clause 
+    : IDENTIFIER EQUAL -> ^(RETURN_VAL IDENTIFIER)
+	| IDENTIFIER (COMMA IDENTIFIER)+ EQUAL -> ^(RETURN_VAL IDENTIFIER+)
+	| -> ^(RETURN_VAL)  
 ;
 
 parameter 
-    : identifier 
+    : IDENTIFIER 
     | INTEGER 
     | DOUBLENUMBER
     | QUOTEDSTRING
     | DOLLARVAR
 ;
 
-content : LEFT_CURLY ( content | ~(LEFT_CURLY | RIGHT_CURLY) )* RIGHT_CURLY
+inline_param_clause : LEFT_PAREN ( parameter (COMMA parameter)* )? RIGHT_PAREN
+    -> ^(PARAMS parameter*)
+;
+
+inline_clause : inline_return_clause IDENTIFIER inline_param_clause
+    -> ^(MACRO_INLINE IDENTIFIER inline_return_clause inline_param_clause)
+;
+
+// TYPES
+
+simple_type : BOOLEAN | INT | LONG | FLOAT | DOUBLE | DATETIME | CHARARRAY | BYTEARRAY
+;
+
+implicit_tuple_type : LEFT_PAREN field_def_list? RIGHT_PAREN -> ^( TUPLE_TYPE field_def_list? )
+;
+
+explicit_tuple_type : TUPLE! implicit_tuple_type
+;
+
+explicit_tuple_type_cast : TUPLE LEFT_PAREN ( explicit_type_cast ( COMMA explicit_type_cast )* )? RIGHT_PAREN
+    -> ^( TUPLE_TYPE_CAST explicit_type_cast* )
+;
+
+tuple_type : implicit_tuple_type | explicit_tuple_type
+;
+
+implicit_bag_type : LEFT_CURLY NULL COLON tuple_type? RIGHT_CURLY -> ^( BAG_TYPE tuple_type? )
+                  | LEFT_CURLY ( ( IDENTIFIER COLON )? tuple_type )? RIGHT_CURLY -> ^( BAG_TYPE IDENTIFIER? tuple_type? )
+;
+
+explicit_bag_type : BAG! implicit_bag_type
+;
+
+explicit_bag_type_cast : BAG LEFT_CURLY explicit_tuple_type_cast? RIGHT_CURLY -> ^( BAG_TYPE_CAST explicit_tuple_type_cast? )
+;
+
+implicit_map_type : LEFT_BRACKET type? RIGHT_BRACKET -> ^( MAP_TYPE type? )
+;
+
+explicit_map_type : MAP! implicit_map_type
+;
+
+map_type : implicit_map_type | explicit_map_type
+;
+
+explicit_type : simple_type | explicit_tuple_type | explicit_bag_type | explicit_map_type
+;
+
+implicit_type : implicit_tuple_type | implicit_bag_type | implicit_map_type
+;
+
+type : explicit_type | implicit_type
+;
+
+explicit_type_cast : simple_type | explicit_map_type | explicit_tuple_type_cast | explicit_bag_type_cast
+;
+
+// CLAUSES
+
+import_clause : IMPORT^ QUOTEDSTRING
+;
+
+define_clause : DEFINE^ IDENTIFIER ( cmd | func_clause | macro_clause)
+;
+
+realias_clause : IDENTIFIER EQUAL IDENTIFIER -> ^(REALIAS IDENTIFIER IDENTIFIER)
+;
+
+parallel_clause : PARALLEL^ INTEGER
 ;
 
 op_clause : define_clause 
@@ -230,51 +350,10 @@ op_clause : define_clause
           | mr_clause
 ;
 
-macro_param_clause : LEFT_PAREN ( alias (COMMA alias)* )? RIGHT_PAREN
-    -> ^(PARAMS alias*)
-;
-
-macro_return_clause 
-    : RETURNS ((alias (COMMA alias)*) | VOID)
-        -> ^(RETURN_VAL alias*)
-;
-
-macro_body_clause : content
-    -> ^(MACRO_BODY { new PigParserNode(new CommonToken(1, $content.text), this.getSourceName(), $content.start) } )
-;
-
-macro_clause : macro_param_clause macro_return_clause macro_body_clause
-    -> ^(MACRO_DEF macro_param_clause macro_return_clause macro_body_clause)
-;
-
-inline_return_clause 
-    : alias EQUAL -> ^(RETURN_VAL alias)
-	| alias (COMMA alias)+ EQUAL -> ^(RETURN_VAL alias+)
-	| -> ^(RETURN_VAL)  
-;
-
-inline_param_clause : LEFT_PAREN ( parameter (COMMA parameter)* )? RIGHT_PAREN
-    -> ^(PARAMS parameter*)
-;
-
-inline_clause : inline_return_clause alias inline_param_clause
-    -> ^(MACRO_INLINE alias inline_return_clause inline_param_clause)
-;
-
-import_clause : IMPORT^ QUOTEDSTRING
-;
-
-define_clause : DEFINE^ alias ( cmd | func_clause | macro_clause)
-;
-
-cmd : EXECCOMMAND^ ( ship_clause | cache_clause | input_clause | output_clause | error_clause )*
-;
-
 ship_clause : SHIP^ LEFT_PAREN! path_list? RIGHT_PAREN!
 ;
 
-path_list : QUOTEDSTRING ( COMMA QUOTEDSTRING )* 
-         -> QUOTEDSTRING+
+path_list : QUOTEDSTRING ( COMMA QUOTEDSTRING )* -> QUOTEDSTRING+
 ;
 
 cache_clause : CACHE^ LEFT_PAREN! path_list RIGHT_PAREN!
@@ -283,62 +362,23 @@ cache_clause : CACHE^ LEFT_PAREN! path_list RIGHT_PAREN!
 input_clause : INPUT^ LEFT_PAREN! stream_cmd_list RIGHT_PAREN!
 ;
 
-stream_cmd_list : stream_cmd ( COMMA stream_cmd )*
-               -> stream_cmd+
-;
-
-stream_cmd : ( STDIN | STDOUT | QUOTEDSTRING )^ ( USING! ( func_clause ) )?
-;
-
 output_clause : OUTPUT^ LEFT_PAREN! stream_cmd_list RIGHT_PAREN!
 ;
 
 error_clause : STDERROR^ LEFT_PAREN! ( QUOTEDSTRING ( LIMIT! INTEGER )? )? RIGHT_PAREN!
 ;
 
-load_clause : LOAD^ filename ( USING! func_clause )? as_clause?
-;
-
-filename : QUOTEDSTRING
-;
-
-as_clause: AS^ ( ( LEFT_PAREN! field_def_list RIGHT_PAREN! ) | field_def )
-;
-
-field_def : identifier ( COLON type )?
-         -> ^( FIELD_DEF identifier type? )
-          | type
-         -> ^( FIELD_DEF_WITHOUT_IDENTIFIER type )
-;
-
-field_def_list : field_def ( COMMA field_def )*
-              -> field_def+
-;
-
-type : simple_type | tuple_type | bag_type | map_type
-;
-
-simple_type : BOOLEAN | INT | LONG | FLOAT | DOUBLE | DATETIME | CHARARRAY | BYTEARRAY
-;
-
-tuple_type : TUPLE? LEFT_PAREN field_def_list? RIGHT_PAREN
-          -> ^( TUPLE_TYPE field_def_list? )
-;
-
-bag_type : BAG? LEFT_CURLY ( null_keyword COLON tuple_type? ) RIGHT_CURLY
-        -> ^( BAG_TYPE tuple_type? )
-         | BAG? LEFT_CURLY ( ( identifier COLON )? tuple_type )? RIGHT_CURLY
-        -> ^( BAG_TYPE identifier? tuple_type? )
-;
-
-map_type : MAP? LEFT_BRACKET type? RIGHT_BRACKET
-        -> ^( MAP_TYPE type? )
+load_clause : LOAD^ QUOTEDSTRING ( USING! func_clause )? as_clause?
 ;
 
 func_clause : func_name
            -> ^( FUNC_REF func_name )
             | func_name LEFT_PAREN func_args? RIGHT_PAREN
            -> ^( FUNC func_name func_args? )
+;
+
+// needed for disambiguation when parsing expressions...see below
+func_name_without_columns : eid_without_columns ( ( PERIOD | DOLLAR ) eid )*
 ;
 
 func_name : eid ( ( PERIOD | DOLLAR ) eid )*
@@ -351,10 +391,7 @@ func_args : func_args_string ( COMMA func_args_string )*
          -> func_args_string+
 ;
 
-group_clause : ( GROUP | COGROUP )^ group_item_list ( USING! group_type )? partition_clause?
-;
-
-group_type : QUOTEDSTRING
+group_clause : ( GROUP | COGROUP )^ group_item_list ( USING! QUOTEDSTRING )? partition_clause?
 ;
 
 group_item_list : group_item ( COMMA group_item )*
@@ -364,156 +401,78 @@ group_item_list : group_item ( COMMA group_item )*
 group_item : rel ( join_group_by_clause | ALL | ANY ) ( INNER | OUTER )?
 ;
 
-rel : alias 
-    | LEFT_PAREN! ( foreach_clause_complex | ( ( op_clause | foreach_clause_simple ) parallel_clause? ) ) RIGHT_PAREN!
+// "AS" CLAUSES
+
+explicit_field_def : IDENTIFIER ( COLON type )? -> ^( FIELD_DEF IDENTIFIER type? )
+                   | explicit_type -> ^( FIELD_DEF_WITHOUT_IDENTIFIER explicit_type )
 ;
 
-flatten_generated_item : flatten_clause ( AS! ( ( LEFT_PAREN! field_def_list RIGHT_PAREN! ) | field_def ) )?
-                       | col_range ( AS! ( ( LEFT_PAREN! field_def_list RIGHT_PAREN! ) | field_def ) )?
-                       | expr ( AS! field_def )?
-                       | STAR ( AS! ( ( LEFT_PAREN! field_def_list RIGHT_PAREN! ) | field_def ) )?
-;
-	
-flatten_clause : FLATTEN^ LEFT_PAREN! expr RIGHT_PAREN!
+field_def : explicit_field_def 
+          | implicit_type -> ^( FIELD_DEF_WITHOUT_IDENTIFIER implicit_type )
 ;
 
-store_clause : STORE^ rel INTO! filename ( USING! func_clause )?
+field_def_list : field_def ( COMMA! field_def )*
+;
+
+// we have two tuple types as implicit_tuple_types can be confused with parentheses around
+// a field_def - so to remove this ambiguity we'll decide brackets around a single field_def 
+// type is *not* a tuple 
+as_clause : AS^ ( explicit_field_def | ( LEFT_PAREN! field_def_list? RIGHT_PAREN! ) )
+;
+
+// OTHERS
+
+stream_cmd_list : stream_cmd ( COMMA stream_cmd )* -> stream_cmd+
+;
+
+stream_cmd : ( STDIN | STDOUT | QUOTEDSTRING )^ ( USING! func_clause )?
+;
+
+cmd : EXECCOMMAND^ ( ship_clause | cache_clause | input_clause | output_clause | error_clause )*
+;
+
+rel : IDENTIFIER | nested_op_clause
+;
+
+store_clause : STORE^ rel INTO! QUOTEDSTRING ( USING! func_clause )?
 ;
 
 filter_clause : FILTER^ rel BY! cond
 ;
 
-cond : or_cond
+stream_clause : STREAM^ rel THROUGH! ( EXECCOMMAND | IDENTIFIER ) as_clause?
 ;
 
-or_cond : and_cond  ( OR^ and_cond )*
+mr_clause : MAPREDUCE^ QUOTEDSTRING ( LEFT_PAREN! path_list RIGHT_PAREN! )? store_clause load_clause EXECCOMMAND?
 ;
 
-and_cond : unary_cond ( AND^ unary_cond )*
+split_clause : SPLIT^ rel INTO! split_branch split_branches
 ;
 
-unary_cond : expr rel_op^ expr
-           | LEFT_PAREN! cond RIGHT_PAREN!
-           | not_cond
-           | func_eval
-           | null_check_cond
-           | bool_cond
+split_branch : IDENTIFIER IF cond -> ^( SPLIT_BRANCH IDENTIFIER cond )
 ;
 
-bool_cond : expr -> ^(BOOL_COND expr)
+split_otherwise : IDENTIFIER OTHERWISE^
 ;
 
-not_cond : NOT^ unary_cond
+split_branches : COMMA! split_branch split_branches?
+               | COMMA! split_otherwise
 ;
 
-func_eval : func_name LEFT_PAREN real_arg_list? RIGHT_PAREN
-          -> ^( FUNC_EVAL func_name real_arg_list? )
+limit_clause : LIMIT^ rel expr
 ;
 
-real_arg_list : real_arg ( COMMA real_arg )*
-             -> real_arg+
-;
-
-real_arg : expr | STAR | col_range
-;
-
-null_check_cond : expr IS! NOT? null_keyword^
-;
-
-expr : add_expr
-;
-
-add_expr : multi_expr ( ( PLUS | MINUS )^ multi_expr )*
-;
-
-multi_expr : cast_expr ( ( STAR | DIV | PERCENT )^ cast_expr )*
-;
-
-cast_expr : LEFT_PAREN type_cast RIGHT_PAREN unary_expr
-         -> ^( CAST_EXPR type_cast unary_expr )
-          | unary_expr
-;
-
-type_cast : simple_type | map_type | tuple_type_cast | bag_type_cast
-;
-
-tuple_type_cast : TUPLE LEFT_PAREN ( type_cast ( COMMA type_cast )* )? RIGHT_PAREN
-               -> ^( TUPLE_TYPE_CAST type_cast* )
-;
-
-bag_type_cast : BAG LEFT_CURLY tuple_type_cast? RIGHT_CURLY
-             -> ^( BAG_TYPE_CAST tuple_type_cast? )
-;
-
-unary_expr : expr_eval 
-           | LEFT_PAREN expr RIGHT_PAREN
-          -> ^( EXPR_IN_PAREN expr )
-           | neg_expr
-;
-
-expr_eval : const_expr | var_expr
-;
-
-var_expr : projectable_expr ( dot_proj | pound_proj )*
-;
-
-projectable_expr: func_eval | col_ref | bin_expr | type_conversion
-;
-
-type_conversion : LEFT_CURLY real_arg_list RIGHT_CURLY 
-               -> ^( FUNC_EVAL TOBAG real_arg_list )
-               | LEFT_BRACKET real_arg_list RIGHT_BRACKET 
-               -> ^( FUNC_EVAL TOMAP real_arg_list )
-               | LEFT_PAREN real_arg ( COMMA real_arg )+ RIGHT_PAREN // to disable convertion on 1 element tuples
-               -> ^( FUNC_EVAL TOTUPLE real_arg+ )
-;
-
-dot_proj : PERIOD ( col_alias_or_index 
-                  | ( LEFT_PAREN col_alias_or_index ( COMMA col_alias_or_index )* RIGHT_PAREN ) )
-        -> ^( PERIOD col_alias_or_index+ )
-;
-
-col_alias_or_index : col_alias | col_index
-;
-
-col_alias : GROUP | CUBE | identifier
-;
-
-col_index : DOLLARVAR
-;
-
-col_range : c1 = col_ref DOUBLE_PERIOD c2 = col_ref?
-          -> ^(COL_RANGE $c1 DOUBLE_PERIOD $c2?)
-          |  DOUBLE_PERIOD col_ref 
-          -> ^(COL_RANGE DOUBLE_PERIOD col_ref)
-
-;
-
-pound_proj : POUND^ ( QUOTEDSTRING | null_keyword )
-;
-
-bin_expr : LEFT_PAREN cond QMARK exp1 = expr COLON exp2 = expr RIGHT_PAREN
-        -> ^( BIN_EXPR cond $exp1 $exp2 )
-;
-
-neg_expr : MINUS cast_expr
-        -> ^( NEG cast_expr )
-;
-
-limit_clause : LIMIT^ rel ( (INTEGER SEMI_COLON) => INTEGER | (LONGINTEGER SEMI_COLON) => LONGINTEGER | expr )
-;
-
-sample_clause : SAMPLE^ rel ( (DOUBLENUMBER SEMI_COLON) => DOUBLENUMBER | expr )
+sample_clause : SAMPLE^ rel expr
 ;
 
 rank_clause : RANK^ rel ( rank_by_statement )?
 ;
 
-rank_by_statement : BY^ rank_by_clause ( DENSE )?
+rank_by_statement : BY^ rank_by_clause DENSE?
 ;
 
 rank_by_clause : STAR ( ASC | DESC )?
-			   | rank_list
+               | rank_list
 ;
 
 rank_list : rank_col ( COMMA rank_col )*
@@ -546,12 +505,13 @@ distinct_clause : DISTINCT^ rel partition_clause?
 partition_clause : PARTITION^ BY! func_name
 ;
 
+
+rel_list : rel ( COMMA rel )* -> rel+
+;
+
 cross_clause : CROSS^ rel_list partition_clause?
 ;
 
-rel_list : rel ( COMMA rel )*
-        -> rel+
-;
 
 join_clause : JOIN^ join_sub_clause ( USING! join_type )? partition_clause?
 ;
@@ -559,86 +519,306 @@ join_clause : JOIN^ join_sub_clause ( USING! join_type )? partition_clause?
 join_type : QUOTEDSTRING
 ;
 
-join_sub_clause : join_item ( LEFT | RIGHT | FULL ) OUTER? COMMA! join_item
-                | join_item_list
+join_sub_clause : join_item ( ( ( LEFT | RIGHT | FULL ) OUTER? COMMA! join_item ) | ( ( COMMA! join_item )+ ) )
 ;
 
-join_item_list : join_item ( COMMA! join_item )+
+join_item : rel join_group_by_clause -> ^( JOIN_ITEM  rel join_group_by_clause )
 ;
 
-join_item : rel join_group_by_clause
-         -> ^( JOIN_ITEM  rel join_group_by_clause )
-;
-
-join_group_by_clause : BY^ join_group_by_expr_list
-;
-
-join_group_by_expr_list : LEFT_PAREN join_group_by_expr ( COMMA join_group_by_expr )* RIGHT_PAREN
-                       -> join_group_by_expr+
-                        | join_group_by_expr
-;
-
-join_group_by_expr : col_range  | expr | STAR
+// this can either be a single arg or something like (a,b) - which is 
+// indistinguishable from a tuple. We'll therefore parse a single argument
+// (which can be a tuple of several real_args) and expand it:
+join_group_by_clause
+    @after
+    {
+        Tree by = (Tree) retval.getTree(); 
+        Tree realArg = by.getChild(0); 
+        if(realArg.getType() == TUPLE_VAL
+        || (realArg.getType() == FUNC_EVAL && realArg.getChild(0).getType() == TOTUPLE)) {
+            retval.tree = adaptor.create(by.getType(), by.getText());
+            for(int i = 0; i < realArg.getChildCount(); ++i) {
+                if(realArg.getChild(i).getType()!=TOTUPLE)
+                ((Tree)retval.tree).addChild(realArg.getChild(i));
+            }
+            adaptor.setTokenBoundaries(retval.tree, retval.start, retval.stop);
+        }
+    }
+                     : BY^ real_arg
 ;
 
 union_clause : UNION^ ONSCHEMA? rel_list
 ;
 
-foreach_clause_simple : FOREACH^ rel foreach_plan_simple
+cube_clause : CUBE rel BY cube_rollup_list ( COMMA cube_rollup_list )* -> ^( CUBE rel ^( BY cube_rollup_list+ ) )
 ;
 
-foreach_plan_simple : generate_clause
-                   -> ^( FOREACH_PLAN_SIMPLE generate_clause )
+cube_rollup_list : ( CUBE | ROLLUP )^ LEFT_PAREN! real_arg ( COMMA! real_arg )* RIGHT_PAREN!
 ;
 
-foreach_clause_complex : FOREACH^ rel foreach_plan_complex
+flatten_clause : FLATTEN^ LEFT_PAREN! expr RIGHT_PAREN!
 ;
 
-foreach_plan_complex : nested_blk
-                    -> ^( FOREACH_PLAN_COMPLEX nested_blk )
+// unlike loading and streaming, we want the as_clause (if present) in a different format (i.e.
+// we drop the AS token itself).
+generate_as_clause :  AS! ( ( LEFT_PAREN! field_def_list RIGHT_PAREN! ) | explicit_field_def )
 ;
 
-cube_clause : CUBE^ cube_item 
+flatten_generated_item : flatten_clause generate_as_clause?
+                       | real_arg generate_as_clause?
 ;
 
-cube_item : rel ( cube_by_clause )
+// EXPRESSIONS
+
+// conditional precedence is OR weakest, then AND, then NOT, then IS NOT NULL and the comparison operators equally
+// by design the boolean operator hierarchy is entirely below the expression hierarchy
+
+real_arg : expr
+         | STAR
+         | col_range
 ;
 
-cube_by_clause : BY^ cube_or_rollup
+cond : and_cond  ( OR^ and_cond )*
 ;
 
-cube_or_rollup : cube_rollup_list ( COMMA cube_rollup_list )*
-                -> cube_rollup_list+
+and_cond : not_cond ( AND^ not_cond )*
 ;
 
-cube_rollup_list : ( CUBE | ROLLUP )^ cube_by_expr_list
+not_cond : NOT^? unary_cond
 ;
 
-cube_by_expr_list : LEFT_PAREN cube_by_expr ( COMMA cube_by_expr )* RIGHT_PAREN
-                   -> cube_by_expr+
+unary_cond
+    @after 
+    {
+        // Expressions in parentheses are a little tricky to match as
+        // they could contain either "cond" rules or "expr" rules. If 
+        // they are "expr" rules then they're put under a BOOL_COND node
+        // in the tree, but "cond" rules put no extra tokens in the tree.
+        // As we're matching non-recursively we'll parse whatever's in the 
+        // brackets, and if the AST has a boolean expression at its root
+        // then we'll assume we've just got a "cond" expression in 
+        // brackets, and otherwise we'll assume its an "expr" (and so 
+        // we'll have to strip off the BOOL_COND token the "cast_expr" 
+        // rule added)
+        Tree tree = (Tree)retval.getTree(); 
+        if(tree.getType() == BOOL_COND
+        && tree.getChild(0).getType() == EXPR_IN_PAREN
+        && BOOLEAN_TOKENS.contains(tree.getChild(0).getChild(0).getType())) {
+            retval.tree = tree.getChild(0).getChild(0);
+            adaptor.setTokenBoundaries(retval.tree, retval.start, retval.stop);
+        }
+    }
+    : exp1 = expr 
+        ( ( IS NOT? NULL -> ^( NULL $exp1 NOT? ) )
+        | ( rel_op exp2 = expr -> ^( rel_op $exp1 $exp2 ) )
+        | ( -> ^(BOOL_COND expr) ) )
 ;
 
-cube_by_expr : col_range  | expr | STAR
+expr : multi_expr ( ( PLUS | MINUS )^ multi_expr )*
 ;
 
-nested_blk : LEFT_CURLY! nested_command_list ( generate_clause SEMI_COLON! ) RIGHT_CURLY!
+multi_expr : cast_expr ( ( STAR | DIV | PERCENT )^ cast_expr )*
 ;
 
-generate_clause : GENERATE flatten_generated_item ( COMMA flatten_generated_item )*
-                  -> ^( GENERATE flatten_generated_item+ )
+func_name_suffix : ( ( DOLLAR | PERIOD ) eid )+
 ;
 
-nested_command_list : ( nested_command SEMI_COLON )*
-                   -> nested_command*
-                    |
+cast_expr 
+    @after
+    {
+        BaseTree tree = (BaseTree) retval.getTree(); 
+
+        // the parser does an initial optimisation step: it removes TOTUPLE / TOMAP / TOBAG
+        // function calls if it knows they'll just return the input (i.e. because the function's
+        // argument is a literal). We'll do this here by post-processing the result:
+        if(tree.getType() == FUNC_EVAL) {
+            Integer func = FUNC_TO_LITERAL.get(tree.getChild(0).getType());
+            if(func != null) {
+                boolean canBeOptimised = true;
+                for(int arg = 1; arg < tree.getChildCount() && canBeOptimised; ++arg) {
+                    canBeOptimised &= LITERAL_TOKENS.contains(tree.getChild(arg).getType());
+                }
+                if(canBeOptimised) {
+                    retval.tree = adaptor.create(func, func.toString());
+                    ((BaseTree)retval.tree).addChildren(tree.getChildren());
+                    ((BaseTree)retval.tree).deleteChild(0); // the (e.g.) TOBAG token
+                    adaptor.setTokenBoundaries(retval.tree, retval.start, retval.stop);
+                }
+            }
+        }
+        
+        // a minor correction to the token text for formatting - 
+        // we want NEG's text to be the same as MINUSes
+        if(tree.getType() == NEG) {
+            ((CommonTree)tree).token.setText("-");
+        }
+        
+        // As noted below, brackets around a single literal mean a tuple
+        // of that literal, not a nested expression which evaluates to 
+        // that literal. Remember that a NULL with children is a boolean
+        // expression, not a literal!
+        if(tree.getType() == EXPR_IN_PAREN
+        && LITERAL_TOKENS.contains(tree.getChild(0).getType())
+        && (tree.getChild(0).getType() != NULL || tree.getChild(0).getChildCount() == 0)) {
+            ((CommonTree)tree).token.setType(TUPLE_VAL);
+        }
+    }
+          : scalar 
+          | MINUS cast_expr -> ^( NEG cast_expr )
+          // single columns and functions (both of which can start with an identifier). Note that we have to be 
+          // careful with periods straight after the identifier, as we want those to be projections, not function
+          // calls
+          | col_ref_without_identifier projection*
+          | IDENTIFIER projection*
+          | IDENTIFIER func_name_suffix? LEFT_PAREN ( real_arg ( COMMA real_arg )* )? RIGHT_PAREN projection* -> ^( FUNC_EVAL IDENTIFIER func_name_suffix? real_arg* ) projection*
+          | func_name_without_columns LEFT_PAREN ( real_arg ( COMMA real_arg )* )? RIGHT_PAREN projection* -> ^( FUNC_EVAL func_name_without_columns real_arg* ) projection*
+          | paren_expr
+          | curly_expr
+          | bracket_expr
 ;
 
-nested_command : ( identifier EQUAL col_ref PERIOD col_ref_list { input.LA( 1 ) == SEMI_COLON }? ) => ( identifier EQUAL nested_proj )
-              -> ^( NESTED_CMD identifier nested_proj )
-               | identifier EQUAL expr
-              -> ^( NESTED_CMD_ASSI identifier expr )
-               | identifier EQUAL nested_op
-              -> ^( NESTED_CMD identifier nested_op )
+// now we have to deal with parentheses: in an expr, '(' can be the 
+// start of a cast, the start of a nested expression or the start of
+// a tuple. We'll ensure parsing is unambiguous by assuming a single
+// expression in parentheses is a nested expression, whereas two or 
+// more nested expressions are a tuple (unless that single expression
+// is a literal, in which case we assume tuple with a single element
+// - that literal).
+paren_expr 
+    @after
+    {
+        BaseTree tree = (BaseTree)retval.getTree();
+
+        // the other side of the @after block in unary_cond: if we've 
+        // matched an EXPR_IN_PAREN we expect the nested expression to
+        // be an "expr", not a "cond", so we should strip off the 
+        // BOOL_COND token.
+        if(tree.getType() == EXPR_IN_PAREN
+        && tree.getChild(0).getType() == BOOL_COND) {
+            int type = tree.getChild(0).getChild(0).getType();
+            // NULL is a special case - if it has children it's a boolean
+            // expression, and if not it's a literal NULL. Note that we
+            // replace *all* children
+            if(!BOOLEAN_TOKENS.contains(type) 
+            || (type == NULL && tree.getChild(0).getChild(0).getChildCount() == 0)) {
+                Tree addChildrenOf = tree.getChild(0);
+                for(int i = 0; i < tree.getChildCount(); ++i)
+                    tree.deleteChild(i);
+                for(int i = 0; i < addChildrenOf.getChildCount(); ++i)
+                    tree.addChild(addChildrenOf.getChild(i));
+            }
+        }
+
+        // A function call to TOTUPLE is inserted into the AST for 
+        // some tuple literals - but as we assume the first expression
+        // after an open bracket is a "cond" rule, and as "cond" rules
+        // nest "expr" rules under a BOOL_COND token we get an invalid
+        // AST. We'll remove this BOOL_COND here:
+        if(tree.getType() == FUNC_EVAL
+        && tree.getChild(0).getType() == TOTUPLE
+        && tree.getChildCount() > 1
+        && tree.getChild(1).getType() == BOOL_COND) {
+            Tree insertChildrenOf = tree.getChild(1);
+            tree.deleteChild(1);
+            for(int i = insertChildrenOf.getChildCount() - 1; i >= 0; --i)
+                tree.insertChild(1, insertChildrenOf.getChild(i));
+        }
+    }
+    : LEFT_PAREN! try_implicit_map_cast
+;
+
+try_implicit_map_cast
+           // we'll also allow implicit map casts (for backwards compatibility only -
+           // bag and tuple casts have to be explicit and it makes the grammar more
+           // simple). Unfortunately we'll have to turn on back-tracking for this rule, 
+           // as LEFT_PAREN LEFT_BRACKET could be a literal map in a EXPR_IN_PAREN. 
+           // It'd be much better if we could remove this from the Pig language (and
+           // just rely on explicit map casts) - then we'd have no backtracking at all!
+           : ( implicit_map_type RIGHT_PAREN cast_expr) => implicit_map_type RIGHT_PAREN cast_expr -> ^( CAST_EXPR implicit_map_type cast_expr )
+           | after_left_paren
+;
+
+after_left_paren : explicit_type_cast RIGHT_PAREN cast_expr -> ^( CAST_EXPR explicit_type_cast cast_expr )
+                 // tuples
+                 | RIGHT_PAREN projection* -> ^( TUPLE_VAL ) projection*
+                 | STAR ( COMMA real_arg )* RIGHT_PAREN projection* -> ^( FUNC_EVAL TOTUPLE STAR real_arg* ) projection*
+                 | col_range ( COMMA real_arg )* RIGHT_PAREN projection* -> ^( FUNC_EVAL TOTUPLE col_range real_arg* ) projection*
+                 // Tuples begin with '(' expr, but shorthand-booleans begin with '(' cond. As cond 
+                 // and expr are indistinguishable, we'll parse as a cond (i.e. the most lenient) and 
+                 // for exprs, strip off the BOOL_COND trees. You can have both nested conds and nested   
+                 // exprs, so we'll just assume cond.
+                 | cond 
+                   ( ( ( COMMA real_arg )+ RIGHT_PAREN projection* -> ^( FUNC_EVAL TOTUPLE cond real_arg+ ) projection* )
+                   | ( RIGHT_PAREN -> ^( EXPR_IN_PAREN cond ) )
+                   | ( QMARK exp1 = expr COLON exp2 = expr RIGHT_PAREN -> ^( BIN_EXPR cond $exp1 $exp2 ) ) )
+;
+
+curly_expr : LEFT_CURLY real_arg ( COMMA real_arg )* RIGHT_CURLY projection* -> ^( FUNC_EVAL TOBAG real_arg+ ) projection*
+           | LEFT_CURLY RIGHT_CURLY projection* -> ^( BAG_VAL ) projection*
+;
+
+bracket_expr : LEFT_BRACKET real_arg ( COMMA real_arg )* RIGHT_BRACKET projection* -> ^( FUNC_EVAL TOMAP real_arg+ ) projection*
+             | LEFT_BRACKET keyvalue ( COMMA keyvalue )* RIGHT_BRACKET projection* -> ^( MAP_VAL keyvalue+ ) projection*
+             | LEFT_BRACKET RIGHT_BRACKET projection* -> ^( MAP_VAL ) projection*
+;
+
+projection : PERIOD ( col_ref | LEFT_PAREN col_ref ( COMMA col_ref )* RIGHT_PAREN ) -> ^( PERIOD col_ref+ )
+           | POUND^ ( QUOTEDSTRING | NULL )
+;
+
+// ATOMS
+
+// for disambiguation with func_names
+col_ref_without_identifier : GROUP | CUBE | DOLLARVAR
+;
+
+col_ref : col_ref_without_identifier | IDENTIFIER
+;
+
+col_range : c1 = col_ref DOUBLE_PERIOD c2 = col_ref? -> ^(COL_RANGE $c1 DOUBLE_PERIOD $c2?)
+          |  DOUBLE_PERIOD col_ref -> ^(COL_RANGE DOUBLE_PERIOD col_ref)
+;
+
+scalar : INTEGER
+       | LONGINTEGER
+       | FLOATNUMBER
+       | DOUBLENUMBER
+       | QUOTEDSTRING
+       | NULL
+       | TRUE
+       | FALSE
+;
+
+keyvalue : QUOTEDSTRING POUND literal -> ^( KEY_VAL_PAIR QUOTEDSTRING literal )
+;
+
+literal_map : LEFT_BRACKET keyvalue ( COMMA keyvalue )* RIGHT_BRACKET -> ^( MAP_VAL keyvalue+ )
+            | LEFT_BRACKET RIGHT_BRACKET -> ^( MAP_VAL )
+;
+
+
+literal_bag : LEFT_CURLY literal_tuple ( COMMA literal_tuple )* RIGHT_CURLY -> ^( BAG_VAL literal_tuple+ )
+            | LEFT_CURLY RIGHT_CURLY -> ^( BAG_VAL )
+;
+
+literal_tuple : LEFT_PAREN literal ( COMMA literal )* RIGHT_PAREN -> ^( TUPLE_VAL literal+ )
+              | LEFT_PAREN RIGHT_PAREN -> ^( TUPLE_VAL )
+;
+
+literal : scalar | literal_map | literal_bag | literal_tuple
+;
+
+// NESTING
+
+nested_blk : ( nested_command SEMI_COLON )* GENERATE flatten_generated_item ( COMMA flatten_generated_item )* SEMI_COLON
+    -> nested_command* ^( GENERATE flatten_generated_item+ )
+;
+
+nested_command : ( IDENTIFIER EQUAL col_ref PERIOD col_ref_list { input.LA( 1 ) == SEMI_COLON }? ) => ( IDENTIFIER EQUAL nested_proj )
+              -> ^( NESTED_CMD IDENTIFIER nested_proj )
+               | IDENTIFIER EQUAL expr
+              -> ^( NESTED_CMD_ASSI IDENTIFIER expr )
+               | IDENTIFIER EQUAL nested_op
+              -> ^( NESTED_CMD IDENTIFIER nested_op )
 ;
 
 nested_op : nested_filter
@@ -672,7 +852,8 @@ nested_limit : LIMIT^ nested_op_input ( (INTEGER SEMI_COLON) => INTEGER | expr )
 nested_cross : CROSS^ nested_op_input_list
 ;
 
-nested_foreach: FOREACH^ nested_op_input generate_clause
+nested_foreach: FOREACH nested_op_input GENERATE flatten_generated_item ( COMMA flatten_generated_item )*
+    -> ^( FOREACH nested_op_input ^( GENERATE flatten_generated_item+ ) )
 ;
 
 nested_op_input : col_ref | nested_proj
@@ -682,80 +863,16 @@ nested_op_input_list : nested_op_input ( COMMA nested_op_input )*
         -> nested_op_input+
 ;
 
-stream_clause : STREAM^ rel THROUGH! ( EXECCOMMAND | alias ) as_clause?
-;
-
-mr_clause : MAPREDUCE^ QUOTEDSTRING ( LEFT_PAREN! path_list RIGHT_PAREN! )? store_clause load_clause EXECCOMMAND?
-;
-
-split_clause : SPLIT rel INTO split_branch ( ( COMMA split_branch )+ | ( ( COMMA split_branch )* COMMA split_otherwise ) )
-            -> ^( SPLIT rel split_branch+ split_otherwise?)
-;
-
-split_branch : alias IF cond
-            -> ^( SPLIT_BRANCH alias cond )
-;
-
-split_otherwise : alias OTHERWISE
-            -> ^( OTHERWISE alias )
-;
-
-col_ref : alias_col_ref | dollar_col_ref
-;
-
-alias_col_ref : GROUP | CUBE | identifier
-;
-
-dollar_col_ref : DOLLARVAR
-;
-
-const_expr : literal
-;
-
-literal : scalar | map | bag | tuple
-;
-
-
-scalar : num_scalar | QUOTEDSTRING | null_keyword | TRUE | FALSE
-;
-
-num_scalar : MINUS? ( INTEGER | LONGINTEGER | FLOATNUMBER | DOUBLENUMBER )
-;
-
-map : LEFT_BRACKET keyvalue ( COMMA keyvalue )* RIGHT_BRACKET
-   -> ^( MAP_VAL keyvalue+ )
-    | LEFT_BRACKET RIGHT_BRACKET
-   -> ^( MAP_VAL )
-;
-
-keyvalue : map_key POUND const_expr
-        -> ^( KEY_VAL_PAIR map_key const_expr )
-;
-
-map_key : QUOTEDSTRING
-;
-
-bag : LEFT_CURLY tuple ( COMMA tuple )* RIGHT_CURLY
-   -> ^( BAG_VAL tuple+ )
-    | LEFT_CURLY RIGHT_CURLY
-   -> ^( BAG_VAL )
-;
-
-tuple : LEFT_PAREN literal ( COMMA literal )* RIGHT_PAREN
-     -> ^( TUPLE_VAL literal+ )
-      | LEFT_PAREN RIGHT_PAREN
-     -> ^( TUPLE_VAL )
-;
+// IDENTIFIERS
 
 // extended identifier, handling the keyword and identifier conflicts. Ugly but there is no other choice.
-eid : rel_str_op
+eid_without_columns : rel_str_op
     | IMPORT
     | RETURNS
     | DEFINE
     | LOAD
     | FILTER
     | FOREACH
-    | CUBE
     | ROLLUP
     | ORDER
     | DISTINCT
@@ -774,25 +891,15 @@ eid : rel_str_op
     | OUTER
     | PARALLEL
     | PARTITION
-    | GROUP
     | AND
     | OR
-    | NOT
     | GENERATE
-    | FLATTEN
     | ASC
     | DESC
     | BOOL
-    | INT
-    | LONG
-    | FLOAT
-    | DOUBLE
     | DATETIME
     | CHARARRAY
     | BYTEARRAY
-    | BAG
-    | TUPLE
-    | MAP
     | IS
     | STREAM
     | THROUGH
@@ -810,40 +917,36 @@ eid : rel_str_op
     | LEFT
     | RIGHT
     | FULL
-    | identifier
-    | null_keyword
-    | TRUE
-    | FALSE
     | REALIAS
     | BOOL_COND
 ;
 
+eid : eid_without_columns 
+    | IDENTIFIER
+    | GROUP
+    | CUBE
+    | TRUE
+    | FALSE
+    | INT
+    | LONG
+    | FLOAT
+    | DOUBLE
+    | NULL
+    | NOT
+    | FLATTEN
+    | BAG
+    | TUPLE
+    | MAP
+;
+
 // relational operator
-rel_op : rel_op_eq
-       | rel_op_ne
-       | rel_op_gt
-       | rel_op_gte
-       | rel_op_lt
-       | rel_op_lte
-       | STR_OP_MATCHES
-;
-
-rel_op_eq : STR_OP_EQ | NUM_OP_EQ
-;
-
-rel_op_ne : STR_OP_NE | NUM_OP_NE
-;
-
-rel_op_gt : STR_OP_GT | NUM_OP_GT
-;
-
-rel_op_gte : STR_OP_GTE | NUM_OP_GTE
-;
-
-rel_op_lt : STR_OP_LT | NUM_OP_LT
-;
-
-rel_op_lte : STR_OP_LTE | NUM_OP_LTE
+rel_op : rel_str_op 
+       | NUM_OP_EQ
+       | NUM_OP_NE
+       | NUM_OP_GT
+       | NUM_OP_GTE
+       | NUM_OP_LT
+       | NUM_OP_LTE
 ;
 
 rel_str_op : STR_OP_EQ
@@ -853,12 +956,4 @@ rel_str_op : STR_OP_EQ
            | STR_OP_GTE
            | STR_OP_LTE
            | STR_OP_MATCHES
-;
-
-null_keyword : {input.LT(1).getText().equalsIgnoreCase("NULL")}? IDENTIFIER_L
-     -> NULL[$IDENTIFIER_L]
-;
-
-identifier : {!input.LT(1).getText().equalsIgnoreCase("NULL")}? IDENTIFIER_L
-    -> IDENTIFIER[$IDENTIFIER_L]
 ;
