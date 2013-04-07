@@ -530,7 +530,8 @@ $ hadoop fs –copyFromLocal excite.log.bz2 .
 <li>Set the PIG_CLASSPATH environment variable to the location of the cluster configuration directory (the directory that contains the core-site.xml, hdfs-site.xml and mapred-site.xml files):
 <source>
 export PIG_CLASSPATH=/mycluster/conf
-</source></li>
+</source>
+<p><strong>Note:</strong> The PIG_CLASSPATH can also be used to add any other 3rd party dependencies or resource files a pig script may require. If there is also a need to make the added entries take the highest precedence in the Pig JVM's classpath order, one may also set the env-var PIG_USER_CLASSPATH_FIRST to any value, such as 'true' (and unset the env-var to disable).</p></li>
 <li>Set the HADOOP_CONF_DIR environment variable to the location of the cluster configuration directory:
 <source>
 export HADOOP_CONF_DIR=/mycluster/conf

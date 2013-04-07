@@ -28,6 +28,9 @@ PIG-3174:  Remove rpm and deb artifacts from build.xml (gates)
 
 IMPROVEMENTS
 
+PIG-3261: User set PIG_CLASSPATH entries must be prepended to the CLASSPATH, not 
+appended (qwertymaniac via daijy)
+
 PIG-3141: Giving CSVExcelStorage an option to handle header rows (jpacker via cheolsoo)
 
 PIG-3217: Add support for DateTime type in Groovy UDFs (herberts via daijy)
