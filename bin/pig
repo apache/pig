@@ -25,6 +25,11 @@
 #
 #     PIG_CLASSPATH Extra Java CLASSPATH entries.
 #
+#     PIG_USER_CLASSPATH_FIRST If set, add user provided classpath entries to
+#                              the top of classpath instead of appending them.
+#                              Default is unset, i.e. the classpath entries are
+#                              placed normally at the end of a pre-defined classpath.
+#
 #     HADOOP_HOME/HADOOP_PREFIX     Environment HADOOP_HOME/HADOOP_PREFIX(0.20.205)
 #
 #     HADOOP_CONF_DIR     Hadoop conf dir
@@ -184,11 +189,16 @@ if [ "$includeHCatalog" == "true" ]; then
   CLASSPATH=${CLASSPATH}:$ADDITIONAL_CLASSPATHS:$HIVE_HOME/conf
 fi
 
-# add user-specified CLASSPATH
+# Add user-specified CLASSPATH entries via PIG_CLASSPATH
+# If PIG_USER_CLASSPATH_FIRST is set, prepend the entries
 if [ "$PIG_CLASSPATH" != "" ]; then
+  if [ "$PIG_USER_CLASSPATH_FIRST" == "" ]; then
     CLASSPATH=${CLASSPATH}:${PIG_CLASSPATH}
+  else
+    CLASSPATH=${PIG_CLASSPATH}:${CLASSPATH}
+  fi
 fi
- 
+
 # add HADOOP_CONF_DIR
 if [ "$HADOOP_CONF_DIR" != "" ]; then
     CLASSPATH=${CLASSPATH}:${HADOOP_CONF_DIR}
