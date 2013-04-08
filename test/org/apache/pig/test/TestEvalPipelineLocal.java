@@ -1108,4 +1108,19 @@ public class TestEvalPipelineLocal {
         Assert.assertTrue(iter.next().toString().equals("((4,5),{((4,5),6)})"));
         Assert.assertFalse(iter.hasNext());
     }
+    
+    @Test
+    // See PIG-3060
+    public void testFlattenEmptyBag() throws Exception {
+        File f1 = createFile(new String[]{"2\t{}","3\t{(1),(2)}", "4\t{}"});
+        pigServer.registerQuery("A = load '" + Util.generateURI(f1.toString(), pigServer.getPigContext())
+                + "'  as (a0:int, a1:bag{(t:chararray)});");
+        pigServer.registerQuery("B = group A by a0;");
+        pigServer.registerQuery("C = foreach B { c1 = foreach A generate FLATTEN(a1); generate COUNT(c1);};");
+        Iterator<Tuple> iter = pigServer.openIterator("C");
+        Assert.assertTrue(iter.next().toString().equals("(0)"));
+        Assert.assertTrue(iter.next().toString().equals("(2)"));
+        Assert.assertTrue(iter.next().toString().equals("(0)"));
+        Assert.assertFalse(iter.hasNext());
+    }
 }
