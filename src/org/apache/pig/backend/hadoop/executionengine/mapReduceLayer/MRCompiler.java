@@ -2396,7 +2396,7 @@ public class MRCompiler extends PhyPlanVisitor {
                 prj.setResultType(DataType.TUPLE);
                 ep.add(prj);
                 eps1.add(ep);
-                flat1.add(true);
+                flat1.add(false);
             } else {
                 for (Pair<POProject, Byte> sortProj : sortProjs) {
                     // Check for proj being null, null is used by getSortCols for a non POProject
@@ -2419,7 +2419,7 @@ public class MRCompiler extends PhyPlanVisitor {
                     }
                     ep.add(prj);
                     eps1.add(ep);
-                    flat1.add(true);
+                    flat1.add(false);
                 }
             }
         }else{

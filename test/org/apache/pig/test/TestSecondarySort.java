@@ -68,164 +68,12 @@ public class TestSecondarySort {
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
     }
 
-//    @Test // Currently failing due to PIG-2009
-//    public void testDistinctOptimization1() throws Exception {
-//        // Limit in the foreach plan
-//        String query = ("A=LOAD 'input1' AS (a0, a1, a2);"+
-//        "B = LOAD 'input2' AS (b0, b1, b2);" +
-//        "C = cogroup A by a0, B by b0;" +
-//        "D = foreach C { E = limit A 10; F = E.a1; G = DISTINCT F; generate group, COUNT(G);};" +
-//        "store D into 'output';");
-//        PhysicalPlan pp = Util.buildPp(pigServer, query);
-//        MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
-//
-//        SecondaryKeyOptimizer so = new SecondaryKeyOptimizer(mrPlan);
-//        so.visit();
-//
-//        assertEquals( 1, so.getNumMRUseSecondaryKey() );
-//        assertTrue(so.getNumSortRemoved() == 0);
-//        assertTrue(so.getDistinctChanged() == 1);
-//    }
-
     @Test
-    public void testDistinctOptimization2() throws Exception {
+    public void testDistinctOptimization1() throws Exception {
         // Distinct on one entire input
         String query = ("A=LOAD 'input1' AS (a0, a1, a2);"+
         "B = group A by $0;"+
         "C = foreach B { D = distinct A; generate group, D;};"+
-
-        "store C into 'output';");
-        PhysicalPlan pp = Util.buildPp(pigServer, query);
-        MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
-
-        SecondaryKeyOptimizer so = new SecondaryKeyOptimizer(mrPlan);
-        so.visit();
-
-        assertEquals(1, so.getNumMRUseSecondaryKey());
-        assertEquals(0, so.getNumSortRemoved());
-        assertEquals(1, so.getDistinctChanged());
-    }
-
-    @Test
-    public void testDistinctOptimization3() throws Exception {
-        // Distinct on the prefix of main sort key
-        String query = ("A=LOAD 'input1' AS (a0, a1, a2);"+
-        "B = group A by $0;"+
-        "C = foreach B { D = A.a0; E = distinct D; generate group, E;};"+
-
-        "store C into 'output';");
-        PhysicalPlan pp = Util.buildPp(pigServer, query);
-        MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
-
-        SecondaryKeyOptimizer so = new SecondaryKeyOptimizer(mrPlan);
-        so.visit();
-
-        assertEquals(0, so.getNumMRUseSecondaryKey());
-        assertEquals(0, so.getNumSortRemoved());
-        assertEquals(1, so.getDistinctChanged());
-    }
-
-    @Test
-    public void testDistinctOptimization4() throws Exception {
-        // Distinct on secondary key again, should remove
-        String query = ("A=LOAD 'input1' AS (a0, a1, a2);"+
-        "B = group A by $0;"+
-        "C = foreach B { D = A.a1; E = distinct D; F = distinct E; generate group, F;};"+
-
-        "store C into 'output';");
-        PhysicalPlan pp = Util.buildPp(pigServer, query);
-        MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
-
-        SecondaryKeyOptimizer so = new SecondaryKeyOptimizer(mrPlan);
-        so.visit();
-
-        assertEquals(1, so.getNumMRUseSecondaryKey());
-        assertEquals(0, so.getNumSortRemoved());
-        assertEquals(2, so.getDistinctChanged());
-    }
-
-    @Test
-    public void testDistinctOptimization5() throws Exception {
-        // Filter in foreach plan
-        String query = ("A=LOAD 'input1' AS (a0, a1, a2);" +
-        "B = group A by $0;" +
-        "C = foreach B { D = A.a1; E = distinct D; F = filter E by $0=='1'; generate group, F;};" +
-
-        "store C into 'output';");
-        PhysicalPlan pp = Util.buildPp(pigServer, query);
-        MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
-
-        SecondaryKeyOptimizer so = new SecondaryKeyOptimizer(mrPlan);
-        so.visit();
-
-        assertTrue(so.getNumMRUseSecondaryKey() == 1);
-        assertTrue(so.getNumSortRemoved() == 0);
-        assertTrue(so.getDistinctChanged() == 1);
-    }
-
-    @Test
-    public void testDistinctOptimization6() throws Exception {
-        // group by * with no schema, and distinct key is not part of main key
-        String query = ("A=LOAD 'input1';" +
-        "B = group A by *;" +
-        "C = foreach B { D = limit A 10; E = D.$1; F = DISTINCT E; generate group, COUNT(F);};" +
-
-        "store C into 'output';");
-        PhysicalPlan pp = Util.buildPp(pigServer, query);
-        MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
-
-        SecondaryKeyOptimizer so = new SecondaryKeyOptimizer(mrPlan);
-        so.visit();
-
-        assertEquals(1, so.getNumMRUseSecondaryKey());
-        assertEquals(0, so.getNumSortRemoved());
-        assertEquals(1, so.getDistinctChanged());
-    }
-
-    @Test
-    public void testDistinctOptimization7() throws Exception {
-        // group by * with no schema, distinct key is more specific than the main key
-        String query = ("A=LOAD 'input1';" +
-        "B = group A by *;" +
-        "C = foreach B { D = limit A 10; E = D.$0; F = DISTINCT E; generate group, COUNT(F);};" +
-
-        "store C into 'output';");
-        PhysicalPlan pp = Util.buildPp(pigServer, query);
-        MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
-
-        SecondaryKeyOptimizer so = new SecondaryKeyOptimizer(mrPlan);
-        so.visit();
-
-        assertEquals(1, so.getNumMRUseSecondaryKey());
-        assertEquals(0, so.getNumSortRemoved());
-        assertEquals(1, so.getDistinctChanged());
-    }
-
-    @Test
-    public void testDistinctOptimization8() throws Exception {
-        // local arrange plan is an expression
-        String query = ("A=LOAD 'input1' AS (a0, a1, a2);" +
-        "B = group A by $0+$1;" +
-        "C = foreach B { D = limit A 10; E = D.$0; F = DISTINCT E; generate group, COUNT(F);};" +
-
-        "store C into 'output';");
-        PhysicalPlan pp = Util.buildPp(pigServer, query);
-        MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
-
-        SecondaryKeyOptimizer so = new SecondaryKeyOptimizer(mrPlan);
-        so.visit();
-
-        assertEquals(1, so.getNumMRUseSecondaryKey());
-        assertEquals(0, so.getNumSortRemoved());
-        assertEquals(1, so.getDistinctChanged());
-    }
-
-    @Test
-    public void testDistinctOptimization9() throws Exception {
-        // local arrange plan is nested project
-        String query = ("A=LOAD 'input1' as (a:tuple(a0:int, a1:chararray));" +
-        "B = group A by a.a1;" +
-        "C = foreach B { D = A.a; E = DISTINCT D; generate group, COUNT(E);};" +
 
         "store C into 'output';");
         PhysicalPlan pp = Util.buildPp(pigServer, query);
@@ -516,7 +364,7 @@ public class TestSecondarySort {
         Util.deleteFile(cluster, clusterPath);
     }
 
-//    @Test
+    @Test
     public void testNestedSortEndToEnd3() throws Exception {
         File tmpFile1 = Util.createTempFileDelOnExit("test", "txt");
         PrintStream ps1 = new PrintStream(new FileOutputStream(tmpFile1));
