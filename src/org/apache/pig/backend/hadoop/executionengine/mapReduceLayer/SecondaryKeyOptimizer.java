@@ -481,10 +481,10 @@ public class SecondaryKeyOptimizer extends MROpPlanVisitor {
                     sawInvalidPhysicalOper = processSort((POSort)currentNode);
                 else if (currentNode instanceof POProject)
                     sawInvalidPhysicalOper = processProject((POProject)currentNode);
-                else if (currentNode instanceof POForEach)
-                    sawInvalidPhysicalOper = processForEach((POForEach)currentNode);
                 else if (currentNode instanceof POUserFunc ||
-                         currentNode instanceof POUnion)
+                         currentNode instanceof POUnion ||
+                         // We don't process foreach, since foreach is too complex to get right
+                         currentNode instanceof POForEach)
                     break;
                 
                 if (sawInvalidPhysicalOper)
@@ -541,25 +541,6 @@ public class SecondaryKeyOptimizer extends MROpPlanVisitor {
         public boolean processProject(POProject project) throws FrontendException {
             columnChainInfo.insertInReduce(project);
             return false;
-        }
-
-        // Accumulate column info from nested project
-        public boolean processForEach(POForEach fe) throws FrontendException {
-            if (fe.getInputPlans().size() > 1) {
-                // We don't optimize the case when POForEach has more than 1 input plan
-                return true;
-            }
-            boolean r = false;
-            try {
-                r = collectColumnChain(fe.getInputPlans().get(0),
-                        columnChainInfo);
-            } catch (PlanException e) {
-                int errorCode = 2205;
-                throw new FrontendException("Error visiting POForEach inner plan",
-                        errorCode, e);
-            }
-            // See something other than POProject in POForEach, set the flag to stop further processing
-            return r;
         }
 
         // We see POSort, check which key it is using
