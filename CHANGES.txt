@@ -30,6 +30,8 @@ PIG-2769: a simple logic causes very long compiling time on pig 0.10.0 (njw45 vi
 
 BUG FIXES
 
+PIG-3262: Pig contrib 0.11 doesn't compile on certain rpm systems (mgrover via cheolsoo)
+
 PIG-3264: mvn signanddeploy target broken for pigunit, pigsmoke and piggybank (billgraham)
 
 
