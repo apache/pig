@@ -213,7 +213,8 @@ public class POSplit extends PhysicalOperator {
             
             Result inp = processInput();
             
-            if (inp.returnStatus == POStatus.STATUS_EOP) {
+            if (inp.returnStatus == POStatus.STATUS_EOP
+                || inp.returnStatus == POStatus.STATUS_ERR ) {
                 return inp;
             }
          
