@@ -110,7 +110,8 @@ public class UnionOnSchemaSetter extends LogicalRelationalNodesVisitor{
                 } else {
                     ProjectExpression projExpr = 
                         new ProjectExpression( exprPlan, genInputs.size(), 0, gen );
-                    if( opSchema.getField( pos ).type != fs.type ) {
+                    if( fs.type != DataType.BYTEARRAY
+                        && opSchema.getField( pos ).type != fs.type ) {
                         new CastExpression( exprPlan, projExpr, fs );
                     }
                     genInputs.add( new LOInnerLoad( innerPlan, foreach, pos ) );
