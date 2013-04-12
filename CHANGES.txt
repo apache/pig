@@ -154,8 +154,6 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
-PIG-3267: HCatStorer fail in limit query (daijy)
-
 PIG-3270: Union onschema failing at runtime when merging incompatible types (knoguchi via daijy)
 
 PIG-3271: POSplit ignoring error from input processing giving empty results (knoguchi via daijy)
@@ -287,6 +285,8 @@ PIG-3202: CUBE operator not documented in user docs (prasanth_j via billgraham)
 OPTIMIZATIONS
 
 BUG FIXES
+
+PIG-3267: HCatStorer fail in limit query (daijy)
 
 PIG-3252: AvroStorage gives wrong schema for schemas with named records (mwagner via cheolsoo)
 
