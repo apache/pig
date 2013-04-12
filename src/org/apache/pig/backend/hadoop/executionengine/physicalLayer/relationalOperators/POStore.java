@@ -196,6 +196,7 @@ public class POStore extends PhysicalOperator {
 
     public void setSFile(FileSpec sFile) {
         this.sFile = sFile;
+        storer = null;
     }
 
     public void setInputSpec(FileSpec lFile) {
