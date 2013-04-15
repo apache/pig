@@ -115,6 +115,9 @@
     <!-- e2e test properties -->
     <property name="test.e2e.dir" value="${basedir}/test/e2e/pig"/>
 
+    <!-- pigmix properties -->
+    <property name="pigmix.dir" value="${basedir}/test/perf/pigmix"/>
+
     <!-- parser properties -->
     <property name="src.gen.query.parser.dir" value="${src.gen.dir}/org/apache/pig/impl/logicalLayer/parser" />
     <property name="src.gen.script.parser.dir" value="${src.gen.dir}/org/apache/pig/tools/pigscript/parser" />
@@ -518,7 +521,7 @@
         <echo>*** To compile with all warnings enabled, supply -Dall.warnings=1 on command line ***</echo>
         <echo>*** Else, you will only be warned about deprecations ***</echo>
         <compileSources sources="${test.src.dir};${src.shims.test.dir}"
-            excludes="**/PigTestLoader.java **/resources/**" dist="${test.build.classes}" cp="test.classpath" warnings="${javac.args.warnings}" />
+            excludes="**/PigTestLoader.java **/resources/** perf/**" dist="${test.build.classes}" cp="test.classpath" warnings="${javac.args.warnings}" />
         <copy file="${basedir}/test/hbase-site.xml" tofile="${test.build.classes}/hbase-site.xml"/>
 
         <ivy:cachepath pathid="mr-apps-test-ivy.classpath" conf="test" />
@@ -883,6 +886,14 @@
 
     <target name="test-e2e-deploy-local" depends="jar, jar-withouthadoop" description="create files needed by local mode end-to-end tests">
         <ant dir="${test.e2e.dir}" target="deploy-local"/>
+    </target>
+
+    <target name="pigmix-deploy" depends="jar, jar-withouthadoop" description="deploy end-to-end tests to existing cluster">
+        <ant dir="${pigmix.dir}" target="deploy"/>
+    </target>
+
+    <target name="pigmix" depends="jar, jar-withouthadoop, piggybank" description="run end-to-end tests">
+        <ant dir="${pigmix.dir}" target="test"/>
     </target>
 
     <!-- ================================================================== -->
