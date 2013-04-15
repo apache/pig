@@ -15,15 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.pig.test.udf.storefunc;
+package org.apache.pig.test.pigmix.udf;
 
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
-
-import org.joda.time.DateTime;
 
 import org.apache.pig.LoadCaster;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
@@ -32,8 +30,9 @@ import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.builtin.Utf8StorageConverter;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
-import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.data.Tuple;
+import org.joda.time.DateTime;
 
 /**
  * A load function for the performance tests.
@@ -54,12 +53,17 @@ public class PigPerformanceLoader extends PigStorage {
     public LoadCaster getLoadCaster() throws IOException {
         return new Caster();
     }
-
+        
     class Caster implements LoadCaster {
-
+        
         Utf8StorageConverter helper = new Utf8StorageConverter();
-
-        @Override
+        /**
+         * 
+         */
+        public Caster() {
+            // TODO Auto-generated constructor stub
+        }
+        
         public DataBag bytesToBag(byte[] b, ResourceFieldSchema fs) throws IOException {
             if (b == null) return null;
 
@@ -99,12 +103,6 @@ public class PigPerformanceLoader extends PigStorage {
             return bag;
         }
 
-		@Override
-		public Map<String, Object> bytesToMap(byte[] b, ResourceFieldSchema fieldSchema) throws IOException {
-			return helper.bytesToMap(b);
-		}
-
-        @Override
         public Map<String, Object> bytesToMap(byte[] b) throws IOException {
             if (b == null) return null;
 
@@ -128,7 +126,7 @@ public class PigPerformanceLoader extends PigStorage {
                 m.put(key, val);
                 pos++; // move past ^C
             }
-            return m;
+            return m; 
         }
 
         @Override
@@ -157,6 +155,11 @@ public class PigPerformanceLoader extends PigStorage {
         }
 
         @Override
+        public Tuple bytesToTuple(byte[] arg0, ResourceFieldSchema fs) throws IOException {
+            return helper.bytesToTuple(arg0, fs);
+        }
+
+        @Override
         public Boolean bytesToBoolean(byte[] arg0) throws IOException {
             return helper.bytesToBoolean(arg0);
         }
@@ -167,20 +170,19 @@ public class PigPerformanceLoader extends PigStorage {
         }
 
         @Override
-        public Tuple bytesToTuple(byte[] arg0, ResourceFieldSchema fs) throws IOException {
-            return helper.bytesToTuple(arg0, fs);
+        public Map<String, Object> bytesToMap(byte[] arg0,
+                ResourceFieldSchema fs) throws IOException {
+            return helper.bytesToMap(arg0, fs);
         }
 
         @Override
-        public BigInteger bytesToBigInteger(byte[] b) throws IOException {
-            return helper.bytesToBigInteger(b);
+        public BigInteger bytesToBigInteger(byte[] arg0) throws IOException {
+            return helper.bytesToBigInteger(arg0);
         }
 
         @Override
-        public BigDecimal bytesToBigDecimal(byte[] b) throws IOException {
-            return helper.bytesToBigDecimal(b);
+        public BigDecimal bytesToBigDecimal(byte[] arg0) throws IOException {
+            return helper.bytesToBigDecimal(arg0);
         }
-
     }
-
 }

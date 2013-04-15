@@ -1,0 +1,102 @@
+<!--
+   Licensed to the Apache Software Foundation (ASF) under one or more
+   contributor license agreements.  See the NOTICE file distributed with
+   this work for additional information regarding copyright ownership.
+   The ASF licenses this file to You under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-->
+
+<project name="PigMix" default="jar">
+
+  <property name="pig.dir" value="${basedir}/../../.."/>
+  <property name="pig.jar" value="${pig.dir}/pig.jar"/>
+  <property name="ivy.dir" location="${pig.dir}/ivy" />
+  <loadproperties srcfile="${ivy.dir}/libraries.properties"/>
+
+  <path id="classpath">
+    <fileset dir="${basedir}/lib">
+      <include name="*.jar"/>
+    </fileset>
+    <fileset file="${pig.jar}" />
+  </path>
+
+  <property name="java.dir" value="${basedir}/src/java"/>
+  <property name="pigmix.build.dir" value="${basedir}/build"/>
+  <property name="pigmix.jar" value="${basedir}/pigmix.jar"/>
+
+  <condition property="harness.cluster.conf" value="${harness.hadoop.home}/conf">
+    <not>
+      <isset property="harness.cluster.conf"/>
+    </not>
+  </condition>
+
+  <!-- Build the UDFs -->
+  <target name="pig-jar-available">
+    <available property="pig.jar.available" file="${pig.jar}"/>
+    <fail message="You must build the main Pig jar before running these tests"
+        unless="pig.jar.available"/>
+  </target>
+
+  <target name="clean">
+    <delete dir="${pigmix.build.dir}" />
+    <delete file="${pigmix.jar}" />
+  </target>
+
+  <target name="compile" depends="pig-jar-available">
+    <mkdir dir="${pigmix.build.dir}" />
+    <javac srcdir="${java.dir}" destdir="${pigmix.build.dir}" debug="on">
+      <classpath refid="classpath" />
+    </javac>
+  </target>
+
+  <target name="jar" depends="compile">
+    <jar jarfile="${pigmix.jar}">
+      <fileset dir="build"/>
+      <zipfileset src="lib/sdsuLibJKD12.jar"/>
+    </jar>
+  </target>
+
+  <target name="property-check">
+    <fail message="Please set the property harness.hadoop.home to HADOOP_HOME, make sure ${harness.hadoop.home}/bin/hadoop exists."
+      unless="harness.hadoop.home"/>
+  </target>
+
+  <target name="deploy" depends="jar, property-check">
+    <exec executable="bash" failonerror="true">
+      <arg value="${basedir}/bin/generate_data.sh"/>
+      <env key="PIG_HOME" value="${pig.dir}"/>
+      <env key="PIG_BIN" value="${pig.dir}/bin/pig"/>
+      <env key="PIGMIX_HOME" value="${basedir}"/>
+      <env key="HADOOP_HOME" value="${harness.hadoop.home}"/>
+      <!--env key="HADOOP_CONF_DIR" value="${harness.cluster.conf}"/-->
+    </exec>
+  </target>
+
+  <target name="test" depends="jar, property-check">
+    <exec executable="perl" failonerror="true">
+      <arg value="${basedir}/bin/runpigmix.pl"/>
+      <arg value="${pig.dir}"/>
+      <arg value="${pig.dir}/bin/pig"/>
+      <arg value="${basedir}/pigmix.jar"/>
+      <arg value="${harness.hadoop.home}"/>
+      <arg value="${harness.hadoop.home}/bin/hadoop"/>
+      <arg value="${basedir}/src/pig"/>
+      <arg value="/user/pig/tests/data/pigmix"/>
+      <arg value="output"/>
+      <!--parallel is hardcoded, we can change but L9/L10 mapreduce program will still use 40 reduces-->
+      <arg value="40"/>
+      <!--number of runs-->
+      <arg value="1"/>
+      <!--env key="HADOOP_CONF_DIR" value="${harness.cluster.conf}"/-->
+    </exec>
+  </target>
+</project>
