@@ -918,7 +918,7 @@
     <!-- ================================================================== -->
     <!-- Distribution                                                       -->
     <!-- ================================================================== -->
-    <target name="package" depends="docs, api-report, jar" description="Create a Pig tar release">
+    <target name="package" depends="docs, api-report, jar, piggybank" description="Create a Pig tar release">
         <mkdir dir="${tar.dist.dir}" />
         <mkdir dir="${tar.dist.dir}/lib" />
         <mkdir dir="${tar.dist.dir}/conf" />
