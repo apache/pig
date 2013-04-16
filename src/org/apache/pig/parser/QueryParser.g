@@ -211,7 +211,7 @@ nested_op_clause : LEFT_PAREN! op_clause parallel_clause? RIGHT_PAREN!
 ;
 
 general_statement : FAT_ARROW ( ( op_clause parallel_clause? ) | nested_op_clause ) -> ^( STATEMENT IDENTIFIER["____RESERVED____"] op_clause? parallel_clause? nested_op_clause? )
-                  | ( IDENTIFIER EQUAL )? ( ( op_clause parallel_clause? ) | nested_op_clause ) -> ^( STATEMENT IDENTIFIER? op_clause? parallel_clause? nested_op_clause? )
+                  | ( identifier_plus EQUAL )? ( ( op_clause parallel_clause? ) | nested_op_clause ) -> ^( STATEMENT identifier_plus? op_clause? parallel_clause? nested_op_clause? )
 ;
 
 // Statement represented by a foreach operator with a nested block. Simple foreach statement
@@ -220,8 +220,8 @@ general_statement : FAT_ARROW ( ( op_clause parallel_clause? ) | nested_op_claus
 // if there is a nested block. This is ugly, but it gets the job done.
 foreach_statement : FAT_ARROW FOREACH rel ( foreach_plan_complex | ( foreach_plan_simple parallel_clause? SEMI_COLON ) )
     -> ^( STATEMENT IDENTIFIER["____RESERVED____"] ^( FOREACH rel foreach_plan_complex? foreach_plan_simple? ) parallel_clause? )
-                  | ( IDENTIFIER EQUAL )? FOREACH rel ( foreach_plan_complex | ( foreach_plan_simple parallel_clause? SEMI_COLON ) )
-    -> ^( STATEMENT IDENTIFIER? ^( FOREACH rel foreach_plan_complex? foreach_plan_simple? ) parallel_clause? )
+                  | ( identifier_plus EQUAL )? FOREACH rel ( foreach_plan_complex | ( foreach_plan_simple parallel_clause? SEMI_COLON ) )
+    -> ^( STATEMENT identifier_plus? ^( FOREACH rel foreach_plan_complex? foreach_plan_simple? ) parallel_clause? )
 ;
 
 foreach_plan_complex : LEFT_CURLY nested_blk RIGHT_CURLY -> ^( FOREACH_PLAN_COMPLEX nested_blk )
@@ -235,13 +235,13 @@ foreach_plan_simple : GENERATE flatten_generated_item ( COMMA flatten_generated_
 macro_content : LEFT_CURLY ( macro_content | ~(LEFT_CURLY | RIGHT_CURLY) )* RIGHT_CURLY
 ;
 
-macro_param_clause : LEFT_PAREN ( IDENTIFIER (COMMA IDENTIFIER)* )? RIGHT_PAREN
-    -> ^(PARAMS IDENTIFIER*)
+macro_param_clause : LEFT_PAREN ( identifier_plus (COMMA identifier_plus)* )? RIGHT_PAREN
+    -> ^(PARAMS identifier_plus*)
 ;
 
 macro_return_clause
-    : RETURNS ((IDENTIFIER (COMMA IDENTIFIER)*) | VOID)
-        -> ^(RETURN_VAL IDENTIFIER*)
+    : RETURNS ((identifier_plus (COMMA identifier_plus)*) | VOID)
+        -> ^(RETURN_VAL identifier_plus*)
 ;
 
 macro_body_clause : macro_content -> ^(MACRO_BODY { new PigParserNode(new CommonToken(1, $macro_content.text), this.getSourceName(), $macro_content.start) } )
@@ -252,8 +252,8 @@ macro_clause : macro_param_clause macro_return_clause macro_body_clause
 ;
 
 inline_return_clause
-    : IDENTIFIER EQUAL -> ^(RETURN_VAL IDENTIFIER)
-	| IDENTIFIER (COMMA IDENTIFIER)+ EQUAL -> ^(RETURN_VAL IDENTIFIER+)
+    : identifier_plus EQUAL -> ^(RETURN_VAL identifier_plus)
+	| identifier_plus (COMMA identifier_plus)+ EQUAL -> ^(RETURN_VAL identifier_plus+)
 	| -> ^(RETURN_VAL)
 ;
 
@@ -271,8 +271,8 @@ inline_param_clause : LEFT_PAREN ( parameter (COMMA parameter)* )? RIGHT_PAREN
     -> ^(PARAMS parameter*)
 ;
 
-inline_clause : inline_return_clause IDENTIFIER inline_param_clause
-    -> ^(MACRO_INLINE IDENTIFIER inline_return_clause inline_param_clause)
+inline_clause : inline_return_clause identifier_plus inline_param_clause
+    -> ^(MACRO_INLINE identifier_plus inline_return_clause inline_param_clause)
 ;
 
 // TYPES
@@ -294,7 +294,7 @@ tuple_type : implicit_tuple_type | explicit_tuple_type
 ;
 
 implicit_bag_type : LEFT_CURLY NULL COLON tuple_type? RIGHT_CURLY -> ^( BAG_TYPE tuple_type? )
-                  | LEFT_CURLY ( ( IDENTIFIER COLON )? tuple_type )? RIGHT_CURLY -> ^( BAG_TYPE IDENTIFIER? tuple_type? )
+                  | LEFT_CURLY ( ( identifier_plus COLON )? tuple_type )? RIGHT_CURLY -> ^( BAG_TYPE identifier_plus? tuple_type? )
 ;
 
 explicit_bag_type : BAG! implicit_bag_type
@@ -332,7 +332,7 @@ import_clause : IMPORT^ QUOTEDSTRING
 define_clause : DEFINE^ IDENTIFIER ( cmd | func_clause | macro_clause)
 ;
 
-realias_clause : IDENTIFIER EQUAL IDENTIFIER -> ^(REALIAS IDENTIFIER IDENTIFIER)
+realias_clause : identifier_plus EQUAL identifier_plus -> ^(REALIAS identifier_plus identifier_plus)
 ;
 
 parallel_clause : PARALLEL^ INTEGER
@@ -409,7 +409,10 @@ group_item : rel ( join_group_by_clause | ALL | ANY ) ( INNER | OUTER )?
 
 // "AS" CLAUSES
 
-explicit_field_def : IDENTIFIER ( COLON type )? -> ^( FIELD_DEF IDENTIFIER type? )
+identifier_plus : IDENTIFIER | reserved_identifier_whitelist -> IDENTIFIER[$reserved_identifier_whitelist.text]
+;
+
+explicit_field_def : identifier_plus ( COLON type )? -> ^( FIELD_DEF identifier_plus type? )
                    | explicit_type -> ^( FIELD_DEF_WITHOUT_IDENTIFIER explicit_type )
 ;
 
@@ -437,7 +440,7 @@ stream_cmd : ( STDIN | STDOUT | QUOTEDSTRING )^ ( USING! func_clause )?
 cmd : EXECCOMMAND^ ( ship_clause | cache_clause | input_clause | output_clause | error_clause )*
 ;
 
-rel : IDENTIFIER | previous_rel | nested_op_clause
+rel : identifier_plus | previous_rel | nested_op_clause
 ;
 
 previous_rel : ARROBA
@@ -449,7 +452,7 @@ store_clause : STORE^ rel INTO! QUOTEDSTRING ( USING! func_clause )?
 filter_clause : FILTER^ rel BY! cond
 ;
 
-stream_clause : STREAM^ rel THROUGH! ( EXECCOMMAND | IDENTIFIER ) as_clause?
+stream_clause : STREAM^ rel THROUGH! ( EXECCOMMAND | identifier_plus ) as_clause?
 ;
 
 mr_clause : MAPREDUCE^ QUOTEDSTRING ( LEFT_PAREN! path_list RIGHT_PAREN! )? store_clause load_clause EXECCOMMAND?
@@ -458,10 +461,10 @@ mr_clause : MAPREDUCE^ QUOTEDSTRING ( LEFT_PAREN! path_list RIGHT_PAREN! )? stor
 split_clause : SPLIT^ rel INTO! split_branch split_branches
 ;
 
-split_branch : IDENTIFIER IF cond -> ^( SPLIT_BRANCH IDENTIFIER cond )
+split_branch : identifier_plus IF cond -> ^( SPLIT_BRANCH identifier_plus cond )
 ;
 
-split_otherwise : IDENTIFIER OTHERWISE^
+split_otherwise : identifier_plus OTHERWISE^
 ;
 
 split_branches : COMMA! split_branch split_branches?
@@ -676,8 +679,8 @@ cast_expr
           // careful with periods straight after the identifier, as we want those to be projections, not function
           // calls
           | col_ref_without_identifier projection*
-          | IDENTIFIER projection*
-          | IDENTIFIER func_name_suffix? LEFT_PAREN ( real_arg ( COMMA real_arg )* )? RIGHT_PAREN projection* -> ^( FUNC_EVAL IDENTIFIER func_name_suffix? real_arg* ) projection*
+          | identifier_plus projection*
+          | identifier_plus func_name_suffix? LEFT_PAREN ( real_arg ( COMMA real_arg )* )? RIGHT_PAREN projection* -> ^( FUNC_EVAL identifier_plus func_name_suffix? real_arg* ) projection*
           | func_name_without_columns LEFT_PAREN ( real_arg ( COMMA real_arg )* )? RIGHT_PAREN projection* -> ^( FUNC_EVAL func_name_without_columns real_arg* ) projection*
           | paren_expr
           | curly_expr
@@ -776,10 +779,10 @@ projection : PERIOD ( col_ref | LEFT_PAREN col_ref ( COMMA col_ref )* RIGHT_PARE
 // ATOMS
 
 // for disambiguation with func_names
-col_ref_without_identifier : GROUP | CUBE | DOLLARVAR
+col_ref_without_identifier : GROUP | DOLLARVAR
 ;
-
-col_ref : col_ref_without_identifier | IDENTIFIER
+ 
+col_ref : col_ref_without_identifier | identifier_plus
 ;
 
 col_range : c1 = col_ref DOUBLE_PERIOD c2 = col_ref? -> ^(COL_RANGE $c1 DOUBLE_PERIOD $c2?)
@@ -821,12 +824,12 @@ nested_blk : ( nested_command SEMI_COLON )* GENERATE flatten_generated_item ( CO
     -> nested_command* ^( GENERATE flatten_generated_item+ )
 ;
 
-nested_command : ( IDENTIFIER EQUAL col_ref PERIOD col_ref_list { input.LA( 1 ) == SEMI_COLON }? ) => ( IDENTIFIER EQUAL nested_proj )
-              -> ^( NESTED_CMD IDENTIFIER nested_proj )
-               | IDENTIFIER EQUAL expr
-              -> ^( NESTED_CMD_ASSI IDENTIFIER expr )
-               | IDENTIFIER EQUAL nested_op
-              -> ^( NESTED_CMD IDENTIFIER nested_op )
+nested_command : ( identifier_plus EQUAL col_ref PERIOD col_ref_list { input.LA( 1 ) == SEMI_COLON }? ) => ( identifier_plus EQUAL nested_proj )
+              -> ^( NESTED_CMD identifier_plus nested_proj )
+               | identifier_plus EQUAL expr
+              -> ^( NESTED_CMD_ASSI identifier_plus expr )
+               | identifier_plus EQUAL nested_op
+              -> ^( NESTED_CMD identifier_plus nested_op )
 ;
 
 nested_op : nested_filter
@@ -967,3 +970,8 @@ rel_str_op : STR_OP_EQ
            | STR_OP_LTE
            | STR_OP_MATCHES
 ;
+
+reserved_identifier_whitelist : RANK
+                              | CUBE
+;
+
