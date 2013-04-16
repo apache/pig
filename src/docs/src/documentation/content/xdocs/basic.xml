@@ -102,7 +102,7 @@
                <p>In general, uppercase type indicates elements the system supplies.</p>
                <p>In general, lowercase type indicates elements that you supply.</p>
                <p>(These conventions are not strictly adherered to in all examples.)</p>
-               <p>See <a href="#Case-Sensitivity">Case Sensitivity</a></p>
+               <p>See <a href="#case-sensitivity">Case Sensitivity</a></p>
             </td>
             <td>
                <p>Pig Latin statement:</p>
@@ -249,7 +249,7 @@
    <section id="case-sensitivity">
    <title>Case Sensitivity</title>
    <p>The names (aliases) of relations and fields are case sensitive. The names of Pig Latin functions are case sensitive. 
-   The names of parameters (see <a href="cont.html#Parameter-Sub">Parameter Substitution</a>) and all other Pig Latin keywords (see <a href="#Reserved-Keywords">Reserved Keywords</a>) are case insensitive.</p>
+   The names of parameters (see <a href="cont.html#Parameter-Sub">Parameter Substitution</a>) and all other Pig Latin keywords (see <a href="#reserved-keywords">Reserved Keywords</a>) are case insensitive.</p>
    <p>In the example below, note the following:</p>
    <ul>
       <li>
@@ -1486,11 +1486,11 @@ C = FOREACH G GENERATE COUNT(*)
 <p>Project-range can be used in all cases where the <a href="#sexp">star expression</a> ( * ) is allowed.</p>
 
 <p>Project-range can be used in the following statements:
-<a href="#FOREACH">FOREACH</a>, 
-<a href="#JOIN+%28inner%29">JOIN</a>,  
-<a href="#GROUP">GROUP</a>, 
-<a href="#COGROUP">COGROUP</a>, and  
-<a href="#ORDER+BY">ORDER BY</a> (also when ORDER BY is used within a nested FOREACH block).</p>
+<a href="#foreach">FOREACH</a>,
+<a href="#join-inner">JOIN</a>,
+<a href="#group">GROUP</a>,
+<a href="#cogroup">COGROUP</a>, and
+<a href="#order-by">ORDER BY</a> (also when ORDER BY is used within a nested FOREACH block).</p>
 
 <p>A few examples are shown here:</p>
 <source>
@@ -1557,15 +1557,15 @@ SORT = order IN by $2 .. $3, $6 ..;
    
    
     <!-- ================================================== --> 
-   <section id="Schemas">
+   <section id="schemas">
    <title>Schemas</title>
 
    <p>Schemas enable you to assign names to fields and declare types for fields. Schemas are optional but we encourage you to use them whenever possible; type declarations result in better parse-time error checking and more efficient code execution.</p>  
    
    <p>Schemas for <a href="#schema-simple">simple types</a> and <a href="#schema-complex">complex types</a> can be used anywhere a schema definition is appropriate.</p>   
    
-   <p>Schemas are defined with the <a href="#LOAD">LOAD</a>, <a href="#STREAM">STREAM</a>, and <a href="#FOREACH">FOREACH</a> operators using the AS clause. If you define a schema using the LOAD operator, then it is the load function that enforces the schema 
-   (see <a href="#LOAD">LOAD</a> and <a href="udf.html">User Defined Functions</a> for more information).</p>
+   <p>Schemas are defined with the <a href="#load">LOAD</a>, <a href="#stream">STREAM</a>, and <a href="#foreach">FOREACH</a> operators using the AS clause. If you define a schema using the LOAD operator, then it is the load function that enforces the schema
+   (see <a href="#load">LOAD</a> and <a href="udf.html">User Defined Functions</a> for more information).</p>
 
    <p></p>
    <p><strong>Known Schema Handling</strong></p>
@@ -1601,7 +1601,7 @@ a: Schema for a unknown
    <p></p>
    <p><strong>How Pig Handles Schema</strong></p>
    
-   <p>As shown above, with a few exceptions Pig can infer the schema of a relationship up front. You can examine the schema of particular relation using <a href="test.html#DESCRIBE">DESCRIBE</a>. Pig enforces this computed schema during the actual execution by casting the input data to the expected data type. If the process is successful the results are returned to the user; otherwise, a warning is generated for each record that failed to convert.  Note that Pig does not know the actual types of the fields in the input data prior to the execution; rather, Pig determines the data types and performs the right conversions on the fly.</p>
+   <p>As shown above, with a few exceptions Pig can infer the schema of a relationship up front. You can examine the schema of particular relation using <a href="test.html#describe">DESCRIBE</a>. Pig enforces this computed schema during the actual execution by casting the input data to the expected data type. If the process is successful the results are returned to the user; otherwise, a warning is generated for each record that failed to convert.  Note that Pig does not know the actual types of the fields in the input data prior to the execution; rather, Pig determines the data types and performs the right conversions on the fly.</p>
   
 <p>Having a deterministic schema is very powerful; however, sometimes it comes at the cost of performance. Consider the following example:</p>  
   
@@ -1950,7 +1950,7 @@ DUMP A;
          <tr>
             <td><p>type</p></td>
             <td><p>(Optional) The datatype (all types allowed, bytearray is the default).</p>
-            <p>The type applies to the map value only; the map key is always type chararray (see <a href="#Map">Map</a>).</p>
+            <p>The type applies to the map value only; the map key is always type chararray (see <a href="#map">Map</a>).</p>
             <p>If a type is declared then ALL values in the map must be of this type.</p>
             </td>
          </tr>
@@ -5233,9 +5233,9 @@ B = FOREACH A GENERATE -x, y;
 <title>Relational Operators</title>
 
 <!-- =================================================================== -->
- <section id="COGROUP">
+ <section id="cogroup">
 <title>COGROUP</title>
-   <p>See the <a href="#GROUP">GROUP</a> operator.</p>
+   <p>See the <a href="#group">GROUP</a> operator.</p>
 </section>
 
 <!-- =================================================================== -->
@@ -5815,7 +5815,7 @@ DUMP X;
                <p>A schema using the AS keyword (see <a href="#schemas">Schemas</a>).</p>
                <ul>
                   <li>
-                     <p>If the <a href="#Flatten">FLATTEN</a> operator is used, enclose the schema in parentheses.</p>
+                     <p>If the <a href="#flatten">FLATTEN</a> operator is used, enclose the schema in parentheses.</p>
                   </li>
                   <li>
                      <p>If the FLATTEN operator is not used, don't enclose the schema in parentheses.</p>
@@ -5946,7 +5946,7 @@ DUMP X;
    
    <section id="flatten-example">
    <title>Example: Flatten</title>
-   <p>In this example the <a href="#Flatten">FLATTEN</a> operator is used to eliminate nesting. </p>
+   <p>In this example the <a href="#flatten">FLATTEN</a> operator is used to eliminate nesting. </p>
 <source>
 X = FOREACH C GENERATE group, FLATTEN(A);
 
@@ -6074,7 +6074,7 @@ DUMP X;
             
             
 <!-- =================================================================== -->
-   <section id="GROUP">
+   <section id="group">
    <title>GROUP</title>
    <p>Groups the data in one or more relations.</p>
    <p>Note: The GROUP and COGROUP operators are identical. Both operators work with one or more relations. 
@@ -7094,7 +7094,7 @@ ILLUSTRATE A;
                <p>STORE ... INTO ... USING</p>
             </td>
             <td>
-               <p>See <a href="basic.html#STORE">STORE</a></p>
+               <p>See <a href="basic.html#store">STORE</a></p>
                <p>Store alias2 into the inputLocation using storeFunc, which is then used by the MapReduce job to read its data.</p>
                 
             </td>
@@ -7105,7 +7105,7 @@ ILLUSTRATE A;
                <p>LOAD ... USING ... AS </p>
             </td>
             <td>
-               <p>See <a href="basic.html#LOAD">LOAD</a></p>
+               <p>See <a href="basic.html#load">LOAD</a></p>
                <p>After running mr.jar's MapReduce job, load back the data from outputLocation into alias1 using loadFunc as schema.</p>
             </td>
      </tr>
@@ -7209,7 +7209,7 @@ B = MAPREDUCE 'wordcount.jar' STORE A INTO 'inputDir' LOAD 'outputDir'
             </td>
             <td>
                <p>Increase the parallelism of a job by specifying the number of reduce tasks, n.</p>
-               <p>For more information, see <a href="perf.html#Parallel">Use the Parallel Features</a>.</p>
+               <p>For more information, see <a href="perf.html#parallel">Use the Parallel Features</a>.</p>
             </td>
          </tr> 
    </table></section>
@@ -7672,7 +7672,7 @@ output_var = FILTER input_var BY (field1 is not null);
                   <li>
                   
                   
-                     <p>You can use a built in function (see the <a href="func.html#Load-Store-Functions">Load/Store Functions</a>). PigStorage is the default store function and does not need to be specified (simply omit the USING clause).</p>
+                     <p>You can use a built in function (see the <a href="func.html#load-store-functions">Load/Store Functions</a>). PigStorage is the default store function and does not need to be specified (simply omit the USING clause).</p>
                   </li>
                   <li>
                      <p>You can write your own store function  
@@ -7687,7 +7687,7 @@ output_var = FILTER input_var BY (field1 is not null);
    <title>Usage</title>
    <p>Use the STORE operator to run (execute) Pig Latin statements and save (persist) results to the file system. Use STORE for production scripts and batch mode processing.</p>
    
-   <p>Note: To debug scripts during development, you can use <a href="test.html#DUMP">DUMP</a> to check intermediate results.</p>
+   <p>Note: To debug scripts during development, you can use <a href="test.html#dump">DUMP</a> to check intermediate results.</p>
 </section>
    
    <section>
@@ -8087,7 +8087,7 @@ DUMP U;
                <p>alias</p>
             </td>
             <td>
-               <p>The name for a UDF function or the name for a streaming command (the cmd_alias for the <a href="#STREAM">STREAM</a> operator). </p>
+               <p>The name for a UDF function or the name for a streaming command (the cmd_alias for the <a href="#stream">STREAM</a> operator). </p>
             </td>
          </tr>
          <tr>
@@ -8387,7 +8387,7 @@ X = STREAM A THROUGH Y;
  
      <section>
    <title>Example: DEFINE with STREAM</title>
-<p>In this example a command is defined for use with the <a href="#STREAM">STREAM</a> operator.</p>
+<p>In this example a command is defined for use with the <a href="#stream">STREAM</a> operator.</p>
 <source>
 A = LOAD 'data';
 

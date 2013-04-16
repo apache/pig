@@ -124,7 +124,7 @@ public static void main(String[] args) {
 
 <p><strong>Invocation Process</strong></p>
 
-<p>You invoke Pig in the host scripting language through an embedded <a href="#pig-Object">Pig object</a>. </p>  
+<p>You invoke Pig in the host scripting language through an embedded <a href="#pig-object">Pig object</a>. </p>
 
 <p><strong>Compile:</strong> Compile is a static function on the Pig class and in its simplest form takes a fragment of Pig Latin that defines the pipeline as its input:</p>  
 
@@ -371,7 +371,7 @@ public static void main(String[] args) {
 <li id="PigProgressNotificationListener2">The PigProgressNotificationListener interface was modified to add script id to all its methods.  </li>
 </ul>
 <p></p>
-<p>For more details, see <a href="#Java-Objects">Java Objects</a>.</p>
+<p>For more details, see <a href="#java-objects">Java Objects</a>.</p>
 
 </section> 
 

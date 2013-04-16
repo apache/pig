@@ -576,7 +576,7 @@
         </javadoc>
     </target>
 
-    <target name="javadoc-all" depends="jar-withouthadoop, ivy-javadoc" description="Create documentation including all contrib projects">
+    <target name="javadoc-all" depends="jar-withouthadoop, piggybank, zebra, ivy-javadoc" description="Create documentation including all contrib projects">
         <mkdir dir="${build.javadoc}" />
         <javadoc overview="${src.dir}/overview.html" packagenames="org.apache.pig*,org.apache.hadoop.zebra*" destdir="${build.javadoc}" author="true" version="true" use="true" windowtitle="${Name} ${version} API" doctitle="${Name} ${version} API" bottom="Copyright &amp;copy; ${year} The Apache Software Foundation">
             <packageset dir="${src.dir}" />
@@ -586,6 +586,7 @@
             <classpath>
                 <path refid="javadoc-classpath" />
                 <pathelement path="${output.jarfile.withdependencies}" />
+                <pathelement path="${piggybank.jarfile}"/>
                 <fileset dir="build">
                     <include name="**/zebra-*-dev.jar"/>
                 </fileset>
@@ -1618,6 +1619,10 @@
 
      <target name="piggybank" depends="jar">
          <ant antfile="contrib/piggybank/java/build.xml" inheritAll="false"/>
+     </target>
+
+     <target name="zebra" depends="jar">
+         <ant antfile="contrib/zebra/build.xml" inheritAll="false"/>
      </target>
 
      <import file="./build-site.xml" optional="true"/>

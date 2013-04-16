@@ -485,7 +485,7 @@ To this:       &lt;property name="pigjar" value="../pig-0.9.0-core.jar" /&gt;
 $ tar -xzf pigtutorial.tar.gz
 </source>
 </li>
-<li>A new directory named pigtmp is created. This directory contains the <a href="#Pig+Tutorial+Files">Pig Tutorial Files</a>. These files work with Hadoop 0.20.2 and include everything you need to run <a href="#pig-script-1">Pig Script 1</a> and <a href="#pig-script-2">Pig Script 2</a>.</li>
+<li>A new directory named pigtmp is created. This directory contains the <a href="#pig-tutorial-files">Pig Tutorial Files</a>. These files work with Hadoop 0.20.2 and include everything you need to run <a href="#pig-script-1">Pig Script 1</a> and <a href="#pig-script-2">Pig Script 2</a>.</li>
 </ol>
 
 
@@ -553,7 +553,7 @@ $ hadoop fs -cat 'script1-hadoop-results/*' | less
 </section>
 
  <!-- ++++++++++++++++++++++++++++++++++ -->   
-<section>
+<section id="pig-tutorial-files">
 <title> Pig Tutorial Files</title>
 
 <p>The contents of the Pig tutorial file (pigtutorial.tar.gz) are described here. </p>
