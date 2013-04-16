@@ -277,7 +277,7 @@ DUMP X;
     The COUNT function follows syntax semantics and ignores nulls. 
     What this means is that a tuple in the bag will not be counted if the FIRST FIELD in this tuple is NULL. 
     If you want to include NULL values in the count computation, use 
-    <a href="#COUNT-STAR">COUNT_STAR</a>.
+    <a href="#count-star">COUNT_STAR</a>.
    </p>   
    
    <p>
@@ -404,7 +404,7 @@ DUMP X;
    <p>Use the COUNT_STAR function to compute the number of elements in a bag.
    COUNT_STAR requires a preceding GROUP ALL statement for global counts and a GROUP BY statement for group counts.</p>
    <p>COUNT_STAR includes NULL values in the count computation 
-   (unlike <a href="#COUNT">COUNT</a>, which ignores NULL values).
+   (unlike <a href="#count">COUNT</a>, which ignores NULL values).
    </p>
    </section>
    
@@ -1271,7 +1271,7 @@ store A into ‘myoutput.bz’;
    <p>Pig uses BinStorage to load and store the temporary data that is generated between multiple MapReduce jobs.</p>
    <ul>
    <li>BinStorage works with data that is represented on disk in machine-readable format. 
-   BinStorage does NOT support <a href="#Handling-Compression">compression</a>.</li>
+   BinStorage does NOT support <a href="#handling-compression">compression</a>.</li>
    <li>BinStorage supports multiple locations (files, directories, globs) as input.</li>
    </ul>
     <p></p>
@@ -1502,7 +1502,7 @@ STORE X INTO 'output' USING PigDump();
    
    <section>
    <title>Usage</title>
-   <p>PigStorage is the default function used by Pig to load/store the data. PigStorage supports structured text files (in human-readable UTF-8 format) in compressed or uncompressed form (see <a href="#Handling-Compression">Handling Compression</a>). All Pig <a href="basic.html#data-types">data types</a> (both simple and complex) can be read/written using this function. The input data to the load can be a file, a directory or a glob.</p>
+   <p>PigStorage is the default function used by Pig to load/store the data. PigStorage supports structured text files (in human-readable UTF-8 format) in compressed or uncompressed form (see <a href="#handling-compression">Handling Compression</a>). All Pig <a href="basic.html#data-types">data types</a> (both simple and complex) can be read/written using this function. The input data to the load can be a file, a directory or a glob.</p>
 
  <p><strong>Load/Store Statements</strong></p> 
   <p>Load statements – PigStorage expects data to be formatted using field delimiters, either the tab character  ('\t') or other specified character.</p>
@@ -1613,7 +1613,7 @@ a = load '1.txt' as (a0:{t:(m:map[int],d:double)});
    
    <section>
    <title>Usage</title>
-   <p>TextLoader works with unstructured data in UTF8 format. Each resulting tuple contains a single field with one line of input text. TextLoader also supports <a href="#Handling-Compression">compression</a>.</p>
+   <p>TextLoader works with unstructured data in UTF8 format. Each resulting tuple contains a single field with one line of input text. TextLoader also supports <a href="#handling-compression">compression</a>.</p>
    <p>Currently, TextLoader support for compression is limited.</p>  
    <p>TextLoader cannot be used to store data.</p>
    </section>

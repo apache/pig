@@ -36,7 +36,7 @@
 
 <section>
 <title>When the Combiner is Used</title> 
-<p>The combiner is generally used in the case of non-nested foreach where all projections are either expressions on the group column or expressions on algebraic UDFs (see  <a href="#Algebraic-interface">Make Your UDFs Algebraic</a>).</p>
+<p>The combiner is generally used in the case of non-nested foreach where all projections are either expressions on the group column or expressions on algebraic UDFs (see  <a href="#algebraic-interface">Make Your UDFs Algebraic</a>).</p>
 
 <p>Example:</p>
 
