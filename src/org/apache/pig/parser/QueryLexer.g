@@ -285,6 +285,9 @@ STR_OP_NE : 'NEQ'
 STR_OP_MATCHES : 'MATCHES'
 ;
 
+IN : 'IN'
+;
+
 TRUE : 'TRUE'
 ;
 

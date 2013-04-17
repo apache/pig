@@ -17,6 +17,8 @@
 **/TestFuncSpec.java
 **/TestGTOrEqual.java
 **/TestGreaterThan.java
+**/TestIn.java
+**/TestInUdf.java
 **/TestInputOutputFileValidator.java
 **/TestInstantiateFunc.java
 **/TestLTOrEqual.java

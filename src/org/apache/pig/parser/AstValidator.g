@@ -359,8 +359,12 @@ cond : ^( OR cond cond )
      | ^( NOT cond )
      | ^( NULL expr NOT? )
      | ^( rel_op expr expr )
+     | in_eval
      | func_eval
      | ^( BOOL_COND expr )
+;
+
+in_eval: ^( IN expr expr+ )
 ;
 
 func_eval: ^( FUNC_EVAL func_name real_arg* )
