@@ -281,8 +281,13 @@ cond
     | ^( NOT { sb.append(" ").append($NOT.text).append(" ("); } cond { sb.append(")"); } )
     | ^( NULL expr { sb.append(" IS "); } (NOT { sb.append($NOT.text).append(" "); } )?  { sb.append($NULL.text); } )
     | ^( rel_op expr { sb.append(" ").append($rel_op.result).append(" "); } expr )
+    | in_eval
     | func_eval
     | ^( BOOL_COND expr )
+;
+
+in_eval
+    : ^( IN { sb.append(" " + $IN.text + "("); } expr ( { sb.append(", "); } expr )+ { sb.append(") "); } )
 ;
 
 func_eval
@@ -670,10 +675,11 @@ eid : rel_str_op
     | LEFT      { sb.append($LEFT.text); }
     | RIGHT     { sb.append($RIGHT.text); }
     | FULL      { sb.append($FULL.text); }
-    | IDENTIFIER    { sb.append($IDENTIFIER.text); }
-    | TOBAG    { sb.append("TOBAG"); }
-    | TOMAP    { sb.append("TOMAP"); }
-    | TOTUPLE    { sb.append("TOTUPLE"); }
+    | IDENTIFIER { sb.append($IDENTIFIER.text); }
+    | TOBAG      { sb.append($TOBAG.text); }
+    | TOMAP      { sb.append($TOMAP.text); }
+    | TOTUPLE    { sb.append($TOTUPLE.text); }
+    | IN         { sb.append($IN.text); }
 ;
 
 // relational operator

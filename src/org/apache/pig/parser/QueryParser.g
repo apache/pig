@@ -620,6 +620,7 @@ unary_cond
     }
     : exp1 = expr
         ( ( IS NOT? NULL -> ^( NULL $exp1 NOT? ) )
+        | ( IN LEFT_PAREN ( expr ( COMMA expr )* ) RIGHT_PAREN -> ^( IN $exp1 expr+ ) )
         | ( rel_op exp2 = expr -> ^( rel_op $exp1 $exp2 ) )
         | ( -> ^(BOOL_COND expr) ) )
 ;
@@ -973,5 +974,6 @@ rel_str_op : STR_OP_EQ
 
 reserved_identifier_whitelist : RANK
                               | CUBE
+                              | IN
 ;
 

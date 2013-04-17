@@ -766,6 +766,10 @@ cond[LogicalExpressionPlan exprPlan] returns[LogicalExpression expr]
        $expr = new RegexExpression( $exprPlan, $e1.expr, $e2.expr );
        $expr.setLocation( new SourceLocation( (PigParserNode)$STR_OP_MATCHES ) );
    }
+ | in_eval[$exprPlan]
+   {
+       $expr = $in_eval.expr;
+   }
  | func_eval[$exprPlan]
    {
        $expr = $func_eval.expr;
@@ -777,6 +781,16 @@ cond[LogicalExpressionPlan exprPlan] returns[LogicalExpression expr]
    }
 ;
 
+in_eval[LogicalExpressionPlan plan] returns[LogicalExpression expr]
+@init {
+    List<LogicalExpression> args = new ArrayList<LogicalExpression>();
+}
+ : ^( IN exp1 = expr[$plan] { args.add( $exp1.expr ); } ( exp2 = expr[$plan] { args.add( $exp2.expr ); } )+ )
+   {
+       SourceLocation loc = new SourceLocation( (PigParserNode)$IN );
+       $expr = builder.buildUDF( loc, $plan, "IN", args );
+   }
+;
 
 func_eval[LogicalExpressionPlan plan] returns[LogicalExpression expr]
 @init {
