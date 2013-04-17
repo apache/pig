@@ -105,7 +105,7 @@
     </not>
   </condition>
 
-  <condition property="hcat.bin" value="/usr/local/hcat/bin/hcat">
+  <condition property="hcat.bin" value="hcat">
     <not>
       <isset property="hcat.bin"/>
     </not>
