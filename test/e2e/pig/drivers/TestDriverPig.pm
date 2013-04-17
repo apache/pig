@@ -875,7 +875,7 @@ sub compareSingleOutput
         print $log "Test output checksum does not match benchmark checksum\n";
         print $log "Test checksum = <$testChksm>\n";
         print $log "Expected checksum = <$benchmarkChksm>\n";
-        print $log "RESULTS DIFFER: vimdiff " . cwd . "/$testOutput " . cwd . "/$benchmarkOutput\n";
+        print $log "RESULTS DIFFER: vimdiff " . cwd . "/$testOutput $benchmarkOutput\n";
     } else {
         $result = 1;
     }
