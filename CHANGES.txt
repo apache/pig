@@ -28,6 +28,8 @@ PIG-3174:  Remove rpm and deb artifacts from build.xml (gates)
 
 IMPROVEMENTS
 
+PIG-3268: Case statement support (cheolsoo)
+
 PIG-3269: In operator support (cheolsoo)
 
 PIG-200: Pig Performance Benchmarks (daijy)

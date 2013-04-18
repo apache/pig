@@ -309,8 +309,13 @@ cond
     | ^( NOT cond )
     | ^( NULL expr NOT? )
     | ^( rel_op expr expr )
+    | in_eval
     | func_eval
     | ^( BOOL_COND expr )
+;
+
+in_eval
+    : ^( IN expr expr+ )
 ;
 
 func_eval
@@ -352,7 +357,7 @@ var_expr
 ;
 
 projectable_expr
-    : func_eval | col_ref | bin_expr
+    : func_eval | col_ref | bin_expr | case_expr
 ;
 
 dot_proj
@@ -381,6 +386,10 @@ pound_proj
 
 bin_expr
     : ^( BIN_EXPR cond expr expr )
+;
+
+case_expr
+    : ^( CASE expr+ )
 ;
 
 limit_clause

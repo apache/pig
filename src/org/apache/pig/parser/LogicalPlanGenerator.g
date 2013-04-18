@@ -776,7 +776,7 @@ cond[LogicalExpressionPlan exprPlan] returns[LogicalExpression expr]
    }
  | ^( BOOL_COND e1 = expr[$exprPlan] )
    {
-   	   $expr = $e1.expr;
+       $expr = $e1.expr;
        $expr.setLocation( new SourceLocation( (PigParserNode)$BOOL_COND ) );
    }
 ;
@@ -990,6 +990,10 @@ projectable_expr[LogicalExpressionPlan plan] returns[LogicalExpression expr]
    {
        $expr = $bin_expr.expr;
    }
+ | case_expr[$plan]
+   {
+       $expr = $case_expr.expr;
+   }
 ;
 
 dot_proj returns[List<Object> cols]
@@ -1037,6 +1041,40 @@ bin_expr[LogicalExpressionPlan plan] returns[LogicalExpression expr]
        $expr = new BinCondExpression( $plan, $cond.expr, $e1.expr, $e2.expr );
        $expr.setLocation( new SourceLocation( (PigParserNode)$bin_expr.start ) );
    }
+;
+
+case_expr[LogicalExpressionPlan plan] returns[LogicalExpression expr]
+@init {
+    List<LogicalExpression> exprs = new ArrayList<LogicalExpression>();
+}
+ : ^( CASE ( expr[$plan] { exprs.add($expr.expr); } )+ )
+    {
+        // Convert CASE tree to nested bincond expressions. Please also see
+        // QueryParser.g for how CASE tree is constructed from case statement.
+        boolean hasElse = exprs.size() \% 3 == 1;
+        LogicalExpression elseExpr = hasElse ? exprs.get(exprs.size()-1)
+                                             : new ConstantExpression($plan, null);
+
+        int numWhenBranches = exprs.size() / 3;
+        BinCondExpression prevBinCondExpr = null;
+        BinCondExpression currBinCondExpr = null;
+        for (int i = 0; i < numWhenBranches; i++) {
+            if (i == 0) {
+                currBinCondExpr = new BinCondExpression( $plan,
+                    new EqualExpression( $plan, exprs.get(3*i), exprs.get(3*i+1) ),
+                    exprs.get(3*i+2),
+                    elseExpr );
+            } else {
+                currBinCondExpr = new BinCondExpression( $plan,
+                    new EqualExpression( $plan, exprs.get(3*i), exprs.get(3*i+1) ),
+                    exprs.get(3*i+2),
+                    prevBinCondExpr );
+            }
+            prevBinCondExpr = currBinCondExpr;
+        }
+        $expr = currBinCondExpr;
+        $expr.setLocation( new SourceLocation( (PigParserNode)$case_expr.start ) );
+    }
 ;
 
 limit_clause returns[String alias]

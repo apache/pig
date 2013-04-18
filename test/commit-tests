@@ -2,6 +2,7 @@
 **/TestBagFormat.java
 **/TestBoolean.java
 **/TestBuiltin.java
+**/TestCase.java
 **/TestCmdLineParser.java
 **/TestCommit.java
 **/TestConstExpr.java

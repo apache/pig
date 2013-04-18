@@ -331,7 +331,7 @@ var_expr
 ;
 
 projectable_expr
-    : func_eval | col_ref | bin_expr
+    : func_eval | col_ref | bin_expr | case_expr
 ;
 
 dot_proj
@@ -361,6 +361,10 @@ pound_proj
 
 bin_expr
     : ^( BIN_EXPR { sb.append(" ("); } cond { sb.append(" ? "); } expr { sb.append(" : "); } expr { sb.append(") "); } )
+;
+
+case_expr
+    : ^( CASE { sb.append(" " + $CASE.text + "("); } expr ( { sb.append(", "); } expr )+ { sb.append(") "); } )
 ;
 
 limit_clause
@@ -680,6 +684,7 @@ eid : rel_str_op
     | TOMAP      { sb.append($TOMAP.text); }
     | TOTUPLE    { sb.append($TOTUPLE.text); }
     | IN         { sb.append($IN.text); }
+    | CASE       { sb.append($CASE.text); }
 ;
 
 // relational operator
