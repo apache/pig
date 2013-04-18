@@ -97,6 +97,17 @@ private static Log log = LogFactory.getLog( QueryParser.class );
 
 private Set<String> memory = new HashSet<String>();
 
+// Make a deep copy of the given node
+private static Tree deepCopy(Tree tree) {
+    Tree copy = tree.dupNode();
+    for (int i = 0; i < tree.getChildCount(); i++) {
+        Tree child = deepCopy(tree.getChild(i));
+        child.setParent(copy);
+        copy.addChild(child);
+    }
+    return copy;
+}
+
 @Override
 protected Object recoverFromMismatchedToken(IntStream input, int ttype, BitSet follow)
 throws RecognitionException {
@@ -673,6 +684,32 @@ cast_expr
         && (tree.getChild(0).getType() != NULL || tree.getChild(0).getChildCount() == 0)) {
             ((CommonTree)tree).token.setType(TUPLE_VAL);
         }
+
+        // For CASE statement, we clone the case expression (1st child of the
+        // returned tree) and insert it before every when expression. For example,
+        //
+        //   CASE e1
+        //     WHEN e2 THEN e3
+        //     WHEN e4 THEN e5
+        //     ELSE e6
+        //   END
+        // =>
+        //   ^( CASE e1, e2, e3, e1, e4, e5, e6 )
+        //
+        // Note that e1 appears twice at index 0 and 3.
+        //
+        // This is needed because in LogicalPlanGenerator.g, we translate this
+        // tree to nested bincond expressions, and we need to construct a new
+        // LogicalExpression object per when branch.
+        if(tree.getType() == CASE) {
+            Tree caseExpr = tree.getChild(0);
+            int childCount = tree.getChildCount();
+            boolean hasElse = childCount \% 2 == 0;
+            int whenBranchCount = ( childCount - (hasElse ? 2 : 1) ) / 2;
+            for(int i = 1; i < whenBranchCount; i++) {
+                tree.insertChild(3*i, deepCopy(caseExpr));
+            }
+        }
     }
           : scalar
           | MINUS cast_expr -> ^( NEG cast_expr )
@@ -683,6 +720,7 @@ cast_expr
           | identifier_plus projection*
           | identifier_plus func_name_suffix? LEFT_PAREN ( real_arg ( COMMA real_arg )* )? RIGHT_PAREN projection* -> ^( FUNC_EVAL identifier_plus func_name_suffix? real_arg* ) projection*
           | func_name_without_columns LEFT_PAREN ( real_arg ( COMMA real_arg )* )? RIGHT_PAREN projection* -> ^( FUNC_EVAL func_name_without_columns real_arg* ) projection*
+          | CASE expr WHEN expr THEN expr ( WHEN expr THEN expr )* ( ELSE expr )? END projection* -> ^( CASE expr+ ) projection*
           | paren_expr
           | curly_expr
           | bracket_expr
@@ -975,5 +1013,9 @@ rel_str_op : STR_OP_EQ
 reserved_identifier_whitelist : RANK
                               | CUBE
                               | IN
+                              | WHEN
+                              | THEN
+                              | ELSE
+                              | END
 ;
 

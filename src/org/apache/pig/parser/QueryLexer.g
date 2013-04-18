@@ -264,6 +264,21 @@ RIGHT : 'RIGHT'
 FULL : 'FULL'
 ;
 
+CASE : 'CASE'
+;
+
+WHEN : 'WHEN'
+;
+
+THEN : 'THEN'
+;
+
+ELSE : 'ELSE'
+;
+
+END : 'END'
+;
+
 STR_OP_EQ : 'EQ'
 ;
 

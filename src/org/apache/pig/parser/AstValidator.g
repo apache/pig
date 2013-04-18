@@ -398,7 +398,7 @@ bag_type_cast : ^( BAG_TYPE_CAST tuple_type_cast? )
 var_expr : projectable_expr ( dot_proj | pound_proj )*
 ;
 
-projectable_expr: func_eval | col_ref | bin_expr
+projectable_expr: func_eval | col_ref | bin_expr | case_expr
 ;
 
 dot_proj : ^( PERIOD col_alias_or_index+ )
@@ -421,6 +421,9 @@ pound_proj : ^( POUND ( QUOTEDSTRING | NULL ) )
 ;
 
 bin_expr : ^( BIN_EXPR cond expr expr )
+;
+
+case_expr: ^( CASE expr+ )
 ;
 
 limit_clause : ^( LIMIT rel ( INTEGER | LONGINTEGER | expr ) )
