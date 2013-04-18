@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-3164 Pig current releases lack a UDF endsWith.This UDF tests if a given string ends with the specified suffix. (Anuroopa George via gates)
+
 PIG-2909 Add a new option for ignoring corrupted files to AvroStorage load func (cheolsoo via gates)
 
 PIG-2202 AvroStorage doesn't work with Avro 1.5.1 (billgraham via gates)
