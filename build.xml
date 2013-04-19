@@ -329,6 +329,7 @@
             <include name="guava-${guava.version}.jar"/>
             <include name="automaton-${automaton.version}.jar"/>
             <include name="jansi-${jansi.version}.jar"/>
+            <include name="asm*.jar"/>
         </patternset>
     </fileset>
 
@@ -346,6 +347,7 @@
             <include name="log4j*.jar"/>
             <include name="slf4j*.jar"/>
             <include name="jsp-api*.jar"/>
+            <include name="asm*.jar"/>
         </patternset>
     </fileset>
 

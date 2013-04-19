@@ -19,6 +19,7 @@
 package org.apache.pig.parser;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.MalformedURLException;
@@ -28,6 +29,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.antlr.runtime.IntStream;
 import org.antlr.runtime.RecognitionException;
@@ -39,6 +42,7 @@ import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.builtin.CubeDimensions;
+import org.apache.pig.builtin.InvokerGenerator;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.builtin.RANDOM;
 import org.apache.pig.builtin.RollupDimensions;
@@ -50,6 +54,8 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.streaming.StreamingCommand;
@@ -96,6 +102,8 @@ import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchem
 import org.apache.pig.newplan.logical.rules.OptimizerUtils;
 import org.apache.pig.newplan.logical.visitor.ProjStarInUdfExpander;
 import org.apache.pig.newplan.logical.visitor.ProjectStarExpander;
+
+import com.google.common.collect.Lists;
 
 public class LogicalPlanBuilder {
 
@@ -1407,6 +1415,34 @@ public class LogicalPlanBuilder {
             throw new ParserValidationException(intStream, loc, msg);
         }
 
+    }
+
+    LogicalExpression buildInvokerUDF(SourceLocation loc, LogicalExpressionPlan plan, String packageName, String funcName, boolean isStatic, List<LogicalExpression> args) throws RecognitionException {
+        LogicalExpression le = new UserFuncExpression(plan, new FuncSpec(InvokerGenerator.class.getName()), args, false, true, isStatic, packageName, funcName);
+        le.setLocation(loc);
+        return le;
+    }
+
+    public static Class<?> typeToClass(Class<?> clazz) {
+        if (clazz == Integer.TYPE) {
+            return Integer.class;
+        } else if (clazz == Long.TYPE) {
+            return Long.class;
+        } else if (clazz == Float.TYPE) {
+            return Long.class;
+        } else if (clazz == Double.TYPE) {
+            return Long.class;
+    	} else if (clazz == Boolean.TYPE) {
+            return Long.class;
+    	} else if (clazz == Short.TYPE) {
+            return Short.class;
+        } else if (clazz == Byte.TYPE) {
+            return Byte.class;
+        } else if (clazz == Character.TYPE) {
+            return Character.class;
+        } else {
+            throw new RuntimeException("Was not given a primitive TYPE class: " + clazz);
+        }
     }
 
     LogicalExpression buildUDF(SourceLocation loc, LogicalExpressionPlan plan,

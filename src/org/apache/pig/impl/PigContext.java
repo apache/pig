@@ -739,6 +739,7 @@ public class PigContext implements Serializable {
         if (packageImportList.get() == null) {
             ArrayList<String> importlist = new ArrayList<String>();
             importlist.add("");
+            importlist.add("java.lang.");
             importlist.add("org.apache.pig.builtin.");
             importlist.add("org.apache.pig.impl.builtin.");
             packageImportList.set(importlist);

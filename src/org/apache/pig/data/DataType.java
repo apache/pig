@@ -324,6 +324,30 @@ public class DataType {
         default: return "Unknown";
         }
     }
+    
+    public static Class<?> findTypeClass(byte dt) {
+        switch (dt) {
+        case NULL:      return Void.TYPE;
+        case BOOLEAN:   return Boolean.TYPE;
+        case BYTE:      return Byte.TYPE;
+        case INTEGER:   return Integer.TYPE;
+        case BIGINTEGER:                    return BigInteger.class;
+        case BIGDECIMAL:                    return BigDecimal.class;
+        case LONG:      return Long.TYPE;
+        case FLOAT:     return Float.TYPE;
+        case DOUBLE:    return Double.TYPE;
+        case DATETIME:  return DateTime.class;
+        case BYTEARRAY: return DataByteArray.class;
+        case BIGCHARARRAY: return String.class;
+        case CHARARRAY: return String.class;
+        case MAP:       return Map.class;
+        case INTERNALMAP: return InternalMap.class;
+        case TUPLE:     return Tuple.class;
+        case BAG:       return DataBag.class;
+        case GENERIC_WRITABLECOMPARABLE: return WritableComparable.class;
+        default: throw new RuntimeException("Invalid type has no corresponding class: " + dt);
+        }
+    }
 
     /**
      * Determine whether the this data type is complex.
