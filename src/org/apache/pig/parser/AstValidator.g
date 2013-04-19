@@ -367,7 +367,7 @@ cond : ^( OR cond cond )
 in_eval: ^( IN expr expr+ )
 ;
 
-func_eval: ^( FUNC_EVAL func_name real_arg* )
+func_eval: ^( FUNC_EVAL func_name real_arg* ) | ^( INVOKER_FUNC_EVAL func_name IDENTIFIER real_arg* )
 ;
 
 real_arg : expr | STAR | col_range
@@ -593,7 +593,7 @@ split_branch
    }
 ;
 
-split_otherwise 	: ^( OTHERWISE alias )
+split_otherwise : ^( OTHERWISE alias )
    {
        aliases.add( $alias.name );
    }

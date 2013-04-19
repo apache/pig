@@ -96,6 +96,9 @@ CUBE    : 'CUBE'
 ROLLUP	: 'ROLLUP'
 ;
 
+INVOKE  : 'INVOKE'
+;
+
 DISTINCT : 'DISTINCT'
 ;
 
@@ -467,6 +470,9 @@ QMARK : '?'
 ;
 
 ARROBA : '@'
+;
+
+AMPERSAND : '&'
 ;
 
 FAT_ARROW : '=>'

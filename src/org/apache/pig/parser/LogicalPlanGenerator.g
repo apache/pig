@@ -801,6 +801,11 @@ func_eval[LogicalExpressionPlan plan] returns[LogicalExpression expr]
        SourceLocation loc = new SourceLocation( (PigParserNode)$func_name.start );
        $expr = builder.buildUDF( loc, $plan, $func_name.funcName, args );
    }
+ | ^( INVOKER_FUNC_EVAL package_name=IDENTIFIER function_name=IDENTIFIER is_static=IDENTIFIER ( real_arg[$plan] { args.add( $real_arg.expr ); } )* )
+   {
+       SourceLocation loc = new SourceLocation( (PigParserNode)$function_name );
+       $expr = builder.buildInvokerUDF( loc, $plan, $package_name.text, $function_name.text, Boolean.parseBoolean($is_static.text), args );
+   }
 ;
 
 real_arg [LogicalExpressionPlan plan] returns[LogicalExpression expr]

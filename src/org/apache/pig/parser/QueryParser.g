@@ -39,6 +39,8 @@ tokens {
     FUNC;
     FUNC_REF;
     FUNC_EVAL;
+    INVOKE;
+    INVOKER_FUNC_EVAL;
     CAST_EXPR;
     COL_RANGE;
     BIN_EXPR;
@@ -90,6 +92,8 @@ import org.apache.pig.parser.PigMacro;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
+import com.google.common.base.Joiner;
 }
 
 @members {
@@ -717,6 +721,7 @@ cast_expr
           // careful with periods straight after the identifier, as we want those to be projections, not function
           // calls
           | col_ref_without_identifier projection*
+          | invoker_func projection*
           | identifier_plus projection*
           | identifier_plus func_name_suffix? LEFT_PAREN ( real_arg ( COMMA real_arg )* )? RIGHT_PAREN projection* -> ^( FUNC_EVAL identifier_plus func_name_suffix? real_arg* ) projection*
           | func_name_without_columns LEFT_PAREN ( real_arg ( COMMA real_arg )* )? RIGHT_PAREN projection* -> ^( FUNC_EVAL func_name_without_columns real_arg* ) projection*
@@ -724,6 +729,16 @@ cast_expr
           | paren_expr
           | curly_expr
           | bracket_expr
+;
+
+invoker_func
+@init {
+    String staticStr = "true";
+    List<String> packageStr = Lists.newArrayList();
+    String methodStr = null;
+}
+: INVOKE ( AMPERSAND | LEFT_PAREN real_arg { staticStr = "false"; } RIGHT_PAREN ) ( packageName=identifier_plus PERIOD { packageStr.add($packageName.text); } )* methodName=identifier_plus { methodStr=$methodName.text; } LEFT_PAREN ( real_arg ( COMMA real_arg )* )? RIGHT_PAREN
+              -> ^( INVOKER_FUNC_EVAL IDENTIFIER[Joiner.on(".").join(packageStr)] IDENTIFIER[methodStr] IDENTIFIER[staticStr] real_arg* )
 ;
 
 // now we have to deal with parentheses: in an expr, '(' can be the
@@ -820,7 +835,7 @@ projection : PERIOD ( col_ref | LEFT_PAREN col_ref ( COMMA col_ref )* RIGHT_PARE
 // for disambiguation with func_names
 col_ref_without_identifier : GROUP | DOLLARVAR
 ;
- 
+
 col_ref : col_ref_without_identifier | identifier_plus
 ;
 
