@@ -214,7 +214,7 @@ public class UserFuncExpression extends LogicalExpression {
         if (lazilyInitializeInvokerFunction) {
             initializeInvokerFunction();
         }
-        
+
         // Since ef only set one time, we never change its value, so we can optimize it by instantiate only once.
         // This significantly optimize the performance of frontend (PIG-1738)
         if (ef==null) {
@@ -259,16 +259,16 @@ public class UserFuncExpression extends LogicalExpression {
 
     private void initializeInvokerFunction() {
         List<LogicalFieldSchema> fieldSchemas = Lists.newArrayList();
-        for (LogicalExpression le : saveArgsForLater) {     
+        for (LogicalExpression le : saveArgsForLater) {
             try {
                 fieldSchemas.add(le.getFieldSchema());
             } catch (FrontendException e) {
                 throw new RuntimeException(e);
             }
         }
-        
+
         Class<?> funcClass;
-        
+
         if (invokerIsStatic) {
             try {
                 funcClass = PigContext.resolveClassName(packageName);
@@ -281,42 +281,42 @@ public class UserFuncExpression extends LogicalExpression {
                 funcClass = LogicalPlanBuilder.typeToClass(funcClass);
             }
         }
-        
+
         Class<?>[] parameterTypes = new Class<?>[fieldSchemas.size() - (invokerIsStatic ? 0 : 1)];
         int idx = 0;
         for (int i = invokerIsStatic ? 0 : 1; i < fieldSchemas.size(); i++) {
             parameterTypes[idx++] = DataType.findTypeClass(fieldSchemas.get(i).type);
         }
-        
+
         List<Integer> primitiveParameters = Lists.newArrayList();
-        
+
         for (int i = 0; i < parameterTypes.length; i++) {
             if (parameterTypes[i].isPrimitive()) {
                 primitiveParameters.add(i);
             }
         }
-        
+
         int tries = 1 << primitiveParameters.size();
 
         Method m = null;
-        
+
         for (int i = 0; i < tries; i++) {
             Class<?>[] tmpParameterTypes = new Class<?>[parameterTypes.length];
             for (int j = 0; j < parameterTypes.length; j++) {
                 tmpParameterTypes[j] = parameterTypes[j];
             }
-            
+
             int tmp = i;
             int idx2 = 0;
             while (tmp > 0) {
                 if (tmp % 2 == 1) {
                     int toFlip = primitiveParameters.get(idx2);
-                    tmpParameterTypes[toFlip] = LogicalPlanBuilder.typeToClass(tmpParameterTypes[toFlip]); 
+                    tmpParameterTypes[toFlip] = LogicalPlanBuilder.typeToClass(tmpParameterTypes[toFlip]);
                 }
                 tmp >>= 1;
                 idx2++;
             }
-            
+
             try {
                 m = funcClass.getMethod(funcName, parameterTypes);
                 if (m != null) {
@@ -329,11 +329,11 @@ public class UserFuncExpression extends LogicalExpression {
                 // we just continue, as we are searching for a match post-boxing
             }
         }
-        
+
         if (m == null) {
             throw new RuntimeException("Given method ["+funcName+"] does not exist on class: " + funcClass);
         }
-        
+
         String[] ctorArgs = new String[3];
         ctorArgs[0] = funcClass.getName();
         ctorArgs[1] = funcName;
@@ -343,7 +343,7 @@ public class UserFuncExpression extends LogicalExpression {
             params.add(param.getName());
         }
         ctorArgs[2] = Joiner.on(",").join(params);
-        
+
         //TODO need to allow them to define such a function so it can be cached etc (esp. if they reuse)
         mFuncSpec = new FuncSpec(InvokerGenerator.class.getName(), ctorArgs);
         lazilyInitializeInvokerFunction = false;
