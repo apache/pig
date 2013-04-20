@@ -1432,9 +1432,9 @@ public class LogicalPlanBuilder {
             return Long.class;
         } else if (clazz == Double.TYPE) {
             return Long.class;
-    	} else if (clazz == Boolean.TYPE) {
+        } else if (clazz == Boolean.TYPE) {
             return Long.class;
-    	} else if (clazz == Short.TYPE) {
+        } else if (clazz == Short.TYPE) {
             return Short.class;
         } else if (clazz == Byte.TYPE) {
             return Byte.class;

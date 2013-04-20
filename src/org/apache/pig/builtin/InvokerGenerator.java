@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.pig.builtin;
 
 import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
@@ -119,7 +136,7 @@ public class InvokerGenerator extends EvalFunc<Object> {
         methodName_ = methodName;
         argumentTypes_ = argumentTypes.split(",");
         if ("".equals(argumentTypes)) {
-            argumentTypes_ = new String[0]; 
+            argumentTypes_ = new String[0];
         }
     }
 
@@ -168,7 +185,7 @@ public class InvokerGenerator extends EvalFunc<Object> {
         if (returnClazz.isPrimitive()) {
             type = returnTypeMap.get(inverseTypeMap.get(returnClazz));
         } else {
-            type = returnTypeMap.get(returnClazz);  
+            type = returnTypeMap.get(returnClazz);
         }
 
         //TODO add functionality so that if the user pairs this witha  cast that it will let you return object
@@ -189,8 +206,8 @@ public class InvokerGenerator extends EvalFunc<Object> {
         for (int i = 0; i < argumentTypes.length; i++) {
             try {
                 arguments[i]= nameToClassObjectMap.get(argumentTypes[i]);
-                if (arguments[i] == null) { 
-                    arguments[i] = PigContext.resolveClassName(argumentTypes[i]);                   
+                if (arguments[i] == null) {
+                    arguments[i] = PigContext.resolveClassName(argumentTypes[i]);
                 }
             } catch (IOException e) {
                 throw new RuntimeException("Unable to find class in PigContext: " + argumentTypes[i], e);
@@ -207,7 +224,7 @@ public class InvokerGenerator extends EvalFunc<Object> {
 
     private byte[] generateInvokerFunctionBytecode(String className, Method method, boolean isStatic, Class<?>[] arguments) {
         boolean isInterface = method.getDeclaringClass().isInterface();
-        
+
         ClassWriter cw = new ClassWriter(0);
         cw.visit(V1_6, ACC_PUBLIC + ACC_SUPER, className, null, "java/lang/Object", new String[] { "org/apache/pig/builtin/InvokerFunction" });
 
@@ -282,7 +299,6 @@ public class InvokerGenerator extends EvalFunc<Object> {
         return primitiveSignature.get(clazz);
     }
 
-    
     private void boxIfPrimitive(MethodVisitor mv, Class<?> clazz) {
         if (!clazz.isPrimitive()) {
             return;
@@ -290,7 +306,7 @@ public class InvokerGenerator extends EvalFunc<Object> {
         String boxedClass = getMethodStyleName(inverseTypeMap.get(clazz));
         mv.visitMethodInsn(INVOKESTATIC, boxedClass, "valueOf", "("+getMethodStyleName(clazz)+")L"+boxedClass+";");
     }
-    
+
     private void unboxIfPrimitive(MethodVisitor mv, Class<?> clazz) {
         if (!clazz.isPrimitive()) {
             return;
