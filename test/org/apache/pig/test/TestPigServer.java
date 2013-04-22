@@ -463,6 +463,15 @@ public class TestPigServer {
         Schema expectedSchema = Utils.getSchemaFromString("field1: int,field2: double,field3: chararray");
         assertEquals(expectedSchema, dumpedSchema);
     }
+    
+    @Test
+    public void testDescribeTuple2Elem() throws Throwable {
+        pig.registerQuery("a = load 'a' as (field1: int, field2: int, field3: int );") ;
+        pig.registerQuery("b = foreach a generate field1, (field2, field3);") ;
+        Schema dumpedSchema = pig.dumpSchema("b") ;
+        assertTrue(dumpedSchema.getField(0).type==DataType.INTEGER);
+        assertTrue(dumpedSchema.getField(1).type==DataType.TUPLE);
+    }
 
     @Test
     public void testDescribeComplex() throws Throwable {
