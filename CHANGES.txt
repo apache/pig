@@ -164,6 +164,8 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-2767: Pig creates wrong schema after dereferencing nested tuple fields (daijy)
+
 PIG-3276: change the default value for hcat.bin to hcat instead of /usr/local/hcat/bin/hcat (arpitgupta via daijy)
 
 PIG-3277: fix the path to the benchmarks file in the print statement (arpitgupta via daijy)
