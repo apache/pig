@@ -248,13 +248,13 @@ public class PigTest {
     registerScript();
     String alias = aliasOverrides.get("LAST_STORE_ALIAS");
 
-    assertEquals(readFile(expected), StringUtils.join(getAlias(alias), "\n"));
+    assertEquals(readFile(expected).replaceAll("\r\n", "\n"), StringUtils.join(getAlias(alias), "\n"));
   }
 
   public void assertOutput(String alias, File expected) throws IOException, ParseException {
     registerScript();
 
-    assertEquals(readFile(expected), StringUtils.join(getAlias(alias), "\n"));
+    assertEquals(readFile(expected).replaceAll("\r\n", "\n"), StringUtils.join(getAlias(alias), "\n"));
   }
 
   public void assertOutput(String aliasInput, String[] input, String alias, String[] expected)
