@@ -169,14 +169,20 @@ public class DereferenceExpression extends ColumnExpression {
                         columns = translateAliasToPos(predFS.schema, rawColumns);
                     }
                     if (predFS.schema!=null && predFS.schema.size()!=0) {
-                        if (predFS.schema.size()==1) {
+                        if (columns.size()==1) {
                             fieldSchema = predFS.schema.getField(columns.get(0));
                         } else {
                             LogicalSchema innerSchema = new LogicalSchema();
+                            String alias = predFS.alias;
                             for (int column:columns) {
                                 innerSchema.addField(predFS.schema.getField(column));
+                                String subAlias = predFS.schema.getField(column).alias;
+                                if (subAlias==null) {
+                                    subAlias = "";
+                                }
+                                alias = alias + "_" + subAlias;
                             }
-                            fieldSchema = new LogicalSchema.LogicalFieldSchema(predFS.alias, innerSchema, DataType.TUPLE, LogicalExpression.getNextUid());
+                            fieldSchema = new LogicalSchema.LogicalFieldSchema(alias, innerSchema, DataType.TUPLE, LogicalExpression.getNextUid());
                         }
                     }
                     else {
