@@ -1119,19 +1119,26 @@ public class TestGrunt {
     @Test
     public void testShellCommandOrder() throws Throwable {
         PigServer server = new PigServer(ExecType.LOCAL, new Properties());
+
+        String strRemoveRecurse = "rm -rf";
+
+        if (Util.WINDOWS)
+        {
+            strRemoveRecurse  = "rd /S";
+        }
         
-        File inputFile = File.createTempFile("test", "txt");
+        File inputFile = File.createTempFile("testInputFile", ".txt");
         PrintWriter pwInput = new PrintWriter(new FileWriter(inputFile));
         pwInput.println("1");
         pwInput.close();
         
-        File inputScript = File.createTempFile("test", "");
-        File outputFile = File.createTempFile("test", "txt");
+        File inputScript = File.createTempFile("testInputScript", "");
+        File outputFile = File.createTempFile("testOutputFile", ".txt");
         outputFile.delete();
         PrintWriter pwScript = new PrintWriter(new FileWriter(inputScript));
-        pwScript.println("a = load '" + inputFile.getAbsolutePath() + "';");
-        pwScript.println("store a into '" + outputFile.getAbsolutePath() + "';");
-        pwScript.println("sh rm -rf " + inputFile.getAbsolutePath());
+        pwScript.println("a = load '" + Util.encodeEscape(inputFile.getAbsolutePath()) + "';");
+        pwScript.println("store a into '" + Util.encodeEscape(outputFile.getAbsolutePath()) + "';");
+        pwScript.println("sh " + strRemoveRecurse + " " + Util.encodeEscape(inputFile.getAbsolutePath()));
         pwScript.close();
         
         InputStream inputStream = new FileInputStream(inputScript.getAbsoluteFile());

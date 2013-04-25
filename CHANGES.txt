@@ -164,6 +164,8 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-3028: testGrunt dev test needs some command filters to run correctly without cygwin (jgordon via gates)
+
 PIG-3290: TestLogicalPlanBuilder.testQuery85 fail in trunk (daijy)
 
 PIG-3027: pigTest unit test needs a newline filter for comparisons of golden multi-line (jgordon via gates)
