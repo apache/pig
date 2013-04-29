@@ -28,6 +28,8 @@ PIG-3174:  Remove rpm and deb artifacts from build.xml (gates)
 
 IMPROVEMENTS
 
+PIG-3173: Partition filter push down does not happen when partition keys condition include a AND and OR construct (rohini)
+
 PIG-2786: enhance Pig launcher script wrt. HBase/HCat integration (ndimiduk via daijy)
 
 PIG-3198: Let users use any function from PigType -> PigType as if it were builtlin (jcoveney)
