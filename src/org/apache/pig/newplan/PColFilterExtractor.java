@@ -179,17 +179,6 @@ public class PColFilterExtractor extends PlanVisitor {
             canPushDown = false;
             return;
 			}
-			opsToCheckFor.set(0, AndExpression.class);
-			opsToCheckFor.add(OrExpression.class);
-			if(checkSuccessors(project, opsToCheckFor)) {
-            LOG.warn("No partition filter push down: " +
-                "You have an partition column (" + fieldName +
-                " ) in a construction like: " +
-                "(pcond  and ...) or (pcond and ...) " +
-                "where pcond is a condition on a partition column.");
-            canPushDown = false;
-            return;
-			}
 		} else {
 			sawNonKeyCol = true;
 		}
@@ -200,9 +189,35 @@ public class PColFilterExtractor extends PlanVisitor {
 		boolean rhsSawKey = false;
 		boolean lhsSawNonKeyCol = false;
 		boolean rhsSawNonKeyCol = false;
+        sawKey = false;
+        sawNonKeyCol = false;
 
-		sawKey = false;
-		sawNonKeyCol = false;
+        LogicalExpression binLHS = binOp.getLhs();
+        LogicalExpression binRHS = binOp.getRhs();
+        // Take care of nested OR as in
+        // ((cond1 and cond2) or (cond3 and cond4) or (cond5 and cond6)) or (cond7 and cond8)
+        if (binOp instanceof OrExpression &&
+                ((binLHS instanceof AndExpression && binRHS instanceof AndExpression) ||
+                  binLHS instanceof OrExpression || binRHS instanceof OrExpression)) {
+            visit(binLHS);
+            lhsSawNonKeyCol = sawNonKeyCol;
+            this.replaceSide = Side.NONE;
+            visit(binRHS);
+            rhsSawNonKeyCol = sawNonKeyCol;
+            this.replaceSide = Side.NONE;
+            if (lhsSawNonKeyCol || rhsSawNonKeyCol || !canPushDown) {
+                sawKey = false;
+                sawNonKeyCol = true;
+                // Don't set canPushDown to false. If there are other AND
+                // conditions on a partition column we want to push that down
+                LOG.warn("No partition filter push down: You have partition and non-partition "
+                        + "columns  in a construction like: "
+                        + "(pcond and non-pcond ..) or (pcond and non-pcond ...) "
+                        + "where pcond is a condition on a partition column and "
+                        + "non-pcond is a condition on a non-partition column.");
+                return;
+            }
+        }
 		visit( binOp.getLhs() );
 		replaceChild(binOp.getLhs());
 		lhsSawKey = sawKey;
@@ -239,8 +254,6 @@ public class PColFilterExtractor extends PlanVisitor {
 		sawKey = lhsSawKey || rhsSawKey;
 		sawNonKeyCol = lhsSawNonKeyCol || rhsSawNonKeyCol;
 	}
-
-
 
 	/**
 	 * @return the condition on partition columns extracted from filter
