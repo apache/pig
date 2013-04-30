@@ -41,14 +41,15 @@ import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
-import org.apache.pig.PigWarning;
 import org.apache.pig.PigRunner.ReturnCode;
+import org.apache.pig.PigWarning;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler.LastInputStreamingOptimizer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.DotMRPrinter;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.EndOfAllInputSetter;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MRIntermediateDataVisitor;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MRPrinter;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.POPackageAnnotator;
@@ -57,11 +58,12 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
+import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.util.ConfigurationValidator;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.UDFContext;
@@ -155,6 +157,11 @@ public class MapReduceLauncher extends Launcher{
         
         // start collecting statistics
         PigStatsUtil.startCollection(pc, jobClient, jcc, mrp); 
+        
+        // Find all the intermediate data stores. The plan will be destroyed during compile/execution
+        // so this needs to be done before.
+        MRIntermediateDataVisitor intermediateVisitor = new MRIntermediateDataVisitor(mrp);
+        intermediateVisitor.visit();
         
         List<Job> failedJobs = new LinkedList<Job>();
         List<NativeMapReduceOper> failedNativeMR = new LinkedList<NativeMapReduceOper>();
@@ -393,7 +400,12 @@ public class MapReduceLauncher extends Launcher{
         if(failedNativeMR.size() > 0){
             failed = true;
         }
-        
+
+        // Clean up all the intermediate data
+        for (String path : intermediateVisitor.getIntermediate()) {
+            FileLocalizer.delete(path, pc);
+        }
+
         // Look to see if any jobs failed.  If so, we need to report that.
         if (failedJobs != null && failedJobs.size() > 0) {
             

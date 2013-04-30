@@ -28,8 +28,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Deque;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -410,31 +408,17 @@ public class FileLocalizer {
     
     static public boolean delete(String fileSpec, PigContext pigContext) throws IOException{
         fileSpec = checkDefaultPrefix(pigContext.getExecType(), fileSpec);
+        ElementDescriptor elem = null;
         if (!fileSpec.startsWith(LOCAL_PREFIX)) {
-            ElementDescriptor elem = pigContext.getDfs().asElement(fileSpec);
-            elem.delete();
-            return true;
+            elem = pigContext.getDfs().asElement(fileSpec);
+        } else {
+            elem = pigContext.getLfs().asElement(fileSpec);
         }
-        else {
-            ElementDescriptor elem = pigContext.getLfs().asElement(fileSpec);
-            elem.delete();
-            return true;
-        }
+        elem.delete();
+        return true;
     }
 
     static Random      r           = new Random();
-
-    /**
-     * Thread local toDelete Stack to hold descriptors to be deleted upon calling
-     * deleteTempFiles. Use the toDelete() method to access this stack.
-     */
-    private static ThreadLocal<Deque<ElementDescriptor>> toDelete =
-        new ThreadLocal<Deque<ElementDescriptor>>() {
-
-        protected Deque<ElementDescriptor> initialValue() {
-            return new LinkedList<ElementDescriptor>();
-        }
-    };
 
     /**
      * Thread local relativeRoot ContainerDescriptor. Do not access this object
@@ -444,14 +428,6 @@ public class FileLocalizer {
     private static ThreadLocal<ContainerDescriptor> relativeRoot =
         new ThreadLocal<ContainerDescriptor>() {
     };
-
-    /**
-     * Convenience accessor method to the toDelete Stack bound to this thread.
-     * @return A Stack of ElementDescriptors that should be deleted.
-     */
-    private static Deque<ElementDescriptor> toDelete() {
-        return toDelete.get();
-    }
 
     /**
      * This method is only used by test code to reset state.
@@ -478,42 +454,20 @@ public class FileLocalizer {
         if (relativeRoot.get() == null) {
             String tdir= pigContext.getProperties().getProperty("pig.temp.dir", "/tmp");
             relativeRoot.set(pigContext.getDfs().asContainer(tdir + "/temp" + r.nextInt()));
-            toDelete().push(relativeRoot.get());
         }
 
         return relativeRoot.get();
     }
 
     public static void deleteTempFiles() {
-        while (!toDelete().isEmpty()) {
+        if (relativeRoot.get() != null) {
             try {
-                ElementDescriptor elem = toDelete().pop();
-                elem.delete();
-            } 
-            catch (IOException e) {
+                relativeRoot.get().delete();
+            } catch (IOException e) {
                 log.error(e);
             }
+            setInitialized(false);
         }
-        setInitialized(false);
-    }
-
-    /**
-     * @deprecated Use {@link #getTemporaryPath(PigContext)} instead
-     */
-    @Deprecated
-    public static synchronized ElementDescriptor 
-        getTemporaryPath(ElementDescriptor relative, 
-                         PigContext pigContext) throws IOException {
-        if (relative == null) {
-            relative = relativeRoot(pigContext);
-        }
-        if (!relativeRoot(pigContext).exists()) {
-            relativeRoot(pigContext).create();
-        }
-        ElementDescriptor elem= 
-            pigContext.getDfs().asElement(relative.toString(), "tmp" + r.nextInt());
-        toDelete().push(elem);
-        return elem;
     }
 
     public static Path getTemporaryPath(PigContext pigContext) throws IOException {
@@ -528,7 +482,6 @@ public class FileLocalizer {
       }
       ElementDescriptor elem=
           pigContext.getDfs().asElement(relative.toString(), "tmp" + r.nextInt() + suffix);
-      toDelete().push(elem);
       return ((HPath)elem).getPath();
   }
 
@@ -544,8 +497,8 @@ public class FileLocalizer {
             throw new FileNotFoundException(filename);
         }
             
-        ElementDescriptor distribElem = 
-            getTemporaryPath(null, pigContext);
+        ElementDescriptor distribElem = pigContext.getDfs().asElement(
+                getTemporaryPath(pigContext).toString());
     
         int suffixStart = filename.lastIndexOf('.');
         if (suffixStart != -1) {
