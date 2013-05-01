@@ -47,6 +47,7 @@
     <artifact name="pig" m:classifier="withdependencies" conf="master"/>
     <artifact name="pig" m:classifier="sources" conf="master"/>
     <artifact name="pig" m:classifier="javadoc" conf="master"/>
+    <artifact name="pig" m:classifier="h2" conf="master"/>
   </publications>
   <dependencies>
     <dependency org="checkstyle" name="checkstyle" rev="${checkstyle.version}"

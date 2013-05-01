@@ -28,6 +28,8 @@ PIG-3174:  Remove rpm and deb artifacts from build.xml (gates)
 
 IMPROVEMENTS
 
+PIG-3303: add hadoop h2 artifact to publications in ivy.xml (julien)
+
 PIG-3169: Remove intermediate data after a job finishes (mwagner via cheolsoo)
 
 PIG-3173: Partition filter push down does not happen when partition keys condition include a AND and OR construct (rohini)
