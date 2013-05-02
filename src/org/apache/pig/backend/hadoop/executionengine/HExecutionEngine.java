@@ -240,9 +240,6 @@ public class HExecutionEngine {
             pod.visit();
         }
         
-        DanglingNestedNodeRemover DanglingNestedNodeRemover = new DanglingNestedNodeRemover( plan );
-        DanglingNestedNodeRemover.visit();
-        
         UidResetter uidResetter = new UidResetter( plan );
         uidResetter.visit();
         

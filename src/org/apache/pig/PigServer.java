@@ -84,6 +84,8 @@ import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionVisitor;
 import org.apache.pig.newplan.logical.expression.ScalarExpression;
 import org.apache.pig.newplan.logical.optimizer.AllExpressionVisitor;
+import org.apache.pig.newplan.logical.optimizer.DanglingNestedNodeRemover;
+import org.apache.pig.newplan.logical.optimizer.UidResetter;
 import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LOStore;
@@ -1379,14 +1381,13 @@ public class PigServer {
     }
 
     private LogicalRelationalOperator getOperatorForAlias(String alias) throws IOException {
-        currDAG.parseQuery();
+        buildStorePlan (alias);
         LogicalRelationalOperator op = (LogicalRelationalOperator)currDAG.getOperator( alias );
         if( op == null ) {
             int errCode = 1005;
             String msg = "No plan for " + alias + " to describe";
             throw new FrontendException(msg, errCode, PigException.INPUT, false, null);
         }
-        currDAG.compile();
         return op;
     }
 
@@ -1689,6 +1690,9 @@ public class PigServer {
         }
 
         private void compile(LogicalPlan lp) throws FrontendException  {
+            DanglingNestedNodeRemover DanglingNestedNodeRemover = new DanglingNestedNodeRemover( lp );
+            DanglingNestedNodeRemover.visit();
+            
             new ColumnAliasConversionVisitor(lp).visit();
             new SchemaAliasVisitor(lp).visit();
             new ScalarVisitor(lp, pigContext, scope).visit();
