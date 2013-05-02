@@ -5,9 +5,9 @@
  * licenses this file to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -38,7 +38,6 @@ import org.apache.hadoop.hive.serde2.columnar.BytesRefArrayWritable;
 import org.apache.hadoop.hive.serde2.columnar.ColumnarSerDe;
 import org.apache.hadoop.hive.serde2.columnar.ColumnarStruct;
 import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.RecordReader;
@@ -109,19 +108,19 @@ import org.apache.pig.piggybank.storage.partition.PathPartitionHelper;
  * <td>MAP</td>
  * </tr>
  * </table>
- * 
+ *
  * <p/>
  * <b>Partitions</b><br/>
  * The input paths are scanned by the loader for [partition name]=[value]
  * patterns in the subdirectories.<br/>
  * If detected these partitions are appended to the table schema.<br/>
  * For example if you have the directory structure:<br/>
- * 
+ *
  * <pre>
  * /user/hive/warehouse/mytable
  * 				/year=2010/month=02/day=01
  * </pre>
- * 
+ *
  * The mytable schema is (id int,name string).<br/>
  * The final schema returned in pig will be (id:int, name:chararray,
  * year:chararray, month:chararray, day:chararray).<br/>
@@ -135,7 +134,7 @@ import org.apache.pig.piggybank.storage.partition.PathPartitionHelper;
  * a = LOAD 'file' USING HiveColumnarLoader("uid bigint, ts long, arr array<string,string>, m map<string,string>");
  * -- to reference the fields
  * b = FOREACH GENERATE a.uid, a.ts, a.arr, a.m;
- * </pre> 
+ * </pre>
  * </code>
  * <p/>
  * Usage 2:
@@ -150,7 +149,7 @@ import org.apache.pig.piggybank.storage.partition.PathPartitionHelper;
  * a = LOAD 'file' USING HiveColumnarLoader("uid bigint, ts long, arr array<string,string>, m map<string,string>", "2009-10-01:2009-10-02");
  * -- to reference the fields
  * b = FOREACH GENERATE a.uid, a.ts, a.arr, a.m;
- * </pre> 
+ * </pre>
  * </code> <br/>
  * <b>New Usage</b/><br/>
  * <code>
@@ -175,7 +174,7 @@ import org.apache.pig.piggybank.storage.partition.PathPartitionHelper;
  * f = FILTER a BY daydate>='2009-10-01' AND daydate >='2009-10-02';
  * -- to reference the fields
  * b = FOREACH a GENERATE uid, ts, arr, m;
- * </pre> 
+ * </pre>
  * </code>
  * <p/>
  * <b>Issues</b>
@@ -193,12 +192,12 @@ import org.apache.pig.piggybank.storage.partition.PathPartitionHelper;
  * a table<br/>
  * For example:<br/>
  * The following is not valid:<br/>
- * 
+ *
  * <pre>
  *     mytable/hour=00
  *     mytable/day=01/hour=00
  * </pre>
- * 
+ *
  **/
 public class HiveColumnarLoader extends FileInputLoadFunc implements
 	LoadMetadata, LoadPushDown {
@@ -256,7 +255,7 @@ public class HiveColumnarLoader extends FileInputLoadFunc implements
      * For example uid BIGINT, pid long, means 1 column of uid type BIGINT and
      * one column of pid type LONG.<br/>
      * The types are not case sensitive.
-     * 
+     *
      * @param table_schema
      *            This property cannot be null
      */
@@ -266,13 +265,13 @@ public class HiveColumnarLoader extends FileInputLoadFunc implements
 
     /**
      * This constructor is for backward compatibility.
-     * 
+     *
      * Table schema should be a space and comma separated string describing the
      * Hive schema.<br/>
      * For example uid BIGINT, pid long, means 1 column of uid type BIGINT and
      * one column of pid type LONG.<br/>
      * The types are not case sensitive.
-     * 
+     *
      * @param table_schema
      *            This property cannot be null
      * @param dateRange
@@ -289,13 +288,13 @@ public class HiveColumnarLoader extends FileInputLoadFunc implements
 
     /**
      * This constructor is for backward compatibility.
-     * 
+     *
      * Table schema should be a space and comma separated string describing the
      * Hive schema.<br/>
      * For example uid BIGINT, pid long, means 1 column of uid type BIGINT and
      * one column of pid type LONG.<br/>
      * The types are not case sensitive.
-     * 
+     *
      * @param table_schema
      *            This property cannot be null
      * @param dateRange
@@ -359,7 +358,7 @@ public class HiveColumnarLoader extends FileInputLoadFunc implements
 	    // if any the partition keys should already exist
 	    String[] partitionKeys = getPartitionKeys(null, null);
 	    if (partitionKeys != null) {
-		fieldLen = partitionKeys.length;
+		fieldLen += partitionKeys.length;
 	    }
 
 	    requiredIndexes = new int[fieldLen];
@@ -388,7 +387,7 @@ public class HiveColumnarLoader extends FileInputLoadFunc implements
 
     /**
      * Does the configuration setup and schema parsing and setup.
-     * 
+     *
      * @param table_schema
      *            String
      * @param columnsToRead
@@ -434,7 +433,7 @@ public class HiveColumnarLoader extends FileInputLoadFunc implements
     /**
      * Uses the ColumnarSerde to deserialize the buff:BytesRefArrayWritable into
      * a ColumnarStruct instance.
-     * 
+     *
      * @param buff
      *            BytesRefArrayWritable
      * @return ColumnarStruct
@@ -454,7 +453,7 @@ public class HiveColumnarLoader extends FileInputLoadFunc implements
 
     /**
      * Only read the columns that were requested in the constructor.<br/>
-     * 
+     *
      * @param struct
      *            ColumnarStruct
      * @param path
@@ -520,7 +519,7 @@ public class HiveColumnarLoader extends FileInputLoadFunc implements
      * Will parse the required columns from the UDFContext properties if the
      * requiredColumns[] variable is null, or else just return the
      * requiredColumns.
-     * 
+     *
      * @return int[]
      */
     private int[] getRequiredColumns() {
@@ -549,7 +548,7 @@ public class HiveColumnarLoader extends FileInputLoadFunc implements
 
     /**
      * Reads the partition columns
-     * 
+     *
      * @param location
      * @param job
      * @return
@@ -724,14 +723,14 @@ public class HiveColumnarLoader extends FileInputLoadFunc implements
 
 	LOG.debug("Signature: " + signature);
 	this.signature = signature;
-	
+
 	// this provides backwards compatibility
 	// the HiveRCInputFormat will read this and if set will perform the
 	// needed partitionFiltering
 	if (dateRange != null) {
 	    getUDFContext().setProperty(DATE_RANGE, dateRange);
 	}
-	
+
     }
 
 }
