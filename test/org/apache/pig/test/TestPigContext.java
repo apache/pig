@@ -18,7 +18,6 @@ package org.apache.pig.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -29,7 +28,6 @@ import java.util.Properties;
 import java.util.Random;
 
 import org.apache.hadoop.mapred.FileAlreadyExistsException;
-import org.apache.log4j.Logger;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
@@ -43,7 +41,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestPigContext {
-    private static final Logger LOG = Logger.getLogger(TestPigContext.class);
     private static final String TMP_DIR_PROP = "/tmp/hadoop-hadoop";
     private static final String FS_NAME = "file:///";
     private static final String JOB_TRACKER = "local";
@@ -154,12 +151,13 @@ public class TestPigContext {
 
         PigContext.initializeImportList("com.xxx.udf1:com.xxx.udf2.");
         ArrayList<String> importList = PigContext.getPackageImportList();
-        assertEquals(5, importList.size());
+        assertEquals(6, importList.size());
         assertEquals("com.xxx.udf1.", importList.get(0));
         assertEquals("com.xxx.udf2.", importList.get(1));
         assertEquals("", importList.get(2));
-        assertEquals("org.apache.pig.builtin.", importList.get(3));
-        assertEquals("org.apache.pig.impl.builtin.", importList.get(4));
+        assertEquals("java.lang.", importList.get(3));
+        assertEquals("org.apache.pig.builtin.", importList.get(4));
+        assertEquals("org.apache.pig.impl.builtin.", importList.get(5));
 
         Object udf = PigContext.instantiateFuncFromSpec("TestUDF1");
         assertTrue(udf.getClass().toString().endsWith("com.xxx.udf1.TestUDF1"));
