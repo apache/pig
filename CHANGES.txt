@@ -170,6 +170,8 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-3286: TestPigContext.testImportList fails in trunk (cheolsoo)
+
 PIG-2970: Nested foreach getting incorrect schema when having unrelated inner query (daijy)
 
 PIG-3304: XMLLoader in piggybank does not work with inline closed tags (aseldawy via daijy)
