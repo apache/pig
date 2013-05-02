@@ -15,9 +15,13 @@ package org.apache.pig.piggybank.test.storage;
 
 import static org.apache.pig.ExecType.LOCAL;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Iterator;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 
 import junit.framework.TestCase;
 
@@ -73,6 +77,16 @@ public class TestXMLLoader extends TestCase {
      nestedTags.add(new String[] { "</relatedEvents>"});
      nestedTags.add(new String[] { "</event>"});
      nestedTags.add(new String[] { "</events>"});
+  }
+  
+  public static ArrayList<String[]> inlineClosedTags = new ArrayList<String[]>();
+  static {
+    inlineClosedTags.add(new String[] { "<events>"});
+    inlineClosedTags.add(new String[] { "<event id='3423'/>"});
+    inlineClosedTags.add(new String[] { "<event/>"});
+    inlineClosedTags.add(new String[] { "<event><event/></event>"});
+    inlineClosedTags.add(new String[] { "<event id='33'><tag k='a' v='b'/></event>"});
+    inlineClosedTags.add(new String[] { "</events>"});
   }
   
   public void testShouldReturn0TupleCountIfSearchTagIsNotFound () throws Exception
@@ -333,5 +347,47 @@ public class TestXMLLoader extends TestCase {
       assertEquals(3, tupleCount);  
    }
    
-   
+
+   public void testXMLLoaderShouldWorkWithInlineClosedTags() throws Exception {
+     String filename = TestHelper.createTempFile(inlineClosedTags, "");
+     PigServer pig = new PigServer(LOCAL);
+     filename = filename.replace("\\", "\\\\");
+     patternString = patternString.replace("\\", "\\\\");
+     String query = "A = LOAD 'file:" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('event') as (doc:chararray);";
+     pig.registerQuery(query);
+     Iterator<?> it = pig.openIterator("A");
+     int tupleCount = 0;
+     while (it.hasNext()) {
+       Tuple tuple = (Tuple) it.next();
+       if (tuple == null)
+         break;
+       else {
+         if (tuple.size() > 0) {
+             tupleCount++;
+         }
+       }
+     }
+     assertEquals(4, tupleCount);  
+   }
+
+   public void testXMLLoaderShouldReturnValidXML() throws Exception {
+     String filename = TestHelper.createTempFile(inlineClosedTags, "");
+     PigServer pig = new PigServer(LOCAL);
+     filename = filename.replace("\\", "\\\\");
+     patternString = patternString.replace("\\", "\\\\");
+     String query = "A = LOAD 'file:" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('event') as (doc:chararray);";
+     pig.registerQuery(query);
+     Iterator<?> it = pig.openIterator("A");
+     while (it.hasNext()) {
+       Tuple tuple = (Tuple) it.next();
+       if (tuple == null)
+         break;
+       else {
+         // Test it returns a valid XML
+         DocumentBuilder docBuilder =
+           DocumentBuilderFactory.newInstance().newDocumentBuilder();
+         docBuilder.parse(new ByteArrayInputStream(((String)tuple.get(0)).getBytes()));
+       }
+     }
+   }
 }
