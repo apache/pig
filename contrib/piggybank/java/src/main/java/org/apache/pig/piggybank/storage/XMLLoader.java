@@ -194,36 +194,24 @@ class XMLLoaderBufferedPositionedInputStream extends BufferedPositionedInputStre
 
       //@todo use the charset and get the charset encoding from the xml encoding.
       byte[] tmp = tagName.getBytes();
-      byte[] tag = new byte[tmp.length + 3];
-      tag[0] = (byte)'<';
-      tag[1] = (byte)'/';
-      for (int i = 0; i < tmp.length; ++i) {
-        tag[2+i] = tmp[i];
-      }
-      tag[tmp.length+2] = (byte)'>';
-      
-      
-      // Create a start tag bytes to handle nested tags
-      byte[] startTag = new byte[tmp.length + 1];
-      startTag[0] = (byte)'<';
-      for (int i = 0; i < tmp.length; ++i) {
-         startTag[1+i] = tmp[i];
-       }
-      //startTag[tmp.length+1] = (byte)'>';
-      
-      
-
       ByteArrayOutputStream collectBuf = new ByteArrayOutputStream(1024);
-      int idxTagChar = 0;
-      int idxStartTagChar = 0;
-      boolean startTagMatched = false;
-      /*
-       * Read till an end tag is found.It need not check for any condition since it 
-       * tries to read it till end.One issue that may happen is that if the xml 
-       * content is very huge; or if the end tag is not there in a huge file, 
-       * then it may blow up the memory. 
-       */
-      int nestedTags = 0;
+      // Levels of elements we went inside matched node
+      int depth = 0;
+      
+      //Since skipToTag was called before this function, we know that we are
+      //currently inside the matched tag. Assuming the XML file is well
+      //structured, we read till we encounter the first close tag. Since
+      //the matched element might contain nested element, we keep track of the
+      //current depth and terminate only when we encounter a closing tag at
+      //level zero
+      
+      // A flag to indicate the parsing is currently inside a (start/end) tag
+      boolean insideTag = false;
+      // A flag to indicate that the current tag is a closing (end) tag
+      boolean closingTag = false;
+      
+      // Last byte read
+      int last_b = -1;
       while (true) {
         int b = -1;
         try {
@@ -237,42 +225,32 @@ class XMLLoaderBufferedPositionedInputStream extends BufferedPositionedInputStre
           collectBuf.write((byte)(b));
 
           // Check if the start tag has matched except for the last char
-          if(startTagMatched )
-          {
-             startTagMatched = false;
-             idxStartTagChar = 0;
-             if (b == ' ' || b == '\t' || b == '>')
-                ++nestedTags;// increment the nesting count
-          }
-          
-          if (b == startTag[idxStartTagChar]){
-             ++idxStartTagChar;
-             if(idxStartTagChar == startTag.length)
-                startTagMatched = true ; // Set the flag as true if start tag matches
-          }else
-             idxStartTagChar = 0;
-            
-          
-          
-          // start to match the target close tag
-          if (b == tag[idxTagChar]) {
-            ++idxTagChar;
-            if (idxTagChar == tag.length) {
-               if(nestedTags==0) // Break the loop if there were no nested tags
-                  break;
-               else{
-                  --nestedTags; // Else decrement the count
-                  idxTagChar = 0; // Reset the index
-               }
+          if (b == '<') {
+            insideTag = true;
+            closingTag = false;
+          } else if (b == '>') {
+            // Detect the pattern />
+            if (last_b == '/')
+              closingTag = true;
+            insideTag = false;
+            if (closingTag) {
+              if (depth == 0)
+                break;
+              depth--;
             }
-          } else 
-            idxTagChar = 0; 
-          
+          } else if (b == '/' && last_b == '<') {
+            // Detected the pattern </
+            closingTag = true;
+          } else if (insideTag && last_b == '<') {
+            // First character after '<' which is not a '/'
+            depth++;
+          }
         }
         catch (IOException e) {
           this.setReadable(false);
           return null;
         }
+        last_b = b;
       }
       return collectBuf.toByteArray();
     }
@@ -339,7 +317,7 @@ class XMLLoaderBufferedPositionedInputStream extends BufferedPositionedInputStre
               break;
             case S_MATCH_PREFIX:
               // tag match iff next character is whitespaces or close tag mark
-              if (b == ' ' || b == '\t' || b == '>') {
+              if (Character.isWhitespace(b) || b == '/' || b == '>') {
                 matchBuf.write((byte)(b));
                 state = S_MATCH_TAG;
               } else {
@@ -355,7 +333,7 @@ class XMLLoaderBufferedPositionedInputStream extends BufferedPositionedInputStre
             default:
               throw new IllegalArgumentException("Invalid state: " + state);
           }
-          if (state == S_MATCH_TAG && b == '>') {
+          if (state == S_MATCH_TAG && (b == '>' || Character.isWhitespace(b))) {
             break;
           }
           if (state != S_MATCH_TAG && this.getPosition() > limit) {
@@ -406,6 +384,12 @@ class XMLLoaderBufferedPositionedInputStream extends BufferedPositionedInputStre
     byte[] collectTag(String tagName, long limit) throws IOException {
        ByteArrayOutputStream collectBuf = new ByteArrayOutputStream(1024);
        byte[] beginTag = skipToTag(tagName, limit);
+       
+       // Check if the tag is closed inline
+       if (beginTag.length > 2 && beginTag[beginTag.length - 2] == '/' &&
+           beginTag[beginTag.length-1] == '>') {
+         return beginTag;
+       }
 
        // No need to search for the end tag if the start tag is not found
        if(beginTag.length > 0 ){ 
