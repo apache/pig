@@ -5,9 +5,9 @@
  * licenses this file to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -28,17 +28,17 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 /**
- * 
+ *
  * Its convenient sometimes to partition logs by date values or other e.g.
  * country, city etc.<br/>
  * A daydate partitioned hdfs directory might look something like:<br/>
- * 
+ *
  * <pre>
  * /logs/repo/mylog/
  * 					daydate=2010-01-01
  * 				    daydate=2010-01-02
  * </pre>
- * 
+ *
  * This class accepts a path like /logs/repo/mylog and return a map of the
  * partition keys
  */
@@ -47,7 +47,7 @@ public class PathPartitioner {
     /**
      * Note: this must be the path lowes in the Searches for the key=value pairs
      * in the path pointer by the location parameter.
-     * 
+     *
      * @param location
      *            String root path in hdsf e.g. /user/hive/warehouse or
      *            /logs/repo
@@ -76,7 +76,7 @@ public class PathPartitioner {
     /**
      * Searches for the key=value pairs in the path pointer by the location
      * parameter.
-     * 
+     *
      * @param location
      *            String root path in hdsf e.g. /user/hive/warehouse or
      *            /logs/repo
@@ -103,7 +103,7 @@ public class PathPartitioner {
 	parseAndPutKeyValue(location, partitionKeys);
 
 	while (!((fileStatusArr = fs.listStatus(path)) == null || fs
-		.isFile(path))) {
+		.isFile(path) || fileStatusArr.length == 0)) {
 	    for (FileStatus fileStatus : fileStatusArr) {
 
 		path = fileStatus.getPath();
@@ -145,7 +145,7 @@ public class PathPartitioner {
     /**
      * Will look for key=value pairs in the path for example:
      * /user/hive/warehouse/mylogs/year=2010/month=07
-     * 
+     *
      * @param path
      * @return String[] [0]= key [1] = value
      */
