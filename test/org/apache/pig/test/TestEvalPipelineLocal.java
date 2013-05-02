@@ -57,6 +57,7 @@ import org.apache.pig.impl.io.PigFile;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.impl.util.Utils;
 import org.apache.pig.test.utils.Identity;
 import org.junit.Before;
 import org.junit.Test;
@@ -1121,6 +1122,25 @@ public class TestEvalPipelineLocal {
         Assert.assertTrue(iter.next().toString().equals("(0)"));
         Assert.assertTrue(iter.next().toString().equals("(2)"));
         Assert.assertTrue(iter.next().toString().equals("(0)"));
+        Assert.assertFalse(iter.hasNext());
+    }
+    
+    @Test
+    // See PIG-2970
+    public void testDescribeDanglingBranch() throws Throwable {
+        File f1 = createFile(new String[]{"NYSE\tIBM", "NASDAQ\tYHOO", "NASDAQ\tMSFT"});
+        pigServer.registerQuery("daily = load '" + Util.generateURI(f1.toString(), pigServer.getPigContext())
+        		+"' as (exchange, symbol);");
+        pigServer.registerQuery("grpd = group daily by exchange;");
+        pigServer.registerQuery("unique = foreach grpd { sym = daily.symbol; uniq_sym = distinct sym; uniq_sym = distinct sym; generate group, daily;};");
+        pigServer.registerQuery("zzz = foreach unique generate group;");
+        Schema dumpedSchema = pigServer.dumpSchema("zzz") ;
+        Schema expectedSchema = Utils.getSchemaFromString(
+                    "group: bytearray");
+        Assert.assertEquals(expectedSchema, dumpedSchema);
+        Iterator<Tuple> iter = pigServer.openIterator("zzz");
+        Assert.assertTrue(iter.next().toString().equals("(NYSE)"));
+        Assert.assertTrue(iter.next().toString().equals("(NASDAQ)"));
         Assert.assertFalse(iter.hasNext());
     }
 }
