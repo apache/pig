@@ -374,7 +374,13 @@ sub getPigCmd($$$)
     # command.
     $ENV{'PIG_CLASSPATH'} = $pcp;
 
-    @pigCmd = ("$testCmd->{'pigpath'}/bin/pig");
+    if ($testCmd->{'usePython'} eq "true") {
+      @pigCmd = ("python");
+      push(@pigCmd, "$testCmd->{'pigpath'}/bin/pig.py");
+      # print ("Using pig too\n");
+    } else {
+      @pigCmd = ("$testCmd->{'pigpath'}/bin/pig");
+    }
 
     if (defined($testCmd->{'additionaljars'})) {
         push(@pigCmd, '-Dpig.additional.jars='.$testCmd->{'additionaljars'});

@@ -212,8 +212,14 @@ sub getPigCmd
       # This allows for testing of the pig script as installed, and for testin of
       # the pig script's options, including error testing. 
 
+      $pigLoc = "/bin/pig";
+      if ($properties->{'usePython'} eq "true") {
+        # print "Using python\n";
+        $pigLoc = "/bin/pig.py";
+        push(@baseCmd, "python");
+      }
+      $cmd = $properties->{'gridstack.root'} . "/pig/" . $properties->{'pigTestBuildName'} . $pigLoc;
 
-      $cmd = $properties->{'gridstack.root'} . "/pig/" . $properties->{'pigTestBuildName'} . "/bin/pig";
       if ( ! -x "$cmd" ) {
         print STDERR "\n$0::$subName WARNING: Can't find pig command: $cmd\n";
         $cmd = `which pig`;

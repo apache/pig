@@ -28,6 +28,8 @@ PIG-3174:  Remove rpm and deb artifacts from build.xml (gates)
 
 IMPROVEMENTS
 
+PIG-2873: Converting bin/pig shell script to python (vikram.dixit via daijy)
+
 PIG-3308: Storing data in hive columnar rc format (maczech via daijy)
 
 PIG-3303: add hadoop h2 artifact to publications in ivy.xml (julien)
