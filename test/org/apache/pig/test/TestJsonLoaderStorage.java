@@ -27,6 +27,7 @@ import junit.framework.Assert;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.test.utils.TestHelper;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -60,7 +61,7 @@ public class TestJsonLoaderStorage {
         
         String result = Util.readFile(resultFile);
         String expected = Util.readFile(new File("test/org/apache/pig/test/data/jsonStorage1.result"));
-        Assert.assertEquals(expected, result);
+        Assert.assertEquals(TestHelper.sortStringList(expected,"{","}",","), TestHelper.sortStringList(result,"{","}",","));
         
         File schemaFile = new File("jsonStorage1.json/.pig_schema");
         result = Util.readFile(schemaFile);
@@ -75,7 +76,7 @@ public class TestJsonLoaderStorage {
         
         result = Util.readFile(new File(tmpFile.getCanonicalPath()+"/part-m-00000"));
         expected = Util.readFile(new File("test/org/apache/pig/test/data/jsonStorage1.txt"));
-        Assert.assertEquals(expected, result);
+        Assert.assertEquals(TestHelper.sortStringList(expected,"[","]",","), TestHelper.sortStringList(result,"[","]",","));
     
         
         tmpFile = File.createTempFile("tmp", null);
@@ -87,7 +88,7 @@ public class TestJsonLoaderStorage {
         
         result = Util.readFile(new File(tmpFile.getCanonicalPath()+"/part-m-00000"));
         expected = Util.readFile(new File("test/org/apache/pig/test/data/jsonStorage1.txt"));
-        Assert.assertEquals(expected, result);
+        Assert.assertEquals(TestHelper.sortStringList(expected,"[","]",","), TestHelper.sortStringList(result,"[","]",","));
     }
     
     @Test

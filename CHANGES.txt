@@ -172,6 +172,8 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-3309: TestJsonLoaderStorage fails with IBM JDK 6/7 (lrangel via daijy)
+
 PIG-3097: HiveColumnarLoader doesn't correctly load partitioned Hive table (maczech via daijy)
 
 PIG-3305: Infinite loop when input path contains empty partition directory (maczech via daijy)
