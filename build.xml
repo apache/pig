@@ -69,6 +69,7 @@
     <property name="artifact.pig.jar" value="${final.name}.jar"/>
     <property name="artifact.pig-h2.jar" value="${final.name}-h2.jar"/>
     <property name="artifact.pig-withouthadoop.jar" value="${final.name}-withouthadoop.jar"/>
+    <property name="artifact.pig-withouthadoop-h2.jar" value="${final.name}-withouthadoop-h2.jar"/>
     <property name="artifact.pig-withdependencies.jar" value="${final.name}-withdependencies.jar"/>
     <property name="artifact.pig-sources.jar" value="${final.name}-sources.jar"/>
     <property name="artifact.pig-javadoc.jar" value="${final.name}-javadoc.jar"/>
@@ -78,6 +79,7 @@
     <property name="output.jarfile.withdependencies" value="${build.dir}/${artifact.pig-withdependencies.jar}" />
     <property name="output.stage.jarfile.withdependencies" value="${build.dir}/${final.name}-withdependencies.stage.jar" />
     <property name="output.jarfile.withouthadoop" value="${build.dir}/${artifact.pig-withouthadoop.jar}" />
+    <property name="output.jarfile.withouthadoop-h2" value="${build.dir}/${artifact.pig-withouthadoop-h2.jar}" />
     <property name="output.jarfile.core" value="${build.dir}/${artifact.pig.jar}" />
     <property name="output.jarfile.core-h2" value="${build.dir}/${artifact.pig-h2.jar}" />
     <property name="output.jarfile.sources" value="${build.dir}/${artifact.pig-sources.jar}" />
@@ -702,14 +704,18 @@
         <propertyreset name="src.shims.dir" value="${basedir}/shims/src/hadoop${hadoopversion}" />
         <antcall target="clean" inheritRefs="true" inheritall="true"/>
         <antcall target="jar" inheritRefs="true" inheritall="true"/>
+        <antcall target="jar-withouthadoop" inheritRefs="true" inheritall="true"/>
         <!-- Move and rename pig jar for Hadoop2/23 to a different location before compiling for Hadoop1/20 -->
         <move file="${output.jarfile.core}" tofile="${basedir}/${artifact.pig-h2.jar}"/>
+        <move file="${output.jarfile.withouthadoop}" tofile="${basedir}/${artifact.pig-withouthadoop-h2.jar}"/>
         <antcall target="clean" inheritRefs="true" inheritall="true"/>
         <propertyreset name="hadoopversion" value="20" />
         <propertyreset name="isHadoop" value="" />
         <propertyreset name="src.shims.dir" value="${basedir}/shims/src/hadoop${hadoopversion}" />
         <antcall target="jar" inheritRefs="true" inheritall="true"/>
+        <antcall target="jar-withouthadoop" inheritRefs="true" inheritall="true"/>
         <move file="${basedir}/${artifact.pig-h2.jar}" tofile="${output.jarfile.core-h2}"/>
+        <move file="${basedir}/${artifact.pig-withouthadoop-h2.jar}" tofile="${output.jarfile.withouthadoop-h2}"/>
     </target>
 
     <!-- ================================================================== -->
