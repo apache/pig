@@ -27,6 +27,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.ExecType;
+import org.apache.pig.LoadFunc;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
@@ -35,6 +36,7 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobCreationE
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.piggybank.storage.avro.AvroStorage;
 import org.apache.pig.piggybank.storage.avro.PigSchema2Avro;
+import org.apache.pig.test.MiniCluster;
 import org.apache.pig.test.Util;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -43,6 +45,7 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
@@ -69,7 +72,19 @@ public class TestAvroStorage {
       };
 
     private static String getInputFile(String file) {
-        return "file://" + System.getProperty("user.dir") + "/" + basedir + file;
+        String locations[] = LoadFunc.getPathStrings(file);
+        if (locations.length == 1)
+            return "file://" + System.getProperty("user.dir") + "/" + basedir
+                    + file;
+        else {
+            ArrayList<String> pathStrings = new ArrayList<String>();
+            for (int index = 0; index < locations.length; index++) {
+                String f = "file://" + System.getProperty("user.dir") + "/"
+                        + basedir + locations[index].trim();
+                pathStrings.add(f);
+            }
+            return LoadFunc.join(pathStrings, ",");
+        }
     }
 
     final private String testDir1 = getInputFile("test_dir1");
@@ -78,6 +93,8 @@ public class TestAvroStorage {
     final private String testDir1Files321 = getInputFile("test_dir1/test_glob{3,2,1}.avro");
     final private String testDir12AllFiles = getInputFile("{test_dir1,test_dir2}/test_glob*.avro");
     final private String testDir21AllFiles = getInputFile("{test_dir2,test_dir1}/test_glob*.avro");
+    final private String testCommaSeparated1 = getInputFile("test_dir1/test_glob1.avro,test_dir1/test_glob2.avro,test_dir1/test_glob3.avro");
+    final private String testCommaSeparated2 = getInputFile("test_dir1/test_glob*,test_dir2/test_glob4.avro,test_dir2/test_glob5.avro");
     final private String testNoMatchedFiles = getInputFile("test_dir{1,2}/file_that_does_not_exist*.avro");
     final private String testArrayFile = getInputFile("test_array.avro");
     final private String testRecordFile = getInputFile("test_record.avro");
@@ -670,6 +687,36 @@ public class TestAvroStorage {
             // is re-thrown while creating a job configuration.
             assertEquals(e.getMessage(), "Internal error creating job configuration.");
         }
+    }
+
+    @Test
+    public void testComma1() throws IOException {
+        // Verify that comma-separated file can be processed
+        String output = outbasedir + "testComma1";
+        String expected = basedir + "expected_test_dir_1.avro";
+        deleteDirectory(new File(output));
+        String [] queries = {
+           " in = LOAD '" + testCommaSeparated1 + "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ();",
+           " STORE in INTO '" + output + "' USING org.apache.pig.piggybank.storage.avro.AvroStorage (" +
+               "   'schema', '{\"type\":\"array\",\"items\":\"float\"}'  );"
+           };
+        testAvroStorage(queries);
+        verifyResults(output, expected);
+    }
+
+    @Test
+    public void testComma2() throws IOException {
+        // Verify that comma-separated file can be processed
+        String output = outbasedir + "testComma2";
+        String expected = basedir + "expected_test_dir_1_2.avro";
+        deleteDirectory(new File(output));
+        String [] queries = {
+           " in = LOAD '" + testCommaSeparated2 + "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ();",
+           " STORE in INTO '" + output + "' USING org.apache.pig.piggybank.storage.avro.AvroStorage (" +
+               "   'schema', '{\"type\":\"array\",\"items\":\"float\"}'  );"
+            };
+        testAvroStorage(queries);
+        verifyResults(output, expected);
     }
 
     @Test

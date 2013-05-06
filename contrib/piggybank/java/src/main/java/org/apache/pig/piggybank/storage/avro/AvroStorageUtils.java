@@ -39,6 +39,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.pig.LoadFunc;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.data.DataType;
@@ -112,26 +113,36 @@ public class AvroStorageUtils {
 
     /**
      * Adds all non-hidden directories and subdirectories to set param
+     * it supports comma-separated input paths and glob style path
      *
      * @throws IOException
      */
-    public static boolean getAllSubDirs(Path path, Configuration conf, Set<Path> paths) throws IOException {
-        FileSystem fs = FileSystem.get(path.toUri(), conf);
-        FileStatus[] matchedFiles = fs.globStatus(path, PATH_FILTER);
-        if (matchedFiles == null || matchedFiles.length == 0) {
-            return false;
-        }
-        for (FileStatus file : matchedFiles) {
-            if (file.isDir()) {
-                for (FileStatus sub : fs.listStatus(file.getPath())) {
-                    getAllSubDirs(sub.getPath(), conf, paths);
-                }
-            } else {
-                AvroStorageLog.details("Add input file:" + file);
-                paths.add(file.getPath());
+    public static boolean getAllSubDirs(Path path, Configuration conf,
+            Set<Path> paths) throws IOException {
+        String[] pathStrs = LoadFunc.getPathStrings(path.toString());
+        for (String pathStr : pathStrs) {
+            FileSystem fs = FileSystem.get(new Path(pathStr).toUri(), conf);
+            FileStatus[] matchedFiles = fs.globStatus(new Path(pathStr), PATH_FILTER);
+            if (matchedFiles == null || matchedFiles.length == 0) {
+                return false;
+            }
+            for (FileStatus file : matchedFiles) {
+                getAllSubDirsInternal(file, conf, paths, fs);
             }
         }
         return true;
+    }
+
+    private static void getAllSubDirsInternal(FileStatus file, Configuration conf,
+            Set<Path> paths, FileSystem fs) throws IOException {
+        if (file.isDir()) {
+            for (FileStatus sub : fs.listStatus(file.getPath())) {
+                getAllSubDirsInternal(sub, conf, paths, fs);
+            }
+        } else {
+            AvroStorageLog.details("Add input file:" + file);
+            paths.add(file.getPath());
+        }
     }
 
     /** check whether there is NO directory in the input file (status) list*/
