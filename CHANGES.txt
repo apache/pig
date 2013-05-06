@@ -316,6 +316,22 @@ PIG-2885: TestJobSumission and TestHBaseStorage don't work with HBase 0.94 and Z
 
 PIG-2928: Fix e2e test failures in trunk: FilterBoolean_23/24 (cheolsoo via dvryaboy)
 
+
+Release 0.11.2 (Unreleased)
+
+INCOMPATIBLE CHANGES
+
+IMPROVEMENTS
+
+OPTIMIZATIONS
+
+PIG-2769: a simple logic causes very long compiling time on pig 0.10.0 (njw45 via dvryaboy) (prev. applied to 0.12)
+
+BUG FIXES
+
+PIG-3223: AvroStorage does not handle comma separated input paths (dreambird via rohini)
+
+
 Release 0.11.1 (unreleased)
 
 INCOMPATIBLE CHANGES
