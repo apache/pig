@@ -20,6 +20,7 @@ package org.apache.pig.test;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -30,6 +31,7 @@ import junit.framework.TestCase;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
+import org.apache.pig.builtin.ToDate;
 import org.apache.pig.data.Tuple;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -79,7 +81,7 @@ public class TestDefaultDateTimeZone extends TestCase {
         }
         assertEquals(expectedItr.hasNext(), actualItr.hasNext()); 
     }
-
+    
     private static Iterator<Tuple> generateExpectedResults(DateTimeZone dtz)
             throws Exception {
         List<Tuple> expectedResults = new ArrayList<Tuple>();
@@ -92,6 +94,49 @@ public class TestDefaultDateTimeZone extends TestCase {
         expectedResults.add(Util.buildTuple(new DateTime(
                 "1970-01-03T00:00:00.000", DateTimeZone.UTC)));
         return expectedResults.iterator();
+    }
+
+    // PIG-3316
+    public void testTimeZoneExtracting() throws IOException {
+        String[] inputs = { 
+                "1970-01-01T00:00:00.000-08:00",
+                "1970-01-01T00:00",
+                "1970-01-01T00",
+                "1970-01-01T",
+                "1970-01T",
+                "1970T",
+                "1970-01-01T00:00-08:00",
+                "1970-01-01T00-05:00",
+                "1970-01-01T-08:00",
+                "1970-01T-08:00",
+                "1970T+8:00",
+                "1970-01-01",
+                "1970-01",
+                "1970",
+        };
+        String[] expectedOutputs = {
+        		"-08:00",
+        		"null",
+        		"null",
+        		"null",
+        		"null",
+        		"null",
+        		"-08:00",
+        		"-05:00",
+        		"-08:00",
+        		"-08:00",
+        		"null",
+        		"null",
+        		"null",
+        		"null"
+        };
+        
+        for( int i = 0; i < inputs.length; i++ ) {
+            DateTimeZone dtz = ToDate.extractDateTimeZone( inputs[i] );
+            assertEquals( expectedOutputs[i], dtz == null ? "null" : dtz.toString() );
+            System.out.println( "\"" + dtz + "\"," );
+        }
+        
     }
 
 }
