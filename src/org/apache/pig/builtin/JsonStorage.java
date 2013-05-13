@@ -199,7 +199,7 @@ public class JsonStorage extends StoreFunc implements StoreMetadata {
             json.writeFieldName(field.getName());
             json.writeStartObject();
             for (Map.Entry<String, Object> e : ((Map<String, Object>)d).entrySet()) {
-                json.writeStringField(e.getKey(), e.getValue().toString());
+                json.writeStringField(e.getKey(), e.getValue() == null ? null : e.getValue().toString());
             }
             json.writeEndObject();
             return;

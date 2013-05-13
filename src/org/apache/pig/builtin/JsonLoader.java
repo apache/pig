@@ -225,7 +225,7 @@ public class JsonLoader extends LoadFunc implements LoadMetadata {
             Map<String, String> m = new HashMap<String, String>();
             while (p.nextToken() != JsonToken.END_OBJECT) {
                 String k = p.getCurrentName();
-                String v = p.getText();
+                String v = p.getCurrentToken() == JsonToken.VALUE_NULL ? null : p.getText();
                 m.put(k, v);
             }
             return m;
