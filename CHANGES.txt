@@ -178,6 +178,8 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-3069: Native Windows Compatibility for Pig E2E Tests and Harness (anthony.murphy via daijy)
+
 PIG-3291: TestExampleGenerator fails on Windows because of lack of file name escaping (dwann via daijy)
 
 PIG-3026: Pig checked-in baseline comparisons need a pre-filter to address OS-specific newline differences (dwann via daijy)

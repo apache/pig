@@ -71,16 +71,18 @@
 
   <!-- Test the ability to run tests -->
   <target name="test-test" depends="test-init">
-    <exec executable="./test_harness.pl" dir="${test.dist.dir}">
+    <exec executable="perl" dir="${test.dist.dir}">
         <env key="PIG_HARNESS_ROOT" value="."/>
+		<arg value="test_harness.pl"/>
         <arg value="test.conf"/>
     </exec>
   </target>
 
   <!-- Test the deployer interface -->
   <target name="test-deploy" depends="test-init">
-    <exec executable="./test_harness.pl" dir="${test.dist.dir}">
+    <exec executable="perl" dir="${test.dist.dir}">
         <env key="PIG_HARNESS_ROOT" value="."/>
+		<arg value="test_harness.pl"/>
         <arg value="-deploycfg"/>
         <arg value="deploy.conf"/>
         <arg value="-deploy"/>

@@ -247,7 +247,7 @@ sub generateData
     foreach my $table (@tables) {
 		print "Generating data for $table->{'name'}\n";
 		# Generate the data
-        my @cmd = ($cfg->{'gentool'}, $table->{'filetype'}, $table->{'rows'},
+        my @cmd = ("perl", $cfg->{'gentool'}, $table->{'filetype'}, $table->{'rows'},
             $table->{'name'});
 		$self->runCmd($log, \@cmd);
 
