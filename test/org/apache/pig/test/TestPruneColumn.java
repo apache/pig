@@ -82,10 +82,12 @@ public class TestPruneColumn {
 
     private static final String simpleEchoStreamingCommand;
     static {
-        if (Util.WINDOWS)
-            simpleEchoStreamingCommand = "perl -ne \"print ^\"$_^\"\"";
-        else
-            simpleEchoStreamingCommand = "perl -ne 'print \"$_\"'";
+        String quote = "'";
+        if (Util.WINDOWS) {
+            quote = "\"";
+        }
+
+        simpleEchoStreamingCommand = "perl -ne " + quote + "print $_" + quote;
     }
 
     static public class MyFilterFunc extends FilterFunc {
@@ -2061,7 +2063,7 @@ public class TestPruneColumn {
 
     @Test
     public void testCogroup10() throws Exception {
-        pigServer.registerQuery("A = load '"+ Util.generateURI(tmpFile2.toString(), pigServer.getPigContext()) + "' AS (a0, a1:double);");
+        pigServer.registerQuery("A = load '"+ Util.generateURI(Util.encodeEscape(tmpFile2.toString()), pigServer.getPigContext()) + "' AS (a0, a1:double);");
         pigServer.registerQuery("B = foreach A generate a0, a1, 0 as joinField;");
         pigServer.registerQuery("C = group B all;");
         pigServer.registerQuery("D = foreach C generate 0 as joinField, SUM(B.a1) as total;");
@@ -2089,9 +2091,9 @@ public class TestPruneColumn {
         Util.createLocalInputFile(input2.getAbsolutePath(), new String[]
                 {"[key1#0,key2#5,key3#val3,key4#val4,key5#val5]"});
 
-        pigServer.registerQuery("event_serve = LOAD '" + input1.getAbsolutePath() +
+        pigServer.registerQuery("event_serve = LOAD '" + Util.encodeEscape(input1.getAbsolutePath()) +
                 "' AS (s, m, l);");
-        pigServer.registerQuery("cm_data_raw = LOAD '" + input2.getAbsolutePath() +
+        pigServer.registerQuery("cm_data_raw = LOAD '" + Util.encodeEscape(input2.getAbsolutePath()) +
                 "' AS (s, m, l);");
         pigServer.registerQuery("cm_serve = FOREACH cm_data_raw GENERATE  s#'key3' AS f1,  s#'key4' AS f2, s#'key5' AS f3 ;");
         pigServer.registerQuery("cm_serve_lowercase = stream cm_serve through `tr [:upper:] [:lower:]`;");
