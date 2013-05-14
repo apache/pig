@@ -28,6 +28,8 @@ PIG-3174:  Remove rpm and deb artifacts from build.xml (gates)
 
 IMPROVEMENTS
 
+PIG-2955: Fix bunch of Pig e2e tests on Windows (daijy)
+
 PIG-3311: add pig-withouthadoop-h2 to mvn-jar (julien)
 
 PIG-2873: Converting bin/pig shell script to python (vikram.dixit via daijy)

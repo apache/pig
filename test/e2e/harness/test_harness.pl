@@ -160,6 +160,47 @@ sub readCfg($)
 	return $cfg;
 }
 
+##############################################################################
+#  Sub: readResource
+# Read the resource file, The resource file is in Perl format so we'll
+# just eval it.  If anything goes wrong we'll complain and quit.
+#
+# Var: resourceFile
+# Full path name of resourceFile
+#
+# Returns:
+# returns reference to hash built from resource file.
+#
+
+sub readResource($)
+{
+        my $resourceFile = shift;
+
+        open RES, "< $resourceFile" or die "FATAL ERROR $0 at ".__LINE__.":  Can't open $resourceFile, $!\n";
+
+        my $resContents;
+
+        $resContents .= $_ while (<RES>);
+
+        close RES;
+
+        my $resources = undef;
+        eval("$resContents");
+
+        if ($@) {
+                chomp $@;
+                die "FATAL ERROR $0 at ".__LINE__." : Error reading resource file <$resourceFile>, <$@>\n";
+        }
+
+        if (not defined $resources) {
+                die "FATAL ERROR $0 at ".__LINE__." : Resource file <$resourceFile> should have defined \$resources\n";
+        }
+
+        # Add the name of the file
+        $resources->{'file'} = $resourceFile;
+
+        return $resources;
+}
 
 
 ##############################################################################
@@ -293,6 +334,19 @@ if ( -e "$harnessCfg" ) {
 } else {
    die "FATAL ERROR: $0 at ".__LINE__." - Configuration file <$harnessCfg> does NOT exist\n";
 }
+
+my $harnessRes = "";
+if (defined($ENV{'HARNESS_RESOURCE'})) {
+    $harnessRes = $ENV{'HARNESS_RESOURCE'};
+} elsif($^O =~ /mswin/i) {
+   $harnessRes = "$ROOT/resource/windows.res";
+} elsif ($globalCfg->{'hadoopversion'} == '23') {
+   $harnessRes = "$ROOT/resource/hadoop23.res";
+} else {
+   $harnessRes = "$ROOT/resource/default.res";
+}
+
+my $resources = readResource("$harnessRes");
 
 # *pig*  -help | -c <cluster> |  -h <dir> | (-testjar <jar> -testconfigpath <path>) [-r <retention_days>] [-latest yes] [-x local] [-cleanuponly] [-secretDebugCmd] [-t <testcase>] <configfile>
 
@@ -538,7 +592,7 @@ foreach my $arg (@ARGV) {
     # eval this in a separate block to catch possible error and exit status:
     eval 
     {
-       $driver->run(\@testgroups, \@testMatches, $cfg, $subLog, $dbh, \%testStatuses, $arg, $startat, $subLogName);
+       $driver->run(\@testgroups, \@testMatches, $cfg, $subLog, $dbh, \%testStatuses, $arg, $startat, $subLogName, $resources);
     };
     my $runStatus = $@;
     my $runExitCode = $?; # exit code of the code block above.

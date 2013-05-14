@@ -417,7 +417,7 @@ sub cleanup
 sub run
 {
 	my ($self, $testsToRun, $testsToMatch, $cfg, $log, $dbh, $testStatuses,
-		$confFile, $startat, $logname ) = @_;
+		$confFile, $startat, $logname, $resources ) = @_;
 
     my $subName = (caller(0))[3];
     my $msg="";
@@ -698,11 +698,11 @@ sub runTestGroup() {
 			my $endTime = 0;
 			my ($testResult, $benchmarkResult);
 			eval {
-				$testResult = $self->runTest(\%testHash, $subLog);
+				$testResult = $self->runTest(\%testHash, $subLog, $resources);
 				$endTime = time;
 				$benchmarkResult = $self->generateBenchmark(\%testHash, $subLog);
 				my $result =
-					$self->compare($testResult, $benchmarkResult, $subLog, \%testHash);
+					$self->compare($testResult, $benchmarkResult, $subLog, \%testHash, $resources);
 				$msg = "INFO: $subName() at ".__LINE__.":Test $testName";
 
                 if ($result eq $self->{'wrong_execution_mode'}) {

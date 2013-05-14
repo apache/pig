@@ -45,6 +45,7 @@
   <property name="driver.src" value="${basedir}/drivers"/>
   <property name="deployer.src" value="${basedir}/deployers"/>
   <property name="conf.src" value="${basedir}/conf"/>
+  <property name="resource.src" value="${basedir}/resource"/>
   <property name="tool.src" value="${basedir}/tools"/>
 
   <property name="harness.dir" value="${basedir}/../harness"/>
@@ -160,6 +161,10 @@
 
     <copy todir="${tar.dir}/conf">
       <fileset dir="${conf.src}"/>
+    </copy>
+
+    <copy todir="${tar.dir}/resource">
+      <fileset dir="${resource.src}"/>
     </copy>
 
     <copy todir="${tar.dir}/libexec/PigTest">
