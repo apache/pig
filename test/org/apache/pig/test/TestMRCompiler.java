@@ -1125,7 +1125,10 @@ public class TestMRCompiler {
         System.out.println("Golden");
         System.out.println("<<<" + goldenPlan + ">>>");
         System.out.println("-------------");
-        assertEquals(TestHelper.sortUDFs(removeSignature(goldenPlan)), TestHelper.sortUDFs(removeSignature(compiledPlan)));
+        
+        String goldenPlanClean = Util.standardizeNewline(goldenPlan);
+        String compiledPlanClean = Util.standardizeNewline(compiledPlan);
+        assertEquals(TestHelper.sortUDFs(removeSignature(goldenPlanClean)), TestHelper.sortUDFs(removeSignature(compiledPlanClean)));
     }
 
     /**

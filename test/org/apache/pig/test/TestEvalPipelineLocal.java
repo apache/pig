@@ -1058,13 +1058,15 @@ public class TestEvalPipelineLocal {
         // Filter out the random number generated on hash
         realPlan = realPlan.replaceAll("\\d{3,}", "");
         
+        String goldenPlanClean = Util.standardizeNewline(goldenPlan);
+        String realPlanClean = Util.standardizeNewline(realPlan);
         System.out.println("-----------golden");
-        System.out.println(goldenPlan);
+        System.out.println(goldenPlanClean);
         System.out.println("-----------");
-        System.out.println(realPlan);
+        System.out.println(realPlanClean);
         
         
-        Assert.assertEquals(realPlan, goldenPlan);
+        Assert.assertEquals(realPlanClean, goldenPlanClean);
     }
     
     public static class SetLocationTestLoadFunc extends PigStorage {
@@ -1087,7 +1089,7 @@ public class TestEvalPipelineLocal {
     @Test
     public void testSetLocationCalledInFE() throws Exception {
         File f1 = createFile(new String[]{"a","b"});
-        pigServer.registerQuery("a = load '" + Util.generateURI(f1.toString(), pigServer.getPigContext())
+        pigServer.registerQuery("a = load '" + Util.generateURI(Util.encodeEscape(f1.toString()), pigServer.getPigContext())
                 + "' using " + SetLocationTestLoadFunc.class.getName()
                 + "();");
         pigServer.registerQuery("b = order a by $0;");
@@ -1100,7 +1102,7 @@ public class TestEvalPipelineLocal {
     @Test
     public void testGroupByTuple() throws Exception {
         File f1 = createFile(new String[]{"1\t2\t3","4\t5\t6"});
-        pigServer.registerQuery("a = load '" + Util.generateURI(f1.toString(), pigServer.getPigContext())
+        pigServer.registerQuery("a = load '" + Util.generateURI(Util.encodeEscape(f1.toString()), pigServer.getPigContext())
                 + "' as (x:int, y:int, z:int);");
         pigServer.registerQuery("b = foreach a generate TOTUPLE(x, y) as t, z;");
         pigServer.registerQuery("c = group b by t;");
@@ -1114,7 +1116,7 @@ public class TestEvalPipelineLocal {
     // See PIG-3060
     public void testFlattenEmptyBag() throws Exception {
         File f1 = createFile(new String[]{"2\t{}","3\t{(1),(2)}", "4\t{}"});
-        pigServer.registerQuery("A = load '" + Util.generateURI(f1.toString(), pigServer.getPigContext())
+        pigServer.registerQuery("A = load '" + Util.generateURI(Util.encodeEscape(f1.toString()), pigServer.getPigContext())
                 + "'  as (a0:int, a1:bag{(t:chararray)});");
         pigServer.registerQuery("B = group A by a0;");
         pigServer.registerQuery("C = foreach B { c1 = foreach A generate FLATTEN(a1); generate COUNT(c1);};");

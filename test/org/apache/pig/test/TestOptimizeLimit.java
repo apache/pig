@@ -63,17 +63,19 @@ public class TestOptimizeLimit {
     
     void compareWithGoldenFile(LogicalPlan plan, String filename) throws Exception {
         String actualPlan = printLimitGraph(plan);
+        String actualPlanClean = Util.standardizeNewline(actualPlan + "\n");
         System.out.println("We get:");
-        System.out.println(actualPlan);
+        System.out.println(actualPlanClean);
         
         FileInputStream fis = new FileInputStream(filename);
         byte[] b = new byte[MAX_SIZE];
         int len = fis.read(b);
         String goldenPlan = new String(b, 0, len);
+        String goldenPlanClean = Util.standardizeNewline(goldenPlan);
         System.out.println("Expected:");
-        System.out.println(goldenPlan);
+        System.out.println(goldenPlanClean);
         
-		Assert.assertEquals(goldenPlan, actualPlan + "\n");
+		Assert.assertEquals(goldenPlanClean, actualPlanClean);
     }
 
     public static String printLimitGraph(LogicalPlan plan) throws IOException {
