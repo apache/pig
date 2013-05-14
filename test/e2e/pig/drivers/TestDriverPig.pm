@@ -134,7 +134,14 @@ sub globalSetupConditional() {
 
     # add libexec location to the path
     if (defined($ENV{'PATH'})) {
-        $ENV{'PATH'} = $globalHash->{'scriptPath'} . ":" . $ENV{'PATH'};
+
+        #detect os and modify path accordingly
+        if(Util::isWindows()) {
+            $ENV{'PATH'} = $globalHash->{'scriptPath'} . ";" . $ENV{'PATH'};
+        }
+        else {
+            $ENV{'PATH'} = $globalHash->{'scriptPath'} . ":" . $ENV{'PATH'};
+        }
     } else {
         $ENV{'PATH'} = $globalHash->{'scriptPath'};
     }
@@ -143,14 +150,9 @@ sub globalSetupConditional() {
 	print $log "Going to run " . join(" ", @cmd) . "\n";
     IPC::Run::run(\@cmd, \undef, $log, $log) or die "$0 at ".__LINE__.": Cannot create HDFS directory " . $globalHash->{'outpath'} . ": $? - $!\n";
 
-    IPC::Run::run(['mkdir', '-p', $globalHash->{'localpath'}], \undef, $log, $log) or 
-       die "$0 at ".__LINE__.": Cannot create localpath directory [" . $globalHash->{'localpath'} .
-         "]: " . "$ERRNO\n";
-
-    # Create the temporary directory
-    IPC::Run::run(['mkdir', '-p', $globalHash->{'tmpPath'}], \undef, $log, $log) or 
-       die "$0 at ".__LINE__.": Cannot create localpath directory [" . $globalHash->{'tmpPath'} .
-         "]: " . "$ERRNO\n";
+    File::Path::make_path(
+            $globalHash->{'localpath'},
+            $globalHash->{'tmpPath'});
 
     # Create the HDFS temporary directory
     @cmd = ($self->getPigCmd($globalHash, $log), '-e', 'mkdir', "tmp/$globalHash->{'runid'}");
@@ -392,11 +394,16 @@ sub getPigCmd($$$)
     $ENV{'PIG_CLASSPATH'} = $pcp;
 
     if ($testCmd->{'usePython'} eq "true") {
-      @pigCmd = ("python");
-      push(@pigCmd, "$testCmd->{'pigpath'}/bin/pig.py");
-      # print ("Using pig too\n");
+        @pigCmd = ("python");
+        push(@pigCmd, "$testCmd->{'pigpath'}/bin/pig.py");
+        # print ("Using pig too\n");
     } else {
-      @pigCmd = ("$testCmd->{'pigpath'}/bin/pig");
+        if(Util::isWindows()) {
+            @pigCmd = ("$testCmd->{'pigpath'}/bin/pig.cmd");
+        }
+        else {
+           @pigCmd = ("$testCmd->{'pigpath'}/bin/pig");
+        }
     }
 
     if (defined($testCmd->{'additionaljars'})) {
@@ -569,13 +576,22 @@ sub postProcessSingleOutputFile
     
     # Build command to:
     # 1. Combine part files
-    my $fppCmd = "cat $localdir/map* $localdir/part* 2>/dev/null";
+    my $fppCmd;
+    if(Util::isWindows()) {
+        my $delCmd = "del \"$localdir\\*.crc\"";
+        print $log "$delCmd\n";
+        system($delCmd);
+        $fppCmd = "cat $localdir\\map* $localdir\\part* 2>NUL";
+    }
+    else {
+        $fppCmd = "cat $localdir/map* $localdir/part* 2>/dev/null";
+    }
     
     # 2. Standardize float precision
     if (defined $testCmd->{'floatpostprocess'} &&
             defined $testCmd->{'delimiter'}) {
-        $fppCmd .= " | $toolpath/floatpostprocessor.pl '" .
-            $testCmd->{'delimiter'} . "'";
+        $fppCmd .= " | perl $toolpath/floatpostprocessor.pl \"" .
+            $testCmd->{'delimiter'} . "\"";
     }
     
     $fppCmd .= " > $localdir/out_original";
@@ -587,7 +603,7 @@ sub postProcessSingleOutputFile
     # Sort the results for the benchmark compare.
     my @sortCmd = ('sort', "$localdir/out_original");
     print $log join(" ", @sortCmd) . "\n";
-    IPC::Run::run(\@sortCmd, '>', "$localdir/out_sorted");
+    IPC::Run::run(\@sortCmd, '>', "$localdir/out_sorted") or die "Sort for benchmark comparison failed on $localdir/out_original";
 
     return "$localdir/out_sorted";
 }

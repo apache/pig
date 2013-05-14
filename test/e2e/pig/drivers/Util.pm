@@ -456,4 +456,14 @@ sub getLocaleCmd
           ."export LC_MEASUREMENT=\"$locale\";"
           ."export LC_IDENTIFICATION=\"$locale\"";
 }
+
+sub isWindows
+{
+    if($^O =~ /mswin/i) {
+        return 1;
+    }
+    else {
+        return 0;
+    }
+}
 1;
