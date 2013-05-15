@@ -24,6 +24,7 @@ import org.apache.avro.file.DataFileReader;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -68,16 +69,25 @@ public class PigAvroRecordReader extends RecordReader<NullWritable, Writable> {
      * constructor to initialize input and avro data reader
      */
     public PigAvroRecordReader(TaskAttemptContext context, FileSplit split,
-            Schema schema, boolean ignoreBadFiles,
+            Schema readerSchema, boolean ignoreBadFiles,
             Map<Path, Map<Integer, Integer>> schemaToMergedSchemaMap) throws IOException {
         this.path = split.getPath();
         this.in = new AvroStorageInputStream(path, context);
-        if(schema == null) {
+        if(readerSchema == null) {
             AvroStorageLog.details("No avro schema given; assuming the schema is embedded");
         }
 
+        Schema writerSchema;
         try {
-          this.reader = new DataFileReader<Object>(in, new PigAvroDatumReader(schema));
+            FileSystem fs = FileSystem.get(path.toUri(), context.getConfiguration());
+            writerSchema = AvroStorageUtils.getSchema(path, fs);
+        } catch (IOException e) {
+            AvroStorageLog.details("No avro writer schema found in '"+path+"'; assuming writer schema matches reader schema");
+            writerSchema = null;
+        }
+
+        try {
+            this.reader = new DataFileReader<Object>(in, new PigAvroDatumReader(writerSchema, readerSchema));
         } catch (IOException e) {
           throw new IOException("Error initializing data file reader for file (" +
               split.getPath() + ")", e);

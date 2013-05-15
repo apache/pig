@@ -89,6 +89,7 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
     /* loadFunc parameters */
     private PigAvroRecordReader reader = null;   /* avro record writer */
     private Schema inputAvroSchema = null;    /* input avro schema */
+    private Schema userSpecifiedAvroSchema = null;    /* avro schema specified in constructor args */
 
     /* if multiple avro record schemas are merged, this map associates each input
      * record with a remapping of its fields relative to the merged schema. please
@@ -171,8 +172,13 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
      * @throws IOException
      */
     protected void setInputAvroSchema(Set<Path> paths, Configuration conf) throws IOException {
-        inputAvroSchema = useMultipleSchemas ? getMergedSchema(paths, conf)
-                                             : getAvroSchema(paths, conf);
+        if(userSpecifiedAvroSchema != null) {
+            inputAvroSchema = userSpecifiedAvroSchema;
+        }
+        else {
+            inputAvroSchema = useMultipleSchemas ? getMergedSchema(paths, conf)
+                                                 : getAvroSchema(paths, conf);
+        }
     }
 
     /**
@@ -280,17 +286,7 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
      * @throws IOException
      */
     protected Schema getSchema(Path path, FileSystem fs) throws IOException {
-        /* get path of the last file */
-        Path lastFile = AvroStorageUtils.getLast(path, fs);
-
-        /* read in file and obtain schema */
-        GenericDatumReader<Object> avroReader = new GenericDatumReader<Object>();
-        InputStream hdfsInputStream = fs.open(lastFile);
-        DataFileStream<Object> avroDataStream = new DataFileStream<Object>(hdfsInputStream, avroReader);
-        Schema ret = avroDataStream.getSchema();
-        avroDataStream.close();
-
-        return ret;
+        return AvroStorageUtils.getSchema(path, fs);
     }
 
     /**
@@ -538,16 +534,19 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
                 AvroStorageLog.details("data path=" + path.toUri().toString());
                 FileSystem fs = FileSystem.get(path.toUri(), new Configuration());
                 outputAvroSchema = getAvroSchema(path, fs);
+                userSpecifiedAvroSchema = outputAvroSchema;
             } else if (name.equalsIgnoreCase("nullable")) {
                 nullable = (Boolean) value;
             } else if (name.equalsIgnoreCase("schema")) {
                 outputAvroSchema = Schema.parse((String) value);
+                userSpecifiedAvroSchema = outputAvroSchema;
             } else if (name.equalsIgnoreCase("schema_uri")) {
                 /* use the contents of the specified path as output schema */
                 Path path = new Path( ((String) value).trim());
                 AvroStorageLog.details("schema_uri path=" + path.toUri().toString());
                 FileSystem fs = FileSystem.get(path.toUri(), new Configuration());
                 outputAvroSchema = getSchemaFromFile(path, fs);
+                userSpecifiedAvroSchema = outputAvroSchema;
             } else if (name.matches("field\\d+")) {
                 /*set schema of dth field */
                 if (fields == null)

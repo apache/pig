@@ -19,6 +19,7 @@ package org.apache.pig.piggybank.storage.avro;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -32,6 +33,8 @@ import java.util.Set;
 import java.net.URI;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
+import org.apache.avro.generic.GenericDatumReader;
+import org.apache.avro.file.DataFileStream;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -670,6 +673,30 @@ public class AvroStorageUtils {
         default:
             return null;
         }
+    }
+
+    /**
+     * This method is called by {@link #getAvroSchema}. The default implementation
+     * returns the schema of an avro file; or the schema of the last file in a first-level
+     * directory (it does not contain sub-directories).
+     *
+     * @param path  path of a file or first level directory
+     * @param fs  file system
+     * @return avro schema
+     * @throws IOException
+     */
+    public static Schema getSchema(Path path, FileSystem fs) throws IOException {
+        /* get path of the last file */
+        Path lastFile = AvroStorageUtils.getLast(path, fs);
+
+        /* read in file and obtain schema */
+        GenericDatumReader<Object> avroReader = new GenericDatumReader<Object>();
+        InputStream hdfsInputStream = fs.open(lastFile);
+        DataFileStream<Object> avroDataStream = new DataFileStream<Object>(hdfsInputStream, avroReader);
+        Schema ret = avroDataStream.getSchema();
+        avroDataStream.close();
+
+        return ret;
     }
 
 }
