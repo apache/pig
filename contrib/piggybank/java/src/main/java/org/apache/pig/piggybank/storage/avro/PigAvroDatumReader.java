@@ -60,11 +60,17 @@ public class PigAvroDatumReader extends GenericDatumReader<Object> {
     @Override
     protected Object readRecord(Object old, Schema expected, ResolvingDecoder in) throws IOException {
 
-        /* create an empty tuple */
-        Tuple tuple = (Tuple) newRecord(old, expected);
+        // find out the order in which we will receive fields from the ResolvingDecoder
+        Field[] readOrderedFields = in.readFieldOrder();
 
-        for (Field f : in.readFieldOrder()) {
-            tuple.append(read(null, f.schema(), in));
+        /* create an empty tuple */
+        Tuple tuple = TupleFactory.getInstance().newTuple(readOrderedFields.length);
+
+        /* read fields and put in output order in tuple
+         * The ResolvingDecoder figures out the writer schema to reader schema mapping for us
+         */
+        for (Field f : readOrderedFields) {
+            tuple.set(f.pos(), read(old, f.schema(), in));
         }
 
         return tuple;

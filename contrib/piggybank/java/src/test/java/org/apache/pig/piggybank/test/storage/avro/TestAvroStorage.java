@@ -180,6 +180,7 @@ public class TestAvroStorage {
     final private String testCorruptedFile = getInputFile("test_corrupted_file.avro");
     final private String testMultipleSchemas1File = getInputFile("test_primitive_types/*");
     final private String testMultipleSchemas2File = getInputFile("test_complex_types/*");
+    final private String testUserDefinedLoadSchemaFile = getInputFile("test_user_defined_load_schema/*");
 
     @BeforeClass
     public static void setup() throws ExecException, IOException {
@@ -578,6 +579,41 @@ public class TestAvroStorage {
           " o = ORDER c BY $0;",
           " STORE o INTO '" + output +
               "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ('schema', '\"string\"');"
+           };
+        testAvroStorage(queries);
+        verifyResults(output, expected);
+    }
+
+    @Test
+    public void testUserDefinedLoadSchema() throws IOException {
+        // Verify that user specified schema correctly maps to input schemas
+        // Input Avro files have the following schemas:
+        //   name:"string", address:[customField1:"int", addressLine:"string"]
+        //   address:[addressLine:"string", customField2:"int"], name:"string"
+        // User Avro schema looks like this:
+        //   name:"string", address:[customField1:"int", customField2:"int", customField3:"int"]
+        // This test will confirm that AvroStorage correctly maps fields from writer to reader schema,
+        // dropping, adding, and reordering fields where needed.
+        String output= outbasedir + "testUserDefinedLoadSchema";
+        String expected = basedir + "expected_testUserDefinedLoadSchema.avro";
+        String customSchema = 
+                    "{\"type\": \"record\", \"name\": \"employee\", \"fields\": [ "
+                        +"{ \"default\": \"***\", \"type\": \"string\", \"name\": \"name\" }, "
+                        +"{ \"name\": \"address\", \"type\": { "
+                            +"\"type\": \"record\", \"name\": \"addressDetails\", \"fields\": [ "
+                                +"{ \"default\": 0, \"type\": \"int\", \"name\": \"customField1\" }, "
+                                +"{ \"default\": 0, \"type\": \"int\", \"name\": \"customField2\" }, "
+                                +"{ \"default\": 0, \"type\": \"int\", \"name\": \"customField3\" } "
+                            +"] "
+                        +"} } "
+                    +"] } ";
+
+        deleteDirectory(new File(output));
+        String [] queries = {
+            " in = LOAD '" + testUserDefinedLoadSchemaFile
+                + "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ('schema', '" + customSchema + "');",
+            " o = ORDER in BY name;",
+            " STORE o INTO '" + output + "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ();" 
            };
         testAvroStorage(queries);
         verifyResults(output, expected);
