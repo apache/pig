@@ -477,14 +477,24 @@ STORE Gtab INTO '/user/vxj/finalresult2';
 <section id="optimization-rules">
 <title>Optimization Rules</title>
 
-<p>Pig supports various optimization rules. By default optimization, and all optimization rules, are turned on. 
-To turn off optimiztion, use:</p>
+<p>Pig supports various optimization rules, all of which are enabled by default.
+To disable all or specific optimizations, use one or more of the following methods.
+Note some optimization rules are mandatory and cannot be disabled.</p>
 
-<source>
-pig -optimizer_off [opt_rule | all ]
-</source>
+    <ul>
+        <li>The <code>pig.optimizer.rules.disabled</code>
+            <a href="start.html#properties">pig property</a>, which accepts a
+            comma-separated list of optimization rules to disable; the <code>all</code>
+            keyword disables all non-mandatory optimizations.
+            (e.g.: <code>set pig.optimizer.rules.disabled 'ColumnMapKeyPrune';</code>)</li>
+        <li>The <code>-t, -optimizer_off</code> command-line options.
+            (e.g.: <code>pig -optimizer_off [opt_rule | all]</code>)</li>
+    </ul>
 
-<p>Note that some rules are mandatory and cannot be turned off.</p>
+<p><code>FilterLogicExpressionSimplifier</code> is an exception to the above.
+The rule is disabled by default, and enabled by setting the
+<code>pig.exec.filterLogicExpressionSimplifier</code> pig property to true.</p>
+
 
 <!-- +++++++++++++++++++++++++++++++ -->
 <section id="FilterLogicExpressionSimplifier">

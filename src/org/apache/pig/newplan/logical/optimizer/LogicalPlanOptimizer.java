@@ -22,6 +22,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.SetMultimap;
+import com.google.common.collect.TreeMultimap;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.logical.rules.AddForEach;
 import org.apache.pig.newplan.logical.rules.ColumnMapKeyPrune;
@@ -29,7 +35,6 @@ import org.apache.pig.newplan.logical.rules.DuplicateForEachColumnRewrite;
 import org.apache.pig.newplan.logical.rules.FilterAboveForeach;
 import org.apache.pig.newplan.logical.rules.GroupByConstParallelSetter;
 import org.apache.pig.newplan.logical.rules.ImplicitSplitInserter;
-import org.apache.pig.newplan.logical.rules.InputOutputFileValidator;
 import org.apache.pig.newplan.logical.rules.LimitOptimizer;
 import org.apache.pig.newplan.logical.rules.LoadTypeCastInserter;
 import org.apache.pig.newplan.logical.rules.LogicalExpressionSimplifier;
@@ -44,12 +49,28 @@ import org.apache.pig.newplan.optimizer.PlanOptimizer;
 import org.apache.pig.newplan.optimizer.Rule;
 
 public class LogicalPlanOptimizer extends PlanOptimizer {
+    private static final Log LOG = LogFactory.getLog(LogicalPlanOptimizer.class);
+    private static enum RulesReportKey { RULES_ENABLED, RULES_DISABLED }
     private Set<String> mRulesOff = null;
-    
-    public LogicalPlanOptimizer(OperatorPlan p, int iterations, Set<String> turnOffRules) {    	
+    private boolean allRulesDisabled = false;
+    private SetMultimap<RulesReportKey, String> rulesReport = TreeMultimap.create();
+
+    /**
+     * Create a new LogicalPlanOptimizer.
+     * @param p               Plan to optimize.
+     * @param iterations      Maximum number of optimizer iterations.
+     * @param turnOffRules    Optimization rules to disable. "all" disables all non-mandatory
+     *                        rules. null enables all rules.
+     */
+    public LogicalPlanOptimizer(OperatorPlan p, int iterations, Set<String> turnOffRules) {
         super(p, null, iterations);
-        this.mRulesOff = turnOffRules;
+        mRulesOff = turnOffRules == null ? new HashSet<String>() : turnOffRules;
+        if (mRulesOff.contains("all")) {
+            allRulesDisabled = true;
+        }
+
         ruleSets = buildRuleSets();
+        LOG.info(rulesReport);
         addListeners();
     }
 
@@ -183,34 +204,25 @@ public class LogicalPlanOptimizer extends PlanOptimizer {
         
         return ls;
     }
-        
+
+    /**
+     * Add rule to ruleSet if its mandatory, or has not been disabled.
+     * @param ruleSet    Set rule will be added to if not disabled.
+     * @param rule       Rule to potentially add.
+     */
     private void checkAndAddRule(Set<Rule> ruleSet, Rule rule) {
+        Preconditions.checkArgument(ruleSet != null);
+        Preconditions.checkArgument(rule != null && rule.getName() != null);
+
         if (rule.isMandatory()) {
             ruleSet.add(rule);
-            return;
+            rulesReport.put(RulesReportKey.RULES_ENABLED, rule.getName());
+        } else if (!allRulesDisabled && !mRulesOff.contains(rule.getName())) {
+            ruleSet.add(rule);
+            rulesReport.put(RulesReportKey.RULES_ENABLED, rule.getName());
+        } else {
+            rulesReport.put(RulesReportKey.RULES_DISABLED, rule.getName());
         }
-        
-        boolean turnAllRulesOff = false;
-        if (mRulesOff != null) {
-            for (String ruleName : mRulesOff) {
-                if ("all".equalsIgnoreCase(ruleName)) {
-                    turnAllRulesOff = true;
-                    break;
-                }
-            }
-        }
-        
-        if (turnAllRulesOff) return;
-        
-        if(mRulesOff != null) {
-            for(String ruleOff: mRulesOff) {
-                String ruleName = rule.getName();
-                if(ruleName == null) continue;
-                if(ruleName.equalsIgnoreCase(ruleOff)) return;
-            }
-        }
-        
-        ruleSet.add(rule);
     }
 
     private void addListeners() {
