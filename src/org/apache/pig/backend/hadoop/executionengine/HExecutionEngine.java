@@ -30,12 +30,15 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 
+import com.google.common.base.Splitter;
+import com.google.common.collect.Lists;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigConstants;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -44,6 +47,7 @@ import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.PigImplConstants;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.ObjectSerializer;
@@ -246,38 +250,45 @@ public class HExecutionEngine {
         SchemaResetter schemaResetter = new SchemaResetter( plan, true /*skip duplicate uid check*/ );
         schemaResetter.visit();
         
-        HashSet<String> optimizerRules = null;
+        HashSet<String> disabledOptimizerRules;
         try {
-            optimizerRules = (HashSet<String>) ObjectSerializer
+            disabledOptimizerRules = (HashSet<String>) ObjectSerializer
                     .deserialize(pigContext.getProperties().getProperty(
-                            "pig.optimizer.rules"));
+                            PigImplConstants.PIG_OPTIMIZER_RULES_KEY));
         } catch (IOException ioe) {
             int errCode = 2110;
             String msg = "Unable to deserialize optimizer rules.";
             throw new FrontendException(msg, errCode, PigException.BUG, ioe);
         }
-        
+        if (disabledOptimizerRules == null) {
+            disabledOptimizerRules = new HashSet<String>();
+        }
+
+        String pigOptimizerRulesDisabled = this.pigContext.getProperties().getProperty(
+                PigConstants.PIG_OPTIMIZER_RULES_DISABLED_KEY);
+        if (pigOptimizerRulesDisabled != null) {
+            disabledOptimizerRules.addAll(Lists.newArrayList((Splitter.on(",").split(
+                    pigOptimizerRulesDisabled))));
+        }
+
         if (pigContext.inIllustrator) {
-            // disable MergeForEach in illustrator
-            if (optimizerRules == null)
-                optimizerRules = new HashSet<String>();
-            optimizerRules.add("MergeForEach");
-            optimizerRules.add("PartitionFilterOptimizer");
-            optimizerRules.add("LimitOptimizer");
-            optimizerRules.add("SplitFilter");
-            optimizerRules.add("PushUpFilter");
-            optimizerRules.add("MergeFilter");
-            optimizerRules.add("PushDownForEachFlatten");
-            optimizerRules.add("ColumnMapKeyPrune");
-            optimizerRules.add("AddForEach");
-            optimizerRules.add("GroupByConstParallelSetter");
+            disabledOptimizerRules.add("MergeForEach");
+            disabledOptimizerRules.add("PartitionFilterOptimizer");
+            disabledOptimizerRules.add("LimitOptimizer");
+            disabledOptimizerRules.add("SplitFilter");
+            disabledOptimizerRules.add("PushUpFilter");
+            disabledOptimizerRules.add("MergeFilter");
+            disabledOptimizerRules.add("PushDownForEachFlatten");
+            disabledOptimizerRules.add("ColumnMapKeyPrune");
+            disabledOptimizerRules.add("AddForEach");
+            disabledOptimizerRules.add("GroupByConstParallelSetter");
         }
 
         StoreAliasSetter storeAliasSetter = new StoreAliasSetter( plan );
         storeAliasSetter.visit();
         
         // run optimizer
-        LogicalPlanOptimizer optimizer = new LogicalPlanOptimizer( plan, 100, optimizerRules );
+        LogicalPlanOptimizer optimizer = new LogicalPlanOptimizer(plan, 100, disabledOptimizerRules);
         optimizer.optimize();
         
         // compute whether output data is sorted or not

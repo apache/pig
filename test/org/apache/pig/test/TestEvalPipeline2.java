@@ -45,6 +45,7 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.DefaultBagFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.PigImplConstants;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -1524,7 +1525,9 @@ public class TestEvalPipeline2 {
         
         HashSet<String> optimizerRules = new HashSet<String>();
         optimizerRules.add("MergeForEach");
-        pigServer.getPigContext().getProperties().setProperty("pig.optimizer.rules", ObjectSerializer.serialize(optimizerRules));
+        pigServer.getPigContext().getProperties().setProperty(
+                PigImplConstants.PIG_OPTIMIZER_RULES_KEY,
+                ObjectSerializer.serialize(optimizerRules));
         
         Util.createInputFile(cluster, "table_testProjectNullBag", input1);
         pigServer.registerQuery("a = load 'table_testProjectNullBag' as (a0:bag{}, a1:int);");
@@ -1540,7 +1543,7 @@ public class TestEvalPipeline2 {
         
         Assert.assertFalse(iter.hasNext());
         
-        pigServer.getPigContext().getProperties().remove("pig.optimizer.rules");
+        pigServer.getPigContext().getProperties().remove(PigImplConstants.PIG_OPTIMIZER_RULES_KEY);
     }
     
     // See PIG-2159

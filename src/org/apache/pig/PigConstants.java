@@ -18,8 +18,13 @@
 
 package org.apache.pig;
 
+import org.apache.pig.classification.InterfaceAudience;
+
+@InterfaceAudience.Public
 public class PigConstants {
-    private PigConstants() {}
+    private PigConstants() {
+        throw new IllegalStateException();
+    }
 
     /**
      * This key is used in the job conf to let the various jobs know what code was
@@ -35,4 +40,10 @@ public class PigConstants {
 
     // This makes it easy to turn SchemaTuple on globally.
     public static final boolean SCHEMA_TUPLE_ON_BY_DEFAULT = false;
+
+    /**
+     * {@value} is a comma-separated list of optimizer rules to disable;
+     * by default, all rules are enabled.
+     */
+    public static final String PIG_OPTIMIZER_RULES_DISABLED_KEY = "pig.optimizer.rules.disabled";
 }
