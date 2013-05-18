@@ -88,7 +88,7 @@ public class POFilter extends PhysicalOperator {
      * can be passed through is found or EOP is reached.
      */
     @Override
-    public Result getNext(Tuple t) throws ExecException {
+    public Result getNextTuple() throws ExecException {
         Result res = null;
         Result inp = null;
         while (true) {
@@ -145,7 +145,7 @@ public class POFilter extends PhysicalOperator {
                     DataType.findTypeName(compOperandType));
             }
             */
-            res = comOp.getNext(dummyBool);
+            res = comOp.getNextBoolean();
             plan.detachInput();
             if (res.returnStatus != POStatus.STATUS_OK 
                     && res.returnStatus != POStatus.STATUS_NULL) 

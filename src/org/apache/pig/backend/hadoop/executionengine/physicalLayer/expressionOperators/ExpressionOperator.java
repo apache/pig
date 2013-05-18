@@ -18,12 +18,7 @@
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators;
 
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.util.List;
-import java.util.Map;
-
-import org.joda.time.DateTime;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -32,10 +27,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
-import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DataByteArray;
-import org.apache.pig.data.DataType;
-import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.pen.Illustrator;
@@ -69,7 +60,7 @@ public abstract class ExpressionOperator extends PhysicalOperator {
     }
 
     @Override
-    public Result getNext(DataBag db) throws ExecException {
+    public Result getNextDataBag() throws ExecException {
         return new Result();
     }
 
@@ -117,11 +108,11 @@ public abstract class ExpressionOperator extends PhysicalOperator {
         return false;
     }
 
-
     /**
      * Drive all the UDFs in accumulative mode
      */
-    protected Result accumChild(List<ExpressionOperator> child, Object o, byte dataType) throws ExecException {
+    protected Result accumChild(List<ExpressionOperator> child, byte dataType) throws ExecException {
+        try {
         if (isAccumStarted()) {
             if (child == null) {
                 child = getChildExpressions();
@@ -130,7 +121,7 @@ public abstract class ExpressionOperator extends PhysicalOperator {
             if (child != null) {
                 for(ExpressionOperator e: child) {
                     if (e.containUDF()) {
-                        res = e.getNext(o, dataType);
+                            res = e.getNext(dataType);
                         if (res.returnStatus != POStatus.STATUS_BATCH_OK) {
                             return res;
                         }
@@ -145,101 +136,9 @@ public abstract class ExpressionOperator extends PhysicalOperator {
         }
 
         return null;
+        } catch (RuntimeException e) {
+            throw new ExecException("Exception while executing " + this.toString() + ": " + e.toString(), e);
     }
-
-    /**
-     * Drive all the UDFs in accumulative mode
-     */
-    protected Result accumChild(List<ExpressionOperator> child, Double d) throws ExecException {
-        return accumChild(child, d, DataType.DOUBLE);
-    }
-
-    /**
-     * Drive all the UDFs in accumulative mode
-     */
-    protected Result accumChild(List<ExpressionOperator> child, Integer v) throws ExecException {
-        return accumChild(child, v, DataType.INTEGER);
-    }
-
-
-    /**
-     * Drive all the UDFs in accumulative mode
-     */
-    protected Result accumChild(List<ExpressionOperator> child, Long l) throws ExecException {
-        return accumChild(child, l, DataType.LONG);
-    }
-
-    /**
-     * Drive all the UDFs in accumulative mode
-     */
-    protected Result accumChild(List<ExpressionOperator> child, Float f) throws ExecException {
-        return accumChild(child, f, DataType.FLOAT);
-    }
-
-    /**
-     * Drive all the UDFs in accumulative mode
-     */
-    protected Result accumChild(List<ExpressionOperator> child, Boolean b) throws ExecException {
-        return accumChild(child, b, DataType.BOOLEAN);
-
-    }
-
-    /**
-     * Drive all the UDFs in accumulative mode
-     */
-    protected Result accumChild(List<ExpressionOperator> child, DateTime dt) throws ExecException {
-        return accumChild(child, dt, DataType.DATETIME);
-
-    }
-
-    /**
-     * Drive all the UDFs in accumulative mode
-     */
-    protected Result accumChild(List<ExpressionOperator> child, String s) throws ExecException {
-        return accumChild(child, s, DataType.CHARARRAY);
-
-    }
-
-    /**
-     * Drive all the UDFs in accumulative mode
-     */
-    protected Result accumChild(List<ExpressionOperator> child, DataByteArray dba) throws ExecException {
-        return accumChild(child, dba, DataType.BYTEARRAY);
-    }
-
-    /**
-     * Drive all the UDFs in accumulative mode
-     */
-    protected Result accumChild(List<ExpressionOperator> child, Map map) throws ExecException {
-        return accumChild(child, map, DataType.MAP);
-    }
-
-    /**
-     * Drive all the UDFs in accumulative mode
-     */
-    protected Result accumChild(List<ExpressionOperator> child, Tuple t) throws ExecException {
-        return accumChild(child, t, DataType.TUPLE);
-    }
-
-    /**
-     * Drive all the UDFs in accumulative mode
-     */
-    protected Result accumChild(List<ExpressionOperator> child, DataBag db) throws ExecException {
-        return accumChild(child, db, DataType.BAG);
-    }
-
-    /**
-     * Drive all the UDFs in accumulative mode
-     */
-    protected Result accumChild(List<ExpressionOperator> child, BigInteger bi) throws ExecException {
-        return accumChild(child, bi, DataType.BIGINTEGER);
-    }
-
-    /**
-     * Drive all the UDFs in accumulative mode
-     */
-    protected Result accumChild(List<ExpressionOperator> child, BigDecimal bd) throws ExecException {
-        return accumChild(child, bd, DataType.BIGDECIMAL);
     }
 
     @Override

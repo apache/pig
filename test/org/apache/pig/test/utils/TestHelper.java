@@ -215,7 +215,7 @@ public class TestHelper {
         int numActTuples = -1;
         DataBag bagAct = DefaultBagFactory.getInstance().newDefaultBag();
         Result resAct = null;
-        while((resAct = ldAct.getNext(t)).returnStatus!=POStatus.STATUS_EOP){
+        while((resAct = ldAct.getNextTuple()).returnStatus!=POStatus.STATUS_EOP){
             ++numActTuples;
             bagAct.add(trimTuple((Tuple)resAct.result));
         }
@@ -223,7 +223,7 @@ public class TestHelper {
         int numExpTuples = -1;
         DataBag bagExp = DefaultBagFactory.getInstance().newDefaultBag();
         Result resExp = null;
-        while((resExp = ldExp.getNext(t)).returnStatus!=POStatus.STATUS_EOP){
+        while((resExp = ldExp.getNextTuple()).returnStatus!=POStatus.STATUS_EOP){
             ++numExpTuples;
             bagExp.add(trimTuple((Tuple)resExp.result));
         }

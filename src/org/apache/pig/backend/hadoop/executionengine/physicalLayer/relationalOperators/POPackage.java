@@ -218,7 +218,7 @@ public class POPackage extends PhysicalOperator {
      * is (key, {bag of tuples from input 1}, {bag of tuples from input 2}, ...)
      */
     @Override
-    public Result getNext(Tuple t) throws ExecException {
+    public Result getNextTuple() throws ExecException {
         Tuple res;
 
         if(firstTime){

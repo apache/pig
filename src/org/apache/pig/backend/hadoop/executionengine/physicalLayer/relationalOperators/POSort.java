@@ -192,7 +192,7 @@ public class POSort extends PhysicalOperator {
             case DataType.BIGDECIMAL:
             case DataType.DATETIME:
             case DataType.TUPLE:
-                res = Op.getNext(getDummy(resultType), resultType);
+                res = Op.getNext(resultType);
                 break;
 
             default: {
@@ -221,7 +221,7 @@ public class POSort extends PhysicalOperator {
 			Integer i = null;
 			Result res = null;
 			try {
-				res = mSortFunc.getNext(i);
+				res = mSortFunc.getNextInteger();
 			} catch (ExecException e) {
 
 				log.error("Input not ready. Error on reading from input. "
@@ -251,7 +251,7 @@ public class POSort extends PhysicalOperator {
 	}
 
 	@Override
-	public Result getNext(Tuple t) throws ExecException {
+	public Result getNextTuple() throws ExecException {
 		Result res = new Result();
 
 		if (!inputsAccumulated) {

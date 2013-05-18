@@ -99,7 +99,7 @@ public class TestLocalRearrange  {
     public void testGetNextTuple1() throws ExecException, PlanException {
         setUp1();
         int size=0;
-        for(Result res=lr.getNext(t);res.returnStatus!=POStatus.STATUS_EOP;res=lr.getNext(t)){
+        for(Result res=lr.getNextTuple();res.returnStatus!=POStatus.STATUS_EOP;res=lr.getNextTuple()){
             Tuple t = (Tuple)res.result;
             String key = (String)t.get(1);
             Tuple val = (Tuple)t.get(2);
@@ -156,7 +156,7 @@ public class TestLocalRearrange  {
     public void testGetNextTuple2() throws ExecException, PlanException {
         setUp2();
         int size=0;
-        for(Result res=lr.getNext(t);res.returnStatus!=POStatus.STATUS_EOP;res=lr.getNext(t)){
+        for(Result res=lr.getNextTuple();res.returnStatus!=POStatus.STATUS_EOP;res=lr.getNextTuple()){
             Tuple t = (Tuple)res.result;
             Tuple key = (Tuple)t.get(1);
             Tuple val = (Tuple)t.get(2);

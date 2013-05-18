@@ -118,7 +118,7 @@ public class POUnion extends PhysicalOperator {
      * around each non-drained input
      */
     @Override
-    public Result getNext(Tuple t) throws ExecException {
+    public Result getNextTuple() throws ExecException {
 
         if (nextReturnEOP) {
             nextReturnEOP = false ;
@@ -164,7 +164,7 @@ public class POUnion extends PhysicalOperator {
                     if(getReporter()!=null) {
                         getReporter().progress();
                     }
-                    res = inputs.get(ind).getNext(t);
+                    res = inputs.get(ind).getNextTuple();
                     lastInd = ind + 1;
 
                     if(res.returnStatus == POStatus.STATUS_OK || 

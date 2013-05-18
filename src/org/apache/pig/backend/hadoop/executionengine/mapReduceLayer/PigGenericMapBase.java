@@ -62,7 +62,6 @@ import org.apache.pig.tools.pigstats.PigStatusReporter;
  * is located in $PIG_HOME/shims.
 **/
 public abstract class PigGenericMapBase extends Mapper<Text, Tuple, PigNullableWritable, Writable> {
-    private static final Tuple DUMMYTUPLE = null;
 
     private final Log log = LogFactory.getLog(getClass());
     
@@ -280,7 +279,7 @@ public abstract class PigGenericMapBase extends Mapper<Text, Tuple, PigNullableW
 
     protected void runPipeline(PhysicalOperator leaf) throws IOException, InterruptedException {
         while(true){
-            Result res = leaf.getNext(DUMMYTUPLE);
+            Result res = leaf.getNextTuple();
             if(res.returnStatus==POStatus.STATUS_OK){
                 collect(outputCollector,(Tuple)res.result);
                 continue;

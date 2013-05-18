@@ -84,17 +84,17 @@ public class TestFilter {
     @Test
     public void testGetNextTuple() throws Exception {
         pass.attachInput(t);
-        Result res = pass.getNext(t);
+        Result res = pass.getNextTuple();
         assertEquals(t, res.result);
         fail.attachInput(t);
-        res = fail.getNext(t);
+        res = fail.getNextTuple();
         assertEquals(res.returnStatus, POStatus.STATUS_EOP);
 
         for (int i = 0; i < nullFlags.length; i++) {
             int count = 0;
             setUpProjFil(nullFlags[i]);
             while (true) {
-                res = projFil.getNext(t);
+                res = projFil.getNextTuple();
                 if (res.returnStatus == POStatus.STATUS_EOP)
                     break;
                 count++;
@@ -191,7 +191,7 @@ public class TestFilter {
             Result res;
             Tuple t = tf.newTuple();
             do {
-                res = filter.getNext(t);
+                res = filter.getNextTuple();
                 if (res.returnStatus == POStatus.STATUS_OK) {
                     outbag.add((Tuple)res.result);
                 }
@@ -294,7 +294,7 @@ public class TestFilter {
             Result res;
             Tuple t = tf.newTuple();
             do {
-                res = filter.getNext(t);
+                res = filter.getNextTuple();
                 if (res.returnStatus == POStatus.STATUS_OK) {
                     outbag.add((Tuple)res.result);
                 }

@@ -122,7 +122,7 @@ public class POStream extends PhysicalOperator {
      * @see org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator#getNext(org.apache.pig.data.Tuple)
      */
     @Override
-    public Result getNext(Tuple t) throws ExecException {
+    public Result getNextTuple() throws ExecException {
         // The POStream Operator works with ExecutableManager to
         // send input to the streaming binary and to get output
         // from it. To achieve a tuple oriented behavior, two queues
@@ -171,7 +171,7 @@ public class POStream extends PhysicalOperator {
             // to the streaming binary - check if we are being called
             // from close() on the map or reduce
             if(this.parentPlan.endOfAllInput) {
-                Result r = getNextHelper(t);
+                Result r = getNextHelper((Tuple)null);
                 if(r.returnStatus == POStatus.STATUS_EOP) {
                     // we have now seen *ALL* possible input
                     // check if we ever had any real input
@@ -219,7 +219,7 @@ public class POStream extends PhysicalOperator {
                 // we are not being called from close() - so
                 // we must be called from either map() or reduce()
                 // get the next Result from helper
-                Result r = getNextHelper(t);
+                Result r = getNextHelper((Tuple)null);
                 if(r.returnStatus == POStatus.STATUS_EOS) {
                     // If we received EOS, it means all output
                     // from the streaming binary has been sent to us

@@ -19,12 +19,8 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOp
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
-import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.util.List;
-import java.util.Map;
 
-import org.joda.time.DateTime;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -34,8 +30,6 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
-import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
@@ -79,7 +73,7 @@ public class POUserComparisonFunc extends ExpressionOperator {
     }
 
     @Override
-    public Result getNext(Integer i) throws ExecException {
+    public Result getNextInteger() throws ExecException {
         Result result = new Result();
 
         result.result = func.compare(t1, t2);
@@ -102,62 +96,62 @@ public class POUserComparisonFunc extends ExpressionOperator {
     }
 
     @Override
-    public Result getNext(Boolean b) throws ExecException {
+    public Result getNextBoolean() throws ExecException {
         return getNext();
     }
 
     @Override
-    public Result getNext(DataBag db) throws ExecException {
+    public Result getNextDataBag() throws ExecException {
         return getNext();
     }
 
     @Override
-    public Result getNext(DataByteArray ba) throws ExecException {
+    public Result getNextDataByteArray() throws ExecException {
         return getNext();
     }
 
     @Override
-    public Result getNext(Double d) throws ExecException {
+    public Result getNextDouble() throws ExecException {
         return getNext();
     }
 
     @Override
-    public Result getNext(Float f) throws ExecException {
+    public Result getNextFloat() throws ExecException {
         return getNext();
     }
 
     @Override
-    public Result getNext(Long l) throws ExecException {
+    public Result getNextLong() throws ExecException {
         return getNext();
     }
 
     @Override
-    public Result getNext(DateTime dt) throws ExecException {
+    public Result getNextDateTime() throws ExecException {
         return getNext();
     }
 
     @Override
-    public Result getNext(Map m) throws ExecException {
+    public Result getNextMap() throws ExecException {
         return getNext();
     }
 
     @Override
-    public Result getNext(String s) throws ExecException {
+    public Result getNextString() throws ExecException {
         return getNext();
     }
 
     @Override
-    public Result getNext(Tuple in) throws ExecException {
+    public Result getNextTuple() throws ExecException {
         return getNext();
     }
 
     @Override
-    public Result getNext(BigInteger in) throws ExecException {
+    public Result getNextBigInteger() throws ExecException {
         return getNext();
     }
 
     @Override
-    public Result getNext(BigDecimal in) throws ExecException {
+    public Result getNextBigDecimal() throws ExecException {
         return getNext();
     }
 

@@ -207,7 +207,7 @@ public class POMultiQueryPackage extends POPackage {
      * is an indexed WritableComparable, not the wrapped value as a pig type.
      */
     @Override
-    public Result getNext(Tuple t) throws ExecException {
+    public Result getNextTuple() throws ExecException {
         
         byte origIndex = myKey.getIndex();
 
@@ -235,7 +235,7 @@ public class POMultiQueryPackage extends POPackage {
             
         pack.attachInput(curKey, tupIter);
 
-        Result res = pack.getNext(t);
+        Result res = pack.getNextTuple();
         pack.detachInput();
         
         Tuple tuple = (Tuple)res.result;

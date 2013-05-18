@@ -180,7 +180,7 @@ public class PODemux extends PhysicalOperator {
     }
    
     @Override
-    public Result getNext(Tuple t) throws ExecException {
+    public Result getNextTuple() throws ExecException {
         
         if (!inCombiner && this.parentPlan.endOfAllInput) {
             
@@ -217,7 +217,7 @@ public class PODemux extends PhysicalOperator {
         
         while (true) {
             
-            res = leaf.getNext(dummyTuple);
+            res = leaf.getNextTuple();
             
             if (res.returnStatus == POStatus.STATUS_OK ||
                     res.returnStatus == POStatus.STATUS_EOP || 
@@ -272,7 +272,7 @@ public class PODemux extends PhysicalOperator {
                 }
             } else {
                 curLeaf = leaf;
-                res = leaf.getNext(dummyTuple);
+                res = leaf.getNextTuple();
                
                 if (res.returnStatus == POStatus.STATUS_EOP)  {
                     processedSet.set(idx++);        

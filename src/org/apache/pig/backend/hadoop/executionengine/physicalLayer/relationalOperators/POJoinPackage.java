@@ -104,7 +104,7 @@ public class POJoinPackage extends POPackage {
      * so we need to maintain internal status to keep tracking of where we are.
      */
     @Override
-    public Result getNext(Tuple t) throws ExecException {
+    public Result getNextTuple() throws ExecException {
         
         if(firstTime){
             firstTime = false;
@@ -119,7 +119,7 @@ public class POJoinPackage extends POPackage {
         // has still not returned all output, process it
         if (forEach.processingPlan)
         {
-            forEachResult = forEach.getNext(t1);
+            forEachResult = forEach.getNextTuple();
             switch (forEachResult.returnStatus)
             {
             case POStatus.STATUS_OK:
@@ -222,7 +222,7 @@ public class POJoinPackage extends POPackage {
             forEach.attachInput(res);
             
             // pull output tuple from ForEach
-            Result forEachResult = forEach.getNext(t1);
+            Result forEachResult = forEach.getNextTuple();
             {
                 switch (forEachResult.returnStatus)
                 {
@@ -262,7 +262,7 @@ public class POJoinPackage extends POPackage {
             forEach.attachInput(res);
             
             // pull output tuple from ForEach
-            Result forEachResult = forEach.getNext(t1);
+            Result forEachResult = forEach.getNextTuple();
             {
                 switch (forEachResult.returnStatus)
                 {

@@ -41,7 +41,6 @@ public class TestBoolean {
     ConstantExpression lt, rt;
     BinaryExpressionOperator bop;
     UnaryExpressionOperator uop;
-    Boolean dummy = new Boolean(true);
 
     @Before
     public void setUp() throws Exception {
@@ -84,7 +83,7 @@ public class TestBoolean {
         for (int i = 0; i < testWith.length; i++) {
             lt.setValue(null);
             rt.setValue(testWith[i]);
-            Result res = bop.getNext(dummy);
+            Result res = bop.getNextBoolean();
             assertEquals(POStatus.STATUS_OK, res.returnStatus);
             if (testWith[i] != null && testWith[i] == false) {
                 // if rhs is false, result is false
@@ -99,7 +98,7 @@ public class TestBoolean {
         for (int i = 0; i < testWith.length; i++) {
             lt.setValue(testWith[i]);
             rt.setValue(null);
-            Result res = bop.getNext(dummy);
+            Result res = bop.getNextBoolean();
             assertEquals(POStatus.STATUS_OK, res.returnStatus);
             if (testWith[i] != null && testWith[i] == false) {
                 // if lhs is false, result is false
@@ -126,7 +125,7 @@ public class TestBoolean {
         for (int i = 0; i < testWith.length; i++) {
             lt.setValue(null);
             rt.setValue(testWith[i]);
-            Result res = bop.getNext(dummy);
+            Result res = bop.getNextBoolean();
             assertEquals(POStatus.STATUS_OK, res.returnStatus);
             if (testWith[i] != null && testWith[i] == true) {
                 // if rhs is true, result is true
@@ -141,7 +140,7 @@ public class TestBoolean {
         for (int i = 0; i < testWith.length; i++) {
             lt.setValue(testWith[i]);
             rt.setValue(null);
-            Result res = bop.getNext(dummy);
+            Result res = bop.getNextBoolean();
             assertEquals(POStatus.STATUS_OK, res.returnStatus);
             if (testWith[i] != null && testWith[i] == true) {
                 // if lhs is true, result is true
@@ -158,7 +157,7 @@ public class TestBoolean {
         setupAnd();
         lt.setValue(new Boolean(false));
         rt.setValue(new Boolean(true));
-        Result res = bop.getNext(dummy);
+        Result res = bop.getNextBoolean();
         assertEquals(POStatus.STATUS_OK, res.returnStatus);
         assertFalse((Boolean) res.result);
     }
@@ -168,7 +167,7 @@ public class TestBoolean {
         setupAnd();
         lt.setValue(new Boolean(true));
         rt.setValue(new Boolean(false));
-        Result res = bop.getNext(dummy);
+        Result res = bop.getNextBoolean();
         assertEquals(POStatus.STATUS_OK, res.returnStatus);
         assertFalse((Boolean) res.result);
     }
@@ -178,7 +177,7 @@ public class TestBoolean {
         setupAnd();
         lt.setValue(new Boolean(false));
         rt.setValue(new Boolean(false));
-        Result res = bop.getNext(dummy);
+        Result res = bop.getNextBoolean();
         assertEquals(POStatus.STATUS_OK, res.returnStatus);
         assertFalse((Boolean) res.result);
     }
@@ -188,7 +187,7 @@ public class TestBoolean {
         setupAnd();
         lt.setValue(new Boolean(true));
         rt.setValue(new Boolean(true));
-        Result res = bop.getNext(dummy);
+        Result res = bop.getNextBoolean();
         assertEquals(POStatus.STATUS_OK, res.returnStatus);
         assertTrue((Boolean) res.result);
     }
@@ -198,7 +197,7 @@ public class TestBoolean {
         setupOr();
         lt.setValue(new Boolean(false));
         rt.setValue(new Boolean(true));
-        Result res = bop.getNext(dummy);
+        Result res = bop.getNextBoolean();
         assertEquals(POStatus.STATUS_OK, res.returnStatus);
         assertTrue((Boolean) res.result);
     }
@@ -208,7 +207,7 @@ public class TestBoolean {
         setupOr();
         lt.setValue(new Boolean(true));
         rt.setValue(new Boolean(false));
-        Result res = bop.getNext(dummy);
+        Result res = bop.getNextBoolean();
         assertEquals(POStatus.STATUS_OK, res.returnStatus);
         assertTrue((Boolean) res.result);
     }
@@ -218,7 +217,7 @@ public class TestBoolean {
         setupOr();
         lt.setValue(new Boolean(false));
         rt.setValue(new Boolean(false));
-        Result res = bop.getNext(dummy);
+        Result res = bop.getNextBoolean();
         assertEquals(POStatus.STATUS_OK, res.returnStatus);
         assertFalse((Boolean) res.result);
     }
@@ -228,7 +227,7 @@ public class TestBoolean {
         setupOr();
         lt.setValue(new Boolean(true));
         rt.setValue(new Boolean(true));
-        Result res = bop.getNext(dummy);
+        Result res = bop.getNextBoolean();
         assertEquals(POStatus.STATUS_OK, res.returnStatus);
         assertTrue((Boolean) res.result);
     }
@@ -237,7 +236,7 @@ public class TestBoolean {
     public void testNotTrue() throws ExecException {
         setupNot();
         lt.setValue(new Boolean(true));
-        Result res = uop.getNext(dummy);
+        Result res = uop.getNextBoolean();
         assertEquals(POStatus.STATUS_OK, res.returnStatus);
         assertFalse((Boolean) res.result);
     }
@@ -246,7 +245,7 @@ public class TestBoolean {
     public void testNotFalse() throws ExecException {
         setupNot();
         lt.setValue(new Boolean(false));
-        Result res = uop.getNext(dummy);
+        Result res = uop.getNextBoolean();
         assertEquals(POStatus.STATUS_OK, res.returnStatus);
         assertTrue((Boolean) res.result);
     }
@@ -255,7 +254,7 @@ public class TestBoolean {
     public void testNotNull() throws ExecException {
         setupNot();
         lt.setValue(null);
-        Result res = uop.getNext(dummy);
+        Result res = uop.getNextBoolean();
         assertEquals(POStatus.STATUS_OK, res.returnStatus);
         assertNull(res.result);
     }

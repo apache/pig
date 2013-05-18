@@ -224,7 +224,7 @@ public class POFRJoin extends PhysicalOperator {
     }
 
     @Override
-    public Result getNext(Tuple t) throws ExecException {
+    public Result getNextTuple() throws ExecException {
         Result res = null;
         Result inp = null;
         if (!setUp) {
@@ -236,7 +236,7 @@ public class POFRJoin extends PhysicalOperator {
             // Assumes that it is configured appropriately with
             // the bags for the current key.
             while (true) {
-                res = fe.getNext(dummyTuple);
+                res = fe.getNextTuple();
 
                 if (res.returnStatus == POStatus.STATUS_OK) {
                     return res;
@@ -268,7 +268,7 @@ public class POFRJoin extends PhysicalOperator {
             // Separate Key & Value using the fragment's LR operator
             POLocalRearrange lr = LRs[fragment];
             lr.attachInput((Tuple) inp.result);
-            Result lrOut = lr.getNext(dummyTuple);
+            Result lrOut = lr.getNextTuple();
             if (lrOut.returnStatus != POStatus.STATUS_OK) {
                 log.error("LocalRearrange isn't configured right or is not working");
                 return new Result();
@@ -312,7 +312,7 @@ public class POFRJoin extends PhysicalOperator {
             // constant Expressions
             // All subsequent calls ( by parent ) to this function will return
             // next tuple of crossproduct
-            Result gn = getNext(dummyTuple);
+            Result gn = getNextTuple();
 
             return gn;
         }
@@ -395,7 +395,7 @@ public class POFRJoin extends PhysicalOperator {
             TupleToMapKey replicate = new TupleToMapKey(1000, keySchemaTupleFactory);
 
             log.debug("Completed setup. Trying to build replication hash table");
-            for (Result res = lr.getNext(dummyTuple);res.returnStatus != POStatus.STATUS_EOP;res = lr.getNext(dummyTuple)) {
+            for (Result res = lr.getNextTuple(); res.returnStatus != POStatus.STATUS_EOP; res = lr.getNextTuple()) {
                 if (getReporter() != null)
                     getReporter().progress();
                 Tuple tuple = (Tuple) res.result;

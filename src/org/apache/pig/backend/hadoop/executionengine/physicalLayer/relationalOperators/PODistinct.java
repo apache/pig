@@ -82,7 +82,7 @@ public class PODistinct extends PhysicalOperator implements Cloneable {
     }
 
     @Override
-    public Result getNext(Tuple t) throws ExecException {
+    public Result getNextTuple() throws ExecException {
          if (!inputsAccumulated) {
             Result in = processInput();    
             

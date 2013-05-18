@@ -53,61 +53,58 @@ public class Mod extends BinaryExpressionOperator {
         return "Mod" + "[" + DataType.findTypeName(resultType) + "]" +" - " + mKey.toString();
     }
 
-    @SuppressWarnings("unchecked")
-    protected <T extends Number> T mod(T a, T b, byte dataType) throws ExecException {
+    protected Number mod(Number a, Number b, byte dataType) throws ExecException {
         switch(dataType) {
         case DataType.INTEGER:
-            return (T) Integer.valueOf((Integer) a % (Integer) b);
+            return Integer.valueOf((Integer) a % (Integer) b);
         case DataType.LONG:
-            return (T) Long.valueOf((Long) a % (Long) b);
+            return Long.valueOf((Long) a % (Long) b);
         case DataType.BIGINTEGER:
-            return (T) ((BigInteger)a).mod((BigInteger)b);
+            return ((BigInteger)a).mod((BigInteger)b);
         default:
             throw new ExecException("called on unsupported Number class " + DataType.findTypeName(dataType));
         }
     }
 
-    @SuppressWarnings("unchecked")
-    protected <T extends Number> Result genericGetNext(T number, byte dataType) throws ExecException {
-        Result r = accumChild(null, number, dataType);
+    protected Result genericGetNext(byte dataType) throws ExecException {
+        Result r = accumChild(null, dataType);
         if (r != null) {
             return r;
         }
 
         byte status;
         Result res;
-        T left = null, right = null;
-        res = lhs.getNext(left, dataType);
+        res = lhs.getNext(dataType);
         status = res.returnStatus;
         if(status != POStatus.STATUS_OK || res.result == null) {
             return res;
         }
-        left = (T) res.result;
+        Number left = (Number) res.result;
 
-        res = rhs.getNext(right, dataType);
+        res = rhs.getNext(dataType);
         status = res.returnStatus;
         if(status != POStatus.STATUS_OK || res.result == null) {
             return res;
         }
-        right = (T) res.result;
+        Number right = (Number) res.result;
 
         res.result = mod(left, right, dataType);
         return res;
     }
 
     @Override
-    public Result getNext(Integer i) throws ExecException{
-        return genericGetNext(i, DataType.INTEGER);
+    public Result getNextInteger() throws ExecException{
+        return genericGetNext(DataType.INTEGER);
     }
 
     @Override
-    public Result getNext(Long i) throws ExecException{
-        return genericGetNext(i, DataType.LONG);
+    public Result getNextLong() throws ExecException{
+        return genericGetNext(DataType.LONG);
     }
 
     @Override
-    public Result getNext(BigInteger i) throws ExecException{
-        return genericGetNext(i, DataType.BIGINTEGER);
+    public Result getNextBigInteger() throws ExecException{
+        return genericGetNext(DataType.BIGINTEGER);
     }
 
     @Override

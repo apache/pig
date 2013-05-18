@@ -92,7 +92,7 @@ public class TestCharArrayToNumeric {
             Tuple tuple = TupleFactory.getInstance().newTuple(1);
             tuple.set(0, items[i]);
             proj.attachInput(tuple);
-            Double actual = (Double)cast.getNext(dummyDouble).result;
+            Double actual = (Double)cast.getNextDouble().result;
             if (doubleExpected[i] != null) {
                 assertEquals(doubleExpected[i], actual, 1e-6);
             } else {
@@ -109,7 +109,7 @@ public class TestCharArrayToNumeric {
             Tuple tuple = TupleFactory.getInstance().newTuple(1);
             tuple.set(0, items[i]);
             proj.attachInput(tuple);
-            Float actual = (Float)cast.getNext(dummyFloat).result;
+            Float actual = (Float)cast.getNextFloat().result;
             if (floatExpected[i] != null) {
                 assertEquals(floatExpected[i], actual, 1e-6);
             } else {
@@ -125,7 +125,7 @@ public class TestCharArrayToNumeric {
             Tuple tuple = TupleFactory.getInstance().newTuple(1);
             tuple.set(0, items[i]);
             proj.attachInput(tuple);
-            Long actual = (Long)cast.getNext(dummyLong).result;
+            Long actual = (Long)cast.getNextLong().result;
             if (longExpected[i] != null) {
                 assertEquals(longExpected[i], actual);
             } else {
@@ -141,7 +141,7 @@ public class TestCharArrayToNumeric {
             Tuple tuple = TupleFactory.getInstance().newTuple(1);
             tuple.set(0, items[i]);
             proj.attachInput(tuple);
-            Integer actual = (Integer)cast.getNext(dummyInteger).result;
+            Integer actual = (Integer)cast.getNextInteger().result;
             if (intExpected[i] != null) {
                 assertEquals(intExpected[i], actual);
             } else {

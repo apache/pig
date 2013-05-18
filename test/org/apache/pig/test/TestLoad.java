@@ -102,7 +102,7 @@ public class TestLoad {
         }
         Tuple t=null;
         int size = 0;
-        for(Result res = ld.getNext(t);res.returnStatus!=POStatus.STATUS_EOP;res=ld.getNext(t)){
+        for(Result res = ld.getNextTuple();res.returnStatus!=POStatus.STATUS_EOP;res=ld.getNextTuple()){
             assertEquals(true, TestHelper.bagContains(inpDB, (Tuple)res.result));
             ++size;
         }

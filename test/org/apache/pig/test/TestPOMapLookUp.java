@@ -56,7 +56,7 @@ public class TestPOMapLookUp {
 			for(Map.Entry<String, Object> e : map.entrySet()) {
 				op.setLookUpKey(e.getKey());
 				plan.attachInput(t);
-				Result res = op.getNext(map);
+				Result res = op.getNextMap();
 				//System.out.println(e.getValue() + " : " + res.result);
 				assertEquals(e.getValue(), res.result);
 			}

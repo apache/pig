@@ -17,14 +17,9 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators;
 
-import java.util.Map;
 
-import org.joda.time.DateTime;
 
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DataByteArray;
-import org.apache.pig.data.Tuple;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.impl.plan.OperatorKey;
 
@@ -51,26 +46,26 @@ public interface ComparisonOperator {
 
     // Stupid java doesn't allow multiple inheritence, so I have to duplicate
     // all the getNext functions here so that comparitors can have them.
-    public Result getNext(Integer i) throws ExecException;
+    public Result getNextInteger() throws ExecException;
 
-    public Result getNext(Long l) throws ExecException;
+    public Result getNextLong() throws ExecException;
 
-    public Result getNext(Double d) throws ExecException;
+    public Result getNextDouble() throws ExecException;
 
-    public Result getNext(Float f) throws ExecException;
+    public Result getNextFloat() throws ExecException;
 
-    public Result getNext(String s) throws ExecException;
+    public Result getNextString() throws ExecException;
 
-    public Result getNext(DataByteArray ba) throws ExecException;
+    public Result getNextDataByteArray() throws ExecException;
 
-    public Result getNext(Map m) throws ExecException;
+    public Result getNextMap() throws ExecException;
 
-    public Result getNext(Boolean b) throws ExecException;
+    public Result getNextBoolean() throws ExecException;
 
-    public Result getNext(DateTime dt) throws ExecException;
+    public Result getNextDateTime() throws ExecException;
 
-    public Result getNext(Tuple t) throws ExecException;
+    public Result getNextTuple() throws ExecException;
 
-    public Result getNext(DataBag db) throws ExecException;
+    public Result getNextDataBag() throws ExecException;
 
 }

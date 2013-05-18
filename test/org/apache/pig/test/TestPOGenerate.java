@@ -156,13 +156,13 @@ public class TestPOGenerate {
             /*plan1.attachInput(t);
             plan2.attachInput(t);*/
             poGen.attachInput(t);
-            Result output = poGen.getNext(t);
+            Result output = poGen.getNextTuple();
             while(output.result != null && output.returnStatus != POStatus.STATUS_EOP) {
                 //System.out.println(output.result);
                 Tuple tObtained = (Tuple) output.result;
                 assertTrue(tObtained.get(0).toString().equals(tObtained.get(2).toString()));
                 //obtained.add((Tuple) output.result);
-                output = poGen.getNext(t);
+                output = poGen.getNextTuple();
             }
         }
 
@@ -192,11 +192,11 @@ public class TestPOGenerate {
             /*plan1.attachInput(t);
             plan2.attachInput(t);*/
             poGen.attachInput(t);
-            Result output = poGen.getNext(t);
+            Result output = poGen.getNextTuple();
             while(output.result != null && output.returnStatus != POStatus.STATUS_EOP) {
                 //System.out.println(output.result);
                 obtained.add(((Tuple) output.result).toString());
-                output = poGen.getNext(t);
+                output = poGen.getNextTuple();
             }
         }
         int count = 0;
@@ -232,11 +232,11 @@ public class TestPOGenerate {
             /*plan1.attachInput(t);
             plan2.attachInput(t);*/
             poGen.attachInput(t);
-            Result output = poGen.getNext(t);
+            Result output = poGen.getNextTuple();
             while(output.result != null && output.returnStatus != POStatus.STATUS_EOP) {
                 //System.out.println(output.result);
                 obtained.add(((Tuple) output.result).toString());
-                output = poGen.getNext(t);
+                output = poGen.getNextTuple();
             }
         }
 

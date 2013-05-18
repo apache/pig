@@ -59,7 +59,7 @@ public class PONot extends UnaryComparisonOperator {
     }
 
     @Override
-    public Result getNext(Boolean b) throws ExecException {
+    public Result getNextBoolean() throws ExecException {
         if (trueRes == null) {
             trueRes = new Result();
             trueRes.returnStatus = POStatus.STATUS_OK;
@@ -68,7 +68,7 @@ public class PONot extends UnaryComparisonOperator {
             falseRes.returnStatus = POStatus.STATUS_OK;
             falseRes.result = Boolean.valueOf(false);
         }
-        res = expr.getNext(dummyBool);
+        res = expr.getNextBoolean();
         if(res.returnStatus != POStatus.STATUS_OK || res.result == null) {
             return res;
         }

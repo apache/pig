@@ -61,8 +61,8 @@ public class PONegative extends UnaryExpressionOperator {
     }
 
     @Override
-    public Result getNext(Double d) throws ExecException {
-        Result res = expr.getNext(d);
+    public Result getNextDouble() throws ExecException {
+        Result res = expr.getNextDouble();
         if(res.returnStatus == POStatus.STATUS_OK && res.result!=null) {
                  res.result = -1*((Double)res.result);
 
@@ -72,8 +72,8 @@ public class PONegative extends UnaryExpressionOperator {
     }
 
     @Override
-    public Result getNext(Float f) throws ExecException {
-        Result res = expr.getNext(f);
+    public Result getNextFloat() throws ExecException {
+        Result res = expr.getNextFloat();
         if(res.returnStatus == POStatus.STATUS_OK && res.result!=null ) {
             res.result = -1*((Float)res.result);
         }
@@ -81,8 +81,8 @@ public class PONegative extends UnaryExpressionOperator {
     }
 
     @Override
-    public Result getNext(Integer i) throws ExecException {
-        Result res = expr.getNext(i);
+    public Result getNextInteger() throws ExecException {
+        Result res = expr.getNextInteger();
         if(res.returnStatus == POStatus.STATUS_OK && res.result!=null ) {
             res.result = -1*((Integer)res.result);
         }
@@ -90,8 +90,8 @@ public class PONegative extends UnaryExpressionOperator {
     }
 
     @Override
-    public Result getNext(Long l) throws ExecException {
-        Result res = expr.getNext(l);
+    public Result getNextLong() throws ExecException {
+        Result res = expr.getNextLong();
         if(res.returnStatus == POStatus.STATUS_OK && res.result!=null) {
             res.result = -1*((Long)res.result);
         }
@@ -99,8 +99,8 @@ public class PONegative extends UnaryExpressionOperator {
     }
 
     @Override
-    public Result getNext(BigInteger bi) throws ExecException {
-        Result res = expr.getNext(bi);
+    public Result getNextBigInteger() throws ExecException {
+        Result res = expr.getNextBigInteger();
         if(res.returnStatus == POStatus.STATUS_OK && res.result!=null) {
             res.result = ((BigInteger)res.result).negate();
         }
@@ -108,8 +108,8 @@ public class PONegative extends UnaryExpressionOperator {
     }
 
     @Override
-    public Result getNext(BigDecimal bd) throws ExecException {
-        Result res = expr.getNext(bd);
+    public Result getNextBigDecimal() throws ExecException {
+        Result res = expr.getNextBigDecimal();
         if(res.returnStatus == POStatus.STATUS_OK && res.result!=null) {
             res.result = ((BigDecimal)res.result).negate();
         }

@@ -17,14 +17,10 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
-import org.joda.time.DateTime;
 
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
@@ -34,7 +30,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.SingleTupleBag;
 import org.apache.pig.data.Tuple;
@@ -247,7 +242,7 @@ public class POProject extends ExpressionOperator {
     }
 
     @Override
-    public Result getNext(DataBag db) throws ExecException {
+    public Result getNextDataBag() throws ExecException {
 
         Result res = processInputBag();
         if(res.returnStatus!=POStatus.STATUS_OK)
@@ -340,59 +335,59 @@ public class POProject extends ExpressionOperator {
     }
 
     @Override
-    public Result getNext(DataByteArray ba) throws ExecException {
+    public Result getNextDataByteArray() throws ExecException {
         return getNext();
     }
 
     @Override
-    public Result getNext(Double d) throws ExecException {
+    public Result getNextDouble() throws ExecException {
         return getNext();
     }
 
     @Override
-    public Result getNext(Float f) throws ExecException {
+    public Result getNextFloat() throws ExecException {
         return getNext();
     }
 
     @Override
-    public Result getNext(Integer i) throws ExecException {
+    public Result getNextInteger() throws ExecException {
         return getNext();
     }
 
     @Override
-    public Result getNext(Long l) throws ExecException {
+    public Result getNextLong() throws ExecException {
         return getNext();
     }
 
 
 
     @Override
-    public Result getNext(Boolean b) throws ExecException {
+    public Result getNextBoolean() throws ExecException {
         return getNext();
     }
 
     @Override
-    public Result getNext(DateTime dt) throws ExecException {
+    public Result getNextDateTime() throws ExecException {
         return getNext();
     }
 
     @Override
-    public Result getNext(Map m) throws ExecException {
+    public Result getNextMap() throws ExecException {
         return getNext();
     }
 
     @Override
-    public Result getNext(String s) throws ExecException {
+    public Result getNextString() throws ExecException {
         return getNext();
     }
 
     @Override
-    public Result getNext(BigInteger s) throws ExecException {
+    public Result getNextBigInteger() throws ExecException {
         return getNext();
     }
 
     @Override
-    public Result getNext(BigDecimal s) throws ExecException {
+    public Result getNextBigDecimal() throws ExecException {
         return getNext();
     }
 
@@ -402,7 +397,7 @@ public class POProject extends ExpressionOperator {
      * the entire bag.
      */
     @Override
-    public Result getNext(Tuple t) throws ExecException {
+    public Result getNextTuple() throws ExecException {
         Result res = new Result();
         if(!processingBagOfTuples){
             Tuple inpValue = null;
@@ -490,7 +485,7 @@ public class POProject extends ExpressionOperator {
         else{
             //done processing the bag of tuples
             processingBagOfTuples = false;
-            return getNext(t);
+            return getNextTuple();
         }
     }
 
@@ -592,9 +587,9 @@ public class POProject extends ExpressionOperator {
 
         if(!isInputAttached()) {
             if (inputs.get(0).getResultType()==DataType.BAG)
-                return inputs.get(0).getNext(dummyBag);
+                return inputs.get(0).getNextDataBag();
             else
-                return inputs.get(0).getNext(dummyTuple);
+                return inputs.get(0).getNextTuple();
         }
         else{
             res.result = (DataBag)input.get(columns.get(0));

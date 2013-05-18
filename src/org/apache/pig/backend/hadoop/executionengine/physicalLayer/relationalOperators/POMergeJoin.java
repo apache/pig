@@ -269,7 +269,7 @@ public class POMergeJoin extends PhysicalOperator {
 
     @SuppressWarnings("unchecked")
     @Override
-    public Result getNext(Tuple t) throws ExecException {
+    public Result getNextTuple() throws ExecException {
 
         Object curLeftKey;
         Result curLeftInp;
@@ -341,7 +341,7 @@ public class POMergeJoin extends PhysicalOperator {
                         rightTupSize = curJoiningRightTup.size();
                         counter = leftTuples.size();
                         doingJoin = true;
-                        return this.getNext(dummyTuple);
+                        return this.getNextTuple();
 
                     }
                     else if(cmpval > 0){    // We got ahead on right side. Store currently read right tuple.
@@ -438,7 +438,7 @@ public class POMergeJoin extends PhysicalOperator {
             doingJoin = true;
             prevLeftInp = curLeftInp;
             prevLeftKey = curLeftKey;
-            return this.getNext(dummyTuple);
+            return this.getNextTuple();
         }
 
         // We will get here only when curLeftKey > prevRightKey
@@ -484,7 +484,7 @@ public class POMergeJoin extends PhysicalOperator {
                 doingJoin = true;
                 prevLeftInp = curLeftInp;
                 prevLeftKey = curLeftKey;
-                return this.getNext(dummyTuple);
+                return this.getNextTuple();
             }
 
             else{    // We got ahead on right side. Store currently read right tuple.
@@ -556,7 +556,7 @@ public class POMergeJoin extends PhysicalOperator {
                     return new Result(POStatus.STATUS_OK, t);
                 }
             } else {
-                Result res = rightPipelineLeaf.getNext(dummyTuple);
+                Result res = rightPipelineLeaf.getNextTuple();
                 rightPipelineLeaf.detachInput();
                 switch(res.returnStatus){
                 case POStatus.STATUS_OK:
@@ -599,7 +599,7 @@ public class POMergeJoin extends PhysicalOperator {
         //Separate Key & Value of input using corresponding LR operator
         POLocalRearrange lr = LRs[lrIdx];
         lr.attachInput((Tuple)inp.result);
-        Result lrOut = lr.getNext(dummyTuple);
+        Result lrOut = lr.getNextTuple();
         lr.detachInput();
         if(lrOut.returnStatus!=POStatus.STATUS_OK){
             int errCode = 2167;

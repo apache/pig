@@ -82,8 +82,8 @@ public class TestPOSort {
 
         //verify
         Tuple t = null;
-        Result res1 = sort.getNext(t);
-        Result res2 = sort.getNext(t);
+        Result res1 = sort.getNextTuple();
+        Result res2 = sort.getNextTuple();
 
         while (res2.returnStatus != POStatus.STATUS_EOP) {
             Object i1 = ((Tuple) res1.result).get(0);
@@ -94,7 +94,7 @@ public class TestPOSort {
             System.out.println("RESULT2=i : " + res2.result + " i = " + i);
             assertEquals(true, (i <= 0));
             res1 = res2;
-            res2 = sort.getNext(t);
+            res2 = sort.getNextTuple();
         }
     }
 
@@ -130,9 +130,9 @@ public class TestPOSort {
         POSort sort = new POSort(new OperatorKey("", r.nextLong()), -1, inputs,
                 sortPlans, mAscCols, null);
         Tuple t = null;
-        Result res1 = sort.getNext(t);
+        Result res1 = sort.getNextTuple();
         // System.out.println(res1.result);
-        Result res2 = sort.getNext(t);
+        Result res2 = sort.getNextTuple();
         while (res2.returnStatus != POStatus.STATUS_EOP) {
             Object i1 = ((Tuple) res1.result).get(0);
             Object i2 = ((Tuple) res2.result).get(0);
@@ -140,7 +140,7 @@ public class TestPOSort {
             // System.out.println(res2.result + " i = " + i);
             assertEquals(true, (i >= 0));
             res1 = res2;
-            res2 = sort.getNext(t);
+            res2 = sort.getNextTuple();
         }
     }
 
@@ -177,9 +177,9 @@ public class TestPOSort {
         POSort sort = new POSort(new OperatorKey("", r.nextLong()), -1, inputs,
                 sortPlans, mAscCols, null);
         Tuple t = null;
-        Result res1 = sort.getNext(t);
+        Result res1 = sort.getNextTuple();
         // System.out.println(res1.result);
-        Result res2 = sort.getNext(t);
+        Result res2 = sort.getNextTuple();
         while (res2.returnStatus != POStatus.STATUS_EOP) {
             Object i1 = ((Tuple) res1.result).get(1);
             Object i2 = ((Tuple) res2.result).get(1);
@@ -187,7 +187,7 @@ public class TestPOSort {
             assertEquals(true, (i <= 0));
             // System.out.println(res2.result);
             res1 = res2;
-            res2 = sort.getNext(t);
+            res2 = sort.getNextTuple();
         }
     }
 
@@ -220,9 +220,9 @@ public class TestPOSort {
         POSort sort = new POSort(new OperatorKey("", r.nextLong()), -1, inputs,
                 sortPlans, mAscCols, null);
         Tuple t = null;
-        Result res1 = sort.getNext(t);
+        Result res1 = sort.getNextTuple();
         // System.out.println(res1.result);
-        Result res2 = sort.getNext(t);
+        Result res2 = sort.getNextTuple();
         while (res2.returnStatus != POStatus.STATUS_EOP) {
             Object i1 = ((Tuple) res1.result).get(1);
             Object i2 = ((Tuple) res2.result).get(1);
@@ -230,7 +230,7 @@ public class TestPOSort {
             assertEquals(true, (i >= 0));
             // System.out.println(res2.result);
             res1 = res2;
-            res2 = sort.getNext(t);
+            res2 = sort.getNextTuple();
         }
     }
 
@@ -297,15 +297,15 @@ public class TestPOSort {
         Tuple t = null;
         Result res ;
         // output line 1
-        res = sort.getNext(t);
+        res = sort.getNextTuple();
         assertEquals(((Tuple) res.result).get(0), 1) ;
         assertEquals(((Tuple) res.result).get(1), 10) ;
         // output line 2
-        res = sort.getNext(t);
+        res = sort.getNextTuple();
         assertEquals(((Tuple) res.result).get(0), 2) ;
         assertEquals(((Tuple) res.result).get(1), 8) ;
         // output line 3
-        res = sort.getNext(t);
+        res = sort.getNextTuple();
         assertEquals(((Tuple) res.result).get(0), 3) ;
         assertEquals(((Tuple) res.result).get(1), 8) ;
 
@@ -389,23 +389,23 @@ public class TestPOSort {
         Tuple t = null;
         Result res ;
         // output line 1
-        res = sort.getNext(t);
+        res = sort.getNextTuple();
         assertNull(((Tuple) res.result).get(0)) ;
         assertEquals(((Tuple) res.result).get(1), 10) ;
          // output line 2
-        res = sort.getNext(t);
+        res = sort.getNextTuple();
         assertEquals(((Tuple) res.result).get(0), 1) ;
         assertEquals(((Tuple) res.result).get(1), 8) ;
         // output line 3
-        res = sort.getNext(t);
+        res = sort.getNextTuple();
         assertEquals(((Tuple) res.result).get(0), 3) ;
         assertEquals(((Tuple) res.result).get(1), 8) ;
         // output line 4
-        res = sort.getNext(t);
+        res = sort.getNextTuple();
         assertNull(((Tuple) res.result).get(0)) ;
         assertNull(((Tuple) res.result).get(1)) ;
         // output line 5
-        res = sort.getNext(t);
+        res = sort.getNextTuple();
         assertEquals(((Tuple) res.result).get(0), 1 );
         assertNull(((Tuple) res.result).get(1)) ;
 
@@ -478,15 +478,15 @@ public class TestPOSort {
         Tuple t = null;
         Result res ;
         // output line 1
-        res = sort.getNext(t);
+        res = sort.getNextTuple();
         assertEquals(((Tuple) res.result).get(0), 3) ;
         assertEquals(((Tuple) res.result).get(1), 5) ;
         // output line 2
-        res = sort.getNext(t);
+        res = sort.getNextTuple();
         assertEquals(((Tuple) res.result).get(0), 3) ;
         assertEquals(((Tuple) res.result).get(1), 8) ;
         // output line 3
-        res = sort.getNext(t);
+        res = sort.getNextTuple();
         assertEquals(((Tuple) res.result).get(0), 1) ;
         assertEquals(((Tuple) res.result).get(1), 2) ;
 
@@ -569,23 +569,23 @@ public class TestPOSort {
         Tuple t = null;
         Result res ;
         // output line 1
-        res = sort.getNext(t);
+        res = sort.getNextTuple();
         assertEquals(((Tuple) res.result).get(0), 3) ;
         assertEquals(((Tuple) res.result).get(1), 8) ;
         // output line 2
-        res = sort.getNext(t);
+        res = sort.getNextTuple();
         assertEquals(((Tuple) res.result).get(0), 1) ;
         assertNull(((Tuple) res.result).get(1)) ;
         // output line 3
-        res = sort.getNext(t);
+        res = sort.getNextTuple();
         assertEquals(((Tuple) res.result).get(0), 1) ;
         assertEquals(((Tuple) res.result).get(1), 8) ;
         // output line 4
-        res = sort.getNext(t);
+        res = sort.getNextTuple();
         assertNull(((Tuple) res.result).get(0)) ;
         assertNull(((Tuple) res.result).get(1)) ;
         // output line 5
-        res = sort.getNext(t);
+        res = sort.getNextTuple();
         assertNull(((Tuple) res.result).get(0)) ;
         assertEquals(((Tuple) res.result).get(1), 10) ;
 
@@ -621,9 +621,9 @@ public class TestPOSort {
         POSort sort = new POSort(new OperatorKey("", r.nextLong()), -1, inputs,
                 null, null, comparator);
         Tuple t = null;
-        Result res1 = sort.getNext(t);
+        Result res1 = sort.getNextTuple();
         // System.out.println(res1.result);
-        Result res2 = sort.getNext(t);
+        Result res2 = sort.getNextTuple();
         while (res2.returnStatus != POStatus.STATUS_EOP) {
             int i1 = ((Integer) ((Tuple) res1.result).get(1) == null ? 0 : (Integer) ((Tuple) res1.result).get(1));
             int i2 = ((Integer) ((Tuple) res2.result).get(1) == null ? 0 : (Integer) ((Tuple) res2.result).get(1));
@@ -631,7 +631,7 @@ public class TestPOSort {
             assertEquals(true, (i <= 0));
             System.out.println(i + " : " + res2.result);
             res1 = res2;
-            res2 = sort.getNext(t);
+            res2 = sort.getNextTuple();
         }
 
     }

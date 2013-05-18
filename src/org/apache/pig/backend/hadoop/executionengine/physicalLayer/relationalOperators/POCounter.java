@@ -127,7 +127,7 @@ public class POCounter extends PhysicalOperator {
     }
 
     @Override
-    public Result getNext(Tuple t) throws ExecException {
+    public Result getNextTuple() throws ExecException {
         Result inp = null;
 
         while (true) {

@@ -124,12 +124,12 @@ public class TestPOPartialAgg {
         Result res;
         // attaching one input tuple, result tuple stays in operator, expect EOP
         partAggOp.attachInput(t);
-        res = partAggOp.getNext(dummyTuple);
+        res = partAggOp.getNextTuple();
         assertEquals(POStatus.STATUS_EOP, res.returnStatus);
 
         // end of all input, now expecting results
         parentPlan.endOfAllInput = true;
-        res = partAggOp.getNext(dummyTuple);
+        res = partAggOp.getNextTuple();
         assertEquals(POStatus.STATUS_OK, res.returnStatus);
         assertEquals(t, res.result);
     }
@@ -138,12 +138,12 @@ public class TestPOPartialAgg {
     public void testPartialAggNoInput() throws ExecException, ParserException {
 
         // nothing attached, expecting EOP
-        Result res = partAggOp.getNext(dummyTuple);
+        Result res = partAggOp.getNextTuple();
         assertEquals(POStatus.STATUS_EOP, res.returnStatus);
 
         // end of all input, still no results
         parentPlan.endOfAllInput = true;
-        res = partAggOp.getNext(dummyTuple);
+        res = partAggOp.getNextTuple();
         assertEquals(POStatus.STATUS_EOP, res.returnStatus);
 
     }
@@ -250,7 +250,7 @@ public class TestPOPartialAgg {
             // attaching one input tuple, result tuple stays in operator, expect
             // EOP
             partAggOp.attachInput(t);
-            res = partAggOp.getNext(dummyTuple);
+            res = partAggOp.getNextTuple();
             if (isMapMemEmpty) {
                 addResults(res, outputs);
             } else {
@@ -264,16 +264,16 @@ public class TestPOPartialAgg {
         parentPlan.endOfAllInput = true;
 
         if (isMapMemEmpty) {
-            Result res = partAggOp.getNext(dummyTuple);
+            Result res = partAggOp.getNextTuple();
             // only one last output expected
             addResults(res, outputs);
 
-            res = partAggOp.getNext(dummyTuple);
+            res = partAggOp.getNextTuple();
             assertEquals(POStatus.STATUS_EOP, res.returnStatus);
             Util.compareActualAndExpectedResults(outputs, expectedOuts);
         } else {
             while (true) {
-                Result res = partAggOp.getNext(dummyTuple);
+                Result res = partAggOp.getNextTuple();
                 if (!addResults(res, outputs)) {
                     break;
                 }

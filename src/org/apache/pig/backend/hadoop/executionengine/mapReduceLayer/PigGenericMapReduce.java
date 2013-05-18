@@ -100,7 +100,6 @@ public class PigGenericMapReduce {
     public static Configuration sJobConf = null;
     
     public static final ThreadLocal<Configuration> sJobConfInternal = new ThreadLocal<Configuration>();
-    private final static Tuple DUMMYTUPLE = null;
     
     public static class Map extends PigMapBase {
 
@@ -209,7 +208,7 @@ public class PigGenericMapReduce {
                 throws IOException, InterruptedException {
             
             while(true){
-                Result res = leaf.getNext(DUMMYTUPLE);
+                Result res = leaf.getNextTuple();
                 
                 if(res.returnStatus==POStatus.STATUS_OK){
                     // For POPartitionRearrange, the result is a bag. 
@@ -419,7 +418,7 @@ public class PigGenericMapReduce {
         public boolean processOnePackageOutput(Context oc) 
                 throws IOException, InterruptedException {
 
-            Result res = pack.getNext(DUMMYTUPLE);
+            Result res = pack.getNextTuple();
             if(res.returnStatus==POStatus.STATUS_OK){
                 Tuple packRes = (Tuple)res.result;
                 
@@ -462,7 +461,7 @@ public class PigGenericMapReduce {
             
             while(true)
             {
-                Result redRes = leaf.getNext(DUMMYTUPLE);
+                Result redRes = leaf.getNextTuple();
                 if(redRes.returnStatus==POStatus.STATUS_OK){
                     try{
                         outputCollector.write(null, (Tuple)redRes.result);
@@ -639,7 +638,7 @@ public class PigGenericMapReduce {
             
             pack.attachInput(key, tupIter.iterator());
             
-            Result res = pack.getNext(DUMMYTUPLE);
+            Result res = pack.getNextTuple();
             if(res.returnStatus==POStatus.STATUS_OK){
                 Tuple packRes = (Tuple)res.result;
                 

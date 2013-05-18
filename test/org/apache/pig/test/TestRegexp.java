@@ -56,21 +56,21 @@ public class TestRegexp {
         lt.setValue(new String(
                 "The quick sly fox jumped over the lazy brown dog"));
         rt.setValue(".*s.y.*");
-        Result res = op.getNext(new Boolean(true));
+        Result res = op.getNextBoolean();
         assertEquals(POStatus.STATUS_OK, res.returnStatus);
         assertTrue((Boolean)res.result);
 
         // test with null in lhs
         lt.setValue(null);
         rt.setValue(".*s.y.*");
-        res = op.getNext(new Boolean(true));
+        res = op.getNextBoolean();
         assertNull(res.result);
 
         // test with null in rhs
         lt.setValue(new String(
                 "The quick sly fox jumped over the lazy brown dog"));
         rt.setValue(null);
-        res = op.getNext(new Boolean(true));
+        res = op.getNextBoolean();
         assertNull(res.result);
     }
 
@@ -79,7 +79,7 @@ public class TestRegexp {
         lt.setValue(new String(
                 "The quick sly fox jumped over the lazy brown dog"));
         rt.setValue(new String("zzz"));
-        Result res = op.getNext(new Boolean(true));
+        Result res = op.getNextBoolean();
         assertEquals(POStatus.STATUS_OK, res.returnStatus);
         assertFalse((Boolean)res.result);
     }

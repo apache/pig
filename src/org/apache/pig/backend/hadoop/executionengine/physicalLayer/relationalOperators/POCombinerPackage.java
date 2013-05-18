@@ -126,7 +126,7 @@ public class POCombinerPackage extends POPackage {
     }
     
     @Override
-    public Result getNext(Tuple t) throws ExecException {
+    public Result getNextTuple() throws ExecException {
         int keyField = -1;
         //Create numInputs bags
         Object[] fields = new Object[mBags.length];

@@ -55,7 +55,6 @@ public class MergeJoinIndexer  extends LoadFunc{
     private int keysCnt;
     private PhysicalOperator rightPipelineLeaf;
     private PhysicalOperator rightPipelineRoot;
-    private Tuple dummyTuple = null;
     private LoadFunc loader;
     private PigSplit pigSplit = null;
     private boolean ignoreNullKeys;
@@ -124,7 +123,7 @@ public class MergeJoinIndexer  extends LoadFunc{
             if (null == precedingPhyPlan){
 
                 lr.attachInput(readTuple);
-                key = ((Tuple)lr.getNext(dummyTuple).result).get(1);
+                key = ((Tuple)lr.getNextTuple().result).get(1);
                 lr.detachInput();
                 if ( null == key && ignoreNullKeys) // Tuple with null key. Drop it.
                     continue;
@@ -138,13 +137,13 @@ public class MergeJoinIndexer  extends LoadFunc{
 
             while(true){
 
-                Result res = rightPipelineLeaf.getNext(dummyTuple);
+                Result res = rightPipelineLeaf.getNextTuple();
                 switch(res.returnStatus){
 
                 case POStatus.STATUS_OK:
 
                     lr.attachInput((Tuple)res.result);
-                    key = ((Tuple)lr.getNext(dummyTuple).result).get(1);
+                    key = ((Tuple)lr.getNextTuple().result).get(1);
                     lr.detachInput();
                     if ( null == key && ignoreNullKeys) // Tuple with null key. Drop it.
                         continue;
