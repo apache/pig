@@ -127,8 +127,8 @@ public class TestFRJoin {
 
             ld.setPc(pc);
             Tuple dummyTuple = null;
-            for (Result res = ld.getNext(dummyTuple); res.returnStatus != POStatus.STATUS_EOP; res = ld
-                    .getNext(dummyTuple)) {
+            for (Result res = ld.getNextTuple(); res.returnStatus != POStatus.STATUS_EOP; res = ld
+                    .getNextTuple()) {
                 Tuple tup = (Tuple)res.result;
                 LoadFunc lf = ((LoadFunc)pc.instantiateFuncFromSpec(ld.getLFile().getFuncSpec()));
                 String key = lf.getLoadCaster().bytesToCharArray(

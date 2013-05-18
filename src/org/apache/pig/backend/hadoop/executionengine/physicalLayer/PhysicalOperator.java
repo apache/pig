@@ -18,14 +18,9 @@
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer;
 
 import java.io.Serializable;
-import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-
-import org.joda.time.DateTime;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -34,7 +29,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlan
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.plan.Operator;
@@ -110,34 +104,6 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     // Should be set by the backends to appropriate implementations that
     // wrap their own version of a logger.
     protected static PigLogger pigLogger;
-
-    // Dummy types used to access the getNext of appropriate
-    // type. These will be null
-    static final protected DataByteArray dummyDBA = null;
-
-    static final protected String dummyString = null;
-
-    static final protected Double dummyDouble = null;
-
-    static final protected Float dummyFloat = null;
-
-    static final protected Integer dummyInt = null;
-
-    static final protected Long dummyLong = null;
-
-    static final protected Boolean dummyBool = null;
-
-    static final protected DateTime dummyDateTime = null;
-
-    static final protected Tuple dummyTuple = null;
-
-    static final protected DataBag dummyBag = null;
-
-    static final protected BigInteger dummyBigInteger = null;
-
-    static final protected BigInteger dummyBigDecimal = null;
-
-    static final protected Map dummyMap = null;
 
     // TODO: This is not needed. But a lot of tests check serialized physical plans
     // that are sensitive to the serialized image of the contained physical operators.
@@ -298,6 +264,7 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
      * @throws ExecException
      */
     public Result processInput() throws ExecException {
+        try {
         Result res = new Result();
         if (input == null && (inputs == null || inputs.size()==0)) {
 //            log.warn("No inputs found. Signaling End of Processing.");
@@ -311,12 +278,15 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
         }
 
         if (!isInputAttached()) {
-            return inputs.get(0).getNext(dummyTuple);
+                return inputs.get(0).getNextTuple();
         } else {
             res.result = input;
             res.returnStatus = (res.result == null ? POStatus.STATUS_NULL: POStatus.STATUS_OK);
             detachInput();
             return res;
+        }
+        } catch (ExecException e) {
+            throw new ExecException("Exception while executing " + this.toString() + ": " + e.toString(), e);
         }
     }
 
@@ -327,42 +297,40 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
      * Implementations that call into the different versions of getNext are often
      * identical, differing only in the signature of the getNext() call they make.
      * This method allows to cut down on some of the copy-and-paste.
-     *
-     * @param obj The object we are working with. Its class should correspond to DataType
      * @param dataType Describes the type of obj; a byte from DataType.
+     *
      * @return result Result of applying this Operator to the Object.
      * @throws ExecException
      */
-    @SuppressWarnings("rawtypes")  // For legacy use of untemplatized Map.
-    public Result getNext(Object obj, byte dataType) throws ExecException {
+    public Result getNext(byte dataType) throws ExecException {
         try {
             switch (dataType) {
             case DataType.BAG:
-                return getNext((DataBag) obj);
+                return getNextDataBag();
             case DataType.BOOLEAN:
-                return getNext((Boolean) obj);
+                return getNextBoolean();
             case DataType.BYTEARRAY:
-                return getNext((DataByteArray) obj);
+                return getNextDataByteArray();
             case DataType.CHARARRAY:
-                return getNext((String) obj);
+                return getNextString();
             case DataType.DOUBLE:
-                return getNext((Double) obj);
+                return getNextDouble();
             case DataType.FLOAT:
-                return getNext((Float) obj);
+                return getNextFloat();
             case DataType.INTEGER:
-                return getNext((Integer) obj);
+                return getNextInteger();
             case DataType.LONG:
-                return getNext((Long) obj);
+                return getNextLong();
             case DataType.BIGINTEGER:
-                return getNext((BigInteger) obj);
+                return getNextBigInteger();
             case DataType.BIGDECIMAL:
-                return getNext((BigDecimal) obj);
+                return getNextBigDecimal();
             case DataType.DATETIME:
-                return getNext((DateTime) obj);
+                return getNextDateTime();
             case DataType.MAP:
-                return getNext((Map) obj);
+                return getNextMap();
             case DataType.TUPLE:
-                return getNext((Tuple) obj);
+                return getNextTuple();
             default:
                 throw new ExecException("Unsupported type for getNext: " + DataType.findTypeName(dataType));
             }
@@ -371,83 +339,50 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
         }
     }
 
-    public static Object getDummy(byte dataType) throws ExecException {
-        switch (dataType) {
-        case DataType.BAG:
-            return dummyBag;
-        case DataType.BOOLEAN:
-            return dummyBool;
-        case DataType.BYTEARRAY:
-            return dummyDBA;
-        case DataType.CHARARRAY:
-            return dummyString;
-        case DataType.DOUBLE:
-            return dummyDouble;
-        case DataType.FLOAT:
-            return dummyFloat;
-        case DataType.INTEGER:
-            return dummyFloat;
-        case DataType.LONG:
-            return dummyLong;
-        case DataType.BIGINTEGER:
-            return dummyBigInteger;
-        case DataType.BIGDECIMAL:
-            return dummyBigDecimal;
-        case DataType.DATETIME:
-            return dummyDateTime;
-        case DataType.MAP:
-            return dummyMap;
-        case DataType.TUPLE:
-            return dummyTuple;
-        default:
-            throw new ExecException("Unsupported type for getDummy: " + DataType.findTypeName(dataType));
-        }
-    }
-
-    public Result getNext(Integer i) throws ExecException {
+    public Result getNextInteger() throws ExecException {
         return res;
     }
 
-    public Result getNext(Long l) throws ExecException {
+    public Result getNextLong() throws ExecException {
         return res;
     }
 
-    public Result getNext(Double d) throws ExecException {
+    public Result getNextDouble() throws ExecException {
         return res;
     }
 
-    public Result getNext(Float f) throws ExecException {
+    public Result getNextFloat() throws ExecException {
         return res;
     }
 
-    public Result getNext(DateTime dt) throws ExecException {
+    public Result getNextDateTime() throws ExecException {
         return res;
     }
 
-    public Result getNext(String s) throws ExecException {
+    public Result getNextString() throws ExecException {
         return res;
     }
 
-    public Result getNext(DataByteArray ba) throws ExecException {
+    public Result getNextDataByteArray() throws ExecException {
         return res;
     }
 
-    public Result getNext(Map m) throws ExecException {
+    public Result getNextMap() throws ExecException {
         return res;
     }
 
-    public Result getNext(Boolean b) throws ExecException {
+    public Result getNextBoolean() throws ExecException {
         return res;
     }
 
-    public Result getNext(Tuple t) throws ExecException {
+    public Result getNextTuple() throws ExecException {
         return res;
     }
 
-    public Result getNext(DataBag db) throws ExecException {
+    public Result getNextDataBag() throws ExecException {
         Result ret = null;
         DataBag tmpBag = BagFactory.getInstance().newDefaultBag();
-        for(ret = getNext(dummyTuple);ret.returnStatus!=POStatus.STATUS_EOP;ret=getNext(dummyTuple)){
+        for(ret = getNextTuple(); ret.returnStatus != POStatus.STATUS_EOP; ret = getNextTuple()){
             if(ret.returnStatus == POStatus.STATUS_ERR) {
                 return ret;
             }
@@ -458,11 +393,11 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
         return ret;
     }
 
-    public Result getNext(BigInteger t) throws ExecException {
+    public Result getNextBigInteger() throws ExecException {
         return res;
     }
 
-    public Result getNext(BigDecimal t) throws ExecException {
+    public Result getNextBigDecimal() throws ExecException {
         return res;
     }
 

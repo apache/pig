@@ -147,7 +147,7 @@ public class TestUnion {
         ld3.setLFile(fSpec);
         DataBag fullBag = DefaultBagFactory.getInstance().newDefaultBag();
         Tuple t=null;
-        for(Result res=ld3.getNext(t);res.returnStatus!=POStatus.STATUS_EOP;res=ld3.getNext(t)){
+        for(Result res=ld3.getNextTuple();res.returnStatus!=POStatus.STATUS_EOP;res=ld3.getNextTuple()){
             fullBag.add((Tuple)res.result);
         }
 
@@ -168,7 +168,7 @@ public class TestUnion {
     public void testGetNextTuple() throws ExecException, IOException {
         Tuple t = null;
         DataBag outBag = DefaultBagFactory.getInstance().newDefaultBag();
-        for(Result res=sp.getNext(t);res.returnStatus!=POStatus.STATUS_EOP;res=sp.getNext(t)){
+        for(Result res=sp.getNextTuple();res.returnStatus!=POStatus.STATUS_EOP;res=sp.getNextTuple()){
             outBag.add(castToDBA((Tuple)res.result));
         }
         assertTrue(TestHelper.compareBags(expBag, outBag));

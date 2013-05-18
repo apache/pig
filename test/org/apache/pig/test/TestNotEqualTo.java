@@ -47,7 +47,7 @@ public class TestNotEqualTo {
         g.setLhs(lt);
         g.setRhs(rt);
         g.setOperandType(DataType.BOOLEAN);
-        Result r = g.getNext(new Boolean(true));
+        Result r = g.getNextBoolean();
         assertEquals(POStatus.STATUS_OK, r.returnStatus);
         assertTrue((Boolean)r.result);
     }
@@ -62,7 +62,7 @@ public class TestNotEqualTo {
         g.setLhs(lt);
         g.setRhs(rt);
         g.setOperandType(DataType.BOOLEAN);
-        Result r = g.getNext(new Boolean(true));
+        Result r = g.getNextBoolean();
         assertEquals(POStatus.STATUS_OK, r.returnStatus);
         assertFalse((Boolean)r.result);
     }
@@ -83,7 +83,7 @@ public class TestNotEqualTo {
         g.setLhs(lt);
         g.setRhs(rt);
         g.setOperandType(DataType.INTEGER);
-        Result r = g.getNext(new Boolean(true));
+        Result r = g.getNextBoolean();
         assertEquals(POStatus.STATUS_OK, r.returnStatus);
         assertTrue((Boolean)r.result);
     }
@@ -98,7 +98,7 @@ public class TestNotEqualTo {
         g.setLhs(lt);
         g.setRhs(rt);
         g.setOperandType(DataType.INTEGER);
-        Result r = g.getNext(new Boolean(true));
+        Result r = g.getNextBoolean();
         assertEquals(POStatus.STATUS_OK, r.returnStatus);
         assertFalse((Boolean)r.result);
     }
@@ -119,7 +119,7 @@ public class TestNotEqualTo {
         g.setLhs(lt);
         g.setRhs(rt);
         g.setOperandType(DataType.LONG);
-        Result r = g.getNext(new Boolean(true));
+        Result r = g.getNextBoolean();
         assertEquals(POStatus.STATUS_OK, r.returnStatus);
         assertTrue((Boolean)r.result);
     }
@@ -134,7 +134,7 @@ public class TestNotEqualTo {
         g.setLhs(lt);
         g.setRhs(rt);
         g.setOperandType(DataType.LONG);
-        Result r = g.getNext(new Boolean(true));
+        Result r = g.getNextBoolean();
         assertEquals(POStatus.STATUS_OK, r.returnStatus);
         assertFalse((Boolean)r.result);
     }
@@ -155,7 +155,7 @@ public class TestNotEqualTo {
         g.setLhs(lt);
         g.setRhs(rt);
         g.setOperandType(DataType.FLOAT);
-        Result r = g.getNext(new Boolean(true));
+        Result r = g.getNextBoolean();
         assertEquals(POStatus.STATUS_OK, r.returnStatus);
         assertTrue((Boolean)r.result);
     }
@@ -170,7 +170,7 @@ public class TestNotEqualTo {
         g.setLhs(lt);
         g.setRhs(rt);
         g.setOperandType(DataType.FLOAT);
-        Result r = g.getNext(new Boolean(true));
+        Result r = g.getNextBoolean();
         assertEquals(POStatus.STATUS_OK, r.returnStatus);
         assertFalse((Boolean)r.result);
     }
@@ -191,7 +191,7 @@ public class TestNotEqualTo {
         g.setLhs(lt);
         g.setRhs(rt);
         g.setOperandType(DataType.DOUBLE);
-        Result r = g.getNext(new Boolean(true));
+        Result r = g.getNextBoolean();
         assertEquals(POStatus.STATUS_OK, r.returnStatus);
         assertTrue((Boolean)r.result);
     }
@@ -206,7 +206,7 @@ public class TestNotEqualTo {
         g.setLhs(lt);
         g.setRhs(rt);
         g.setOperandType(DataType.DOUBLE);
-        Result r = g.getNext(new Boolean(true));
+        Result r = g.getNextBoolean();
         assertEquals(POStatus.STATUS_OK, r.returnStatus);
         assertFalse((Boolean)r.result);
     }
@@ -227,7 +227,7 @@ public class TestNotEqualTo {
         g.setLhs(lt);
         g.setRhs(rt);
         g.setOperandType(DataType.DATETIME);
-        Result r = g.getNext(new Boolean(true));
+        Result r = g.getNextBoolean();
         assertEquals(POStatus.STATUS_OK, r.returnStatus);
         assertTrue((Boolean)r.result);
     }
@@ -242,7 +242,7 @@ public class TestNotEqualTo {
         g.setLhs(lt);
         g.setRhs(rt);
         g.setOperandType(DataType.DATETIME);
-        Result r = g.getNext(new Boolean(true));
+        Result r = g.getNextBoolean();
         assertEquals(POStatus.STATUS_OK, r.returnStatus);
         assertFalse((Boolean)r.result);
     }
@@ -263,7 +263,7 @@ public class TestNotEqualTo {
         g.setLhs(lt);
         g.setRhs(rt);
         g.setOperandType(DataType.CHARARRAY);
-        Result r = g.getNext(new Boolean(true));
+        Result r = g.getNextBoolean();
         assertEquals(POStatus.STATUS_OK, r.returnStatus);
         assertTrue((Boolean)r.result);
     }
@@ -278,7 +278,7 @@ public class TestNotEqualTo {
         g.setLhs(lt);
         g.setRhs(rt);
         g.setOperandType(DataType.CHARARRAY);
-        Result r = g.getNext(new Boolean(true));
+        Result r = g.getNextBoolean();
         assertEquals(POStatus.STATUS_OK, r.returnStatus);
         assertFalse((Boolean)r.result);
     }
@@ -299,7 +299,7 @@ public class TestNotEqualTo {
         g.setLhs(lt);
         g.setRhs(rt);
         g.setOperandType(DataType.BYTEARRAY);
-        Result r = g.getNext(new Boolean(true));
+        Result r = g.getNextBoolean();
         assertEquals(POStatus.STATUS_OK, r.returnStatus);
         assertTrue((Boolean)r.result);
     }
@@ -314,7 +314,7 @@ public class TestNotEqualTo {
         g.setLhs(lt);
         g.setRhs(rt);
         g.setOperandType(DataType.BYTEARRAY);
-        Result r = g.getNext(new Boolean(true));
+        Result r = g.getNextBoolean();
         assertEquals(POStatus.STATUS_OK, r.returnStatus);
         assertFalse((Boolean)r.result);
     }
@@ -331,7 +331,7 @@ public class TestNotEqualTo {
         g.setLhs(lt);
         g.setRhs(rt);
         g.setOperandType(DataType.TUPLE);
-        Result r = g.getNext(new Boolean(true));
+        Result r = g.getNextBoolean();
         assertEquals(POStatus.STATUS_OK, r.returnStatus);
         assertFalse((Boolean)r.result);
     }
@@ -348,7 +348,7 @@ public class TestNotEqualTo {
         g.setLhs(lt);
         g.setRhs(rt);
         g.setOperandType(DataType.TUPLE);
-        Result r = g.getNext(new Boolean(true));
+        Result r = g.getNextBoolean();
         assertEquals(POStatus.STATUS_OK, r.returnStatus);
         assertTrue((Boolean)r.result);
     }
@@ -368,7 +368,7 @@ public class TestNotEqualTo {
         g.setLhs(lt);
         g.setRhs(rt);
         g.setOperandType(DataType.MAP);
-        Result r = g.getNext(new Boolean(true));
+        Result r = g.getNextBoolean();
         assertEquals(POStatus.STATUS_OK, r.returnStatus);
         assertFalse((Boolean)r.result);
     }
@@ -389,7 +389,7 @@ public class TestNotEqualTo {
         g.setLhs(lt);
         g.setRhs(rt);
         g.setOperandType(DataType.MAP);
-        Result r = g.getNext(new Boolean(true));
+        Result r = g.getNextBoolean();
         assertEquals(POStatus.STATUS_OK, r.returnStatus);
         assertTrue((Boolean)r.result);
     }
@@ -413,7 +413,7 @@ public class TestNotEqualTo {
         g.setLhs(lt);
         g.setRhs(rt);
 
-        Result r = g.getNext(new Boolean(true));
+        Result r = g.getNextBoolean();
         assertEquals(POStatus.STATUS_NULL, r.returnStatus);
         assertNull(r.result);
 
@@ -424,7 +424,7 @@ public class TestNotEqualTo {
         g.setLhs(lt);
         g.setRhs(rt);
 
-        r = g.getNext(new Boolean(true));
+        r = g.getNextBoolean();
         assertEquals(POStatus.STATUS_NULL, r.returnStatus);
         assertNull(r.result);
 
@@ -435,7 +435,7 @@ public class TestNotEqualTo {
         g.setLhs(lt);
         g.setRhs(rt);
 
-        r = g.getNext(new Boolean(true));
+        r = g.getNextBoolean();
         assertEquals(POStatus.STATUS_NULL, r.returnStatus);
         assertNull(r.result);
     }

@@ -58,7 +58,7 @@ public class POIsNull extends UnaryComparisonOperator {
     }
 
     @Override
-    public Result getNext(Boolean b) throws ExecException {
+    public Result getNextBoolean() throws ExecException {
 
         Result res = null;
         switch(operandType) {
@@ -75,7 +75,7 @@ public class POIsNull extends UnaryComparisonOperator {
         case DataType.MAP:
         case DataType.TUPLE:
         case DataType.BAG:
-            res = expr.getNext(getDummy(operandType), operandType);
+            res = expr.getNext(operandType);
             if(res.returnStatus == POStatus.STATUS_OK) {
                 if (res.result == null) {
                     res.result = true;

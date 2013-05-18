@@ -84,7 +84,7 @@ public class TestPOSplit {
       split.setParentPlan(pplan);
 
       // Calling POSplit which in turn calls POCast and should fail.
-      Result res = split.getNext(dummyTuple);
+      Result res = split.getNextTuple();
 
       assertEquals("POSplit should fail when input processing fails.",
                    res.returnStatus, POStatus.STATUS_ERR);

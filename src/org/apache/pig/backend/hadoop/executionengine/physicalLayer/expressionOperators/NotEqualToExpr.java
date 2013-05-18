@@ -59,7 +59,7 @@ public class NotEqualToExpr extends BinaryComparisonOperator {
     }
 
     @Override
-    public Result getNext(Boolean bool) throws ExecException {
+    public Result getNextBoolean() throws ExecException {
         Result left, right;
 
         switch (operandType) {
@@ -75,13 +75,12 @@ public class NotEqualToExpr extends BinaryComparisonOperator {
         case DataType.CHARARRAY:
         case DataType.TUPLE:
         case DataType.MAP: {
-            Object dummy = getDummy(operandType);
-            Result r = accumChild(null, dummy, operandType);
+            Result r = accumChild(null, operandType);
             if (r != null) {
                 return r;
             }
-            left = lhs.getNext(dummy, operandType);
-            right = rhs.getNext(dummy, operandType);
+            left = lhs.getNext(operandType);
+            right = rhs.getNext(operandType);
             return doComparison(left, right);
         }
         default: {
@@ -96,9 +95,6 @@ public class NotEqualToExpr extends BinaryComparisonOperator {
 
     @SuppressWarnings("unchecked")
     private Result doComparison(Result left, Result right) throws ExecException {
-        if (trueRef == null) {
-            initializeRefs();
-        }
         if (left.returnStatus != POStatus.STATUS_OK) {
             return left;
         }
@@ -115,17 +111,17 @@ public class NotEqualToExpr extends BinaryComparisonOperator {
 
         if (left.result instanceof Comparable && right.result instanceof Comparable){
             if (((Comparable)left.result).compareTo(right.result) != 0) {
-                left.result = trueRef;
+                left.result = Boolean.TRUE;
             } else {
-                left.result = falseRef;
+                left.result = Boolean.FALSE;
             }
         }else if (left.result instanceof HashMap && right.result instanceof HashMap){
             HashMap leftMap=(HashMap)left.result;
             HashMap rightMap=(HashMap)right.result;
             if (leftMap.equals(rightMap)) {
-                left.result = falseRef;
+                left.result = Boolean.FALSE;
             } else {
-                left.result = trueRef;
+                left.result = Boolean.TRUE;
             }
         }else{
             throw new ExecException("The left side and right side has the different types");

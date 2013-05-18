@@ -69,18 +69,18 @@ public class TestSubtract {
                 DataBag inpdb2 = GenRandomData.genRandSmallTupDataBag(r, 10, 100);
                 lt.setValue(inpdb1);
                 rt.setValue(inpdb2);
-                Result resdb = op.getNext(inpdb1);
+                Result resdb = op.getNextDataBag();
                 assertEquals(POStatus.STATUS_ERR, resdb.returnStatus);
 
                 // test with null in lhs
                 lt.setValue(null);
                 rt.setValue(inpdb2);
-                resdb = op.getNext(inpdb1);
+                resdb = op.getNextDataBag();
                 assertEquals(POStatus.STATUS_ERR, resdb.returnStatus);
                 // test with null in rhs
                 lt.setValue(inpdb1);
                 rt.setValue(null);
-                resdb = op.getNext(inpdb1);
+                resdb = op.getNextDataBag();
                 assertEquals(POStatus.STATUS_ERR, resdb.returnStatus);
                 break;
             case DataType.BOOLEAN:
@@ -88,18 +88,18 @@ public class TestSubtract {
                 Boolean inpb2 = r.nextBoolean();
                 lt.setValue(inpb1);
                 rt.setValue(inpb2);
-                Result resb = op.getNext(inpb1);
+                Result resb = op.getNextBoolean();
                 assertEquals(POStatus.STATUS_ERR, resb.returnStatus);
 
                 // test with null in lhs
                 lt.setValue(null);
                 rt.setValue(inpb2);
-                resb = op.getNext(inpb1);
+                resb = op.getNextBoolean();
                 assertEquals(POStatus.STATUS_ERR, resb.returnStatus);
                 // test with null in rhs
                 lt.setValue(inpb1);
                 rt.setValue(null);
-                resb = op.getNext(inpb1);
+                resb = op.getNextBoolean();
                 assertEquals(POStatus.STATUS_ERR, resb.returnStatus);
                 break;
             case DataType.BYTEARRAY: {
@@ -107,7 +107,7 @@ public class TestSubtract {
                 DataByteArray inpba2 = GenRandomData.genRandDBA(r);
                 lt.setValue(inpba1);
                 rt.setValue(inpba2);
-                Result resba = op.getNext(inpba1);
+                Result resba = op.getNextDataByteArray();
                 //DataByteArray expected = new DataByteArray(inpba1.toString() + inpba2.toString());
                 //assertEquals(expected, (DataByteArray)resba.result);
                 assertEquals(POStatus.STATUS_ERR, resba.returnStatus);
@@ -115,12 +115,12 @@ public class TestSubtract {
                 // test with null in lhs
                 lt.setValue(null);
                 rt.setValue(inpba2);
-                resba = op.getNext(inpba1);
+                resba = op.getNextDataByteArray();
                 assertEquals(POStatus.STATUS_ERR, resba.returnStatus);
                 // test with null in rhs
                 lt.setValue(inpba1);
                 rt.setValue(null);
-                resba = op.getNext(inpba1);
+                resba = op.getNextDataByteArray();
                 assertEquals(POStatus.STATUS_ERR, resba.returnStatus);
                 break;
             }
@@ -129,7 +129,7 @@ public class TestSubtract {
                 String inps2 = GenRandomData.genRandString(r);
                 lt.setValue(inps1);
                 rt.setValue(inps2);
-                Result ress = op.getNext(inps1);
+                Result ress = op.getNextString();
                 /*String expected = new String(inps1 + inps2);
                 assertEquals(expected, (String)ress.result);*/
                 assertEquals(POStatus.STATUS_ERR, ress.returnStatus);
@@ -137,12 +137,12 @@ public class TestSubtract {
                 // test with null in lhs
                 lt.setValue(null);
                 rt.setValue(inps2);
-                ress = op.getNext(inps1);
+                ress = op.getNextString();
                 assertEquals(POStatus.STATUS_ERR, ress.returnStatus);
                 // test with null in rhs
                 lt.setValue(inps1);
                 rt.setValue(null);
-                ress = op.getNext(inps1);
+                ress = op.getNextString();
                 assertEquals(POStatus.STATUS_ERR, ress.returnStatus);
                 break;
             }
@@ -151,19 +151,19 @@ public class TestSubtract {
                 Double inpd2 = r.nextDouble();
                 lt.setValue(inpd1);
                 rt.setValue(inpd2);
-                Result resd = op.getNext(inpd1);
+                Result resd = op.getNextDouble();
                 Double expected = new Double(inpd1 - inpd2);
                 assertEquals(expected, (Double)resd.result);
 
                 // test with null in lhs
                 lt.setValue(null);
                 rt.setValue(inpd2);
-                resd = op.getNext(inpd1);
+                resd = op.getNextDouble();
                 assertNull(resd.result);
                 // test with null in rhs
                 lt.setValue(inpd1);
                 rt.setValue(null);
-                resd = op.getNext(inpd1);
+                resd = op.getNextDouble();
                 assertNull(resd.result);
                 break;
             }
@@ -172,19 +172,19 @@ public class TestSubtract {
                 Float inpf2 = r.nextFloat();
                 lt.setValue(inpf1);
                 rt.setValue(inpf2);
-                Result resf = op.getNext(inpf1);
+                Result resf = op.getNextFloat();
                 Float expected = new Float(inpf1 - inpf2);
                 assertEquals(expected, (Float)resf.result);
 
                 // test with null in lhs
                 lt.setValue(null);
                 rt.setValue(inpf2);
-                resf = op.getNext(inpf1);
+                resf = op.getNextFloat();
                 assertNull(resf.result);
                 // test with null in rhs
                 lt.setValue(inpf1);
                 rt.setValue(null);
-                resf = op.getNext(inpf1);
+                resf = op.getNextFloat();
                 assertNull(resf.result);
                 break;
             }
@@ -193,19 +193,19 @@ public class TestSubtract {
                 Integer inpi2 = r.nextInt();
                 lt.setValue(inpi1);
                 rt.setValue(inpi2);
-                Result resi = op.getNext(inpi1);
+                Result resi = op.getNextInteger();
                 Integer expected = new Integer(inpi1 - inpi2);
                 assertEquals(expected, (Integer) resi.result);
 
                 // test with null in lhs
                 lt.setValue(null);
                 rt.setValue(inpi2);
-                resi = op.getNext(inpi1);
+                resi = op.getNextInteger();
                 assertNull(resi.result);
                 // test with null in rhs
                 lt.setValue(inpi1);
                 rt.setValue(null);
-                resi = op.getNext(inpi1);
+                resi = op.getNextInteger();
                 assertNull(resi.result);
                 break;
             }
@@ -214,19 +214,19 @@ public class TestSubtract {
                 Long inpl2 = r.nextLong();
                 lt.setValue(inpl1);
                 rt.setValue(inpl2);
-                Result resl = op.getNext(inpl1);
+                Result resl = op.getNextLong();
                 Long expected = new Long(inpl1 - inpl2);
                 assertEquals(expected, (Long)resl.result);
 
                 // test with null in lhs
                 lt.setValue(null);
                 rt.setValue(inpl2);
-                resl = op.getNext(inpl1);
+                resl = op.getNextLong();
                 assertNull(resl.result);
                 // test with null in rhs
                 lt.setValue(inpl1);
                 rt.setValue(null);
-                resl = op.getNext(inpl1);
+                resl = op.getNextLong();
                 assertNull(resl.result);
                 break;
             }
@@ -235,18 +235,18 @@ public class TestSubtract {
                 DateTime inpdt2 = new DateTime(r.nextLong());
                 lt.setValue(inpdt1);
                 rt.setValue(inpdt2);
-                Result resdt = op.getNext(inpdt1);
+                Result resdt = op.getNextDateTime();
                 assertEquals(POStatus.STATUS_ERR, resdt.returnStatus);
 
                 // test with null in lhs
                 lt.setValue(null);
                 rt.setValue(inpdt2);
-                resdt = op.getNext(inpdt1);
+                resdt = op.getNextDateTime();
                 assertEquals(POStatus.STATUS_ERR, resdt.returnStatus);
                 // test with null in rhs
                 lt.setValue(inpdt1);
                 rt.setValue(null);
-                resdt = op.getNext(inpdt1);
+                resdt = op.getNextDateTime();
                 assertEquals(POStatus.STATUS_ERR, resdt.returnStatus);
                 break;
             }
@@ -255,18 +255,18 @@ public class TestSubtract {
                 Map<String,Object> inpm2 = GenRandomData.genRandMap(r, 10);
                 lt.setValue(inpm1);
                 rt.setValue(inpm2);
-                Result resm = op.getNext(inpm1);
+                Result resm = op.getNextMap();
                 assertEquals(POStatus.STATUS_ERR, resm.returnStatus);
 
                 // test with null in lhs
                 lt.setValue(null);
                 rt.setValue(inpm2);
-                resm = op.getNext(inpm1);
+                resm = op.getNextMap();
                 assertEquals(POStatus.STATUS_ERR, resm.returnStatus);
                 // test with null in rhs
                 lt.setValue(inpm1);
                 rt.setValue(null);
-                resm = op.getNext(inpm1);
+                resm = op.getNextMap();
                 assertEquals(POStatus.STATUS_ERR, resm.returnStatus);
                 break;
             }
@@ -275,18 +275,18 @@ public class TestSubtract {
                 Tuple inpt2 = GenRandomData.genRandSmallBagTuple(r, 10, 100);
                 lt.setValue(inpt1);
                 rt.setValue(inpt2);
-                Result rest = op.getNext(inpt1);
+                Result rest = op.getNextTuple();
                 assertEquals(POStatus.STATUS_ERR, rest.returnStatus);
 
                 // test with null in lhs
                 lt.setValue(null);
                 rt.setValue(inpt2);
-                rest = op.getNext(inpt1);
+                rest = op.getNextTuple();
                 assertEquals(POStatus.STATUS_ERR, rest.returnStatus);
                 // test with null in rhs
                 lt.setValue(inpt1);
                 rt.setValue(null);
-                rest = op.getNext(inpt1);
+                rest = op.getNextTuple();
                 assertEquals(POStatus.STATUS_ERR, rest.returnStatus);
                 break;
             }

@@ -39,13 +39,13 @@ public class TestConstExpr {
     public void testGetNextInteger() throws ExecException {
         Integer inp = r.nextInt();
         ce.setValue(inp);
-        Result resi = ce.getNext(inp);
+        Result resi = ce.getNextInteger();
         Integer ret = (Integer)resi.result;
         assertEquals(inp, ret);
 
         // test with null input
         ce.setValue(null);
-        resi = ce.getNext(inp);
+        resi = ce.getNextInteger();
         ret = (Integer)resi.result;
         assertNull(ret);
     }
@@ -54,13 +54,13 @@ public class TestConstExpr {
     public void testGetNextLong() throws ExecException {
         Long inp = r.nextLong();
         ce.setValue(inp);
-        Result resl = ce.getNext(inp);
+        Result resl = ce.getNextLong();
         Long ret = (Long)resl.result;
         assertEquals(inp, ret);
 
         // test with null input
         ce.setValue(null);
-        resl = ce.getNext(inp);
+        resl = ce.getNextLong();
         ret = (Long)resl.result;
         assertNull(ret);
     }
@@ -69,13 +69,13 @@ public class TestConstExpr {
     public void testGetNextDouble() throws ExecException {
         Double inp = r.nextDouble();
         ce.setValue(inp);
-        Result resd = ce.getNext(inp);
+        Result resd = ce.getNextDouble();
         Double ret = (Double)resd.result;
         assertEquals(inp, ret);
 
         // test with null input
         ce.setValue(null);
-        resd = ce.getNext(inp);
+        resd = ce.getNextDouble();
         ret = (Double)resd.result;
         assertNull(ret);
     }
@@ -84,13 +84,13 @@ public class TestConstExpr {
     public void testGetNextFloat() throws ExecException {
         Float inp = r.nextFloat();
         ce.setValue(inp);
-        Result resf = ce.getNext(inp);
+        Result resf = ce.getNextFloat();
         Float ret = (Float)resf.result;
         assertEquals(inp, ret);
 
         // test with null input
         ce.setValue(null);
-        resf = ce.getNext(inp);
+        resf = ce.getNextFloat();
         ret = (Float)resf.result;
         assertNull(ret);
     }
@@ -99,13 +99,13 @@ public class TestConstExpr {
     public void testGetNextString() throws ExecException {
         String inp = GenRandomData.genRandString(r);
         ce.setValue(inp);
-        Result ress = ce.getNext(inp);
+        Result ress = ce.getNextString();
         String ret = (String)ress.result;
         assertEquals(inp, ret);
 
         // test with null input
         ce.setValue(null);
-        ress = ce.getNext(inp);
+        ress = ce.getNextString();
         ret = (String)ress.result;
         assertNull(ret);
     }
@@ -114,13 +114,13 @@ public class TestConstExpr {
     public void testGetNextDataByteArray() throws ExecException {
         DataByteArray inp = GenRandomData.genRandDBA(r);
         ce.setValue(inp);
-        Result resba = ce.getNext(inp);
+        Result resba = ce.getNextDataByteArray();
         DataByteArray ret = (DataByteArray)resba.result;
         assertEquals(inp, ret);
 
         // test with null input
         ce.setValue(null);
-        resba = ce.getNext(inp);
+        resba = ce.getNextDataByteArray();
         ret = (DataByteArray)resba.result;
         assertNull(ret);
     }
@@ -129,13 +129,13 @@ public class TestConstExpr {
     public void testGetNextMap() throws ExecException {
         Map<String, Object> inp = GenRandomData.genRandMap(r, 10);
         ce.setValue(inp);
-        Result resm = ce.getNext(inp);
+        Result resm = ce.getNextMap();
         Map<Integer, String> ret = (Map)resm.result;
         assertEquals(inp, ret);
 
         // test with null input
         ce.setValue(null);
-        resm = ce.getNext(inp);
+        resm = ce.getNextMap();
         ret = (Map)resm.result;
         assertNull(ret);
     }
@@ -144,13 +144,13 @@ public class TestConstExpr {
     public void testGetNextBoolean() throws ExecException {
         Boolean inp = r.nextBoolean();
         ce.setValue(inp);
-        Result res = ce.getNext(inp);
+        Result res = ce.getNextBoolean();
         Boolean ret = (Boolean)res.result;
         assertEquals(inp, ret);
 
         // test with null input
         ce.setValue(null);
-        res = ce.getNext(inp);
+        res = ce.getNextBoolean();
         ret = (Boolean)res.result;
         assertNull(ret);
     }
@@ -159,13 +159,13 @@ public class TestConstExpr {
     public void testGetNextTuple() throws ExecException {
         Tuple inp = GenRandomData.genRandSmallBagTuple(r, 10, 100);
         ce.setValue(inp);
-        Result rest = ce.getNext(inp);
+        Result rest = ce.getNextTuple();
         Tuple ret = (Tuple)rest.result;
         assertEquals(inp, ret);
 
         // test with null input
         ce.setValue(null);
-        rest = ce.getNext(inp);
+        rest = ce.getNextTuple();
         ret = (Tuple)rest.result;
         assertNull(ret);
     }
@@ -174,13 +174,13 @@ public class TestConstExpr {
     public void testGetNextDataBag() throws ExecException {
         DataBag inp = GenRandomData.genRandSmallTupDataBag(r, 10, 100);
         ce.setValue(inp);
-        Result res = ce.getNext(inp);
+        Result res = ce.getNextDataBag();
         DataBag ret = (DataBag)res.result;
         assertEquals(inp, ret);
 
         // test with null input
         ce.setValue(null);
-        res = ce.getNext(inp);
+        res = ce.getNextDataBag();
         ret = (DataBag)res.result;
         assertNull(ret);
     }

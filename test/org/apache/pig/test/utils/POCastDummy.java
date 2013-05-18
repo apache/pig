@@ -69,8 +69,8 @@ public class POCastDummy extends ExpressionOperator {
     }
 
     @Override
-    public Result getNext(Integer i) throws ExecException {
-        Result res = inputs.get(0).getNext(i);
+    public Result getNextInteger() throws ExecException {
+        Result res = inputs.get(0).getNextInteger();
 
         if(res.returnStatus != POStatus.STATUS_OK){
             return res;
@@ -85,8 +85,8 @@ public class POCastDummy extends ExpressionOperator {
     }
 
     @Override
-    public Result getNext(String s) throws ExecException {
-        Result res = inputs.get(0).getNext(s);
+    public Result getNextString() throws ExecException {
+        Result res = inputs.get(0).getNextString();
 
         if(res.returnStatus != POStatus.STATUS_OK){
             return res;

@@ -196,7 +196,7 @@ public class TestPOBinCond {
             Boolean value = (Boolean) t.get(0);
             int expected = (value.booleanValue() == true) ? 1 : 0;
             Integer dummy = new Integer(0);
-            Integer result = (Integer) testHelper.getOperator().getNext(dummy).result;
+            Integer result = (Integer) testHelper.getOperator().getNextInteger().result;
             int actual = result.intValue();
             assertEquals(expected, actual);
         }
@@ -212,7 +212,7 @@ public class TestPOBinCond {
             testHelper.getPlan().attachInput(t);
             Integer value = (Integer) t.get(0);
             int expected = (value.intValue() == 1)? 1:0 ;
-            Integer result=(Integer)testHelper.getOperator().getNext(value).result;
+            Integer result=(Integer)testHelper.getOperator().getNextInteger().result;
             int actual = result.intValue();
             assertEquals( expected, actual );
         }
@@ -229,7 +229,7 @@ public class TestPOBinCond {
             Long value = (Long) t.get(0);
             int expected = (value.longValue() == 1L )? 1:0 ;
             Integer dummy = new Integer(0);
-            Integer result=(Integer)testHelper.getOperator().getNext(dummy).result;
+            Integer result=(Integer)testHelper.getOperator().getNextInteger().result;
             int actual = result.intValue();
             assertEquals( expected, actual );
         }
@@ -246,7 +246,7 @@ public class TestPOBinCond {
            Float value = (Float) t.get(0);
            int expected = (value.floatValue() == 1.0f )? 1:0 ;
            Integer dummy = new Integer(0);
-           Integer result=(Integer)testHelper.getOperator().getNext(dummy).result;
+           Integer result=(Integer)testHelper.getOperator().getNextInteger().result;
            int actual = result.intValue();
            assertEquals( expected, actual );
         }
@@ -263,7 +263,7 @@ public class TestPOBinCond {
            Double value = (Double) t.get(0);
            int expected = (value.doubleValue() == 1.0 )? 1:0 ;
            Integer dummy = new Integer(0);
-           Integer result=(Integer)testHelper.getOperator().getNext(dummy).result;
+           Integer result=(Integer)testHelper.getOperator().getNextInteger().result;
            int actual = result.intValue();
            assertEquals( expected, actual );
         }
@@ -280,7 +280,7 @@ public class TestPOBinCond {
            DateTime value = (DateTime) t.get(0);
            int expected = value.equals(new DateTime(1L))? 1:0 ;
            Integer dummy = new Integer(0);
-           Integer result=(Integer)testHelper.getOperator().getNext(dummy).result;
+           Integer result=(Integer)testHelper.getOperator().getNextInteger().result;
            int actual = result.intValue();
            assertEquals( expected, actual );
         }
@@ -298,10 +298,9 @@ public class TestPOBinCond {
 
             if (t.get(0) != null) {
                 value = (Integer) t.get(0);
-                result = (Integer) testHelper.getOperator().getNext(value).result;
+                result = (Integer) testHelper.getOperator().getNextInteger().result;
             } else {
-                result = (Integer) testHelper.getOperator().getNext(
-                        (Integer) null).result;
+                result = (Integer) testHelper.getOperator().getNextInteger().result;
             }
             int actual;
             if (value != null) {
@@ -327,7 +326,7 @@ public class TestPOBinCond {
                value = (Long) t.get(0);
            }
            Integer dummy = new Integer(0);
-           Integer result=(Integer)testHelper.getOperator().getNext(dummy).result;
+           Integer result=(Integer)testHelper.getOperator().getNextInteger().result;
            int expected;
            int actual;
            if ( value!=null ) {
@@ -353,7 +352,7 @@ public class TestPOBinCond {
                value = (Double) t.get(0);
            }
            Integer dummy = new Integer(0);
-           Integer result=(Integer)testHelper.getOperator().getNext(dummy).result;
+           Integer result=(Integer)testHelper.getOperator().getNextInteger().result;
 
            int expected;
            int actual;
@@ -380,7 +379,7 @@ public class TestPOBinCond {
                value = (DateTime) t.get(0);
            }
            Integer dummy = new Integer(0);
-           Integer result=(Integer)testHelper.getOperator().getNext(dummy).result;
+           Integer result=(Integer)testHelper.getOperator().getNextInteger().result;
            int expected;
            int actual;
            if ( value!=null ) {

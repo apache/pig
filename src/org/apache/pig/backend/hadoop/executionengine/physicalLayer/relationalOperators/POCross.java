@@ -109,7 +109,7 @@ public class POCross extends PhysicalOperator {
     }
 
     @Override
-    public Result getNext(Tuple t) throws ExecException {
+    public Result getNextTuple() throws ExecException {
         Result res = new Result();
         int noItems = inputs.size();
         if (inputBags == null) {
@@ -137,8 +137,8 @@ public class POCross extends PhysicalOperator {
                 // if one bag is empty, there doesn't exist non-null cross product.
                 // simply clear all the input tuples of the first bag and finish.
                 int index = inputs.size() - 1;
-                for (Result resOfLastBag = inputs.get(index).getNext(dummyTuple); resOfLastBag.returnStatus !=
-                    POStatus.STATUS_EOP; resOfLastBag = inputs.get(index).getNext(dummyTuple));
+                for (Result resOfLastBag = inputs.get(index).getNextTuple(); resOfLastBag.returnStatus !=
+                    POStatus.STATUS_EOP; resOfLastBag = inputs.get(index).getNextTuple());
                 res.returnStatus = POStatus.STATUS_EOP;
                 clearMemory();
                 return res;
@@ -199,8 +199,8 @@ public class POCross extends PhysicalOperator {
             PhysicalOperator op = inputs.get(i);
             DataBag bag = BagFactory.getInstance().newDefaultBag();
             inputBags[count] = bag;
-            for (Result res = op.getNext(dummyTuple); res.returnStatus != POStatus.STATUS_EOP; res = op
-                    .getNext(dummyTuple)) {
+            for (Result res = op.getNextTuple(); res.returnStatus != POStatus.STATUS_EOP; res = op
+                    .getNextTuple()) {
                 if (res.returnStatus == POStatus.STATUS_NULL)
                     continue;
                 if (res.returnStatus == POStatus.STATUS_ERR)
@@ -230,8 +230,8 @@ public class POCross extends PhysicalOperator {
     private boolean loadLastBag() throws ExecException {
         Result resOfLastBag = null;
         int index = inputs.size() - 1;
-        for (resOfLastBag = inputs.get(index).getNext(dummyTuple); resOfLastBag.returnStatus ==
-                POStatus.STATUS_NULL; inputs.get(index).getNext(dummyTuple));
+        for (resOfLastBag = inputs.get(index).getNextTuple(); resOfLastBag.returnStatus ==
+                POStatus.STATUS_NULL; inputs.get(index).getNextTuple());
         switch (resOfLastBag.returnStatus) {
         case POStatus.STATUS_EOP:
             return false;

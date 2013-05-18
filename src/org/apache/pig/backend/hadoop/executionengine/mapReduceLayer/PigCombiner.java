@@ -53,8 +53,6 @@ public class PigCombiner {
         
         private final Log log = LogFactory.getLog(getClass());
 
-        private final static Tuple DUMMYTUPLE = null;
-        
         private byte keyType;
         
         //The reduce plan
@@ -169,7 +167,7 @@ public class PigCombiner {
         //         true- end of processing
         public boolean processOnePackageOutput(Context oc) throws IOException, InterruptedException {
             try {
-                Result res = pack.getNext(DUMMYTUPLE);
+                Result res = pack.getNextTuple();
                 if(res.returnStatus==POStatus.STATUS_OK){
                     Tuple packRes = (Tuple)res.result;
                     
@@ -182,7 +180,7 @@ public class PigCombiner {
                         roots[i].attachInput(packRes);
                     }
                     while(true){
-                        Result redRes = leaf.getNext(DUMMYTUPLE);
+                        Result redRes = leaf.getNextTuple();
                         
                         if(redRes.returnStatus==POStatus.STATUS_OK){
                             Tuple tuple = (Tuple)redRes.result;

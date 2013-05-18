@@ -254,12 +254,12 @@ public class TestPOUserFunc {
 				-1, inputs, new FuncSpec(funcSpec));
 		Result res = new Result();
 		Integer i = null;
-		res = userFunc.getNext(i);
+		res = userFunc.getNextInteger();
 		while (res.returnStatus != POStatus.STATUS_EOP) {
 			// System.out.println(res.result);
 			int result = (Integer) res.result;
 			assertEquals(2, result);
-			res = userFunc.getNext(i);
+			res = userFunc.getNextInteger();
 		}
 	}
 
@@ -293,7 +293,7 @@ public class TestPOUserFunc {
 		userFunc.attachInput(t1, t2);
 		Integer i = null;
 		// System.out.println(t1 + " " + t2);
-		int result = (Integer) (userFunc.getNext(i).result);
+		int result = (Integer) (userFunc.getNextInteger().result);
 		assertEquals(-1, result);
 	}
 
@@ -346,7 +346,7 @@ public class TestPOUserFunc {
 		po.setAlgebraicFunction(INIT);
 		po.attachInput(tup1);
 		Tuple t = null;
-		Result res = po.getNext(t);
+		Result res = po.getNextTuple();
 		Tuple outputInitial1 = (res.returnStatus == POStatus.STATUS_OK) ? (Tuple) res.result
 				: null;
 		Tuple outputInitial2 = (res.returnStatus == POStatus.STATUS_OK) ? (Tuple) res.result
@@ -369,7 +369,7 @@ public class TestPOUserFunc {
 				new FuncSpec(funcSpec));
 		po.setAlgebraicFunction(INTERMED);
 		po.attachInput(outputInitial);
-		res = po.getNext(t);
+		res = po.getNextTuple();
 		Tuple outputIntermed = (res.returnStatus == POStatus.STATUS_OK) ? (Tuple) res.result
 				: null;
 
@@ -384,7 +384,7 @@ public class TestPOUserFunc {
 				new FuncSpec(funcSpec));
 		po.setAlgebraicFunction(FINAL);
 		po.attachInput(outputInitial);
-		res = po.getNext(t);
+		res = po.getNextTuple();
 		Double output = (res.returnStatus == POStatus.STATUS_OK) ? (Double) res.result
 				: null;
 		// Double output = fin.exec(outputInitial);

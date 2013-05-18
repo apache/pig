@@ -80,7 +80,7 @@ public class TestProject {
         int cntr = 0;
         boolean contains = true;
         while (true) {
-            res = proj.getNext(t);
+            res = proj.getNextTuple();
             if (res.returnStatus == POStatus.STATUS_EOP)
                 break;
             if (!TestHelper.bagContains(inpBag, (Tuple)res.result)) {
@@ -95,7 +95,7 @@ public class TestProject {
         proj.attachInput(t);
         proj.setColumn(8);
         proj.setOverloaded(false);
-        res = proj.getNext(t);
+        res = proj.getNextTuple();
         assertEquals(POStatus.STATUS_OK, res.returnStatus);
         assertEquals(t.get(8), res.result);
     }
@@ -135,7 +135,7 @@ public class TestProject {
             cols.add(j);
             cols.add(j + 1);
             proj.setColumns(cols);
-            res = proj.getNext(t);
+            res = proj.getNextTuple();
             if (res.returnStatus == POStatus.STATUS_EOP)
                 break;
             TupleFactory tupleFactory = TupleFactory.getInstance();
@@ -152,7 +152,7 @@ public class TestProject {
         proj.attachInput(t);
         proj.setColumn(8);
         proj.setOverloaded(false);
-        res = proj.getNext(t);
+        res = proj.getNextTuple();
         assertEquals(POStatus.STATUS_OK, res.returnStatus);
         assertEquals(t.get(8), res.result);
     }
@@ -181,7 +181,7 @@ public class TestProject {
         int cntr = 0;
         boolean contains = true;
         while (true) {
-            res = proj.getNext(t);
+            res = proj.getNextTuple();
             if (res.returnStatus == POStatus.STATUS_EOP)
                 break;
             if (!TestHelper.bagContains(inpBag, (Tuple)res.result)) {
@@ -196,7 +196,7 @@ public class TestProject {
         proj.attachInput(t);
         proj.setColumn(8);
         proj.setOverloaded(false);
-        res = proj.getNext(t);
+        res = proj.getNextTuple();
         assertEquals(POStatus.STATUS_OK, res.returnStatus);
         assertEquals(t.get(8), res.result);
     }
@@ -236,7 +236,7 @@ public class TestProject {
             cols.add(j);
             cols.add(j + 1);
             proj.setColumns(cols);
-            res = proj.getNext(t);
+            res = proj.getNextTuple();
             if (res.returnStatus == POStatus.STATUS_EOP)
                 break;
             TupleFactory tupleFactory = TupleFactory.getInstance();
@@ -253,7 +253,7 @@ public class TestProject {
         proj.attachInput(t);
         proj.setColumn(8);
         proj.setOverloaded(false);
-        res = proj.getNext(t);
+        res = proj.getNextTuple();
         assertEquals(POStatus.STATUS_OK, res.returnStatus);
         assertEquals(t.get(8), res.result);
     }

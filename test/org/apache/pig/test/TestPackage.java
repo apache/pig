@@ -87,7 +87,7 @@ public class TestPackage {
         pop.setKeyInfo(keyInfo);
         Tuple t = null;
         Result res = null;
-        res = (Result)pop.getNext(t);
+        res = (Result)pop.getNextTuple();
         if (res.returnStatus == POStatus.STATUS_NULL && inner[0])
             return;
         assertEquals(POStatus.STATUS_OK, res.returnStatus);

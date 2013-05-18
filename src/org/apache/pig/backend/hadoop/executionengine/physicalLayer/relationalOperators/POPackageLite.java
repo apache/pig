@@ -163,7 +163,7 @@ public class POPackageLite extends POPackage {
      * DefaultDataBag.
      */
     @Override
-    public Result getNext(Tuple t) throws ExecException {
+    public Result getNextTuple() throws ExecException {
         Tuple res;
         //Create numInputs bags
         ReadOnceBag db = null;

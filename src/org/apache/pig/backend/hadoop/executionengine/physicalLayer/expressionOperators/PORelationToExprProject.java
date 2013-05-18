@@ -23,7 +23,6 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
-import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.NonSpillableDataBag;
 import org.apache.pig.impl.plan.NodeIdGenerator;
@@ -103,7 +102,7 @@ public class PORelationToExprProject extends POProject {
     }
     
     @Override
-    public Result getNext(DataBag db) throws ExecException {
+    public Result getNextDataBag() throws ExecException {
         Result input = processInputBag();
         
         // if this is called during accumulation, it is ok to have an empty bag

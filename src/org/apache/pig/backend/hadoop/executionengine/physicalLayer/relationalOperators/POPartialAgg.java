@@ -129,7 +129,7 @@ public class POPartialAgg extends PhysicalOperator implements Spillable {
     }
 
     @Override
-    public Result getNext(Tuple __ignored__) throws ExecException {
+    public Result getNextTuple() throws ExecException {
         // accumulate tuples from processInput in rawInputMap.
         // when the maps grow to mem limit, go over each item in map, and call
         // combiner aggs on each collection.
@@ -463,7 +463,7 @@ public class POPartialAgg extends PhysicalOperator implements Spillable {
         case DataType.DATETIME:
         case DataType.MAP:
         case DataType.TUPLE:
-            res = op.getNext(getDummy(op.getResultType()), op.getResultType());
+            res = op.getNext(op.getResultType());
             break;
         default:
             String msg = "Invalid result type: "

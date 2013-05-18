@@ -125,7 +125,7 @@ public class POPartitionRearrange extends POLocalRearrange {
      * format, i.e, (key,indexedTuple(value))
      */
     @Override
-    public Result getNext(Tuple t) throws ExecException {
+    public Result getNextTuple() throws ExecException {
 
         Result inp = null;
         Result res = null;
@@ -153,7 +153,7 @@ public class POPartitionRearrange extends POLocalRearrange {
             }
             List<Result> resLst = new ArrayList<Result>();
             for (ExpressionOperator op : leafOps){
-                res = op.getNext(getDummy(op.getResultType()), op.getResultType());
+                res = op.getNext(op.getResultType());
                 if(res.returnStatus!=POStatus.STATUS_OK) {
                     return new Result();
                 }

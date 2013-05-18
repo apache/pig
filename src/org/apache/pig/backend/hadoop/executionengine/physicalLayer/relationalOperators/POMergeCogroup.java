@@ -117,7 +117,7 @@ public class POMergeCogroup extends PhysicalOperator {
     }
 
     @Override
-    public Result getNext(Tuple t) throws ExecException {
+    public Result getNextTuple() throws ExecException {
 
         try{
             if(createNewBags){      
@@ -417,7 +417,7 @@ public class POMergeCogroup extends PhysicalOperator {
         // Each index entry is read as a pair of split index and a tuple consisting of key.
         List<Pair<Integer,Tuple>> index = new ArrayList<Pair<Integer,Tuple>>();
 
-        for(Result res=ld.getNext(dummyTuple);res.returnStatus!=POStatus.STATUS_EOP;res=ld.getNext(dummyTuple)){
+        for(Result res = ld.getNextTuple(); res.returnStatus != POStatus.STATUS_EOP; res = ld.getNextTuple()){
 
             Tuple  idxTuple = (Tuple)res.result;
             int colCnt = idxTuple.size()-2;
@@ -459,7 +459,7 @@ public class POMergeCogroup extends PhysicalOperator {
         //Separate Key & Value of input using corresponding LR operator
         POLocalRearrange lr = LRs[lrIdx];
         lr.attachInput(inp);
-        Result lrOut = lr.getNext(dummyTuple);
+        Result lrOut = lr.getNextTuple();
 
         if(lrOut.returnStatus!=POStatus.STATUS_OK){
             int errCode = 2167;

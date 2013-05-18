@@ -51,181 +51,181 @@ public class TestNull {
         switch (type) {
         case DataType.BAG:
             inp1 = GenRandomData.genRandSmallTupDataBag(r, 10, 100);
-            res = isNullExpr.getNext((Boolean)null);
+            res = isNullExpr.getNextBoolean();
             if ((Boolean)res.result != true)
                 return false;
             lt.setValue(inp1);
-            res = isNullExpr.getNext((Boolean)null);
+            res = isNullExpr.getNextBoolean();
             ret = (DataType.compare(inp1, null) == 0);
             if (!res.result.equals(ret))
                 return false;
             // set the input to null and test
             lt.setValue((DataBag)null);
-            res = isNullExpr.getNext((Boolean)null);
+            res = isNullExpr.getNextBoolean();
             if (!res.result.equals(true))
                 return false;
             return true;
         case DataType.BOOLEAN:
             inp1 = r.nextBoolean();
-            res = isNullExpr.getNext((Boolean)null);
+            res = isNullExpr.getNextBoolean();
             if ((Boolean)res.result != true)
                 return false;
             lt.setValue(inp1);
-            res = isNullExpr.getNext((Boolean)null);
+            res = isNullExpr.getNextBoolean();
             ret = (DataType.compare(inp1, null) == 0);
             if (!(res.result.equals(ret)))
                 return false;
             // set the input to null and test
             lt.setValue((Boolean)null);
-            res = isNullExpr.getNext((Boolean)null);
+            res = isNullExpr.getNextBoolean();
             ret = (DataType.compare(inp1, null) == 0);
             if (!(res.result.equals(true)))
                 return false;
             return true;
         case DataType.BYTEARRAY:
             inp1 = GenRandomData.genRandDBA(r);
-            res = isNullExpr.getNext((Boolean)null);
+            res = isNullExpr.getNextBoolean();
             if ((Boolean)res.result != true)
                 return false;
             lt.setValue(inp1);
-            res = isNullExpr.getNext((Boolean)null);
+            res = isNullExpr.getNextBoolean();
             ret = (DataType.compare(inp1, null) == 0);
             if (!(res.result.equals(ret)))
                 return false;
             // set the input to null and test
             lt.setValue((DataByteArray)null);
-            res = isNullExpr.getNext((Boolean)null);
+            res = isNullExpr.getNextBoolean();
             ret = (DataType.compare(inp1, null) == 0);
             if (!(res.result.equals(true)))
                 return false;
             return true;
         case DataType.CHARARRAY:
             inp1 = GenRandomData.genRandString(r);
-            res = isNullExpr.getNext((Boolean)null);
+            res = isNullExpr.getNextBoolean();
             if ((Boolean)res.result != true)
                 return false;
             lt.setValue(inp1);
-            res = isNullExpr.getNext((Boolean)null);
+            res = isNullExpr.getNextBoolean();
             ret = (DataType.compare(inp1, null) == 0);
             if (!(res.result.equals(ret)))
                 return false;
             // set the input to null and test
             lt.setValue((String)null);
-            res = isNullExpr.getNext((Boolean)null);
+            res = isNullExpr.getNextBoolean();
             ret = (DataType.compare(inp1, null) == 0);
             if (!(res.result.equals(true)))
                 return false;
             return true;
         case DataType.DOUBLE:
             inp1 = r.nextDouble();
-            res = isNullExpr.getNext((Boolean)null);
+            res = isNullExpr.getNextBoolean();
             if ((Boolean)res.result != true)
                 return false;
             lt.setValue(inp1);
-            res = isNullExpr.getNext((Boolean)null);
+            res = isNullExpr.getNextBoolean();
             ret = (DataType.compare(inp1, null) == 0);
             if (!(res.result.equals(ret)))
                 return false;
             // set the input to null and test
             lt.setValue((Double)null);
-            res = isNullExpr.getNext((Boolean)null);
+            res = isNullExpr.getNextBoolean();
             ret = (DataType.compare(inp1, null) == 0);
             if (!(res.result.equals(true)))
                 return false;
             return true;
         case DataType.FLOAT:
             inp1 = r.nextFloat();
-            res = isNullExpr.getNext((Boolean)null);
+            res = isNullExpr.getNextBoolean();
             if ((Boolean)res.result != true)
                 return false;
             lt.setValue(inp1);
-            res = isNullExpr.getNext((Boolean)null);
+            res = isNullExpr.getNextBoolean();
             ret = (DataType.compare(inp1, null) == 0);
             if (!(res.result.equals(ret)))
                 return false;
             // set the input to null and test
             lt.setValue((Float)null);
-            res = isNullExpr.getNext((Boolean)null);
+            res = isNullExpr.getNextBoolean();
             if (!res.result.equals(true))
                 return false;
             return true;
         case DataType.INTEGER:
             inp1 = r.nextInt();
-            res = isNullExpr.getNext((Boolean)null);
+            res = isNullExpr.getNextBoolean();
             if ((Boolean)res.result != true)
                 return false;
             lt.setValue(inp1);
-            res = isNullExpr.getNext((Boolean)null);
+            res = isNullExpr.getNextBoolean();
             ret = (DataType.compare(inp1, null) == 0);
             if (!(res.result.equals(ret)))
                 return false;
             // set the input to null and test
             lt.setValue((Integer)null);
-            res = isNullExpr.getNext((Boolean)null);
+            res = isNullExpr.getNextBoolean();
             if (!res.result.equals(true))
                 return false;
             return true;
         case DataType.LONG:
             inp1 = r.nextLong();
-            res = isNullExpr.getNext((Boolean)null);
+            res = isNullExpr.getNextBoolean();
             if ((Boolean)res.result != true)
                 return false;
             lt.setValue(inp1);
-            res = isNullExpr.getNext((Boolean)null);
+            res = isNullExpr.getNextBoolean();
             ret = (DataType.compare(inp1, null) == 0);
             if (!(res.result.equals(ret)))
                 return false;
             // set the input to null and test
             lt.setValue((Long)null);
-            res = isNullExpr.getNext((Boolean)null);
+            res = isNullExpr.getNextBoolean();
             if (!res.result.equals(true))
                 return false;
             return true;
         case DataType.DATETIME:
             inp1 = new DateTime(r.nextLong());
-            res = isNullExpr.getNext((Boolean)null);
+            res = isNullExpr.getNextBoolean();
             if ((Boolean)res.result != true)
                 return false;
             lt.setValue(inp1);
-            res = isNullExpr.getNext((Boolean)null);
+            res = isNullExpr.getNextBoolean();
             ret = (DataType.compare(inp1, null) == 0);
             if (!(res.result.equals(ret)))
                 return false;
             // set the input to null and test
             lt.setValue((DateTime)null);
-            res = isNullExpr.getNext((Boolean)null);
+            res = isNullExpr.getNextBoolean();
             if (!res.result.equals(true))
                 return false;
             return true;
         case DataType.MAP:
             inp1 = GenRandomData.genRandMap(r, 10);
-            res = isNullExpr.getNext((Boolean)null);
+            res = isNullExpr.getNextBoolean();
             if ((Boolean)res.result != true)
                 return false;
             lt.setValue(inp1);
-            res = isNullExpr.getNext((Boolean)null);
+            res = isNullExpr.getNextBoolean();
             ret = (DataType.compare(inp1, null) == 0);
             if (!(res.result.equals(ret)))
                 return false;
             // set the input to null and test
             lt.setValue((Map)null);
-            res = isNullExpr.getNext((Boolean)null);
+            res = isNullExpr.getNextBoolean();
             if (!res.result.equals(true))
                 return false;
             return true;
         case DataType.TUPLE:
             inp1 = GenRandomData.genRandSmallBagTuple(r, 10, 100);
-            res = isNullExpr.getNext((Boolean)null);
+            res = isNullExpr.getNextBoolean();
             if ((Boolean)res.result != true)
                 return false;
             lt.setValue(inp1);
-            res = isNullExpr.getNext((Boolean)null);
+            res = isNullExpr.getNextBoolean();
             ret = (DataType.compare(inp1, null) == 0);
             if (!(res.result.equals(ret)))
                 return false;
             // set the input to null and test
             lt.setValue((Tuple)null);
-            res = isNullExpr.getNext((Boolean)null);
+            res = isNullExpr.getNextBoolean();
             if (!res.result.equals(true))
                 return false;
             return true;

@@ -57,7 +57,7 @@ public class POSortedDistinct extends PODistinct {
     }
     
 
-    public Result getNext(Tuple t) throws ExecException {
+    public Result getNextTuple() throws ExecException {
     	while(true) {
     		Result in = processInput();
     		if (in.returnStatus == POStatus.STATUS_NULL) {

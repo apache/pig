@@ -54,7 +54,7 @@ public class GreaterThanExpr extends BinaryComparisonOperator {
     }
 
     @Override
-    public Result getNext(Boolean bool) throws ExecException {
+    public Result getNextBoolean() throws ExecException {
         Result left, right;
 
         switch (operandType) {
@@ -67,13 +67,12 @@ public class GreaterThanExpr extends BinaryComparisonOperator {
         case DataType.BIGDECIMAL:
         case DataType.DATETIME:
         case DataType.CHARARRAY: {
-            Object dummy = getDummy(operandType);
-            Result r = accumChild(null, dummy, operandType);
+            Result r = accumChild(null, operandType);
             if (r != null) {
                 return r;
             }
-            left = lhs.getNext(dummy, operandType);
-            right = rhs.getNext(dummy, operandType);
+            left = lhs.getNext(operandType);
+            right = rhs.getNext(operandType);
             return doComparison(left, right);
         }
         default: {
@@ -88,9 +87,6 @@ public class GreaterThanExpr extends BinaryComparisonOperator {
 
     @SuppressWarnings("unchecked")
     private Result doComparison(Result left, Result right) {
-        if (trueRef == null) {
-            initializeRefs();
-        }
         if (left.returnStatus != POStatus.STATUS_OK) {
             return left;
         }
@@ -107,9 +103,9 @@ public class GreaterThanExpr extends BinaryComparisonOperator {
         assert(left.result instanceof Comparable);
         assert(right.result instanceof Comparable);
         if (((Comparable)left.result).compareTo(right.result) > 0) {
-            left.result = trueRef;
+            left.result = Boolean.TRUE;
         } else {
-            left.result = falseRef;
+            left.result = Boolean.FALSE;
         }
         illustratorMarkup(null, left.result, (Boolean) left.result ? 0 : 1);
         return left;

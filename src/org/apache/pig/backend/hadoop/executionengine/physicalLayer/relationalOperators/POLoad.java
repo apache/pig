@@ -115,7 +115,7 @@ public class POLoad extends PhysicalOperator {
      *          of EOP and hence the tearDown of connection
      */
     @Override
-    public Result getNext(Tuple t) throws ExecException {
+    public Result getNextTuple() throws ExecException {
         if(!setUpDone && lFile!=null){
             try {
                 setUp();

@@ -32,13 +32,9 @@ import org.apache.pig.impl.plan.OperatorKey;
  */
 public abstract class BinaryComparisonOperator extends BinaryExpressionOperator
         implements ComparisonOperator {
-    protected byte operandType;
+    private static final long serialVersionUID = -1711987060802103390L;
 
-    // Default instances of true and false, used so that all the equality
-    // operators don't have to instantiate a true or false object on each
-    // test.
-    protected Boolean trueRef;
-    protected Boolean falseRef;
+    protected byte operandType;
     
     public BinaryComparisonOperator(OperatorKey k) {
         this(k,-1);
@@ -54,13 +50,6 @@ public abstract class BinaryComparisonOperator extends BinaryExpressionOperator
 
     public void setOperandType(byte operandType) {
         this.operandType = operandType;
-    }
-
-    // Necessary because the objects are serialized, not constructed on the
-    // other side.
-    protected void initializeRefs() {
-        trueRef = Boolean.valueOf(true);
-        falseRef = Boolean.valueOf(false);
     }
 
     protected void cloneHelper(BinaryComparisonOperator op) {

@@ -65,7 +65,7 @@ public class PORead extends PhysicalOperator {
     }
 
     @Override
-    public Result getNext(Tuple t) {
+    public Result getNextTuple() {
         if (it == null) {
             it = bag.iterator();
         }

@@ -49,7 +49,6 @@ import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
-import org.apache.pig.data.DefaultBagFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
@@ -100,12 +99,12 @@ public class TestPOCast {
             Tuple t = it.next();
             plan.attachInput(t);
             Boolean b = (Boolean) t.get(0);
-            Result res = op.getNext(b);
+            Result res = op.getNextBoolean();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 assertEquals(b, res.result);
             }
             planToTestBACasts.attachInput(t);
-            res = opWithInputTypeAsBA.getNext(b);
+            res = opWithInputTypeAsBA.getNextBoolean();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 assertEquals(b, res.result);
             }
@@ -115,12 +114,12 @@ public class TestPOCast {
             Tuple t = it.next();
             plan.attachInput(t);
             Integer i = ((Boolean) t.get(0)) ? Integer.valueOf(1) : Integer.valueOf(0);
-            Result res = op.getNext(i);
+            Result res = op.getNextInteger();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 assertEquals(i, res.result);
             }
             planToTestBACasts.attachInput(t);
-            res = opWithInputTypeAsBA.getNext(i);
+            res = opWithInputTypeAsBA.getNextInteger();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 assertEquals(i, res.result);
             }
@@ -130,12 +129,12 @@ public class TestPOCast {
             Tuple t = it.next();
             plan.attachInput(t);
             Long l = ((Boolean) t.get(0)) ? Long.valueOf(1L) : Long.valueOf(0L);
-            Result res = op.getNext(l);
+            Result res = op.getNextLong();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 assertEquals(l, res.result);
             }
             planToTestBACasts.attachInput(t);
-            res = opWithInputTypeAsBA.getNext(l);
+            res = opWithInputTypeAsBA.getNextLong();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 assertEquals(l, res.result);
             }
@@ -145,12 +144,12 @@ public class TestPOCast {
             Tuple t = it.next();
             plan.attachInput(t);
             Float f = ((Boolean) t.get(0)) ? Float.valueOf(1.0F) : Float.valueOf(0.0F);
-            Result res = op.getNext(f);
+            Result res = op.getNextFloat();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 assertEquals(f, res.result);
             }
             planToTestBACasts.attachInput(t);
-            res = opWithInputTypeAsBA.getNext(f);
+            res = opWithInputTypeAsBA.getNextFloat();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 assertEquals(f, res.result);
             }
@@ -160,12 +159,12 @@ public class TestPOCast {
             Tuple t = it.next();
             plan.attachInput(t);
             Double d = ((Boolean) t.get(0)) ? Double.valueOf(1.0D) : Double.valueOf(0.0D);
-            Result res = op.getNext(d);
+            Result res = op.getNextDouble();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 assertEquals(d, res.result);
             }
             planToTestBACasts.attachInput(t);
-            res = opWithInputTypeAsBA.getNext(d);
+            res = opWithInputTypeAsBA.getNextDouble();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 assertEquals(d, res.result);
             }
@@ -175,7 +174,7 @@ public class TestPOCast {
             Tuple t = it.next();
             plan.attachInput(t);
             DateTime dt = null;
-            Result res = op.getNext(dt);
+            Result res = op.getNextDateTime();
             assertEquals(POStatus.STATUS_ERR, res.returnStatus);
         }
 
@@ -183,12 +182,12 @@ public class TestPOCast {
             Tuple t = it.next();
             plan.attachInput(t);
             String str = ((Boolean)t.get(0)).toString();
-            Result res = op.getNext(str);
+            Result res = op.getNextString();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 assertEquals(str, res.result);
             }
             planToTestBACasts.attachInput(t);
-            res = opWithInputTypeAsBA.getNext(str);
+            res = opWithInputTypeAsBA.getNextString();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 assertEquals(str, res.result);
             }
@@ -198,12 +197,12 @@ public class TestPOCast {
             Tuple t = it.next();
             plan.attachInput(t);
             DataByteArray dba = new DataByteArray(((Boolean)t.get(0)).toString().getBytes());
-            Result res = op.getNext(dba);
+            Result res = op.getNextDataByteArray();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 assertEquals(dba, res.result);
             }
             planToTestBACasts.attachInput(t);
-            res = opWithInputTypeAsBA.getNext(dba);
+            res = opWithInputTypeAsBA.getNextDataByteArray();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 assertEquals(dba, res.result);
             }
@@ -213,14 +212,14 @@ public class TestPOCast {
             Tuple t = it.next();
             plan.attachInput(t);
             Map map = null;
-            Result res = op.getNext(map);
+            Result res = op.getNextMap();
             assertEquals(POStatus.STATUS_ERR, res.returnStatus);
         }
 
         for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
             Tuple t = it.next();
             plan.attachInput(t);
-            Result res = op.getNext(t);
+            Result res = op.getNextTuple();
             assertEquals(POStatus.STATUS_ERR, res.returnStatus);
         }
 
@@ -228,13 +227,13 @@ public class TestPOCast {
             Tuple t = it.next();
             plan.attachInput(t);
             DataBag b = null;
-            Result res = op.getNext(b);
+            Result res = op.getNextDataBag();
             assertEquals(POStatus.STATUS_ERR, res.returnStatus);
         }
         {
             planToTestBACasts.attachInput(dummyTuple);
             try{
-                opWithInputTypeAsBA.getNext(dummyMap);
+                opWithInputTypeAsBA.getNextMap();
             }catch (Exception e) {
                 assertEquals(ExecException.class, e.getClass());
             }
@@ -242,7 +241,7 @@ public class TestPOCast {
         {
             planToTestBACasts.attachInput(dummyTuple);
             try{
-                opWithInputTypeAsBA.getNext(dummyTuple);
+                opWithInputTypeAsBA.getNextTuple();
             }catch (Exception e) {
                 assertEquals(ExecException.class, e.getClass());
             }
@@ -250,7 +249,7 @@ public class TestPOCast {
         {
             planToTestBACasts.attachInput(dummyTuple);
             try{
-                opWithInputTypeAsBA.getNext(dummyBag);
+                opWithInputTypeAsBA.getNextDataBag();
             }catch (Exception e) {
                 assertEquals(ExecException.class, e.getClass());
             }
@@ -286,12 +285,12 @@ public class TestPOCast {
             Tuple t = it.next();
             plan.attachInput(t);
             Boolean b = Boolean.valueOf((Integer) t.get(0) != 0);
-            Result res = op.getNext(b);
+            Result res = op.getNextBoolean();
             if (res.returnStatus == POStatus.STATUS_OK) {
                 assertEquals(b, res.result);
             }
             planToTestBACasts.attachInput(t);
-            res = opWithInputTypeAsBA.getNext(b);
+            res = opWithInputTypeAsBA.getNextBoolean();
             if (res.returnStatus == POStatus.STATUS_OK) {
                 assertEquals(b, res.result);
             }
@@ -301,12 +300,12 @@ public class TestPOCast {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			Integer i = (Integer) t.get(0);
-			Result res = op.getNext(i);
+			Result res = op.getNextInteger();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				assertEquals(i, res.result);
 			}
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(i);
+			res = opWithInputTypeAsBA.getNextInteger();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				assertEquals(i, res.result);
 			}
@@ -316,12 +315,12 @@ public class TestPOCast {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			Float f = ((Integer)t.get(0)).floatValue();
-			Result res = op.getNext(f);
+			Result res = op.getNextFloat();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				assertEquals(f, res.result);
 			}
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(f);
+			res = opWithInputTypeAsBA.getNextFloat();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				assertEquals(f, res.result);
 			}
@@ -331,12 +330,12 @@ public class TestPOCast {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			Long l = ((Integer)t.get(0)).longValue();
-			Result res = op.getNext(l);
+			Result res = op.getNextLong();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				assertEquals(l, res.result);
 			}
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(l);
+			res = opWithInputTypeAsBA.getNextLong();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				assertEquals(l, res.result);
 			}
@@ -346,12 +345,12 @@ public class TestPOCast {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			Double d = ((Integer)t.get(0)).doubleValue();
-			Result res = op.getNext(d);
+			Result res = op.getNextDouble();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				assertEquals(d, res.result);
 			}
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(d);
+			res = opWithInputTypeAsBA.getNextDouble();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				assertEquals(d, res.result);
 			}
@@ -361,12 +360,12 @@ public class TestPOCast {
             Tuple t = it.next();
             plan.attachInput(t);
             DateTime dt = new DateTime(((Integer)t.get(0)).longValue());
-            Result res = op.getNext(dt);
+            Result res = op.getNextDateTime();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 assertEquals(dt, res.result);
             }
             planToTestBACasts.attachInput(t);
-            res = opWithInputTypeAsBA.getNext(dt);
+            res = opWithInputTypeAsBA.getNextDateTime();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 assertEquals(dt, res.result);
             }
@@ -376,12 +375,12 @@ public class TestPOCast {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			String str = ((Integer)t.get(0)).toString();
-			Result res = op.getNext(str);
+			Result res = op.getNextString();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				assertEquals(str, res.result);
 			}
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(str);
+			res = opWithInputTypeAsBA.getNextString();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				assertEquals(str, res.result);
 			}
@@ -391,12 +390,12 @@ public class TestPOCast {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			DataByteArray dba = new DataByteArray(((Integer)t.get(0)).toString().getBytes());
-			Result res = op.getNext(dba);
+			Result res = op.getNextDataByteArray();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				assertEquals(dba, res.result);
 			}
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(dba);
+			res = opWithInputTypeAsBA.getNextDataByteArray();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				assertEquals(dba, res.result);
 			}
@@ -406,14 +405,14 @@ public class TestPOCast {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			Map map = null;
-			Result res = op.getNext(map);
+			Result res = op.getNextMap();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
 
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
-			Result res = op.getNext(t);
+			Result res = op.getNextTuple();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
 
@@ -421,13 +420,13 @@ public class TestPOCast {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			DataBag b = null;
-			Result res = op.getNext(b);
+			Result res = op.getNextDataBag();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
         {
             planToTestBACasts.attachInput(dummyTuple);
             try{
-                opWithInputTypeAsBA.getNext(dummyMap);
+                opWithInputTypeAsBA.getNextMap();
             }catch (Exception e) {
                 assertEquals(ExecException.class, e.getClass());
             }
@@ -435,7 +434,7 @@ public class TestPOCast {
         {
             planToTestBACasts.attachInput(dummyTuple);
             try{
-                opWithInputTypeAsBA.getNext(dummyTuple);
+                opWithInputTypeAsBA.getNextTuple();
             }catch (Exception e) {
                 assertEquals(ExecException.class, e.getClass());
             }
@@ -443,7 +442,7 @@ public class TestPOCast {
         {
             planToTestBACasts.attachInput(dummyTuple);
             try{
-                opWithInputTypeAsBA.getNext(dummyBag);
+                opWithInputTypeAsBA.getNextDataBag();
             }catch (Exception e) {
                 assertEquals(ExecException.class, e.getClass());
             }
@@ -480,14 +479,14 @@ public class TestPOCast {
             Tuple t = it.next();
             plan.attachInput(t);
             Boolean b = Boolean.valueOf(((Long) t.get(0)) != 0L);
-            Result res = op.getNext(b);
+            Result res = op.getNextBoolean();
             if (res.returnStatus == POStatus.STATUS_OK) {
                 // System.out.println(res.result + " : " + i);
                 assertEquals(b, res.result);
             }
 
             planToTestBACasts.attachInput(t);
-            res = opWithInputTypeAsBA.getNext(b);
+            res = opWithInputTypeAsBA.getNextBoolean();
             if (res.returnStatus == POStatus.STATUS_OK)
                 assertEquals(b, res.result);
 
@@ -497,14 +496,14 @@ public class TestPOCast {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			Integer i = ((Long) t.get(0)).intValue();
-			Result res = op.getNext(i);
+			Result res = op.getNextInteger();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				//System.out.println(res.result + " : " + i);
 				assertEquals(i, res.result);
 			}
 
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(i);
+			res = opWithInputTypeAsBA.getNextInteger();
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(i, res.result);
 
@@ -514,14 +513,14 @@ public class TestPOCast {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			Float f = ((Long)t.get(0)).floatValue();
-			Result res = op.getNext(f);
+			Result res = op.getNextFloat();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 //			   System.out.println(res.result + " : " + f);
 				assertEquals(f, res.result);
 			}
 
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(f);
+			res = opWithInputTypeAsBA.getNextFloat();
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(f, res.result);
 		}
@@ -530,14 +529,14 @@ public class TestPOCast {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			Long l = ((Long)t.get(0)).longValue();
-			Result res = op.getNext(l);
+			Result res = op.getNextLong();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				//System.out.println(res.result + " : " + l);
 				assertEquals(l, res.result);
 			}
 
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(l);
+			res = opWithInputTypeAsBA.getNextLong();
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(l, res.result);
 		}
@@ -546,14 +545,14 @@ public class TestPOCast {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			Double d = ((Long)t.get(0)).doubleValue();
-			Result res = op.getNext(d);
+			Result res = op.getNextDouble();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				//System.out.println(res.result + " : " + d);
 				assertEquals(d, res.result);
 			}
 
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(d);
+			res = opWithInputTypeAsBA.getNextDouble();
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(d, res.result);
 		}
@@ -562,14 +561,14 @@ public class TestPOCast {
             Tuple t = it.next();
             plan.attachInput(t);
             DateTime dt = new DateTime(t.get(0));
-            Result res = op.getNext(dt);
+            Result res = op.getNextDateTime();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 //System.out.println(res.result + " : " + l);
                 assertEquals(dt, res.result);
             }
 
             planToTestBACasts.attachInput(t);
-            res = opWithInputTypeAsBA.getNext(dt);
+            res = opWithInputTypeAsBA.getNextDateTime();
             if(res.returnStatus == POStatus.STATUS_OK)
                 assertEquals(dt, res.result);
         }
@@ -578,14 +577,14 @@ public class TestPOCast {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			String str = ((Long)t.get(0)).toString();
-			Result res = op.getNext(str);
+			Result res = op.getNextString();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				//System.out.println(res.result + " : " + str);
 				assertEquals(str, res.result);
 			}
 
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(str);
+			res = opWithInputTypeAsBA.getNextString();
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(str, res.result);
 		}
@@ -594,14 +593,14 @@ public class TestPOCast {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			DataByteArray dba = new DataByteArray(((Long)t.get(0)).toString().getBytes());
-			Result res = op.getNext(dba);
+			Result res = op.getNextDataByteArray();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				//System.out.println(res.result + " : " + dba);
 				assertEquals(dba, res.result);
 			}
 
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(dba);
+			res = opWithInputTypeAsBA.getNextDataByteArray();
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(dba, res.result);
 		}
@@ -610,14 +609,14 @@ public class TestPOCast {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			Map map = null;
-			Result res = op.getNext(map);
+			Result res = op.getNextMap();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
 
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
-			Result res = op.getNext(t);
+			Result res = op.getNextTuple();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
 
@@ -625,13 +624,13 @@ public class TestPOCast {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			DataBag b = null;
-			Result res = op.getNext(b);
+			Result res = op.getNextDataBag();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
         {
             planToTestBACasts.attachInput(dummyTuple);
             try{
-                opWithInputTypeAsBA.getNext(dummyMap);
+                opWithInputTypeAsBA.getNextMap();
             }catch (Exception e) {
                 assertEquals(ExecException.class, e.getClass());
             }
@@ -639,7 +638,7 @@ public class TestPOCast {
         {
             planToTestBACasts.attachInput(dummyTuple);
             try{
-                opWithInputTypeAsBA.getNext(dummyTuple);
+                opWithInputTypeAsBA.getNextTuple();
             }catch (Exception e) {
                 assertEquals(ExecException.class, e.getClass());
             }
@@ -647,7 +646,7 @@ public class TestPOCast {
         {
             planToTestBACasts.attachInput(dummyTuple);
             try{
-                opWithInputTypeAsBA.getNext(dummyBag);
+                opWithInputTypeAsBA.getNextDataBag();
             }catch (Exception e) {
                 assertEquals(ExecException.class, e.getClass());
             }
@@ -684,13 +683,13 @@ public class TestPOCast {
             Tuple t = it.next();
             plan.attachInput(t);
             Boolean b = Boolean.valueOf(((Float) t.get(0)) != 0.0F);
-            Result res = op.getNext(b);
+            Result res = op.getNextBoolean();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 //System.out.println(res.result + " : " + i);
                 assertEquals(b, res.result);
             }
             planToTestBACasts.attachInput(t);
-            res = opWithInputTypeAsBA.getNext(b);
+            res = opWithInputTypeAsBA.getNextBoolean();
             if(res.returnStatus == POStatus.STATUS_OK)
                 assertEquals(b, res.result);
         }
@@ -699,13 +698,13 @@ public class TestPOCast {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			Integer i = ((Float) t.get(0)).intValue();
-			Result res = op.getNext(i);
+			Result res = op.getNextInteger();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				//System.out.println(res.result + " : " + i);
 				assertEquals(i, res.result);
 			}
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(i);
+			res = opWithInputTypeAsBA.getNextInteger();
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(i, res.result);
 		}
@@ -714,13 +713,13 @@ public class TestPOCast {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			Float f = ((Float)t.get(0)).floatValue();
-			Result res = op.getNext(f);
+			Result res = op.getNextFloat();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 //			  System.out.println(res.result + " : " + f);
 				assertEquals(f, res.result);
 			}
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(f);
+			res = opWithInputTypeAsBA.getNextFloat();
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(f, res.result);
 		}
@@ -729,13 +728,13 @@ public class TestPOCast {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			Long l = ((Float)t.get(0)).longValue();
-			Result res = op.getNext(l);
+			Result res = op.getNextLong();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				//System.out.println(res.result + " : " + l);
 				assertEquals(l, res.result);
 			}
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(l);
+			res = opWithInputTypeAsBA.getNextLong();
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(l, res.result);
 		}
@@ -744,13 +743,13 @@ public class TestPOCast {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			Double d = ((Float)t.get(0)).doubleValue();
-			Result res = op.getNext(d);
+			Result res = op.getNextDouble();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				//System.out.println(res.result + " : " + d);
 				assertEquals(d, res.result);
 			}
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(d);
+			res = opWithInputTypeAsBA.getNextDouble();
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(d, res.result);
 		}
@@ -759,14 +758,14 @@ public class TestPOCast {
             Tuple t = it.next();
             plan.attachInput(t);
             DateTime dt = new DateTime(((Float)t.get(0)).longValue());
-            Result res = op.getNext(dt);
+            Result res = op.getNextDateTime();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 //System.out.println(res.result + " : " + dt);
                 assertEquals(dt, res.result);
             }
 
             planToTestBACasts.attachInput(t);
-            res = opWithInputTypeAsBA.getNext(dt);
+            res = opWithInputTypeAsBA.getNextDateTime();
             if(res.returnStatus == POStatus.STATUS_OK)
                 assertEquals(dt, res.result);
         }
@@ -775,13 +774,13 @@ public class TestPOCast {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			String str = ((Float)t.get(0)).toString();
-			Result res = op.getNext(str);
+			Result res = op.getNextString();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				//System.out.println(res.result + " : " + str);
 				assertEquals(str, res.result);
 			}
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(str);
+			res = opWithInputTypeAsBA.getNextString();
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(str, res.result);
 		}
@@ -790,13 +789,13 @@ public class TestPOCast {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			DataByteArray dba = new DataByteArray(((Float)t.get(0)).toString().getBytes());
-			Result res = op.getNext(dba);
+			Result res = op.getNextDataByteArray();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				//System.out.println(res.result + " : " + dba);
 				assertEquals(dba, res.result);
 			}
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(dba);
+			res = opWithInputTypeAsBA.getNextDataByteArray();
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(dba, res.result);
 		}
@@ -806,7 +805,7 @@ public class TestPOCast {
 			plan.attachInput(t);
 			if(t.get(0) == null) {
 
-					  Float result = (Float) op.getNext((Float) null).result;
+					  Float result = (Float) op.getNextFloat().result;
 				assertEquals( null, result);
 
 			}
@@ -816,14 +815,14 @@ public class TestPOCast {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			Map map = null;
-			Result res = op.getNext(map);
+			Result res = op.getNextMap();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
 
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
-			Result res = op.getNext(t);
+			Result res = op.getNextTuple();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
 
@@ -831,13 +830,13 @@ public class TestPOCast {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			DataBag b = null;
-			Result res = op.getNext(b);
+			Result res = op.getNextDataBag();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
         {
             planToTestBACasts.attachInput(dummyTuple);
             try{
-                opWithInputTypeAsBA.getNext(dummyMap);
+                opWithInputTypeAsBA.getNextMap();
             }catch (Exception e) {
                 assertEquals(ExecException.class, e.getClass());
             }
@@ -845,7 +844,7 @@ public class TestPOCast {
         {
             planToTestBACasts.attachInput(dummyTuple);
             try{
-                opWithInputTypeAsBA.getNext(dummyTuple);
+                opWithInputTypeAsBA.getNextTuple();
             }catch (Exception e) {
                 assertEquals(ExecException.class, e.getClass());
             }
@@ -853,7 +852,7 @@ public class TestPOCast {
         {
             planToTestBACasts.attachInput(dummyTuple);
             try{
-                opWithInputTypeAsBA.getNext(dummyBag);
+                opWithInputTypeAsBA.getNextDataBag();
             }catch (Exception e) {
                 assertEquals(ExecException.class, e.getClass());
             }
@@ -890,13 +889,13 @@ public class TestPOCast {
             Tuple t = it.next();
             plan.attachInput(t);
             Boolean b = Boolean.valueOf(((Double) t.get(0)) != 0.0D);
-            Result res = op.getNext(b);
+            Result res = op.getNextBoolean();
             if (res.returnStatus == POStatus.STATUS_OK) {
                 // System.out.println(res.result + " : " + i);
                 assertEquals(b, res.result);
             }
             planToTestBACasts.attachInput(t);
-            res = opWithInputTypeAsBA.getNext(b);
+            res = opWithInputTypeAsBA.getNextBoolean();
             if (res.returnStatus == POStatus.STATUS_OK)
                 assertEquals(b, res.result);
         }
@@ -905,13 +904,13 @@ public class TestPOCast {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			Integer i = ((Double) t.get(0)).intValue();
-			Result res = op.getNext(i);
+			Result res = op.getNextInteger();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				//System.out.println(res.result + " : " + i);
 				assertEquals(i, res.result);
 			}
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(i);
+			res = opWithInputTypeAsBA.getNextInteger();
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(i, res.result);
 		}
@@ -920,13 +919,13 @@ public class TestPOCast {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			Float f = ((Double)t.get(0)).floatValue();
-			Result res = op.getNext(f);
+			Result res = op.getNextFloat();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 //			  System.out.println(res.result + " : " + f);
 				assertEquals(f, res.result);
 			}
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(f);
+			res = opWithInputTypeAsBA.getNextFloat();
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(f, res.result);
 		}
@@ -935,13 +934,13 @@ public class TestPOCast {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			Long l = ((Double)t.get(0)).longValue();
-			Result res = op.getNext(l);
+			Result res = op.getNextLong();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				//System.out.println(res.result + " : " + l);
 				assertEquals(l, res.result);
 			}
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(l);
+			res = opWithInputTypeAsBA.getNextLong();
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(l, res.result);
 		}
@@ -950,13 +949,13 @@ public class TestPOCast {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			Double d = ((Double)t.get(0)).doubleValue();
-			Result res = op.getNext(d);
+			Result res = op.getNextDouble();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				//System.out.println(res.result + " : " + d);
 				assertEquals(d, res.result);
 			}
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(d);
+			res = opWithInputTypeAsBA.getNextDouble();
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(d, res.result);
 		}
@@ -965,14 +964,14 @@ public class TestPOCast {
             Tuple t = it.next();
             plan.attachInput(t);
             DateTime dt = new DateTime(((Double)t.get(0)).longValue());
-            Result res = op.getNext(dt);
+            Result res = op.getNextDateTime();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 //System.out.println(res.result + " : " + dt);
                 assertEquals(dt, res.result);
             }
 
             planToTestBACasts.attachInput(t);
-            res = opWithInputTypeAsBA.getNext(dt);
+            res = opWithInputTypeAsBA.getNextDateTime();
             if(res.returnStatus == POStatus.STATUS_OK)
                 assertEquals(dt, res.result);
         }
@@ -981,13 +980,13 @@ public class TestPOCast {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			String str = ((Double)t.get(0)).toString();
-			Result res = op.getNext(str);
+			Result res = op.getNextString();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				//System.out.println(res.result + " : " + str);
 				assertEquals(str, res.result);
 			}
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(str);
+			res = opWithInputTypeAsBA.getNextString();
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(str, res.result);
 		}
@@ -996,13 +995,13 @@ public class TestPOCast {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			DataByteArray dba = new DataByteArray(((Double)t.get(0)).toString().getBytes());
-			Result res = op.getNext(dba);
+			Result res = op.getNextDataByteArray();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				//System.out.println(res.result + " : " + dba);
 				assertEquals(dba, res.result);
 			}
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(dba);
+			res = opWithInputTypeAsBA.getNextDataByteArray();
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(dba, res.result);
 		}
@@ -1011,14 +1010,14 @@ public class TestPOCast {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			Map map = null;
-			Result res = op.getNext(map);
+			Result res = op.getNextMap();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
 
 		for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
 			Tuple t = it.next();
 			plan.attachInput(t);
-			Result res = op.getNext(t);
+			Result res = op.getNextTuple();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
 
@@ -1026,13 +1025,13 @@ public class TestPOCast {
 			Tuple t = it.next();
 			plan.attachInput(t);
 			DataBag b = null;
-			Result res = op.getNext(b);
+			Result res = op.getNextDataBag();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
 		{
             planToTestBACasts.attachInput(dummyTuple);
             try{
-                opWithInputTypeAsBA.getNext(dummyMap);
+                opWithInputTypeAsBA.getNextMap();
             }catch (Exception e) {
                 assertEquals(ExecException.class, e.getClass());
             }
@@ -1040,7 +1039,7 @@ public class TestPOCast {
         {
             planToTestBACasts.attachInput(dummyTuple);
             try{
-                opWithInputTypeAsBA.getNext(dummyTuple);
+                opWithInputTypeAsBA.getNextTuple();
             }catch (Exception e) {
                 assertEquals(ExecException.class, e.getClass());
             }
@@ -1048,7 +1047,7 @@ public class TestPOCast {
         {
             planToTestBACasts.attachInput(dummyTuple);
             try{
-                opWithInputTypeAsBA.getNext(dummyBag);
+                opWithInputTypeAsBA.getNextDataBag();
             }catch (Exception e) {
                 assertEquals(ExecException.class, e.getClass());
             }
@@ -1085,7 +1084,7 @@ public class TestPOCast {
             Tuple t = it.next();
             plan.attachInput(t);
             Boolean b = null;
-            Result res = op.getNext(b);
+            Result res = op.getNextBoolean();
             assertEquals(POStatus.STATUS_ERR, res.returnStatus);
         }
 
@@ -1093,14 +1092,14 @@ public class TestPOCast {
             Tuple t = it.next();
             plan.attachInput(t);
             Integer i = new Long(((DateTime) t.get(0)).getMillis()).intValue();
-            Result res = op.getNext(i);
+            Result res = op.getNextInteger();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 //System.out.println(res.result + " : " + i);
                 assertEquals(i, res.result);
             }
 
             planToTestBACasts.attachInput(t);
-            res = opWithInputTypeAsBA.getNext(i);
+            res = opWithInputTypeAsBA.getNextInteger();
             if(res.returnStatus == POStatus.STATUS_OK)
                 assertEquals(i, res.result);
 
@@ -1110,14 +1109,14 @@ public class TestPOCast {
             Tuple t = it.next();
             plan.attachInput(t);
             Float f = new Float(Long.valueOf(((DateTime) t.get(0)).getMillis()).floatValue());
-            Result res = op.getNext(f);
+            Result res = op.getNextFloat();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 //System.out.println(res.result + " : " + f);
                 assertEquals(f, res.result);
             }
 
             planToTestBACasts.attachInput(t);
-            res = opWithInputTypeAsBA.getNext(f);
+            res = opWithInputTypeAsBA.getNextFloat();
             if(res.returnStatus == POStatus.STATUS_OK)
                 assertEquals(f, res.result);
         }
@@ -1126,14 +1125,14 @@ public class TestPOCast {
             Tuple t = it.next();
             plan.attachInput(t);
             Long l = new Long(((DateTime)t.get(0)).getMillis());
-            Result res = op.getNext(l);
+            Result res = op.getNextLong();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 //System.out.println(res.result + " : " + l);
                 assertEquals(l, res.result);
             }
 
             planToTestBACasts.attachInput(t);
-            res = opWithInputTypeAsBA.getNext(l);
+            res = opWithInputTypeAsBA.getNextLong();
             if(res.returnStatus == POStatus.STATUS_OK)
                 assertEquals(l, res.result);
         }
@@ -1142,14 +1141,14 @@ public class TestPOCast {
             Tuple t = it.next();
             plan.attachInput(t);
             Double d = new Double(Long.valueOf(((DateTime) t.get(0)).getMillis()).doubleValue());
-            Result res = op.getNext(d);
+            Result res = op.getNextDouble();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 //System.out.println(res.result + " : " + f);
                 assertEquals(d, res.result);
             }
 
             planToTestBACasts.attachInput(t);
-            res = opWithInputTypeAsBA.getNext(d);
+            res = opWithInputTypeAsBA.getNextDouble();
             if(res.returnStatus == POStatus.STATUS_OK)
                 assertEquals(d, res.result);
         }
@@ -1158,14 +1157,14 @@ public class TestPOCast {
             Tuple t = it.next();
             plan.attachInput(t);
             DateTime dt = (DateTime)t.get(0);
-            Result res = op.getNext(dt);
+            Result res = op.getNextDateTime();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 //System.out.println(res.result + " : " + l);
                 assertEquals(dt, res.result);
             }
 
             planToTestBACasts.attachInput(t);
-            res = opWithInputTypeAsBA.getNext(dt);
+            res = opWithInputTypeAsBA.getNextDateTime();
             if(res.returnStatus == POStatus.STATUS_OK)
                 assertEquals(dt, res.result);
         }
@@ -1174,14 +1173,14 @@ public class TestPOCast {
             Tuple t = it.next();
             plan.attachInput(t);
             String str = ((DateTime)t.get(0)).toString();
-            Result res = op.getNext(str);
+            Result res = op.getNextString();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 //System.out.println(res.result + " : " + str);
                 assertEquals(str, res.result);
             }
 
             planToTestBACasts.attachInput(t);
-            res = opWithInputTypeAsBA.getNext(str);
+            res = opWithInputTypeAsBA.getNextString();
             if(res.returnStatus == POStatus.STATUS_OK)
                 assertEquals(str, res.result);
         }
@@ -1190,14 +1189,14 @@ public class TestPOCast {
             Tuple t = it.next();
             plan.attachInput(t);
             DataByteArray dba = new DataByteArray(((DateTime)t.get(0)).toString().getBytes());
-            Result res = op.getNext(dba);
+            Result res = op.getNextDataByteArray();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 //System.out.println(res.result + " : " + dba);
                 assertEquals(dba, res.result);
             }
 
             planToTestBACasts.attachInput(t);
-            res = opWithInputTypeAsBA.getNext(dba);
+            res = opWithInputTypeAsBA.getNextDataByteArray();
             if(res.returnStatus == POStatus.STATUS_OK)
                 assertEquals(dba, res.result);
         }
@@ -1206,14 +1205,14 @@ public class TestPOCast {
             Tuple t = it.next();
             plan.attachInput(t);
             Map map = null;
-            Result res = op.getNext(map);
+            Result res = op.getNextMap();
             assertEquals(POStatus.STATUS_ERR, res.returnStatus);
         }
 
         for(Iterator<Tuple> it = bag.iterator(); it.hasNext(); ) {
             Tuple t = it.next();
             plan.attachInput(t);
-            Result res = op.getNext(t);
+            Result res = op.getNextTuple();
             assertEquals(POStatus.STATUS_ERR, res.returnStatus);
         }
 
@@ -1221,13 +1220,13 @@ public class TestPOCast {
             Tuple t = it.next();
             plan.attachInput(t);
             DataBag b = null;
-            Result res = op.getNext(b);
+            Result res = op.getNextDataBag();
             assertEquals(POStatus.STATUS_ERR, res.returnStatus);
         }
         {
             planToTestBACasts.attachInput(dummyTuple);
             try{
-                opWithInputTypeAsBA.getNext(dummyMap);
+                opWithInputTypeAsBA.getNextMap();
             }catch (Exception e) {
                 assertEquals(ExecException.class, e.getClass());
             }
@@ -1235,7 +1234,7 @@ public class TestPOCast {
         {
             planToTestBACasts.attachInput(dummyTuple);
             try{
-                opWithInputTypeAsBA.getNext(dummyTuple);
+                opWithInputTypeAsBA.getNextTuple();
             }catch (Exception e) {
                 assertEquals(ExecException.class, e.getClass());
             }
@@ -1243,7 +1242,7 @@ public class TestPOCast {
         {
             planToTestBACasts.attachInput(dummyTuple);
             try{
-                opWithInputTypeAsBA.getNext(dummyBag);
+                opWithInputTypeAsBA.getNextDataBag();
             }catch (Exception e) {
                 assertEquals(ExecException.class, e.getClass());
             }
@@ -1281,26 +1280,26 @@ public class TestPOCast {
             } else if (str.equalsIgnoreCase("false")) {
                 b = Boolean.FALSE;
             }
-            Result res = op.getNext(b);
+            Result res = op.getNextBoolean();
             if (res.returnStatus == POStatus.STATUS_OK) {
                 // System.out.println(res.result + " : " + i);
                 assertEquals(b, res.result);
             }
             planToTestBACasts.attachInput(t);
-            res = opWithInputTypeAsBA.getNext(b);
+            res = opWithInputTypeAsBA.getNextBoolean();
             if (res.returnStatus == POStatus.STATUS_OK)
                 assertEquals(b, res.result);
 
             t = tf.newTuple();
             t.append("neither true nor false");
             plan.attachInput(t);
-            res = op.getNext(b);
+            res = op.getNextBoolean();
             if (res.returnStatus == POStatus.STATUS_OK) {
                 // System.out.println(res.result + " : " + i);
                 assertEquals(null, res.result);
             }
             planToTestBACasts.attachInput(t);
-            res = opWithInputTypeAsBA.getNext(b);
+            res = opWithInputTypeAsBA.getNextBoolean();
             if (res.returnStatus == POStatus.STATUS_OK)
                 assertEquals(null, res.result);
         }
@@ -1310,13 +1309,13 @@ public class TestPOCast {
 			t.append((new Integer(r.nextInt())).toString());
 			plan.attachInput(t);
 			Integer i = Integer.valueOf(((String) t.get(0)));
-			Result res = op.getNext(i);
+			Result res = op.getNextInteger();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				//System.out.println(res.result + " : " + i);
 				assertEquals(i, res.result);
 			}
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(i);
+			res = opWithInputTypeAsBA.getNextInteger();
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(i, res.result);
 		}
@@ -1326,13 +1325,13 @@ public class TestPOCast {
 			t.append((new Float(r.nextFloat())).toString());
 			plan.attachInput(t);
 			Float i = Float.valueOf(((String) t.get(0)));
-			Result res = op.getNext(i);
+			Result res = op.getNextFloat();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				//System.out.println(res.result + " : " + i);
 				assertEquals(i, res.result);
 			}
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(i);
+			res = opWithInputTypeAsBA.getNextFloat();
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(i, res.result);
 		}
@@ -1342,13 +1341,13 @@ public class TestPOCast {
 			t.append((new Long(r.nextLong())).toString());
 			plan.attachInput(t);
 			Long i = Long.valueOf(((String) t.get(0)));
-			Result res = op.getNext(i);
+			Result res = op.getNextLong();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				//System.out.println(res.result + " : " + i);
 				assertEquals(i, res.result);
 			}
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(i);
+			res = opWithInputTypeAsBA.getNextLong();
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(i, res.result);
 		}
@@ -1358,13 +1357,13 @@ public class TestPOCast {
 			t.append((new Double(r.nextDouble())).toString());
 			plan.attachInput(t);
 			Double i = Double.valueOf(((String) t.get(0)));
-			Result res = op.getNext(i);
+			Result res = op.getNextDouble();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				//System.out.println(res.result + " : " + i);
 				assertEquals(i, res.result);
 			}
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(i);
+			res = opWithInputTypeAsBA.getNextDouble();
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(i, res.result);
 		}
@@ -1374,13 +1373,13 @@ public class TestPOCast {
             t.append((new DateTime(r.nextLong())).toString());
             plan.attachInput(t);
             DateTime i = new DateTime(t.get(0));
-            Result res = op.getNext(i);
+            Result res = op.getNextDateTime();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 //System.out.println(res.result + " : " + i);
                 assertEquals(i.getMillis(), ((DateTime) res.result).getMillis());
             }
             planToTestBACasts.attachInput(t);
-            res = opWithInputTypeAsBA.getNext(i);
+            res = opWithInputTypeAsBA.getNextDateTime();
             if(res.returnStatus == POStatus.STATUS_OK)
                 assertEquals(i.getMillis(), ((DateTime) res.result).getMillis());
         }
@@ -1390,13 +1389,13 @@ public class TestPOCast {
 			t.append(GenRandomData.genRandString(r));
 			plan.attachInput(t);
 			String str = (String) t.get(0);
-			Result res = op.getNext(str);
+			Result res = op.getNextString();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				//System.out.println(res.result + " : " + str);
 				assertEquals(str, res.result);
 			}
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(str);
+			res = opWithInputTypeAsBA.getNextString();
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(str, res.result);
 		}
@@ -1407,14 +1406,14 @@ public class TestPOCast {
 
 			plan.attachInput(t);
 			DataByteArray dba = new DataByteArray(((String)t.get(0)).getBytes());
-			Result res = op.getNext(dba);
+			Result res = op.getNextDataByteArray();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				//System.out.println(res.result + " : " + dba);
 				assertEquals(dba, res.result);
 			}
 
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(dba);
+			res = opWithInputTypeAsBA.getNextDataByteArray();
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(dba, res.result);
 		}
@@ -1424,7 +1423,7 @@ public class TestPOCast {
 			t.append(GenRandomData.genRandString(r));
 			plan.attachInput(t);
 			Map map = null;
-			Result res = op.getNext(map);
+			Result res = op.getNextMap();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
 
@@ -1432,7 +1431,7 @@ public class TestPOCast {
 			Tuple t = tf.newTuple();
 			t.append(GenRandomData.genRandString(r));
 			plan.attachInput(t);
-			Result res = op.getNext(t);
+			Result res = op.getNextTuple();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
 		{
@@ -1440,13 +1439,13 @@ public class TestPOCast {
 			t.append(GenRandomData.genRandString(r));
 			plan.attachInput(t);
 			DataBag b = null;
-			Result res = op.getNext(b);
+			Result res = op.getNextDataBag();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
 		{
             planToTestBACasts.attachInput(dummyTuple);
             try{
-                opWithInputTypeAsBA.getNext(dummyMap);
+                opWithInputTypeAsBA.getNextMap();
             }catch (Exception e) {
                 assertEquals(ExecException.class, e.getClass());
             }
@@ -1454,7 +1453,7 @@ public class TestPOCast {
         {
             planToTestBACasts.attachInput(dummyTuple);
             try{
-                opWithInputTypeAsBA.getNext(dummyTuple);
+                opWithInputTypeAsBA.getNextTuple();
             }catch (Exception e) {
                 assertEquals(ExecException.class, e.getClass());
             }
@@ -1462,7 +1461,7 @@ public class TestPOCast {
         {
             planToTestBACasts.attachInput(dummyTuple);
             try{
-                opWithInputTypeAsBA.getNext(dummyBag);
+                opWithInputTypeAsBA.getNextDataBag();
             }catch (Exception e) {
                 assertEquals(ExecException.class, e.getClass());
             }
@@ -1665,14 +1664,14 @@ public class TestPOCast {
             } else if (str.equalsIgnoreCase("false")) {
                 b = Boolean.FALSE;
             }
-            Result res = op.getNext(b);
+            Result res = op.getNextBoolean();
             if (res.returnStatus == POStatus.STATUS_OK) {
                 // System.out.println(res.result + " : " + i);
                 assertEquals(b, res.result);
             }
 
             planToTestBACasts.attachInput(t);
-            res = opWithInputTypeAsBA.getNext(b);
+            res = opWithInputTypeAsBA.getNextBoolean();
             if (res.returnStatus == POStatus.STATUS_OK)
                 assertEquals(b, res.result);
 
@@ -1683,14 +1682,14 @@ public class TestPOCast {
 			t.append(new DataByteArray((new Integer(r.nextInt())).toString().getBytes()));
 			plan.attachInput(t);
 			Integer i = Integer.valueOf(((DataByteArray) t.get(0)).toString());
-			Result res = op.getNext(i);
+			Result res = op.getNextInteger();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				//System.out.println(res.result + " : " + i);
 				assertEquals(i, res.result);
 			}
 
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(i);
+			res = opWithInputTypeAsBA.getNextInteger();
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(i, res.result);
 
@@ -1701,13 +1700,13 @@ public class TestPOCast {
 			t.append(new DataByteArray((new Float(r.nextFloat())).toString().getBytes()));
 			plan.attachInput(t);
 			Float i = Float.valueOf(((DataByteArray) t.get(0)).toString());
-			Result res = op.getNext(i);
+			Result res = op.getNextFloat();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				//System.out.println(res.result + " : " + i);
 				assertEquals(i, res.result);
 			}
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(i);
+			res = opWithInputTypeAsBA.getNextFloat();
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(i, res.result);
 		}
@@ -1717,13 +1716,13 @@ public class TestPOCast {
 			t.append(new DataByteArray((new Long(r.nextLong())).toString().getBytes()));
 			plan.attachInput(t);
 			Long i = Long.valueOf(((DataByteArray) t.get(0)).toString());
-			Result res = op.getNext(i);
+			Result res = op.getNextLong();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				//System.out.println(res.result + " : " + i);
 				assertEquals(i, res.result);
 			}
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(i);
+			res = opWithInputTypeAsBA.getNextLong();
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(i, res.result);
 		}
@@ -1733,13 +1732,13 @@ public class TestPOCast {
 			t.append(new DataByteArray((new Double(r.nextDouble())).toString().getBytes()));
 			plan.attachInput(t);
 			Double i = Double.valueOf(((DataByteArray) t.get(0)).toString());
-			Result res = op.getNext(i);
+			Result res = op.getNextDouble();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				//System.out.println(res.result + " : " + i);
 				assertEquals(i, res.result);
 			}
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(i);
+			res = opWithInputTypeAsBA.getNextDouble();
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(i, res.result);
 		}
@@ -1749,13 +1748,13 @@ public class TestPOCast {
             t.append(new DataByteArray((new DateTime(r.nextLong())).toString().getBytes()));
             plan.attachInput(t);
             DateTime i = new DateTime(((DataByteArray) t.get(0)).toString());
-            Result res = op.getNext(i);
+            Result res = op.getNextDateTime();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 //System.out.println(res.result + " : " + i);
                 assertEquals(i, res.result);
             }
             planToTestBACasts.attachInput(t);
-            res = opWithInputTypeAsBA.getNext(i);
+            res = opWithInputTypeAsBA.getNextDateTime();
             if(res.returnStatus == POStatus.STATUS_OK)
                 assertEquals(i, res.result);
         }
@@ -1765,13 +1764,13 @@ public class TestPOCast {
 			t.append(new DataByteArray(GenRandomData.genRandString(r).getBytes()));
 			plan.attachInput(t);
 			String str = ((DataByteArray) t.get(0)).toString();
-			Result res = op.getNext(str);
+			Result res = op.getNextString();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				//System.out.println(res.result + " : " + str);
 				assertEquals(str, res.result);
 			}
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(str);
+			res = opWithInputTypeAsBA.getNextString();
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(str, res.result);
 		}
@@ -1782,11 +1781,11 @@ public class TestPOCast {
 
 			plan.attachInput(t);
 			DataByteArray dba = (DataByteArray) t.get(0);
-			Result res = op.getNext(dba);
+			Result res = op.getNextDataByteArray();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(dba);
+			res = opWithInputTypeAsBA.getNextDataByteArray();
 			if(res.returnStatus == POStatus.STATUS_OK)
 				assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
@@ -1796,13 +1795,13 @@ public class TestPOCast {
 			t.append(new DataByteArray(GenRandomData.genRandString(r).getBytes()));
 			plan.attachInput(t);
 			Map map = null;
-			Result res = op.getNext(map);
+			Result res = op.getNextMap();
 			//assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 			assertEquals(POStatus.STATUS_OK, res.returnStatus);
 			assertEquals(null, res.result);
 
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(map);
+			res = opWithInputTypeAsBA.getNextMap();
 			assertEquals(POStatus.STATUS_OK, res.returnStatus);
 			assertEquals(null, res.result);
 		}
@@ -1811,13 +1810,13 @@ public class TestPOCast {
 			Tuple t = tf.newTuple();
 			t.append(new DataByteArray(GenRandomData.genRandString(r).getBytes()));
 			plan.attachInput(t);
-			Result res = op.getNext(t);
+			Result res = op.getNextTuple();
 			//assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 			assertEquals(POStatus.STATUS_OK, res.returnStatus);
 			assertEquals(null, res.result);
 
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(t);
+			res = opWithInputTypeAsBA.getNextTuple();
 			assertEquals(POStatus.STATUS_OK, res.returnStatus);
 			assertEquals(null, res.result);
 		}
@@ -1827,13 +1826,13 @@ public class TestPOCast {
 			t.append(new DataByteArray(GenRandomData.genRandString(r).getBytes()));
 			plan.attachInput(t);
 			DataBag b = null;
-			Result res = op.getNext(b);
+			Result res = op.getNextDataBag();
 			//assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 			assertEquals(POStatus.STATUS_OK, res.returnStatus);
 			assertEquals(null, res.result);
 
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(b);
+			res = opWithInputTypeAsBA.getNextDataBag();
 			assertEquals(POStatus.STATUS_OK, res.returnStatus);
 			assertEquals(null, res.result);
 		}
@@ -1880,7 +1879,7 @@ public class TestPOCast {
             Boolean input = new Boolean(r.nextBoolean());
             t.append(input);
             plan.attachInput(t);
-            Result res = newOp.getNext((Boolean) null);
+            Result res = newOp.getNextBoolean();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 //System.out.println(res.result + " : " + i);
                 assertEquals(input, res.result);
@@ -1889,7 +1888,7 @@ public class TestPOCast {
             t = tf.newTuple();
             t.append("neither true nor false");
             plan.attachInput(t);
-            res = newOp.getNext((Boolean) null);
+            res = newOp.getNextBoolean();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 //System.out.println(res.result + " : " + i);
                 assertEquals(null, res.result);
@@ -1901,7 +1900,7 @@ public class TestPOCast {
             Integer input = new Integer(r.nextInt());
             t.append(input);
             plan.attachInput(t);
-            Result res = op.getNext(new Integer(0));
+            Result res = op.getNextInteger();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 //System.out.println(res.result + " : " + i);
                 assertEquals(input, res.result);
@@ -1918,7 +1917,7 @@ public class TestPOCast {
             Float input = new Float(r.nextFloat());
             t.append(input);
             plan.attachInput(t);
-            Result res = newOp.getNext(new Float(0));
+            Result res = newOp.getNextFloat();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 //System.out.println(res.result + " : " + i);
                 assertEquals(input, res.result);
@@ -1935,7 +1934,7 @@ public class TestPOCast {
             Long input = new Long(r.nextLong());
             t.append(input);
             plan.attachInput(t);
-            Result res = newOp.getNext(new Long(0));
+            Result res = newOp.getNextLong();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 //System.out.println(res.result + " : " + i);
                 assertEquals(input, res.result);
@@ -1952,7 +1951,7 @@ public class TestPOCast {
             Double input = new Double(r.nextDouble());
             t.append(input);
             plan.attachInput(t);
-            Result res = newOp.getNext(new Double(0));
+            Result res = newOp.getNextDouble();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 //System.out.println(res.result + " : " + i);
                 assertEquals(input, res.result);
@@ -1969,7 +1968,7 @@ public class TestPOCast {
             DateTime input = new DateTime(r.nextLong());
             t.append(input);
             plan.attachInput(t);
-            Result res = newOp.getNext(new DateTime(0L));
+            Result res = newOp.getNextDateTime();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 //System.out.println(res.result + " : " + i);
                 assertEquals(input, res.result);
@@ -1986,7 +1985,7 @@ public class TestPOCast {
             Tuple input = GenRandomData.genRandSmallTuple("test", 1);
             t.append(input);
             plan.attachInput(t);
-            Result res = newOp.getNext(tf.newTuple());
+            Result res = newOp.getNextTuple();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 //System.out.println(res.result + " : " + str);
                 assertEquals(input, res.result);
@@ -2003,7 +2002,7 @@ public class TestPOCast {
             DataBag input = GenRandomData.genRandSmallTupDataBag(r, 10, 100);
             t.append(input);
             plan.attachInput(t);
-            Result res = newOp.getNext(DefaultBagFactory.getInstance().newDefaultBag());
+            Result res = newOp.getNextDataBag();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 //System.out.println(res.result + " : " + str);
                 assertEquals(input, res.result);
@@ -2022,7 +2021,7 @@ public class TestPOCast {
             input.put("key2", "value2");
             t.append(input);
             plan.attachInput(t);
-            Result res = newOp.getNext(new HashMap<String, Object>());
+            Result res = newOp.getNextMap();
             if(res.returnStatus == POStatus.STATUS_OK) {
                 //System.out.println(res.result + " : " + str);
                 assertEquals(input, res.result);
@@ -2057,7 +2056,7 @@ public class TestPOCast {
 			tNew.append(t);
 			plan.attachInput(tNew);
 			Map map = null;
-			Result res = op.getNext(map);
+			Result res = op.getNextMap();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
 
@@ -2067,12 +2066,12 @@ public class TestPOCast {
 			Tuple tNew = tf.newTuple();
 			tNew.append(t);
 			plan.attachInput(tNew);
-			Result res = op.getNext(t);
+			Result res = op.getNextTuple();
 			//System.out.println(res.result + " : " + t);
 			assertEquals(t, res.result);
 
 			planToTestBACasts.attachInput(tNew);
-			res = opWithInputTypeAsBA.getNext(t);
+			res = opWithInputTypeAsBA.getNextTuple();
 			assertEquals(t, res.result);
 		}
 
@@ -2083,7 +2082,7 @@ public class TestPOCast {
 			tNew.append(t);
 			plan.attachInput(tNew);
 			DataBag b = null;
-			Result res = op.getNext(b);
+			Result res = op.getNextDataBag();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
 
@@ -2094,7 +2093,7 @@ public class TestPOCast {
 			tNew.append(t);
 			plan.attachInput(tNew);
 			Integer i = null;
-			Result res = op.getNext(i);
+			Result res = op.getNextInteger();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
 
@@ -2105,7 +2104,7 @@ public class TestPOCast {
 			tNew.append(t);
 			plan.attachInput(tNew);
 			Long i = null;
-			Result res = op.getNext(i);
+			Result res = op.getNextLong();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
 
@@ -2116,7 +2115,7 @@ public class TestPOCast {
 			tNew.append(t);
 			plan.attachInput(tNew);
 			Float i = null;
-			Result res = op.getNext(i);
+			Result res = op.getNextFloat();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
 
@@ -2127,7 +2126,7 @@ public class TestPOCast {
 			tNew.append(t);
 			plan.attachInput(tNew);
 			Double i = null;
-			Result res = op.getNext(i);
+			Result res = op.getNextDouble();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
 
@@ -2138,7 +2137,7 @@ public class TestPOCast {
             tNew.append(t);
             plan.attachInput(tNew);
             DateTime dt = null;
-            Result res = op.getNext(dt);
+            Result res = op.getNextDateTime();
             assertEquals(POStatus.STATUS_ERR, res.returnStatus);
         }
 
@@ -2149,7 +2148,7 @@ public class TestPOCast {
 			tNew.append(t);
 			plan.attachInput(tNew);
 			String i = null;
-			Result res = op.getNext(i);
+			Result res = op.getNextString();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
 
@@ -2160,12 +2159,12 @@ public class TestPOCast {
 			tNew.append(t);
 			plan.attachInput(tNew);
 			DataByteArray i = null;
-			Result res = op.getNext(i);
+			Result res = op.getNextDataByteArray();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 
 			op.setFuncSpec(new FuncSpec(BinStorage.class.getName()));
 			plan.attachInput(tNew);
-			res = op.getNext(i);
+			res = op.getNextDataByteArray();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
 
@@ -2179,7 +2178,7 @@ public class TestPOCast {
             op.setFieldSchema(new ResourceSchema.ResourceFieldSchema(s.getField(0)));
             plan.attachInput(t);
             Tuple tup = null;
-            Result res = op.getNext(tup);
+            Result res = op.getNextTuple();
 
             assertTrue(res.result==null);
         }
@@ -2195,7 +2194,7 @@ public class TestPOCast {
             op.setFieldSchema(new ResourceSchema.ResourceFieldSchema(s.getField(0)));
             plan.attachInput(t);
             Tuple tup = null;
-            Result res = op.getNext(tup);
+            Result res = op.getNextTuple();
             verifyResult(res, POStatus.STATUS_OK, wrappedTuple);
         }
 
@@ -2210,7 +2209,7 @@ public class TestPOCast {
             op.setFieldSchema(new ResourceSchema.ResourceFieldSchema(s.getField(0)));
             plan.attachInput(t);
             Tuple tup = null;
-            Result res = op.getNext(tup);
+            Result res = op.getNextTuple();
             verifyResult(res, POStatus.STATUS_OK, wrappedTuple);
         }
 
@@ -2245,7 +2244,7 @@ public class TestPOCast {
 			t.append(GenRandomData.genRandSmallTupDataBag(r, 1, 100));
 			plan.attachInput(t);
 			Map map = null;
-			Result res = op.getNext(map);
+			Result res = op.getNextMap();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
 
@@ -2253,7 +2252,7 @@ public class TestPOCast {
 			Tuple t = tf.newTuple();
 			t.append(GenRandomData.genRandSmallTupDataBag(r, 1, 100));
 			plan.attachInput(t);
-			Result res = op.getNext(t);
+			Result res = op.getNextTuple();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
 
@@ -2262,12 +2261,12 @@ public class TestPOCast {
 			t.append(GenRandomData.genRandSmallTupDataBag(r, 1, 100));
 			plan.attachInput(t);
 			DataBag b = (DataBag) t.get(0);
-			Result res = op.getNext(b);
+			Result res = op.getNextDataBag();
 			//System.out.println(res.result + " : " + t);
 			assertEquals(b, res.result);
 
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(b);
+			res = opWithInputTypeAsBA.getNextDataBag();
 			assertEquals(b, res.result);
 		}
 
@@ -2276,7 +2275,7 @@ public class TestPOCast {
 			t.append(GenRandomData.genRandSmallTupDataBag(r, 1, 100));
 			plan.attachInput(t);
 			Integer i = null;
-			Result res = op.getNext(i);
+			Result res = op.getNextInteger();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
 
@@ -2285,7 +2284,7 @@ public class TestPOCast {
 			t.append(GenRandomData.genRandSmallTupDataBag(r, 1, 100));
 			plan.attachInput(t);
 			Long i = null;
-			Result res = op.getNext(i);
+			Result res = op.getNextLong();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
 
@@ -2294,7 +2293,7 @@ public class TestPOCast {
 			t.append(GenRandomData.genRandSmallTupDataBag(r, 1, 100));
 			plan.attachInput(t);
 			Float i = null;
-			Result res = op.getNext(i);
+			Result res = op.getNextFloat();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
 
@@ -2303,7 +2302,7 @@ public class TestPOCast {
 			t.append(GenRandomData.genRandSmallTupDataBag(r, 1, 100));
 			plan.attachInput(t);
 			Double i = null;
-			Result res = op.getNext(i);
+			Result res = op.getNextDouble();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
 
@@ -2312,7 +2311,7 @@ public class TestPOCast {
             t.append(GenRandomData.genRandSmallTupDataBag(r, 1, 100));
             plan.attachInput(t);
             DateTime dt = null;
-            Result res = op.getNext(dt);
+            Result res = op.getNextDateTime();
             assertEquals(POStatus.STATUS_ERR, res.returnStatus);
         }
 
@@ -2321,7 +2320,7 @@ public class TestPOCast {
 			t.append(GenRandomData.genRandSmallTupDataBag(r, 1, 100));
 			plan.attachInput(t);
 			String i = null;
-			Result res = op.getNext(i);
+			Result res = op.getNextString();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
 
@@ -2330,12 +2329,12 @@ public class TestPOCast {
 			t.append(GenRandomData.genRandSmallTupDataBag(r, 1, 100));
 			plan.attachInput(t);
 			DataByteArray i = null;
-			Result res = op.getNext(i);
+			Result res = op.getNextDataByteArray();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 
 			op.setFuncSpec(new FuncSpec(BinStorage.class.getName()));
 			plan.attachInput(t);
-			res = op.getNext(i);
+			res = op.getNextDataByteArray();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
 
@@ -2346,7 +2345,7 @@ public class TestPOCast {
             op.setFieldSchema(new ResourceSchema.ResourceFieldSchema(s.getField(0)));
             plan.attachInput(t);
             DataBag db = null;
-            Result res = op.getNext(db);
+            Result res = op.getNextDataBag();
             Iterator<Tuple> expectedBagIterator = ((DataBag)(t.get(0))).iterator();
             Iterator<Tuple> convertedBagIterator = ((DataBag)(res.result)).iterator();
 
@@ -2373,7 +2372,7 @@ public class TestPOCast {
             op.setFieldSchema(new ResourceSchema.ResourceFieldSchema(s.getField(0)));
             plan.attachInput(t);
             DataBag db = null;
-            Result res = op.getNext(db);
+            Result res = op.getNextDataBag();
             Iterator<Tuple> expectedBagIterator = ((DataBag)(t.get(0))).iterator();
             Iterator<Tuple> convertedBagIterator = ((DataBag)(res.result)).iterator();
 
@@ -2416,12 +2415,12 @@ public class TestPOCast {
 			t.append(GenRandomData.genRandMap(r, 10));
 			plan.attachInput(t);
 			Map map = (Map) t.get(0);
-			Result res = op.getNext(map);
+			Result res = op.getNextMap();
 			//System.out.println(res.result + " : " + t);
 			assertEquals(map, res.result);
 
 			planToTestBACasts.attachInput(t);
-			res = opWithInputTypeAsBA.getNext(map);
+			res = opWithInputTypeAsBA.getNextMap();
 			assertEquals(map, res.result);
 		}
 
@@ -2429,7 +2428,7 @@ public class TestPOCast {
 			Tuple t = tf.newTuple();
 			t.append(GenRandomData.genRandMap(r, 10));
 			plan.attachInput(t);
-			Result res = op.getNext(t);
+			Result res = op.getNextTuple();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 
 		}
@@ -2439,7 +2438,7 @@ public class TestPOCast {
 			t.append(GenRandomData.genRandMap(r, 10));
 			plan.attachInput(t);
 			DataBag b = null;
-			Result res = op.getNext(b);
+			Result res = op.getNextDataBag();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 
 		}
@@ -2448,7 +2447,7 @@ public class TestPOCast {
 			Tuple t = tf.newTuple();
 			t.append(GenRandomData.genRandMap(r, 10));
 			Integer i = null;
-			Result res = op.getNext(i);
+			Result res = op.getNextInteger();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
 
@@ -2456,7 +2455,7 @@ public class TestPOCast {
 			Tuple t = tf.newTuple();
 			t.append(GenRandomData.genRandMap(r, 10));
 			Long i = null;
-			Result res = op.getNext(i);
+			Result res = op.getNextLong();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
 
@@ -2464,7 +2463,7 @@ public class TestPOCast {
 			Tuple t = tf.newTuple();
 			t.append(GenRandomData.genRandMap(r, 10));
 			Float i = null;
-			Result res = op.getNext(i);
+			Result res = op.getNextFloat();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
 
@@ -2472,7 +2471,7 @@ public class TestPOCast {
 			Tuple t = tf.newTuple();
 			t.append(GenRandomData.genRandMap(r, 10));
 			Double i = null;
-			Result res = op.getNext(i);
+			Result res = op.getNextDouble();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
 
@@ -2480,7 +2479,7 @@ public class TestPOCast {
             Tuple t = tf.newTuple();
             t.append(GenRandomData.genRandMap(r, 10));
             DateTime dt = null;
-            Result res = op.getNext(dt);
+            Result res = op.getNextDateTime();
             assertEquals(POStatus.STATUS_ERR, res.returnStatus);
         }
 
@@ -2488,7 +2487,7 @@ public class TestPOCast {
 			Tuple t = tf.newTuple();
 			t.append(GenRandomData.genRandMap(r, 10));
 			String i = null;
-			Result res = op.getNext(i);
+			Result res = op.getNextString();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
 
@@ -2497,12 +2496,12 @@ public class TestPOCast {
 			t.append(GenRandomData.genRandMap(r, 10));
 			plan.attachInput(t);
 			DataByteArray i = null;
-			Result res = op.getNext(i);
+			Result res = op.getNextDataByteArray();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 
 			op.setFuncSpec(new FuncSpec(BinStorage.class.getName()));
 			plan.attachInput(t);
-			res = op.getNext(i);
+			res = op.getNextDataByteArray();
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
 	}
@@ -2537,7 +2536,7 @@ public class TestPOCast {
             plan.attachInput(t);
             if (t.get(0) == null) {
 
-                Boolean result = (Boolean) op.getNext((Boolean) null).result;
+                Boolean result = (Boolean) op.getNextBoolean().result;
                 assertEquals(null, result);
 
             }
@@ -2551,7 +2550,7 @@ public class TestPOCast {
 			plan.attachInput(t);
 			if(t.get(0) == null) {
 
-				Integer result  = (Integer)op.getNext((Integer)null).result;
+				Integer result  = (Integer)op.getNextInteger().result;
 				assertEquals( null, result);
 
 			}
@@ -2565,7 +2564,7 @@ public class TestPOCast {
 			plan.attachInput(t);
 			if(t.get(0) == null) {
 
-				Integer result  = (Integer)op.getNext((Integer)null).result;
+				Integer result  = (Integer)op.getNextInteger().result;
 				assertEquals( null, result);
 
 			}
@@ -2579,7 +2578,7 @@ public class TestPOCast {
 			plan.attachInput(t);
 			if(t.get(0) == null) {
 
-				Double result = (Double) op.getNext((Double) null).result;
+				Double result = (Double) op.getNextDouble().result;
 			assertEquals(null, result);
 
 			}
@@ -2592,7 +2591,7 @@ public class TestPOCast {
             plan.attachInput(t);
             if(t.get(0) == null) {
 
-                DateTime result  = (DateTime)op.getNext((DateTime)null).result;
+                DateTime result  = (DateTime)op.getNextDateTime().result;
                 assertEquals( null, result);
 
             }
@@ -2606,7 +2605,7 @@ public class TestPOCast {
 			plan.attachInput(t);
 			if(t.get(0) == null) {
 
-				String result  = (String)op.getNext((String)null).result;
+				String result  = (String)op.getNextString().result;
 				assertEquals( null, result);
 
 			}
@@ -2623,7 +2622,7 @@ public class TestPOCast {
 			plan.attachInput(t);
 			if(t.get(0) == null) {
 
-				DataByteArray result = (DataByteArray) op.getNext((String) null).result;
+				DataByteArray result = (DataByteArray) op.getNextString().result;
 				assertEquals(null, result);
 
 			}
@@ -2664,43 +2663,43 @@ public class TestPOCast {
 			planToTestBACasts.attachInput(t);
 			Object toCast = t.get(0);
             Boolean b = DataType.toBoolean(toCast);
-            Result res = opWithInputTypeAsBA.getNext(b);
+            Result res = opWithInputTypeAsBA.getNextBoolean();
             if (res.returnStatus == POStatus.STATUS_OK) {
                 assertEquals(b, res.result);
             }
 			Integer i = DataType.toInteger(toCast);
-			res = opWithInputTypeAsBA.getNext(i);
+			res = opWithInputTypeAsBA.getNextInteger();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				assertEquals(i, res.result);
 			}
 			Long l = DataType.toLong(toCast);
-			res = opWithInputTypeAsBA.getNext(l);
+			res = opWithInputTypeAsBA.getNextLong();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				assertEquals(l, res.result);
 			}
 
 			Float f = DataType.toFloat(toCast);
-			res = opWithInputTypeAsBA.getNext(f);
+			res = opWithInputTypeAsBA.getNextFloat();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				assertEquals(f, res.result);
 			}
 
 			Double d = DataType.toDouble(toCast);
-			res = opWithInputTypeAsBA.getNext(d);
+			res = opWithInputTypeAsBA.getNextDouble();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				assertEquals(d, res.result);
 			}
 
 			if (!(toCast instanceof Boolean)) {
                 DateTime dt = DataType.toDateTime(toCast);
-                res = opWithInputTypeAsBA.getNext(dt);
+                res = opWithInputTypeAsBA.getNextDateTime();
                 if(res.returnStatus == POStatus.STATUS_OK) {
                     assertEquals(dt, res.result);
                 }
 			}
 
 			String s = DataType.toString(toCast);
-			res = opWithInputTypeAsBA.getNext(s);
+			res = opWithInputTypeAsBA.getNextString();
 			if(res.returnStatus == POStatus.STATUS_OK) {
 				assertEquals(s, res.result);
 			}

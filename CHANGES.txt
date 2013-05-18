@@ -28,6 +28,8 @@ PIG-3174:  Remove rpm and deb artifacts from build.xml (gates)
 
 IMPROVEMENTS
 
+PIG-3307: Refactor physical operators to remove methods parameters that are always null (julien)
+
 PIG-3317: disable optimizations via pig properties (traviscrawford via billgraham)
 
 PIG-3321: AVRO: Support user specified schema on load (harveyc via rohini)

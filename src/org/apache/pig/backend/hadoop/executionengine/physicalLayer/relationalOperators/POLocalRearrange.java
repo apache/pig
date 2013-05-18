@@ -255,7 +255,7 @@ public class POLocalRearrange extends PhysicalOperator {
      * format, i.e, (key,indexedTuple(value))
      */
     @Override
-    public Result getNext(Tuple t) throws ExecException {
+    public Result getNextTuple() throws ExecException {
 
         Result inp = null;
         Result res = ERR_RESULT;
@@ -301,7 +301,7 @@ public class POLocalRearrange extends PhysicalOperator {
                 case DataType.DATETIME:
                 case DataType.MAP:
                 case DataType.TUPLE:
-                    res = op.getNext(getDummy(op.getResultType()), op.getResultType());
+                    res = op.getNext(op.getResultType());
                     break;
                 default:
                     log.error("Invalid result type: " + DataType.findType(op.getResultType()));
@@ -334,7 +334,7 @@ public class POLocalRearrange extends PhysicalOperator {
                     case DataType.DATETIME:
                     case DataType.MAP:
                     case DataType.TUPLE:
-                        res = op.getNext(getDummy(op.getResultType()), op.getResultType());
+                        res = op.getNext(op.getResultType());
                         break;
                     default:
                         log.error("Invalid result type: " + DataType.findType(op.getResultType()));

@@ -57,14 +57,14 @@ public class POAnd extends BinaryComparisonOperator {
     }
 
     @Override
-    public Result getNext(Boolean b) throws ExecException {
-        Result r = accumChild(null, dummyBool);
+    public Result getNextBoolean() throws ExecException {
+        Result r = accumChild(null, DataType.BOOLEAN);
         if (r != null) {
             return r;
         }
         
         Result left;
-        left = lhs.getNext(dummyBool);
+        left = lhs.getNextBoolean();
         // pass on ERROR and EOP 
         if(left.returnStatus != POStatus.STATUS_OK && left.returnStatus != POStatus.STATUS_NULL) {
             return left;
@@ -87,7 +87,7 @@ public class POAnd extends BinaryComparisonOperator {
           returnLeft = true;
         }
         
-        Result right = rhs.getNext(dummyBool);
+        Result right = rhs.getNextBoolean();
         if (returnLeft) {
             return left;
         }

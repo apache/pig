@@ -66,25 +66,24 @@ public class PORegexp extends BinaryComparisonOperator {
     }
 
     @Override
-    public Result getNext(Boolean bool) throws ExecException {
-        Result r = accumChild(null, dummyString);
+    public Result getNextBoolean() throws ExecException {
+        Result r = accumChild(null, DataType.CHARARRAY);
         if (r != null) {
             return r;
         }
         
         Result left, right;
 
-        left = lhs.getNext(dummyString);
-        right = rhs.getNext(dummyString);
+        left = lhs.getNextString();
+        right = rhs.getNextString();
 
-        if (trueRef == null) initializeRefs();
         if (left.returnStatus != POStatus.STATUS_OK || left.result == null) return left;
         if (right.returnStatus != POStatus.STATUS_OK || right.result == null) return right;
         
         if( impl.match((String)(left.result),(String)(right.result)) ) {
-            left.result = trueRef;
+            left.result = Boolean.TRUE;
         } else {
-            left.result = falseRef;
+            left.result = Boolean.FALSE;
         }
         illustratorMarkup(null, left.result, (Boolean) left.result ? 0 : 1);
         return left;

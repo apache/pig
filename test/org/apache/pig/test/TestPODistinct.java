@@ -152,7 +152,7 @@ public class TestPODistinct {
                 -1, inputs);
         Map<Tuple, Integer> output = new HashMap<Tuple, Integer>();
         Tuple t = null;
-        Result res = distinct.getNext(t);
+        Result res = distinct.getNextTuple();
         t = (Tuple) res.result;
         while (res.returnStatus != POStatus.STATUS_EOP) {
             if (output.containsKey(t)) {
@@ -161,7 +161,7 @@ public class TestPODistinct {
             } else {
                 output.put(t, 1);
             }
-            res = distinct.getNext(t);
+            res = distinct.getNextTuple();
             t = (Tuple) res.result;
         }
         for (Map.Entry<Tuple, Integer> e : output.entrySet()) {

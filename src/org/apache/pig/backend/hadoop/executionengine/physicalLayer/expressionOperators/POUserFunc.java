@@ -23,10 +23,7 @@ import static org.apache.pig.PigConfiguration.TIME_UDFS_PROP;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.lang.reflect.Type;
-import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.logging.Log;
@@ -45,8 +42,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.MonitoredUDFExecutor;
 import org.apache.pig.builtin.MonitoredUDF;
-import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
 import org.apache.pig.data.SchemaTupleFactory;
@@ -60,7 +55,6 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
-import org.joda.time.DateTime;
 
 public class POUserFunc extends ExpressionOperator {
     private static final Log LOG = LogFactory.getLog(POUserFunc.class);
@@ -224,7 +218,7 @@ public class POUserFunc extends ExpressionOperator {
             Result temp = null;
 
             for(PhysicalOperator op : inputs) {
-                temp = op.getNext(getDummy(op.getResultType()), op.getResultType());
+                temp = op.getNext(op.getResultType());
                 if(temp.returnStatus!=POStatus.STATUS_OK) {
                     return temp;
                 }
@@ -371,70 +365,70 @@ public class POUserFunc extends ExpressionOperator {
     }
 
     @Override
-    public Result getNext(Tuple tIn) throws ExecException {
+    public Result getNextTuple() throws ExecException {
         return getNext();
     }
 
     @Override
-    public Result getNext(DataBag db) throws ExecException {
+    public Result getNextDataBag() throws ExecException {
         return getNext();
     }
 
     @Override
-    public Result getNext(Integer i) throws ExecException {
+    public Result getNextInteger() throws ExecException {
         return getNext();
     }
 
     @Override
-    public Result getNext(Boolean b) throws ExecException {
-
-        return getNext();
-    }
-
-    @Override
-    public Result getNext(DataByteArray ba) throws ExecException {
+    public Result getNextBoolean() throws ExecException {
 
         return getNext();
     }
 
     @Override
-    public Result getNext(Double d) throws ExecException {
-        return getNext();
-    }
-
-    @Override
-    public Result getNext(BigInteger bi) throws ExecException {
-        return getNext();
-    }
-
-    @Override
-    public Result getNext(BigDecimal bd) throws ExecException {
-        return getNext();
-    }
-
-    @Override
-    public Result getNext(Float f) throws ExecException {
-        return getNext();
-    }
-
-    @Override
-    public Result getNext(Long l) throws ExecException {
-        return getNext();
-    }
-
-    @Override
-    public Result getNext(DateTime dt) throws ExecException {
+    public Result getNextDataByteArray() throws ExecException {
 
         return getNext();
     }
 
     @Override
-    public Result getNext(Map m) throws ExecException {
+    public Result getNextDouble() throws ExecException {
         return getNext();
     }
 
     @Override
-    public Result getNext(String s) throws ExecException {
+    public Result getNextBigInteger() throws ExecException {
+        return getNext();
+    }
+
+    @Override
+    public Result getNextBigDecimal() throws ExecException {
+        return getNext();
+    }
+
+    @Override
+    public Result getNextFloat() throws ExecException {
+        return getNext();
+    }
+
+    @Override
+    public Result getNextLong() throws ExecException {
+        return getNext();
+    }
+
+    @Override
+    public Result getNextDateTime() throws ExecException {
+
+        return getNext();
+    }
+
+    @Override
+    public Result getNextMap() throws ExecException {
+        return getNext();
+    }
+
+    @Override
+    public Result getNextString() throws ExecException {
         return getNext();
     }
 

@@ -84,7 +84,7 @@ public class POLimit extends PhysicalOperator {
      * limit, return EOP; Otherwise, return the tuple 
      */
     @Override
-    public Result getNext(Tuple t) throws ExecException {
+    public Result getNextTuple() throws ExecException {
         // if it is the first time, evaluate the expression. Otherwise reuse the computed value.
         if (this.getLimit() < 0 && expressionPlan != null) {
             PhysicalOperator expression = expressionPlan.getLeaves().get(0);
@@ -92,14 +92,14 @@ public class POLimit extends PhysicalOperator {
             Result returnValue;
             switch (expression.getResultType()) {
             case DataType.LONG:
-                returnValue = expression.getNext(dummyLong);
+                returnValue = expression.getNextLong();
                 if (returnValue.returnStatus != POStatus.STATUS_OK || returnValue.result == null)
                     throw new RuntimeException("Unable to evaluate Limit expression: "
                             + returnValue);
                 variableLimit = (Long) returnValue.result;
                 break;
             case DataType.INTEGER:
-                returnValue = expression.getNext(dummyInt);
+                returnValue = expression.getNextInteger();
                 if (returnValue.returnStatus != POStatus.STATUS_OK || returnValue.result == null)
                     throw new RuntimeException("Unable to evaluate Limit expression: "
                             + returnValue);

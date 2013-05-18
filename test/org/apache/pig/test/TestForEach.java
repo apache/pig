@@ -74,8 +74,8 @@ public class TestForEach {
     @Test
     public void testGetNextTuple() throws ExecException, IOException {
         int size = 0;
-        for (Result res = fe.getNext(t); res.returnStatus != POStatus.STATUS_EOP; res = fe
-                .getNext(t)) {
+        for (Result res = fe.getNextTuple(); res.returnStatus != POStatus.STATUS_EOP; res = fe
+                .getNextTuple()) {
             Tuple t = (Tuple)res.result;
             assertTrue(TestHelper.bagContains(projDB, t));
             ++size;
