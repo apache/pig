@@ -12,7 +12,6 @@
 	<classpathentry exported="true" kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/jackson-core-asl-1.7.3.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/jackson-mapper-asl-1.7.3.jar"/>
-	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/javacc-4.2.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/javacc.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/jline-0.9.94.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/joda-time-2.1.jar"/>
@@ -55,7 +54,7 @@
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/slf4j-api-1.6.1.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/slf4j-log4j12-1.6.1.jar"/>
   <classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/xmlenc-0.52.jar"/>
-  <classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/avro-1.5.3.jar" />
+  <classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/avro-1.7.4.jar" />
   <classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/json-simple-1.1.jar" />
 	<classpathentry exported="true" kind="lib" path="lib/automaton.jar"/>
 	<classpathentry kind="output" path="build/classes"/>
