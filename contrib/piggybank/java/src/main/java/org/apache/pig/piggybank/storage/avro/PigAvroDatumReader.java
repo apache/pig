@@ -157,8 +157,7 @@ public class PigAvroDatumReader extends GenericDatumReader<Object> {
      */
     @Override
     protected Object readString(Object old, Schema expected, Decoder in) throws IOException {
-        Utf8 str = (Utf8) super.readString(old, expected, in);
-        return str.toString();
+        return super.readString(old, expected, in).toString();
     }
 
     /**
