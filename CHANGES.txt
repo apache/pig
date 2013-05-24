@@ -186,6 +186,8 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-3313: pig job hang if the job tracker is bounced during execution (yu.chenjie via daijy)
+
 PIG-3297: Avro files with stringType set to String cannot be read by the AvroStorage LoadFunc (nielsbasjes via cheolsoo)
 
 PIG-3069: Native Windows Compatibility for Pig E2E Tests and Harness (anthony.murphy via daijy)
