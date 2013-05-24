@@ -66,7 +66,7 @@ public class InputOutputFileValidator {
                 }
                 dummyJob = new Job(ConfigurationUtil.toConfiguration(pigCtx.getProperties()));
                 sf.setStoreLocation(outLoc, dummyJob);
-            } catch (IOException ioe) {
+            } catch (Exception ioe) {
                 if(ioe instanceof PigException){
                     errCode = ((PigException)ioe).getErrorCode();
                 } 
