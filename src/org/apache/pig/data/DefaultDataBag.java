@@ -63,6 +63,7 @@ public class DefaultDataBag extends DefaultAbstractBag {
     public DefaultDataBag(List<Tuple> listOfTuples) {
         mContents = listOfTuples;
         mSize = listOfTuples.size();
+        markSpillableIfNecessary();
     }
 
     @Override
