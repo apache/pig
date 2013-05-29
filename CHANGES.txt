@@ -28,6 +28,10 @@ PIG-3174:  Remove rpm and deb artifacts from build.xml (gates)
 
 IMPROVEMENTS
 
+PIG-3335: TestErrorHandling.tesNegative7 fails on MR2 (xuefuz)
+
+PIG-3316: Pig failed to interpret DateTime values in some special cases (xuefuz)
+
 PIG-3339: Move pattern compilation in ToDate as a static variable (rohini)
 
 PIG-3332: Upgrade Avro dependency to 1.7.4 (nielsbasjes via cheolsoo)
