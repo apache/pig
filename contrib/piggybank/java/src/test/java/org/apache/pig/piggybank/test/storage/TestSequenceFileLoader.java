@@ -81,7 +81,7 @@ import org.apache.pig.test.Util;
   
   @Test
   public void testReadsNocast() throws IOException {
-    pigServer.registerQuery("A = LOAD 'file:" + Util.encodeEscape(tmpFileName) + 
+    pigServer.registerQuery("A = LOAD '" + Util.encodeEscape(tmpFileName) + 
     "' USING org.apache.pig.piggybank.storage.SequenceFileLoader() AS (key, val);");
     Iterator<?> it = pigServer.openIterator("A");
     int tupleCount = 0;
@@ -101,7 +101,7 @@ import org.apache.pig.test.Util;
   
   @Test
   public void testReadsStringCast() throws IOException {
-    pigServer.registerQuery("A = LOAD 'file:" + Util.encodeEscape(tmpFileName) + 
+    pigServer.registerQuery("A = LOAD '" + Util.encodeEscape(tmpFileName) + 
     "' USING org.apache.pig.piggybank.storage.SequenceFileLoader() AS (key:long, val);");
     Iterator<?> it = pigServer.openIterator("A");
     int tupleCount = 0;

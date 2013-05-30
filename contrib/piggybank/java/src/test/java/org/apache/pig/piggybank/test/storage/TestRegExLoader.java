@@ -66,7 +66,7 @@ public class TestRegExLoader extends TestCase {
         String filename = TestHelper.createTempFile(data, "");
         ArrayList<DataByteArray[]> expected = TestHelper.getExpected(data, pattern);
         
-        pigServer.registerQuery("A = LOAD 'file:" + Util.encodeEscape(filename) + 
+        pigServer.registerQuery("A = LOAD '" + Util.encodeEscape(filename) + 
                 "' USING " + DummyRegExLoader.class.getName() + "() AS (key, val);");
         Iterator<?> it = pigServer.openIterator("A");
         int tupleCount = 0;
@@ -92,7 +92,7 @@ public class TestRegExLoader extends TestCase {
         dataE.add(new String[] { "3,three;iii" });
        	ArrayList<DataByteArray[]> expected = TestHelper.getExpected(dataE, pattern2);
         
-        pigServer.registerQuery("A = LOAD 'file:" + Util.encodeEscape(filename) + 
+        pigServer.registerQuery("A = LOAD '" + Util.encodeEscape(filename) + 
                 "' USING " + DummyRegExLoader2.class.getName() + "() AS (key, val);");
         Iterator<?> it = pigServer.openIterator("A");
         int tupleCount = 0;

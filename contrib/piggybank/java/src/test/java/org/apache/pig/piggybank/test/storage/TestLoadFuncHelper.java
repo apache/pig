@@ -75,7 +75,7 @@ public class TestLoadFuncHelper extends TestCase {
         Path path = helper.determineFirstFile(baseDir.getAbsolutePath());
 
         assertNotNull(path);
-        assertEquals(testFile.getAbsolutePath(), path.toUri().toURL().getFile());
+        assertEquals(new Path(testFile.getAbsolutePath()).toUri().toString(), path.toUri().toURL().getFile());
 
     }
 

@@ -75,7 +75,7 @@ public class TestPathPartitioner extends TestCase {
 	PathPartitioner partitioner = new PathPartitioner();
 
 	Map<String, String> map = partitioner
-		.getPathPartitionKeyValues(partition3.getAbsolutePath());
+		.getPathPartitionKeyValues(partition3.getAbsolutePath().replaceAll("\\\\", "/"));
 
 	String[] keys = map.keySet().toArray(new String[] {});
 

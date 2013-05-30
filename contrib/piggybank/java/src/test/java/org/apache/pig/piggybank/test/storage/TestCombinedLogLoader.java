@@ -82,7 +82,7 @@ public class TestCombinedLogLoader extends TestCase {
         String filename = TestHelper.createTempFile(data, " ");
         PigServer pig = new PigServer(ExecType.LOCAL);
         filename = filename.replace("\\", "\\\\");
-        pig.registerQuery("A = LOAD 'file:" + filename + "' USING org.apache.pig.piggybank.storage.apachelog.CombinedLogLoader();");
+        pig.registerQuery("A = LOAD '" + filename + "' USING org.apache.pig.piggybank.storage.apachelog.CombinedLogLoader();");
         Iterator<?> it = pig.openIterator("A");
 
         int tupleCount = 0;

@@ -94,7 +94,7 @@ public class TestAvroStorageUtils {
 
     @Test
     public void testGetAllSubDirs() throws IOException {
-        final String basedir = "file://" + System.getProperty("user.dir");
+        final String basedir = System.getProperty("user.dir");
         final String tempdir = Long.toString(System.currentTimeMillis());
         final String nonexistentpath = basedir + "/" + tempdir + "/this_path_does_not_exist";
 

@@ -94,6 +94,7 @@ public class TestMultiStorage extends TestCase {
   public void tearDown() throws Exception {
     new File(INPUT_FILE).delete();
     Util.deleteFile(cluster, INPUT_FILE);
+    cluster.shutDown();
   }
 
   enum Mode {

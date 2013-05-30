@@ -34,6 +34,7 @@ import org.apache.hadoop.io.compress.GzipCodec;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.test.Util;
 
 public class TestMultiStorageCompression extends TestCase {
    
@@ -163,12 +164,12 @@ public class TestMultiStorageCompression extends TestCase {
       PigServer pig = new PigServer(LOCAL);
       filename = filename.replace("\\", "\\\\");
       patternString = patternString.replace("\\", "\\\\");
-      String query = "A = LOAD 'file:" + filename
+      String query = "A = LOAD '" + Util.encodeEscape(filename)
             + "' USING PigStorage(',') as (a,b,c);";
 
-      String query2 = "STORE A INTO '" + outputPath
+      String query2 = "STORE A INTO '" + Util.encodeEscape(outputPath)
             + "' USING org.apache.pig.piggybank.storage.MultiStorage" + "('"
-            + outputPath + "','0', '" + compressionType + "', '\\t');";
+            + Util.encodeEscape(outputPath) + "','0', '" + compressionType + "', '\\t');";
 
       // Run Pig
       pig.setBatchOn();
