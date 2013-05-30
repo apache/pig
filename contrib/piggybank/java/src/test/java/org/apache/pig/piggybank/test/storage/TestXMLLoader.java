@@ -28,6 +28,7 @@ import junit.framework.TestCase;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.test.Util;
 
 public class TestXMLLoader extends TestCase {
   private static String patternString = "(\\d+)!+(\\w+)~+(\\w+)";
@@ -95,7 +96,7 @@ public class TestXMLLoader extends TestCase {
     PigServer pig = new PigServer(LOCAL);
     filename = filename.replace("\\", "\\\\");
     patternString = patternString.replace("\\", "\\\\");
-    String query = "A = LOAD 'file:" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('invalid') as (doc:chararray);";
+    String query = "A = LOAD '" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('invalid') as (doc:chararray);";
     pig.registerQuery(query);
     Iterator<?> it = pig.openIterator("A");
     int tupleCount = 0;
@@ -118,7 +119,7 @@ public class TestXMLLoader extends TestCase {
     PigServer pig = new PigServer(LOCAL);
     filename = filename.replace("\\", "\\\\");
     patternString = patternString.replace("\\", "\\\\");
-    String query = "A = LOAD 'file:" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('property') as (doc:chararray);";
+    String query = "A = LOAD '" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('property') as (doc:chararray);";
     pig.registerQuery(query);
     Iterator<?> it = pig.openIterator("A");
     int tupleCount = 0;
@@ -150,7 +151,7 @@ public class TestXMLLoader extends TestCase {
     try
     {
         PigServer pigServer = new PigServer (ExecType.LOCAL);
-        String loadQuery = "A = LOAD 'file:" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('property') as (doc:chararray);";
+        String loadQuery = "A = LOAD '" + Util.encodeEscape(filename) + "' USING org.apache.pig.piggybank.storage.XMLLoader('property') as (doc:chararray);";
         pigServer.registerQuery(loadQuery);
         Iterator<Tuple> it = pigServer.openIterator("A");
         int tupleCount = 0;
@@ -192,7 +193,7 @@ public class TestXMLLoader extends TestCase {
     {
 
     PigServer pigServer = new PigServer (ExecType.LOCAL);
-    String loadQuery = "A = LOAD 'file:" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('property') as (doc:chararray);";
+    String loadQuery = "A = LOAD '" + Util.encodeEscape(filename) + "' USING org.apache.pig.piggybank.storage.XMLLoader('property') as (doc:chararray);";
     pigServer.registerQuery(loadQuery);
 
     Iterator<Tuple> it = pigServer.openIterator("A");
@@ -224,7 +225,7 @@ public class TestXMLLoader extends TestCase {
       PigServer pig = new PigServer(LOCAL);
       filename = filename.replace("\\", "\\\\");
       patternString = patternString.replace("\\", "\\\\");
-      String query = "A = LOAD 'file:" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('name') as (doc:chararray);";
+      String query = "A = LOAD '" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('name') as (doc:chararray);";
       pig.registerQuery(query);
       Iterator<?> it = pig.openIterator("A");
       int tupleCount = 0;
@@ -248,7 +249,7 @@ public class TestXMLLoader extends TestCase {
       PigServer pig = new PigServer(LOCAL);
       filename = filename.replace("\\", "\\\\");
       patternString = patternString.replace("\\", "\\\\");
-      String query = "A = LOAD 'file:" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('ignoreProperty') as (doc:chararray);";
+      String query = "A = LOAD '" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('ignoreProperty') as (doc:chararray);";
       pig.registerQuery(query);
       Iterator<?> it = pig.openIterator("A");
       int tupleCount = 0;
@@ -281,7 +282,7 @@ public class TestXMLLoader extends TestCase {
       PigServer pig = new PigServer(LOCAL);
       filename = filename.replace("\\", "\\\\");
       patternString = patternString.replace("\\", "\\\\");
-      String query = "A = LOAD 'file:" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('</ignoreProperty>') as (doc:chararray);";
+      String query = "A = LOAD '" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('</ignoreProperty>') as (doc:chararray);";
       pig.registerQuery(query);
       Iterator<?> it = pig.openIterator("A");
       int tupleCount = 0;
@@ -307,7 +308,7 @@ public class TestXMLLoader extends TestCase {
       PigServer pig = new PigServer(LOCAL);
       filename = filename.replace("\\", "\\\\");
       patternString = patternString.replace("\\", "\\\\");
-      String query = "A = LOAD 'file:" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('</ignoreProperty>') as (doc:chararray);";
+      String query = "A = LOAD '" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('</ignoreProperty>') as (doc:chararray);";
       pig.registerQuery(query);
       Iterator<?> it = pig.openIterator("A");
       int tupleCount = 0;
@@ -330,7 +331,7 @@ public class TestXMLLoader extends TestCase {
       PigServer pig = new PigServer(LOCAL);
       filename = filename.replace("\\", "\\\\");
       patternString = patternString.replace("\\", "\\\\");
-      String query = "A = LOAD 'file:" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('event') as (doc:chararray);";
+      String query = "A = LOAD '" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('event') as (doc:chararray);";
       pig.registerQuery(query);
       Iterator<?> it = pig.openIterator("A");
       int tupleCount = 0;
@@ -353,7 +354,7 @@ public class TestXMLLoader extends TestCase {
      PigServer pig = new PigServer(LOCAL);
      filename = filename.replace("\\", "\\\\");
      patternString = patternString.replace("\\", "\\\\");
-     String query = "A = LOAD 'file:" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('event') as (doc:chararray);";
+     String query = "A = LOAD '" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('event') as (doc:chararray);";
      pig.registerQuery(query);
      Iterator<?> it = pig.openIterator("A");
      int tupleCount = 0;
@@ -375,7 +376,7 @@ public class TestXMLLoader extends TestCase {
      PigServer pig = new PigServer(LOCAL);
      filename = filename.replace("\\", "\\\\");
      patternString = patternString.replace("\\", "\\\\");
-     String query = "A = LOAD 'file:" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('event') as (doc:chararray);";
+     String query = "A = LOAD '" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('event') as (doc:chararray);";
      pig.registerQuery(query);
      Iterator<?> it = pig.openIterator("A");
      while (it.hasNext()) {

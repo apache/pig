@@ -81,7 +81,7 @@ public class TestHiveColumnarStorage extends TestCase {
 
         PigServer server = new PigServer(ExecType.LOCAL);
         server.setBatchOn();
-        server.registerQuery("a = LOAD '" + singlePartitionedFile + "' using " + loadString
+        server.registerQuery("a = LOAD '" + Util.encodeEscape(singlePartitionedFile) + "' using " + loadString
                 + ";");
 
         //when
@@ -111,7 +111,7 @@ public class TestHiveColumnarStorage extends TestCase {
 
         PigServer server = new PigServer(ExecType.LOCAL);
         server.setBatchOn();
-        server.registerQuery("a = LOAD '" + singlePartitionedFile + "' using " + loadString
+        server.registerQuery("a = LOAD '" + Util.encodeEscape(singlePartitionedFile) + "' using " + loadString
                 + ";");
         server.registerQuery("b = FOREACH a GENERATE f1, TOTUPLE(f2,f3);");
 
@@ -148,7 +148,7 @@ public class TestHiveColumnarStorage extends TestCase {
 
         PigServer server = new PigServer(ExecType.LOCAL);
         server.setBatchOn();
-        server.registerQuery("a = LOAD '" + singlePartitionedFile + "' using " + loadString
+        server.registerQuery("a = LOAD '" + Util.encodeEscape(singlePartitionedFile) + "' using " + loadString
                 + ";");
         server.registerQuery("b = FOREACH a GENERATE f1, TOBAG(f2,f3);");
 
@@ -185,7 +185,7 @@ public class TestHiveColumnarStorage extends TestCase {
 
         PigServer server = new PigServer(ExecType.LOCAL);
         server.setBatchOn();
-        server.registerQuery("a = LOAD '" + singlePartitionedFile + "' using " + loadString
+        server.registerQuery("a = LOAD '" + Util.encodeEscape(singlePartitionedFile) + "' using " + loadString
                 + ";");
         server.registerQuery("b = FOREACH a GENERATE f1, TOMAP(f2,f3);");
 
@@ -233,6 +233,7 @@ public class TestHiveColumnarStorage extends TestCase {
         LongWritable key = rcFileRecordReader.createKey();
         BytesRefArrayWritable value = rcFileRecordReader.createValue();
         rcFileRecordReader.next(key, value);
+        rcFileRecordReader.close();
 
         ColumnarStruct struct = readColumnarStruct(value, schema);
         return struct;

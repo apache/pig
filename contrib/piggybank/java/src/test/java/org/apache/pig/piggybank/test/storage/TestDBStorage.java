@@ -134,6 +134,7 @@ public class TestDBStorage extends TestCase {
 		Util.deleteFile(cluster, INPUT_FILE);
 		pigServer.shutdown();
 		dbServer.stop();
+		cluster.shutDown();
 
 		File[] dbFiles = new File(TMP_DIR).listFiles(new FilenameFilter() {
 			@Override
@@ -156,7 +157,7 @@ public class TestDBStorage extends TestCase {
 		String insertQuery = "insert into ttt (id, name, ratio, dt) values (?,?,?,?)";
 		pigServer.setBatchOn();
 		String dbStore = "org.apache.pig.piggybank.storage.DBStorage('" + driver                                                                                                                       
-	            + "', '" + url + "', '" + insertQuery + "');";
+	            + "', '" + Util.encodeEscape(url) + "', '" + insertQuery + "');";
 		pigServer.registerQuery("A = LOAD '" + INPUT_FILE
 				+ "' as (id:int, fruit:chararray, ratio:double, dt : datetime);");
 		pigServer.registerQuery("STORE A INTO 'dummy' USING " + dbStore);

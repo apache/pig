@@ -52,6 +52,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.piggybank.storage.AllLoader;
 import org.apache.pig.piggybank.storage.HiveColumnarLoader;
 import org.apache.pig.piggybank.storage.allloader.LoadFuncHelper;
+import org.apache.pig.test.Util;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -159,7 +160,7 @@ public class TestAllLoader extends TestCase {
         server.setBatchOn();
         server.registerFunction(allLoaderName, new FuncSpec(allLoaderFuncSpec));
 
-        server.registerQuery("a = LOAD '" + filesByContentDir.getAbsolutePath()
+        server.registerQuery("a = LOAD '" + Util.encodeEscape(filesByContentDir.getAbsolutePath())
                 + "' using " + allLoaderFuncSpec + " as (p:float, q:float);");
 
         readRecordsFromLoader(server, "a", fileRecords);
@@ -190,7 +191,7 @@ public class TestAllLoader extends TestCase {
             String schema = taggedSchemas[i++];
 
             server.registerQuery(tag + " = LOAD '"
-                    + taggedLogicPartitionDir.getAbsolutePath() + "/" + tag
+                    + Util.encodeEscape(taggedLogicPartitionDir.getAbsolutePath()) + "/" + tag
                     + "' using " + allLoaderFuncSpec + " as " + schema + ";");
 
             readRecordsFromLoader(server, tag, fileRecords
@@ -208,7 +209,7 @@ public class TestAllLoader extends TestCase {
     @Test
     public void testLogicPartitionFilter() throws IOException {
 
-        server.registerQuery("a = LOAD '" + logicPartitionDir.getAbsolutePath()
+        server.registerQuery("a = LOAD '" + Util.encodeEscape(logicPartitionDir.getAbsolutePath())
                 + "' using " + allLoaderName + "('block<=2')"
                 + " as (q:float, p:float);");
 
@@ -239,7 +240,7 @@ public class TestAllLoader extends TestCase {
     @Test
     public void testLogicPartitionPartitionColumnExtract() throws IOException {
 
-        server.registerQuery("a = LOAD '" + logicPartitionDir.getAbsolutePath()
+        server.registerQuery("a = LOAD '" + Util.encodeEscape(logicPartitionDir.getAbsolutePath())
                 + "' using " + allLoaderFuncSpec
                 + " as (q:float, p:float, block:chararray);");
 
@@ -285,7 +286,7 @@ public class TestAllLoader extends TestCase {
     @Test
     public void testLogicPartitionDir() throws IOException {
 
-        server.registerQuery("a = LOAD '" + logicPartitionDir.getAbsolutePath()
+        server.registerQuery("a = LOAD '" + Util.encodeEscape(logicPartitionDir.getAbsolutePath())
                 + "' using " + allLoaderFuncSpec + " as (q:float, p:float);");
 
         readRecordsFromLoader(server, "a", fileRecords * logicPartitions.length
@@ -302,7 +303,7 @@ public class TestAllLoader extends TestCase {
     public void testDateParitionFilterWithAsSchema() throws IOException {
 
         server.registerQuery("a = LOAD '"
-                + datePartitionDir.getAbsolutePath()
+                + Util.encodeEscape(datePartitionDir.getAbsolutePath())
                 + "' using "
                 + allLoaderName
                 + "('daydate >= \"2010-11-02\" and daydate <= \"2010-11-04\"') AS (q:float, p:float, daydate:chararray); ");
@@ -333,7 +334,7 @@ public class TestAllLoader extends TestCase {
     public void testDateParitionFilterWithoutSchema() throws IOException {
 
         server.registerQuery("a = LOAD '"
-                + datePartitionDir.getAbsolutePath()
+                + Util.encodeEscape(datePartitionDir.getAbsolutePath())
                 + "' using "
                 + allLoaderName
                 + "('daydate >= \"2010-11-02\" and daydate <= \"2010-11-04\"'); ");
@@ -366,7 +367,7 @@ public class TestAllLoader extends TestCase {
     @Test
     public void testDateParitionDir() throws IOException, ParseException {
 
-        server.registerQuery("a = LOAD '" + datePartitionDir.getAbsolutePath()
+        server.registerQuery("a = LOAD '" + Util.encodeEscape(datePartitionDir.getAbsolutePath())
                 + "' using " + allLoaderFuncSpec
                 + " as (q:float, p:float, daydate:chararray);");
 
@@ -399,7 +400,7 @@ public class TestAllLoader extends TestCase {
     @Test
     public void testSimpleDir() throws IOException {
 
-        server.registerQuery("a = LOAD '" + simpleDir.getAbsolutePath()
+        server.registerQuery("a = LOAD '" + Util.encodeEscape(simpleDir.getAbsolutePath())
                 + "' using " + allLoaderFuncSpec + " as (q:float, p:float);");
 
         readRecordsFromLoader(server, "a", fileRecords * fileTypes.length);

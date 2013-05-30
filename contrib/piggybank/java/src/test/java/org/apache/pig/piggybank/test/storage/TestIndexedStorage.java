@@ -96,7 +96,7 @@ public class TestIndexedStorage {
         input.delete();
         Util.createLocalInputFile(input.getAbsolutePath(), inputs);
 
-        pigServer.registerQuery("A = load '" + input.getAbsolutePath() + "' as (a0:int, a1:int);");
+        pigServer.registerQuery("A = load '" + Util.encodeEscape(input.getAbsolutePath()) + "' as (a0:int, a1:int);");
 
         File output = new File(outputDir, "/" + id);
         pigServer.store("A", output.getAbsolutePath(), "org.apache.pig.piggybank.storage.IndexedStorage('\t','0,1')");
@@ -124,7 +124,7 @@ public class TestIndexedStorage {
         TaskAttemptID taskId = HadoopShims.createTaskAttemptID("jt", 1, true, 1, 1);
         conf.set("mapred.task.id", taskId.toString());
 
-        conf.set("mapred.input.dir", outputDir.getAbsolutePath());
+        conf.set("mapred.input.dir", Util.encodeEscape(outputDir.getAbsolutePath()));
         storage.initialize(conf);
 
         Integer key;
@@ -156,7 +156,7 @@ public class TestIndexedStorage {
         TaskAttemptID taskId =  HadoopShims.createTaskAttemptID("jt", 2, true, 2, 2);
         conf.set("mapred.task.id", taskId.toString());
 
-        conf.set("mapred.input.dir", outputDir.getAbsolutePath());
+        conf.set("mapred.input.dir", Util.encodeEscape(outputDir.getAbsolutePath()));
         storage.initialize(conf);
 
         TupleFactory tupleFactory = TupleFactory.getInstance();

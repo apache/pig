@@ -40,7 +40,7 @@ public class TestMyRegExLoader extends TestCase {
     PigServer pig = new PigServer(LOCAL);
     filename = filename.replace("\\", "\\\\");
     patternString = patternString.replace("\\", "\\\\");
-    String query = "A = LOAD 'file:" + filename + "' USING org.apache.pig.piggybank.storage.MyRegExLoader('" + patternString + "');";
+    String query = "A = LOAD '" + filename + "' USING org.apache.pig.piggybank.storage.MyRegExLoader('" + patternString + "');";
     pig.registerQuery(query);
     Iterator<?> it = pig.openIterator("A");
     int tupleCount = 0;

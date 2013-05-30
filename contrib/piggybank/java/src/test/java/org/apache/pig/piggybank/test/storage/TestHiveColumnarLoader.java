@@ -131,7 +131,7 @@ public class TestHiveColumnarLoader extends TestCase {
         server.registerFunction("org.apache.pig.piggybank.storage.HiveColumnarLoader",
                 new FuncSpec(funcSpecString));
 
-        server.registerQuery("a = LOAD '" + singlePartitionedFile + "' using " + funcSpecString
+        server.registerQuery("a = LOAD '" + Util.encodeEscape(singlePartitionedFile) + "' using " + funcSpecString
                 + ";");
 
         Iterator<Tuple> result = server.openIterator("a");
@@ -158,7 +158,7 @@ public class TestHiveColumnarLoader extends TestCase {
         server.registerFunction("org.apache.pig.piggybank.storage.HiveColumnarLoader",
                 new FuncSpec(funcSpecString));
 
-        server.registerQuery("a = LOAD '" + singlePartitionedDir + "' using " + funcSpecString
+        server.registerQuery("a = LOAD '" + Util.encodeEscape(singlePartitionedDir) + "' using " + funcSpecString
                 + ";");
 
         server.registerQuery("b = foreach a generate f1;");
@@ -187,7 +187,7 @@ public class TestHiveColumnarLoader extends TestCase {
         server.registerFunction("org.apache.pig.piggybank.storage.HiveColumnarLoader",
                 new FuncSpec(funcSpecString));
 
-        server.registerQuery("a = LOAD '" + singlePartitionedFile + "' using " + funcSpecString
+        server.registerQuery("a = LOAD '" + Util.encodeEscape(singlePartitionedFile) + "' using " + funcSpecString
                 + ";");
 
         server.registerQuery("b = foreach a generate f1;");
@@ -216,7 +216,7 @@ public class TestHiveColumnarLoader extends TestCase {
         server.registerFunction("org.apache.pig.piggybank.storage.HiveColumnarLoader",
                 new FuncSpec(funcSpecString));
 
-        server.registerQuery("a = LOAD '" + yearMonthDayHourPartitionedDir.getAbsolutePath()
+        server.registerQuery("a = LOAD '" + Util.encodeEscape(yearMonthDayHourPartitionedDir.getAbsolutePath())
                 + "' using " + funcSpecString + ";");
         server.registerQuery("f = FILTER a by year=='2010';");
         server.registerQuery("b = foreach f generate f1,f2;");
@@ -246,7 +246,7 @@ public class TestHiveColumnarLoader extends TestCase {
         server.registerFunction("org.apache.pig.piggybank.storage.HiveColumnarLoader",
                 new FuncSpec(funcSpecString));
 
-        server.registerQuery("a = LOAD '" + yearMonthDayHourPartitionedDir.getAbsolutePath()
+        server.registerQuery("a = LOAD '" + Util.encodeEscape(yearMonthDayHourPartitionedDir.getAbsolutePath())
                 + "' using " + funcSpecString + ";");
         server.registerQuery("f = FILTER a by year=='2010';");
         server.registerQuery("r = foreach f generate year, f2, f3, month, day, hour;");
@@ -277,7 +277,7 @@ public class TestHiveColumnarLoader extends TestCase {
         server.registerFunction("org.apache.pig.piggybank.storage.HiveColumnarLoader",
                 new FuncSpec(funcSpecString));
 
-        server.registerQuery("a = LOAD '" + datePartitionedDir.getAbsolutePath() + "' using "
+        server.registerQuery("a = LOAD '" + Util.encodeEscape(datePartitionedDir.getAbsolutePath()) + "' using "
                 + funcSpecString + ";");
         server.registerQuery("b = FOREACH a GENERATE f2 as p;");
         Iterator<Tuple> result = server.openIterator("b");
@@ -306,7 +306,7 @@ public class TestHiveColumnarLoader extends TestCase {
         server.registerFunction("org.apache.pig.piggybank.storage.HiveColumnarLoader",
                 new FuncSpec(funcSpecString));
 
-        server.registerQuery("a = LOAD '" + datePartitionedDir.getAbsolutePath() + "' using "
+        server.registerQuery("a = LOAD '" + Util.encodeEscape(datePartitionedDir.getAbsolutePath()) + "' using "
                 + funcSpecString + ";");
         Iterator<Tuple> result = server.openIterator("a");
 
@@ -331,7 +331,7 @@ public class TestHiveColumnarLoader extends TestCase {
         server.registerFunction("org.apache.pig.piggybank.storage.HiveColumnarLoader",
                 new FuncSpec(funcSpecString));
 
-        server.registerQuery("a = LOAD '" + datePartitionedDir.getAbsolutePath() + "' using "
+        server.registerQuery("a = LOAD '" + Util.encodeEscape(datePartitionedDir.getAbsolutePath()) + "' using "
                 + funcSpecString + ";");
         Iterator<Tuple> result = server.openIterator("a");
 
@@ -355,7 +355,7 @@ public class TestHiveColumnarLoader extends TestCase {
         server.registerFunction("org.apache.pig.piggybank.storage.HiveColumnarLoader",
                 new FuncSpec(funcSpecString));
 
-        server.registerQuery("a = LOAD '" + datePartitionedDir.getAbsolutePath() + "' using "
+        server.registerQuery("a = LOAD '" + Util.encodeEscape(datePartitionedDir.getAbsolutePath()) + "' using "
                 + funcSpecString + ";");
         Iterator<Tuple> result = server.openIterator("a");
         Tuple t = null;
