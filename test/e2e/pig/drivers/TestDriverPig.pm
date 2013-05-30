@@ -385,9 +385,13 @@ sub getPigCmd($$$)
     my @pigCmd;
 
     # set the PIG_CLASSPATH environment variable
+	my $separator = ":";
+	if(Util::isWindows()) {
+	    $separator = ";";
+	}
 	my $pcp .= $testCmd->{'jythonjar'} if (defined($testCmd->{'jythonjar'}));
-    $pcp .= ":" . $testCmd->{'jrubyjar'} if (defined($testCmd->{'jrubyjar'}));
-    $pcp .= ":" . $testCmd->{'classpath'} if (defined($testCmd->{'classpath'}));
+    $pcp .= $separator . $testCmd->{'jrubyjar'} if (defined($testCmd->{'jrubyjar'}));
+    $pcp .= $separator . $testCmd->{'classpath'} if (defined($testCmd->{'classpath'}));
 
     # Set it in our current environment.  It will get inherited by the IPC::Run
     # command.
