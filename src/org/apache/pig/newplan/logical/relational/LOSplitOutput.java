@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.newplan.Operator;
@@ -51,6 +52,23 @@ public class LOSplitOutput extends LogicalRelationalOperator {
         this.filterPlan = filterPlan;
     }
     
+    private void reassignUidRec(LogicalSchema schema) {
+        for (LogicalFieldSchema fs : schema.getFields()) {
+            /* If one of the field contains a nested schema, we need to reassign Uids on the nested fields too */
+            if (fs.schema != null && (fs.type == DataType.TUPLE || fs.type == DataType.BAG || fs.type == DataType.MAP)) {
+                reassignUidRec(fs.schema);
+            }
+            if (uidMapping.containsKey(fs.uid)) {
+                fs.uid = uidMapping.get(fs.uid);
+            }
+            else {
+                long predUid = fs.uid;
+                fs.uid = LogicalExpression.getNextUid();
+                uidMapping.put(predUid, fs.uid);
+            }
+        }
+    }
+    
     @Override
     public LogicalSchema getSchema() throws FrontendException {
         if (schema!=null)
@@ -61,16 +79,7 @@ public class LOSplitOutput extends LogicalRelationalOperator {
         
         if (input.getSchema()!=null) {
             schema = input.getSchema().deepCopy();
-            for (LogicalFieldSchema fs : schema.getFields()) {
-                if (uidMapping.containsKey(fs.uid)) {
-                    fs.uid = uidMapping.get(fs.uid);
-                }
-                else {
-                    long predUid = fs.uid;
-                    fs.uid = LogicalExpression.getNextUid();
-                    uidMapping.put(predUid, fs.uid);
-                }
-            }
+            reassignUidRec(schema);
         }
         return schema;
     }   
