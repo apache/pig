@@ -192,6 +192,8 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-2956: Invalid cache specification for some streaming statement (daijy)
+
 PIG-3310: ImplicitSplitInserter does not generate new uids for nested schema fields, leading to miscomputations (cstenac via daijy)
 
 PIG-3334: Fix Windows piggybank unit test failures (daijy)
