@@ -1446,8 +1446,21 @@ public class JobControlCompiler{
      * @throws ExecException
      */
     private static URI toURI(Path src) throws ExecException {
+        String pathInString = src.toString();
+        String fragment = null;
+        if (pathInString.contains("#")) {
+            fragment = pathInString.substring(pathInString.indexOf("#"));
+            pathInString = pathInString.substring(0, pathInString.indexOf("#"));
+        }
+        
+        // Encode the path
+        URI uri = new Path(pathInString).toUri();
+        String uriEncoded = uri.toString();
+        if (fragment!=null) {
+            uriEncoded = uriEncoded + fragment;
+        }
         try {
-            return new URI(src.toString());
+            return new URI(uriEncoded);
         } catch (URISyntaxException ue) {
             int errCode = 6003;
             String msg = "Invalid cache specification. " +

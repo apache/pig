@@ -21,10 +21,15 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.lang.reflect.Method;
+import java.net.URI;
 import java.util.Iterator;
 import java.util.Random;
 
+import junit.framework.Assert;
+
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.MiniHBaseCluster;
@@ -708,5 +713,21 @@ public class TestJobSubmission {
 
         //Third job is the order, which uses the estimated number of reducers
         Util.assertParallelValues(-1, -1, reducer, reducer, jobControl.getWaitingJobs().get(0).getJobConf());
+    }
+    
+    @Test
+    public void testToUri() throws Exception {
+        Class<JobControlCompiler> jobControlCompilerClass = JobControlCompiler.class;
+        Method toURIMethod = jobControlCompilerClass.getDeclaredMethod("toURI", Path.class);
+        toURIMethod.setAccessible(true);
+        
+        Path p1 = new Path("/tmp/temp-1510081022/tmp-1308657145#pigsample_1889145873_1351808882314");
+        URI uri1 = (URI)toURIMethod.invoke(null, p1);
+        Assert.assertEquals(uri1.toString(), "/tmp/temp-1510081022/tmp-1308657145#pigsample_1889145873_1351808882314");
+        
+        Path p2 = new Path("C:/Program Files/GnuWin32/bin/head.exe#pigsample_1889145873_1351808882314");
+        URI uri2 = (URI)toURIMethod.invoke(null, p2);
+        Assert.assertTrue(uri2.toString().equals("C:/Program%20Files/GnuWin32/bin/head.exe#pigsample_1889145873_1351808882314")||
+                uri2.toString().equals("/C:/Program%20Files/GnuWin32/bin/head.exe#pigsample_1889145873_1351808882314"));
     }
 }
