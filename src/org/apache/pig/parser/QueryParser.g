@@ -625,17 +625,36 @@ unary_cond
         // brackets, and otherwise we'll assume its an "expr" (and so
         // we'll have to strip off the BOOL_COND token the "cast_expr"
         // rule added)
-        Tree tree = (Tree)retval.getTree();
+        BaseTree tree = (BaseTree) retval.getTree();
         if(tree.getType() == BOOL_COND
         && tree.getChild(0).getType() == EXPR_IN_PAREN
         && BOOLEAN_TOKENS.contains(tree.getChild(0).getChild(0).getType())) {
             retval.tree = tree.getChild(0).getChild(0);
             adaptor.setTokenBoundaries(retval.tree, retval.start, retval.stop);
         }
+
+        // For IN expression, we clone the lhs expression (1st child of the
+        // returned tree) and insert it before every rhs expression. For example,
+        //
+        //   lhs IN (rhs1, rhs2, rhs3)
+        // =>
+        //   ^( IN lhs, rhs1, lhs, rhs2, lhs, rhs3 )
+        //
+        // Note that lhs appears three times at index 0, 2 and 4.
+        //
+        // This is needed because in LogicalPlanGenerator.g, we translate this
+        // tree to nested or expressions, and we need to construct a new
+        // LogicalExpression object per rhs expression.
+        if(tree.getType() == IN) {
+            Tree lhs = tree.getChild(0);
+            for(int i = 2; i < tree.getChildCount(); i = i + 2) {
+                tree.insertChild(i, deepCopy(lhs));
+            }
+        }
     }
     : exp1 = expr
         ( ( IS NOT? NULL -> ^( NULL $exp1 NOT? ) )
-        | ( IN LEFT_PAREN ( expr ( COMMA expr )* ) RIGHT_PAREN -> ^( IN $exp1 expr+ ) )
+        | ( IN LEFT_PAREN ( expr ( COMMA expr )* ) RIGHT_PAREN -> ^( IN expr+ ) )
         | ( rel_op exp2 = expr -> ^( rel_op $exp1 $exp2 ) )
         | ( -> ^(BOOL_COND expr) ) )
 ;
