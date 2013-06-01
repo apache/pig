@@ -783,13 +783,27 @@ cond[LogicalExpressionPlan exprPlan] returns[LogicalExpression expr]
 
 in_eval[LogicalExpressionPlan plan] returns[LogicalExpression expr]
 @init {
-    List<LogicalExpression> args = new ArrayList<LogicalExpression>();
+    List<LogicalExpression> exprs = new ArrayList<LogicalExpression>();
 }
- : ^( IN exp1 = expr[$plan] { args.add( $exp1.expr ); } ( exp2 = expr[$plan] { args.add( $exp2.expr ); } )+ )
-   {
-       SourceLocation loc = new SourceLocation( (PigParserNode)$IN );
-       $expr = builder.buildUDF( loc, $plan, "IN", args );
-   }
+ : ^( IN ( expr[$plan] { exprs.add($expr.expr); } )+ )
+    {
+        // Convert IN tree to nested or expressions. Please also see
+        // QueryParser.g for how IN tree is constructed from IN expression.
+        EqualExpression firstBoolExpr = new EqualExpression(plan, exprs.get(0), exprs.get(1));
+        if (exprs.size() == 2) {
+            $expr = firstBoolExpr;
+        } else {
+            OrExpression currOrExpr = null;
+            OrExpression prevOrExpr = null;
+            for (int i = 2; i < exprs.size(); i = i + 2) {
+                EqualExpression boolExpr = new EqualExpression(plan, exprs.get(i), exprs.get(i+1));
+                currOrExpr = new OrExpression( $plan, prevOrExpr == null ? firstBoolExpr : prevOrExpr, boolExpr );
+                prevOrExpr = currOrExpr;
+            }
+            $expr = currOrExpr;
+        }
+        $expr.setLocation( new SourceLocation( (PigParserNode)$in_eval.start ) );
+    }
 ;
 
 func_eval[LogicalExpressionPlan plan] returns[LogicalExpression expr]
