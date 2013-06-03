@@ -92,7 +92,9 @@ public class TOP extends EvalFunc<DataBag> implements Algebraic{
                 Object field2 = o2.get(fieldNum);
                 if (!typeFound) {
                     datatype = DataType.findType(field1);
-                    typeFound = true;
+                    if(datatype != DataType.NULL) {
+                        typeFound = true;
+                    }
                 }
                 return DataType.compare(field1, field2, datatype, datatype);
             } catch (ExecException e) {

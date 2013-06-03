@@ -453,6 +453,17 @@ public class DataType {
     @SuppressWarnings("unchecked")
     public static int compare(Object o1, Object o2, byte dt1, byte dt2) {
         if (dt1 == dt2) {
+            if(o1 == null) {
+                if(o2 == null) {
+                    return 0;
+                } else {
+                    return -1;
+                }
+            } else {
+                if(o2 == null) {
+                    return 1;
+                }
+            }
             switch (dt1) {
             case NULL:
                 return 0;

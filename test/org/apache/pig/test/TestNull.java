@@ -232,6 +232,21 @@ public class TestNull {
         }
         return true;
     }
+    
+    @Test
+    public void testCompare() {
+        Object o1 = new Object();
+        Object o2 = null;
+        assertTrue(DataType.compare(o1, o2, DataType.NULL, DataType.NULL) > 0);
+
+        o1 = null;
+        o2 = new Object();
+        assertTrue(DataType.compare(o1, o2, DataType.NULL, DataType.NULL) < 0);
+
+        o1 = null;
+        o2 = null;
+        assertTrue(DataType.compare(o1, o2, DataType.NULL, DataType.NULL) == 0);
+    }
 
     @Test
     public void testOperator() throws ExecException {
