@@ -148,9 +148,11 @@ public abstract class Launcher {
             TaskReport[] mapRep = jobClient.getMapTaskReports(MRJobID);
             getErrorMessages(mapRep, "map", errNotDbg, pigContext);
             totalHadoopTimeSpent += computeTimeSpent(mapRep);
+            mapRep = null;
             TaskReport[] redRep = jobClient.getReduceTaskReports(MRJobID);
             getErrorMessages(redRep, "reduce", errNotDbg, pigContext);
-            totalHadoopTimeSpent += computeTimeSpent(mapRep);
+            totalHadoopTimeSpent += computeTimeSpent(redRep);
+            redRep = null;
         } catch (IOException e) {
             if(job.getState() == Job.SUCCESS) {
                 // if the job succeeded, let the user know that
@@ -162,9 +164,9 @@ public abstract class Launcher {
         }
     }
     
-    protected long computeTimeSpent(TaskReport[] mapReports) {
+    protected long computeTimeSpent(TaskReport[] taskReports) {
         long timeSpent = 0;
-        for (TaskReport r : mapReports) {
+        for (TaskReport r : taskReports) {
             timeSpent += (r.getFinishTime() - r.getStartTime());
         }
         return timeSpent;
