@@ -28,6 +28,8 @@ PIG-3174:  Remove rpm and deb artifacts from build.xml (gates)
 
 IMPROVEMENTS
 
+PIG-3327: Pig hits OOM when fetching task reports (rohini)
+
 PIG-3336: Change IN operator to use or-expressions instead of EvalFunc (cheolsoo)
 
 PIG-3339: Move pattern compilation in ToDate as a static variable (rohini)
