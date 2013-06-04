@@ -141,7 +141,12 @@ public class PigAvroRecordReader extends RecordReader<NullWritable, Writable> {
             AvroStorageLog.details("Class =" + obj.getClass());
             result = (Tuple) obj;
         } else {
-            AvroStorageLog.details("Wrap calss " + obj.getClass() + " as a tuple.");
+            if (obj != null) {
+                AvroStorageLog.details("Wrap class " + obj.getClass() + " as a tuple.");
+            }
+            else {
+                AvroStorageLog.details("Wrap null as a tuple.");
+            }
             result = wrapAsTuple(obj);
         }
         if (schemaToMergedSchemaMap != null) {
