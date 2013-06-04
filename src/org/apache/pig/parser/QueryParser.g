@@ -41,6 +41,8 @@ tokens {
     FUNC_EVAL;
     INVOKE;
     INVOKER_FUNC_EVAL;
+    CASE_COND;
+    CASE_EXPR;
     CAST_EXPR;
     COL_RANGE;
     BIN_EXPR;
@@ -724,7 +726,7 @@ cast_expr
         // This is needed because in LogicalPlanGenerator.g, we translate this
         // tree to nested bincond expressions, and we need to construct a new
         // LogicalExpression object per when branch.
-        if(tree.getType() == CASE) {
+        if(tree.getType() == CASE_EXPR) {
             Tree caseExpr = tree.getChild(0);
             int childCount = tree.getChildCount();
             boolean hasElse = childCount \% 2 == 0;
@@ -744,7 +746,9 @@ cast_expr
           | identifier_plus projection*
           | identifier_plus func_name_suffix? LEFT_PAREN ( real_arg ( COMMA real_arg )* )? RIGHT_PAREN projection* -> ^( FUNC_EVAL identifier_plus func_name_suffix? real_arg* ) projection*
           | func_name_without_columns LEFT_PAREN ( real_arg ( COMMA real_arg )* )? RIGHT_PAREN projection* -> ^( FUNC_EVAL func_name_without_columns real_arg* ) projection*
-          | CASE expr WHEN expr THEN expr ( WHEN expr THEN expr )* ( ELSE expr )? END projection* -> ^( CASE expr+ ) projection*
+          | CASE ( (WHEN)=> WHEN cond THEN expr ( WHEN cond THEN expr )* ( ELSE expr )? END projection* -> ^( CASE_COND ^(WHEN cond+) ^(THEN expr+) ) projection*
+                 | expr WHEN expr THEN expr ( WHEN expr THEN expr )* ( ELSE expr )? END projection* -> ^( CASE_EXPR expr+ ) projection*
+                 )
           | paren_expr
           | curly_expr
           | bracket_expr

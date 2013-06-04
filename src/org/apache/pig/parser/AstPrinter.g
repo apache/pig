@@ -331,7 +331,7 @@ var_expr
 ;
 
 projectable_expr
-    : func_eval | col_ref | bin_expr | case_expr
+    : func_eval | col_ref | bin_expr | case_expr | case_cond
 ;
 
 dot_proj
@@ -364,7 +364,13 @@ bin_expr
 ;
 
 case_expr
-    : ^( CASE { sb.append(" " + $CASE.text + "("); } expr ( { sb.append(", "); } expr )+ { sb.append(") "); } )
+    : ^( CASE_EXPR { sb.append(" CASE ("); } expr ( { sb.append(", "); } expr )+ { sb.append(") "); } )
+;
+
+case_cond
+    : ^( CASE_COND { sb.append(" CASE ("); }
+        ^( WHEN cond ( { sb.append(", "); } cond )* { sb.append(", "); } )
+        ^( THEN expr ( { sb.append(", "); } expr )* { sb.append(") "); } ) )
 ;
 
 limit_clause
