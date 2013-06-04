@@ -34,6 +34,9 @@ import org.joda.time.format.DateTimeFormatter;
 public class ToDate3ARGS extends EvalFunc<DateTime> {
 
     public DateTime exec(Tuple input) throws IOException {
+        if (input == null || input.size() < 1 || input.get(0) == null) {
+            return null;
+        }
         DateTimeFormatter dtf = DateTimeFormat.forPattern(DataType
                 .toString(input.get(1)));
         DateTimeZone dtz = DateTimeZone.forOffsetMillis(DateTimeZone.forID(

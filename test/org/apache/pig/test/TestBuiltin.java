@@ -443,6 +443,16 @@ public class TestBuiltin {
         t13.set(0, new DateTime(1231290421000L));
         Long ut2 = func7.exec(t11);
         assertEquals(ut2.longValue(), 1231290421000L);
+        
+        // Null handling
+        t1.set(0, null);
+        assertEquals(func1.exec(t1), null);
+        assertEquals(func2.exec(t1), null);
+        assertEquals(func3.exec(t1), null);
+        assertEquals(func4.exec(t1), null);
+        assertEquals(func5.exec(t1), null);
+        assertEquals(func6.exec(t1), null);
+        assertEquals(func7.exec(t1), null);
     }
 
     /**
@@ -2751,6 +2761,19 @@ public class TestBuiltin {
         assertEquals(week.intValue(), 15);
         week = func9.exec(t2);
         assertEquals(week.intValue(), 15);
+        
+        // Null handling
+        t1.set(0, null);
+        assertEquals(func1.exec(t1), null);
+        assertEquals(func2.exec(t1), null);
+        assertEquals(func3.exec(t1), null);
+        assertEquals(func4.exec(t1), null);
+        assertEquals(func5.exec(t1), null);
+        assertEquals(func6.exec(t1), null);
+        assertEquals(func7.exec(t1), null);
+        assertEquals(func8.exec(t1), null);
+        assertEquals(func9.exec(t1), null);
+        
     }
 
 }

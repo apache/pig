@@ -33,6 +33,9 @@ import org.joda.time.format.DateTimeFormatter;
 public class ToDate2ARGS extends EvalFunc<DateTime> {
 
     public DateTime exec(Tuple input) throws IOException {
+        if (input == null || input.size() < 1 || input.get(0) == null) {
+            return null;
+        }
         String dtStr = DataType.toString(input.get(0));
         //DateTimeZone dtz = extractDateTimeZone(dtStr);
         //The timezone in the customized format is not predictable
