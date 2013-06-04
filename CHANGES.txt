@@ -28,6 +28,8 @@ PIG-3174:  Remove rpm and deb artifacts from build.xml (gates)
 
 IMPROVEMENTS
 
+PIG-3280: Document IN operator and CASE expression (cheolsoo)
+
 PIG-3342: Allow conditions in case statement (cheolsoo)
 
 PIG-3327: Pig hits OOM when fetching task reports (rohini)
