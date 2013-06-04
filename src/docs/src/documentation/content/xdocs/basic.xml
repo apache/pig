@@ -142,7 +142,7 @@
 
          <tr>
             <td> <p>-- C </p> </td>
-            <td> <p>cache, cat, cd, chararray, cogroup, CONCAT, copyFromLocal, copyToLocal, COUNT, cp, cross</p> </td>
+            <td> <p>cache, CASE, cat, cd, chararray, cogroup, CONCAT, copyFromLocal, copyToLocal, COUNT, cp, cross</p> </td>
          </tr>
          
          <tr>
@@ -217,7 +217,7 @@
          
          <tr>
             <td> <p>-- R </p> </td>
-            <td> <p>register, right, rm, rmf, run, RANK</p> </td>
+            <td> <p>register, right, rm, rmf, run</p> </td>
          </tr>  
 
          <tr>
@@ -953,6 +953,7 @@ DUMP X;
                <p> + , -, *, /</p>
                <p>% modulo</p>
                <p>? : bincond</p>
+               <p>CASE : case</p>
             </td>
             <td>
                <p>If either subexpression is null, the resulting expression is null.</p>
@@ -2113,6 +2114,21 @@ d = foreach @ generate x;
                <p>Use expressions  only (relational operators are not allowed).</p>
             </td>
           </tr>
+         <tr>
+            <td>
+               <p>case</p>
+            </td>
+            <td>
+               <p>CASE WHEN THEN ELSE END</p>
+            </td>
+            <td>
+               <p>CASE expression [ WHEN value THEN value ]+ [ ELSE value ]? END</p>
+               <p>CASE [ WHEN condition THEN value ]+ [ ELSE value ]? END</p>
+               <p>Case operator is equivalent to nested bincond operators.</p> 
+               <p>The schemas for all the outputs of the when/else branches should match.</p>
+               <p>Use expressions only (relational operators are not allowed).</p>
+            </td>
+          </tr>
    </table>
 
    <section>
@@ -2145,6 +2161,34 @@ DUMP X;
 (1,1L)
 (3,2L)
 (6,3L)
+</source>
+
+   <p>In this example the case operator is used with field f2. The expression is "f2 % 2"; if the expression is equal to 0, return 'even'; if the expression is equal to 1, return 'odd'.</p>
+<source>
+X = FOREACH A GENERATE f2, (
+  CASE f2 % 2
+    WHEN 0 THEN 'even'
+    WHEN 1 THEN 'odd'
+  END
+);
+DUMP X;
+(1,odd)
+(3,odd)
+(6,even)
+</source>
+
+   <p>This can be also written as follows:</p>
+<source>
+X = FOREACH A GENERATE f2, (
+  CASE
+    WHEN f2 % 2 == 0 THEN 'even'
+    WHEN f2 % 2 == 1 THEN 'odd'
+  END
+);
+DUMP X;
+(1,odd)
+(3,odd)
+(6,even)
 </source>
    </section>
    
@@ -2906,6 +2950,17 @@ DUMP X;
          </tr>
          <tr>
             <td>
+               <p>IN</p>
+            </td>
+            <td>
+               <p>in</p>
+            </td>
+            <td>
+               <p>IN operator is equivalent to nested OR operators.</p>
+            </td>
+         </tr>
+         <tr>
+            <td>
                <p>NOT</p>
             </td>
             <td>
@@ -2921,7 +2976,7 @@ DUMP X;
    <section>
    <title>Example</title>
 <source>
-X = FILTER A BY (f1==8) OR (NOT (f2+f3 > f1));
+X = FILTER A BY (f1==8) OR (NOT (f2+f3 > f1)) OR (f1 IN (9, 10, 11));
 </source>
    
    </section></section></section>   
