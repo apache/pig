@@ -627,6 +627,36 @@ public class TestAvroStorage {
     }
 
     @Test
+    // Verify the default values specified in the schema in AvroStorage
+    // are actually written to the schema in the output avro file
+    public void testDefaultValueSchemaWrite() throws IOException {
+        String output = outbasedir + "testDefaultValueSchemaWrite";
+        String expected = basedir + "expected_testDefaultSchemaWrite.avro";
+        Data data = resetData(pigServerLocal);
+              data.set("testDefaultValueSchemaWrite",
+                tuple(0,115,115000,115000.1),
+                tuple(1,116,116000,116000.1),
+                tuple(2,117,117000,117000.1),
+                tuple(3,118,118000,118000.1),
+                tuple(4,119,119000,119000.1)
+                );
+        deleteDirectory(new File(output));
+        String [] queries = {
+            " a = LOAD 'testDefaultValueSchemaWrite' USING mock.Storage as  " +
+            " (id: int, intval:int, longval:long, floatval:float);",
+            " b = foreach a generate id, longval, floatval;",
+            " c = order b by id;",
+            " STORE c INTO '" + output + "' USING "+
+            " org.apache.pig.piggybank.storage.avro.AvroStorage (' { \"debug\" : 5, \"schema\" : "+
+            " {  \"name\" : \"rmyrecord\", \"type\" : \"record\",  \"fields\" : [ { \"name\" : \"id\", "+
+            " \"type\" : \"int\" , \"default\" : 0 }, {  \"name\" : \"longval\",  \"type\" : \"long\","+
+            " \"default\" : 0 }, { \"name\" : \"floatval\", \"type\" : \"float\", \"default\" : 1.0 } ] } } " +
+            " ');" };
+        testAvroStorage(queries);
+        verifyResults(output, expected);
+    }
+
+    @Test
     public void testDir() throws IOException {
         // Verify that all files in a directory including its sub-directories are loaded.
         String output= outbasedir + "testDir";

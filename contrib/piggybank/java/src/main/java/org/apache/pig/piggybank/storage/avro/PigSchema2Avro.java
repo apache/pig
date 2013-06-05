@@ -26,6 +26,8 @@ import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.data.DataType;
 
+import org.codehaus.jackson.JsonNode;
+
 /**
  * This class contains functions to convert Pig schema to Avro. It consists of
  * two sets of methods:
@@ -345,7 +347,10 @@ public class PigSchema2Avro {
             /* get doc of output */
             String doc = (isPartialSchema) ? pigFields[i].getDescription() : inputField.doc();
 
-            outFields.add(new Field(outname, fieldSchema, doc, null));
+            JsonNode defaultvalue = (inputField != null) ? inputField.defaultValue() : null;
+
+            outFields.add(new Field(outname, fieldSchema, doc, defaultvalue));
+
         }
 
         outSchema.setFields(outFields);
