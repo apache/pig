@@ -32,6 +32,9 @@ import org.joda.time.DateTimeZone;
 public class ToDateISO extends EvalFunc<DateTime> {
 
     public DateTime exec(Tuple input) throws IOException {
+        if (input == null || input.size() < 1 || input.get(0) == null) {
+            return null;
+        }
         String dtStr = DataType.toString(input.get(0));
         DateTimeZone dtz = ToDate.extractDateTimeZone(dtStr);
         if (dtz == null) {

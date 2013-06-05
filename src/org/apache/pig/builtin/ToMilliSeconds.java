@@ -73,7 +73,7 @@ public class ToMilliSeconds extends EvalFunc<Long> {
     @Override
     public Long exec(Tuple input) throws IOException
     {
-        if (input == null || input.size() < 1) {
+        if (input == null || input.size() < 1 || input.get(0) == null) {
             return null;
         }
 
