@@ -83,6 +83,9 @@ import org.joda.time.format.DateTimeFormatter;
 public class ToDate extends EvalFunc<DateTime> {
 
     public DateTime exec(Tuple input) throws IOException {
+        if (input == null || input.size() < 1 || input.get(0) == null) {
+            return null;
+        }
         return new DateTime(DataType.toLong(input.get(0)));
     }
 

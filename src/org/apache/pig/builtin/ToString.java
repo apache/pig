@@ -39,7 +39,7 @@ import org.joda.time.format.DateTimeFormatter;
 public class ToString extends EvalFunc<String> {
 
     public String exec(Tuple input) throws IOException {
-        if (input == null) {
+        if (input == null || input.size() < 1 || input.get(0) == null) {
             return null;
         }
         if (input.size() == 1) {

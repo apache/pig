@@ -448,6 +448,16 @@ public class TestBuiltin {
         CurrentTime func8 = new CurrentTime();
         DateTime dt11 = func8.exec(null);
         Assert.assertNotNull(dt11);
+
+        // Null handling
+        t1.set(0, null);
+        assertEquals(func1.exec(t1), null);
+        assertEquals(func2.exec(t1), null);
+        assertEquals(func3.exec(t1), null);
+        assertEquals(func4.exec(t1), null);
+        assertEquals(func5.exec(t1), null);
+        assertEquals(func6.exec(t1), null);
+        assertEquals(func7.exec(t1), null);
     }
 
     /**
@@ -2745,6 +2755,19 @@ public class TestBuiltin {
         assertEquals(week.intValue(), 15);
         week = func9.exec(t2);
         assertEquals(week.intValue(), 15);
+        
+        // Null handling
+        t1.set(0, null);
+        assertEquals(func1.exec(t1), null);
+        assertEquals(func2.exec(t1), null);
+        assertEquals(func3.exec(t1), null);
+        assertEquals(func4.exec(t1), null);
+        assertEquals(func5.exec(t1), null);
+        assertEquals(func6.exec(t1), null);
+        assertEquals(func7.exec(t1), null);
+        assertEquals(func8.exec(t1), null);
+        assertEquals(func9.exec(t1), null);
+        
     }
 
 }
