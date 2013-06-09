@@ -32,6 +32,17 @@ our @lastName = ("allen", "brown", "carson", "davidson", "ellison", "falkner",
     "nixon", "ovid", "polk", "quirinius", "robinson", "steinbeck", "thompson",
     "underhill", "van buren", "white", "xylophone", "young", "zipper");
 
+############################################################################
+# Explanation of rankedTuples: a pre-ranked set of tuples, each column meaning:
+#   rownumber: simple RANK, sequential number
+#	rankcabd: RANK BY c ASC , b DESC
+#	rankbdaa: RANK BY b DESC, a ASC
+#	rankbdca: RANK BY b DESC, c ASC
+#	rankaacd: RANK BY a ASC , c DESC
+#	rankaaba: RANK BY a ASC , b ASC
+#	a,b,c:    values
+#	tail:     long value in order to create multiple mappers
+############################################################################
 our @rankedTuples = (
 	"1,21,5,7,1,1,0,8,8","2,26,2,3,2,5,1,9,10","3,30,24,21,2,3,1,3,10","4,6,10,8,3,4,1,7,2",
 	"5,8,28,25,3,2,1,0,2","6,28,11,12,4,6,2,7,10","7,9,26,22,5,7,3,2,3","8,5,6,5,6,8,3,8,1",
