@@ -24,14 +24,15 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROpPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCounter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PORank;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
+import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.Operator;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.MultiMap;
@@ -141,14 +142,6 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
     // Indicates that this MROper is a splitter MROper.
     // That is, this MROper ends due to a POSPlit operator.
     private boolean splitter = false;
-
-    // Indicates that there is a counter operation in the MR job.
-    private boolean isCounterOperation = false;
-
-    // Indicates that there is a rank operation without sorting (row number) in the MR job.
-    private boolean isRowNumber = false;
-
-    private String operationID;
 
 	// Set to true if it is skewed join
 	private boolean skewedJoin = false;
@@ -499,14 +492,6 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
         return combineSmallSplits;
     }
 
-    public void setIsCounterOperation(boolean counter) {
-        this.isCounterOperation = counter;
-    }
-
-    public boolean isCounterOperation() {
-        return isCounterOperation;
-    }
-
     public boolean isRankOperation() {
         return getRankOperationId().size() != 0;
     }
@@ -524,19 +509,38 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
         return operationIDs;
     }
 
-    public void setIsRowNumber(boolean isRowNumber) {
-        this.isRowNumber = isRowNumber;
+    public boolean isCounterOperation() {
+        return (getCounterOperation() != null);
     }
 
     public boolean isRowNumber() {
-        return isRowNumber;
-    }
-
-    public void setOperationID(String operationID) {
-        this.operationID = operationID;
+        POCounter counter = getCounterOperation();
+        return (counter != null)?counter.isRowNumber():false;
     }
 
     public String getOperationID() {
-        return operationID;
+        POCounter counter = getCounterOperation();
+        return (counter != null)?counter.getOperationID():null;
+    }
+
+    private POCounter getCounterOperation() {
+        PhysicalOperator operator;
+        Iterator<PhysicalOperator> it =  this.mapPlan.getLeaves().iterator();
+
+        while(it.hasNext()) {
+            operator = it.next();
+            if(operator instanceof POCounter)
+                return (POCounter) operator;
+        }
+
+        it =  this.reducePlan.getLeaves().iterator();
+
+        while(it.hasNext()) {
+            operator = it.next();
+            if(operator instanceof POCounter)
+                return (POCounter) operator;
+        }
+
+        return null;
     }
 }
