@@ -198,8 +198,6 @@ BUG FIXES
 
 PIG-3331: Default values not stored in avro file when using specific schemas during store in AvroStorage (viraj via rohini)
 
-PIG-3345: Handle null in DateTime functions (rohini)
-
 PIG-3322: AvroStorage give NPE on reading file with union as top level schema (viraj via rohini)
 
 PIG-2828: Handle nulls in DataType.compare (aniket486)
@@ -273,10 +271,6 @@ PIG-2265: Test case TestSecondarySort failure (daijy)
 PIG-3060: FLATTEN in nested foreach fails when the input contains an empty bag (daijy)
 
 PIG-2247: Pig parser does not detect multiple arguments with the same name passed to macro (dreambird via daijy)
-
-PIG-3264: mvn signanddeploy target broken for pigunit, pigsmoke and piggybank (billgraham)
-
-PIG-3262: Pig contrib 0.11 doesn't compile on certain rpm systems (mgrover via cheolsoo)
 
 PIG-3249: Pig startup script prints out a wrong version of hadoop when using fat jar (prkommireddi via daijy)
 
@@ -389,10 +383,18 @@ PIG-2769: a simple logic causes very long compiling time on pig 0.10.0 (njw45 vi
 
 BUG FIXES
 
+PIG-3329: RANK operator failed when working with SPLIT (xalan via cheolsoo)
+
+PIG-3345: Handle null in DateTime functions (rohini)
+
 PIG-3223: AvroStorage does not handle comma separated input paths (dreambird via rohini)
 
+PIG-3262: Pig contrib 0.11 doesn't compile on certain rpm systems (mgrover via cheolsoo)
 
-Release 0.11.1 (unreleased)
+PIG-3264: mvn signanddeploy target broken for pigunit, pigsmoke and piggybank (billgraham)
+
+
+Release 0.11.1
 
 INCOMPATIBLE CHANGES
 
