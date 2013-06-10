@@ -439,6 +439,25 @@ public class TestMacroExpansion {
         
         verify(macro + script, expected);
     }
+
+    @Test
+    public void splitOtherwiseTest() throws Exception {
+        String macro = "define group_and_count (A,key) returns B {\n" +
+            "SPLIT $A INTO $B IF $key<7, Y IF $key==5, Z OTHERWISE;\n" +
+            "};\n";
+
+        String script =
+            "alpha = load 'users' as (f1:int);\n" +
+            "gamma = group_and_count (alpha, f1);\n" +
+            "store gamma into 'byuser';\n";
+
+        String expected =
+            "alpha = load 'users' as f1:int;\n" +
+            "SPLIT alpha INTO gamma IF f1 < 7, macro_group_and_count_Y_0 IF f1 == 5, macro_group_and_count_Z_0 OTHERWISE;\n" +
+            "store gamma INTO 'byuser';\n";
+
+        verify(macro + script, expected);
+    }
     
     @Test
     public void mapreduceTest() throws Exception {

@@ -545,7 +545,7 @@ mr_clause
 
 split_clause
     : ^( SPLIT  { sb.append($SPLIT.text).append(" "); }
-        rel { sb.append(" INTO "); } split_branch ( { sb.append(", "); } split_branch )* split_otherwise? )
+        rel { sb.append(" INTO "); } split_branch ( { sb.append(", "); } split_branch )* ( { sb.append(", "); } split_otherwise )? )
 ;
 
 split_branch
@@ -553,7 +553,7 @@ split_branch
 ;
 
 split_otherwise
-    : ^( OTHERWISE { sb.append($OTHERWISE.text).append(" "); } alias )
+    : ^( OTHERWISE alias { sb.append(" " + $OTHERWISE.text); } )
 ;
 
 col_ref : alias_col_ref | dollar_col_ref
