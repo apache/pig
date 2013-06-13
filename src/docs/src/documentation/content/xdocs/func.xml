@@ -4029,7 +4029,7 @@ Use the SecondsBetween function to get the number of seconds between the two giv
 </section>
 
 <!-- ======================================================== -->  
- <section id="subtract-duratioin">
+ <section id="subtract-duration">
    <title>SubtractDuration</title>
    <p>Returns the result of a DateTime object minus a <a href="http://en.wikipedia.org/wiki/ISO_8601#Durations">Duration object</a>.</p>
 
@@ -4145,6 +4145,89 @@ Use the AddDuration function to created a new datetime object by add some durati
 Use the ToDate function to generate a DateTime object. Note that if the timezone is not specified with the ISO datetime string or by the timezone parameter, the default timezone will be used.
       </p>
 </section>
+</section>
+
+<!-- ======================================================== -->
+<section id="to-milli-seconds">
+    <title>ToMilliSeconds</title>
+    <p>
+        Returns the number of milliseconds elapsed since January 1, 1970, 00:00:00.000 GMT
+        for a DateTime object.
+    </p>
+
+    <section>
+        <title>Syntax</title>
+        <table>
+            <tr>
+                <td>
+                    <p>ToMilliSeconds(datetime)</p>
+                </td>
+            </tr>
+        </table>
+    </section>
+
+    <section>
+        <title>Terms</title>
+        <table>
+            <tr>
+                <td>
+                    <p>datetime</p>
+                </td>
+                <td>
+                    <p>A datetime object.</p>
+                </td>
+            </tr>
+        </table>
+    </section>
+
+    <section>
+        <title>Usage</title>
+        <p>
+            Use the ToMilliSeconds function to convert the DateTime to the number of
+            milliseconds that have passed since January 1, 1970 00:00:00.000 GMT.
+        </p>
+    </section>
+</section>
+
+<!-- ======================================================== -->
+<section id="to-unix-time">
+    <title>ToUnixTime</title>
+    <p>
+        Returns the Unix Time as long for a DateTime object. UnixTime is the
+        number of seconds elapsed since January 1, 1970, 00:00:00.000 GMT.
+    </p>
+
+    <section>
+        <title>Syntax</title>
+        <table>
+            <tr>
+                <td>
+                    <p>ToUnixTime(datetime)</p>
+                </td>
+            </tr>
+        </table>
+    </section>
+
+    <section>
+        <title>Terms</title>
+        <table>
+            <tr>
+                <td>
+                    <p>datetime</p>
+                </td>
+                <td>
+                    <p>A datetime object.</p>
+                </td>
+            </tr>
+        </table>
+    </section>
+
+    <section>
+        <title>Usage</title>
+        <p>
+            Use the ToUnixTime function to convert the DateTime to Unix Time.
+        </p>
+    </section>
 </section>
 
 <!-- ======================================================== -->  
