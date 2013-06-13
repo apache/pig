@@ -24,9 +24,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.FuncSpec;
@@ -53,6 +50,7 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.CastUtils;
 import org.apache.pig.impl.util.LogUtils;
+import org.joda.time.DateTime;
 
 /**
  * This is just a cast that converts DataByteArray into either String or
@@ -873,12 +871,7 @@ public class POCast extends ExpressionOperator {
             String str = null;
             Result res = in.getNext(str);
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
-                DateTimeZone dtz = ToDate.extractDateTimeZone((String) res.result);
-                if (dtz == null) {
-                    res.result = new DateTime((String) res.result);
-                } else {
-                    res.result = new DateTime((String) res.result, dtz);
-                }
+                res.result = ToDate.extractDateTime((String) res.result);
             }
             return res;
         }
@@ -1444,12 +1437,7 @@ public class POCast extends ExpressionOperator {
                 result = (DateTime)obj;
                 break;
             case DataType.CHARARRAY:
-                DateTimeZone dtz = ToDate.extractDateTimeZone((String) obj);
-                if (dtz == null) {
-                    result = new DateTime((String) obj);
-                } else {
-                    result = new DateTime((String) obj, dtz);
-                }
+                result = ToDate.extractDateTime((String) obj);
                 break;
             default:
                 throw new ExecException("Cannot convert "+ obj + " to " + fs, 1120, PigException.INPUT);

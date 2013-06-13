@@ -21,26 +21,23 @@ package org.apache.pig.builtin;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
-import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
-import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.ISODateTimeFormat;
 
 /**
- * 
+ *
  * <p>ToDate converts the ISO or the customized string or the Unix timestamp to the DateTime object.</p>
  * <p>ToDate is overloaded.</p>
- * 
+ *
  * <dl>
  * <dt><b>Syntax:</b></dt>
  * <dd><code>DateTime ToDate(Long millis)</code>.</dd>
@@ -58,7 +55,7 @@ import org.joda.time.format.DateTimeFormatter;
  * <dt><b>Output:</b></dt>
  * <dd><code>the DateTime object</code>.</dd>
  * </dl>
- * 
+ *
  * <dl>
  * <dt><b>Syntax:</b></dt>
  * <dd><code>DateTime ToDate(String dtStr, String format)</code>.</dd>
@@ -81,6 +78,9 @@ import org.joda.time.format.DateTimeFormatter;
  * </dl>
  */
 public class ToDate extends EvalFunc<DateTime> {
+
+    private static final DateTimeFormatter isoDateTimeFormatter = ISODateTimeFormat
+            .dateOptionalTimeParser().withOffsetParsed();
 
     public DateTime exec(Tuple input) throws IOException {
         if (input == null || input.size() < 1 || input.get(0) == null) {
@@ -115,19 +115,12 @@ public class ToDate extends EvalFunc<DateTime> {
         funcList.add(new FuncSpec(ToDate3ARGS.class.getName(), s));
         return funcList;
     }
-    
+
     public static DateTimeZone extractDateTimeZone(String dtStr) {
-        Pattern pattern = Pattern.compile("(Z|((\\+|-)\\d{2}(:?\\d{2})?))$");
-        Matcher matcher = pattern.matcher(dtStr);
-        if (matcher.find()) {
-            String dtzStr = matcher.group();
-            if (dtzStr.equals("Z")) {
-                return DateTimeZone.forOffsetMillis(DateTimeZone.UTC.getOffset(null));
-            } else {
-                return DateTimeZone.forOffsetMillis(DateTimeZone.forID(dtzStr).getOffset(null));
-            }
-        } else {
-            return null;
-        }
+        return isoDateTimeFormatter.parseDateTime(dtStr).getZone();
+    }
+
+    public static DateTime extractDateTime(String dtStr) {
+        return isoDateTimeFormatter.parseDateTime(dtStr);
     }
 }

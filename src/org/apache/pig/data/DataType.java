@@ -26,9 +26,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
-
 import org.apache.hadoop.io.WritableComparable;
 
 import org.apache.pig.classification.InterfaceAudience;
@@ -40,7 +37,7 @@ import org.apache.pig.builtin.ToDate;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
-
+import org.joda.time.DateTime;
 
 
 /**
@@ -984,12 +981,7 @@ public class DataType {
                 return new DateTime(((DataByteArray) o).toString());
             case CHARARRAY:
                 // the string can contain just date part or date part plus time part
-                DateTimeZone dtz = ToDate.extractDateTimeZone((String) o);
-                if (dtz == null) {
-                    return new DateTime((String) o);
-                } else {
-                    return new DateTime((String) o, dtz);
-                }
+                return ToDate.extractDateTime((String) o);
             case INTEGER:
                 return new DateTime(((Integer) o).longValue());
             case LONG:
