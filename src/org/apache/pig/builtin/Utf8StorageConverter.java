@@ -43,7 +43,6 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.util.LogUtils;
 import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
 
 /**
  * This abstract class provides standard conversions between utf8 encoded data
@@ -523,12 +522,7 @@ public class Utf8StorageConverter implements LoadStoreCaster {
         }
         try {
             String dtStr = new String(b);
-            DateTimeZone dtz = ToDate.extractDateTimeZone(dtStr);
-            if (dtz == null) {
-                return new DateTime(dtStr);
-            } else {
-                return new DateTime(dtStr, dtz);
-            }
+            return ToDate.extractDateTime(dtStr);
         } catch (IllegalArgumentException e) {
             LogUtils.warn(this, "Unable to interpret value " + Arrays.toString(b) + " in field being " +
                     "converted to datetime, caught IllegalArgumentException <" +

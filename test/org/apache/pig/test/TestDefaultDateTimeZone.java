@@ -79,9 +79,9 @@ public class TestDefaultDateTimeZone extends TestCase {
             Tuple actualTuple = actualItr.next();
             assertEquals(expectedTuple, actualTuple);
         }
-        assertEquals(expectedItr.hasNext(), actualItr.hasNext()); 
+        assertEquals(expectedItr.hasNext(), actualItr.hasNext());
     }
-    
+
     private static Iterator<Tuple> generateExpectedResults(DateTimeZone dtz)
             throws Exception {
         List<Tuple> expectedResults = new ArrayList<Tuple>();
@@ -96,9 +96,12 @@ public class TestDefaultDateTimeZone extends TestCase {
         return expectedResults.iterator();
     }
 
-    // PIG-3316
-    public void testTimeZoneExtracting() throws IOException {
-        String[] inputs = { 
+    public void testTimeZone() throws IOException {
+        // Usually set through "pig.datetime.default.tz"
+        String defaultDTZ = "+03:00";
+        DateTimeZone.setDefault(DateTimeZone.forOffsetMillis(DateTimeZone.forID(defaultDTZ)
+                .getOffset(null)));
+        String[] inputs = {
                 "1970-01-01T00:00:00.000-08:00",
                 "1970-01-01T00:00",
                 "1970-01-01T00",
@@ -109,34 +112,50 @@ public class TestDefaultDateTimeZone extends TestCase {
                 "1970-01-01T00-05:00",
                 "1970-01-01T-08:00",
                 "1970-01T-08:00",
-                "1970T+8:00",
+                //"1970T+8:00", //Invalid format
                 "1970-01-01",
                 "1970-01",
                 "1970",
         };
-        String[] expectedOutputs = {
-        		"-08:00",
-        		"null",
-        		"null",
-        		"null",
-        		"null",
-        		"null",
-        		"-08:00",
-        		"-05:00",
-        		"-08:00",
-        		"-08:00",
-        		"null",
-        		"null",
-        		"null",
-        		"null"
+        String[] expectedDTZOutputs = {
+                "-08:00",
+                defaultDTZ,
+                defaultDTZ,
+                defaultDTZ,
+                defaultDTZ,
+                defaultDTZ,
+                "-08:00",
+                "-05:00",
+                "-08:00",
+                "-08:00",
+                defaultDTZ,
+                defaultDTZ,
+                defaultDTZ
         };
-        
+        String[] expectedDTOutputs = {
+                "1970-01-01T00:00:00.000-08:00",
+                "1970-01-01T00:00:00.000" + defaultDTZ,
+                "1970-01-01T00:00:00.000" + defaultDTZ,
+                "1970-01-01T00:00:00.000" + defaultDTZ,
+                "1970-01-01T00:00:00.000" + defaultDTZ,
+                "1970-01-01T00:00:00.000" + defaultDTZ,
+                "1970-01-01T00:00:00.000-08:00",
+                "1970-01-01T00:00:00.000-05:00",
+                "1970-01-01T00:00:00.000-08:00",
+                "1970-01-01T00:00:00.000-08:00",
+                "1970-01-01T00:00:00.000" + defaultDTZ,
+                "1970-01-01T00:00:00.000" + defaultDTZ,
+                "1970-01-01T00:00:00.000" + defaultDTZ
+        };
+
         for( int i = 0; i < inputs.length; i++ ) {
             DateTimeZone dtz = ToDate.extractDateTimeZone( inputs[i] );
-            assertEquals( expectedOutputs[i], dtz == null ? "null" : dtz.toString() );
-            System.out.println( "\"" + dtz + "\"," );
+            assertEquals( expectedDTZOutputs[i], dtz.toString() );
+            DateTime dt = ToDate.extractDateTime( inputs[i] );
+            assertEquals( expectedDTOutputs[i], dt.toString() );
+            System.out.println( "\"" + dt + "\"," );
         }
-        
+
     }
 
 }
