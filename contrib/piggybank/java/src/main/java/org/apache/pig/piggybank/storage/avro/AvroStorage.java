@@ -319,15 +319,8 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
         AvroStorageLog.funcCall("getInputFormat");
         InputFormat result = null;
         if(inputAvroSchema != null) {
-            if (useMultipleSchemas) {
-                // When merging multiple avro schemas, we use embedded schemas
-                // to load input files. So no input avro schema is passed.
-                result = new PigAvroInputFormat(
-                        null, ignoreBadFiles, schemaToMergedSchemaMap);
-            } else {
-                result = new PigAvroInputFormat(
-                        inputAvroSchema, ignoreBadFiles, schemaToMergedSchemaMap);
-            }
+            result = new PigAvroInputFormat(
+            inputAvroSchema, ignoreBadFiles, schemaToMergedSchemaMap, useMultipleSchemas);
         } else {
             result = new TextInputFormat();
         }

@@ -196,6 +196,8 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-3318: AVRO: 'default value' not honored when merging schemas on load with AvroStorage (viraj via rohini)
+
 PIG-3250: Pig dryrun generates wrong output in .expanded file for 'SPLIT....OTHERWISE...' command (dreambird via cheolsoo)
 
 PIG-3331: Default values not stored in avro file when using specific schemas during store in AvroStorage (viraj via rohini)
