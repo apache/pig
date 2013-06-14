@@ -35,7 +35,10 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+
+import org.codehaus.jackson.JsonNode;
 
 /**
  * This is an implementation of record reader which reads in avro data and
@@ -59,6 +62,9 @@ public class PigAvroRecordReader extends RecordReader<NullWritable, Writable> {
      */
     private ArrayList<Object> mProtoTuple;
 
+    /* establish is multiple_schema flag is used to pass this to the RecordReader*/
+    private boolean useMultipleSchemas = false;
+
     /* if multiple avro record schemas are merged, this map associates each input
      * record with a remapping of its fields relative to the merged schema. please
      * see AvroStorageUtils.getSchemaToMergedSchemaMap() for more details.
@@ -70,9 +76,11 @@ public class PigAvroRecordReader extends RecordReader<NullWritable, Writable> {
      */
     public PigAvroRecordReader(TaskAttemptContext context, FileSplit split,
             Schema readerSchema, boolean ignoreBadFiles,
-            Map<Path, Map<Integer, Integer>> schemaToMergedSchemaMap) throws IOException {
+            Map<Path, Map<Integer, Integer>> schemaToMergedSchemaMap,
+            boolean useMultipleSchemas) throws IOException {
         this.path = split.getPath();
         this.in = new AvroStorageInputStream(path, context);
+        this.useMultipleSchemas = useMultipleSchemas;
         if(readerSchema == null) {
             AvroStorageLog.details("No avro schema given; assuming the schema is embedded");
         }
@@ -87,7 +95,12 @@ public class PigAvroRecordReader extends RecordReader<NullWritable, Writable> {
         }
 
         try {
-            this.reader = new DataFileReader<Object>(in, new PigAvroDatumReader(writerSchema, readerSchema));
+            if (useMultipleSchemas) {
+                this.reader = new DataFileReader<Object>(in, new PigAvroDatumReader(writerSchema, null));
+            }
+            else {
+                this.reader = new DataFileReader<Object>(in, new PigAvroDatumReader(writerSchema, readerSchema));
+            }
         } catch (IOException e) {
           throw new IOException("Error initializing data file reader for file (" +
               split.getPath() + ")", e);
@@ -98,7 +111,7 @@ public class PigAvroRecordReader extends RecordReader<NullWritable, Writable> {
         this.ignoreBadFiles = ignoreBadFiles;
         this.schemaToMergedSchemaMap = schemaToMergedSchemaMap;
         if (schemaToMergedSchemaMap != null) {
-            // initialize mProtoTuple
+            // initialize mProtoTuple with the right default values
             int maxPos = 0;
             for (Map<Integer, Integer> map : schemaToMergedSchemaMap.values()) {
                 for (Integer i : map.values()) {
@@ -109,7 +122,44 @@ public class PigAvroRecordReader extends RecordReader<NullWritable, Writable> {
             AvroStorageLog.details("Creating proto tuple of fixed size: " + tupleSize);
             mProtoTuple = new ArrayList<Object>(tupleSize);
             for (int i = 0; i < tupleSize; i++) {
-                mProtoTuple.add(i, null);
+                // Get the list of fields from the passed schema
+                List<Schema.Field> subFields = readerSchema.getFields();
+                JsonNode defValue = subFields.get(i).defaultValue();
+                if (defValue != null) {
+                    Schema.Type type = subFields.get(i).schema().getType();
+                    switch (type) {
+                        case BOOLEAN:
+                            mProtoTuple.add(i, defValue.getBooleanValue());
+                            break;
+                        case ENUM:
+                            mProtoTuple.add(i, defValue.getTextValue());
+                            break;
+                        case FIXED:
+                            mProtoTuple.add(i, defValue.getTextValue());
+                            break;
+                        case INT:
+                            mProtoTuple.add(i, defValue.getIntValue());
+                            break;
+                        case LONG:
+                            mProtoTuple.add(i, defValue.getIntValue());
+                            break;
+                        case FLOAT:
+                            mProtoTuple.add(i, defValue.getNumberValue().floatValue());
+                            break;
+                        case DOUBLE:
+                            mProtoTuple.add(i, defValue.getNumberValue().doubleValue());
+                            break;
+                        case STRING:
+                            mProtoTuple.add(i, defValue.getTextValue());
+                            break;
+                        default:
+                            mProtoTuple.add(i, null);
+                            break;
+                    }
+                }
+                else {
+                    mProtoTuple.add(i, null);
+                }
             }
         }
     }

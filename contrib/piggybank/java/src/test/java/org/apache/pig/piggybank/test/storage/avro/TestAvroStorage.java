@@ -186,6 +186,7 @@ public class TestAvroStorage {
     final private String testCorruptedFile = getInputFile("test_corrupted_file.avro");
     final private String testMultipleSchemas1File = getInputFile("test_primitive_types/*");
     final private String testMultipleSchemas2File = getInputFile("test_complex_types/*");
+    final private String testMultipleSchemasWithDefaultValue = getInputFile("test_merge_schemas_default/{Employee{3,4,6}.avro}");
     final private String testUserDefinedLoadSchemaFile = getInputFile("test_user_defined_load_schema/*");
     final private String testLoadwithNullValues = getInputFile("test_loadavrowithnulls.avro");
 
@@ -624,6 +625,97 @@ public class TestAvroStorage {
            };
         testAvroStorage(queries);
         verifyResults(output, expected);
+    }
+
+    @Test
+    public void testMultipleSchemasWithDefaultValue() throws IOException {
+        //        ==> Employee3.avro <==
+        //            {
+        //            "type" : "record",
+        //            "name" : "employee",
+        //            "fields":[
+        //                    {"name" : "name", "type" : "string", "default" : "NU"},
+        //                    {"name" : "age", "type" : "int", "default" : 0 },
+        //                    {"name" : "dept", "type": "string", "default" : "DU"} ] }
+        //
+        //            ==> Employee4.avro <==
+        //            {
+        //            "type" : "record",
+        //            "name" : "employee",
+        //            "fields":[
+        //                    {"name" : "name", "type" : "string", "default" : "NU"},
+        //                    {"name" : "age", "type" : "int", "default" : 0},
+        //                    {"name" : "dept", "type": "string", "default" : "DU"},
+        //                    {"name" : "office", "type": "string", "default" : "OU"} ] }
+        //
+        //            ==> Employee6.avro <==
+        //            {
+        //            "type" : "record",
+        //            "name" : "employee",
+        //            "fields":[
+        //                    {"name" : "name", "type" : "string", "default" : "NU"},
+        //                    {"name" : "lastname", "type": "string", "default" : "LNU"},
+        //                    {"name" : "age", "type" : "int","default" : 0},
+        //                    {"name" : "salary", "type": "int", "default" : 0},
+        //                    {"name" : "dept", "type": "string","default" : "DU"},
+        //                    {"name" : "office", "type": "string","default" : "OU"} ] }
+        // The relation 'in' looks like this: (order of rows can be different.)
+        // Avro file stored after processing looks like this:
+        // The relation 'in' looks like this: (order of rows can be different.)
+        //      Employee3.avro
+        //        (Milo,30,DH)
+        //        (Asmya,34,PQ)
+        //        (Baljit,23,RS)
+        //
+        //      Employee4.avro
+        //        (Praj,54,RMX,Champaign)
+        //        (Buba,767,HD,Sunnyvale)
+        //        (Manku,375,MS,New York)
+        //
+        //      Employee6.avro
+        //        (Pune,Warriors,60,5466,Astrophysics,UTA)
+        //        (Rajsathan,Royals,20,1378,Biochemistry,Stanford)
+        //        (Chennai,Superkings,50,7338,Microbiology,Hopkins)
+        //        (Mumbai,Indians,20,4468,Applied Math,UAH)
+
+        // Data file stored after without looks like this with the
+        // following schema and data
+        // {name: chararray,age: int,dept: chararray,office: chararray,
+        // lastname: chararray,salary: int}
+        //(Asmya,34,PQ,OU,LNU,0)
+        //(Baljit,23,RS,OU,LNU,0)
+        //(Buba,767,HD,Sunnyvale,LNU,0)
+        //(Chennai,50,Microbiology,Hopkins,Superkings,7338)
+        //(Manku,375,MS,New York,LNU,0)
+        //(Milo,30,DH,OU,LNU,0)
+        //(Mumbai,20,Applied Math,UAH,Indians,4468)
+        //(Praj,54,RMX,Champaign,LNU,0)
+        //(Pune,60,Astrophysics,UTA,Warriors,5466)
+        //(Rajsathan,20,Biochemistry,Stanford,Royals,1378)
+
+        Data data = resetData(pigServerLocal);
+        String output= outbasedir + "testMultipleSchemasWithDefaultValue";
+        deleteDirectory(new File(output));
+        String expected = basedir + "expected_testMultipleSchemasWithDefaultValue.avro";
+        String [] queries = {
+          " a = LOAD '" + testMultipleSchemasWithDefaultValue +
+              "' USING org.apache.pig.piggybank.storage.avro.AvroStorage ('multiple_schemas');",
+          " b = foreach a generate name,age,dept,office,lastname,salary;",
+          " c = filter b by age < 40 ;",
+          " d = order c by  name;",
+          " STORE d INTO '" + output+ "' using mock.Storage();"
+           };
+        testAvroStorage(queries);
+        List<Tuple> out = data.get(output);
+        assertEquals(out + " size", 5, out.size());
+        assertEquals(
+               schema("name: chararray,age: int,dept: chararray,office: chararray,lastname: chararray,salary: int"),
+                data.getSchema(output));
+        assertEquals(tuple("Asmya", 34, "PQ", "OU", "LNU", 0), out.get(0));
+        assertEquals(tuple("Baljit", 23, "RS", "OU", "LNU", 0), out.get(1));
+        assertEquals(tuple("Milo", 30, "DH", "OU", "LNU", 0), out.get(2));
+        assertEquals(tuple("Mumbai", 20, "Applied Math", "UAH", "Indians", 4468), out.get(3));
+        assertEquals(tuple("Rajsathan", 20, "Biochemistry", "Stanford", "Royals", 1378), out.get(4));
     }
 
     @Test
@@ -1185,9 +1277,6 @@ public class TestAvroStorage {
     }
 
     private void verifyResults(String outPath, String expectedOutpath, String expectedCodec) throws IOException {
-        // Seems compress for Avro is broken in 23. Skip this test and open Jira PIG-
-        if (Util.isHadoop23())
-            return;
 
         FileSystem fs = FileSystem.getLocal(new Configuration()) ;
 
