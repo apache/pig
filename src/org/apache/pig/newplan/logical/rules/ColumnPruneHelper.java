@@ -330,6 +330,8 @@ public class ColumnPruneHelper {
 
         @Override
         public void visit(LODistinct distinct) throws FrontendException {
+            setOutputUids(distinct);
+            
             Set<Long> input = new HashSet<Long>();
 
             // Every field is required

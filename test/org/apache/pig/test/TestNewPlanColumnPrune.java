@@ -20,11 +20,13 @@ package org.apache.pig.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -415,6 +417,36 @@ public class TestNewPlanColumnPrune {
             //PIG-2968 throws ConcurrentModificationException
             e.printStackTrace();
             fail("Unexpected Exception: " + e);
+        }
+    }
+
+    @Test
+    public void testDistinct() throws Exception {
+        //Test for bug where distinct wasn't being pruned properly causing union 
+        //to fail to get a schema since the distinct relation had an incompatible schema
+        //with the other relation being unioned.
+        
+        String testQuery = 
+                "a = load 'd.txt' as (id, v1, v2);" +
+                "b = load 'd.txt' as (id, v1, v2);" +
+                "c = distinct a;" +
+                "d = union b, c;" +
+                "e = foreach d generate id, v1;" +
+                "store e into 'empty';";
+        
+        //Generate optimized plan.
+        LogicalPlan newLogicalPlan = buildPlan(testQuery);
+        PlanOptimizer optimizer = new MyPlanOptimizer(newLogicalPlan, 3);
+        optimizer.optimize();
+        
+        Iterator<Operator> iter = newLogicalPlan.getOperators();
+        while (iter.hasNext()) {
+            Operator o = iter.next();
+            LogicalRelationalOperator lro = (LogicalRelationalOperator)o;
+            if (lro == null || lro.getAlias() == null) continue;
+            if (lro.getAlias().equals("d")) {
+                assertNotNull(lro.getSchema());
+            }
         }
     }
 
