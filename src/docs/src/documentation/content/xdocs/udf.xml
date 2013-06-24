@@ -112,7 +112,7 @@ transformation functions and include aggregate and filter functions. </p>
 6  public class UPPER extends EvalFunc&lt;String&gt;
 7  {
 8    public String exec(Tuple input) throws IOException {
-9        if (input == null || input.size() == 0)
+9        if (input == null || input.size() == 0 || input.get(0) == null)
 10            return null;
 11        try{
 12            String str = (String)input.get(0);
