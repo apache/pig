@@ -95,25 +95,24 @@ public class TestCase {
 
         pigServer.registerQuery("A = LOAD 'foo' USING mock.Storage() AS (i:int);");
         pigServer.registerQuery("B = FOREACH A GENERATE i, (" +
-                "  CASE i % 5" +
-                "    WHEN 0 THEN '5n'" +
-                "    WHEN 1 THEN '5n+1'" +
-                "    WHEN 2 THEN '5n+2'" +
-                "    WHEN 3 THEN '5n+3'" +
-                "    ELSE        '5n+4'" +
+                "  CASE i % 4" +
+                "    WHEN 0 THEN '4n'" +
+                "    WHEN 1 THEN '4n+1'" +
+                "    WHEN 2 THEN '4n+2'" +
+                "    ELSE        '4n+3'" +
                 "  END" +
                 ");");
         pigServer.registerQuery("STORE B INTO 'bar' USING mock.Storage();");
 
         List<Tuple> out = data.get("bar");
         assertEquals(7, out.size());
-        assertEquals(tuple(1,"5n+1"), out.get(0));
-        assertEquals(tuple(2,"5n+2"), out.get(1));
-        assertEquals(tuple(3,"5n+3"), out.get(2));
-        assertEquals(tuple(4,"5n+4"), out.get(3));
-        assertEquals(tuple(5,"5n"),   out.get(4));
-        assertEquals(tuple(6,"5n+1"), out.get(5));
-        assertEquals(tuple(7,"5n+2"), out.get(6));
+        assertEquals(tuple(1,"4n+1"), out.get(0));
+        assertEquals(tuple(2,"4n+2"), out.get(1));
+        assertEquals(tuple(3,"4n+3"), out.get(2));
+        assertEquals(tuple(4,"4n"),   out.get(3));
+        assertEquals(tuple(5,"4n+1"), out.get(4));
+        assertEquals(tuple(6,"4n+2"), out.get(5));
+        assertEquals(tuple(7,"4n+3"), out.get(6));
     }
 
     /**
@@ -179,24 +178,23 @@ public class TestCase {
         pigServer.registerQuery("A = LOAD 'foo' USING mock.Storage() AS (i:int);");
         pigServer.registerQuery("B = FOREACH A GENERATE i, (" +
                 "  CASE " +
-                "    WHEN i % 5 == 0 THEN '5n'" + // Conditional expression in when branch
-                "    WHEN i % 5 == 1 THEN '5n+1'" +
-                "    WHEN i % 5 == 2 THEN '5n+2'" +
-                "    WHEN i % 5 == 3 THEN '5n+3'" +
-                "    ELSE                 '5n+4'" +
+                "    WHEN i % 4 == 0 THEN '4n'" + // Conditional expression in when branch
+                "    WHEN i % 4 == 1 THEN '4n+1'" +
+                "    WHEN i % 4 == 2 THEN '4n+2'" +
+                "    ELSE                 '4n+3'" +
                 "  END" +
                 ");");
         pigServer.registerQuery("STORE B INTO 'bar' USING mock.Storage();");
 
         List<Tuple> out = data.get("bar");
         assertEquals(7, out.size());
-        assertEquals(tuple(1,"5n+1"), out.get(0));
-        assertEquals(tuple(2,"5n+2"), out.get(1));
-        assertEquals(tuple(3,"5n+3"), out.get(2));
-        assertEquals(tuple(4,"5n+4"), out.get(3));
-        assertEquals(tuple(5,"5n"),   out.get(4));
-        assertEquals(tuple(6,"5n+1"), out.get(5));
-        assertEquals(tuple(7,"5n+2"), out.get(6));
+        assertEquals(tuple(1,"4n+1"), out.get(0));
+        assertEquals(tuple(2,"4n+2"), out.get(1));
+        assertEquals(tuple(3,"4n+3"), out.get(2));
+        assertEquals(tuple(4,"4n"),   out.get(3));
+        assertEquals(tuple(5,"4n+1"), out.get(4));
+        assertEquals(tuple(6,"4n+2"), out.get(5));
+        assertEquals(tuple(7,"4n+3"), out.get(6));
     }
 
     /**
