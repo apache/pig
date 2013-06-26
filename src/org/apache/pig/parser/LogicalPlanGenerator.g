@@ -1102,7 +1102,7 @@ case_cond[LogicalExpressionPlan plan] returns[LogicalExpression expr]
     {
         // Convert CASE tree to nested bincond expressions. Please also see
         // QueryParser.g for how CASE tree is constructed from case statement.
-        boolean hasElse = exprs.size() \% 2 == 1;
+        boolean hasElse = exprs.size() != conds.size();
         LogicalExpression elseExpr = hasElse ? exprs.get(exprs.size() - 1)
                                              : new ConstantExpression($plan, null);
         int numWhenBranches = conds.size();
