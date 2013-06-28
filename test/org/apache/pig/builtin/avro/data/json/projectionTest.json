@@ -1,0 +1,15 @@
+{
+ "key" : "A",
+ "intValue" : 1,
+ "longValue" : 1
+}
+{
+ "key" : "B",
+ "intValue" : 2,
+ "longValue" : 2
+}
+{
+ "key" : "C",
+ "intValue" : 3,
+ "longValue" : 3
+}

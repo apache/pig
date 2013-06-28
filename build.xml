@@ -331,6 +331,11 @@
             <include name="guava-${guava.version}.jar"/>
             <include name="automaton-${automaton.version}.jar"/>
             <include name="jansi-${jansi.version}.jar"/>
+            <include name="avro-${avro.version}.jar"/>     
+            <include name="avro-mapred-${avro.version}.jar"/>     
+            <include name="trevni-core-${avro.version}.jar"/>     
+            <include name="trevni-avro-${avro.version}.jar"/>
+            <include name="snappy-java-${snappy.version}.jar"/>
             <include name="asm*.jar"/>
         </patternset>
     </fileset>
@@ -344,11 +349,15 @@
             <include name="junit-${junit.version}.jar"/>
             <include name="jsch-${jsch.version}.jar"/>
             <include name="protobuf-java-${protobuf-java.version}.jar"/>
-            <include name="avro-${avro.version}.jar"/>
             <include name="commons*.jar"/>
             <include name="log4j*.jar"/>
             <include name="slf4j*.jar"/>
             <include name="jsp-api*.jar"/>
+            <include name="avro-${avro.version}.jar"/>
+            <include name="avro-mapred-${avro.version}.jar"/>    
+            <include name="trevni-core-${avro.version}.jar"/>    
+            <include name="trevni-avro-${avro.version}.jar"/>
+            <include name="snappy-java-${snappy.version}.jar"/>
             <include name="asm*.jar"/>
         </patternset>
     </fileset>

@@ -1,0 +1,12 @@
+{
+ "A__key" : {"string" : "A"},
+ "B__C__intValue" : {"int" : 1}
+}
+{
+ "A__key" : {"string" : "B"},
+ "B__C__intValue" : {"int" : 2}
+}
+{
+ "A__key" : {"string" : "C"},
+ "B__C__intValue" : {"int" : 3}
+}

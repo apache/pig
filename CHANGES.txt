@@ -24,9 +24,11 @@ INCOMPATIBLE CHANGES
 
 PIG-3191: [piggybank] MultiStorage output filenames are not sortable (Danny Antonelli via jcoveney)
 
-PIG-3174:  Remove rpm and deb artifacts from build.xml (gates)
+PIG-3174: Remove rpm and deb artifacts from build.xml (gates)
 
 IMPROVEMENTS
+
+PIG-3015: Rewrite of AvroStorage (jadler via cheolsoo)
 
 PIG-3361: Improve Hadoop version detection logic for Pig unit test (daijy)
 

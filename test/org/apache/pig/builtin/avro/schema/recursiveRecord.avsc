@@ -1,0 +1,9 @@
+{ "name" : "recursiveRecord",
+  "namespace" : "org.apache.pig.test.builtin",
+  "type" : "record",
+  "fields" : [
+    {"name" : "key" , "type" : "string"},
+    {"name" : "value" , "type" : "string"},
+    {"name" : "next" , "type" : [ "org.apache.pig.test.builtin.recursiveRecord" , "null" ]}
+  ]
+}

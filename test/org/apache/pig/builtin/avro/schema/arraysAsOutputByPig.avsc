@@ -1,0 +1,19 @@
+{
+  "type" : "record",
+  "name" : "arrays",
+  "namespace" : "org.apache.pig.test.builtin",
+  "fields" : [ {
+    "name" : "array",
+    "type" : [ "null", {
+      "type" : "array",
+      "items" : {
+        "type" : "record",
+        "name" : "array",
+        "fields" : [ {
+          "name" : "array_0",
+          "type" : [ "null", "int" ]
+        } ]
+      }
+    } ]
+  } ]
+}

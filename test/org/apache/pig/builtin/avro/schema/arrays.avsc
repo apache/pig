@@ -1,0 +1,6 @@
+{
+  "name" : "arrays",
+  "namespace" : "org.apache.pig.test.builtin",
+  "type" : "array",
+  "items" : "int"
+}

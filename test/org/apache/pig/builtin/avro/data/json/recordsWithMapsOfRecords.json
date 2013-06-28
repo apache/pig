@@ -1,0 +1,17 @@
+{"key" : "A",
+ "value" : 1,
+ "parameters" : {
+   "firstParameter" : {"k" : "firstParameterKey", "v" : 1}   
+  }
+}
+{"key" : "B",
+ "value" : 2,
+ "parameters" : {}
+}
+{"key" : "C",
+ "value" : 1,
+ "parameters" : {
+   "firstParameter" : {"k" : "firstParameterKey", "v" : 70},
+   "secondParameter" : {"k" : "secondParameterKey", "v" : 0}
+   }
+}

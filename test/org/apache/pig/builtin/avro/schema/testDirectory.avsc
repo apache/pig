@@ -1,0 +1,12 @@
+{
+  "type" : "record",
+  "name" : "testdirectory",
+  "namespace" : "org.apache.pig.test.builtin",
+  "fields" : [ {
+    "name" : "item",
+    "type" : "int"
+  }, {
+    "name" : "timestamp",
+    "type" : "long"
+  } ]
+}

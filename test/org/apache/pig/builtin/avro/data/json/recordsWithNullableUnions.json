@@ -1,0 +1,4 @@
+{"key" : {"string" : "A"}, "value" : null}
+{"key" : {"string" : "B"}, "value" : {"int" : 1}}
+{"key" : null, "value" : null}
+{"key" : null, "value" : {"int" : 2}}

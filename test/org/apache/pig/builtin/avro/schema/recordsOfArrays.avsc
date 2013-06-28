@@ -1,0 +1,14 @@
+{
+  "name" : "recordsOfArrays",
+  "namespace" : "org.apache.pig.test.builtin",
+  "type" : "record",
+  "fields" : [
+    {"name" : "key", "type" : "string"},
+    {"name" : "values",
+     "type" : {
+       "type" : "array",
+       "items" : "int"
+     }    
+    }
+  ]
+}

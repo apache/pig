@@ -1,0 +1,11 @@
+{
+  "name" : "recordsWithFixed",
+  "namespace" : "org.apache.pig.test.builtin",
+  "type" : "record",
+  "fields" : [
+    {"name" : "key", "type" : "string"},
+    {"name" : "value", "type" :
+      {"type" : "fixed", "size" : 8, "name" : "IPv4Address"}
+    }
+  ]
+}

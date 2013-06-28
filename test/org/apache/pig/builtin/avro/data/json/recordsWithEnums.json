@@ -1,0 +1,4 @@
+{"key" : "A", "value" : 1, "type" : "GOOD"}
+{"key" : "B", "value" : 2, "type" : "BAD"}
+{"key" : "C", "value" : 3, "type" : "OTHER"}
+{"key" : "D", "value" : 1, "type" : "OTHER"}

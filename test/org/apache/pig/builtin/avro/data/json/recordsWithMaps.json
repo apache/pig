@@ -1,0 +1,17 @@
+{"key" : "A",
+ "value" : 1,
+ "parameters" : {
+   "comment" : "first test case"
+   }
+}
+{"key" : "B",
+ "value" : 2,
+ "parameters" : {
+    "comment" : "second map item",
+    "also" : "the next item has an empty map"
+    }
+}
+{"key" : "C",
+ "value" : 3,
+ "parameters" : {}
+}

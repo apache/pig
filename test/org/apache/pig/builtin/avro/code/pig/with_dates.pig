@@ -1,0 +1,4 @@
+in = LOAD '$INFILE' USING AvroStorage();
+out = FOREACH in GENERATE *, ToDate('2013-05-01Z', 'yyyy-MM-ddZ') AS date;
+RMF $OUTFILE;
+STORE out INTO '$OUTFILE' USING AvroStorage('$AVROSTORAGE_OUT_1','$AVROSTORAGE_OUT_2');

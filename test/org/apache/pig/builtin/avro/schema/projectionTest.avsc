@@ -1,0 +1,10 @@
+{
+  "name" : "projectionTest",
+  "namespace" : "org.apache.pig.test.builtin",
+  "type" : "record",
+  "fields" : [
+    {"name" : "key", "type" : "string"},
+    {"name" : "intValue", "type" : "int"},
+    {"name" : "longValue", "type" : "long"}    
+  ]
+}

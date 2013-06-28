@@ -1,5 +1,6 @@
 **/TestAdd.java
 **/TestAlgebraicEvalLocal.java
+**/TestAvroStorage.java
 **/TestBagFormat.java
 **/TestBoolean.java
 **/TestCmdLineParser.java
