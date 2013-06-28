@@ -1,0 +1,12 @@
+{
+ "key" : {"string" : "A"},
+ "value" : { "string" : "a"}
+}
+{
+ "key" : {"string" : "B"},
+ "value" : { "string" : "b"}
+}
+{
+ "key" : {"string" : "C"},
+ "value" : { "string" : "c"}
+}

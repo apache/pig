@@ -1,0 +1,10 @@
+{
+  "name" : "records",
+  "namespace" : "org.apache.pig.test.builtin",
+  "doc" : "subset of records schema, to make sure you can manually specify a compatible subschema",
+  "type" : "record",
+  "fields" : [
+    {"name" : "key", "type" : "string"},
+    {"name" : "intValue", "type" : "int"}
+  ]
+}

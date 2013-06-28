@@ -1,0 +1,15 @@
+{
+  "name" : "records",
+  "namespace" : "org.apache.pig.test.builtin",
+  "type" : "record",
+  "fields" : [
+    {"name" : "key", "type" : "string"},
+    {"name" : "intValue", "type" : "int"},
+    {"name" : "longValue", "type" : "long"},
+    {"name" : "booleanValue", "type" : "boolean"},
+    {"name" : "floatValue", "type" : "float"},
+    {"name" : "doubleValue", "type" : "double"},
+    {"name" : "bytesValue", "type" : "bytes"},
+    {"name" : "nullValue", "type" : "null"}    
+  ]
+}

@@ -53,9 +53,11 @@
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/servlet-api-2.5-6.1.14.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/slf4j-api-1.6.1.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/slf4j-log4j12-1.6.1.jar"/>
-  <classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/xmlenc-0.52.jar"/>
-  <classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/avro-1.7.4.jar" />
-  <classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/json-simple-1.1.jar" />
+    <classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/xmlenc-0.52.jar"/>
+    <classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/avro-1.7.4.jar" />
+    <classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/nodeps-1.7.4.jar" />
+    <classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/json-simple-1.1.jar" />
+    <classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/snappy-java-1.0.5-M3.jar" />
 	<classpathentry exported="true" kind="lib" path="lib/automaton.jar"/>
 	<classpathentry kind="output" path="build/classes"/>
 </classpath>

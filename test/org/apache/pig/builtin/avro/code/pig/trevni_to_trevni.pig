@@ -1,0 +1,4 @@
+in = LOAD '$INFILE' USING TrevniStorage;
+out = FOREACH in GENERATE *;
+RMF $OUTFILE;
+STORE out INTO '$OUTFILE' USING TrevniStorage('','$AVROSTORAGE_OUT_2');

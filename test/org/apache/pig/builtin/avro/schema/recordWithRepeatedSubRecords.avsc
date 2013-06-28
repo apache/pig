@@ -1,0 +1,16 @@
+{ "name" : "recordWithRepeatedSubRecords",
+  "namespace" : "org.apache.pig.test.builtin",
+  "type" : "record",
+  "fields" : [
+    {"name" : "key" , "type" : "string"},
+    {"name" : "value1" , "type" : {
+      "type" : "record",
+      "name" : "valuetype",
+      "fields" : [
+        {"name" : "thing", "type" : "string"},
+        {"name" : "count", "type" : "int"}
+      ]
+    }},
+    {"name" : "value2" , "type" : "valuetype"}
+  ]
+}

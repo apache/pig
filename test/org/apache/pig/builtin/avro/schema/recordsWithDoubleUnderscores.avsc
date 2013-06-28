@@ -1,0 +1,9 @@
+{
+  "name" : "recordsWithDoubleUnderscores",
+  "namespace" : "org.apache.pig.test.builtin",
+  "type" : "record",
+  "fields" : [
+    {"name" : "A__key", "type" : ["null", "string"]},
+    {"name" : "B__C__intValue", "type" : ["null", "int"]}
+  ]
+}

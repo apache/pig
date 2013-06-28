@@ -1,0 +1,30 @@
+{
+ "key" : "A",
+ "intValue" : 1,
+ "longValue" : 1,
+ "booleanValue" : true,
+ "floatValue" : 1.0,
+ "doubleValue" : 1.0,
+ "bytesValue" : "\u00FF",
+ "nullValue" : null
+}
+{
+ "key" : "B",
+ "intValue" : 2,
+ "longValue" : 2,
+ "booleanValue" : true,
+ "floatValue" : 2.0,
+ "doubleValue" : 2.0,
+ "bytesValue" : "\u00FE",
+ "nullValue" : null
+}
+{
+ "key" : "C",
+ "intValue" : 3,
+ "longValue" : 3,
+ "booleanValue" : false,
+ "floatValue" : 3.0,
+ "doubleValue" : 3.0,
+ "bytesValue" : "\u00FD",
+ "nullValue" : null
+}

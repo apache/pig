@@ -1,0 +1,12 @@
+{"key" : "stuff in closet",
+ "value1" : {"thing" : "hat", "count" : 7},
+ "value2" : {"thing" : "coat", "count" : 2}
+ }
+{"key" : "stuff on desk",
+ "value1" : {"thing" : "stapler", "count" : 1},
+ "value2" : {"thing" : "PC", "count" : 0}
+ }
+{"key" : "examples",
+ "value1" : {"thing" : "interesting", "count" : 0},
+ "value2" : {"thing" : "dull", "count" : 10}
+ }

@@ -1755,6 +1755,342 @@ STORE A INTO 'hbase://users_table' USING org.apache.pig.backend.hadoop.hbase.HBa
        rowKey.</p>
    </section>
    </section>
+
+  <!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->
+   <section id="AvroStorage">
+   <title>AvroStorage</title>
+   <p>Loads and stores data from Avro files.</p>
+
+   <section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>Avrostorage(['schema|record name'], ['options'])</p>
+            </td>
+         </tr>
+   </table>
+   </section>
+
+   <section>
+   <title>Terms</title>
+   <table>
+       <tr>
+            <td>
+               <p>schema</p>
+            </td>
+            <td>
+               <p>A JSON string specifying the Avro schema for the input. You may specify an explicit schema
+                  when storing data or when loading data. When you manually provide a schema, Pig
+                  will use the provided schema for serialization and deserialization. This means that
+                  you can provide an explicit schema when saving data to simplify the output (for example
+                  by removing nullable unions), or rename fields. This also means that you can provide
+                  an explicit schema when reading data to only read a subset of the fields in each record.</p>
+                  
+                  <p>See 
+                  <a href="http://avro.apache.org/docs/current/spec.html"> the Apache Avro Documentation</a>
+                  for more details on how to specify a valid schema.</p>
+            </td>
+         </tr>
+       <tr>
+            <td>
+               <p>record name</p>
+            </td>
+            <td>
+               <p>When storing a bag of tuples with AvroStorage, if you do not want to specify
+               the full schema, you may specify the avro record name instead. (AvroStorage will
+               determine that the argument isn't a valid schema definition and use it as a
+               variable name instead.)</p>
+            </td>
+         </tr>
+
+       <tr>
+            <td>
+               <p>'options'</p>
+            </td>
+            <td>
+               <p>A string that contains space-separated options (&lsquo;-optionA valueA -optionB valueB -optionC &rsquo;)</p>
+               <p>Currently supported options are:</p>
+               <ul>
+                <li>-namespace nameSpace or -n nameSpace Explicitly specify the namespace
+                    field in Avro records when storing data</li>
+                <li>-schemfile schemaFile or -f schemaFile Specify the input (or output) schema from
+                    an external file. Pig assumes that the file is located on the default filesystem,
+                    but you may use an explicity URL to unambigously specify the location. (For example, if
+                    the data was on your local file system in /stuff/schemafile.avsc, you
+                    could specify "-f file:///stuff/schemafile.avsc" to specify the location. If the
+                    data was on HDFS under /yourdirectory/schemafile.avsc, you could specify
+                    "-f hdfs:///yourdirectory/schemafile.avsc"). Pig expects this to be a 
+                    text file, containing a valid avro schema.</li>
+                <li>-examplefile exampleFile or -e exampleFile Specify the input (or output)
+                    schema using another Avro file as an example. Pig assumes that the file is located on the default filesystem,
+                    but you may use and explicity URL to specify the location. Pig
+                    expects this to be an Avro data file.</li>
+                <li>-allowrecursive or -r Specify whether to allow recursive schema definitions (the
+                    default is to throw an exception if Pig encounters a recursive schema). When 
+                    reading objects with recursive definitions, Pig will translate Avro records to
+                    schema-less tuples; the Pig Schema for the object may not match the data exactly.</li>
+                <li>-doublecolons or -d Specify how to handle Pig schemas that contain double-colons
+                    when writing data in Avro format. (When you join two bags in Pig, Pig will automatically
+                    label the fields in the output Tuples with names that contain double-colons). If
+                    you select this option, AvroStorage will translate names with double colons into
+                    names with double underscores. </li>
+               </ul>
+            </td>
+         </tr>
+   </table>
+   </section>
+
+   <section>
+   <title>Usage</title>
+   <p>AvroStorage stores and loads data from Avro files. Often, you can load and
+      store data using AvroStorage without knowing much about the Avros serialization format.
+      AvroStorage will attempt to automatically translate a pig schema and pig data to avro data,
+      or avro data to pig data.</p>
+   <p>By default, when you use AvoStorage to load data, AvroStorage will use depth first search to
+      find a valid Avro file on the input path, then use the schema from that file to load the
+      data. When you use AvroStorage to store data, AvroStorage will attempt to translate the
+      Pig schema to an equivalent Avro schema. You can manually specify the schema by providing
+      an explicit schema in Pig, loading a schema from an external schema file, or explicitly telling
+      Pig to read the schema from a specific avro file.</p>
+   <p>To compress your output with AvroStorage, you need to use the correct Avro properties for compression.
+       For example, to enable compression using deflate level 5, you would specify</p>
+<source>
+SET avro.output.codec 'deflate'
+SET avro.mapred.deflate.level 5
+</source>
+   <p>Valid values for avro.output.codec include deflate, snappy, and null.</p>
+   <p>There are a few key differences between Avro and Pig data, and in some cases
+      it helps to understand the differences between the Avro and Pig data models.
+      Before writing Pig data to Avro (or creating Avro files to use in Pig), keep in
+      mind that there might not be an equivalent Avro Schema for every Pig Schema (and
+      vice versa):</p>
+   <ul>
+    <li><strong>Recursive schema definitions</strong> You cannot define schemas recursively in Pig,
+      but you can define schemas recursively in Avro.</li>
+    <li><strong>Allowed characters</strong> Pig schemas may sometimes contain characters like colons (":")
+        that are illegal in Avro names.</li>
+    <li><strong>Unions</strong> In Avro, you can define an object that may be one of several different
+    types (including complex types such as records). In Pig, you cannot.</li>
+    <li><strong>Enums</strong> Avro allows you to define enums to efficiently and abstractly 
+        represent categorical variable, but Pig does not.</li>
+    <li><strong>Fixed Length Byte Arrays</strong> Avro allows you to define fixed length byte arrays, 
+        but Pig does not.</li>
+    <li><strong>Nullable values</strong> In Pig, all types are nullable. In Avro, they are not. </li>
+   </ul>
+   <p>Here is how AvroStorage translates Pig values to Avro:</p>
+   <table>
+    <tr>
+     <td></td>
+     <td>Original Pig Type</td>
+     <td>Translated Avro Type</td>
+    </tr>
+    <tr>
+     <td>Integers</td>
+     <td>int</td>
+     <td>["int","null"]</td>
+    </tr>
+    <tr>
+     <td>Longs</td>
+     <td>long</td>
+     <td>["long,"null"]</td>
+    </tr>
+    <tr>
+     <td>Floats</td>
+     <td>float</td>
+     <td>["float","null"]</td>
+    </tr>
+    <tr>
+     <td>Doubles</td>
+     <td>double</td>
+     <td>["double","null"]</td>
+    </tr>
+    <tr>
+     <td>Strings</td>
+     <td>chararray</td>
+     <td>["string","null"]</td>
+    </tr>
+    <tr>
+     <td>Bytes</td>
+     <td>bytearray</td>
+     <td>["bytes","null"]</td>
+    </tr>
+    <tr>
+     <td>Booleans</td>
+     <td>boolean</td>
+     <td>["boolean","null"]</td>
+    </tr>
+    <tr>
+     <td>Tuples</td>
+     <td>tuple</td>
+     <td>The Pig Tuple schema will be translated to an union of and Avro record with an equivalent
+         schem and null.</td>
+    </tr>
+    <tr>
+     <td>Bags of Tuples</td>
+     <td>bag</td>
+     <td>The Pig Tuple schema will be translated to a union of an array of records with an equivalent
+         schema and null.</td>
+    </tr>
+    <tr>
+     <td>Maps</td>
+     <td>map</td>
+     <td>The Pig Tuple schema will be translated to a union of a map of records with an equivalent
+         schema and null.</td>
+    </tr>
+   </table>
+
+   <p>Here is how AvroStorage translates Avro values to Pig:</p>
+   <table>
+    <tr>
+     <td></td>
+     <td>Original Avro Types</td>
+     <td>Translated Pig Type</td>
+    </tr>
+    <tr>
+     <td>Integers</td>
+     <td>["int","null"] or "int"</td>
+     <td>int</td>
+    </tr>
+    <tr>
+     <td>Longs</td>
+     <td>["long,"null"] or "long"</td>
+     <td>long</td>
+    </tr>
+    <tr>
+     <td>Floats</td>
+     <td>["float","null"] or "float"</td>
+     <td>float</td>
+    </tr>
+    <tr>
+     <td>Doubles</td>
+     <td>["double","null"] or "double"</td>
+     <td>double</td>
+    </tr>
+    <tr>
+     <td>Strings</td>
+     <td>["string","null"] or "string"</td> 
+     <td>chararray</td>
+    </tr>
+    <tr>
+     <td>Enums</td>
+     <td>Either an enum or a union of an enum and null</td> 
+     <td>chararray</td>
+    </tr>
+    <tr>
+     <td>Bytes</td>
+     <td>["bytes","null"] or "bytes"</td>
+     <td>bytearray</td>
+    </tr>
+    <tr>
+     <td>Fixes</td>
+     <td>Either a fixed length byte array, or a union of a fixed length array and null</td> 
+     <td>bytearray</td>
+    </tr>    
+    <tr>
+     <td>Booleans</td>
+     <td>["boolean","null"] or "boolean"</td>
+     <td>boolean</td>
+    </tr>
+    <tr>
+     <td>Tuples</td>
+     <td>Either a record type, or a union or a record and null</td>
+     <td>tuple</td>
+    </tr>
+    <tr>
+     <td>Bags of Tuples</td>
+     <td>Either an array, or a union of an array and null</td>
+     <td>bag</td>
+    </tr>
+    <tr>
+     <td>Maps</td>
+     <td>Either a map, or a union of a map and null</td>
+     <td>map</td>
+    </tr>
+   </table>
+
+   <p> In many cases, AvroStorage will automatically translate your data correctly and you will not
+       need to provide any more information to AvroStorage. But sometimes, it may be convenient to
+       manually provide a schema to AvroStorge. See the example selection below for examples
+       on manually specifying a schema with AvroStorage.
+   </p>   
+   </section>
+   <section>
+   <title>Load Examples</title>
+    <p>Suppose that you were provided with a file of avro data (located in 'stuff') 
+       with the following schema:</p>
+<source>
+{"type" : "record",
+ "name" : "stuff",
+ "fields" : [
+   {"name" : "label", "type" : "string"}, 
+   {"name" : "value", "type" : "int"},
+   {"name" : "marketingPlans", "type" : ["string", "bytearray", "null"]}
+  ]
+}
+</source>
+    <p>Additionally,  suppose that you don't need the value of the field "marketingPlans." 
+       (That's a good thing, because AvroStorage doesn't know how to translate that Avro schema
+       to a Pig schema). To load only the fieds "label" and "value" into Pig, you can
+       manually specify the schema passed to AvroStorage:</p>
+<source>
+measurements = LOAD 'stuff' USING AvroStorage(
+  '{"type":"record","name":"measurement","fields":[{"name":"label","type":"string"},{"name":"value","type":"int"}]}'
+  );
+</source>
+   </section>
+
+   <section>
+   <title>Store Examples</title>
+    <p>Suppose that you are saving a bag called measurements with the schema:</p>
+<source>
+measurements:{measurement:(label:chararray,value:int)}
+</source>
+    <p>To store this bag into a file called "measurements", you can use a statement like:</p>
+<source>
+STORE measurements INTO 'measurements' USING AvroStorage('measurement');
+</source>
+    <p>AvroStorage will translate this to the Avro schema</p>
+<source>
+{"type":"record", 
+ "name":"measurement",
+ "fields" : [
+   {"name" : "label", "type" : ["string", "null"]}, 
+   {"name" : "value", "type" : ["int", "null"]}
+  ]
+} 
+</source>
+    <p>But suppose that you knew that the label and value fields would never be null. You could
+       define a more precise schema manually using a statement like:</p>
+<source>
+STORE measurements INTO 'measurements' USING AvroStorage(
+  '{"type":"record","name":"measurement","fields":[{"name":"label","type":"string"},{"name":"value","type":"int"}]}'
+  );
+</source>
+   </section>
+   </section>
+
+  <!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->
+   <section id="TrevniStorage">
+   <title>TrevniStorage</title>
+   <p>Loads and stores data from Trevni files.</p>
+
+   <section>
+   <title>Syntax</title>
+   <table>
+    <tr>
+     <td>
+      <p>TrevniStorage(['schema|record name'], ['options'])</p>
+     </td>
+    </tr>
+   </table>
+   </section>
+   <p>Trevni is a column-oriented storage format that is part of the Apache Avro project. Trevni is
+   closely related to Avro.</p>
+   <p>Likewise, TrevniStorage is very closely related to AvroStorage, and shares the same options as
+   AvroStorage. See <a href="#AvroStorage">AvroStorage</a> for a detailed description of the
+   arguments for TrevniStorage.</p>
+   </section>
 </section>
 
 <!-- ======================================================== -->  

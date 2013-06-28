@@ -1,0 +1,12 @@
+{
+  "type" : "record",
+  "name" : "stats",
+  "namespace" : "org.apache.pig.test.builtin",
+  "fields" : [ {
+    "name" : "itemSum",
+    "type" : [ "null", "int" ]
+  }, {
+    "name" : "n",
+    "type" : [ "null", "int" ]
+  } ]
+}

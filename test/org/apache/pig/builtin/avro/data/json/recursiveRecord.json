@@ -1,0 +1,29 @@
+{"key" : "A",
+ "value" : "a",
+ "next" : null}
+{"key" : "B",
+ "value" : "b",
+ "next" : {
+    "org.apache.pig.test.builtin.recursiveRecord" : {
+        "key" : "B1",
+        "value" : "b1",
+        "next" : null
+    }
+   }
+ }
+{"key" : "C",
+ "value" : "c",
+ "next" : {
+    "org.apache.pig.test.builtin.recursiveRecord" : {
+        "key" : "C1",
+        "value" : "c1",
+        "next" : {
+            "org.apache.pig.test.builtin.recursiveRecord" : {
+                "key" : "C2",
+                "value" : "c2",
+                "next" : null
+            }
+           }
+    }
+   }
+ }

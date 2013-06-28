@@ -172,16 +172,28 @@
       conf="compile->master"/>
     <dependency org="commons-logging" name="commons-logging" rev="${commons-logging.version}"
       conf="compile->master;checkstyle->master"/>
-     <dependency org="org.slf4j" name="slf4j-log4j12" rev="${slf4j-log4j12.version}"
+    <dependency org="org.slf4j" name="slf4j-log4j12" rev="${slf4j-log4j12.version}"
       conf="compile->master;test->master"/>
     <dependency org="commons-cli" name="commons-cli" rev="${commons-cli.version}"
       conf="compile->master;checkstyle->master"/>
-
     <dependency org="org.apache.avro" name="avro" rev="${avro.version}"
+      conf="compile->default;checkstyle->master"/>
+    <dependency org="org.apache.avro" name="avro-mapred" rev="${avro.version}"
+      conf="compile->default;checkstyle->master"/>
+    <dependency org="org.apache.avro" name="trevni-core" rev="${avro.version}"
+      conf="compile->default;checkstyle->master"/>
+    <dependency org="org.apache.avro" name="trevni-avro" rev="${avro.version}"
+      conf="compile->default;checkstyle->master">
+      <exclude org="org.apache.hadoop" module="hadoop-core"/>
+    </dependency>
+    <dependency org="org.apache.avro" name="avro-tools" rev="${avro.version}"
+      conf="test->default">
+      <artifact name="nodeps" type="jar"/>
+    </dependency>
+    <dependency org="org.xerial.snappy" name="snappy-java" rev="${snappy.version}"
       conf="compile->default;checkstyle->master"/>
     <dependency org="com.googlecode.json-simple" name="json-simple" rev="${json-simple.version}"
       conf="compile->master;checkstyle->master"/>
-
     <dependency org="jdiff" name="jdiff" rev="${jdiff.version}"
       conf="jdiff->default"/>
     <dependency org="xalan" name="xalan" rev="${xalan.version}"

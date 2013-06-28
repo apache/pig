@@ -1,0 +1,33 @@
+{
+ "key" : {"string": "A"},
+ "intValue" : {"int" : 1},
+ "longValue" : {"long" : 1},
+ "booleanValue" : {"boolean" : true},
+ "floatValue" : {"float" : 1.0},
+ "doubleValue" : {"double" : 1.0},
+ "bytesValue" : {"bytes" : "\u00FF"},
+ "nullValue" : null,
+ "date" : {"long" : 1367366400000}
+}
+{
+ "key" : {"string": "B"},
+ "intValue" : {"int" : 2},
+ "longValue" : {"long" :2},
+ "booleanValue" : {"boolean" : true},
+ "floatValue" : {"float" : 2.0},
+ "doubleValue" : {"double" : 2.0},
+ "bytesValue" : {"bytes" : "\u00FE"},
+ "nullValue" : null,
+ "date" : {"long" : 1367366400000}
+}
+{
+ "key" : {"string": "C"},
+ "intValue" : {"int" : 3},
+ "longValue" : {"long" :3},
+ "booleanValue" : {"boolean" : false},
+ "floatValue" : {"float" : 3.0},
+ "doubleValue" : {"double" : 3.0},
+ "bytesValue" : {"bytes" : "\u00FD"},
+ "nullValue" : null,
+ "date" : {"long" : 1367366400000}
+}

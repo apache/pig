@@ -1,0 +1,11 @@
+{
+ "name" : "simpleRecords",
+ "namespace" : "org.apache.test.builtin",
+ "type" : "record",
+ "fields" : [
+    {"name" : "key", "type" : "string"},
+    {"name" : "intValue", "type" : "int"},
+    {"name" : "stringValue", "type" : "string"},
+    {"name" : "doubleValue", "type" : "double"}
+ ]
+}

@@ -1,0 +1,12 @@
+{
+  "name" : "recordsWithEnums",
+  "namespace" : "org.apache.pig.test.builtin",
+  "type" : "record",
+  "fields" : [
+    {"name" : "key", "type" : "string"},
+    {"name" : "value", "type" : "int"},
+    {"name" : "type", "type" :
+      {"type" : "enum", "name" : "typeEnum", "symbols" : ["GOOD","BAD","OTHER"]}    
+    }
+  ]
+}
