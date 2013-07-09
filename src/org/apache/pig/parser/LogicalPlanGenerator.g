@@ -99,6 +99,7 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import java.util.Arrays;
+import java.util.Collections;
 import java.math.BigInteger;
 import java.math.BigDecimal;
 }
@@ -1103,8 +1104,10 @@ case_cond[LogicalExpressionPlan plan] returns[LogicalExpression expr]
         // Convert CASE tree to nested bincond expressions. Please also see
         // QueryParser.g for how CASE tree is constructed from case statement.
         boolean hasElse = exprs.size() != conds.size();
-        LogicalExpression elseExpr = hasElse ? exprs.get(exprs.size() - 1)
+        LogicalExpression elseExpr = hasElse ? exprs.remove(exprs.size()-1)
                                              : new ConstantExpression($plan, null);
+        Collections.reverse(exprs);
+        Collections.reverse(conds);
         int numWhenBranches = conds.size();
         BinCondExpression prevBinCondExpr = null;
         BinCondExpression currBinCondExpr = null;
