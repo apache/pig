@@ -198,6 +198,46 @@ public class TestCase {
     }
 
     /**
+     * Verify that CASE statement preserves the order of conditions.
+     * @throws Exception
+     */
+    @Test
+    public void testOrderOfConditions() throws Exception {
+        PigServer pigServer = new PigServer(ExecType.LOCAL);
+        Data data = resetData(pigServer);
+
+        data.set("foo",
+                tuple(1),
+                tuple(5),
+                tuple(10),
+                tuple(15),
+                tuple(20),
+                tuple(25),
+                tuple(30)
+                );
+
+        pigServer.registerQuery("A = LOAD 'foo' USING mock.Storage() AS (i:int);");
+        pigServer.registerQuery("B = FOREACH A GENERATE i, (" +
+                "  CASE " +
+                "    WHEN i > 20 THEN '> 20'" + // Conditions are not mutually exclusive
+                "    WHEN i > 10 THEN '> 10'" +
+                "    ELSE             '> 0'" +
+                "  END" +
+                ");");
+        pigServer.registerQuery("STORE B INTO 'bar' USING mock.Storage();");
+
+        List<Tuple> out = data.get("bar");
+        assertEquals(7, out.size());
+        assertEquals(tuple(1,"> 0"),   out.get(0));
+        assertEquals(tuple(5,"> 0"),   out.get(1));
+        assertEquals(tuple(10,"> 0"),  out.get(2));
+        assertEquals(tuple(15,"> 10"), out.get(3));
+        assertEquals(tuple(20,"> 10"), out.get(4));
+        assertEquals(tuple(25,"> 20"), out.get(5));
+        assertEquals(tuple(30,"> 20"), out.get(6));
+    }
+
+    /**
      * Verify that FrontendException is thrown when case expression is missing,
      * and when branches do not contain conditional expressions.
      * @throws Exception
