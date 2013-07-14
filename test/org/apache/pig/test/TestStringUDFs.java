@@ -30,6 +30,7 @@ import org.apache.pig.builtin.INDEXOF;
 import org.apache.pig.builtin.LAST_INDEX_OF;
 import org.apache.pig.builtin.REPLACE;
 import org.apache.pig.builtin.STARTSWITH;
+import org.apache.pig.builtin.ENDSWITH;
 import org.apache.pig.builtin.STRSPLIT;
 import org.apache.pig.builtin.SUBSTRING;
 import org.apache.pig.builtin.TRIM;
@@ -188,6 +189,19 @@ public class TestStringUDFs {
         assertTrue("String prefix should match", startsWith.exec(testTuple2));
     }
     
+    @Test
+    public void testEndsWith() throws IOException {
+        ENDSWITH endsWith = new ENDSWITH();
+        Tuple testTuple1 = Util.buildTuple("foo", "bar");
+        assertFalse("String suffix should not match", endsWith.exec(testTuple1));
+        Tuple testTuple2 = Util.buildTuple("foobaz", "foo");
+        assertFalse("String suffix should not match", endsWith.exec(testTuple2));
+        Tuple testTuple3 = Util.buildTuple("foobaz", "baz");
+        assertTrue("String suffix should match", endsWith.exec(testTuple3));
+        Tuple testTuple4 = Util.buildTuple(null, "bar");
+        assertNull("Should return null", endsWith.exec(testTuple4));
+    }
+
     @Test
     public void testEqualsIgnoreCase() throws IOException {
     	EqualsIgnoreCase equalsIgnoreCase = new EqualsIgnoreCase ();
