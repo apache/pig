@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-3380: Fix e2e test float precision related test failures when run with -Dpig.exec.mapPartAgg=true (anlilin via rohini)
+
 OPTIMIZATIONS
 
 PIG-2769: a simple logic causes very long compiling time on pig 0.10.0 (njw45 via dvryaboy) (prev. applied to 0.12)
