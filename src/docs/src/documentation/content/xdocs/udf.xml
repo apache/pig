@@ -488,7 +488,7 @@ public class TOKENIZE extends EvalFunc&lt;DataBag&gt; {
         try {
             DataBag output = mBagFactory.newDefaultBag();
             Object o = input.get(0);
-            if ((o instanceof String)) {
+            if (!(o instanceof String)) {
                 throw new IOException("Expected input to be chararray, but  got " + o.getClass().getName());
             }
             StringTokenizer tok = new StringTokenizer((String)o, " \",()*", false);
