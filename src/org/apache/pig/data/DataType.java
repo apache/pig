@@ -348,6 +348,34 @@ public class DataType {
     }
 
     /**
+     * Get the type code from the type name 
+     * @param name Type name
+     * @return type code
+     */
+    public static byte findTypeByName(String name) {
+        if (name == null) return NULL;
+        else if ("boolean".equalsIgnoreCase(name)) return BOOLEAN;
+        else if ("byte".equalsIgnoreCase(name)) return BYTE;
+        else if ("int".equalsIgnoreCase(name)) return INTEGER;
+        else if ("biginteger".equalsIgnoreCase(name)) return BIGINTEGER;
+        else if ("bigdecimal".equalsIgnoreCase(name)) return BIGDECIMAL;
+        else if ("long".equalsIgnoreCase(name)) return LONG;
+        else if ("float".equalsIgnoreCase(name)) return FLOAT;
+        else if ("double".equalsIgnoreCase(name)) return DOUBLE;
+        else if ("datetime".equalsIgnoreCase(name)) return DATETIME;
+        else if ("bytearray".equalsIgnoreCase(name)) return BYTEARRAY;
+        else if ("bigchararray".equalsIgnoreCase(name)) return BIGCHARARRAY;
+        else if ("chararray".equalsIgnoreCase(name)) return CHARARRAY;
+        else if ("map".equalsIgnoreCase(name)) return MAP;
+        else if ("internalmap".equalsIgnoreCase(name)) return INTERNALMAP;
+        else if ("tuple".equalsIgnoreCase(name)) return TUPLE;
+        else if ("bag".equalsIgnoreCase(name)) return BAG;
+        else if ("generic_writablecomparable".equalsIgnoreCase(name)) return GENERIC_WRITABLECOMPARABLE;
+        else return UNKNOWN;
+    }
+
+
+    /**
      * Determine whether the this data type is complex.
      * @param dataType Data type code to test.
      * @return true if dataType is bag, tuple, or map.
