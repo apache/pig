@@ -1546,7 +1546,7 @@ public class TestBuiltin {
         String inputStrUpper = "HELLO WORLD!";
         String inputStrCamel = "hello World!";
         String inputStroWitha = "Hella Warld!";
-        String inpuStrExtra = "Hello World!   ";
+        String inputStrExtra = "Hello World!   ";
 
         List<Object> l = new LinkedList<Object>();
         l.add(inputStr);
@@ -1614,7 +1614,7 @@ public class TestBuiltin {
         assertTrue(output.equals(expected));
 
         strFunc = new TRIM();
-        input = TupleFactory.getInstance().newTuple(inpuStrExtra);
+        input = TupleFactory.getInstance().newTuple(inputStrExtra);
         expected = inputStr;
         output = strFunc.exec(input);
         assertTrue(output.equals(expected));
