@@ -3332,6 +3332,43 @@ Use the LOWER function to convert all characters in a string to lower case.
 </section>
 </section> 
 
+<!-- ======================================================== -->  
+ <section id="ltrim">
+   <title>LTRIM</title>
+   <p>Returns a copy of a string with only leading white space removed.</p>
+
+<section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>LTRIM(expression)</p>
+            </td>
+         </tr> 
+        
+   </table></section>
+   
+<section>
+   <title>Terms</title>
+   <table>
+       <tr>
+            <td>
+               <p>expression</p>
+            </td>
+            <td>
+               <p>An expression whose result is chararray. </p>
+            </td>
+         </tr> 
+   </table>
+</section>
+
+<section>
+     <title>Usage</title>
+     <p>
+Use the LTRIM function to remove leading white space from a string.
+     </p>
+</section>
+</section> 
 
 <!-- ======================================================== -->
  <section id="regex-extract">
@@ -3531,6 +3568,44 @@ If you want to replace
 special characters</a> such as '[' in the string literal, it is necessary to escape them in 'regExp'
 by prefixing them with double backslashes (e.g. '\\[').
     </p>
+</section>
+</section> 
+
+<!-- ======================================================== -->  
+ <section id="rtrim">
+   <title>RTRIM</title>
+   <p>Returns a copy of a string with only trailing white space removed.</p>
+
+<section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>RTRIM(expression)</p>
+            </td>
+         </tr> 
+        
+   </table></section>
+   
+<section>
+   <title>Terms</title>
+   <table>
+       <tr>
+            <td>
+               <p>expression</p>
+            </td>
+            <td>
+               <p>An expression whose result is chararray. </p>
+            </td>
+         </tr> 
+   </table>
+</section>
+
+<section>
+     <title>Usage</title>
+     <p>
+Use the RTRIM function to remove trailing white space from a string.
+     </p>
 </section>
 </section> 
 

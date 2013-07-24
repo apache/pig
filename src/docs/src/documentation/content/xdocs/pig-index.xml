@@ -556,6 +556,8 @@
 
 <p><a href="func.html#lower">LOWER</a> function</p>
 
+<p><a href="func.html#ltrim">LTRIM</a> function</p>
+
 <!-- ==== M ================================================================== -->
 <p></p>
 <p id="m-index"><strong>M</strong> (<a href="#top">top</a>) ----------------------------------------------</p>
@@ -835,6 +837,8 @@
 <p id="reserved-keywords"><a href="basic.html#reserved-keywords">reserved keywords</a></p>
 
 <p><a href="func.html#round">ROUND</a> function</p>
+
+<p><a href="func.html#rtrim">RTRIM</a> function</p>
 
 <p><a href="cmds.html#run">run</a> command</p>
 

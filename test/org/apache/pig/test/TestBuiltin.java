@@ -72,6 +72,7 @@ import org.apache.pig.builtin.KEYSET;
 import org.apache.pig.builtin.LAST_INDEX_OF;
 import org.apache.pig.builtin.LCFIRST;
 import org.apache.pig.builtin.LOWER;
+import org.apache.pig.builtin.LTRIM;
 import org.apache.pig.builtin.MapSize;
 import org.apache.pig.builtin.MilliSecondsBetween;
 import org.apache.pig.builtin.MinutesBetween;
@@ -80,6 +81,7 @@ import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.builtin.REGEX_EXTRACT;
 import org.apache.pig.builtin.REGEX_EXTRACT_ALL;
 import org.apache.pig.builtin.REPLACE;
+import org.apache.pig.builtin.RTRIM;
 import org.apache.pig.builtin.SIZE;
 import org.apache.pig.builtin.STRSPLIT;
 import org.apache.pig.builtin.SUBSTRING;
@@ -1546,7 +1548,9 @@ public class TestBuiltin {
         String inputStrUpper = "HELLO WORLD!";
         String inputStrCamel = "hello World!";
         String inputStroWitha = "Hella Warld!";
-        String inputStrExtra = "Hello World!   ";
+        String inputStrSpaceRight = "Hello World!   ";
+        String inputStrSpaceLeft = "   Hello World!";
+        String inputStrSpaceBoth = "   Hello World!   ";
 
         List<Object> l = new LinkedList<Object>();
         l.add(inputStr);
@@ -1614,7 +1618,19 @@ public class TestBuiltin {
         assertTrue(output.equals(expected));
 
         strFunc = new TRIM();
-        input = TupleFactory.getInstance().newTuple(inputStrExtra);
+        input = TupleFactory.getInstance().newTuple(inputStrSpaceBoth);
+        expected = inputStr;
+        output = strFunc.exec(input);
+        assertTrue(output.equals(expected));
+
+        strFunc = new LTRIM();
+        input = TupleFactory.getInstance().newTuple(inputStrSpaceLeft);
+        expected = inputStr;
+        output = strFunc.exec(input);
+        assertTrue(output.equals(expected));
+
+        strFunc = new RTRIM();
+        input = TupleFactory.getInstance().newTuple(inputStrSpaceRight);
         expected = inputStr;
         output = strFunc.exec(input);
         assertTrue(output.equals(expected));

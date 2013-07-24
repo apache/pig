@@ -28,6 +28,8 @@ PIG-3174: Remove rpm and deb artifacts from build.xml (gates)
 
 IMPROVEMENTS
 
+PIG-3182: Pig currently lacks functions to trim the whitespace only on one hand side (sarutak via cheolsoo)
+
 PIG-3163: Pig current releases lack a UDF endsWith. This UDF tests if a given string ends with the specified suffix (sriramkrishnan via cheolsoo)
 
 PIG-3015: Rewrite of AvroStorage (jadler via cheolsoo)
