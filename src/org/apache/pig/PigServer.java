@@ -863,6 +863,10 @@ public class PigServer {
      */
     public Iterator<Tuple> openIterator(String id) throws IOException {
         try {
+            pigContext.getProperties().setProperty( PigContext.JOB_NAME, jobName );
+            if( jobPriority != null ) {
+                pigContext.getProperties().setProperty( PigContext.JOB_PRIORITY, jobPriority );
+            }
             ExecJob job = store(id, FileLocalizer.getTemporaryPath(pigContext)
                     .toString(), Utils.getTmpFileCompressorName(pigContext)
                     + "()");
