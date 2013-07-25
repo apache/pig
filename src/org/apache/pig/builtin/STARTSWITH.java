@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.PigWarning;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -36,6 +37,7 @@ public class STARTSWITH extends EvalFunc<Boolean> {
     @Override
     public Boolean exec(Tuple tuple) {
         if (tuple == null || tuple.size() != 2) {
+            warn("invalid number of arguments to STARTSWITH", PigWarning.UDF_WARNING_1);
             return null;
         }
         String argument = null;
@@ -44,11 +46,21 @@ public class STARTSWITH extends EvalFunc<Boolean> {
             argument = (String) tuple.get(0);
             testAgainst = (String) tuple.get(1);
             return argument.startsWith(testAgainst);
-        } catch (ExecException exe) {
-          System.err.println("UDF STARTSWITH threw ExecException while processing '" +
-            argument + "' while attempting to locate prefix '" + testAgainst + "'");
-          return null;
+        } catch (NullPointerException npe) {
+            warn(npe.toString(), PigWarning.UDF_WARNING_2);
+            return null;
+        } catch (ClassCastException cce) {
+            warn(cce.toString(), PigWarning.UDF_WARNING_3);
+            return null;
+        } catch (ExecException ee) {
+            warn(ee.toString(), PigWarning.UDF_WARNING_4);
+            return null;
         }
+    }
+
+    @Override
+    public Schema outputSchema(Schema input) {
+        return new Schema(new Schema.FieldSchema(null, DataType.BOOLEAN));
     }
 
     @Override
