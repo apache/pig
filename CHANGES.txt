@@ -204,6 +204,8 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-3392: Document STARTSWITH and ENDSWITH UDFs (sriramkrishnan via cheolsoo)
+
 PIG-3393: STARTSWITH udf doesn't override outputSchema method (sriramkrishnan via cheolsoo)
 
 PIG-3389: "Set job.name" does not work with dump command (cheolsoo)
