@@ -304,8 +304,6 @@ PIG-2265: Test case TestSecondarySort failure (daijy)
 
 PIG-3060: FLATTEN in nested foreach fails when the input contains an empty bag (daijy)
 
-PIG-2247: Pig parser does not detect multiple arguments with the same name passed to macro (dreambird via daijy)
-
 PIG-3249: Pig startup script prints out a wrong version of hadoop when using fat jar (prkommireddi via daijy)
 
 PIG-3110: pig corrupts chararrays with trailing whitespace when converting them to long (prkommireddi via daijy)
