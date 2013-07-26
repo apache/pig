@@ -3154,6 +3154,55 @@ Use the TANH function to return the hyperbolic tangent of an expression.
 </ul>
  
    <!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->
+<section id="endswith">
+   <title>ENDSWITH</title>
+   <p>Tests inputs to determine if the first argument ends with the string in the second. </p>
+
+<section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>ENDSWITH(string, testAgainst)</p>
+            </td>
+         </tr> 
+        
+   </table></section>
+   
+<section>
+   <title>Terms</title>
+   <table>
+       <tr>
+            <td>
+               <p>string</p>
+            </td>
+            <td>
+               <p>The string to be tested.</p>
+            </td>
+         </tr> 
+         <tr>
+            <td>
+               <p>testAgainst</p>
+            </td>
+            <td>
+               <p>The string to test against.</p>
+            </td>
+         </tr> 
+   </table>
+</section>
+
+<section>
+     <title>Usage</title>
+     <p>
+Use the ENDSWITH function to determine if the first argument ends with the string in the second.
+     </p>
+     <p>
+For example, ENDSWITH ('foobar', 'foo') will false, whereas ENDSWITH ('foobar', 'bar') will return true.
+     </p>
+</section>
+</section> 
+
+<!-- ======================================================== -->  
  <section id="indexof">
    <title>INDEXOF</title>
    <p>Returns the index of the first occurrence of a character in a string, searching forward from a start index. </p>
@@ -3605,6 +3654,55 @@ by prefixing them with double backslashes (e.g. '\\[').
      <title>Usage</title>
      <p>
 Use the RTRIM function to remove trailing white space from a string.
+     </p>
+</section>
+</section> 
+
+<!-- ======================================================== -->  
+<section id="startswith">
+   <title>STARTSWITH</title>
+   <p>Tests inputs to determine if the first argument starts with the string in the second. </p>
+
+<section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>STARTSWITH(string, testAgainst)</p>
+            </td>
+         </tr> 
+        
+   </table></section>
+   
+<section>
+   <title>Terms</title>
+   <table>
+       <tr>
+            <td>
+               <p>string</p>
+            </td>
+            <td>
+               <p>The string to be tested.</p>
+            </td>
+         </tr> 
+         <tr>
+            <td>
+               <p>testAgainst</p>
+            </td>
+            <td>
+               <p>The string to test against.</p>
+            </td>
+         </tr> 
+   </table>
+</section>
+
+<section>
+     <title>Usage</title>
+     <p>
+Use the STARTSWITH function to determine if the first argument starts with the string in the second.
+     </p>
+     <p>
+For example, STARTSWITH ('foobar', 'foo') will true, whereas STARTSWITH ('foobar', 'bar') will return false.
      </p>
 </section>
 </section> 
