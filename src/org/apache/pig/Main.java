@@ -456,7 +456,7 @@ static int run(String args[], PigProgressNotificationListener listener) {
 
 
             logFileName = validateLogFile(logFileName, file);
-            pigContext.getProperties().setProperty("pig.logfile", logFileName);
+            pigContext.getProperties().setProperty("pig.logfile", (logFileName == null? "": logFileName));
 
             // Set job name based on name of the script
             pigContext.getProperties().setProperty(PigContext.JOB_NAME,
@@ -585,7 +585,7 @@ static int run(String args[], PigProgressNotificationListener listener) {
             }
 
             logFileName = validateLogFile(logFileName, remainders[0]);
-            pigContext.getProperties().setProperty("pig.logfile", logFileName);
+            pigContext.getProperties().setProperty("pig.logfile", (logFileName == null? "": logFileName));
 
             if (!debug) {
                 new File(substFile).deleteOnExit();
