@@ -18,13 +18,22 @@
 
 package org.apache.pig.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Properties;
+import java.util.Set;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
+import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.impl.PigContext;
+import org.apache.pig.newplan.Operator;
+import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
 import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOGenerate;
@@ -35,16 +44,10 @@ import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.newplan.logical.rules.AddForEach;
 import org.apache.pig.newplan.logical.rules.LoadTypeCastInserter;
 import org.apache.pig.newplan.logical.rules.MergeForEach;
-import org.apache.pig.newplan.Operator;
-import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.optimizer.PlanOptimizer;
 import org.apache.pig.newplan.optimizer.Rule;
-import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.impl.PigContext;
-
-import junit.framework.Assert;
-
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -229,7 +232,7 @@ public class TestMergeForEachOptimization {
         optimizer.optimize();
         
         int forEachCount2 = getForEachOperatorCount( newLogicalPlan );
-        Assert.assertEquals( 0, forEachCount1 - forEachCount2 );
+        Assert.assertEquals( 1, forEachCount1 - forEachCount2 );
         
         loads = newLogicalPlan.getSources();
         l2 = null;

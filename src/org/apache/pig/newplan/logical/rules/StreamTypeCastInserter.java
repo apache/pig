@@ -17,7 +17,14 @@
  */
 package org.apache.pig.newplan.logical.rules;
 
+import org.apache.pig.data.DataType;
+import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.logical.relational.LOStream;
+import org.apache.pig.newplan.logical.relational.LogicalPlan;
+import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
+import org.apache.pig.newplan.logical.relational.LogicalSchema;
+import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
 
 public class StreamTypeCastInserter extends TypeCastInserter {
 
@@ -26,8 +33,31 @@ public class StreamTypeCastInserter extends TypeCastInserter {
     }
 
     @Override
-    String getOperatorClassName() {
-        return LOStream.class.getName();
+    protected OperatorPlan buildPattern() {
+        LogicalPlan plan = new LogicalPlan();
+        plan.add(new LOStream(plan, null, null, null));
+        return plan;
     }
 
+    protected LogicalSchema determineSchema(LogicalRelationalOperator op)
+            throws FrontendException {
+        LogicalSchema determinedSchema = new LogicalSchema();
+        for (int i = 0; i < op.getSchema().size(); i++) {
+            determinedSchema.addField(new LogicalFieldSchema(
+                    null,
+                    null,
+                    DataType.BYTEARRAY));
+        }
+        return determinedSchema;
+    }
+
+    @Override
+    protected void markCastInserted(LogicalRelationalOperator op) {
+        ((LOStream)op).setCastInserted(true);
+    }
+
+    @Override
+    protected boolean isCastInserted(LogicalRelationalOperator op) {
+        return ((LOStream)op).isCastInserted();
+    }
 }

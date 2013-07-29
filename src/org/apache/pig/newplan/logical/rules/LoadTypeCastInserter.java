@@ -17,7 +17,12 @@
  */
 package org.apache.pig.newplan.logical.rules;
 
+import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.logical.relational.LOLoad;
+import org.apache.pig.newplan.logical.relational.LogicalPlan;
+import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
+import org.apache.pig.newplan.logical.relational.LogicalSchema;
 
 public class LoadTypeCastInserter extends TypeCastInserter {
 
@@ -26,8 +31,30 @@ public class LoadTypeCastInserter extends TypeCastInserter {
     }
 
     @Override
-    String getOperatorClassName() {
-        return LOLoad.class.getName();
+    protected OperatorPlan buildPattern() {
+        LogicalPlan plan = new LogicalPlan();
+        plan.add(new LOLoad(null, plan));
+        return plan;
     }
 
+    /**
+     * if we are inserting casts in a load and if the loader implements
+     * determineSchema(), insert casts only where necessary Note that in this
+     * case, the data coming out of the loader is not a BYTEARRAY but is
+     * whatever determineSchema() says it is.
+     */
+    protected LogicalSchema determineSchema(LogicalRelationalOperator op)
+            throws FrontendException {
+        return ((LOLoad) op).getDeterminedSchema();
+    }
+
+    @Override
+    protected void markCastInserted(LogicalRelationalOperator op) {
+        ((LOLoad)op).setCastInserted(true);
+    }
+
+    @Override
+    protected boolean isCastInserted(LogicalRelationalOperator op) {
+        return ((LOLoad)op).isCastInserted();
+    }
 }

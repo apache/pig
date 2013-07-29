@@ -27,8 +27,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 
-import junit.framework.Assert;
-
 import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
@@ -51,6 +49,7 @@ import org.apache.pig.tools.grunt.GruntParser;
 import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -574,7 +573,7 @@ public class TestMultiQueryCompiler {
 
             LogicalPlan lp = checkLogicalPlan(2, 1, 7);
 
-            PhysicalPlan pp = checkPhysicalPlan(lp, 2, 1, 13);
+            PhysicalPlan pp = checkPhysicalPlan(lp, 2, 1, 11);
 
             checkMRPlan(pp, 1, 1, 2); 
 

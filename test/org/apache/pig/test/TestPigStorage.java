@@ -108,6 +108,16 @@ public class TestPigStorage  {
         cluster.shutDown();
     }
 
+    private static void assertAliasIs(String alias, List<Tuple> expectedResults)
+            throws IOException {
+        Iterator<Tuple> iter = pig.openIterator(alias);
+        int counter = 0;
+        while (iter.hasNext()) {
+            Assert.assertEquals(expectedResults.get(counter++).toString(), iter.next().toString());
+        }
+        Assert.assertEquals(expectedResults.size(), counter);
+    }
+
     @Test
     public void testBlockBoundary() throws ExecException {
 
@@ -323,6 +333,69 @@ public class TestPigStorage  {
         }
 
         Assert.assertEquals(expectedResults.size(), counter);
+    }
+
+    @Test
+    public void testSchemaDataNotMatchWITHCast() throws Exception {
+        pig.registerQuery("A = LOAD '" + datadir + "originput' using PigStorage(',') as (x:chararray);");
+        
+        List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
+                new String[] {
+                        "('A')",
+                        "('B')",
+                        "('C')",
+                        "('D')",
+                        "('A')",
+                        "('B')",
+                        "('C')",
+                        "('A')",
+                        "('D')",
+                        "('A')",
+                });
+
+        assertAliasIs("A", expectedResults);
+    }
+
+    @Test
+    public void testSchemaDataNotMatchNOCast() throws Exception {
+        pig.registerQuery("A = LOAD '" + datadir + "originput' using PigStorage(',') as (x:bytearray);");
+        
+        List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
+                new String[] {
+                        "('A')",
+                        "('B')",
+                        "('C')",
+                        "('D')",
+                        "('A')",
+                        "('B')",
+                        "('C')",
+                        "('A')",
+                        "('D')",
+                        "('A')",
+                });
+
+        assertAliasIs("A", expectedResults);
+    }
+
+    @Test
+    public void testSchemaDataNotMatchAsEXTRACoumns() throws Exception {
+        pig.registerQuery("A = LOAD '" + datadir + "originput' using PigStorage(',') as (x,y,z);");
+        
+        List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
+                new String[] {
+                        "('A',1,NULL)",
+                        "('B',2,NULL)",
+                        "('C',3,NULL)",
+                        "('D',2,NULL)",
+                        "('A',5,NULL)",
+                        "('B',5,NULL)",
+                        "('C',8,NULL)",
+                        "('A',8,NULL)",
+                        "('D',8,NULL)",
+                        "('A',9,NULL)",
+                });
+
+        assertAliasIs("A", expectedResults);
     }
 
     /**
