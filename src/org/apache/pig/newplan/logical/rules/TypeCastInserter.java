@@ -18,7 +18,11 @@
 package org.apache.pig.newplan.logical.rules;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.pig.FuncSpec;
 import org.apache.pig.data.DataType;
@@ -39,7 +43,6 @@ import org.apache.pig.newplan.logical.relational.LOStream;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
-import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
 import org.apache.pig.newplan.optimizer.Rule;
 import org.apache.pig.newplan.optimizer.Transformer;
 
@@ -49,20 +52,7 @@ public abstract class TypeCastInserter extends Rule {
         super(n, true);
     }
 
-    @Override
-    protected OperatorPlan buildPattern() {
-        // the pattern that this rule looks for is load
-        LogicalPlan plan = new LogicalPlan();
-        LogicalRelationalOperator op;
-        if (getOperatorClassName().equals(LOLoad.class.getName()))
-            op = new LOLoad(null, plan);
-        else // LOStream
-            op = new LOStream(plan, null, null, null);
-        plan.add(op);
-        return plan;
-    }
-    
-    abstract String getOperatorClassName();
+    protected abstract LogicalSchema determineSchema(LogicalRelationalOperator op) throws FrontendException;
 
     @Override
     public Transformer getNewTransformer() {
@@ -75,23 +65,89 @@ public abstract class TypeCastInserter extends Rule {
             LogicalRelationalOperator op = (LogicalRelationalOperator)matched.getSources().get(0);
             LogicalSchema s = op.getSchema();
             if (s == null) return false;
-    
+
+            // only process each node once
+            if (isCastInserted(op)) return false;
+
             if (op instanceof LOLoad) {
                 if (((LOLoad)op).getScriptSchema()==null) return false;
-                if (((LOLoad)op).isCastInserted()) return false;
             }
             else {
                 if (((LOStream)op).getScriptSchema()==null) return false;
-                if (((LOStream)op).isCastInserted()) return false;
             }
-            
-            return true;
+
+            // Now that we've narrowed it down to an operation that *can* have casts added,
+            // (because the user specified some types which might not match the data) let's 
+            // see if they're actually needed:
+            LogicalSchema determinedSchema = determineSchema(op);
+            if(atLeastOneCastNeeded(determinedSchema, s)) {
+                return true;
+            }
+
+            if(determinedSchema == null || determinedSchema.size() != s.size()) {
+                // we don't know what the data looks like, but the user has specified
+                // that they want a certain number of fields loaded. We'll use a 
+                // projection (or pruning) to make sure the columns show up (with NULL
+                // values) or are truncated from the right hand side of the input data.
+                return true;
+            }
+
+            return false;
+        }
+
+        private boolean atLeastOneCastNeeded(LogicalSchema determinedSchema, LogicalSchema s) {
+            for (int i = 0; i < s.size(); i++) {
+                LogicalSchema.LogicalFieldSchema fs = s.getField(i);
+                if (fs.type != DataType.BYTEARRAY && (determinedSchema == null || (!fs.isEqual(determinedSchema.getField(i))))) {
+                    // we have to cast this field from the default BYTEARRAY type to
+                    // whatever the user specified in the 'AS' clause of the LOAD
+                    // statement (the fs.type).
+                    return true;
+                }
+            }
+            return false;
         }
 
         @Override
         public void transform(OperatorPlan matched) throws FrontendException {
             LogicalRelationalOperator op = (LogicalRelationalOperator)matched.getSources().get(0);
             LogicalSchema s = op.getSchema();
+            LogicalSchema determinedSchema = determineSchema(op);
+
+            if (currentPlan.getSuccessors(op) == null) {
+                // the output of this LOAD's not going anywhere, so we don't need
+                // to bother about tidying up the output
+                return;
+            }
+
+            if(!atLeastOneCastNeeded(determinedSchema, s) && op instanceof LOLoad) {
+                // we're not going to insert any casts, but we might reduce or increase
+                // the number of columns coming out of the LOAD. If the loader supports
+                // it we'll use the 'requiredColumns' functionality rather than bolting
+                // on a FOREACH
+                Set<Integer> required = new TreeSet<Integer>();
+                for(int i = 0; i < s.size(); ++i) {
+                    // if we know the data source's schema, pick out the columns we need,
+                    // otherwise take the first n
+                    int index = determinedSchema == null ? i : determinedSchema.findField(s.getField(i).uid);
+                    if(index >= 0)
+                        required.add(index);
+                }
+
+                // pass the indices of the fields we need to a pruner, and fire it off
+                // so it configures the LOLoad (and the LoadFunc it contains)
+                Map<LOLoad, Pair<Map<Integer, Set<String>>, Set<Integer>>> requiredMap = 
+                        new HashMap<LOLoad, Pair<Map<Integer,Set<String>>,Set<Integer>>>(1);
+                Pair<Map<Integer, Set<String>>, Set<Integer>> pair = 
+                        new Pair<Map<Integer,Set<String>>, Set<Integer>>(null, required);
+                requiredMap.put((LOLoad) op, pair);
+                new ColumnPruneVisitor(currentPlan, requiredMap , true).visit((LOLoad) op);
+
+                // we only want to process this node once, so mark it:
+                markCastInserted(op);
+                return;
+            }
+
             // For every field, build a logical plan.  If the field has a type
             // other than byte array, then the plan will be cast(project).  Else
             // it will just be project.
@@ -100,31 +156,14 @@ public abstract class TypeCastInserter extends Rule {
             LOForEach foreach = new LOForEach(currentPlan);
             foreach.setInnerPlan(innerPlan);
             foreach.setAlias(op.getAlias());
-            
             // Insert the foreach into the plan and patch up the plan.
-            if (currentPlan.getSuccessors(op) == null)
-                return;
             Operator next = currentPlan.getSuccessors(op).get(0);
             currentPlan.insertBetween(op, foreach, next);
             
             List<LogicalExpressionPlan> exps = new ArrayList<LogicalExpressionPlan>();
             LOGenerate gen = new LOGenerate(innerPlan, exps, new boolean[s.size()]);
             innerPlan.add(gen);
-            
-            // if we are inserting casts in a load and if the loader
-            // implements determineSchema(), insert casts only where necessary
-            // Note that in this case, the data coming out of the loader is not
-            // a BYTEARRAY but is whatever determineSchema() says it is.
-            LogicalSchema determinedSchema = null;
-            if(LOLoad.class.getName().equals(getOperatorClassName())) {
-                determinedSchema = ((LOLoad)op).getDeterminedSchema();
-            }
-            else {
-                determinedSchema = new LogicalSchema();
-                for (int i=0;i<s.size();i++) {
-                    determinedSchema.addField(new LogicalFieldSchema(null, null, DataType.BYTEARRAY));
-                }
-            }
+
             for (int i = 0; i < s.size(); i++) {
                 LogicalSchema.LogicalFieldSchema fs = s.getField(i);
                 
@@ -158,10 +197,7 @@ public abstract class TypeCastInserter extends Rule {
                 }
                 exps.add(exp);
             }
-            if (op instanceof LOLoad)
-                ((LOLoad)op).setCastInserted(true);
-            else
-                ((LOStream)op).setCastInserted(true);
+            markCastInserted(op);
         }
         
         @Override
@@ -169,4 +205,8 @@ public abstract class TypeCastInserter extends Rule {
             return currentPlan;
         }
     }
+
+    protected abstract void markCastInserted(LogicalRelationalOperator op);
+
+    protected abstract boolean isCastInserted(LogicalRelationalOperator op);
 }

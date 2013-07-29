@@ -29,6 +29,6 @@ public class LOTestHelper {
         if (loader != null) {
             loadFunc = (LoadFunc)PigContext.instantiateFuncFromSpec(loader.getFuncSpec());
         }
-        return new LOLoad(loader, schema, plan, conf, loadFunc, null);
+        return new LOLoad(loader, schema, plan, conf, loadFunc, "alias_newOperatorKey");
     }
 }

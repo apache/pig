@@ -276,16 +276,31 @@ LoadPushDown, LoadMetadata, StoreMetadata {
             Properties p = UDFContext.getUDFContext().getUDFProperties(this.getClass(),
                     new String[] {signature});
             String serializedSchema = p.getProperty(signature+".schema");
-            if (serializedSchema == null) return tup;
-            try {
-                schema = new ResourceSchema(Utils.getSchemaFromString(serializedSchema));
-            } catch (ParserException e) {
-                mLog.error("Unable to parse serialized schema " + serializedSchema, e);
+            if (serializedSchema != null) {
+                try {
+                    schema = new ResourceSchema(Utils.getSchemaFromString(serializedSchema));
+                } catch (ParserException e) {
+                    mLog.error("Unable to parse serialized schema " + serializedSchema, e);
+                    // all bets are off - there's no guarantee that we'll return
+                    // either the fields in the data or the fields in the schema
+                    // the user specified (or required)
+                }
             }
         }
 
-        if (schema != null) {
-
+        if (schema == null) {
+            // if the number of required fields are less than or equal to 
+            // the number of fields in the data then we're OK as we've already
+            // read only the required number of fields into the tuple. If 
+            // more fields are required than are in the data then we'll pad
+            // with nulls:
+            int numRequiredColumns = 0;
+            for (int i = 0; mRequiredColumns != null && i < mRequiredColumns.length; i++)
+                if(mRequiredColumns[i])
+                    ++numRequiredColumns;
+            for (int i = tup.size();i < numRequiredColumns; ++i)
+                tup.append(null);
+        } else {
             ResourceFieldSchema[] fieldSchemas = schema.getFields();
             int tupleIdx = 0;
             // If some fields have been projected out, the tuple

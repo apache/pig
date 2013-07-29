@@ -29,12 +29,9 @@ import org.apache.pig.FilterFunc;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.test.utils.Identity;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
-import org.apache.pig.newplan.optimizer.PlanOptimizer;
-import org.apache.pig.newplan.optimizer.Rule;
 import org.apache.pig.newplan.logical.optimizer.ProjectionPatcher;
 import org.apache.pig.newplan.logical.optimizer.SchemaPatcher;
 import org.apache.pig.newplan.logical.relational.LOCross;
@@ -48,20 +45,17 @@ import org.apache.pig.newplan.logical.rules.ColumnMapKeyPrune;
 import org.apache.pig.newplan.logical.rules.LoadTypeCastInserter;
 import org.apache.pig.newplan.logical.rules.OptimizerUtils;
 import org.apache.pig.newplan.logical.rules.PushDownForEachFlatten;
-
+import org.apache.pig.newplan.optimizer.PlanOptimizer;
+import org.apache.pig.newplan.optimizer.Rule;
+import org.apache.pig.test.utils.Identity;
 import org.junit.Assert;
 import org.junit.Test;
-import org.junit.Before;
 
 /**
  * Test the logical optimizer.
  */
 public class TestNewPlanPushDownForeachFlatten {
     PigContext pc = new PigContext(ExecType.LOCAL, new Properties());
-    
-    @Before
-    public void tearDown() {
-    }
 
     /**
      * 
@@ -112,8 +106,6 @@ public class TestNewPlanPushDownForeachFlatten {
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
         Operator foreach = newLogicalPlan.getSuccessors( load ).get( 0 );
-        Assert.assertTrue( foreach instanceof LOForEach );
-        foreach = newLogicalPlan.getSuccessors( foreach ).get( 0 );
         Assert.assertTrue( foreach instanceof LOForEach );
         Operator sort = newLogicalPlan.getSuccessors( foreach ).get( 0 );
         Assert.assertTrue( sort instanceof LOSort );
@@ -174,8 +166,6 @@ public class TestNewPlanPushDownForeachFlatten {
         Assert.assertTrue( load instanceof LOLoad );
         Operator foreach = newLogicalPlan.getSuccessors( load ).get( 0 );
         Assert.assertTrue( foreach instanceof LOForEach );
-        foreach = newLogicalPlan.getSuccessors( foreach ).get( 0 );
-        Assert.assertTrue( foreach instanceof LOForEach );
         Assert.assertTrue( OptimizerUtils.hasFlatten( (LOForEach)foreach ) );
         foreach = newLogicalPlan.getSuccessors( foreach ).get( 0 );
         Assert.assertTrue( foreach instanceof LOForEach );
@@ -196,8 +186,6 @@ public class TestNewPlanPushDownForeachFlatten {
         Assert.assertTrue( load instanceof LOLoad );
         Operator foreach = newLogicalPlan.getSuccessors( load ).get( 0 );
         Assert.assertTrue( foreach instanceof LOForEach );
-        foreach = newLogicalPlan.getSuccessors( foreach ).get( 0 );
-        Assert.assertTrue( foreach instanceof LOForEach );
         Assert.assertTrue( OptimizerUtils.hasFlatten( (LOForEach)foreach ) );
     }
 
@@ -215,8 +203,6 @@ public class TestNewPlanPushDownForeachFlatten {
         Assert.assertTrue( load instanceof LOLoad );
         Operator foreach = newLogicalPlan.getSuccessors( load ).get( 0 );
         Assert.assertTrue( foreach instanceof LOForEach );
-        foreach = newLogicalPlan.getSuccessors( foreach ).get( 0 );
-        Assert.assertTrue( foreach instanceof LOForEach );
         Assert.assertTrue( OptimizerUtils.hasFlatten( (LOForEach)foreach ) );
     }
 
@@ -232,8 +218,6 @@ public class TestNewPlanPushDownForeachFlatten {
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
         Operator foreach = newLogicalPlan.getSuccessors( load ).get( 0 );
-        Assert.assertTrue( foreach instanceof LOForEach );
-        foreach = newLogicalPlan.getSuccessors( foreach ).get( 0 );
         Assert.assertTrue( foreach instanceof LOForEach );
         Assert.assertTrue( OptimizerUtils.hasFlatten( (LOForEach)foreach ) );
     }
@@ -260,8 +244,6 @@ public class TestNewPlanPushDownForeachFlatten {
         Assert.assertTrue( load instanceof LOLoad );
         Operator foreach = newLogicalPlan.getSuccessors( load ).get( 0 );
         Assert.assertTrue( foreach instanceof LOForEach );
-        foreach = newLogicalPlan.getSuccessors( foreach ).get( 0 );
-        Assert.assertTrue( foreach instanceof LOForEach );
         Assert.assertTrue( OptimizerUtils.hasFlatten( (LOForEach)foreach ) );
     }
     
@@ -287,8 +269,6 @@ public class TestNewPlanPushDownForeachFlatten {
         Assert.assertTrue( load instanceof LOLoad );
         Operator foreach = newLogicalPlan.getSuccessors( load ).get( 0 );
         Assert.assertTrue( foreach instanceof LOForEach );
-        foreach = newLogicalPlan.getSuccessors( foreach ).get( 0 );
-        Assert.assertTrue( foreach instanceof LOForEach );
         Assert.assertTrue( OptimizerUtils.hasFlatten( (LOForEach)foreach ) );
     }
     
@@ -305,8 +285,6 @@ public class TestNewPlanPushDownForeachFlatten {
         Assert.assertTrue( load instanceof LOLoad );
         Operator foreach = newLogicalPlan.getSuccessors( load ).get( 0 );
         Assert.assertTrue( foreach instanceof LOForEach );
-        foreach = newLogicalPlan.getSuccessors( foreach ).get( 0 );
-        Assert.assertTrue( foreach instanceof LOForEach );
         Assert.assertTrue( OptimizerUtils.hasFlatten( (LOForEach)foreach ) );
     }
     
@@ -320,12 +298,11 @@ public class TestNewPlanPushDownForeachFlatten {
         
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
-        Operator foreach = newLogicalPlan.getSuccessors( load ).get( 0 );
-        Assert.assertTrue( foreach instanceof LOForEach );
-        Operator sort = newLogicalPlan.getSuccessors( foreach ).get( 0 );
+        Operator sort = newLogicalPlan.getSuccessors( load ).get( 0 );
         Assert.assertTrue( sort instanceof LOSort );
-        foreach = newLogicalPlan.getSuccessors( sort ).get( 0 );
+        Operator foreach = newLogicalPlan.getSuccessors( sort ).get( 0 );
         Assert.assertTrue( foreach instanceof LOForEach );
+        Assert.assertTrue( OptimizerUtils.hasFlatten( (LOForEach)foreach ) );
     }
     
     /**
@@ -342,8 +319,6 @@ public class TestNewPlanPushDownForeachFlatten {
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
         Operator foreach = newLogicalPlan.getSuccessors( load ).get( 0 );
-        Assert.assertTrue( foreach instanceof LOForEach );
-        foreach = newLogicalPlan.getSuccessors( foreach ).get( 0 );
         Assert.assertTrue( foreach instanceof LOForEach );
         Operator sort = newLogicalPlan.getSuccessors( foreach ).get( 0 );
         Assert.assertTrue( sort instanceof LOSort );
@@ -384,8 +359,6 @@ public class TestNewPlanPushDownForeachFlatten {
         Assert.assertTrue( load instanceof LOLoad );
         Operator foreach = newLogicalPlan.getSuccessors( load ).get( 0 );
         Assert.assertTrue( foreach instanceof LOForEach );
-        foreach = newLogicalPlan.getSuccessors( foreach ).get( 0 );
-        Assert.assertTrue( foreach instanceof LOForEach );
         Operator sort = newLogicalPlan.getSuccessors( foreach ).get( 0 );
         Assert.assertTrue( sort instanceof LOSort );
     }
@@ -403,8 +376,6 @@ public class TestNewPlanPushDownForeachFlatten {
         Assert.assertTrue( load instanceof LOLoad );
         Operator foreach = newLogicalPlan.getSuccessors( load ).get( 0 );
         Assert.assertTrue( foreach instanceof LOForEach );
-        foreach = newLogicalPlan.getSuccessors( foreach ).get( 0 );
-        Assert.assertTrue( foreach instanceof LOForEach );
         Operator sort = newLogicalPlan.getSuccessors( foreach ).get( 0 );
         Assert.assertTrue( sort instanceof LOSort );
     }
@@ -421,8 +392,6 @@ public class TestNewPlanPushDownForeachFlatten {
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
         Operator foreach = newLogicalPlan.getSuccessors( load ).get( 0 );
-        Assert.assertTrue( foreach instanceof LOForEach );
-        foreach = newLogicalPlan.getSuccessors( foreach ).get( 0 );
         Assert.assertTrue( foreach instanceof LOForEach );
         Operator sort = newLogicalPlan.getSuccessors( foreach ).get( 0 );
         Assert.assertTrue( sort instanceof LOSort );
@@ -1222,8 +1191,6 @@ public class TestNewPlanPushDownForeachFlatten {
         Operator load = newLogicalPlan.getSources().get( 0 );
         Assert.assertTrue( load instanceof LOLoad );
         Operator foreach = newLogicalPlan.getSuccessors( load ).get( 0 );
-        Assert.assertTrue( foreach instanceof LOForEach );
-        foreach = newLogicalPlan.getSuccessors( foreach ).get( 0 );
         Assert.assertTrue( foreach instanceof LOForEach );
         Operator sort = newLogicalPlan.getSuccessors( foreach ).get( 0 );
         Assert.assertTrue( sort instanceof LOSort );

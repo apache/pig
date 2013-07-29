@@ -54,6 +54,7 @@ public class PigStorageWithSchema extends PigStorage implements LoadMetadata {
     
     @Override
     public void setUDFContextSignature(String signature) {
+        super.setUDFContextSignature(signature);
         this.signature = signature;
     }
     
