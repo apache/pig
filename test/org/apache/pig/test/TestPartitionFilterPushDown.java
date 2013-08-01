@@ -720,6 +720,99 @@ public class TestPartitionFilterPushDown {
         test(q, Arrays.asList("srcid"), null, "(name matches 'foo*')");
     }
 
+    /**
+     * Test PIG-3395 Large filter expression makes Pig hang
+     * @throws Exception
+     */
+    @Test
+    public void testLargeAndOrCondition() throws Exception {
+        String q = query + "b = filter a by " +
+                "(srcid == 1 and mrkt == '2' and dstid == 3) " +
+                "or (srcid == 4 and mrkt == '5' and dstid == 6) " +
+                "or (srcid == 7 and mrkt == '8' and dstid == 9) " +
+                "or (srcid == 10 and mrkt == '11' and dstid == 12) " +
+                "or (srcid == 13 and mrkt == '14' and dstid == 15) " +
+                "or (srcid == 16 and mrkt == '17' and dstid == 18) " +
+                "or (srcid == 19 and mrkt == '20' and dstid == 21) " +
+                "or (srcid == 22 and mrkt == '23' and dstid == 24) " +
+                "or (srcid == 25 and mrkt == '26' and dstid == 27) " +
+                "or (srcid == 28 and mrkt == '29' and dstid == 30) " +
+                "or (srcid == 31 and mrkt == '32' and dstid == 33) " +
+                "or (srcid == 34 and mrkt == '35' and dstid == 36) " +
+                "or (srcid == 37 and mrkt == '38' and dstid == 39) " +
+                "or (srcid == 40 and mrkt == '41' and dstid == 42) " +
+                "or (srcid == 43 and mrkt == '44' and dstid == 45) " +
+                "or (srcid == 46 and mrkt == '47' and dstid == 48) " +
+                "or (srcid == 49 and mrkt == '50' and dstid == 51) " +
+                "or (srcid == 52 and mrkt == '53' and dstid == 54) " +
+                "or (srcid == 55 and mrkt == '56' and dstid == 57) " +
+                "or (srcid == 58 and mrkt == '59' and dstid == 60) " +
+                "or (srcid == 61 and mrkt == '62' and dstid == 63) " +
+                "or (srcid == 64 and mrkt == '65' and dstid == 66) " +
+                "or (srcid == 67 and mrkt == '68' and dstid == 69);" +
+                "store b into 'out';";
+        test(q, Arrays.asList("srcid", "mrkt", "dstid"),
+                "(((((((((((((((((((((((((srcid == 1) and (mrkt == '2')) and (dstid == 3)) " +
+                "or (((srcid == 4) and (mrkt == '5')) and (dstid == 6))) " +
+                "or (((srcid == 7) and (mrkt == '8')) and (dstid == 9))) " +
+                "or (((srcid == 10) and (mrkt == '11')) and (dstid == 12))) " +
+                "or (((srcid == 13) and (mrkt == '14')) and (dstid == 15))) " +
+                "or (((srcid == 16) and (mrkt == '17')) and (dstid == 18))) " +
+                "or (((srcid == 19) and (mrkt == '20')) and (dstid == 21))) " +
+                "or (((srcid == 22) and (mrkt == '23')) and (dstid == 24))) " +
+                "or (((srcid == 25) and (mrkt == '26')) and (dstid == 27))) " +
+                "or (((srcid == 28) and (mrkt == '29')) and (dstid == 30))) " +
+                "or (((srcid == 31) and (mrkt == '32')) and (dstid == 33))) " +
+                "or (((srcid == 34) and (mrkt == '35')) and (dstid == 36))) " +
+                "or (((srcid == 37) and (mrkt == '38')) and (dstid == 39))) " +
+                "or (((srcid == 40) and (mrkt == '41')) and (dstid == 42))) " +
+                "or (((srcid == 43) and (mrkt == '44')) and (dstid == 45))) " +
+                "or (((srcid == 46) and (mrkt == '47')) and (dstid == 48))) " +
+                "or (((srcid == 49) and (mrkt == '50')) and (dstid == 51))) " +
+                "or (((srcid == 52) and (mrkt == '53')) and (dstid == 54))) " +
+                "or (((srcid == 55) and (mrkt == '56')) and (dstid == 57))) " +
+                "or (((srcid == 58) and (mrkt == '59')) and (dstid == 60))) " +
+                "or (((srcid == 61) and (mrkt == '62')) and (dstid == 63))) " +
+                "or (((srcid == 64) and (mrkt == '65')) and (dstid == 66))) " +
+                "or (((srcid == 67) and (mrkt == '68')) and (dstid == 69)))",
+                null);
+    }
+
+    // UDF expression should make the entire filter be rejected
+    @Test
+    public void testAndOrConditionMixedWithUdfExpr() throws Exception {
+        String q = query + "b = filter a by " +
+                "(UPPER(name) == 'FOO')" +
+                "or (srcid == 1 and mrkt == '2' and dstid == 3) " +
+                "or (srcid == 4 and mrkt == '5' and dstid == 6) " +
+                "or (srcid == 7 and mrkt == '8' and dstid == 9);" +
+                "store b into 'out';";
+        negativeTest(q, Arrays.asList("srcid", "mrkt", "dstid"));
+    }
+
+    // Cast expression should make the entire filter be rejected
+    @Test
+    public void testAndOrConditionMixedWithCastExpr() throws Exception {
+        String q = query + "b = filter a by " +
+                "(srcid == 1 and mrkt == '2' and dstid == 3) " +
+                "or (srcid == 4 and (int)mrkt == 5 and dstid == 6) " +
+                "or (srcid == 7 and mrkt == '8' and dstid == 9);" +
+                "store b into 'out';";
+        negativeTest(q, Arrays.asList("srcid", "mrkt", "dstid"));
+    }
+
+    // Null expression should make the entire filter be rejected
+    @Test
+    public void testAndOrConditionMixedWithNullExpr() throws Exception {
+        String q = query + "b = filter a by " +
+                "(srcid == 1 and mrkt == '2' and dstid == 3) " +
+                "or (srcid == 4 and mrkt == '5' and dstid == 6) " +
+                "or (srcid == 7 and mrkt == '8' and dstid == 9) " +
+                "or (name is null);" +
+                "store b into 'out';";
+        negativeTest(q, Arrays.asList("srcid", "mrkt", "dstid"));
+    }
+
     //// helper methods ///////
 
     private PColFilterExtractor test(String query, List<String> partitionCols,
@@ -771,6 +864,20 @@ public class TestPartitionFilterPushDown {
             }
         }
         return pColExtractor;
+    }
+
+    // The filter cannot be pushed down unless it meets certain conditions. In
+    // that case, PColExtractor.getPColCondition() should return null.
+    private void negativeTest(String query, List<String> partitionCols) throws Exception {
+        PigServer pigServer = new PigServer( pc );
+        LogicalPlan newLogicalPlan = Util.buildLp(pigServer, query);
+        Operator op = newLogicalPlan.getSinks().get(0);
+        LOFilter filter = (LOFilter)newLogicalPlan.getPredecessors(op).get(0);
+        PColFilterExtractor pColExtractor = new PColFilterExtractor(
+                filter.getFilterPlan(), partitionCols);
+        pColExtractor.visit();
+        Assert.assertFalse(pColExtractor.canPushDown());
+        Assert.assertNull(pColExtractor.getPColCondition());
     }
 
     private void negativeTest(String query, List<String> partitionCols,

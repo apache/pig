@@ -200,6 +200,8 @@ PIG-2910: Add function to read schema from outout of Schema.toString() (initialc
 
 OPTIMIZATIONS
 
+PIG-3395: Large filter expression makes Pig hang (cheolsoo)
+
 PIG-3123: Simplify Logical Plans By Removing Unneccessary Identity Projections (njw45 via cheolsoo)
 
 PIG-3013: BinInterSedes improve chararray sort performance (rohini)
