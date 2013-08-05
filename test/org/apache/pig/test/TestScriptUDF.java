@@ -143,7 +143,7 @@ public class TestScriptUDF{
      * the first module.
      *
      * to use a jython install, the Lib dir must be in the jython search path
-     * via env variable JYTHON_HOME=jy_home or JYTHON_PATH=jy_home/Lib:... or
+     * via env variable JYTHON_HOME=jy_home or JYTHONPATH=jy_home/Lib:... or
      * jython-standalone.jar should be in the classpath
      * 
      * Left in for now as we don't have paths to include other scripts in a
