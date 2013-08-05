@@ -208,6 +208,8 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-3243: Documentation error (sarutak via cheolsoo)
+
 PIG-3210: Pig fails to start when it cannot write log to log files (mengsungwu via cheolsoo)
 
 PIG-3392: Document STARTSWITH and ENDSWITH UDFs (sriramkrishnan via cheolsoo)
