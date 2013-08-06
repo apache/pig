@@ -103,7 +103,7 @@ public class ToolsPigServer extends PigServer {
         FileInputStream fis = null;
         try{
             fis = new FileInputStream(fileName);
-            substituted = doParamSubstitution(fis, params, paramFiles);
+            substituted = pigContext.doParamSubstitution(fis, paramMapToList(params), paramFiles);
         }catch (FileNotFoundException e){
             log.error(e.getLocalizedMessage());
             throw new IOException(e.getCause());
@@ -151,13 +151,13 @@ public class ToolsPigServer extends PigServer {
      */
     public List<ExecJob> runPlan(LogicalPlan newPlan,
                                  String jobName) throws FrontendException, ExecException {
-    	
+
         HExecutionEngine engine = new HExecutionEngine(pigContext);
         PhysicalPlan pp = engine.compile(newPlan, null);
         PigStats stats = launchPlan(pp, jobName);
-        return getJobs(stats);                        
+        return getJobs(stats);
     }
-            
+
     public static class PigPlans {
 
         public LogicalPlan lp;

@@ -55,6 +55,8 @@ query : ^( QUERY statement* )
 
 statement : general_statement
           | split_statement { sb.append(";\n"); }
+          | import_statement { sb.append(";\n"); }
+          | register_statement { sb.append(";\n"); }
           | realias_statement
 ;
 
@@ -62,6 +64,29 @@ split_statement : split_clause
 ;
 
 realias_statement : realias_clause
+;
+
+import_statement : ^( IMPORT QUOTEDSTRING ) {
+                       sb.append(" ").append($IMPORT.text).append(" ").append($QUOTEDSTRING.text);
+                   }
+;
+
+register_statement : ^( REGISTER QUOTEDSTRING {
+                            sb.append($REGISTER.text).append(" ").append($QUOTEDSTRING.text);
+                        } scripting_udf_clause? )
+;
+
+scripting_udf_clause : scripting_language_clause scripting_namespace_clause
+;
+
+scripting_language_clause : (USING IDENTIFIER) {
+                                sb.append(" ").append($USING.text).append(" ").append($IDENTIFIER.text);
+                            }
+;
+
+scripting_namespace_clause : (AS IDENTIFIER) {
+                                 sb.append(" ").append($AS.text).append(" ").append($IDENTIFIER.text);
+                             }
 ;
 
 // For foreach statement that with complex inner plan.
@@ -204,9 +229,15 @@ func_name
     : eid ( ( PERIOD { sb.append($PERIOD.text); } | DOLLAR { sb.append($DOLLAR.text); } ) eid )*
 ;
 
-func_args
-    : a=QUOTEDSTRING { sb.append($a.text); }
-        (b=QUOTEDSTRING { sb.append(", ").append($b.text); } )*
+func_args : func_first_arg_clause (func_next_arg_clause)*
+;
+
+func_first_arg_clause :   QUOTEDSTRING { sb.append($QUOTEDSTRING.text); }
+                        | MULTILINE_QUOTEDSTRING { sb.append($MULTILINE_QUOTEDSTRING.text); }
+;
+
+func_next_arg_clause :    QUOTEDSTRING { sb.append(", ").append($QUOTEDSTRING.text); }
+                        | MULTILINE_QUOTEDSTRING { sb.append(", ").append($MULTILINE_QUOTEDSTRING.text); }
 ;
 
 cube_clause

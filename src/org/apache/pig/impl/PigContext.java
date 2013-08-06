@@ -17,9 +17,17 @@
  */
 package org.apache.pig.impl;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.IOException;
 import java.io.Serializable;
+import java.io.StringWriter;
 import java.lang.reflect.Constructor;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -36,6 +44,7 @@ import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
+import org.antlr.runtime.tree.Tree;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -56,6 +65,9 @@ import org.apache.pig.backend.hadoop.streaming.HadoopExecutableManager;
 import org.apache.pig.impl.streaming.ExecutableManager;
 import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.util.JarManager;
+import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
+import org.apache.pig.tools.parameters.ParseException;
+import org.apache.pig.tools.parameters.PreprocessorContext;
 
 public class PigContext implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -77,12 +89,6 @@ public class PigContext implements Serializable {
     //one of: local, mapreduce, pigbody
     private ExecType execType;;
 
-    //  extra jar files that are needed to run a job
-    transient public List<URL> extraJars = new LinkedList<URL>();
-
-    //  The jars that should not be merged in. (Some functions may come from pig.jar and we don't want the whole jar file.)
-    transient public Vector<String> skipJars = new Vector<String>(2);
-
     //main file system that jobs and shell commands access
     transient private DataStorage dfs;
 
@@ -94,13 +100,36 @@ public class PigContext implements Serializable {
 
     private Properties properties;
 
-    //  script files that are needed to run a job
+    /*
+     * Resources for the job (jars, scripting udf files, cached macro abstract syntax trees)
+     */
+
+    // extra jar files that are needed to run a job
+    transient public List<URL> extraJars = new LinkedList<URL>();
+
+    // original paths each extra jar came from
+    // used to avoid redundant imports
+    transient private Map<URL, String> extraJarOriginalPaths = new HashMap<URL, String>();
+
+    // jars needed for scripting udfs - jython.jar etc
+    public List<String> scriptJars = new ArrayList<String>(2);
+
+    // jars that should not be merged in.
+    // (some functions may come from pig.jar and we don't want the whole jar file.)
+    transient public Vector<String> skipJars = new Vector<String>(2);
+
+    // script files that are needed to run a job
     @Deprecated
     public List<String> scriptFiles = new ArrayList<String>();
     private Map<String,File> aliasedScriptFiles = new LinkedHashMap<String,File>();
 
-    //  script jars that are needed to run a script - jython.jar etc
-    public List<String> scriptJars = new ArrayList<String>(2);
+    // record of scripting udf file path --> which namespace it was registered to
+    // used to avoid redundant imports
+    transient public Map<String, String> scriptingUDFs;
+
+    // cache of macro file path --> abstract syntax tree
+    // used to avoid re-parsing the same macros over and over
+    transient public Map<String, Tree> macros;
 
     /**
      * a table mapping function names to function specs.
@@ -157,12 +186,20 @@ public class PigContext implements Serializable {
 
     static private ContextClassLoader classloader = new ContextClassLoader(PigContext.class.getClassLoader());
 
+    /*
+     * Parameter-related fields
+     * params: list of strings "key=value" from the command line
+     * paramFiles: list of paths to parameter files
+     * preprocessorContext: manages parsing params and paramFiles into an actual map
+     */
 
     private List<String> params;
+    private List<String> paramFiles;
+    transient private PreprocessorContext preprocessorContext = new PreprocessorContext(50);
+
     public List<String> getParams() {
         return params;
     }
-
     public void setParams(List<String> params) {
         this.params = params;
     }
@@ -170,11 +207,27 @@ public class PigContext implements Serializable {
     public List<String> getParamFiles() {
         return paramFiles;
     }
-
     public void setParamFiles(List<String> paramFiles) {
         this.paramFiles = paramFiles;
     }
-    private List<String> paramFiles;
+
+    public PreprocessorContext getPreprocessorContext() {
+        return preprocessorContext;
+    }
+
+    public Map<String, String> getParamVal() throws IOException {
+        Map<String, String> paramVal = preprocessorContext.getParamVal();
+        if (paramVal == null) {
+            try {
+                preprocessorContext.loadParamVal(params, paramFiles);
+            } catch (ParseException e) {
+                throw new IOException(e.getMessage());
+            }
+            return preprocessorContext.getParamVal();
+        } else {
+            return paramVal;
+        }
+    }
 
     public PigContext() {
         this(ExecType.MAPREDUCE, new Properties());
@@ -207,6 +260,9 @@ public class PigContext implements Serializable {
         skippedShipPaths.add("/usr/sbin");
         skippedShipPaths.add("/usr/local/sbin");
         
+        macros = new HashMap<String, Tree>();
+        scriptingUDFs = new HashMap<String, String>();
+
         init();
     }
 
@@ -284,6 +340,15 @@ public class PigContext implements Serializable {
         }
     }
 
+    public boolean hasJar(String path) {
+        for (URL url : extraJars) {
+            if (extraJarOriginalPaths.get(url).equals(path)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * this method adds script files that must be added to the shipped jar
      * named differently from their local fs path.
@@ -299,15 +364,75 @@ public class PigContext implements Serializable {
     public void addJar(String path) throws MalformedURLException {
         if (path != null) {
             URL resource = (new File(path)).toURI().toURL();
-            addJar(resource);
+            addJar(resource, path);
         }
     }
 
-    public void addJar(URL resource) throws MalformedURLException{
+    public void addJar(URL resource, String originalPath) throws MalformedURLException{
         if (resource != null) {
             extraJars.add(resource);
+            extraJarOriginalPaths.put(resource, originalPath);
             classloader.addURL(resource);
             Thread.currentThread().setContextClassLoader(PigContext.classloader);
+        }
+    }
+
+    public String doParamSubstitution(InputStream in,
+                                      List<String> params,
+                                      List<String> paramFiles)
+                                      throws IOException {
+
+        return doParamSubstitution(new BufferedReader(new InputStreamReader(in)),
+                                   params, paramFiles);
+    }
+
+    public String doParamSubstitution(BufferedReader reader,
+                                      List<String> params,
+                                      List<String> paramFiles)
+                                      throws IOException {
+        this.params = params;
+        this.paramFiles = paramFiles;
+        return doParamSubstitution(reader);
+    }
+
+    public String doParamSubstitution(BufferedReader reader) throws IOException {
+        try {
+            preprocessorContext.loadParamVal(params, paramFiles);
+            ParameterSubstitutionPreprocessor psp
+                = new ParameterSubstitutionPreprocessor(preprocessorContext);
+            StringWriter writer = new StringWriter();
+            psp.genSubstitutedFile(reader, writer);
+            return writer.toString();
+        } catch (ParseException e) {
+            log.error(e.getLocalizedMessage());
+            throw new IOException(e.getCause());
+        }
+    }
+
+    public BufferedReader doParamSubstitutionOutputToFile(BufferedReader reader,
+                                                  String outputFilePath,
+                                                  List<String> params,
+                                                  List<String> paramFiles)
+                                                  throws IOException {
+        this.params = params;
+        this.paramFiles = paramFiles;
+        return doParamSubstitutionOutputToFile(reader, outputFilePath);
+    }
+
+    public BufferedReader doParamSubstitutionOutputToFile(BufferedReader reader, String outputFilePath)
+                          throws IOException {
+        try {
+            preprocessorContext.loadParamVal(params, paramFiles);
+            ParameterSubstitutionPreprocessor psp
+                    = new ParameterSubstitutionPreprocessor(preprocessorContext);
+            BufferedWriter writer = new BufferedWriter(new FileWriter(outputFilePath));
+            psp.genSubstitutedFile(reader, writer);
+            return new BufferedReader(new FileReader(outputFilePath));
+        } catch (ParseException e) {
+            log.error(e.getLocalizedMessage());
+            throw new IOException(e.getCause());
+        } catch (FileNotFoundException e) {
+            throw new IOException("Could not find file to substitute parameters for: " + outputFilePath);
         }
     }
 

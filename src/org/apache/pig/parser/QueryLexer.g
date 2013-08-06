@@ -66,6 +66,9 @@ NULL    : 'NULL'
 IMPORT  : 'IMPORT'
 ;
 
+REGISTER : 'REGISTER'
+;
+
 RETURNS : 'RETURNS'
 ;
 

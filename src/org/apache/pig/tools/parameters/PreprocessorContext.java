@@ -23,9 +23,13 @@
 package org.apache.pig.tools.parameters;
 
 import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.StringReader;
 import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -34,7 +38,15 @@ import org.apache.commons.logging.LogFactory;
 
 public class PreprocessorContext {
 
-    private Hashtable<String , String> param_val ;
+    private Map<String, String> param_val;
+
+    // used internally to detect when a param is set multiple times,
+    // but it set with the same value so it's ok not to log a warning
+    private Map<String, String> param_source;
+
+    public Map<String, String> getParamVal() {
+        return param_val;
+    }
 
     private final Log log = LogFactory.getLog(getClass());
 
@@ -42,8 +54,14 @@ public class PreprocessorContext {
      * @param limit - max number of parameters. Passing
      *                smaller number only impacts performance
      */
-    public PreprocessorContext(int limit){
+    public PreprocessorContext(int limit) {
         param_val = new Hashtable<String, String> (limit);
+        param_source = new Hashtable<String, String> (limit);
+    }
+
+    public PreprocessorContext(Map<String, String> paramVal) {
+        param_val = paramVal;
+        param_source = new Hashtable<String, String>(paramVal);
     }
 
     /*
@@ -96,14 +114,16 @@ public class PreprocessorContext {
     public  void processShellCmd(String key, String val, Boolean overwrite) {
 
         if (param_val.containsKey(key)) {
-            if (overwrite) {
-                log.warn("Warning : Multiple values found for " + key + ". Using value " + val);
-            } else {
+            if (param_source.get(key).equals(val) || !overwrite) {
                 return;
+            } else {
+                log.warn("Warning : Multiple values found for " + key + ". Using value " + val);
             }
         }
 
-        val=val.substring(1, val.length()-1); //to remove the backticks
+        param_source.put(key, val);
+
+        val = val.substring(1, val.length()-1); //to remove the backticks
         String sub_val = substitute(val);
         sub_val = executeShellCommand(sub_val);
         param_val.put(key, sub_val);
@@ -120,12 +140,14 @@ public class PreprocessorContext {
     public  void processOrdLine(String key, String val, Boolean overwrite) {
 
         if (param_val.containsKey(key)) {
-            if (overwrite) {
-                log.warn("Warning : Multiple values found for " + key + ". Using value " + val);
-            } else {
+            if (param_source.get(key).equals(val) || !overwrite) {
                 return;
+            } else {
+                log.warn("Warning : Multiple values found for " + key + ". Using value " + val);
             }
         }
+
+        param_source.put(key, val);
 
         String sub_val = substitute(val);
         param_val.put(key, sub_val);
@@ -208,6 +230,29 @@ public class PreprocessorContext {
         }
 
         return streamData.trim();
+    }
+
+    public void loadParamVal(List<String> params, List<String> paramFiles)
+                throws IOException, ParseException {
+        StringReader dummyReader = null; // ParamLoader does not have an empty contructor
+        ParamLoader paramLoader = new ParamLoader(dummyReader);
+        paramLoader.setContext(this);
+
+        if (paramFiles != null) {
+            for (String path : paramFiles) {
+                BufferedReader in = new BufferedReader(new FileReader(path));
+                paramLoader.ReInit(in);
+                while (paramLoader.Parse()) {}
+                in.close();
+            }
+        }
+        
+        if (params != null) {
+            for (String param : params) {
+                paramLoader.ReInit(new StringReader(param));
+                paramLoader.Parse();
+            }
+        }
     }
 
     private Pattern bracketIdPattern = Pattern.compile("\\$\\{([_]*[a-zA-Z][a-zA-Z_0-9]*)\\}");
