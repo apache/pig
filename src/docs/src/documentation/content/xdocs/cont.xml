@@ -1001,9 +1001,8 @@ public class idmapreduce{
    <p>Note the following restrictions:</p>
    <ul>
    <li>Macros are not allowed inside a <a href="basic.html#nested-block">FOREACH</a> nested block.</li>
-   <li>Macros can only contain <a href="start.html#pl-statements">Pig Latin statements</a>. The <a href="basic.html#register">REGISTER</a>  statement is not supported. The <a href="cmds.html#shell-cmds">shell commands</a> (used with Grunt) are not supported.</li>
+   <li>Macros cannot contain <a href="cmds.html#shell-cmds">Grunt shell commands</a>.</li>
    <li>Macros cannot include a user-defined schema that has a name collision with an alias in the macro.</li>
-   <li><a href="#Parameter-Sub">Parameter substitution</a> cannot be used inside of macros. Parameters should be explicitly passed to macros and parameter substitution used only at the top level.</li>
    </ul>
    <p></p>
 
@@ -1044,7 +1043,7 @@ STORE Y INTO 'output';
 
 <!-- +++++++++++++++++++++++++++++++++++++++++++++++ -->
 <p><strong>Macro Import</strong></p>
-<p>A macro can be imported from another Pig script (see <a href="#import-macros">IMPORT (macros)</a>).</p>
+<p>A macro can be imported from another Pig script (see <a href="#import-macros">IMPORT (macros)</a>). Splitting your macros from your main Pig script is useful for making reusable code.</p>
 </section> 
 
 
@@ -1188,7 +1187,7 @@ STORE Y INTO 'byuser';
    <title>Usage</title>
    <p>Use the IMPORT command to import a macro defined in a separate file into your Pig script. </p>
    <p>IMPORT adds the macro definitions to the Pig Latin namespace; these macros can then be invoked as if they were defined in the same file.</p>
-   <p>Macros can only contain Pig Latin statements; Grunt shell commands are not supported.</p>
+   <p>Macros can only contain Pig Latin statements; Grunt shell commands are not supported. REGISTER statements and parameter definitions with %default or %declare are both valid however. Your macro file also IMPORT other macro files, so long as these imports are not recursive.</p>
    
    <p>See also: <a href="#define-macros">DEFINE (macros)</a></p>
      </section> 
@@ -1395,7 +1394,7 @@ IMPORT 'my_macro.pig';
       </li>
    </ul>
    <p></p>
-   <p>Parameter substitution CANNOT be used inside of macros.  Parameters should be explicitly passed to macros and parameter substitution used only at the top level (see <a href="#define-macros">DEFINE (macros)</a>).</p>
+   <p>Parameter substitution may be used inside of macros, but it is the responsibility of the user to ensure that there are no conflicts between names of parameters defined at the top level and names of arguments or return values for a macro. A simple way to ensure this is to use ALL_CAPS for top-level parameters and lower_case for macro-level parameters. See <a href="#define-macros">DEFINE (macros)</a>.</p>
    </section>
    
    <section>

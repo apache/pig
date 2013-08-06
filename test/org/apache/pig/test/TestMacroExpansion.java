@@ -677,7 +677,7 @@ public class TestMacroExpansion {
     }
     
     @Test
-    public void duplicationTest() throws Throwable {
+    public void dupicatedMacroNameTest() throws Throwable {
         String script = 
             "alpha = load 'users' as (user, age, zip);\n" +
             "gamma = group_and_count (alpha, user, 23);\n" +
@@ -1192,20 +1192,20 @@ public class TestMacroExpansion {
     //see Pig-2184
     @Test
     public void testMacroAliasConversion() throws Exception {
-    	  String macro = "define my_macro (X,key) returns Y {\n" +
-    	        "$Y = filter $X by $key>0;\n" +
-    	            "};\n";
-    	        
-    	        String script = 
-    	            "A = load 'sometext1' using TextLoader() as (row1) ;\n" +
-    	            "E = my_macro (A, $0);\n" +
-    	            "store E into 'byrow1';\n";
-    	        
-    	        String expected =
-    	        			"A = load 'sometext1' USING TextLoader() as row1;\n"+
-    	        			"E = filter A BY ($0 > 0);\n"+
-    	        			"store E INTO 'byrow1';\n";
-    	        verify(macro + script, expected);
+          String macro = "define my_macro (X,key) returns Y {\n" +
+                "$Y = filter $X by $key>0;\n" +
+                    "};\n";
+                
+                String script = 
+                    "A = load 'sometext1' using TextLoader() as (row1) ;\n" +
+                    "E = my_macro (A, $0);\n" +
+                    "store E into 'byrow1';\n";
+                
+                String expected =
+                            "A = load 'sometext1' USING TextLoader() as row1;\n"+
+                            "E = filter A BY ($0 > 0);\n"+
+                            "store E INTO 'byrow1';\n";
+                verify(macro + script, expected);
     }
     
     @Test
@@ -2078,7 +2078,173 @@ public class TestMacroExpansion {
         
         verify(macro + script, expected);
     }
-    
+
+    // Test for PIG-3359
+    // Registers in a macro file used to fail, not being recognized by the parser
+    @Test
+    public void testRegister() throws Exception {
+        String udfs =
+            "@outputSchema(\"result: int\")\n" +
+            "def some_udf(number):\n" +
+            "    return number + 1\n" +
+            "\n";
+        createFile("my_udfs.py", udfs);
+
+        String macro =
+            "REGISTER 'my_udfs.py' USING jython AS macro_udfs;\n" +
+            "DEFINE ApplyUDF(numbers) RETURNS result {\n" +
+            "    $result = FOREACH $numbers GENERATE macro_udfs.some_udf($0);\n" +
+            "};";
+        createFile("my_macro.pig", macro);
+
+        String script =
+            "IMPORT 'my_macro.pig';\n" +
+            "data = LOAD '1234.txt' USING PigStorage() AS (i: int);\n" +
+            "result = ApplyUDF(data);\n" + 
+            "STORE result INTO 'result.out' USING PigStorage();";
+
+        String expected =
+            "REGISTER 'my_udfs.py' USING jython AS macro_udfs;\n" +
+            "data = LOAD '1234.txt' USING PigStorage() AS i:int;\n" +
+            "result = FOREACH data GENERATE macro_udfs.some_udf($0);\n" + 
+            "STORE result INTO 'result.out' USING PigStorage();\n";
+
+        verify(script, expected);
+    }
+
+    // Test for PIG-3359
+    @Test
+    public void testParamPassedToMacroInPigscript() throws Exception {
+        String macro =
+            "DEFINE MultiplyMacro(numbers) RETURNS multiplied {\n" +
+            "    $multiplied = FOREACH $numbers GENERATE $0 * $MULTIPLIER;\n" +
+            "};";
+
+        String script =
+            "%default MULTIPLIER 5\n" +
+            "data = LOAD '1234.txt' USING PigStorage() AS (i: int);\n" +
+            "mult = MultiplyMacro(data);\n" + 
+            "STORE mult INTO 'multiplied.out' USING PigStorage();";
+
+        String expected =
+            "data = LOAD '1234.txt' USING PigStorage() AS i:int;\n" +
+            "mult = FOREACH data GENERATE $0 * 5;\n" + 
+            "STORE mult INTO 'multiplied.out' USING PigStorage();\n";
+
+        verify(macro + script, expected);
+    }
+
+    // Test for PIG-3359
+    @Test
+    public void testParamPassedToMacroInSeparateFile() throws Exception {
+        String macro =
+            "DEFINE MultiplyMacro(numbers) RETURNS multiplied {\n" +
+            "    $multiplied = FOREACH $numbers GENERATE $0 * $MULTIPLIER;\n" +
+            "};";
+        createFile("my_macro.pig", macro);
+
+        String script =
+            "%default MULTIPLIER 5\n" +
+            "IMPORT 'my_macro.pig';\n" +
+            "data = LOAD '1234.txt' USING PigStorage() AS (i: int);\n" +
+            "mult = MultiplyMacro(data);\n" + 
+            "STORE mult INTO 'multiplied.out' USING PigStorage();";
+
+        String expected =
+            "data = LOAD '1234.txt' USING PigStorage() AS i:int;\n" +
+            "mult = FOREACH data GENERATE $0 * 5;\n" + 
+            "STORE mult INTO 'multiplied.out' USING PigStorage();\n";
+
+        verify(script, expected);
+    }
+
+    // Test for PIG-3359
+    @Test
+    public void testDefaultInMacroFile() throws Exception {
+        String macro =
+            "%default MULTIPLIER 5\n" +
+            "DEFINE MultiplyMacro(numbers) RETURNS multiplied {\n" +
+            "    $multiplied = FOREACH $numbers GENERATE $0 * $MULTIPLIER;\n" +
+            "};";
+        createFile("my_macro.pig", macro);
+
+        String script =
+            "IMPORT 'my_macro.pig';\n" +
+            "data = LOAD '1234.txt' USING PigStorage() AS (i: int);\n" +
+            "mult = MultiplyMacro(data);\n" + 
+            "STORE mult INTO 'multiplied.out' USING PigStorage();";
+
+        String expected =
+            "data = LOAD '1234.txt' USING PigStorage() AS i:int;\n" +
+            "mult = FOREACH data GENERATE $0 * 5;\n" + 
+            "STORE mult INTO 'multiplied.out' USING PigStorage();\n";
+
+        verify(script, expected);
+    }
+
+    // Test for PIG-3359
+    @Test
+    public void testDeclareInMacroFile() throws Exception {
+        String macro =
+            "%declare ECHOED_MULTIPLIER `echo \"$MULTIPLIER\"`" +
+            "DEFINE MultiplyMacro(numbers) RETURNS multiplied {\n" +
+            "    $multiplied = FOREACH $numbers GENERATE $0 * $ECHOED_MULTIPLIER;\n" +
+            "};";
+        createFile("my_macro.pig", macro);
+
+        String script =
+            "%default MULTIPLIER 5\n" +
+            "IMPORT 'my_macro.pig';\n" +
+            "data = LOAD '1234.txt' USING PigStorage() AS (i: int);\n" +
+            "mult = MultiplyMacro(data);\n" + 
+            "STORE mult INTO 'multiplied.out' USING PigStorage();";
+
+        String expected =
+            "data = LOAD '1234.txt' USING PigStorage() AS i:int;\n" +
+            "mult = FOREACH data GENERATE $0 * 5;\n" + 
+            "STORE mult INTO 'multiplied.out' USING PigStorage();\n";
+
+        verify(script, expected);
+    }
+
+    // Test for PIG-3359
+    // Macro imports used to fail if Pigscript P imported macros A and B, while A also imported B
+    @Test
+    public void testNestedImport() throws Exception {
+        String nested_macros =
+            "DEFINE NestedMultiplyMacro(numbers) RETURNS multiplied {\n" +
+            "    $multiplied = FOREACH $numbers GENERATE $0 * $MULTIPLIER;\n" +
+            "};\n" +
+            "DEFINE LogarithmMacro(numbers) RETURNS logs {\n" +
+            "    $logs = FOREACH $numbers GENERATE LOG($0);\n" +
+            "};\n";
+        createFile("nested_macros.pig", nested_macros);
+
+        String macro =
+            "%default MULTIPLIER 5\n" +
+            "IMPORT 'nested_macros.pig';" +
+            "DEFINE MultiplyMacro(numbers) RETURNS multiplied {\n" +
+            "    $multiplied = NestedMultiplyMacro($numbers);\n" +
+            "};";
+        createFile("my_macros.pig", macro);
+
+        String script =
+            "IMPORT 'my_macro.pig';\n" +
+            "IMPORT 'nested_macros.pig';\n" +
+            "data = LOAD '1234.txt' USING PigStorage() AS (i: int);\n" +
+            "mult = MultiplyMacro(data);\n" +
+            "logs = LogarithmMacro(mult);\n" + 
+            "STORE logs INTO 'result.out' USING PigStorage();";
+
+        String expected =
+            "data = LOAD '1234.txt' USING PigStorage() AS i:int;\n" +
+            "mult = FOREACH data GENERATE $0 * 5;\n" +
+            "logs = FOREACH mult GENERATE LOG($0);\n" + 
+            "STORE logs INTO 'result.out' USING PigStorage();\n";
+
+        verify(script, expected);
+    }
+
     //-------------------------------------------------------------------------
     
     private void testMacro(String content) throws Exception {

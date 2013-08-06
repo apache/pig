@@ -216,6 +216,7 @@ statement : SEMI_COLON!
           | inline_clause SEMI_COLON!
           | import_clause SEMI_COLON!
           | realias_clause SEMI_COLON!
+          | register_clause SEMI_COLON!
           // semicolons after foreach_complex_statement are optional for backwards compatibility, but to keep
           // the grammar unambiguous if there is one then we'll parse it as a single, standalone semicolon
           // (which matches the first statement rule)
@@ -344,6 +345,9 @@ explicit_type_cast : simple_type | explicit_map_type | explicit_tuple_type_cast 
 // CLAUSES
 
 import_clause : IMPORT^ QUOTEDSTRING
+;
+
+register_clause : REGISTER^ QUOTEDSTRING (USING identifier_plus AS identifier_plus)?
 ;
 
 define_clause : DEFINE^ IDENTIFIER ( cmd | func_clause | macro_clause)
@@ -956,6 +960,7 @@ nested_op_input_list : nested_op_input ( COMMA nested_op_input )*
 // extended identifier, handling the keyword and identifier conflicts. Ugly but there is no other choice.
 eid_without_columns : rel_str_op
     | IMPORT
+    | REGISTER
     | RETURNS
     | DEFINE
     | LOAD

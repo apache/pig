@@ -23,9 +23,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.LineNumberReader;
 import java.io.StringReader;
-import java.io.StringWriter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -35,14 +33,14 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FsShell;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.tools.grunt.GruntParser;
-import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
 
 /**
  * The class being used in scripts to interact with Pig
  */
 public class Pig {
-    
+
     private static final Log LOG = LogFactory.getLog(Pig.class);
 
     private static List<String> defineCache = new ArrayList<String>();
@@ -62,7 +60,7 @@ public class Pig {
                 .getPigContext().getProperties()));
         int code = -1;
         if (cmd != null) {
-            String[] cmdTokens = cmd.split("\\s+");         
+            String[] cmdTokens = cmd.split("\\s+");
             if (!cmdTokens[0].startsWith("-")) cmdTokens[0] = "-" + cmdTokens[0];
             try {
                 code = shell.run(cmdTokens);
@@ -72,7 +70,7 @@ public class Pig {
         }
         return code;
     }
-    
+
     /**
      * Run a sql command.  Any output from this command is written to
      * stdout or stderr as appropriate.
@@ -98,8 +96,8 @@ public class Pig {
 
     /**
      * Register a jar for use in Pig.  Once this is done this jar will be
-     * registered for <b>all subsequent</b> Pig pipelines in this script.  
-     * If you wish to register it for only a single Pig pipeline, use 
+     * registered for <b>all subsequent</b> Pig pipelines in this script.
+     * If you wish to register it for only a single Pig pipeline, use
      * register within that definition.
      * @param jarfile Path of jar to include.
      * @throws IOException if the indicated jarfile cannot be found.
@@ -113,8 +111,8 @@ public class Pig {
 
     /**
      * Register scripting UDFs for use in Pig. Once this is done all UDFs
-     * defined in the file will be available for <b>all subsequent</b> 
-     * Pig pipelines in this script. If you wish to register UDFS for 
+     * defined in the file will be available for <b>all subsequent</b>
+     * Pig pipelines in this script. If you wish to register UDFS for
      * only a single Pig pipeline, use register within that definition.
      * @param udffile Path of the script UDF file
      * @param namespace namespace of the UDFs
@@ -125,16 +123,16 @@ public class Pig {
         LOG.info("Register script UFD file: "+ udffile);
         ScriptPigContext ctx = getScriptContext();
         ScriptEngine engine = ctx.getScriptEngine();
-        // script file contains only functions, no need to separate 
+        // script file contains only functions, no need to separate
         // functions from control flow code
         if (namespace != null && namespace.isEmpty()) namespace = null;
         engine.registerFunctions(udffile, namespace, ctx.getPigContext());
-        addRegisterScriptUDFClause(udffile, namespace);        
+        addRegisterScriptUDFClause(udffile, namespace);
     }
 
     /**
      * Define an alias for a UDF or a streaming command.  This definition
-     * will then be present for <b>all subsequent</b> Pig pipelines defined in this 
+     * will then be present for <b>all subsequent</b> Pig pipelines defined in this
      * script.  If you wish to define it for only a single Pig pipeline, use
      * define within that definition.
      * @param alias name of the defined alias
@@ -148,7 +146,7 @@ public class Pig {
 
     /**
      * Set a variable for use in Pig Latin.  This set
-     * will then be present for <b>all subsequent</b> Pig pipelines defined in this 
+     * will then be present for <b>all subsequent</b> Pig pipelines defined in this
      * script.  If you wish to set it for only a single Pig pipeline, use
      * set within that definition.
      * @param var variable to set
@@ -159,14 +157,14 @@ public class Pig {
         PigServer pigServer = new PigServer(ctx.getPigContext(), false);
         pigServer.getPigContext().getProperties().setProperty(var, value);
     }
-            
+
     /**
-     * Define a Pig pipeline.  
+     * Define a Pig pipeline.
      * @param pl Pig Latin definition of the pipeline.
      * @return Pig object representing this pipeline.
      * @throws IOException if the Pig Latin does not compile.
      */
-    public static Pig compile(String pl) throws IOException { 
+    public static Pig compile(String pl) throws IOException {
         return compile(null, pl);
     }
 
@@ -189,7 +187,7 @@ public class Pig {
 
     /**
      * Define a Pig pipeline based on Pig Latin in a separate file.
-     * @param filename File to read Pig Latin from.  This must be a purely 
+     * @param filename File to read Pig Latin from.  This must be a purely
      * Pig Latin file.  It cannot contain host language constructs in it.
      * @return Pig object representing this pipeline.
      * @throws IOException if the Pig Latin does not compile or the file
@@ -205,7 +203,7 @@ public class Pig {
      * This allows it to be imported into another pipeline.
      * @param name Name that will be used to define this pipeline.
      * The namespace is global.
-     * @param filename File to read Pig Latin from.  This must be a purely 
+     * @param filename File to read Pig Latin from.  This must be a purely
      * Pig Latin file.  It cannot contain host language constructs in it.
      * @return Pig object representing this pipeline.
      * @throws IOException if the Pig Latin does not compile or the file
@@ -217,31 +215,31 @@ public class Pig {
     }
 
     //-------------------------------------------------------------------------
-   
+
     /**
      * Bind this to a set of variables. Values must be provided
      * for all Pig Latin parameters.
-     * @param vars map of variables to bind.  Keys should be parameters defined 
+     * @param vars map of variables to bind.  Keys should be parameters defined
      * in the Pig Latin.  Values should be strings that provide values for those
      * parameters.  They can be either constants or variables from the host
      * language.  Host language variables must contain strings.
-     * @return a {@link BoundScript} object 
+     * @return a {@link BoundScript} object
      * @throws IOException if there is not a key for each
      * Pig Latin parameter or if they contain unsupported types.
      */
     public BoundScript bind(Map<String, Object> vars) throws IOException {
         return new BoundScript(replaceParameters(script, vars), scriptContext, name);
     }
-        
+
     /**
-     * Bind this to multiple sets of variables.  This will 
-     * cause the Pig Latin script to be executed in parallel over these sets of 
+     * Bind this to multiple sets of variables.  This will
+     * cause the Pig Latin script to be executed in parallel over these sets of
      * variables.
-     * @param vars list of maps of variables to bind.  Keys should be parameters defined 
+     * @param vars list of maps of variables to bind.  Keys should be parameters defined
      * in the Pig Latin.  Values should be strings that provide values for those
      * variables.  They can be either constants or variables from the host
      * language.  Host language variables must be strings.
-     * @return a {@link BoundScript} object 
+     * @return a {@link BoundScript} object
      * @throws IOException  if there is not a key for each
      * Pig Latin parameter or if they contain unsupported types.
      */
@@ -261,7 +259,7 @@ public class Pig {
      * <tt> p = Pig.compile("A = load '$input';");</tt>
      * and then calls this function it will look for a variable called
      * <tt>input</tt> in the host language.  Scoping rules of the host
-     * language will be followed in selecting which variable to bind.  The 
+     * language will be followed in selecting which variable to bind.  The
      * variable bound must contain a string value.  This method is optional
      * because not all host languages may support searching for in scope
      * variables.
@@ -277,21 +275,21 @@ public class Pig {
         Map<String, Object> vars = engine.getParamsFromVariables();
         return bind(vars);
     }
-    
+
     //-------------------------------------------------------------------------
-        
+
     private String script = null;
 
     private ScriptPigContext scriptContext = null;
 
     private String name = null;
-    
+
     protected Pig(String script, ScriptPigContext scriptContext, String name) {
         this.script = script;
         this.scriptContext = scriptContext;
-        this.name = name;       
+        this.name = name;
     }
-    
+
     /**
      * Replaces the $<identifier> with their actual values
      * @param qstr the pig script to rewrite
@@ -300,45 +298,36 @@ public class Pig {
      */
     private String replaceParameters(String qstr, Map<String, Object> vars)
             throws IOException {
-        ArrayList<String> plist = new ArrayList<String>();
+
+        List<String> params = new ArrayList<String>();
         for (Entry<String, Object> entry : vars.entrySet()) {
-            plist.add(entry.getKey() + "="
+            params.add(entry.getKey() + "="
                     + fixNonEscapedDollarSign(entry.getValue().toString()));
         }
-        if (getScriptContext().getPigContext().getParams()!=null) {
-            for (String param : getScriptContext().getPigContext().getParams()) {
-                plist.add(param);
+
+        PigContext context = getScriptContext().getPigContext();
+        List<String> contextParams = context.getParams();
+        if (contextParams != null) {
+            for (String param : contextParams) {
+                params.add(param);
             }
         }
-        
-        ParameterSubstitutionPreprocessor psp = 
-            new ParameterSubstitutionPreprocessor(50);
-        
-        String[] params = new String[1];
-        
-        StringWriter writer = new StringWriter();
-        BufferedReader in = new BufferedReader(new StringReader(qstr));
-        String[] type1 = new String[1];
-        try {
-            psp.genSubstitutedFile(in, writer, plist.toArray(params), 
-                    scriptContext.getPigContext().getParamFiles()!=null && 
-                    scriptContext.getPigContext().getParamFiles().size() > 0 ? 
-                    scriptContext.getPigContext().getParamFiles().toArray(type1) : null);
-        } catch (org.apache.pig.tools.parameters.ParseException e) {
-            throw new IOException("Param substitution failed", e);            
-        } 
-        return writer.toString();
+
+        BufferedReader reader = new BufferedReader(new StringReader(qstr));
+        String substituted =  context.doParamSubstitution(reader, params, context.getParamFiles());
+        context.setParams(contextParams); // reset params that were originally in PigContext
+        return substituted;
     }
-    
-    // Escape the $ so that we can use the parameter substitution 
+
+    // Escape the $ so that we can use the parameter substitution
     // to perform bind operation. Parameter substitution will un-escape $
     private static String fixNonEscapedDollarSign(String s) {
         String[] tkns = s.split("\\$", -1);
 
         if (tkns.length == 1) return s;
-        
+
         StringBuilder sb = new StringBuilder();
-        
+
         for (int i = 0; i < tkns.length -1; i++) {
             if (tkns[i].isEmpty()) {
                 sb.append("\\\\");
@@ -354,7 +343,7 @@ public class Pig {
 
         return sb.toString();
     }
-    
+
     //-------------------------------------------------------------------------
 
     private static String getScriptFromFile(String filename) throws IOException {
@@ -410,5 +399,5 @@ public class Pig {
         return ctx;
     }
 
-    
+
 }

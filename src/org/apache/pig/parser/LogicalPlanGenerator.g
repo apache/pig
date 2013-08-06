@@ -173,12 +173,21 @@ scope {
  : general_statement
  | split_statement
  | realias_statement
+ | register_statement
 ;
 
 split_statement : split_clause
 ;
 
 realias_statement : realias_clause
+;
+
+register_statement
+: ^( REGISTER QUOTEDSTRING (USING IDENTIFIER AS IDENTIFIER)? )
+  {
+    // registers are handled by QueryParserDriver and are not actually part of the logical plan
+    // so we just ignore them here
+  }
 ;
 
 general_statement

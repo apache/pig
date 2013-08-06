@@ -23,10 +23,8 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.StringReader;
-import java.io.StringWriter;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -85,7 +83,6 @@ import org.apache.pig.newplan.logical.expression.LogicalExpressionVisitor;
 import org.apache.pig.newplan.logical.expression.ScalarExpression;
 import org.apache.pig.newplan.logical.optimizer.AllExpressionVisitor;
 import org.apache.pig.newplan.logical.optimizer.DanglingNestedNodeRemover;
-import org.apache.pig.newplan.logical.optimizer.UidResetter;
 import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LOStore;
@@ -104,7 +101,6 @@ import org.apache.pig.parser.QueryParserUtils;
 import org.apache.pig.pen.ExampleGenerator;
 import org.apache.pig.scripting.ScriptEngine;
 import org.apache.pig.tools.grunt.GruntParser;
-import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
 import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
@@ -491,6 +487,11 @@ public class PigServer {
      * @throws IOException
      */
     public void registerJar(String name) throws IOException {
+        if (pigContext.hasJar(name)) {
+            log.debug("Ignoring duplicate registration for jar " + name);
+            return;
+        }
+
         // first try to locate jar via system resources
         // if this fails, try by using "name" as File (this preserves
         // compatibility with case when user passes absolute path or path
@@ -505,19 +506,18 @@ public class PigServer {
 
             if (resource == null) {
                 FetchFileRet[] files = FileLocalizer.fetchFiles(pigContext.getProperties(), name);
+                for (FetchFileRet file : files) {
+                    File f = file.file;
+                    if (!f.canRead()) {
+                        int errCode = 4002;
+                        String msg = "Can't read jar file: " + name;
+                        throw new FrontendException(msg, errCode, PigException.USER_ENVIRONMENT);
+                    }
 
-                for(FetchFileRet file : files) {
-                  File f = file.file;
-                  if (!f.canRead()) {
-                    int errCode = 4002;
-                    String msg = "Can't read jar file: " + name;
-                    throw new FrontendException(msg, errCode, PigException.USER_ENVIRONMENT);
-                  }
-
-                  pigContext.addJar(f.toURI().toURL());
+                    pigContext.addJar(f.toURI().toURL(), name);
                 }
             } else {
-              pigContext.addJar(resource);
+                pigContext.addJar(resource, name);
             }
         }
     }
@@ -531,7 +531,15 @@ public class PigServer {
      * @throws IOException
      */
     public void registerCode(String path, String scriptingLang, String namespace)
-    throws IOException {
+                             throws IOException {
+        if (pigContext.scriptingUDFs.containsKey(path) &&
+            pigContext.scriptingUDFs.get(path).equals(namespace)) {
+            log.debug("Ignoring duplicate registration for scripting udf file " + path + " in namespace " + namespace);
+            return;
+        } else {
+            pigContext.scriptingUDFs.put(path, namespace);
+        }
+
         File f = FileLocalizer.fetchFile(pigContext.getProperties(), path).file;
         if (!f.canRead()) {
             int errCode = 4002;
@@ -632,7 +640,7 @@ public class PigServer {
      */
     public void registerScript(InputStream in, Map<String,String> params,List<String> paramsFiles) throws IOException {
         try {
-            String substituted = doParamSubstitution(in, params, paramsFiles);
+            String substituted = pigContext.doParamSubstitution(in, paramMapToList(params), paramsFiles);
             GruntParser grunt = new GruntParser(new StringReader(substituted));
             grunt.setInteractive(false);
             grunt.setParams(this);
@@ -643,39 +651,14 @@ public class PigServer {
         }
     }
 
-    /**
-     * Do parameter substitution.
-     * @param in The InputStream of file containing Pig Latin to do substitution on.
-     * @param params Parameters to use to substitute
-     * @param paramsFiles Files to use to do substitution.
-     * @return String containing Pig Latin with substitutions done
-     * @throws IOException
-     */
-    protected String doParamSubstitution(InputStream in,
-                                         Map<String,String> params,
-                                         List<String> paramsFiles) throws IOException {
-        // transform the map type to list type which can been accepted by ParameterSubstitutionPreprocessor
+    protected List<String> paramMapToList(Map<String, String> params) {
         List<String> paramList = new ArrayList<String>();
         if (params != null) {
             for (Map.Entry<String, String> entry : params.entrySet()) {
                 paramList.add(entry.getKey() + "=" + entry.getValue());
-             }
+            }
         }
-
-        // do parameter substitution
-        try {
-            ParameterSubstitutionPreprocessor psp = new ParameterSubstitutionPreprocessor(50);
-            StringWriter writer = new StringWriter();
-            psp.genSubstitutedFile(new BufferedReader(new InputStreamReader(in)),
-                                   writer,
-                                   paramList.size() > 0 ? paramList.toArray(new String[0]) : null,
-                                   paramsFiles!=null ? paramsFiles.toArray(new String[0]) : null);
-
-            return writer.toString();
-        } catch (org.apache.pig.tools.parameters.ParseException e) {
-            log.error(e.getLocalizedMessage());
-            throw new IOException(e.getCause());
-        }
+        return paramList;
     }
 
     /**
@@ -1203,9 +1186,9 @@ public class PigServer {
      */
     public void shutdown() {
         // clean-up activities
-            // TODO: reclaim scope to free up resources. Currently
+        // TODO: reclaim scope to free up resources. Currently
         // this is not implemented and throws an exception
-            // hence, for now, we won't call it.
+        // hence, for now, we won't call it.
         //
         // pigContext.getExecutionEngine().reclaimScope(this.scope);
 

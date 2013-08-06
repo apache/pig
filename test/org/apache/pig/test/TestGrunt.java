@@ -32,7 +32,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringReader;
-import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -54,7 +53,6 @@ import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.test.Util.ProcessReturnInfo;
 import org.apache.pig.tools.grunt.Grunt;
-import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
 import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -515,9 +513,9 @@ public class TestGrunt {
         PigContext context = server.getPigContext();
         
         String strCmd = "a = load 'foo' as (foo, fast, regenerate);" +
-        		"b = foreach a generate foo + 'x' + 1;" +
-        		"c = foreach a generate foo, fast;" +
-        		"explain c; ";
+                "b = foreach a generate foo + 'x' + 1;" +
+                "c = foreach a generate foo, fast;" +
+                "explain c; ";
         
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
@@ -682,7 +680,7 @@ public class TestGrunt {
                     "'mv'", "'dump'" };
             for (String c : cmds) {
                 String expected = c + " statement is ignored while processing " +
-                		"'explain -script' or '-check'";
+                        "'explain -script' or '-check'";
                 assertTrue("Checking if " + gruntLoggingContents + " contains " + 
                         expected, gruntLoggingContents.contains(expected));
             }
@@ -1044,7 +1042,7 @@ public class TestGrunt {
             
             // Remove the temp directory via shell and make sure it is gone
             strCmd = "sh " + strRemoveDir + " test_shell_tmp;";
-	    
+        
             cmd = new ByteArrayInputStream(strCmd.getBytes());
             reader = new InputStreamReader(cmd);
             grunt = new Grunt(new BufferedReader(reader), context);
@@ -1053,7 +1051,7 @@ public class TestGrunt {
             
             // Verify pipes are usable in the command context by piping data to a file
             strCmd = "sh echo hello world > tempShFileToTestShCommand";
-	    
+        
             cmd = new ByteArrayInputStream(strCmd.getBytes());
             reader = new InputStreamReader(cmd);
             grunt = new Grunt(new BufferedReader(reader), context);
@@ -1082,17 +1080,17 @@ public class TestGrunt {
             else {
                strCmd = "sh touch TouchedFileInsideGrunt_61 | xargs ls | grep TouchedFileInsideGrunt_61 > fileContainingTouchedFileInsideGruntShell_71";
             }
-	    
+        
             cmd = new ByteArrayInputStream(strCmd.getBytes());
             reader = new InputStreamReader(cmd);
             grunt = new Grunt(new BufferedReader(reader), context);
             grunt.exec();
             fileReader = new BufferedReader(new FileReader("fileContainingTouchedFileInsideGruntShell_71"));
             assertTrue(fileReader.readLine().trim().equals("TouchedFileInsideGrunt_61"));
-	    
+        
             fileReader.close();
             strCmd = "sh " + strRemoveFile+" fileContainingTouchedFileInsideGruntShell_71";
-	    
+        
             cmd = new ByteArrayInputStream(strCmd.getBytes());
             reader = new InputStreamReader(cmd);
             grunt = new Grunt(new BufferedReader(reader), context);
@@ -1247,13 +1245,11 @@ public class TestGrunt {
         
         String strCmd = "A = load 'bar';\nB = foreach A generate $0;";
         
-        ParameterSubstitutionPreprocessor psp = new ParameterSubstitutionPreprocessor(50);
-        BufferedReader pin = new BufferedReader(new StringReader(strCmd));  
-        StringWriter writer = new StringWriter();
-        psp.genSubstitutedFile(pin, writer, null, null);
-        pin = new BufferedReader(new StringReader(writer.toString()));
+        BufferedReader reader = new BufferedReader(new StringReader(strCmd));  
+        String substituted = context.doParamSubstitution(reader, null, null);
+        BufferedReader pigInput = new BufferedReader(new StringReader(substituted));
              
-        Grunt grunt = new Grunt(pin, context);
+        Grunt grunt = new Grunt(pigInput, context);
         int results[] = grunt.exec();
         for (int i=0; i<results.length; i++) {
             assertTrue(results[i] == 0);
@@ -1269,8 +1265,8 @@ public class TestGrunt {
         PigContext context = server.getPigContext();
 
         String script = "A = load 'inputdata' using PigStorage() as ( curr_searchQuery );\n" +
-        		"B = foreach A { domain = CONCAT(curr_searchQuery,\"^www\\.\");\n" +
-        		"        generate domain; };\n";
+                "B = foreach A { domain = CONCAT(curr_searchQuery,\"^www\\.\");\n" +
+                "        generate domain; };\n";
         ByteArrayInputStream cmd = new ByteArrayInputStream(script.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
 
@@ -1290,11 +1286,11 @@ public class TestGrunt {
         // should pass through successfully with the check and all the grunt commands
         // should be ignored during the check.
         String query = "rmf input-copy.txt; cat 'foo'; a = load '1.txt' ; " +
-        		"aliases;illustrate a; copyFromLocal foo bar; copyToLocal foo bar; " +
-        		"describe a; mkdir foo; run bar.pig; exec bar.pig; cp foo bar; " +
-        		"explain a;cd 'bar'; pwd; ls ; fs -ls ; fs -rmr foo; mv foo bar; " +
-        		"dump a;store a into 'input-copy.txt' ; a = load '2.txt' as (b);" +
-        		"explain a; rm foo; store a into 'bar';";
+                "aliases;illustrate a; copyFromLocal foo bar; copyToLocal foo bar; " +
+                "describe a; mkdir foo; run bar.pig; exec bar.pig; cp foo bar; " +
+                "explain a;cd 'bar'; pwd; ls ; fs -ls ; fs -rmr foo; mv foo bar; " +
+                "dump a;store a into 'input-copy.txt' ; a = load '2.txt' as (b);" +
+                "explain a; rm foo; store a into 'bar';";
         
         String[] cmds = new String[] { "'rm/rmf'", "'cp'", "'cat'", "'cd'", "'pwd'", 
                 "'copyFromLocal'", "'copyToLocal'", "'describe'", "'ls'", 
@@ -1303,7 +1299,7 @@ public class TestGrunt {
         ArrayList<String> msgs = new ArrayList<String>();
         for (String c : cmds) {
             msgs.add(c + " statement is ignored while processing " +
-            		"'explain -script' or '-check'");
+                    "'explain -script' or '-check'");
         }
         validate(query, true, msgs.toArray(new String[0]));
     }
@@ -1315,8 +1311,8 @@ public class TestGrunt {
         
         // the query has a typo - chararay instead of chararray
         String query = "a = load '1.txt' ;  fs -rmr foo; mv foo bar; dump a;" +
-        		"store a into 'input-copy.txt' ; dump a; a = load '2.txt' as " +
-        		"(b:chararay);explain a; rm foo; store a into 'bar';";
+                "store a into 'input-copy.txt' ; dump a; a = load '2.txt' as " +
+                "(b:chararay);explain a; rm foo; store a into 'bar';";
         
         String[] cmds = new String[] { "'fs'", "'mv'", "'dump'" };
         ArrayList<String> msgs = new ArrayList<String>();
@@ -1332,7 +1328,7 @@ public class TestGrunt {
     public void testCheckScriptSyntaxWithSemiColonUDFErr() throws Throwable {
         // Should able to handle semicolons in udf
         String query = "a = load 'i1' as (f1:chararray);" +
-        			   "c = foreach a generate REGEX_EXTRACT(f1, '.;' ,1); dump c;";
+                       "c = foreach a generate REGEX_EXTRACT(f1, '.;' ,1); dump c;";
                 
         ArrayList<String> msgs = new ArrayList<String>();                //
         validate(query, true, msgs.toArray(new String[0]));
@@ -1345,8 +1341,8 @@ public class TestGrunt {
         
         // the query has incompatible types in bincond
         String query = "a = load 'foo.pig' as (s:chararray); dump a; explain a; " +
-        		"store a into 'foobar'; b = foreach a generate " +
-        		"(s == 2 ? 1 : 2.0); store b into 'bar';";
+                "store a into 'foobar'; b = foreach a generate " +
+                "(s == 2 ? 1 : 2.0); store b into 'bar';";
 
         String[] cmds = new String[] { "'dump'" };
         ArrayList<String> msgs = new ArrayList<String>();
@@ -1374,7 +1370,7 @@ public class TestGrunt {
         }
         if(syntaxOk) {
             assertTrue("Checking that the syntax OK message was printed on " +
-            		"stderr <" + pri.stderrContents + ">",
+                    "stderr <" + pri.stderrContents + ">",
                     pri.stderrContents.contains("syntax OK"));
         } else {
             assertFalse("Checking that the syntax OK message was NOT printed on " +

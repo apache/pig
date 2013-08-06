@@ -18,10 +18,10 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringReader;
-import java.io.StringWriter;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -34,10 +34,10 @@ import org.apache.pig.ExecType;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.pigunit.pig.PigServer;
-import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
 import org.apache.pig.tools.parameters.ParseException;
 
 /**
@@ -153,13 +153,12 @@ public class PigTest {
   protected void registerScript() throws IOException, ParseException {
     getCluster();
 
-    BufferedReader pigIStream = new BufferedReader(new StringReader(this.originalTextPigScript));
-    StringWriter pigOStream = new StringWriter();
+    BufferedReader reader = new BufferedReader(new StringReader(this.originalTextPigScript));
+    PigContext context = getPigServer().getPigContext();
 
-    ParameterSubstitutionPreprocessor ps = new ParameterSubstitutionPreprocessor(50);
-    ps.genSubstitutedFile(pigIStream, pigOStream, args, argFiles);
-
-    String substitutedPig = pigOStream.toString();
+    String substitutedPig = context.doParamSubstitution(reader,
+                                                        args == null ? null : Arrays.asList(args),
+                                                        argFiles == null ? null : Arrays.asList(argFiles));
     LOG.info(substitutedPig);
 
     File f = File.createTempFile("tmp", "pigunit");

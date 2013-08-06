@@ -116,12 +116,16 @@ query : ^( QUERY statement* )
 statement : general_statement
           | split_statement
           | realias_statement
+          | register_statement
 ;
 
 split_statement : split_clause
 ;
 
 realias_statement : realias_clause
+;
+
+register_statement : ^( REGISTER QUOTEDSTRING (USING IDENTIFIER AS IDENTIFIER)? )
 ;
 
 general_statement : ^( STATEMENT ( alias { aliases.add( $alias.name ); } )? op_clause parallel_clause? )

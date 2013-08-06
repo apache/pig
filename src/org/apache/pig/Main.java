@@ -29,7 +29,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.StringReader;
-import java.io.StringWriter;
 import java.text.ParseException;
 import java.util.AbstractList;
 import java.util.ArrayList;
@@ -74,7 +73,6 @@ import org.apache.pig.scripting.ScriptEngine;
 import org.apache.pig.scripting.ScriptEngine.SupportedScriptLang;
 import org.apache.pig.tools.cmdline.CmdLineParser;
 import org.apache.pig.tools.grunt.Grunt;
-import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
 import org.apache.pig.tools.pigstats.PigProgressNotificationListener;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStatsUtil;
@@ -634,13 +632,13 @@ static int run(String args[], PigProgressNotificationListener listener) {
         }
 
         if(!gruntCalled) {
-        	LogUtils.writeLog(e, logFileName, log, verbose, "Error before Pig is launched");
+            LogUtils.writeLog(e, logFileName, log, verbose, "Error before Pig is launched");
         }
     } catch (Throwable e) {
         rc = ReturnCode.THROWABLE_EXCEPTION;
         PigStatsUtil.setErrorMessage(e.getMessage());
         if(!gruntCalled) {
-        	LogUtils.writeLog(e, logFileName, log, verbose, "Error before Pig is launched");
+            LogUtils.writeLog(e, logFileName, log, verbose, "Error before Pig is launched");
         }
     } finally {
         // clear temp files
@@ -745,7 +743,7 @@ private static void configureLog4J(Properties properties, PigContext pigContext)
     PropertyConfigurator.configure(props);
     logLevel = Logger.getLogger("org.apache.pig").getLevel();
     if (logLevel==null) {
-    	logLevel = Logger.getLogger("org.apache.pig").getEffectiveLevel();
+        logLevel = Logger.getLogger("org.apache.pig").getEffectiveLevel();
     }
     Properties backendProps = pigContext.getLog4jProperties();
     backendProps.setProperty("log4j.logger.org.apache.pig", logLevel.toString());
@@ -768,21 +766,11 @@ private static BufferedReader runParamPreprocessor(PigContext context, BufferedR
                                             String scriptFile, boolean createFile)
                                 throws org.apache.pig.tools.parameters.ParseException, IOException{
 
-    ParameterSubstitutionPreprocessor psp = new ParameterSubstitutionPreprocessor(50);
-    String[] type1 = new String[1];
-    String[] type2 = new String[1];
-
-    if (createFile){
-        BufferedWriter fw = new BufferedWriter(new FileWriter(scriptFile));
-        psp.genSubstitutedFile (origPigScript, fw, context.getParams().size() > 0 ? context.getParams().toArray(type1) : null,
-                                context.getParamFiles().size() > 0 ? context.getParamFiles().toArray(type2) : null);
-        return new BufferedReader(new FileReader (scriptFile));
-
+    if (createFile) {
+        return context.doParamSubstitutionOutputToFile(origPigScript, scriptFile);
     } else {
-        StringWriter writer = new StringWriter();
-        psp.genSubstitutedFile (origPigScript, writer,  context.getParams().size() > 0 ? context.getParams().toArray(type1) : null,
-                                context.getParamFiles().size() > 0 ? context.getParamFiles().toArray(type2) : null);
-        return new BufferedReader(new StringReader(writer.toString()));
+        String substituted = context.doParamSubstitution(origPigScript);
+        return new BufferedReader(new StringReader(substituted));
     }
 }
 
@@ -837,7 +825,7 @@ public static String getVersionString() {
  */
 public static void usage()
 {
-	System.out.println("\n"+getVersionString()+"\n");
+        System.out.println("\n"+getVersionString()+"\n");
         System.out.println("USAGE: Pig [options] [-] : Run interactively in grunt shell.");
         System.out.println("       Pig [options] -e[xecute] cmd [cmd ...] : Run cmd(s).");
         System.out.println("       Pig [options] [-f[ile]] file : Run cmds found in file.");
@@ -850,7 +838,7 @@ public static void usage()
         System.out.println("    -f, -file - Path to the script to execute");
         System.out.println("    -g, -embedded - ScriptEngine classname or keyword for the ScriptEngine");
         System.out.println("    -h, -help - Display this message. You can specify topic to get help for that topic.");
-	System.out.println("        properties is the only topic currently supported: -h properties.");
+        System.out.println("        properties is the only topic currently supported: -h properties.");
         System.out.println("    -i, -version - Display version information");
         System.out.println("    -l, -logfile - Path to client side log file; default is current working directory.");
         System.out.println("    -m, -param_file - Path to the parameter file");
@@ -879,8 +867,8 @@ public static void usage()
 }
 
 public static void printProperties(){
-	System.out.println("The following properties are supported:");
-	System.out.println("    Logging:");
+        System.out.println("The following properties are supported:");
+        System.out.println("    Logging:");
         System.out.println("        verbose=true|false; default is false. This property is the same as -v switch");
         System.out.println("        brief=true|false; default is false. This property is the same as -b switch");
         System.out.println("        debug=OFF|ERROR|WARN|INFO|DEBUG; default is INFO. This property is the same as -d switch");
@@ -888,7 +876,7 @@ public static void printProperties(){
         System.out.println("            of each type rather than logging each warning.");
         System.out.println("    Performance tuning:");
         System.out.println("        pig.cachedbag.memusage=<mem fraction>; default is 0.2 (20% of all memory).");
-	System.out.println("            Note that this memory is shared across all large bags used by the application.");
+        System.out.println("            Note that this memory is shared across all large bags used by the application.");
         System.out.println("        pig.skewedjoin.reduce.memusagea=<mem fraction>; default is 0.3 (30% of all memory).");
         System.out.println("            Specifies the fraction of heap available for the reducer to perform the join.");
         System.out.println("        pig.exec.nocombiner=true|false; default is false. ");
@@ -916,7 +904,7 @@ public static void printProperties(){
         System.out.println("        stop.on.failure=true|false; default is false. Set to true to terminate on the first error.");
         System.out.println("        pig.datetime.default.tz=<UTC time offset>. e.g. +08:00. Default is the default timezone of the host.");
         System.out.println("            Determines the timezone used to handle datetime datatype and UDFs. ");
-	System.out.println("Additionally, any Hadoop property can be specified.");
+        System.out.println("Additionally, any Hadoop property can be specified.");
 }
 
 private static String validateLogFile(String logFileName, String scriptName) {
@@ -1021,25 +1009,25 @@ private static SupportedScriptLang determineScriptType(String file)
 
 private static int runEmbeddedScript(PigContext pigContext, String file, String engine)
 throws IOException {
-	log.info("Run embedded script: " + engine);
-	pigContext.connect();
-	ScriptEngine scriptEngine = ScriptEngine.getInstance(engine);
-	Map<String, List<PigStats>> statsMap = scriptEngine.run(pigContext, file);
-	PigStatsUtil.setStatsMap(statsMap);
+    log.info("Run embedded script: " + engine);
+    pigContext.connect();
+    ScriptEngine scriptEngine = ScriptEngine.getInstance(engine);
+    Map<String, List<PigStats>> statsMap = scriptEngine.run(pigContext, file);
+    PigStatsUtil.setStatsMap(statsMap);
 
-	int failCount = 0;
-	int totalCount = 0;
-	for (List<PigStats> lst : statsMap.values()) {
-		if (lst != null && !lst.isEmpty()) {
-			for (PigStats stats : lst) {
-				if (!stats.isSuccessful()) failCount++;
-				totalCount++;
-			}
-		}
-	}
-	return (totalCount > 0 && failCount == totalCount) ? ReturnCode.FAILURE
-			: (failCount > 0) ? ReturnCode.PARTIAL_FAILURE
-					: ReturnCode.SUCCESS;
+    int failCount = 0;
+    int totalCount = 0;
+    for (List<PigStats> lst : statsMap.values()) {
+        if (lst != null && !lst.isEmpty()) {
+            for (PigStats stats : lst) {
+                if (!stats.isSuccessful()) failCount++;
+                totalCount++;
+            }
+        }
+    }
+    return (totalCount > 0 && failCount == totalCount) ? ReturnCode.FAILURE
+            : (failCount > 0) ? ReturnCode.PARTIAL_FAILURE
+                    : ReturnCode.SUCCESS;
 }
 
 }

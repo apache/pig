@@ -30,7 +30,6 @@ import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.io.Reader;
 import java.io.StringReader;
-import java.io.StringWriter;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -65,11 +64,11 @@ import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileLocalizer.FetchFileRet;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.TupleFormat;
-import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
 import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.apache.pig.tools.pigscript.parser.PigScriptParser;
 import org.apache.pig.tools.pigscript.parser.PigScriptParserTokenManager;
@@ -457,23 +456,12 @@ public class GruntParser extends PigScriptParser {
         }
     }
 
-    private String runPreprocessor(String script, List<String> params,
-                                   List<String> files)
+    private String runPreprocessor(String scriptPath, List<String> params, List<String> paramFiles)
         throws IOException, ParseException {
 
-        ParameterSubstitutionPreprocessor psp = new ParameterSubstitutionPreprocessor(50);
-        StringWriter writer = new StringWriter();
-
-        try{
-            psp.genSubstitutedFile(new BufferedReader(new FileReader(script)),
-                                   writer,
-                                   params.size() > 0 ? params.toArray(new String[0]) : null,
-                                   files.size() > 0 ? files.toArray(new String[0]) : null);
-        } catch (org.apache.pig.tools.parameters.ParseException pex) {
-            throw new ParseException(pex.getMessage());
-        }
-
-        return writer.toString();
+        PigContext context = mPigServer.getPigContext();
+        BufferedReader reader = new BufferedReader(new FileReader(scriptPath));
+        return context.doParamSubstitution(reader, params, paramFiles);
     }
 
     @Override
@@ -511,6 +499,9 @@ public class GruntParser extends PigScriptParser {
         Reader inputReader;
         ConsoleReader reader;
         boolean interactive;
+
+        mPigServer.getPigContext().setParams(params);
+        mPigServer.getPigContext().setParamFiles(files);
 
         try {
             FetchFileRet fetchFile = FileLocalizer.fetchFile(mConf, script);
