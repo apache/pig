@@ -50,8 +50,8 @@ import org.apache.pig.impl.io.ResourceNotFoundException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
+import org.apache.pig.parser.QueryParser.field_def_list_return;
 import org.apache.pig.parser.QueryParser.literal_return;
-import org.apache.pig.parser.QueryParser.schema_return;
 import org.apache.pig.tools.pigstats.ScriptState;
 
 public class QueryParserDriver {
@@ -85,9 +85,9 @@ public class QueryParserDriver {
     private static Tree parseSchema(CommonTokenStream tokens) throws ParserException {
         QueryParser parser = QueryParserUtils.createParser(tokens);
 
-        schema_return result = null;
+        field_def_list_return result = null;
         try {
-            result = parser.schema();
+            result = parser.field_def_list();
         } catch (RecognitionException e) {
             String msg = parser.getErrorHeader(e) + " "
                     + parser.getErrorMessage(e, parser.getTokenNames());
