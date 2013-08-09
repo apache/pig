@@ -30,6 +30,8 @@ import org.antlr.runtime.tree.Tree;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigRunner;
 import org.apache.pig.PigServer;
+import org.apache.pig.data.DataType;
+import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.test.Util;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.junit.Assert;
@@ -304,6 +306,23 @@ public class TestQueryParser {
         PigServer pig = new PigServer(ExecType.LOCAL);
         Util.registerMultiLineQuery(pig, query);
         pig.explain("b", System.out);
+    }
+
+    @Test
+    public void testParseSchema() throws Exception {
+        String schemaDef = "  a:int, b:long  "; // Extra white spaces shouldn't make parsing fail
+        QueryParserDriver qpd = new QueryParserDriver(null, null, null);
+        LogicalSchema schema = qpd.parseSchema(schemaDef);
+        Assert.assertEquals(2, schema.getFields().size());
+        Assert.assertEquals(DataType.INTEGER, schema.getFields().get(0).type);
+        Assert.assertEquals(DataType.LONG, schema.getFields().get(1).type);
+    }
+
+    @Test(expected=ParserException.class)
+    public void testParseSchemaNegative() throws Exception {
+        String schemaDef = "a:int b:long"; // A comma is missing between fields
+        QueryParserDriver qpd = new QueryParserDriver(null, null, null);
+        qpd.parseSchema(schemaDef);
     }
 
     @Test
