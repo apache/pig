@@ -208,9 +208,6 @@ catch(RecognitionException re) {
 query : statement* EOF -> ^( QUERY statement* )
 ;
 
-schema: field_def_list EOF
-;
-
 // STATEMENTS
 
 statement : SEMI_COLON!
