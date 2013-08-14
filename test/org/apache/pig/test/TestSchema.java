@@ -868,7 +868,7 @@ public class TestSchema {
             "datetime,datetime,datetime,datetime,datetime,datetime,datetime,datetime,datetime,datetime",
             "{},{},{},{},{},{},{},{},{},{}",
             "map[],map[],map[],map[],map[],map[],map[],map[],map[],map[]",
-            "int,int,long,long,float,float,double,double,boolean,boolean,datetime,datetime(int,long,float,double,boolean,datetime),{(int,long,float,double,boolean,datetime)},map[(int,long,float,double,boolean,datetime)]"
+            "int,int,long,long,float,float,double,double,boolean,boolean,datetime,datetime,(int,long,float,double,boolean,datetime),{(int,long,float,double,boolean,datetime)},map[(int,long,float,double,boolean,datetime)]"
         };
         for (String schemaString : schemaStrings) {
             Schema s1 = Utils.getSchemaFromString(schemaString);
@@ -877,4 +877,11 @@ public class TestSchema {
             assertTrue(Schema.equals(s1,s2,false,true));
         }
     }
+
+     @Test(expected=ParserException.class)
+     public void testGetStringFromSchemaNegative() throws Exception {
+         String schemaString = "a:int b:long"; // A comma is missing between fields
+         Utils.getSchemaFromString(schemaString);
+         fail("The schema string is invalid, so parsing should fail!");
+     }
 }
