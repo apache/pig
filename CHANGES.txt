@@ -32,6 +32,8 @@ PIG-2769: a simple logic causes very long compiling time on pig 0.10.0 (njw45 vi
 
 BUG FIXES
 
+PIG-2507: Semicolon in paramenters for UDF results in parsing error (tnachen via daijy)
+ 
 PIG-3341: Strict datetime parsing and improve performance of loading datetime values (rohini)
 
 PIG-3329: RANK operator failed when working with SPLIT (xalan via cheolsoo)
