@@ -647,6 +647,25 @@ public class TestAvroStorage {
       verifyResults(createOutputName(),check);
     }
 
+    @Test public void testSeparatedByComma() throws Exception {
+        final String temp = basedir
+                + "data/avro/uncompressed/testdirectory/part-m-0000";
+        StringBuffer sb = new StringBuffer();
+        sb.append(temp + "0.avro");
+        for (int i = 1; i <= 7; ++i) {
+            sb.append(",");
+            sb.append(temp + String.valueOf(i) + ".avro");
+        }
+        final String input = sb.toString();
+        final String check = basedir
+                + "data/avro/uncompressed/testDirectoryCounts.avro";
+        testAvroStorage(true, basedir + "code/pig/directory_test.pig",
+                ImmutableMap.of("INFILE", input, "AVROSTORAGE_OUT_1", "stats",
+                        "AVROSTORAGE_OUT_2", "-n org.apache.pig.test.builtin",
+                        "OUTFILE", createOutputName()));
+        verifyResults(createOutputName(), check);
+    }
+
     @Test public void testDoubleUnderscore() throws Exception {
       final String input = basedir + "data/avro/uncompressed/records.avro";
       final String check = basedir + "data/avro/uncompressed/recordsWithDoubleUnderscores.avro";

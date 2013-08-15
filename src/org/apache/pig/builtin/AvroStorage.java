@@ -21,6 +21,7 @@ package org.apache.pig.builtin;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -269,9 +270,15 @@ public class AvroStorage extends LoadFunc
    * @throws IOException
    *
    */
-  protected final  Schema getAvroSchema(final String location,
-      final Job job) throws IOException {
-    return getAvroSchema(new Path(location), job);
+  protected final Schema getAvroSchema(final String location, final Job job)
+      throws IOException {
+    String[] locations = getPathStrings(location);
+    Path[] paths = new Path[locations.length];
+    for (int i = 0; i < paths.length; ++i) {
+      paths[i] = new Path(locations[i]);
+    }
+
+    return getAvroSchema(paths, job);
   }
 
   /**
@@ -285,18 +292,24 @@ public class AvroStorage extends LoadFunc
   };
 
   /**
-   * Reads the avro schema at the specified location.
+   * Reads the avro schemas at the specified location.
    * @param p Location of file
    * @param job Hadoop job object
    * @return an Avro Schema object derived from the specified file
    * @throws IOException
    *
    */
-  public Schema getAvroSchema(final Path p, final Job job)
-      throws IOException {
+  public Schema getAvroSchema(final Path[] p, final Job job) throws IOException {
     GenericDatumReader<Object> avroReader = new GenericDatumReader<Object>();
-    FileSystem fs = FileSystem.get(p.toUri(), job.getConfiguration());
-    FileStatus[] statusArray = fs.globStatus(p);
+    ArrayList<FileStatus> statusList = new ArrayList<FileStatus>();
+    FileSystem fs = FileSystem.get(p[0].toUri(), job.getConfiguration());
+    for (Path temp : p) {
+      for (FileStatus tempf : fs.globStatus(temp)) {
+        statusList.add(tempf);
+      }
+    }
+    FileStatus[] statusArray = (FileStatus[]) statusList
+        .toArray(new FileStatus[statusList.size()]);
 
     if (statusArray == null) {
       throw new IOException("Path " + p.toString() + " does not exist.");
@@ -313,8 +326,8 @@ public class AvroStorage extends LoadFunc
     }
 
     InputStream hdfsInputStream = fs.open(filePath);
-    DataFileStream<Object> avroDataStream =
-        new DataFileStream<Object>(hdfsInputStream, avroReader);
+    DataFileStream<Object> avroDataStream = new DataFileStream<Object>(
+        hdfsInputStream, avroReader);
     Schema s = avroDataStream.getSchema();
     avroDataStream.close();
     return s;

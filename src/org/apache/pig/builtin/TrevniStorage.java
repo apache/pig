@@ -20,6 +20,7 @@ package org.apache.pig.builtin;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
 
@@ -302,10 +303,17 @@ public class TrevniStorage extends AvroStorage implements LoadPushDown{
   }
 
   @Override
-  public  Schema getAvroSchema(Path p, final Job job) throws IOException {
+  public  Schema getAvroSchema(Path p[], final Job job) throws IOException {
 
-    FileSystem fs = FileSystem.get(p.toUri(), job.getConfiguration());
-    FileStatus[] statusArray = fs.globStatus(p, VISIBLE_FILES);
+    ArrayList<FileStatus> statusList = new ArrayList<FileStatus>();
+    FileSystem fs = FileSystem.get(p[0].toUri(), job.getConfiguration());
+    for (Path temp : p) {
+      for (FileStatus tempf : fs.globStatus(temp, VISIBLE_FILES)) {
+        statusList.add(tempf);
+      }
+    }
+    FileStatus[] statusArray = (FileStatus[]) statusList
+        .toArray(new FileStatus[statusList.size()]);
 
     if (statusArray == null) {
       throw new IOException("Path " + p.toString() + " does not exist.");
