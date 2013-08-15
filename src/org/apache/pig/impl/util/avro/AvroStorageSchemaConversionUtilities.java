@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.avro.AvroRuntimeException;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
 import org.apache.avro.Schema.Type;
@@ -573,31 +574,36 @@ public class AvroStorageSchemaConversionUtilities {
       final Schema oldSchema, final List<RequiredField> rfl) {
     List<Schema.Field> fields = Lists.newArrayList();
     for (RequiredField rf : rfl) {
-      Schema.Field f = oldSchema.getField(rf.getAlias());
-      if (f == null) {
-        return null;
-      }
       try {
-        if (getPigType(f.schema()) != rf.getType()) {
+        Schema.Field f = oldSchema.getField(rf.getAlias());
+        if (f == null) {
           return null;
         }
-      } catch (ExecException e) {
-        Log.warn("ExecException caught in newSchemaFromRequiredFieldList", e);
-        return null;
-      }
-      if (rf.getSubFields() == null) {
-        fields.add(
-            new Schema.Field(f.name(), f.schema(), f.doc(), f.defaultValue()));
-      } else {
-        Schema innerSchema =
-            newSchemaFromRequiredFieldList(f.schema(), rf.getSubFields());
-        if (innerSchema == null) {
+        try {
+          if (getPigType(f.schema()) != rf.getType()) {
+            return null;
+          }
+        } catch (ExecException e) {
+          Log.warn("ExecException caught in newSchemaFromRequiredFieldList", e);
           return null;
-        } else {
+        }
+        if (rf.getSubFields() == null) {
           fields.add(
-              new Schema.Field(
-                  f.name(), innerSchema, f.doc(), f.defaultValue()));
+              new Schema.Field(f.name(), f.schema(), f.doc(), f.defaultValue()));
+        } else {
+          Schema innerSchema =
+              newSchemaFromRequiredFieldList(f.schema(), rf.getSubFields());
+          if (innerSchema == null) {
+            return null;
+          } else {
+            fields.add(
+                new Schema.Field(
+                    f.name(), innerSchema, f.doc(), f.defaultValue()));
+          }
         }
+      }
+      catch (AvroRuntimeException e){
+        return oldSchema;
       }
     }
 

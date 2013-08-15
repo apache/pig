@@ -39,6 +39,7 @@ public final class AvroMapWrapper implements Map<CharSequence, Object> {
    * The map contained in the wrapper object.
    */
   private Map<CharSequence, Object> innerMap;
+  private boolean isUtf8key;
 
   /**
    * Creates a new AvroMapWrapper object from the map object {@m}.
@@ -46,6 +47,10 @@ public final class AvroMapWrapper implements Map<CharSequence, Object> {
    */
   public AvroMapWrapper(final Map<CharSequence, Object> m) {
     innerMap = m;
+    if (m.keySet().size() > 0 && m.keySet().iterator().next() instanceof Utf8)
+      isUtf8key = true;
+    else
+      isUtf8key = false;
   }
 
   @Override
@@ -70,7 +75,13 @@ public final class AvroMapWrapper implements Map<CharSequence, Object> {
 
   @Override
   public Object get(final Object key) {
-    Object v = innerMap.get(key);
+    Object v = null;
+    if (isUtf8key) {
+      v = innerMap.get(new Utf8((String) key));
+    } else {
+      v = innerMap.get(key);
+    }
+    
     if (v instanceof Utf8) {
       return v.toString();
     } else {
