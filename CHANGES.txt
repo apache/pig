@@ -212,6 +212,8 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-3420: Failed to retrieve map values from data loaded by AvroStorage (yuanlid via rohini)
+
 PIG-3414: QueryParserDriver.parseSchema(String) silently returns a wrong result when a comma is missing in the schema definition (cheolsoo)
 
 PIG-3412: jsonstorage breaks when tuple does not have as many columns as schema (aesilberstein via cheolsoo)

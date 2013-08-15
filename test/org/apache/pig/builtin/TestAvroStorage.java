@@ -37,6 +37,9 @@ import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
+import org.apache.pig.builtin.mock.Storage.Data;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.test.Util;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -50,6 +53,7 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -57,6 +61,8 @@ import java.util.TreeSet;
 
 import static junit.framework.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.apache.pig.builtin.mock.Storage.resetData;
+import static org.apache.pig.builtin.mock.Storage.tuple;
 
 public class TestAvroStorage {
 
@@ -117,7 +123,7 @@ public class TestAvroStorage {
     @BeforeClass
     public static void setup() throws ExecException, IOException {
         pigServerLocal = new PigServer(ExecType.LOCAL);
-        deleteDirectory(new File(outbasedir));
+        Util.deleteDirectory(new File(outbasedir));
         generateInputFiles();
     }
 
@@ -709,16 +715,36 @@ public class TestAvroStorage {
         );
       verifyResults(createOutputName(), check);
     }
+    
+    @Test
+    public void testRetrieveDataFromMap() throws Exception {
+        pigServerLocal = new PigServer(ExecType.LOCAL);
+        Data data = resetData(pigServerLocal);
+        Map<String, String> mapv1 = new HashMap<String, String>();
+        mapv1.put("key1", "v11");
+        mapv1.put("key2", "v12");
+        Map<String, String> mapv2 = new HashMap<String, String>();
+        mapv2.put("key1", "v21");
+        mapv2.put("key2", "v22");
+        data.set("testMap", "maps:map[chararray]", tuple(mapv1), tuple(mapv2));
+        String schemaDescription = new String(
+                "{" +
+                      "\"type\": \"record\"," + 
+                      "\"name\": \"record\"," +
+                      "\"fields\" : [" +
+                      "{\"name\" : \"maps\", \"type\" :{\"type\" : \"map\", \"values\" : \"string\"}}" +
+                      "]" +
+                      "}");
+        pigServerLocal.registerQuery("A = LOAD 'testMap' USING mock.Storage();");
+        pigServerLocal.registerQuery("STORE A INTO '" + createOutputName() + "' USING AvroStorage('"+ schemaDescription +"');");
+        pigServerLocal.registerQuery("B = LOAD '" + createOutputName() + "' USING AvroStorage();");
+        pigServerLocal.registerQuery("C = FOREACH B generate maps#'key1';");
+        pigServerLocal.registerQuery("STORE C INTO 'out' USING mock.Storage();");
+        
 
-    private static void deleteDirectory (File path) {
-        if ( path.exists()) {
-            File [] files = path.listFiles();
-            for (File file: files) {
-                if (file.isDirectory())
-                    deleteDirectory(file);
-                file.delete();
-            }
-        }
+        List<Tuple> out = data.get("out");
+        assertEquals(tuple("v11"), out.get(0));
+        assertEquals(tuple("v21"), out.get(1));
     }
 
     private void testAvroStorage(boolean expectedToSucceed, String scriptFile, Map<String,String> parameterMap) throws IOException {
