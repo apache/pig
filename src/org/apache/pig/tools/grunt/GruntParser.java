@@ -72,6 +72,7 @@ import org.apache.pig.impl.util.TupleFormat;
 import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.apache.pig.tools.pigscript.parser.PigScriptParser;
 import org.apache.pig.tools.pigscript.parser.PigScriptParserTokenManager;
+import org.apache.pig.tools.pigscript.parser.TokenMgrError;
 import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
@@ -184,6 +185,7 @@ public class GruntParser extends PigScriptParser {
 
         if (!mInteractive && !sameBatch) {
             setBatchOn();
+            mPigServer.setSkipParseInRegisterForBatch(true);
         }
 
         try {
@@ -196,6 +198,14 @@ public class GruntParser extends PigScriptParser {
             if (!sameBatch) {
                 executeBatch();
             }
+        } catch (TokenMgrError tme) {
+            // This error from PigScriptParserTokenManager is not intuitive and always refers to the
+            // last line, if we are reading whole query without parsing it line by line during batch
+            // So executeBatch and get the error from QueryParser
+            if (!mInteractive && !sameBatch) {
+                executeBatch();
+            }
+            throw tme;
         } finally {
             if (!sameBatch) {
                 discardBatch();
@@ -269,6 +279,9 @@ public class GruntParser extends PigScriptParser {
     protected void processDescribe(String alias) throws IOException {
         String nestedAlias = null;
         if(mExplain == null) { // process only if not in "explain" mode
+
+            executeBatch();
+
             if(alias==null) {
                 alias = mPigServer.getPigContext().getLastAlias();
                 // if describe is used immediately after launching grunt shell then
@@ -299,6 +312,9 @@ public class GruntParser extends PigScriptParser {
                                   String format, String target,
                                   List<String> params, List<String> files)
     throws IOException, ParseException {
+        if (mPigServer.isBatchOn()) {
+            mPigServer.parseAndBuild();
+        }
         if (alias == null && script == null) {
             alias = mPigServer.getPigContext().getLastAlias();
             // if explain is used immediately after launching grunt shell then
@@ -310,7 +326,7 @@ public class GruntParser extends PigScriptParser {
         if ("@".equals(alias)) {
             alias = mPigServer.getLastRel();
         }
-        processExplain(alias, script, isVerbose, format, target, params, files, 
+        processExplain(alias, script, isVerbose, format, target, params, files,
                 false);
     }
 
@@ -669,6 +685,9 @@ public class GruntParser extends PigScriptParser {
     {
         ContainerDescriptor container;
         if(mExplain == null) { // process only if not in "explain" mode
+
+            executeBatch();
+
             try {
                 if (path == null) {
                     container = mDfs.asContainer(((HDataStorage)mDfs).getHFS().getHomeDirectory().toString());
@@ -703,6 +722,9 @@ public class GruntParser extends PigScriptParser {
     protected void processDump(String alias) throws IOException
     {
         if (alias == null) {
+            if (mPigServer.isBatchOn()) {
+                mPigServer.parseAndBuild();
+            }
             alias = mPigServer.getPigContext().getLastAlias();
             // if dump is used immediately after launching grunt shell then
             // last defined alias will be null
@@ -713,7 +735,9 @@ public class GruntParser extends PigScriptParser {
         }
 
         if(mExplain == null) { // process only if not in "explain" mode
+
             executeBatch();
+
             if ("@".equals(alias)) {
                 alias = mPigServer.getLastRel();
             }
@@ -758,6 +782,9 @@ public class GruntParser extends PigScriptParser {
                         throw e;
                     }
                 } else if (alias == null) {
+                    if (mPigServer.isBatchOn()) {
+                        mPigServer.parseAndBuild();
+                    }
                     alias = mPigServer.getPigContext().getLastAlias();
                     // if illustrate is used immediately after launching grunt shell then
                     // last defined alias will be null
@@ -766,6 +793,9 @@ public class GruntParser extends PigScriptParser {
                     }
                 }
                 if ("@".equals(alias)) {
+                    if (mPigServer.isBatchOn()) {
+                        mPigServer.parseAndBuild();
+                    }
                     alias = mPigServer.getLastRel();
                 }
                 mPigServer.getExamples(alias);
@@ -798,6 +828,9 @@ public class GruntParser extends PigScriptParser {
     protected void processLS(String path) throws IOException
     {
         if(mExplain == null) { // process only if not in "explain" mode
+
+            executeBatch();
+
             try {
                 ElementDescriptor pathDescriptor;
 
@@ -852,6 +885,9 @@ public class GruntParser extends PigScriptParser {
     protected void processPWD() throws IOException
     {
         if(mExplain == null) { // process only if not in "explain" mode
+
+            executeBatch();
+
             System.out.println(mDfs.getActiveContainer().toString());
         } else {
             log.warn("'pwd' statement is ignored while processing 'explain -script' or '-check'");
@@ -1001,6 +1037,9 @@ public class GruntParser extends PigScriptParser {
     protected void processMkdir(String dir) throws IOException
     {
         if(mExplain == null) { // process only if not in "explain" mode
+
+            executeBatch();
+
             ContainerDescriptor dirDescriptor = mDfs.asContainer(dir);
             dirDescriptor.create();
         } else {
@@ -1174,11 +1213,11 @@ public class GruntParser extends PigScriptParser {
             if (!mPigServer.getPigContext().getProperties().get("pig.sql.type").equals("hcat")) {
                 throw new IOException("sql command only support hcat currently");
             }
-            if (mPigServer.getPigContext().getProperties().get("hcat.bin")==null) {
+            String hcatBin = (String)mPigServer.getPigContext().getProperties().get("hcat.bin");
+            if (hcatBin == null) {
                 throw new IOException("hcat.bin is not defined. Define it to be your hcat script (Usually $HCAT_HOME/bin/hcat");
             }
-            String hcatBin = (String)mPigServer.getPigContext().getProperties().get("hcat.bin");
-            if (new File("hcat.bin").exists()) {
+            if (!(new File(hcatBin).exists())) {
                 throw new IOException(hcatBin + " does not exist. Please check your 'hcat.bin' setting in pig.properties.");
             }
             executeBatch();
