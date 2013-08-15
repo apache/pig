@@ -18,14 +18,15 @@
 
 package org.apache.pig.test;
 
-import static junit.framework.Assert.assertEquals;
 import static org.apache.pig.builtin.mock.Storage.resetData;
 import static org.apache.pig.builtin.mock.Storage.tuple;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -33,6 +34,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.io.StringReader;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -45,9 +47,12 @@ import java.util.Properties;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
+import org.apache.pig.ResourceSchema;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.builtin.mock.Storage;
 import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
@@ -57,6 +62,8 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.util.Utils;
+import org.apache.pig.tools.grunt.Grunt;
+import org.apache.pig.tools.grunt.GruntParser;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -78,25 +85,25 @@ public class TestPigServer {
         tempDir.deleteOnExit();
         registerNewResource(tempDir.getAbsolutePath());
     }
-    
+
     @After
     public void tearDown() throws Exception{
         pig = null;
         tempDir.delete();
     }
-    
+
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
         cluster.shutDown();
     }
-    
+
     private final static String FILE_SEPARATOR = System.getProperty("file.separator");
-    
-    // make sure that name is included or not (depending on flag "included") 
+
+    // make sure that name is included or not (depending on flag "included")
     // in the given list of stings
     private static void verifyStringContained(List<URL> list, String name, boolean included) {
         int count = 0;
-        
+
         for (URL url : list) {
             if (url.toString().contains(name)) {
                 if (!included) {
@@ -109,9 +116,9 @@ public class TestPigServer {
             assertEquals("Number of urls that contain name [" + name + "] != 1", 1, count);
         }
     }
-    
+
     // creates an empty jar file
-    private static void createFakeJarFile(String location, String name) 
+    private static void createFakeJarFile(String location, String name)
                                           throws IOException {
         createFakeJarFile(location, name,
                 FileSystem.getLocal(cluster.getConfiguration()).getRaw());
@@ -126,7 +133,7 @@ public class TestPigServer {
 
         assertTrue(fs.createNewFile(new Path(dir, name)));
     }
-    
+
     // dynamically add more resources to the system class loader
     private static void registerNewResource(String file) throws Exception {
         URL urlToAdd = new File(file).toURI().toURL();
@@ -137,16 +144,16 @@ public class TestPigServer {
         addMethod.setAccessible(true);
         addMethod.invoke(sysLoader, new Object[]{urlToAdd});
     }
-    
+
     /**
      * The jar file to register is not present
      */
     @Test
     public void testRegisterJarFileNotPresent() throws Throwable {
         // resister a jar file that does not exist
-        
+
         String jarName = "BadFileNameTestJarNotPresent.jar";
-        
+
         // jar name is not present to start with
         verifyStringContained(pig.getPigContext().extraJars, jarName, false);
         boolean raisedException = false;
@@ -170,12 +177,12 @@ public class TestPigServer {
         String jarLocation = dir1 + FILE_SEPARATOR +
                               dir2 + FILE_SEPARATOR;
         String jarName = "TestRegisterJarLocal.jar";
-        
-        
+
+
         createFakeJarFile(jarLocation, jarName);
-        
+
         verifyStringContained(pig.getPigContext().extraJars, jarName, false);
-        
+
             pig.registerJar(jarLocation + jarName);
         verifyStringContained(pig.getPigContext().extraJars, jarName, true);
 
@@ -198,16 +205,16 @@ public class TestPigServer {
         String jarName = "TestRegisterJarFromRes.jar";
         String jarLocation1 = dir + FILE_SEPARATOR + subDir1 + FILE_SEPARATOR;
         String jarLocation2 = dir + FILE_SEPARATOR + subDir2 + FILE_SEPARATOR;
-        
-        
+
+
         createFakeJarFile(jarLocation1, jarName);
         createFakeJarFile(jarLocation2, jarName);
-        
+
         verifyStringContained(pig.getPigContext().extraJars, jarName, false);
-        
+
         registerNewResource(jarLocation1);
         registerNewResource(jarLocation2);
-        
+
             pig.registerJar(jarName);
         verifyStringContained(pig.getPigContext().extraJars, jarName, true);
 
@@ -232,19 +239,19 @@ public class TestPigServer {
         String className = "TestRegisterJar";
         String javaSrc = "package " + subDir + "; class " + className + " { }";
 
-        
+
         // create dirs
         (new File(dir + FILE_SEPARATOR + subDir)).mkdirs();
 
         // generate java file
-        FileOutputStream outStream = 
+        FileOutputStream outStream =
             new FileOutputStream(new File(dir + FILE_SEPARATOR + subDir +
                                     FILE_SEPARATOR + className + ".java"));
-        
+
         OutputStreamWriter outWriter = new OutputStreamWriter(outStream);
         outWriter.write(javaSrc);
         outWriter.close();
-        
+
         // compile
         int status;
         status = Util.executeJavaCommand("javac " + dir + FILE_SEPARATOR + subDir +
@@ -259,15 +266,15 @@ public class TestPigServer {
         status = Util.executeJavaCommand("jar -cf " + dir + FILE_SEPARATOR + jarName + " " +
                               "-C " + dir + " " + subDir);
         assertEquals(0, status);
-        
+
         // remove class file and sub_dir
         (new File(dir + FILE_SEPARATOR + subDir +
                   FILE_SEPARATOR + className + ".class")).delete();
         (new File(dir + FILE_SEPARATOR + subDir)).delete();
-        
+
         // register resource
         registerNewResource(dir + FILE_SEPARATOR + jarName);
-        
+
         // load the specific resource
         boolean exceptionRaised = false;
         try {
@@ -276,7 +283,7 @@ public class TestPigServer {
         catch (IOException e) {
             exceptionRaised = true;
         }
-        
+
         // verify proper jar file is located
         assertFalse(exceptionRaised);
         verifyStringContained(pig.getPigContext().extraJars, jarName, true);
@@ -285,17 +292,17 @@ public class TestPigServer {
         (new File(dir + FILE_SEPARATOR + jarName)).delete();
         (new File(dir)).delete();
     }
-    
+
     @Test
     public void testRegisterJarGlobbingRelative() throws Throwable {
         String dir = "test1_register_jar_globbing_relative";
         String jarLocation = dir + FILE_SEPARATOR;
         String jar1Name = "TestRegisterJarGlobbing1.jar";
         String jar2Name = "TestRegisterJarGlobbing2.jar";
-        
+
         createFakeJarFile(jarLocation, jar1Name);
         createFakeJarFile(jarLocation, jar2Name);
-        
+
             pig.registerJar(jarLocation + "TestRegisterJarGlobbing*.jar");
         verifyStringContained(pig.getPigContext().extraJars, jar1Name, true);
         verifyStringContained(pig.getPigContext().extraJars, jar2Name, true);
@@ -305,17 +312,17 @@ public class TestPigServer {
         assertTrue((new File(jarLocation + jar2Name)).delete());
         (new File(dir)).delete();
     }
-    
+
     @Test
     public void testRegisterJarGlobbingAbsolute() throws Throwable {
         String dir = "test1_register_jar_globbing_absolute";
         String jarLocation = dir + FILE_SEPARATOR;
         String jar1Name = "TestRegisterJarGlobbing1.jar";
         String jar2Name = "TestRegisterJarGlobbing2.jar";
-        
+
         createFakeJarFile(jarLocation, jar1Name);
         createFakeJarFile(jarLocation, jar2Name);
-        
+
         String currentDir = System.getProperty("user.dir");
             pig.registerJar(new File(currentDir, dir) + FILE_SEPARATOR + "TestRegisterJarGlobbing*.jar");
         verifyStringContained(pig.getPigContext().extraJars, jar1Name, true);
@@ -463,7 +470,7 @@ public class TestPigServer {
         Schema expectedSchema = Utils.getSchemaFromString("field1: int,field2: double,field3: chararray");
         assertEquals(expectedSchema, dumpedSchema);
     }
-    
+
     @Test
     public void testDescribeTuple2Elem() throws Throwable {
         pig.registerQuery("a = load 'a' as (field1: int, field2: int, field3: int );") ;
@@ -484,7 +491,7 @@ public class TestPigServer {
                     "itemCounts::f: float,itemCounts::m: map[ ]");
         assertEquals(expectedSchema, dumpedSchema);
     }
-    
+
     @Test
     public void testRegisterRemoteScript() throws Throwable {
         String scriptName = "script.py";
@@ -535,7 +542,7 @@ public class TestPigServer {
             assertEquals(tuple.get(0).toString(), expectedTuples.get(index).get(0).toString());
             index++;
         }
-        
+
         // using param file
         pig=new PigServer(ExecType.LOCAL);
         List<String> paramFile=new ArrayList<String>();
@@ -549,7 +556,7 @@ public class TestPigServer {
             assertEquals(tuple.get(0).toString(), expectedTuples.get(index).get(0).toString());
             index++;
         }
-        
+
         // using both param value and param file, param value should override param file
         pig=new PigServer(ExecType.LOCAL);
         pig.registerScript(scriptFile.getAbsolutePath(),params,paramFile);
@@ -562,7 +569,7 @@ public class TestPigServer {
             index++;
         }
     }
-    
+
     // build the pig script from in-memory, and wrap it as ByteArrayInputStream
     @Test
     public void testRegisterScriptFromStream() throws Exception{
@@ -580,7 +587,7 @@ public class TestPigServer {
             assertEquals(tuple.get(0).toString(), expectedTuples.get(index).get(0).toString());
             index++;
         }
-        
+
         // using param file
         pig=new PigServer(ExecType.LOCAL);
         List<String> paramFile=new ArrayList<String>();
@@ -594,7 +601,7 @@ public class TestPigServer {
             assertEquals(tuple.get(0).toString(), expectedTuples.get(index).get(0).toString());
             index++;
         }
-        
+
         // using both param value and param file, param value should override param file
         pig=new PigServer(ExecType.LOCAL);
         pig.registerScript(new ByteArrayInputStream(script.getBytes("UTF-8")),params,paramFile);
@@ -607,7 +614,7 @@ public class TestPigServer {
             index++;
         }
     }
-    
+
     @Test
     public void testPigProperties() throws Throwable {
         File propertyFile = new File(tempDir, "pig.properties");
@@ -616,7 +623,7 @@ public class TestPigServer {
         File cliPropertyFile = new File("commandLine_pig.properties");
         cliPropertyFile.deleteOnExit();
         TestPigServer.registerNewResource(cliPropertyFile.getAbsolutePath());
-        
+
         Properties properties = PropertiesUtil.loadDefaultProperties();
         assertEquals("40000000", properties.getProperty("pig.spill.gc.activation.size"));
         assertNull(properties.getProperty("test123"));
@@ -627,7 +634,7 @@ public class TestPigServer {
         properties = PropertiesUtil.loadDefaultProperties();
 
         assertEquals("properties", properties.getProperty("test123"));
-        
+
         out = new PrintWriter(new FileWriter(cliPropertyFile));
         out.println("test123=cli_properties");
         out.close();
@@ -636,7 +643,7 @@ public class TestPigServer {
         PropertiesUtil.loadPropertiesFromFile(properties,
                 "commandLine_pig.properties");
         assertEquals("cli_properties", properties.getProperty("test123"));
-        
+
         propertyFile.delete();
         cliPropertyFile.delete();
     }
@@ -657,7 +664,7 @@ public class TestPigServer {
         propertyFile.delete();
         FileLocalizer.setInitialized(false);
     }
-    
+
     @Test
     public void testDescribeForEachFlatten() throws Throwable {
         pig.registerQuery("a = load 'a';") ;
@@ -686,27 +693,27 @@ public class TestPigServer {
     	//Test with PigServer
     	PigServer pigServer = new PigServer(ExecType.MAPREDUCE);
     	Properties properties = pigServer.getPigContext().getProperties();
-    	
+
         assertEquals("999", properties.getProperty("pig.exec.reducers.max"));
         assertEquals("true", properties.getProperty("aggregate.warning"));
         assertEquals("true", properties.getProperty("opt.multiquery"));
         assertEquals("false", properties.getProperty("stop.on.failure"));
-    	
+
 		//Test with properties file
 		File propertyFile = new File(tempDir, "pig.properties");
 
 		properties = PropertiesUtil.loadDefaultProperties();
-		
+
 		assertEquals("999", properties.getProperty("pig.exec.reducers.max"));
         assertEquals("true", properties.getProperty("aggregate.warning"));
         assertEquals("true", properties.getProperty("opt.multiquery"));
         assertEquals("false", properties.getProperty("stop.on.failure"));
-		
+
 		PrintWriter out = new PrintWriter(new FileWriter(propertyFile));
 		out.println("aggregate.warning=false");
 		out.println("opt.multiquery=false");
 		out.println("stop.on.failure=true");
-		
+
 		out.close();
 
 		properties = PropertiesUtil.loadDefaultProperties();
@@ -761,5 +768,73 @@ public class TestPigServer {
         assertEquals(tuple("a", 1, "b"), out.get(0));
         assertEquals(tuple("b", 2, "c"), out.get(1));
         assertEquals(tuple("c", 3, "d"), out.get(2));
+    }
+
+    @Test
+    public void testSkipParseInRegisterForBatch() throws Throwable {
+        // numTimesInitiated = 10. 4 (once per registerQuery) + 6 (launchPlan->RandomSampleLoader,
+        // InputSizeReducerEstimator, getSplits->RandomSampleLoader,
+        // createRecordReader->RandomSampleLoader, getSplits, createRecordReader)
+        // numTimesSchemaCalled = 4 (once per registerQuery)
+        _testSkipParseInRegisterForBatch(false, 10, 4);
+        // numTimesInitiated = 7 (parseAndBuild, launchPlan->RandomSampleLoader,
+        // InputSizeReducerEstimator, getSplits->RandomSampleLoader,
+        // createRecordReader->RandomSampleLoader, getSplits, createRecordReader)
+        // numTimesSchemaCalled = 1 (parseAndBuild)
+        _testSkipParseInRegisterForBatch(true, 7, 1);
+    }
+
+    private void _testSkipParseInRegisterForBatch(boolean skipParseInRegisterForBatch,
+            int numTimesInitiated, int numTimesSchemaCalled) throws Throwable {
+        MockTrackingStorage.numTimesInitiated = 0;
+        MockTrackingStorage.numTimesSchemaCalled = 0;
+        String query = "A = LOAD 'foo' USING " + MockTrackingStorage.class.getName() + "();\n" +
+                "B = order A by $0,$1,$2;\n" +
+                "C = LIMIT B 2;\n" +
+                "STORE C INTO 'bar' USING mock.Storage();\n";
+        BufferedReader in = new BufferedReader(new StringReader(query));
+        Properties properties = new Properties();
+        properties.setProperty("io.sort.mb", "2");
+        PigContext pigContext = new PigContext(ExecType.LOCAL, properties);
+        Data data;
+        if (skipParseInRegisterForBatch) {
+            data = resetData(pigContext);
+            data.set("foo", tuple("a", 1, "b"), tuple("b", 2, "c"), tuple("c", 3, "d"));
+            Grunt grunt = new Grunt(in, pigContext);
+            grunt.exec(); // Calls grunt.parseStopOnError(); which executes as batch
+        }
+        else {
+            PigServer pigServer = new PigServer(pigContext);
+            data = resetData(pigServer);
+            data.set("foo", tuple("a", 1, "b"), tuple("b", 2, "c"), tuple("c", 3, "d"));
+            GruntParser grunt = new GruntParser(in);
+            grunt.setInteractive(false);
+            grunt.setParams(pigServer);
+            grunt.parseStopOnError(true); //not batch
+        }
+
+        assertEquals(numTimesInitiated, MockTrackingStorage.numTimesInitiated);
+        assertEquals(numTimesSchemaCalled, MockTrackingStorage.numTimesSchemaCalled);
+        List<Tuple> out = data.get("bar");
+        assertEquals(2, out.size());
+        assertEquals(tuple("a", 1, "b"), out.get(0));
+        assertEquals(tuple("b", 2, "c"), out.get(1));
+    }
+
+    public static class MockTrackingStorage extends Storage {
+
+        public static int numTimesInitiated = 0;
+        public static int numTimesSchemaCalled = 0;
+
+        public MockTrackingStorage() {
+            super();
+            numTimesInitiated++;
+        }
+
+        @Override
+        public ResourceSchema getSchema(String location, Job job) throws IOException {
+            numTimesSchemaCalled++;
+            return super.getSchema(location, job);
+        }
     }
 }
