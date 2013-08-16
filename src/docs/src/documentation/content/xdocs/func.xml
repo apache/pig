@@ -5224,7 +5224,7 @@ B = GROUP A BY (first, second);
 C = FOREACH B generate FLATTEN(group), COUNT(A) as count;
 D = GROUP C BY first; // again group by first
 topResults = FOREACH D {
-    result = TOP(10, 2, C); // and retain top 10 occurrences of 'second' in first
+    result = TOP(10, 1, C); // and retain top 10 occurrences of 'second' in first
     GENERATE FLATTEN(result);
 }
 </source>

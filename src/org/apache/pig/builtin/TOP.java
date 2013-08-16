@@ -58,7 +58,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
  * C = FOREACH B generate FLATTEN(group), COUNT(*) as count;
  * D = GROUP C BY first; // again group by first 
  * topResults = FOREACH D { 
- *          result = Top(10, 2, C); // and retain top 10 occurrences of 'second' in first 
+ *          result = Top(10, 1, C); // and retain top 10 occurrences of 'second' in first 
  *          GENERATE FLATTEN(result); 
  *  }
  */
