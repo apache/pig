@@ -212,6 +212,8 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-3410: LimitOptimizer is applied before PartitionFilterOptimizer (aniket486)
+
 PIG-3405: Top UDF documentation indicates improper use (aniket486 via cheolsoo)
 
 PIG-3425: Hive jdo api jar referenced in pig script throws error (deepesh via cheolsoo)

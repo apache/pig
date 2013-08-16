@@ -112,15 +112,6 @@ public class LogicalPlanOptimizer extends PlanOptimizer {
         checkAndAddRule(s, r);
         if (!s.isEmpty())
             ls.add(s);
-
-        // Limit Set
-        // This set of rules push up limit
-        s = new HashSet<Rule>();
-        // Optimize limit
-        r = new LimitOptimizer("LimitOptimizer");
-        checkAndAddRule(s, r);
-        if (!s.isEmpty())
-            ls.add(s);
         
         // Split Set
         // This set of rules does splitting of operators only.
@@ -200,6 +191,15 @@ public class LogicalPlanOptimizer extends PlanOptimizer {
         r = new GroupByConstParallelSetter("GroupByConstParallelSetter");
         checkAndAddRule(s, r);
         if(!s.isEmpty())
+            ls.add(s);
+        
+        // Limit Set
+        // This set of rules push up limit
+        s = new HashSet<Rule>();
+        // Optimize limit
+        r = new LimitOptimizer("LimitOptimizer");
+        checkAndAddRule(s, r);
+        if (!s.isEmpty())
             ls.add(s);
         
         return ls;
