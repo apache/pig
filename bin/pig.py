@@ -160,7 +160,7 @@ if includeHCatalog == True:
     else:
       sys.exit("Please initialize HIVE_HOME to the hive install directory")
 
-  allHiveJars = ["hive-metastore-*.jar", "libthrift-*.jar", "hive-exec-*.jar", "libfb303-*.jar", "jdo2-api-*-ec.jar", "slf4j-api-*.jar", "hive-hbase-handler-*.jar"]
+  allHiveJars = ["hive-metastore-*.jar", "libthrift-*.jar", "hive-exec-*.jar", "libfb303-*.jar", "jdo*-api-*.jar", "slf4j-api-*.jar", "hive-hbase-handler-*.jar"]
   for jarName in allHiveJars:
     jar = glob.glob(os.path.join(hiveJarLoc, jarName))
     if (len(jar) != 0) and (os.path.exists(jar)):
