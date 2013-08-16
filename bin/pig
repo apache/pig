@@ -134,7 +134,7 @@ if [ "$includeHCatalog" == "true" ]; then
   thriftJar=libthrift-*.jar
   hiveExecJar=hive-exec-*.jar
   fbJar=libfb303-*.jar
-  jdoECJar=jdo2-api-*-ec.jar
+  jdoECJar=jdo*-api-*.jar
   slfJar=slf4j-api-*.jar
   hbaseHiveJar=hive-hbase-handler-*.jar
   if [ "$HIVE_HOME" == "" ]; then

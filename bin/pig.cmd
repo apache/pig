@@ -107,7 +107,7 @@ set PIGARGS=
       call :AddJar %HIVE_HOME%\lib libthrift-*.jar
       call :AddJar %HIVE_HOME%\lib hive-exec-*.jar
       call :AddJar %HIVE_HOME%\lib libfb303-*.jar
-      call :AddJar %HIVE_HOME%\lib jdo2-api-*.jar
+      call :AddJar %HIVE_HOME%\lib jdo*-api-*.jar
       call :AddJar %HIVE_HOME%\lib slf4j-api-*.jar
       call :AddJar %HIVE_HOME%\lib hive-hbase-handler-*.jar
       call :AddJar %HIVE_HOME%\lib httpclient-*.jar
