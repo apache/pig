@@ -278,7 +278,7 @@ public class PigContext implements Serializable {
     public static void initializeImportList(String importListCommandLineProperties)
     {
         StringTokenizer tokenizer = new StringTokenizer(importListCommandLineProperties, ":");
-        int pos = 0;
+        int pos = 1; // Leave "" as the first import
         ArrayList<String> importList = getPackageImportList();
         while (tokenizer.hasMoreTokens())
         {
