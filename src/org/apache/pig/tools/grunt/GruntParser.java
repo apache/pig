@@ -316,11 +316,13 @@ public class GruntParser extends PigScriptParser {
             mPigServer.parseAndBuild();
         }
         if (alias == null && script == null) {
-            alias = mPigServer.getPigContext().getLastAlias();
-            // if explain is used immediately after launching grunt shell then
-            // last defined alias will be null
-            if (alias == null) {
-                throw new ParseException("'explain' statement must be on an alias or on a script.");
+            if (mInteractive) {
+                alias = mPigServer.getPigContext().getLastAlias();
+                // if explain is used immediately after launching grunt shell then
+                // last defined alias will be null
+                if (alias == null) {
+                    throw new ParseException("'explain' statement must be on an alias or on a script.");
+                }
             }
         }
         if ("@".equals(alias)) {

@@ -57,7 +57,7 @@ public class TestShortcuts {
     }
 
     /**
-     * When no alias is passed, last alias should be explained
+     * When no alias is passed, entire script should be explained
      *
      * @throws Throwable
      */
@@ -74,11 +74,12 @@ public class TestShortcuts {
     }
 
     /**
-     * When no alias is defined earlier, exception is expected
+     * When no alias is defined earlier, empty output is expected. Note that
+     * ParseException is thrown in interactive mode.
      *
      * @throws Throwable
      */
-    @Test(expected = ParseException.class)
+    @Test
     public void testExplainShortcutNoAliasDefined() throws Throwable {
         String cmd = "\\e";
 
@@ -86,7 +87,7 @@ public class TestShortcuts {
         InputStreamReader reader = new InputStreamReader(cmdstream);
 
         Grunt grunt = new Grunt(new BufferedReader(reader), context);
-        grunt.exec();
+        grunt.exec(); // Interactive is set to false.
     }
 
     @Test
