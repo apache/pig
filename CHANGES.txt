@@ -214,6 +214,8 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-3379: Alias reuse in nested foreach causes PIG script to fail (xuefuz via daijy)
+
 PIG-3432: typo in log message in SchemaTupleFrontend (epishkin via cheolsoo)
 
 PIG-3410: LimitOptimizer is applied before PartitionFilterOptimizer (aniket486)

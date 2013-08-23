@@ -839,6 +839,55 @@ public class TestEvalPipeline2 {
         Assert.assertFalse(iter.hasNext());
     }
     
+    // See PIG-3379
+    @Test
+    public void testNestedOperatorReuse() throws Exception{
+        String[] input1 = {
+        		"60000\tdv1\txuaHeartBeat",
+        		"70000\tdv2\txuaHeartBeat",
+        		"80000\tdv1\txuaPowerOff",
+        		"90000\tdv1\txuaPowerOn",
+        		"110000\tdv2\txuaHeartBeat",
+        		"120000\tdv2\txuaPowerOff",
+        		"140000\tdv2\txuaPowerOn",
+        		"150000\tdv1\txuaHeartBeat",
+        		"160000\tdv2\txuaHeartBeat",
+        		"250000\tdv1\txuaHeartBeat",
+        		"310000\tdv2\txuaPowerOff",
+        		"360000\tdv1\txuaPowerOn",
+        		"420000\tdv3\txuaHeartBeat",
+        		"450000\tdv3\txuaHeartBeat",
+        		"540000\tdv4\txuaPowerOn",
+        		"550000\tdv3\txuaHeartBeat",
+        		"560000\tdv5\txuaHeartBeat" };
+        Util.createInputFile( cluster, "table_testNestedOperatorReuse", input1 );
+        String query = "Events = LOAD 'table_testNestedOperatorReuse' AS (eventTime:long, deviceId:chararray, eventName:chararray);" +
+        		"Events = FOREACH Events GENERATE eventTime, deviceId, eventName;" +
+        		"EventsPerMinute = GROUP Events BY (eventTime / 60000);" +
+        		"EventsPerMinute = FOREACH EventsPerMinute {" +
+        		"  DistinctDevices = DISTINCT Events.deviceId;" +
+        		"  nbDevices = SIZE(DistinctDevices);" +
+        		"  DistinctDevices = FILTER Events BY eventName == 'xuaHeartBeat';" +
+        		"  nbDevicesWatching = SIZE(DistinctDevices);" +
+        		"  GENERATE $0*60000 as timeStamp, nbDevices as nbDevices, nbDevicesWatching as nbDevicesWatching;" +
+        		"}" +
+        		"EventsPerMinute = FILTER EventsPerMinute BY timeStamp >= 0  AND timeStamp < 300000;";
+
+        pigServer.registerQuery(query);
+        Iterator<Tuple> iter = pigServer.openIterator("EventsPerMinute");
+        
+        Tuple t = iter.next();
+        Assert.assertTrue( (Long)t.get(0) == 60000 && (Long)t.get(1) == 2 && (Long)t.get(2) == 3 );
+        
+        t = iter.next();
+        Assert.assertTrue( (Long)t.get(0) == 120000 && (Long)t.get(1) == 2 && (Long)t.get(2) == 2 );
+        
+        t = iter.next();
+        Assert.assertTrue( (Long)t.get(0) == 240000 && (Long)t.get(1) == 1 && (Long)t.get(2) == 1 );
+
+        Assert.assertFalse(iter.hasNext());
+    }
+
     // See PIG-1729
     @Test
     public void testDereferenceInnerPlan() throws Exception{

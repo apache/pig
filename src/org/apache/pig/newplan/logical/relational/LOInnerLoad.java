@@ -59,7 +59,7 @@ public class LOInnerLoad extends LogicalRelationalOperator {
         // to be able to dynamically adjust column number during optimization
         LogicalExpressionPlan exp = new LogicalExpressionPlan();
         
-        this.prj = new ProjectExpression( exp, 0, colAlias, foreach );
+        this.prj = new ProjectExpression( exp, 0, colAlias, null, foreach );
         this.foreach = foreach;
     }
 

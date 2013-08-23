@@ -1602,8 +1602,7 @@ scope GScope;
    {
        builder.buildGenerateOp( new SourceLocation( (PigParserNode)$GENERATE ),
        	   inNestedCommand ? $nested_foreach::foreachOp : $foreach_clause::foreachOp,
-           (LOGenerate)$GScope::currentOp, $foreach_plan::operators,
-           plans, flattenFlags, schemas );
+           (LOGenerate)$GScope::currentOp, plans, flattenFlags, schemas );
    }
 ;
 
@@ -1745,7 +1744,7 @@ alias_col_ref[LogicalExpressionPlan plan] returns[LogicalExpression expr]
        } else {
            if( inForeachPlan ) {
                $expr = builder.buildProjectExpr( loc, $plan, $GScope::currentOp,
-                   $foreach_plan::exprPlans, alias, 0 );
+                    $foreach_plan::operators, $foreach_plan::exprPlans, alias, 0 );
            } else {
                $expr = builder.buildProjectExpr( loc, $plan, $GScope::currentOp,
                    $statement::inputIndex, alias, 0 );
