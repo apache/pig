@@ -52,6 +52,12 @@ public class ProjectExpression extends ColumnExpression {
     private int col; // The column in the input which the project references.
                      // Count is zero based.
     private String alias; // The alias of the projected field.
+    
+    /**
+     * In Foreach inner plan, a projection can be made on a relational operator, which may get reused.
+     * However, the expression needs to be sticky to the operator on which the expression is projected.
+     */
+    private Operator projectedOperator;
 
     private LogicalRelationalOperator attachedRelationalOp;
 
@@ -91,11 +97,12 @@ public class ProjectExpression extends ColumnExpression {
      * @param attachedRelationalOp
      * @throws FrontendException
      */
-    public ProjectExpression(OperatorPlan plan, int inputNum, String alias,
+    public ProjectExpression(OperatorPlan plan, int inputNum, String alias, Operator projectedOp,
             LogicalRelationalOperator attachedRelationalOp) {
         super("Project", plan);
         this.input = inputNum;
         this.alias = alias;
+        this.projectedOperator = projectedOp;
         plan.add(this);
         this.attachedRelationalOp = attachedRelationalOp;
     }
@@ -126,6 +133,7 @@ public class ProjectExpression extends ColumnExpression {
         this.input = projExpr.input;
         this.col = projExpr.col;
         this.alias = projExpr.alias;
+        this.projectedOperator = projExpr.projectedOperator;
         this.attachedRelationalOp = projExpr.attachedRelationalOp;
         this.isRangeProject = projExpr.isRangeProject;
         this.startCol = projExpr.startCol;
@@ -238,6 +246,10 @@ public class ProjectExpression extends ColumnExpression {
 
     public String getColAlias() {
         return alias;
+    }
+    
+    public Operator getProjectedOperator() {
+    	return this.projectedOperator;
     }
 
     /**
@@ -536,6 +548,7 @@ public class ProjectExpression extends ColumnExpression {
                 this.getAttachedRelationalOp());
         copy.setLocation( new SourceLocation( location ) );
         copy.alias = alias;
+        copy.projectedOperator = this.projectedOperator;
         copy.isRangeProject = this.isRangeProject;
         copy.startCol = this.startCol;
         copy.endCol = this.endCol;
