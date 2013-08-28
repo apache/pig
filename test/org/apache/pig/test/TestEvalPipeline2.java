@@ -555,7 +555,7 @@ public class TestEvalPipeline2 {
     // See PIG-282
     @Test
     public void testCustomPartitionerGroups() throws Exception{
-    	String[] input = {
+        String[] input = {
                 "1\t1",
                 "2\t1",
                 "3\t1",
@@ -567,37 +567,76 @@ public class TestEvalPipeline2 {
         
         // It should be noted that for a map reduce job, the total number of partitions 
         // is the same as the number of reduce tasks for the job. Hence we need to find a case wherein 
-        // we will get more than one reduce job so that we can use the partitioner. 	
+        // we will get more than one reduce job so that we can use the partitioner.
         // The following logic assumes that we get 2 reduce jobs, so that we can hard-code the logic.
+        // SimpleCustomPartitioner3 simply returns '1' (second reducer) for all inputs when
+        // partition number is bigger than 1.
         //
-        pigServer.registerQuery("B = group A by $0 PARTITION BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 2;");
+        pigServer.registerQuery("B = group A by $0 PARTITION BY org.apache.pig.test.utils.SimpleCustomPartitioner3 parallel 2;");
         
         pigServer.store("B", "tmp_testCustomPartitionerGroups");
         
         new File("tmp_testCustomPartitionerGroups").mkdir();
         
-        // SimpleCustomPartitioner partitions as per the parity of the key
-        // Need to change this in SimpleCustomPartitioner is changed
         Util.copyFromClusterToLocal(cluster, "tmp_testCustomPartitionerGroups/part-r-00000", "tmp_testCustomPartitionerGroups/part-r-00000");
         BufferedReader reader = new BufferedReader(new FileReader("tmp_testCustomPartitionerGroups/part-r-00000"));
- 	    String line = null;      	     
- 	    while((line = reader.readLine()) != null) {
- 	        String[] cols = line.split("\t");
- 	        int value = Integer.parseInt(cols[0]) % 2;
- 	        Assert.assertEquals(0, value);
- 	    }
- 	    Util.copyFromClusterToLocal(cluster, "tmp_testCustomPartitionerGroups/part-r-00001", "tmp_testCustomPartitionerGroups/part-r-00001");
+        String line = null;
+        while((line = reader.readLine()) != null) {
+            Assert.fail("Partition 0 should be empty.  Most likely Custom Partitioner was not used.");
+        }
+        Util.copyFromClusterToLocal(cluster, "tmp_testCustomPartitionerGroups/part-r-00001", "tmp_testCustomPartitionerGroups/part-r-00001");
         reader = new BufferedReader(new FileReader("tmp_testCustomPartitionerGroups/part-r-00001"));
- 	    line = null;      	     
- 	    while((line = reader.readLine()) != null) {
- 	        String[] cols = line.split("\t");
- 	        int value = Integer.parseInt(cols[0]) % 2;
- 	        Assert.assertEquals(1, value);
- 	    } 
+        line = null;
+        int count=0;
+        while((line = reader.readLine()) != null) {
+            //all outputs should come to partion 1 (with SimpleCustomPartitioner3)
+            count++;
+        }
+        Assert.assertEquals(4, count);
         Util.deleteDirectory(new File("tmp_testCustomPartitionerGroups"));
+        Util.deleteFile(cluster, "tmp_testCustomPartitionerGroups");
         Util.deleteFile(cluster, "table_testCustomPartitionerGroups");
     }
-    
+
+    // See PIG-3385
+    @Test
+    public void testCustomPartitionerDistinct() throws Exception{
+        String[] input = {
+                "1\t1",
+                "2\t1",
+                "1\t1",
+                "3\t1",
+                "4\t1",
+        };
+        Util.createInputFile(cluster, "table_testCustomPartitionerDistinct", input);
+
+        pigServer.registerQuery("A = LOAD 'table_testCustomPartitionerDistinct' as (a0:int, a1:int);");
+        pigServer.registerQuery("B = distinct A PARTITION BY org.apache.pig.test.utils.SimpleCustomPartitioner3 parallel 2;");
+        pigServer.store("B", "tmp_testCustomPartitionerDistinct");
+
+        new File("tmp_testCustomPartitionerDistinct").mkdir();
+
+        // SimpleCustomPartitioner3 simply partition all inputs to *second* reducer
+        Util.copyFromClusterToLocal(cluster, "tmp_testCustomPartitionerDistinct/part-r-00000", "tmp_testCustomPartitionerDistinct/part-r-00000");
+        BufferedReader reader = new BufferedReader(new FileReader("tmp_testCustomPartitionerDistinct/part-r-00000"));
+        String line = null;
+        while((line = reader.readLine()) != null) {
+            Assert.fail("Partition 0 should be empty.  Most likely Custom Partitioner was not used.");
+        }
+        Util.copyFromClusterToLocal(cluster, "tmp_testCustomPartitionerDistinct/part-r-00001", "tmp_testCustomPartitionerDistinct/part-r-00001");
+        reader = new BufferedReader(new FileReader("tmp_testCustomPartitionerDistinct/part-r-00001"));
+        line = null;
+        int count=0;
+        while((line = reader.readLine()) != null) {
+            //all outputs should come to partion 1 (with SimpleCustomPartitioner3)
+            count++;
+        }
+        Assert.assertEquals(4, count);
+        Util.deleteDirectory(new File("tmp_testCustomPartitionerDistinct"));
+        Util.deleteFile(cluster, "tmp_testCustomPartitionerDistinct");
+        Util.deleteFile(cluster, "table_testCustomPartitionerDistinct");
+    }
+
     // See PIG-282
     @Test
     public void testCustomPartitionerCross() throws Exception{

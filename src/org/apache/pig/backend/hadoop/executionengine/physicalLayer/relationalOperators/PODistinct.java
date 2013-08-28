@@ -60,6 +60,17 @@ public class PODistinct extends PhysicalOperator implements Cloneable {
     private DataBag distinctBag = null;
     transient Iterator<Tuple> it;
 
+    // PIG-3385: Since GlobalRearrange is not used by PODistinct, passing the
+    // custom partioner through here
+    protected String customPartitioner;
+
+    public String getCustomPartitioner() {
+        return customPartitioner;
+    }
+    public void setCustomPartitioner(String customPartitioner) {
+        this.customPartitioner = customPartitioner;
+    }
+
     public PODistinct(OperatorKey k, int rp, List<PhysicalOperator> inp) {
         super(k, rp, inp);
     }
