@@ -28,6 +28,8 @@ PIG-3174: Remove rpm and deb artifacts from build.xml (gates)
 
 IMPROVEMENTS
 
+PIG-3436: Make pigmix run with Hadoop2 (rohini)
+
 PIG-3424: Package import list should consider class name as is first even if -Dudf.import.list is passed (rohini)
 
 PIG-3204: Change script parsing to parse entire script instead of line by line (rohini)
