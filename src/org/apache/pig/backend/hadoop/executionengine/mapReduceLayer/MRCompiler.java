@@ -1761,6 +1761,7 @@ public class MRCompiler extends PhyPlanVisitor {
             addToMap(lr);
             
             blocking(op);
+            curMROp.customPartitioner = op.getCustomPartitioner();
             
             POPackage pkg = new POPackage(new OperatorKey(scope,nig.getNextNodeId(scope)));
             pkg.setKeyType(DataType.TUPLE);
