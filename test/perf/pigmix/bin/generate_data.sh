@@ -35,9 +35,13 @@ export HADOOP_CLASSPATH=$classpath
 export PIG_OPTS="-Xmx1024m"
 export HADOOP_CLIENT_OPTS="-Xmx1024m"
 
-echo "Going to run $HADOOP_HOME/bin/hadoop fs -mkdir -p $hdfsroot"
-
-$HADOOP_HOME/bin/hadoop fs -mkdir $hdfsroot
+if [ $HADOOP_VERSION == "23" ]; then
+    echo "Going to run $HADOOP_HOME/bin/hadoop fs -mkdir -p $hdfsroot"
+    $HADOOP_HOME/bin/hadoop fs -mkdir -p $hdfsroot
+else
+    echo "Going to run $HADOOP_HOME/bin/hadoop fs -mkdir $hdfsroot"
+    $HADOOP_HOME/bin/hadoop fs -mkdir $hdfsroot
+fi
 
 if [ $? -ne 0 ]
 then
@@ -210,12 +214,12 @@ store b into '${powerusers}_samples' using PigStorage('\u0001');
 
 exec
 
-A = load '$pages' as (user, action, timespent, query_term, ip_addr, timestamp,
-        estimated_revenue, page_info, page_links) using org.apache.pig.test.pigmix.udf.PigPerformanceLoader();
+A = load '$pages' using org.apache.pig.test.pigmix.udf.PigPerformanceLoader() 
+    as (user, action, timespent, query_term, ip_addr, timestamp, estimated_revenue, page_info, page_links);
 B = foreach A generate user, action, timespent, query_term, ip_addr, timestamp, estimated_revenue, page_info, page_links,
 user as user1, action as action1, timespent as timespent1, query_term as query_term1, ip_addr as ip_addr1, timestamp as timestamp1, estimated_revenue as estimated_revenue1, page_info as page_info1, page_links as page_links1,
 user as user2, action as action2, timespent as timespent2, query_term as query_term2, ip_addr as ip_addr2, timestamp as timestamp2, estimated_revenue as estimated_revenue2, page_info as page_info2, page_links as page_links2;
-store B into '$widegroupbydata' using PigStorage('\u0001');;
+store B into '$widegroupbydata' using PigStorage('\u0001');
 EOF
 
 poweruserlocal=$localtmp/$powerusers
