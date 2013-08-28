@@ -1559,6 +1559,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
     public void visit(LODistinct loDistinct) throws FrontendException {
         String scope = DEFAULT_SCOPE;
         PODistinct physOp = new PODistinct(new OperatorKey(scope,nodeGen.getNextNodeId(scope)), loDistinct.getRequestedParallelism());
+        physOp.setCustomPartitioner(loDistinct.getCustomPartitioner());
         physOp.addOriginalLocation(loDistinct.getAlias(), loDistinct.getLocation());
         currentPlan.add(physOp);
         physOp.setResultType(DataType.BAG);
