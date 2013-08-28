@@ -1388,9 +1388,13 @@ public class TestMultiQueryCompiler {
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 2, 12);
 
-            MROperPlan mrp = checkMRPlan(pp, 1, 1, 1); 
-            
-            MapReduceOper mrop = mrp.getRoots().get(0);
+            //merging is skipped due to PIG-3435 for now
+            //MROperPlan mrp = checkMRPlan(pp, 1, 1, 1);
+            //MapReduceOper mrop = mrp.getRoots().get(0);
+
+            //Instead of 1 merged mapreduce job, there will be two.
+            MROperPlan mrp = checkMRPlan(pp, 1, 1, 2);
+            MapReduceOper mrop = mrp.getLeaves().get(0);
             Assert.assertTrue(mrop.getCustomPartitioner().equals(SimpleCustomPartitioner.class.getName()));
 
         } catch (Exception e) {
@@ -1398,6 +1402,45 @@ public class TestMultiQueryCompiler {
             Assert.fail();
         } 
     }    
+
+    @Test
+    public void testMultiQueryDoNotMergeMRwithDifferentPartitioners() {
+
+        System.out.println("===== multi-query with intermediate stores =====");
+
+        try {
+            myPig.setBatchOn();
+
+            myPig.registerQuery("a = load 'passwd' " +
+                                "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
+            myPig.registerQuery("b1 = FILTER a BY gid != 0;");
+            myPig.registerQuery("b2 = FILTER a BY uid > 100;");
+            myPig.registerQuery("c1 = GROUP b1 BY uname PARTITION BY " + SimpleCustomPartitioner.class.getName() + " PARALLEL 3;");
+            myPig.registerQuery("c2 = GROUP b2 BY uname PARALLEL 3;");
+            myPig.registerQuery("STORE c1 INTO 'output1';");
+            myPig.registerQuery("STORE c2 INTO 'output2';");
+
+            LogicalPlan lp = checkLogicalPlan(1, 2, 7);
+
+            PhysicalPlan pp = checkPhysicalPlan(lp, 1, 2, 15);
+
+            MROperPlan mrp = checkMRPlan(pp, 1, 1, 2);
+
+            // since the first mapreduce job of mrp.getRoots().get(0)
+            // is the merge of splitter and splittee without custom partitioner (c2 above),
+            // second job should contain the custom partitioner
+            MapReduceOper mrop;
+            mrop = mrp.getRoots().get(0);
+            Assert.assertTrue(mrop.getCustomPartitioner() == null );
+            mrop = mrp.getLeaves().get(0);
+            Assert.assertTrue(mrop.getCustomPartitioner().equals(SimpleCustomPartitioner.class.getName()));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail(e.toString());
+        }
+    }
+
     
     // --------------------------------------------------------------------------
     // Helper methods
