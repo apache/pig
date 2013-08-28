@@ -32,6 +32,8 @@ PIG-2769: a simple logic causes very long compiling time on pig 0.10.0 (njw45 vi
 
 BUG FIXES
 
+PIG-3435: Custom Partitioner not working with MultiQueryOptimizer (knoguchi via daijy)
+
 PIG-3385: DISTINCT no longer uses custom partitioner (knoguchi via daijy)
 
 PIG-2507: Semicolon in paramenters for UDF results in parsing error (tnachen via daijy)
