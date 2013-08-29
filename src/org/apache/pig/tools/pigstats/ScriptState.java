@@ -335,7 +335,7 @@ public class ScriptState {
         setJobParents(mro, conf);
 
         conf.set("mapreduce.workflow.id", "pig_" + id);
-        conf.set("mapreduce.workflow.name", (getFileName() != null)?getFileName():"default");
+        conf.set("mapreduce.workflow.name", (getFileName() != null) ? getFileName() : "default");
         conf.set("mapreduce.workflow.node.name", mro.getOperatorKey().toString());
     }
 
