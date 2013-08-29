@@ -154,6 +154,8 @@ public class MapReduceLauncher extends Launcher{
         JobClient jobClient = new JobClient(exe.getJobConf());
         
         JobControlCompiler jcc = new JobControlCompiler(pc, conf);
+
+        ScriptState.get().addWorkflowAdjacenciesToConf(mrp, conf);
         
         // start collecting statistics
         PigStatsUtil.startCollection(pc, jobClient, jcc, mrp); 

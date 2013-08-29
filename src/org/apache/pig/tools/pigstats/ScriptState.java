@@ -333,6 +333,23 @@ public class ScriptState {
         setPigFeature(mro, conf);
 
         setJobParents(mro, conf);
+
+        conf.set("mapreduce.workflow.id", "pig_" + id);
+        conf.set("mapreduce.workflow.name", (getFileName() != null)?getFileName():"default");
+        conf.set("mapreduce.workflow.node.name", mro.getOperatorKey().toString());
+    }
+
+    public void addWorkflowAdjacenciesToConf(MROperPlan mrop, Configuration conf) {
+        for (MapReduceOper source : mrop) {
+            List<String> targets = new ArrayList<String>();
+            if (mrop.getSuccessors(source) != null) {
+                for (MapReduceOper target : mrop.getSuccessors(source)) {
+                    targets.add(target.getOperatorKey().toString());
+                }
+            }
+            String[] s = new String[targets.size()];
+            conf.setStrings("mapreduce.workflow.adjacency." + source.getOperatorKey().toString(), targets.toArray(s));
+        }
     }
 
     public void setScript(File file) {
