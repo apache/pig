@@ -218,6 +218,8 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-2606: union/ join operations are not accepting same alias as multiple inputs (hsubramaniyan via daijy)
+
 PIG-3435: Custom Partitioner not working with MultiQueryOptimizer (knoguchi via daijy)
 
 PIG-3385: DISTINCT no longer uses custom partitioner (knoguchi via daijy)

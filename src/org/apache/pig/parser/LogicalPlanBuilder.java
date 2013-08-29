@@ -236,6 +236,7 @@ public class LogicalPlanBuilder {
     }
 
     String buildUnionOp(SourceLocation loc, String alias, List<String> inputAliases, boolean onSchema) throws ParserValidationException {
+        checkDuplicateAliases(inputAliases, loc, "UNION");
         LOUnion op = new LOUnion( plan, onSchema );
         return buildOp( loc, op, alias, inputAliases, null );
     }
@@ -349,6 +350,7 @@ public class LogicalPlanBuilder {
             MultiMap<Integer, LogicalExpressionPlan> joinPlans,
             JOINTYPE jt, List<Boolean> innerFlags, String partitioner)
     throws ParserValidationException {
+        checkDuplicateAliases(inputAliases, loc, "JOIN");
         if (jt==null)
             jt = JOINTYPE.HASH;
         else {
@@ -863,7 +865,27 @@ public class LogicalPlanBuilder {
             inputAliases.add( inputAlias );
         return buildOp( loc, op, alias, inputAliases, partitioner );
     }
-
+    
+    private void checkDuplicateAliases(List<String> inputAliases, SourceLocation loc, 
+    		String opName) throws ParserValidationException {
+        //Keep the count of the number of times the same Alias is used          
+        Map<Operator, Integer> inputAliasesMap = new HashMap<Operator, Integer>(); 
+        for(String a : inputAliases) {
+            Operator pred = operators.get( a );                
+    	    if (pred == null) {                                                
+    	    	throw new ParserValidationException( intStream, loc, "Unrecognized alias " + a );
+    	    }
+    	    if (inputAliasesMap.containsKey(pred)) {
+    	        throw new ParserValidationException( intStream, loc, 
+    	                "Pig does not accept same alias as input for " + opName + 
+    	                " operation : " + a );
+    	    }
+    	    else {
+                inputAliasesMap.put(pred, 1);
+            }
+        }
+    }
+    
     private String buildOp(SourceLocation loc, LogicalRelationalOperator op, String alias,
     		List<String> inputAliases, String partitioner) throws ParserValidationException {
         setAlias( op, alias );
