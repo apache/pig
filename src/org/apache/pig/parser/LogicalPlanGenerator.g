@@ -793,20 +793,22 @@ cond[LogicalExpressionPlan exprPlan] returns[LogicalExpression expr]
 
 in_eval[LogicalExpressionPlan plan] returns[LogicalExpression expr]
 @init {
-    List<LogicalExpression> exprs = new ArrayList<LogicalExpression>();
+    List<LogicalExpression> lhsExprs = new ArrayList<LogicalExpression>();
+    List<LogicalExpression> rhsExprs = new ArrayList<LogicalExpression>();
 }
- : ^( IN ( expr[$plan] { exprs.add($expr.expr); } )+ )
+ : ^( IN ( ^( IN_LHS lhs = expr[$plan] ) { lhsExprs.add($lhs.expr); }
+           ^( IN_RHS rhs = expr[$plan] ) { rhsExprs.add($rhs.expr); } )+ )
     {
         // Convert IN tree to nested or expressions. Please also see
         // QueryParser.g for how IN tree is constructed from IN expression.
-        EqualExpression firstBoolExpr = new EqualExpression(plan, exprs.get(0), exprs.get(1));
-        if (exprs.size() == 2) {
+        EqualExpression firstBoolExpr = new EqualExpression(plan, lhsExprs.get(0), rhsExprs.get(0));
+        if (lhsExprs.size() == 1) {
             $expr = firstBoolExpr;
         } else {
             OrExpression currOrExpr = null;
             OrExpression prevOrExpr = null;
-            for (int i = 2; i < exprs.size(); i = i + 2) {
-                EqualExpression boolExpr = new EqualExpression(plan, exprs.get(i), exprs.get(i+1));
+            for (int i = 1; i < lhsExprs.size(); i++) {
+                EqualExpression boolExpr = new EqualExpression(plan, lhsExprs.get(i), rhsExprs.get(i));
                 currOrExpr = new OrExpression( $plan, prevOrExpr == null ? firstBoolExpr : prevOrExpr, boolExpr );
                 prevOrExpr = currOrExpr;
             }
@@ -1078,22 +1080,24 @@ bin_expr[LogicalExpressionPlan plan] returns[LogicalExpression expr]
 
 case_expr[LogicalExpressionPlan plan] returns[LogicalExpression expr]
 @init {
-    List<LogicalExpression> exprs = new ArrayList<LogicalExpression>();
+    List<LogicalExpression> lhsExprs = new ArrayList<LogicalExpression>();
+    List<LogicalExpression> rhsExprs = new ArrayList<LogicalExpression>();
 }
- : ^( CASE_EXPR ( expr[$plan] { exprs.add($expr.expr); } )+ )
+ : ^( CASE_EXPR ( ( ^( CASE_EXPR_LHS lhs = expr[$plan] { lhsExprs.add($lhs.expr); } ) )
+                  ( ^( CASE_EXPR_RHS rhs = expr[$plan] { rhsExprs.add($rhs.expr); } ) )+ )+ )
     {
         // Convert CASE tree to nested bincond expressions. Please also see
         // QueryParser.g for how CASE tree is constructed from case statement.
-        boolean hasElse = exprs.size() \% 3 == 1;
-        LogicalExpression elseExpr = hasElse ? exprs.get(exprs.size()-1)
+        boolean hasElse = rhsExprs.size() \% 2 == 1;
+        LogicalExpression elseExpr = hasElse ? rhsExprs.get(rhsExprs.size()-1)
                                              : new ConstantExpression($plan, null);
 
-        int numWhenBranches = exprs.size() / 3;
+        int numWhenBranches = rhsExprs.size() / 2;
         BinCondExpression prevBinCondExpr = null;
         BinCondExpression currBinCondExpr = null;
         for (int i = 0; i < numWhenBranches; i++) {
             currBinCondExpr = new BinCondExpression( $plan,
-                new EqualExpression( $plan, exprs.get(3*i), exprs.get(3*i+1) ), exprs.get(3*i+2),
+                new EqualExpression( $plan, lhsExprs.get(i), rhsExprs.get(2*i) ), rhsExprs.get(2*i+1),
                 prevBinCondExpr == null ? elseExpr : prevBinCondExpr);
             prevBinCondExpr = currBinCondExpr;
         }

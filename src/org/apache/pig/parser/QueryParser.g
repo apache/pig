@@ -41,8 +41,12 @@ tokens {
     FUNC_EVAL;
     INVOKE;
     INVOKER_FUNC_EVAL;
+    IN_LHS;
+    IN_RHS;
     CASE_COND;
     CASE_EXPR;
+    CASE_EXPR_LHS;
+    CASE_EXPR_RHS;
     CAST_EXPR;
     COL_RANGE;
     BIN_EXPR;
@@ -663,9 +667,12 @@ unary_cond
     }
     : exp1 = expr
         ( ( IS NOT? NULL -> ^( NULL $exp1 NOT? ) )
-        | ( IN LEFT_PAREN ( expr ( COMMA expr )* ) RIGHT_PAREN -> ^( IN expr+ ) )
+        | ( IN LEFT_PAREN ( rhs_operand ( COMMA rhs_operand )* ) RIGHT_PAREN -> ^( IN ^( IN_LHS expr ) ^( IN_RHS rhs_operand )+ ) )
         | ( rel_op exp2 = expr -> ^( rel_op $exp1 $exp2 ) )
         | ( -> ^(BOOL_COND expr) ) )
+;
+
+rhs_operand : expr
 ;
 
 expr : multi_expr ( ( PLUS | MINUS )^ multi_expr )*
@@ -754,7 +761,8 @@ cast_expr
           | identifier_plus func_name_suffix? LEFT_PAREN ( real_arg ( COMMA real_arg )* )? RIGHT_PAREN projection* -> ^( FUNC_EVAL identifier_plus func_name_suffix? real_arg* ) projection*
           | func_name_without_columns LEFT_PAREN ( real_arg ( COMMA real_arg )* )? RIGHT_PAREN projection* -> ^( FUNC_EVAL func_name_without_columns real_arg* ) projection*
           | CASE ( (WHEN)=> WHEN cond THEN expr ( WHEN cond THEN expr )* ( ELSE expr )? END projection* -> ^( CASE_COND ^(WHEN cond+) ^(THEN expr+) ) projection*
-                 | expr WHEN expr THEN expr ( WHEN expr THEN expr )* ( ELSE expr )? END projection* -> ^( CASE_EXPR expr+ ) projection*
+                 | expr WHEN rhs_operand THEN rhs_operand ( WHEN rhs_operand THEN rhs_operand )* ( ELSE rhs_operand )? END projection*
+                 -> ^( CASE_EXPR ^(CASE_EXPR_LHS expr) ^(CASE_EXPR_RHS rhs_operand)+ ) projection*
                  )
           | paren_expr
           | curly_expr
