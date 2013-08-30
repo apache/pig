@@ -30,6 +30,7 @@ import java.util.Iterator;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
+import org.apache.pig.backend.hadoop.executionengine.MRExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
@@ -1530,7 +1531,7 @@ public class TestMultiQueryCompiler {
 
         System.out.println("===== check physical plan =====");
 
-        PhysicalPlan pp = myPig.getPigContext().getExecutionEngine().compile(
+        PhysicalPlan pp = ((MRExecutionEngine)myPig.getPigContext().getExecutionEngine()).compile(
                 lp, null);
 
         showPlanOperators(pp);

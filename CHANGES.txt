@@ -22,6 +22,8 @@ Trunk (unreleased changes)
 
 INCOMPATIBLE CHANGES
 
+PIG-3419: Pluggable Execution Engine (achalsoni81 via cheolsoo)
+
 PIG-3191: [piggybank] MultiStorage output filenames are not sortable (Danny Antonelli via jcoveney)
 
 PIG-3174: Remove rpm and deb artifacts from build.xml (gates)

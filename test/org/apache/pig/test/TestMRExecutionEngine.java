@@ -6,11 +6,12 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.ExecType;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.MRExecutionEngine;
 import org.apache.pig.impl.PigContext;
 import org.junit.Test;
 
 
-public class TestHExecutionEngine {
+public class TestMRExecutionEngine {
     
     @Test(expected = ExecException.class)
     public void testJobConfGeneration() throws ExecException {
@@ -32,7 +33,7 @@ public class TestHExecutionEngine {
         conf.set("apache", "pig");
         PigContext pigContext = new PigContext(ExecType.MAPREDUCE, conf);
         pigContext.connect();
-        JobConf jc = pigContext.getExecutionEngine().getJobConf();
+        JobConf jc = ((MRExecutionEngine)pigContext.getExecutionEngine()).getJobConf();
         Assert.assertEquals(jc.get("mapred.job.tracker"), "host:12345");
         Assert.assertEquals(jc.get("apache"), "pig");
     }
