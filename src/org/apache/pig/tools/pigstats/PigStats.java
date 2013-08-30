@@ -38,8 +38,9 @@ import org.apache.pig.impl.util.SpillableMemoryManager;
 import org.apache.pig.newplan.BaseOperatorPlan;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
+import org.apache.pig.newplan.PlanVisitor;
 import org.apache.pig.tools.pigstats.JobStats.JobState;
-import org.apache.pig.tools.pigstats.SimplePigStats.JobGraphPrinter;
+import org.apache.pig.tools.pigstats.mapreduce.SimplePigStats;
 
 /**
  * PigStats encapsulates the statistics collected from a running script. 
@@ -61,7 +62,10 @@ public abstract class PigStats {
     private int errorCode = -1;
     
     public static PigStats get() {
-        if (tps.get() == null) tps.set(new SimplePigStats());
+        if (tps.get() == null) {
+            LOG.info("PigStats has not been set. Defaulting to SimplePigStats");
+            tps.set(new SimplePigStats());
+        }
         return tps.get();
     }
     
@@ -69,8 +73,8 @@ public abstract class PigStats {
         tps.set(stats);
     }
         
-    static PigStats start() {
-        tps.set(new SimplePigStats());
+    public static PigStats start(PigStats stats) {
+        tps.set(stats);
         return tps.get();
     }
     
@@ -201,6 +205,41 @@ public abstract class PigStats {
     void setErrorCode(int errorCode) {
         this.errorCode = errorCode;
     } 
+
+    
+    /**
+     * This class prints a JobGraph
+     */
+    public static class JobGraphPrinter extends PlanVisitor {
+        
+        StringBuffer buf;
+
+        protected JobGraphPrinter(OperatorPlan plan) {
+            super(plan,
+                    new org.apache.pig.newplan.DependencyOrderWalker(
+                            plan));
+            buf = new StringBuffer();
+        }
+        
+        public void visit(JobStats op) throws FrontendException {
+            buf.append(op.getJobId());
+            List<Operator> succs = plan.getSuccessors(op);
+            if (succs != null) {
+                buf.append("\t->\t");
+                for (Operator p : succs) {                  
+                    buf.append(((JobStats)p).getJobId()).append(",");
+                }               
+            }
+            buf.append("\n");
+        }
+        
+        @Override
+        public String toString() {
+            buf.append("\n");
+            return buf.toString();
+        }        
+    }
+    
     /**
      * JobGraph is an {@link OperatorPlan} whose members are {@link JobStats}
      */

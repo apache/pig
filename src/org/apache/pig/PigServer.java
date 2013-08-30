@@ -44,7 +44,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.mapreduce.Job;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.pig.backend.datastorage.ContainerDescriptor;
@@ -54,10 +53,6 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
 import org.apache.pig.backend.hadoop.executionengine.HJob;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
-import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
@@ -125,7 +120,7 @@ public class PigServer {
     public static final String PRETTY_PRINT_SCHEMA_PROPERTY = "pig.pretty.print.schema";
     private static final String PIG_LOCATION_CHECK_STRICT = "pig.location.check.strict";
 
-    /*
+    /*    
      * The data structure to support grunt shell operations.
      * The grunt shell can only work on one graph at a time.
      * If a script is contained inside another script, the grunt
@@ -174,12 +169,23 @@ public class PigServer {
     /**
      * @param execTypeString can be 'mapreduce' or 'local'.  Local mode will
      * use Hadoop's local job runner to execute the job on the local machine.
-     * Mapreduce mode will connect to a cluster to execute the job.
-     * @throws ExecException
+     * Mapreduce mode will connect to a cluster to execute the job. If 
+     * execTypeString is not one of these two, Pig will deduce the ExecutionEngine
+     * if it is on the classpath and use it for the backend execution.
+     * @throws ExecException 
      * @throws IOException
      */
     public PigServer(String execTypeString) throws ExecException, IOException {
-        this(ExecType.fromString(execTypeString));
+        this(addExecTypeProperty(PropertiesUtil.loadDefaultProperties(), execTypeString));
+    }
+
+    public PigServer(Properties properties) throws ExecException, IOException {
+        this(new PigContext(properties));
+    }
+
+    private static Properties addExecTypeProperty(Properties properties, String execType) {
+        properties.setProperty("exectype", execType);
+        return properties;
     }
 
     /**
@@ -992,7 +998,7 @@ public class PigServer {
      */
     public void explain(String alias,
                         PrintStream stream) throws IOException {
-        explain(alias, "text", true, false, stream, stream, stream);
+        explain(alias, "text", true, false, stream, stream, null, null);
     }
 
     /**
@@ -1006,8 +1012,9 @@ public class PigServer {
      * call to execute in the respoect that all the pending stores are
      * marked as complete.
      * @param lps Stream to print the logical tree
-     * @param pps Stream to print the physical tree
-     * @param eps Stream to print the execution tree
+     * @param eps Stream to print the ExecutionEngine trees. If null, then will print to files
+     * @param dir Directory to print ExecutionEngine trees. If null, will use eps
+     * @param suffix Suffix of file names 
      * @throws IOException if the requested alias cannot be found.
      */
     @SuppressWarnings("unchecked")
@@ -1016,25 +1023,20 @@ public class PigServer {
                         boolean verbose,
                         boolean markAsExecute,
                         PrintStream lps,
-                        PrintStream pps,
-                        PrintStream eps) throws IOException {
+                        PrintStream eps,
+                        File dir,
+                        String suffix) throws IOException {
         try {
             pigContext.inExplain = true;
             buildStorePlan( alias );
             if( currDAG.lp.size() == 0 ) {
                 lps.println("Logical plan is empty.");
-                pps.println("Physical plan is empty.");
-                eps.println("Execution plan is empty.");
                 return;
+            } else {
+                currDAG.lp.explain(lps, format, verbose);
             }
-            PhysicalPlan pp = compilePp();
-            currDAG.lp.explain(lps, format, verbose);
 
-            pp.explain(pps, format, verbose);
-
-            MapRedUtil.checkLeafIsStore(pp, pigContext);
-            MapReduceLauncher launcher = new MapReduceLauncher();
-            launcher.explain(pp, pigContext, eps, format, verbose);
+            pigContext.getExecutionEngine().explain(currDAG.lp, pigContext, eps, format, verbose, dir, suffix );
 
             if (markAsExecute) {
                 currDAG.markAsExecuted();
@@ -1058,7 +1060,7 @@ public class PigServer {
      * @throws IOException
      */
     public long capacity() throws IOException {
-        if (pigContext.getExecType() == ExecType.LOCAL) {
+        if (pigContext.getExecType().isLocal()) {
             throw new IOException("capacity only supported for non-local execution");
         }
         else {
@@ -1290,9 +1292,8 @@ public class PigServer {
     private PigStats executeCompiledLogicalPlan() throws ExecException, FrontendException {
         // discover pig features used in this script
         ScriptState.get().setScriptFeatures( currDAG.lp );
-        PhysicalPlan pp = compilePp();
 
-        return launchPlan(pp, "job_pigexec_");
+        return launchPlan(currDAG.lp, "job_pigexec_");
     }
 
     /**
@@ -1303,52 +1304,23 @@ public class PigServer {
      * @throws ExecException
      * @throws FrontendException
      */
-    protected PigStats launchPlan(PhysicalPlan pp, String jobName) throws ExecException, FrontendException {
-        MapReduceLauncher launcher = new MapReduceLauncher();
+    protected PigStats launchPlan(LogicalPlan lp, String jobName) throws ExecException, FrontendException {
+
         PigStats stats = null;
         try {
-            stats = launcher.launchPig(pp, jobName, pigContext);
+            stats = pigContext.getExecutionEngine().launchPig(lp, jobName, pigContext);
+        } catch (ExecException e) {
+            throw (ExecException) e;
+        } catch (FrontendException e) {
+            throw (FrontendException) e;
         } catch (Exception e) {
             // There are a lot of exceptions thrown by the launcher.  If this
             // is an ExecException, just let it through.  Else wrap it.
-            if (e instanceof ExecException){
-                throw (ExecException)e;
-            } else if (e instanceof FrontendException) {
-                throw (FrontendException)e;
-            } else {
-                int errCode = 2043;
-                String msg = "Unexpected error during execution.";
-                throw new ExecException(msg, errCode, PigException.BUG, e);
-            }
-        } finally {
-            launcher.reset();
+            int errCode = 2043;
+            String msg = "Unexpected error during execution.";
+            throw new ExecException(msg, errCode, PigException.BUG, e);
         }
 
-        for (OutputStats output : stats.getOutputStats()) {
-            if (!output.isSuccessful()) {
-                POStore store = output.getPOStore();
-                try {
-                    store.getStoreFunc().cleanupOnFailure(
-                            store.getSFile().getFileName(),
-                            new Job(output.getConf()));
-                } catch (IOException e) {
-                    throw new ExecException(e);
-                }
-            } else {
-                POStore store = output.getPOStore();
-                try {
-                    store.getStoreFunc().cleanupOnSuccess(
-                            store.getSFile().getFileName(),
-                            new Job(output.getConf()));
-                } catch (IOException e) {
-                    throw new ExecException(e);
-                } catch (AbstractMethodError nsme) {
-                    // Just swallow it.  This means we're running against an
-                    // older instance of a StoreFunc that doesn't implement
-                    // this method.
-                }
-            }
-        }
         return stats;
     }
 
@@ -1361,11 +1333,6 @@ public class PigServer {
         currDAG.buildPlan( null);
         currDAG.compile();
         return currDAG.lp;
-    }
-
-    private PhysicalPlan compilePp() throws FrontendException {
-        // translate lp to physical plan
-        return pigContext.getExecutionEngine().compile( currDAG.lp, null );
     }
 
     private LogicalRelationalOperator getOperatorForAlias(String alias) throws IOException {

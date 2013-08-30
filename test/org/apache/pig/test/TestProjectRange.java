@@ -32,6 +32,7 @@ import junit.framework.Assert;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.ExecType;
+import org.apache.pig.ExecTypeProvider;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.Tuple;
@@ -76,7 +77,7 @@ public class TestProjectRange  {
         String execTypeString = System.getProperty("test.exectype");
 
         if(execTypeString!=null && execTypeString.length()>0){
-            execType = ExecType.fromString(execTypeString);
+            execType = ExecTypeProvider.fromString(execTypeString);
         }
 
         String[] input = {"10\t20\t30\t40\t50", "11\t21\t31\t41\t51"};

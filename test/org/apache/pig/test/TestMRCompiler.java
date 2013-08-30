@@ -77,6 +77,7 @@ import org.apache.pig.test.junit.OrderedJUnit4Runner;
 import org.apache.pig.test.junit.OrderedJUnit4Runner.TestOrder;
 import org.apache.pig.test.utils.GenPhyOp;
 import org.apache.pig.test.utils.TestHelper;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -126,7 +127,7 @@ import org.junit.runner.RunWith;
     "testSchemaInStoreForDistinctLimit",
     "testStorerLimit"})
 public class TestMRCompiler {
-    static MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniCluster cluster;
 
     static PigContext pc;
     static PigContext pcMR;
@@ -149,9 +150,15 @@ public class TestMRCompiler {
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
+        cluster = MiniCluster.buildCluster();
         pc = new PigContext(ExecType.LOCAL, new Properties());
         pcMR = new PigContext(ExecType.MAPREDUCE, cluster.getProperties());
         pc.connect();
+    }
+
+    @AfterClass
+    public static void tearDownAfterClass() throws Exception {
+        cluster.shutDown();
     }
 
     @Before

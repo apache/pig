@@ -51,6 +51,8 @@ import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigProgressNotificationListener;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStatsUtil;
+import org.apache.pig.tools.pigstats.mapreduce.MRJobStats;
+import org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -455,14 +457,14 @@ public class TestPigRunner {
     @Test
     public void testCounterName() throws Exception {
         String s = "jdbc:hsqldb:file:/tmp/batchtest;hsqldb.default_table_type=cached;hsqldb.cache_rows=100";
-        String name = PigStatsUtil.getMultiInputsCounterName(s, 0);
-        assertEquals(PigStatsUtil.MULTI_INPUTS_RECORD_COUNTER + "_0_batchtest", name);
+        String name = MRPigStatsUtil.getMultiInputsCounterName(s, 0);
+        assertEquals(MRPigStatsUtil.MULTI_INPUTS_RECORD_COUNTER + "_0_batchtest", name);
         s = "file:///tmp/batchtest{1,2}.txt";
-        name = PigStatsUtil.getMultiInputsCounterName(s, 1);
-        assertEquals(PigStatsUtil.MULTI_INPUTS_RECORD_COUNTER + "_1_batchtest{1,2}.txt", name);
+        name = MRPigStatsUtil.getMultiInputsCounterName(s, 1);
+        assertEquals(MRPigStatsUtil.MULTI_INPUTS_RECORD_COUNTER + "_1_batchtest{1,2}.txt", name);
         s = "file:///tmp/batchtest*.txt";
-        name = PigStatsUtil.getMultiInputsCounterName(s, 2);
-        assertEquals(PigStatsUtil.MULTI_INPUTS_RECORD_COUNTER + "_2_batchtest*.txt", name);
+        name = MRPigStatsUtil.getMultiInputsCounterName(s, 2);
+        assertEquals(MRPigStatsUtil.MULTI_INPUTS_RECORD_COUNTER + "_2_batchtest*.txt", name);
     }
     
     @Test
@@ -825,24 +827,24 @@ public class TestPigRunner {
             String[] args = { PIG_FILE };
             PigStats stats = PigRunner.run(args, new TestNotificationListener());
             
-            Counters counter= ((JobStats)stats.getJobGraph().getSinks().get(0)).getHadoopCounters();
-            assertEquals(5, counter.getGroup(PigStatsUtil.TASK_COUNTER_GROUP).getCounterForName(
-                    PigStatsUtil.MAP_INPUT_RECORDS).getValue());
-            assertEquals(3, counter.getGroup(PigStatsUtil.TASK_COUNTER_GROUP).getCounterForName(
-                    PigStatsUtil.MAP_OUTPUT_RECORDS).getValue());
-            assertEquals(2, counter.getGroup(PigStatsUtil.TASK_COUNTER_GROUP).getCounterForName(
-                    PigStatsUtil.REDUCE_INPUT_RECORDS).getValue());
-            assertEquals(0, counter.getGroup(PigStatsUtil.TASK_COUNTER_GROUP).getCounterForName(
-                    PigStatsUtil.REDUCE_OUTPUT_RECORDS).getValue());
-            assertEquals(20,counter.getGroup(PigStatsUtil.FS_COUNTER_GROUP).getCounterForName(
-            		PigStatsUtil.HDFS_BYTES_WRITTEN).getValue());
+            Counters counter= ((MRJobStats)stats.getJobGraph().getSinks().get(0)).getHadoopCounters();
+            assertEquals(5, counter.getGroup(MRPigStatsUtil.TASK_COUNTER_GROUP).getCounterForName(
+                    MRPigStatsUtil.MAP_INPUT_RECORDS).getValue());
+            assertEquals(3, counter.getGroup(MRPigStatsUtil.TASK_COUNTER_GROUP).getCounterForName(
+                    MRPigStatsUtil.MAP_OUTPUT_RECORDS).getValue());
+            assertEquals(2, counter.getGroup(MRPigStatsUtil.TASK_COUNTER_GROUP).getCounterForName(
+                    MRPigStatsUtil.REDUCE_INPUT_RECORDS).getValue());
+            assertEquals(0, counter.getGroup(MRPigStatsUtil.TASK_COUNTER_GROUP).getCounterForName(
+                    MRPigStatsUtil.REDUCE_OUTPUT_RECORDS).getValue());
+            assertEquals(20,counter.getGroup(MRPigStatsUtil.FS_COUNTER_GROUP).getCounterForName(
+                    MRPigStatsUtil.HDFS_BYTES_WRITTEN).getValue());
             
             // Skip for hadoop 20.203+, See PIG-2446
             if (Util.isHadoop203plus())
                 return;
             
-            assertEquals(30,counter.getGroup(PigStatsUtil.FS_COUNTER_GROUP).getCounterForName(
-            		PigStatsUtil.HDFS_BYTES_READ).getValue());
+            assertEquals(30,counter.getGroup(MRPigStatsUtil.FS_COUNTER_GROUP).getCounterForName(
+                    MRPigStatsUtil.HDFS_BYTES_READ).getValue());
         } finally {
             new File(PIG_FILE).delete();
             Util.deleteFile(cluster, OUTPUT_FILE);

@@ -265,7 +265,7 @@ public class SchemaTupleBackend {
     private static SchemaTupleBackend stb;
 
     public static void initialize(Configuration jConf, PigContext pigContext) throws IOException {
-        initialize(jConf, pigContext, pigContext.getExecType() == ExecType.LOCAL);
+        initialize(jConf, pigContext, pigContext.getExecType().isLocal());
     }
 
     public static void initialize(Configuration jConf, PigContext pigContext, boolean isLocal) throws IOException {

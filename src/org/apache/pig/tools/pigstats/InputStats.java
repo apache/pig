@@ -43,7 +43,7 @@ public final class InputStats {
     
     private Configuration conf;
 
-    InputStats(String location, long bytes, long records, boolean success) {
+    public InputStats(String location, long bytes, long records, boolean success) {
         this.location = location;
         this.bytes = bytes;
         this.records = records;        
@@ -84,7 +84,7 @@ public final class InputStats {
         return type;
     }
     
-    String getDisplayString(boolean local) {
+    public String getDisplayString(boolean local) {
         StringBuilder sb = new StringBuilder();
         if (success) {            
             sb.append("Successfully ");
@@ -116,19 +116,19 @@ public final class InputStats {
         return sb.toString();
     }
     
-    void setConf(Configuration conf) {
+    public void setConf(Configuration conf) {
         this.conf = conf;
     }
     
-    void markSampleInput() {
+    public void markSampleInput() {
         type = INPUT_TYPE.sampler;
     }
     
-    void markIndexerInput() {
+    public void markIndexerInput() {
         type = INPUT_TYPE.indexer;
     }
     
-    void markSideFileInput() {
+    public void markSideFileInput() {
         type = INPUT_TYPE.side;
     }
 }

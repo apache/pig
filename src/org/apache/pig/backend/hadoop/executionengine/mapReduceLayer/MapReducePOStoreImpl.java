@@ -29,8 +29,7 @@ import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStoreImpl;
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
-import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
-import org.apache.pig.tools.pigstats.PigStatsUtil;
+import org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
 /**
  * This class is used to have a POStore write to DFS via a output
@@ -117,8 +116,8 @@ public class MapReducePOStoreImpl extends POStoreImpl {
     }
     
     public Counter createRecordCounter(POStore store) {
-        String name = PigStatsUtil.getMultiStoreCounterName(store);
+        String name = MRPigStatsUtil.getMultiStoreCounterName(store);
         return (name == null) ? null : reporter.getCounter(
-                PigStatsUtil.MULTI_STORE_COUNTER_GROUP, name); 
+                MRPigStatsUtil.MULTI_STORE_COUNTER_GROUP, name); 
     }
 }

@@ -47,7 +47,6 @@ import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.mapred.Counters;
 import org.apache.hadoop.mapred.Counters.Counter;
 import org.apache.hadoop.mapred.Counters.Group;
-import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobPriority;
 import org.apache.hadoop.mapred.jobcontrol.Job;
@@ -106,6 +105,7 @@ import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.tools.pigstats.ScriptState;
+import org.apache.pig.tools.pigstats.mapreduce.MRScriptState;
 
 /**
  * This is compiler class that takes an MROperPlan and converts
@@ -167,7 +167,7 @@ public class JobControlCompiler{
     private Map<Job, MapReduceOper> jobMroMap;
     private int counterSize;
 
-    public JobControlCompiler(PigContext pigContext, Configuration conf) throws IOException {
+    public JobControlCompiler(PigContext pigContext, Configuration conf) {
         this.pigContext = pigContext;
         this.conf = conf;
         jobStoreMap = new HashMap<Job, Pair<List<POStore>, Path>>();
@@ -270,7 +270,7 @@ public class JobControlCompiler{
         this.plan = plan;
 
         int timeToSleep;
-        String defaultPigJobControlSleep = pigContext.getExecType() == ExecType.LOCAL ? "100" : "5000";
+        String defaultPigJobControlSleep = pigContext.getExecType().isLocal() ? "100" : "5000";
         String pigJobControlSleep = conf.get("pig.jobcontrol.sleep", defaultPigJobControlSleep);
         if (!pigJobControlSleep.equals(defaultPigJobControlSleep)) {
           log.info("overriding default JobControl sleep (" + defaultPigJobControlSleep + ") to " + pigJobControlSleep);
@@ -438,7 +438,7 @@ public class JobControlCompiler{
         // add settings for pig statistics
         String setScriptProp = conf.get(ScriptState.INSERT_ENABLED, "true");
         if (setScriptProp.equalsIgnoreCase("true")) {
-            ScriptState ss = ScriptState.get();
+            MRScriptState ss = MRScriptState.get();
             ss.addSettingsToConf(mro, conf);
         }
 
@@ -501,7 +501,7 @@ public class JobControlCompiler{
                 }
             }
 
-            if (!pigContext.inIllustrator && pigContext.getExecType() != ExecType.LOCAL)
+            if (!pigContext.inIllustrator && ! pigContext.getExecType().isLocal())
             {
 
                 // Setup the DistributedCache for this job
@@ -838,7 +838,7 @@ public class JobControlCompiler{
             }
             // Serialize the UDF specific context info.
             UDFContext.getUDFContext().serialize(conf);
-            Job cjob = new Job(new JobConf(nwJob.getConfiguration()), new ArrayList());
+            Job cjob = new Job(new JobConf(nwJob.getConfiguration()), new ArrayList<Job>());
             jobStoreMap.put(cjob,new Pair<List<POStore>, Path>(storeLocations, tmpLocation));
             return cjob;
 
@@ -1426,7 +1426,7 @@ public class JobControlCompiler{
 
         // XXX Hadoop currently doesn't support distributed cache in local mode.
         // This line will be removed after the support is added by Hadoop team.
-        if (pigContext.getExecType() != ExecType.LOCAL) {
+        if (!pigContext.getExecType().isLocal()) {
             symlink = prefix + "_"
                     + Integer.toString(System.identityHashCode(filename)) + "_"
                     + Long.toString(System.currentTimeMillis());
@@ -1477,6 +1477,7 @@ public class JobControlCompiler{
      * @return the path as seen on distributed cache
      * @throws IOException
      */
+    @SuppressWarnings("deprecation")
     private static void putJarOnClassPathThroughDistributedCache(
             PigContext pigContext,
             Configuration conf,
@@ -1542,7 +1543,7 @@ public class JobControlCompiler{
 
             // XXX Hadoop currently doesn't support distributed cache in local mode.
             // This line will be removed after the support is added
-            if (pigContext.getExecType() == ExecType.LOCAL) return;
+            if (pigContext.getExecType().isLocal()) return;
 
             // set up distributed cache for the replicated files
             FileSpec[] replFiles = join.getReplFiles();
@@ -1583,7 +1584,7 @@ public class JobControlCompiler{
 
             // XXX Hadoop currently doesn't support distributed cache in local mode.
             // This line will be removed after the support is added
-            if (pigContext.getExecType() == ExecType.LOCAL) return;
+            if (pigContext.getExecType().isLocal()) return;
 
             String indexFile = join.getIndexFile();
 
@@ -1607,7 +1608,7 @@ public class JobControlCompiler{
 
             // XXX Hadoop currently doesn't support distributed cache in local mode.
             // This line will be removed after the support is added
-            if (pigContext.getExecType() == ExecType.LOCAL) return;
+            if (pigContext.getExecType().isLocal()) return;
 
             String indexFile = mergeCoGrp.getIndexFileName();
 
@@ -1644,7 +1645,7 @@ public class JobControlCompiler{
 
             // XXX Hadoop currently doesn't support distributed cache in local mode.
             // This line will be removed after the support is added
-            if (pigContext.getExecType() == ExecType.LOCAL) return;
+            if (pigContext.getExecType().isLocal()) return;
 
             // set up distributed cache for files indicated by the UDF
             String[] files = func.getCacheFiles();
@@ -1688,8 +1689,6 @@ public class JobControlCompiler{
                 }
             }
         }
-
-        boolean isReplaced() { return replaced; }
     }
 
 }

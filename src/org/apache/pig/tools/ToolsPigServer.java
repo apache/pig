@@ -29,8 +29,6 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
-import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.impl.PigContext;
@@ -151,10 +149,7 @@ public class ToolsPigServer extends PigServer {
      */
     public List<ExecJob> runPlan(LogicalPlan newPlan,
                                  String jobName) throws FrontendException, ExecException {
-
-        HExecutionEngine engine = new HExecutionEngine(pigContext);
-        PhysicalPlan pp = engine.compile(newPlan, null);
-        PigStats stats = launchPlan(pp, jobName);
+        PigStats stats = launchPlan(newPlan, jobName);
         return getJobs(stats);
     }
 
