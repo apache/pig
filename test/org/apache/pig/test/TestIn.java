@@ -18,6 +18,7 @@
 package org.apache.pig.test;
 
 import static junit.framework.Assert.assertEquals;
+import static org.apache.pig.builtin.mock.Storage.bag;
 import static org.apache.pig.builtin.mock.Storage.resetData;
 import static org.apache.pig.builtin.mock.Storage.tuple;
 import static org.junit.Assert.fail;
@@ -123,6 +124,35 @@ public class TestIn {
         assertEquals(2, out.size());
         assertEquals(tuple(2), out.get(0));
         assertEquals(tuple(4), out.get(1));
+    }
+
+    /**
+     * Verify that IN operator works when expressions contain dereference operators.
+     * @throws Exception
+     */
+    @Test
+    public void testWithDereferenceOperator() throws Exception {
+        PigServer pigServer = new PigServer(ExecType.LOCAL);
+        Data data = resetData(pigServer);
+
+        data.set("foo",
+                tuple("a","x",1),
+                tuple("a","y",2),
+                tuple("b","x",3),
+                tuple("b","y",4),
+                tuple("c","x",5),
+                tuple("c","y",6)
+                );
+
+        pigServer.registerQuery("A = LOAD 'foo' USING mock.Storage() AS (k1:chararray, k2:chararray, i:int);");
+        pigServer.registerQuery("B = GROUP A BY (k1, k2);");
+        pigServer.registerQuery("C = FILTER B BY group.k1 IN ('a', 'b') AND group.k2 IN ('x');");
+        pigServer.registerQuery("STORE C INTO 'bar' USING mock.Storage();");
+
+        List<Tuple> out = data.get("bar");
+        assertEquals(2, out.size());
+        assertEquals(tuple(tuple("a","x"),bag(tuple("a","x",1))), out.get(0));
+        assertEquals(tuple(tuple("b","x"),bag(tuple("b","x",3))), out.get(1));
     }
 
     /**

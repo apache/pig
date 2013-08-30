@@ -318,7 +318,9 @@ cond
 ;
 
 in_eval
-    : ^( IN { sb.append(" " + $IN.text + "("); } expr ( { sb.append(", "); } expr )+ { sb.append(") "); } )
+    : ^( IN { sb.append(" " + $IN.text + "("); }
+         ( ^( IN_LHS expr ) ^( IN_RHS { sb.append(", "); } expr ) )
+         ( ^( IN_LHS { sb.append(", "); } expr ) ^( IN_RHS  { sb.append(", "); } expr ) )* { sb.append(") "); } )
 ;
 
 func_eval
@@ -395,7 +397,9 @@ bin_expr
 ;
 
 case_expr
-    : ^( CASE_EXPR { sb.append(" CASE ("); } expr ( { sb.append(", "); } expr )+ { sb.append(") "); } )
+    : ^( CASE_EXPR { sb.append(" CASE ("); }
+         ( ^( CASE_EXPR_LHS expr ) ( ^( CASE_EXPR_RHS { sb.append(", "); } expr ) )+ )
+         ( ^( CASE_EXPR_LHS { sb.append(", "); } expr ) ( ^( CASE_EXPR_RHS { sb.append(", "); } expr ) )+ )* { sb.append(")"); } )
 ;
 
 case_cond
