@@ -4809,6 +4809,54 @@ Use the ToDate function to generate a DateTime object. Note that if the timezone
 </section>
 
 <!-- ======================================================== -->
+<section id="to-string">
+    <title>ToString</title>
+    <p>
+        ToString converts the DateTime object to the ISO or the customized string.
+    </p>
+
+    <section>
+        <title>Syntax</title>
+        <table>
+            <tr>
+                <td>
+                    <p>ToString(datetime [, format string])</p>
+                </td>
+            </tr>
+        </table>
+    </section>
+
+    <section>
+        <title>Terms</title>
+        <table>
+            <tr>
+                <td>
+                    <p>datetime</p>
+                </td>
+                <td>
+                    <p>A datetime object.</p>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <p>format string</p>
+                </td>
+                <td>
+                    <p>The date time format pattern string (see <a href="http://docs.oracle.com/javase/6/docs/api/java/text/SimpleDateFormat.html">Java SimpleDateFormat class</a>).</p>
+                </td>
+            </tr>
+        </table>
+    </section>
+
+    <section>
+        <title>Usage</title>
+        <p>
+            Use the ToString function to convert the DateTime to the customized string.
+        </p>
+    </section>
+</section>
+
+<!-- ======================================================== -->
 <section id="to-unix-time">
     <title>ToUnixTime</title>
     <p>
