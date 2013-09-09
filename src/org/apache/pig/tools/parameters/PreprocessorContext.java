@@ -75,7 +75,7 @@ public class PreprocessorContext {
      * @param key - parameter name
      * @param val - string containing command to be executed
      */
-    public  void processShellCmd(String key, String val) {
+    public  void processShellCmd(String key, String val)  throws ParameterSubstitutionException {
         processShellCmd(key, val, true);
     }
 
@@ -86,7 +86,7 @@ public class PreprocessorContext {
      * @param key - parameter name
      * @param val - value supplied for the key
      */
-    public  void processOrdLine(String key, String val) {
+    public  void processOrdLine(String key, String val)  throws ParameterSubstitutionException {
         processOrdLine(key, val, true);
     }
 
@@ -111,7 +111,7 @@ public class PreprocessorContext {
      * @param key - parameter name
      * @param val - string containing command to be executed
      */
-    public  void processShellCmd(String key, String val, Boolean overwrite) {
+    public  void processShellCmd(String key, String val, Boolean overwrite)  throws ParameterSubstitutionException {
 
         if (param_val.containsKey(key)) {
             if (param_source.get(key).equals(val) || !overwrite) {
@@ -137,7 +137,7 @@ public class PreprocessorContext {
      * @param val - value supplied for the key
      * @param overwrite - specifies whether the value should be replaced if it already exists
      */
-    public  void processOrdLine(String key, String val, Boolean overwrite) {
+    public  void processOrdLine(String key, String val, Boolean overwrite)  throws ParameterSubstitutionException {
 
         if (param_val.containsKey(key)) {
             if (param_source.get(key).equals(val) || !overwrite) {
@@ -149,7 +149,7 @@ public class PreprocessorContext {
 
         param_source.put(key, val);
 
-        String sub_val = substitute(val);
+        String sub_val = substitute(val, key);
         param_val.put(key, sub_val);
     }
 
@@ -258,10 +258,14 @@ public class PreprocessorContext {
     private Pattern bracketIdPattern = Pattern.compile("\\$\\{([_]*[a-zA-Z][a-zA-Z_0-9]*)\\}");
     private Pattern id_pattern = Pattern.compile("\\$([_]*[a-zA-Z][a-zA-Z_0-9]*)");
 
-    public  String substitute(String line) {
+    public String substitute(String line) throws ParameterSubstitutionException {
+        return substitute(line, null);
+    }
 
+    public  String substitute(String line, String parentKey) throws ParameterSubstitutionException {
         int index = line.indexOf('$');
-        if (index == -1)	return line;
+        if (index == -1)
+            return line;
 
         String replaced_line = line;
 
@@ -274,7 +278,13 @@ public class PreprocessorContext {
             if ( (bracketKeyMatcher.start() == 0) || (line.charAt( bracketKeyMatcher.start() - 1)) != '\\' ) {
                 key = bracketKeyMatcher.group(1);
                 if (!(param_val.containsKey(key))) {
-                    throw new RuntimeException("Undefined parameter : "+key);
+                    String message;
+                    if (parentKey == null) {
+                        message = "Undefined parameter : " + key;
+                    } else {
+                        message = "Undefined parameter : " + key + " found when trying to find the value of " + parentKey + "."; 
+                    }
+                    throw new ParameterSubstitutionException(message);
                 }
                 val = param_val.get(key);
                 if (val.contains("$")) {
@@ -295,7 +305,13 @@ public class PreprocessorContext {
             if ( (keyMatcher.start() == 0) || (line.charAt( keyMatcher.start() - 1)) != '\\' ) {
                 key = keyMatcher.group(1);
                 if (!(param_val.containsKey(key))) {
-                    throw new RuntimeException("Undefined parameter : "+key);
+                    String message;
+                    if (parentKey == null) {
+                        message = "Undefined parameter : " + key;
+                    } else {
+                        message = "Undefined parameter : " + key + " found when trying to find the value of " + parentKey + "."; 
+                    }
+                    throw new ParameterSubstitutionException(message);
                 }
                 val = param_val.get(key);
                 if (val.contains("$")) {

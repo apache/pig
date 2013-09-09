@@ -19,6 +19,8 @@ package org.apache.pig;
 
 import java.io.IOException;
 
+import org.apache.pig.parser.SourceLocation;
+
 /**
  * All exceptions in Pig are encapsulated in the <code>PigException</code>
  * class. Details such as the source of the error, error message, error
@@ -28,6 +30,7 @@ import java.io.IOException;
  * errorCode = 0
  * retriable = false
  * detailedMessage = null
+ * location = null
  */
 public class PigException extends IOException {
 
@@ -112,6 +115,8 @@ public class PigException extends IOException {
     protected boolean retriable = false;
     protected String detailedMessage = null;
     protected boolean markedAsShowToUser = false;
+    protected SourceLocation sourceLocation = null;
+
 
     /**
      * Create a new PigException with null as the error message.
@@ -127,6 +132,17 @@ public class PigException extends IOException {
      */
     public PigException(String message) {
         super(message);
+    }
+    
+    /**
+     * Create a new PigException with the specified message.
+     *
+     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
+     * @param location - The <link>SourceLocation</link> that generated this error.
+     */
+    public PigException(String message, SourceLocation location) {
+        super(message);
+        sourceLocation = location;
     }
     
     /**
@@ -158,6 +174,18 @@ public class PigException extends IOException {
         this(message);
         errorCode = errCode;
     }
+    
+    /**
+     * Create a new PigException with the specified message and cause.
+     *
+     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
+     * @param errCode - The error code shown to the user 
+     * @param location - The <link>SourceLocation</link> that generated this error.
+     */
+    public PigException (String message, int errCode, SourceLocation location) {
+        this(message, location);
+        errorCode = errCode;
+    }
 
     /**
      * Create a new PigException with the specified message and cause.
@@ -169,6 +197,20 @@ public class PigException extends IOException {
     public PigException (String message, int errCode, Throwable cause) {
         this(message, cause);
         errorCode = errCode;
+    }
+    
+    /**
+     * Create a new PigException with the specified message and cause.
+     *
+     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
+     * @param errCode - The error code shown to the user 
+     * @param cause - The cause (which is saved for later retrieval by the <link>Throwable.getCause()</link> method) indicating the source of this exception. A null value is permitted, and indicates that the cause is nonexistent or unknown. 
+     * @param location - The <link>SourceLocation</link> that generated this error.
+     */
+    public PigException (String message, int errCode, Throwable cause, SourceLocation location) {
+        this(message, cause);
+        errorCode = errCode;
+        sourceLocation = location;
     }
 
     /**
@@ -182,6 +224,20 @@ public class PigException extends IOException {
         this(message, errCode);
         errorSource = errSrc;
     }
+    
+    
+    /**
+     * Create a new PigException with the specified message and cause.
+     *
+     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
+     * @param errCode - The error code shown to the user 
+     * @param errSrc - The error source 
+     * @param location - The <link>SourceLocation</link> that generated this error.
+     */
+    public PigException (String message, int errCode, byte errSrc, SourceLocation location) {
+        this(message, errCode, location);
+        errorSource = errSrc;
+    }
 
     /**
      * Create a new PigException with the specified message and cause.
@@ -193,6 +249,19 @@ public class PigException extends IOException {
      */
     public PigException (String message, int errCode, byte errSrc, Throwable cause) {
         this(message, errCode, errSrc, false, null, cause);
+    }
+    
+    /**
+     * Create a new PigException with the specified message and cause.
+     *
+     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
+     * @param errCode - The error code shown to the user 
+     * @param errSrc - The error source
+     * @param cause - The cause (which is saved for later retrieval by the <link>Throwable.getCause()</link> method) indicating the source of this exception. A null value is permitted, and indicates that the cause is nonexistent or unknown. 
+     * @param location - The <link>SourceLocation</link> that generated this error.
+     */
+    public PigException (String message, int errCode, byte errSrc, Throwable cause, SourceLocation location) {
+        this(message, errCode, errSrc, false, null, cause, location);
     }
 
     /**
@@ -233,6 +302,21 @@ public class PigException extends IOException {
         this(message, errCode, errSrc, retry);
         detailedMessage = detailedMsg;
     }
+    
+    /**
+     * Create a new PigException with the specified message and cause.
+     *
+     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
+     * @param errCode - The error code shown to the user 
+     * @param errSrc - The error source 
+     * @param retry - If the exception is retriable or not
+     * @param detailedMsg - The detailed message shown to the developer 
+     */
+    public PigException (String message, int errCode, byte errSrc, boolean retry, String detailedMsg, SourceLocation location) {
+        this(message, errCode, errSrc, retry);
+        detailedMessage = detailedMsg;
+        sourceLocation = location;
+    }
 
     /**
      * Create a new PigException with the specified message, error code, error source, retriable or not, detalied message for the developer and cause.
@@ -250,6 +334,26 @@ public class PigException extends IOException {
         errorSource = errSrc;
         retriable = retry;
         detailedMessage = detailedMsg;
+    }    
+    
+    /**
+     * Create a new PigException with the specified message, error code, error source, retriable or not, detalied message for the developer and cause.
+     *
+     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
+     * @param errCode - The error code shown to the user 
+     * @param errSrc - The error source 
+     * @param retry - If the exception is retriable or not
+     * @param detailedMsg - The detailed message shown to the developer 
+     * @param cause - The cause (which is saved for later retrieval by the <link>Throwable.getCause()</link> method) indicating the source of this exception. A null value is permitted, and indicates that the cause is nonexistent or unknown.
+     * @param location - The <link>SourceLocation</link> that generated this error.
+     */
+    public PigException (String message, int errCode, byte errSrc, boolean retry, String detailedMsg, Throwable cause, SourceLocation location) {
+        super(message, cause);
+        errorCode = errCode;
+        errorSource = errSrc;
+        retriable = retry;
+        detailedMessage = detailedMsg;
+        sourceLocation = location;
     }    
     
     /**
@@ -334,6 +438,17 @@ public class PigException extends IOException {
      */
     public void setMarkedAsShowToUser(boolean showToUser) {
         markedAsShowToUser = showToUser;
+    }
+    
+    /**
+     * Return the location in the source that generated the exception.
+     */
+    public SourceLocation getSourceLocation() {
+        return sourceLocation;
+    }
+    
+    public void setSourceLocation(SourceLocation location) {
+        sourceLocation = location;
     }
     
     /**

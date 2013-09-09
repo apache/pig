@@ -205,7 +205,7 @@ public class TestParamSubPreproc {
         try {
             ps.genSubstitutedFile(pigIStream , pigOStream , arg , argFiles);
             fail ("Should have thrown an Undefined parameter exception");
-        } catch (RuntimeException e) {
+        } catch (ParseException e) {
             assertEquals(e.getMessage(), "Undefined parameter : param");
         }
         log.info("Done");

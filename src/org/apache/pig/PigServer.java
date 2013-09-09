@@ -1637,7 +1637,12 @@ public class PigServer {
                 int errCode = 1000;
                 String msg = "Error during parsing. "
                         + (pe == null ? ex.getMessage() : pe.getMessage());
-                throw new FrontendException (msg, errCode, PigException.INPUT , ex );
+                log.error("exception during parsing: " + msg, ex);
+                if (null == pe) {
+                    throw new FrontendException (msg, errCode, PigException.INPUT , ex);
+                } else {
+                    throw new FrontendException (msg, errCode, PigException.INPUT , ex, pe.getSourceLocation() );
+                }
             }
         }
 
