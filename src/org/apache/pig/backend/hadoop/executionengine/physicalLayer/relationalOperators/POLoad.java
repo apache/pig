@@ -61,6 +61,8 @@ public class POLoad extends PhysicalOperator {
     boolean setUpDone = false;
     // Alias for the POLoad
     private String signature;
+    // flag to distinguish user loads from MRCompiler loads.
+    private boolean isTmpLoad;
     
     private long limit=-1;
     
@@ -177,6 +179,13 @@ public class POLoad extends PhysicalOperator {
         lFile = file;
     }
 
+    public void setIsTmpLoad(boolean tmp) {
+        isTmpLoad = tmp;
+    }
+
+    public boolean isTmpLoad() {
+        return isTmpLoad;
+    }
 
     public PigContext getPc() {
         return pc;

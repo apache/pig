@@ -180,6 +180,7 @@ TOKEN: {<PARAM: "-param">}
 TOKEN: {<PARAM_FILE: "-param_file">}
 TOKEN: {<SCRIPT: "-script">}
 TOKEN: {<DOT: "-dot">}
+TOKEN: {<XML: "-xml">}
 TOKEN: {<OUT: "-out">}
 TOKEN: {<BRIEF: "-brief">}
 TOKEN: {<N: "-n">}
@@ -690,6 +691,9 @@ void Explain() throws IOException:
          	|
          	<DOT>
         	{format = "dot";}
+         	|
+         	<XML>
+         	{format = "xml";}
          	|
 		<OUT>
 		t = GetPath()

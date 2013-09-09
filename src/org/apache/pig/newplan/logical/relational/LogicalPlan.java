@@ -74,11 +74,18 @@ public class LogicalPlan extends BaseOperatorPlan {
     @Override
     public void explain(PrintStream ps, String format, boolean verbose) 
     throws FrontendException {
+        if (format.equals("xml")) {
+            ps.println("<logicalPlan>XML Not Supported</logicalPlan>");
+            return;
+        }
+        
         ps.println("#-----------------------------------------------");
         ps.println("# New Logical Plan:");
         ps.println("#-----------------------------------------------");
 
-        if (format.equals("dot")) {
+        if (this.size() == 0) { 
+            ps.println("Logical plan is empty.");
+        } else if (format.equals("dot")) {
             DotLOPrinter lpp = new DotLOPrinter(this, ps);
             lpp.dump();
         } else {

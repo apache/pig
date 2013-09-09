@@ -471,8 +471,11 @@ public class MRExecutionEngine implements ExecutionEngine {
             launcher.explain(pp, pigContext, eps, format, verbose);
         } finally {
             launcher.reset();
-            pps.close();
-            eps.close();
+            //Only close the stream if we opened it.
+            if (file != null) {
+                pps.close();
+                eps.close();
+            }
         }
     }
 

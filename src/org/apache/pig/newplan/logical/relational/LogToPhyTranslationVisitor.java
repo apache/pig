@@ -141,6 +141,8 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
         load.setResultType(DataType.BAG);
         load.setSignature(loLoad.getSignature());
         load.setLimit(loLoad.getLimit());
+        load.setIsTmpLoad(loLoad.isTmpLoad());
+
         currentPlan.add(load);
         logToPhyMap.put(loLoad, load);
 

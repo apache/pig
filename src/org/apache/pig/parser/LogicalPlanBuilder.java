@@ -855,6 +855,7 @@ public class LogicalPlanBuilder {
                 ConfigurationUtil.toConfiguration(pigContext.getProperties()),
                 loFunc,
                 alias + "_" + newOperatorKey());
+        op.setTmpLoad(false);
         return buildOp( loc, op, alias, new ArrayList<String>(), null );
     }
 

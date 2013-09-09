@@ -855,12 +855,13 @@ public class GruntParser extends PigScriptParser {
         System.out.println("    fs <fs arguments> - Equivalent to Hadoop dfs command: http://hadoop.apache.org/common/docs/current/hdfs_shell.html");
         System.out.println("Diagnostic commands:");
         System.out.println("    describe <alias>[::<alias] - Show the schema for the alias. Inner aliases can be described as A::B.");
-        System.out.println("    explain [-script <pigscript>] [-out <path>] [-brief] [-dot] [-param <param_name>=<param_value>]");
+        System.out.println("    explain [-script <pigscript>] [-out <path>] [-brief] [-dot|-xml] [-param <param_name>=<param_value>]");
         System.out.println("        [-param_file <file_name>] [<alias>] - Show the execution plan to compute the alias or for entire script.");
         System.out.println("        -script - Explain the entire script.");
         System.out.println("        -out - Store the output into directory rather than print to stdout.");
         System.out.println("        -brief - Don't expand nested plans (presenting a smaller graph for overview).");
         System.out.println("        -dot - Generate the output in .dot format. Default is text format.");
+        System.out.println("        -xml - Generate the output in .xml format. Default is text format.");
         System.out.println("        -param <param_name - See parameter substitution for details.");
         System.out.println("        -param_file <file_name> - See parameter substitution for details.");
         System.out.println("        alias - Alias to explain.");

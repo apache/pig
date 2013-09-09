@@ -26,6 +26,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.TransformerException;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -55,6 +58,7 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MRInte
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MRPrinter;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.POPackageAnnotator;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.XMLMRPrinter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POJoinPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
@@ -593,6 +597,16 @@ public class MapReduceLauncher extends Launcher{
             MRPrinter printer = new MRPrinter(ps, mrp);
             printer.setVerbose(verbose);
             printer.visit();
+        } else if (format.equals("xml")) {
+            try {
+                XMLMRPrinter printer = new XMLMRPrinter(ps, mrp);
+                printer.visit();
+                printer.closePlan();
+            } catch (ParserConfigurationException e) {
+                e.printStackTrace();
+            } catch (TransformerException e) {
+                e.printStackTrace();
+            }
         } else {
             ps.println("#--------------------------------------------------");
             ps.println("# Map Reduce Plan                                  ");
