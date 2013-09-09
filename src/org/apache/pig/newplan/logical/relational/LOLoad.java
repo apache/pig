@@ -51,6 +51,7 @@ public class LOLoad extends LogicalRelationalOperator {
     private final String schemaFile;
     private final String signature;
     private long limit = -1;
+    private boolean isTmpLoad;
 
     /**
      * used for pattern matching
@@ -278,6 +279,14 @@ public class LOLoad extends LogicalRelationalOperator {
     
     public String getSignature() {
         return signature;
+    }
+    
+    public boolean isTmpLoad() {
+        return isTmpLoad;
+    }
+
+    public void setTmpLoad(boolean isTmpLoad) {
+        this.isTmpLoad = isTmpLoad;
     }
     
     public LogicalSchema getScriptSchema() {

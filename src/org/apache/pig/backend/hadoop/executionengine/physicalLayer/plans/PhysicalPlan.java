@@ -113,6 +113,11 @@ public class PhysicalPlan extends OperatorPlan<PhysicalOperator> implements Clon
      * @param verbose : Amount of information to print
      */
     public void explain(PrintStream ps, String format, boolean verbose) {
+        if (format.equals("xml")) {
+            ps.println("<physicalPlan>XML Not Supported</physicalPlan>");
+            return;
+        }
+        
         ps.println("#-----------------------------------------------");
         ps.println("# Physical Plan:");
         ps.println("#-----------------------------------------------");

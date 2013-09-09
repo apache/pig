@@ -28,11 +28,13 @@ import static org.junit.Assert.fail;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringReader;
 import java.lang.reflect.Method;
@@ -44,6 +46,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -68,6 +73,9 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 import com.google.common.io.Files;
 
@@ -490,6 +498,73 @@ public class TestPigServer {
                     "itemCounts::type: chararray,itemCounts::typeCount: int," +
                     "itemCounts::f: float,itemCounts::m: map[ ]");
         assertEquals(expectedSchema, dumpedSchema);
+    }
+
+    @Test
+    public void testExplainXmlComplex() throws Throwable {
+        pig.registerQuery("a = load 'a' as (site: chararray, count: int, itemCounts: bag { itemCountsTuple: tuple (type: chararray, typeCount: int, f: float, m: map[]) } ) ;") ;
+        pig.registerQuery("b = foreach a generate site, count, FLATTEN(itemCounts);") ;
+        pig.registerQuery("c = group b by site;");
+        pig.registerQuery("d = foreach c generate FLATTEN($1);");
+        pig.registerQuery("e = group d by $2;");
+        
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(baos);
+        pig.explain("e", "xml", true, false, ps, ps, null, null);
+        
+        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+        DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+        Document doc = dBuilder.parse(bais);
+        
+        //Verify Logical and Physical Plans aren't supported.
+        NodeList logicalPlan = doc.getElementsByTagName("logicalPlan");
+        assertEquals(1, logicalPlan.getLength());
+        assertTrue(logicalPlan.item(0).getTextContent().contains("Not Supported"));
+        NodeList physicalPlan = doc.getElementsByTagName("physicalPlan");
+        assertEquals(1, physicalPlan.getLength());
+        assertTrue(physicalPlan.item(0).getTextContent().contains("Not Supported"));
+        
+        //Verify we have two loads and one is temporary
+        NodeList loads = doc.getElementsByTagName("POLoad");
+        assertEquals(2, loads.getLength());
+        
+        boolean sawTempLoad = false;
+        boolean sawNonTempLoad = false;
+        for (int i = 0; i < loads.getLength(); i++) {
+            Boolean isTempLoad = null;
+            boolean hasAlias = false;
+            
+            Node poLoad = loads.item(i);
+            NodeList children = poLoad.getChildNodes();
+            
+            for (int j = 0; j < children.getLength(); j++) {
+                Node child = children.item(j);
+                if (child.getNodeName().equals("alias")) {
+                    hasAlias = true;
+                }
+                if (child.getNodeName().equals("isTmpLoad")) {
+                    if (child.getTextContent().equals("false")) {
+                        isTempLoad = false;
+                    } else if (child.getTextContent().equals("true")) {
+                        isTempLoad = true;
+                    }
+                }
+            }
+            
+            if (isTempLoad == null) {
+                fail("POLoad elements should have isTmpLoad child node.");
+            } else if (isTempLoad && hasAlias) {
+                fail("Temp loads should not have aliases");
+            } else if (!isTempLoad && !hasAlias) {
+                fail("Non temporary loads should be associated with alias.");
+            }
+            
+            sawTempLoad = sawTempLoad || isTempLoad;
+            sawNonTempLoad = sawNonTempLoad || !isTempLoad;
+        }
+        
+        assertTrue(sawTempLoad && sawNonTempLoad);
     }
 
     @Test

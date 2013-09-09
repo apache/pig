@@ -124,6 +124,9 @@ public class DryRunGruntParser extends PigScriptParser {
         if (isVerbose) sb.append("-brief ");
         if (format != null && format.equals("dot")) {
             sb.append("-dot ");
+        } 
+        if (format != null && format.equals("xml")) {
+            sb.append("-xml ");
         }
         if (params != null) {
             for (String param : params) {
