@@ -606,10 +606,12 @@ static int run(String args[], PigProgressNotificationListener listener) {
         usage();
         rc = ReturnCode.PARSE_EXCEPTION;
         PigStatsUtil.setErrorMessage(e.getMessage());
+        PigStatsUtil.setErrorThrowable(e);
     } catch (org.apache.pig.tools.parameters.ParseException e) {
        // usage();
         rc = ReturnCode.PARSE_EXCEPTION;
         PigStatsUtil.setErrorMessage(e.getMessage());
+        PigStatsUtil.setErrorThrowable(e);
     } catch (IOException e) {
         if (e instanceof PigException) {
             PigException pe = (PigException)e;
@@ -621,6 +623,7 @@ static int run(String args[], PigProgressNotificationListener listener) {
             rc = ReturnCode.IO_EXCEPTION;
             PigStatsUtil.setErrorMessage(e.getMessage());
         }
+        PigStatsUtil.setErrorThrowable(e);
 
         if(!gruntCalled) {
             LogUtils.writeLog(e, logFileName, log, verbose, "Error before Pig is launched");
@@ -628,6 +631,8 @@ static int run(String args[], PigProgressNotificationListener listener) {
     } catch (Throwable e) {
         rc = ReturnCode.THROWABLE_EXCEPTION;
         PigStatsUtil.setErrorMessage(e.getMessage());
+        PigStatsUtil.setErrorThrowable(e);
+
         if(!gruntCalled) {
             LogUtils.writeLog(e, logFileName, log, verbose, "Error before Pig is launched");
         }

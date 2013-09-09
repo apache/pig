@@ -237,7 +237,8 @@ public class QueryParserDriver {
         } catch (RecognitionException e) {
             String msg = parser.getErrorHeader(e) + " "
                     + parser.getErrorMessage(e, parser.getTokenNames());
-            throw new ParserException(msg);
+            SourceLocation location = new SourceLocation(null, e.line,e.charPositionInLine);
+            throw new ParserException(msg, location);
         } catch(RuntimeException ex) {
             throw new ParserException( ex.getMessage() );
         }
