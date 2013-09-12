@@ -179,6 +179,17 @@
         <equals arg1="${hadoopversion}" arg2="23"/>
     </condition>
 
+    <!--
+      HBase master version
+      Denotes how the HBase dependencies are layout. Value "94" denotes older
+      format where all HBase code is present in one single jar, which is the
+      way HBase is available up to version 0.94. Value "95" denotes new format
+      where HBase is cut into multiple dependencies per each major subsystem,
+      e.g. "client", "server", ... . Only values "94" and "95" are supported
+      at the moment.
+    -->
+    <property name="hbaseversion" value="94" />
+
     <property name="src.shims.dir" value="${basedir}/shims/src/hadoop${hadoopversion}" />
     <property name="src.shims.test.dir" value="${basedir}/shims/test/hadoop${hadoopversion}" />
 
