@@ -21,6 +21,7 @@ package org.apache.pig.scripting.groovy;
 import groovy.util.ResourceException;
 import groovy.util.ScriptException;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
@@ -65,7 +66,7 @@ public class GroovyEvalFunc<T> extends EvalFunc<T> {
 
     if (null == c) {
       try {
-        c = GroovyScriptEngine.getEngine().loadScriptByName(path);
+        c = GroovyScriptEngine.getEngine().loadScriptByName(new File(path).toURI().toString());
       } catch (ScriptException se) {
         throw new IOException(se);
       } catch (ResourceException re) {

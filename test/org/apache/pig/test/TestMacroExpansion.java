@@ -334,7 +334,7 @@ public class TestMacroExpansion {
     @Test 
     public void defineTest2() throws Exception {
         String macro = "define group_and_count (A) returns B {\n" +
-            "    DEFINE CMD `stream.pl data.gz` SHIP('"+Util.encodeEscape(command.toString())+"') CACHE('"+Util.encodeEscape(command.toString())+"');\n" +
+            "    DEFINE CMD `perl stream.pl data.gz` SHIP('"+Util.encodeEscape(command.toString())+"') CACHE('"+Util.encodeEscape(command.toString())+"');\n" +
             "    $B = STREAM $A THROUGH CMD;\n" +
             "};\n";
         

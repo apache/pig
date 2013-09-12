@@ -68,7 +68,7 @@ public class TestFilterOpString {
         }
         ps.close();
         pig.registerQuery("A=load '"
-                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                + Util.encodeEscape(Util.generateURI(tmpFile.toString(), pig.getPigContext()))
                 + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 eq $1;";
 
@@ -107,7 +107,7 @@ public class TestFilterOpString {
         }
         ps.close();
         pig.registerQuery("A=load '"
-                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                + Util.encodeEscape(Util.generateURI(tmpFile.toString(), pig.getPigContext()))
                 + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 neq $1;";
 
@@ -146,7 +146,7 @@ public class TestFilterOpString {
         }
         ps.close();
         pig.registerQuery("A=load '"
-                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                + Util.encodeEscape(Util.generateURI(tmpFile.toString(), pig.getPigContext()))
                 + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 gt $1;";
 
@@ -190,7 +190,7 @@ public class TestFilterOpString {
         ps.close();
 
         pig.registerQuery("A=load '"
-                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                + Util.encodeEscape(Util.generateURI(tmpFile.toString(), pig.getPigContext()))
                 + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 gte $1;";
 
@@ -229,7 +229,7 @@ public class TestFilterOpString {
         ps.close();
 
         pig.registerQuery("A=load '"
-                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                + Util.encodeEscape(Util.generateURI(tmpFile.toString(), pig.getPigContext()))
                 + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 lt $1;";
 
@@ -271,7 +271,7 @@ public class TestFilterOpString {
         ps.close();
 
         pig.registerQuery("A=load '"
-                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                + Util.encodeEscape(Util.generateURI(tmpFile.toString(), pig.getPigContext()))
                 + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 lte $1;";
 

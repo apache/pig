@@ -34,6 +34,7 @@ import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.builtin.PigStreaming;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.zookeeper.Shell;
 
 
 /**
@@ -185,6 +186,10 @@ public class StreamingCommand implements Serializable, Cloneable {
         URI pathUri = null;
         URI dfsPath = null;
         try {
+            // On Windows, replace "\" into "/"
+            if (Shell.WINDOWS) {
+                path = path.replaceAll("\\\\", "/");
+            }
             pathUri = new URI(path);
             
             // Strip away the URI's _fragment_ and _query_

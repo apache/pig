@@ -103,10 +103,10 @@ public class TestForEachNestedPlanLocal {
                 "({('user3','singapore','user3','usa','10'),('user3','singapore','user3','singapore','20')})",
                 "({})" });
         pig.registerQuery("user = load '"
-                + Util.generateURI(tmpFiles[0].toString(), pig.getPigContext())
+                + Util.encodeEscape(Util.generateURI(tmpFiles[0].toString(), pig.getPigContext()))
                 + "' as (uid, region);");
         pig.registerQuery("session = load '"
-                + Util.generateURI(tmpFiles[1].toString(), pig.getPigContext())
+                + Util.encodeEscape(Util.generateURI(tmpFiles[1].toString(), pig.getPigContext()))
                 + "' as (uid, region, duration);");
         pig.registerQuery("C = cogroup user by uid, session by uid;");
         pig.registerQuery("D = foreach C {"
@@ -131,10 +131,10 @@ public class TestForEachNestedPlanLocal {
                 "({('user3','singapore','user3','singapore','20')})",
                 "({})" });
         pig.registerQuery("user = load '"
-                + Util.generateURI(tmpFiles[0].toString(), pig.getPigContext())
+                + Util.encodeEscape(Util.generateURI(tmpFiles[0].toString(), pig.getPigContext()))
                 + "' as (uid, region);");
         pig.registerQuery("session = load '"
-                + Util.generateURI(tmpFiles[1].toString(), pig.getPigContext())
+                + Util.encodeEscape(Util.generateURI(tmpFiles[1].toString(), pig.getPigContext()))
                 + "' as (uid, region, duration);");
         pig.registerQuery("C = cogroup user by uid, session by uid;");
         pig.registerQuery("D = foreach C {"
@@ -161,13 +161,13 @@ public class TestForEachNestedPlanLocal {
                 "({('user3','singapore','user3','usa','10','user3','user','female'),('user3','singapore','user3','singapore','20','user3','user','female')})",
                 "({})" });
         pig.registerQuery("user = load '"
-                + Util.generateURI(tmpFiles[0].toString(), pig.getPigContext())
+                + Util.encodeEscape(Util.generateURI(tmpFiles[0].toString(), pig.getPigContext()))
                 + "' as (uid, region);");
         pig.registerQuery("session = load '"
-                + Util.generateURI(tmpFiles[1].toString(), pig.getPigContext())
+                + Util.encodeEscape(Util.generateURI(tmpFiles[1].toString(), pig.getPigContext()))
                 + "' as (uid, region, duration);");
         pig.registerQuery("profile = load '"
-                + Util.generateURI(tmpFiles[2].toString(), pig.getPigContext())
+                + Util.encodeEscape(Util.generateURI(tmpFiles[2].toString(), pig.getPigContext()))
                 + "' as (uid, role, gender);");
         pig.registerQuery("C = cogroup user by uid, session by uid, profile by uid;");
         pig.registerQuery("D = foreach C {"

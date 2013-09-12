@@ -380,10 +380,12 @@ public class TestSecondarySort {
         ps2.println("1\t4\t4");
         ps2.println("2\t3\t1");
         ps2.close();
-        Util.copyFromLocalToCluster(cluster, tmpFile1.getCanonicalPath(), tmpFile1.getCanonicalPath());
-        Util.copyFromLocalToCluster(cluster, tmpFile2.getCanonicalPath(), tmpFile2.getCanonicalPath());
-        pigServer.registerQuery("A = LOAD '" + Util.encodeEscape(tmpFile1.getCanonicalPath()) + "' AS (a0, a1, a2);");
-        pigServer.registerQuery("B = LOAD '" + Util.encodeEscape(tmpFile2.getCanonicalPath()) + "' AS (b0, b1, b2);");
+        String clusterPath1 = tmpFile1.getName();
+        String clusterPath2 = tmpFile2.getName();
+        Util.copyFromLocalToCluster(cluster, tmpFile1.getCanonicalPath(), clusterPath1);
+        Util.copyFromLocalToCluster(cluster, tmpFile2.getCanonicalPath(), clusterPath2);
+        pigServer.registerQuery("A = LOAD '" + clusterPath1 + "' AS (a0, a1, a2);");
+        pigServer.registerQuery("B = LOAD '" + clusterPath2 + "' AS (b0, b1, b2);");
         pigServer.registerQuery("C = cogroup A by (a0,a1), B by (b0,b1) parallel 2;");
         pigServer.registerQuery("D = ORDER C BY group;");
         pigServer.registerQuery("E = foreach D { F = limit A 10; G = ORDER F BY a2; generate group, COUNT(G);};");
@@ -397,8 +399,8 @@ public class TestSecondarySort {
         assertTrue(iter.hasNext());
         assertEquals("((2,3),1)", iter.next().toString());
         assertFalse(iter.hasNext());
-        Util.deleteFile(cluster, tmpFile1.getCanonicalPath());
-        Util.deleteFile(cluster, tmpFile2.getCanonicalPath());
+        Util.deleteFile(cluster, clusterPath1);
+        Util.deleteFile(cluster, clusterPath2);
     }
 
     @Test
@@ -453,7 +455,7 @@ public class TestSecondarySort {
 
         Util.checkQueryOutputsAfterSortRecursive(iter, expected, org.apache.pig.newplan.logical.Util.translateSchema(s));
 
-        Util.deleteFile(cluster, tmpFile1.getCanonicalPath());
+        Util.deleteFile(cluster, clusterFilePath);
     }
 }
 

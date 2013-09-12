@@ -198,10 +198,10 @@ public class TestUnion {
         File f2 = Util.createInputFile("tmp", "b.txt", new String[] {"7\t8\t9", "1\t200\t300"});
         File f3 = Util.createInputFile("tmp", "c.txt", new String[] {"1\t20\t30"});
         //FileLocalizer.deleteTempFiles();
-        pigServer.registerQuery("a = load '" + f1.getAbsolutePath() + "' ;");
-        pigServer.registerQuery("b = load '" + f2.getAbsolutePath() + "';");
+        pigServer.registerQuery("a = load '" + Util.encodeEscape(f1.getAbsolutePath()) + "' ;");
+        pigServer.registerQuery("b = load '" + Util.encodeEscape(f2.getAbsolutePath()) + "';");
         pigServer.registerQuery("c = union a, b;");
-        pigServer.registerQuery("d = load '" + f3.getAbsolutePath() + "' ;");
+        pigServer.registerQuery("d = load '" + Util.encodeEscape(f3.getAbsolutePath()) + "' ;");
         pigServer.registerQuery("e = cogroup c by $0 inner, d by $0 inner;");
         pigServer.explain("e", System.err);
         // output should be
@@ -225,8 +225,8 @@ public class TestUnion {
     public void testSchemaMergeWithBag() throws Exception {
         File f1 = Util.createInputFile("tmp", "input1.txt", new String[] {"dummy"});
         File f2 = Util.createInputFile("tmp", "input2.txt", new String[] {"dummy"});
-        Util.registerMultiLineQuery(pigServer, "a = load '" + f1.getAbsolutePath() + "';" +
-        		"b = load '" + f2.getAbsolutePath() + "';" +
+        Util.registerMultiLineQuery(pigServer, "a = load '" + Util.encodeEscape(f1.getAbsolutePath()) + "';" +
+        		"b = load '" + Util.encodeEscape(f2.getAbsolutePath()) + "';" +
         		"c = foreach a generate 1, {(1, 'str1')};" +
         		"d = foreach b generate 2, {(2, 'str2')};" +
         		"e = union c,d;" +
@@ -260,8 +260,8 @@ public class TestUnion {
         File f2 = Util.createInputFile("tmp", "i2.txt", new String[] {"bbb\t222"});
 
         PigServer ps = new PigServer(ExecType.LOCAL, new Properties());
-        ps.registerQuery("A = load '" + f1.getAbsolutePath() + "' as (a,b);");
-        ps.registerQuery("B = load '" + f2.getAbsolutePath() + "' as (a,b);");
+        ps.registerQuery("A = load '" + Util.encodeEscape(f1.getAbsolutePath()) + "' as (a,b);");
+        ps.registerQuery("B = load '" + Util.encodeEscape(f2.getAbsolutePath()) + "' as (a,b);");
         ps.registerQuery("C = union A,B;");
         ps.registerQuery("D = foreach C generate (chararray)a as a,(int)b as b;");
 

@@ -1131,7 +1131,7 @@ public class TestEvalPipelineLocal {
     // See PIG-2970
     public void testDescribeDanglingBranch() throws Throwable {
         File f1 = createFile(new String[]{"NYSE\tIBM", "NASDAQ\tYHOO", "NASDAQ\tMSFT"});
-        pigServer.registerQuery("daily = load '" + Util.generateURI(f1.toString(), pigServer.getPigContext())
+        pigServer.registerQuery("daily = load '" + Util.encodeEscape(Util.generateURI(f1.toString(), pigServer.getPigContext()))
         		+"' as (exchange, symbol);");
         pigServer.registerQuery("grpd = group daily by exchange;");
         pigServer.registerQuery("unique = foreach grpd { sym = daily.symbol; uniq_sym = distinct sym; uniq_sym = distinct sym; generate group, daily;};");

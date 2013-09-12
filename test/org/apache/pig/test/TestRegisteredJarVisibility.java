@@ -119,8 +119,7 @@ public class TestRegisteredJarVisibility {
 
     @Test()
     public void testRegisteredJarVisibility() throws IOException {
-        cluster.getFileSystem().copyFromLocalFile(
-                new Path("file://" + INPUT_FILE.getAbsolutePath()), new Path(INPUT_FILE.getName()));
+        Util.copyFromLocalToCluster(cluster, INPUT_FILE.getPath(), INPUT_FILE.getName());
         PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
 
         String query = "register " + jarFile.getAbsolutePath() + ";\n"
