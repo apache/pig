@@ -538,8 +538,7 @@ public class TestScriptLanguage {
         assertTrue(stats.getErrorCode() == 1121);
         assertTrue(stats.getReturnCode() == PigRunner.ReturnCode.PIG_EXCEPTION);
 
-        String expected = "Python Error. Traceback (most recent call last):\n" +
-            "  File \"";
+        String expected = "Python Error. Traceback (most recent call last):";
 
         String msg = stats.getErrorMessage();
         Util.checkErrorMessageContainsExpected(msg, expected);

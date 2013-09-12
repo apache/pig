@@ -77,7 +77,7 @@ public class TestGrunt {
         PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         PigContext context = server.getPigContext();
 
-        String strCmd = "copyFromLocal /bin/sh sh_copy ;";
+        String strCmd = "copyFromLocal README.txt sh_copy ;";
 
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
@@ -1116,11 +1116,11 @@ public class TestGrunt {
     public void testShellCommandOrder() throws Throwable {
         PigServer server = new PigServer(ExecType.LOCAL, new Properties());
 
-        String strRemoveRecurse = "rm -rf";
+        String strRemove = "rm";
 
         if (Util.WINDOWS)
         {
-            strRemoveRecurse  = "rd /S";
+            strRemove = "del";
         }
 
         File inputFile = File.createTempFile("testInputFile", ".txt");
@@ -1134,7 +1134,7 @@ public class TestGrunt {
         PrintWriter pwScript = new PrintWriter(new FileWriter(inputScript));
         pwScript.println("a = load '" + Util.encodeEscape(inputFile.getAbsolutePath()) + "';");
         pwScript.println("store a into '" + Util.encodeEscape(outputFile.getAbsolutePath()) + "';");
-        pwScript.println("sh " + strRemoveRecurse + " " + Util.encodeEscape(inputFile.getAbsolutePath()));
+        pwScript.println("sh " + strRemove + " " + Util.encodeEscape(inputFile.getAbsolutePath()));
         pwScript.close();
 
         InputStream inputStream = new FileInputStream(inputScript.getAbsoluteFile());

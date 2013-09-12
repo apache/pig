@@ -296,7 +296,7 @@ public class TestPONegative {
         PigServer pig = new PigServer(ExecType.LOCAL, new Properties());
         File f = Util.createInputFile("tmp", "", new String[] {"a", "b", "c"});
         pig.registerQuery("a = load '"
-                + Util.generateURI(f.toString(), pig.getPigContext()) + "';");
+                + Util.encodeEscape(Util.generateURI(f.toString(), pig.getPigContext())) + "';");
         // -1 is modeled as POnegative with Constant(1)
         pig.registerQuery("b = foreach a generate SIZE(-1);");
         Iterator<Tuple> it = pig.openIterator("b");

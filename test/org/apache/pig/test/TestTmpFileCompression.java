@@ -392,6 +392,7 @@ public class TestTmpFileCompression {
                 }
                 assertEquals("Last value does not match",
                             curval, LOOP_SIZE );
+                reader.close();
             } finally {
                 tFile.delete();
             }

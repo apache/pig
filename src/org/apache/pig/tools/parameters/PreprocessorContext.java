@@ -35,6 +35,7 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.util.Shell;
 
 public class PreprocessorContext {
 
@@ -166,12 +167,17 @@ public class PreprocessorContext {
             log.info("Executing command : " + cmd);
             // we can't use exec directly since it does not handle
             // case like foo -c "bar bar" correctly. It splits on white spaces even in presents of quotes
-            String[] cmdArgs = new String[3];
-            cmdArgs[0] = "bash";
-            cmdArgs[1] = "-c";
-            StringBuffer sb  = new StringBuffer("exec ");
-            sb.append(cmd);
-            cmdArgs[2] = sb.toString();
+            StringBuffer sb  = new StringBuffer("");
+            String[] cmdArgs;
+            if (Shell.WINDOWS) {
+                cmd = cmd.replaceAll("/", "\\\\");
+                sb.append(cmd);
+                cmdArgs = new String[]{"cmd", "/c", sb.toString() };
+            } else {
+                sb.append("exec ");
+                sb.append(cmd);
+                cmdArgs = new String[]{"bash", "-c", sb.toString() };
+            }
 
             p = Runtime.getRuntime().exec(cmdArgs);
 

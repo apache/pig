@@ -102,10 +102,10 @@ public class TestJsonLoaderStorage {
         File interFile = File.createTempFile("tmp", null);
         interFile.delete();
         
-        pigServer.registerQuery("a = load '" + inputFile.getCanonicalPath() + "' as (a0:int, a1:chararray, a2, a3:(a30:int));");
+        pigServer.registerQuery("a = load '" + Util.encodeEscape(inputFile.getCanonicalPath()) + "' as (a0:int, a1:chararray, a2, a3:(a30:int));");
         pigServer.store("a", interFile.getCanonicalPath(), "JsonStorage");
         
-        pigServer.registerQuery("b = load '" + interFile.getCanonicalPath() + "' using JsonLoader();");
+        pigServer.registerQuery("b = load '" + Util.encodeEscape(interFile.getCanonicalPath()) + "' using JsonLoader();");
         Iterator<Tuple> iter = pigServer.openIterator("b");
         
         Tuple t = iter.next();

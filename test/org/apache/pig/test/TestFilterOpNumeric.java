@@ -60,7 +60,7 @@ public class TestFilterOpNumeric {
         }
         ps.close();
         pig.registerQuery("A=load '"
-                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                + Util.encodeEscape(Util.generateURI(tmpFile.toString(), pig.getPigContext()))
                 + "' using "+PigStorage.class.getName() +"(':');");
         String query = "A = filter A by ($0 == $1 and $0 <= $1);";
         log.info(query);
@@ -92,7 +92,7 @@ public class TestFilterOpNumeric {
         }
         ps.close();
         pig.registerQuery("A=load '"
-                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                + Util.encodeEscape(Util.generateURI(tmpFile.toString(), pig.getPigContext()))
                 + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 != $1;";
         log.info(query);
@@ -120,7 +120,7 @@ public class TestFilterOpNumeric {
         }
         ps.close();
         pig.registerQuery("A=load '"
-                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) + "' using "
+                + Util.encodeEscape(Util.generateURI(tmpFile.toString(), pig.getPigContext())) + "' using "
                 + PigStorage.class.getName() + "(':') as (f1: double, f2:double);");
         String query = "A = filter A by ($0 > $1 and $0 >= $1);";
 
@@ -145,7 +145,7 @@ public class TestFilterOpNumeric {
         }
         ps.close();
         pig.registerQuery("A=load '"
-                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) + "';");
+                + Util.encodeEscape(Util.generateURI(tmpFile.toString(), pig.getPigContext())) + "';");
         String query = "A = foreach A generate ($1 >= "+ LOOP_COUNT+"-10?'1':'0');";
         log.info(query);
         pig.registerQuery(query);
@@ -174,7 +174,7 @@ public class TestFilterOpNumeric {
         }
         ps.close();
         pig.registerQuery("A=load '"
-                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) + "';");
+                + Util.encodeEscape(Util.generateURI(tmpFile.toString(), pig.getPigContext())) + "';");
         String query = "A = foreach A generate (($0 < 10 or $0 < 9)?(($1 >= 5 and $1 >= 4) ? 2: 1) : 0);";
         log.info(query);
         pig.registerQuery(query);
@@ -204,7 +204,7 @@ public class TestFilterOpNumeric {
         }
         ps.close();
         pig.registerQuery("A=load '"
-                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                + Util.encodeEscape(Util.generateURI(tmpFile.toString(), pig.getPigContext()))
                 + "' using " + PigStorage.class.getName() + "(':') as (a: double, b:double);");
         String query = "A = filter A by ($0 <= $1 and $0 < $1);";
 
@@ -236,7 +236,7 @@ public class TestFilterOpNumeric {
         }
         ps.close();
         pig.registerQuery("A=load '"
-                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                + Util.encodeEscape(Util.generateURI(tmpFile.toString(), pig.getPigContext()))
                 + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by ($0 > $1 or $0 >= $1);";
 
@@ -267,7 +267,7 @@ public class TestFilterOpNumeric {
         }
         ps.close();
         pig.registerQuery("A=load '"
-                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                + Util.encodeEscape(Util.generateURI(tmpFile.toString(), pig.getPigContext()))
                 + "' using " + PigStorage.class.getName() + "(':') as (a: double, b:double);");
         String query = "A = filter A by ($0 <= $1 or $0 < $1);";
 

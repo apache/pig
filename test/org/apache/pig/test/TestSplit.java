@@ -49,7 +49,7 @@ public class TestSplit {
     @Test
     public void testSplit1() throws IOException {
         String query = 
-            "a = load '" + file.getAbsolutePath() + "' as (id:int);" + 
+            "a = load '" + Util.encodeEscape(file.getAbsolutePath()) + "' as (id:int);" + 
             "split a into b if id > 3, c if id < 3, d otherwise;"
             ;
 
@@ -63,7 +63,7 @@ public class TestSplit {
     @Test
     public void testSplit2() throws IOException {
         String query = 
-            "a = load '" + file.getAbsolutePath() + "' as (id:int);" + 
+            "a = load '" + Util.encodeEscape(file.getAbsolutePath()) + "' as (id:int);" + 
             "split a into b if id % 2 == 0, d otherwise;"
             ;
 
@@ -80,7 +80,7 @@ public class TestSplit {
             "define split_into_two (A,key) returns B, C {" +
             "    SPLIT $A INTO $B IF $key<4, $C OTHERWISE;" +
             "};"  +
-            "a = load '" + file.getAbsolutePath() + "' as (id:int);" +
+            "a = load '" + Util.encodeEscape(file.getAbsolutePath()) + "' as (id:int);" +
             "B, C = split_into_two(a, id);"
             ;
 
@@ -98,7 +98,7 @@ public class TestSplit {
     @Test(expected=FrontendException.class)
     public void testSplitNondeterministic() throws IOException {
         String query = 
-            "a = load '" + file.getAbsolutePath() + "' as (id:int);" + 
+            "a = load '" + Util.encodeEscape(file.getAbsolutePath()) + "' as (id:int);" + 
             "split a into b if RANDOM() < 0.5, d otherwise;"
             ;
 

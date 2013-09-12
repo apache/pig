@@ -49,10 +49,10 @@ public class TestLocationInPhysicalPlan {
         PigServer pigServer = new PigServer(ExecType.LOCAL);
         pigServer.setBatchOn();
         pigServer.registerQuery(
-                "A = LOAD '" + input.getAbsolutePath() + "' using PigStorage();\n"
+                "A = LOAD '" + Util.encodeEscape(input.getAbsolutePath()) + "' using PigStorage();\n"
             +  	"B = GROUP A BY $0;\n"
             + 	"A = FOREACH B GENERATE COUNT(A);\n"
-            +	"STORE A INTO '" + output.getAbsolutePath() + "';");
+            +	"STORE A INTO '" + Util.encodeEscape(output.getAbsolutePath()) + "';");
         ExecJob job = pigServer.executeBatch().get(0);
         List<OriginalLocation> originalLocations = job.getPOStore().getOriginalLocations();
         Assert.assertEquals(1, originalLocations.size());

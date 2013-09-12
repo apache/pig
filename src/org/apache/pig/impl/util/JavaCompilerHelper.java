@@ -33,6 +33,7 @@ import javax.tools.ToolProvider;
 
 import com.google.common.collect.Lists;
 
+import org.apache.hadoop.util.Shell;
 import org.apache.log4j.Logger;
 
 public class JavaCompilerHelper {
@@ -85,7 +86,7 @@ public class JavaCompilerHelper {
     }
 
     public void addToClassPath(String path) {
-        this.classPath = this.classPath+":"+path;
+        this.classPath = this.classPath + System.getProperty("path.separator") + path;
     }
 
     public String getClassPath() {

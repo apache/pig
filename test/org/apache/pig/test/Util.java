@@ -323,7 +323,8 @@ public class Util {
 	    PrintWriter pw = new PrintWriter(new OutputStreamWriter(new
 	            FileOutputStream(f), "UTF-8"));
         for (int i=0; i<inputData.length; i++){
-            pw.println(inputData[i]);
+            pw.print(inputData[i]);
+            pw.print("\n");
         }
         pw.close();
 	}
@@ -353,7 +354,8 @@ public class Util {
         FSDataOutputStream stream = fs.create(new Path(fileName));
         PrintWriter pw = new PrintWriter(new OutputStreamWriter(stream, "UTF-8"));
         for (int i=0; i<inputData.length; i++){
-            pw.println(inputData[i]);
+            pw.print(inputData[i]);
+            pw.print("\n");
         }
         pw.close();
 
@@ -861,8 +863,8 @@ public class Util {
         }
         Process cmdProc = Runtime.getRuntime().exec(cmd);
         ProcessReturnInfo pri = new ProcessReturnInfo();
-        pri.stdoutContents = getContents(cmdProc.getInputStream());
         pri.stderrContents = getContents(cmdProc.getErrorStream());
+        pri.stdoutContents = getContents(cmdProc.getInputStream());
         cmdProc.waitFor();
         pri.exitCode = cmdProc.exitValue();
         return pri;

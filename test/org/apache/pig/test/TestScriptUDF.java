@@ -23,6 +23,7 @@ import java.util.Random;
 
 import junit.framework.Assert;
 
+import org.apache.hadoop.util.Shell;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.BagFactory;
@@ -217,8 +218,9 @@ public class TestScriptUDF{
                 "def getEnv(envkey):" ,
                 " return os.getenv(envkey);"
         };
+        String userenv = Shell.WINDOWS?"USERNAME":"USER";
         String[] input = {
-                "USER",
+                userenv,
                 "PATH"
         };
 

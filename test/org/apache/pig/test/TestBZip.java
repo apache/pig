@@ -194,6 +194,7 @@ public class TestBZip {
         // bzip compressed input
         File in = File.createTempFile("junit", ".bz2");
         String compressedInputFileName = in.getAbsolutePath();
+        String clusterCompressedFilePath = Util.removeColon(compressedInputFileName);
         in.deleteOnExit();
         
         try {
@@ -208,14 +209,14 @@ public class TestBZip {
             cos.close();
             
             Util.copyFromLocalToCluster(cluster, compressedInputFileName,
-                    compressedInputFileName);
+            		clusterCompressedFilePath);
             
             // pig script to read compressed input
             PigServer pig = new PigServer(ExecType.MAPREDUCE, cluster
                     .getProperties());
             
             // pig script to read compressed input
-            String script ="a = load '" + compressedInputFileName +"';";
+            String script ="a = load '" + Util.encodeEscape(clusterCompressedFilePath) +"';";
             pig.registerQuery(script);
             
             pig.registerQuery("store a into 'intermediate.bz';");
