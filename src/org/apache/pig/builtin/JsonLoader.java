@@ -22,6 +22,13 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+import org.joda.time.format.ISODateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 
 import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.JsonParser;
@@ -182,6 +189,11 @@ public class JsonLoader extends LoadFunc implements LoadMetadata {
 
         // Read based on our expected type
         switch (field.getType()) {
+        case DataType.BOOLEAN:
+            tok = p.nextToken();
+            if (tok == JsonToken.VALUE_NULL) return null;
+            return p.getBooleanValue();
+
         case DataType.INTEGER:
             // Read the field name
             tok = p.nextToken();
@@ -195,12 +207,19 @@ public class JsonLoader extends LoadFunc implements LoadMetadata {
 
         case DataType.FLOAT:
             tok = p.nextToken();
+            if (tok == JsonToken.VALUE_NULL) return null;
             return p.getFloatValue();
 
         case DataType.DOUBLE:
             tok = p.nextToken();
             if (tok == JsonToken.VALUE_NULL) return null;
             return p.getDoubleValue();
+
+        case DataType.DATETIME:
+            tok = p.nextToken();
+            if (tok == JsonToken.VALUE_NULL) return null;
+            DateTimeFormatter formatter = ISODateTimeFormat.dateTimeParser();
+            return formatter.withOffsetParsed().parseDateTime(p.getText());
 
         case DataType.BYTEARRAY:
             tok = p.nextToken();
@@ -214,6 +233,16 @@ public class JsonLoader extends LoadFunc implements LoadMetadata {
             tok = p.nextToken();
             if (tok == JsonToken.VALUE_NULL) return null;
             return p.getText();
+
+        case DataType.BIGINTEGER:
+            tok = p.nextToken();
+            if (tok == JsonToken.VALUE_NULL) return null;
+            return p.getBigIntegerValue();
+
+        case DataType.BIGDECIMAL:
+            tok = p.nextToken();
+            if (tok == JsonToken.VALUE_NULL) return null;
+            return p.getDecimalValue();
 
         case DataType.MAP:
             // Should be a start of the map object
