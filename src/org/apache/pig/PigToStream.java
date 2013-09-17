@@ -26,20 +26,26 @@ import org.apache.pig.data.Tuple;
 /**
  * The interface used for the custom mapping of a {@link Tuple} to a byte
  * array. The byte array is fed to the stdin of the streaming process.
- * 
+ *
  * This interface, together with {@link StreamToPig}, is designed to provide
- * a common protocol for data exchange between Pig runtime and streaming 
+ * a common protocol for data exchange between Pig runtime and streaming
  * executables.
- * 
- * Typically, a user implements this interface for a particular type of 
+ *
+ * Typically, a user implements this interface for a particular type of
  * stream command and specifies the implementation class in the Pig DEFINE
- * statement. 
- * @since Pig 0.7 
+ * statement.
+ * @since Pig 0.7
  */
+
+/**
+ * @deprecated Use {@link org.apache.pig.PigStreamingBase}
+ */
+
+@Deprecated
 @InterfaceAudience.Public
 @InterfaceStability.Stable
 public interface PigToStream {
-    
+
     /**
      * Given a tuple, produce an array of bytes to be passed to the streaming
      * executable.
