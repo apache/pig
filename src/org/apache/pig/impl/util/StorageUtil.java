@@ -229,14 +229,24 @@ public final class StorageUtil {
      * @return tuple constructed from the text
      */
     public static Tuple textToTuple(Text val, byte fieldDel) {
+        return bytesToTuple(val.getBytes(), 0, val.getLength(), fieldDel);
+    }
 
-        byte[] buf = val.getBytes();
-        int len = val.getLength();
-        int start = 0;
+    /**
+     * Transform bytes from a byte array up to the specified length to a <code>Tuple</code>
+     *
+     * @param buf the byte array
+     * @param length number of bytes to consume from the byte array
+     * @param fieldDel the field delimiter
+     * @return tuple constructed from the bytes
+     */
+    public static Tuple bytesToTuple(byte[] buf, int offset, int length, byte fieldDel) {
+
+        int start = offset;
 
         ArrayList<Object> protoTuple = new ArrayList<Object>();
 
-        for (int i = 0; i < len; i++) {
+        for (int i = offset; i < length; i++) {
             if (buf[i] == fieldDel) {
                 readField(protoTuple, buf, start, i);
                 start = i + 1;
@@ -244,8 +254,8 @@ public final class StorageUtil {
         }
 
         // pick up the last field
-        if (start <= len) {
-            readField(protoTuple, buf, start, len);
+        if (start <= length) {
+            readField(protoTuple, buf, start, length);
         }
 
         return TupleFactory.getInstance().newTupleNoCopy(protoTuple);
