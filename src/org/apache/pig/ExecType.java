@@ -24,6 +24,8 @@ import java.util.Properties;
 import org.apache.pig.backend.executionengine.ExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.LocalExecType;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRExecType;
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.impl.PigContext;
 
 /**
@@ -34,6 +36,8 @@ import org.apache.pig.impl.PigContext;
  * the META-INF/services folder titled org.apache.pig.ExecType as per the 
  * Java ServiceLoader specification.
  */
+@InterfaceAudience.Public
+@InterfaceStability.Evolving
 public interface ExecType extends Serializable {
 
     public static final ExecType LOCAL = new LocalExecType();

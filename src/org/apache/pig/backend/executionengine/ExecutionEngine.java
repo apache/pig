@@ -25,6 +25,8 @@ import java.util.Properties;
 
 import org.apache.pig.backend.BackendException;
 import org.apache.pig.backend.datastorage.DataStorage;
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.plan.PlanException;
@@ -48,6 +50,8 @@ import org.apache.pig.tools.pigstats.ScriptState;
  */
 
 
+@InterfaceAudience.Public
+@InterfaceStability.Evolving
 public interface ExecutionEngine {
 
     /**
