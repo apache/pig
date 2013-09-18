@@ -230,6 +230,8 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-3466: Race Conditions in InternalDistinctBag during proactive spill (cheolsoo)
+
 PIG-3464: Mark ExecType and ExecutionEngine interfaces as evolving (cheolsoo)
 
 PIG-3454: Update JsonLoader/JsonStorage (tyro89 via daijy)
