@@ -60,7 +60,7 @@ public class TestInfixArithmetic {
             PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
             generateInput(ps, nullFlags[i]);
             String query = "A = foreach (load '"
-                    + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                    + Util.encodeEscape(Util.generateURI(tmpFile.toString(), pig.getPigContext()))
                     + "' using " + PigStorage.class.getName()
                     + "(':')) generate $0, $0 + $1, $1;";
             log.info(query);
@@ -89,7 +89,7 @@ public class TestInfixArithmetic {
             PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
             generateInput(ps, nullFlags[i]);
             String query = "A = foreach (load '"
-                    + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                    + Util.encodeEscape(Util.generateURI(tmpFile.toString(), pig.getPigContext()))
                     + "' using " + PigStorage.class.getName()
                     + "(':')) generate $0, $0 - $1, $1 ;";
             log.info(query);
@@ -118,7 +118,7 @@ public class TestInfixArithmetic {
             PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
             generateInput(ps, nullFlags[i]);
             String query = "A = foreach (load '"
-                    + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                    + Util.encodeEscape(Util.generateURI(tmpFile.toString(), pig.getPigContext()))
                     + "' using " + PigStorage.class.getName()
                     + "(':')) generate $0, $0 * $1, $1 ;";
             log.info(query);
@@ -147,7 +147,7 @@ public class TestInfixArithmetic {
             PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
             generateInput(ps, nullFlags[i]);
             String query = "A = foreach (load '"
-                    + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                    + Util.encodeEscape(Util.generateURI(tmpFile.toString(), pig.getPigContext()))
                     + "' using " + PigStorage.class.getName()
                     + "(':')) generate $0, $0 / $1, $1 ;";
             log.info(query);

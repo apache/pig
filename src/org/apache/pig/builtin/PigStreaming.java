@@ -17,41 +17,39 @@
  */
 package org.apache.pig.builtin;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-import org.apache.hadoop.io.Text;
 import org.apache.pig.LoadCaster;
-import org.apache.pig.PigToStream;
-import org.apache.pig.StreamToPig;
+import org.apache.pig.PigStreamingBase;
+import org.apache.pig.data.WritableByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.util.StorageUtil;
 
 /**
- * The default implementation of {@link PigToStream} and {@link StreamToPig}
- * interfaces. It converts tuples into <code>fieldDel</code> separated lines 
+ * The default implementation of {@link PigStreamingBase}.
+ * It converts tuples into <code>fieldDel</code> separated lines
  * and <code>fieldDel</code> separated lines into tuples.
- * 
+ *
  */
-public class PigStreaming implements PigToStream, StreamToPig {
+public class PigStreaming extends PigStreamingBase {
 
     private byte recordDel = '\n';
-    
+
     private byte fieldDel = '\t';
-    
-    private ByteArrayOutputStream out;
-    
+
+    private WritableByteArray out;
+
     /**
      * The constructor that uses the default field delimiter.
      */
     public PigStreaming() {
-        out = new ByteArrayOutputStream();
+        out = new WritableByteArray();
     }
-    
+
     /**
      * The constructor that accepts a user-specified field
      * delimiter.
-     * 
+     *
      * @param delimiter a <code>String</code> specifying the field
      * delimiter.
      */
@@ -59,9 +57,9 @@ public class PigStreaming implements PigToStream, StreamToPig {
         this();
         fieldDel = StorageUtil.parseFieldDel(delimiter);
     }
-    
+
     @Override
-    public byte[] serialize(Tuple t) throws IOException {
+    public WritableByteArray serializeToBytes(Tuple t) throws IOException {
         out.reset();
         int sz = t.size();
         for (int i=0; i<sz; i++) {
@@ -76,17 +74,16 @@ public class PigStreaming implements PigToStream, StreamToPig {
                 out.write(fieldDel);
             }
         }
-        return out.toByteArray();
+        return out;
     }
 
     @Override
-    public Tuple deserialize(byte[] bytes) throws IOException {
-        Text val = new Text(bytes);
-        return StorageUtil.textToTuple(val, fieldDel);
+    public Tuple deserialize(byte[] bytes, int offset, int length) throws IOException {
+        return StorageUtil.bytesToTuple(bytes, offset, length, fieldDel);
     }
 
     @Override
-    public LoadCaster getLoadCaster() throws IOException {        
+    public LoadCaster getLoadCaster() throws IOException {
         return new Utf8StorageConverter();
     }
 

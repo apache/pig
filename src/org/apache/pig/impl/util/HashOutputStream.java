@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -15,6 +15,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.pig.impl.util;
 
-a = load 'test/org/apache/pig/test/data/jsonStorage1.txt' as (a0:int, a1:{t:(a10:int, a11:chararray)},a2:(a20:double, a21), a3:map[chararray]);
-store a into 'jsonStorage1.json' using JsonStorage();
+import java.io.IOException;
+import java.io.OutputStream;
+
+import com.google.common.hash.HashCode;
+import com.google.common.hash.HashFunction;
+import com.google.common.hash.Hasher;
+
+public class HashOutputStream extends OutputStream {
+
+    private Hasher hasher;
+
+    public HashOutputStream(HashFunction hf) {
+        hasher = hf.newHasher();
+    }
+
+    @Override
+    public void write(int b) throws IOException {
+        hasher.putInt(b);
+    }
+
+    public HashCode getHashCode() {
+        return hasher.hash();
+    }
+
+}

@@ -141,7 +141,7 @@ public class TestFinish {
         String expectedFileName = "testFinishInMapMR-finish.txt";
         pigServer.registerQuery("define MYUDF " + MyEvalFunction.class.getName() + "('MAPREDUCE','"
                 + expectedFileName + "');");
-        pigServer.registerQuery("a = load '" + inputFileName + "' using "
+        pigServer.registerQuery("a = load '" + Util.encodeEscape(inputFileName) + "' using "
                 + PigStorage.class.getName() + "(':');");
         pigServer.registerQuery("b = foreach a generate MYUDF" + "(*);");
         Iterator<Tuple> iter = pigServer.openIterator("b");
@@ -160,7 +160,7 @@ public class TestFinish {
         String expectedFileName = "testFinishInReduceMR-finish.txt";
         pigServer.registerQuery("define MYUDF " + MyEvalFunction.class.getName() + "('MAPREDUCE','"
                 + expectedFileName + "');");
-        pigServer.registerQuery("a = load '" + inputFileName + "' using "
+        pigServer.registerQuery("a = load '" + Util.encodeEscape(inputFileName) + "' using "
                 + PigStorage.class.getName() + "(':');");
         pigServer.registerQuery("a1 = group a by $1;");
         pigServer.registerQuery("b = foreach a1 generate MYUDF" + "(*);");
@@ -179,7 +179,7 @@ public class TestFinish {
         String expectedFileName = "testFinishInMapLoc-finish.txt";
         pigServer.registerQuery("define MYUDF " + MyEvalFunction.class.getName() + "('LOCAL','"
                 + expectedFileName + "');");
-        pigServer.registerQuery("a = load '" + inputFileName + "' using "
+        pigServer.registerQuery("a = load '" + Util.encodeEscape(inputFileName) + "' using "
                 + PigStorage.class.getName() + "(':');");
         pigServer.registerQuery("b = foreach a generate MYUDF" + "(*);");
         pigServer.openIterator("b");
@@ -193,7 +193,7 @@ public class TestFinish {
         String expectedFileName = "testFinishInReduceLoc-finish.txt";
         pigServer.registerQuery("define MYUDF " + MyEvalFunction.class.getName() + "('LOCAL','"
                 + expectedFileName + "');");
-        pigServer.registerQuery("a = load '" + inputFileName + "' using "
+        pigServer.registerQuery("a = load '" + Util.encodeEscape(inputFileName) + "' using "
                 + PigStorage.class.getName() + "(':');");
         pigServer.registerQuery("a1 = group a by $1;");
         pigServer.registerQuery("b = foreach a1 generate MYUDF" + "(*);");

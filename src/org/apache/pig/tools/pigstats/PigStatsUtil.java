@@ -66,7 +66,11 @@ public class PigStatsUtil {
     public static void setErrorCode(int code) {
         PigStats.get().setErrorCode(code);
     }
- 
+    
+    public static void setErrorThrowable(Throwable t) {
+        PigStats.get().setErrorThrowable(t);
+    }
+    
     private static Pattern pattern = Pattern.compile("tmp(-)?[\\d]{1,10}$");
     
     public static boolean isTempFile(String fileName) {

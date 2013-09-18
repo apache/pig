@@ -1029,15 +1029,27 @@ public class PigServer {
         try {
             pigContext.inExplain = true;
             buildStorePlan( alias );
+            
+            //Only add root xml node if all plans are being written to same stream.
+            if (format == "xml" && lps == eps) {
+                lps.println("<plan>");
+            }
+
+            currDAG.lp.explain(lps, format, verbose);
+
             if( currDAG.lp.size() == 0 ) {
-                lps.println("Logical plan is empty.");
+                if (format == "xml" && lps == eps) {
+                    lps.println("</plan>");
+                }
                 return;
-            } else {
-                currDAG.lp.explain(lps, format, verbose);
             }
 
             pigContext.getExecutionEngine().explain(currDAG.lp, pigContext, eps, format, verbose, dir, suffix );
 
+            if (format.equals("xml") && lps == eps) {
+                lps.println("</plan>");
+            }
+            
             if (markAsExecute) {
                 currDAG.markAsExecuted();
             }
@@ -1625,7 +1637,12 @@ public class PigServer {
                 int errCode = 1000;
                 String msg = "Error during parsing. "
                         + (pe == null ? ex.getMessage() : pe.getMessage());
-                throw new FrontendException (msg, errCode, PigException.INPUT , ex );
+                log.error("exception during parsing: " + msg, ex);
+                if (null == pe) {
+                    throw new FrontendException (msg, errCode, PigException.INPUT , ex);
+                } else {
+                    throw new FrontendException (msg, errCode, PigException.INPUT , ex, pe.getSourceLocation() );
+                }
             }
         }
 

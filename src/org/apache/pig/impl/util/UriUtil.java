@@ -17,6 +17,8 @@
  */
 package org.apache.pig.impl.util;
 
+import java.io.File;
+
 
 public class UriUtil {
     public static boolean isHDFSFile(String uri){
@@ -31,7 +33,8 @@ public class UriUtil {
     public static boolean isHDFSFileOrLocalOrS3N(String uri){
         if(uri == null)
             return false;
-        if(uri.startsWith("/") || uri.startsWith("hdfs:") || uri.startsWith("file:") || uri.startsWith("s3n:")){
+        if(uri.startsWith("/") || uri.matches("[A-Za-z]:.*") || uri.startsWith("hdfs:")
+                || uri.startsWith("file:") || uri.startsWith("s3n:")){
             return true;
         }
         return false;

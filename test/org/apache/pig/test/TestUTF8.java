@@ -58,7 +58,7 @@ public class TestUTF8 {
         pw.close();
 
         pigServer.registerQuery("a = load '"
-                + Util.generateURI(f1.toString(), pigServer.getPigContext())
+                + Util.encodeEscape(Util.generateURI(f1.toString(), pigServer.getPigContext()))
                 + "' using " + PigStorage.class.getName() + "();");
         Iterator<Tuple> iter  = pigServer.openIterator("a");
 
@@ -91,7 +91,7 @@ public class TestUTF8 {
         pw.close();
 
         pigServer.registerQuery("a = load '"
-                + Util.generateURI(f1.toString(), pigServer.getPigContext())
+                + Util.encodeEscape(Util.generateURI(f1.toString(), pigServer.getPigContext()))
                 + "' using " + PigStorage.class.getName() + "();");
         pigServer.registerQuery("b =  filter a by $0 == '中文';");
         Iterator<Tuple> iter  = pigServer.openIterator("a");

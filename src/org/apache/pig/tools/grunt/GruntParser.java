@@ -46,7 +46,9 @@ import jline.ConsoleReaderInputStream;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FsShell;
+import org.apache.hadoop.fs.Path;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.datastorage.ContainerDescriptor;
@@ -72,7 +74,6 @@ import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 import org.fusesource.jansi.Ansi;
 import org.fusesource.jansi.AnsiConsole;
 
-@SuppressWarnings("deprecation")
 public class GruntParser extends PigScriptParser {
 
     private static final Log log = LogFactory.getLog(GruntParser.class);
@@ -854,12 +855,13 @@ public class GruntParser extends PigScriptParser {
         System.out.println("    fs <fs arguments> - Equivalent to Hadoop dfs command: http://hadoop.apache.org/common/docs/current/hdfs_shell.html");
         System.out.println("Diagnostic commands:");
         System.out.println("    describe <alias>[::<alias] - Show the schema for the alias. Inner aliases can be described as A::B.");
-        System.out.println("    explain [-script <pigscript>] [-out <path>] [-brief] [-dot] [-param <param_name>=<param_value>]");
+        System.out.println("    explain [-script <pigscript>] [-out <path>] [-brief] [-dot|-xml] [-param <param_name>=<param_value>]");
         System.out.println("        [-param_file <file_name>] [<alias>] - Show the execution plan to compute the alias or for entire script.");
         System.out.println("        -script - Explain the entire script.");
         System.out.println("        -out - Store the output into directory rather than print to stdout.");
         System.out.println("        -brief - Don't expand nested plans (presenting a smaller graph for overview).");
         System.out.println("        -dot - Generate the output in .dot format. Default is text format.");
+        System.out.println("        -xml - Generate the output in .xml format. Default is text format.");
         System.out.println("        -param <param_name - See parameter substitution for details.");
         System.out.println("        -param_file <file_name> - See parameter substitution for details.");
         System.out.println("        alias - Alias to explain.");
@@ -1012,19 +1014,41 @@ public class GruntParser extends PigScriptParser {
     @Override
     protected void processRemove(String path, String options ) throws IOException
     {
+        int MAX_MS_TO_WAIT_FOR_FILE_DELETION = 10 * 60 * 1000;
+        int MS_TO_SLEEP_WHILE_WAITING_FOR_FILE_DELETION = 250;
+        
         if(mExplain == null) { // process only if not in "explain" mode
+            Path filePath = new Path(path);
+            ElementDescriptor dfsPath = null;
+            FileSystem fs = filePath.getFileSystem(ConfigurationUtil.toConfiguration(mConf));
 
-            ElementDescriptor dfsPath = mDfs.asElement(path);
             executeBatch();
-
-            if (!dfsPath.exists()) {
+            if (!fs.exists(filePath)) {
                 if (options == null || !options.equalsIgnoreCase("force")) {
                     throw new IOException("File or directory " + path + " does not exist.");
                 }
             }
             else {
-
-                dfsPath.delete();
+                boolean deleteSuccess = fs.delete(filePath, true);
+                if (!deleteSuccess) {
+                    log.warn("Unable to delete " + path);
+                    return;
+                }
+                long startTime = System.currentTimeMillis();
+                long duration = 0;
+                while(fs.exists(filePath)) {
+                    duration = System.currentTimeMillis() - startTime;
+                    if (duration > MAX_MS_TO_WAIT_FOR_FILE_DELETION) {
+                        throw new IOException("Timed out waiting to delete file: " + dfsPath);
+                    } else {
+                        try {
+                            Thread.sleep(MS_TO_SLEEP_WHILE_WAITING_FOR_FILE_DELETION);
+                        } catch (InterruptedException e) {
+                            throw new IOException("Error waiting for file deletion", e);
+                        }
+                    }
+                }
+                log.info("Waited " + duration + "ms to delete file");
             }
         } else {
             log.warn("'rm/rmf' statement is ignored while processing 'explain -script' or '-check'");
@@ -1209,7 +1233,7 @@ public class GruntParser extends PigScriptParser {
         }
     }
 
-    private static class ExplainState {
+    protected static class ExplainState {
         public long mTime;
         public int mCount;
         public String mAlias;
@@ -1243,5 +1267,10 @@ public class GruntParser extends PigScriptParser {
     private int mNumSucceededJobs;
     private FsShell shell;
     private boolean mScriptIllustrate;
+    
+    //For Testing Only
+    protected void setExplainState(ExplainState explainState) {
+        this.mExplain = explainState;
+    }
 
 }

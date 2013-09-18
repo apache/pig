@@ -177,7 +177,7 @@ public class TestPigContext {
         Util.createInputFile(cluster, clusterTmpPath, localInput);
 
         FileLocalizer.deleteTempFiles();
-        pigServer.registerQuery("A = LOAD '" + Util.encodeEscape(tmpFile.getCanonicalPath())
+        pigServer.registerQuery("A = LOAD '" + Util.encodeEscape(clusterTmpPath)
                 + "' using TestUDF2() AS (num:chararray);");
         pigServer.registerQuery("B = foreach A generate TestUDF1(num);");
         Iterator<Tuple> iter = pigServer.openIterator("B");
@@ -198,16 +198,17 @@ public class TestPigContext {
         PigContext pc = new PigContext(ExecType.LOCAL, getProperties());
         final int n = pc.scriptFiles.size();
         pc.addScriptFile("test/path-1824");
-        assertEquals("test/path-1824", pc.getScriptFiles().get("test/path-1824").toString());
+        assertEquals("test" + File.separator + "path-1824", pc.getScriptFiles().get("test/path-1824").toString());
         assertEquals("script files should not be populated", n, pc.scriptFiles.size());
 
         pc.addScriptFile("path-1824", "test/path-1824");
-        assertEquals("test/path-1824", pc.getScriptFiles().get("path-1824").toString());
+        assertEquals("test" + File.separator + "path-1824", pc.getScriptFiles().get("path-1824").toString());
         assertEquals("script files should not be populated", n, pc.scriptFiles.size());
 
         // last add wins when using an alias
         pc.addScriptFile("path-1824", "test/some/other/path-1824");
-        assertEquals("test/some/other/path-1824", pc.getScriptFiles().get("path-1824").toString());
+        assertEquals("test" + File.separator + "some" + File.separator + "other"
+                + File.separator + "path-1824", pc.getScriptFiles().get("path-1824").toString());
         assertEquals("script files should not be populated", n, pc.scriptFiles.size());
 
         // clean up

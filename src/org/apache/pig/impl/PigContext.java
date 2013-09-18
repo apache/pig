@@ -330,7 +330,7 @@ public class PigContext implements Serializable {
      */
     public void addScriptFile(String path) {
         if (path != null) {
-            aliasedScriptFiles.put(path.replaceFirst("^/", ""), new File(path));
+            aliasedScriptFiles.put(path.replaceFirst("^/", "").replaceAll(":", ""), new File(path));
         }
     }
 
@@ -351,7 +351,7 @@ public class PigContext implements Serializable {
      */
     public void addScriptFile(String name, String path) {
         if (path != null) {
-            aliasedScriptFiles.put(name.replaceFirst("^/", ""), new File(path));
+            aliasedScriptFiles.put(name.replaceFirst("^/", "").replaceAll(":", ""), new File(path));
         }
     }
 
@@ -399,7 +399,7 @@ public class PigContext implements Serializable {
             return writer.toString();
         } catch (ParseException e) {
             log.error(e.getLocalizedMessage());
-            throw new IOException(e.getCause());
+            throw new IOException(e);
         }
     }
 
@@ -424,7 +424,7 @@ public class PigContext implements Serializable {
             return new BufferedReader(new FileReader(outputFilePath));
         } catch (ParseException e) {
             log.error(e.getLocalizedMessage());
-            throw new IOException(e.getCause());
+            throw new IOException(e);
         } catch (FileNotFoundException e) {
             throw new IOException("Could not find file to substitute parameters for: " + outputFilePath);
         }

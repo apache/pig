@@ -21,16 +21,17 @@ import java.io.IOException;
 
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.util.LineReader;
+import org.apache.pig.PigStreamingBase;
 import org.apache.pig.StreamToPig;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 
 /**
- * {@link OutputHandler} is responsible for handling the output of the 
+ * {@link OutputHandler} is responsible for handling the output of the
  * Pig-Streaming external command.
- * 
- * The output of the managed executable could be fetched in a 
- * {@link OutputType#SYNCHRONOUS} manner via its <code>stdout</code> or in an 
+ *
+ * The output of the managed executable could be fetched in a
+ * {@link OutputType#SYNCHRONOUS} manner via its <code>stdout</code> or in an
  * {@link OutputType#ASYNCHRONOUS} manner via an external file to which the
  * process wrote its output.
  */
@@ -39,30 +40,34 @@ public abstract class OutputHandler {
 
     /*
      * The deserializer to be used to send data to the managed process.
-     * 
+     *
      * It is the responsibility of the concrete sub-classes to setup and
-     * manage the deserializer. 
-     */  
+     * manage the deserializer.
+     */
     protected StreamToPig deserializer;
-    
+
+    private PigStreamingBase newDeserializer;
+
     protected LineReader in = null;
 
+    private Text currValue = new Text();
+
     private BufferedPositionedInputStream istream;
-    
+
     /**
      * Get the handled <code>OutputType</code>.
-     * @return the handled <code>OutputType</code> 
+     * @return the handled <code>OutputType</code>
      */
     public abstract OutputType getOutputType();
-    
+
     // flag to mark if close() has already been called
     protected boolean alreadyClosed = false;
-    
+
     /**
      * Bind the <code>OutputHandler</code> to the <code>InputStream</code>
      * from which to read the output data of the managed process.
-     * 
-     * @param is <code>InputStream</code> from which to read the output data 
+     *
+     * @param is <code>InputStream</code> from which to read the output data
      *           of the managed process
      * @throws IOException
      */
@@ -70,11 +75,14 @@ public abstract class OutputHandler {
                        long offset, long end) throws IOException {
         this.istream  = is;
         this.in = new LineReader(istream);
+        if (this.deserializer instanceof PigStreamingBase) {
+            this.newDeserializer = (PigStreamingBase) deserializer;
+        }
     }
-    
+
     /**
      * Get the next output <code>Tuple</code> of the managed process.
-     * 
+     *
      * @return the next output <code>Tuple</code> of the managed process
      * @throws IOException
      */
@@ -83,17 +91,21 @@ public abstract class OutputHandler {
             return null;
         }
 
-        Text value = new Text();
-        int num = in.readLine(value);
+        currValue.clear();
+        int num = in.readLine(currValue);
         if (num <= 0) {
             return null;
         }
-        
-        byte[] newBytes = new byte[value.getLength()];
-        System.arraycopy(value.getBytes(), 0, newBytes, 0, value.getLength());
-        return deserializer.deserialize(newBytes);
+
+        if (newDeserializer != null) {
+            return newDeserializer.deserialize(currValue.getBytes(), 0, currValue.getLength());
+        } else {
+            byte[] newBytes = new byte[currValue.getLength()];
+            System.arraycopy(currValue.getBytes(), 0, newBytes, 0, currValue.getLength());
+            return deserializer.deserialize(newBytes);
+        }
     }
-    
+
     /**
      * Close the <code>OutputHandler</code>.
      * @throws IOException

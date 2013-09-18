@@ -22,6 +22,7 @@ import groovy.lang.Tuple;
 import groovy.util.ResourceException;
 import groovy.util.ScriptException;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -102,7 +103,7 @@ public class GroovyScriptEngine extends ScriptEngine {
       // Load the script
       //
 
-      Class c = gse.loadScriptByName(scriptFile);
+      Class c = gse.loadScriptByName(new File(scriptFile).toURI().toString());
 
       //
       // Extract the main method
@@ -144,7 +145,7 @@ public class GroovyScriptEngine extends ScriptEngine {
       // Read file
       //
 
-      Class c = gse.loadScriptByName(path);
+      Class c = gse.loadScriptByName(new File(path).toURI().toString());
 
       //
       // Keep track of initial/intermed/final methods of Albegraic UDFs

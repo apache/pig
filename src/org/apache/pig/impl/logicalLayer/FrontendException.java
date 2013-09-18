@@ -20,6 +20,7 @@ package org.apache.pig.impl.logicalLayer;
 
 import org.apache.pig.PigException;
 import org.apache.pig.newplan.Operator;
+import org.apache.pig.parser.SourceLocation;
 
 public class FrontendException extends PigException {
 
@@ -66,6 +67,17 @@ public class FrontendException extends PigException {
      *
      * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
      * @param errCode - The error code shown to the user 
+     * @param location - The location of the exception.
+     */
+    public FrontendException(String message, int errCode, SourceLocation location) {
+        super(message, errCode, location);
+    }
+    
+    /**
+     * Create a new FrontendException with the specified message and cause.
+     *
+     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
+     * @param errCode - The error code shown to the user 
      */
     public FrontendException(String message, int errCode) {
         super(message, errCode);
@@ -101,11 +113,23 @@ public class FrontendException extends PigException {
      * @param errSrc - The error source
      * @param cause - The cause (which is saved for later retrieval by the <link>Throwable.getCause()</link> method) indicating the source of this exception. A null value is permitted, and indicates that the cause is nonexistent or unknown. 
      */
-    public FrontendException(String message, int errCode, byte errSrc,
-            Throwable cause) {
+    public FrontendException(String message, int errCode, byte errSrc, Throwable cause) {
         super(message, errCode, errSrc, cause);
     }
-
+    
+    /**
+     * Create a new FrontendException with the specified message and cause.
+     *
+     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
+     * @param errCode - The error code shown to the user 
+     * @param errSrc - The error source
+     * @param cause - The cause (which is saved for later retrieval by the <link>Throwable.getCause()</link> method) indicating the source of this exception. A null value is permitted, and indicates that the cause is nonexistent or unknown. 
+     * @param location - The location of the exception.
+     */
+    public FrontendException(String message, int errCode, byte errSrc, Throwable cause, SourceLocation location) {
+        super(message, errCode, errSrc, cause, location);
+    }
+    
     /**
      * Create a new FrontendException with the specified message and cause.
      *
@@ -166,7 +190,7 @@ public class FrontendException extends PigException {
      * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
      */
     public FrontendException(Operator op, String message) {
-        this( op.getLocation() + message );
+        super( op.getLocation() + message, op.getLocation() );
     }
 
     /**
@@ -177,7 +201,7 @@ public class FrontendException extends PigException {
      * @param errCode - The error code shown to the user 
      */
     public FrontendException(Operator op, String message, int errCode) {
-        this( op.getLocation() + message, errCode );
+        this( op.getLocation() + message, errCode, op.getLocation() );
     }
 
     /**
@@ -190,7 +214,7 @@ public class FrontendException extends PigException {
      */
     public FrontendException(Operator op, String message, int errCode,
             byte errSrc) {
-        this( op.getLocation() + message, errCode );
+        this( op.getLocation() + message, errCode, op.getLocation() );
     }
 
     /**
@@ -204,7 +228,7 @@ public class FrontendException extends PigException {
      */
     public FrontendException(Operator op, String message, int errCode,
             byte errSrc, Throwable cause) {
-        this( op.getLocation() + message, errCode, errSrc, cause );
+        this( op.getLocation() + message, errCode, errSrc, cause, op.getLocation() );
     }
 
     /**
@@ -216,7 +240,7 @@ public class FrontendException extends PigException {
      * @param cause - The cause (which is saved for later retrieval by the <link>Throwable.getCause()</link> method) indicating the source of this exception. A null value is permitted, and indicates that the cause is nonexistent or unknown. 
      */
     public FrontendException(Operator op, String message, int errCode, Throwable cause) {
-        this( op.getLocation() + message, errCode, cause );
+        super( op.getLocation() + message, errCode, cause, op.getLocation() );
     }
 
     /**
@@ -232,7 +256,7 @@ public class FrontendException extends PigException {
      */
     public FrontendException(Operator op, String message, int errCode, byte errSrc,
             boolean retry, String detailedMsg, Throwable cause) {
-        super(op.getLocation() + message, errCode, errSrc, retry, detailedMsg, cause);
+        super(op.getLocation() + message, errCode, errSrc, retry, detailedMsg, cause, op.getLocation() );
     }
 
 }

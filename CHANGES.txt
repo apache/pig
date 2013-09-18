@@ -30,6 +30,16 @@ PIG-3174: Remove rpm and deb artifacts from build.xml (gates)
 
 IMPROVEMENTS
 
+PIG-3235: Avoid extra byte array copies in streaming (rohini)
+
+PIG-3065: pig output format/committer should support recovery for hadoop 0.23 (daijy)
+
+PIG-3390: Make pig working with HBase 0.95 (jarcec via daijy)
+
+PIG-3431: Return more information for parsing related exceptions. (jeremykarn via daijy)
+
+PIG-3430: Add xml format for explaining MapReduce Plan. (jeremykarn via daijy)
+
 PIG-3048: Add mapreduce workflow information to job configuration (billie.rinaldi via daijy)
 
 PIG-3436: Make pigmix run with Hadoop2 (rohini)
@@ -220,15 +230,21 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-3466: Race Conditions in InternalDistinctBag during proactive spill (cheolsoo)
+
+PIG-3464: Mark ExecType and ExecutionEngine interfaces as evolving (cheolsoo)
+
+PIG-3454: Update JsonLoader/JsonStorage (tyro89 via daijy)
+
+PIG-3333: Fix remaining Windows core unit test failures (daijy)
+
+PIG-3426: Add support for removing s3 files (jeremykarn via daijy)
+
 PIG-3349: Document ToString(Datetime, String) UDF (cheolsoo)
 
 PIG-3374: CASE and IN fail when expression includes dereferencing operator (cheolsoo)
 
 PIG-2606: union/ join operations are not accepting same alias as multiple inputs (hsubramaniyan via daijy)
-
-PIG-3435: Custom Partitioner not working with MultiQueryOptimizer (knoguchi via daijy)
-
-PIG-3385: DISTINCT no longer uses custom partitioner (knoguchi via daijy)
 
 PIG-3379: Alias reuse in nested foreach causes PIG script to fail (xuefuz via daijy)
 
@@ -362,8 +378,6 @@ PIG-3172: Partition filter push down does not happen when there is a non partiti
 
 PIG-3205: Passing arguments to python script does not work with -f option (rohini)
 
-PIG-2507: Semicolon in paramenters for UDF results in parsing error (tnachen via daijy)
-
 PIG-3239: Unable to return multiple values from a macro using SPLIT (dreambird via cheolsoo)
 
 PIG-3077: TestMultiQueryLocal should not write in /tmp (dreambird via cheolsoo)
@@ -462,6 +476,14 @@ OPTIMIZATIONS
 PIG-2769: a simple logic causes very long compiling time on pig 0.10.0 (njw45 via dvryaboy) (prev. applied to 0.12)
 
 BUG FIXES
+
+PIG-3455: Pig 0.11.1 OutOfMemory error (rohini)
+
+PIG-3435: Custom Partitioner not working with MultiQueryOptimizer (knoguchi via daijy)
+
+PIG-3385: DISTINCT no longer uses custom partitioner (knoguchi via daijy)
+
+PIG-2507: Semicolon in paramenters for UDF results in parsing error (tnachen via daijy)
 
 PIG-3341: Strict datetime parsing and improve performance of loading datetime values (rohini)
 

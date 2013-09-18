@@ -93,4 +93,10 @@ public class PigConfiguration {
      * as default in case this is undefined.
      */
     public static final String PIG_DEFAULT_STORE_FUNC = "pig.default.store.func";
+
+    /**
+     * This key is used to define whether to support recovery to handle the
+     * application master getting restarted.
+     */
+    public static final String PIG_OUTPUT_COMMITTER_RECOVERY = "pig.output.committer.recovery.support";
 }

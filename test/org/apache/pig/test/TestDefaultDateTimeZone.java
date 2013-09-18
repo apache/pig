@@ -70,7 +70,7 @@ public class TestDefaultDateTimeZone extends TestCase {
         config.setProperty("pig.datetime.default.tz", "+08:00");
         PigServer pig = new PigServer(ExecType.LOCAL, config);
         pig.registerQuery("a = load '"
-                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                + Util.encodeEscape(Util.generateURI(tmpFile.toString(), pig.getPigContext()))
                 + "' as (test:datetime);");
         pig.registerQuery("b = filter a by test < ToDate('1970-01-04T00:00:00.000');");
         Iterator<Tuple> actualItr = pig.openIterator("b");

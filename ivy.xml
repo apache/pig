@@ -31,7 +31,7 @@
     <conf name="default" extends="master,runtime"/>
     <conf name="runtime" extends="compile,test" description="runtime but not the artifact" />
     <!--Private configurations. -->
-    <conf name="compile" extends="hadoop${hadoopversion}" visibility="private" description="compile artifacts"/>
+    <conf name="compile" extends="hadoop${hadoopversion},hbase${hbaseversion}" visibility="private" description="compile artifacts"/>
     <conf name="test" extends="compile" visibility="private"/>
     <conf name="javadoc" visibility="private" extends="compile,test"/>
     <conf name="releaseaudit" visibility="private"/>
@@ -40,6 +40,8 @@
     <conf name="buildJar" extends="compile,test" visibility="private"/>
     <conf name="hadoop20" visibility="private"/>
     <conf name="hadoop23" visibility="private"/>
+    <conf name="hbase94" visibility="private"/>
+    <conf name="hbase95" visibility="private"/>
   </configurations>
   <publications>
     <artifact name="pig" conf="master"/>
@@ -234,7 +236,8 @@
     <dependency org="org.jruby" name="jruby-complete" rev="${jruby.version}" conf="compile->master"/>
     <dependency org="asm" name="asm" rev="${asm.version}" conf="compile->default"/>
 
-    <dependency org="org.apache.hbase" name="hbase" rev="${hbase.version}" conf="compile->master">
+    <!-- HBase dependency in format for releases up to 0.94 (including) -->
+    <dependency org="org.apache.hbase" name="hbase" rev="${hbase94.version}" conf="hbase94->master">
       <artifact name="hbase" type="jar"/>
       <artifact name="hbase" type="test-jar" ext="jar" m:classifier="tests"/>
       <exclude org="org.apache.thrift" module="thrift"/>
@@ -255,6 +258,85 @@
       <exclude org="com.sun.jersey" module="jersey-server"/>
       <exclude org="com.sun.jersey" module="jersey-json"/>
       <exclude org="asm" module="asm"/>
+    </dependency>
+
+    <!-- HBase dependency in format for releases higher or equal to 0.95 -->
+    <dependency org="org.apache.hbase" name="hbase-client" rev="${hbase95.version}" conf="hbase95->master">
+      <artifact name="hbase-client" type="jar"/>
+      <artifact name="hbase-client" type="test-jar" ext="jar" m:classifier="tests"/>
+      <exclude org="org.slf4j" module="slf4j-api"/>
+      <exclude org="org.slf4j" module="slf4j-log4j12" />
+      <exclude org="stax" module="stax-api" />
+      <exclude org="javax.xml.bind" module="jaxb-api" />
+      <exclude org="tomcat" module="jasper-runtime"/>
+      <exclude org="tomcat" module="jasper-compiler"/>
+      <exclude org="com.google.protobuf" module="protobuf-java"/>
+      <exclude org="com.sun.jersey" module="jersey-core"/>
+      <exclude org="com.sun.jersey" module="jersey-server"/>
+      <exclude org="com.sun.jersey" module="jersey-json"/>
+      <exclude org="asm" module="asm"/>
+    </dependency>
+
+    <dependency org="org.apache.hbase" name="hbase-common" rev="${hbase95.version}" conf="hbase95->master">
+      <artifact name="hbase-common" type="jar"/>
+      <artifact name="hbase-common" type="test-jar" ext="jar" m:classifier="tests"/>
+      <exclude org="org.apache.hadoop" module="hadoop-core"/>
+      <exclude org="stax" module="stax-api" />
+      <exclude org="javax.xml.bind" module="jaxb-api" />
+      <exclude org="javax.ws.rs" module="jsr311-api" />
+      <exclude org="tomcat" module="jasper-runtime"/>
+      <exclude org="tomcat" module="jasper-compiler"/>
+      <exclude org="com.sun.jersey" module="jersey-core"/>
+      <exclude org="com.sun.jersey" module="jersey-server"/>
+      <exclude org="com.sun.jersey" module="jersey-json"/>
+      <exclude org="asm" module="asm"/>
+    </dependency>
+
+    <dependency org="org.apache.hbase" name="hbase-server" rev="${hbase95.version}" conf="hbase95->master">
+      <artifact name="hbase-server" type="jar"/>
+      <artifact name="hbase-server" type="test-jar" ext="jar" m:classifier="tests"/>
+      <exclude org="org.apache.hadoop" module="hadoop-core"/>
+      <exclude org="org.slf4j" module="slf4j-api"/>
+      <exclude org="org.slf4j" module="slf4j-log4j12" />
+      <exclude org="stax" module="stax-api" />
+      <exclude org="javax.xml.bind" module="jaxb-api" />
+      <exclude org="javax.ws.rs" module="jsr311-api" />
+      <exclude org="tomcat" module="jasper-runtime"/>
+      <exclude org="tomcat" module="jasper-compiler"/>
+      <exclude org="com.sun.jersey" module="jersey-core"/>
+      <exclude org="com.sun.jersey" module="jersey-server"/>
+      <exclude org="com.sun.jersey" module="jersey-json"/>
+      <exclude org="asm" module="asm"/>
+    </dependency>
+
+    <dependency org="org.apache.hbase" name="hbase-protocol" rev="${hbase95.version}" conf="hbase95->master">
+      <artifact name="hbase-protocol" type="jar"/>
+      <artifact name="hbase-protocol" type="test-jar" ext="jar" m:classifier="tests"/>
+      <exclude org="com.google.protobuf" module="protobuf-java"/>
+    </dependency>
+
+    <dependency org="org.apache.hbase" name="hbase-hadoop-compat" rev="${hbase95.version}" conf="hbase95->master">
+      <artifact name="hbase-hadoop-compat" type="jar"/>
+      <artifact name="hbase-hadoop-compat" type="test-jar" ext="jar" m:classifier="tests"/>
+    </dependency>
+
+    <dependency org="org.apache.hbase" name="hbase-hadoop1-compat" rev="${hbase95.version}" conf="hbase95->master">
+      <artifact name="hbase-hadoop1-compat" type="jar"/>
+      <artifact name="hbase-hadoop1-compat" type="test-jar" ext="jar" m:classifier="tests"/>
+      <exclude org="org.apache.hadoop" module="hadoop-core"/>
+      <exclude org="org.slf4j" module="slf4j-api"/>
+      <exclude org="stax" module="stax-api" />
+      <exclude org="javax.xml.bind" module="jaxb-api" />
+      <exclude org="tomcat" module="jasper-runtime"/>
+      <exclude org="tomcat" module="jasper-compiler"/>
+      <exclude org="com.sun.jersey" module="jersey-core"/>
+      <exclude org="com.sun.jersey" module="jersey-server"/>
+      <exclude org="com.sun.jersey" module="jersey-json"/>
+      <exclude org="asm" module="asm"/>
+    </dependency>
+
+    <dependency org="org.cloudera.htrace" name="htrace-core" rev="2.00" conf="hbase95->master">
+      <artifact name="htrace-core" type="jar"/>
     </dependency>
 
     <!-- for TestHBaseStorage -->

@@ -33,6 +33,10 @@ public class ParserException extends FrontendException {
 	public ParserException(String msg) {
 		super( msg, errorCode );
 	}
+	
+	public ParserException(String msg, SourceLocation location) {
+	    super(msg, errorCode, location);
+	}
 
 	public ParserException(String msg, Throwable cause) {
 	    super( msg, errorCode, cause );

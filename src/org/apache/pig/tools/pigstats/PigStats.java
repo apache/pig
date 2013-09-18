@@ -60,6 +60,7 @@ public abstract class PigStats {
     
     private String errorMessage;
     private int errorCode = -1;
+    private Throwable errorThrowable = null;
     
     public static PigStats get() {
         if (tps.get() == null) {
@@ -97,6 +98,13 @@ public abstract class PigStats {
      */
     public int getErrorCode() {
         return errorCode;
+    }
+    
+    /**
+     * Returns the error code of {@link PigException}
+     */
+    public Throwable getErrorThrowable() {
+        return errorThrowable;
     }
 
     public abstract JobClient getJobClient();
@@ -205,7 +213,10 @@ public abstract class PigStats {
     void setErrorCode(int errorCode) {
         this.errorCode = errorCode;
     } 
-
+    
+    void setErrorThrowable(Throwable t) {
+        this.errorThrowable = t;
+    }
     
     /**
      * This class prints a JobGraph

@@ -852,7 +852,7 @@ public class TestStreaming {
 
         // Pig query to run
         pigServer.registerQuery(
-                "define CMD `" + command.getName() + " foo` " +
+                "define CMD `perl " + command.getName() + " foo` " +
                 "ship ('" + Util.encodeEscape(command.toString()) + "') " +
                 "input('foo' using " + PigStreaming.class.getName() + "()) " +
                 "output(stdout using " + PigStreaming.class.getName() + "(',')) " +

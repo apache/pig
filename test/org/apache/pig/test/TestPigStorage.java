@@ -627,7 +627,7 @@ public class TestPigStorage  {
         File tmpInput = File.createTempFile("tmp", "tmp");
         tmpInput.deleteOnExit();
         File outFile = new File(parent, "out");
-        pig.registerQuery("a = load '"+tmpInput.getAbsolutePath()+"' as (x:int, y:chararray, z:chararray);");
+        pig.registerQuery("a = load '"+Util.encodeEscape(tmpInput.getAbsolutePath())+"' as (x:int, y:chararray, z:chararray);");
         pig.store("a", outFile.getAbsolutePath(), "PigStorage('\\t', '-schema')");
         File schemaFile = new File(outFile, ".pig_schema");
 
@@ -639,7 +639,7 @@ public class TestPigStorage  {
         FileUtils.moveFile(schemaFile, inputSchemaFile);
         File inputFile = new File(inputDir, "data");
         Util.writeToFile(inputFile, new String[]{"1"});
-        pig.registerQuery("a = load '"+inputDir.getAbsolutePath()+"';");
+        pig.registerQuery("a = load '"+Util.encodeEscape(inputDir.getAbsolutePath())+"';");
         Iterator<Tuple> it = pig.openIterator("a");
         assertTrue(it.hasNext());
         assertEquals(tuple(1,null,null), it.next());
