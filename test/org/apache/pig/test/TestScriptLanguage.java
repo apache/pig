@@ -35,7 +35,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.scripting.ScriptEngine;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
-import org.apache.pig.tools.pigstats.PigStatsUtil;
+import org.apache.pig.tools.pigstats.PigStatsUtilBase;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -665,7 +665,7 @@ public class TestScriptLanguage {
         
         createEmptyFiles(file1, file2);
         // Clear stats from previous execution
-        PigStatsUtil.getEmptyPigStats();
+        PigStatsUtilBase.getEmptyPigStats();
         
         // ExecMode.FILE
         stats = PigRunner.run(new String[] { "-f", scriptFile.getAbsolutePath(), "arg0", 

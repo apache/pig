@@ -39,7 +39,7 @@ import org.apache.pig.newplan.BaseOperatorPlan;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanVisitor;
-import org.apache.pig.tools.pigstats.JobStats.JobState;
+import org.apache.pig.tools.pigstats.JobStatsBase.JobState;
 import org.apache.pig.tools.pigstats.mapreduce.SimplePigStats;
 
 /**
@@ -232,13 +232,13 @@ public abstract class PigStats {
             buf = new StringBuffer();
         }
         
-        public void visit(JobStats op) throws FrontendException {
+        public void visit(JobStatsBase op) throws FrontendException {
             buf.append(op.getJobId());
             List<Operator> succs = plan.getSuccessors(op);
             if (succs != null) {
                 buf.append("\t->\t");
                 for (Operator p : succs) {                  
-                    buf.append(((JobStats)p).getJobId()).append(",");
+                    buf.append(((JobStatsBase)p).getJobId()).append(",");
                 }               
             }
             buf.append("\n");
@@ -252,9 +252,9 @@ public abstract class PigStats {
     }
     
     /**
-     * JobGraph is an {@link OperatorPlan} whose members are {@link JobStats}
+     * JobGraph is an {@link OperatorPlan} whose members are {@link JobStatsBase}
      */
-    public static class JobGraph extends BaseOperatorPlan implements Iterable<JobStats>{
+    public static class JobGraph extends BaseOperatorPlan implements Iterable<JobStatsBase>{
                 
         @Override
         public String toString() {
@@ -274,20 +274,20 @@ public abstract class PigStats {
          * @return List<JobStats>
          */
         @SuppressWarnings("unchecked")
-        public List<JobStats> getJobList() {
+        public List<JobStatsBase> getJobList() {
             return IteratorUtils.toList(iterator());
         }
 
-        public Iterator<JobStats> iterator() {
-            return new Iterator<JobStats>() {
+        public Iterator<JobStatsBase> iterator() {
+            return new Iterator<JobStatsBase>() {
                 private Iterator<Operator> iter = getOperators();                
                 @Override
                 public boolean hasNext() {                
                     return iter.hasNext();
                 }
                 @Override
-                public JobStats next() {              
-                    return (JobStats)iter.next();
+                public JobStatsBase next() {              
+                    return (JobStatsBase)iter.next();
                 }
                 @Override
                 public void remove() {}
@@ -308,11 +308,11 @@ public abstract class PigStats {
             return false;
         }
         
-        public List<JobStats> getSuccessfulJobs() {
-            ArrayList<JobStats> lst = new ArrayList<JobStats>();
-            Iterator<JobStats> iter = iterator();
+        public List<JobStatsBase> getSuccessfulJobs() {
+            ArrayList<JobStatsBase> lst = new ArrayList<JobStatsBase>();
+            Iterator<JobStatsBase> iter = iterator();
             while (iter.hasNext()) {
-                JobStats js = iter.next();
+                JobStatsBase js = iter.next();
                 if (js.getState() == JobState.SUCCESS) {
                     lst.add(js);
                 }
@@ -321,11 +321,11 @@ public abstract class PigStats {
             return lst;
         }
         
-        public List<JobStats> getFailedJobs() {
-            ArrayList<JobStats> lst = new ArrayList<JobStats>();
-            Iterator<JobStats> iter = iterator();
+        public List<JobStatsBase> getFailedJobs() {
+            ArrayList<JobStatsBase> lst = new ArrayList<JobStatsBase>();
+            Iterator<JobStatsBase> iter = iterator();
             while (iter.hasNext()) {
-                JobStats js = iter.next();
+                JobStatsBase js = iter.next();
                 if (js.getState() == JobState.FAILED) {
                     lst.add(js);
                 }
@@ -334,9 +334,9 @@ public abstract class PigStats {
         }
     }    
     
-    private static class JobComparator implements Comparator<JobStats> {
+    private static class JobComparator implements Comparator<JobStatsBase> {
         @Override
-        public int compare(JobStats o1, JobStats o2) {           
+        public int compare(JobStatsBase o1, JobStatsBase o2) {           
             return o1.getJobId().compareTo(o2.getJobId());
         }       
     }    
