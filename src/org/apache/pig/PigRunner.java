@@ -21,7 +21,7 @@ import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.tools.pigstats.PigProgressNotificationListener;
 import org.apache.pig.tools.pigstats.PigStats;
-import org.apache.pig.tools.pigstats.PigStatsUtil;
+import org.apache.pig.tools.pigstats.PigStatsUtilBase;
 
 /**
  * A utility to help run PIG scripts within a Java program.
@@ -46,7 +46,7 @@ public abstract class PigRunner {
     }
     
     public static PigStats run(String[] args, PigProgressNotificationListener listener) {
-        return PigStatsUtil.getPigStats(Main.run(args, listener));
+        return PigStatsUtilBase.getPigStats(Main.run(args, listener));
     }
     
 }

@@ -64,7 +64,7 @@ import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.apache.pig.tools.pigstats.PigProgressNotificationListener;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 import org.apache.pig.tools.pigstats.ScriptState;
-import org.apache.pig.tools.pigstats.JobStats;
+import org.apache.pig.tools.pigstats.JobStatsBase;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.OutputStats;
 
@@ -133,13 +133,13 @@ public class MRScriptState extends ScriptState {
         }
     }
     
-    public void emitjobFinishedNotification(JobStats jobStats) {
+    public void emitjobFinishedNotification(JobStatsBase jobStats) {
         for (PigProgressNotificationListener listener: listeners) {
             listener.jobFinishedNotification(id, jobStats);
         }
     }
     
-    public void emitJobFailedNotification(JobStats jobStats) {
+    public void emitJobFailedNotification(JobStatsBase jobStats) {
         for (PigProgressNotificationListener listener: listeners) {
             listener.jobFailedNotification(id, jobStats);
         }
@@ -243,10 +243,10 @@ public class MRScriptState extends ScriptState {
         // upon available. Therefore, before a job is submitted, the ids
         // of its parent jobs are already available.
         JobGraph jg = PigStats.get().getJobGraph();
-        JobStats js = null;
-        Iterator<JobStats> iter = jg.iterator();
+        JobStatsBase js = null;
+        Iterator<JobStatsBase> iter = jg.iterator();
         while (iter.hasNext()) {
-            JobStats job = iter.next();
+            JobStatsBase job = iter.next();
             if (job.getName().equals(mro.getOperatorKey().toString())) {
                 js = job;
                 break;
@@ -257,7 +257,7 @@ public class MRScriptState extends ScriptState {
             if (preds != null) {
                 StringBuilder sb = new StringBuilder();
                 for (Operator op : preds) {
-                    JobStats job = (JobStats)op;
+                    JobStatsBase job = (JobStatsBase)op;
                     if (sb.length() > 0) sb.append(",");
                     sb.append(job.getJobId());
                 }

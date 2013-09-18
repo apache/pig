@@ -50,7 +50,7 @@ import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.tools.pigstats.InputStats;
-import org.apache.pig.tools.pigstats.JobStats;
+import org.apache.pig.tools.pigstats.JobStatsBase;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 import org.apache.pig.tools.pigstats.PigStats.JobGraphPrinter;
@@ -62,10 +62,10 @@ import org.apache.pig.tools.pigstats.PigStats.JobGraphPrinter;
  */
 @InterfaceAudience.Public
 @InterfaceStability.Evolving
-public final class MRJobStats extends JobStats {
+public class MRJobStats extends JobStatsBase {
         
     
-    MRJobStats(String name, JobGraph plan) {
+    protected MRJobStats(String name, JobGraph plan) {
         super(name, plan);
     }
 
