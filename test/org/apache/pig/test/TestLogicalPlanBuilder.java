@@ -2170,7 +2170,7 @@ public class TestLogicalPlanBuilder {
         assertEquals("StoreFunc must be PigStorageWithSchema", "org.apache.pig.test.PigStorageWithSchema", lData.getStoreFuncs().get(0));
         assertEquals("Number of sources must be 2", lData.getSources().size(), 2);
         assertTrue("Source must end with input.txt", lData.getSources().get(0).endsWith("input.txt"));
-        assertTrue("Source must end with input.txt", lData.getSinks().get(0).endsWith("output"));
+        assertTrue("Sink must end with output", lData.getSinks().get(0).endsWith("output"));
     }
     
     /**
