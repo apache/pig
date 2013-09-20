@@ -358,6 +358,34 @@
     </dependency>
 
     <dependency org="org.mockito" name="mockito-all" rev="${mockito.version}" conf="compile->default"/>
-    </dependencies>
+
+    <!-- for Tez integration -->
+    <dependency org="org.apache.tez" name="tez" rev="${tez.version}"
+       conf="hadoop23->master"/>
+    <dependency org="org.apache.tez" name="tez-common" rev="${tez.version}"
+       conf="hadoop23->master"/>
+    <dependency org="org.apache.tez" name="tez-dag" rev="${tez.version}"
+       conf="hadoop23->master"/>
+    <dependency org="org.apache.tez" name="tez-dag-api" rev="${tez.version}"
+       conf="hadoop23->master"/>
+    <dependency org="org.apache.tez" name="tez-dist" rev="${tez.version}"
+       conf="hadoop23->master"/>
+    <dependency org="org.apache.tez" name="tez-engine" rev="${tez.version}"
+       conf="hadoop23->master"/>
+    <dependency org="org.apache.tez" name="tez-engine-api" rev="${tez.version}"
+       conf="hadoop23->master"/>
+    <dependency org="org.apache.tez" name="tez-mapreduce" rev="${tez.version}"
+       conf="hadoop23->master">
+      <artifact name="tez-mapreduce" ext="jar" />
+      <artifact name="tez-mapreduce" type="tests" ext="jar" m:classifier="tests" />
+    </dependency>
+    <dependency org="org.apache.tez" name="tez-mapreduce-tests" rev="${tez.version}"
+       conf="hadoop23->master">
+      <artifact name="tez-mapreduce-tests" ext="jar" />
+      <artifact name="tez-mapreduce-tests" type="tests" ext="jar" m:classifier="tests" />
+    </dependency>
+    <dependency org="org.apache.tez" name="tez-yarn-client" rev="${tez.version}"
+       conf="hadoop23->master"/>
+  </dependencies>
 </ivy-module>
 

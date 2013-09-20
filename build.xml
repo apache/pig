@@ -169,11 +169,8 @@
     <property name="ivy.dir" location="ivy" />
     <loadproperties srcfile="${ivy.dir}/libraries.properties"/>
 
-    <!--propertyregex property="hadoopversion"
-           input="${hadoop-core.version}"
-           regexp="\d+\.(\d+)\.\d+"
-           select="\1" /-->
-    <property name="hadoopversion" value="20" />
+    <!-- Set default hadoop version to 23 in tez branch -->
+    <property name="hadoopversion" value="23" />
 
     <condition property="isHadoop23">
         <equals arg1="${hadoopversion}" arg2="23"/>
@@ -189,6 +186,13 @@
       at the moment.
     -->
     <property name="hbaseversion" value="94" />
+
+    <!-- exclude tez code if not hadoop20 -->
+    <condition property="src.exclude.dir" value="**/tez/**" else="">
+        <not>
+            <equals arg1="${hadoopversion}" arg2="23"/>
+        </not>
+    </condition>
 
     <property name="src.shims.dir" value="${basedir}/shims/src/hadoop${hadoopversion}" />
     <property name="src.shims.test.dir" value="${basedir}/shims/test/hadoop${hadoopversion}" />
@@ -537,7 +541,7 @@
         <echo>*** To compile with all warnings enabled, supply -Dall.warnings=1 on command line ***</echo>
         <echo>*** Else, you will only be warned about deprecations ***</echo>
         <compileSources sources="${src.dir};${src.gen.dir};${src.lib.dir}/shock;${src.lib.dir}/bzip2;${src.shims.dir}"
-            excludes="" dist="${build.classes}" cp="classpath" warnings="${javac.args.warnings}" />
+            excludes="${src.exclude.dir}" dist="${build.classes}" cp="classpath" warnings="${javac.args.warnings}" />
         <copy todir="${build.classes}/META-INF">
             <fileset dir="${src.dir}/META-INF" includes="**"/>
         </copy>
@@ -838,7 +842,7 @@
         <mkdir dir="${test.log.dir}"/>
         <tempfile property="junit.tmp.dir" prefix="pig_junit_tmp" destDir="${java.io.tmpdir}" />
         <mkdir dir="${junit.tmp.dir}/"/>
-        <junit showoutput="${test.output}" printsummary="yes" haltonfailure="no" fork="yes" maxmemory="1024m" dir="${basedir}" timeout="${test.timeout}" errorProperty="tests.failed" failureProperty="tests.failed">
+        <junit showoutput="${test.output}" printsummary="yes" haltonfailure="no" fork="yes" maxmemory="2048m" dir="${basedir}" timeout="${test.timeout}" errorProperty="tests.failed" failureProperty="tests.failed">
             <sysproperty key="ssh.gateway" value="${ssh.gateway}" />
             <sysproperty key="hod.server" value="${hod.server}" />
             <sysproperty key="java.io.tmpdir" value="${junit.tmp.dir}" />
