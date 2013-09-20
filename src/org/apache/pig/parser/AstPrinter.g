@@ -124,6 +124,7 @@ op_clause : define_clause
           | split_clause
           | foreach_clause
           | cube_clause
+          | assert_clause
 ;
 
 define_clause
@@ -300,6 +301,14 @@ flatten_clause
 
 store_clause
     : ^( STORE { sb.append($STORE.text).append(" "); } rel { sb.append(" INTO "); } filename ( { sb.append(" USING "); } func_clause)? )
+;
+
+comment
+    : QUOTEDSTRING { sb.append($QUOTEDSTRING.text); }
+;
+
+assert_clause
+    : ^( ASSERT { sb.append($ASSERT.text).append(" "); } rel {sb.append(" BY ("); } cond { sb.append(")"); } ( { sb.append(" comment: "); } comment)?  )
 ;
 
 filter_clause
