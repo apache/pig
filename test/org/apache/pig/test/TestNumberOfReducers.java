@@ -25,7 +25,7 @@ import java.io.PrintWriter;
 import org.apache.pig.PigRunner;
 import org.apache.pig.PigServer;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.tools.pigstats.JobStats;
+import org.apache.pig.tools.pigstats.JobStatsBase;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.mapreduce.MRJobStats;
 import org.junit.AfterClass;

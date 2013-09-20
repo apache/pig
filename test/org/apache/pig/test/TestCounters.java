@@ -36,7 +36,7 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.tools.pigstats.InputStats;
-import org.apache.pig.tools.pigstats.JobStats;
+import org.apache.pig.tools.pigstats.JobStatsBase;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 import org.apache.pig.tools.pigstats.mapreduce.MRJobStats;
@@ -96,7 +96,7 @@ public class TestCounters {
         System.out.println("============================================");
 
         JobGraph jg = pigStats.getJobGraph();
-        Iterator<JobStats> iter = jg.iterator();
+        Iterator<JobStatsBase> iter = jg.iterator();
         while (iter.hasNext()) {
             MRJobStats js = (MRJobStats) iter.next();                    
 
@@ -147,7 +147,7 @@ public class TestCounters {
         System.out.println("============================================");
 
         JobGraph jp = pigStats.getJobGraph();
-        Iterator<JobStats> iter = jp.iterator();
+        Iterator<JobStatsBase> iter = jp.iterator();
         while (iter.hasNext()) {
             MRJobStats js = (MRJobStats) iter.next();
         
@@ -206,7 +206,7 @@ public class TestCounters {
         System.out.println("============================================");
 
         JobGraph jp = pigStats.getJobGraph();
-        Iterator<JobStats> iter = jp.iterator();
+        Iterator<JobStatsBase> iter = jp.iterator();
         while (iter.hasNext()) {
             MRJobStats js = (MRJobStats) iter.next();
             System.out.println("Map input records : " + js.getMapInputRecords());
@@ -264,7 +264,7 @@ public class TestCounters {
         System.out.println("============================================");
 
         JobGraph jp = pigStats.getJobGraph();
-        Iterator<JobStats> iter = jp.iterator();
+        Iterator<JobStatsBase> iter = jp.iterator();
         while (iter.hasNext()) {
             MRJobStats js = (MRJobStats) iter.next();
             System.out.println("Map input records : " + js.getMapInputRecords());
@@ -322,7 +322,7 @@ public class TestCounters {
         System.out.println("============================================");
         
         JobGraph jp = pigStats.getJobGraph();
-        Iterator<JobStats> iter = jp.iterator();
+        Iterator<JobStatsBase> iter = jp.iterator();
         while (iter.hasNext()) {
             MRJobStats js = (MRJobStats) iter.next();
             System.out.println("Map input records : " + js.getMapInputRecords());
@@ -381,7 +381,7 @@ public class TestCounters {
         System.out.println("============================================");
  
         JobGraph jp = pigStats.getJobGraph();
-        Iterator<JobStats> iter = jp.iterator();
+        Iterator<JobStatsBase> iter = jp.iterator();
         while (iter.hasNext()) {
             MRJobStats js = (MRJobStats) iter.next();
             System.out.println("Map input records : " + js.getMapInputRecords());

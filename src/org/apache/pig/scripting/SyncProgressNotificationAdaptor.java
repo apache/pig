@@ -23,7 +23,7 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
-import org.apache.pig.tools.pigstats.JobStats;
+import org.apache.pig.tools.pigstats.JobStatsBase;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigProgressNotificationListener;
 
@@ -39,7 +39,7 @@ class SyncProgressNotificationAdaptor implements PigProgressNotificationListener
     }
 
     @Override
-    public void jobFailedNotification(String scriptId, JobStats jobStats) {
+    public void jobFailedNotification(String scriptId, JobStatsBase jobStats) {
         synchronized (listeners) {
             for (PigProgressNotificationListener listener : listeners) {
                 listener.jobFailedNotification(scriptId, jobStats);
@@ -48,7 +48,7 @@ class SyncProgressNotificationAdaptor implements PigProgressNotificationListener
     }
 
     @Override
-    public void jobFinishedNotification(String scriptId, JobStats jobStats) {
+    public void jobFinishedNotification(String scriptId, JobStatsBase jobStats) {
         synchronized (listeners) {
             for (PigProgressNotificationListener listener : listeners) {
                 listener.jobFinishedNotification(scriptId, jobStats);

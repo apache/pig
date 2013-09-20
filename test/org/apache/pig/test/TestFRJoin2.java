@@ -31,7 +31,7 @@ import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.test.utils.TestHelper;
-import org.apache.pig.tools.pigstats.JobStats;
+import org.apache.pig.tools.pigstats.JobStatsBase;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 import org.apache.pig.tools.pigstats.mapreduce.MRJobStats;

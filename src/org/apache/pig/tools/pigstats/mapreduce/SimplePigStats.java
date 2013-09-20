@@ -48,11 +48,11 @@ import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.tools.pigstats.InputStats;
 import org.apache.pig.tools.pigstats.mapreduce.MRJobStats;
-import org.apache.pig.tools.pigstats.JobStats.JobState;
+import org.apache.pig.tools.pigstats.JobStatsBase.JobState;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.ScriptState;
-import org.apache.pig.tools.pigstats.JobStats;
+import org.apache.pig.tools.pigstats.JobStatsBase;
 
 /**
  * SimplePigStats encapsulates the statistics collected from a running script. 
@@ -211,7 +211,7 @@ public final class SimplePigStats extends PigStats {
 
     @Override
     public long getSMMSpillCount() {
-        Iterator<JobStats> it = jobPlan.iterator();
+        Iterator<JobStatsBase> it = jobPlan.iterator();
         long ret = 0;
         while (it.hasNext()) {
             ret += ((MRJobStats) it.next()).getSMMSpillCount();
@@ -221,7 +221,7 @@ public final class SimplePigStats extends PigStats {
 
     @Override
     public long getProactiveSpillCountObjects() {
-        Iterator<JobStats> it = jobPlan.iterator();
+        Iterator<JobStatsBase> it = jobPlan.iterator();
         long ret = 0;
         while (it.hasNext()) {            
             ret += ((MRJobStats) it.next()).getProactiveSpillCountObjects();
@@ -231,7 +231,7 @@ public final class SimplePigStats extends PigStats {
     
     @Override
     public long getProactiveSpillCountRecords() {
-        Iterator<JobStats> it = jobPlan.iterator();
+        Iterator<JobStatsBase> it = jobPlan.iterator();
         long ret = 0;
         while (it.hasNext()) {            
             ret += ((MRJobStats) it.next()).getProactiveSpillCountRecs();
@@ -241,7 +241,7 @@ public final class SimplePigStats extends PigStats {
     
     @Override
     public long getBytesWritten() {
-        Iterator<JobStats> it = jobPlan.iterator();
+        Iterator<JobStatsBase> it = jobPlan.iterator();
         long ret = 0;
         while (it.hasNext()) {
             long n = it.next().getBytesWritten();
@@ -252,7 +252,7 @@ public final class SimplePigStats extends PigStats {
     
     @Override
     public long getRecordWritten() {
-        Iterator<JobStats> it = jobPlan.iterator();
+        Iterator<JobStatsBase> it = jobPlan.iterator();
         long ret = 0;
         while (it.hasNext()) {
             long n = it.next().getRecordWrittern();
@@ -284,7 +284,7 @@ public final class SimplePigStats extends PigStats {
     @Override
     public List<OutputStats> getOutputStats() {
         List<OutputStats> outputs = new ArrayList<OutputStats>();
-        Iterator<JobStats> iter = jobPlan.iterator();
+        Iterator<JobStatsBase> iter = jobPlan.iterator();
         while (iter.hasNext()) {
             for (OutputStats os : iter.next().getOutputs()) {
                 outputs.add(os);
@@ -297,7 +297,7 @@ public final class SimplePigStats extends PigStats {
     public OutputStats result(String alias) {
         if (aliasOuputMap == null) {
             aliasOuputMap = new HashMap<String, OutputStats>();
-            Iterator<JobStats> iter = jobPlan.iterator();
+            Iterator<JobStatsBase> iter = jobPlan.iterator();
             while (iter.hasNext()) {
                 for (OutputStats os : iter.next().getOutputs()) {
                     String a = os.getAlias();
@@ -315,7 +315,7 @@ public final class SimplePigStats extends PigStats {
     @Override
     public List<InputStats> getInputStats() {
         List<InputStats> inputs = new ArrayList<InputStats>();
-        Iterator<JobStats> iter = jobPlan.iterator();
+        Iterator<JobStatsBase> iter = jobPlan.iterator();
         while (iter.hasNext()) {
             for (InputStats is : iter.next().getInputs()) {
                 inputs.add(is);
@@ -447,8 +447,8 @@ public final class SimplePigStats extends PigStats {
             } else {
                 sb.append(MRJobStats.SUCCESS_HEADER).append("\n");
             }
-            List<JobStats> arr = jobPlan.getSuccessfulJobs();
-            for (JobStats js : arr) {                
+            List<JobStatsBase> arr = jobPlan.getSuccessfulJobs();
+            for (JobStatsBase js : arr) {                
                 sb.append(js.getDisplayString(execType.isLocal()));
             }
             sb.append("\n");
@@ -457,8 +457,8 @@ public final class SimplePigStats extends PigStats {
                 || returnCode == ReturnCode.PARTIAL_FAILURE) {
             sb.append("Failed Jobs:\n");
             sb.append(MRJobStats.FAILURE_HEADER).append("\n");
-            List<JobStats> arr = jobPlan.getFailedJobs();
-            for (JobStats js : arr) {   
+            List<JobStatsBase> arr = jobPlan.getFailedJobs();
+            for (JobStatsBase js : arr) {   
                 sb.append(js.getDisplayString(execType.isLocal()));
             }
             sb.append("\n");
@@ -516,9 +516,9 @@ public final class SimplePigStats extends PigStats {
             return;
         }
         String id = job.getAssignedJobID().toString();
-        Iterator<JobStats> iter = jobPlan.iterator();
+        Iterator<JobStatsBase> iter = jobPlan.iterator();
         while (iter.hasNext()) {
-            JobStats js = iter.next();
+            JobStatsBase js = iter.next();
             if (id.equals(js.getJobId())) {
                 js.setBackendException(e);
                 break;
@@ -531,7 +531,7 @@ public final class SimplePigStats extends PigStats {
     }
     
     int getNumberSuccessfulJobs() {
-        Iterator<JobStats> iter = jobPlan.iterator();
+        Iterator<JobStatsBase> iter = jobPlan.iterator();
         int count = 0;
         while (iter.hasNext()) {
             if (iter.next().getState() == JobState.SUCCESS) count++; 
@@ -540,7 +540,7 @@ public final class SimplePigStats extends PigStats {
     }
     
     int getNumberFailedJobs() {
-        Iterator<JobStats> iter = jobPlan.iterator();
+        Iterator<JobStatsBase> iter = jobPlan.iterator();
         int count = 0;
         while (iter.hasNext()) {
             if (iter.next().getState() == JobState.FAILED) count++; 

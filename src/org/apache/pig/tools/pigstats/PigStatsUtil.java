@@ -15,73 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.pig.tools.pigstats;
 
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil;
 
-import org.apache.pig.tools.pigstats.PigStats;
-import org.apache.pig.tools.pigstats.mapreduce.SimplePigStats;
-
+@Deprecated
 /**
- * A utility class for Pig Statistics
+ * This class is only for backward compatibility. New application need
+ * to use MRJobStats instead
  */
-public class PigStatsUtil {
-        
-    /**
-     * Returns an empty PigStats object
-     * Use of this method is not advised
-     * as it will return the MR execution
-     * engine version of PigStats by 
-     * default, and is not necessarily 
-     * empty depending on the timing.
-     * 
-     * @return an empty PigStats object
-     */
-    @Deprecated
-    public static PigStats getEmptyPigStats() {
-        return PigStats.start(new SimplePigStats());
-    }
-    
-    /**
-     * Returns the PigStats with the given return code
-     * 
-     * @param code the return code
-     * @return the PigStats with the given return code
-     */
-    public static PigStats getPigStats(int code) {
-        PigStats ps = PigStats.get();
-        ps.setReturnCode(code);
-        return ps;
-    }
-    
-    
-    public static void setErrorMessage(String msg) {
-        PigStats.get().setErrorMessage(msg);
-    }
-    
-    public static void setErrorCode(int code) {
-        PigStats.get().setErrorCode(code);
-    }
-    
-    public static void setErrorThrowable(Throwable t) {
-        PigStats.get().setErrorThrowable(t);
-    }
-    
-    private static Pattern pattern = Pattern.compile("tmp(-)?[\\d]{1,10}$");
-    
-    public static boolean isTempFile(String fileName) {
-        Matcher result = pattern.matcher(fileName);
-        return result.find();
-    }
-    
-    public static void setStatsMap(Map<String, List<PigStats>> statsMap) {
-        EmbeddedPigStats stats = new EmbeddedPigStats(statsMap);
-        PigStats.set(stats);
-    }
-   
- 
+public class PigStatsUtil extends MRPigStatsUtil {
 }
