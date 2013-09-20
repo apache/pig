@@ -238,6 +238,7 @@ op_clause returns[String alias] :
           | mr_clause { $alias = $mr_clause.alias; }
           | foreach_clause { $alias = $foreach_clause.alias; }
           | cube_clause { $alias = $cube_clause.alias; }
+          | assert_clause { $alias = $assert_clause.alias; }
 ;
 
 define_clause
@@ -700,6 +701,24 @@ store_clause returns[String alias]
        $alias= builder.buildStoreOp( loc, $statement::alias,
           $statement::inputAlias, $filename.filename, $func_clause.funcSpec );
    }
+;
+
+assert_clause returns[String alias]
+scope GScope;
+@init {
+    $GScope::currentOp = builder.createFilterOp();
+    LogicalExpressionPlan exprPlan = new LogicalExpressionPlan();
+}
+ : ^( ASSERT rel cond[exprPlan] comment? )
+   {
+       SourceLocation loc = new SourceLocation( (PigParserNode)$ASSERT );
+       $alias= builder.buildAssertOp(loc, (LOFilter)$GScope::currentOp, $statement::alias,
+          $statement::inputAlias, $cond.expr, $comment.comment, exprPlan);
+   }
+;
+
+comment returns[String comment]
+ : QUOTEDSTRING { $comment = builder.unquote( $QUOTEDSTRING.text ); }
 ;
 
 filter_clause returns[String alias]

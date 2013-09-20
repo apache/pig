@@ -30,6 +30,8 @@ PIG-3174: Remove rpm and deb artifacts from build.xml (gates)
 
 IMPROVEMENTS
 
+PIG-3367: Add assert keyword (operator) in pig (aniket486)
+
 PIG-3235: Avoid extra byte array copies in streaming (rohini)
 
 PIG-3065: pig output format/committer should support recovery for hadoop 0.23 (daijy)
