@@ -382,6 +382,7 @@ op_clause : define_clause
           | union_clause
           | stream_clause
           | mr_clause
+          | assert_clause
 ;
 
 ship_clause : SHIP^ LEFT_PAREN! path_list? RIGHT_PAREN!
@@ -475,6 +476,9 @@ previous_rel : ARROBA
 ;
 
 store_clause : STORE^ rel INTO! QUOTEDSTRING ( USING! func_clause )?
+;
+
+assert_clause : ASSERT^ rel BY! cond ( COMMA! QUOTEDSTRING )?
 ;
 
 filter_clause : FILTER^ rel BY! cond
@@ -1071,5 +1075,6 @@ reserved_identifier_whitelist : RANK
                               | THEN
                               | ELSE
                               | END
+                              | ASSERT
 ;
 

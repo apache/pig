@@ -18,12 +18,16 @@
 package org.apache.pig.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+
+import junit.framework.Assert;
+import junit.framework.AssertionFailedError;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.InputFormat;
@@ -59,13 +63,11 @@ import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LOSort;
 import org.apache.pig.newplan.logical.relational.LOStore;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
+import org.apache.pig.newplan.logical.relational.LogicalPlanData;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.test.utils.Identity;
 import org.junit.Before;
 import org.junit.Test;
-
-import junit.framework.Assert;
-import junit.framework.AssertionFailedError;
 
 public class TestLogicalPlanBuilder {
     PigContext pigContext = new PigContext(ExecType.LOCAL, new Properties());
@@ -2154,6 +2156,21 @@ public class TestLogicalPlanBuilder {
         
         // unset default load func
         pigServer.getPigContext().getProperties().remove(PigConfiguration.PIG_DEFAULT_STORE_FUNC);      
+    }
+    
+    @Test
+    public void testLogicalPlanData() throws Exception {
+        String query = "a = load 'input.txt'; b = load 'anotherinput.txt'; c = join a by $0, b by $1;" +
+                "store c into 'output' using org.apache.pig.test.PigStorageWithSchema();";
+        // Set batch on so the query is not executed
+        pigServer.setBatchOn();
+        pigServer.registerQuery(query);
+        LogicalPlanData lData = pigServer.getLogicalPlanData();
+        assertEquals("LoadFunc must be PigStorage", "org.apache.pig.builtin.PigStorage", lData.getLoadFuncs().get(0));
+        assertEquals("StoreFunc must be PigStorageWithSchema", "org.apache.pig.test.PigStorageWithSchema", lData.getStoreFuncs().get(0));
+        assertEquals("Number of sources must be 2", lData.getSources().size(), 2);
+        assertTrue("Source must end with input.txt", lData.getSources().get(0).endsWith("input.txt"));
+        assertTrue("Sink must end with output", lData.getSinks().get(0).endsWith("output"));
     }
     
     /**

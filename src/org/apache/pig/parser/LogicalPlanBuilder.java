@@ -38,6 +38,7 @@ import org.apache.pig.PigConfiguration;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.builtin.Assert;
 import org.apache.pig.builtin.CubeDimensions;
 import org.apache.pig.builtin.InvokerGenerator;
 import org.apache.pig.builtin.PigStorage;
@@ -60,6 +61,7 @@ import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.impl.util.StringUtils;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
+import org.apache.pig.newplan.logical.expression.BinCondExpression;
 import org.apache.pig.newplan.logical.expression.ConstantExpression;
 import org.apache.pig.newplan.logical.expression.LessThanExpression;
 import org.apache.pig.newplan.logical.expression.LogicalExpression;
@@ -931,6 +933,29 @@ public class LogicalPlanBuilder {
             LOStore op = new LOStore(plan, fileSpec, stoFunc, signature);
             return buildOp(loc, op, alias, inputAlias, null);
         } catch(Exception ex) {
+            throw new ParserValidationException(intStream, loc, ex);
+        }
+    }
+    
+    String buildAssertOp(SourceLocation loc, LOFilter filterOp, 
+            String alias, String inputAlias, LogicalExpression expr, String comment,
+            LogicalExpressionPlan exprPlan) 
+            throws ParserValidationException {
+        try {
+            filterOp.setAlias(inputAlias);
+            List<LogicalExpression> args = new ArrayList<LogicalExpression>();
+            ConstantExpression lhs = new ConstantExpression(exprPlan, new Boolean(true));
+            ConstantExpression rhs = new ConstantExpression(exprPlan, new Boolean(false));
+            BinCondExpression binCond = new BinCondExpression(exprPlan, expr, lhs, rhs);
+            args.add(binCond);
+            ConstantExpression constExpr = new ConstantExpression(exprPlan, comment);
+            args.add(constExpr);
+            UserFuncExpression udf = new UserFuncExpression(exprPlan, new FuncSpec( Assert.class.getName() ), args );
+            exprPlan.add(udf);
+            filterOp.setFilterPlan(exprPlan);
+            // pass the inputAlias to alias
+            return buildFilterOp(loc, filterOp, inputAlias, inputAlias, exprPlan);
+        } catch (Exception ex) {
             throw new ParserValidationException(intStream, loc, ex);
         }
     }

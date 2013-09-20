@@ -23,9 +23,15 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
+import java.net.Socket;
+import java.net.SocketException;
+import java.net.SocketImplFactory;
 import java.util.Collection;
+import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.logging.Log;
@@ -34,6 +40,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.FileInputLoadFunc;
 import org.apache.pig.FuncSpec;
@@ -348,6 +355,62 @@ public class Utils {
                 size += getPathLength(fs, child);
             }
             return size;
+        }
+    }
+
+    /**
+     * Method to set the customized SSH socket factory.
+     *
+     * @param pc Pig context that stores the SSH gateway address.
+     */
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    public static void setSSHFactory(PigContext pc) {
+        Properties properties = pc.getProperties();
+        String g = properties.getProperty("ssh.gateway");
+        if (g == null || g.length() == 0) {
+            return;
+        }
+        try {
+            Class clazz = Class.forName("org.apache.pig.shock.SSHSocketImplFactory");
+            SocketImplFactory f = (SocketImplFactory) clazz.getMethod(
+                        "getFactory", new Class[0]).invoke(0, new Object[0]);
+            Socket.setSocketImplFactory(f);
+        } catch (SocketException e) {
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Method to apply pig properties to JobConf (replaces properties with
+     * resulting jobConf values).
+     *
+     * @param conf JobConf with appropriate hadoop resource files
+     * @param properties Pig properties that will override hadoop properties;
+     * properties might be modified
+     */
+    public static void recomputeProperties(JobConf jobConf, Properties properties) {
+        // We need to load the properties from the hadoop configuration
+        // We want to override these with any existing properties we have.
+        if (jobConf != null && properties != null) {
+            // set user properties on the jobConf to ensure that defaults
+            // and deprecation is applied correctly
+            Enumeration<Object> propertiesIter = properties.keys();
+            while (propertiesIter.hasMoreElements()) {
+                String key = (String) propertiesIter.nextElement();
+                String val = properties.getProperty(key);
+                // We do not put user.name, See PIG-1419
+                if (!key.equals("user.name")) {
+                    jobConf.set(key, val);
+                }
+            }
+            // clear user defined properties and re-populate
+            properties.clear();
+            Iterator<Map.Entry<String, String>> iter = jobConf.iterator();
+            while (iter.hasNext()) {
+                Map.Entry<String, String> entry = iter.next();
+                properties.put(entry.getKey(), entry.getValue());
+            }
         }
     }
 

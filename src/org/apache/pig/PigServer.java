@@ -82,6 +82,7 @@ import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LOStore;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
+import org.apache.pig.newplan.logical.relational.LogicalPlanData;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.newplan.logical.visitor.CastLineageSetter;
@@ -1356,6 +1357,18 @@ public class PigServer {
             throw new FrontendException(msg, errCode, PigException.INPUT, false, null);
         }
         return op;
+    }
+    
+    /**
+     * Returns data associated with LogicalPlan. It makes
+     * sense to call this method only after a query/script
+     * has been registered with one of the {@link #registerQuery(String)}
+     * or {@link #registerScript(InputStream)} methods.
+     * 
+     * @return LogicalPlanData
+     */
+    public LogicalPlanData getLogicalPlanData() {
+	return new LogicalPlanData(currDAG.lp);
     }
 
     /*

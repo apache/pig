@@ -30,6 +30,10 @@ PIG-3174: Remove rpm and deb artifacts from build.xml (gates)
 
 IMPROVEMENTS
 
+PIG-3199: Provide a method to retriever name of loader/storer in PigServer (prkommireddi via daijy)
+
+PIG-3367: Add assert keyword (operator) in pig (aniket486)
+
 PIG-3235: Avoid extra byte array copies in streaming (rohini)
 
 PIG-3065: pig output format/committer should support recovery for hadoop 0.23 (daijy)
@@ -229,6 +233,8 @@ PIG-3123: Simplify Logical Plans By Removing Unneccessary Identity Projections (
 PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
+
+PIG-3471: Add a base abstract class for ExecutionEngine (cheolsoo)
 
 PIG-3457: Provide backward compatibility for PigStatsUtil and JobStats (daijy)
 

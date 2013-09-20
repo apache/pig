@@ -174,6 +174,7 @@ op_clause : define_clause
           | split_clause
           | foreach_clause
           | cube_clause
+          | assert_clause
 ;
 
 define_clause : ^( DEFINE alias ( cmd | func_clause ) )
@@ -353,6 +354,12 @@ flatten_clause : ^( FLATTEN expr )
 ;
 
 store_clause : ^( STORE rel filename func_clause? )
+;
+
+assert_clause : ^( ASSERT rel cond comment? )
+; 
+
+comment : QUOTEDSTRING
 ;
 
 filter_clause : ^( FILTER rel cond )

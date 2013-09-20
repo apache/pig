@@ -21,7 +21,6 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 import java.util.Properties;
 import org.apache.pig.ExecType;
 import org.apache.pig.backend.executionengine.ExecutionEngine;
-import org.apache.pig.backend.hadoop.executionengine.MRExecutionEngine;
 import org.apache.pig.impl.PigContext;
 
 /**
