@@ -30,6 +30,8 @@ PIG-3174: Remove rpm and deb artifacts from build.xml (gates)
 
 IMPROVEMENTS
 
+PIG-3199: Provide a method to retriever name of loader/storer in PigServer (prkommireddi via daijy)
+
 PIG-3367: Add assert keyword (operator) in pig (aniket486)
 
 PIG-3235: Avoid extra byte array copies in streaming (rohini)
