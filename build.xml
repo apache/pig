@@ -40,6 +40,7 @@
     <!-- source properties -->
     <property name="lib.dir" value="${basedir}/lib" />
     <property name="src.dir" value="${basedir}/src" />
+    <property name="python.src.dir" value="${src.dir}/python" />
     <property name="src.lib.dir" value="${basedir}/lib-src" />
     <property name="src.gen.dir" value="${basedir}/src-gen" />
     <property name="docs.dir" value="${basedir}/src/docs" />
@@ -583,6 +584,9 @@
             </javac>
             <copy file="${src.dir}/org/apache/pig/tools/grunt/autocomplete" todir="${build.classes}/org/apache/pig/tools/grunt"/>
             <copy file="${src.dir}/org/apache/pig/tools/grunt/autocomplete_aliases" todir="${build.classes}/org/apache/pig/tools/grunt"/>
+            <copy todir="${build.classes}/python">
+                <fileset dir="${python.src.dir}"/>
+            </copy>
         </sequential>
     </macrodef>
 
@@ -651,6 +655,7 @@
             </manifest>
             <fileset dir="${src.lib.dir}/shock"/>
             <fileset dir="${src.lib.dir}/bzip2"/>
+            <fileset dir="${python.src.dir}"/>
         </jar>
     </target>
     <target name="javadoc-jar" depends="cc-compile, javadoc">

@@ -34,6 +34,7 @@
   <property name="udf.jar" value="${udf.java.dir}/testudf.jar"/>
   <property name="python.udf.dir" value="${udf.dir}/python"/>
   <property name="ruby.udf.dir" value="${udf.dir}/ruby" />
+  <property name="cpython.udf.dir" value="${udf.dir}/cpython" />
   <property name="params.dir" value="${basedir}/paramfiles"/>
   <property name="e2e.lib.dir" value="${basedir}/lib"/>
   <property name="streaming.dir" value="${basedir}/streaming"/>
@@ -142,6 +143,7 @@
     <mkdir dir="${tar.dir}/libexec/PigTest/generate"/>
     <mkdir dir="${tar.dir}/libexec/python"/>
     <mkdir dir="${tar.dir}/libexec/ruby"/>
+    <mkdir dir="${tar.dir}/libexec/cpython"/>
     <mkdir dir="${tar.dir}/lib"/>
     <mkdir dir="${tar.dir}/lib/java"/>
     <mkdir dir="${tar.dir}/paramfiles"/>
@@ -191,6 +193,10 @@
 
     <copy todir="${tar.dir}/libexec/ruby">
       <fileset dir="${ruby.udf.dir}"/>
+    </copy>
+
+    <copy todir="${tar.dir}/libexec/cpython">
+      <fileset dir="${cpython.udf.dir}"/>
     </copy>
 
     <copy todir="${tar.dir}/paramfiles">
