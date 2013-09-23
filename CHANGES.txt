@@ -30,6 +30,9 @@ PIG-3174: Remove rpm and deb artifacts from build.xml (gates)
 
 IMPROVEMENTS
 
+PIG-2417: Streaming UDFs - allow users to easily write UDFs in scripting languages with no
+          JVM implementation. (jeremykarn via daijy)
+
 PIG-3199: Provide a method to retriever name of loader/storer in PigServer (prkommireddi via daijy)
 
 PIG-3367: Add assert keyword (operator) in pig (aniket486)

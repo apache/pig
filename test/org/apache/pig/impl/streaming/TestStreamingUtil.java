@@ -32,7 +32,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Maps;
 
-public class TestExecutableManager {
+public class TestStreamingUtil {
     private static final Random r = new Random(100L);
 
     @Test
@@ -62,8 +62,7 @@ public class TestExecutableManager {
         }
         conf.set(PIG_STREAMING_ENVIRONMENT, streamingEnv.toString());
         Map<String, String> env = new HashMap<String, String>();
-        ExecutableManager manager = new ExecutableManager();
-        manager.addJobConfToEnvironment(conf, env);
+        StreamingUtil.addJobConfToEnvironment(conf, env);
 
         for (Map.Entry<String, String> entry : env.entrySet()) {
             String key = entry.getKey();

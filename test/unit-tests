@@ -47,10 +47,12 @@
 **/TestPackage.java
 **/TestParamSubPreproc.java
 **/TestPigBytesRawComparator.java
+**/TestPigStreamingUDF.java
 **/TestPhyOp.java
 **/TestPigScriptParser.java
 **/TestPigSplit.java
 **/TestPigStats.java
+**/TestPigStreaming.java
 **/TestPinOptions.java
 **/TestPOBinCond.java
 **/TestPOCast.java
@@ -68,6 +70,7 @@
 **/TestResourceSchema.java
 **/TestSchemaUtil.java
 **/TestStreamingLocal.java
+**/TestStreamingUDFOutputHandler.java
 **/TestSubtract.java
 **/TestTextDataParser.java
 **/TestTupleFormat.java

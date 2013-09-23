@@ -42,8 +42,10 @@ import java.util.zip.ZipEntry;
 import org.antlr.runtime.CommonTokenStream;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.backend.hadoop.executionengine.Launcher;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.builtin.StreamingUDF;
 import org.apache.tools.bzip2r.BZip2Constants;
 import org.codehaus.jackson.annotate.JsonPropertyOrder;
 import org.codehaus.jackson.map.annotate.JacksonStdImpl;
@@ -132,7 +134,10 @@ public class JarManager {
      */
     @SuppressWarnings("deprecation")
     public static void createJar(OutputStream os, Set<String> funcs, PigContext pigContext) throws ClassNotFoundException, IOException {
+        JarOutputStream jarFile = new JarOutputStream(os);
+        HashMap<String, String> contents = new HashMap<String, String>();
         Vector<JarListEntry> jarList = new Vector<JarListEntry>();
+
         for (DefaultPigPackages pkgToSend : DefaultPigPackages.values()) {
             addContainingJar(jarList, pkgToSend.getPkgClass(), pkgToSend.getPkgPrefix(), pigContext);
         }
@@ -141,10 +146,16 @@ public class JarManager {
             Class clazz = pigContext.getClassForAlias(func);
             if (clazz != null) {
                 addContainingJar(jarList, clazz, null, pigContext);
+                
+                if (clazz.getSimpleName().equals("StreamingUDF")) {
+                    for (String fileName : StreamingUDF.getResourcesForJar()) {
+                        InputStream in = Launcher.class.getResourceAsStream(fileName);
+                        addStream(jarFile, fileName, in, contents);
+                    }
+                }
             }
         }
-        HashMap<String, String> contents = new HashMap<String, String>();
-        JarOutputStream jarFile = new JarOutputStream(os);
+
         Iterator<JarListEntry> it = jarList.iterator();
         while (it.hasNext()) {
             JarListEntry jarEntry = it.next();
