@@ -39,14 +39,14 @@ import org.apache.pig.newplan.PlanVisitor;
 import org.apache.pig.newplan.logical.Util;
 
 public class LOLoad extends LogicalRelationalOperator {
-    
+    public enum CastState {INSERTED, NONEED, NOADJUST};
     private LogicalSchema scriptSchema;
     private final FileSpec fs;
     private transient LoadFunc loadFunc;
     transient private Configuration conf;
     private final LogicalSchema determinedSchema;
     private List<Integer> requiredFields = null;
-    private boolean castInserted = false;
+    private CastState castState = CastState.NOADJUST;
     private LogicalSchema uidOnlySchema;
     private final String schemaFile;
     private final String signature;
@@ -139,7 +139,7 @@ public class LOLoad extends LogicalRelationalOperator {
         } else if (scriptSchema != null)  originalSchema = scriptSchema;
         else if (determinedSchema != null) originalSchema = determinedSchema;
         
-        if (isCastInserted()) {
+        if (isCastAdjusted()) {
             for (int i=0;i<originalSchema.size();i++) {
                 LogicalSchema.LogicalFieldSchema fs = originalSchema.getField(i);
                 if(determinedSchema == null) {
@@ -254,12 +254,16 @@ public class LOLoad extends LogicalRelationalOperator {
         }
     }
     
-    public void setCastInserted(boolean flag) {
-        castInserted = flag;
+    public void setCastState(CastState state) {
+        castState = state;
     }
     
-    public boolean isCastInserted() {
-        return castInserted;
+    public CastState getCastState() {
+        return castState;
+    }
+    
+    public boolean isCastAdjusted() {
+        return castState!=CastState.NOADJUST;
     }
     
     public Configuration getConfiguration() {
