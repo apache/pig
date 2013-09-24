@@ -260,6 +260,14 @@ public abstract class HExecutionEngine implements ExecutionEngine {
             disabledOptimizerRules = new HashSet<String>();
         }
 
+        if( ! Boolean.valueOf(this.pigContext.getProperties().getProperty(
+                PigConstants.PIG_EXEC_OLD_PART_FILTER_OPTIMIZER, "false"))){
+            // Turn off the old partition filter optimizer
+            disabledOptimizerRules.add("PartitionFilterOptimizer");
+        } else {
+            disabledOptimizerRules.add("NewPartitionFilterOptimizer");
+        }
+
         String pigOptimizerRulesDisabled = this.pigContext.getProperties()
                 .getProperty(PigConstants.PIG_OPTIMIZER_RULES_DISABLED_KEY);
         if (pigOptimizerRulesDisabled != null) {
@@ -270,6 +278,7 @@ public abstract class HExecutionEngine implements ExecutionEngine {
         if (pigContext.inIllustrator) {
             disabledOptimizerRules.add("MergeForEach");
             disabledOptimizerRules.add("PartitionFilterOptimizer");
+            disabledOptimizerRules.add("NewPartitionFilterOptimizer");
             disabledOptimizerRules.add("LimitOptimizer");
             disabledOptimizerRules.add("SplitFilter");
             disabledOptimizerRules.add("PushUpFilter");
