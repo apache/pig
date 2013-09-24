@@ -303,6 +303,7 @@ public class DataReaderWriter {
                 out.writeByte(DataType.DATETIME);
                 out.writeLong(((DateTime)val).getMillis());
                 out.writeShort(((DateTime)val).getZone().getOffset((DateTime)val) / 60000);
+                break;
 
             case DataType.BYTEARRAY: {
                 out.writeByte(DataType.BYTEARRAY);
