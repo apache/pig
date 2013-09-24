@@ -75,9 +75,8 @@ public class LogicalPlanOptimizer extends PlanOptimizer {
     }
 
     protected List<Set<Rule>> buildRuleSets() {
-        List<Set<Rule>> ls = new ArrayList<Set<Rule>>();	    
+        List<Set<Rule>> ls = new ArrayList<Set<Rule>>();
 
-        
         // ImplicitSplitInserter set
         // This set of rules Insert Foreach dedicated for casting after load
         Set<Rule> s = new HashSet<Rule>();
@@ -94,7 +93,18 @@ public class LogicalPlanOptimizer extends PlanOptimizer {
         checkAndAddRule(s, r);
         if (!s.isEmpty())
             ls.add(s);
-        
+
+        // Partition filter set
+        // This set of rules push partition filter to LoadFunc
+        // Important: do this before LogicalExpressionSimplifier so that size of filter can be reduced
+        // (However, its not necessary to do it before LogicalExpressionSimplifier)
+        s = new HashSet<Rule>();
+        // Optimize partition filter
+        r = new PartitionFilterOptimizer("NewPartitionFilterOptimizer");
+        checkAndAddRule(s, r);
+        if (!s.isEmpty())
+            ls.add(s);
+
         // Logical expression simplifier
         s = new HashSet<Rule>();
         // add logical expression simplification rule
@@ -112,7 +122,7 @@ public class LogicalPlanOptimizer extends PlanOptimizer {
         checkAndAddRule(s, r);
         if (!s.isEmpty())
             ls.add(s);
-        
+
         // Split Set
         // This set of rules does splitting of operators only.
         // It does not move operators
@@ -122,8 +132,8 @@ public class LogicalPlanOptimizer extends PlanOptimizer {
         checkAndAddRule(s, r);
         if (!s.isEmpty())
             ls.add(s);
-        
-        
+
+
         // Push Set,
         // This set does moving of operators only.
         s = new HashSet<Rule>();
@@ -133,17 +143,17 @@ public class LogicalPlanOptimizer extends PlanOptimizer {
         checkAndAddRule(s, r);
         if (!s.isEmpty())
             ls.add(s);
-        
+
         // Merge Set
         // This Set merges operators but does not move them.
         s = new HashSet<Rule>();
         checkAndAddRule(s, r);
         // add merge filter rule
-        r = new MergeFilter("MergeFilter");        
+        r = new MergeFilter("MergeFilter");
         checkAndAddRule(s, r);
         if (!s.isEmpty())
             ls.add(s);
-        
+
         // Partition filter set
         // This set of rules push partition filter to LoadFunc
         s = new HashSet<Rule>();
@@ -152,7 +162,7 @@ public class LogicalPlanOptimizer extends PlanOptimizer {
         checkAndAddRule(s, r);
         if (!s.isEmpty())
             ls.add(s);
-        
+
         // PushDownForEachFlatten set
         s = new HashSet<Rule>();
         // Add the PushDownForEachFlatten
@@ -160,7 +170,7 @@ public class LogicalPlanOptimizer extends PlanOptimizer {
         checkAndAddRule(s, r);
         if (!s.isEmpty())
             ls.add(s);
-        
+
         // Prune Set
         // This set is used for pruning columns and maps
         s = new HashSet<Rule>();
@@ -169,7 +179,7 @@ public class LogicalPlanOptimizer extends PlanOptimizer {
         checkAndAddRule(s, r);
         if (!s.isEmpty())
             ls.add(s);
-        
+
         // Add LOForEach set
         s = new HashSet<Rule>();
         // Add the AddForEach
@@ -177,7 +187,7 @@ public class LogicalPlanOptimizer extends PlanOptimizer {
         checkAndAddRule(s, r);
         if (!s.isEmpty())
             ls.add(s);
-        
+
         // Add MergeForEach set
         s = new HashSet<Rule>();
         // Add the AddForEach
@@ -185,14 +195,14 @@ public class LogicalPlanOptimizer extends PlanOptimizer {
         checkAndAddRule(s, r);
         if (!s.isEmpty())
             ls.add(s);
-        
+
         //set parallism to 1 for cogroup/group-by on constant
         s = new HashSet<Rule>();
         r = new GroupByConstParallelSetter("GroupByConstParallelSetter");
         checkAndAddRule(s, r);
         if(!s.isEmpty())
             ls.add(s);
-        
+
         // Limit Set
         // This set of rules push up limit
         s = new HashSet<Rule>();
@@ -201,7 +211,7 @@ public class LogicalPlanOptimizer extends PlanOptimizer {
         checkAndAddRule(s, r);
         if (!s.isEmpty())
             ls.add(s);
-        
+
         return ls;
     }
 

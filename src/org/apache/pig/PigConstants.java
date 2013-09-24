@@ -46,4 +46,11 @@ public class PigConstants {
      * by default, all rules are enabled.
      */
     public static final String PIG_OPTIMIZER_RULES_DISABLED_KEY = "pig.optimizer.rules.disabled";
+
+    /**
+     * flag to use old PartitionFilterOptimizer in case NewPartitionFilterOptimizer is not backwards compatible
+     * (A known case is "filter a by 1 == 0").
+     */
+    public static final String PIG_EXEC_OLD_PART_FILTER_OPTIMIZER = "pig.exec.useOldPartitionFilterOptimizer";
+
 }
