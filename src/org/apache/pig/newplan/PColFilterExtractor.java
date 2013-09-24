@@ -64,6 +64,7 @@ import org.apache.pig.newplan.DepthFirstWalker;
  * The condition on partition cols will be used to prune partitions of the table.
  *
  */
+@Deprecated
 public class PColFilterExtractor extends PlanVisitor {
 
     private static final Log LOG = LogFactory.getLog(PColFilterExtractor.class);

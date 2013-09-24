@@ -31,6 +31,7 @@ import org.apache.pig.LoadMetadata;
 import org.apache.pig.Expression.BinaryExpression;
 import org.apache.pig.Expression.Column;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.newplan.FilterExtractor;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.OperatorSubPlan;
@@ -95,11 +96,47 @@ public class PartitionFilterOptimizer extends Rule {
 
     @Override
     public Transformer getNewTransformer() {
-        return new PartitionFilterPushDownTransformer();
+        if(name.equals("PartitionFilterOptimizer")) {
+            return new PartitionFilterPushDownTransformer();
+        } else {
+            return new NewPartitionFilterPushDownTransformer();
+        }
     }
-    
+
+    public class NewPartitionFilterPushDownTransformer extends PartitionFilterPushDownTransformer {
+        @Override
+        public void transform(OperatorPlan matched) throws FrontendException {
+            subPlan = new OperatorSubPlan( currentPlan );
+
+            setupColNameMaps();
+
+            FilterExtractor filterFinder = new FilterExtractor(
+                    loFilter.getFilterPlan(), getMappedKeys( partitionKeys ) );
+            filterFinder.visit();
+            Expression partitionFilter = filterFinder.getPColCondition();
+
+            if(partitionFilter != null) {
+                // the column names in the filter may be the ones provided by
+                // the user in the schema in the load statement - we may need
+                // to replace them with partition column names as given by
+                // LoadFunc.getSchema()
+                updateMappedColNames(partitionFilter);
+                try {
+                    loadMetadata.setPartitionFilter(partitionFilter);
+                } catch (IOException e) {
+                    throw new FrontendException( e );
+                }
+                if(filterFinder.isFilterRemovable()) {
+                    currentPlan.removeAndReconnect( loFilter );
+                } else {
+                    loFilter.setFilterPlan(filterFinder.getFilteredPlan());
+                }
+            }
+        }
+    }
+
     public class PartitionFilterPushDownTransformer extends Transformer {
-        private OperatorSubPlan subPlan;
+        protected OperatorSubPlan subPlan;
 
         @Override
         public boolean check(OperatorPlan matched) throws FrontendException {
@@ -128,12 +165,9 @@ public class PartitionFilterOptimizer extends Rule {
 				throw new FrontendException( e );
 			}
             if( partitionKeys == null || partitionKeys.length == 0 ) {
-            	return false;
+                return false;
             }
             
-//            LogicalExpressionPlan filterExpr = filter.getFilterPlan();
-            
-            // we found a load-filter pattern where the load returns partition keys
             return true;
         }
 
@@ -174,12 +208,12 @@ public class PartitionFilterOptimizer extends Rule {
         		if(pColFilterFinder.isFilterRemovable()) {  
         			currentPlan.removeAndReconnect( loFilter );
         		} else {
-        		    loFilter.setFilterPlan(filterExprCopy);
-        		}
-        	}
+                    loFilter.setFilterPlan(filterExprCopy);
+                }
+            }
         }
         
-        private void updateMappedColNames(Expression expr) {
+        protected void updateMappedColNames(Expression expr) {
             if(expr instanceof BinaryExpression) {
                 updateMappedColNames(((BinaryExpression) expr).getLhs());
                 updateMappedColNames(((BinaryExpression) expr).getRhs());
@@ -198,7 +232,7 @@ public class PartitionFilterOptimizer extends Rule {
          * @param partitionKeys
          * @return
          */
-        private List<String> getMappedKeys(String[] partitionKeys) {
+        protected List<String> getMappedKeys(String[] partitionKeys) {
             List<String> mappedKeys = new ArrayList<String>(partitionKeys.length);
             for (int i = 0; i < partitionKeys.length; i++) {
                 mappedKeys.add(colNameMap.get(partitionKeys[i]));
@@ -206,11 +240,11 @@ public class PartitionFilterOptimizer extends Rule {
             return mappedKeys;
         }
 
-        private void setupColNameMaps() throws FrontendException {
+        protected void setupColNameMaps() throws FrontendException {
             LogicalSchema loLoadSchema = loLoad.getSchema();
             LogicalSchema loadFuncSchema = loLoad.getDeterminedSchema();
              for(int i = 0; i < loadFuncSchema.size(); i++) {
-                colNameMap.put(loadFuncSchema.getField(i).alias, 
+                colNameMap.put(loadFuncSchema.getField(i).alias,
                         (i < loLoadSchema.size() ? loLoadSchema.getField(i).alias :
                             loadFuncSchema.getField(i).alias));
                 
