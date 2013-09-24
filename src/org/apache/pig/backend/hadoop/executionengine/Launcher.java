@@ -33,6 +33,7 @@ import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobID;
 import org.apache.hadoop.mapred.RunningJob;
+import org.apache.hadoop.mapred.TIPStatus;
 import org.apache.hadoop.mapred.TaskReport;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
@@ -42,6 +43,7 @@ import org.apache.pig.backend.BackendException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobCreationException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
@@ -198,14 +200,8 @@ public abstract class Launcher {
             ArrayList<Exception> exceptions = new ArrayList<Exception>();
             String exceptionCreateFailMsg = null;
             boolean jobFailed = false;
-            float successfulProgress = 1.0f;
             if (msgs.length > 0) {
-                // if the progress reported is not 1.0f then the map or reduce
-                // job failed
-                // this comparison is in place till Hadoop 0.20 provides methods
-                // to query
-                // job status
-                if (reports[i].getProgress() != successfulProgress) {
+                if (HadoopShims.isJobFailed(reports[i])) {
                     jobFailed = true;
                 }
                 Set<String> errorMessageSet = new HashSet<String>();
@@ -234,7 +230,7 @@ public abstract class Launcher {
                 }
             }
             // if there are no valid exception that could be created, report
-            if ((exceptions.size() == 0) && (exceptionCreateFailMsg != null)) {
+            if (jobFailed && (exceptions.size() == 0) && (exceptionCreateFailMsg != null)) {
                 int errCode = 2997;
                 String msg = "Unable to recreate exception from backed error: "
                         + exceptionCreateFailMsg;
