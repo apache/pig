@@ -435,7 +435,7 @@ public class BinInterSedes implements InterSedes {
     }
 
     private Object readBigDecimal(DataInput in) throws IOException {
-        return new BigDecimal((String)readDatum(in));
+        return  new BigDecimal((String)readDatum(in));
     }
 
     private Object readBigInteger(DataInput in) throws IOException {

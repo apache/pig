@@ -58,7 +58,7 @@ public class BigDecimalWritable implements WritableComparable<BigDecimalWritable
 
     @Override
     public void readFields(DataInput in) throws IOException {
-        value = (BigDecimal)bis.readDatum(in, DataType.BIGDECIMAL);
+        value = (BigDecimal)bis.readDatum(in);
     }
 
     @Override
@@ -76,6 +76,7 @@ public class BigDecimalWritable implements WritableComparable<BigDecimalWritable
             super(BigDecimalWritable.class);
         }
 
+        @Override
         public int compare(byte[] b1, int s1, int l1,
                            byte[] b2, int s2, int l2) {
             try {

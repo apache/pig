@@ -58,7 +58,7 @@ public class BigIntegerWritable implements WritableComparable<BigIntegerWritable
 
     @Override
     public void readFields(DataInput in) throws IOException {
-        value = (BigInteger)bis.readDatum(in, DataType.BIGINTEGER);
+        value = (BigInteger)bis.readDatum(in);
     }
 
     @Override
@@ -76,6 +76,7 @@ public class BigIntegerWritable implements WritableComparable<BigIntegerWritable
             super(BigIntegerWritable.class);
         }
 
+        @Override
         public int compare(byte[] b1, int s1, int l1,
                            byte[] b2, int s2, int l2) {
             try {

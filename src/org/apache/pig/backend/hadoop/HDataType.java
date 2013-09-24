@@ -19,6 +19,8 @@ package org.apache.pig.backend.hadoop;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.pig.PigException;
@@ -59,6 +61,30 @@ public class HDataType {
     static NullableBag defDB = new NullableBag();
     static NullableTuple defTup = new NullableTuple();
     static Map<Byte, String> typeToName = null;
+
+    private static final HashMap<String, Byte> classToTypeMap = new HashMap<String, Byte>();
+    static {
+        classToTypeMap.put("org.apache.pig.impl.io.NullableBag", DataType.BAG);
+        classToTypeMap.put("org.apache.pig.impl.io.NullableBigDecimalWritable", DataType.BIGDECIMAL);
+        classToTypeMap.put("org.apache.pig.impl.io.NullableBigIntegerWritable", DataType.BIGINTEGER);
+        classToTypeMap.put("org.apache.pig.impl.io.NullableBooleanWritable", DataType.BOOLEAN);
+        classToTypeMap.put("org.apache.pig.impl.io.NullableBytesWritable", DataType.BYTEARRAY);
+        classToTypeMap.put("org.apache.pig.impl.io.NullableDateTimeWritable", DataType.DATETIME);
+        classToTypeMap.put("org.apache.pig.impl.io.NullableDoubleWritable", DataType.DOUBLE);
+        classToTypeMap.put("org.apache.pig.impl.io.NullableFloatWritable", DataType.FLOAT);
+        classToTypeMap.put("org.apache.pig.impl.io.NullableIntWritable", DataType.INTEGER);
+        classToTypeMap.put("org.apache.pig.impl.io.NullableLongWritable", DataType.LONG);
+        classToTypeMap.put("org.apache.pig.impl.io.NullableText", DataType.CHARARRAY);
+        classToTypeMap.put("org.apache.pig.impl.io.NullableTuple", DataType.TUPLE);
+    }
+
+    public static PigNullableWritable getWritableComparable(String className) throws ExecException {
+        if (classToTypeMap.containsKey(className)) {
+            return getWritableComparableTypes(null, classToTypeMap.get(className));
+        } else {
+            throw new ExecException("Unable to map " + className + " to known types." + Arrays.toString(classToTypeMap.keySet().toArray()));
+        }
+    }
 
     public static PigNullableWritable getWritableComparableTypes(Object o, byte keyType) throws ExecException{
 

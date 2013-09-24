@@ -21,6 +21,8 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 
+import org.apache.pig.backend.hadoop.HDataType;
+
 /**
  * NullablePartitionWritable is an adaptor class around PigNullableWritable that adds a partition
  * index to the class.
@@ -30,9 +32,9 @@ public class NullablePartitionWritable extends PigNullableWritable{
 	private PigNullableWritable key;
 
 	public NullablePartitionWritable() {
-		
+
 	}
-	
+
 	public NullablePartitionWritable(PigNullableWritable k) {
 		setKey(k);
 	}
@@ -53,50 +55,60 @@ public class NullablePartitionWritable extends PigNullableWritable{
 		return partitionIndex;
 	}
 
-  	public int compareTo(Object o) {  		
+  	@Override
+    public int compareTo(Object o) {
 		return key.compareTo(((NullablePartitionWritable)o).getKey());
 	}
-	
-	public void readFields(DataInput in) throws IOException {
+
+	@Override
+    public void readFields(DataInput in) throws IOException {
 		String c = in.readUTF();
-		try{
-			key = (PigNullableWritable)Class.forName(c).newInstance();
-		}catch(Exception e) {
+		try {
+			key = HDataType.getWritableComparable(c);
+		} catch(Exception e) {
 			throw new IOException(e);
 		}
 		key.readFields(in);
 	}
 
-	public void write(DataOutput out) throws IOException {
+	@Override
+    public void write(DataOutput out) throws IOException {
 		out.writeUTF(key.getClass().getName());
 		key.write(out);
 	}
 
-	public boolean isNull() {
+	@Override
+    public boolean isNull() {
 		return key.isNull();
 	}
 
-	public void setNull(boolean isNull) {
+	@Override
+    public void setNull(boolean isNull) {
 		key.setNull(isNull);
 	}
 
-	public byte getIndex() {
+	@Override
+    public byte getIndex() {
 		return key.getIndex();
 	}
 
-	public void setIndex(byte index) {
+	@Override
+    public void setIndex(byte index) {
 		key.setIndex(index);
 	}
 
-	public Object getValueAsPigType() {
+	@Override
+    public Object getValueAsPigType() {
 		return key.getValueAsPigType();
 	}
 
-	public int hashCode() {
+	@Override
+    public int hashCode() {
 		return key.hashCode();
 	}
-	
-	public String toString() {
+
+	@Override
+    public String toString() {
 		return "Partition: " + partitionIndex + " " + key.toString();
 	}
 }
