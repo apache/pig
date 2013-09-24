@@ -19,6 +19,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -34,9 +38,13 @@ import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
+import org.apache.pig.data.BinSedesTuple;
+import org.apache.pig.data.BinSedesTupleFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.io.NullablePartitionWritable;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -47,23 +55,25 @@ import org.joda.time.DateTime;
 import org.junit.Test;
 
 public class TestPackage {
+    private static final TupleFactory binfactory = BinSedesTupleFactory.getInstance();
+
     private void runTest(Object key, boolean inner[], byte keyType) throws ExecException,
             IOException {
         Random r = new Random();
         DataBag db1 = GenRandomData.genRandSmallTupDataBag(r, 10, 100);
         DataBag db2 = GenRandomData.genRandSmallTupDataBag(r, 10, 100);
         List<NullableTuple> db = new ArrayList<NullableTuple>(200);
-        Iterator db1Iter = db1.iterator();
+        Iterator<Tuple> db1Iter = db1.iterator();
         if (!inner[0]) {
             while (db1Iter.hasNext()) {
-                NullableTuple it = new NullableTuple((Tuple)db1Iter.next());
+                NullableTuple it = new NullableTuple(db1Iter.next());
                 it.setIndex((byte)0);
                 db.add(it);
             }
         }
-        Iterator db2Iter = db2.iterator();
+        Iterator<Tuple> db2Iter = db2.iterator();
         while (db2Iter.hasNext()) {
-            NullableTuple it = new NullableTuple((Tuple)db2Iter.next());
+            NullableTuple it = new NullableTuple(db2Iter.next());
             it.setIndex((byte)1);
             db.add(it);
         }
@@ -73,6 +83,25 @@ public class TestPackage {
         pop.setInner(inner);
         PigNullableWritable k = HDataType.getWritableComparableTypes(key, keyType);
         pop.attachInput(k, db.iterator());
+        if (keyType != DataType.BAG) {
+            // test serialization
+            NullablePartitionWritable wr;
+            if (keyType == DataType.TUPLE) {
+                BinSedesTuple tup = (BinSedesTuple) binfactory.newTupleNoCopy(((Tuple) k.getValueAsPigType()).getAll());
+                wr = new NullablePartitionWritable(new NullableTuple(tup));
+            } else {
+                wr = new NullablePartitionWritable(k);
+            }
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            DataOutputStream out = new DataOutputStream(baos);
+            wr.write(out);
+            byte[] arr = baos.toByteArray();
+            ByteArrayInputStream bais = new ByteArrayInputStream(arr);
+            DataInputStream in = new DataInputStream(bais);
+            NullablePartitionWritable re = new NullablePartitionWritable();
+            re.readFields(in);
+            assertEquals(re, wr);
+        }
 
         // we are not doing any optimization to remove
         // parts of the "value" which are present in the "key" in this
@@ -87,7 +116,7 @@ public class TestPackage {
         pop.setKeyInfo(keyInfo);
         Tuple t = null;
         Result res = null;
-        res = (Result)pop.getNextTuple();
+        res = pop.getNextTuple();
         if (res.returnStatus == POStatus.STATUS_NULL && inner[0])
             return;
         assertEquals(POStatus.STATUS_OK, res.returnStatus);
@@ -161,6 +190,7 @@ public class TestPackage {
             fail("No test case for type " + DataType.findTypeName(t));
         }
     }
+
 
     @Test
     public void testOperator() throws ExecException, IOException {
