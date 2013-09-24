@@ -107,7 +107,7 @@ public class DisplayExamples {
         
         if (((LogicalRelationalOperator)op).getAlias() != null) {
             DataBag bag = exampleData.get(op);
-            if (op instanceof LOLoad && ((LOLoad)op).isCastInserted())
+            if (op instanceof LOLoad && ((LOLoad)op).getCastState()==LOLoad.CastState.INSERTED)
             {
                 op = op.getPlan().getSuccessors(op).get(0);
                 bag = exampleData.get(op);

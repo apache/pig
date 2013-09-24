@@ -50,11 +50,16 @@ public class LoadTypeCastInserter extends TypeCastInserter {
 
     @Override
     protected void markCastInserted(LogicalRelationalOperator op) {
-        ((LOLoad)op).setCastInserted(true);
+        ((LOLoad)op).setCastState(LOLoad.CastState.INSERTED);
+    }
+    
+    @Override
+    protected void markCastNoNeed(LogicalRelationalOperator op) {
+        ((LOLoad)op).setCastState(LOLoad.CastState.NONEED);
     }
 
     @Override
-    protected boolean isCastInserted(LogicalRelationalOperator op) {
-        return ((LOLoad)op).isCastInserted();
+    protected boolean isCastAdjusted(LogicalRelationalOperator op) {
+        return ((LOLoad)op).isCastAdjusted();
     }
 }
