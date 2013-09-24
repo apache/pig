@@ -23,9 +23,10 @@ import org.apache.pig.impl.streaming.ExecutableManager;
 import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.PlanVisitor;
+import org.apache.pig.newplan.logical.relational.LOLoad.CastState;
 
 public class LOStream extends LogicalRelationalOperator {
-
+    public enum CastState {INSERTED, NONEED, NOADJUST};
     private LogicalSchema scriptSchema;
     private static final long serialVersionUID = 2L;
     //private static Log log = LogFactory.getLog(LOFilter.class);
@@ -35,7 +36,7 @@ public class LOStream extends LogicalRelationalOperator {
     private StreamingCommand command;
     transient private ExecutableManager executableManager;
     private LogicalSchema uidOnlySchema;
-    private boolean castInserted = false;
+    private CastState castState = CastState.NOADJUST;
         
     public LOStream(LogicalPlan plan, ExecutableManager exeManager, StreamingCommand cmd, LogicalSchema schema) {
         super("LOStream", plan);
@@ -66,7 +67,7 @@ public class LOStream extends LogicalRelationalOperator {
         if (schema!=null)
             return schema;
         
-        if (isCastInserted()) {
+        if (isCastAdjusted()) {
             schema = new LogicalSchema();
             for (int i=0;i<scriptSchema.size();i++) {
                 LogicalSchema.LogicalFieldSchema fs = scriptSchema.getField(i).deepCopy();
@@ -101,12 +102,16 @@ public class LOStream extends LogicalRelationalOperator {
         }
     }
     
-    public void setCastInserted(boolean flag) {
-        castInserted = flag;
+    public void setCastState(CastState state) {
+        castState = state;
     }
-        
-    public boolean isCastInserted() {
-        return castInserted;
+    
+    public CastState getCastState() {
+        return castState;
+    }
+    
+    public boolean isCastAdjusted() {
+        return castState!=CastState.NOADJUST;
     }
 
     @Override

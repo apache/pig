@@ -251,6 +251,8 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-3468: PIG-3123 breaks e2e test Jython_Diagnostics_2 (daijy)
+
 PIG-3471: Add a base abstract class for ExecutionEngine (cheolsoo)
 
 PIG-3457: Provide backward compatibility for PigStatsUtil and JobStats (daijy)
