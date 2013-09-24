@@ -26,6 +26,7 @@ import org.apache.hadoop.mapred.Counters;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
+import org.apache.hadoop.mapred.TaskReport;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.JobID;
 import org.apache.hadoop.mapreduce.OutputCommitter;
@@ -104,5 +105,14 @@ public class HadoopShims {
     public static Counters getCounters(Job job) throws IOException {
         JobClient jobClient = job.getJobClient();
         return jobClient.getJob(job.getAssignedJobID()).getCounters();
+    }
+
+    public static boolean isJobFailed(TaskReport report) {
+        float successfulProgress = 1.0f;
+        // if the progress reported is not 1.0f then the map or reduce
+        // job failed
+        // this comparison is in place for the backward compatibility
+        // for Hadoop 0.20
+        return report.getProgress() != successfulProgress;
     }
 }
