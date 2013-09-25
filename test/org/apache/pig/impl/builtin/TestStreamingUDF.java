@@ -284,8 +284,8 @@ public class TestStreamingUDF {
         /*
          * Expected output for first tuple.
          * (10,
-         * {(user1,10,(,32,1000000099990000,32.0,3200.12346785,Some String,Hello\u2026Hello,HelloƒHello,Some Byte Array),
-         *   [Simple Name#Simple Value,SomeNum#32,WeirdƒName#Weird ƒ Value],ƒ)
+         * {(user1,10,(,32,1000000099990000,32.0,3200.12346785,Some String,Hello\u2026Hello,Hello\u2026Hello,Some Byte Array),
+         *   [Simple Name#Simple Value,SomeNum#32,Weird\u2026Name#Weird \u2026 Value],\u2026)
          * })
          */
         
