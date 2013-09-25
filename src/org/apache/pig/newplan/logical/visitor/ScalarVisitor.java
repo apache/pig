@@ -71,9 +71,13 @@ public class ScalarVisitor extends AllExpressionVisitor {
                 LogicalPlan lp = (LogicalPlan) attachedOp.getPlan();
                 List<Operator> succs = lp.getSuccessors( refOp );
                 LOStore store = null;
+                FuncSpec interStorageFuncSpec = new FuncSpec(InterStorage.class.getName());
                 if( succs != null ) {
                     for( Operator succ : succs ) {
-                        if( succ instanceof LOStore ) {
+                        if( succ instanceof LOStore
+                                && ((LOStore)succ).isTmpStore()
+                                && interStorageFuncSpec.equals(
+                                    ((LOStore)succ).getOutputSpec().getFuncSpec() ) ) {
                             store = (LOStore)succ;
                             break;
                         }
@@ -81,14 +85,13 @@ public class ScalarVisitor extends AllExpressionVisitor {
                 }
 
                 if( store == null ) {
-                    FuncSpec funcSpec = new FuncSpec(InterStorage.class.getName());
                     FileSpec fileSpec;
                     try {
-                        fileSpec = new FileSpec( FileLocalizer.getTemporaryPath( pigContext ).toString(), funcSpec );                    // TODO: need to hookup the pigcontext.
+                        fileSpec = new FileSpec( FileLocalizer.getTemporaryPath( pigContext ).toString(), interStorageFuncSpec );                    // TODO: need to hookup the pigcontext.
                     } catch (IOException e) {
                         throw new PlanValidationException( expr, "Failed to process scalar" + e);
                     }
-                    StoreFuncInterface stoFunc = (StoreFuncInterface)PigContext.instantiateFuncFromSpec(funcSpec);
+                    StoreFuncInterface stoFunc = (StoreFuncInterface)PigContext.instantiateFuncFromSpec(interStorageFuncSpec);
                     String sig = LogicalPlanBuilder.newOperatorKey(scope);
                     stoFunc.setStoreFuncUDFContextSignature(sig);
                     store = new LOStore(lp, fileSpec, stoFunc, sig);
