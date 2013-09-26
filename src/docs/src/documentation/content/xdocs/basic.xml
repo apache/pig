@@ -147,7 +147,7 @@
          
          <tr>
             <td> <p>-- D </p> </td>
-            <td> <p>datetime, %declare, %default, define, desc, describe, DIFF, distinct, double, du, dump</p> </td>
+            <td> <p>datetime, %declare, %default, define, dense, desc, describe, DIFF, distinct, double, du, dump</p> </td>
          </tr>  
          
          <tr>
@@ -217,7 +217,7 @@
          
          <tr>
             <td> <p>-- R </p> </td>
-            <td> <p>register, right, rm, rmf, run</p> </td>
+            <td> <p>register, returns, right, rm, rmf, rollup, run</p> </td>
          </tr>  
 
          <tr>
@@ -237,7 +237,7 @@
 
          <tr>
             <td> <p>-- V, W, X, Y, Z </p> </td>
-            <td> <p> </p> </td>
+            <td> <p>void</p> </td>
          </tr>  
             
    </table>
