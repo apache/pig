@@ -251,6 +251,8 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-3487: Fix syntax errors in nightly.conf (arpitgupta via daijy)
+
 PIG-3458: ScalarExpression lost with multiquery optimization (knoguchi)
 
 PIG-3360: Some intermittent negative e2e tests fail on hadoop 2 (daijy)
