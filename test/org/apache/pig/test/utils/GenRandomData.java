@@ -35,8 +35,19 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.data.Tuple;
 
 public class GenRandomData {
-    
-    
+
+    public static ResourceFieldSchema getRandMapFieldSchema() throws IOException {
+        ResourceFieldSchema bytefs = new ResourceFieldSchema();
+        bytefs.setType(DataType.BYTEARRAY);
+        ResourceSchema mapSchema = new ResourceSchema();
+        mapSchema.setFields(new ResourceFieldSchema[]{bytefs});
+        ResourceFieldSchema mapfs = new ResourceFieldSchema();
+        mapfs.setSchema(mapSchema);
+        mapfs.setType(DataType.MAP);
+
+        return mapfs;
+    }
+
     public static Map<String, Object> genRandMap(Random r, int numEnt) {
         Map<String,Object> ret = new HashMap<String, Object>();
         if(r==null){

@@ -553,11 +553,6 @@ public class Utf8StorageConverter implements LoadStoreCaster {
     }
 
     @Override
-    public Map<String, Object> bytesToMap(byte[] b) throws IOException {
-        return bytesToMap(b, null);
-    }
-
-    @Override
     public Tuple bytesToTuple(byte[] b, ResourceFieldSchema fieldSchema) throws IOException {
         if(b == null)
             return null;

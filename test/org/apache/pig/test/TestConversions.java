@@ -215,11 +215,12 @@ public class TestConversions {
     @Test
     public  void testBytesToMap() throws IOException
     {
+        ResourceFieldSchema fs = GenRandomData.getRandMapFieldSchema();
 
         for (int i = 0; i < MAX; i++) {
             Map<String, Object>  m = GenRandomData.genRandMap(r,5);
             String expectedMapString = DataType.mapToString(m);
-            Map<String, Object> convertedMap = ps.getLoadCaster().bytesToMap(expectedMapString.getBytes());
+            Map<String, Object> convertedMap = ps.getLoadCaster().bytesToMap(expectedMapString.getBytes(), fs);
             assertTrue(TestHelper.mapEquals(m, convertedMap));
         }
 
@@ -365,29 +366,31 @@ public class TestConversions {
         assertNull(b);
 
         s = "[ab]";
-        Map<String, Object> m = ps.getLoadCaster().bytesToMap(s.getBytes());
+        schema = Utils.getSchemaFromString("m:map[chararray]");
+        rfs = new ResourceSchema(schema).getFields()[0];
+        Map<String, Object> m = ps.getLoadCaster().bytesToMap(s.getBytes(), rfs);
         assertNull(m);
 
         s = "[a#b";
-        m = ps.getLoadCaster().bytesToMap(s.getBytes());
+        m = ps.getLoadCaster().bytesToMap(s.getBytes(), rfs);
         assertNull(m);
 
         s = "[a#]";
-        m = ps.getLoadCaster().bytesToMap(s.getBytes());
+        m = ps.getLoadCaster().bytesToMap(s.getBytes(), rfs);
         Map.Entry<String, Object> entry = m.entrySet().iterator().next();
         assertEquals("a", entry.getKey());
         assertNull(entry.getValue());
 
         s = "[#]";
-        m = ps.getLoadCaster().bytesToMap(s.getBytes());
+        m = ps.getLoadCaster().bytesToMap(s.getBytes(), rfs);
         assertNull(m);
 
         s = "[a#}";
-        m = ps.getLoadCaster().bytesToMap(s.getBytes());
+        m = ps.getLoadCaster().bytesToMap(s.getBytes(), rfs);
         assertNull(m);
 
         s = "[a#)";
-        m = ps.getLoadCaster().bytesToMap(s.getBytes());
+        m = ps.getLoadCaster().bytesToMap(s.getBytes(), rfs);
         assertNull(m);
 
         s = "(a,b)";
@@ -401,7 +404,9 @@ public class TestConversions {
         assertEquals("b", t.get(1).toString());
 
         s = "[a#(1,2,3)]";
-        m = ps.getLoadCaster().bytesToMap(s.getBytes());
+        schema = Utils.getSchemaFromString("m:map[]");
+        rfs = new ResourceSchema(schema).getFields()[0];
+        m = ps.getLoadCaster().bytesToMap(s.getBytes(), rfs);
         entry = m.entrySet().iterator().next();
         assertEquals("a", entry.getKey());
         assertTrue(entry.getValue() instanceof DataByteArray);
