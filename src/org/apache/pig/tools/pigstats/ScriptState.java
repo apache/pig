@@ -35,6 +35,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.util.VersionInfo;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.JarManager;
@@ -126,17 +127,6 @@ public class ScriptState {
         MAP_PARTIALAGG;
     };
 
-    /**
-     * Pig property that allows user to turn off the inclusion of settings in
-     * the jobs
-     */
-    public static final String INSERT_ENABLED = "pig.script.info.enabled";
-
-    /**
-     * Restricts the size of Pig script stored in job xml
-     */
-    public static final int MAX_SCRIPT_SIZE = 10240;
-
     private static final Log LOG = LogFactory.getLog(ScriptState.class);
 
     private static ThreadLocal<ScriptState> tss = new ThreadLocal<ScriptState>();
@@ -204,8 +194,10 @@ public class ScriptState {
             return;
 
         // restrict the size of the script to be stored in job conf
-        script = (script.length() > MAX_SCRIPT_SIZE) ? script.substring(0,
-                MAX_SCRIPT_SIZE) : script;
+        int maxScriptSize = Integer.valueOf(pigContext.
+                getProperties().getProperty(PigConfiguration.MAX_SCRIPT_SIZE, "10240"));
+        script = (script.length() > maxScriptSize) ? script.substring(0, maxScriptSize)
+                                                   : script;
 
         // XML parser cann't handle certain characters, including
         // the control character (&#1). Use Base64 encoding to
