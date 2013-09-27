@@ -99,14 +99,4 @@ public class PigConfiguration {
      * application master getting restarted.
      */
     public static final String PIG_OUTPUT_COMMITTER_RECOVERY = "pig.output.committer.recovery.support";
-
-    /**
-     * This key is used to turn off the inclusion of settings in the jobs.
-     */
-    public static final String INSERT_ENABLED = "pig.script.info.enabled";
-
-    /**
-     * Controls the size of Pig script stored in job xml.
-     */
-    public static final String MAX_SCRIPT_SIZE = "pig.script.max.size";
 }

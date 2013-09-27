@@ -25,13 +25,10 @@ INCOMPATIBLE CHANGES
 PIG-3485: Remove CastUtils.bytesToMap(byte[] b) method from LoadCaster interface (cheolsoo)
 
 IMPROVEMENTS
-
-PIG-3484: Make the size of pig.script property configurable (cheolsoo)
  
 OPTIMIZATIONS
  
 BUG FIXES
-
 
 Release 0.12.0 (unreleased changes)
 
