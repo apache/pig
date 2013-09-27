@@ -253,6 +253,8 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-3114: Duplicated macro name error when using pigunit (daijy)
+
 PIG-3370: Add New Reserved Keywords To The Pig Docs (cheolsoo)
 
 PIG-3487: Fix syntax errors in nightly.conf (arpitgupta via daijy)

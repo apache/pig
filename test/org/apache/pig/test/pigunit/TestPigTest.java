@@ -52,6 +52,7 @@ public class TestPigTest {
     private PigTest test;
     private static Cluster cluster;
     private static final String PIG_SCRIPT = "test/data/pigunit/top_queries.pig";
+    private static final String PIG_SCRIPT_MACRO = "test/data/pigunit/top_queries_macro.pig";
     private static final Log LOG = LogFactory.getLog(TestPigTest.class);
 
     @BeforeClass
@@ -316,6 +317,26 @@ public class TestPigTest {
                         "output=top_3_queries",
         };
         test = new PigTest(PIG_SCRIPT, args);
+
+        // By default PigUnit removes all the STORE and DUMP
+        test.unoverride("STORE");
+
+        test.runScript();
+
+        assertTrue(cluster.delete(new Path("top_3_queries")));
+    }
+    
+    @Test
+    // Script should only be registered once, otherwise Pig will complain
+    // Macro defined twice. See PIG-3114
+    public void testMacro() throws ParseException, IOException {
+        String[] args = {
+                        "n=3",
+                        "reducers=1",
+                        "input=top_queries_input_data.txt",
+                        "output=top_3_queries",
+        };
+        test = new PigTest(PIG_SCRIPT_MACRO, args);
 
         // By default PigUnit removes all the STORE and DUMP
         test.unoverride("STORE");
