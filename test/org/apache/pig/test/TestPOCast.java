@@ -1534,11 +1534,6 @@ public class TestPOCast {
         }
 
         @Override
-        public Map<String, Object> bytesToMap(byte[] b) throws IOException {
-          return null;
-        }
-
-        @Override
         public Map<String, Object> bytesToMap(byte[] b, ResourceFieldSchema s) throws IOException {
             return null;
         }

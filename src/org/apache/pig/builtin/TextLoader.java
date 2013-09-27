@@ -147,19 +147,8 @@ public class TextLoader extends LoadFunc implements LoadCaster {
     }
 
     @Override
-    public Map<String, Object> bytesToMap(byte[] b) throws IOException {
-        return bytesToMap(b, null);
-    }
-
-    /**
-     * TextLoader does not support conversion to Map
-     * @throws IOException if the value cannot be cast.
-     */
-    @Override
     public Map<String, Object> bytesToMap(byte[] b, ResourceFieldSchema schema) throws IOException {
-        int errCode = 2109;
-        String msg = "TextLoader does not support conversion to Map.";
-        throw new ExecException(msg, errCode, PigException.BUG);
+        return bytesToMap(b, schema);
     }
 
     /**
