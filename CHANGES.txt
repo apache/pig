@@ -256,6 +256,8 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-3491: Fix e2e failure Jython_Diagnostics_4 (daijy)
+
 PIG-3434: Null subexpression in bincond nullifies outer tuple (or bag) (mwagner via daijy)
 
 PIG-3114: Duplicated macro name error when using pigunit (daijy)
