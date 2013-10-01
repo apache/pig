@@ -78,6 +78,10 @@ public class LOCross extends LogicalRelationalOperator {
             }            
         }        
 
+        if (nested) {
+            LogicalRelationalOperator.fixDuplicateUids(fss);
+        }
+
         schema = new LogicalSchema();
         for(LogicalSchema.LogicalFieldSchema fieldSchema: fss) {
             schema.addField(fieldSchema);
