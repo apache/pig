@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -1143,6 +1144,33 @@ public class TestEvalPipelineLocal {
         Iterator<Tuple> iter = pigServer.openIterator("zzz");
         Assert.assertTrue(iter.next().toString().equals("(NYSE)"));
         Assert.assertTrue(iter.next().toString().equals("(NASDAQ)"));
+        Assert.assertFalse(iter.hasNext());
+    }
+    
+    // Self cross, see PIG-3292
+    @Test
+    public void testSelfCross() throws Exception{
+        File f1 = createFile(new String[]{"1\t2", "1\t3"});
+        
+        pigServer.registerQuery("a = load '" + Util.encodeEscape(Util.generateURI(f1.toString(), pigServer.getPigContext()))
+                + "' as (key, x);");
+        pigServer.registerQuery("a_group = group a by key;");
+        pigServer.registerQuery("b = foreach a_group {y = a.x;pair = cross a.x, y;"
+                + "generate flatten(pair);}");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("b");
+        
+        Collection<String> results = new HashSet<String>();
+        results.add("(3,3)");
+        results.add("(2,2)");
+        results.add("(3,2)");
+        results.add("(2,3)");
+        
+        Assert.assertTrue(results.contains(iter.next().toString()));
+        Assert.assertTrue(results.contains(iter.next().toString()));
+        Assert.assertTrue(results.contains(iter.next().toString()));
+        Assert.assertTrue(results.contains(iter.next().toString()));
+        
         Assert.assertFalse(iter.hasNext());
     }
 }
