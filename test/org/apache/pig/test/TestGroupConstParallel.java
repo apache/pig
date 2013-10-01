@@ -43,10 +43,9 @@ import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
 import org.apache.pig.newplan.logical.rules.GroupByConstParallelSetter;
 import org.apache.pig.newplan.optimizer.Rule;
 import org.apache.pig.test.utils.GenPhyOp;
-import org.apache.pig.tools.pigstats.JobStatsBase;
+import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
-import org.apache.pig.tools.pigstats.mapreduce.MRJobStats;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -97,7 +96,7 @@ public class TestGroupConstParallel {
             JobGraph jGraph = PigStats.get().getJobGraph();
             assertEquals(1, jGraph.size());
             // find added map-only concatenate job 
-            MRJobStats js = (MRJobStats)jGraph.getSources().get(0);
+            JobStats js = (JobStats)jGraph.getSources().get(0);
             assertEquals(1, js.getNumberMaps());   
             assertEquals(1, js.getNumberReduces()); 
         }

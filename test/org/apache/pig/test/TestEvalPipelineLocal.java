@@ -1039,7 +1039,7 @@ public class TestEvalPipelineLocal {
         
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
-        pigServer.explain("e", "dot", true, true, ps, System.out, null, null);
+        pigServer.explain("e", "dot", true, true, ps, System.out, System.out);
         ps.close();
         
         FileInputStream fis1 = new FileInputStream("test/org/apache/pig/test/data/DotFiles/explain1.dot");

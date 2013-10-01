@@ -1250,7 +1250,7 @@ public class TestGrunt {
         Grunt grunt = new Grunt(pigInput, context);
         int results[] = grunt.exec();
         for (int i=0; i<results.length; i++) {
-            assertEquals(0, results[i]);
+            assertTrue(results[i] == 0);
         }
     }
 

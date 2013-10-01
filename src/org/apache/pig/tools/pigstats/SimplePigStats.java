@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.pig.tools.pigstats.mapreduce;
+package org.apache.pig.tools.pigstats;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -24,6 +24,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -43,23 +44,23 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOpe
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.NativeMapReduceOper;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROpPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.tools.pigstats.InputStats;
-import org.apache.pig.tools.pigstats.mapreduce.MRJobStats;
-import org.apache.pig.tools.pigstats.JobStatsBase.JobState;
-import org.apache.pig.tools.pigstats.OutputStats;
-import org.apache.pig.tools.pigstats.PigStats;
-import org.apache.pig.tools.pigstats.ScriptState;
-import org.apache.pig.tools.pigstats.JobStatsBase;
+import org.apache.pig.newplan.Operator;
+import org.apache.pig.newplan.OperatorPlan;
+import org.apache.pig.newplan.PlanVisitor;
+import org.apache.pig.tools.pigstats.JobStats.JobState;
 
 /**
  * SimplePigStats encapsulates the statistics collected from a running script. 
  * It includes status of the execution, the DAG of its MR jobs, as well as 
  * information about outputs and inputs of the script. 
  */
-public final class SimplePigStats extends PigStats {
+final class SimplePigStats extends PigStats {
     
     private static final Log LOG = LogFactory.getLog(SimplePigStats.class);
     
@@ -75,7 +76,7 @@ public final class SimplePigStats extends PigStats {
     
     private Map<Job, MapReduceOper> jobMroMap;
      
-    private Map<MapReduceOper, MRJobStats> mroJobMap;
+    private Map<MapReduceOper, JobStats> mroJobMap;
     
     // successful jobs so far
     private Set<Job> jobSeen = new HashSet<Job>();
@@ -96,24 +97,57 @@ public final class SimplePigStats extends PigStats {
             super(plan, new DependencyOrderWalker<MapReduceOper, MROperPlan>(
                     plan));
             jobPlan = new JobGraph();
-            mroJobMap = new HashMap<MapReduceOper, MRJobStats>();        
+            mroJobMap = new HashMap<MapReduceOper, JobStats>();        
         }
         
         @Override
         public void visitMROp(MapReduceOper mr) throws VisitorException {
-            MRJobStats js = new MRJobStats(
+            JobStats js = new JobStats(
                     mr.getOperatorKey().toString(), jobPlan);            
             jobPlan.add(js);
             List<MapReduceOper> preds = getPlan().getPredecessors(mr);
             if (preds != null) {
                 for (MapReduceOper pred : preds) {
-                    MRJobStats jpred = mroJobMap.get(pred);
+                    JobStats jpred = mroJobMap.get(pred);
                     if (!jobPlan.isConnected(jpred, js)) {
                         jobPlan.connect(jpred, js);
                     }
                 }
             }
             mroJobMap.put(mr, js);            
+        }        
+    }
+    
+    /**
+     * This class prints a JobGraph
+     */
+    static class JobGraphPrinter extends PlanVisitor {
+        
+        StringBuffer buf;
+
+        protected JobGraphPrinter(OperatorPlan plan) {
+            super(plan,
+                    new org.apache.pig.newplan.DependencyOrderWalker(
+                            plan));
+            buf = new StringBuffer();
+        }
+        
+        public void visit(JobStats op) throws FrontendException {
+            buf.append(op.getJobId());
+            List<Operator> succs = plan.getSuccessors(op);
+            if (succs != null) {
+                buf.append("\t->\t");
+                for (Operator p : succs) {                  
+                    buf.append(((JobStats)p).getJobId()).append(",");
+                }               
+            }
+            buf.append("\n");
+        }
+        
+        @Override
+        public String toString() {
+            buf.append("\n");
+            return buf.toString();
         }        
     }
     
@@ -211,37 +245,37 @@ public final class SimplePigStats extends PigStats {
 
     @Override
     public long getSMMSpillCount() {
-        Iterator<JobStatsBase> it = jobPlan.iterator();
+        Iterator<JobStats> it = jobPlan.iterator();
         long ret = 0;
         while (it.hasNext()) {
-            ret += ((MRJobStats) it.next()).getSMMSpillCount();
+            ret += it.next().getSMMSpillCount();
         }
         return ret;
     }
 
     @Override
     public long getProactiveSpillCountObjects() {
-        Iterator<JobStatsBase> it = jobPlan.iterator();
+        Iterator<JobStats> it = jobPlan.iterator();
         long ret = 0;
         while (it.hasNext()) {            
-            ret += ((MRJobStats) it.next()).getProactiveSpillCountObjects();
+            ret += it.next().getProactiveSpillCountObjects();
         }
         return ret;
     }
     
     @Override
     public long getProactiveSpillCountRecords() {
-        Iterator<JobStatsBase> it = jobPlan.iterator();
+        Iterator<JobStats> it = jobPlan.iterator();
         long ret = 0;
         while (it.hasNext()) {            
-            ret += ((MRJobStats) it.next()).getProactiveSpillCountRecs();
+            ret += it.next().getProactiveSpillCountRecs();
         }
         return ret;
     }
     
     @Override
     public long getBytesWritten() {
-        Iterator<JobStatsBase> it = jobPlan.iterator();
+        Iterator<JobStats> it = jobPlan.iterator();
         long ret = 0;
         while (it.hasNext()) {
             long n = it.next().getBytesWritten();
@@ -252,7 +286,7 @@ public final class SimplePigStats extends PigStats {
     
     @Override
     public long getRecordWritten() {
-        Iterator<JobStatsBase> it = jobPlan.iterator();
+        Iterator<JobStats> it = jobPlan.iterator();
         long ret = 0;
         while (it.hasNext()) {
             long n = it.next().getRecordWrittern();
@@ -284,7 +318,7 @@ public final class SimplePigStats extends PigStats {
     @Override
     public List<OutputStats> getOutputStats() {
         List<OutputStats> outputs = new ArrayList<OutputStats>();
-        Iterator<JobStatsBase> iter = jobPlan.iterator();
+        Iterator<JobStats> iter = jobPlan.iterator();
         while (iter.hasNext()) {
             for (OutputStats os : iter.next().getOutputs()) {
                 outputs.add(os);
@@ -297,7 +331,7 @@ public final class SimplePigStats extends PigStats {
     public OutputStats result(String alias) {
         if (aliasOuputMap == null) {
             aliasOuputMap = new HashMap<String, OutputStats>();
-            Iterator<JobStatsBase> iter = jobPlan.iterator();
+            Iterator<JobStats> iter = jobPlan.iterator();
             while (iter.hasNext()) {
                 for (OutputStats os : iter.next().getOutputs()) {
                     String a = os.getAlias();
@@ -315,7 +349,7 @@ public final class SimplePigStats extends PigStats {
     @Override
     public List<InputStats> getInputStats() {
         List<InputStats> inputs = new ArrayList<InputStats>();
-        Iterator<JobStatsBase> iter = jobPlan.iterator();
+        Iterator<JobStats> iter = jobPlan.iterator();
         while (iter.hasNext()) {
             for (InputStats is : iter.next().getInputs()) {
                 inputs.add(is);
@@ -324,7 +358,7 @@ public final class SimplePigStats extends PigStats {
         return Collections.unmodifiableList(inputs);       
     }
     
-    public SimplePigStats() {        
+    SimplePigStats() {        
         jobMroMap = new HashMap<Job, MapReduceOper>(); 
         jobPlan = new JobGraph();
     }
@@ -380,14 +414,14 @@ public final class SimplePigStats extends PigStats {
     }
         
     @SuppressWarnings("deprecation")
-    MRJobStats addMRJobStats(Job job) {
+    JobStats addJobStats(Job job) {
         MapReduceOper mro = jobMroMap.get(job);
          
         if (mro == null) {
             LOG.warn("unable to get MR oper for job: " + job.toString());
             return null;
         }
-        MRJobStats js = mroJobMap.get(mro);
+        JobStats js = mroJobMap.get(mro);
         
         JobID jobId = job.getAssignedJobID();
         js.setId(jobId);
@@ -397,8 +431,8 @@ public final class SimplePigStats extends PigStats {
     }
     
     @SuppressWarnings("deprecation")
-    public MRJobStats addMRJobStatsForNative(NativeMapReduceOper mr) {
-        MRJobStats js = mroJobMap.get(mr);
+    public JobStats addJobStatsForNative(NativeMapReduceOper mr) {
+        JobStats js = mroJobMap.get(mr);
         js.setId(new JobID(mr.getJobId(), NativeMapReduceOper.getJobNumber())); 
         js.setAlias(mr);
         
@@ -417,7 +451,7 @@ public final class SimplePigStats extends PigStats {
  
         // currently counters are not working in local mode - see PIG-1286
         ExecType execType = pigContext.getExecType();
-        if (execType.isLocal()) {
+        if (execType == ExecType.LOCAL) {
             LOG.info("Detected Local mode. Stats reported below may be incomplete");
         }
         
@@ -442,38 +476,38 @@ public final class SimplePigStats extends PigStats {
         if (returnCode == ReturnCode.SUCCESS 
                 || returnCode == ReturnCode.PARTIAL_FAILURE) {            
             sb.append("Job Stats (time in seconds):\n");
-            if (execType.isLocal()) {
-                sb.append(MRJobStats.SUCCESS_HEADER_LOCAL).append("\n");
+            if (execType == ExecType.LOCAL) {
+                sb.append(JobStats.SUCCESS_HEADER_LOCAL).append("\n");
             } else {
-                sb.append(MRJobStats.SUCCESS_HEADER).append("\n");
+                sb.append(JobStats.SUCCESS_HEADER).append("\n");
             }
-            List<JobStatsBase> arr = jobPlan.getSuccessfulJobs();
-            for (JobStatsBase js : arr) {                
-                sb.append(js.getDisplayString(execType.isLocal()));
+            List<JobStats> arr = jobPlan.getSuccessfulJobs();
+            for (JobStats js : arr) {                
+                sb.append(js.getDisplayString(execType == ExecType.LOCAL));
             }
             sb.append("\n");
         }
         if (returnCode == ReturnCode.FAILURE
                 || returnCode == ReturnCode.PARTIAL_FAILURE) {
             sb.append("Failed Jobs:\n");
-            sb.append(MRJobStats.FAILURE_HEADER).append("\n");
-            List<JobStatsBase> arr = jobPlan.getFailedJobs();
-            for (JobStatsBase js : arr) {   
-                sb.append(js.getDisplayString(execType.isLocal()));
+            sb.append(JobStats.FAILURE_HEADER).append("\n");
+            List<JobStats> arr = jobPlan.getFailedJobs();
+            for (JobStats js : arr) {   
+                sb.append(js.getDisplayString(execType == ExecType.LOCAL));
             }
             sb.append("\n");
         }
         sb.append("Input(s):\n");
         for (InputStats is : getInputStats()) {
-            sb.append(is.getDisplayString(execType.isLocal()));
+            sb.append(is.getDisplayString(execType == ExecType.LOCAL));
         }
         sb.append("\n");
         sb.append("Output(s):\n");
         for (OutputStats ds : getOutputStats()) {
-            sb.append(ds.getDisplayString(execType.isLocal()));
+            sb.append(ds.getDisplayString(execType == ExecType.LOCAL));
         }
         
-        if (!(execType.isLocal())) {
+        if (execType != ExecType.LOCAL) {
             sb.append("\nCounters:\n");
             sb.append("Total records written : " + getRecordWritten()).append("\n");
             sb.append("Total bytes written : " + getBytesWritten()).append("\n");
@@ -494,7 +528,7 @@ public final class SimplePigStats extends PigStats {
         if (mro == null) {
             LOG.warn("null MR operator");
         } else {
-            MRJobStats js = mroJobMap.get(mro);
+            JobStats js = mroJobMap.get(mro);
             if (js == null) {
                 LOG.warn("null job stats for mro: " + mro.getOperatorKey());
             } else {
@@ -516,9 +550,9 @@ public final class SimplePigStats extends PigStats {
             return;
         }
         String id = job.getAssignedJobID().toString();
-        Iterator<JobStatsBase> iter = jobPlan.iterator();
+        Iterator<JobStats> iter = jobPlan.iterator();
         while (iter.hasNext()) {
-            JobStatsBase js = iter.next();
+            JobStats js = iter.next();
             if (id.equals(js.getJobId())) {
                 js.setBackendException(e);
                 break;
@@ -531,7 +565,7 @@ public final class SimplePigStats extends PigStats {
     }
     
     int getNumberSuccessfulJobs() {
-        Iterator<JobStatsBase> iter = jobPlan.iterator();
+        Iterator<JobStats> iter = jobPlan.iterator();
         int count = 0;
         while (iter.hasNext()) {
             if (iter.next().getState() == JobState.SUCCESS) count++; 
@@ -540,7 +574,7 @@ public final class SimplePigStats extends PigStats {
     }
     
     int getNumberFailedJobs() {
-        Iterator<JobStatsBase> iter = jobPlan.iterator();
+        Iterator<JobStats> iter = jobPlan.iterator();
         int count = 0;
         while (iter.hasNext()) {
             if (iter.next().getState() == JobState.FAILED) count++; 

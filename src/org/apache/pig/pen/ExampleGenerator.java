@@ -30,11 +30,10 @@ import org.apache.pig.impl.util.IdentityHashSet;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
-
+import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
@@ -67,7 +66,7 @@ public class ExampleGenerator {
 
     PhysicalPlan physPlan;
     PhysicalPlanResetter physPlanReseter;
-    private MRExecutionEngine execEngine;
+    private HExecutionEngine execEngine;
     private LocalMapReduceSimulator localMRRunner;
 
     Log log = LogFactory.getLog(getClass());
@@ -99,7 +98,7 @@ public class ExampleGenerator {
                     + e.getLocalizedMessage());
 
         }
-        execEngine = new MRExecutionEngine(pigContext);
+        execEngine = new HExecutionEngine(pigContext);
         localMRRunner = new LocalMapReduceSimulator();
         poLoadToSchemaMap = new HashMap<POLoad, LogicalSchema>();
     }

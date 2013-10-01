@@ -111,7 +111,7 @@ public class WeightedRangePartitioner extends Partitioner<PigNullableWritable, W
         try{
             // use local file system to get the quantilesFile
             Configuration conf;
-            if (!pigContext.getExecType().isLocal()) {
+            if (pigContext.getExecType()==ExecType.MAPREDUCE) {
                 conf = new Configuration(true);
             } else {
                 conf = new Configuration(false);

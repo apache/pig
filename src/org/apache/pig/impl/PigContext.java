@@ -51,7 +51,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.log4j.Level;
 import org.apache.pig.ExecType;
-import org.apache.pig.ExecTypeProvider;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.Main;
 import org.apache.pig.PigException;
@@ -59,9 +58,10 @@ import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.DataStorageException;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.executionengine.ExecutionEngine;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
+import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
+import org.apache.pig.backend.hadoop.streaming.HadoopExecutableManager;
 import org.apache.pig.impl.streaming.ExecutableManager;
 import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.util.JarManager;
@@ -86,8 +86,8 @@ public class PigContext implements Serializable {
      * and also because some is not serializable e.g. the Configuration)
      */
 
-    //one of: local, mapreduce, or a custom exec type for a different execution engine
-    private ExecType execType;
+    //one of: local, mapreduce, pigbody
+    private ExecType execType;;
 
     //main file system that jobs and shell commands access
     transient private DataStorage dfs;
@@ -96,7 +96,7 @@ public class PigContext implements Serializable {
     transient private DataStorage lfs;
 
     // handle to the back-end
-    transient private ExecutionEngine executionEngine;
+    transient private HExecutionEngine executionEngine;
 
     private Properties properties;
 
@@ -232,14 +232,6 @@ public class PigContext implements Serializable {
     public PigContext() {
         this(ExecType.MAPREDUCE, new Properties());
     }
-
-        public PigContext(Configuration conf) throws PigException {
-            this(ConfigurationUtil.toProperties(conf));
-        }
-        
-        public PigContext(Properties properties) throws PigException {
-            this(ExecTypeProvider.selectExecType(properties), properties);
-        }
     
     public PigContext(ExecType execType, Configuration conf) {
         this(execType, ConfigurationUtil.toProperties(conf));
@@ -258,7 +250,7 @@ public class PigContext implements Serializable {
                 skipJars.add(hadoopJar);
         }
 
-        this.executionEngine = execType.getExecutionEngine(this);
+        executionEngine = null;
 
         // Add the default paths to be skipped for auto-shipping of commands
         skippedShipPaths.add("/bin");
@@ -299,28 +291,42 @@ public class PigContext implements Serializable {
     }
 
     public void connect() throws ExecException {
+
+        switch (execType) {
+            case LOCAL:
+            case MAPREDUCE:
+            {
+                executionEngine = new HExecutionEngine (this);
+
                 executionEngine.init();
+
                 dfs = executionEngine.getDataStorage();
-                lfs = new HDataStorage(URI.create("file:///"), properties);
-                Runtime.getRuntime().addShutdownHook(new ExecutionEngineKiller());
 
-    }
+                lfs = new HDataStorage(URI.create("file:///"),
+                                        properties);
+            }
+            break;
 
-    class ExecutionEngineKiller extends Thread {
-        public ExecutionEngineKiller() {}
-                
-                @Override
-        public void run() {
-            try {
-                executionEngine.kill();
-            } catch (Exception e) {
-                log.warn("Error in killing Execution Engine: " + e);
+            default:
+            {
+                int errCode = 2040;
+                String msg = "Unkown exec type: " + execType;
+                throw new ExecException(msg, errCode, PigException.BUG);
             }
         }
+
     }
 
     public void setJobtrackerLocation(String newLocation) {
-        executionEngine.setProperty("mapred.job.tracker", newLocation);
+        Properties trackerLocation = new Properties();
+        trackerLocation.setProperty("mapred.job.tracker", newLocation);
+
+        try {
+            executionEngine.updateConfiguration(trackerLocation);
+        }
+        catch (ExecException e) {
+            log.error("Failed to set tracker at: " + newLocation);
+        }
     }
 
     /**
@@ -513,7 +519,7 @@ public class PigContext implements Serializable {
         srcElement.copy(dstElement, this.properties, false);
     }
 
-    public ExecutionEngine getExecutionEngine() {
+    public HExecutionEngine getExecutionEngine() {
         return executionEngine;
     }
 
@@ -792,10 +798,24 @@ public class PigContext implements Serializable {
      * @throws ExecException
      */
     public ExecutableManager createExecutableManager() throws ExecException {
-        if (executionEngine != null) {
-            return executionEngine.getExecutableManager();
+        ExecutableManager executableManager = null;
+
+        switch (execType) {
+            case LOCAL:
+            case MAPREDUCE:
+            {
+                executableManager = new HadoopExecutableManager();
+            }
+            break;
+            default:
+            {
+                int errCode = 2040;
+                String msg = "Unkown exec type: " + execType;
+                throw new ExecException(msg, errCode, PigException.BUG);
+            }
         }
-        return null;
+
+        return executableManager;
     }
 
     public FuncSpec getFuncSpecFromAlias(String alias) {

@@ -510,7 +510,7 @@ public class TestPigServer {
         
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PrintStream ps = new PrintStream(baos);
-        pig.explain("e", "xml", true, false, ps, ps, null, null);
+        pig.explain("e", "xml", true, false, ps, ps, ps);
         
         ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
         DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();

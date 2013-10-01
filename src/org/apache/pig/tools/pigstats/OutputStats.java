@@ -57,7 +57,7 @@ public final class OutputStats {
 
     private static final Log LOG = LogFactory.getLog(OutputStats.class);
     
-    public OutputStats(String location, long bytes, long records, boolean success) {
+    OutputStats(String location, long bytes, long records, boolean success) {
         this.location = location;
         this.bytes = bytes;
         this.records = records;        
@@ -107,7 +107,7 @@ public final class OutputStats {
         return conf;
     }
     
-    public String getDisplayString(boolean local) {
+    String getDisplayString(boolean local) {
         StringBuilder sb = new StringBuilder();
         if (success) {
             sb.append("Successfully stored ");
@@ -127,11 +127,11 @@ public final class OutputStats {
         return sb.toString();
     }
 
-    public void setPOStore(POStore store) {
+    void setPOStore(POStore store) {
         this.store = store;
     }
     
-    public void setConf(Configuration conf) {
+    void setConf(Configuration conf) {
         this.conf = conf;
     }
     

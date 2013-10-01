@@ -66,7 +66,6 @@ import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -1027,9 +1026,12 @@ public class Util {
 
     public static PhysicalPlan buildPp(PigServer pigServer, String query)
     throws Exception {
-        LogicalPlan lp = buildLp( pigServer, query );
-        return ((MRExecutionEngine)pigServer.getPigContext().getExecutionEngine()).compile(lp, 
-                pigServer.getPigContext().getProperties());
+    	buildLp( pigServer, query );
+        java.lang.reflect.Method compilePp = pigServer.getClass().getDeclaredMethod("compilePp" );
+        compilePp.setAccessible(true);
+
+        return (PhysicalPlan)compilePp.invoke( pigServer );
+
     }
 
     public static LogicalPlan parse(String query, PigContext pc) throws FrontendException {

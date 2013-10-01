@@ -20,9 +20,8 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
-import org.apache.pig.ExecTypeProvider;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.executionengine.Launcher;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.Launcher;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
@@ -112,7 +111,7 @@ public class StreamingUDF extends EvalFunc<Object> {
                 this.execType = ExecType.MAPREDUCE;
             } else {
                 //Not sure what exec type - try to get it from the string.
-                this.execType = ExecTypeProvider.fromString(execType);
+                this.execType = ExecType.fromString(execType);
             }
         } catch (ParserException pe) {
             throw new StreamingUDFOutputSchemaException(pe.getMessage(), Integer.valueOf(schemaLineNumber));
@@ -167,7 +166,7 @@ public class StreamingUDF extends EvalFunc<Object> {
         String standardOutputRootWriteLocation = soc.getStandardOutputRootWriteLocation();
         String controllerLogFileName, outFileName, errOutFileName;
 
-        if (execType.isLocal()) {
+        if (execType == ExecType.LOCAL) {
             controllerLogFileName = standardOutputRootWriteLocation + funcName + "_python.log";
             outFileName = standardOutputRootWriteLocation + "cpython_" + funcName + "_" + ScriptingOutputCapturer.getRunId() + ".out";
             errOutFileName = standardOutputRootWriteLocation + "cpython_" + funcName + "_" + ScriptingOutputCapturer.getRunId() + ".err";

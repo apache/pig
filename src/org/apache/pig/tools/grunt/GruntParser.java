@@ -34,6 +34,7 @@ import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -46,9 +47,14 @@ import jline.ConsoleReaderInputStream;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FsShell;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapred.JobClient;
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.JobID;
+import org.apache.hadoop.mapred.RunningJob;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.datastorage.ContainerDescriptor;
@@ -58,6 +64,7 @@ import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
+import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
@@ -68,7 +75,7 @@ import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.apache.pig.tools.pigscript.parser.PigScriptParser;
 import org.apache.pig.tools.pigscript.parser.PigScriptParserTokenManager;
 import org.apache.pig.tools.pigscript.parser.TokenMgrError;
-import org.apache.pig.tools.pigstats.JobStatsBase;
+import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 import org.fusesource.jansi.Ansi;
@@ -131,9 +138,9 @@ public class GruntParser extends PigScriptParser {
                 mPigServer.executeBatch();
                 PigStats stats = PigStats.get();
                 JobGraph jg = stats.getJobGraph();
-                Iterator<JobStatsBase> iter = jg.iterator();
+                Iterator<JobStats> iter = jg.iterator();
                 while (iter.hasNext()) {
-                    JobStatsBase js = iter.next();
+                    JobStats js = iter.next();
                     if (!js.isSuccessful()) {
                         mNumFailedJobs++;
                         Exception exp = (js.getException() != null) ? js.getException()
@@ -222,6 +229,15 @@ public class GruntParser extends PigScriptParser {
         mLfs = mPigServer.getPigContext().getLfs();
         mConf = mPigServer.getPigContext().getProperties();
         shell = new FsShell(ConfigurationUtil.toConfiguration(mConf));
+
+        // TODO: this violates the abstraction layer decoupling between
+        // front end and back end and needs to be changed.
+        // Right now I am not clear on how the Job Id comes from to tell
+        // the back end to kill a given job (mJobClient is used only in
+        // processKill)
+        //
+        HExecutionEngine execEngine = mPigServer.getPigContext().getExecutionEngine();
+        mJobConf = execEngine.getJobConf();
     }
 
     public void setScriptIllustrate() {
@@ -383,6 +399,7 @@ public class GruntParser extends PigScriptParser {
 
     protected void explainCurrentBatch(boolean dontPrintOutput) throws IOException {
         PrintStream lp = (dontPrintOutput) ? new NullPrintStream("dummy") : System.out;
+        PrintStream pp = (dontPrintOutput) ? new NullPrintStream("dummy") : System.out;
         PrintStream ep = (dontPrintOutput) ? new NullPrintStream("dummy") : System.out;
 
         if (!(mExplain.mLast && mExplain.mCount == 0)) {
@@ -399,24 +416,26 @@ public class GruntParser extends PigScriptParser {
 
             if (file.isDirectory()) {
                 String sCount = (mExplain.mLast && mExplain.mCount == 1)?"":"_"+mExplain.mCount;
-                String suffix = mExplain.mTime+sCount+"."+mExplain.mFormat;
-                lp = new PrintStream(new File(file, "logical_plan-"+suffix));
+                lp = new PrintStream(new File(file, "logical_plan-"+mExplain.mTime+sCount+"."+mExplain.mFormat));
+                pp = new PrintStream(new File(file, "physical_plan-"+mExplain.mTime+sCount+"."+mExplain.mFormat));
+                ep = new PrintStream(new File(file, "exec_plan-"+mExplain.mTime+sCount+"."+mExplain.mFormat));
                 mPigServer.explain(mExplain.mAlias, mExplain.mFormat,
-                                   mExplain.mVerbose, markAsExecuted, lp, null, file, suffix);
+                                   mExplain.mVerbose, markAsExecuted, lp, pp, ep);
                 lp.close();
+                pp.close();
                 ep.close();
             }
             else {
                 boolean append = !(mExplain.mCount==1);
-                lp = ep = new PrintStream(new FileOutputStream(mExplain.mTarget, append));
+                lp = pp = ep = new PrintStream(new FileOutputStream(mExplain.mTarget, append));
                 mPigServer.explain(mExplain.mAlias, mExplain.mFormat,
-                                   mExplain.mVerbose, markAsExecuted, lp, ep, null, null);
+                                   mExplain.mVerbose, markAsExecuted, lp, pp, ep);
                 lp.close();
             }
         }
         else {
             mPigServer.explain(mExplain.mAlias, mExplain.mFormat,
-                               mExplain.mVerbose, markAsExecuted, lp, ep, null, null);
+                               mExplain.mVerbose, markAsExecuted, lp, pp, ep);
         }
     }
 
@@ -585,7 +604,33 @@ public class GruntParser extends PigScriptParser {
         }
         else
         {
-           mPigServer.getPigContext().getExecutionEngine().setProperty(key, value);
+            //mPigServer.getPigContext().getProperties().setProperty(key, value);
+            // PIG-2508 properties need to be managed through JobConf
+            // since all other code depends on access to properties,
+            // we need to re-populate from updated JobConf
+            //java.util.HashSet<?> keysBefore = new java.util.HashSet<Object>(mPigServer.getPigContext().getProperties().keySet());
+            // set current properties on jobConf
+            Properties properties = mPigServer.getPigContext().getProperties();
+            Configuration jobConf = mPigServer.getPigContext().getExecutionEngine().getJobConf();
+            Enumeration<Object> propertiesIter = properties.keys();
+            while (propertiesIter.hasMoreElements()) {
+                String pkey = (String) propertiesIter.nextElement();
+                String val = properties.getProperty(pkey);
+                // We do not put user.name, See PIG-1419
+                if (!pkey.equals("user.name"))
+                   jobConf.set(pkey, val);
+            }
+            // set new value, JobConf will handle deprecation etc.
+            jobConf.set(key, value);
+            // re-initialize to reflect updated JobConf
+            properties.clear();
+            Iterator<Map.Entry<String, String>> iter = jobConf.iterator();
+            while (iter.hasNext()) {
+                Map.Entry<String, String> entry = iter.next();
+                properties.put(entry.getKey(), entry.getValue());
+            }
+            //keysBefore.removeAll(mPigServer.getPigContext().getProperties().keySet());
+            //log.info("PIG-2508: keys dropped from properties: " + keysBefore);
         }
     }
 
@@ -768,7 +813,18 @@ public class GruntParser extends PigScriptParser {
     @Override
     protected void processKill(String jobid) throws IOException
     {
-        mPigServer.getPigContext().getExecutionEngine().killJob(jobid);
+        if (mJobConf != null) {
+            JobClient jc = new JobClient(mJobConf);
+            JobID id = JobID.forName(jobid);
+            RunningJob job = jc.getJob(id);
+            if (job == null)
+                System.out.println("Job with id " + jobid + " is not active");
+            else
+            {
+                job.killJob();
+                log.info("Kill " + id + " submitted.");
+            }
+        }
     }
 
     @Override
@@ -1260,6 +1316,7 @@ public class GruntParser extends PigScriptParser {
     private DataStorage mDfs;
     private DataStorage mLfs;
     private Properties mConf;
+    private JobConf mJobConf;
     private boolean mDone;
     private boolean mLoadOnly;
     private ExplainState mExplain;

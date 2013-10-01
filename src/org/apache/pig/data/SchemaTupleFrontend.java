@@ -110,8 +110,8 @@ public class SchemaTupleFrontend {
          * @param conf
          */
         private void internalCopyAllGeneratedToDistributedCache() {
-            LOG.info("Starting process to move generated code to distributed cacche");
-            if (pigContext.getExecType().isLocal()) {
+            LOG.info("Starting process to move generated code to distributed cache");
+            if (pigContext.getExecType() == ExecType.LOCAL) {
                 String codePath = codeDir.getAbsolutePath();
                 LOG.info("Distributed cache not supported or needed in local mode. Setting key ["
                         + LOCAL_CODE_DIR + "] with code temp directory: " + codePath);

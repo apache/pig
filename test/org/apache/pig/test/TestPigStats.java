@@ -36,7 +36,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecJob;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
@@ -47,7 +46,6 @@ import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 import org.apache.pig.tools.pigstats.ScriptState;
-import org.apache.pig.tools.pigstats.mapreduce.MRScriptState;
 import org.junit.Test;
 
 public class TestPigStats  {
@@ -63,7 +61,7 @@ public class TestPigStats  {
         w.println("register /mydir/lib/jackson-mapper-asl-1.4.2.jar");
         w.close();
         
-        MRScriptState ss = MRScriptState.get();
+        ScriptState ss = ScriptState.get();
         ss.setScript(new File("test.pig"));
         Configuration conf = new Configuration();
         MapReduceOper mro = new MapReduceOper(new OperatorKey());
@@ -100,7 +98,7 @@ public class TestPigStats  {
         
         Util.createLocalInputFile( "testScript.py", script);
         
-        MRScriptState ss = MRScriptState.get();
+        ScriptState ss = ScriptState.get();
         ss.setScript(new File("testScript.py"));
         Configuration conf = new Configuration();
         MapReduceOper mro = new MapReduceOper(new OperatorKey());
@@ -166,7 +164,7 @@ public class TestPigStats  {
             pig.registerQuery("store E into 'alias_output';");
             
             LogicalPlan lp = getLogicalPlan(pig);
-            PhysicalPlan pp = ((MRExecutionEngine)pig.getPigContext().getExecutionEngine()).compile(lp,
+            PhysicalPlan pp = pig.getPigContext().getExecutionEngine().compile(lp,
                     null);
             MROperPlan mp = getMRPlan(pp, pig.getPigContext());
             assertEquals(4, mp.getKeys().size());

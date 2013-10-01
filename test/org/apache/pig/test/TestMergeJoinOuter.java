@@ -158,8 +158,9 @@ public class TestMergeJoinOuter {
         boolean exceptionCaught = false;
         try{
             Util.buildPp(pigServer, query);   
-        }catch (FrontendException e){
-            assertEquals(1103,e.getErrorCode());
+        }catch (java.lang.reflect.InvocationTargetException e){
+        	FrontendException ex = (FrontendException)e.getTargetException();
+            assertEquals(1103,ex.getErrorCode());
             exceptionCaught = true;
         }
         assertTrue(exceptionCaught);

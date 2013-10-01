@@ -46,10 +46,9 @@ import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.PigRunner.ReturnCode;
 import org.apache.pig.PigWarning;
-import org.apache.pig.backend.BackendException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
-import org.apache.pig.backend.hadoop.executionengine.Launcher;
+import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler.LastInputStreamingOptimizer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.DotMRPrinter;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.EndOfAllInputSetter;
@@ -72,11 +71,9 @@ import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.ConfigurationValidator;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.UDFContext;
-import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
-import org.apache.pig.tools.pigstats.PigStatsUtilBase;
-import org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil;
-import org.apache.pig.tools.pigstats.mapreduce.MRScriptState;
+import org.apache.pig.tools.pigstats.PigStatsUtil;
+import org.apache.pig.tools.pigstats.ScriptState;
 
 
 /**
@@ -101,39 +98,29 @@ public class MapReduceLauncher extends Launcher{
     
     private JobControl jc=null;
     
-    public void kill() {
-        try {
-            log.debug("Receive kill signal");
-            if (jc!=null) {
-                for (Job job : jc.getRunningJobs()) {
-                    RunningJob runningJob = job.getJobClient().getJob(job.getAssignedJobID());
-                    if (runningJob!=null)
-                        runningJob.killJob();
-                    log.info("Job " + job.getJobID() + " killed");
+    private class HangingJobKiller extends Thread {
+        public HangingJobKiller() {
+        }
+        @Override
+        public void run() {
+            try {
+                log.debug("Receive kill signal");
+                if (jc!=null) {
+                    for (Job job : jc.getRunningJobs()) {
+                        RunningJob runningJob = job.getJobClient().getJob(job.getAssignedJobID());
+                        if (runningJob!=null)
+                            runningJob.killJob();
+                        log.info("Job " + job.getJobID() + " killed");
+                    }
                 }
+            } catch (Exception e) {
+                log.warn("Encounter exception on cleanup:" + e);
             }
-        } catch (Exception e) {
-            log.warn("Encounter exception on cleanup:" + e);
         }
     }
-    
-    public void killJob(String jobID, JobConf jobConf) throws BackendException {
-        try {
-            if (jobConf != null) {
-                JobClient jc = new JobClient(jobConf);
-                JobID id = JobID.forName(jobID);
-                RunningJob job = jc.getJob(id);
-                if (job == null)
-                    System.out.println("Job with id " + jobID + " is not active");
-                else
-                {
-                    job.killJob();
-                    log.info("Kill " + id + " submitted.");
-                }
-            }        
-        } catch (IOException e) {
-            throw new BackendException(e);
-        }
+
+    public MapReduceLauncher() {
+        Runtime.getRuntime().addShutdownHook(new HangingJobKiller());
     }
     
     /**
@@ -167,15 +154,15 @@ public class MapReduceLauncher extends Launcher{
         ConfigurationValidator.validatePigProperties(pc.getProperties());
         Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties());
         
-        MRExecutionEngine exe = (MRExecutionEngine) pc.getExecutionEngine();
+        HExecutionEngine exe = pc.getExecutionEngine();
         JobClient jobClient = new JobClient(exe.getJobConf());
         
         JobControlCompiler jcc = new JobControlCompiler(pc, conf);
 
-        MRScriptState.get().addWorkflowAdjacenciesToConf(mrp, conf);
-
+        ScriptState.get().addWorkflowAdjacenciesToConf(mrp, conf);
+        
         // start collecting statistics
-        MRPigStatsUtil.startCollection(pc, jobClient, jcc, mrp); 
+        PigStatsUtil.startCollection(pc, jobClient, jcc, mrp); 
         
         // Find all the intermediate data stores. The plan will be destroyed during compile/execution
         // so this needs to be done before.
@@ -210,7 +197,7 @@ public class MapReduceLauncher extends Launcher{
                     if(mro instanceof NativeMapReduceOper) {
                         NativeMapReduceOper natOp = (NativeMapReduceOper)mro;
                         try {
-                            MRScriptState.get().emitJobsSubmittedNotification(1);
+                            ScriptState.get().emitJobsSubmittedNotification(1);
                             natOp.runJob();
                             numMRJobsCompl++;
                         } catch (IOException e) {
@@ -249,17 +236,17 @@ public class MapReduceLauncher extends Launcher{
             List<Job> jobsWithoutIds = jc.getWaitingJobs();
             log.info(jobsWithoutIds.size() +" map-reduce job(s) waiting for submission.");
             //notify listeners about jobs submitted
-            MRScriptState.get().emitJobsSubmittedNotification(jobsWithoutIds.size());
+            ScriptState.get().emitJobsSubmittedNotification(jobsWithoutIds.size());
             
             // update Pig stats' job DAG with just compiled jobs
-            MRPigStatsUtil.updateJobMroMap(jcc.getJobMroMap());
+            PigStatsUtil.updateJobMroMap(jcc.getJobMroMap());
             
             // determine job tracker url 
             String jobTrackerLoc;
             JobConf jobConf = jobsWithoutIds.get(0).getJobConf();
             try {
                 String port = jobConf.get("mapred.job.tracker.http.address");
-                String jobTrackerAdd = jobConf.get(MRExecutionEngine.JOB_TRACKER_LOCATION);
+                String jobTrackerAdd = jobConf.get(HExecutionEngine.JOB_TRACKER_LOCATION);
                 
                 jobTrackerLoc = jobTrackerAdd.substring(0,jobTrackerAdd.indexOf(":")) 
                 + port.substring(port.indexOf(":"));
@@ -322,9 +309,9 @@ public class MapReduceLauncher extends Launcher{
                             // display the aliases being processed
                             MapReduceOper mro = jcc.getJobMroMap().get(job);
                             if (mro != null) {
-                                String alias = MRScriptState.get().getAlias(mro);
+                                String alias = ScriptState.get().getAlias(mro);
                                 log.info("Processing aliases " + alias);
-                                String aliasLocation = MRScriptState.get().getAliasLocation(mro);
+                                String aliasLocation = ScriptState.get().getAliasLocation(mro);
                                 log.info("detailed locations: " + aliasLocation);
                             }
     
@@ -335,8 +322,8 @@ public class MapReduceLauncher extends Launcher{
                 			}  
     
                             // update statistics for this job so jobId is set
-                            MRPigStatsUtil.addJobStats(job);
-                            MRScriptState.get().emitJobStartedNotification(
+                            PigStatsUtil.addJobStats(job);
+                			ScriptState.get().emitJobStartedNotification(
                                     job.getAssignedJobID().toString());                        
                 		}
                 		else{
@@ -351,7 +338,7 @@ public class MapReduceLauncher extends Launcher{
                     }
     
                 	// collect job stats by frequently polling of completed jobs (PIG-1829)
-                    MRPigStatsUtil.accumulateStats(jc);
+                	PigStatsUtil.accumulateStats(jc);
                 	
                     // if stop_on_failure is enabled, we need to stop immediately when any job has failed
                     checkStopOnFailure(stop_on_failure);
@@ -406,7 +393,7 @@ public class MapReduceLauncher extends Launcher{
                 succJobs.addAll(jobs);
                             
                 // collecting final statistics
-                MRPigStatsUtil.accumulateStats(jc);
+                PigStatsUtil.accumulateStats(jc);
 
         	}
         	catch (Exception e) {
@@ -417,7 +404,7 @@ public class MapReduceLauncher extends Launcher{
         	}
         }
 
-        MRScriptState.get().emitProgressUpdatedNotification(100);
+        ScriptState.get().emitProgressUpdatedNotification(100);
         
         log.info( "100% complete");
              
@@ -446,13 +433,13 @@ public class MapReduceLauncher extends Launcher{
                 for (POStore st: sts) {
                     failureMap.put(st.getSFile(), backendException);
                 }
-                MRPigStatsUtil.setBackendException(fj, backendException);
+                PigStatsUtil.setBackendException(fj, backendException);
             }
             failed = true;
         }
         
         // stats collection is done, log the results
-        MRPigStatsUtil.stopCollection(true); 
+        PigStatsUtil.stopCollection(true); 
         
         // PigStatsUtil.stopCollection also computes the return code based on
         // total jobs to run, jobs successful and jobs failed
@@ -505,30 +492,7 @@ public class MapReduceLauncher extends Launcher{
                 ? ReturnCode.PARTIAL_FAILURE
                 : ReturnCode.FAILURE)
                 : ReturnCode.SUCCESS; 
-        
-        PigStats pigStats = PigStatsUtilBase.getPigStats(ret);
-        // run cleanup for all of the stores
-             for (OutputStats output : pigStats.getOutputStats()) {
-                 POStore store = output.getPOStore();
-                 try {
-                     if (!output.isSuccessful()) {
-                         store.getStoreFunc().cleanupOnFailure(
-                                 store.getSFile().getFileName(),
-                                 new org.apache.hadoop.mapreduce.Job(output.getConf()));
-                     } else {
-                         store.getStoreFunc().cleanupOnSuccess(
-                                 store.getSFile().getFileName(),
-                                 new org.apache.hadoop.mapreduce.Job(output.getConf()));
-                     }
-                 } catch (IOException e) {
-                     throw new ExecException(e);
-                 } catch (AbstractMethodError nsme) {
-                     // Just swallow it.  This means we're running against an
-                     // older instance of a StoreFunc that doesn't implement
-                     // this method.
-                 }
-             }
-        return pigStats;
+        return PigStatsUtil.getPigStats(ret);
     }
 
     /**
@@ -574,7 +538,7 @@ public class MapReduceLauncher extends Launcher{
             int perCom = (int)(prog * 100);
             if(perCom!=100) {
                 log.info( perCom + "% complete");
-                MRScriptState.get().emitProgressUpdatedNotification(perCom);
+                ScriptState.get().emitProgressUpdatedNotification(perCom);
             }
             return true;
         }

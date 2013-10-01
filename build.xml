@@ -539,9 +539,6 @@
         <echo>*** Else, you will only be warned about deprecations ***</echo>
         <compileSources sources="${src.dir};${src.gen.dir};${src.lib.dir}/shock;${src.lib.dir}/bzip2;${src.shims.dir}"
             excludes="" dist="${build.classes}" cp="classpath" warnings="${javac.args.warnings}" />
-        <copy todir="${build.classes}/META-INF">
-            <fileset dir="${src.dir}/META-INF" includes="**"/>
-        </copy>
     </target>
 
     <target name="compile-test" depends="compile, ivy-test">
@@ -551,6 +548,7 @@
         <compileSources sources="${test.src.dir};${src.shims.test.dir}"
             excludes="**/PigTestLoader.java **/resources/** perf/**" dist="${test.build.classes}" cp="test.classpath" warnings="${javac.args.warnings}" />
         <copy file="${basedir}/test/hbase-site.xml" tofile="${test.build.classes}/hbase-site.xml"/>
+
         <ivy:cachepath pathid="mr-apps-test-ivy.classpath" conf="test" />
         <path id="mr-apps-test.classpath">
             <fileset dir="${clover.home}" erroronmissingdir="false">

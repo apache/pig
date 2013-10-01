@@ -240,7 +240,7 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
 
                 // if the execution is against Mapred DFS, set
                 // working dir to /user/<userid>
-                if(!pigContext.getExecType().isLocal()) {
+                if(pigContext.getExecType() == ExecType.MAPREDUCE) {
                     fs.setWorkingDirectory(jobcontext.getWorkingDirectory());
                 }
                 

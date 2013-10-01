@@ -38,7 +38,7 @@ import org.apache.pig.tools.grunt.GruntParser;
 import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.apache.pig.tools.pigstats.PigProgressNotificationListener;
 import org.apache.pig.tools.pigstats.PigStats;
-import org.apache.pig.tools.pigstats.PigStatsUtilBase;
+import org.apache.pig.tools.pigstats.PigStatsUtil;
 import org.apache.pig.tools.pigstats.ScriptState;
 
 /**
@@ -176,15 +176,15 @@ public class BoundScript {
                 stats.add(future.get());
             } catch (InterruptedException e) {
                 LOG.error("Pig pipeline failed to complete", e);
-                PigStatsUtilBase.getEmptyPigStats();
-                PigStatsUtilBase.setErrorMessage(e.getMessage());
-                PigStats failed = PigStatsUtilBase.getPigStats(ReturnCode.FAILURE);                    
+                PigStatsUtil.getEmptyPigStats();
+                PigStatsUtil.setErrorMessage(e.getMessage());
+                PigStats failed = PigStatsUtil.getPigStats(ReturnCode.FAILURE);                    
                 stats.add(failed);
             } catch (ExecutionException e) {
                 LOG.error("Pig pipeline failed to complete", e);
-                PigStatsUtilBase.getEmptyPigStats();
-                PigStatsUtilBase.setErrorMessage(e.getMessage());                  
-                PigStats failed = PigStatsUtilBase.getPigStats(ReturnCode.FAILURE);                    
+                PigStatsUtil.getEmptyPigStats();
+                PigStatsUtil.setErrorMessage(e.getMessage());                  
+                PigStats failed = PigStatsUtil.getPigStats(ReturnCode.FAILURE);                    
                 stats.add(failed);
             }
         }

@@ -51,7 +51,7 @@ public class ScriptingOutputCapturer {
         log.debug("JobId: " + jobId);
         log.debug("TaskId: " + taskId);
 
-        if (execType.isLocal()) {
+        if (execType == ExecType.LOCAL) {
             String logDir = System.getProperty("pig.udf.scripting.log.dir");
             if (logDir == null)
                 logDir = ".";

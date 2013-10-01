@@ -234,7 +234,7 @@ public class TestMapSideCogroup {
         boolean exceptionCaught = false;
         try{
             Util.buildPp(pigServer, query);   
-        }catch (FrontendException e){
+        }catch (java.lang.reflect.InvocationTargetException e){
             exceptionCaught = true;
         }
         assertTrue(exceptionCaught);

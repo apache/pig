@@ -24,7 +24,7 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROpPl
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.tools.pigstats.PigStats;
-import org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil;
+import org.apache.pig.tools.pigstats.PigStatsUtil;
 
 public class NativeMapReduceOper extends MapReduceOper {
     
@@ -77,20 +77,20 @@ public class NativeMapReduceOper extends MapReduceOper {
         RunJarSecurityManager secMan = new RunJarSecurityManager();
         try {
             RunJar.main(getNativeMRParams());
-            MRPigStatsUtil.addNativeJobStats(PigStats.get(), this, true);
+            PigStatsUtil.addNativeJobStats(PigStats.get(), this, true);
         } catch (SecurityException se) {
             if(secMan.getExitInvoked()) {
                 if(secMan.getExitCode() != 0) {
                     throw new JobCreationException("Native job returned with non-zero return code");
                 }
                 else {
-                    MRPigStatsUtil.addNativeJobStats(PigStats.get(), this, true);
+                    PigStatsUtil.addNativeJobStats(PigStats.get(), this, true);
                 }
             }
         } catch (Throwable t) {
             JobCreationException e = new JobCreationException(
                     "Cannot run native mapreduce job "+ t.getMessage(), t);
-            MRPigStatsUtil.addNativeJobStats(PigStats.get(), this, false, e);
+            PigStatsUtil.addNativeJobStats(PigStats.get(), this, false, e);
             throw e;
         } finally {
             secMan.retire();
