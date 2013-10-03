@@ -45,6 +45,8 @@ PIG-3174: Remove rpm and deb artifacts from build.xml (gates)
 
 IMPROVEMENTS
 
+PIG-3493: Add max/min for datetime (tyro89 via daijy)
+
 PIG-3479: Fix BigInt, BigDec, Date serialization. Improve perf of PigNullableWritable deserilization (dvryaboy)
 
 PIG-3461: Rewrite PartitionFilterOptimizer to make it work for all the cases (aniket486)
