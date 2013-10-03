@@ -125,6 +125,7 @@ sub runPig
     $pigcmd =~ s/:INPATH:/$testCmd->{'inpathbase'}/g;
     $pigcmd =~ s/:OUTPATH:/$outfile/g;
     $pigcmd =~ s/:FUNCPATH:/$testCmd->{'funcjarPath'}/g;
+    $pigcmd =~ s/:PIGGYBANKPATH:/$testCmd->{'piggybankjarPath'}/g;
     $pigcmd =~ s/:ZEBRAJAR:/$testCmd->{'zebrajar'}/g;
     $pigcmd =~ s/:RUNID:/$testCmd->{'UID'}/g;
     $pigcmd =~ s/:PIGHARNESS:/$ENV{PIG_HARNESS_ROOT}/g;
@@ -189,6 +190,7 @@ sub runPigSql
 	$pigcmd =~ s/:INPATH:/$testCmd->{'inpathbase'}/g;
 	$pigcmd =~ s/:OUTPATH:/$outfile/g;
 	$pigcmd =~ s/:FUNCPATH:/$testCmd->{'funcjarPath'}/g;
+	$pigcmd =~ s/:PIGGYBANKPATH:/$testCmd->{'piggybankjarPath'}/g;
 	$pigcmd =~ s/:RUNID:/$testCmd->{'UID'}/g;
 	$pigcmd =~ s/:PIGHARNESS:/$ENV{PIG_HARNESS_ROOT}/g;
 	$pigcmd =~ s/:USRHOMEPATH:/$testCmd->{'userhomePath'}/g;
@@ -276,6 +278,7 @@ sub runScript
 	$cmd =~ s/:INPATH:/$testCmd->{'inpathbase'}/g;
 	$cmd =~ s/:OUTPATH:/$outfile/g;
 	$cmd =~ s/:FUNCPATH:/$testCmd->{'funcjarPath'}/g;
+	$cmd =~ s/:PIGGYBANKPATH:/$testCmd->{'piggybankjarPath'}/g;
 	$cmd =~ s/:RUNID:/$testCmd->{'UID'}/g;
 	$cmd =~ s/:PIGHARNESS:/$ENV{PIG_HARNESS_ROOT}/g;
 	$cmd =~ s/:USRHOMEPATH:/$testCmd->{'userhomePath'}/g;
@@ -316,6 +319,7 @@ sub replaceParameters(){
 	$cmd =~ s/:INPATH:/$testCmd->{'inpathbase'}/g;
 	$cmd =~ s/:OUTPATH:/$outfile/g;
 	$cmd =~ s/:FUNCPATH:/$testCmd->{'funcjarPath'}/g;
+	$cmd =~ s/:PIGGYBANKPATH:/$testCmd->{'piggybankjarPath'}/g;
 	$cmd =~ s/:RUNID:/$testCmd->{'UID'}/g;
 	$cmd =~ s/:PIGHARNESS:/$ENV{PIG_HARNESS_ROOT}/g;
 	$cmd =~ s/:USRHOMEPATH:/$testCmd->{'userhomePath'}/g;
