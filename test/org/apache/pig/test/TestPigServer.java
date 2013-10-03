@@ -601,6 +601,25 @@ public class TestPigServer {
         assertFalse(iter.hasNext());
     }
 
+    // PIG-3469
+    @Test
+    public void testNonExistingSecondDirectoryInSkewJoin() throws Exception {
+        String script =
+          "exists = LOAD 'test/org/apache/pig/test/data/InputFiles/jsTst1.txt' AS (x:chararray, a:long);" +
+          "missing = LOAD '/non/existing/directory' AS (a:long);" +
+          "missing = FOREACH ( GROUP missing BY a ) GENERATE $0 AS a, COUNT_STAR($1);" +
+          "joined = JOIN exists BY a, missing BY a USING 'skewed';" +
+          "STORE joined INTO '/tmp/test_out.tsv';";
+
+        PigServer pig = new PigServer(ExecType.LOCAL);
+        // Execution of the script should fail, but without throwing any exceptions (such as NPE)
+        try {
+            pig.registerScript(new ByteArrayInputStream(script.getBytes("UTF-8")));
+        } catch(Exception ex) {
+            fail("Unexpected exception: " + ex);
+        }
+    }
+
     @Test
     public void testParamSubstitution() throws Exception{
         // using params map

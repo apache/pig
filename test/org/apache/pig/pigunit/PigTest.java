@@ -192,6 +192,14 @@ public class PigTest {
     registerScript();
     return getPigServer().openIterator(alias);
   }
+  
+  /**
+   * Gets an iterator on the content of one alias of a cached script. The script itself
+   * must be already be registered with registerScript().
+   */
+  private Iterator<Tuple> getAliasFromCache(String alias) throws IOException, ParseException {
+    return getPigServer().openIterator(alias);
+  }
 
   /**
    * Gets an iterator on the content of the latest STORE alias of the script.
@@ -203,7 +211,7 @@ public class PigTest {
     registerScript();
     String alias = aliasOverrides.get("LAST_STORE_ALIAS");
 
-    return getAlias(alias);
+    return getAliasFromCache(alias);
   }
 
   /**
@@ -234,26 +242,26 @@ public class PigTest {
     registerScript();
     String alias = aliasOverrides.get("LAST_STORE_ALIAS");
 
-    assertEquals(StringUtils.join(expected, "\n"), StringUtils.join(getAlias(alias), "\n"));
+    assertEquals(StringUtils.join(expected, "\n"), StringUtils.join(getAliasFromCache(alias), "\n"));
   }
 
   public void assertOutput(String alias, String[] expected) throws IOException, ParseException {
     registerScript();
 
-    assertEquals(StringUtils.join(expected, "\n"), StringUtils.join(getAlias(alias), "\n"));
+    assertEquals(StringUtils.join(expected, "\n"), StringUtils.join(getAliasFromCache(alias), "\n"));
   }
 
   public void assertOutput(File expected) throws IOException, ParseException {
     registerScript();
     String alias = aliasOverrides.get("LAST_STORE_ALIAS");
 
-    assertEquals(readFile(expected).replaceAll("\r\n", "\n"), StringUtils.join(getAlias(alias), "\n"));
+    assertEquals(readFile(expected).replaceAll("\r\n", "\n"), StringUtils.join(getAliasFromCache(alias), "\n"));
   }
 
   public void assertOutput(String alias, File expected) throws IOException, ParseException {
     registerScript();
 
-    assertEquals(readFile(expected).replaceAll("\r\n", "\n"), StringUtils.join(getAlias(alias), "\n"));
+    assertEquals(readFile(expected).replaceAll("\r\n", "\n"), StringUtils.join(getAliasFromCache(alias), "\n"));
   }
 
   public void assertOutput(String aliasInput, String[] input, String alias, String[] expected)

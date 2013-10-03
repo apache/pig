@@ -26,6 +26,8 @@ import org.apache.pig.StreamToPig;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 
+import com.google.common.base.Charsets;
+
 /**
  * {@link OutputHandler} is responsible for handling the output of the
  * Pig-Streaming external command.
@@ -36,6 +38,9 @@ import org.apache.pig.impl.io.BufferedPositionedInputStream;
  * process wrote its output.
  */
 public abstract class OutputHandler {
+    public static final Object END_OF_OUTPUT = new Object();
+    private static final byte[] DEFAULT_RECORD_DELIM = new byte[] {'\n'};
+
     public enum OutputType {SYNCHRONOUS, ASYNCHRONOUS}
 
     /*
@@ -53,6 +58,11 @@ public abstract class OutputHandler {
     private Text currValue = new Text();
 
     private BufferedPositionedInputStream istream;
+    
+    //Both of these ignore the trailing \n.  So if the
+    //default delimiter is "\n" recordDelimStr is "".
+    private String recordDelimStr = null;
+    private int recordDelimLength = 0;
 
     /**
      * Get the handled <code>OutputType</code>.
@@ -92,8 +102,7 @@ public abstract class OutputHandler {
         }
 
         currValue.clear();
-        int num = in.readLine(currValue);
-        if (num <= 0) {
+        if (!readValue()) {
             return null;
         }
 
@@ -104,6 +113,54 @@ public abstract class OutputHandler {
             System.arraycopy(currValue.getBytes(), 0, newBytes, 0, currValue.getLength());
             return deserializer.deserialize(newBytes);
         }
+    }
+
+    private boolean readValue() throws IOException {
+        int num = in.readLine(currValue);
+        if (num <= 0) {
+            return false;
+        }
+
+        while(!isEndOfRow()) {
+            //Need to add back the newline character we ate.
+            currValue.append(new byte[] {'\n'}, 0, 1);
+
+            byte[] lineBytes = readNextLine();
+            if (lineBytes == null) {
+                //We have no more input, so just break;
+                break;
+            }
+            currValue.append(lineBytes, 0, lineBytes.length);
+        }
+        
+        return true;
+    }
+    
+    private byte[] readNextLine() throws IOException {
+        Text line = new Text();
+        int num = in.readLine(line);
+        byte[] lineBytes = line.getBytes();
+        if (num <= 0) {
+            return null;
+        }
+        
+        return lineBytes;
+    }
+
+    private boolean isEndOfRow() {
+        if (recordDelimStr == null) {
+            byte[] recordDelimBa = getRecordDelimiter();
+            recordDelimLength = recordDelimBa.length - 1; //Ignore trailing \n
+            recordDelimStr = new String(recordDelimBa, 0, recordDelimLength,  Charsets.UTF_8);
+        }
+        if (recordDelimLength == 0 || currValue.getLength() < recordDelimLength) {
+            return true;
+        }
+        return currValue.find(recordDelimStr, currValue.getLength() - recordDelimLength) >= 0;
+    }
+    
+    protected byte[] getRecordDelimiter() {
+        return DEFAULT_RECORD_DELIM;
     }
 
     /**

@@ -17,32 +17,24 @@
  */
 package org.apache.pig.impl.streaming;
 
-import static org.apache.pig.PigConfiguration.PIG_STREAMING_ENVIRONMENT;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
-import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.streaming.InputHandler.InputType;
 import org.apache.pig.impl.streaming.OutputHandler.OutputType;
 import org.apache.pig.impl.util.UDFContext;
@@ -60,12 +52,9 @@ import org.apache.pig.impl.util.UDFContext;
 public class ExecutableManager {
     private static final Log LOG = LogFactory.getLog(ExecutableManager.class);
     private static final int SUCCESS = 0;
-    private static final String PATH = "PATH";
-    private static final String BASH = "bash";
     private static final Result EOS_RESULT = new Result(POStatus.STATUS_EOS, null);
 
     protected StreamingCommand command; // Streaming command to be run
-    String argvAsString; // Parsed commands
 
     Process process; // Handle to the process
     protected int exitCode = -127; // Exit code of the process
@@ -109,12 +98,6 @@ public class ExecutableManager {
     public void configure(POStream stream) throws IOException, ExecException {
         this.poStream = stream;
         this.command = stream.getCommand();
-        String[] argv = this.command.getCommandArgs();
-        argvAsString = "";
-        for (String arg : argv) {
-            argvAsString += arg;
-            argvAsString += " ";
-        }
 
         // Create the input/output handlers
         this.inputHandler = HandlerFactory.createInputHandler(command);
@@ -204,57 +187,6 @@ public class ExecutableManager {
     }
 
     /**
-     * Set up the run-time environment of the managed process.
-     *
-     * @param pb
-     *            {@link ProcessBuilder} used to exec the process
-     */
-    protected void setupEnvironment(ProcessBuilder pb) {
-        String separator = ":";
-        Configuration conf = UDFContext.getUDFContext().getJobConf();
-        Map<String, String> env = pb.environment();
-        addJobConfToEnvironment(conf, env);
-
-        // Add the current-working-directory to the $PATH
-        File dir = pb.directory();
-        String cwd = (dir != null) ? dir.getAbsolutePath() : System
-                .getProperty("user.dir");
-
-        String envPath = env.get(PATH);
-        if (envPath == null) {
-            envPath = cwd;
-        } else {
-            envPath = envPath + separator + cwd;
-        }
-        env.put(PATH, envPath);
-    }
-
-    void addJobConfToEnvironment(Configuration conf, Map<String, String> env) {
-        String propsToSend = conf.get(PIG_STREAMING_ENVIRONMENT);
-        LOG.debug("Properties to ship to streaming environment set in "+PIG_STREAMING_ENVIRONMENT+": " + propsToSend);
-        if (propsToSend == null) {
-            return;
-        }
-
-        for (String prop : propsToSend.split(",")) {
-            String value = conf.get(prop);
-            if (value == null) {
-                LOG.warn("Property set in "+PIG_STREAMING_ENVIRONMENT+" not found in Configuration: " + prop);
-                continue;
-            }
-            LOG.debug("Setting property in streaming environment: " + prop);
-            envPut(env, prop, value);
-        }
-    }
-
-    void envPut(Map<String, String> env, String name, String value) {
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Add  env entry:" + name + "=" + value);
-        }
-        env.put(name, value);
-    }
-
-    /**
      * Start execution of the external process.
      *
      * This takes care of setting up the environment of the process and also
@@ -264,26 +196,7 @@ public class ExecutableManager {
      * @throws IOException
      */
     protected void exec() throws IOException {
-        // Set the actual command to run with 'bash -c exec ...'
-        List<String> cmdArgs = new ArrayList<String>();
-
-        if (System.getProperty("os.name").toUpperCase().startsWith("WINDOWS")) {
-          cmdArgs.add("cmd");
-          cmdArgs.add("/c");
-          cmdArgs.add(argvAsString);
-        } else {
-          cmdArgs.add(BASH);
-          cmdArgs.add("-c");
-          StringBuffer sb = new StringBuffer();
-          sb.append("exec ");
-          sb.append(argvAsString);
-          cmdArgs.add(sb.toString());
-        }
-
-        // Start the external process
-        ProcessBuilder processBuilder = new ProcessBuilder(cmdArgs
-                .toArray(new String[cmdArgs.size()]));
-        setupEnvironment(processBuilder);
+        ProcessBuilder processBuilder = StreamingUtil.createProcess(this.command);
         process = processBuilder.start();
         LOG.debug("Started the process for command: " + command);
 
@@ -514,7 +427,7 @@ public class ExecutableManager {
                 try {
                     Result res = new Result();
                     res.result = "Error reading output from Streaming binary:" +
-                            "'" + argvAsString + "':" + t.getMessage();
+                            "'" + command.toString() + "':" + t.getMessage();
                     res.returnStatus = POStatus.STATUS_ERR;
                     sendOutput(binaryOutputQueue, res);
                     killProcess(process);
@@ -547,7 +460,7 @@ public class ExecutableManager {
 
                     }
                     // signal error
-                    String errMsg = "Failure while waiting for process (" + argvAsString + ")" +
+                    String errMsg = "Failure while waiting for process (" + command.toString() + ")" +
                             ie.getMessage();
                     LOG.error(errMsg, ie);
                     res.result = errMsg;
@@ -561,7 +474,7 @@ public class ExecutableManager {
                 } else {
                     // signal Error
 
-                    String errMsg = "'" + argvAsString + "'" + " failed with exit status: "
+                    String errMsg = "'" + command.toString() + "'" + " failed with exit status: "
                             + exitCode;
                     LOG.error(errMsg);
                     res.result = errMsg;

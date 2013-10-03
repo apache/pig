@@ -70,6 +70,7 @@ import org.junit.Test;
  * condition in the filter following a load which talks to metadata system (.i.e.
  * implements {@link LoadMetadata})
  */
+@Deprecated
 public class TestPartitionFilterPushDown {
     static PigContext pc = new PigContext(ExecType.LOCAL, new Properties());
     String query = "a = load 'foo' as (srcid:int, mrkt:chararray, dstid:int, name:chararray, " +

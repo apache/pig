@@ -20,6 +20,7 @@ package org.apache.pig.newplan.logical.rules;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.OperatorPlan;
+import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LOStream;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
@@ -53,11 +54,16 @@ public class StreamTypeCastInserter extends TypeCastInserter {
 
     @Override
     protected void markCastInserted(LogicalRelationalOperator op) {
-        ((LOStream)op).setCastInserted(true);
+        ((LOStream)op).setCastState(LOStream.CastState.INSERTED);
+    }
+    
+    @Override
+    protected void markCastNoNeed(LogicalRelationalOperator op) {
+        ((LOStream)op).setCastState(LOStream.CastState.NONEED);
     }
 
     @Override
-    protected boolean isCastInserted(LogicalRelationalOperator op) {
-        return ((LOStream)op).isCastInserted();
+    protected boolean isCastAdjusted(LogicalRelationalOperator op) {
+        return ((LOStream)op).isCastAdjusted();
     }
 }

@@ -100,15 +100,6 @@ public interface LoadCaster {
     /**
      * Cast data from bytearray to map value.
      * @param b bytearray to be cast.
-     * @return Map value.
-     * @throws IOException if the value cannot be cast.
-     */
-    @Deprecated
-    public Map<String, Object> bytesToMap(byte[] b) throws IOException;
-
-    /**
-     * Cast data from bytearray to map value.
-     * @param b bytearray to be cast.
      * @param fieldSchema field schema for the output map
      * @return Map value.
      * @throws IOException if the value cannot be cast.

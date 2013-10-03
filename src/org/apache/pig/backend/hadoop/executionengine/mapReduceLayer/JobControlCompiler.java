@@ -54,6 +54,7 @@ import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -104,7 +105,6 @@ import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.impl.util.Utils;
-import org.apache.pig.tools.pigstats.ScriptState;
 import org.apache.pig.tools.pigstats.mapreduce.MRScriptState;
 
 /**
@@ -436,7 +436,7 @@ public class JobControlCompiler{
         Path tmpLocation = null;
 
         // add settings for pig statistics
-        String setScriptProp = conf.get(ScriptState.INSERT_ENABLED, "true");
+        String setScriptProp = conf.get(PigConfiguration.INSERT_ENABLED, "true");
         if (setScriptProp.equalsIgnoreCase("true")) {
             MRScriptState ss = MRScriptState.get();
             ss.addSettingsToConf(mro, conf);
@@ -864,7 +864,7 @@ public class JobControlCompiler{
             org.apache.hadoop.mapreduce.Job nwJob) throws IOException {
         int jobParallelism = calculateRuntimeReducers(mro, nwJob);
 
-        if (mro.isSampler()) {
+        if (mro.isSampler() && plan.getSuccessors(mro) != null) {
             // We need to calculate the final number of reducers of the next job (order-by or skew-join)
             // to generate the quantfile.
             MapReduceOper nextMro = plan.getSuccessors(mro).get(0);

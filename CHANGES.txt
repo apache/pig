@@ -19,6 +19,22 @@
 Pig Change Log
 
 Trunk (unreleased changes)
+ 
+INCOMPATIBLE CHANGES
+
+PIG-3485: Remove CastUtils.bytesToMap(byte[] b) method from LoadCaster interface (cheolsoo)
+
+IMPROVEMENTS
+
+PIG-3484: Make the size of pig.script property configurable (cheolsoo)
+ 
+OPTIMIZATIONS
+ 
+BUG FIXES
+
+PIG-3469: Skewed join can cause unrecoverable NullPointerException when one of its inputs is missing (Jarek Jarcec Cecho  via xuefuz)
+
+Release 0.12.0 (unreleased changes)
 
 INCOMPATIBLE CHANGES
 
@@ -29,6 +45,17 @@ PIG-3191: [piggybank] MultiStorage output filenames are not sortable (Danny Anto
 PIG-3174: Remove rpm and deb artifacts from build.xml (gates)
 
 IMPROVEMENTS
+
+PIG-3470: Print configuration variables in grunt (lbendig via daijy)
+
+PIG-3493: Add max/min for datetime (tyro89 via daijy)
+
+PIG-3479: Fix BigInt, BigDec, Date serialization. Improve perf of PigNullableWritable deserilization (dvryaboy)
+
+PIG-3461: Rewrite PartitionFilterOptimizer to make it work for all the cases (aniket486)
+
+PIG-2417: Streaming UDFs - allow users to easily write UDFs in scripting languages with no
+          JVM implementation. (jeremykarn via daijy)
 
 PIG-3199: Provide a method to retriever name of loader/storer in PigServer (prkommireddi via daijy)
 
@@ -233,6 +260,26 @@ PIG-3123: Simplify Logical Plans By Removing Unneccessary Identity Projections (
 PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
+
+PIG-3495: Streaming udf e2e tests failures on Windows (daijy)
+
+PIG-3292: Logical plan invalid state: duplicate uid in schema during self-join to get cross product (cheolsoo via daijy)
+
+PIG-3491: Fix e2e failure Jython_Diagnostics_4 (daijy)
+
+PIG-3434: Null subexpression in bincond nullifies outer tuple (or bag) (mwagner via daijy)
+
+PIG-3114: Duplicated macro name error when using pigunit (daijy)
+
+PIG-3370: Add New Reserved Keywords To The Pig Docs (cheolsoo)
+
+PIG-3487: Fix syntax errors in nightly.conf (arpitgupta via daijy)
+
+PIG-3458: ScalarExpression lost with multiquery optimization (knoguchi)
+
+PIG-3360: Some intermittent negative e2e tests fail on hadoop 2 (daijy)
+
+PIG-3468: PIG-3123 breaks e2e test Jython_Diagnostics_2 (daijy)
 
 PIG-3471: Add a base abstract class for ExecutionEngine (cheolsoo)
 

@@ -340,8 +340,6 @@ if (defined($ENV{'HARNESS_RESOURCE'})) {
     $harnessRes = $ENV{'HARNESS_RESOURCE'};
 } elsif($^O =~ /mswin/i) {
    $harnessRes = "$ROOT/resource/windows.res";
-} elsif ($globalCfg->{'hadoopversion'} == '23') {
-   $harnessRes = "$ROOT/resource/hadoop23.res";
 } else {
    $harnessRes = "$ROOT/resource/default.res";
 }

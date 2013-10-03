@@ -35,6 +35,8 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.DefaultBagFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.util.Utils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.Test;
@@ -129,79 +131,73 @@ public class TestTextDataParser {
         assertEquals(myString, s);
     }
 
-
-    //the value types of a map should always be a byte array
-    //irrespective of the actual type
-    @SuppressWarnings("unchecked")
     @Test
     public void testMapStringValueType() throws Exception{
         String myMap = "[key1#value1]";
-        Map<String, Object> map = ps.getLoadCaster().bytesToMap(myMap.getBytes());
+        Schema schema = Utils.getSchemaFromString("m:map[chararray]");
+        ResourceFieldSchema rfs = new ResourceSchema(schema).getFields()[0];
+        Map<String, Object> map = ps.getLoadCaster().bytesToMap(myMap.getBytes(), rfs);
         String key = map.keySet().iterator().next();
         Object v = map.get("key1");
         assertEquals("key1", key);
-        assertTrue(v instanceof DataByteArray);
-        String value = new String(((DataByteArray)v).get());
+        assertTrue(v instanceof String);
+        String value = String.valueOf(v);
         assertEquals("value1", value);
     }
 
-    //the value types of a map should always be a byte array
-    //irrespective of the actual type
-    @SuppressWarnings("unchecked")
     @Test
     public void testMapIntegerValueType() throws Exception{
         String myMap = "[key1#1]";
-        Map<String, Object> map = ps.getLoadCaster().bytesToMap(myMap.getBytes());
+        Schema schema = Utils.getSchemaFromString("m:map[int]");
+        ResourceFieldSchema rfs = new ResourceSchema(schema).getFields()[0];
+        Map<String, Object> map = ps.getLoadCaster().bytesToMap(myMap.getBytes(), rfs);
         String key = map.keySet().iterator().next();
         Object v = map.get("key1");
         assertEquals("key1", key);
-        assertTrue(v instanceof DataByteArray);
-        String value = new String(((DataByteArray)v).get());
+        assertTrue(v instanceof Integer);
+        String value = String.valueOf(v);
         assertEquals("1", value);
     }
 
-    //the value types of a map should always be a byte array
-    //irrespective of the actual type
-    @SuppressWarnings("unchecked")
     @Test
     public void testMapLongValueType() throws Exception{
         String myMap = "[key1#1l]";
-        Map<String, Object> map = ps.getLoadCaster().bytesToMap(myMap.getBytes());
+        Schema schema = Utils.getSchemaFromString("m:map[long]");
+        ResourceFieldSchema rfs = new ResourceSchema(schema).getFields()[0];
+        Map<String, Object> map = ps.getLoadCaster().bytesToMap(myMap.getBytes(), rfs);
         String key = map.keySet().iterator().next();
         Object v = map.get("key1");
         assertEquals("key1", key);
-        assertTrue(v instanceof DataByteArray);
-        String value = new String(((DataByteArray)v).get());
-        assertEquals("1l", value);
+        assertTrue(v instanceof Long);
+        String value = String.valueOf(v);
+        assertEquals("1", value);
     }
 
-    //the value types of a map should always be a byte array
-    //irrespective of the actual type
-    @SuppressWarnings("unchecked")
     @Test
     public void testMapFloatValueType() throws Exception{
         String myMap = "[key1#0.1f]";
-        Map<String, Object> map = ps.getLoadCaster().bytesToMap(myMap.getBytes());
+        Schema schema = Utils.getSchemaFromString("m:map[float]");
+        ResourceFieldSchema rfs = new ResourceSchema(schema).getFields()[0];
+        Map<String, Object> map = ps.getLoadCaster().bytesToMap(myMap.getBytes(), rfs);
         String key = map.keySet().iterator().next();
         Object v = map.get("key1");
         assertEquals("key1", key);
-        assertTrue(v instanceof DataByteArray);
-        String value = new String(((DataByteArray)v).get());
-        assertEquals("0.1f", value);
+        assertTrue(v instanceof Float);
+        String value = String.valueOf(v);
+        assertEquals("0.1", value);
     }
 
-    //the value types of a map should always be a byte array
-    //irrespective of the actual type
-    @SuppressWarnings("unchecked")
     @Test
     public void testMapDoubleValueType() throws Exception{
         String myMap = "[key1#0.1]";
-        Map<String, Object> map = ps.getLoadCaster().bytesToMap(myMap.getBytes());
+        Schema schema = Utils.getSchemaFromString("m:map[double]");
+        ResourceFieldSchema rfs = new ResourceSchema(schema).getFields()[0];
+        Map<String, Object> map = ps.getLoadCaster().bytesToMap(myMap.getBytes(), rfs);
         String key = map.keySet().iterator().next();
         Object v = map.get("key1");
         assertEquals("key1", key);
-        assertTrue(v instanceof DataByteArray);
-        String value = new String(((DataByteArray)v).get());
+        assertTrue(v instanceof Double);
+        String value = String.valueOf(v);
         assertEquals("0.1", value);
     }
 

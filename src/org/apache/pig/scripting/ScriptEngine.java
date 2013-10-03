@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import org.apache.hadoop.util.Shell;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.tools.pigstats.PigStats;
@@ -50,7 +51,9 @@ public abstract class ScriptEngine {
         jruby(new String[]{"ruby", "jruby"}, new String[]{"rb"}, "org.apache.pig.scripting.jruby.JrubyScriptEngine"),
         jython(new String[]{"python", "jython"}, new String[]{"py"}, "org.apache.pig.scripting.jython.JythonScriptEngine"),
         javascript(new String[]{}, new String[]{"js"}, "org.apache.pig.scripting.js.JsScriptEngine"),
-        groovy(new String[]{}, new String[]{"groovy"}, "org.apache.pig.scripting.groovy.GroovyScriptEngine");
+        groovy(new String[]{}, new String[]{"groovy"}, "org.apache.pig.scripting.groovy.GroovyScriptEngine"),
+        streaming_python(new String[]{"streaming_python"}, new String[]{}, "org.apache.pig.scripting.streaming.python.PythonScriptEngine");
+
 
         private static Set<String> supportedScriptLangs;
         static {
@@ -133,6 +136,9 @@ public abstract class ScriptEngine {
                 throw new IllegalStateException("could not find existing file "+scriptPath, e);
             }
         } else {
+            if (Shell.WINDOWS && scriptPath.charAt(1)==':') {
+                scriptPath = scriptPath.charAt(0) + scriptPath.substring(2);
+            }
             // Try system, current and context classloader.
             is = ScriptEngine.class.getResourceAsStream(scriptPath);
             if (is == null) {

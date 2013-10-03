@@ -67,7 +67,7 @@ public abstract class TypeCastInserter extends Rule {
             if (s == null) return false;
 
             // only process each node once
-            if (isCastInserted(op)) return false;
+            if (isCastAdjusted(op)) return false;
 
             if (op instanceof LOLoad) {
                 if (((LOLoad)op).getScriptSchema()==null) return false;
@@ -144,7 +144,7 @@ public abstract class TypeCastInserter extends Rule {
                 new ColumnPruneVisitor(currentPlan, requiredMap , true).visit((LOLoad) op);
 
                 // we only want to process this node once, so mark it:
-                markCastInserted(op);
+                markCastNoNeed(op);
                 return;
             }
 
@@ -208,5 +208,7 @@ public abstract class TypeCastInserter extends Rule {
 
     protected abstract void markCastInserted(LogicalRelationalOperator op);
 
-    protected abstract boolean isCastInserted(LogicalRelationalOperator op);
+    protected abstract void markCastNoNeed(LogicalRelationalOperator op);
+
+    protected abstract boolean isCastAdjusted(LogicalRelationalOperator op);
 }

@@ -118,11 +118,6 @@ implements StoreFuncInterface, LoadMetadata {
         }
 
         @Override
-        public Map<String, Object> bytesToMap(byte[] b) throws IOException {
-            return bytesToMap(b, null);
-        }
-
-        @Override
         public Map<String, Object> bytesToMap(byte[] b, ResourceFieldSchema fieldSchema) throws IOException {
             throw new ExecException(unImplementedErrorMessage, 1118);
         }

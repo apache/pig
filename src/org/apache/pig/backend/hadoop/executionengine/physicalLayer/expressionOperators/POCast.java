@@ -1384,14 +1384,7 @@ public class POCast extends ExpressionOperator {
                     result = obj;
             } else if (obj instanceof DataByteArray) {
                 if (null != caster) {
-                    try {
-                        result = caster.bytesToMap(((DataByteArray)obj).get(), fs);
-                    }  catch(AbstractMethodError e) {
-                        // this is for backward compatibility wherein some old LoadCaster
-                        // which does not implement bytesToMap(byte[] b, ResourceFieldSchema fieldSchema)
-                        // In this case, we only cast bytes to map, but leave the value as bytearray
-                        result = caster.bytesToMap(((DataByteArray)obj).get());
-                    }
+                    result = caster.bytesToMap(((DataByteArray)obj).get(), fs);
                 } else {
                     int errCode = 1075;
                     String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to tuple.";
@@ -1955,14 +1948,7 @@ public class POCast extends ExpressionOperator {
                 }
                 try {
                     if (null != caster) {
-                        try {
-                            res.result = caster.bytesToMap(dba.get(), fieldSchema);
-                        } catch(AbstractMethodError e) {
-                            // this is for backward compatibility wherein some old LoadCaster
-                            // which does not implement bytesToMap(byte[] b, ResourceFieldSchema fieldSchema)
-                            // In this case, we only cast bytes to map, but leave the value as bytearray
-                            res.result = caster.bytesToMap(dba.get());
-                        }
+                        res.result = caster.bytesToMap(dba.get(), fieldSchema);
                     } else {
                         int errCode = 1075;
                         String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to map.";

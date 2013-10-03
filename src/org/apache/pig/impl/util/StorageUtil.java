@@ -21,11 +21,11 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-
-import org.joda.time.DateTime;
 
 import org.apache.hadoop.io.Text;
 import org.apache.pig.PigException;
@@ -37,6 +37,10 @@ import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.streaming.StreamingDelimiters;
+import org.joda.time.DateTime;
+
+import com.google.common.base.Charsets;
 
 /**
  * This util class provides methods that are shared by storage class
@@ -44,9 +48,23 @@ import org.apache.pig.data.TupleFactory;
  *
  */
 public final class StorageUtil {
-
-    private static final String UTF8 = "UTF-8";
-
+    private static Map<Byte, byte[]> TYPE_INDICATOR;
+    static {
+        TYPE_INDICATOR = new HashMap<Byte, byte[]>();
+        TYPE_INDICATOR.put(DataType.BOOLEAN, new byte[] {'B'});
+        TYPE_INDICATOR.put(DataType.INTEGER, new byte[] {'I'});
+        TYPE_INDICATOR.put(DataType.LONG, new byte[] {'L'});
+        TYPE_INDICATOR.put(DataType.FLOAT, new byte[] {'F'});
+        TYPE_INDICATOR.put(DataType.DOUBLE, new byte[] {'D'});
+        TYPE_INDICATOR.put(DataType.BYTEARRAY, new byte[] {'A'});
+        TYPE_INDICATOR.put(DataType.CHARARRAY, new byte[] {'C'});
+        TYPE_INDICATOR.put(DataType.DATETIME, new byte[] {'T'});
+        TYPE_INDICATOR.put(DataType.BIGINTEGER, new byte[] {'N'});
+        TYPE_INDICATOR.put(DataType.BIGDECIMAL, new byte[] {'E'});
+    }
+    
+    public static final StreamingDelimiters DEFAULT_DELIMITERS = new StreamingDelimiters();
+    
     /**
      * Transform a <code>String</code> into a byte representing the
      * field delimiter.
@@ -94,6 +112,14 @@ public final class StorageUtil {
         return fieldDel;
     }
 
+    public static void putField(OutputStream out, Object field) throws IOException {
+        putField(out, field, DEFAULT_DELIMITERS, false);
+    }
+    
+    public static void putField(OutputStream out, Object field, boolean includeTypeInformation) throws IOException {
+        putField(out, field, DEFAULT_DELIMITERS, includeTypeInformation);
+    }
+    
     /**
      * Serialize an object to an {@link OutputStream} in the
      * field-delimited form.
@@ -103,113 +129,112 @@ public final class StorageUtil {
      * @throws IOException if serialization fails.
      */
     @SuppressWarnings("unchecked")
-    public static void putField(OutputStream out, Object field)
+    public static void putField(OutputStream out, Object field, StreamingDelimiters delims, boolean includeTypeInformation)
     throws IOException {
-        //string constants for each delimiter
-        String tupleBeginDelim = "(";
-        String tupleEndDelim = ")";
-        String bagBeginDelim = "{";
-        String bagEndDelim = "}";
-        String mapBeginDelim = "[";
-        String mapEndDelim = "]";
-        String fieldDelim = ",";
-        String mapKeyValueDelim = "#";
-
         switch (DataType.findType(field)) {
         case DataType.NULL:
-            break; // just leave it empty
+            out.write(delims.getNull());
+            break;
 
         case DataType.BOOLEAN:
-            out.write(((Boolean)field).toString().getBytes());
+            writeField(out, ((Boolean)field).toString().getBytes(Charset.defaultCharset()), 
+                    DataType.BOOLEAN, includeTypeInformation);
             break;
 
         case DataType.INTEGER:
-            out.write(((Integer)field).toString().getBytes());
+            writeField(out, ((Integer)field).toString().getBytes(Charset.defaultCharset()), 
+                    DataType.INTEGER, includeTypeInformation);
             break;
 
         case DataType.LONG:
-            out.write(((Long)field).toString().getBytes());
+            writeField(out, ((Long)field).toString().getBytes(Charset.defaultCharset()), 
+                    DataType.LONG, includeTypeInformation);
             break;
 
         case DataType.FLOAT:
-            out.write(((Float)field).toString().getBytes());
+            writeField(out, ((Float)field).toString().getBytes(Charset.defaultCharset()), 
+                    DataType.FLOAT, includeTypeInformation);
             break;
 
         case DataType.DOUBLE:
-            out.write(((Double)field).toString().getBytes());
+            writeField(out, ((Double)field).toString().getBytes(Charset.defaultCharset()), 
+                    DataType.DOUBLE, includeTypeInformation);
             break;
 
         case DataType.BIGINTEGER:
-            out.write(((BigInteger)field).toString().getBytes());
+            writeField(out, ((BigInteger)field).toString().getBytes(Charset.defaultCharset()),
+                    DataType.BIGINTEGER, includeTypeInformation);
             break;
 
         case DataType.BIGDECIMAL:
-            out.write(((BigDecimal)field).toString().getBytes());
+            writeField(out, ((BigDecimal)field).toString().getBytes(Charset.defaultCharset()),
+                    DataType.BIGDECIMAL, includeTypeInformation);
             break;
 
         case DataType.DATETIME:
-            out.write(((DateTime)field).toString().getBytes());
+            writeField(out, ((DateTime)field).toString().getBytes(Charset.defaultCharset()),
+                    DataType.DATETIME, includeTypeInformation);
             break;
 
         case DataType.BYTEARRAY:
-            byte[] b = ((DataByteArray)field).get();
-            out.write(b, 0, b.length);
+            writeField(out, ((DataByteArray)field).get(), 
+                    DataType.BYTEARRAY, includeTypeInformation);
             break;
 
         case DataType.CHARARRAY:
-            // oddly enough, writeBytes writes a string
-            out.write(((String)field).getBytes(UTF8));
+            writeField(out, ((String)field).getBytes(Charsets.UTF_8), 
+                    DataType.CHARARRAY, includeTypeInformation);
             break;
 
         case DataType.MAP:
             boolean mapHasNext = false;
             Map<String, Object> m = (Map<String, Object>)field;
-            out.write(mapBeginDelim.getBytes(UTF8));
+            out.write(delims.getMapBegin());
             for(Map.Entry<String, Object> e: m.entrySet()) {
                 if(mapHasNext) {
-                    out.write(fieldDelim.getBytes(UTF8));
+                    out.write(delims.getFieldDelim());
                 } else {
                     mapHasNext = true;
                 }
-                putField(out, e.getKey());
-                out.write(mapKeyValueDelim.getBytes(UTF8));
-                putField(out, e.getValue());
+                putField(out, e.getKey(), delims, includeTypeInformation);
+                out.write(delims.getMapKeyDelim());
+                putField(out, e.getValue(), delims, includeTypeInformation);
             }
-            out.write(mapEndDelim.getBytes(UTF8));
+            out.write(delims.getMapEnd());
             break;
 
         case DataType.TUPLE:
             boolean tupleHasNext = false;
             Tuple t = (Tuple)field;
-            out.write(tupleBeginDelim.getBytes(UTF8));
+            out.write(delims.getTupleBegin());
             for(int i = 0; i < t.size(); ++i) {
                 if(tupleHasNext) {
-                    out.write(fieldDelim.getBytes(UTF8));
+                    out.write(delims.getFieldDelim());
                 } else {
                     tupleHasNext = true;
                 }
                 try {
-                    putField(out, t.get(i));
+                    putField(out, t.get(i), delims, includeTypeInformation);
                 } catch (ExecException ee) {
                     throw ee;
                 }
             }
-            out.write(tupleEndDelim.getBytes(UTF8));
+            out.write(delims.getTupleEnd());
             break;
 
         case DataType.BAG:
             boolean bagHasNext = false;
-            out.write(bagBeginDelim.getBytes(UTF8));
+            out.write(delims.getBagBegin());
             Iterator<Tuple> tupleIter = ((DataBag)field).iterator();
             while(tupleIter.hasNext()) {
                 if(bagHasNext) {
-                    out.write(fieldDelim.getBytes(UTF8));
+                    out.write(delims.getFieldDelim());
                 } else {
                     bagHasNext = true;
                 }
-                putField(out, (Object)tupleIter.next());
+                putField(out, (Object)tupleIter.next(), delims, includeTypeInformation);
             }
-            out.write(bagEndDelim.getBytes(UTF8));
+            out.write(delims.getBagEnd());
             break;
 
         default: {
@@ -219,6 +244,14 @@ public final class StorageUtil {
         }
 
         }
+    }
+    
+    private static void writeField(OutputStream out, byte[] bytes, byte dataType, 
+            boolean includeTypeInformation) throws IOException {
+        if (includeTypeInformation) {
+            out.write(TYPE_INDICATOR.get(dataType));
+        }
+        out.write(bytes);
     }
 
     /**
@@ -260,7 +293,7 @@ public final class StorageUtil {
 
         return TupleFactory.getInstance().newTupleNoCopy(protoTuple);
     }
-
+    
     //---------------------------------------------------------------
     // private methods
 
