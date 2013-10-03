@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import org.apache.hadoop.util.Shell;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.tools.pigstats.PigStats;
@@ -135,6 +136,9 @@ public abstract class ScriptEngine {
                 throw new IllegalStateException("could not find existing file "+scriptPath, e);
             }
         } else {
+            if (Shell.WINDOWS && scriptPath.charAt(1)==':') {
+                scriptPath = scriptPath.charAt(0) + scriptPath.substring(2);
+            }
             // Try system, current and context classloader.
             is = ScriptEngine.class.getResourceAsStream(scriptPath);
             if (is == null) {
