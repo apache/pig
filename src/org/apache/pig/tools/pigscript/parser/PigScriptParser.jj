@@ -84,6 +84,8 @@ public abstract class PigScriptParser
 
 	abstract protected void processSet(String key, String value) throws IOException, ParseException;
 
+    abstract protected void processSet() throws IOException, ParseException;
+    
     abstract protected void processHistory(boolean withNumbers);
 
 	abstract protected void processCat(String path) throws IOException;
@@ -591,6 +593,8 @@ void parse() throws IOException:
 		t1 = GetKey()
 		t2 = GetValue()
 		{processSet(t1.image, unquote(t2.image));}
+    	|
+		{processSet();}
 	)
 	|
 	<EOF>
