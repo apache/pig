@@ -156,6 +156,8 @@ public class TestBuiltin {
     private static String[] stringInput = {"unit", "test", null, "input", "string"};
     private static DataByteArray[] ByteArrayInput = Util.toDataByteArrays(ba);
 
+    private static DateTime[] datetimeInput = {new DateTime("2009-01-07T01:07:02.000Z"), new DateTime("2008-10-09T01:07:02.000Z"), null, new DateTime("2014-12-25T11:11:11.000Z"), new DateTime("2009-01-07T01:07:02.000Z")};
+
     // The HashMaps below are used to set up the appropriate EvalFunc,
     // the allowed input and expected output for the different aggregate functions
     // which have different implementations for different input types
@@ -183,12 +185,12 @@ public class TestBuiltin {
     String[][] aggs = {
             {"SUM", "IntSum", "LongSum", "FloatSum", "DoubleSum"},
             {"AVG", "IntAvg", "LongAvg", "FloatAvg", "DoubleAvg"},
-            {"MIN", "IntMin", "LongMin", "FloatMin", "DoubleMin", "StringMin"},
-            {"MAX", "IntMax", "LongMax", "FloatMax", "DoubleMax", "StringMax"},
+            {"MIN", "IntMin", "LongMin", "FloatMin", "DoubleMin", "StringMin", "DateTimeMin"},
+            {"MAX", "IntMax", "LongMax", "FloatMax", "DoubleMax", "StringMax", "DateTimeMax"},
             {"COUNT"},
             };
 
-    String[] inputTypeAsString = {"ByteArray", "Integer", "Long", "Float", "Double", "String" };
+    String[] inputTypeAsString = {"ByteArray", "Integer", "Long", "Float", "Double", "String", "DateTime"};
 
     @Before
     public void setUp() throws Exception {
@@ -225,6 +227,7 @@ public class TestBuiltin {
         expectedMap.put("FloatMin", new Float(0.09f));
         expectedMap.put("DoubleMin", new Double(0.000000834593));
         expectedMap.put("StringMin", "input");
+        expectedMap.put("DateTimeMin", new DateTime("2008-10-09T01:07:02.000Z"));
 
         expectedMap.put("MAX", new Double(10));
         expectedMap.put("IntMax", new Integer(10));
@@ -232,6 +235,7 @@ public class TestBuiltin {
         expectedMap.put("FloatMax", new Float(10.4f));
         expectedMap.put("DoubleMax", new Double(121.0));
         expectedMap.put("StringMax", "unit");
+        expectedMap.put("DateTimeMax", new DateTime("2014-12-25T11:11:11.000Z"));
 
         expectedMap.put("COUNT", new Long(10));
 
@@ -313,6 +317,7 @@ public class TestBuiltin {
             inputMap.put("ByteArray", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), ByteArrayInput));
             inputMap.put("ByteArrayAsDouble", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), baAsDouble));
             inputMap.put("String", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), stringInput));
+            inputMap.put("DateTime", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), datetimeInput));
 
         DateTimeZone.setDefault(DateTimeZone.forOffsetMillis(DateTimeZone.UTC.getOffset(null)));
     }
@@ -515,6 +520,9 @@ public class TestBuiltin {
                 // within some precision
                 if(getExpected(aggFinalTypes[k]) instanceof Double) {
                     assertEquals(msg, (Double)getExpected(aggFinalTypes[k]), (Double)output, 0.00001);
+                // Compare millis so that we dont have to worry about TZ
+                } else if(getExpected(aggFinalTypes[k]) instanceof DateTime) {
+                    assertEquals(msg, ((DateTime)getExpected(aggFinalTypes[k])).getMillis(), ((DateTime)output).getMillis());
                 } else {
                     assertEquals(msg, getExpected(aggFinalTypes[k]), output);
                 }
@@ -597,6 +605,9 @@ public class TestBuiltin {
                 // within some precision
                 if(getExpected(aggFinalTypes[k]) instanceof Double) {
                     assertEquals(msg, (Double)getExpected(aggFinalTypes[k]), (Double)output, 0.00001);
+                // Compare millis so that we dont have to worry about TZ
+                } else if(getExpected(aggFinalTypes[k]) instanceof DateTime) {
+                    assertEquals(msg, ((DateTime)getExpected(aggFinalTypes[k])).getMillis(), ((DateTime)output).getMillis());
                 } else {
                     assertEquals(msg, getExpected(aggFinalTypes[k]), output);
                 }
@@ -710,6 +721,9 @@ public class TestBuiltin {
                 // within some precision
                 if(getExpected(aggFinalTypes[k]) instanceof Double) {
                     assertEquals(msg, (Double)getExpected(aggFinalTypes[k]), (Double)output, 0.00001);
+                // Compare millis so that we dont have to worry about TZ
+                } else if(getExpected(aggFinalTypes[k]) instanceof DateTime) {
+                    assertEquals(msg, ((DateTime)getExpected(aggFinalTypes[k])).getMillis(), ((DateTime)output).getMillis());
                 } else {
                     assertEquals(msg, getExpected(aggFinalTypes[k]), output);
                 }
@@ -1319,7 +1333,7 @@ public class TestBuiltin {
 
     @Test
     public void testMIN() throws Exception {
-        String[] minTypes = {"MIN", "LongMin", "IntMin", "FloatMin"};
+        String[] minTypes = {"MIN", "LongMin", "IntMin", "FloatMin", "StringMin", "DateTimeMin"};
         for(int k = 0; k < minTypes.length; k++) {
             EvalFunc<?> min = evalFuncMap.get(minTypes[k]);
             String inputType = getInputType(minTypes[k]);
@@ -1341,6 +1355,9 @@ public class TestBuiltin {
                 assertEquals(msg, output, getExpected(minTypes[k]));
             } else if (inputType == "String") {
                 assertEquals(msg, output, getExpected(minTypes[k]));
+            } else if (inputType == "DateTime") {
+                // Compare millis so that we dont have to worry about TZ
+                assertEquals(msg, ((DateTime)output).getMillis(), ((DateTime)getExpected(minTypes[k])).getMillis());
             }
         }
     }
@@ -1349,7 +1366,7 @@ public class TestBuiltin {
     @Test
     public void testMINIntermediate() throws Exception {
 
-        String[] minTypes = {"MINIntermediate", "LongMinIntermediate", "IntMinIntermediate", "FloatMinIntermediate"};
+        String[] minTypes = {"MINIntermediate", "LongMinIntermediate", "IntMinIntermediate", "FloatMinIntermediate", "StringMinIntermediate", "DateTimeMinIntermediate"};
         for(int k = 0; k < minTypes.length; k++) {
             EvalFunc<?> min = evalFuncMap.get(minTypes[k]);
             String inputType = getInputType(minTypes[k]);
@@ -1371,13 +1388,16 @@ public class TestBuiltin {
                 assertEquals(msg, ((Tuple)output).get(0), getExpected(minTypes[k]));
             } else if (inputType == "String") {
                 assertEquals(msg, ((Tuple)output).get(0), getExpected(minTypes[k]));
+            } else if (inputType == "DateTime") {
+                // Compare millis so that we dont have to worry about TZ
+                assertEquals(msg, ((DateTime)((Tuple)output).get(0)).getMillis(), ((DateTime)getExpected(minTypes[k])).getMillis());
             }
         }
     }
 
     @Test
     public void testMINFinal() throws Exception {
-        String[] minTypes = {"MINFinal", "LongMinFinal", "IntMinFinal", "FloatMinFinal"};
+        String[] minTypes = {"MINFinal", "LongMinFinal", "IntMinFinal", "FloatMinFinal", "StringMinFinal", "DateTimeMinFinal"};
         for(int k = 0; k < minTypes.length; k++) {
             EvalFunc<?> min = evalFuncMap.get(minTypes[k]);
             String inputType = getInputType(minTypes[k]);
@@ -1399,6 +1419,9 @@ public class TestBuiltin {
                 assertEquals(msg, output, getExpected(minTypes[k]));
             } else if (inputType == "String") {
                 assertEquals(msg, output, getExpected(minTypes[k]));
+            } else if (inputType == "DateTime") {
+                // Compare millis so that we dont have to worry about TZ
+                assertEquals(msg, ((DateTime)output).getMillis(), ((DateTime)getExpected(minTypes[k])).getMillis());
             }
         }
     }
@@ -1406,7 +1429,7 @@ public class TestBuiltin {
     @Test
     public void testMAX() throws Exception {
 
-        String[] maxTypes = {"MAX", "LongMax", "IntMax", "FloatMax"};
+        String[] maxTypes = {"MAX", "LongMax", "IntMax", "FloatMax", "StringMax", "DateTimeMax"};
         for(int k = 0; k < maxTypes.length; k++) {
             EvalFunc<?> max = evalFuncMap.get(maxTypes[k]);
             String inputType = getInputType(maxTypes[k]);
@@ -1428,6 +1451,9 @@ public class TestBuiltin {
                 assertEquals(msg, output, getExpected(maxTypes[k]));
             } else if (inputType == "String") {
                 assertEquals(msg, output, getExpected(maxTypes[k]));
+            } else if (inputType == "DateTime") {
+                // Compare millis so that we dont have to worry about TZ
+                assertEquals(msg, ((DateTime)output).getMillis(), ((DateTime)getExpected(maxTypes[k])).getMillis());
             }
         }
     }
@@ -1436,7 +1462,7 @@ public class TestBuiltin {
     @Test
     public void testMAXIntermed() throws Exception {
 
-        String[] maxTypes = {"MAXIntermediate", "LongMaxIntermediate", "IntMaxIntermediate", "FloatMaxIntermediate"};
+        String[] maxTypes = {"MAXIntermediate", "LongMaxIntermediate", "IntMaxIntermediate", "FloatMaxIntermediate", "StringMaxIntermediate", "DateTimeMaxIntermediate"};
         for(int k = 0; k < maxTypes.length; k++) {
             EvalFunc<?> max = evalFuncMap.get(maxTypes[k]);
             String inputType = getInputType(maxTypes[k]);
@@ -1458,6 +1484,9 @@ public class TestBuiltin {
                 assertEquals(msg, ((Tuple)output).get(0), getExpected(maxTypes[k]));
             } else if (inputType == "String") {
                 assertEquals(msg, ((Tuple)output).get(0), getExpected(maxTypes[k]));
+            } else if (inputType == "DateTime") {
+                // Compare millis so that we dont have to worry about TZ
+                assertEquals(msg, ((DateTime)((Tuple)output).get(0)).getMillis(), ((DateTime)getExpected(maxTypes[k])).getMillis());
             }
         }
     }
@@ -1465,7 +1494,7 @@ public class TestBuiltin {
     @Test
     public void testMAXFinal() throws Exception {
 
-        String[] maxTypes = {"MAXFinal", "LongMaxFinal", "IntMaxFinal", "FloatMaxFinal"};
+        String[] maxTypes = {"MAXFinal", "LongMaxFinal", "IntMaxFinal", "FloatMaxFinal", "StringMaxFinal", "DateTimeMaxFinal"};
         for(int k = 0; k < maxTypes.length; k++) {
             EvalFunc<?> max = evalFuncMap.get(maxTypes[k]);
             String inputType = getInputType(maxTypes[k]);
@@ -1487,6 +1516,9 @@ public class TestBuiltin {
                 assertEquals(msg, output, getExpected(maxTypes[k]));
             } else if (inputType == "String") {
                 assertEquals(msg, output, getExpected(maxTypes[k]));
+            } else if (inputType == "DateTime") {
+                // Compare millis so that we dont have to worry about TZ
+                assertEquals(msg, ((DateTime)output).getMillis(), ((DateTime)getExpected(maxTypes[k])).getMillis());
             }
         }
 

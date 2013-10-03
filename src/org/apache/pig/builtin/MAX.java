@@ -75,6 +75,7 @@ public class MAX extends AlgebraicByteArrayMathBase {
         funcList.add(new FuncSpec(IntMax.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.INTEGER)));
         funcList.add(new FuncSpec(LongMax.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.LONG)));
         funcList.add(new FuncSpec(StringMax.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.CHARARRAY)));
+        funcList.add(new FuncSpec(DateTimeMax.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.DATETIME)));
         return funcList;
     }
 }
