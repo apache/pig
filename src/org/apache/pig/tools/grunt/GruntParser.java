@@ -33,6 +33,7 @@ import java.io.StringReader;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -73,6 +74,7 @@ import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 import org.fusesource.jansi.Ansi;
 import org.fusesource.jansi.AnsiConsole;
+import org.python.google.common.collect.Lists;
 
 public class GruntParser extends PigScriptParser {
 
@@ -586,6 +588,31 @@ public class GruntParser extends PigScriptParser {
         else
         {
            mPigServer.getPigContext().getExecutionEngine().setProperty(key, value);
+        }
+    }
+    
+    @Override
+    protected void processSet() throws IOException, ParseException {
+        Properties jobProps = mPigServer.getPigContext().getProperties();
+        Properties sysProps = System.getProperties();
+        
+        List<String> jobPropsList = Lists.newArrayList();
+        List<String> sysPropsList = Lists.newArrayList();
+
+        for (Object key : jobProps.keySet()) {
+            String propStr = key + "=" + jobProps.getProperty((String)key);
+            if (sysProps.containsKey(key)) {
+                sysPropsList.add("system: " + propStr);
+            }
+            else {
+                jobPropsList.add(propStr);
+            }
+        }
+        Collections.sort(jobPropsList);
+        Collections.sort(sysPropsList);
+        jobPropsList.addAll(sysPropsList);
+        for (String prop : jobPropsList) {
+            System.out.println(prop);
         }
     }
 
