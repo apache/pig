@@ -168,6 +168,11 @@ public class DryRunGruntParser extends PigScriptParser {
             ParseException {
         sb.append("set ").append(key).append(" ").append(value).append("\n");
     }
+    
+    @Override
+    protected void processSet() throws IOException {
+        sb.append("set\n");
+    }
 
     @Override
     protected void processCat(String path) throws IOException {
