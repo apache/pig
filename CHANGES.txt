@@ -32,6 +32,7 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3469: Skewed join can cause unrecoverable NullPointerException when one of its inputs is missing (Jarek Jarcec Cecho  via xuefuz)
 
 Release 0.12.0 (unreleased changes)
 

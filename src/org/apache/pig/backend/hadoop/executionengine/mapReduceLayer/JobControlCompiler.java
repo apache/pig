@@ -864,7 +864,7 @@ public class JobControlCompiler{
             org.apache.hadoop.mapreduce.Job nwJob) throws IOException {
         int jobParallelism = calculateRuntimeReducers(mro, nwJob);
 
-        if (mro.isSampler()) {
+        if (mro.isSampler() && plan.getSuccessors(mro) != null) {
             // We need to calculate the final number of reducers of the next job (order-by or skew-join)
             // to generate the quantfile.
             MapReduceOper nextMro = plan.getSuccessors(mro).get(0);
