@@ -358,6 +358,9 @@
     </dependency>
 
     <dependency org="org.mockito" name="mockito-all" rev="${mockito.version}" conf="compile->default"/>
-    </dependencies>
+       
+    <dependency org="com.twitter" name="parquet-pig-bundle" rev="${parquet-pig-bundle.version}" conf="compile->master"/>
+
+  </dependencies>
 </ivy-module>
 
