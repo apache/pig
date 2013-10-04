@@ -251,8 +251,6 @@ PIG-3292: Logical plan invalid state: duplicate uid in schema during self-join t
 
 PIG-3491: Fix e2e failure Jython_Diagnostics_4 (daijy)
 
-PIG-3434: Null subexpression in bincond nullifies outer tuple (or bag) (mwagner via daijy)
-
 PIG-3114: Duplicated macro name error when using pigunit (daijy)
 
 PIG-3370: Add New Reserved Keywords To The Pig Docs (cheolsoo)
