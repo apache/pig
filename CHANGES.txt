@@ -48,6 +48,8 @@ PIG-3174: Remove rpm and deb artifacts from build.xml (gates)
 
 IMPROVEMENTS
 
+PIG-3483: Document ASSERT keyword (aniket486 via daijy)
+
 PIG-3470: Print configuration variables in grunt (lbendig via daijy)
 
 PIG-3493: Add max/min for datetime (tyro89 via daijy)
