@@ -132,7 +132,7 @@
    <table>
          <tr>
             <td> <p>-- A </p> </td>
-            <td> <p>and, any, all, arrange, as, asc, AVG</p> </td>
+            <td> <p>assert, and, any, all, arrange, as, asc, AVG</p> </td>
          </tr>      
       
          <tr>
@@ -5286,6 +5286,87 @@ B = FOREACH A GENERATE -x, y;
 <!-- RELATIONAL OPERATORS, ETC -->
 <section>
 <title>Relational Operators</title>
+
+<!-- =================================================================== -->
+   <section id="assert">
+   <title>ASSERT</title>
+   <p>Assert a condition on the data.</p>
+
+   <section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>ASSERT alias BY expression [message];</p>
+            </td>
+        </tr>
+   </table>
+   </section>
+
+   <section>
+   <title>Terms</title>
+   <table>
+      <tr>
+            <td>
+               <p>alias</p>
+            </td>
+            <td>
+               <p>The name of the relation.</p>
+            </td>
+         </tr>
+         <tr>
+            <td>
+               <p>BY</p>
+            </td>
+            <td>
+               <p>Required keyword.</p>
+            </td>
+         </tr>
+         <tr>
+            <td>
+               <p>expression</p>
+            </td>
+            <td>
+               <p>A boolean expression.</p>
+            </td>
+         </tr>
+         <tr>
+            <td>
+               <p>message</p>
+            </td>
+            <td>
+               <p>Error message when assertion fails.</p>
+            </td>
+         </tr>
+   </table>
+   </section>
+
+   <section>
+     <title>Usage</title>
+     <p>Use assert to ensure a condition is true on your data. Processing fails if any of the records voilate the condition.</p>
+   </section>
+
+   <section>
+   <title>Examples</title>
+   <p>Suppose we have relation A.</p>
+<source>
+A = LOAD 'data' AS (a0:int,a1:int,a2:int);
+
+DUMP A;
+(1,2,3)
+(4,2,1)
+(8,3,4)
+(4,3,3)
+(7,2,5)
+(8,4,3)
+</source>
+
+<p>Now, you can assert that a0 column in your data is >0, fail if otherwise</p>
+<source>
+ASSERT A by a0 > 0 'a0 should be greater than 0';
+</source>
+
+</section></section>
 
 <!-- =================================================================== -->
  <section id="cogroup">
