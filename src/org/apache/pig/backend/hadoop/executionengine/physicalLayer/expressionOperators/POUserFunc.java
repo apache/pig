@@ -219,7 +219,7 @@ public class POUserFunc extends ExpressionOperator {
 
             for(PhysicalOperator op : inputs) {
                 temp = op.getNext(op.getResultType());
-                if(temp.returnStatus!=POStatus.STATUS_OK && temp.returnStatus!=POStatus.STATUS_NULL) {
+                if(temp.returnStatus!=POStatus.STATUS_OK) {
                     return temp;
                 }
 
