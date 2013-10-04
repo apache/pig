@@ -30,9 +30,8 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlan
 import org.apache.pig.impl.plan.VisitorException;
 
 /**
- * This operator is used to read tuples from a databag in memory, or manually
- * specify results with setRes(). Used mostly for testing. It'd also be useful
- * for the example generator
+ * This operator is used to read tuples from a databag in memory. Used mostly
+ * for testing. It'd also be useful for the example generator
  * 
  */
 public class PORead extends PhysicalOperator {
@@ -65,13 +64,6 @@ public class PORead extends PhysicalOperator {
         this.bag = bag;
     }
 
-    // Set the value that will be returned by calls to getNext*()
-    public void setRes(Result res, byte resultType){
-        this.resultType = resultType;
-        this.res = res;
-    }
-    
-    
     @Override
     public Result getNextTuple() {
         if (it == null) {
