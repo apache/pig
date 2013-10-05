@@ -612,6 +612,28 @@ DUMP X;
          </tr>
          <tr>
             <td>
+               <p>biginteger</p>
+            </td>
+            <td>
+               <p>Java BigInteger</p>
+            </td>
+            <td>
+               <p>200000000000</p>
+            </td>
+         </tr>
+         <tr>
+            <td>
+               <p>bigdecimal</p>
+            </td>
+            <td>
+               <p>Java BigDecimal</p>
+            </td>
+            <td>
+               <p>33.456783321323441233442</p>
+            </td>
+         </tr>
+         <tr>
+            <td>
                <p><strong>Complex Types</strong></p>
             </td>
             <td>
@@ -1647,7 +1669,7 @@ X = FOREACH A GENERATE f1 as user, f2 as age, f3 as gpa;
      <!-- ++++++++++++++++++++++++++++++++++ -->  
    <section  id="schema-simple">
    <title>Schemas for Simple Data Types</title>
-   <p>Simple data types include int, long, float, double, chararray, bytearray, boolean and datetime.</p>
+   <p>Simple data types include int, long, float, double, chararray, bytearray, boolean, datetime, biginteger and bigdecimal.</p>
    
    <section>
    <title>Syntax</title>
@@ -3765,10 +3787,22 @@ X = FILTER A BY (f1 matches '.*apache.*');
             <td>
                <p>datetime </p>
             </td>
+            <td>
+               <p>biginteger </p>
+            </td>
+            <td>
+               <p>bigdecimal </p>
+            </td>
          </tr>
          <tr>
             <td>
                <p>bag </p>
+            </td>
+            <td>
+               <p>error </p>
+            </td>
+            <td>
+               <p>error </p>
             </td>
             <td>
                <p>error </p>
@@ -3842,6 +3876,12 @@ X = FILTER A BY (f1 matches '.*apache.*');
             <td>
                <p>error </p>
             </td>
+            <td>
+               <p>error </p>
+            </td>
+            <td>
+               <p>error </p>
+            </td>
          </tr>
          <tr>
             <td>
@@ -3856,6 +3896,12 @@ X = FILTER A BY (f1 matches '.*apache.*');
             <td>
                <p>boolean </p>
                <p>(see Note 2)</p>
+            </td>
+            <td>
+               <p>error </p>
+            </td>
+            <td>
+               <p>error </p>
             </td>
             <td>
                <p>error </p>
@@ -3919,6 +3965,12 @@ X = FILTER A BY (f1 matches '.*apache.*');
             <td>
                <p>error </p>
             </td>
+            <td>
+               <p>error </p>
+            </td>
+            <td>
+               <p>error </p>
+            </td>
          </tr>
          <tr>
             <td>
@@ -3952,6 +4004,12 @@ X = FILTER A BY (f1 matches '.*apache.*');
                <p>cast as boolean </p>
             </td>
              <td>
+               <p>error </p>
+            </td>
+            <td>
+               <p>error </p>
+            </td>
+            <td>
                <p>error </p>
             </td>
             <td>
@@ -3995,6 +4053,12 @@ X = FILTER A BY (f1 matches '.*apache.*');
             <td>
                <p>error </p>
             </td>
+            <td>
+               <p>error </p>
+            </td>
+            <td>
+               <p>error </p>
+            </td>
          </tr>
          <tr>
             <td>
@@ -4026,6 +4090,12 @@ X = FILTER A BY (f1 matches '.*apache.*');
             </td>
             <td>
                <p>cast as boolean  </p>
+            </td>
+            <td>
+               <p>error </p>
+            </td>
+            <td>
+               <p>error </p>
             </td>
             <td>
                <p>error </p>
@@ -4071,6 +4141,12 @@ X = FILTER A BY (f1 matches '.*apache.*');
             <td>
                <p>error </p>
             </td>
+            <td>
+               <p>error </p>
+            </td>
+            <td>
+               <p>error </p>
+            </td>
          </tr>
          <tr>
             <td>
@@ -4109,6 +4185,12 @@ X = FILTER A BY (f1 matches '.*apache.*');
             <td>
                <p>error </p>
             </td>
+            <td>
+               <p>error </p>
+            </td>
+            <td>
+               <p>error </p>
+            </td>
          </tr>
          <tr>
             <td>
@@ -4147,10 +4229,110 @@ X = FILTER A BY (f1 matches '.*apache.*');
             <td>
                <p>error </p>
             </td>
+            <td>
+               <p>error </p>
+            </td>
+            <td>
+               <p>error </p>
+            </td>
          </tr>
          <tr>
             <td>
                <p>datetime </p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p>boolean</p>
+            </td>
+            <td>
+               <p>error </p>
+            </td>
+            <td>
+               <p>error </p>
+            </td>
+         </tr>
+         <tr>
+            <td>
+               <p>biginteger </p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p>boolean</p>
+            </td>
+            <td>
+               <p>error </p>
+            </td>
+         </tr>
+         <tr>
+            <td>
+               <p>bigdecimal </p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
             </td>
             <td>
                <p></p>
@@ -4232,10 +4414,22 @@ X = FILTER A BY (f1 matches '.*apache.*');
             <td>
                <p>datetime </p>
             </td>
+            <td>
+               <p>biginteger </p>
+            </td>
+            <td>
+               <p>bigdecimal </p>
+            </td>
          </tr>
          <tr>
             <td>
                <p>bag </p>
+            </td>
+            <td>
+               <p>error </p>
+            </td>
+            <td>
+               <p>error </p>
             </td>
             <td>
                <p>error </p>
@@ -4308,6 +4502,12 @@ X = FILTER A BY (f1 matches '.*apache.*');
             <td>
                <p>error </p>
             </td>
+            <td>
+               <p>error </p>
+            </td>
+            <td>
+               <p>error </p>
+            </td>
          </tr>
          <tr>
             <td>
@@ -4318,6 +4518,12 @@ X = FILTER A BY (f1 matches '.*apache.*');
             </td>
             <td>
                <p></p>
+            </td>
+            <td>
+               <p>error </p>
+            </td>
+            <td>
+               <p>error </p>
             </td>
             <td>
                <p>error </p>
@@ -4384,6 +4590,12 @@ X = FILTER A BY (f1 matches '.*apache.*');
             <td>
                <p>error </p>
             </td>
+            <td>
+               <p>error </p>
+            </td>
+            <td>
+               <p>error </p>
+            </td>
          </tr>
          <tr>
             <td>
@@ -4415,6 +4627,12 @@ X = FILTER A BY (f1 matches '.*apache.*');
             </td>
             <td>
                <p>boolean (bytearray cast as long) </p>
+            </td>
+            <td>
+               <p>error </p>
+            </td>
+            <td>
+               <p>error </p>
             </td>
             <td>
                <p>error </p>
@@ -4460,6 +4678,12 @@ X = FILTER A BY (f1 matches '.*apache.*');
             <td>
                <p>error </p>
             </td>
+            <td>
+               <p>error </p>
+            </td>
+            <td>
+               <p>error </p>
+            </td>
          </tr>
          <tr>
             <td>
@@ -4491,6 +4715,12 @@ X = FILTER A BY (f1 matches '.*apache.*');
             </td>
             <td>
                <p>boolean (bytearray cast as double) </p>
+            </td>
+            <td>
+               <p>error </p>
+            </td>
+            <td>
+               <p>error </p>
             </td>
             <td>
                <p>error </p>
@@ -4536,6 +4766,12 @@ X = FILTER A BY (f1 matches '.*apache.*');
             <td>
                <p>error </p>
             </td>
+            <td>
+               <p>error </p>
+            </td>
+            <td>
+               <p>error </p>
+            </td>
          </tr>
          <tr>
             <td>
@@ -4574,6 +4810,12 @@ X = FILTER A BY (f1 matches '.*apache.*');
             <td>
                <p>error </p>
             </td>
+            <td>
+               <p>error </p>
+            </td>
+            <td>
+               <p>error </p>
+            </td>
          </tr>
          <tr>
             <td>
@@ -4612,10 +4854,110 @@ X = FILTER A BY (f1 matches '.*apache.*');
             <td>
                <p>error </p>
             </td>
+            <td>
+               <p>error </p>
+            </td>
+            <td>
+               <p>error </p>
+            </td>
          </tr>
          <tr>
             <td>
+               <p>datetime</p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
                <p>boolean </p>
+            </td>
+            <td>
+               <p>error </p>
+            </td>
+            <td>
+               <p>error </p>
+            </td>
+         </tr>
+         <tr>
+            <td>
+               <p>biginteger</p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p>boolean </p>
+            </td>
+            <td>
+               <p>error </p>
+            </td>
+         </tr>
+                  <tr>
+            <td>
+               <p>bigdecimal</p>
+            </td>
+            <td>
+               <p></p>
+            </td>
+            <td>
+               <p></p>
             </td>
             <td>
                <p></p>
@@ -5274,6 +5616,22 @@ B = FOREACH A GENERATE -x, y;
             </td>
             <td>
                <p>error </p>
+            </td>
+         </tr>
+         <tr>
+            <td>
+               <p>biginteger </p>
+            </td>
+            <td>
+               <p>biginteger </p>
+            </td>
+         </tr>
+         <tr>
+            <td>
+               <p>bigdecimal </p>
+            </td>
+            <td>
+               <p>bigdecimal </p>
             </td>
          </tr>
    </table>

@@ -247,6 +247,8 @@ PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
 
+PIG-3128: Document the BigInteger and BigDecimal data type (daijy via cheolsoo)
+
 PIG-3497: JobControlCompiler should only do reducer estimation when the job has a reduce phase (amatsukawa via aniket486)
 
 PIG-3495: Streaming udf e2e tests failures on Windows (daijy)
