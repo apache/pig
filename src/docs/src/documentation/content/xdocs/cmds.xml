@@ -591,14 +591,14 @@ grunt&gt; run –param out=myoutput myscript.pig
    <!-- +++++++++++++++++++++++++++++++++++++++ -->   
    <section id="set">
    <title>set</title>
-   <p>Assigns values to keys used in Pig.</p>
+   <p>Shows/Assigns values to keys used in Pig.</p>
    
    <section>
    <title>Syntax</title>
    <table>
        <tr>
             <td>
-               <p>set key 'value'</p>
+               <p>set [key 'value']</p>
             </td>
          </tr> 
    </table></section>
@@ -627,7 +627,8 @@ grunt&gt; run –param out=myoutput myscript.pig
    
    <section>
    <title>Usage</title>
-   <p>Use the set command to assign values to keys, as shown in the table. All keys and their corresponding values (for Pig and Hadoop) are case sensitive.  </p>
+   <p>Use the set command to assign values to keys, as shown in the table. All keys and their corresponding values (for Pig and Hadoop) are case sensitive. 
+   If set command is used without key/value pair argument, Pig prints all the configurations and system properties.</p>
 
    <table>
        

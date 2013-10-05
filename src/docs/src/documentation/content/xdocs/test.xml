@@ -195,7 +195,7 @@ DUMP B;
    <table>
       <tr> 
             <td>
-               <p>EXPLAIN [–script pigscript] [–out path] [–brief] [–dot] [–param param_name = param_value] [–param_file file_name] alias; </p>
+               <p>EXPLAIN [–script pigscript] [–out path] [–brief] [–dot] [-xml] [–param param_name = param_value] [–param_file file_name] alias; </p>
             </td>
          </tr> 
    </table></section>
@@ -235,13 +235,14 @@ DUMP B;
          
          <tr>
             <td>
-               <p>–dot</p>
+               <p>–dot, -xml</p>
             </td>
             <td>
 
                <p>Text mode (default): multiple output (split) will be broken out in sections.  </p>
                <p>Dot mode: outputs a format that can be passed to the dot utility for graphical display – 
                will generate a directed-acyclic-graph (DAG) of the plans in any supported format (.gif, .jpg ...).</p>
+               <p>Xml mode: outputs a xml which represent the plan (only logical plan is shown currently).  </p>
             </td>
          </tr>
 
