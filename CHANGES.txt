@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 PIG-3485: Remove CastUtils.bytesToMap(byte[] b) method from LoadCaster interface (cheolsoo)
 
+PIG-3419: Pluggable Execution Engine (achalsoni81 via cheolsoo)
+
 IMPROVEMENTS
 
 PIG-3484: Make the size of pig.script property configurable (cheolsoo)
@@ -39,8 +41,6 @@ PIG-3469: Skewed join can cause unrecoverable NullPointerException when one of i
 Release 0.12.0 (unreleased changes)
 
 INCOMPATIBLE CHANGES
-
-PIG-3419: Pluggable Execution Engine (achalsoni81 via cheolsoo)
 
 PIG-3191: [piggybank] MultiStorage output filenames are not sortable (Danny Antonelli via jcoveney)
 
@@ -266,6 +266,8 @@ PIG-3123: Simplify Logical Plans By Removing Unneccessary Identity Projections (
 PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
+
+PIG-3128: Document the BigInteger and BigDecimal data type (daijy via cheolsoo)
 
 PIG-3495: Streaming udf e2e tests failures on Windows (daijy)
 
