@@ -28,7 +28,7 @@
 <section id="udfs">
 <title>Introduction</title>
 <p>
-Pig provides extensive support for user defined functions (UDFs) as a way to specify custom processing. Pig UDFs can currently be implemented in five languages: Java, Python, JavaScript, Ruby and Groovy. 
+Pig provides extensive support for user defined functions (UDFs) as a way to specify custom processing. Pig UDFs can currently be implemented in six languages: Java, Jython, Python, JavaScript, Ruby and Groovy. 
 </p>
 
 <p>
@@ -36,7 +36,7 @@ The most extensive support is provided for Java functions. You can customize all
 </p>
 
 <p>
-Limited support is provided for Python, JavaScript, Ruby and Groovy functions. These functions are new, still evolving, additions to the system. Currently only the basic interface is supported; load/store functions are not supported. Furthermore, JavaScript, Ruby and Groovy are provided as experimental features because they did not go through the same amount of testing as Java or Python. At runtime note that Pig will automatically detect the usage of a scripting UDF in the Pig script and will automatically ship the corresponding scripting jar, either Jython, Rhino, JRuby or Groovy-all, to the backend.</p>
+Limited support is provided for Jython, Python, JavaScript, Ruby and Groovy functions. These functions are new, still evolving, additions to the system. Currently only the basic interface is supported; load/store functions are not supported. Furthermore, JavaScript, Ruby and Groovy are provided as experimental features because they did not go through the same amount of testing as Java or Jython. At runtime note that Pig will automatically detect the usage of a scripting UDF in the Pig script and will automatically ship the corresponding scripting jar, either Jython, Rhino, JRuby or Groovy-all, to the backend. Python does not require any runtime engine since it invoke python command line and stream data in and out of it.</p>
 
 <p></p>
 
@@ -1399,13 +1399,13 @@ DUMP B;
 
 
 <!-- =============================================================== -->
-<section id="python-udfs">
-<title>Writing Python UDFs</title>
+<section id="jython-udfs">
+<title>Writing Jython UDFs</title>
 
 <!-- ++++++++++++++++++++++++++++++++++++++++++++++++ -->
-<section id="register-python">
+<section id="register-jython">
 <title>Registering the UDF</title>
-<p>You can register a Python script as shown here. This example uses org.apache.pig.scripting.jython.JythonScriptEngine to interpret the Python script. You can develop and use custom script engines to support multiple programming languages and ways to interpret them. Currently, Pig identifies jython as a keyword and ships the required scriptengine (jython) to interpret it. </p>
+<p>You can register a Jython script as shown here. This example uses org.apache.pig.scripting.jython.JythonScriptEngine to interpret the Jython script. You can develop and use custom script engines to support multiple programming languages and ways to interpret them. Currently, Pig identifies jython as a keyword and ships the required scriptengine (jython) to interpret it. </p>
 <source>
 Register 'test.py' using jython as myfuncs;
 </source>
@@ -1439,7 +1439,7 @@ def concat(str):
   return str+str
 </source>
 
-<p>The register statement above registers the Python functions defined in test.py in Pig’s runtime within the defined namespace (myfuncs here). They can then be referred later on in the pig script as myfuncs.helloworld(), myfuncs.complex(), and myfuncs.square(). An example usage is:</p>
+<p>The register statement above registers the Jython functions defined in test.py in Pig’s runtime within the defined namespace (myfuncs here). They can then be referred later on in the pig script as myfuncs.helloworld(), myfuncs.complex(), and myfuncs.square(). An example usage is:</p>
 
 <source>
 b = foreach a generate myfuncs.helloworld(), myfuncs.square(3);
@@ -1448,9 +1448,9 @@ b = foreach a generate myfuncs.helloworld(), myfuncs.square(3);
 
 <!-- ++++++++++++++++++++++++++++++++++++++++++++++++ -->
 </section>
-<section id="decorators">
+<section id="python_decorators">
 <title>Decorators and Schemas</title>
-<p>To annotate a Python script so that Pig can identify return types, use Python decorators to define output schema for the script UDF. </p>
+<p>To annotate a Jython script so that Pig can identify return types, use Jython decorators to define output schema for the script UDF. </p>
 <ul>
 <li id="outputschema">outputSchema - Defines schema for a script UDF in a format that Pig understands and is able to parse. </li>
 <li id="outputfunctionschema">outputFunctionSchema - Defines a script delegate function that defines schema for this function depending upon the input type. This is needed for functions that can accept generic types and perform generic operations on these types. A simple example is square which can accept multiple types. SchemaFunction for this type is a simple identity function (same schema as input). </li>
@@ -1466,7 +1466,7 @@ b = foreach a generate myfuncs.helloworld(), myfuncs.square(3);
 <!-- ++++++++++++++++++++++++++++++++++++++++++++++++ -->
  <section>
  <title>Example Scripts</title>
- <p>Simple tasks like string manipulation, mathematical computations, and reorganizing data types can be easily done using Python scripts without having to develop long and complex UDFs in Java. The overall overhead of using scripting language is much less and development cost is almost negligible. The following UDFs, developed in Python, can be used with Pig. </p>
+ <p>Simple tasks like string manipulation, mathematical computations, and reorganizing data types can be easily done using Jython scripts without having to develop long and complex UDFs in Java. The overall overhead of using scripting language is much less and development cost is almost negligible. The following UDFs, developed in Jython, can be used with Pig. </p>
  
  <source>
  mySampleLib.py
@@ -1516,19 +1516,19 @@ b = foreach a generate myfuncs.helloworld(), myfuncs.square(3);
    return outBag
  
  # Few comments- 
- # Pig mandates that a bag should be a bag of tuples, Python UDFs should follow this pattern.
- # Tuples in Python are immutable, appending to a tuple is not possible.
+ # Pig mandates that a bag should be a bag of tuples, Jython UDFs should follow this pattern.
+ # Tuples in Jython are immutable, appending to a tuple is not possible.
  </source>
  </section>
  
  <!-- ++++++++++++++++++++++++++++++++++++++++++++++++ -->
- <section id="python-advanced">
+ <section id="jython-advanced">
  <title>Advanced Topics</title> 
   <section id="import-modules">
   
 <!-- ++++++++++++++++++++ -->
 <title>Importing Modules</title>
-<p>You can import Python modules in your Python script. Pig resolves Python dependencies recursively, which means Pig will automatically ship all dependent Python modules to the backend. Python modules should be found in the jython search path: JYTHON_HOME, JYTHONPATH, or current directory.</p>
+<p>You can import Jython modules in your Jython script. Pig resolves Jython dependencies recursively, which means Pig will automatically ship all dependent Jython modules to the backend. Jython modules should be found in the jython search path: JYTHON_HOME, JYTHONPATH, or current directory.</p>
 </section>
 
 <!-- ++++++++++++++++++++ -->
@@ -1536,8 +1536,8 @@ b = foreach a generate myfuncs.helloworld(), myfuncs.square(3);
 <title>Combined Scripts</title>
   <p>UDFs and Pig scripts are generally stored in separate files. For testing purposes you can combine the code in a single file - a "combined" script. Note, however, if you then decide to embed this "combined" script in a host language, the language of the UDF must match the host language.</p>
  
- <p>This example combines Python and Pig. This "combined" script can only be embedded in Python.</p>
- <p>With Python you MUST use the <code>if __name__ == '__main__': </code> construct to separate UDFs and control flow. Otherwise the script will result in an error.</p>
+ <p>This example combines Jython and Pig. This "combined" script can only be embedded in Jython.</p>
+ <p>With Jython you MUST use the <code>if __name__ == '__main__': </code> construct to separate UDFs and control flow. Otherwise the script will result in an error.</p>
  <source>
  #!/usr/bin/jython
 from org.apache.pig.scripting import *
@@ -1939,6 +1939,63 @@ class GroovyUDFs {
  </section>
 </section>
 
+<!-- =============================================================== -->
+<section id="python-udfs">
+<title>Writing Python UDFs</title>
+<p>Here Python UDFs means C Python UDFs. It uses python command line to run the Python UDFs. It is different than Jython, which relies on Jython library. Instead, it streams the data in and out of the python process. The implementation mechanism is completely different than Jython.</p>
+<p><strong>Note:</strong> <em>Python UDFs are an experimental feature. It does not work with Hadoop 2.</em></p>
+
+<!-- ++++++++++++++++++++++++++++++++++++++++++++++++ -->
+<section id="register-python">
+<title>Registering the UDF</title>
+<p>You can register a Python script as shown here. </p>
+<source>
+Register 'test.py' using streaming_python as myfuncs;
+</source>
+
+<p>The following syntax is also supported, where myfuncs is the namespace created for all the functions inside test.py.</p>
+<source>
+register 'test.py' using org.apache.pig.scripting.streaming.python.PythonScriptEngine as myfuncs;
+</source>
+
+
+<p>A typical test.py looks like this:</p>
+<source>
+from pig_util import outputSchema
+
+@outputSchema("as:int")
+def square(num):
+    if num == None:
+        return None
+    return ((num) * (num))
+
+@outputSchema("word:chararray")
+def concat(word):
+    return word + word
+</source>
+
+<p>The register statement above registers the Python functions defined in test.py in Pig’s runtime within the defined namespace (myfuncs here). They can then be referred later on in the pig script as myfuncs.square(), myfuncs.concat(). An example usage is:</p>
+
+<source>
+b = foreach a generate myfuncs.concat('hello', 'world'), myfuncs.square(3);
+</source>
+
+
+<!-- ++++++++++++++++++++++++++++++++++++++++++++++++ -->
+</section>
+<section id="decorators">
+<title>Decorators and Schemas</title>
+<p>To annotate a Python script so that Pig can identify return types, use Python decorators to define output schema for the script UDF. </p>
+<ul>
+<li>outputSchema - Defines schema for a script UDF in a format that Pig understands and is able to parse. </li>
+</ul>
+
+<p>When no decorator is specified, Pig assumes the output datatype as bytearray and converts the output generated by script function to bytearray. This is consistent with Pig's behavior in case of Java UDFs. </p>
+
+<p>Sample Schema String - words:{(word:chararray)}, variable names inside a schema string are not used anywhere, they just make the syntax identifiable to the parser. </p>
+</section>
+</section>
+
 <!-- ================================================================== -->
 <!-- PIGGYBANK -->
 <section id="piggybank">
@@ -1949,7 +2006,7 @@ If you find a bug in a function, take the time to fix it and contribute the fix 
 If you don't find the UDF you need, take the time to write and contribute the function to Piggy Bank.
 </p>
 
-<p><strong>Note:</strong> Piggy Bank currently supports Java UDFs. Support for Python and JavaScript UDFs will be added at a later date.</p>
+<p><strong>Note:</strong> Piggy Bank currently supports Java UDFs. Support for Jython and JavaScript UDFs will be added at a later date.</p>
 
  <!-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++ -->
 <section id="piggbank-access">

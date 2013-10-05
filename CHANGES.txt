@@ -48,6 +48,8 @@ PIG-3174: Remove rpm and deb artifacts from build.xml (gates)
 
 IMPROVEMENTS
 
+PIG-3503: More document for Pig 0.12 new features (daijy)
+
 PIG-3445: Make Parquet format available out of the box in Pig (lbendig via aniket486)
 
 PIG-3483: Document ASSERT keyword (aniket486 via daijy)

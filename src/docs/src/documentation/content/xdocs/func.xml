@@ -617,6 +617,9 @@ DUMP X;
                <p>chararray </p>
             </td>
             <td>
+               <p>datetime </p>
+            </td>
+            <td>
                <p>bytearray </p>
             </td>
          </tr>
@@ -638,6 +641,9 @@ DUMP X;
             </td>
             <td>
                <p>chararray </p>
+            </td>
+            <td>
+               <p>datetime </p>
             </td>
             <td>
                <p>cast as double</p>
@@ -735,6 +741,9 @@ DUMP X;
                <p>chararray </p>
             </td>
             <td>
+               <p>datetime </p>
+            </td>
+            <td>
                <p>bytearray </p>
             </td>
          </tr>
@@ -756,6 +765,9 @@ DUMP X;
             </td>
             <td>
                <p>chararray </p>
+            </td>
+            <td>
+               <p>datetime </p>
             </td>
             <td>
                <p>cast as double</p>
@@ -3201,6 +3213,52 @@ For example, ENDSWITH ('foobar', 'foo') will false, whereas ENDSWITH ('foobar', 
      </p>
 </section>
 </section> 
+
+<!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->
+<section id="equalsignorecase">
+   <title>EqualsIgnoreCase</title>
+   <p>Compares two Strings ignoring case considerations. </p>
+
+<section>
+   <title>Syntax</title>
+   <table>
+       <tr>
+            <td>
+               <p>EqualsIgnoreCase(string1, string2)</p>
+            </td>
+         </tr>
+
+   </table></section>
+  
+<section>
+   <title>Terms</title>
+   <table>
+       <tr>
+            <td>
+               <p>string1</p>
+            </td>
+            <td>
+               <p>The source string.</p>
+            </td>
+         </tr>
+         <tr>
+            <td>
+               <p>string2</p>
+            </td>
+            <td>
+               <p>The string to compare against.</p>
+            </td>
+         </tr>
+   </table>
+</section>
+
+<section>
+     <title>Usage</title>
+     <p>
+Use the EqualsIgnoreCase function to determine if two string are equal ignoring case.
+     </p>
+</section>
+</section>
 
 <!-- ======================================================== -->  
  <section id="indexof">
