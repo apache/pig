@@ -295,8 +295,6 @@ PIG-3468: PIG-3123 breaks e2e test Jython_Diagnostics_2 (daijy)
 
 PIG-3471: Add a base abstract class for ExecutionEngine (cheolsoo)
 
-PIG-3457: Provide backward compatibility for PigStatsUtil and JobStats (daijy)
-
 PIG-3466: Race Conditions in InternalDistinctBag during proactive spill (cheolsoo)
 
 PIG-3464: Mark ExecType and ExecutionEngine interfaces as evolving (cheolsoo)

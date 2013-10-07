@@ -74,7 +74,7 @@ import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
-import org.apache.pig.tools.pigstats.PigStatsUtilBase;
+import org.apache.pig.tools.pigstats.PigStatsUtil;
 import org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil;
 import org.apache.pig.tools.pigstats.mapreduce.MRScriptState;
 
@@ -506,7 +506,7 @@ public class MapReduceLauncher extends Launcher{
                 : ReturnCode.FAILURE)
                 : ReturnCode.SUCCESS; 
         
-        PigStats pigStats = PigStatsUtilBase.getPigStats(ret);
+        PigStats pigStats = PigStatsUtil.getPigStats(ret);
         // run cleanup for all of the stores
              for (OutputStats output : pigStats.getOutputStats()) {
                  POStore store = output.getPOStore();
