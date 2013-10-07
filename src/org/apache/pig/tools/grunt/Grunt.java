@@ -29,7 +29,7 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.tools.grunt.GruntParser;
 import org.apache.pig.tools.grunt.PigCompletor;
 import org.apache.pig.tools.grunt.PigCompletorAliases;
-import org.apache.pig.tools.pigstats.PigStatsUtilBase;
+import org.apache.pig.tools.pigstats.PigStatsUtil;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.util.LogUtils;
 
@@ -64,7 +64,7 @@ public class Grunt
         boolean verbose = "true".equalsIgnoreCase(pig.getPigContext().getProperties().getProperty("verbose"));
         while(true) {
             try {
-                PigStatsUtilBase.getEmptyPigStats();
+                PigStatsUtil.getEmptyPigStats();
                 parser.setInteractive(true);
                 parser.parseStopOnError();
                 break;                            
@@ -79,7 +79,7 @@ public class Grunt
     public int[] exec() throws Throwable {
         boolean verbose = "true".equalsIgnoreCase(pig.getPigContext().getProperties().getProperty("verbose"));
         try {
-            PigStatsUtilBase.getEmptyPigStats();
+            PigStatsUtil.getEmptyPigStats();
             parser.setInteractive(false);
             return parser.parseStopOnError();
         } catch (Throwable t) {

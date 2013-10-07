@@ -69,7 +69,7 @@ import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.apache.pig.tools.pigscript.parser.PigScriptParser;
 import org.apache.pig.tools.pigscript.parser.PigScriptParserTokenManager;
 import org.apache.pig.tools.pigscript.parser.TokenMgrError;
-import org.apache.pig.tools.pigstats.JobStatsBase;
+import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 import org.fusesource.jansi.Ansi;
@@ -133,9 +133,9 @@ public class GruntParser extends PigScriptParser {
                 mPigServer.executeBatch();
                 PigStats stats = PigStats.get();
                 JobGraph jg = stats.getJobGraph();
-                Iterator<JobStatsBase> iter = jg.iterator();
+                Iterator<JobStats> iter = jg.iterator();
                 while (iter.hasNext()) {
-                    JobStatsBase js = iter.next();
+                    JobStats js = iter.next();
                     if (!js.isSuccessful()) {
                         mNumFailedJobs++;
                         Exception exp = (js.getException() != null) ? js.getException()

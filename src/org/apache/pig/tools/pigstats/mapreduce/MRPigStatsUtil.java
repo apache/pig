@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.mapred.Counters;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.RunningJob;
@@ -34,23 +33,20 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.NativeMapRed
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
-import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 import org.apache.pig.tools.pigstats.mapreduce.SimplePigStats;
 import org.apache.pig.tools.pigstats.mapreduce.MRScriptState;
 import org.apache.pig.tools.pigstats.PigStats;
-import org.apache.pig.tools.pigstats.PigStatsUtilBase;
-import org.apache.pig.tools.pigstats.JobStatsBase;
+import org.apache.pig.tools.pigstats.PigStatsUtil;
+import org.apache.pig.tools.pigstats.JobStats;
 
 
 
 /**
  * A utility class for Pig Statistics
  */
-@InterfaceAudience.Public
-@InterfaceStability.Evolving
-public class MRPigStatsUtil extends PigStatsUtilBase {
+public class MRPigStatsUtil extends PigStatsUtil {
 
     public static final String MULTI_STORE_RECORD_COUNTER 
             = "Output records in ";
@@ -202,7 +198,7 @@ public class MRPigStatsUtil extends PigStatsUtilBase {
      * @param job the job being run
      * @return JobStats for the job
      */
-    public static JobStatsBase addJobStats(Job job) {
+    public static JobStats addJobStats(Job job) {
         SimplePigStats ps = (SimplePigStats)PigStats.get();
         return ps.addMRJobStats(job);
     }

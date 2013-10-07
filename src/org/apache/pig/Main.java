@@ -75,7 +75,7 @@ import org.apache.pig.tools.cmdline.CmdLineParser;
 import org.apache.pig.tools.grunt.Grunt;
 import org.apache.pig.tools.pigstats.PigProgressNotificationListener;
 import org.apache.pig.tools.pigstats.PigStats;
-import org.apache.pig.tools.pigstats.PigStatsUtilBase;
+import org.apache.pig.tools.pigstats.PigStatsUtil;
 import org.apache.pig.tools.pigstats.ScriptState;
 import org.apache.pig.tools.timer.PerformanceTimerFactory;
 
@@ -605,33 +605,33 @@ static int run(String args[], PigProgressNotificationListener listener) {
     } catch (ParseException e) {
         usage();
         rc = ReturnCode.PARSE_EXCEPTION;
-        PigStatsUtilBase.setErrorMessage(e.getMessage());
-        PigStatsUtilBase.setErrorThrowable(e);
+        PigStatsUtil.setErrorMessage(e.getMessage());
+        PigStatsUtil.setErrorThrowable(e);
     } catch (org.apache.pig.tools.parameters.ParseException e) {
        // usage();
         rc = ReturnCode.PARSE_EXCEPTION;
-        PigStatsUtilBase.setErrorMessage(e.getMessage());
-        PigStatsUtilBase.setErrorThrowable(e);
+        PigStatsUtil.setErrorMessage(e.getMessage());
+        PigStatsUtil.setErrorThrowable(e);
     } catch (IOException e) {
         if (e instanceof PigException) {
             PigException pe = (PigException)e;
             rc = (pe.retriable()) ? ReturnCode.RETRIABLE_EXCEPTION
                     : ReturnCode.PIG_EXCEPTION;
-            PigStatsUtilBase.setErrorMessage(pe.getMessage());
-            PigStatsUtilBase.setErrorCode(pe.getErrorCode());
+            PigStatsUtil.setErrorMessage(pe.getMessage());
+            PigStatsUtil.setErrorCode(pe.getErrorCode());
         } else {
             rc = ReturnCode.IO_EXCEPTION;
-            PigStatsUtilBase.setErrorMessage(e.getMessage());
+            PigStatsUtil.setErrorMessage(e.getMessage());
         }
-        PigStatsUtilBase.setErrorThrowable(e);
+        PigStatsUtil.setErrorThrowable(e);
 
         if(!gruntCalled) {
             LogUtils.writeLog(e, logFileName, log, verbose, "Error before Pig is launched");
         }
     } catch (Throwable e) {
         rc = ReturnCode.THROWABLE_EXCEPTION;
-        PigStatsUtilBase.setErrorMessage(e.getMessage());
-        PigStatsUtilBase.setErrorThrowable(e);
+        PigStatsUtil.setErrorMessage(e.getMessage());
+        PigStatsUtil.setErrorThrowable(e);
 
         if(!gruntCalled) {
             LogUtils.writeLog(e, logFileName, log, verbose, "Error before Pig is launched");
@@ -1009,7 +1009,7 @@ throws IOException {
     pigContext.connect();
     ScriptEngine scriptEngine = ScriptEngine.getInstance(engine);
     Map<String, List<PigStats>> statsMap = scriptEngine.run(pigContext, file);
-    PigStatsUtilBase.setStatsMap(statsMap);
+    PigStatsUtil.setStatsMap(statsMap);
 
     int failCount = 0;
     int totalCount = 0;
