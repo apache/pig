@@ -724,10 +724,28 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
     private void initialiseHBaseClassLoaderResources(Job job) throws IOException {
         // Make sure the HBase, ZooKeeper, and Guava jars get shipped.
         TableMapReduceUtil.addDependencyJars(job.getConfiguration(),
-            org.apache.hadoop.hbase.client.HTable.class,
+            org.apache.hadoop.hbase.client.HTable.class, // main hbase jar or hbase-client
+            org.apache.hadoop.hbase.mapreduce.TableSplit.class, // main hbase jar or hbase-server
             com.google.common.collect.Lists.class,
             org.apache.zookeeper.ZooKeeper.class);
 
+          // Additional jars that are specific to only some HBase versions
+          // HBase 0.95+
+          addClassToJobIfExists(job, "org.cloudera.htrace.Trace");
+          addClassToJobIfExists(job, "org.apache.hadoop.hbase.protobuf.generated.HBaseProtos"); // hbase-protocol
+          addClassToJobIfExists(job, "org.apache.hadoop.hbase.TableName"); // hbase-common
+    }
+
+    private void addClassToJobIfExists(Job job, String className) throws IOException {
+      Class klass = null;
+      try {
+          klass = Class.forName(className);
+      } catch (ClassNotFoundException e) {
+          LOG.debug("Skipping adding jar for class: " + className);
+          return;
+      }
+
+      TableMapReduceUtil.addDependencyJars(job.getConfiguration(), klass);
     }
 
     private JobConf initializeLocalJobConfig(Job job) {

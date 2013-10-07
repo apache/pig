@@ -97,7 +97,7 @@ import org.apache.pig.parser.QueryParserUtils;
 import org.apache.pig.pen.ExampleGenerator;
 import org.apache.pig.scripting.ScriptEngine;
 import org.apache.pig.tools.grunt.GruntParser;
-import org.apache.pig.tools.pigstats.JobStatsBase;
+import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
@@ -392,9 +392,9 @@ public class PigServer {
     protected List<ExecJob> getJobs(PigStats stats) {
         LinkedList<ExecJob> jobs = new LinkedList<ExecJob>();
         JobGraph jGraph = stats.getJobGraph();
-        Iterator<JobStatsBase> iter = jGraph.iterator();
+        Iterator<JobStats> iter = jGraph.iterator();
         while (iter.hasNext()) {
-            JobStatsBase js = iter.next();
+            JobStats js = iter.next();
             for (OutputStats output : js.getOutputs()) {
                 if (js.isSuccessful()) {
                     jobs.add(new HJob(HJob.JOB_STATUS.COMPLETED, pigContext, output
@@ -960,7 +960,7 @@ public class PigServer {
 
             //check for exception
             Exception ex = null;
-            for(JobStatsBase js : stats.getJobGraph()){
+            for(JobStats js : stats.getJobGraph()){
                 if(js.getException() != null) {
                     ex = js.getException();
                 }

@@ -998,6 +998,8 @@
 
         <copy todir="${tar.dist.dir}/conf" file="conf/log4j.properties.template"/>
 
+        <copy todir="${tar.dist.dir}/conf" file="conf/test-log4j.properties"/>
+
         <copy todir="${tar.dist.dir}/src" includeEmptyDirs="true">
             <fileset dir="${src.dir}" />
         </copy>

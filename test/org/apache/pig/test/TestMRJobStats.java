@@ -44,7 +44,7 @@ import org.apache.pig.backend.hadoop.hbase.HBaseStorage;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.UDFContext;
-import org.apache.pig.tools.pigstats.JobStatsBase;
+import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 import org.apache.pig.tools.pigstats.mapreduce.MRJobStats;
@@ -130,7 +130,7 @@ public class TestMRJobStats {
         String msg = (String)getJobStatsMethod("getDisplayString", boolean.class)
             .invoke(jobStats, false);
 
-        System.out.println(JobStatsBase.SUCCESS_HEADER);
+        System.out.println(JobStats.SUCCESS_HEADER);
         System.out.println(msg);
 
         assertTrue(msg.startsWith(ASSERT_STRING));
@@ -165,7 +165,7 @@ public class TestMRJobStats {
             .invoke(jobStats, jobClient, jobConf);
         String msg = (String)getJobStatsMethod("getDisplayString", boolean.class)
             .invoke(jobStats, false);
-        System.out.println(JobStatsBase.SUCCESS_HEADER);
+        System.out.println(JobStats.SUCCESS_HEADER);
         System.out.println(msg);
 
         StringBuilder sb = new StringBuilder();

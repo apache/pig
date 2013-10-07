@@ -64,16 +64,16 @@ public interface PigProgressNotificationListener extends java.util.EventListener
     /**
      * Invoked just after a MR job is completed successfully. 
      * @param scriptId the unique id of the script 
-     * @param jobStats the {@link JobStatsBase} object associated with the MR job
+     * @param jobStats the {@link JobStats} object associated with the MR job
      */
-    public void jobFinishedNotification(String scriptId, JobStatsBase jobStats);
+    public void jobFinishedNotification(String scriptId, JobStats jobStats);
     
     /**
      * Invoked when a MR job fails.
      * @param scriptId the unique id of the script 
-     * @param jobStats the {@link JobStatsBase} object associated with the MR job
+     * @param jobStats the {@link JobStats} object associated with the MR job
      */
-    public void jobFailedNotification(String scriptId, JobStatsBase jobStats);
+    public void jobFailedNotification(String scriptId, JobStats jobStats);
     
     /**
      * Invoked just after an output is successfully written.

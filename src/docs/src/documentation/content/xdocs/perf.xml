@@ -495,6 +495,22 @@ Note some optimization rules are mandatory and cannot be disabled.</p>
 The rule is disabled by default, and enabled by setting the
 <code>pig.exec.filterLogicExpressionSimplifier</code> pig property to true.</p>
 
+<!-- +++++++++++++++++++++++++++++++ -->
+<section id="PartitionFilterOptimizer">
+<title>PartitionFilterOptimizer</title>
+<p>Push the filter condition to loader.</p>
+<source>
+A = LOAD 'input' as (dt, state, event) using HCatLoader();
+B = FILTER A BY dt=='201310' AND state=='CA';
+</source>
+<p>Filter condition will be pushed to loader if loader supports (Usually
+the loader is partition aware, such as HCatLoader)</p>
+<source>
+A = LOAD 'input' as (dt, state, event) using HCatLoader();
+--Filter is removed
+</source>
+<p>Loader will be instructed to loader the partition with dt=='201310' and state=='CA'</p>
+</section>
 
 <!-- +++++++++++++++++++++++++++++++ -->
 <section id="FilterLogicExpressionSimplifier">
