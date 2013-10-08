@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -17,33 +17,19 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.tez;
 
-import java.util.Map;
+import org.apache.pig.tools.pigstats.ScriptState;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.tez.dag.api.Vertex;
-import org.apache.tez.mapreduce.processor.map.MapProcessor;
-
-public class MapOper extends TezOperator {
-
-    private static final long serialVersionUID = 1L;
-
-    public MapOper(OperatorKey k) {
-        super(k);
+/**
+ * ScriptStates encapsulates settings for a Pig script that runs on a hadoop
+ * cluster. These settings are added to all Tez jobs spawned by the script and
+ * in turn are persisted in the hadoop job xml. With the properties already in
+ * the job xml, users who want to know the relations between the script and Tez
+ * jobs can derive them from the job xmls.
+ */
+public class TezScriptState extends ScriptState {
+    public TezScriptState(String id) {
+        super(id);
         // TODO Auto-generated constructor stub
-    }
-
-    @Override
-    public String getProcessorName() {
-        return MapProcessor.class.getName();
-    }
-
-    @Override
-    public void configureVertex(Vertex operVertex, Configuration operConf,
-            Map<String, LocalResource> commonLocalResources, Path remoteStagingDir) {
-        // TODO Auto-generated method stub
     }
 }
 

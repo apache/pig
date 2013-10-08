@@ -18,6 +18,8 @@
 
 package org.apache.pig.backend.hadoop.executionengine.tez;
 
+import java.util.UUID;
+
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.tools.pigstats.ScriptState;
@@ -30,7 +32,7 @@ public class TezExecutionEngine extends HExecutionEngine {
     }
 
     public ScriptState instantiateScriptState() {
-        // TODO Auto-generated method stub
-        return null;
+        return new TezScriptState(UUID.randomUUID().toString());
     }
 }
+

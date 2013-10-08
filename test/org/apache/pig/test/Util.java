@@ -65,8 +65,8 @@ import org.apache.pig.PigServer;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -1028,7 +1028,7 @@ public class Util {
     public static PhysicalPlan buildPp(PigServer pigServer, String query)
     throws Exception {
         LogicalPlan lp = buildLp( pigServer, query );
-        return ((MRExecutionEngine)pigServer.getPigContext().getExecutionEngine()).compile(lp, 
+        return ((HExecutionEngine)pigServer.getPigContext().getExecutionEngine()).compile(lp, 
                 pigServer.getPigContext().getProperties());
     }
 
@@ -1177,7 +1177,17 @@ public class Util {
         }
         return result;
     }
-    
+
+    /**
+     * this removes the signature from the serialized plan changing the way the
+     * unique signature is generated should not break this test
+     * @param plan the plan to canonicalize
+     * @return the cleaned up plan
+     */
+    public static String removeSignature(String plan) {
+        return plan.replaceAll("','','[^']*','scope','true'\\)\\)", "','','','scope','true'))");
+    }
+
     public static boolean isHadoop23() {
         String version = org.apache.hadoop.util.VersionInfo.getVersion();
         if (version.matches("\\b0\\.23\\..+\\b"))

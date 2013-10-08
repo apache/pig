@@ -233,14 +233,14 @@ public class PigContext implements Serializable {
         this(ExecType.MAPREDUCE, new Properties());
     }
 
-        public PigContext(Configuration conf) throws PigException {
-            this(ConfigurationUtil.toProperties(conf));
-        }
-        
-        public PigContext(Properties properties) throws PigException {
-            this(ExecTypeProvider.selectExecType(properties), properties);
-        }
-    
+    public PigContext(Configuration conf) throws PigException {
+        this(ConfigurationUtil.toProperties(conf));
+    }
+
+    public PigContext(Properties properties) throws PigException {
+        this(ExecTypeProvider.selectExecType(properties), properties);
+    }
+
     public PigContext(ExecType execType, Configuration conf) {
         this(execType, ConfigurationUtil.toProperties(conf));
     }

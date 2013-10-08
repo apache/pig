@@ -56,7 +56,9 @@ public class TezExecType implements ExecType {
 
     @Override
     public boolean isLocal() {
-        return false;
+        // TODO: Set isLocal to true only to test explain without having to have
+        // a Tez cluster.
+        return true;
     }
 
     @Override
@@ -68,3 +70,4 @@ public class TezExecType implements ExecType {
         return name();
     }
 }
+

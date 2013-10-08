@@ -366,9 +366,9 @@
        conf="hadoop23->master"/>
     <dependency org="org.apache.tez" name="tez-common" rev="${tez.version}"
        conf="hadoop23->master"/>
-    <dependency org="org.apache.tez" name="tez-dag" rev="${tez.version}"
+    <dependency org="org.apache.tez" name="tez-api" rev="${tez.version}"
        conf="hadoop23->master"/>
-    <dependency org="org.apache.tez" name="tez-dag-api" rev="${tez.version}"
+    <dependency org="org.apache.tez" name="tez-dag" rev="${tez.version}"
        conf="hadoop23->master"/>
     <dependency org="org.apache.tez" name="tez-dist" rev="${tez.version}"
        conf="hadoop23->master"/>

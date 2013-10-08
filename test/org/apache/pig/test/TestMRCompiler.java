@@ -1132,20 +1132,11 @@ public class TestMRCompiler {
         System.out.println("Golden");
         System.out.println("<<<" + goldenPlan + ">>>");
         System.out.println("-------------");
-        
+
         String goldenPlanClean = Util.standardizeNewline(goldenPlan);
         String compiledPlanClean = Util.standardizeNewline(compiledPlan);
-        assertEquals(TestHelper.sortUDFs(removeSignature(goldenPlanClean)), TestHelper.sortUDFs(removeSignature(compiledPlanClean)));
-    }
-
-    /**
-     * this removes the signature from the serialized plan
-     * changing the way the unique signature is generated should not break this test
-     * @param plan the plan to canonicalize
-     * @return the cleaned up plan
-     */
-    private String removeSignature(String plan) {
-        return plan.replaceAll("','','[^']*','scope','true'\\)\\)", "','','','scope','true'))");
+        assertEquals(TestHelper.sortUDFs(Util.removeSignature(goldenPlanClean)),
+                TestHelper.sortUDFs(Util.removeSignature(compiledPlanClean)));
     }
 
     public static class TestCollectableLoadFunc extends PigStorage implements CollectableLoadFunc {
@@ -1219,11 +1210,11 @@ public class TestMRCompiler {
                 Utils.getSchemaFromString("a : int,b :float ,c : int")
         );
     }
-    
+
     //PIG-2146
     @Test
     public void testStorerLimit() throws Exception {
-        // test if the POStore in the 1st mr plan 
+        // test if the POStore in the 1st mr plan
         // use the right StoreFunc
         String query = "a = load 'input1';" +
             "b = limit a 10;" +
@@ -1231,13 +1222,14 @@ public class TestMRCompiler {
 
         PhysicalPlan pp = Util.buildPp(pigServer, query);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
-        
+
         LimitAdjuster la = new LimitAdjuster(mrPlan, pc);
         la.visit();
         la.adjust();
-        
+
         MapReduceOper firstMrOper = mrPlan.getRoots().get(0);
         POStore store = (POStore)firstMrOper.reducePlan.getLeaves().get(0);
         assertEquals(store.getStoreFunc().getClass().getName(), "org.apache.pig.impl.io.InterStorage");
     }
 }
+

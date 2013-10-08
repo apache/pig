@@ -1,0 +1,53 @@
+#--------------------------------------------------
+# TEZ plan:
+#--------------------------------------------------
+Tez vertex scope-72
+c: Local Rearrange[tuple]{int}(false) - scope-57
+|   |
+|   Project[int][0] - scope-58
+|
+|---a: New For Each(false,false)[bag] - scope-44
+    |   |
+    |   Cast[int] - scope-39
+    |   |
+    |   |---Project[bytearray][0] - scope-38
+    |   |
+    |   Cast[int] - scope-42
+    |   |
+    |   |---Project[bytearray][1] - scope-41
+    |
+    |---a: Load(file:///tmp/input1:org.apache.pig.builtin.PigStorage) - scope-37
+Tez vertex scope-73
+c: Local Rearrange[tuple]{int}(false) - scope-59
+|   |
+|   Project[int][0] - scope-60
+|
+|---b: New For Each(false,false)[bag] - scope-52
+    |   |
+    |   Cast[int] - scope-47
+    |   |
+    |   |---Project[bytearray][0] - scope-46
+    |   |
+    |   Cast[int] - scope-50
+    |   |
+    |   |---Project[bytearray][1] - scope-49
+    |
+    |---b: Load(file:///tmp/input2:org.apache.pig.builtin.PigStorage) - scope-45
+Tez vertex scope-74
+d: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-71
+|
+|---d: New For Each(false,false,false)[bag] - scope-70
+    |   |
+    |   Project[int][0] - scope-64
+    |   |
+    |   Project[int][1] - scope-66
+    |   |
+    |   Project[int][3] - scope-68
+    |
+    |---c: New For Each(true,true)[tuple] - scope-63
+        |   |
+        |   Project[bag][1] - scope-61
+        |   |
+        |   Project[bag][2] - scope-62
+        |
+        |---c: Package[tuple]{int} - scope-56

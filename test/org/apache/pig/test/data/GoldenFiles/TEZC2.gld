@@ -1,0 +1,29 @@
+#--------------------------------------------------
+# TEZ plan:
+#--------------------------------------------------
+Tez vertex scope-35
+b: Local Rearrange[tuple]{int}(false) - scope-27
+|   |
+|   Project[int][0] - scope-28
+|
+|---a: New For Each(false,false)[bag] - scope-24
+    |   |
+    |   Cast[int] - scope-19
+    |   |
+    |   |---Project[bytearray][0] - scope-18
+    |   |
+    |   Cast[int] - scope-22
+    |   |
+    |   |---Project[bytearray][1] - scope-21
+    |
+    |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-17
+Tez vertex scope-36
+c: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-34
+|
+|---c: New For Each(false,false)[bag] - scope-33
+    |   |
+    |   Project[int][0] - scope-29
+    |   |
+    |   Project[bag][1] - scope-31
+    |
+    |---b: Package[tuple]{int} - scope-26

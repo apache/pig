@@ -22,7 +22,7 @@ import java.io.PrintStream;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PlanPrinter;
-import org.apache.pig.impl.plan.DepthFirstWalker;
+import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.VisitorException;
 
 /**
@@ -38,10 +38,10 @@ public class TezPrinter extends TezOpPlanVisitor {
      * @param plan tez plan to print
      */
     public TezPrinter(PrintStream ps, TezOperPlan plan) {
-        super(plan, new DepthFirstWalker<TezOperator, TezOperPlan>(plan));
+        super(plan, new DependencyOrderWalker<TezOperator, TezOperPlan>(plan));
         mStream = ps;
         mStream.println("#--------------------------------------------------");
-        mStream.println("#                     TEZ DAG                      ");
+        mStream.println("# TEZ plan:");
         mStream.println("#--------------------------------------------------");
     }
 
@@ -51,26 +51,24 @@ public class TezPrinter extends TezOpPlanVisitor {
 
     @Override
     public void visitTezOp(TezOperator tezOper) throws VisitorException {
-        mStream.println("Tez Vertex " + tezOper.getOperatorKey().toString());
-
-        if (tezOper instanceof MapOper) {
-            mStream.println("Map Operator");
+        mStream.println("Tez vertex " + tezOper.getOperatorKey().toString());
+        if (tezOper.plan != null && tezOper.plan.size() > 0) {
             PlanPrinter<PhysicalOperator, PhysicalPlan> printer =
-                    new PlanPrinter<PhysicalOperator, PhysicalPlan>(tezOper.getPlan(), mStream);
+                    new PlanPrinter<PhysicalOperator, PhysicalPlan>(tezOper.plan, mStream);
             printer.setVerbose(isVerbose);
             printer.visit();
-            mStream.println("--------");
-        } else if (tezOper instanceof ReduceOper) {
-             mStream.println("Reduce Operator");
-             PlanPrinter<PhysicalOperator, PhysicalPlan> printer =
-                    new PlanPrinter<PhysicalOperator, PhysicalPlan>(tezOper.getPlan(), mStream);
-             printer.setVerbose(isVerbose);
-             printer.visit();
-             mStream.println("--------");
         }
-
-        mStream.println("----------------");
-        mStream.println("");
+        if (tezOper.combinePlan != null && tezOper.combinePlan.size() > 0) {
+            mStream.println();
+            mStream.println("------------");
+            mStream.println("Combine Plan");
+            mStream.println("------------");
+            PlanPrinter<PhysicalOperator, PhysicalPlan> printer =
+                    new PlanPrinter<PhysicalOperator, PhysicalPlan>(tezOper.combinePlan, mStream);
+            printer.setVerbose(isVerbose);
+            printer.visit();
+        }
+        mStream.println();
     }
 }
 
