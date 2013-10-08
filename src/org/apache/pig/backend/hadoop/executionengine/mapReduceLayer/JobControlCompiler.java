@@ -505,7 +505,7 @@ public class JobControlCompiler{
                 // Setup the DistributedCache for this job
                 for (URL extraJar : pigContext.extraJars) {
                     log.debug("Adding jar to DistributedCache: " + extraJar.toString());
-                    putJarOnClassPathThroughDistributedCache(pigContext, conf, extraJar);
+                    Utils.putJarOnClassPathThroughDistributedCache(pigContext, conf, extraJar);
                 }
 
                 //Create the jar of all functions and classes required
@@ -957,7 +957,6 @@ public class JobControlCompiler{
 
     public static class PigSecondaryKeyGroupComparator extends WritableComparator {
         public PigSecondaryKeyGroupComparator() {
-//            super(TupleFactory.getInstance().tupleClass(), true);
             super(NullableTuple.class, true);
         }
 
@@ -1472,61 +1471,6 @@ public class JobControlCompiler{
             throw new ExecException(msg, errCode, PigException.USER_ENVIRONMENT);
         }
     }
-
-    /**
-     * if url is not in HDFS will copy the path to HDFS from local before adding to distributed cache
-     * @param pigContext the pigContext
-     * @param conf the job conf
-     * @param url the url to be added to distributed cache
-     * @return the path as seen on distributed cache
-     * @throws IOException
-     */
-    @SuppressWarnings("deprecation")
-    private static void putJarOnClassPathThroughDistributedCache(
-            PigContext pigContext,
-            Configuration conf,
-            URL url) throws IOException {
-
-        // Turn on the symlink feature
-        DistributedCache.createSymlink(conf);
-
-        // REGISTER always copies locally the jar file. see PigServer.registerJar()
-        Path pathInHDFS = shipToHDFS(pigContext, conf, url);
-        // and add to the DistributedCache
-        DistributedCache.addFileToClassPath(pathInHDFS, conf);
-        pigContext.skipJars.add(url.getPath());
-    }
-
-    /**
-     * copy the file to hdfs in a temporary path
-     * @param pigContext the pig context
-     * @param conf the job conf
-     * @param url the url to ship to hdfs
-     * @return the location where it was shipped
-     * @throws IOException
-     */
-    private static Path shipToHDFS(
-            PigContext pigContext,
-            Configuration conf,
-            URL url) throws IOException {
-
-        String path = url.getPath();
-        int slash = path.lastIndexOf("/");
-        String suffix = slash == -1 ? path : path.substring(slash+1);
-
-        Path dst = new Path(FileLocalizer.getTemporaryPath(pigContext).toUri().getPath(), suffix);
-        FileSystem fs = dst.getFileSystem(conf);
-        OutputStream os = fs.create(dst);
-        try {
-            IOUtils.copyBytes(url.openStream(), os, 4096, true);
-        } finally {
-            // IOUtils can not close both the input and the output properly in a finally
-            // as we can get an exception in between opening the stream and calling the method
-            os.close();
-        }
-        return dst;
-    }
-
 
     private static class JoinDistributedCacheVisitor extends PhyPlanVisitor {
 

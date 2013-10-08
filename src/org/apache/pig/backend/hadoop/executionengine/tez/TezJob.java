@@ -21,16 +21,30 @@ import java.io.IOException;
 
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.jobcontrol.Job;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.tez.dag.api.DAG;
+import org.apache.tez.dag.api.TezConfiguration;
 
 /**
- * This class encapsulates all the operator objects that can be executed in a
- * single Tez job.
+ * Wrapper class that encapsulates Tez DAG. This class mediates between Tez DAGs
+ * and JobControl.
  */
 public class TezJob extends Job {
+    private ApplicationId appId;
+    private DAG dag;
 
-    public TezJob(JobConf conf) throws IOException {
-        super(conf);
-        // TODO Auto-generated constructor stub
+    public TezJob(TezConfiguration conf, ApplicationId appId, DAG dag) throws IOException {
+        super(new JobConf(conf));
+        this.appId = appId;
+        this.dag = dag;
+    }
+
+    public ApplicationId getAppId() {
+        return appId;
+    }
+
+    public DAG getDag() {
+        return dag;
     }
 }
 
