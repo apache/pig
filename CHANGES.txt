@@ -34,6 +34,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3506: FLOOR documentation references CEIL function instead of FLOOR (seshness via daijy)
+
 PIG-3497: JobControlCompiler should only do reducer estimation when the job has a reduce phase (amatsukawa via aniket486)
 
 PIG-3469: Skewed join can cause unrecoverable NullPointerException when one of its inputs is missing (Jarek Jarcec Cecho  via xuefuz)

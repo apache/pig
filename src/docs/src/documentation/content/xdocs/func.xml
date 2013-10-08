@@ -2629,7 +2629,7 @@ This function never increases the result value.
                <p>x</p>
             </td>
             <td>
-               <p>CEIL(x)</p>
+               <p>FLOOR(x)</p>
             </td>
          </tr>
         
