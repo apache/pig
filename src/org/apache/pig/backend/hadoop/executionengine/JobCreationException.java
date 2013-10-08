@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
+package org.apache.pig.backend.hadoop.executionengine;
 
 import org.apache.pig.impl.logicalLayer.FrontendException;
 
@@ -29,16 +29,16 @@ public class JobCreationException extends FrontendException{
     public JobCreationException() {
         super();
     }
-    
+
     /**
      * Create a new JobCreationException with the specified message and cause.
      *
-     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
+     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user
      */
     public JobCreationException(String message) {
         super(message);
     }
-    
+
     /**
      * Create a new JobCreationException with the specified cause.
      *
@@ -51,7 +51,7 @@ public class JobCreationException extends FrontendException{
     /**
      * Create a new JobCreationException with the specified message and cause.
      *
-     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
+     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user
      * @param cause - The cause (which is saved for later retrieval by the <link>Throwable.getCause()</link> method) indicating the source of this exception. A null value is permitted, and indicates that the cause is nonexistent or unknown.
      */
     public JobCreationException(String message, Throwable cause) {
@@ -61,8 +61,8 @@ public class JobCreationException extends FrontendException{
     /**
      * Create a new JobCreationException with the specified message and cause.
      *
-     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
-     * @param errCode - The error code shown to the user 
+     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user
+     * @param errCode - The error code shown to the user
      */
     public JobCreationException(String message, int errCode) {
         super(message, errCode);
@@ -71,9 +71,9 @@ public class JobCreationException extends FrontendException{
     /**
      * Create a new JobCreationException with the specified message and cause.
      *
-     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
-     * @param errCode - The error code shown to the user 
-     * @param cause - The cause (which is saved for later retrieval by the <link>Throwable.getCause()</link> method) indicating the source of this exception. A null value is permitted, and indicates that the cause is nonexistent or unknown. 
+     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user
+     * @param errCode - The error code shown to the user
+     * @param cause - The cause (which is saved for later retrieval by the <link>Throwable.getCause()</link> method) indicating the source of this exception. A null value is permitted, and indicates that the cause is nonexistent or unknown.
      */
     public JobCreationException(String message, int errCode, Throwable cause) {
         super(message, errCode, cause);
@@ -82,21 +82,21 @@ public class JobCreationException extends FrontendException{
     /**
      * Create a new JobCreationException with the specified message and cause.
      *
-     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
-     * @param errCode - The error code shown to the user 
-     * @param errSrc - The error source 
+     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user
+     * @param errCode - The error code shown to the user
+     * @param errSrc - The error source
      */
     public JobCreationException(String message, int errCode, byte errSrc) {
         super(message, errCode, errSrc);
-    }   
+    }
 
     /**
      * Create a new JobCreationException with the specified message and cause.
      *
-     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
-     * @param errCode - The error code shown to the user 
+     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user
+     * @param errCode - The error code shown to the user
      * @param errSrc - The error source
-     * @param cause - The cause (which is saved for later retrieval by the <link>Throwable.getCause()</link> method) indicating the source of this exception. A null value is permitted, and indicates that the cause is nonexistent or unknown. 
+     * @param cause - The cause (which is saved for later retrieval by the <link>Throwable.getCause()</link> method) indicating the source of this exception. A null value is permitted, and indicates that the cause is nonexistent or unknown.
      */
     public JobCreationException(String message, int errCode, byte errSrc,
             Throwable cause) {
@@ -106,10 +106,10 @@ public class JobCreationException extends FrontendException{
     /**
      * Create a new JobCreationException with the specified message and cause.
      *
-     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
-     * @param errCode - The error code shown to the user 
+     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user
+     * @param errCode - The error code shown to the user
      * @param retry - If the exception is retriable or not
-     */ 
+     */
     public JobCreationException(String message, int errCode, boolean retry) {
         super(message, errCode, retry);
     }
@@ -117,38 +117,38 @@ public class JobCreationException extends FrontendException{
     /**
      * Create a new JobCreationException with the specified message and cause.
      *
-     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
-     * @param errCode - The error code shown to the user 
-     * @param errSrc - The error source 
+     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user
+     * @param errCode - The error code shown to the user
+     * @param errSrc - The error source
      * @param retry - If the exception is retriable or not
      */
     public JobCreationException(String message, int errCode, byte errSrc,
             boolean retry) {
         super(message, errCode, errSrc, retry);
-    }    
+    }
 
     /**
      * Create a new JobCreationException with the specified message, error code, error source, retriable or not, detalied message for the developer and cause.
      *
-     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
-     * @param errCode - The error code shown to the user 
-     * @param errSrc - The error source 
+     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user
+     * @param errCode - The error code shown to the user
+     * @param errSrc - The error source
      * @param retry - If the exception is retriable or not
-     * @param detailedMsg - The detailed message shown to the developer 
+     * @param detailedMsg - The detailed message shown to the developer
      */
     public JobCreationException(String message, int errCode, byte errSrc,
             boolean retry, String detailedMsg) {
         super(message, errCode, errSrc, retry, detailedMsg);
     }
-    
+
     /**
      * Create a new JobCreationException with the specified message, error code, error source, retriable or not, detalied message for the developer and cause.
      *
-     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user 
-     * @param errCode - The error code shown to the user 
-     * @param errSrc - The error source 
+     * @param message - The error message (which is saved for later retrieval by the <link>Throwable.getMessage()</link> method) shown to the user
+     * @param errCode - The error code shown to the user
+     * @param errSrc - The error source
      * @param retry - If the exception is retriable or not
-     * @param detailedMsg - The detailed message shown to the developer 
+     * @param detailedMsg - The detailed message shown to the developer
      * @param cause - The cause (which is saved for later retrieval by the <link>Throwable.getCause()</link> method) indicating the source of this exception. A null value is permitted, and indicates that the cause is nonexistent or unknown.
      */
     public JobCreationException(String message, int errCode, byte errSrc,
@@ -157,3 +157,4 @@ public class JobCreationException extends FrontendException{
     }
 
 }
+
