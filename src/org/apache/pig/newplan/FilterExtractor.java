@@ -210,7 +210,7 @@ public class FilterExtractor {
             // AND is commutative
             // Expression =
             // (leftState.pushdownExpr AND leftState.filterExpr)
-            // AND (rightState.pushdownExpr AND leftState.filterExpr)
+            // AND (rightState.pushdownExpr AND rightState.filterExpr)
             //
             // pushDownExpr = (leftState.pushdownExpr AND rightState.pushdownExpr)
             // filterExpr = (leftState.filterExpr AND rightState.filterExpr)
@@ -219,7 +219,7 @@ public class FilterExtractor {
         } else if (binExpr instanceof OrExpression) {
             // Expression =
             // (leftState.pushdownExpr AND leftState.filterExpr)
-            // OR (rightState.pushdownExpr AND leftState.filterExpr)
+            // OR (rightState.pushdownExpr AND rightState.filterExpr)
             //
             // This could be rewritten with distributive property as
             // (leftState.pushdownExpr OR rightState.pushdownExpr)
