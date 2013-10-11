@@ -46,7 +46,13 @@ PIG-3469: Skewed join can cause unrecoverable NullPointerException when one of i
 
 PIG-3496: Propagate HBase 0.95 jars to the backend (Jarek Jarcec Cecho  via xuefuz)
 
-Release 0.12.0 (unreleased changes)
+Release 0.12.1 (unreleased changes)
+
+BUG FIXES
+
+PIG-3510: New filter extractor fails with more than one filter statement (aniket486 via cheolsoo)
+
+Release 0.12.0
 
 INCOMPATIBLE CHANGES
 
@@ -276,8 +282,6 @@ PIG-3123: Simplify Logical Plans By Removing Unneccessary Identity Projections (
 PIG-3013: BinInterSedes improve chararray sort performance (rohini)
 
 BUG FIXES
-
-PIG-3510: New filter extractor fails with more than one filter statement (aniket486 via cheolsoo) 
 
 PIG-3504: Fix e2e Describe_cmdline_12 (cheolsoo via daijy)
 
