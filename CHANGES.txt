@@ -18,6 +18,12 @@
 
 Pig Change Log
 
+Release 0.12.1 (unreleased changes)
+
+BUG FIXES
+
+PIG-3512: Reducer estimater is broken by PIG-3497 (daijy)
+
 Release 0.12.0
 
 INCOMPATIBLE CHANGES
