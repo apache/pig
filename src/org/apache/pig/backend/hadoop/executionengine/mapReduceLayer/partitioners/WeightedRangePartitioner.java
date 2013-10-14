@@ -31,7 +31,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.Partitioner;
-import org.apache.pig.ExecType;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
@@ -122,12 +121,9 @@ public class WeightedRangePartitioner extends Partitioner<PigNullableWritable, W
             if (configuration.get("fs.hdfs.impl") != null) {
                 conf.set("fs.hdfs.impl", configuration.get("fs.hdfs.impl"));
             }
-            if (configuration.getBoolean("pig.tmpfilecompression", false)) {
-                conf.setBoolean("pig.tmpfilecompression", true);
-                if (configuration.get("pig.tmpfilecompression.codec") != null) {
-                    conf.set("pig.tmpfilecompression.codec", configuration.get("pig.tmpfilecompression.codec"));
-            }
-            }
+
+            MapRedUtil.copyTmpFileConfigurationValues(configuration, conf);
+
             conf.set(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
 
             ReadToEndLoader loader = new ReadToEndLoader(Utils.getTmpFileStorageObject(conf),
