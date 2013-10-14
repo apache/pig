@@ -21,16 +21,18 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezCompiler;
-import org.apache.pig.backend.hadoop.executionengine.tez.TezExecType;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezJobControlCompiler;
+import org.apache.pig.backend.hadoop.executionengine.tez.TezLocalExecType;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezOperPlan;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezOperator;
 import org.apache.pig.impl.PigContext;
@@ -61,7 +63,7 @@ public class TestTezJobControlCompiler {
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        pc = new PigContext(new TezExecType(), new Properties());
+        pc = new PigContext(new TezLocalExecType(), new Properties());
     }
 
     @AfterClass
@@ -165,7 +167,7 @@ public class TestTezJobControlCompiler {
         TezCompiler comp = new TezCompiler(pp, pc);
         TezOperPlan tezPlan = comp.compile();
         TezJobControlCompiler jobComp = new TezJobControlCompiler(pc, new Configuration());
-        DAG dag = jobComp.buildDAG(tezPlan);
+        DAG dag = jobComp.buildDAG(tezPlan, new HashMap<String, LocalResource>());
         return new Pair<TezOperPlan, DAG>(tezPlan, dag);
     }
 }

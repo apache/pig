@@ -28,7 +28,7 @@ import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezCompiler;
-import org.apache.pig.backend.hadoop.executionengine.tez.TezExecType;
+import org.apache.pig.backend.hadoop.executionengine.tez.TezLocalExecType;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezOperPlan;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezPrinter;
 import org.apache.pig.impl.PigContext;
@@ -64,7 +64,7 @@ public class TestTezCompiler {
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        pc = new PigContext(new TezExecType(), new Properties());
+        pc = new PigContext(new TezLocalExecType(), new Properties());
     }
 
     @AfterClass

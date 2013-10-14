@@ -20,17 +20,13 @@ package org.apache.pig.backend.hadoop.executionengine.tez;
 
 import java.util.Properties;
 
-import org.apache.pig.ExecType;
-import org.apache.pig.backend.executionengine.ExecutionEngine;
-import org.apache.pig.impl.PigContext;
-
 /**
  * TezExecType is the ExecType for distributed mode in Tez.
  */
-public class TezExecType implements ExecType {
+public class TezLocalExecType extends TezExecType {
 
     private static final long serialVersionUID = 1L;
-    private static final String[] modes = { "TEZ" };
+    private static final String[] modes = { "TEZ_LOCAL" };
 
     @Override
     public boolean accepts(Properties properties) {
@@ -45,27 +41,13 @@ public class TezExecType implements ExecType {
     }
 
     @Override
-    public ExecutionEngine getExecutionEngine(PigContext pigContext) {
-        return new TezExecutionEngine(pigContext);
-    }
-
-    @Override
-    public Class<? extends ExecutionEngine> getExecutionEngineClass() {
-        return TezExecutionEngine.class;
-    }
-
-    @Override
     public boolean isLocal() {
-        return false;
+        return true;
     }
 
     @Override
     public String name() {
-        return "TEZ";
-    }
-
-    public String toString() {
-        return name();
+        return "TEZ_LOCAL";
     }
 }
 

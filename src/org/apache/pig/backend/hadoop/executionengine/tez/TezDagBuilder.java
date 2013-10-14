@@ -18,9 +18,12 @@
 package org.apache.pig.backend.hadoop.executionengine.tez;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.VisitorException;
@@ -36,15 +39,18 @@ import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.Vertex;
+import org.apache.tez.mapreduce.hadoop.MRHelpers;
 
 /**
  * A visitor to construct DAG out of Tez plan.
  */
 public class TezDagBuilder extends TezOpPlanVisitor {
     private DAG dag;
+    private Map<String, LocalResource> localResources;
 
-    public TezDagBuilder(DAG dag, TezOperPlan plan) {
+    public TezDagBuilder(TezOperPlan plan, DAG dag, Map<String, LocalResource> localResources) {
         super(plan, new DependencyOrderWalker<TezOperator, TezOperPlan>(plan));
+        this.localResources = localResources;
         this.dag = dag;
     }
 
@@ -89,8 +95,20 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         conf.set(PigProcessor.COMBINE_PLAN, ObjectSerializer.serialize(tezOp.combinePlan));
         byte[] userPayload = TezUtils.createUserPayloadFromConf(conf);
         procDesc.setUserPayload(userPayload);
-        return new Vertex(tezOp.name(), procDesc, tezOp.requestedParallelism,
+        Vertex vertex = new Vertex(tezOp.name(), procDesc, tezOp.requestedParallelism,
                 Resource.newInstance(tezOp.requestedMemory, tezOp.requestedCpu));
+
+        Map<String, String> env = new HashMap<String, String>();
+        MRHelpers.updateEnvironmentForMRTasks(conf, env, true);
+        vertex.setTaskEnvironment(env);
+
+        vertex.setTaskLocalResources(localResources);
+
+        // This could also be reduce, but we need to choose one
+        // TODO: Decide how to do configuration like this for Tez
+        vertex.setJavaOpts(MRHelpers.getMapJavaOpts(conf));
+
+        return vertex;
     }
 }
 

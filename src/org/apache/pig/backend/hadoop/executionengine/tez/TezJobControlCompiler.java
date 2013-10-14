@@ -70,10 +70,11 @@ public class TezJobControlCompiler {
         this.tezClient = new TezClient(tezConf);
     }
 
-    public DAG buildDAG(TezOperPlan tezPlan) throws IOException, YarnException {
+    public DAG buildDAG(TezOperPlan tezPlan, Map<String, LocalResource> localResources)
+            throws IOException, YarnException {
         String jobName = pigContext.getProperties().getProperty(PigContext.JOB_NAME, DAG_JAR_NAME);
         DAG tezDag = new DAG(jobName);
-        TezDagBuilder dagBuilder = new TezDagBuilder(tezDag, tezPlan);
+        TezDagBuilder dagBuilder = new TezDagBuilder(tezPlan, tezDag, localResources);
         dagBuilder.visit();
         return tezDag;
     }
@@ -100,7 +101,9 @@ public class TezJobControlCompiler {
         try {
             // TODO: for now, we assume that the whole Tez plan can be always
             // packaged into a single Tez job. But that may be not always true.
-            TezJob job = getJob(tezPlan, tezConf, pigContext);
+            tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR,
+                    TezConfiguration.TEZ_AM_STAGING_DIR_DEFAULT);
+            TezJob job = getJob(tezPlan);
             jobCtrl.addJob(job);
         } catch (JobCreationException jce) {
             throw jce;
@@ -113,15 +116,12 @@ public class TezJobControlCompiler {
         return jobCtrl;
     }
 
-    private TezJob getJob(TezOperPlan tezPlan, TezConfiguration conf, PigContext pigContext)
-            throws JobCreationException {
+    private TezJob getJob(TezOperPlan tezPlan) throws JobCreationException {
         try {
             ApplicationId appId = tezClient.createApplication();
             FileSystem remoteFs = FileSystem.get(tezConf);
-            Path remoteStagingDir = remoteFs.makeQualified(new Path(conf.get(
-                    TezConfiguration.TEZ_AM_STAGING_DIR,
-                    TezConfiguration.TEZ_AM_STAGING_DIR_DEFAULT),
-                    appId.toString()));
+            Path remoteStagingDir = remoteFs.makeQualified(new Path(
+                    tezConf.get(TezConfiguration.TEZ_AM_STAGING_DIR), appId.toString()));
 
             // Setup the DistributedCache for this job
             for (URL extraJar : pigContext.extraJars) {
@@ -150,20 +150,20 @@ public class TezJobControlCompiler {
             remoteFs.copyFromLocalFile(new Path(jobJar.getAbsolutePath()), remoteJarPath);
             FileStatus jarFileStatus = remoteFs.getFileStatus(remoteJarPath);
 
-            Map<String, LocalResource> commonLocalResources = Maps.newHashMap();
+            Map<String, LocalResource> localResources = Maps.newHashMap();
             LocalResource dagJarLocalRsrc = LocalResource.newInstance(
                     ConverterUtils.getYarnUrlFromPath(remoteJarPath),
                     LocalResourceType.FILE,
                     LocalResourceVisibility.APPLICATION,
                     jarFileStatus.getLen(),
                     jarFileStatus.getModificationTime());
-            commonLocalResources.put(DAG_JAR_NAME, dagJarLocalRsrc);
+            localResources.put(DAG_JAR_NAME, dagJarLocalRsrc);
 
-            DAG tezDag = buildDAG(tezPlan);
+            DAG tezDag = buildDAG(tezPlan, localResources);
             // TODO: We need to design TezJob first. What information do we want
             // to encapsulate in Tezjob? How are we going to launch TezJobs in
             // TezLauncher?
-            return new TezJob(conf, appId, tezDag);
+            return new TezJob(tezConf, appId, tezDag, localResources);
         } catch (Exception e) {
             int errCode = 2017;
             String msg = "Internal error creating job configuration.";

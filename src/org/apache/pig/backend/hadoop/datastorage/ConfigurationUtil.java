@@ -18,7 +18,6 @@
 
 package org.apache.pig.backend.hadoop.datastorage;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Enumeration;
 import java.util.Iterator;
@@ -34,8 +33,12 @@ import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 public class ConfigurationUtil {
 
     public static Configuration toConfiguration(Properties properties) {
+        return toConfiguration(properties, false);
+    }
+
+    public static Configuration toConfiguration(Properties properties, boolean loadDefaults) {
         assert properties != null;
-        final Configuration config = new Configuration(false);
+        final Configuration config = new Configuration(loadDefaults);
         final Enumeration<Object> iter = properties.keys();
         while (iter.hasMoreElements()) {
             final String key = (String) iter.nextElement();

@@ -23,17 +23,17 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobClient;
-import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobID;
 import org.apache.hadoop.mapred.RunningJob;
-import org.apache.hadoop.mapred.TIPStatus;
 import org.apache.hadoop.mapred.TaskReport;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
@@ -44,31 +44,55 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.LogUtils;
+import org.apache.pig.impl.util.Utils;
 import org.apache.pig.tools.pigstats.PigStats;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 /**
- * 
- * Provides core processing implementation for the backend of Pig 
+ *
+ * Provides core processing implementation for the backend of Pig
  * if ExecutionEngine chosen decides to delegate it's work to this class.
- * Also contains set of utility methods, including ones centered around 
+ * Also contains set of utility methods, including ones centered around
  * Hadoop.
- * 
+ *
  */
 public abstract class Launcher {
     private static final Log log = LogFactory.getLog(Launcher.class);
+    private static final String OOM_ERR = "OutOfMemoryError";
+    private boolean pigException = false;
+    private boolean outOfMemory = false;
+    private String newLine = "\n";
 
-    long totalHadoopTimeSpent;
-    String newLine = "\n";
-    boolean pigException = false;
-    boolean outOfMemory = false;
-    static final String OOM_ERR = "OutOfMemoryError";
+    // Used to track the exception thrown by the job control which is run in a
+    // separate thread
+    protected String jobControlExceptionStackTrace = null;
+    protected Exception jobControlException = null;
+    protected long totalHadoopTimeSpent;
+
+    protected Map<FileSpec, Exception> failureMap;
+    protected JobControl jc = null;
+
+    class HangingJobKiller extends Thread {
+        public HangingJobKiller() {}
+
+        @Override
+        public void run() {
+            try {
+                kill();
+            } catch (Exception e) {
+                log.warn("Error in killing Execution Engine: " + e);
+            }
+        }
+    }
 
     protected Launcher() {
-        totalHadoopTimeSpent = 0;
+        Runtime.getRuntime().addShutdownHook(new HangingJobKiller());
         // handle the windows portion of \r
         if (System.getProperty("os.name").toUpperCase().startsWith("WINDOWS")) {
             newLine = "\r\n";
@@ -80,7 +104,9 @@ public abstract class Launcher {
      * Resets the state after a launch
      */
     public void reset() {
-
+        failureMap = Maps.newHashMap();
+        totalHadoopTimeSpent = 0;
+        jc = null;
     }
 
     /**
@@ -99,7 +125,7 @@ public abstract class Launcher {
      * while respecting the dependency information. The parent thread monitors
      * the submitted jobs' progress and after it is complete, stops the
      * JobControl thread.
-     * 
+     *
      * @param php
      * @param grpName
      * @param pc
@@ -114,7 +140,7 @@ public abstract class Launcher {
 
     /**
      * Explain how a pig job will be executed on the underlying infrastructure.
-     * 
+     *
      * @param pp
      *            PhysicalPlan to explain
      * @param pc
@@ -134,54 +160,11 @@ public abstract class Launcher {
 
     public abstract void kill() throws BackendException;
 
-    public abstract void killJob(String jobID, JobConf jobConf)
+    public abstract void killJob(String jobID, Configuration conf)
             throws BackendException;
 
     protected boolean isComplete(double prog) {
         return (int) (Math.ceil(prog)) == 1;
-    }
-
-    protected void getStats(Job job, JobClient jobClient, boolean errNotDbg,
-            PigContext pigContext) throws ExecException {
-        JobID MRJobID = job.getAssignedJobID();
-        String jobMessage = job.getMessage();
-        Exception backendException = null;
-        if (MRJobID == null) {
-            try {
-                LogUtils.writeLog(
-                        "Backend error message during job submission",
-                        jobMessage,
-                        pigContext.getProperties().getProperty("pig.logfile"),
-                        log);
-                backendException = getExceptionFromString(jobMessage);
-            } catch (Exception e) {
-                int errCode = 2997;
-                String msg = "Unable to recreate exception from backend error: "
-                        + jobMessage;
-                throw new ExecException(msg, errCode, PigException.BUG);
-            }
-            throw new ExecException(backendException);
-        }
-        try {
-            TaskReport[] mapRep = jobClient.getMapTaskReports(MRJobID);
-            getErrorMessages(mapRep, "map", errNotDbg, pigContext);
-            totalHadoopTimeSpent += computeTimeSpent(mapRep);
-            mapRep = null;
-            TaskReport[] redRep = jobClient.getReduceTaskReports(MRJobID);
-            getErrorMessages(redRep, "reduce", errNotDbg, pigContext);
-            totalHadoopTimeSpent += computeTimeSpent(redRep);
-            redRep = null;
-        } catch (IOException e) {
-            if (job.getState() == Job.SUCCESS) {
-                // if the job succeeded, let the user know that
-                // we were unable to get statistics
-                log.warn("Unable to get job related diagnostics");
-            } else {
-                throw new ExecException(e);
-            }
-        } catch (Exception e) {
-            throw new ExecException(e);
-        }
     }
 
     protected long computeTimeSpent(TaskReport[] taskReports) {
@@ -267,7 +250,7 @@ public abstract class Launcher {
     /**
      * Compute the progress of the current job submitted through the JobControl
      * object jc to the JobClient jobClient
-     * 
+     *
      * @param jc
      *            - The JobControl object that has been submitted
      * @param jobClient
@@ -292,7 +275,7 @@ public abstract class Launcher {
      * Returns the progress of a Job j which is part of a submitted JobControl
      * object. The progress is for this Job. So it has to be scaled down by the
      * num of jobs that are present in the JobControl.
-     * 
+     *
      * @param j
      *            - The Job for which progress is required
      * @param jobClient
@@ -320,7 +303,27 @@ public abstract class Launcher {
     }
 
     /**
-     * 
+     * An exception handler class to handle exceptions thrown by the job controller thread
+     * Its a local class. This is the only mechanism to catch unhandled thread exceptions
+     * Unhandled exceptions in threads are handled by the VM if the handler is not registered
+     * explicitly or if the default handler is null
+     */
+    public class JobControlThreadExceptionHandler implements Thread.UncaughtExceptionHandler {
+        @Override
+        public void uncaughtException(Thread thread, Throwable throwable) {
+            jobControlExceptionStackTrace = Utils.getStackStraceStr(throwable);
+            try {
+                jobControlException = getExceptionFromString(jobControlExceptionStackTrace);
+            } catch (Exception e) {
+                String errMsg = "Could not resolve error that occured when launching map reduce job: "
+                        + jobControlExceptionStackTrace;
+                jobControlException = new RuntimeException(errMsg, throwable);
+            }
+        }
+    }
+
+    /**
+     *
      * @param stackTraceLine
      *            The string representation of
      *            {@link Throwable#printStackTrace() printStackTrace} Handles
@@ -357,7 +360,7 @@ public abstract class Launcher {
     }
 
     /**
-     * 
+     *
      * @param stackTraceLine
      *            An array of strings that represent
      *            {@link Throwable#printStackTrace() printStackTrace} output,
@@ -435,7 +438,7 @@ public abstract class Launcher {
             // the exceptionName should not be null
             if (exceptionName != null) {
 
-                ArrayList<StackTraceElement> stackTraceElements = new ArrayList<StackTraceElement>();
+                ArrayList<StackTraceElement> stackTraceElements = Lists.newArrayList();
 
                 // Create stack trace elements for the remaining lines
                 String stackElementRegex = "\\s+at\\s+(\\w+(\\$\\w+)?\\.)+(\\<)?\\w+(\\>)?";
@@ -574,7 +577,7 @@ public abstract class Launcher {
     }
 
     /**
-     * 
+     *
      * @param line
      *            the string representation of a stack trace returned by
      *            {@link Throwable#printStackTrace() printStackTrace}
