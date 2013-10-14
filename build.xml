@@ -232,7 +232,7 @@
 
     <!-- jdiff properties -->
     <property name="jdiff.jar" value="${ivy.lib.dir}/jdiff-${jdiff.version}.jar"/>
-    <property name="xerces.jar" value="${ivy.lib.dir}/xerces-${xerces.version}.jar"/>
+    <property name="xerces.jar" value="${ivy.lib.dir}/xercesImpl-${xerces.version}.jar"/>
     <property name="jdiff.build.dir" value="${build.docs}/jdiff"/>
     <property name="jdiff.xml.dir" value="${lib.dir}/jdiff"/>
     <property name="jdiff.stable" value="0.11.1"/>
