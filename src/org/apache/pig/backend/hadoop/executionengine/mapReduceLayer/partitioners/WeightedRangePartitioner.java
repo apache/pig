@@ -122,12 +122,9 @@ public class WeightedRangePartitioner extends Partitioner<PigNullableWritable, W
             if (configuration.get("fs.hdfs.impl") != null) {
                 conf.set("fs.hdfs.impl", configuration.get("fs.hdfs.impl"));
             }
-            if (configuration.getBoolean("pig.tmpfilecompression", false)) {
-                conf.setBoolean("pig.tmpfilecompression", true);
-                if (configuration.get("pig.tmpfilecompression.codec") != null) {
-                    conf.set("pig.tmpfilecompression.codec", configuration.get("pig.tmpfilecompression.codec"));
-            }
-            }
+
+            MapRedUtil.copyTmpFileConfigurationValues(configuration, conf);
+
             conf.set(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
 
             ReadToEndLoader loader = new ReadToEndLoader(Utils.getTmpFileStorageObject(conf),

@@ -20,14 +20,14 @@ package org.apache.pig.backend.hadoop.executionengine.util;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Comparator;
-import java.util.Collections;
-import java.util.Arrays;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -38,13 +38,13 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
@@ -89,20 +89,17 @@ public class MapRedUtil {
         if (mapConf.get("yarn.resourcemanager.principal")!=null) {
             conf.set("yarn.resourcemanager.principal", mapConf.get("yarn.resourcemanager.principal"));
         }
-        
+
         if (PigMapReduce.sJobConfInternal.get().get("fs.file.impl")!=null)
             conf.set("fs.file.impl", PigMapReduce.sJobConfInternal.get().get("fs.file.impl"));
         if (PigMapReduce.sJobConfInternal.get().get("fs.hdfs.impl")!=null)
             conf.set("fs.hdfs.impl", PigMapReduce.sJobConfInternal.get().get("fs.hdfs.impl"));
-        if (PigMapReduce.sJobConfInternal.get().getBoolean("pig.tmpfilecompression", false))
-        {
-            conf.setBoolean("pig.tmpfilecompression", true);
-            if (PigMapReduce.sJobConfInternal.get().get("pig.tmpfilecompression.codec")!=null)
-                conf.set("pig.tmpfilecompression.codec", PigMapReduce.sJobConfInternal.get().get("pig.tmpfilecompression.codec"));
-        }
+
+        copyTmpFileConfigurationValues(PigMapReduce.sJobConfInternal.get(), conf);
+
         conf.set(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
 
-        ReadToEndLoader loader = new ReadToEndLoader(Utils.getTmpFileStorageObject(PigMapReduce.sJobConfInternal.get()), conf, 
+        ReadToEndLoader loader = new ReadToEndLoader(Utils.getTmpFileStorageObject(PigMapReduce.sJobConfInternal.get()), conf,
                 keyDistFile, 0);
         DataBag partitionList;
         Tuple t = loader.getNext();
@@ -150,7 +147,24 @@ public class MapRedUtil {
         }
         return reducerMap;
     }
-    
+
+    public static void copyTmpFileConfigurationValues(Configuration fromConf, Configuration toConf) {
+        // Currently these are used only by loaders (and not storers), so we do not need to copy
+        // mapred properties that are required by @{Link SequenceFileInterStorage}
+
+        if (fromConf.getBoolean(PigConfiguration.PIG_ENABLE_TEMP_FILE_COMPRESSION, false)) {
+            toConf.setBoolean(PigConfiguration.PIG_ENABLE_TEMP_FILE_COMPRESSION, true);
+            if (fromConf.get(PigConfiguration.PIG_TEMP_FILE_COMPRESSION_CODEC) != null) {
+                toConf.set(PigConfiguration.PIG_TEMP_FILE_COMPRESSION_CODEC,
+                        fromConf.get(PigConfiguration.PIG_TEMP_FILE_COMPRESSION_CODEC));
+            }
+            if (fromConf.get(PigConfiguration.PIG_TEMP_FILE_COMPRESSION_STORAGE) != null) {
+                toConf.set(PigConfiguration.PIG_TEMP_FILE_COMPRESSION_STORAGE,
+                        fromConf.get(PigConfiguration.PIG_TEMP_FILE_COMPRESSION_STORAGE));
+            }
+        }
+    }
+
     public static void setupUDFContext(Configuration job) throws IOException {
         UDFContext udfc = UDFContext.getUDFContext();
         udfc.addJobConf(job);

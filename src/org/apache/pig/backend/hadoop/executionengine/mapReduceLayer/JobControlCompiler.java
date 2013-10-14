@@ -810,10 +810,7 @@ public class JobControlCompiler{
             }
 
             // tmp file compression setups
-            if (Utils.tmpFileCompression(pigContext)) {
-                conf.setBoolean("pig.tmpfilecompression", true);
-                conf.set("pig.tmpfilecompression.codec", Utils.tmpFileCompressionCodec(pigContext));
-            }
+            Utils.setTmpFileCompressionOnConf(pigContext, conf);
 
             String tmp;
             long maxCombinedSplitSize = 0;

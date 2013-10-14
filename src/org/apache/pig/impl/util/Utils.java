@@ -23,6 +23,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -31,6 +32,8 @@ import java.util.Properties;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.compress.BZip2Codec;
+import org.apache.hadoop.io.compress.GzipCodec;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -38,21 +41,25 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.FileInputLoadFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.InterStorage;
 import org.apache.pig.impl.io.ReadToEndLoader;
+import org.apache.pig.impl.io.SequenceFileInterStorage;
 import org.apache.pig.impl.io.TFileStorage;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.parser.ParserException;
 import org.apache.pig.parser.QueryParserDriver;
+import org.xerial.snappy.SnappyCodec;
 
 import com.google.common.collect.Lists;
 
@@ -132,11 +139,11 @@ public class Utils {
     }
 
     public static String getScriptSchemaKey(String loadFuncSignature) {
-      return loadFuncSignature + ".scriptSchema";
+        return loadFuncSignature + ".scriptSchema";
     }
 
     public static ResourceSchema getSchema(LoadFunc wrappedLoadFunc, String location, boolean checkExistence, Job job)
-    throws IOException {
+            throws IOException {
         Configuration conf = job.getConfiguration();
         if (checkExistence) {
             Path path = new Path(location);
@@ -230,38 +237,160 @@ public class Utils {
         return schema.setFields(fieldSchemasWithSourceTag);
     }
 
+    private static enum TEMPFILE_CODEC {
+        GZ (GzipCodec.class.getName()),
+        GZIP (GzipCodec.class.getName()),
+        LZO ("com.hadoop.compression.lzo.LzoCodec"),
+        SNAPPY (SnappyCodec.class.getName()),
+        BZIP2 (BZip2Codec.class.getName());
+
+        private String hadoopCodecClassName;
+
+        TEMPFILE_CODEC(String codecClassName) {
+            this.hadoopCodecClassName = codecClassName;
+        }
+
+        public String lowerName() {
+            return this.name().toLowerCase();
+        }
+
+        public String getHadoopCodecClassName() {
+            return this.hadoopCodecClassName;
+        }
+    }
+
+    private static enum TEMPFILE_STORAGE {
+        INTER(InterStorage.class,
+                null),
+        TFILE(TFileStorage.class,
+                Arrays.asList(TEMPFILE_CODEC.GZ,
+                        TEMPFILE_CODEC.GZIP,
+                        TEMPFILE_CODEC.LZO)),
+        SEQFILE(SequenceFileInterStorage.class,
+                Arrays.asList(TEMPFILE_CODEC.GZ,
+                        TEMPFILE_CODEC.GZIP,
+                        TEMPFILE_CODEC.LZO,
+                        TEMPFILE_CODEC.SNAPPY,
+                        TEMPFILE_CODEC.BZIP2));
+
+        private Class<? extends FileInputLoadFunc> storageClass;
+        private List<TEMPFILE_CODEC> supportedCodecs;
+
+        TEMPFILE_STORAGE(
+                Class<? extends FileInputLoadFunc> storageClass,
+                List<TEMPFILE_CODEC> supportedCodecs) {
+            this.storageClass = storageClass;
+            this.supportedCodecs = supportedCodecs;
+        }
+
+        public String lowerName() {
+            return this.name().toLowerCase();
+        }
+
+        public Class<? extends FileInputLoadFunc> getStorageClass() {
+            return storageClass;
+        }
+
+        public boolean ensureCodecSupported(String codec) {
+            try {
+                return this.supportedCodecs.contains(TEMPFILE_CODEC.valueOf(codec.toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                return false;
+            }
+        }
+        
+        public String supportedCodecsToString() {
+            StringBuffer sb = new StringBuffer();
+            boolean first = true;
+            for (TEMPFILE_CODEC codec : supportedCodecs) {
+                if(first) {
+                    first = false;
+                } else {
+                    sb.append(",");    
+                }
+                sb.append(codec.name());
+            }
+            return sb.toString();
+        }
+    }
+
     public static String getTmpFileCompressorName(PigContext pigContext) {
         if (pigContext == null)
             return InterStorage.class.getName();
-        boolean tmpFileCompression = pigContext.getProperties().getProperty("pig.tmpfilecompression", "false").equals("true");
-        String codec = pigContext.getProperties().getProperty("pig.tmpfilecompression.codec", "");
-        if (tmpFileCompression) {
-            if (codec.equals("lzo"))
-                pigContext.getProperties().setProperty("io.compression.codec.lzo.class", "com.hadoop.compression.lzo.LzoCodec");
-            return TFileStorage.class.getName();
-        } else
-            return InterStorage.class.getName();
+
+        String codec = pigContext.getProperties().getProperty(PigConfiguration.PIG_TEMP_FILE_COMPRESSION_CODEC, "");
+        if (codec.equals(TEMPFILE_CODEC.LZO.lowerName())) {
+            pigContext.getProperties().setProperty("io.compression.codec.lzo.class", "com.hadoop.compression.lzo.LzoCodec");
+        }
+
+        return getTmpFileStorage(pigContext.getProperties()).getStorageClass().getName();
     }
 
     public static FileInputLoadFunc getTmpFileStorageObject(Configuration conf) throws IOException {
-        boolean tmpFileCompression = conf.getBoolean("pig.tmpfilecompression", false);
-        return tmpFileCompression ? new TFileStorage() : new InterStorage();
+        Class<? extends FileInputLoadFunc> storageClass = getTmpFileStorage(ConfigurationUtil.toProperties(conf)).getStorageClass();
+        try {
+            return storageClass.newInstance();
+        } catch (InstantiationException e) {
+            throw new IOException(e);
+        } catch (IllegalAccessException e) {
+            throw new IOException(e);
+        }
     }
 
-    public static boolean tmpFileCompression(PigContext pigContext) {
-        if (pigContext == null)
-            return false;
-        return pigContext.getProperties().getProperty("pig.tmpfilecompression", "false").equals("true");
+    private static TEMPFILE_STORAGE getTmpFileStorage(Properties properties) {
+        boolean tmpFileCompression = properties.getProperty(
+                PigConfiguration.PIG_ENABLE_TEMP_FILE_COMPRESSION, "false").equals("true");
+        String tmpFileCompressionStorage =
+                properties.getProperty(PigConfiguration.PIG_TEMP_FILE_COMPRESSION_STORAGE,
+                        TEMPFILE_STORAGE.TFILE.lowerName());
+
+        if (!tmpFileCompression) {
+            return TEMPFILE_STORAGE.INTER;
+        } else if (TEMPFILE_STORAGE.SEQFILE.lowerName().equals(tmpFileCompressionStorage)) {
+            return TEMPFILE_STORAGE.SEQFILE;
+        } else if (TEMPFILE_STORAGE.TFILE.lowerName().equals(tmpFileCompressionStorage)) {
+            return TEMPFILE_STORAGE.TFILE;
+        } else {
+            throw new IllegalArgumentException("Unsupported storage format " + tmpFileCompressionStorage + 
+                    ". Should be one of " + Arrays.toString(TEMPFILE_STORAGE.values()));
+        }
     }
 
-    public static String tmpFileCompressionCodec(PigContext pigContext) throws IOException {
-        if (pigContext == null)
-            return "";
-        String codec = pigContext.getProperties().getProperty("pig.tmpfilecompression.codec", "");
-        if (codec.equals("gz") || codec.equals("lzo"))
-            return codec;
-        else
-            throw new IOException("Invalid temporary file compression codec ["+codec+"]. Expected compression codecs are gz and lzo");
+    public static void setTmpFileCompressionOnConf(PigContext pigContext, Configuration conf) throws IOException{
+        if (pigContext == null) {
+            return;
+        }
+        TEMPFILE_STORAGE storage = getTmpFileStorage(pigContext.getProperties());
+        String codec = pigContext.getProperties().getProperty(
+                PigConfiguration.PIG_TEMP_FILE_COMPRESSION_CODEC, "");
+        switch (storage) {
+        case INTER:
+            break;
+        case SEQFILE:
+            conf.setBoolean("mapred.output.compress", true);
+            conf.set(PigConfiguration.PIG_TEMP_FILE_COMPRESSION_STORAGE, "seqfile");
+            if("".equals(codec)) {
+                // codec is not specified, ensure  is set
+                log.warn("Temporary file compression codec is not specified. Using mapred.output.compression.codec property.");
+                if(conf.get("mapred.output.compression.codec") == null) {
+                    throw new IOException("mapred.output.compression.codec is not set");
+                }
+            } else if(storage.ensureCodecSupported(codec)) {
+                conf.set("mapred.output.compression.codec", TEMPFILE_CODEC.valueOf(codec.toUpperCase()).getHadoopCodecClassName());
+            } else {
+                throw new IOException("Invalid temporary file compression codec [" + codec + "]. " +
+                        "Expected compression codecs for " + storage.getStorageClass().getName() + " are " + storage.supportedCodecsToString() + ".");
+            }
+            break;
+        case TFILE:
+            if(storage.ensureCodecSupported(codec)) {
+                conf.set(PigConfiguration.PIG_TEMP_FILE_COMPRESSION_CODEC, codec.toLowerCase());
+            } else {
+                throw new IOException("Invalid temporary file compression codec [" + codec + "]. " +
+                        "Expected compression codecs for " + storage.getStorageClass().getName() + " are " + storage.supportedCodecsToString() + ".");
+            }
+            break;
+        }
     }
 
     public static String getStringFromArray(String[] arr) {
@@ -291,7 +420,7 @@ public class Utils {
     public static String slashisize(String str) {
         return str.replace("\\\\", "\\");
     }
-    
+
     @SuppressWarnings("unchecked")
     public static <O> Collection<O> mergeCollection(Collection<O> a, Collection<O> b) {
         if (a==null && b==null)
@@ -319,16 +448,16 @@ public class Utils {
                 }
             }
         }
-        
+
         return result;
     }
-    
-   public static InputStream getCompositeStream(InputStream in, Properties properties) {
-       //Load default ~/.pigbootup if not specified by user
+
+    public static InputStream getCompositeStream(InputStream in, Properties properties) {
+        //Load default ~/.pigbootup if not specified by user
         final String bootupFile = properties.getProperty("pig.load.default.statements", System.getProperty("user.home") + "/.pigbootup");
         try {
-        final InputStream inputSteam = new FileInputStream(new File(bootupFile));
-        return new SequenceInputStream(inputSteam, in);
+            final InputStream inputSteam = new FileInputStream(new File(bootupFile));
+            return new SequenceInputStream(inputSteam, in);
         } catch(FileNotFoundException fe) {
             log.info("Default bootup file " +bootupFile+ " not found");
             return in;

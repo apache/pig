@@ -17,6 +17,7 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -87,14 +88,10 @@ public class POPartitionRearrange extends POLocalRearrange {
             "Internal error: missing key distribution file property.");
         }
 
-        boolean tmpFileCompression = Utils.tmpFileCompression(pigContext);
-        if (tmpFileCompression) {
-            PigMapReduce.sJobConfInternal.get().setBoolean("pig.tmpfilecompression", true);
-            try {
-                PigMapReduce.sJobConfInternal.get().set("pig.tmpfilecompression.codec", Utils.tmpFileCompressionCodec(pigContext));
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
+        try {
+            Utils.setTmpFileCompressionOnConf(pigContext, PigMapReduce.sJobConfInternal.get());
+        } catch (IOException ie) {
+            throw new RuntimeException(ie);
         }
         try {
 

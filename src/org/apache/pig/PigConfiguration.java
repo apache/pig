@@ -99,4 +99,22 @@ public class PigConfiguration {
      * application master getting restarted.
      */
     public static final String PIG_OUTPUT_COMMITTER_RECOVERY = "pig.output.committer.recovery.support";
+
+    /**
+     * This key is used to define whether to have intermediate file compressed
+     */
+    public static final String PIG_ENABLE_TEMP_FILE_COMPRESSION = "pig.tmpfilecompression";
+
+    /**
+     * This key is used to set the storage type used by intermediate file storage
+     * If pig.tmpfilecompression, default storage used is TFileStorage.
+     * This can be overriden to use SequenceFileInterStorage by setting following property to "seqfile".
+     */
+    public static final String PIG_TEMP_FILE_COMPRESSION_STORAGE = "pig.tmpfilecompression.storage";
+
+    /**
+     * Compression codec used by intermediate storage
+     * TFileStorage only support gzip and lzo.
+     */
+    public static final String PIG_TEMP_FILE_COMPRESSION_CODEC = "pig.tmpfilecompression.codec";
 }
