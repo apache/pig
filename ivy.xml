@@ -183,15 +183,22 @@
     <dependency org="org.apache.avro" name="avro-mapred" rev="${avro.version}"
       conf="compile->default;checkstyle->master"/>
     <dependency org="org.apache.avro" name="trevni-core" rev="${avro.version}"
-      conf="compile->default;checkstyle->master"/>
+      conf="compile->default;checkstyle->master">
+      <artifact name="trevni-core" ext="jar" />
+      <artifact name="trevni-core" type="test-jar" ext="jar" m:classifier="tests"/>
+    </dependency>
     <dependency org="org.apache.avro" name="trevni-avro" rev="${avro.version}"
       conf="compile->default;checkstyle->master">
+      <artifact name="trevni-avro" ext="jar" />
+      <artifact name="trevni-avro" type="test-jar" ext="jar" m:classifier="tests"/>
       <exclude org="org.apache.hadoop" module="hadoop-core"/>
     </dependency>
     <dependency org="org.apache.avro" name="avro-tools" rev="${avro.version}"
       conf="test->default">
-      <artifact name="nodeps" type="jar"/>
+      <artifact name="avro-tools" m:classifier="nodeps" type="jar"/>
     </dependency>
+    <dependency org="net.sf.jopt-simple" name="jopt-simple" rev="${jopt.version}"
+      conf="test->default" />
     <dependency org="org.xerial.snappy" name="snappy-java" rev="${snappy.version}"
       conf="compile->default;checkstyle->master"/>
     <dependency org="com.googlecode.json-simple" name="json-simple" rev="${json-simple.version}"
