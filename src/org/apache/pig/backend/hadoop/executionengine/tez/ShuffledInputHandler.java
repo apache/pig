@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.pig.backend.hadoop.executionengine.tez;
 
 import java.io.IOException;
@@ -19,22 +37,22 @@ import org.apache.tez.runtime.library.input.ShuffledMergedInput;
 /**
  * An input handler for shuffle inputs. Wraps and manages the POPackage, which will return tuples like
  * (key, {bag of tuples from input 1}, {bag of tuples from input 2}, ...)
- * 
+ *
  */
 public class ShuffledInputHandler implements InputHandler {
     // For now we'll assume that there's just one shuffle input
     ShuffledMergedInput input;
     KeyValuesReader reader;
-    
+
     //Move the package to the InputHandler since it's really part of input.
     POPackage pack;
-    
+
     Tuple current;
-    
+
     // CastIterator because KeyValueReader returns a Iterator<Objects>
     class CastIterator<E> implements Iterator<E>{
         Iterator iter;
-        
+
         @SuppressWarnings("rawtypes")
         CastIterator(Iterator iter){
             this.iter = iter;
@@ -55,7 +73,7 @@ public class ShuffledInputHandler implements InputHandler {
             iter.remove();
         }
     }
-    
+
     @Override
     public void initialize(Configuration conf, Map<String, LogicalInput> inputs)
             throws IOException {

@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.pig.backend.hadoop.executionengine.tez;
 
 import java.io.IOException;
@@ -33,7 +34,6 @@ import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.OutputFormat;
-import org.apache.hadoop.mapreduce.lib.partition.HashPartitioner;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.pig.LoadFunc;
@@ -184,7 +184,6 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             if(!pc.inIllustrator)
                 tezOp.plan.remove(st);
 
-
             // set out filespecs
             String outputPathString = st.getSFile().getFileName();
             if (!outputPathString.contains("://") || outputPathString.startsWith("hdfs://")) {
@@ -259,7 +258,6 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         }
 
         conf.setClass("mapreduce.outputformat.class", PigOutputFormat.class, OutputFormat.class);
-
 
         // Serialize the execution plans
         conf.set(PigProcessor.PLAN, ObjectSerializer.serialize(tezOp.plan));

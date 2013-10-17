@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.pig.backend.hadoop.executionengine.tez;
 
 import java.util.HashMap;
@@ -42,7 +60,6 @@ public class TezPOPackageAnnotator extends TezOpPlanVisitor {
                 handlePackage(tezOp, pkg);
             }
         }
-
     }
 
     private void handlePackage(TezOperator tezOp, POPackage pkg) throws VisitorException {
@@ -54,9 +71,9 @@ public class TezPOPackageAnnotator extends TezOpPlanVisitor {
                 lrFound += patchPackage(tezOper.plan, pkg);
                 if(lrFound == pkg.getNumInps()) {
                     break;
-                }     
+                }
             }
-    
+
         if(lrFound != pkg.getNumInps()) {
             int errCode = 2086;
             String msg = "Unexpected problem during optimization. Could not find all LocalRearrange operators.";
@@ -159,16 +176,16 @@ public class TezPOPackageAnnotator extends TezOpPlanVisitor {
                 keyInfo = new HashMap<Integer, Pair<Boolean, Map<Integer, Integer>>>();
 
             if(keyInfo.get(Integer.valueOf(lrearrange.getIndex())) != null) {
-                // something is wrong - we should not be getting key info 
+                // something is wrong - we should not be getting key info
                 // for the same index from two different Local Rearranges
                 int errCode = 2087;
                 String msg = "Unexpected problem during optimization." +
-                        " Found index:" + lrearrange.getIndex() + 
+                        " Found index:" + lrearrange.getIndex() +
                         " in multiple LocalRearrange operators.";
                 throw new OptimizerException(msg, errCode, PigException.BUG);
 
             }
-            keyInfo.put(Integer.valueOf(lrearrange.getIndex()), 
+            keyInfo.put(Integer.valueOf(lrearrange.getIndex()),
                     new Pair<Boolean, Map<Integer, Integer>>(
                             lrearrange.isProjectStar(), lrearrange.getProjectedColsMap()));
             pkg.setKeyInfo(keyInfo);
