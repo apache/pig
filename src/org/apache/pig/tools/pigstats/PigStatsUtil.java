@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.mapreduce.SimplePigStats;
 
@@ -30,25 +31,106 @@ import org.apache.pig.tools.pigstats.mapreduce.SimplePigStats;
  * A utility class for Pig Statistics
  */
 public class PigStatsUtil {
-        
+
     /**
-     * Returns an empty PigStats object
-     * Use of this method is not advised
-     * as it will return the MR execution
-     * engine version of PigStats by 
-     * default, and is not necessarily 
-     * empty depending on the timing.
-     * 
+     * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#MULTI_STORE_RECORD_COUNTER} instead.
+     */
+    @Deprecated
+    public static final String MULTI_STORE_RECORD_COUNTER
+            = "Output records in ";
+
+    /**
+     * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#MULTI_STORE_COUNTER_GROUP} instead.
+     */
+    @Deprecated
+    public static final String MULTI_STORE_COUNTER_GROUP
+            = "MultiStoreCounters";
+
+    /**
+     * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#TASK_COUNTER_GROUP} instead.
+     */
+    @Deprecated
+    public static final String TASK_COUNTER_GROUP
+            = "org.apache.hadoop.mapred.Task$Counter";
+
+    /**
+     * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#FS_COUNTER_GROUP} instead.
+     */
+    @Deprecated
+    public static final String FS_COUNTER_GROUP
+            = HadoopShims.getFsCounterGroupName();
+
+    /**
+     * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#MAP_INPUT_RECORDS} instead.
+     */
+    @Deprecated
+    public static final String MAP_INPUT_RECORDS
+            = "MAP_INPUT_RECORDS";
+
+    /**
+     * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#MAP_OUTPUT_RECORDS} instead.
+     */
+    @Deprecated
+    public static final String MAP_OUTPUT_RECORDS
+            = "MAP_OUTPUT_RECORDS";
+
+    /**
+     * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#REDUCE_INPUT_RECORDS} instead.
+     */
+    @Deprecated
+    public static final String REDUCE_INPUT_RECORDS
+            = "REDUCE_INPUT_RECORDS";
+
+    /**
+     * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#REDUCE_OUTPUT_RECORDS} instead.
+     */
+    @Deprecated
+    public static final String REDUCE_OUTPUT_RECORDS
+            = "REDUCE_OUTPUT_RECORDS";
+
+    /**
+     * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#HDFS_BYTES_WRITTEN} instead.
+     */
+    @Deprecated
+    public static final String HDFS_BYTES_WRITTEN
+            = "HDFS_BYTES_WRITTEN";
+
+    /**
+     * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#HDFS_BYTES_READ} instead.
+     */
+    @Deprecated
+    public static final String HDFS_BYTES_READ
+            = "HDFS_BYTES_READ";
+
+    /**
+     * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#MULTI_INPUTS_RECORD_COUNTER} instead.
+     */
+    @Deprecated
+    public static final String MULTI_INPUTS_RECORD_COUNTER
+            = "Input records from ";
+
+    /**
+     * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#MULTI_INPUTS_COUNTER_GROUP} instead.
+     */
+    @Deprecated
+    public static final String MULTI_INPUTS_COUNTER_GROUP
+            = "MultiInputCounters";
+
+    /**
+     * Returns an empty PigStats object Use of this method is not advised as it
+     * will return the MR execution engine version of PigStats by default, and
+     * is not necessarily empty depending on the timing.
+     *
      * @return an empty PigStats object
      */
     @Deprecated
     public static PigStats getEmptyPigStats() {
         return PigStats.start(new SimplePigStats());
     }
-    
+
     /**
      * Returns the PigStats with the given return code
-     * 
+     *
      * @param code the return code
      * @return the PigStats with the given return code
      */
@@ -57,31 +139,32 @@ public class PigStatsUtil {
         ps.setReturnCode(code);
         return ps;
     }
-    
-    
+
+
     public static void setErrorMessage(String msg) {
         PigStats.get().setErrorMessage(msg);
     }
-    
+
     public static void setErrorCode(int code) {
         PigStats.get().setErrorCode(code);
     }
-    
+
     public static void setErrorThrowable(Throwable t) {
         PigStats.get().setErrorThrowable(t);
     }
-    
+
     private static Pattern pattern = Pattern.compile("tmp(-)?[\\d]{1,10}$");
-    
+
     public static boolean isTempFile(String fileName) {
         Matcher result = pattern.matcher(fileName);
         return result.find();
     }
-    
+
     public static void setStatsMap(Map<String, List<PigStats>> statsMap) {
         EmbeddedPigStats stats = new EmbeddedPigStats(statsMap);
         PigStats.set(stats);
     }
-   
- 
+
+
 }
+

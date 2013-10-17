@@ -34,6 +34,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3520: Provide backward compatibility for PigRunner and PPNL after PIG-3419 (daijy via cheolsoo)
+
 PIG-3519: Remove dependency on uber avro-tools jar (jarcec via cheolsoo)
 
 PIG-3451: EvalFunc<T> ctor reflection to determine value of type param T is brittle (hazen via aniket486)
