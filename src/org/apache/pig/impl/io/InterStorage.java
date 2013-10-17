@@ -61,6 +61,7 @@ public class InterStorage extends FileInputLoadFunc
 implements StoreFuncInterface, LoadMetadata {
 
     private static final Log mLog = LogFactory.getLog(InterStorage.class);
+    public static final String useLog = "Pig Internal storage in use";
     
     private InterRecordReader recReader = null;
     private InterRecordWriter recWriter = null;
@@ -69,7 +70,7 @@ implements StoreFuncInterface, LoadMetadata {
      * Simple binary nested reader format
      */
     public InterStorage() {
-        mLog.debug("Pig Internal storage in use");
+        mLog.debug(useLog);
     }
 
     @Override

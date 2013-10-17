@@ -39,6 +39,7 @@ import org.apache.pig.Expression;
 import org.apache.pig.FileInputLoadFunc;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.LoadMetadata;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceStatistics;
 import org.apache.pig.StoreFunc;
@@ -60,6 +61,7 @@ public class TFileStorage extends FileInputLoadFunc implements
                 StoreFuncInterface, LoadMetadata {
 
     private static final Log mLog = LogFactory.getLog(TFileStorage.class);
+    public static final String useLog = "TFile storage in use";
 
     private TFileRecordReader recReader = null;
     private TFileRecordWriter recWriter = null;
@@ -68,7 +70,7 @@ public class TFileStorage extends FileInputLoadFunc implements
      * Simple binary nested reader format
      */
     public TFileStorage() throws IOException {
-        mLog.debug("TFile storage in use");
+        mLog.debug(useLog);
     }
 
     @Override
@@ -138,10 +140,13 @@ public class TFileStorage extends FileInputLoadFunc implements
                         TaskAttemptContext job) throws IOException,
                         InterruptedException {
             Configuration conf = job.getConfiguration();
-            String codec = conf.get("pig.tmpfilecompression.codec", "");
-            if (!codec.equals("lzo") && !codec.equals("gz"))
+            String codec = conf.get(PigConfiguration.PIG_TEMP_FILE_COMPRESSION_CODEC, "");
+            if (!codec.equals("lzo") && !codec.equals("gz") && !codec.equals("gzip"))
                 throw new IOException(
-                                "Invalid temporary file compression codec [" + codec + "]. Expected compression codecs are gz and lzo");
+                                "Invalid temporary file compression codec [" + codec + "]. Expected compression codecs are gz(gzip) and lzo");
+            if (codec.equals("gzip")) {
+                codec = "gz";
+            }
             mLog.info(codec + " compression codec in use");
             Path file = getDefaultWorkFile(job, "");
             return new TFileRecordWriter(file, codec, conf);

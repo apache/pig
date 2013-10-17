@@ -34,13 +34,29 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3520: Provide backward compatibility for PigRunner and PPNL after PIG-3419 (daijy via cheolsoo)
+
+PIG-3519: Remove dependency on uber avro-tools jar (jarcec via cheolsoo)
+
+PIG-3451: EvalFunc<T> ctor reflection to determine value of type param T is brittle (hazen via aniket486)
+
+PIG-3509: Exception swallowing in TOP (vrajaram via aniket486)
+
+PIG-3506: FLOOR documentation references CEIL function instead of FLOOR (seshness via daijy)
+
 PIG-3497: JobControlCompiler should only do reducer estimation when the job has a reduce phase (amatsukawa via aniket486)
 
 PIG-3469: Skewed join can cause unrecoverable NullPointerException when one of its inputs is missing (Jarek Jarcec Cecho  via xuefuz)
 
 PIG-3496: Propagate HBase 0.95 jars to the backend (Jarek Jarcec Cecho  via xuefuz)
 
-Release 0.12.0 (unreleased changes)
+Release 0.12.1 (unreleased changes)
+
+BUG FIXES
+
+PIG-3510: New filter extractor fails with more than one filter statement (aniket486 via cheolsoo)
+
+Release 0.12.0
 
 INCOMPATIBLE CHANGES
 
@@ -49,6 +65,8 @@ PIG-3191: [piggybank] MultiStorage output filenames are not sortable (Danny Anto
 PIG-3174: Remove rpm and deb artifacts from build.xml (gates)
 
 IMPROVEMENTS
+
+PIG-3480: TFile-based tmpfile compression crashes in some cases (dvryaboy via aniket486)
 
 PIG-3503: More document for Pig 0.12 new features (daijy)
 

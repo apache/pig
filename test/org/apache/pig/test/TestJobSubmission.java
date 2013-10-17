@@ -698,7 +698,7 @@ public class TestJobSubmission {
         Util.copyFromLocalToCluster(cluster, "test/org/apache/pig/test/data/passwd", ((POLoad) sort.mapPlan.getRoots().get(0)).getLFile().getFileName());
 
         //First job is just foreach with projection, mapper-only job, so estimate gets ignored
-        Util.assertParallelValues(-1, -1, reducer, 0, jobControl.getWaitingJobs().get(0).getJobConf());
+        Util.assertParallelValues(-1, -1, -1, 0, jobControl.getWaitingJobs().get(0).getJobConf());
 
         jcc.updateMROpPlan(jobControl.getReadyJobs());
         jobControl = jcc.compile(mrPlan, query);
