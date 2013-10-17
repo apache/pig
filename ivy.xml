@@ -372,9 +372,9 @@
        conf="hadoop23->master"/>
     <dependency org="org.apache.tez" name="tez-dist" rev="${tez.version}"
        conf="hadoop23->master"/>
-    <dependency org="org.apache.tez" name="tez-engine" rev="${tez.version}"
+    <dependency org="org.apache.tez" name="tez-runtime-internals" rev="${tez.version}"
        conf="hadoop23->master"/>
-    <dependency org="org.apache.tez" name="tez-engine-api" rev="${tez.version}"
+    <dependency org="org.apache.tez" name="tez-runtime-library" rev="${tez.version}"
        conf="hadoop23->master"/>
     <dependency org="org.apache.tez" name="tez-mapreduce" rev="${tez.version}"
        conf="hadoop23->master">

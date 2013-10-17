@@ -50,6 +50,10 @@ public class TezLauncher extends Launcher {
         Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties(), true);
         TezJobControlCompiler jcc = new TezJobControlCompiler(pc, conf);
         TezOperPlan tezPlan = compile(php, pc);
+
+        TezPOPackageAnnotator pkgAnnotator = new TezPOPackageAnnotator(tezPlan);
+        pkgAnnotator.visit();
+
         jc = jcc.compile(tezPlan, grpName);
 
         // Initially, all jobs are in wait state.

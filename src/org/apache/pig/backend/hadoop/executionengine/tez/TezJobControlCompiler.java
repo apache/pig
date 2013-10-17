@@ -74,7 +74,7 @@ public class TezJobControlCompiler {
             throws IOException, YarnException {
         String jobName = pigContext.getProperties().getProperty(PigContext.JOB_NAME, DAG_JAR_NAME);
         DAG tezDag = new DAG(jobName);
-        TezDagBuilder dagBuilder = new TezDagBuilder(tezPlan, tezDag, localResources);
+        TezDagBuilder dagBuilder = new TezDagBuilder(pigContext, tezPlan, tezDag, localResources);
         dagBuilder.visit();
         return tezDag;
     }
