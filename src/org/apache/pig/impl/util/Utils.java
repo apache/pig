@@ -17,11 +17,13 @@
  */
 package org.apache.pig.impl.util;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintStream;
 import java.io.SequenceInputStream;
 import java.net.Socket;
 import java.net.SocketException;
@@ -541,6 +543,13 @@ public class Utils {
                 properties.put(entry.getKey(), entry.getValue());
             }
         }
+    }
+
+    public static String getStackStraceStr(Throwable e) {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(baos);
+        e.printStackTrace(ps);
+        return baos.toString();
     }
 
 }

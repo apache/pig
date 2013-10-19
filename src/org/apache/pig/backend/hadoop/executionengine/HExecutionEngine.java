@@ -415,12 +415,6 @@ public abstract class HExecutionEngine implements ExecutionEngine {
         return new HadoopExecutableManager();
     }
 
-    public void kill() throws BackendException {
-        if (launcher != null) {
-            launcher.kill();
-        }
-    }
-
     public void killJob(String jobID) throws BackendException {
         if (launcher != null) {
             launcher.killJob(jobID, jobConf);

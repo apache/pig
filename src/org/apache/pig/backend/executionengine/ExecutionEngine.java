@@ -37,7 +37,7 @@ import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.ScriptState;
 
 /**
- * 
+ *
  * The main interface bridging the front end and back end of Pig. This allows Pig
  * to be ran on multiple Execution Engines, and not being limited to only Hadoop
  * MapReduce. The ExecutionEngines must support the following methods as these
@@ -46,7 +46,7 @@ import org.apache.pig.tools.pigstats.ScriptState;
  * The ExecutionEngine instance comes from the ExecType, and it can choose to reuse
  * ExecutionEngine instances. All specifications for methods are listed below
  * as well as expected behavior, and the ExecutionEngine must conform to these.
- * 
+ *
  */
 
 
@@ -67,12 +67,12 @@ public interface ExecutionEngine {
      * another call to init() if appropriate. This decision is delegated to the
      * ExecutionEngine -- that is, the caller will not call init() after
      * updating the properties.
-     * 
+     *
      * The Properties passed in should replace any configuration that occurred
      * from previous Properties object. The Properties object should also be
      * updated to reflect the deprecation/modifications that the ExecutionEngine
      * may trigger.
-     * 
+     *
      * @param newConfiguration -- Properties object holding all configuration vals
      */
     public void setConfiguration(Properties newConfiguration)
@@ -82,12 +82,12 @@ public interface ExecutionEngine {
      * Responsible for setting a specific property and value. This method may be
      * called as a result of a user "SET" command in the script or elsewhere in
      * Pig to set certain properties.
-     * 
+     *
      * The properties object of the PigContext should be updated with the
      * property and value with deprecation/other configuration done by the
      * ExecutionEngine reflected. The ExecutionEngine should also update its
      * internal configuration view as well.
-     * 
+     *
      * @param property to update
      * @param value to set for property
      */
@@ -96,7 +96,7 @@ public interface ExecutionEngine {
     /**
      * Returns the Properties representation of the ExecutionEngine
      * configuration. The Properties object returned does not have to be the
-     * same object between distinct calls to getConfiguration(). The ExecutionEngine 
+     * same object between distinct calls to getConfiguration(). The ExecutionEngine
      * may create a new Properties object populated with all the properties
      * each time.
      */
@@ -110,11 +110,11 @@ public interface ExecutionEngine {
      * executing the logical plan and returns an implementation of PigStats that
      * contains the relevant information/statistics of the execution of the
      * script.
-     * 
+     *
      * @param lp -- plan to compile
      * @param grpName -- group name for submission
      * @param pc -- context for execution
-     * @throws ExecException 
+     * @throws ExecException
      */
     public PigStats launchPig(LogicalPlan lp, String grpName, PigContext pc)
             throws FrontendException, ExecException;
@@ -131,16 +131,16 @@ public interface ExecutionEngine {
      * on a PhysicalPlan and an ExecutionPlan then there would be two separate
      * files detailing each. The suffix param indicates the suffix of each of
      * these file names.
-     * 
+     *
      * @param lp -- plan to explain
      * @param pc -- context for explain processing
      * @param ps -- print stream to write all output to (if dir param is null)
-     * @param format -- format to print explain 
-     * @param verbose 
+     * @param format -- format to print explain
+     * @param verbose
      * @param dir -- directory to write output to. if not null, write to files
      * @param suffix -- if writing to files, suffix to be used for each file
-     * 
-     * 
+     *
+     *
      * @throws PlanException
      * @throws VisitorException
      * @throws IOException
@@ -151,7 +151,7 @@ public interface ExecutionEngine {
 
     /**
      * Returns the DataStorage the ExecutionEngine is using.
-     * 
+     *
      * @return DataStorage the ExecutionEngine is using.
      */
     public DataStorage getDataStorage();
@@ -161,25 +161,17 @@ public interface ExecutionEngine {
      * variable inside the ScriptState class. This method is called when first
      * initializing the ScriptState as to delegate to the ExecutionEngine the
      * version of ScriptState to use to manage the execution at hand.
-     * 
+     *
      * @return ScriptState object to manage execution of the script
      */
     public ScriptState instantiateScriptState();
 
     /**
      * Returns the ExecutableManager to be used in Pig Streaming.
-     * 
+     *
      * @return ExecutableManager to be used in Pig Streaming.
      */
     public ExecutableManager getExecutableManager();
-
-    /**
-     * This method is called whenever a kill signal has been triggered in the
-     * current process, indicating that the user wishes to kill and exit the
-     * current processing.. It is necessary to implement this method to ensure
-     * that we kill running jobs, and any other necessary cleanup.
-     */
-    public void kill() throws BackendException;
 
     /**
      * This method is called when a user requests to kill a job associated with
@@ -187,7 +179,7 @@ public interface ExecutionEngine {
      * exception. It is imperative for the job id's being displayed to be unique
      * such that the correct jobs are being killed when the user supplies the
      * id.
-     * 
+     *
      * @throws BackendException
      */
     public void killJob(String jobID) throws BackendException;
