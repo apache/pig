@@ -299,24 +299,9 @@ public class PigContext implements Serializable {
     }
 
     public void connect() throws ExecException {
-                executionEngine.init();
-                dfs = executionEngine.getDataStorage();
-                lfs = new HDataStorage(URI.create("file:///"), properties);
-                Runtime.getRuntime().addShutdownHook(new ExecutionEngineKiller());
-
-    }
-
-    class ExecutionEngineKiller extends Thread {
-        public ExecutionEngineKiller() {}
-                
-                @Override
-        public void run() {
-            try {
-                executionEngine.kill();
-            } catch (Exception e) {
-                log.warn("Error in killing Execution Engine: " + e);
-            }
-        }
+        executionEngine.init();
+        dfs = executionEngine.getDataStorage();
+        lfs = new HDataStorage(URI.create("file:///"), properties);
     }
 
     public void setJobtrackerLocation(String newLocation) {
