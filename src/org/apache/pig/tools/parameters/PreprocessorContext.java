@@ -186,19 +186,6 @@ public class PreprocessorContext {
             throw rte;
         }
 
-        int exitVal;
-        try {
-            exitVal = p.waitFor();
-        } catch (InterruptedException e) {
-            RuntimeException rte = new RuntimeException("Interrupted Thread Exception while waiting for command to get over"+e.getMessage() , e);
-            throw rte;
-        }
-
-        if (exitVal != 0) {
-            RuntimeException rte = new RuntimeException("Error executing shell command: " + cmd + ". Command exit with exit code of " + exitVal );
-            throw rte;
-        }
-
         BufferedReader br = null;
         try{
             InputStreamReader isr = new InputStreamReader(p.getInputStream());
@@ -233,6 +220,19 @@ public class PreprocessorContext {
             throw rte;
         } finally {
             if (br != null) try {br.close();} catch(Exception e) {}
+        }
+
+        int exitVal;
+        try {
+            exitVal = p.waitFor();
+        } catch (InterruptedException e) {
+            RuntimeException rte = new RuntimeException("Interrupted Thread Exception while waiting for command to get over"+e.getMessage() , e);
+            throw rte;
+        }
+
+        if (exitVal != 0) {
+            RuntimeException rte = new RuntimeException("Error executing shell command: " + cmd + ". Command exit with exit code of " + exitVal );
+            throw rte;
         }
 
         return streamData.trim();
