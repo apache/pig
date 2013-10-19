@@ -415,9 +415,11 @@ public class MapReduceLauncher extends Launcher{
             failed = true;
         }
 
-        // Clean up all the intermediate data
-        for (String path : intermediateVisitor.getIntermediate()) {
-            FileLocalizer.delete(path, pc);
+        if (!"false".equalsIgnoreCase(pc.getProperties().getProperty(PigConfiguration.PIG_DELETE_TEMP_FILE))) {
+            // Clean up all the intermediate data
+            for (String path : intermediateVisitor.getIntermediate()) {
+                FileLocalizer.delete(path, pc);
+            }
         }
 
         // Look to see if any jobs failed.  If so, we need to report that.
