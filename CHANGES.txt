@@ -36,6 +36,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3325: Adding a tuple to a bag is slow (dvryaboy via aniket486)
+
 PIG-3524: Clean up Launcher and MapReduceLauncher after PIG-3419 (cheolsoo)
 
 PIG-3515: Shell commands are limited from OS buffer (andronat via cheolsoo)
