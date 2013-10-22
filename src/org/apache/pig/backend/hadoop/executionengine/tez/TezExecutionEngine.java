@@ -23,6 +23,7 @@ import java.util.UUID;
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.tools.pigstats.ScriptState;
+import org.apache.pig.tools.pigstats.tez.TezScriptState;
 
 public class TezExecutionEngine extends HExecutionEngine {
 

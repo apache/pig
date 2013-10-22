@@ -26,7 +26,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 
 import org.apache.commons.logging.Log;
@@ -51,7 +50,6 @@ import org.apache.pig.tools.pigstats.mapreduce.MRJobStats;
 import org.apache.pig.tools.pigstats.JobStats.JobState;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
-import org.apache.pig.tools.pigstats.ScriptState;
 import org.apache.pig.tools.pigstats.JobStats;
 
 /**
@@ -60,33 +58,17 @@ import org.apache.pig.tools.pigstats.JobStats;
  * information about outputs and inputs of the script. 
  */
 public final class SimplePigStats extends PigStats {
-    
     private static final Log LOG = LogFactory.getLog(SimplePigStats.class);
-    
-    private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";  
-        
-    private PigContext pigContext;
-    
+
     private JobClient jobClient;
-    
     private JobControlCompiler jcc;
-    
-    private JobGraph jobPlan;
-    
     private Map<Job, MapReduceOper> jobMroMap;
-     
     private Map<MapReduceOper, MRJobStats> mroJobMap;
-    
+
     // successful jobs so far
     private Set<Job> jobSeen = new HashSet<Job>();
-    
     private Map<String, OutputStats> aliasOuputMap;
-      
-    private long startTime = -1;
-    private long endTime = -1;
-    
-    private String userId;
-                 
+
     /**
      * This class builds the job DAG from a MR plan
      */
@@ -131,24 +113,7 @@ public final class SimplePigStats extends PigStats {
     public boolean isEmbedded() {
         return false;
     }
-    
-    @Override
-    public boolean isSuccessful() {
-        return (getNumberJobs()==0 && returnCode==ReturnCode.UNKNOWN
-                || returnCode == ReturnCode.SUCCESS);
-    }
- 
-    @Override
-    public Properties getPigProperties() {
-        if (pigContext == null) return null;
-        return pigContext.getProperties();
-    }
 
-    @Override
-    public JobGraph getJobGraph() {
-        return jobPlan;
-    }
- 
     @Override
     public List<String> getOutputLocations() {
         ArrayList<String> locations = new ArrayList<String>();
@@ -260,27 +225,7 @@ public final class SimplePigStats extends PigStats {
         }
         return ret;
     }
-   
-    @Override
-    public String getScriptId() {
-        return ScriptState.get().getId();
-    }
-    
-    @Override
-    public String getFeatures() {
-        return ScriptState.get().getScriptFeatures();
-    }
-    
-    @Override
-    public long getDuration() {
-        return (startTime > 0 && endTime > 0) ? (endTime - startTime) : -1;
-    }
-    
-    @Override
-    public int getNumberJobs() {
-        return jobPlan.size();
-    }
-        
+
     @Override
     public List<OutputStats> getOutputStats() {
         List<OutputStats> outputs = new ArrayList<OutputStats>();

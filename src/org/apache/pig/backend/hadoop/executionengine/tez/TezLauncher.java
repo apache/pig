@@ -34,6 +34,8 @@ import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.tools.pigstats.PigStats;
+import org.apache.pig.tools.pigstats.tez.TezStats;
+
 
 /**
  * Main class that launches pig for Tez
@@ -42,10 +44,9 @@ public class TezLauncher extends Launcher {
     private static final Log log = LogFactory.getLog(TezLauncher.class);
 
     @Override
-    public PigStats launchPig(PhysicalPlan php, String grpName, PigContext pc)
-            throws Exception {
-        // TODO: TezStats is a skeleton class for now.
-        PigStats ret = new TezStats();
+    public PigStats launchPig(PhysicalPlan php, String grpName, PigContext pc) throws Exception {
+        TezStats tezStats = new TezStats(pc);
+        PigStats.start(tezStats);
 
         Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties(), true);
         TezJobControlCompiler jcc = new TezJobControlCompiler(pc, conf);
@@ -53,6 +54,8 @@ public class TezLauncher extends Launcher {
 
         TezPOPackageAnnotator pkgAnnotator = new TezPOPackageAnnotator(tezPlan);
         pkgAnnotator.visit();
+
+        tezStats.initialize(tezPlan);
 
         jc = jcc.compile(tezPlan, grpName);
 
@@ -94,16 +97,24 @@ public class TezLauncher extends Launcher {
         // YARN cluster by TezJob.submit().
         jcThread.start();
 
-        // Wait for all the jobs are finished.
-        while (!jc.allFinished()) {
-            try {
-                jcThread.join(500);
-            } catch (InterruptedException e) {
-                // Do nothing
+        try {
+            // Wait for all the jobs are finished.
+            while (!jc.allFinished()) {
+                try {
+                    jcThread.join(500);
+                } catch (InterruptedException e) {
+                    // Do nothing
+                }
             }
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            tezStats.accumulateStats(jc);
+            jc.stop();
         }
 
-        return ret;
+        tezStats.finish();
+        return tezStats;
     }
 
     @Override

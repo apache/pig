@@ -43,6 +43,7 @@ public class TezJob extends ControlledJob {
     private ApplicationId appId;
     private TezClient tezClient;
     private DAGClient dagClient;
+    private DAGStatus dagStatus;
     private DAG dag;
 
     public TezJob(TezConfiguration conf, ApplicationId appId, DAG dag,
@@ -62,6 +63,10 @@ public class TezJob extends ControlledJob {
         return dag;
     }
 
+    public DAGStatus getDagStatus() {
+        return dagStatus;
+    }
+
     @Override
     public void submit() {
         try {
@@ -74,18 +79,17 @@ public class TezJob extends ControlledJob {
         }
 
         while (true) {
-            DAGStatus status = null;
             try {
-                status = dagClient.getDAGStatus();
+                dagStatus = dagClient.getDAGStatus();
             } catch (Exception e) {
                 log.info("Cannot retrieve DAG status", e);
                 setJobState(ControlledJob.State.FAILED);
                 break;
             }
 
-            log.info("DAG Status: " + status);
-            setJobState(dagState2JobState(status.getState()));
-            if (status.isCompleted()) {
+            log.info("DAG Status: " + dagStatus);
+            setJobState(dagState2JobState(dagStatus.getState()));
+            if (dagStatus.isCompleted()) {
                 break;
             }
 

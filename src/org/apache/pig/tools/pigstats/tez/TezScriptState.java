@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.pig.backend.hadoop.executionengine.tez;
+package org.apache.pig.tools.pigstats.tez;
 
 import org.apache.pig.tools.pigstats.ScriptState;
 
@@ -29,7 +29,6 @@ import org.apache.pig.tools.pigstats.ScriptState;
 public class TezScriptState extends ScriptState {
     public TezScriptState(String id) {
         super(id);
-        // TODO Auto-generated constructor stub
     }
 }
 

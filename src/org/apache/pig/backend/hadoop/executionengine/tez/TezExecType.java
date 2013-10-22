@@ -20,17 +20,22 @@ package org.apache.pig.backend.hadoop.executionengine.tez;
 
 import java.util.Properties;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.ExecType;
 import org.apache.pig.backend.executionengine.ExecutionEngine;
 import org.apache.pig.impl.PigContext;
+import org.apache.tez.client.TezClient;
 
 /**
  * TezExecType is the ExecType for distributed mode in Tez.
  */
 public class TezExecType implements ExecType {
-
+    private static final Log LOG = LogFactory.getLog(TezExecType.class);
     private static final long serialVersionUID = 1L;
     private static final String[] modes = { "TEZ" };
+    private static final String POM_PROPERTIES = "/META-INF/maven/org.apache.tez/tez-api/pom.properties";
+    private static String tezVersion = null;
 
     @Override
     public boolean accepts(Properties properties) {
@@ -66,6 +71,19 @@ public class TezExecType implements ExecType {
 
     public String toString() {
         return name();
+    }
+
+    public static String getTezVersion() {
+        if (tezVersion == null) {
+            try {
+                Properties prop = new Properties();
+                prop.load(TezClient.class.getResourceAsStream(POM_PROPERTIES));
+                tezVersion = prop.getProperty("version", "");
+            } catch (Exception e) {
+                LOG.info("Failed to load Tez pom.properties");
+            }
+        }
+        return tezVersion == null ? "" : tezVersion;
     }
 }
 
