@@ -65,9 +65,13 @@ public abstract class DefaultAbstractBag implements DataBag {
     // to run through the disk when people ask.
     protected long mSize = 0;
 
-    protected int mLastContentsSize = -1;
+    // Number of tuples to sample per bag, to get an estimate of tuple size
+    private static final int SPILL_SAMPLE_SIZE = 100;
+    private static final int SPILL_SAMPLE_FREQUENCY = 10;
 
-    protected long avgTupleSize = 0;
+    long aggSampleTupleSize = 0;
+
+    int sampled = 0;
 
     private boolean spillableRegistered = false;
 
@@ -77,6 +81,28 @@ public abstract class DefaultAbstractBag implements DataBag {
     @Override
     public long size() {
         return mSize;
+    }
+
+
+    /**
+     * Sample every SPILL_SAMPLE_FREQUENCYth tuple 
+     * until we reach a max of SPILL_SAMPLE_SIZE
+     * to get an estimate of the tuple sizes.
+     */
+    protected void sampleContents() {
+        synchronized (mContents) {
+            Iterator<Tuple> iter = mContents.iterator();
+            for (int i = 0; i < sampled * SPILL_SAMPLE_FREQUENCY && iter.hasNext(); i++) {
+                iter.next();
+            }
+            for (int i = sampled; iter.hasNext() && sampled < SPILL_SAMPLE_SIZE; i++) {
+                Tuple t = iter.next();
+                if (i % SPILL_SAMPLE_FREQUENCY == 0) {
+                    aggSampleTupleSize += t.getMemorySize();
+                    sampled += 1;
+                }
+            }
+        }
     }
 
     /**
@@ -97,9 +123,12 @@ public abstract class DefaultAbstractBag implements DataBag {
      * should call this method after every time they add an element.
      */
     protected void markSpillableIfNecessary() {
-        if (!spillableRegistered && getMemorySize() >= SPILL_REGISTER_THRESHOLD) {
-            SpillableMemoryManager.getInstance().registerSpillable(this);
-            spillableRegistered = true;
+        if (!spillableRegistered) {
+            long estimate = getMemorySize();
+            if ( estimate >= SPILL_REGISTER_THRESHOLD) {
+                SpillableMemoryManager.getInstance().registerSpillable(this);
+                spillableRegistered = true;
+            }
         }
     }
 
@@ -130,40 +159,30 @@ public abstract class DefaultAbstractBag implements DataBag {
      */
     @Override
     public long getMemorySize() {
-        int j = 0;
         int numInMem = 0;
 
         synchronized (mContents) {
             numInMem = mContents.size();
 
-
             // If we've already gotten the estimate
-            // and the number of tuples hasn't changed, or was above 100 and
-            // is still above 100, we can
+            // and the number of tuples hasn't changed, or was above
+            // the sample size and is still above the sample size, we can
             // produce a new estimate without sampling the tuples again.
-            if (avgTupleSize != 0 && (mLastContentsSize == numInMem ||
-                    mLastContentsSize > 100 && numInMem > 100))
-                return totalSizeFromAvgTupleSize(avgTupleSize, numInMem);
-
-            // Measure only what's in memory, not what's on disk.
-            // I can't afford to walk through all the tuples every time the
-            // memory manager wants to know if it's time to dump.  Just sample
-            // the first 100 and see what we get.  This may not be 100%
-            // accurate, but it's just an estimate anyway.
-            Iterator<Tuple> i = mContents.iterator();
-            for (j = 0; i.hasNext() && j < 100; j++) {
-                avgTupleSize += i.next().getMemorySize();
+            if (sampled != 0 && (sampled == numInMem ||
+                    sampled > SPILL_SAMPLE_SIZE && numInMem > SPILL_SAMPLE_SIZE)) {
+                return totalSizeFromAvgTupleSize(aggSampleTupleSize/sampled, numInMem);
             }
-        }
+            sampleContents();
+            int avgTupleSize;
+            if (sampled != 0) {
+                avgTupleSize = (int) (aggSampleTupleSize / sampled);
+            } else {
+                avgTupleSize = 0;
+            }
 
-        mLastContentsSize = numInMem;
-        if (j != 0) {
-            avgTupleSize /= j;
-        } else {
-            avgTupleSize = 0;
+           return totalSizeFromAvgTupleSize(avgTupleSize, numInMem);
         }
-        return totalSizeFromAvgTupleSize(avgTupleSize, numInMem);
-        }
+    }
 
     private long totalSizeFromAvgTupleSize(long avgTupleSize, int numInMem) {
         long used = avgTupleSize * numInMem;
@@ -227,6 +246,9 @@ public abstract class DefaultAbstractBag implements DataBag {
                 mSpillFiles.clear();
             }
             mSize = 0;
+            aggSampleTupleSize = 0;
+            sampled = 0;
+            // not changing spillableRegistered -- clear doesn't change that.
         }
     }
 
