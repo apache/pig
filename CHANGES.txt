@@ -22,6 +22,8 @@ Release 0.12.1 (unreleased changes)
 
 BUG FIXES
 
+PIG-3325: Adding a tuple to a bag is slow (dvryaboy via aniket486)
+
 PIG-3512: Reducer estimater is broken by PIG-3497 (daijy)
 
 PIG-3510: New filter extractor fails with more than one filter statement (aniket486 via cheolsoo)
