@@ -86,7 +86,6 @@ public class PigProcessor implements LogicalIOProcessor {
 
         String execPlanString = conf.get(PLAN);
         execPlan = (PhysicalPlan) ObjectSerializer.deserialize(execPlanString);
-        execPlan.explain(System.out);
         SchemaTupleBackend.initialize(conf, pc);
     }
 
@@ -108,17 +107,27 @@ public class PigProcessor implements LogicalIOProcessor {
 
         initializeOutputs(outputs);
 
-        List<PhysicalOperator> roots = execPlan.getRoots();
-        List<PhysicalOperator> leaves = execPlan.getLeaves();
-        // TODO: Pull from all leaves when there are multiple leaves/outputs
-        leaf = leaves.get(0);
-        // TODO: Remove in favor of maps/indexed arrays in a multi-output world
-        if (shuffle){
-            keyType = ((POLocalRearrange)leaf).getKeyType();
+        List<PhysicalOperator> roots = null;
+        List<PhysicalOperator> leaves = null;
+
+        if (!execPlan.isEmpty()) {
+            roots = execPlan.getRoots();
+            leaves = execPlan.getLeaves();
+            // TODO: Pull from all leaves when there are multiple leaves/outputs
+            leaf = leaves.get(0);
+            // TODO: Remove in favor of maps/indexed arrays in a multi-output world
+            if (shuffle){
+                keyType = ((POLocalRearrange)leaf).getKeyType();
+            }
         }
 
         while (input.next()){
             Tuple inputTuple = input.getCurrentTuple();
+            if (execPlan.isEmpty()) {
+                writeResult(inputTuple);
+                continue;
+            }
+
             for (PhysicalOperator root : roots) {
                 root.attachInput(inputTuple);
             }
