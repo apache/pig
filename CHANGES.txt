@@ -36,8 +36,6 @@ OPTIMIZATIONS
  
 BUG FIXES
 
-PIG-3325: Adding a tuple to a bag is slow (dvryaboy via aniket486)
-
 PIG-3524: Clean up Launcher and MapReduceLauncher after PIG-3419 (cheolsoo)
 
 PIG-3515: Shell commands are limited from OS buffer (andronat via cheolsoo)
@@ -61,6 +59,10 @@ PIG-3496: Propagate HBase 0.95 jars to the backend (Jarek Jarcec Cecho  via xuef
 Release 0.12.1 (unreleased changes)
 
 BUG FIXES
+
+PIG-3325: Adding a tuple to a bag is slow (dvryaboy via aniket486)
+
+PIG-3512: Reducer estimater is broken by PIG-3497
 
 PIG-3510: New filter extractor fails with more than one filter statement (aniket486 via cheolsoo)
 
