@@ -273,6 +273,9 @@ sub runPigCmdLine
 
     # Build the command
     my @baseCmd = $self->getPigCmd($testCmd, $log);
+    if ($testCmd->{'exectype'} eq "tez") {
+        push(@baseCmd, ("-x", "tez"));
+    }
     my @cmd = @baseCmd;
 
     # Add option -l giving location for secondary logs
@@ -396,7 +399,7 @@ sub getPigCmd($$$)
 
     # Set it in our current environment.  It will get inherited by the IPC::Run
     # command.
-    $ENV{'PIG_CLASSPATH'} = $pcp;
+    $ENV{'PIG_CLASSPATH'} = $ENV{'PIG_CLASSPATH'} . $separator . $pcp;
 
     if ($testCmd->{'usePython'} eq "true") {
         @pigCmd = ("python");
@@ -489,6 +492,9 @@ sub runPig
 
     # Build the command
     my @baseCmd = $self->getPigCmd($testCmd, $log);
+    if ($testCmd->{'exectype'} eq "tez") {
+        push(@baseCmd, ("-x", "tez"));
+    }
     my @cmd = @baseCmd;
 
     # Add option -l giving location for secondary logs
@@ -650,9 +656,15 @@ sub generateBenchmark
            $modifiedTestCmd{'pig'} = $testCmd->{'pig_win'};
        }
 		# Change so we're looking at the old version of Pig
-		$modifiedTestCmd{'pigpath'} = $testCmd->{'oldpigpath'};
+                if (defined $testCmd->{'oldpigpath'}) {
+		    $modifiedTestCmd{'pigpath'} = $testCmd->{'oldpigpath'};
+                }
                 if (defined($testCmd->{'oldconfigpath'})) {
 		    $modifiedTestCmd{'testconfigpath'} = $testCmd->{'oldconfigpath'};
+                }
+                # For exectype tez, we compare tez with mapreduce
+                if (defined $testCmd->{'benchmark_exectype'}) {
+                    $modifiedTestCmd{'exectype'} = $testCmd->{'benchmark_exectype'};
                 }
                 # switch environment to old hadoop
                 $orighadoophome=$ENV{'HADOOP_HOME'};
