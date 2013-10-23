@@ -914,7 +914,7 @@
         <ant dir="${test.e2e.dir}"/>
     </target>
 
-    <target name="test-e2e-tez" depends="jar, jar-withouthadoop, piggybank" description="run end-to-end tests">
+    <target name="test-e2e-tez" depends="jar, jar-withouthadoop" description="run end-to-end tests in tez mode">
         <ant dir="${test.e2e.dir}" target="test-tez"/>
     </target>
 
