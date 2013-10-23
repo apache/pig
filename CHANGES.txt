@@ -28,6 +28,8 @@ PIG-3419: Pluggable Execution Engine (achalsoni81 via cheolsoo)
 
 IMPROVEMENTS
 
+PIG-3529: Upgrade HBase dependency from 0.95-SNAPSHOT to 0.96 (jarcec via daijy)
+
 PIG-3117: A debug mode in which pig does not delete temporary files (ihadanny via cheolsoo)
 
 PIG-3484: Make the size of pig.script property configurable (cheolsoo)
