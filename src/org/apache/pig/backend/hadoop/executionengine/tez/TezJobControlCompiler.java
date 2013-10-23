@@ -119,13 +119,22 @@ public class TezJobControlCompiler {
     private TezJob getJob(TezOperPlan tezPlan) throws JobCreationException {
         try {
             ApplicationId appId = tezClient.createApplication();
+            Map<String, LocalResource> localResources = Maps.newHashMap();
             FileSystem remoteFs = FileSystem.get(tezConf);
             Path remoteStagingDir = remoteFs.makeQualified(new Path(
                     tezConf.get(TezConfiguration.TEZ_AM_STAGING_DIR), appId.toString()));
-
-            // Setup the DistributedCache for this job
+            
             for (URL extraJar : pigContext.extraJars) {
-                Utils.putJarOnClassPathThroughDistributedCache(pigContext, tezConf, extraJar);
+                Path pathInHDFS = Utils.shipToHDFS(pigContext, tezConf, extraJar);
+                FileStatus fstat = remoteFs.getFileStatus(pathInHDFS);
+                LocalResource extraJarRsrc = LocalResource.newInstance(
+                        ConverterUtils.getYarnUrlFromPath(fstat.getPath()),
+                        LocalResourceType.FILE,
+                        LocalResourceVisibility.APPLICATION,
+                        fstat.getLen(),
+                        fstat.getModificationTime());
+                localResources.put(pathInHDFS.getName(), extraJarRsrc);
+                pigContext.skipJars.add(extraJar.getPath());
             }
 
             // Collect all the UDFs registered in tezPlan
@@ -150,7 +159,6 @@ public class TezJobControlCompiler {
             remoteFs.copyFromLocalFile(new Path(jobJar.getAbsolutePath()), remoteJarPath);
             FileStatus jarFileStatus = remoteFs.getFileStatus(remoteJarPath);
 
-            Map<String, LocalResource> localResources = Maps.newHashMap();
             LocalResource dagJarLocalRsrc = LocalResource.newInstance(
                     ConverterUtils.getYarnUrlFromPath(remoteJarPath),
                     LocalResourceType.FILE,
