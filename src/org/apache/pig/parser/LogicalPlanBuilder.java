@@ -319,7 +319,13 @@ public class LogicalPlanBuilder {
         }
         sort.setAscendingCols( ascFlags );
         alias = buildOp( loc, sort, alias, inputAlias, null );
-        expandAndResetVisitor(loc, sort);
+        try {
+            (new ProjectStarExpander(sort.getPlan())).visit(sort);
+            (new ProjStarInUdfExpander(sort.getPlan())).visit(sort);
+            new SchemaResetter(sort.getPlan(), true).visit(sort);
+        } catch (FrontendException e ) {
+            throw new ParserValidationException( intStream, loc, e );
+        }
         return alias;
     }
 
@@ -339,7 +345,13 @@ public class LogicalPlanBuilder {
         rank.setAscendingCol(ascFlags);
 
         buildOp( loc, rank, alias, inputAlias, null );
-        expandAndResetVisitor(loc, rank);
+        try {
+            (new ProjectStarExpander(rank.getPlan())).visit(rank);
+            (new ProjStarInUdfExpander(rank.getPlan())).visit(rank);
+            new SchemaResetter(rank.getPlan(), true).visit(rank);
+        } catch (FrontendException e ) {
+            throw new ParserValidationException( intStream, loc, e );
+        }
 
         return alias;
     }
@@ -396,20 +408,16 @@ public class LogicalPlanBuilder {
         op.setInnerFlags( flags );
         op.setJoinPlans( joinPlans );
         alias = buildOp( loc, op, alias, inputAliases, partitioner );
-        expandAndResetVisitor(loc, op);
+        try {
+            (new ProjectStarExpander(op.getPlan())).visit(op);
+            (new ProjStarInUdfExpander(op.getPlan())).visit(op);
+            new SchemaResetter(op.getPlan(), true).visit(op);
+        } catch (FrontendException e ) {
+            throw new ParserValidationException( intStream, loc, e );
+        }
         return alias;
     }
 
-    private void expandAndResetVisitor(SourceLocation loc,
-	    LogicalRelationalOperator lrop) throws ParserValidationException {
-        try {
-	    (new ProjectStarExpander(lrop.getPlan())).visit();
-	    (new ProjStarInUdfExpander(lrop.getPlan())).visit();
-	    new SchemaResetter(lrop.getPlan(), true).visit();
-	} catch (FrontendException e) {
-	    throw new ParserValidationException(intStream, loc, e);
-	}
-    }
 
     LOCube createCubeOp() {
 	return new LOCube(plan);
@@ -426,7 +434,13 @@ public class LogicalPlanBuilder {
 	op.setExpressionPlans(expressionPlans);
 	op.setOperations(operations);
 	buildOp(loc, op, alias, inputAlias, null);
-	expandAndResetVisitor(loc, op);
+        try {
+            (new ProjectStarExpander(op.getPlan())).visit(op);
+            (new ProjStarInUdfExpander(op.getPlan())).visit(op);
+            new SchemaResetter(op.getPlan(), true).visit(op);
+        } catch (FrontendException e ) {
+            throw new ParserValidationException( intStream, loc, e );
+        }
 	try {
 	    alias = convertCubeToFGPlan(loc, op, inputAlias, operations, expressionPlans);
 	} catch (FrontendException e) {
@@ -822,7 +836,13 @@ public class LogicalPlanBuilder {
         op.setGroupType( gt );
         op.setInnerFlags( flags );
         alias = buildOp( loc, op, alias, inputAliases, partitioner );
-        expandAndResetVisitor(loc, op);
+        try {
+            (new ProjectStarExpander(op.getPlan())).visit(op);
+            (new ProjStarInUdfExpander(op.getPlan())).visit(op);
+            new SchemaResetter(op.getPlan(), true).visit(op);
+        } catch (FrontendException e ) {
+            throw new ParserValidationException( intStream, loc, e );
+        }
 
         return alias;
     }
@@ -976,7 +996,13 @@ public class LogicalPlanBuilder {
     throws ParserValidationException {
         op.setInnerPlan( innerPlan );
         alias = buildOp( loc, op, alias, inputAlias, null );
-        expandAndResetVisitor(loc, op);
+        try {
+            (new ProjectStarExpander(op.getPlan())).visit(op);
+            (new ProjStarInUdfExpander(op.getPlan())).visit(op);
+            new SchemaResetter(op.getPlan(), true).visit(op);
+        } catch (FrontendException e ) {
+            throw new ParserValidationException( intStream, loc, e );
+        }
         return alias;
     }
 
