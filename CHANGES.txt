@@ -36,6 +36,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3516: pig does not bring in joda-time as dependency in its pig-template.xml (daijy)
+
 PIG-3524: Clean up Launcher and MapReduceLauncher after PIG-3419 (cheolsoo)
 
 PIG-3515: Shell commands are limited from OS buffer (andronat via cheolsoo)
