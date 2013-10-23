@@ -92,6 +92,8 @@ import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.newplan.logical.visitor.CastLineageSetter;
 import org.apache.pig.newplan.logical.visitor.ColumnAliasConversionVisitor;
+import org.apache.pig.newplan.logical.visitor.DuplicateForEachColumnRewriteVisitor;
+import org.apache.pig.newplan.logical.visitor.ImplicitSplitInsertVisitor;
 import org.apache.pig.newplan.logical.visitor.ScalarVariableValidator;
 import org.apache.pig.newplan.logical.visitor.ScalarVisitor;
 import org.apache.pig.newplan.logical.visitor.SchemaAliasVisitor;
@@ -1717,8 +1719,14 @@ public class PigServer {
             new SchemaAliasVisitor(lp).visit();
             new ScalarVisitor(lp, pigContext, scope).visit();
 
-            // TODO: move optimizer here from HExecuteEngine.
-            // TODO: input/output validation visitor
+            // ImplicitSplitInsertVisitor has to be called before
+            // DuplicateForEachColumnRewriteVisitor.  Detail at pig-1766
+            new ImplicitSplitInsertVisitor(lp).visit();
+
+            // DuplicateForEachColumnRewriteVisitor should be before
+            // TypeCheckingRelVisitor which does resetSchema/getSchema
+            // heavily
+            new DuplicateForEachColumnRewriteVisitor(lp).visit();
 
             CompilationMessageCollector collector = new CompilationMessageCollector() ;
 

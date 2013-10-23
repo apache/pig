@@ -95,7 +95,7 @@ public class TestMultiQueryLocal {
             myPig.registerQuery("c = group b by gid;");
             myPig.registerQuery("store c into '" + TMP_DIR + "/Pig-TestMultiQueryLocal2';");
 
-            LogicalPlan lp = checkLogicalPlan(1, 2, 5);
+            LogicalPlan lp = checkLogicalPlan(1, 2, 8);
 
             // XXX Physical plan has one less node in the local case
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 2, 11);
@@ -196,7 +196,7 @@ public class TestMultiQueryLocal {
             myPig.registerQuery("d = filter c by uid > 15;");
             myPig.registerQuery("store d into '" + TMP_DIR + "/Pig-TestMultiQueryLocal3';");
 
-            LogicalPlan lp = checkLogicalPlan(1, 3, 7);
+            LogicalPlan lp = checkLogicalPlan(1, 3, 13);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 14);
 
@@ -257,7 +257,7 @@ public class TestMultiQueryLocal {
             myPig.registerQuery("e = cogroup c by uid, d by uid;");
             myPig.registerQuery("store e into '" + TMP_DIR + "/Pig-TestMultiQueryLocal3';");
 
-            LogicalPlan lp = checkLogicalPlan(2, 3, 8);
+            LogicalPlan lp = checkLogicalPlan(2, 3, 14);
 
             // XXX the total number of ops is one less in the local case
             PhysicalPlan pp = checkPhysicalPlan(lp, 2, 3, 19);

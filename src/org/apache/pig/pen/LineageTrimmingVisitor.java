@@ -49,6 +49,7 @@ import org.apache.pig.newplan.logical.relational.LOLimit;
 import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LOSort;
 import org.apache.pig.newplan.logical.relational.LOSplit;
+import org.apache.pig.newplan.logical.relational.LOSplitOutput;
 import org.apache.pig.newplan.logical.relational.LOUnion;
 import org.apache.pig.newplan.logical.relational.LOStore;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
@@ -206,6 +207,13 @@ public class LineageTrimmingVisitor extends LogicalRelationalNodesVisitor {
 
     @Override
     public void visit(LOSplit split) throws FrontendException {
+        if(continueTrimming)
+            processOperator(split);
+
+    }
+
+    @Override
+    public void visit(LOSplitOutput split) throws FrontendException {
         if(continueTrimming)
             processOperator(split);
 

@@ -31,10 +31,8 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.logical.rules.AddForEach;
 import org.apache.pig.newplan.logical.rules.ColumnMapKeyPrune;
-import org.apache.pig.newplan.logical.rules.DuplicateForEachColumnRewrite;
 import org.apache.pig.newplan.logical.rules.FilterAboveForeach;
 import org.apache.pig.newplan.logical.rules.GroupByConstParallelSetter;
-import org.apache.pig.newplan.logical.rules.ImplicitSplitInserter;
 import org.apache.pig.newplan.logical.rules.LimitOptimizer;
 import org.apache.pig.newplan.logical.rules.LoadTypeCastInserter;
 import org.apache.pig.newplan.logical.rules.LogicalExpressionSimplifier;
@@ -77,27 +75,10 @@ public class LogicalPlanOptimizer extends PlanOptimizer {
     protected List<Set<Rule>> buildRuleSets() {
         List<Set<Rule>> ls = new ArrayList<Set<Rule>>();
 
-        // ImplicitSplitInserter set
-        // This set of rules Insert Foreach dedicated for casting after load
-        Set<Rule> s = new HashSet<Rule>();
-        Rule r = new ImplicitSplitInserter("ImplicitSplitInserter");
-        checkAndAddRule(s, r);
-        if (!s.isEmpty())
-            ls.add(s);
-
-        // DuplicateForEachColumnRewrite set
-        // This insert Identity UDF in the case foreach duplicate field.
-        // This is because we need unique uid through out the plan
-        s = new HashSet<Rule>();
-        r = new DuplicateForEachColumnRewrite("DuplicateForEachColumnRewrite");
-        checkAndAddRule(s, r);
-        if (!s.isEmpty())
-            ls.add(s);
-
         // Logical expression simplifier
-        s = new HashSet<Rule>();
+        Set <Rule> s = new HashSet<Rule>();
         // add logical expression simplification rule
-        r = new LogicalExpressionSimplifier("FilterLogicExpressionSimplifier");
+        Rule r = new LogicalExpressionSimplifier("FilterLogicExpressionSimplifier");
         checkAndAddRule(s, r);
         ls.add(s);
 
