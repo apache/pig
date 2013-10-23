@@ -60,6 +60,8 @@ Release 0.12.1 (unreleased changes)
 
 BUG FIXES
 
+PIG-3492: ColumnPrune dropping used column due to LogicalRelationalOperator.fixDuplicateUids changes not propagating (knoguchi via daijy)
+
 PIG-3325: Adding a tuple to a bag is slow (dvryaboy via aniket486)
 
 PIG-3512: Reducer estimater is broken by PIG-3497

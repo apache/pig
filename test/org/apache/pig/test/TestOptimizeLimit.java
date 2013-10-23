@@ -225,8 +225,7 @@ public class TestOptimizeLimit {
         optimizePlan(newLogicalPlan);
         LOStore store = (LOStore)newLogicalPlan.getSinks().get(0);
         LOForEach foreach1 = (LOForEach)newLogicalPlan.getPredecessors(store).get(0);
-        LOForEach foreach2 = (LOForEach)newLogicalPlan.getPredecessors(foreach1).get(0);
-        LOLimit limit = (LOLimit)newLogicalPlan.getPredecessors(foreach2).get(0);
+        LOLimit limit = (LOLimit)newLogicalPlan.getPredecessors(foreach1).get(0);
         Assert.assertTrue(newLogicalPlan.getSoftLinkPredecessors(limit).get(0) instanceof LOStore);
     }
 

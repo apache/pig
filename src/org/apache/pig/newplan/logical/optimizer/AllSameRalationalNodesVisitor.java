@@ -23,11 +23,14 @@ import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanWalker;
 import org.apache.pig.newplan.logical.relational.LOCogroup;
 import org.apache.pig.newplan.logical.relational.LOCross;
+import org.apache.pig.newplan.logical.relational.LOCube;
 import org.apache.pig.newplan.logical.relational.LODistinct;
 import org.apache.pig.newplan.logical.relational.LOFilter;
 import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOJoin;
+import org.apache.pig.newplan.logical.relational.LOLimit;
 import org.apache.pig.newplan.logical.relational.LOLoad;
+import org.apache.pig.newplan.logical.relational.LONative;
 import org.apache.pig.newplan.logical.relational.LORank;
 import org.apache.pig.newplan.logical.relational.LOSort;
 import org.apache.pig.newplan.logical.relational.LOSplit;
@@ -128,5 +131,20 @@ public abstract class AllSameRalationalNodesVisitor extends LogicalRelationalNod
     @Override
     public void visit(LOStream stream) throws FrontendException {
         execute(stream);
+    }
+    
+    @Override
+    public void visit(LOLimit limit) throws FrontendException {
+        execute(limit);
+    }
+    
+    @Override
+    public void visit(LONative loNative) throws FrontendException {
+        execute(loNative);
+    }
+    
+    @Override
+    public void visit(LOCube cube) throws FrontendException {
+        execute(cube);
     }
 }
