@@ -36,6 +36,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3542: Javadoc of REGEX_EXTRACT_ALL (nyigitba via daijy)
+
 PIG-3518: Need to ship jruby.jar in the release (daijy)
 
 PIG-3516: pig does not bring in joda-time as dependency in its pig-template.xml (daijy)
