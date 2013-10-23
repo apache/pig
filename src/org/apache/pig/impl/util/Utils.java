@@ -68,7 +68,6 @@ import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.parser.ParserException;
 import org.apache.pig.parser.QueryParserDriver;
-import org.xerial.snappy.SnappyCodec;
 
 import com.google.common.collect.Lists;
 
@@ -250,7 +249,7 @@ public class Utils {
         GZ (GzipCodec.class.getName()),
         GZIP (GzipCodec.class.getName()),
         LZO ("com.hadoop.compression.lzo.LzoCodec"),
-        SNAPPY (SnappyCodec.class.getName()),
+        SNAPPY ("org.xerial.snappy.SnappyCodec"),
         BZIP2 (BZip2Codec.class.getName());
 
         private String hadoopCodecClassName;
