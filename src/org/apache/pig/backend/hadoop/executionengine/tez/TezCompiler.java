@@ -28,9 +28,11 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigException;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.ScalarPhyFinder;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.UDFFinder;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCollectedGroup;
@@ -57,6 +59,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
+import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
@@ -292,17 +295,6 @@ public class TezCompiler extends PhyPlanVisitor {
         compiledInputs = prevCompInp;
     }
 
-    private TezOperator getTezOp() {
-        return new TezOperator(new OperatorKey(scope, nig.getNextNodeId(scope)));
-    }
-
-    private POLoad getLoad() {
-        POLoad ld = new POLoad(new OperatorKey(scope, nig.getNextNodeId(scope)));
-        ld.setPc(pigContext);
-        ld.setIsTmpLoad(true);
-        return ld;
-    }
-
     /**
      * Starts a new TezOperator and connects it to the old one by load-store.
      * The assumption is that the store is already inserted into the old
@@ -339,7 +331,7 @@ public class TezCompiler extends PhyPlanVisitor {
         curTezOp = tezOp;
     }
 
-    private void blocking(PhysicalOperator op) throws IOException, PlanException {
+    private void blocking() throws IOException, PlanException {
         TezOperator newTezOp = getTezOp();
         tezPlan.add(newTezOp);
         for (TezOperator tezOp : compiledInputs) {
@@ -506,9 +498,47 @@ public class TezCompiler extends PhyPlanVisitor {
 
     @Override
     public void visitLimit(POLimit op) throws VisitorException {
-        int errCode = 2034;
-        String msg = "Cannot compile " + op.getClass().getSimpleName();
-        throw new TezCompilerException(msg, errCode, PigException.BUG);
+        try {
+            if (op.getLimitPlan() != null) {
+                processUDFs(op.getLimitPlan());
+            }
+
+            // As an optimization, we'll add a limit to the end of the last tezOp. Note that in
+            // some cases, such as when we have ORDER BY followed by LIMIT, the LimitOptimizer has
+            // already removed the POLimit from the physical plan.
+            if (!pigContext.inIllustrator) {
+                nonBlocking(op);
+                phyToTezOpMap.put(op, curTezOp);
+            }
+
+            // Need to add POLocalRearrange to the end of the last tezOp before we shuffle.
+            POLocalRearrange lr = getLocalRearrange();
+            curTezOp.plan.addAsLeaf(lr);
+
+            // Mark the start of a new TezOperator, connecting the inputs. Note the parallelism is
+            // currently fixed to 1 for all TezOperators.
+            // TODO Explicitly set the parallelism once this is supported by TezOperator.
+            blocking();
+
+            // Then add a POPackage and a POForEach to the start of the new tezOp.
+            POPackage pkg = getPackage();
+            POForEach forEach = getPlainForEach();
+            curTezOp.plan.add(pkg);
+            curTezOp.plan.addAsLeaf(forEach);
+
+            if (!pigContext.inIllustrator) {
+                POLimit limitCopy = new POLimit(new OperatorKey(scope, nig.getNextNodeId(scope)));
+                limitCopy.setLimit(op.getLimit());
+                limitCopy.setLimitPlan(op.getLimitPlan());
+                curTezOp.plan.addAsLeaf(limitCopy);
+            } else {
+                curTezOp.plan.addAsLeaf(op);
+            }
+        } catch (Exception e) {
+            int errCode = 2034;
+            String msg = "Error compiling operator " + op.getClass().getSimpleName();
+            throw new TezCompilerException(msg, errCode, PigException.BUG, e);
+        }
     }
 
     @Override
@@ -544,7 +574,7 @@ public class TezCompiler extends PhyPlanVisitor {
     @Override
     public void visitGlobalRearrange(POGlobalRearrange op) throws VisitorException {
         try {
-            blocking(op);
+            blocking();
             curTezOp.customPartitioner = op.getCustomPartitioner();
             phyToTezOpMap.put(op, curTezOp);
         } catch (Exception e) {
@@ -673,6 +703,73 @@ public class TezCompiler extends PhyPlanVisitor {
             String msg = "Error compiling operator " + op.getClass().getSimpleName();
             throw new TezCompilerException(msg, errCode, PigException.BUG, e);
         }
+    }
+
+    private POLoad getLoad() {
+        POLoad ld = new POLoad(new OperatorKey(scope, nig.getNextNodeId(scope)));
+        ld.setPc(pigContext);
+        ld.setIsTmpLoad(true);
+        return ld;
+    }
+
+    private POLocalRearrange getLocalRearrange() throws PlanException {
+        POProject projectStar = new POProject(new OperatorKey(scope, nig.getNextNodeId(scope)));
+        projectStar.setResultType(DataType.TUPLE);
+        projectStar.setStar(true);
+
+        PhysicalPlan addPlan = new PhysicalPlan();
+        addPlan.add(projectStar);
+
+        List<PhysicalPlan> addPlans = Lists.newArrayList();
+        addPlans.add(addPlan);
+
+        POLocalRearrange lr = new POLocalRearrange(new OperatorKey(scope, nig.getNextNodeId(scope)));
+        try {
+            lr.setIndex(0);
+        } catch (ExecException e) {
+            int errCode = 2058;
+            String msg = "Unable to set index on the newly created POLocalRearrange.";
+            throw new PlanException(msg, errCode, PigException.BUG, e);
+        }
+        lr.setKeyType(DataType.TUPLE);
+        lr.setPlans(addPlans);
+        lr.setResultType(DataType.TUPLE);
+        return lr;
+    }
+
+    private POPackage getPackage() {
+        boolean[] inner = { false };
+        POPackage pkg = new POPackage(new OperatorKey(scope, nig.getNextNodeId(scope)));
+        pkg.setInner(inner);
+        pkg.setKeyType(DataType.TUPLE);
+        pkg.setNumInps(1);
+        return pkg;
+    }
+
+    // Get a simple POForEach: ForEach X generate flatten($1)
+    private POForEach getPlainForEach() {
+        POProject project = new POProject(new OperatorKey(scope, nig.getNextNodeId(scope)));
+        project.setResultType(DataType.TUPLE);
+        project.setStar(false);
+        project.setColumn(1);
+        project.setOverloaded(true);
+
+        PhysicalPlan addPlan = new PhysicalPlan();
+        addPlan.add(project);
+
+        List<PhysicalPlan> addPlans = Lists.newArrayList();
+        addPlans.add(addPlan);
+
+        List<Boolean> flatten = Lists.newArrayList();
+        flatten.add(true);
+
+        POForEach forEach = new POForEach(new OperatorKey(scope, nig.getNextNodeId(scope)), -1, addPlans, flatten);
+        forEach.setResultType(DataType.BAG);
+        return forEach;
+    }
+
+    private TezOperator getTezOp() {
+        return new TezOperator(new OperatorKey(scope, nig.getNextNodeId(scope)));
     }
 }
 

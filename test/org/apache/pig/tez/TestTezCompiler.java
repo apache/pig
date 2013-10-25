@@ -56,6 +56,7 @@ import org.junit.runner.RunWith;
     "testRun1",
     "testRun2",
     "testRun3",
+    "testRun4"
 })
 public class TestTezCompiler {
     private static PigContext pc;
@@ -111,6 +112,18 @@ public class TestTezCompiler {
 
         PhysicalPlan pp = Util.buildPp(pigServer, query);
         run(pp, "test/org/apache/pig/test/data/GoldenFiles/TEZC3.gld");
+    }
+
+    @Test
+    public void testRun4() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input' as (x:int, y:int);" +
+                "b = limit a 10;" +
+                "c = foreach b generate y;" +
+                "store c into 'file:///tmp/output';";
+
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
+        run(pp, "test/org/apache/pig/test/data/GoldenFiles/TEZC4.gld");
     }
 
     private void run(PhysicalPlan pp, String expectedFile) throws Exception {

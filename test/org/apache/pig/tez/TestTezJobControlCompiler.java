@@ -55,7 +55,7 @@ import org.junit.runner.RunWith;
 @TestOrder({
     "testRun1",
     "testRun2",
-    "testRun3",
+    "testRun3"
 })
 public class TestTezJobControlCompiler {
     private static PigContext pc;
