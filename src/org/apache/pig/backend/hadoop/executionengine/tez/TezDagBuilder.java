@@ -231,7 +231,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         // Configure the classes for incoming shuffles to this TezOp
         List<PhysicalOperator> leaves = tezOp.plan.getLeaves();
         // TODO: Actually need to loop over leaves and set up per shuffle. Not sure how to give confs to an edge in Tez.
-        if (leaves.get(0) instanceof POLocalRearrange){
+        if (leaves.size() == 1 && leaves.get(0) instanceof POLocalRearrange){
             byte keyType =  ((POLocalRearrange)leaves.get(0)).getKeyType();
             Class<? extends WritableComparable> keyClass = HDataType.getWritableComparableTypes(keyType).getClass();
             conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_CLASS, keyClass.getName());
