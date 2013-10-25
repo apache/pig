@@ -211,6 +211,21 @@ public class TestUDF {
         pig.dumpSchema("c");
         pig.dumpSchema("d");
     }
+    
+    @Test
+    public void testEvalFuncGetVarArgToFunc() throws Exception {
+        String input = "udf_test_jira_3444.txt";
+        Util.createLocalInputFile(input, new String[]{"dummy"});
+        PigServer pigServer = new PigServer(ExecType.LOCAL);
+        pigServer.registerQuery("A = LOAD '"+input+"' USING PigStorage(',') AS (x:chararray);");
+        pigServer.registerQuery("B = FOREACH A GENERATE org.apache.pig.test.TestUDF$UdfWithFuncSpecWithVarArgs(3);");
+        pigServer.registerQuery("C = FOREACH A GENERATE org.apache.pig.test.TestUDF$UdfWithFuncSpecWithVarArgs(1,2,3,4);");
+
+        Iterator<Tuple> it = pigServer.openIterator("B");
+        assertEquals(Integer.valueOf(3),(Integer)it.next().get(0));
+        it = pigServer.openIterator("C");
+        assertEquals(Integer.valueOf(10), (Integer)it.next().get(0));
+    }
 
     @Test(expected = FrontendException.class)
     public void testEnsureProperSchema2() throws Exception {
@@ -269,6 +284,35 @@ public class TestUDF {
             l.add(new FuncSpec(this.getClass().getName(), new String[]{"3"}, new Schema(new Schema.FieldSchema(null,DataType.LONG))));
             l.add(new FuncSpec(this.getClass().getName(), new String[]{"4"}, new Schema(new Schema.FieldSchema(null,DataType.DOUBLE))));
             l.add(new FuncSpec(this.getClass().getName(), new String[]{"5"}, new Schema(new Schema.FieldSchema(null,DataType.FLOAT))));
+            return l;
+        }
+    }
+    
+    public static class UdfWithFuncSpecWithVarArgs extends EvalFunc<Integer> {
+        public UdfWithFuncSpecWithVarArgs() {}
+
+        @Override
+        public Integer exec(Tuple input) throws IOException {
+            int res = 0;
+            if (input == null || input.size() == 0) {
+                return res;
+            }
+            for (int i = 0; i < input.size(); i++) {
+                res += (Integer)input.get(i);
+            }
+            return res;
+        }
+        
+        @Override
+        public SchemaType getSchemaType() {
+            return SchemaType.VARARG;
+        }
+
+        @Override
+        public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
+            List<FuncSpec> l = new ArrayList<FuncSpec>();
+            Schema s1 = new Schema(new Schema.FieldSchema(null,DataType.INTEGER));
+            l.add(new FuncSpec(this.getClass().getName(), s1));
             return l;
         }
     }

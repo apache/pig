@@ -86,17 +86,15 @@ public class TestProjectStarRangeInUdf  {
     }
 
     @Test
-    public void testProjStarExpandInForeach1Negative() throws IOException{
-        //star expansion gives 3 columns, so CONCAT(*) gives error
+    public void testProjStarExpandInForeach1Multi() throws IOException{
+        //star expansion gives 3 columns, CONCAT(*) should pass
         String query;
 
         query =
             "  l1 = load '" + INP_FILE_5FIELDS + "' as (a, b, c);"
             + "f = foreach l1 generate CONCAT(*) as ct;"
             ; 
-        Util.checkExceptionMessage(query, "f",
-                "Could not infer the matching function for " +
-                "org.apache.pig.builtin.CONCAT");
+        compileAndCompareSchema("ct : bytearray", query, "f");
     }
     
     @Test
