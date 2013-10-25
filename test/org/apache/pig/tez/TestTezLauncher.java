@@ -17,17 +17,18 @@
  */
 package org.apache.pig.tez;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import org.apache.pig.PigServer;
-import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezExecType;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezLauncher;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.test.MiniCluster;
+import org.apache.pig.test.MiniGenericCluster;
 import org.apache.pig.test.Util;
 import org.apache.pig.tools.pigstats.PigStats;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -39,11 +40,31 @@ import org.junit.Test;
 public class TestTezLauncher {
     private static PigContext pc;
     private static PigServer pigServer;
-    private static MiniCluster cluster;
+    private static MiniGenericCluster cluster;
+
+    private static final String INPUT_FILE = "TestTezLauncherInput";
+    private static final String[] INPUT_RECORDS = {
+        "100\tapple",
+        "200\torange",
+        "300\tstrawberry",
+        "300\tpear",
+        "100\tapple",
+        "300\tpear",
+        "400\tapple",
+    };
+
+    private static final String OUTPUT_FILE = "TestTezLauncherOutput";
+    private static final String[] OUTPUT_RECORDS = {
+        "orange",
+        "strawberry",
+        "pear",
+        "pear",
+        "apple",
+    };
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        cluster = MiniCluster.buildCluster();
+        cluster = MiniGenericCluster.buildCluster();
         pc = new PigContext(new TezExecType(), cluster.getProperties());
     }
 
@@ -53,25 +74,33 @@ public class TestTezLauncher {
     }
 
     @Before
-    public void setUp() throws ExecException {
+    public void setUp() throws Exception {
         pigServer = new PigServer(pc);
+        Util.createInputFile(cluster, INPUT_FILE, INPUT_RECORDS);
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        Util.deleteFile(cluster, OUTPUT_FILE);
     }
 
     @Test
     public void testRun1() throws Exception {
         String query =
-                "a = load '/tmp/input' as (x:int, y:int);" +
-                "b = filter a by x > 0;" +
+                "a = load '" + INPUT_FILE + "' as (x:int, y:chararray);" +
+                "b = filter a by x > 100;" +
                 "c = foreach b generate y;" +
-                "store c into '/tmp/output';";
+                "store c into '" + OUTPUT_FILE + "';";
 
         PhysicalPlan pp = Util.buildPp(pigServer, query);
         TezLauncher launcher = new TezLauncher();
         PigStats pigStats = launcher.launchPig(pp, "testRun1", pc);
-        // TODO: The assert is commented out now because the current YARN mini
-        // cluster cannot run Tez jobs. Re-enable it when Tez mini cluster is
-        // available.
-        // assertTrue(pigStats.isSuccessful());
+        assertTrue(pigStats.isSuccessful());
+
+        String[] output = Util.readOutput(cluster.getFileSystem(), OUTPUT_FILE);
+        for (int i = 0; i < output.length; i++) {
+            assertEquals(OUTPUT_RECORDS[i], output[i]);
+        }
     }
 }
 

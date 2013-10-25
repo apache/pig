@@ -41,28 +41,39 @@ abstract public class MiniGenericCluster {
     protected MiniDFSCluster m_dfs = null;
     protected FileSystem m_fileSys = null;
     protected Configuration m_conf = null;
-    
-    protected final static MiniCluster INSTANCE = new MiniCluster();
-    protected static boolean isSetup = true;
-    
-    protected MiniGenericCluster() {
-        setupMiniDfsAndMrClusters();
-    }
-    
-    abstract protected void setupMiniDfsAndMrClusters();
-    
+
+    protected static MiniGenericCluster INSTANCE = null;
+    protected static boolean isSetup = false;
+
     /**
-     * Returns the single instance of class MiniClusterBuilder that
-     * represents the resouces for a mini dfs cluster and a mini 
-     * mapreduce cluster. 
+     * Returns the single instance of class MiniGenericCluster that represents
+     * the resources for a mini dfs cluster and a mini mr (or tez) cluster. The
+     * system property "test.exec.type" is used to decide whether a mr or tez mini
+     * cluster will be returned.
      */
-    public static MiniCluster buildCluster() {
-        if(! isSetup){
+    public static MiniGenericCluster buildCluster() {
+        if (INSTANCE == null) {
+            String execType = System.getProperty("test.exec.type");
+            if (execType == null) {
+                throw new RuntimeException("test.exec.type is not set");
+            }
+
+            if (execType.equalsIgnoreCase("mr")) {
+                INSTANCE = new MiniCluster();
+            } else if (execType.equalsIgnoreCase("tez")) {
+                INSTANCE = new TezMiniCluster();
+            } else {
+                throw new RuntimeException("Unknown test.exec.type: " + execType);
+            }
+        }
+        if (!isSetup) {
             INSTANCE.setupMiniDfsAndMrClusters();
             isSetup = true;
         }
         return INSTANCE;
     }
+
+    abstract protected void setupMiniDfsAndMrClusters();
 
     public void shutDown(){
         INSTANCE.shutdownMiniDfsAndMrClusters();

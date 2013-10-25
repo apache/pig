@@ -339,7 +339,7 @@ public class Util {
      *                  on one line
      * @throws IOException
      */
-    static public void createInputFile(MiniCluster miniCluster, String fileName,
+    static public void createInputFile(MiniGenericCluster miniCluster, String fileName,
                                        String[] inputData)
     throws IOException {
         FileSystem fs = miniCluster.getFileSystem();
@@ -402,7 +402,7 @@ public class Util {
      *         MiniCluster.
      * @throws IOException
      */
-    static public OutputStream createInputFile(MiniCluster cluster,
+    static public OutputStream createInputFile(MiniGenericCluster cluster,
             String fileName) throws IOException {
         FileSystem fs = cluster.getFileSystem();
         if (fs.exists(new Path(fileName))) {
@@ -435,7 +435,7 @@ public class Util {
      * @param fileName pathname of the file to be deleted
      * @throws IOException
      */
-    static public void deleteFile(MiniCluster miniCluster, String fileName)
+    static public void deleteFile(MiniGenericCluster miniCluster, String fileName)
     throws IOException {
         FileSystem fs = miniCluster.getFileSystem();
         fs.delete(new Path(fileName), true);
@@ -585,7 +585,8 @@ public class Util {
 	 * @param fileNameOnCluster the name with which the file should be created on the minicluster
 	 * @throws IOException
 	 */
-	static public void copyFromLocalToCluster(MiniCluster cluster, String localFileName, String fileNameOnCluster) throws IOException {
+     static public void copyFromLocalToCluster(MiniGenericCluster cluster,
+        String localFileName, String fileNameOnCluster) throws IOException {
         PigServer ps = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         String script = getMkDirCommandForHadoop2_0(fileNameOnCluster) + "fs -put " + localFileName + " " + fileNameOnCluster;
 
@@ -617,7 +618,8 @@ public class Util {
 
     }
 
-	static public void copyFromClusterToLocal(MiniCluster cluster, String fileNameOnCluster, String localFileName) throws IOException {
+    static public void copyFromClusterToLocal(MiniGenericCluster cluster,
+            String fileNameOnCluster, String localFileName) throws IOException {
 	    File parent = new File(localFileName).getParentFile();
 	    if (!parent.exists()) {
 	        parent.mkdirs();
