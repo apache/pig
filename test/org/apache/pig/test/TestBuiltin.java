@@ -2191,6 +2191,34 @@ public class TestBuiltin {
         assertTrue(msg, res.equals(exp));
 
     }
+    
+    /**
+     * End-to-end testing of the CONCAT() builtin function for vararg parameters
+     * @throws Exception
+     */
+    @Test
+    public void testComplexMultiCONCAT() throws Exception {
+        String input = "vararg_concat_test_jira_3444.txt";
+        Util.createLocalInputFile(input, new String[]{"dummy"});
+        PigServer pigServer = new PigServer(ExecType.LOCAL);
+        pigServer.registerQuery("A = LOAD '"+input+"' as (x:chararray);");
+        
+        pigServer.registerQuery("B = foreach A generate CONCAT('a', CONCAT('b',CONCAT('c','d')));");
+        Iterator<Tuple> its = pigServer.openIterator("B");
+        Tuple t = its.next();
+        assertEquals("abcd",t.get(0));
+        
+        pigServer.registerQuery("B = foreach A generate CONCAT('a', 'b', 'c', 'd');");
+        its = pigServer.openIterator("B");
+        t = its.next();
+        assertEquals("abcd",t.get(0));
+        
+        pigServer.registerQuery("B = foreach A generate CONCAT('a', CONCAT('b','c'), 'd');");
+        its = pigServer.openIterator("B");
+        t = its.next();
+        assertEquals("abcd",t.get(0));
+        
+    }
 
     @Test
     public void testSIZE() throws Exception {
