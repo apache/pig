@@ -40,6 +40,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3526: Unions with Enums do not work with AvroStorage (jadler via cheolsoo)
+
 PIG-3377: New AvroStorage throws NPE when storing untyped map/array/bag (jadler via cheolsoo)
 
 PIG-3542: Javadoc of REGEX_EXTRACT_ALL (nyigitba via daijy)
