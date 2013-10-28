@@ -26,8 +26,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.ResourceStatistics;
+import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.builtin.PigStorage;
-import org.apache.pig.impl.util.Utils;
 
 public class PigStorageWithStatistics extends PigStorage {
     private String loc = null;
@@ -58,7 +58,7 @@ public class PigStorageWithStatistics extends PigStorage {
             FileStatus[] status = fs.globStatus(path);
             if (status != null) {
                 for (FileStatus s : status) {
-                    inputBytes += Utils.getPathLength(fs, s);
+                    inputBytes += MapRedUtil.getPathLength(fs, s);
                 }
             }
         }
