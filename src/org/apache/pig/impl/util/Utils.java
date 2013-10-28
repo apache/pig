@@ -40,7 +40,6 @@ import java.util.Properties;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.compress.BZip2Codec;
@@ -469,22 +468,6 @@ public class Utils {
         } catch(FileNotFoundException fe) {
             log.info("Default bootup file " +bootupFile+ " not found");
             return in;
-        }
-    }
-
-    /**
-     * Returns the total number of bytes for this file, or if a file all files in the directory.
-     */
-    public static long getPathLength(FileSystem fs, FileStatus status) throws IOException {
-        if (!status.isDir()) {
-            return status.getLen();
-        } else {
-            FileStatus[] children = fs.listStatus(status.getPath());
-            long size = 0;
-            for (FileStatus child : children) {
-                size += getPathLength(fs, child);
-            }
-            return size;
         }
     }
 

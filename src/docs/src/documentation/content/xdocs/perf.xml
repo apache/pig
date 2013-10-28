@@ -1084,6 +1084,7 @@ C = JOIN big BY b1, tiny BY t1, mini BY m1 USING 'replicated';
 <p>Fragment replicate joins are experimental; we don't have a strong sense of how small the small relation must be to fit 
 into memory. In our tests with a simple query that involves just a JOIN, a relation of up to 100 M can be used if the process overall 
 gets 1 GB of memory. Please share your observations and experience with us.</p>
+<p>In order to avoid replicated joins on large relations, we fail if size of relation(s) to be replicated (in bytes) is greater than pig.join.replicated.max.bytes (default = 1GB).</p>
 </section>
 </section>
 <!-- END FRAGMENT REPLICATE JOINS-->
