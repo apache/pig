@@ -74,6 +74,8 @@ Release 0.12.1 (unreleased changes)
 
 IMPROVEMENTS
 
+PIG-3549: Print hadoop jobids for failed, killed job (aniket486)
+
 PIG-3047: Check the size of a relation before adding it to distributed cache in Replicated join (aniket486)
 
 PIG-3480: TFile-based tmpfile compression crashes in some cases (dvryaboy via aniket486)
@@ -93,6 +95,8 @@ PIG-3510: New filter extractor fails with more than one filter statement (aniket
 Release 0.12.0
 
 INCOMPATIBLE CHANGES
+
+PIG-3082: outputSchema of a UDF allows two usages when describing a Tuple schema (jcoveney)
 
 PIG-3191: [piggybank] MultiStorage output filenames are not sortable (Danny Antonelli via jcoveney)
 
@@ -258,8 +262,6 @@ PIG-3139: Document reducer estimation (billgraham)
 PIG-2764: Add a biginteger and bigdecimal type to pig (jcoveney)
 
 PIG-3073: POUserFunc creating log spam for large scripts (jcoveney)
-
-PIG-3082: outputSchema of a UDF allows two usages when describing a Tuple schema (jcoveney)
 
 PIG-3124:  Push FLATTENs After FILTERs If Possible (nwhite via daijy)
 
