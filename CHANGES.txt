@@ -22,6 +22,8 @@ Release 0.12.1 (unreleased changes)
 
 IMPROVEMENTS
 
+PIG-3549: Print hadoop jobids for failed, killed job (aniket486)
+
 PIG-3047: Check the size of a relation before adding it to distributed cache in Replicated join (aniket486)
 
 PIG-3480: TFile-based tmpfile compression crashes in some cases (dvryaboy via aniket486)

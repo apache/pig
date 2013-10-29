@@ -110,7 +110,7 @@ public class MapReduceLauncher extends Launcher{
                         RunningJob runningJob = job.getJobClient().getJob(job.getAssignedJobID());
                         if (runningJob!=null)
                             runningJob.killJob();
-                        log.info("Job " + job.getJobID() + " killed");
+                        log.info("Job " + job.getAssignedJobID().toString() + " killed");
                     }
                 }
             } catch (Exception e) {
@@ -510,7 +510,7 @@ public class MapReduceLauncher extends Launcher{
             
             for (int i=0; i<jc.getFailedJobs().size(); i++) {
                 Job j = jc.getFailedJobs().get(i);
-                msg.append(j.getMessage());
+                msg.append("JobID: " + j.getAssignedJobID().toString() + " Reason: " + j.getMessage());
                 if (i!=jc.getFailedJobs().size()-1) {
                     msg.append("\n");
                 }
