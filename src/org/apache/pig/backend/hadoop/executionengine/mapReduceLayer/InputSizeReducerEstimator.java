@@ -17,6 +17,9 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
+import java.io.IOException;
+import java.util.List;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -29,11 +32,8 @@ import org.apache.pig.LoadMetadata;
 import org.apache.pig.ResourceStatistics;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
+import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.impl.util.UriUtil;
-import org.apache.pig.impl.util.Utils;
-
-import java.io.IOException;
-import java.util.List;
 
 /**
  * Class that estimates the number of reducers based on input size.
@@ -116,7 +116,7 @@ public class InputSizeReducerEstimator implements PigReducerEstimator {
                     FileStatus[] status = fs.globStatus(path);
                     if (status != null) {
                         for (FileStatus s : status) {
-                            totalInputFileSize += Utils.getPathLength(fs, s);
+                            totalInputFileSize += MapRedUtil.getPathLength(fs, s);
                             foundSize = true;
                         }
                     }

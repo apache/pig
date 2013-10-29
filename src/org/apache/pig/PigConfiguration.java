@@ -117,4 +117,10 @@ public class PigConfiguration {
      * TFileStorage only support gzip and lzo.
      */
     public static final String PIG_TEMP_FILE_COMPRESSION_CODEC = "pig.tmpfilecompression.codec";
+
+    /**
+     * This key used to control the maximum size loaded into
+     * the distributed cache when doing fragment-replicated join
+     */
+    public static final String PIG_JOIN_REPLICATED_MAX_BYTES = "pig.join.replicated.max.bytes";
 }

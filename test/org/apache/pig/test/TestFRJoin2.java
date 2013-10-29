@@ -396,7 +396,39 @@ public class TestFRJoin2 {
             assertEquals(3, PigStats.get().getJobGraph().size());
         }
         assertEquals(dbfrj.size(), dbshj.size());
-        assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));    
+        assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));
     }
-    
+
+    @Test
+    public void testTooBigReplicatedFile() throws Exception {
+        PigServer pigServer = new PigServer(
+                ExecType.MAPREDUCE, cluster.getProperties());
+
+        pigServer.registerQuery("A = LOAD '" + INPUT_DIR + "' as (x:int,y:int);");
+        pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
+        pigServer.registerQuery("C = group B all parallel 5;");
+        pigServer.registerQuery("C = foreach C generate MAX(B.x) as x;");
+        pigServer.registerQuery("D = join A by x, B by x, C by x using 'repl';");
+        {
+            // When the replicated input sizes=(12 + 5) is bigger than
+            // pig.join.replicated.max.bytes=16, we throw exception
+            try {
+                pigServer.getPigContext().getProperties().setProperty(
+                        PigConfiguration.PIG_JOIN_REPLICATED_MAX_BYTES,
+                        String.valueOf(16));
+                pigServer.openIterator("D");
+                Assert.fail();
+            } catch (FrontendException e) {
+                assertEquals("Internal error. Distributed cache could" +
+                        " not be set up for the replicated files",
+                        e.getCause().getCause().getCause().getMessage());
+            }
+
+            // If we increase the size to 17, it should work
+            pigServer.getPigContext().getProperties().setProperty(
+                        PigConfiguration.PIG_JOIN_REPLICATED_MAX_BYTES,
+                        String.valueOf(17));
+            pigServer.openIterator("D");
+        }
+    }
 }
