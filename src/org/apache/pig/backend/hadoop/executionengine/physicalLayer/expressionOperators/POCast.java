@@ -61,6 +61,7 @@ import org.joda.time.DateTime;
  */
 public class POCast extends ExpressionOperator {
     private final static Log log = LogFactory.getLog(POCast.class);
+    private static final String unknownByteArrayErrorMessage = "Received a bytearray from the UDF or Union from two different Loaders. Cannot determine how to convert the bytearray to "; 
     private FuncSpec funcSpec = null;
     transient private LoadCaster caster;
     private boolean castNotNeeded = false;
@@ -164,7 +165,7 @@ public class POCast extends ExpressionOperator {
                         res.result = caster.bytesToBigInteger(dba.get());
                     } else {
                         int errCode = 1075;
-                        String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to BigInteger.";
+                        String msg = unknownByteArrayErrorMessage + "BigInteger.";
                         throw new ExecException(msg, errCode, PigException.INPUT);
                     }
                 } catch (ExecException ee) {
@@ -280,7 +281,7 @@ public class POCast extends ExpressionOperator {
                         res.result = caster.bytesToBigDecimal(dba.get());
                     } else {
                         int errCode = 1075;
-                        String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to BigDecimal.";
+                        String msg = unknownByteArrayErrorMessage + "BigDecimal.";
                         throw new ExecException(msg, errCode, PigException.INPUT);
                     }
                 } catch (ExecException ee) {
@@ -395,7 +396,7 @@ public class POCast extends ExpressionOperator {
                         res.result = caster.bytesToBoolean(dba.get());
                     } else {
                         int errCode = 1075;
-                        String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to boolean.";
+                        String msg = unknownByteArrayErrorMessage + "boolean.";
                         throw new ExecException(msg, errCode, PigException.INPUT);
                     }
                 } catch (ExecException ee) {
@@ -509,7 +510,7 @@ public class POCast extends ExpressionOperator {
                         res.result = caster.bytesToInteger(dba.get());
                     } else {
                         int errCode = 1075;
-                        String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to int.";
+                        String msg = unknownByteArrayErrorMessage + "int.";
                         throw new ExecException(msg, errCode, PigException.INPUT);
                     }
                 } catch (ExecException ee) {
@@ -635,7 +636,7 @@ public class POCast extends ExpressionOperator {
                         res.result = caster.bytesToLong(dba.get());
                     } else {
                         int errCode = 1075;
-                        String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to long.";
+                        String msg = unknownByteArrayErrorMessage + "long.";
                         throw new ExecException(msg, errCode, PigException.INPUT);
                     }
                 } catch (ExecException ee) {
@@ -758,7 +759,7 @@ public class POCast extends ExpressionOperator {
                         res.result = caster.bytesToDouble(dba.get());
                     } else {
                         int errCode = 1075;
-                        String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to double.";
+                        String msg = unknownByteArrayErrorMessage + "double.";
                         throw new ExecException(msg, errCode, PigException.INPUT);
                     }
                 } catch (ExecException ee) {
@@ -880,7 +881,7 @@ public class POCast extends ExpressionOperator {
                         res.result = caster.bytesToFloat(dba.get());
                     } else {
                         int errCode = 1075;
-                        String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to float.";
+                        String msg = unknownByteArrayErrorMessage + "float.";
                         throw new ExecException(msg, errCode, PigException.INPUT);
                     }
                 } catch (ExecException ee) {
@@ -1006,7 +1007,7 @@ public class POCast extends ExpressionOperator {
                         res.result = caster.bytesToDateTime(dba.get());
                     } else {
                         int errCode = 1075;
-                        String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to datetime.";
+                        String msg = unknownByteArrayErrorMessage + "datetime.";
                         throw new ExecException(msg, errCode, PigException.INPUT);
                     }
                 } catch (ExecException ee) {
@@ -1117,7 +1118,7 @@ public class POCast extends ExpressionOperator {
                         res.result = caster.bytesToCharArray(dba.get());
                     } else {
                         int errCode = 1075;
-                        String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to string.";
+                        String msg = unknownByteArrayErrorMessage + "string.";
                         throw new ExecException(msg, errCode, PigException.INPUT);
                     }
                 } catch (ExecException ee) {
@@ -1269,7 +1270,7 @@ public class POCast extends ExpressionOperator {
                         res.result = caster.bytesToTuple(dba.get(), fieldSchema);
                     } else {
                         int errCode = 1075;
-                        String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to tuple.";
+                        String msg = unknownByteArrayErrorMessage + "tuple.";
                         throw new ExecException(msg, errCode, PigException.INPUT);
                     }
                 } catch (ExecException ee) {
@@ -1331,7 +1332,7 @@ public class POCast extends ExpressionOperator {
                     result = caster.bytesToBag(((DataByteArray)obj).get(), fs);
                 } else {
                     int errCode = 1075;
-                    String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to bag.";
+                    String msg = unknownByteArrayErrorMessage + "bag.";
                     throw new ExecException(msg, errCode, PigException.INPUT);
                 }
             } else {
@@ -1362,7 +1363,7 @@ public class POCast extends ExpressionOperator {
                     result = caster.bytesToTuple(((DataByteArray)obj).get(), fs);
                 } else {
                     int errCode = 1075;
-                    String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to tuple.";
+                    String msg = unknownByteArrayErrorMessage + "tuple.";
                     throw new ExecException(msg, errCode, PigException.INPUT);
                 }
             } else {
@@ -1387,7 +1388,7 @@ public class POCast extends ExpressionOperator {
                     result = caster.bytesToMap(((DataByteArray)obj).get(), fs);
                 } else {
                     int errCode = 1075;
-                    String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to tuple.";
+                    String msg = unknownByteArrayErrorMessage + "tuple.";
                     throw new ExecException(msg, errCode, PigException.INPUT);
                 }
             } else {
@@ -1401,7 +1402,7 @@ public class POCast extends ExpressionOperator {
                     result = caster.bytesToBoolean(((DataByteArray) obj).get());
                 } else {
                     int errCode = 1075;
-                    String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to int.";
+                    String msg = unknownByteArrayErrorMessage + "int.";
                     throw new ExecException(msg, errCode, PigException.INPUT);
                 }
                 break;
@@ -1440,7 +1441,7 @@ public class POCast extends ExpressionOperator {
                     result = caster.bytesToInteger(((DataByteArray) obj).get());
                 } else {
                     int errCode = 1075;
-                    String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to int.";
+                    String msg = unknownByteArrayErrorMessage + "int.";
                     throw new ExecException(msg, errCode, PigException.INPUT);
                 }
                 break;
@@ -1486,7 +1487,7 @@ public class POCast extends ExpressionOperator {
                     result = caster.bytesToDouble(((DataByteArray) obj).get());
                 } else {
                     int errCode = 1075;
-                    String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to double.";
+                    String msg = unknownByteArrayErrorMessage + "double.";
                     throw new ExecException(msg, errCode, PigException.INPUT);
                 }
                 break;
@@ -1532,7 +1533,7 @@ public class POCast extends ExpressionOperator {
                     result = caster.bytesToLong(((DataByteArray)obj).get());
                 } else {
                     int errCode = 1075;
-                    String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to long.";
+                    String msg = unknownByteArrayErrorMessage + "long.";
                     throw new ExecException(msg, errCode, PigException.INPUT);
                 }
                 break;
@@ -1578,7 +1579,7 @@ public class POCast extends ExpressionOperator {
                     result = caster.bytesToFloat(((DataByteArray)obj).get());
                 } else {
                     int errCode = 1075;
-                    String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to float.";
+                    String msg = unknownByteArrayErrorMessage + "float.";
                     throw new ExecException(msg, errCode, PigException.INPUT);
                 }
                 break;
@@ -1624,7 +1625,7 @@ public class POCast extends ExpressionOperator {
                     result = caster.bytesToDateTime(((DataByteArray)obj).get());
                 } else {
                     int errCode = 1075;
-                    String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to datetime.";
+                    String msg = unknownByteArrayErrorMessage + "datetime.";
                     throw new ExecException(msg, errCode, PigException.INPUT);
                 }
                 break;
@@ -1663,7 +1664,7 @@ public class POCast extends ExpressionOperator {
                     result = caster.bytesToCharArray(((DataByteArray)obj).get());
                 } else {
                     int errCode = 1075;
-                    String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to float.";
+                    String msg = unknownByteArrayErrorMessage + "float.";
                     throw new ExecException(msg, errCode, PigException.INPUT);
                 }
                 break;
@@ -1711,7 +1712,7 @@ public class POCast extends ExpressionOperator {
                     result = caster.bytesToBigInteger(((DataByteArray)obj).get());
                 } else {
                     int errCode = 1075;
-                    String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to BigInteger.";
+                    String msg = unknownByteArrayErrorMessage + "BigInteger.";
                     throw new ExecException(msg, errCode, PigException.INPUT);
                 }
                 break;
@@ -1756,7 +1757,7 @@ public class POCast extends ExpressionOperator {
                     result = caster.bytesToBigDecimal(((DataByteArray)obj).get());
                 } else {
                     int errCode = 1075;
-                    String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to BigDecimal.";
+                    String msg = unknownByteArrayErrorMessage + "BigDecimal.";
                     throw new ExecException(msg, errCode, PigException.INPUT);
                 }
                 break;
@@ -1860,7 +1861,7 @@ public class POCast extends ExpressionOperator {
                         res.result = caster.bytesToBag(dba.get(), fieldSchema);
                     } else {
                         int errCode = 1075;
-                        String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to bag.";
+                        String msg = unknownByteArrayErrorMessage + "bag.";
                         throw new ExecException(msg, errCode, PigException.INPUT);
                     }
                 } catch (ExecException ee) {
@@ -1951,7 +1952,7 @@ public class POCast extends ExpressionOperator {
                         res.result = caster.bytesToMap(dba.get(), fieldSchema);
                     } else {
                         int errCode = 1075;
-                        String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to map.";
+                        String msg = unknownByteArrayErrorMessage + "map.";
                         throw new ExecException(msg, errCode, PigException.INPUT);
                     }
                 } catch (ExecException ee) {

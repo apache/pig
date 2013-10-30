@@ -17,14 +17,20 @@
  */
 package org.apache.pig.newplan.logical.visitor;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.pig.FuncSpec;
+import org.apache.pig.LoadCaster;
+import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.data.DataType;
+import org.apache.pig.impl.PigContext;
+import org.apache.pig.StreamToPig;
 import org.apache.pig.impl.builtin.IdentityColumn;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.plan.VisitorException;
@@ -86,6 +92,8 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
     // then the mapping is stored here
     Map<LogicalRelationalOperator, FuncSpec>  rel2InputFuncMap = 
         new HashMap<LogicalRelationalOperator, FuncSpec>();
+
+    Map<FuncSpec, Class> func2casterMap = new HashMap<FuncSpec, Class>();
     
     public LineageFindRelVisitor(OperatorPlan plan) throws FrontendException {
         super(plan, new DependencyOrderWalker(plan));
@@ -192,7 +200,8 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
         }
         //ensure that all predecessors are mapped to same load func spec
         for(int i=1; i<preds.size(); i++){
-            if(!loadFuncSpec.equals(getAssociatedLoadFunc((LogicalRelationalOperator) preds.get(i)))){
+            if(!haveIdenticalCasters(loadFuncSpec,getAssociatedLoadFunc(
+                    (LogicalRelationalOperator) preds.get(i)))){
                 return;
             }
         }
@@ -218,7 +227,8 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
             if(funcSpec != null) {
                 for(int i=1; i<schema.size(); i++){
                     LogicalFieldSchema fs = schema.getField(i);
-                    if(! funcSpec.equals(uid2LoadFuncMap.get(fs.uid))){
+                    if(! haveIdenticalCasters(funcSpec,
+                            uid2LoadFuncMap.get(fs.uid))){
                         //all uid are not associated with same func spec, there is no
                         // single func spec that represents all the fields
                         funcSpec = null;
@@ -420,8 +430,38 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
         // Since the uid changes for Union, add mappings for new uids to funcspec
         LogicalSchema schema = relOp.getSchema();
         if(schema != null){
+            // For each output field, checking all the fields being
+            // union-ed(bundled) together and only set the funcspec when ALL
+            // of them come from the same caster
+            //
+            // A = (i,j)
+            // B = (i,j)
+            // C = UNION A, B;
+            // Checking if A.i and B.i have the same caster.
+            // Same for A.j and B.j
+            // A.i and A.j may come from the different casters
             for (LogicalFieldSchema logicalFieldSchema : schema.getFields()) {
-                addUidLoadFuncToMap(logicalFieldSchema.uid,rel2InputFuncMap.get(relOp));
+                Set<Long> inputs = relOp.getInputUids(logicalFieldSchema.uid);
+                if( inputs.size() == 0 ) {
+                    // uid was not changed.
+                    // funcspec should be already set. skipping
+                    continue;
+                }
+                FuncSpec prevLoadFuncSpec = null, curLoadFuncSpec = null;
+                boolean allSameLoader = true;
+                for(Long inputUid: inputs) {
+                    curLoadFuncSpec = uid2LoadFuncMap.get(inputUid) ;
+                    if( prevLoadFuncSpec != null
+                      && !haveIdenticalCasters(prevLoadFuncSpec,
+                                               curLoadFuncSpec) ) {
+                        allSameLoader = false;
+                        break;
+                    }
+                  prevLoadFuncSpec  = curLoadFuncSpec;
+                }
+                if( allSameLoader ) {
+                    addUidLoadFuncToMap(logicalFieldSchema.uid,curLoadFuncSpec);
+                }
             }
         }
     }
@@ -483,7 +523,7 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
         FuncSpec curFuncSpec = uid2LoadFuncMap.get(uid);
         if(curFuncSpec == null){
             uid2LoadFuncMap.put(uid, loadFuncSpec);
-        }else if(! curFuncSpec.equals(loadFuncSpec)){
+        }else if(! haveIdenticalCasters(curFuncSpec,loadFuncSpec)){
             String msg = "Bug: uid mapped to two different load functions : " +
             curFuncSpec + " and " + loadFuncSpec;
             throw new VisitorException(msg,2262, PigException.BUG) ;
@@ -524,7 +564,7 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
             
             for(LogicalFieldSchema fs : inputFieldSchemas){
                 //check if all func spec match
-                if(!funcSpec1.equals(uid2LoadFuncMap.get(fs.uid))){
+                if(!haveIdenticalCasters(funcSpec1,uid2LoadFuncMap.get(fs.uid))){
                     allMatch = false;
                 }
                 //check if all inner schema match for use later
@@ -712,7 +752,67 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
 
         
     }
-    
+
+    //Copied from POCast.instantiateFunc
+    private Class instantiateCaster(FuncSpec funcSpec) throws VisitorException {
+        if ( funcSpec == null ) {
+            return null;
+        }
+
+        if( func2casterMap.containsKey(funcSpec) ) {
+          return func2casterMap.get(funcSpec);
+        }
+
+        LoadCaster caster = null;
+        Object obj = PigContext.instantiateFuncFromSpec(funcSpec);
+        try {
+            if (obj instanceof LoadFunc) {
+                caster = ((LoadFunc)obj).getLoadCaster();
+            } else if (obj instanceof StreamToPig) {
+                caster = ((StreamToPig)obj).getLoadCaster();
+            } else {
+                throw new VisitorException("Invalid class type " + funcSpec.getClassName(),
+                                           2270, PigException.BUG );
+            }
+        } catch (IOException e) {
+            throw new VisitorException("Invalid class type " + funcSpec.getClassName(),
+                                         2270, e );
+        }
+
+        Class retval = (caster == null) ? null : caster.getClass();
+        func2casterMap.put(funcSpec, retval);
+        return retval;
+    }
+
+
+    private boolean haveIdenticalCasters(FuncSpec f1, FuncSpec f2)  throws VisitorException{
+        if( f1 == null || f2 == null ) {
+            return false;
+        }
+        if( f1.equals(f2) ) {
+            return true;
+        }
+        Class caster1 = instantiateCaster(f1);
+        Class caster2 = instantiateCaster(f2);
+
+        if( caster1 == null || caster2 == null ) {
+            return false;
+        }
+
+        //From PIG-3295
+        //If the class name for LoadCaster are the same, and LoadCaster only has
+        //default constructor, then two LoadCasters are considered equal
+        if( caster1.getCanonicalName().equals(caster2.getCanonicalName())  &&
+            caster1.getConstructors().length == 1 &&
+            caster1.getConstructors()[0].getGenericParameterTypes().length == 0  &&
+            caster2.getConstructors().length == 1 &&
+            caster2.getConstructors()[0].getGenericParameterTypes().length == 0 ) {
+            return true;
+        }
+
+        return false;
+
+    }
     
     
 }
