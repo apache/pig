@@ -5087,7 +5087,7 @@ X = FILTER A BY (f1 matches '.*apache.*');
                <p> [ ]</p>
             </td>
             <td>
-               <p>Use to construct a bag from the specified elements. Equivalent to <a href="func.html#tomap">TOMAP</a>.</p>
+               <p>Use to construct a map from the specified elements. Equivalent to <a href="func.html#tomap">TOMAP</a>.</p>
             </td>
          </tr>
    </table>
