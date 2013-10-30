@@ -42,6 +42,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3551: Minor typo on pig latin basics page (elserj via aniket486)
+
 PIG-3526: Unions with Enums do not work with AvroStorage (jadler via cheolsoo)
 
 PIG-3377: New AvroStorage throws NPE when storing untyped map/array/bag (jadler via cheolsoo)
