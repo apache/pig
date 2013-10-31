@@ -17,14 +17,15 @@
  */
 package org.apache.pig.tools.pigstats.tez;
 
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapreduce.lib.jobcontrol.ControlledJob;
 import org.apache.hadoop.mapreduce.lib.jobcontrol.JobControl;
@@ -37,14 +38,12 @@ import org.apache.pig.backend.hadoop.executionengine.tez.TezOperator;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.impl.util.Pair;
 import org.apache.pig.tools.pigstats.InputStats;
-import org.apache.pig.tools.pigstats.JobStats;
-import org.apache.pig.tools.pigstats.JobStats.JobState;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
-import org.apache.tez.dag.api.client.DAGStatus;
-import org.apache.tez.dag.api.client.Progress;
+import org.apache.tez.common.TezUtils;
+import org.apache.tez.dag.api.DAG;
+import org.apache.tez.dag.api.Vertex;
 
 import com.google.common.collect.Maps;
 
@@ -86,29 +85,16 @@ public class TezStats extends PigStats {
     }
 
     public void initialize(TezOperPlan tezPlan) {
+        super.start();
         try {
             new JobGraphBuilder(tezPlan).visit();
         } catch (VisitorException e) {
             LOG.warn("Unable to build Tez DAG", e);
         }
-
-        startTime = System.currentTimeMillis();
-        userId = System.getProperty("user.name");
     }
 
     public void finish() {
-        endTime = System.currentTimeMillis();
-        Pair<Integer, Integer> count = countFailedSucceededVertices();
-        int failed = count.first;
-        int succeeded = count.second;
-        if (failed == 0 && succeeded > 0 && succeeded == jobPlan.size()) {
-            returnCode = ReturnCode.SUCCESS;
-        } else if (succeeded > 0 && succeeded < jobPlan.size()) {
-            returnCode = ReturnCode.PARTIAL_FAILURE;
-        } else {
-            returnCode = ReturnCode.FAILURE;
-        }
-
+        super.stop();
         display();
     }
 
@@ -132,7 +118,31 @@ public class TezStats extends PigStats {
             sb.append("Failed!\n");
         }
         sb.append("\n");
-        LOG.info("Script Statistics: \n" + sb.toString());
+
+        // Print diagnostic info in case of failure
+        boolean isLocal = pigContext.getExecType().isLocal();
+        if (returnCode == ReturnCode.FAILURE
+                || returnCode == ReturnCode.PARTIAL_FAILURE) {
+            if (errorMessage != null) {
+                String[] lines = errorMessage.split("\n");
+                for (int i = 0; i < lines.length; i++) {
+                    String s = lines[i].trim();
+                    sb.append(String.format("%1$20s: %2$-100s%n", i == 0 ? "ErrorMessage" : "", s));
+                }
+                sb.append("\n");
+            }
+        }
+        List<InputStats> is = getInputStats();
+        for (int i = 0; i < is.size(); i++) {
+            String s = is.get(i).getDisplayString(isLocal).trim();
+            sb.append(String.format("%1$20s: %2$-100s%n", i == 0 ? "Input(s)" : "", s));
+        }
+        List<OutputStats> os = getOutputStats();
+        for (int i = 0; i < os.size(); i++) {
+            String s = os.get(i).getDisplayString(isLocal).trim();
+            sb.append(String.format("%1$20s: %2$-100s%n", i == 0 ? "Output(s)" : "", s));
+        }
+        LOG.info("Script Statistics:\n" + sb.toString());
     }
 
     /**
@@ -140,49 +150,36 @@ public class TezStats extends PigStats {
      *
      * @param jc the job control
      */
-    public void accumulateStats(JobControl jc) {
+    public void accumulateStats(JobControl jc) throws IOException {
         for (ControlledJob job : jc.getSuccessfulJobList()) {
-            TezJob tezJob = (TezJob)job;
-            DAGStatus dagStatus = tezJob.getDagStatus();
-            Map<String, Progress> vertices = dagStatus.getVertexProgress();
-            for (String name : vertices.keySet()) {
-                // TODO: Add statistics per vertex that Progress class provides
-                addVertexStats(name, tezJob, true);
-            }
+            addJobStats((TezJob)job, true);
         }
-
         for (ControlledJob job : jc.getFailedJobList()) {
-            TezJob tezJob = (TezJob)job;
-            DAGStatus dagStatus = tezJob.getDagStatus();
-            Map<String, Progress> vertices = dagStatus.getVertexProgress();
-            for (String name : vertices.keySet()) {
-                // TODO: Add statistics per vertex that Progress class provides
-                addVertexStats(name, tezJob, false);
-            }
+            addJobStats((TezJob)job, false);
         }
     }
 
-    private void addVertexStats(String tezOpName, TezJob tezJob, boolean succeeded) {
+    private void addJobStats(TezJob tezJob, boolean succeeded) throws IOException {
+        DAG dag = tezJob.getDag();
+        for (String name : tezOpVertexMap.keySet()) {
+            Vertex v = dag.getVertex(name);
+            byte[] bb = v.getProcessorDescriptor().getUserPayload();
+            Configuration conf = TezUtils.createConfFromUserPayload(bb);
+            addVertexStats(name, conf, succeeded);
+        }
+        if (!succeeded) {
+            errorMessage = tezJob.getMessage();
+        }
+    }
+
+    private void addVertexStats(String tezOpName, Configuration conf, boolean succeeded) {
         TezTaskStats stats = tezOpVertexMap.get(tezOpName);
-        stats.setId(tezJob.getAppId());
+        stats.setConf(conf);
+        stats.setId(tezOpName);
         stats.setSuccessful(succeeded);
-    }
-
-    private Pair<Integer, Integer> countFailedSucceededVertices() {
-        // Note that jobPlan returns the iterator of TezVertexStats, so this
-        // method counts the number of failed/succeeded vertices not jobs.
-        Iterator<JobStats> iter = jobPlan.iterator();
-        int failed = 0;
-        int succeeded = 0;
-        while (iter.hasNext()) {
-            JobState state = iter.next().getState();
-            if (state == JobState.FAILED) {
-                failed++;
-            } else if (state == JobState.SUCCESS) {
-                succeeded++;
-            }
-        }
-        return new Pair<Integer, Integer>(failed, succeeded);
+        // TODO: Add error messages for each task in failure case
+        stats.addInputStatistics();
+        stats.addOutputStatistics();
     }
 
     @Override
@@ -206,31 +203,6 @@ public class TezStats extends PigStats {
     }
 
     @Override
-    public List<String> getOutputLocations() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public List<String> getOutputNames() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public long getNumberBytes(String location) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public long getNumberRecords(String location) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public String getOutputAlias(String location) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public long getSMMSpillCount() {
         throw new UnsupportedOperationException();
     }
@@ -242,31 +214,6 @@ public class TezStats extends PigStats {
 
     @Override
     public long getProactiveSpillCountRecords() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public long getBytesWritten() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public long getRecordWritten() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public List<OutputStats> getOutputStats() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public OutputStats result(String alias) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public List<InputStats> getInputStats() {
         throw new UnsupportedOperationException();
     }
 }

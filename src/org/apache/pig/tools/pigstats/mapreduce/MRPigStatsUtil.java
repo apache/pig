@@ -153,33 +153,33 @@ public class MRPigStatsUtil extends PigStatsUtil {
         }
         return shortName;
     }
-           
+
     /**
      * Starts collecting statistics for the given MR plan
-     * 
+     *
      * @param pc the Pig context
      * @param client the Hadoop job client
      * @param jcc the job compiler
      * @param plan the MR plan
      */
-    public static void startCollection(PigContext pc, JobClient client, 
+    public static void startCollection(PigContext pc, JobClient client,
             JobControlCompiler jcc, MROperPlan plan) {
         SimplePigStats ps = (SimplePigStats)PigStats.start(new SimplePigStats());
-        ps.start(pc, client, jcc, plan);
+        ps.initialize(pc, client, jcc, plan);
 
         MRScriptState.get().emitInitialPlanNotification(plan);
         MRScriptState.get().emitLaunchStartedNotification(plan.size());
     }
-     
+
     /**
      * Stops collecting statistics for a MR plan
-     * 
-     * @param display if true, log collected statistics in the Pig log 
-     *      file at INFO level 
+     *
+     * @param display if true, log collected statistics in the Pig log
+     *      file at INFO level
      */
     public static void stopCollection(boolean display) {
         SimplePigStats ps = (SimplePigStats)PigStats.get();
-        ps.stop();
+        ps.finish();
         if (!ps.isSuccessful()) {
             LOG.error(ps.getNumberFailedJobs() + " map reduce job(s) failed!");
             String errMsg = ps.getErrorMessage();

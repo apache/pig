@@ -123,7 +123,7 @@ public class TezJobControlCompiler {
             FileSystem remoteFs = FileSystem.get(tezConf);
             Path remoteStagingDir = remoteFs.makeQualified(new Path(
                     tezConf.get(TezConfiguration.TEZ_AM_STAGING_DIR), appId.toString()));
-            
+
             for (URL extraJar : pigContext.extraJars) {
                 Path pathInHDFS = Utils.shipToHDFS(pigContext, tezConf, extraJar);
                 FileStatus fstat = remoteFs.getFileStatus(pathInHDFS);
@@ -168,9 +168,6 @@ public class TezJobControlCompiler {
             localResources.put(DAG_JAR_NAME, dagJarLocalRsrc);
 
             DAG tezDag = buildDAG(tezPlan, localResources);
-            // TODO: We need to design TezJob first. What information do we want
-            // to encapsulate in Tezjob? How are we going to launch TezJobs in
-            // TezLauncher?
             return new TezJob(tezConf, appId, tezDag, localResources);
         } catch (Exception e) {
             int errCode = 2017;

@@ -55,17 +55,14 @@ public class TestTezLauncher {
 
     private static final String OUTPUT_FILE = "TestTezLauncherOutput";
     private static final String[] OUTPUT_RECORDS = {
-        "orange",
-        "strawberry",
-        "pear",
-        "pear",
-        "apple",
+        "all\t{(apple),(pear),(pear),(strawberry),(orange)}"
     };
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
         cluster = MiniGenericCluster.buildCluster();
         pc = new PigContext(new TezExecType(), cluster.getProperties());
+        Util.createInputFile(cluster, INPUT_FILE, INPUT_RECORDS);
     }
 
     @AfterClass
@@ -76,7 +73,6 @@ public class TestTezLauncher {
     @Before
     public void setUp() throws Exception {
         pigServer = new PigServer(pc);
-        Util.createInputFile(cluster, INPUT_FILE, INPUT_RECORDS);
     }
 
     @After
@@ -90,7 +86,8 @@ public class TestTezLauncher {
                 "a = load '" + INPUT_FILE + "' as (x:int, y:chararray);" +
                 "b = filter a by x > 100;" +
                 "c = foreach b generate y;" +
-                "store c into '" + OUTPUT_FILE + "';";
+                "d = group c all;" +
+                "store d into '" + OUTPUT_FILE + "';";
 
         PhysicalPlan pp = Util.buildPp(pigServer, query);
         TezLauncher launcher = new TezLauncher();
@@ -101,6 +98,12 @@ public class TestTezLauncher {
         for (int i = 0; i < output.length; i++) {
             assertEquals(OUTPUT_RECORDS[i], output[i]);
         }
+
+        assertEquals(1, pigStats.getInputStats().size());
+        assertEquals(INPUT_FILE, pigStats.getInputStats().get(0).getName());
+
+        assertEquals(1, pigStats.getOutputStats().size());
+        assertEquals(OUTPUT_FILE, pigStats.getOutputStats().get(0).getName());
     }
 }
 

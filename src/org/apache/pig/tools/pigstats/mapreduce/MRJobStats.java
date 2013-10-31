@@ -79,8 +79,6 @@ public final class MRJobStats extends JobStats {
     public static final String SUCCESS_HEADER_LOCAL = "JobId\tAlias\tFeature\tOutputs";
     
     private static final Log LOG = LogFactory.getLog(MRJobStats.class);
-        
-    private Configuration conf;
     
     private List<POStore> mapStores = null;
     
@@ -194,23 +192,23 @@ public final class MRJobStats extends JobStats {
         this.jobId = jobId;
     }
 
+    @Override
     @SuppressWarnings("unchecked")
-    void setConf(Configuration conf) {        
-        if (conf == null) return;
-        this.conf = conf;
+    public void setConf(Configuration conf) {
+        super.setConf(conf);
         try {
             this.mapStores = (List<POStore>) ObjectSerializer.deserialize(conf
                     .get(JobControlCompiler.PIG_MAP_STORES));
             this.reduceStores = (List<POStore>) ObjectSerializer.deserialize(conf
-                    .get(JobControlCompiler.PIG_REDUCE_STORES));           
+                    .get(JobControlCompiler.PIG_REDUCE_STORES));
             this.loads = (ArrayList<FileSpec>) ObjectSerializer.deserialize(conf
                     .get("pig.inputs"));
             this.disableCounter = conf.getBoolean("pig.disable.counter", false);
         } catch (IOException e) {
             LOG.warn("Failed to deserialize the store list", e);
-        }                    
+        }
     }
-    
+
     void setMapStat(int size, long max, long min, long avg, long median) {
         numberMaps = size;
         maxMapTime = max;

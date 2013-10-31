@@ -28,7 +28,9 @@ import java.util.Properties;
 import org.apache.commons.collections.IteratorUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.JobClient;
+import org.apache.hadoop.mapreduce.lib.jobcontrol.ControlledJob;
 import org.apache.pig.PigException;
 import org.apache.pig.PigRunner.ReturnCode;
 import org.apache.pig.classification.InterfaceAudience;
@@ -42,6 +44,8 @@ import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanVisitor;
 import org.apache.pig.tools.pigstats.JobStats.JobState;
 import org.apache.pig.tools.pigstats.mapreduce.SimplePigStats;
+
+import com.google.common.collect.Maps;
 
 /**
  * PigStats encapsulates the statistics collected from a running script. It
@@ -62,9 +66,10 @@ public abstract class PigStats {
     protected String userId;
     protected JobGraph jobPlan;
     protected PigContext pigContext;
+    protected Map<String, OutputStats> aliasOuputMap;
 
     protected int errorCode = -1;
-    protected String errorMessage;
+    protected String errorMessage = null;
     protected Throwable errorThrowable = null;
     protected int returnCode = ReturnCode.UNKNOWN;
 
@@ -146,29 +151,76 @@ public abstract class PigStats {
     /**
      * Returns the list of output locations in the script
      */
-    public abstract List<String> getOutputLocations();
+    public List<String> getOutputLocations() {
+        ArrayList<String> locations = new ArrayList<String>();
+        for (OutputStats output : getOutputStats()) {
+            locations.add(output.getLocation());
+        }
+        return Collections.unmodifiableList(locations);
+    }
 
     /**
      * Returns the list of output names in the script
      */
-    public abstract List<String> getOutputNames();
+    public List<String> getOutputNames() {
+        ArrayList<String> names = new ArrayList<String>();
+        for (OutputStats output : getOutputStats()) {
+            names.add(output.getName());
+        }
+        return Collections.unmodifiableList(names);
+    }
 
     /**
      * Returns the number of bytes for the given output location,
      * -1 for invalid location or name.
      */
-    public abstract long getNumberBytes(String location);
+    public long getNumberBytes(String location) {
+        if (location == null) return -1;
+        String name = new Path(location).getName();
+        long count = -1;
+        for (OutputStats output : getOutputStats()) {
+            if (name.equals(output.getName())) {
+                count = output.getBytes();
+                break;
+            }
+        }
+        return count;
+    }
 
     /**
      * Returns the number of records for the given output location,
      * -1 for invalid location or name.
      */
-    public abstract long getNumberRecords(String location);
+    public long getNumberRecords(String location) {
+        if (location == null) return -1;
+        String name = new Path(location).getName();
+        long count = -1;
+        for (OutputStats output : getOutputStats()) {
+            if (name.equals(output.getName())) {
+                count = output.getNumberRecords();
+                break;
+            }
+        }
+        return count;
+    }
 
     /**
      * Returns the alias associated with this output location
      */
-    public abstract String getOutputAlias(String location);
+    public String getOutputAlias(String location) {
+        if (location == null) {
+            return null;
+        }
+        String name = new Path(location).getName();
+        String alias = null;
+        for (OutputStats output : getOutputStats()) {
+            if (name.equals(output.getName())) {
+                alias = output.getAlias();
+                break;
+            }
+        }
+        return alias;
+    }
 
     /**
      * Returns the total spill counts from {@link SpillableMemoryManager}.
@@ -189,13 +241,29 @@ public abstract class PigStats {
      * Returns the total bytes written to user specified HDFS
      * locations of this script.
      */
-    public abstract long getBytesWritten();
+    public long getBytesWritten() {
+        Iterator<JobStats> it = jobPlan.iterator();
+        long ret = 0;
+        while (it.hasNext()) {
+            long n = it.next().getBytesWritten();
+            if (n > 0) ret += n;
+        }
+        return ret;
+    }
 
     /**
      * Returns the total number of records in user specified output
      * locations of this script.
      */
-    public abstract long getRecordWritten();
+    public long getRecordWritten() {
+        Iterator<JobStats> it = jobPlan.iterator();
+        long ret = 0;
+        while (it.hasNext()) {
+            long n = it.next().getRecordWrittern();
+            if (n > 0) ret += n;
+        }
+        return ret;
+    }
 
     public String getHadoopVersion() {
         return ScriptState.get().getHadoopVersion();
@@ -224,22 +292,60 @@ public abstract class PigStats {
         return jobPlan.size();
     }
 
-    public abstract List<OutputStats> getOutputStats();
+    public List<OutputStats> getOutputStats() {
+        List<OutputStats> outputs = new ArrayList<OutputStats>();
+        Iterator<JobStats> iter = jobPlan.iterator();
+        while (iter.hasNext()) {
+            for (OutputStats os : iter.next().getOutputs()) {
+                outputs.add(os);
+            }
+        }
+        return Collections.unmodifiableList(outputs);
+    }
 
-    public abstract OutputStats result(String alias);
+    public OutputStats result(String alias) {
+        if (aliasOuputMap == null) {
+            aliasOuputMap = Maps.newHashMap();
+            Iterator<JobStats> iter = jobPlan.iterator();
+            while (iter.hasNext()) {
+                for (OutputStats os : iter.next().getOutputs()) {
+                    String a = os.getAlias();
+                    if (a == null || a.length() == 0) {
+                        LOG.warn("Output alias isn't avalable for " + os.getLocation());
+                        continue;
+                    }
+                    aliasOuputMap.put(a, os);
+                }
+            }
+        }
+        return aliasOuputMap.get(alias);
+    }
 
-    public abstract List<InputStats> getInputStats();
+    public List<InputStats> getInputStats() {
+        List<InputStats> inputs = new ArrayList<InputStats>();
+        Iterator<JobStats> iter = jobPlan.iterator();
+        while (iter.hasNext()) {
+            for (InputStats is : iter.next().getInputs()) {
+                inputs.add(is);
+            }
+        }
+        return Collections.unmodifiableList(inputs);
+    }
 
-    void setErrorMessage(String errorMessage) {
+    public void setErrorMessage(String errorMessage) {
         this.errorMessage = errorMessage;
     }
 
-    void setErrorCode(int errorCode) {
+    public void setErrorCode(int errorCode) {
         this.errorCode = errorCode;
     }
 
-    void setErrorThrowable(Throwable t) {
+    public void setErrorThrowable(Throwable t) {
         this.errorThrowable = t;
+    }
+
+    public void setReturnCode(int returnCode) {
+        this.returnCode = returnCode;
     }
 
     /**
@@ -363,7 +469,62 @@ public abstract class PigStats {
         }
     }
 
-    void setReturnCode(int returnCode) {
-        this.returnCode = returnCode;
+    public void setBackendException(ControlledJob job, Exception e) {
+        if (e instanceof PigException) {
+            LOG.error("ERROR " + ((PigException)e).getErrorCode() + ": "
+                    + e.getLocalizedMessage());
+        } else if (e != null) {
+            LOG.error("ERROR: " + e.getLocalizedMessage());
+        }
+
+        if (job.getJobID() == null || e == null) {
+            LOG.debug("unable to set backend exception");
+            return;
+        }
+        String id = job.getJobID().toString();
+        Iterator<JobStats> iter = jobPlan.iterator();
+        while (iter.hasNext()) {
+            JobStats js = iter.next();
+            if (id.equals(js.getJobId())) {
+                js.setBackendException(e);
+                break;
+            }
+        }
+    }
+
+    public void start() {
+        startTime = System.currentTimeMillis();
+        userId = System.getProperty("user.name");
+    }
+
+    public void stop() {
+        endTime = System.currentTimeMillis();
+        int failed = getNumberFailedJobs();
+        int succeeded = getNumberSuccessfulJobs();
+        if (failed == 0 && succeeded > 0 && succeeded == jobPlan.size()) {
+            returnCode = ReturnCode.SUCCESS;
+        } else if (succeeded > 0 && succeeded < jobPlan.size()) {
+            returnCode = ReturnCode.PARTIAL_FAILURE;
+        } else {
+            returnCode = ReturnCode.FAILURE;
+        }
+    }
+
+    public int getNumberSuccessfulJobs() {
+        Iterator<JobStats> iter = jobPlan.iterator();
+        int count = 0;
+        while (iter.hasNext()) {
+            if (iter.next().getState() == JobState.SUCCESS) count++;
+        }
+        return count;
+    }
+
+    public int getNumberFailedJobs() {
+        Iterator<JobStats> iter = jobPlan.iterator();
+        int count = 0;
+        while (iter.hasNext()) {
+            if (iter.next().getState() == JobState.FAILED) count++;
+        }
+        return count;
     }
 }

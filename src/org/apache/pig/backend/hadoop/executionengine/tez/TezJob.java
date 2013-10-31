@@ -90,6 +90,12 @@ public class TezJob extends ControlledJob {
             log.info("DAG Status: " + dagStatus);
             setJobState(dagState2JobState(dagStatus.getState()));
             if (dagStatus.isCompleted()) {
+                StringBuilder sb = new StringBuilder();
+                for (String msg : dagStatus.getDiagnostics()) {
+                    sb.append(msg);
+                    sb.append("\n");
+                }
+                setMessage(sb.toString());
                 break;
             }
 
