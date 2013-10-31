@@ -17,14 +17,11 @@
  */
 package org.apache.pig.impl.util;
 
-import java.io.File;
-
-
 public class UriUtil {
     public static boolean isHDFSFile(String uri){
         if(uri == null)
             return false;
-        if(uri.startsWith("/") || uri.startsWith("hdfs:")){
+        if(uri.startsWith("/") || uri.startsWith("hdfs:") || uri.startsWith("viewfs:")) {
             return true;
         }
         return false;
@@ -34,7 +31,7 @@ public class UriUtil {
         if(uri == null)
             return false;
         if(uri.startsWith("/") || uri.matches("[A-Za-z]:.*") || uri.startsWith("hdfs:")
-                || uri.startsWith("file:") || uri.startsWith("s3n:")){
+                || uri.startsWith("viewfs:") || uri.startsWith("file:") || uri.startsWith("s3n:")) {
             return true;
         }
         return false;
