@@ -22,17 +22,41 @@ Trunk (unreleased changes)
  
 INCOMPATIBLE CHANGES
 
-PIG-3485: Remove CastUtils.bytesToMap(byte[] b) method from LoadCaster interface (cheolsoo)
+PIG-3485: Remove CastUtils.bytesToMap(byte[] b) method from LoadCaster interface (cheolsoo) 
 
 PIG-3419: Pluggable Execution Engine (achalsoni81 via cheolsoo)
 
 IMPROVEMENTS
+
+PIG-3295: Casting from bytearray failing after Union even when each field is from a single Loader (knoguchi)
+
+PIG-3444: CONCAT with 2+ input parameters fail (lbendig via daijy)
+
+PIG-3529: Upgrade HBase dependency from 0.95-SNAPSHOT to 0.96 (jarcec via daijy)
+
+PIG-3117: A debug mode in which pig does not delete temporary files (ihadanny via cheolsoo)
 
 PIG-3484: Make the size of pig.script property configurable (cheolsoo)
  
 OPTIMIZATIONS
  
 BUG FIXES
+
+PIG-3551: Minor typo on pig latin basics page (elserj via aniket486)
+
+PIG-3526: Unions with Enums do not work with AvroStorage (jadler via cheolsoo)
+
+PIG-3377: New AvroStorage throws NPE when storing untyped map/array/bag (jadler via cheolsoo)
+
+PIG-3542: Javadoc of REGEX_EXTRACT_ALL (nyigitba via daijy)
+
+PIG-3518: Need to ship jruby.jar in the release (daijy)
+
+PIG-3516: pig does not bring in joda-time as dependency in its pig-template.xml (daijy)
+
+PIG-3524: Clean up Launcher and MapReduceLauncher after PIG-3419 (cheolsoo)
+
+PIG-3515: Shell commands are limited from OS buffer (andronat via cheolsoo)
 
 PIG-3520: Provide backward compatibility for PigRunner and PPNL after PIG-3419 (daijy via cheolsoo)
 
@@ -52,7 +76,23 @@ PIG-3496: Propagate HBase 0.95 jars to the backend (Jarek Jarcec Cecho  via xuef
 
 Release 0.12.1 (unreleased changes)
 
+IMPROVEMENTS
+
+PIG-3549: Print hadoop jobids for failed, killed job (aniket486)
+
+PIG-3047: Check the size of a relation before adding it to distributed cache in Replicated join (aniket486)
+
+PIG-3480: TFile-based tmpfile compression crashes in some cases (dvryaboy via aniket486)
+
 BUG FIXES
+
+PIG-3530: Some e2e tests is broken due to PIG-3480 (daijy)
+
+PIG-3492: ColumnPrune dropping used column due to LogicalRelationalOperator.fixDuplicateUids changes not propagating (knoguchi via daijy)
+
+PIG-3325: Adding a tuple to a bag is slow (dvryaboy via aniket486)
+
+PIG-3512: Reducer estimater is broken by PIG-3497
 
 PIG-3510: New filter extractor fails with more than one filter statement (aniket486 via cheolsoo)
 
@@ -60,13 +100,13 @@ Release 0.12.0
 
 INCOMPATIBLE CHANGES
 
+PIG-3082: outputSchema of a UDF allows two usages when describing a Tuple schema (jcoveney)
+
 PIG-3191: [piggybank] MultiStorage output filenames are not sortable (Danny Antonelli via jcoveney)
 
 PIG-3174: Remove rpm and deb artifacts from build.xml (gates)
 
 IMPROVEMENTS
-
-PIG-3480: TFile-based tmpfile compression crashes in some cases (dvryaboy via aniket486)
 
 PIG-3503: More document for Pig 0.12 new features (daijy)
 
@@ -226,8 +266,6 @@ PIG-3139: Document reducer estimation (billgraham)
 PIG-2764: Add a biginteger and bigdecimal type to pig (jcoveney)
 
 PIG-3073: POUserFunc creating log spam for large scripts (jcoveney)
-
-PIG-3082: outputSchema of a UDF allows two usages when describing a Tuple schema (jcoveney)
 
 PIG-3124:  Push FLATTENs After FILTERs If Possible (nwhite via daijy)
 

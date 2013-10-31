@@ -103,7 +103,7 @@ public class MapReduceLauncher extends Launcher{
                     RunningJob runningJob = job.getJobClient().getJob(job.getAssignedJobID());
                     if (runningJob!=null)
                         runningJob.killJob();
-                    log.info("Job " + job.getJobID() + " killed");
+                    log.info("Job " + job.getAssignedJobID().toString() + " killed");
                 }
             }
         } catch (Exception e) {
@@ -416,9 +416,11 @@ public class MapReduceLauncher extends Launcher{
             failed = true;
         }
 
-        // Clean up all the intermediate data
-        for (String path : intermediateVisitor.getIntermediate()) {
-            FileLocalizer.delete(path, pc);
+        if (!"false".equalsIgnoreCase(pc.getProperties().getProperty(PigConfiguration.PIG_DELETE_TEMP_FILE))) {
+            // Clean up all the intermediate data
+            for (String path : intermediateVisitor.getIntermediate()) {
+                FileLocalizer.delete(path, pc);
+            }
         }
 
         // Look to see if any jobs failed.  If so, we need to report that.
@@ -535,7 +537,7 @@ public class MapReduceLauncher extends Launcher{
 
             for (int i=0; i<jc.getFailedJobs().size(); i++) {
                 Job j = jc.getFailedJobs().get(i);
-                msg.append(j.getMessage());
+                msg.append("JobID: " + j.getAssignedJobID().toString() + " Reason: " + j.getMessage());
                 if (i!=jc.getFailedJobs().size()-1) {
                     msg.append("\n");
                 }

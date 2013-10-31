@@ -32,6 +32,7 @@ import org.apache.avro.Schema.Type;
 import org.apache.avro.generic.GenericArray;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.IndexedRecord;
+import org.apache.avro.generic.GenericEnumSymbol;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataByteArray;
@@ -143,6 +144,8 @@ public final class AvroTupleWrapper <T extends IndexedRecord>
           return new DataByteArray(((GenericData.Fixed) o).bytes());
         } else if (o instanceof ByteBuffer) {
           return new DataByteArray(((ByteBuffer) o).array());
+        } else if (o instanceof GenericEnumSymbol) {
+          return o.toString();
         }
       default:
         return o;

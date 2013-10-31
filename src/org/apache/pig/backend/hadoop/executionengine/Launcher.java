@@ -129,11 +129,7 @@ public abstract class Launcher {
      * @param php
      * @param grpName
      * @param pc
-     * @throws PlanException
-     * @throws VisitorException
-     * @throws IOException
-     * @throws ExecException
-     * @throws JobCreationException
+     * @throws Exception
      */
     public abstract PigStats launchPig(PhysicalPlan php, String grpName,
             PigContext pc) throws Exception;
@@ -315,7 +311,7 @@ public abstract class Launcher {
             try {
                 jobControlException = getExceptionFromString(jobControlExceptionStackTrace);
             } catch (Exception e) {
-                String errMsg = "Could not resolve error that occured when launching map reduce job: "
+                String errMsg = "Could not resolve error that occured when launching job: "
                         + jobControlExceptionStackTrace;
                 jobControlException = new RuntimeException(errMsg, throwable);
             }

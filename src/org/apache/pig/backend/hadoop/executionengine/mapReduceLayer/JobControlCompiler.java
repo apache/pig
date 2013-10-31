@@ -77,6 +77,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
+import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.SchemaTupleFrontend;
@@ -1497,24 +1498,39 @@ public class JobControlCompiler{
             FileSpec[] newReplFiles = new FileSpec[replFiles.length];
 
             // the first input is not replicated
-            for (int i = 0; i < replFiles.length; i++) {
-                // ignore fragmented file
-                String symlink = "";
-                if (i != join.getFragment()) {
-                    symlink = "pigrepl_" + join.getOperatorKey().toString() + "_"
-                            + Integer.toString(System.identityHashCode(replFiles[i].getFileName()))
-                            + "_" + Long.toString(System.currentTimeMillis())
-                            + "_" + i;
-                    replicatedPath.add(replFiles[i].getFileName() + "#"
-                            + symlink);
-                }
-                newReplFiles[i] = new FileSpec(symlink,
-                        (replFiles[i] == null ? null : replFiles[i].getFuncSpec()));
-            }
-
-            join.setReplFiles(newReplFiles);
-
+            long sizeOfReplicatedInputs = 0;
             try {
+                for (int i = 0; i < replFiles.length; i++) {
+                    // ignore fragmented file
+                    String symlink = "";
+                    if (i != join.getFragment()) {
+                        symlink = "pigrepl_" + join.getOperatorKey().toString() + "_"
+                                + Integer.toString(System.identityHashCode(
+                                        replFiles[i].getFileName()))
+                                + "_" + Long.toString(System.currentTimeMillis())
+                                + "_" + i;
+                        replicatedPath.add(replFiles[i].getFileName() + "#"
+                                + symlink);
+
+                        Path path = new Path(replFiles[i].getFileName());
+                        FileSystem fs = path.getFileSystem(conf);
+                        sizeOfReplicatedInputs +=
+                                MapRedUtil.getPathLength(fs, fs.getFileStatus(path));
+                    }
+                    newReplFiles[i] = new FileSpec(symlink,
+                            (replFiles[i] == null ? null : replFiles[i].getFuncSpec()));
+                }
+
+                join.setReplFiles(newReplFiles);
+
+                String maxSize = pigContext.getProperties().getProperty(
+                        PigConfiguration.PIG_JOIN_REPLICATED_MAX_BYTES, "1000000000");
+                if (sizeOfReplicatedInputs > Long.parseLong(maxSize)){
+                    throw new VisitorException("Replicated input files size: "
+                            + sizeOfReplicatedInputs + " exceeds " +
+                            PigConfiguration.PIG_JOIN_REPLICATED_MAX_BYTES + ": " + maxSize);
+                }
+
                 setupDistributedCache(pigContext, conf, replicatedPath
                         .toArray(new String[0]), false);
             } catch (IOException e) {

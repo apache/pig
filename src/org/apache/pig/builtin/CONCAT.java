@@ -82,4 +82,9 @@ public class CONCAT extends EvalFunc<DataByteArray> {
         funcList.add(new FuncSpec(StringConcat.class.getName(), s));
         return funcList;
     }
+    
+    @Override
+    public SchemaType getSchemaType() {
+        return SchemaType.VARARG;
+    }
 }

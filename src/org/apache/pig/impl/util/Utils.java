@@ -73,7 +73,6 @@ import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.parser.ParserException;
 import org.apache.pig.parser.QueryParserDriver;
-import org.xerial.snappy.SnappyCodec;
 
 import com.google.common.collect.Lists;
 
@@ -255,7 +254,7 @@ public class Utils {
         GZ (GzipCodec.class.getName()),
         GZIP (GzipCodec.class.getName()),
         LZO ("com.hadoop.compression.lzo.LzoCodec"),
-        SNAPPY (SnappyCodec.class.getName()),
+        SNAPPY ("org.xerial.snappy.SnappyCodec"),
         BZIP2 (BZip2Codec.class.getName());
 
         private String hadoopCodecClassName;
@@ -475,22 +474,6 @@ public class Utils {
         } catch(FileNotFoundException fe) {
             log.info("Default bootup file " +bootupFile+ " not found");
             return in;
-        }
-    }
-
-    /**
-     * Returns the total number of bytes for this file, or if a file all files in the directory.
-     */
-    public static long getPathLength(FileSystem fs, FileStatus status) throws IOException {
-        if (!status.isDir()) {
-            return status.getLen();
-        } else {
-            FileStatus[] children = fs.listStatus(status.getPath());
-            long size = 0;
-            for (FileStatus child : children) {
-                size += getPathLength(fs, child);
-            }
-            return size;
         }
     }
 

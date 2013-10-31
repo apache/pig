@@ -238,17 +238,36 @@ public class MapRedUtil {
                 result.add(stat);
             }
         }
-    }          
+    }
 
     private static final PathFilter hiddenFileFilter = new PathFilter(){
         public boolean accept(Path p){
-            String name = p.getName(); 
-            return !name.startsWith("_") && !name.startsWith("."); 
+            String name = p.getName();
+            return !name.startsWith("_") && !name.startsWith(".");
         }
-    };    
+    };
+
+    /**
+     * Returns the total number of bytes for this file,
+     * or if a directory all files in the directory.
+     */
+    public static long getPathLength(FileSystem fs, FileStatus status)
+            throws IOException {
+        if (!status.isDir()) {
+            return status.getLen();
+        } else {
+            FileStatus[] children = fs.listStatus(
+                    status.getPath(), hiddenFileFilter);
+            long size = 0;
+            for (FileStatus child : children) {
+                size += getPathLength(fs, child);
+            }
+            return size;
+        }
+    }
 
     /* The following codes are for split combination: see PIG-1518
-     * 
+     *
      */
     private static Comparator<Node> nodeComparator = new Comparator<Node>() {
         @Override

@@ -486,6 +486,11 @@ public class TestQueryParser {
     
     @Test
     public void testFunction2() throws Exception {
+        shouldPass("B = foreach A generate org.apache.pig.builtin.CONCAT(b, c, 'x', 'y');");
+    }
+    
+    @Test
+    public void testFunction3() throws Exception {
         shouldPass("B = foreach A generate flatten(myudfs.Swap(name, age)), gpa;");
     }
     

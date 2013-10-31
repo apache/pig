@@ -35,6 +35,7 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -78,7 +79,7 @@ public class TestHBaseStorage {
     public static void setUp() throws Exception {
         // This is needed by Pig
         cluster = MiniCluster.buildCluster();
-        conf = cluster.getConfiguration();
+        conf = HBaseConfiguration.create(cluster.getConfiguration());
 
         util = new HBaseTestingUtility(conf);
         util.startMiniZKCluster();

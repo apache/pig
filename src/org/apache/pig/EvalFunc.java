@@ -89,6 +89,15 @@ public abstract class EvalFunc<T>  {
      */
     protected Type returnType;
 
+    /**
+     * EvalFunc's schema type.
+     * @see {@link EvalFunc#getSchemaType()}
+     */
+    public static enum SchemaType {
+        NORMAL, //default field type
+        VARARG //if the last field of the (udf) schema is of type vararg
+    };
+    
     public EvalFunc() {
         // Resolve concrete type for T of EvalFunc<T>
         // 1. Build map from type param to type for class hierarchy from current class to EvalFunc
@@ -320,4 +329,16 @@ public abstract class EvalFunc<T>  {
     public Schema getInputSchema(){
         return this.inputSchemaInternal;
     }
+
+    /**
+     * Returns the {@link SchemaType} of the EvalFunc. User defined functions can override
+     * this method to return {@link SchemaType#VARARG}. In this case the last FieldSchema
+     * added to the Schema in {@link #getArgToFuncMapping()} will be considered as a vararg field.
+     * 
+     * @return the schema type of the UDF
+     */
+    public SchemaType getSchemaType() {
+        return SchemaType.NORMAL;
+    }
+
 }

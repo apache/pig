@@ -242,7 +242,8 @@ public class FuncSpec implements Serializable, Cloneable {
     
     @Override
     public int hashCode() {
-        return getClassName().hashCode() + ctorArgs.length;
+        return ctorArgs == null ?  getClassName().hashCode() :
+                                   getClassName().hashCode() + ctorArgs.length;
     }
  
     @Override
