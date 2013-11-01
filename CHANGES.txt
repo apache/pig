@@ -28,6 +28,8 @@ PIG-3419: Pluggable Execution Engine (achalsoni81 via cheolsoo)
 
 IMPROVEMENTS
 
+PIG-3522: Remove shock from pig (daijy)
+
 PIG-3295: Casting from bytearray failing after Union even when each field is from a single Loader (knoguchi)
 
 PIG-3444: CONCAT with 2+ input parameters fail (lbendig via daijy)

@@ -209,8 +209,6 @@
       conf="test->default"/>
     <dependency org="xerces" name="xercesImpl" rev="${xerces.version}"
       conf="jdiff->default;test->default"/>
-    <dependency org="com.jcraft" name="jsch" rev="${jsch.version}"
-      conf="compile->master"/>
     <dependency org="jline" name="jline" rev="${jline.version}"
       conf="compile->master"/>
     <dependency org="net.java.dev.javacc" name="javacc" rev="${javacc.version}"
