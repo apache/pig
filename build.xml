@@ -359,7 +359,6 @@
             <include name="hadoop-*-${hadoop-common.version}.jar" if="isHadoop23"/>
             <exclude name="hadoop-hdfs-${hadoop-hdfs.version}.jar"/>
             <include name="junit-${junit.version}.jar"/>
-            <include name="jsch-${jsch.version}.jar"/>
             <include name="protobuf-java-${protobuf-java.version}.jar"/>
             <include name="commons*.jar"/>
             <include name="log4j*.jar"/>
