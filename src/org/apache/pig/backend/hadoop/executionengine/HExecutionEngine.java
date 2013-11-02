@@ -116,9 +116,6 @@ public abstract class HExecutionEngine implements ExecutionEngine {
 
     @SuppressWarnings("resource")
     private void init(Properties properties) throws ExecException {
-        // First set the ssh socket factory
-        Utils.setSSHFactory(pigContext);
-
         String cluster = null;
         String nameNode = null;
 
