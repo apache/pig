@@ -27,6 +27,7 @@ import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.RunningJob;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
+import org.apache.hadoop.mapreduce.JobID;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.NativeMapReduceOper;
@@ -253,7 +254,11 @@ public class MRPigStatsUtil extends PigStatsUtil {
     
     
     public static void setBackendException(Job job, Exception e) {
-        ((SimplePigStats)PigStats.get()).setBackendException(job, e);
+        JobID jobId = job.getAssignedJobID();
+        if (jobId == null) {
+            return;
+        }
+        PigStats.get().setBackendException(jobId.toString(), e);
     }
     
     private static MRJobStats addFailedJobStats(SimplePigStats ps, Job job) {

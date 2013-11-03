@@ -30,7 +30,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.JobClient;
-import org.apache.hadoop.mapreduce.lib.jobcontrol.ControlledJob;
 import org.apache.pig.PigException;
 import org.apache.pig.PigRunner.ReturnCode;
 import org.apache.pig.classification.InterfaceAudience;
@@ -469,7 +468,7 @@ public abstract class PigStats {
         }
     }
 
-    public void setBackendException(ControlledJob job, Exception e) {
+    public void setBackendException(String jobId, Exception e) {
         if (e instanceof PigException) {
             LOG.error("ERROR " + ((PigException)e).getErrorCode() + ": "
                     + e.getLocalizedMessage());
@@ -477,15 +476,14 @@ public abstract class PigStats {
             LOG.error("ERROR: " + e.getLocalizedMessage());
         }
 
-        if (job.getJobID() == null || e == null) {
+        if (jobId == null || e == null) {
             LOG.debug("unable to set backend exception");
             return;
         }
-        String id = job.getJobID().toString();
         Iterator<JobStats> iter = jobPlan.iterator();
         while (iter.hasNext()) {
             JobStats js = iter.next();
-            if (id.equals(js.getJobId())) {
+            if (jobId.equals(js.getJobId())) {
                 js.setBackendException(e);
                 break;
             }
