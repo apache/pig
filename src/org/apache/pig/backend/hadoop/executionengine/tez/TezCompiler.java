@@ -471,9 +471,36 @@ public class TezCompiler extends PhyPlanVisitor {
 
     @Override
     public void visitDistinct(PODistinct op) throws VisitorException {
-        int errCode = 2034;
-        String msg = "Cannot compile " + op.getClass().getSimpleName();
-        throw new TezCompilerException(msg, errCode, PigException.BUG);
+        try {
+            POLocalRearrange lr = getLocalRearrange();
+            lr.setDistinct(true);
+            curTezOp.plan.addAsLeaf(lr);
+            curTezOp.customPartitioner = op.getCustomPartitioner();
+
+            // Mark the start of a new TezOperator, connecting the inputs.
+            // TODO add distinct combiner as an optimization when supported by Tez
+            blocking();
+
+            POPackage pkg = getPackage();
+            pkg.setDistinct(true);
+            curTezOp.plan.add(pkg);
+
+            POProject project = new POProject(new OperatorKey(scope, nig.getNextNodeId(scope)));
+            project.setResultType(DataType.TUPLE);
+            project.setStar(false);
+            project.setColumn(0);
+            project.setOverloaded(false);
+
+            // Note that the PODistinct is not actually added to any Tez vertex, but rather is
+            // implemented by the action of the local rearrange, shuffle and project operations.
+            POForEach forEach = getForEach(project, op.getRequestedParallelism());
+            curTezOp.plan.addAsLeaf(forEach);
+            phyToTezOpMap.put(op, curTezOp);
+        } catch (Exception e) {
+            int errCode = 2034;
+            String msg = "Cannot compile " + op.getClass().getSimpleName();
+            throw new TezCompilerException(msg, errCode, PigException.BUG);
+        }
     }
 
     @Override
@@ -522,7 +549,7 @@ public class TezCompiler extends PhyPlanVisitor {
 
             // Then add a POPackage and a POForEach to the start of the new tezOp.
             POPackage pkg = getPackage();
-            POForEach forEach = getPlainForEach();
+            POForEach forEach = getForEachPlain();
             curTezOp.plan.add(pkg);
             curTezOp.plan.addAsLeaf(forEach);
 
@@ -705,6 +732,31 @@ public class TezCompiler extends PhyPlanVisitor {
         }
     }
 
+    private POForEach getForEach(POProject project, int rp) {
+        PhysicalPlan forEachPlan = new PhysicalPlan();
+        forEachPlan.add(project);
+
+        List<PhysicalPlan> forEachPlans = Lists.newArrayList();
+        forEachPlans.add(forEachPlan);
+
+        List<Boolean> flatten = Lists.newArrayList();
+        flatten.add(true);
+
+        POForEach forEach = new POForEach(new OperatorKey(scope, nig.getNextNodeId(scope)), rp, forEachPlans, flatten);
+        forEach.setResultType(DataType.BAG);
+        return forEach;
+    }
+
+    // Get a plain POForEach: ForEach X generate flatten($1)
+    private POForEach getForEachPlain() {
+        POProject project = new POProject(new OperatorKey(scope, nig.getNextNodeId(scope)));
+        project.setResultType(DataType.TUPLE);
+        project.setStar(false);
+        project.setColumn(1);
+        project.setOverloaded(true);
+        return getForEach(project, -1);
+    }
+
     private POLoad getLoad() {
         POLoad ld = new POLoad(new OperatorKey(scope, nig.getNextNodeId(scope)));
         ld.setPc(pigContext);
@@ -744,28 +796,6 @@ public class TezCompiler extends PhyPlanVisitor {
         pkg.setKeyType(DataType.TUPLE);
         pkg.setNumInps(1);
         return pkg;
-    }
-
-    // Get a simple POForEach: ForEach X generate flatten($1)
-    private POForEach getPlainForEach() {
-        POProject project = new POProject(new OperatorKey(scope, nig.getNextNodeId(scope)));
-        project.setResultType(DataType.TUPLE);
-        project.setStar(false);
-        project.setColumn(1);
-        project.setOverloaded(true);
-
-        PhysicalPlan addPlan = new PhysicalPlan();
-        addPlan.add(project);
-
-        List<PhysicalPlan> addPlans = Lists.newArrayList();
-        addPlans.add(addPlan);
-
-        List<Boolean> flatten = Lists.newArrayList();
-        flatten.add(true);
-
-        POForEach forEach = new POForEach(new OperatorKey(scope, nig.getNextNodeId(scope)), -1, addPlans, flatten);
-        forEach.setResultType(DataType.BAG);
-        return forEach;
     }
 
     private TezOperator getTezOp() {
