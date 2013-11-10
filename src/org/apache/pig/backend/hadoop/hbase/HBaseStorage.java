@@ -52,6 +52,7 @@ import org.apache.hadoop.hbase.filter.CompareFilter.CompareOp;
 import org.apache.hadoop.hbase.filter.FamilyFilter;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
+import org.apache.hadoop.hbase.filter.RegexStringComparator;
 import org.apache.hadoop.hbase.filter.RowFilter;
 import org.apache.hadoop.hbase.filter.WhileMatchFilter;
 import org.apache.hadoop.hbase.filter.QualifierFilter;
@@ -173,6 +174,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
     protected transient byte[] lt_;
     protected transient byte[] lte_;
 
+    private String regex_;
     private LoadCaster caster_;
 
     private ResourceSchema schema_;
@@ -185,6 +187,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         validOptions_.addOption("lt", true, "Records must be less than this value (binary, double-slash-escaped)");
         validOptions_.addOption("gte", true, "Records must be greater than or equal to this value");
         validOptions_.addOption("lte", true, "Records must be less than or equal to this value");
+        validOptions_.addOption("regex", true, "Record must match this regular expression");
         validOptions_.addOption("caching", true, "Number of rows scanners should cache");
         validOptions_.addOption("limit", true, "Per-region limit");
         validOptions_.addOption("delim", true, "Column delimiter");
@@ -229,6 +232,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
      * <li>-lt=maxKeyVal
      * <li>-gte=minKeyVal
      * <li>-lte=maxKeyVal
+     * <li>-regex=match regex on KeyVal
      * <li>-limit=numRowsPerRegion max number of rows to retrieve per region
      * <li>-delim=char delimiter to use when parsing column names (default is space or comma)
      * <li>-ignoreWhitespace=(true|false) ignore spaces when parsing column names (default true)
@@ -251,7 +255,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
             configuredOptions_ = parser_.parse(validOptions_, optsArr);
         } catch (ParseException e) {
             HelpFormatter formatter = new HelpFormatter();
-            formatter.printHelp( "[-loadKey] [-gt] [-gte] [-lt] [-lte] [-columnPrefix] [-caching] [-caster] [-noWAL] [-limit] [-delim] [-ignoreWhitespace] [-minTimestamp] [-maxTimestamp] [-timestamp]", validOptions_ );
+            formatter.printHelp( "[-loadKey] [-gt] [-gte] [-lt] [-lte] [-regex] [-columnPrefix] [-caching] [-caster] [-noWAL] [-limit] [-delim] [-ignoreWhitespace] [-minTimestamp] [-maxTimestamp] [-timestamp]", validOptions_ );
             throw e;
         }
 
@@ -407,6 +411,10 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
             // setStopRow call will limit the number of regions we need to scan
             addFilter(new WhileMatchFilter(new RowFilter(CompareOp.LESS_OR_EQUAL, new BinaryComparator(lte_))));
         }
+        if (configuredOptions_.hasOption("regex")) {
+            regex_ = Utils.slashisize(configuredOptions_.getOptionValue("regex"));
+            addFilter(new RowFilter(CompareOp.EQUAL, new RegexStringComparator(regex_)));
+        }
         if (configuredOptions_.hasOption("minTimestamp") || configuredOptions_.hasOption("maxTimestamp")){
             scan.setTimeRange(minTimestamp_, maxTimestamp_);
         }
@@ -437,7 +445,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
      * addFamily on the scan
      */
     private void addFiltersWithoutColumnPrefix(List<ColumnInfo> columnInfos) {
-        // Need to check for mixed types in a family, so we don't call addColumn 
+        // Need to check for mixed types in a family, so we don't call addColumn
         // after addFamily on the same family
         Map<String, List<ColumnInfo>> groupedMap = groupByFamily(columnInfos);
         for (Entry<String, List<ColumnInfo>> entrySet : groupedMap.entrySet()) {
@@ -455,7 +463,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
                                 + Bytes.toString(columnInfo.getColumnFamily()) + ":"
                                 + Bytes.toString(columnInfo.getColumnName()));
                     }
-                    scan.addColumn(columnInfo.getColumnFamily(), columnInfo.getColumnName());                    
+                    scan.addColumn(columnInfo.getColumnFamily(), columnInfo.getColumnName());
                 }
             } else {
                 String family = entrySet.getKey();
@@ -463,7 +471,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
                     LOG.debug("Adding column family to scan via addFamily with cf:name = "
                             + family);
                 }
-                scan.addFamily(Bytes.toBytes(family));                
+                scan.addFamily(Bytes.toBytes(family));
             }
         }
     }

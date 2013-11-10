@@ -28,6 +28,8 @@ PIG-3419: Pluggable Execution Engine (achalsoni81 via cheolsoo)
 
 IMPROVEMENTS
 
+PIG-3388: No support for Regex for row filter in org.apache.pig.backend.hadoop.hbase.HBaseStorage (lbendig via cheolsoo)
+
 PIG-3522: Remove shock from pig (daijy)
 
 PIG-3295: Casting from bytearray failing after Union even when each field is from a single Loader (knoguchi)
