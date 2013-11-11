@@ -57,14 +57,14 @@ import org.apache.pig.tools.pigstats.PigStats.JobGraphPrinter;
 
 
 /**
- * This class encapsulates the runtime statistics of a MapReduce job. 
+ * This class encapsulates the runtime statistics of a MapReduce job.
  * Job statistics is collected when job is completed.
  */
 @InterfaceAudience.Public
 @InterfaceStability.Evolving
 public final class MRJobStats extends JobStats {
-        
-    
+
+
     MRJobStats(String name, JobGraph plan) {
         super(name, plan);
     }
@@ -72,27 +72,25 @@ public final class MRJobStats extends JobStats {
     public static final String SUCCESS_HEADER = "JobId\tMaps\tReduces\t" +
             "MaxMapTime\tMinMapTIme\tAvgMapTime\tMedianMapTime\tMaxReduceTime\t" +
             "MinReduceTime\tAvgReduceTime\tMedianReducetime\tAlias\tFeature\tOutputs";
-   
+
     public static final String FAILURE_HEADER = "JobId\tAlias\tFeature\tMessage\tOutputs";
-    
+
     // currently counters are not working in local mode - see PIG-1286
     public static final String SUCCESS_HEADER_LOCAL = "JobId\tAlias\tFeature\tOutputs";
-    
+
     private static final Log LOG = LogFactory.getLog(MRJobStats.class);
-        
-    private Configuration conf;
-    
+
     private List<POStore> mapStores = null;
-    
+
     private List<POStore> reduceStores = null;
-    
+
     private List<FileSpec> loads = null;
-        
+
     private Boolean disableCounter = false;
-            
+
     @SuppressWarnings("deprecation")
     private JobID jobId;
-    
+
     private long maxMapTime = 0;
     private long minMapTime = 0;
     private long avgMapTime = 0;
@@ -104,7 +102,7 @@ public final class MRJobStats extends JobStats {
 
     private int numberMaps = 0;
     private int numberReduces = 0;
-    
+
     private long mapInputRecords = 0;
     private long mapOutputRecords = 0;
     private long reduceInputRecords = 0;
@@ -114,37 +112,37 @@ public final class MRJobStats extends JobStats {
     private long spillCount = 0;
     private long activeSpillCountObj = 0;
     private long activeSpillCountRecs = 0;
-    
-    private HashMap<String, Long> multiStoreCounters 
+
+    private HashMap<String, Long> multiStoreCounters
             = new HashMap<String, Long>();
-    
-    private HashMap<String, Long> multiInputCounters 
+
+    private HashMap<String, Long> multiInputCounters
             = new HashMap<String, Long>();
-        
+
     @SuppressWarnings("deprecation")
     private Counters counters = null;
-    
 
-    public String getJobId() { 
-        return (jobId == null) ? null : jobId.toString(); 
+
+    public String getJobId() {
+        return (jobId == null) ? null : jobId.toString();
     }
-        
+
     public int getNumberMaps() { return numberMaps; }
-    
+
     public int getNumberReduces() { return numberReduces; }
-    
+
     public long getMaxMapTime() { return maxMapTime; }
-    
+
     public long getMinMapTime() { return minMapTime; }
-    
+
     public long getAvgMapTime() { return avgMapTime; }
-    
+
     public long getMaxReduceTime() { return maxReduceTime; }
-    
+
     public long getMinReduceTime() { return minReduceTime; }
-    
-    public long getAvgREduceTime() { return avgReduceTime; }           
-        
+
+    public long getAvgREduceTime() { return avgReduceTime; }
+
     public long getMapInputRecords() { return mapInputRecords; }
 
     public long getMapOutputRecords() { return mapOutputRecords; }
@@ -154,13 +152,13 @@ public final class MRJobStats extends JobStats {
     public long getReduceInputRecords() { return reduceInputRecords; }
 
     public long getSMMSpillCount() { return spillCount; }
-    
+
     public long getProactiveSpillCountObjects() { return activeSpillCountObj; }
-    
+
     public long getProactiveSpillCountRecs() { return activeSpillCountRecs; }
-    
+
     public long getHdfsBytesWritten() { return hdfsBytesWritten; }
-    
+
     @SuppressWarnings("deprecation")
     public Counters getHadoopCounters() { return counters; }
 
@@ -168,11 +166,11 @@ public final class MRJobStats extends JobStats {
     public Map<String, Long> getMultiStoreCounters() {
         return Collections.unmodifiableMap(multiStoreCounters);
     }
-       
+
     public String getAlias() {
         return (String)getAnnotation(ALIAS);
     }
-    
+
     public String getAliasLocation() {
         return (String)getAnnotation(ALIAS_LOCATION);
     }
@@ -180,7 +178,7 @@ public final class MRJobStats extends JobStats {
     public String getFeature() {
         return (String)getAnnotation(FEATURE);
     }
-        
+
     @Override
     public void accept(PlanVisitor v) throws FrontendException {
         if (v instanceof JobGraphPrinter) {
@@ -194,43 +192,43 @@ public final class MRJobStats extends JobStats {
         this.jobId = jobId;
     }
 
+    @Override
     @SuppressWarnings("unchecked")
-    void setConf(Configuration conf) {        
-        if (conf == null) return;
-        this.conf = conf;
+    public void setConf(Configuration conf) {
+        super.setConf(conf);
         try {
             this.mapStores = (List<POStore>) ObjectSerializer.deserialize(conf
                     .get(JobControlCompiler.PIG_MAP_STORES));
             this.reduceStores = (List<POStore>) ObjectSerializer.deserialize(conf
-                    .get(JobControlCompiler.PIG_REDUCE_STORES));           
+                    .get(JobControlCompiler.PIG_REDUCE_STORES));
             this.loads = (ArrayList<FileSpec>) ObjectSerializer.deserialize(conf
                     .get("pig.inputs"));
             this.disableCounter = conf.getBoolean("pig.disable.counter", false);
         } catch (IOException e) {
             LOG.warn("Failed to deserialize the store list", e);
-        }                    
+        }
     }
-    
+
     void setMapStat(int size, long max, long min, long avg, long median) {
         numberMaps = size;
         maxMapTime = max;
         minMapTime = min;
-        avgMapTime = avg;    
+        avgMapTime = avg;
         medianMapTime = median;
     }
-    
+
     void setReduceStat(int size, long max, long min, long avg, long median) {
         numberReduces = size;
         maxReduceTime = max;
         minReduceTime = min;
-        avgReduceTime = avg;       
+        avgReduceTime = avg;
         medianReduceTime = median;
-    }  
-    
+    }
+
     public String getDisplayString(boolean local) {
         StringBuilder sb = new StringBuilder();
         String id = (jobId == null) ? "N/A" : jobId.toString();
-        if (state == JobState.FAILED || local) {           
+        if (state == JobState.FAILED || local) {
             sb.append(id).append("\t")
                 .append(getAlias()).append("\t")
                 .append(getFeature()).append("\t");
@@ -243,7 +241,7 @@ public final class MRJobStats extends JobStats {
                 .append(numberReduces).append("\t");
             if (numberMaps == 0) {
                 sb.append("n/a\t").append("n/a\t").append("n/a\t").append("n/a\t");
-            } else { 
+            } else {
                 sb.append(maxMapTime/1000).append("\t")
                     .append(minMapTime/1000).append("\t")
                     .append(avgMapTime/1000).append("\t")
@@ -262,7 +260,7 @@ public final class MRJobStats extends JobStats {
         }
         for (OutputStats os : outputs) {
             sb.append(os.getLocation()).append(",");
-        }        
+        }
         sb.append("\n");
         return sb.toString();
     }
@@ -295,9 +293,9 @@ public final class MRJobStats extends JobStats {
             reduceOutputRecords = taskgroup.getCounterForName(
                     MRPigStatsUtil.REDUCE_OUTPUT_RECORDS).getCounter();
             hdfsBytesRead = hdfsgroup.getCounterForName(
-                    MRPigStatsUtil.HDFS_BYTES_READ).getCounter();      
+                    MRPigStatsUtil.HDFS_BYTES_READ).getCounter();
             hdfsBytesWritten = hdfsgroup.getCounterForName(
-                    MRPigStatsUtil.HDFS_BYTES_WRITTEN).getCounter();            
+                    MRPigStatsUtil.HDFS_BYTES_WRITTEN).getCounter();
             spillCount = counters.findCounter(
                     PigCounters.SPILLABLE_MEMORY_MANAGER_SPILL_COUNT)
                     .getCounter();
@@ -310,23 +308,23 @@ public final class MRJobStats extends JobStats {
             while (iter.hasNext()) {
                 Counter cter = iter.next();
                 multiStoreCounters.put(cter.getName(), cter.getValue());
-            }     
-            
+            }
+
             Iterator<Counter> iter2 = multiloadgroup.iterator();
             while (iter2.hasNext()) {
                 Counter cter = iter2.next();
                 multiInputCounters.put(cter.getName(), cter.getValue());
-            } 
-            
-        }              
+            }
+
+        }
     }
-    
+
     void addMapReduceStatistics(JobClient client, Configuration conf) {
         TaskReport[] maps = null;
         try {
             maps = client.getMapTaskReports(jobId);
         } catch (IOException e) {
-            LOG.warn("Failed to get map task report", e);            
+            LOG.warn("Failed to get map task report", e);
         }
         if (maps != null && maps.length > 0) {
             int size = maps.length;
@@ -335,7 +333,7 @@ public final class MRJobStats extends JobStats {
             long median = 0;
             long total = 0;
             long durations[] = new long[size];
-            
+
             for (int i = 0; i < maps.length; i++) {
                 TaskReport rpt = maps[i];
                 long duration = rpt.getFinishTime() - rpt.getStartTime();
@@ -345,7 +343,7 @@ public final class MRJobStats extends JobStats {
                 total += duration;
             }
             long avg = total / size;
-            
+
             median = calculateMedianValue(durations);
             setMapStat(size, max, min, avg, median);
         } else {
@@ -354,7 +352,7 @@ public final class MRJobStats extends JobStats {
                 setMapStat(m, -1, -1, -1, -1);
             }
         }
-        
+
         TaskReport[] reduces = null;
         try {
             reduces = client.getReduceTaskReports(jobId);
@@ -368,7 +366,7 @@ public final class MRJobStats extends JobStats {
             long median = 0;
             long total = 0;
             long durations[] = new long[size];
-            
+
             for (int i = 0; i < reduces.length; i++) {
                 TaskReport rpt = reduces[i];
                 long duration = rpt.getFinishTime() - rpt.getStartTime();
@@ -387,32 +385,32 @@ public final class MRJobStats extends JobStats {
             }
         }
     }
-    
-    void setAlias(MapReduceOper mro) {       
+
+    void setAlias(MapReduceOper mro) {
         MRScriptState ss = MRScriptState.get();
-        annotate(ALIAS, ss.getAlias(mro));             
+        annotate(ALIAS, ss.getAlias(mro));
         annotate(ALIAS_LOCATION, ss.getAliasLocation(mro));
         annotate(FEATURE, ss.getPigFeature(mro));
     }
-    
+
     void addOutputStatistics() {
         if (mapStores == null || reduceStores == null) {
             LOG.warn("unable to get stores of the job");
             return;
         }
-        
+
         if (mapStores.size() + reduceStores.size() == 1) {
             POStore sto = (mapStores.size() > 0) ? mapStores.get(0)
                     : reduceStores.get(0);
             if (!sto.isTmpStore()) {
                 long records = (mapStores.size() > 0) ? mapOutputRecords
-                        : reduceOutputRecords;           
+                        : reduceOutputRecords;
                 OutputStats ds = new OutputStats(sto.getSFile().getFileName(),
                         hdfsBytesWritten, records, (state == JobState.SUCCESS));
                 ds.setPOStore(sto);
                 ds.setConf(conf);
                 outputs.add(ds);
-                
+
                 if (state == JobState.SUCCESS) {
                      MRScriptState.get().emitOutputCompletedNotification(ds);
                 }
@@ -425,10 +423,10 @@ public final class MRJobStats extends JobStats {
             for (POStore sto : reduceStores) {
                 if (sto.isTmpStore()) continue;
                 addOneOutputStats(sto);
-            }     
+            }
         }
     }
-    
+
     /**
      * Looks up the output size reader from OUTPUT_SIZE_READER_KEY and invokes
      * it to get the size of output. If OUTPUT_SIZE_READER_KEY is not set,
@@ -474,32 +472,32 @@ public final class MRJobStats extends JobStats {
         long bytes = getOutputSize(sto, conf);
         String location = sto.getSFile().getFileName();
         OutputStats ds = new OutputStats(location, bytes, records,
-                (state == JobState.SUCCESS));  
+                (state == JobState.SUCCESS));
         ds.setPOStore(sto);
         ds.setConf(conf);
         outputs.add(ds);
-        
+
         if (state == JobState.SUCCESS) {
              MRScriptState.get().emitOutputCompletedNotification(ds);
         }
     }
-       
+
     void addInputStatistics() {
         if (loads == null)  {
             LOG.warn("unable to get inputs of the job");
             return;
         }
-        
+
         if (loads.size() == 1) {
-            FileSpec fsp = loads.get(0); 
+            FileSpec fsp = loads.get(0);
             if (!MRPigStatsUtil.isTempFile(fsp.getFileName())) {
-                long records = mapInputRecords;       
+                long records = mapInputRecords;
                 InputStats is = new InputStats(fsp.getFileName(),
-                        hdfsBytesRead, records, (state == JobState.SUCCESS));              
+                        hdfsBytesRead, records, (state == JobState.SUCCESS));
                 is.setConf(conf);
                 if (isSampler()) is.markSampleInput();
                 if (isIndexer()) is.markIndexerInput();
-                inputs.add(is);                
+                inputs.add(is);
             }
         } else {
             for (int i=0; i<loads.size(); i++) {
@@ -507,14 +505,14 @@ public final class MRJobStats extends JobStats {
                 if (MRPigStatsUtil.isTempFile(fsp.getFileName())) continue;
                 addOneInputStats(fsp.getFileName(), i);
             }
-        }            
+        }
     }
-    
+
     private void addOneInputStats(String fileName, int index) {
         long records = -1;
         Long n = multiInputCounters.get(
                 MRPigStatsUtil.getMultiInputsCounterName(fileName, index));
-        if (n != null) {   
+        if (n != null) {
             records = n;
         } else {
             // the file could be empty
@@ -523,9 +521,9 @@ public final class MRJobStats extends JobStats {
                 LOG.warn("unable to get input counter for " + fileName);
             }
         }
-        InputStats is = new InputStats(fileName, -1, records, (state == JobState.SUCCESS));              
+        InputStats is = new InputStats(fileName, -1, records, (state == JobState.SUCCESS));
         is.setConf(conf);
         inputs.add(is);
     }
-    
+
 }

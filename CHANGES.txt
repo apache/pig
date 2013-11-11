@@ -46,6 +46,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3561: Clean up PigStats and JobStats after PIG-3419 (cheolsoo)
+
 PIG-3553: HadoopJobHistoryLoader fails to load job history on hadoop v 1.2 (lgiri via cheolsoo)
 
 PIG-3559: Trunk is broken by PIG-3522 (cheolsoo)

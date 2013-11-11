@@ -582,16 +582,10 @@ public class TestPigRunner {
         String[] args = { "-Dpig.additional.jars=pig-withouthadoop.jar",
                 "-Dmapred.job.queue.name=default",
                 "-e", "A = load '" + INPUT_FILE + "';store A into '" + OUTPUT_FILE + "';\n" };
-        PigStats stats = PigRunner.run(args, new TestNotificationListener());        
+        PigStats stats = PigRunner.run(args, new TestNotificationListener());
 
         Util.deleteFile(cluster, OUTPUT_FILE);
-        
-        java.lang.reflect.Method getPigContext = stats.getClass()
-                .getDeclaredMethod("getPigContext");
-
-        getPigContext.setAccessible(true);
-
-        PigContext ctx = (PigContext) getPigContext.invoke(stats);
+        PigContext ctx = stats.getPigContext();
 
         Assert.assertNotNull(ctx);
 
