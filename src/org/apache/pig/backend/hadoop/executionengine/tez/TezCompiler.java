@@ -120,11 +120,8 @@ public class TezCompiler extends PhyPlanVisitor {
     private int fileConcatenationThreshold = 100;
     private boolean optimisticFileConcatenation = false;
 
-    public TezCompiler(PhysicalPlan plan) throws TezCompilerException {
-        this(plan, null);
-    }
-
-    public TezCompiler(PhysicalPlan plan, PigContext pigContext) throws TezCompilerException {
+    public TezCompiler(PhysicalPlan plan, PigContext pigContext)
+            throws TezCompilerException {
         super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(plan));
         this.plan = plan;
         this.pigContext = pigContext;
@@ -153,6 +150,15 @@ public class TezCompiler extends PhyPlanVisitor {
 
     public TezOperPlan getTezPlan() {
         return tezPlan;
+    }
+    
+    // Segment a single DAG into a DAG graph
+    public TezPlanContainer getPlanContainer() throws PlanException {
+        TezPlanContainer tezPlanContainer = new TezPlanContainer(pigContext);
+        TezPlanContainerNode node = new TezPlanContainerNode(new OperatorKey(scope, nig.getNextNodeId(scope)), tezPlan);
+        tezPlanContainer.add(node);
+        tezPlanContainer.split(node);
+        return tezPlanContainer;
     }
 
     /**

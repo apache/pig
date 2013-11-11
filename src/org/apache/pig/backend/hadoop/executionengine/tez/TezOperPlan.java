@@ -18,8 +18,14 @@
 package org.apache.pig.backend.hadoop.executionengine.tez;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.PrintStream;
+import java.net.URL;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
+import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.plan.VisitorException;
 
@@ -33,7 +39,6 @@ public class TezOperPlan extends OperatorPlan<TezOperator> {
     private static final long serialVersionUID = 1L;
 
     public TezOperPlan() {
-        // TODO Auto-generated constructor stub
     }
 
     @Override
@@ -48,6 +53,12 @@ public class TezOperPlan extends OperatorPlan<TezOperator> {
             // TODO Auto-generated catch block
         }
         return baos.toString();
+    }
+    
+    public Map<String, LocalResource> getLocalExtraResources() throws IOException {
+        Set<URL> jarLists = new HashSet<URL>();
+        // TODO: Add script jars/pig-misc jars
+        return TezResourceManager.getTezResources(jarLists);
     }
 }
 

@@ -40,9 +40,6 @@ public class TezPrinter extends TezOpPlanVisitor {
     public TezPrinter(PrintStream ps, TezOperPlan plan) {
         super(plan, new DependencyOrderWalker<TezOperator, TezOperPlan>(plan));
         mStream = ps;
-        mStream.println("#--------------------------------------------------");
-        mStream.println("# TEZ plan:");
-        mStream.println("#--------------------------------------------------");
     }
 
     public void setVerbose(boolean verbose) {

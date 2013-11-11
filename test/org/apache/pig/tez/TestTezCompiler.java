@@ -29,8 +29,8 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezCompiler;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezLocalExecType;
-import org.apache.pig.backend.hadoop.executionengine.tez.TezOperPlan;
-import org.apache.pig.backend.hadoop.executionengine.tez.TezPrinter;
+import org.apache.pig.backend.hadoop.executionengine.tez.TezPlanContainer;
+import org.apache.pig.backend.hadoop.executionengine.tez.TezPlanContainerPrinter;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.test.Util;
 import org.apache.pig.test.junit.OrderedJUnit4Runner;
@@ -141,11 +141,12 @@ public class TestTezCompiler {
 
     private void run(PhysicalPlan pp, String expectedFile) throws Exception {
         TezCompiler comp = new TezCompiler(pp, pc);
-        TezOperPlan tezPlan = comp.compile();
+        comp.compile();
+        TezPlanContainer tezPlanContainer = comp.getPlanContainer();
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PrintStream ps = new PrintStream(baos);
-        TezPrinter printer = new TezPrinter(ps, tezPlan);
+        TezPlanContainerPrinter printer = new TezPlanContainerPrinter(ps, tezPlanContainer);
         printer.visit();
         String compiledPlan = baos.toString();
 

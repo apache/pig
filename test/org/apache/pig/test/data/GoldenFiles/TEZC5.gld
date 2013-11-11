@@ -1,31 +1,34 @@
 #--------------------------------------------------
-# TEZ plan:
+# There are 1 DAGs in the session
 #--------------------------------------------------
-Tez vertex scope-106
-Local Rearrange[tuple]{tuple}(true) - scope-108
+#--------------------------------------------------
+# TEZ plan: scope-117
+#--------------------------------------------------
+Tez vertex scope-110
+Local Rearrange[tuple]{tuple}(true) - scope-112
 |   |
-|   Project[tuple][*] - scope-107
+|   Project[tuple][*] - scope-111
 |
-|---a: New For Each(false,false)[bag] - scope-100
+|---a: New For Each(false,false)[bag] - scope-104
     |   |
-    |   Cast[int] - scope-95
+    |   Cast[int] - scope-99
     |   |
-    |   |---Project[bytearray][0] - scope-94
+    |   |---Project[bytearray][0] - scope-98
     |   |
-    |   Cast[int] - scope-98
+    |   Cast[int] - scope-102
     |   |
-    |   |---Project[bytearray][1] - scope-97
+    |   |---Project[bytearray][1] - scope-101
     |
-    |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-93
-Tez vertex scope-109
-c: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-105
+    |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-97
+Tez vertex scope-113
+c: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-109
 |
-|---c: New For Each(false)[bag] - scope-104
+|---c: New For Each(false)[bag] - scope-108
     |   |
-    |   Project[int][1] - scope-102
+    |   Project[int][1] - scope-106
     |
-    |---New For Each(true)[bag] - scope-112
+    |---New For Each(true)[bag] - scope-116
         |   |
-        |   Project[tuple][0] - scope-111
+        |   Project[tuple][0] - scope-115
         |
-        |---Package[tuple]{tuple} - scope-110
+        |---Package[tuple]{tuple} - scope-114

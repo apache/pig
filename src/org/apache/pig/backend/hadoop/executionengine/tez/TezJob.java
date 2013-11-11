@@ -22,11 +22,10 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.lib.jobcontrol.ControlledJob;
-import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.tez.client.AMConfiguration;
-import org.apache.tez.client.TezClient;
+import org.apache.tez.client.TezSession;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
@@ -39,24 +38,19 @@ import org.apache.tez.dag.api.client.DAGStatus;
  */
 public class TezJob extends ControlledJob {
     private static final Log log = LogFactory.getLog(TezJob.class);
-    private AMConfiguration amConfig;
-    private ApplicationId appId;
-    private TezClient tezClient;
-    private DAGClient dagClient;
     private DAGStatus dagStatus;
+    private Configuration conf;
     private DAG dag;
+    private DAGClient dagClient;
+    private Map<String, LocalResource> requestAMResources;
+    private TezSession tezSession;
 
-    public TezJob(TezConfiguration conf, ApplicationId appId, DAG dag,
-            Map<String, LocalResource> localResources) throws IOException {
+    public TezJob(TezConfiguration conf, DAG dag, Map<String, LocalResource> requestAMResources)
+            throws IOException {
         super(conf);
-        this.amConfig = new AMConfiguration(null, null, localResources, conf, null);
-        this.tezClient = new TezClient(conf);
-        this.appId = appId;
+        this.conf = conf;
         this.dag = dag;
-    }
-
-    public ApplicationId getAppId() {
-        return appId;
+        this.requestAMResources = requestAMResources;
     }
 
     public DAG getDag() {
@@ -70,17 +64,20 @@ public class TezJob extends ControlledJob {
     @Override
     public void submit() {
         try {
-            log.info("Submitting DAG - Application id: " + appId);
-            dagClient = tezClient.submitDAGApplication(appId, dag, amConfig);
+            tezSession = TezSessionManager.getSession(conf, requestAMResources);
+            log.info("Submitting DAG - Application id: " + tezSession.getApplicationId());
+            dagClient = tezSession.submitDAG(dag);
         } catch (Exception e) {
-            log.info("Cannot submit DAG - Application id: " + appId, e);
+            if (tezSession!=null) {
+                log.info("Cannot submit DAG - Application id: " + tezSession.getApplicationId(), e);
+            }
             setJobState(ControlledJob.State.FAILED);
             return;
         }
 
         while (true) {
             try {
-                dagStatus = dagClient.getDAGStatus();
+                dagStatus = dagClient.getDAGStatus(null);
             } catch (Exception e) {
                 log.info("Cannot retrieve DAG status", e);
                 setJobState(ControlledJob.State.FAILED);
@@ -96,6 +93,9 @@ public class TezJob extends ControlledJob {
                     sb.append("\n");
                 }
                 setMessage(sb.toString());
+                TezSessionManager.freeSession(tezSession);
+                tezSession = null;
+                dagClient = null;
                 break;
             }
 
@@ -111,8 +111,9 @@ public class TezJob extends ControlledJob {
     public void killJob() throws IOException {
         try {
             dagClient.tryKillDAG();
+            tezSession.stop();
         } catch (TezException e) {
-            throw new IOException("Cannot kill DAG - Application Id: " + appId, e);
+            throw new IOException("Cannot kill DAG - Application Id: " + tezSession.getApplicationId(), e);
         }
     }
 

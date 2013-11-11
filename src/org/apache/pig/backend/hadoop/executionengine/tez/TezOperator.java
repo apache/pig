@@ -57,6 +57,8 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
 
     // Indicates that the plan creation is complete
     boolean closed = false;
+    
+    boolean segmentBelow = false;
 
     // Types of blocking operators. For now, we only support the following ones.
     private static enum OPER_FEATURE {
@@ -172,6 +174,10 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
         }
         sb.delete(sb.length() - "\n".length(), sb.length());
         return sb.toString();
+    }
+    
+    public boolean needSegmentBelow() {
+        return segmentBelow;
     }
 }
 

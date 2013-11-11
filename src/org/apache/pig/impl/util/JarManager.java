@@ -128,6 +128,23 @@ public class JarManager {
             return pkgClass;
         }
     }
+    
+    public static void createBootStrapJar(OutputStream os, PigContext pigContext) throws IOException {
+        JarOutputStream jarFile = new JarOutputStream(os);
+        HashMap<String, String> contents = new HashMap<String, String>();
+        Vector<JarListEntry> jarList = new Vector<JarListEntry>();
+
+        for (DefaultPigPackages pkgToSend : DefaultPigPackages.values()) {
+            addContainingJar(jarList, pkgToSend.getPkgClass(), pkgToSend.getPkgPrefix(), pigContext);
+        }
+        
+        Iterator<JarListEntry> it = jarList.iterator();
+        while (it.hasNext()) {
+            JarListEntry jarEntry = it.next();
+            mergeJar(jarFile, jarEntry.jar, jarEntry.prefix, contents);
+        }
+        jarFile.close();
+    }
 
     /**
      * Create a jarfile in a temporary path, that is a merge of all the jarfiles containing the

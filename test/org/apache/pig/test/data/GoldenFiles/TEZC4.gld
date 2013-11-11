@@ -1,31 +1,34 @@
 #--------------------------------------------------
-# TEZ plan:
+# There are 1 DAGs in the session
 #--------------------------------------------------
-Tez vertex scope-85
-Local Rearrange[tuple]{tuple}(false) - scope-87
-|   |
-|   Project[tuple][*] - scope-86
-|
-|---b: Limit - scope-76
-    |
-    |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-75
+#--------------------------------------------------
+# TEZ plan: scope-96
+#--------------------------------------------------
 Tez vertex scope-88
-c: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-84
+Local Rearrange[tuple]{tuple}(false) - scope-90
+|   |
+|   Project[tuple][*] - scope-89
 |
-|---c: New For Each(false)[bag] - scope-83
-    |   |
-    |   Project[int][0] - scope-81
+|---b: Limit - scope-79
     |
-    |---a: New For Each(false)[bag] - scope-80
+    |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-78
+Tez vertex scope-91
+c: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-87
+|
+|---c: New For Each(false)[bag] - scope-86
+    |   |
+    |   Project[int][0] - scope-84
+    |
+    |---a: New For Each(false)[bag] - scope-83
         |   |
-        |   Cast[int] - scope-78
+        |   Cast[int] - scope-81
         |   |
-        |   |---Project[bytearray][0] - scope-77
+        |   |---Project[bytearray][0] - scope-80
         |
-        |---Limit - scope-92
+        |---Limit - scope-95
             |
-            |---New For Each(true)[bag] - scope-91
+            |---New For Each(true)[bag] - scope-94
                 |   |
-                |   Project[tuple][1] - scope-90
+                |   Project[tuple][1] - scope-93
                 |
-                |---Package[tuple]{tuple} - scope-89
+                |---Package[tuple]{tuple} - scope-92
