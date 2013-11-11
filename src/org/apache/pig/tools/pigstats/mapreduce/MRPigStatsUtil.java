@@ -27,12 +27,14 @@ import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.RunningJob;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
+import org.apache.hadoop.mapreduce.JobID;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.NativeMapReduceOper;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
+import org.apache.pig.classification.InterfaceAudience.Private;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 import org.apache.pig.tools.pigstats.mapreduce.SimplePigStats;
@@ -48,41 +50,41 @@ import org.apache.pig.tools.pigstats.JobStats;
  */
 public class MRPigStatsUtil extends PigStatsUtil {
 
-    public static final String MULTI_STORE_RECORD_COUNTER 
+    public static final String MULTI_STORE_RECORD_COUNTER
             = "Output records in ";
-    public static final String MULTI_STORE_COUNTER_GROUP 
+    public static final String MULTI_STORE_COUNTER_GROUP
             = "MultiStoreCounters";
-    public static final String TASK_COUNTER_GROUP 
+    public static final String TASK_COUNTER_GROUP
             = "org.apache.hadoop.mapred.Task$Counter";
-    public static final String FS_COUNTER_GROUP 
+    public static final String FS_COUNTER_GROUP
             = HadoopShims.getFsCounterGroupName();
-    public static final String MAP_INPUT_RECORDS 
+    public static final String MAP_INPUT_RECORDS
             = "MAP_INPUT_RECORDS";
-    public static final String MAP_OUTPUT_RECORDS 
+    public static final String MAP_OUTPUT_RECORDS
             = "MAP_OUTPUT_RECORDS";
-    public static final String REDUCE_INPUT_RECORDS 
+    public static final String REDUCE_INPUT_RECORDS
             = "REDUCE_INPUT_RECORDS";
-    public static final String REDUCE_OUTPUT_RECORDS 
+    public static final String REDUCE_OUTPUT_RECORDS
             = "REDUCE_OUTPUT_RECORDS";
-    public static final String HDFS_BYTES_WRITTEN 
+    public static final String HDFS_BYTES_WRITTEN
             = "HDFS_BYTES_WRITTEN";
-    public static final String HDFS_BYTES_READ 
+    public static final String HDFS_BYTES_READ
             = "HDFS_BYTES_READ";
-    public static final String MULTI_INPUTS_RECORD_COUNTER 
+    public static final String MULTI_INPUTS_RECORD_COUNTER
             = "Input records from ";
-    public static final String MULTI_INPUTS_COUNTER_GROUP 
+    public static final String MULTI_INPUTS_COUNTER_GROUP
             = "MultiInputCounters";
-    
+
     private static final Log LOG = LogFactory.getLog(MRPigStatsUtil.class);
-    
+
     // Restrict total string size of a counter name to 64 characters.
     // Leave 24 characters for prefix string.
     private static final int COUNTER_NAME_LIMIT = 40;
-   
+
     /**
-     * Returns the count for the given counter name in the counter group 
+     * Returns the count for the given counter name in the counter group
      * 'MultiStoreCounters'
-     * 
+     *
      * @param job the MR job
      * @param jobClient the Hadoop job client
      * @param counterName the counter name
@@ -102,37 +104,37 @@ public class MRPigStatsUtil extends PigStatsUtil {
         } catch (IOException e) {
             LOG.warn("Failed to get the counter for " + counterName, e);
         }
-        return value;        
+        return value;
     }
-    
+
     /**
      * Returns the counter name for the given {@link POStore}
-     * 
+     *
      * @param store the POStore
-     * @return the counter name 
+     * @return the counter name
      */
     public static String getMultiStoreCounterName(POStore store) {
         String shortName = getShortName(store.getSFile().getFileName());
-        return (shortName == null) ? null 
+        return (shortName == null) ? null
                 : MULTI_STORE_RECORD_COUNTER + "_" + store.getIndex() + "_" + shortName;
     }
-    
+
     /**
      * Returns the counter name for the given input file name
-     * 
+     *
      * @param fname the input file name
      * @return the counter name
      */
     public static String getMultiInputsCounterName(String fname, int index) {
-        String shortName = getShortName(fname);            
-        return (shortName == null) ? null 
+        String shortName = getShortName(fname);
+        return (shortName == null) ? null
                 : MULTI_INPUTS_RECORD_COUNTER + "_" + index + "_" + shortName;
     }
-    
+
     private static final String SEPARATOR = "/";
     private static final String SEMICOLON = ";";
-    
-    private static String getShortName(String uri) {  
+
+    private static String getShortName(String uri) {
         int scolon = uri.indexOf(SEMICOLON);
         int slash;
         if (scolon!=-1) {
@@ -153,39 +155,39 @@ public class MRPigStatsUtil extends PigStatsUtil {
         }
         return shortName;
     }
-           
+
     /**
      * Starts collecting statistics for the given MR plan
-     * 
+     *
      * @param pc the Pig context
      * @param client the Hadoop job client
      * @param jcc the job compiler
      * @param plan the MR plan
      */
-    public static void startCollection(PigContext pc, JobClient client, 
+    public static void startCollection(PigContext pc, JobClient client,
             JobControlCompiler jcc, MROperPlan plan) {
         SimplePigStats ps = (SimplePigStats)PigStats.start(new SimplePigStats());
-        ps.start(pc, client, jcc, plan);
+        ps.initialize(pc, client, jcc, plan);
 
         MRScriptState.get().emitInitialPlanNotification(plan);
         MRScriptState.get().emitLaunchStartedNotification(plan.size());
     }
-     
+
     /**
      * Stops collecting statistics for a MR plan
-     * 
-     * @param display if true, log collected statistics in the Pig log 
-     *      file at INFO level 
+     *
+     * @param display if true, log collected statistics in the Pig log
+     *      file at INFO level
      */
     public static void stopCollection(boolean display) {
         SimplePigStats ps = (SimplePigStats)PigStats.get();
-        ps.stop();
+        ps.finish();
         if (!ps.isSuccessful()) {
             LOG.error(ps.getNumberFailedJobs() + " map reduce job(s) failed!");
             String errMsg = ps.getErrorMessage();
             if (errMsg != null) {
                 LOG.error("Error message: " + errMsg);
-            }            
+            }
         }
         MRScriptState.get().emitLaunchCompletedNotification(
                 ps.getNumberSuccessfulJobs());
@@ -209,13 +211,13 @@ public class MRPigStatsUtil extends PigStatsUtil {
     public static void displayStatistics() {
         ((SimplePigStats)PigStats.get()).display();
     }
-    
+
     /**
-     * Updates the {@link JobGraph} of the {@link PigStats}. The initial 
-     * {@link JobGraph} is created without job ids using {@link MROperPlan}, 
+     * Updates the {@link JobGraph} of the {@link PigStats}. The initial
+     * {@link JobGraph} is created without job ids using {@link MROperPlan},
      * before any job is submitted for execution. The {@link JobGraph} then
-     * is updated with job ids after jobs are executed. 
-     *  
+     * is updated with job ids after jobs are executed.
+     *
      * @param jobMroMap the map that maps {@link Job}s to {@link MapReduceOper}s
      */
     public static void updateJobMroMap(Map<Job, MapReduceOper> jobMroMap) {
@@ -223,58 +225,62 @@ public class MRPigStatsUtil extends PigStatsUtil {
         for (Map.Entry<Job, MapReduceOper> entry : jobMroMap.entrySet()) {
             MapReduceOper mro = entry.getValue();
             ps.mapMROperToJob(mro, entry.getKey());
-        }        
+        }
     }
-    
+
     /**
      * Updates the statistics after a patch of jobs is done
-     * 
+     *
      * @param jc the job control
      */
     public static void accumulateStats(JobControl jc) {
         SimplePigStats ps = (SimplePigStats)PigStats.get();
         MRScriptState ss = MRScriptState.get();
-        
-        for (Job job : jc.getSuccessfulJobs()) {            
+
+        for (Job job : jc.getSuccessfulJobs()) {
             MRJobStats js = addSuccessJobStats(ps, job);
             if (js != null) {
                 ss.emitjobFinishedNotification(js);
             }
         }
-        
-        for (Job job : jc.getFailedJobs()) {                      
+
+        for (Job job : jc.getFailedJobs()) {
             MRJobStats js = addFailedJobStats(ps, job);
             if (js != null) {
-                js.setErrorMsg(job.getMessage());    
+                js.setErrorMsg(job.getMessage());
                 ss.emitJobFailedNotification(js);
-            } 
+            }
         }
     }
-    
-    
+
+    @Private
     public static void setBackendException(Job job, Exception e) {
-        ((SimplePigStats)PigStats.get()).setBackendException(job, e);
+        JobID jobId = job.getAssignedJobID();
+        if (jobId == null) {
+            return;
+        }
+        PigStats.get().setBackendException(jobId.toString(), e);
     }
-    
+
     private static MRJobStats addFailedJobStats(SimplePigStats ps, Job job) {
         if (ps.isJobSeen(job)) return null;
-        
+
         MRJobStats js = ps.addMRJobStats(job);
         if (js == null) {
-            LOG.warn("unable to add failed job stats");            
-        } else {       
+            LOG.warn("unable to add failed job stats");
+        } else {
             js.setSuccessful(false);
             js.addOutputStatistics();
             js.addInputStatistics();
         }
         return js;
     }
-    
+
     public static MRJobStats addNativeJobStats(PigStats ps, NativeMapReduceOper mr,
             boolean success) {
         return addNativeJobStats(ps, mr, success, null);
     }
-    
+
     public static MRJobStats addNativeJobStats(PigStats ps, NativeMapReduceOper mr,
             boolean success, Exception e) {
         if (ps.isEmbedded()) {
@@ -289,19 +295,19 @@ public class MRPigStatsUtil extends PigStatsUtil {
                 js.setBackendException(e);
         }
         return js;
-    }    
-    
+    }
+
     private static MRJobStats addSuccessJobStats(SimplePigStats ps, Job job) {
         if (ps.isJobSeen(job)) return null;
 
         MRJobStats js = ps.addMRJobStats(job);
         if (js == null) {
             LOG.warn("unable to add job stats");
-        } else {                
+        } else {
             js.setSuccessful(true);
-                           
+
             js.addMapReduceStatistics(ps.getJobClient(), job.getJobConf());
-            
+
             JobClient client = ps.getJobClient();
             RunningJob rjob = null;
             try {
@@ -310,14 +316,14 @@ public class MRPigStatsUtil extends PigStatsUtil {
                 LOG.warn("Failed to get running job", e);
             }
             if (rjob == null) {
-                LOG.warn("Failed to get RunningJob for job " 
-                        + job.getAssignedJobID());           
-            } else {                        
-                js.addCounters(rjob); 
+                LOG.warn("Failed to get RunningJob for job "
+                        + job.getAssignedJobID());
+            } else {
+                js.addCounters(rjob);
             }
-            
+
             js.addOutputStatistics();
-            
+
             js.addInputStatistics();
         }
         return js;

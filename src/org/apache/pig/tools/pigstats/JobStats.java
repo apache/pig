@@ -26,6 +26,7 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.Counters;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
@@ -58,6 +59,8 @@ public abstract class JobStats extends Operator {
 
     protected ArrayList<InputStats> inputs;
 
+    protected Configuration conf;
+
     private String errorMsg;
 
     private Exception exception = null;
@@ -69,6 +72,13 @@ public abstract class JobStats extends Operator {
     }
 
     public abstract String getJobId();
+
+    public void setConf(Configuration conf) {
+        if (conf == null) {
+            return;
+        }
+        this.conf = conf;
+    }
 
     public JobState getState() { return state; }
 
@@ -304,4 +314,3 @@ public abstract class JobStats extends Operator {
     abstract public Map<String, Long> getMultiStoreCounters();
 
 }
-
