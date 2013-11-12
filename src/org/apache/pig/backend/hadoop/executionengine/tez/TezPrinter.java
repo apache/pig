@@ -18,11 +18,13 @@
 package org.apache.pig.backend.hadoop.executionengine.tez;
 
 import java.io.PrintStream;
+import java.util.Map.Entry;
 
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PlanPrinter;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 
 /**
@@ -49,23 +51,26 @@ public class TezPrinter extends TezOpPlanVisitor {
     @Override
     public void visitTezOp(TezOperator tezOper) throws VisitorException {
         mStream.println("Tez vertex " + tezOper.getOperatorKey().toString());
+        if (tezOper.inEdges.size() > 0) {
+            for (Entry<OperatorKey, TezEdgeDescriptor> inEdge : tezOper.inEdges.entrySet()) {
+                if (!inEdge.getValue().combinePlan.isEmpty()) {
+                    mStream.println("# Combine plan on edge <" + inEdge.getKey() + ">");
+                    PlanPrinter<PhysicalOperator, PhysicalPlan> printer =
+                            new PlanPrinter<PhysicalOperator, PhysicalPlan>(
+                                    inEdge.getValue().combinePlan, mStream);
+                    printer.setVerbose(isVerbose);
+                    printer.visit();
+                    mStream.println();
+                }
+            }
+        }
         if (tezOper.plan != null && tezOper.plan.size() > 0) {
+            mStream.println("# Plan on vertex");
             PlanPrinter<PhysicalOperator, PhysicalPlan> printer =
                     new PlanPrinter<PhysicalOperator, PhysicalPlan>(tezOper.plan, mStream);
             printer.setVerbose(isVerbose);
             printer.visit();
-        }
-        if (tezOper.combinePlan != null && tezOper.combinePlan.size() > 0) {
             mStream.println();
-            mStream.println("------------");
-            mStream.println("Combine Plan");
-            mStream.println("------------");
-            PlanPrinter<PhysicalOperator, PhysicalPlan> printer =
-                    new PlanPrinter<PhysicalOperator, PhysicalPlan>(tezOper.combinePlan, mStream);
-            printer.setVerbose(isVerbose);
-            printer.visit();
         }
-        mStream.println();
     }
 }
-

@@ -18,6 +18,7 @@
 package org.apache.pig.backend.hadoop.executionengine.tez;
 
 import java.io.ByteArrayOutputStream;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -26,6 +27,7 @@ import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 /**
@@ -35,8 +37,13 @@ import com.google.common.collect.Sets;
 public class TezOperator extends Operator<TezOpPlanVisitor> {
     private static final long serialVersionUID = 1L;
 
+    // Processor pipeline
     public PhysicalPlan plan;
-    public PhysicalPlan combinePlan;
+
+    // Descriptors for out-bound edges.
+    public Map<OperatorKey, TezEdgeDescriptor> outEdges;
+    // Descriptors for in-bound edges.
+    public Map<OperatorKey, TezEdgeDescriptor> inEdges;
 
     public Set<String> UDFs;
     public Set<PhysicalOperator> scalars;
@@ -76,7 +83,8 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     public TezOperator(OperatorKey k) {
         super(k);
         plan = new PhysicalPlan();
-        combinePlan = new PhysicalPlan();
+        outEdges = Maps.newHashMap();
+        inEdges = Maps.newHashMap();
         UDFs = Sets.newHashSet();
         scalars = Sets.newHashSet();
     }
@@ -175,7 +183,7 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
         sb.delete(sb.length() - "\n".length(), sb.length());
         return sb.toString();
     }
-    
+
     public boolean needSegmentBelow() {
         return segmentBelow;
     }

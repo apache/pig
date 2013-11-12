@@ -5,6 +5,7 @@
 # TEZ plan: scope-38
 #--------------------------------------------------
 Tez vertex scope-36
+# Plan on vertex
 b: Local Rearrange[tuple]{int}(false) - scope-28
 |   |
 |   Project[int][0] - scope-29
@@ -21,6 +22,7 @@ b: Local Rearrange[tuple]{int}(false) - scope-28
     |
     |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-18
 Tez vertex scope-37
+# Plan on vertex
 c: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-35
 |
 |---c: New For Each(false,false)[bag] - scope-34

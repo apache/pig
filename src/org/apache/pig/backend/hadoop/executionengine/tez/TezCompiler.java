@@ -151,7 +151,7 @@ public class TezCompiler extends PhyPlanVisitor {
     public TezOperPlan getTezPlan() {
         return tezPlan;
     }
-    
+
     // Segment a single DAG into a DAG graph
     public TezPlanContainer getPlanContainer() throws PlanException {
         TezPlanContainer tezPlanContainer = new TezPlanContainer(pigContext);
@@ -343,6 +343,9 @@ public class TezCompiler extends PhyPlanVisitor {
         for (TezOperator tezOp : compiledInputs) {
             tezOp.setClosed(true);
             tezPlan.connect(tezOp, newTezOp);
+            // Add edge descriptors to old and new operators
+            newTezOp.inEdges.put(tezOp.getOperatorKey(), new TezEdgeDescriptor());
+            tezOp.outEdges.put(newTezOp.getOperatorKey(), new TezEdgeDescriptor());
         }
         curTezOp = newTezOp;
     }

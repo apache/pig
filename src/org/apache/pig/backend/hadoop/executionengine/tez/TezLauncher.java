@@ -29,11 +29,13 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.lib.jobcontrol.ControlledJob;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.backend.BackendException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.Launcher;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.UDFContext;
@@ -45,51 +47,53 @@ import org.apache.tez.dag.api.TezConfiguration;
  * Main class that launches pig for Tez
  */
 public class TezLauncher extends Launcher {
-    
+
     private static final Log log = LogFactory.getLog(TezLauncher.class);
-    
+    private boolean aggregateWarning = false;
+
     @Override
     public PigStats launchPig(PhysicalPlan php, String grpName, PigContext pc) throws Exception {
+        aggregateWarning = Boolean.parseBoolean(pc.getProperties().getProperty("aggregate.warning", "false"));
         Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties(), true);
 
         FileSystem fs = FileSystem.get(conf);
         Path stagingDir = new Path(fs.getWorkingDirectory(), UUID.randomUUID().toString());
-        
+
         TezResourceManager.initialize(stagingDir, pc, conf);
 
         conf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDir.toString());
-        
+
         List<TezOperPlan> processedPlans = new ArrayList<TezOperPlan>();
-        
+
         TezStats tezStats = new TezStats(pc);
         PigStats.start(tezStats);
-        
+
         TezJobControlCompiler jcc = new TezJobControlCompiler(pc, conf);
         TezPlanContainer tezPlanContainer = compile(php, pc);
-        
+
         TezOperPlan tezPlan;
-        
+
         while ((tezPlan=tezPlanContainer.getNextPlan(processedPlans))!=null) {
             processedPlans.add(tezPlan);
 
             TezPOPackageAnnotator pkgAnnotator = new TezPOPackageAnnotator(tezPlan);
             pkgAnnotator.visit();
-    
+
             tezStats.initialize(tezPlan);
-    
+
             jc = jcc.compile(tezPlan, grpName, conf, tezPlanContainer);
             TezJobNotifier notifier = new TezJobNotifier(tezPlanContainer, tezPlan);
             ((TezJobControl)jc).setJobNotifier(notifier);
             ((TezJobControl)jc).setTezStats(tezStats);
-    
+
             // Initially, all jobs are in wait state.
             List<ControlledJob> jobsWithoutIds = jc.getWaitingJobList();
             log.info(jobsWithoutIds.size() + " tez job(s) waiting for submission.");
-    
+
             // TODO: MapReduceLauncher does a couple of things here. For example,
             // notify PPNL of job submission, update PigStas, etc. We will worry
             // about them later.
-    
+
             // Set the thread UDFContext so registered classes are available.
             final UDFContext udfContext = UDFContext.getUDFContext();
             Thread jcThread = new Thread(jc, "JobControl") {
@@ -99,11 +103,11 @@ public class TezLauncher extends Launcher {
                     super.run();
                 }
             };
-    
+
             JobControlThreadExceptionHandler jctExceptionHandler = new JobControlThreadExceptionHandler();
             jcThread.setUncaughtExceptionHandler(jctExceptionHandler);
             jcThread.setContextClassLoader(PigContext.getClassLoader());
-    
+
             // Mark the times that the jobs were submitted so it's reflected in job
             // history props
             long scriptSubmittedTimestamp = System.currentTimeMillis();
@@ -115,7 +119,7 @@ public class TezLauncher extends Launcher {
                 jobConf.set("pig.job.submitted.timestamp",
                         Long.toString(System.currentTimeMillis()));
             }
-    
+
             // All the setup done, now lets launch the jobs. DAG is submitted to
             // YARN cluster by TezJob.submit().
             jcThread.start();
@@ -145,9 +149,18 @@ public class TezLauncher extends Launcher {
     public TezPlanContainer compile(PhysicalPlan php, PigContext pc)
             throws PlanException, IOException, VisitorException {
         TezCompiler comp = new TezCompiler(php, pc);
-        comp.compile();
-        TezOperPlan plan = comp.getTezPlan();
-        // TODO: Run optimizations here
+        TezOperPlan tezPlan = comp.compile();
+        Boolean nocombiner = Boolean.parseBoolean(pc.getProperties().getProperty(
+                PigConfiguration.PROP_NO_COMBINER, "false"));
+
+        // Run CombinerOptimizer on Tez plan
+        if (!pc.inIllustrator && !nocombiner)  {
+            boolean doMapAgg = Boolean.parseBoolean(pc.getProperties().getProperty(
+                    PigConfiguration.PROP_EXEC_MAP_PARTAGG, "false"));
+            CombinerOptimizer co = new CombinerOptimizer(tezPlan, doMapAgg);
+            co.visit();
+            co.getMessageCollector().logMessages(MessageType.Warning, aggregateWarning, log);
+        }
         return comp.getPlanContainer();
     }
 
@@ -179,4 +192,3 @@ public class TezLauncher extends Launcher {
         log.info("Cannot find job: " + jobID);
     }
 }
-

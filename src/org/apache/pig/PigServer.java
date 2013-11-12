@@ -182,6 +182,10 @@ public class PigServer {
         this(addExecTypeProperty(PropertiesUtil.loadDefaultProperties(), execTypeString));
     }
 
+    public PigServer(String execTypeString, Properties properties) throws ExecException, IOException {
+        this(addExecTypeProperty(properties, execTypeString));
+    }
+
     public PigServer(Properties properties) throws ExecException, IOException {
         this(new PigContext(properties));
     }

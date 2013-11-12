@@ -39,6 +39,7 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.StoreFuncInterface;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.executionengine.JobCreationException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
@@ -64,14 +65,17 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCo
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigIntWritableComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigLongWritableComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigTupleWritableComparator;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigCombiner;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigInputFormat;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigOutputFormat;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
+import org.apache.pig.backend.hadoop.executionengine.tez.TezPOPackageAnnotator.LoRearrangeDiscoverer;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
@@ -87,20 +91,17 @@ import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeProperty;
-import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
-import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
-import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.Vertex;
+import org.apache.tez.mapreduce.combine.MRCombiner;
 import org.apache.tez.mapreduce.common.MRInputAMSplitGenerator;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
+import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.mapreduce.partition.MRPartitioner;
-import org.apache.tez.runtime.library.input.ShuffledMergedInput;
-import org.apache.tez.runtime.library.output.OnFileSortedOutput;
 
 /**
  * A visitor to construct DAG out of Tez plan.
@@ -130,26 +131,73 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             throw new VisitorException("Cannot create vertex for " + tezOp.name(), e);
         }
 
-        // Connect the new vertex with dependent vertices
+        // Connect the new vertex with predecessor vertices
         TezOperPlan tezPlan =  getPlan();
         List<TezOperator> predecessors = tezPlan.getPredecessors(tezOp);
         if (predecessors != null) {
             for (TezOperator predecessor : predecessors) {
-                // TODO: We should encapsulate edge properties in TezOperator.
-                // For now, we always create a shuffle edge.
-                EdgeProperty prop = new EdgeProperty(
-                        DataMovementType.SCATTER_GATHER,
-                        DataSourceType.PERSISTED,
-                        SchedulingType.SEQUENTIAL,
-                        new OutputDescriptor(OnFileSortedOutput.class.getName()),
-                        new InputDescriptor(ShuffledMergedInput.class.getName()));
-                // Since this is a dependency order walker, dependent vertices
+                // Since this is a dependency order walker, predecessor vertices
                 // must have already been created.
                 Vertex from = dag.getVertex(predecessor.name());
+                EdgeProperty prop = null;
+                try {
+                    prop = newEdge(predecessor, tezOp);
+                } catch (IOException e) {
+                    throw new VisitorException("Cannot create edge from " +
+                            predecessor.name() + " to " + tezOp.name(), e);
+                }
                 Edge edge = new Edge(from, to, prop);
                 dag.addEdge(edge);
             }
         }
+    }
+
+    /**
+     * Return EdgeProperty that connects two vertices.
+     * @param from
+     * @param to
+     * @return EdgeProperty
+     * @throws IOException
+     */
+    private EdgeProperty newEdge(TezOperator from, TezOperator to) throws IOException {
+        TezEdgeDescriptor edge = to.inEdges.get(from.getOperatorKey());
+        PhysicalPlan combinePlan = edge.combinePlan;
+
+        InputDescriptor in = new InputDescriptor(edge.inputClassName);
+        OutputDescriptor out = new OutputDescriptor(edge.outputClassName);
+
+        if (!combinePlan.isEmpty()) {
+            Configuration conf = new Configuration();
+            addCombiner(combinePlan, conf);
+            in.setUserPayload(TezUtils.createUserPayloadFromConf(conf));
+            out.setUserPayload(TezUtils.createUserPayloadFromConf(conf));
+        }
+
+        return new EdgeProperty(
+                edge.dataMovementType,
+                edge.dataSourceType,
+                edge.schedulingType,
+                out, in);
+    }
+
+    private void addCombiner(PhysicalPlan combinePlan, Configuration conf) throws IOException {
+        POPackage combPack = (POPackage)combinePlan.getRoots().get(0);
+        setIntermediateInputKeyValue(combPack.getKeyType(), conf);
+
+        POLocalRearrange combRearrange = (POLocalRearrange)combinePlan.getLeaves().get(0);
+        setIntermediateOutputKeyValue(combRearrange.getKeyType(), conf);
+
+        LoRearrangeDiscoverer lrDiscoverer = new LoRearrangeDiscoverer(combinePlan, combPack);
+        lrDiscoverer.visit();
+
+        combinePlan.remove(combPack);
+        conf.set(TezJobConfig.TEZ_RUNTIME_COMBINER_CLASS, MRCombiner.class.getName());
+        conf.set(MRJobConfig.COMBINE_CLASS_ATTR, PigCombiner.Combine.class.getName());
+        conf.setBoolean("mapred.mapper.new-api", true);
+        conf.set("pig.pigContext", ObjectSerializer.serialize(pc));
+        conf.set("pig.combinePlan", ObjectSerializer.serialize(combinePlan));
+        conf.set("pig.combine.package", ObjectSerializer.serialize(combPack));
+        conf.set("pig.map.keytype", ObjectSerializer.serialize(new byte[] {combRearrange.getKeyType()}));
     }
 
     private Vertex newVertex(TezOperator tezOp) throws IOException {
@@ -158,6 +206,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         // Pass physical plans to vertex as user payload.
         Configuration conf = new Configuration();
         // We won't actually use this job, but we need it to talk with the Load Store funcs
+        @SuppressWarnings("deprecation")
         Job job = new Job(conf);
 
         ArrayList<POStore> storeLocations = new ArrayList<POStore>();
@@ -219,39 +268,33 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             conf.set("pig.streaming.task.output.dir", tmpLocation.toString());
         }
 
-        if (!pc.inIllustrator)
-        {
-            // unset inputs for POStore, otherwise, exec plan will be unnecessarily deserialized
+        if (!pc.inIllustrator) {
+            // Unset inputs for POStore, otherwise, exec plan will be unnecessarily deserialized
             for (POStore st: stores) { st.setInputs(null); st.setParentPlan(null);}
             // We put them in the reduce because PigOutputCommitter checks the ID of the task to see if it's a map, and if not, calls the reduce committers.
             conf.set(JobControlCompiler.PIG_MAP_STORES, ObjectSerializer.serialize(new ArrayList<POStore>()));
             conf.set(JobControlCompiler.PIG_REDUCE_STORES, ObjectSerializer.serialize(stores));
         }
 
-        // Configure the classes for incoming shuffles to this TezOp
+        // For all shuffle outputs, configure the classes
         List<PhysicalOperator> leaves = tezOp.plan.getLeaves();
-        // TODO: Actually need to loop over leaves and set up per shuffle. Not sure how to give confs to an edge in Tez.
-        if (leaves.size() == 1 && leaves.get(0) instanceof POLocalRearrange){
-            byte keyType =  ((POLocalRearrange)leaves.get(0)).getKeyType();
-            Class<? extends WritableComparable> keyClass = HDataType.getWritableComparableTypes(keyType).getClass();
-            conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_CLASS, keyClass.getName());
-            conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_VALUE_CLASS, NullableTuple.class.getName());
-            conf.set(TezJobConfig.TEZ_RUNTIME_PARTITIONER_CLASS, MRPartitioner.class.getName());
-            selectComparator(tezOp, keyType, conf);
+        // TODO: For multiple POLocalRearrange leaves, we need to loop over
+        // leaves and set up per shuffle. i.e. SPLIT + multiple GROUP BY with
+        // different keys.
+        if (leaves.size() == 1 && leaves.get(0) instanceof POLocalRearrange) {
+            byte keyType = ((POLocalRearrange)leaves.get(0)).getKeyType();
+            setIntermediateOutputKeyValue(keyType, conf);
         }
 
-        // For all shuffle outputs, configure the classes
+        // Configure the classes for incoming shuffles to this TezOp
         List<PhysicalOperator> roots = tezOp.plan.getRoots();
-        // TODO: Same as for the leaves, need to loop for multiple outputs.
-        if (roots.size() == 1 && roots.get(0) instanceof POPackage){
+        if (roots.size() == 1 && roots.get(0) instanceof POPackage) {
             POPackage pack = (POPackage) roots.get(0);
+            byte keyType = pack.getKeyType();
             tezOp.plan.remove(pack);
             conf.set("pig.reduce.package", ObjectSerializer.serialize(pack));
-            conf.set("pig.reduce.key.type", Byte.toString(pack.getKeyType()));
-            Class<? extends WritableComparable> keyClass = HDataType.getWritableComparableTypes(pack.getKeyType()).getClass();
-            conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_CLASS, keyClass.getName());
-            conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_VALUE_CLASS, NullableTuple.class.getName());
-            selectInputComparator(conf, pack.getKeyType());
+            conf.set("pig.reduce.key.type", Byte.toString(keyType));
+            setIntermediateInputKeyValue(keyType, conf);
             conf.setClass("pig.input.handler.class", ShuffledInputHandler.class, InputHandler.class);
         } else {
             conf.setClass("pig.input.handler.class", FileInputHandler.class, InputHandler.class);
@@ -259,10 +302,8 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
         conf.setClass("mapreduce.outputformat.class", PigOutputFormat.class, OutputFormat.class);
 
-        // Serialize the execution plans
+        // Serialize the execution plan
         conf.set(PigProcessor.PLAN, ObjectSerializer.serialize(tezOp.plan));
-        // TODO: The combiners need to be associated with the shuffle edges
-        conf.set(PigProcessor.COMBINE_PLAN, ObjectSerializer.serialize(tezOp.combinePlan));
         UDFContext.getUDFContext().serialize(conf);
 
         // Take our assembled configuration and create a vertex
@@ -336,7 +377,6 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 inpSignatureLists.add(ld.getSignature());
                 inpLimits.add(ld.getLimit());
                 //Remove the POLoad from the plan
-                //  if (!pigContext.inIllustrator)
                 tezOp.plan.remove(ld);
             }
         }
@@ -349,7 +389,24 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         return (lds.size() > 0);
     }
 
-    private void selectInputComparator(Configuration conf, byte keyType) throws JobCreationException {
+    @SuppressWarnings("rawtypes")
+    private void setIntermediateInputKeyValue(byte keyType, Configuration conf) throws JobCreationException, ExecException {
+        Class<? extends WritableComparable> keyClass = HDataType.getWritableComparableTypes(keyType).getClass();
+        conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_CLASS, keyClass.getName());
+        conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_VALUE_CLASS, NullableTuple.class.getName());
+        selectInputComparator(keyType, conf);
+    }
+
+    @SuppressWarnings("rawtypes")
+    private void setIntermediateOutputKeyValue(byte keyType, Configuration conf) throws JobCreationException, ExecException {
+        Class<? extends WritableComparable> keyClass = HDataType.getWritableComparableTypes(keyType).getClass();
+        conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_CLASS, keyClass.getName());
+        conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_VALUE_CLASS, NullableTuple.class.getName());
+        conf.set(TezJobConfig.TEZ_RUNTIME_PARTITIONER_CLASS, MRPartitioner.class.getName());
+        selectOutputComparator(keyType, conf);
+    }
+
+    private void selectInputComparator(byte keyType, Configuration conf) throws JobCreationException {
         //TODO: Handle sorting like in JobControlCompiler
 
         switch (keyType) {
@@ -414,10 +471,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         }
     }
 
-    private void selectComparator(
-            TezOperator tezOp,
-            byte keyType,
-            Configuration conf) throws JobCreationException {
+    private void selectOutputComparator(byte keyType, Configuration conf) throws JobCreationException {
         //TODO: Handle sorting like in JobControlCompiler
 
         switch (keyType) {
