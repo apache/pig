@@ -5,9 +5,9 @@
  * licenses this file to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -17,6 +17,7 @@
 
 package org.apache.pig.piggybank.storage.avro;
 
+import static org.apache.avro.file.DataFileConstants.DEFAULT_SYNC_INTERVAL;
 import java.io.IOException;
 
 import org.apache.avro.Schema;
@@ -32,7 +33,7 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
 /**
  * The OutputFormat for avro data.
- * 
+ *
  */
 public class PigAvroOutputFormat extends FileOutputFormat<NullWritable, Object> {
 
@@ -47,9 +48,12 @@ public class PigAvroOutputFormat extends FileOutputFormat<NullWritable, Object> 
 
     /** The configuration key for the Avro codec. */
     public static final String OUTPUT_CODEC = "avro.output.codec";
-    
+
     /** The deflate codec */
     public static final String DEFLATE_CODEC = "deflate";
+
+    /** The configuration key for Avro sync interval. */
+    public static final String SYNC_INTERVAL_KEY = "avro.mapred.sync.interval";
 
     /* avro schema of output data */
     private Schema schema = null;
@@ -61,16 +65,16 @@ public class PigAvroOutputFormat extends FileOutputFormat<NullWritable, Object> 
     }
 
     /**
-     * construct with specified output schema 
+     * construct with specified output schema
      * @param s             output schema
      */
     public PigAvroOutputFormat(Schema s) {
         schema = s;
     }
 
-    /** 
-     * Enable output compression using the deflate codec and 
-     * specify its level. 
+    /**
+     * Enable output compression using the deflate codec and
+     * specify its level.
      */
     public static void setDeflateLevel(Job job, int level) {
         FileOutputFormat.setCompressOutput(job, true);
@@ -83,7 +87,7 @@ public class PigAvroOutputFormat extends FileOutputFormat<NullWritable, Object> 
 
         if (schema == null)
             throw new IOException("Must provide a schema");
-        
+
         Configuration conf = context.getConfiguration();
 
         DataFileWriter<Object> writer = new DataFileWriter<Object>(new PigAvroDatumWriter(schema));
@@ -96,6 +100,10 @@ public class PigAvroOutputFormat extends FileOutputFormat<NullWritable, Object> 
                 : CodecFactory.fromString(codecName);
             writer.setCodec(factory);
         }
+
+        // Do max as core-default.xml has io.file.buffer.size as 4K
+        writer.setSyncInterval(conf.getInt(SYNC_INTERVAL_KEY, Math.max(
+                conf.getInt("io.file.buffer.size", DEFAULT_SYNC_INTERVAL), DEFAULT_SYNC_INTERVAL)));
 
         Path path = getDefaultWorkFile(context, EXT);
         writer.create(schema, path.getFileSystem(conf).create(path));
