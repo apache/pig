@@ -19,7 +19,9 @@ package org.apache.pig.newplan.logical.rules;
 
 import java.io.IOException;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.pig.PigException;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.StoreFuncInterface;
@@ -62,14 +64,16 @@ public class InputOutputFileValidator {
             
             try {
                 if(store.getSchema() != null){
-                    sf.checkSchema(new ResourceSchema(store.getSchema(), store.getSortInfo()));                
+                    sf.checkSchema(new ResourceSchema(store.getSchema(), store.getSortInfo()));
                 }
-                dummyJob = new Job(ConfigurationUtil.toConfiguration(pigCtx.getProperties()));
+                Configuration conf = ConfigurationUtil.toConfiguration(pigCtx.getProperties());
+                dummyJob = new Job(conf);
                 sf.setStoreLocation(outLoc, dummyJob);
+                UserGroupInformation.setConfiguration(conf);
             } catch (Exception ioe) {
                 if(ioe instanceof PigException){
                     errCode = ((PigException)ioe).getErrorCode();
-                } 
+                }
                 String exceptionMsg = ioe.getMessage();
                 validationErrStr += (exceptionMsg == null) ? "" : " More info to follow:\n" +exceptionMsg;
                 throw new VisitorException(store, validationErrStr, errCode, pigCtx.getErrorSource(), ioe);
