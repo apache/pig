@@ -28,6 +28,8 @@ PIG-3419: Pluggable Execution Engine (achalsoni81 via cheolsoo)
 
 IMPROVEMENTS
 
+PIG-3505: Make AvroStorage sync interval take default from io.file.buffer.size (rohini)
+
 PIG-3563: support adding archives to the distributed cache (jdonofrio via cheolsoo)
 
 PIG-3388: No support for Regex for row filter in org.apache.pig.backend.hadoop.hbase.HBaseStorage (lbendig via cheolsoo)
