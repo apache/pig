@@ -199,9 +199,7 @@ public class HadoopJobHistoryLoader extends LoadFunc {
                 
                 // parse Hadoop job xml file
                 Path parent = full.getParent();
-                String jobXml = jobDetails[0] + "_" + jobDetails[1] + "_"
-                        + jobDetails[2] + "_" + jobDetails[3] + "_"
-                        + jobDetails[4] + "_conf.xml";
+                String jobXml = jobDetails[0] + "_" + jobDetails[1] + "_" + jobDetails[2] + "_conf.xml";
                 Path p = new Path(parent, jobXml);  
              
                 FSDataInputStream fileIn = fs.open(p);

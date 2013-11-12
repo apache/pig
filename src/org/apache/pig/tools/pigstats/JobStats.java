@@ -314,4 +314,3 @@ public abstract class JobStats extends Operator {
     abstract public Map<String, Long> getMultiStoreCounters();
 
 }
-

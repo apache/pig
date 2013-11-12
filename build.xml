@@ -302,7 +302,6 @@
                 <source path="${src.dir}"/>
                 <source path="${src.gen.dir}"/>
                 <source path="${src.lib.dir}/bzip2"/>
-                <source path="${src.lib.dir}/shock"/>
                 <source path="${test.e2e.dir}/udfs/java"/>
                 <source path="${src.shims.dir}"/>
                 <source path="${src.shims.test.dir}"/>
@@ -368,7 +367,6 @@
             <include name="hadoop-*-${hadoop-common.version}.jar" if="isHadoop23"/>
             <exclude name="hadoop-hdfs-${hadoop-hdfs.version}.jar"/>
             <include name="junit-${junit.version}.jar"/>
-            <include name="jsch-${jsch.version}.jar"/>
             <include name="protobuf-java-${protobuf-java.version}.jar"/>
             <include name="commons*.jar"/>
             <include name="log4j*.jar"/>
@@ -547,7 +545,7 @@
         <echo>*** Building Main Sources ***</echo>
         <echo>*** To compile with all warnings enabled, supply -Dall.warnings=1 on command line ***</echo>
         <echo>*** Else, you will only be warned about deprecations ***</echo>
-        <compileSources sources="${src.dir};${src.gen.dir};${src.lib.dir}/shock;${src.lib.dir}/bzip2;${src.shims.dir}"
+        <compileSources sources="${src.dir};${src.gen.dir};${src.lib.dir}/bzip2;${src.shims.dir}"
             excludes="${src.exclude.dir}" dist="${build.classes}" cp="classpath" warnings="${javac.args.warnings}" />
         <copy todir="${build.classes}/META-INF">
             <fileset dir="${src.dir}/META-INF" includes="**"/>
@@ -664,7 +662,6 @@
                     <attribute name="Implementation-Version" value="${version}" />
                 </section>
             </manifest>
-            <fileset dir="${src.lib.dir}/shock"/>
             <fileset dir="${src.lib.dir}/bzip2"/>
             <fileset dir="${python.src.dir}"/>
         </jar>

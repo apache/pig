@@ -33,6 +33,7 @@ import org.apache.hadoop.mapred.JobClient;
 import org.apache.pig.PigException;
 import org.apache.pig.PigRunner.ReturnCode;
 import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceAudience.Private;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -468,6 +469,7 @@ public abstract class PigStats {
         }
     }
 
+    @Private
     public void setBackendException(String jobId, Exception e) {
         if (e instanceof PigException) {
             LOG.error("ERROR " + ((PigException)e).getErrorCode() + ": "
@@ -488,6 +490,11 @@ public abstract class PigStats {
                 break;
             }
         }
+    }
+
+    @Private
+    public PigContext getPigContext() {
+        return pigContext;
     }
 
     public void start() {

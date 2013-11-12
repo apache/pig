@@ -4,7 +4,6 @@
 	<classpathentry kind="src" path="shims/test/hadoop20"/>
 	<classpathentry kind="src" path="shims/src/hadoop20"/>
 	<classpathentry kind="src" path="test/e2e/pig/udfs/java"/>
-	<classpathentry kind="src" path="lib-src/shock"/>
 	<classpathentry kind="src" path="src-gen"/>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry excluding="e2e/pig/udfs/java/" kind="src" path="test"/>

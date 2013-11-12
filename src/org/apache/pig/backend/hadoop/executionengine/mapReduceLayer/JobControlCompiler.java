@@ -33,6 +33,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -137,6 +139,9 @@ public class JobControlCompiler{
     MROperPlan plan;
     Configuration conf;
     PigContext pigContext;
+
+    private static final Matcher DISTRIBUTED_CACHE_ARCHIVE_MATCHER = Pattern
+            .compile("\\.(zip|tgz|tar\\.gz|tar)$").matcher("");
 
     private static final Log log = LogFactory.getLog(JobControlCompiler.class);
 
@@ -959,7 +964,7 @@ public class JobControlCompiler{
         }
 
         @SuppressWarnings("unchecked")
-		@Override
+        @Override
         public int compare(WritableComparable a, WritableComparable b)
         {
             PigNullableWritable wa = (PigNullableWritable)a;
@@ -1362,6 +1367,14 @@ public class JobControlCompiler{
         }
     }
 
+    private static void addToDistributedCache(URI uri, Configuration conf) {
+        if (DISTRIBUTED_CACHE_ARCHIVE_MATCHER.reset(uri.toString()).find()) {
+            DistributedCache.addCacheArchive(uri, conf);
+        } else {
+            DistributedCache.addCacheFile(uri, conf);
+        }
+    }
+
     private static void setupDistributedCache(PigContext pigContext,
             Configuration conf, String[] paths, boolean shipToCluster) throws IOException {
         // Turn on the symlink feature
@@ -1405,9 +1418,9 @@ public class JobControlCompiler{
                         "File doesn't exist: " + dst;
                         throw new ExecException(msg, errCode, errSrc);
                     }
-                    DistributedCache.addCacheFile(dstURI, conf);
+                    addToDistributedCache(dstURI, conf);
                 } else {
-                    DistributedCache.addCacheFile(srcURI, conf);
+                    addToDistributedCache(srcURI, conf);
                 }
             }
         }

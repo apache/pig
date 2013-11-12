@@ -478,29 +478,6 @@ public class Utils {
     }
 
     /**
-     * Method to set the customized SSH socket factory.
-     *
-     * @param pc Pig context that stores the SSH gateway address.
-     */
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    public static void setSSHFactory(PigContext pc) {
-        Properties properties = pc.getProperties();
-        String g = properties.getProperty("ssh.gateway");
-        if (g == null || g.length() == 0) {
-            return;
-        }
-        try {
-            Class clazz = Class.forName("org.apache.pig.shock.SSHSocketImplFactory");
-            SocketImplFactory f = (SocketImplFactory) clazz.getMethod(
-                    "getFactory", new Class[0]).invoke(0, new Object[0]);
-            Socket.setSocketImplFactory(f);
-        } catch (SocketException e) {
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    /**
      * Method to apply pig properties to JobConf (replaces properties with
      * resulting jobConf values).
      *
