@@ -441,12 +441,12 @@ public class POForEach extends PhysicalOperator {
                         if(its[i].hasNext()) {
                             data[i] = its[i].next();
                         } else {
-                            //the input set is null, so we return with EOP.  This is
+                            //the input set is null, so we return.  This is
                             // caught above and this function recalled with
                             // new inputs.
                             its = null;
                             data = null;
-                            res.returnStatus = POStatus.STATUS_EOP;
+                            res.returnStatus = POStatus.STATUS_NULL;
                             return res;
                         }
                     } else {

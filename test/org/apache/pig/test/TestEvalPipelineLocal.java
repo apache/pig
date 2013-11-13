@@ -1173,4 +1173,34 @@ public class TestEvalPipelineLocal {
         
         Assert.assertFalse(iter.hasNext());
     }
+    static public class GenBag extends EvalFunc<DataBag> {
+        @Override
+        public DataBag exec(Tuple input) throws IOException {
+            Integer content = (Integer)input.get(0);
+            DataBag bag = BagFactory.getInstance().newDefaultBag();
+
+            if (content > 10) {
+                Tuple t = TupleFactory.getInstance().newTuple();
+                t.append(content);
+                bag.add(t);
+            }
+            return bag;
+        }
+    }
+    // Two flatten statement in a pipeline, see PIG-3292
+    @Test
+    public void testFlattenTwice() throws Exception{
+        File f1 = createFile(new String[]{"{(1),(12),(9)}", "{(15),(2)}"});
+        
+        pigServer.registerQuery("a = load '" + Util.encodeEscape(Util.generateURI(f1.toString(), pigServer.getPigContext()))
+                + "' as (bag1:bag{(t:int)});");
+        pigServer.registerQuery("b = foreach a generate flatten(bag1) as field1;");
+        pigServer.registerQuery("c = foreach b generate flatten(" + GenBag.class.getName() + "(field1));");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("c");
+        Assert.assertEquals(iter.next().toString(), "(12)");
+        Assert.assertEquals(iter.next().toString(), "(15)");
+        
+        Assert.assertFalse(iter.hasNext());
+    }
 }
