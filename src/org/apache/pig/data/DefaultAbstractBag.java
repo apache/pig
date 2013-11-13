@@ -97,7 +97,7 @@ public abstract class DefaultAbstractBag implements DataBag {
             }
             for (int i = sampled; iter.hasNext() && sampled < SPILL_SAMPLE_SIZE; i++) {
                 Tuple t = iter.next();
-                if (i % SPILL_SAMPLE_FREQUENCY == 0) {
+                if (t != null && i % SPILL_SAMPLE_FREQUENCY == 0) {
                     aggSampleTupleSize += t.getMemorySize();
                     sampled += 1;
                 }
