@@ -54,7 +54,7 @@ public class AvroRecordWriter extends RecordWriter<NullWritable, Object> {
   private DataFileWriter<GenericData.Record> writer;
   private Path out;
   private Configuration conf;
-  
+
   /**
    * Creates new AvroRecordWriter.
    * @param s Schema for the files on this output path
@@ -81,8 +81,9 @@ public class AvroRecordWriter extends RecordWriter<NullWritable, Object> {
       writer.setCodec(factory);
     }
 
-    writer.setSyncInterval(job.getInt(SYNC_INTERVAL_KEY,
-        DEFAULT_SYNC_INTERVAL));
+    // Do max as core-default.xml has io.file.buffer.size as 4K
+    writer.setSyncInterval(job.getInt(SYNC_INTERVAL_KEY, Math.max(
+            job.getInt("io.file.buffer.size", DEFAULT_SYNC_INTERVAL), DEFAULT_SYNC_INTERVAL)));
 
     // copy metadata from job
     for (Map.Entry<String,String> e : job) {
@@ -95,7 +96,7 @@ public class AvroRecordWriter extends RecordWriter<NullWritable, Object> {
                        .getBytes("ISO-8859-1"));
     }
   }
-  
+
   @Override
   public void close(final TaskAttemptContext arg0)
       throws IOException, InterruptedException {
@@ -115,7 +116,7 @@ public class AvroRecordWriter extends RecordWriter<NullWritable, Object> {
           .packIntoAvro((Tuple) value, schema));
     }
   }
-  
+
   public void prepareToWrite(Schema s) throws IOException {
     if (s == null) {
       throw new IOException(
@@ -129,5 +130,5 @@ public class AvroRecordWriter extends RecordWriter<NullWritable, Object> {
     writer.create(s, out.getFileSystem(conf).create(out));
 
   }
-  
+
 }

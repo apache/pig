@@ -28,6 +28,8 @@ PIG-3419: Pluggable Execution Engine (achalsoni81 via cheolsoo)
 
 IMPROVEMENTS
 
+PIG-3505: Make AvroStorage sync interval take default from io.file.buffer.size (rohini)
+
 PIG-3563: support adding archives to the distributed cache (jdonofrio via cheolsoo)
 
 PIG-3388: No support for Regex for row filter in org.apache.pig.backend.hadoop.hbase.HBaseStorage (lbendig via cheolsoo)
@@ -47,8 +49,6 @@ PIG-3484: Make the size of pig.script property configurable (cheolsoo)
 OPTIMIZATIONS
  
 BUG FIXES
-
-PIG-3507: It fails to run pig in local mode on a Kerberos enabled Hadoop cluster (chiyang via cheolsoo)
 
 PIG-3561: Clean up PigStats and JobStats after PIG-3419 (cheolsoo)
 
@@ -101,6 +101,8 @@ PIG-3047: Check the size of a relation before adding it to distributed cache in 
 PIG-3480: TFile-based tmpfile compression crashes in some cases (dvryaboy via aniket486)
 
 BUG FIXES
+
+PIG-3570: Rollback PIG-3060 (daijy)
 
 PIG-3530: Some e2e tests is broken due to PIG-3480 (daijy)
 
