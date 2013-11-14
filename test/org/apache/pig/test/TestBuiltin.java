@@ -37,6 +37,8 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 import java.util.StringTokenizer;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
@@ -150,6 +152,9 @@ public class TestBuiltin {
 
     private static Double[] doubleInput = { 5.5673910, 121.0, 3.0, 0.000000834593, 1.0, 6.0, 7.0, 8.0, 9.0, 10.0, null };
 
+    private static BigDecimal[] bigDecimalInput = {BigDecimal.ZERO, BigDecimal.ONE, BigDecimal.TEN, new BigDecimal("99999999999999977.9999999999999999999999999999999999999999")};
+    private static BigInteger[] bigIntegerInput = {BigInteger.ZERO, BigInteger.ONE, BigInteger.TEN, new BigInteger("999999999998888888887777777777777744444488888889999999999977")};
+
     private static String[] ba = { "7", "2", "3", null, "4", "5", "6", "1", "8", "9", "10"};
     private static Double[] baAsDouble = { 7.0, 2.0, 3.0, null, 4.0, 5.0, 6.0, 1.0, 8.0, 9.0, 10.0};
 
@@ -183,7 +188,7 @@ public class TestBuiltin {
     String[] stages = {"Initial", "Intermediate", "Final"};
 
     String[][] aggs = {
-            {"SUM", "IntSum", "LongSum", "FloatSum", "DoubleSum"},
+            {"SUM", "IntSum", "LongSum", "FloatSum", "DoubleSum", "BigDecimalSum", "BigIntegerSum"},
             {"AVG", "IntAvg", "LongAvg", "FloatAvg", "DoubleAvg"},
             {"MIN", "IntMin", "LongMin", "FloatMin", "DoubleMin", "StringMin", "DateTimeMin"},
             {"MAX", "IntMax", "LongMax", "FloatMax", "DoubleMax", "StringMax", "DateTimeMax"},
@@ -191,6 +196,7 @@ public class TestBuiltin {
             };
 
     String[] inputTypeAsString = {"ByteArray", "Integer", "Long", "Float", "Double", "String", "DateTime"};
+
 
     @Before
     public void setUp() throws Exception {
@@ -214,6 +220,8 @@ public class TestBuiltin {
         expectedMap.put("IntSum", new Long(55));
         expectedMap.put("LongSum", new Long(145776964666362L));
         expectedMap.put("FloatSum", new Double(56.15395));
+        expectedMap.put("BigDecimalSum", new BigDecimal("99999999999999988.9999999999999999999999999999999999999999"));
+        expectedMap.put("BigIntegerSum", new BigInteger("999999999998888888887777777777777744444488888889999999999988"));
 
         expectedMap.put("AVG", new Double(5.5));
         expectedMap.put("DoubleAvg", new Double(17.0567391834593));
@@ -243,7 +251,14 @@ public class TestBuiltin {
         for (String[] aggGroups : aggs) {
             int i = 0;
             for(String agg: aggGroups) {
-                allowedInput.put(agg, inputTypeAsString[i++]);
+                //This portion could be reverted once MIN, MAX and AVG are implemented for BigDecimal and BigInteger
+                if(agg == "BigDecimalSum")
+                        allowedInput.put(agg, "BigDecimal");
+                else if(agg == "BigIntegerSum")
+                        allowedInput.put(agg,"BigInteger");
+                else
+                    allowedInput.put(agg, inputTypeAsString[i++]);
+                
             }
         }
 
@@ -307,6 +322,7 @@ public class TestBuiltin {
         expectedMap.put("IntAvgIntermediate", expectedMap.get("IntSum"));
         expectedMap.put("FloatAvgIntermediate", expectedMap.get("FloatSum"));
 
+
         // set up input hash
             inputMap.put("Integer", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), intInput));
             inputMap.put("IntegerAsLong", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), intAsLong));
@@ -314,6 +330,8 @@ public class TestBuiltin {
             inputMap.put("Float", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), floatInput));
             inputMap.put("FloatAsDouble", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), floatAsDouble));
             inputMap.put("Double", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), doubleInput));
+            inputMap.put("BigDecimal", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), bigDecimalInput));
+            inputMap.put("BigInteger", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), bigIntegerInput));
             inputMap.put("ByteArray", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), ByteArrayInput));
             inputMap.put("ByteArrayAsDouble", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), baAsDouble));
             inputMap.put("String", Util.loadNestTuple(TupleFactory.getInstance().newTuple(1), stringInput));
@@ -1273,7 +1291,7 @@ public class TestBuiltin {
 
     @Test
     public void testSUM() throws Exception {
-        String[] sumTypes = {"SUM", "DoubleSum", "LongSum", "IntSum", "FloatSum"};
+        String[] sumTypes = {"SUM", "DoubleSum", "LongSum", "IntSum", "FloatSum", "BigDecimalSum", "BigIntegerSum"};
         for(int k = 0; k < sumTypes.length; k++) {
             EvalFunc<?> sum = evalFuncMap.get(sumTypes[k]);
             String inputType = getInputType(sumTypes[k]);
@@ -1285,7 +1303,13 @@ public class TestBuiltin {
 
             if(inputType == "Integer" || inputType == "Long") {
                 assertEquals(msg, (Long)output, (Long)getExpected(sumTypes[k]), 0.00001);
-            } else {
+            }
+            //Assert Equals does not support BigDecimal or BigInteger. Converting into String
+            else if(inputType == "BigDecimal")
+                assertEquals(msg, ((BigDecimal) output).toPlainString(), ((BigDecimal)getExpected(sumTypes[k])).toPlainString());
+            else if(inputType == "BigInteger")
+                assertEquals(msg, ((BigInteger) output).toString(), ((BigInteger)getExpected(sumTypes[k])).toString());
+            else {
                 assertEquals(msg, (Double)output, (Double)getExpected(sumTypes[k]), 0.00001);
             }
         }
@@ -1293,7 +1317,7 @@ public class TestBuiltin {
 
     @Test
     public void testSUMIntermed() throws Exception {
-        String[] sumTypes = {"SUMIntermediate", "DoubleSumIntermediate", "LongSumIntermediate", "IntSumIntermediate", "FloatSumIntermediate"};
+        String[] sumTypes = {"SUMIntermediate", "DoubleSumIntermediate", "LongSumIntermediate", "IntSumIntermediate", "FloatSumIntermediate", "BigDecimalSumIntermediate", "BigIntegerSumIntermediate"};
         for(int k = 0; k < sumTypes.length; k++) {
             EvalFunc<?> sum = evalFuncMap.get(sumTypes[k]);
             String inputType = getInputType(sumTypes[k]);
@@ -1305,7 +1329,13 @@ public class TestBuiltin {
                             ((Tuple)output).get(0) + " == " + getExpected(sumTypes[k]) + " (expected) )]";
             if(inputType.equals("Integer") || inputType.equals("Long") || inputType.equals("IntegerAsLong")) {
               assertEquals(msg, (Long) ((Tuple)output).get(0), (Long)getExpected(sumTypes[k]), 0.00001);
-            } else {
+            }
+            //Assert Equals does not support BigDecimal or BigInteger. Converting into String
+            else if(inputType == "BigDecimal")
+                assertEquals(msg, ((BigDecimal) ((Tuple)output).get(0)).toPlainString(), ((BigDecimal)getExpected(sumTypes[k])).toPlainString());
+            else if(inputType == "BigInteger")
+                assertEquals(msg, ((BigInteger) ((Tuple)output).get(0)).toString(), ((BigInteger)getExpected(sumTypes[k])).toString()); 
+            else {
               assertEquals(msg, (Double) ((Tuple)output).get(0), (Double)getExpected(sumTypes[k]), 0.00001);
             }
         }
@@ -1313,7 +1343,7 @@ public class TestBuiltin {
 
     @Test
     public void testSUMFinal() throws Exception {
-        String[] sumTypes = {"SUMFinal", "DoubleSumFinal", "LongSumFinal", "IntSumFinal", "FloatSumFinal"};
+        String[] sumTypes = {"SUMFinal", "DoubleSumFinal", "LongSumFinal", "IntSumFinal", "FloatSumFinal", "BigDecimalSumFinal", "BigIntegerSumFinal"};
         for(int k = 0; k < sumTypes.length; k++) {
             EvalFunc<?> sum = evalFuncMap.get(sumTypes[k]);
             String inputType = getInputType(sumTypes[k]);
@@ -1325,7 +1355,13 @@ public class TestBuiltin {
 
             if(inputType.equals("Integer") || inputType.equals("Long") || inputType.equals("IntegerAsLong")) {
               assertEquals(msg, (Long)output, (Long)getExpected(sumTypes[k]), 0.00001);
-            } else {
+            }
+            //Assert Equals does not support BigDecimal or BigInteger. Converting into String
+            else if(inputType == "BigDecimal")
+                assertEquals(msg, ((BigDecimal) output).toPlainString(), ((BigDecimal)getExpected(sumTypes[k])).toPlainString());
+            else if(inputType == "BigInteger")
+                assertEquals(msg, ((BigInteger) output).toString(), ((BigInteger)getExpected(sumTypes[k])).toString()); 
+            else {
               assertEquals(msg, (Double)output, (Double)getExpected(sumTypes[k]), 0.00001);
             }
         }
