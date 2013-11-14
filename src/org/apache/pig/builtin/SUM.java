@@ -77,6 +77,11 @@ public class SUM extends AlgebraicByteArrayMathBase {
         // LongSum works for both Ints and Longs.
         funcList.add(new FuncSpec(LongSum.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.INTEGER)));
         funcList.add(new FuncSpec(LongSum.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.LONG)));
+        //Adding BigDecimal
+        funcList.add(new FuncSpec(BigDecimalSum.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.BIGDECIMAL)));
+        //dding BigInteger
+        funcList.add(new FuncSpec(BigIntegerSum.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.BIGINTEGER)));
+
         return funcList;
     }
 

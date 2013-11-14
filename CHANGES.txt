@@ -28,6 +28,8 @@ PIG-3419: Pluggable Execution Engine (achalsoni81 via cheolsoo)
 
 IMPROVEMENTS
 
+PIG-3569: SUM function for BigDecimal and BigInteger (harichinnan via rohini)
+
 PIG-3505: Make AvroStorage sync interval take default from io.file.buffer.size (rohini)
 
 PIG-3563: support adding archives to the distributed cache (jdonofrio via cheolsoo)
@@ -88,6 +90,7 @@ PIG-3469: Skewed join can cause unrecoverable NullPointerException when one of i
 
 PIG-3496: Propagate HBase 0.95 jars to the backend (Jarek Jarcec Cecho  via xuefuz)
 
+
 Release 0.12.1 (unreleased changes)
 
 IMPROVEMENTS
@@ -113,6 +116,7 @@ PIG-3325: Adding a tuple to a bag is slow (dvryaboy via aniket486)
 PIG-3512: Reducer estimater is broken by PIG-3497
 
 PIG-3510: New filter extractor fails with more than one filter statement (aniket486 via cheolsoo)
+
 
 Release 0.12.0
 
