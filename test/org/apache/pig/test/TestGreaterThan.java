@@ -397,7 +397,7 @@ public class TestGreaterThan {
         g.setRhs(rt);
 
         Result r = g.getNextBoolean();
-        assertEquals(POStatus.STATUS_NULL, r.returnStatus);
+        assertEquals(POStatus.STATUS_OK, r.returnStatus);
         assertNull(r.result);
 
         // test with null in rhs
@@ -408,7 +408,7 @@ public class TestGreaterThan {
         g.setRhs(rt);
 
         r = g.getNextBoolean();
-        assertEquals(POStatus.STATUS_NULL, r.returnStatus);
+        assertEquals(POStatus.STATUS_OK, r.returnStatus);
         assertNull(r.result);
 
         // test with null in lhs and rhs
@@ -419,7 +419,7 @@ public class TestGreaterThan {
         g.setRhs(rt);
 
         r = g.getNextBoolean();
-        assertEquals(POStatus.STATUS_NULL, r.returnStatus);
+        assertEquals(POStatus.STATUS_OK, r.returnStatus);
         assertNull(r.result);
     }
 

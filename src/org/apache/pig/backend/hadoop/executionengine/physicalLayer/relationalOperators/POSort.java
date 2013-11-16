@@ -268,20 +268,18 @@ public class POSort extends PhysicalOperator {
     	    	sortedBag = new InternalSortedBag(3, mComparator);
     	    }
 
-			while (res.returnStatus != POStatus.STATUS_EOP) {
+            while (res.returnStatus != POStatus.STATUS_EOP) {
 				if (res.returnStatus == POStatus.STATUS_ERR) {
 					log.error("Error in reading from the inputs");
 					return res;
-					//continue;
-				} else if (res.returnStatus == POStatus.STATUS_NULL) {
-                    // ignore the null, read the next tuple.
+                } else if (res.returnStatus == POStatus.STATUS_NULL) {
+                    // Ignore and read the next tuple.
                     res = processInput();
-					continue;
-				}
+                    continue;
+                }
 				sortedBag.add((Tuple) res.result);
 				res = processInput();
-
-			}
+            }
 
 			inputsAccumulated = true;
 
