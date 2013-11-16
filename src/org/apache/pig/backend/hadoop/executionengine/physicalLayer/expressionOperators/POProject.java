@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -310,7 +309,7 @@ public class POProject extends ExpressionOperator {
         } else if (input.result==null) {
             Result retVal = new Result();
             retVal.result = null;
-            retVal.returnStatus = POStatus.STATUS_NULL;
+            retVal.returnStatus = POStatus.STATUS_OK;
             return retVal;
         } else {
             throw new ExecException("Cannot dereference a bag from " + input.result.getClass().getName(), 1129);

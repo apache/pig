@@ -27,12 +27,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.pig.data.Tuple;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.BinaryExpressionOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ExpressionOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POBinCond;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.UnaryComparisonOperator;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
@@ -52,9 +52,9 @@ public class PhysicalPlan extends OperatorPlan<PhysicalOperator> implements Clon
     private static final long serialVersionUID = 1L;
     
     // marker to indicate whether all input for this plan
-    // has been sent - this is currently only used in POStream
+    // has been sent - this is currently used in POStream
     // to know if all map() calls and reduce() calls are finished
-    // and that there is no more input expected.
+    // and that there is no more input expected and in POPartialAgg.
     public boolean endOfAllInput = false;
 
     private MultiMap<PhysicalOperator, PhysicalOperator> opmap = null;

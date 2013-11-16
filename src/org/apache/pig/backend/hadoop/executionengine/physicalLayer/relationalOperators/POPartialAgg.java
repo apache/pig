@@ -60,7 +60,6 @@ public class POPartialAgg extends PhysicalOperator implements Spillable {
     private static final Log LOG = LogFactory.getLog(POPartialAgg.class);
     private static final long serialVersionUID = 1L;
 
-    private static final Result ERR_RESULT = new Result();
     private static final Result EOP_RESULT = new Result(POStatus.STATUS_EOP,
             null);
 
@@ -155,10 +154,11 @@ public class POPartialAgg extends PhysicalOperator implements Spillable {
             if (doSpill) {
                 startSpill();
                 Result result = spillResult();
-                if (result == EOP_RESULT) {
+                if (result.returnStatus == POStatus.STATUS_EOP) {
                     doSpill = false;
                 }
-                if (result != EOP_RESULT || inputsExhausted) {
+                if (result.returnStatus != POStatus.STATUS_EOP
+                        || inputsExhausted) {
                     return result;
                 }
             }
@@ -189,8 +189,8 @@ public class POPartialAgg extends PhysicalOperator implements Spillable {
 
                     // evaluate the key
                     Result keyRes = getResult(keyLeaf);
-                    if (keyRes == ERR_RESULT) {
-                        return ERR_RESULT;
+                    if (keyRes.returnStatus != POStatus.STATUS_OK) {
+                        return keyRes;
                     }
                     Object key = keyRes.result;
                     keyPlan.detachInput();
@@ -448,7 +448,7 @@ public class POPartialAgg extends PhysicalOperator implements Spillable {
 
 
     private Result getResult(ExpressionOperator op) throws ExecException {
-        Result res = ERR_RESULT;
+        Result res;
         switch (op.getResultType()) {
         case DataType.BAG:
         case DataType.BOOLEAN:
@@ -471,12 +471,7 @@ public class POPartialAgg extends PhysicalOperator implements Spillable {
             throw new ExecException(msg, 2270, PigException.BUG);
         }
 
-        // allow null as group by key
-        if (res.returnStatus == POStatus.STATUS_OK
-                || res.returnStatus == POStatus.STATUS_NULL) {
-            return res;
-        }
-        return ERR_RESULT;
+        return res;
     }
 
     /**
@@ -493,8 +488,8 @@ public class POPartialAgg extends PhysicalOperator implements Spillable {
         for (int i = 0; i < valuePlans.size(); i++) {
             valuePlans.get(i).attachInput(value);
             Result valRes = getResult(valueLeaves.get(i));
-            if (valRes == ERR_RESULT) {
-                return ERR_RESULT;
+            if (valRes.returnStatus == POStatus.STATUS_ERR) {
+                return valRes;
             }
             output.set(i + 1, valRes.result);
         }

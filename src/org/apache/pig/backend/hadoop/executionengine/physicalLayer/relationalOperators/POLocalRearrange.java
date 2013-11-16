@@ -308,9 +308,8 @@ public class POLocalRearrange extends PhysicalOperator {
                     break;
                 }
 
-                // allow null as group by key
-                if (res.returnStatus != POStatus.STATUS_OK && res.returnStatus != POStatus.STATUS_NULL) {
-                    return new Result();
+                if (res.returnStatus != POStatus.STATUS_OK) {
+                    return res;
                 }
 
                 resLst.add(res);
