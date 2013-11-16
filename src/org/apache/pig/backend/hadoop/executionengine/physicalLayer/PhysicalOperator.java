@@ -265,28 +265,29 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
      */
     public Result processInput() throws ExecException {
         try {
-        Result res = new Result();
-        if (input == null && (inputs == null || inputs.size()==0)) {
-//            log.warn("No inputs found. Signaling End of Processing.");
-            res.returnStatus = POStatus.STATUS_EOP;
-            return res;
-        }
+            Result res = new Result();
+            if (input == null && (inputs == null || inputs.size() == 0)) {
+                // log.warn("No inputs found. Signaling End of Processing.");
+                res.returnStatus = POStatus.STATUS_EOP;
+                return res;
+            }
 
-        //Should be removed once the model is clear
-        if(getReporter()!=null) {
-            getReporter().progress();
-        }
+            // Should be removed once the model is clear
+            if (getReporter() != null) {
+                getReporter().progress();
+            }
 
-        if (!isInputAttached()) {
+            if (!isInputAttached()) {
                 return inputs.get(0).getNextTuple();
-        } else {
-            res.result = input;
-            res.returnStatus = (res.result == null ? POStatus.STATUS_NULL: POStatus.STATUS_OK);
-            detachInput();
-            return res;
-        }
+            } else {
+                res.result = input;
+                res.returnStatus = POStatus.STATUS_OK;
+                detachInput();
+                return res;
+            }
         } catch (ExecException e) {
-            throw new ExecException("Exception while executing " + this.toString() + ": " + e.toString(), e);
+            throw new ExecException("Exception while executing "
+                    + this.toString() + ": " + e.toString(), e);
         }
     }
 
@@ -382,11 +383,14 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     public Result getNextDataBag() throws ExecException {
         Result ret = null;
         DataBag tmpBag = BagFactory.getInstance().newDefaultBag();
-        for(ret = getNextTuple(); ret.returnStatus != POStatus.STATUS_EOP; ret = getNextTuple()){
-            if(ret.returnStatus == POStatus.STATUS_ERR) {
+        for (ret = getNextTuple(); ret.returnStatus != POStatus.STATUS_EOP; ret = getNextTuple()) {
+            if (ret.returnStatus == POStatus.STATUS_ERR) {
                 return ret;
+            } else if (ret.returnStatus == POStatus.STATUS_NULL) {
+                continue;
+            } else {
+                tmpBag.add((Tuple) ret.result);
             }
-            tmpBag.add((Tuple)ret.result);
         }
         ret.result = tmpBag;
         ret.returnStatus = (tmpBag.size() == 0)? POStatus.STATUS_EOP : POStatus.STATUS_OK;
@@ -449,15 +453,15 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     }
 
     public Log getLogger() {
-    	return log;
+        return log;
     }
 
     public static void setPigLogger(PigLogger logger) {
-    	pigLogger = logger;
+        pigLogger = logger;
     }
 
     public static PigLogger getPigLogger() {
-    	return pigLogger;
+        return pigLogger;
     }
 
     public static class OriginalLocation implements Serializable {
@@ -470,7 +474,7 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
             this.alias = alias;
             this.line = line;
             this.offset = offset;
-}
+        }
 
         public String getAlias() {
             return alias;

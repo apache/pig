@@ -22,8 +22,8 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.data.DataType;
-import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 
 /**
@@ -65,8 +65,8 @@ public class POOr extends BinaryComparisonOperator {
         
         Result left;
         left = lhs.getNextBoolean();
-        // pass on ERROR and EOP
-        if(left.returnStatus != POStatus.STATUS_OK && left.returnStatus != POStatus.STATUS_NULL) {
+        // pass on ERROR, EOP, and NULL
+        if (left.returnStatus != POStatus.STATUS_OK) {
             return left;
         }
         
@@ -91,8 +91,8 @@ public class POOr extends BinaryComparisonOperator {
         if (returnLeft)
             return left;
 
-        // pass on ERROR and EOP 
-        if(right.returnStatus != POStatus.STATUS_OK && right.returnStatus != POStatus.STATUS_NULL) {
+        // pass on ERROR, EOP, and NULL
+        if (right.returnStatus != POStatus.STATUS_OK) {
             return right;
         }
         

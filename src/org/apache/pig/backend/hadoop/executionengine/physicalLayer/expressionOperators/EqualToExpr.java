@@ -110,7 +110,7 @@ public class EqualToExpr extends BinaryComparisonOperator {
         // null
         if(left.result == null || right.result == null) {
             left.result = null;
-            left.returnStatus = POStatus.STATUS_NULL;
+            left.returnStatus = POStatus.STATUS_OK;
             return left;
         }
 
