@@ -281,9 +281,7 @@ public abstract class ScriptState {
         try {
             String line = reader.readLine();
             while (line != null) {
-                if (line.length() > 0) {
-                    sb.append(line).append("\n");
-                }
+                sb.append(line).append("\n");
                 line = reader.readLine();
             }
         } catch (IOException e) {
