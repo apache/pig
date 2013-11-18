@@ -20,7 +20,6 @@ package org.apache.pig.builtin;
 import java.io.IOException;
 import java.util.Iterator;
 import java.math.BigDecimal;
-import java.math.MathContext;
 
 import org.apache.pig.Accumulator;
 import org.apache.pig.PigException;
@@ -41,8 +40,9 @@ public abstract class AlgebraicBigDecimalMathBase extends AlgebraicMathBase<BigD
 
     protected static BigDecimal getSeed(KNOWN_OP op) {
         switch (op) {
-        //TODO: Implement MAX and MIN functions
         case SUM: return BigDecimal.ZERO;
+        case MAX: return BigDecimalWrapper.NEGATIVE_INFINITY();
+        case MIN: return BigDecimalWrapper.POSITIVE_INFINITY();
         default: return null;
         }
     }
@@ -55,11 +55,28 @@ public abstract class AlgebraicBigDecimalMathBase extends AlgebraicMathBase<BigD
         } else {
             BigDecimal retVal = null;
             switch (op) {
-            //TODO: Implement MAX and MIN functions
-            case SUM: 
+            case SUM:
                 retVal = arg1.add(arg2);
                 break;
-            default: 
+            case MAX:
+                if (BigDecimalWrapper.class.isInstance(arg1) && (((BigDecimalWrapper)arg1).isNegativeInfinity())) {
+                    retVal = arg2;
+                } else if (BigDecimalWrapper.class.isInstance(arg2) && (((BigDecimalWrapper)arg2).isNegativeInfinity())) {
+                    retVal = arg1;
+                } else {
+                    retVal = arg1.max(arg2);
+                }
+                break;
+            case MIN:
+                if (BigDecimalWrapper.class.isInstance(arg1) && (((BigDecimalWrapper)arg1).isPositiveInfinity())) {
+                    retVal = arg2;
+                } else if (BigDecimalWrapper.class.isInstance(arg2) && (((BigDecimalWrapper)arg2).isPositiveInfinity())) {
+                    retVal = arg1;
+                } else {
+                    retVal = arg1.min(arg2);
+                }
+                break;
+            default:
                 retVal = null;
                 break;
             }

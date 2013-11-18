@@ -53,8 +53,8 @@ public class MIN extends  AlgebraicByteArrayMathBase {
         @Override
         public KNOWN_OP getOp() {
             return KNOWN_OP.MIN;
-            }
         }
+    }
 
     public static class Final extends AlgebraicByteArrayMathBase.Final {
         @Override
@@ -62,7 +62,7 @@ public class MIN extends  AlgebraicByteArrayMathBase {
             return KNOWN_OP.MIN;
         }
     }
-    
+
     /* (non-Javadoc)
      * @see org.apache.pig.EvalFunc#getArgToFuncMapping()
      */
@@ -76,6 +76,8 @@ public class MIN extends  AlgebraicByteArrayMathBase {
         funcList.add(new FuncSpec(LongMin.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.LONG)));
         funcList.add(new FuncSpec(StringMin.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.CHARARRAY)));
         funcList.add(new FuncSpec(DateTimeMin.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.DATETIME)));
+        funcList.add(new FuncSpec(BigDecimalMin.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.BIGDECIMAL)));
+        funcList.add(new FuncSpec(BigIntegerMin.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.BIGINTEGER)));
         return funcList;
     }
 }

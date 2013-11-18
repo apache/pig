@@ -20,7 +20,6 @@ package org.apache.pig.builtin;
 import java.io.IOException;
 import java.util.Iterator;
 import java.math.BigInteger;
-import java.math.MathContext;
 
 import org.apache.pig.Accumulator;
 import org.apache.pig.PigException;
@@ -41,8 +40,9 @@ public abstract class AlgebraicBigIntegerMathBase extends AlgebraicMathBase<BigI
 
     protected static BigInteger getSeed(KNOWN_OP op) {
         switch (op) {
-        //TODO: Implement MAX and MIN functions
         case SUM: return BigInteger.ZERO;
+        case MAX: return BigIntegerWrapper.NEGATIVE_INFINITY();
+        case MIN: return BigIntegerWrapper.POSITIVE_INFINITY();
         default: return null;
         }
     }
@@ -55,11 +55,28 @@ public abstract class AlgebraicBigIntegerMathBase extends AlgebraicMathBase<BigI
         } else {
             BigInteger retVal = null;
             switch (op) {
-            //TODO: Implement MAX and MIN functions
-            case SUM: 
+            case SUM:
                 retVal = arg1.add(arg2);
                 break;
-            default: 
+            case MAX:
+                if (BigIntegerWrapper.class.isInstance(arg1) && (((BigIntegerWrapper)arg1).isNegativeInfinity())) {
+                    retVal = arg2;
+                } else if(BigIntegerWrapper.class.isInstance(arg2) && (((BigIntegerWrapper)arg2).isNegativeInfinity())) {
+                    retVal = arg1;
+                } else {
+                    retVal = arg1.max(arg2);
+                }
+                break;
+            case MIN:
+                if (BigIntegerWrapper.class.isInstance(arg1) && (((BigIntegerWrapper)arg1).isPositiveInfinity())) {
+                    retVal = arg2;
+                } else if (BigIntegerWrapper.class.isInstance(arg2) && (((BigIntegerWrapper)arg2).isPositiveInfinity())) {
+                    retVal = arg1;
+                } else{
+                    retVal = arg1.min(arg2);
+                }
+                break;
+            default:
                 retVal = null;
                 break;
             }
@@ -84,7 +101,7 @@ public abstract class AlgebraicBigIntegerMathBase extends AlgebraicMathBase<BigI
                 BigInteger d = (BigInteger) n;
                 sawNonNull = true;
                 sofar = doWork(sofar, d, opProvider.getOp());
-            }catch(RuntimeException exp) {
+            } catch(RuntimeException exp) {
                 int errCode = 2103;
                 throw new ExecException("Problem doing work on BigInteger", errCode, PigException.BUG, exp);
             }
@@ -136,7 +153,7 @@ public abstract class AlgebraicBigIntegerMathBase extends AlgebraicMathBase<BigI
 
     @Override
     public Schema outputSchema(Schema input) {
-        return new Schema(new Schema.FieldSchema(null, DataType.BIGDECIMAL));
+        return new Schema(new Schema.FieldSchema(null, DataType.BIGINTEGER));
     }
 
     /* Accumulator interface implementation*/
