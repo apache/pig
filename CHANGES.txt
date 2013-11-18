@@ -54,6 +54,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3576: NPE due to PIG-3549 when job never gets submitted (lbendig via cheolsoo)
+
 PIG-3525: PigStats.get() and ScriptState.get() shouldn't return MR-specific objects (cheolsoo)
 
 PIG-3568: Define the semantics of POStatus.STATUS_NULL (mwagner via cheolsoo)
