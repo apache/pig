@@ -352,16 +352,18 @@ static int run(String args[], PigProgressNotificationListener listener) {
                      }
             }
         }
-        
+
         // create the context with the parameter
         PigContext pigContext = new PigContext(properties);
 
         // create the static script state object
+        ScriptState scriptState = pigContext.getExecutionEngine().instantiateScriptState();
         String commandLine = LoadFunc.join((AbstractList<String>)Arrays.asList(args), " ");
-        ScriptState scriptState = ScriptState.start(commandLine, pigContext);
+        scriptState.setCommandLine(commandLine);
         if (listener != null) {
             scriptState.registerListener(listener);
         }
+        ScriptState.start(scriptState);
 
         pigContext.getProperties().setProperty("pig.cmd.args", commandLine);
 

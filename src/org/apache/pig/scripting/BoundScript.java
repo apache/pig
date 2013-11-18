@@ -262,9 +262,10 @@ public class BoundScript {
 
     private PigStats exec(String query) throws IOException {
         LOG.info("Query to run:\n" + query);
-        List<PigProgressNotificationListener> listeners = ScriptState.get()
-                .getAllListeners();
-        ScriptState.start("embedded", scriptContext.getPigContext());
+        List<PigProgressNotificationListener> listeners = ScriptState.get().getAllListeners();
+        PigContext pc = scriptContext.getPigContext();
+        ScriptState scriptState = pc.getExecutionEngine().instantiateScriptState();
+        ScriptState.start(scriptState);
         ScriptState.get().setScript(query);
         for (PigProgressNotificationListener listener : listeners) {
             ScriptState.get().registerListener(listener);
@@ -329,8 +330,10 @@ public class BoundScript {
         
         @Override
         public PigStats call() throws Exception {
-            LOG.info("Query to run:\n" + query);          
-            ScriptState.start("embedded", scriptContext.getPigContext());
+            LOG.info("Query to run:\n" + query);
+            PigContext pc = scriptContext.getPigContext();
+            ScriptState scriptState = pc.getExecutionEngine().instantiateScriptState();
+            ScriptState.start(scriptState);
             ScriptState.get().setScript(query);
             ScriptState.get().registerListener(adaptor);
             PigServer pigServer = new PigServer(ctx, true);

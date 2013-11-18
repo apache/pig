@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
@@ -34,7 +35,6 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.util.VersionInfo;
-import org.apache.pig.ExecType;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -56,6 +56,7 @@ import org.apache.pig.newplan.logical.relational.LOStream;
 import org.apache.pig.newplan.logical.relational.LOUnion;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalNodesVisitor;
+import org.apache.pig.tools.pigstats.mapreduce.MRScriptState;
 
 /**
  * ScriptStates encapsulates settings for a Pig script that runs on a hadoop
@@ -64,7 +65,7 @@ import org.apache.pig.newplan.logical.relational.LogicalRelationalNodesVisitor;
  * job xml, users who want to know the relations between the script and MR jobs
  * can derive them from the job xmls.
  */
-public class ScriptState {
+public abstract class ScriptState {
 
     /**
      * Keys of Pig settings added to Jobs
@@ -146,31 +147,30 @@ public class ScriptState {
 
     protected List<PigProgressNotificationListener> listeners = new ArrayList<PigProgressNotificationListener>();
 
-    public static ScriptState start(String commandLine, PigContext pigContext) {
-        ExecType execType = null;
-        if (pigContext == null || pigContext.getExecType() == null) {
-            execType = ExecType.MAPREDUCE;
-        } else {
-            execType = pigContext.getExecType();
-        }
-        ScriptState ss = execType.getExecutionEngine(pigContext)
-                .instantiateScriptState();
-        ss.setCommandLine(commandLine);
-        ss.setPigContext(pigContext);
-        tss.set(ss);
-        return ss;
-    }
-
     protected ScriptState(String id) {
         this.id = id;
         this.script = "";
     }
 
     public static ScriptState get() {
-        if (tss.get() == null) {
-            ScriptState.start("", null);
-        }
         return tss.get();
+    }
+
+    public static ScriptState start(ScriptState state) {
+        tss.set(state);
+        return tss.get();
+    }
+
+    /**
+     * @deprecated use {@link org.apache.pig.tools.pigstats.ScriptState#start(ScriptState)} instead.
+     */
+    @Deprecated
+    public static ScriptState start(String commandLine, PigContext pigContext) {
+        ScriptState ss = new MRScriptState(UUID.randomUUID().toString());
+        ss.setCommandLine(commandLine);
+        ss.setPigContext(pigContext);
+        tss.set(ss);
+        return ss;
     }
 
     public void registerListener(PigProgressNotificationListener listener) {
@@ -263,12 +263,12 @@ public class ScriptState {
         return id;
     }
 
-    protected void setCommandLine(String commandLine) {
+    public void setCommandLine(String commandLine) {
         this.commandLine = new String(Base64.encodeBase64(commandLine
                 .getBytes()));
     }
 
-    protected String getCommandLine() {
+    public String getCommandLine() {
         return (commandLine == null) ? "" : commandLine;
     }
 

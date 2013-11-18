@@ -52,6 +52,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3525: PigStats.get() and ScriptState.get() shouldn't return MR-specific objects (cheolsoo)
+
 PIG-3568: Define the semantics of POStatus.STATUS_NULL (mwagner via cheolsoo)
 
 PIG-3561: Clean up PigStats and JobStats after PIG-3419 (cheolsoo)
