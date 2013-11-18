@@ -113,6 +113,8 @@ PIG-3480: TFile-based tmpfile compression crashes in some cases (dvryaboy via an
 
 BUG FIXES
 
+PIG-3579: pig.script's deserialized version does not maintain line numbers (jgzhang via aniket486)
+
 PIG-3570: Rollback PIG-3060 (daijy)
 
 PIG-3530: Some e2e tests is broken due to PIG-3480 (daijy)
