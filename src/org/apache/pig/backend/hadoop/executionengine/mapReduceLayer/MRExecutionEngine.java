@@ -22,8 +22,10 @@ import java.util.UUID;
 
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.ScriptState;
 import org.apache.pig.tools.pigstats.mapreduce.MRScriptState;
+import org.apache.pig.tools.pigstats.mapreduce.SimplePigStats;
 
 public class MRExecutionEngine extends HExecutionEngine {
 
@@ -32,7 +34,15 @@ public class MRExecutionEngine extends HExecutionEngine {
         this.launcher = new MapReduceLauncher();
     }
 
+    @Override
     public ScriptState instantiateScriptState() {
-        return new MRScriptState(UUID.randomUUID().toString());
+        MRScriptState ss = new MRScriptState(UUID.randomUUID().toString());
+        ss.setPigContext(pigContext);
+        return ss;
+    }
+
+    @Override
+    public PigStats instantiatePigStats() {
+        return new SimplePigStats();
     }
 }

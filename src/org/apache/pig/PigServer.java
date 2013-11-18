@@ -233,6 +233,14 @@ public class PigServer {
         }
 
         addJarsFromProperties();
+
+        if (PigStats.get() == null) {
+            PigStats.start(pigContext.getExecutionEngine().instantiatePigStats());
+        }
+
+        if (ScriptState.get() == null) {
+            ScriptState.start(pigContext.getExecutionEngine().instantiateScriptState());
+        }
     }
 
     private void addJarsFromProperties() throws ExecException {
@@ -1374,7 +1382,7 @@ public class PigServer {
      * @return LogicalPlanData
      */
     public LogicalPlanData getLogicalPlanData() {
-	return new LogicalPlanData(currDAG.lp);
+        return new LogicalPlanData(currDAG.lp);
     }
 
     /*

@@ -53,8 +53,8 @@ public class MAX extends AlgebraicByteArrayMathBase {
         @Override
         public KNOWN_OP getOp() {
             return KNOWN_OP.MAX;
-            }
         }
+    }
 
     public static class Final extends AlgebraicByteArrayMathBase.Final {
         @Override
@@ -62,7 +62,7 @@ public class MAX extends AlgebraicByteArrayMathBase {
             return KNOWN_OP.MAX;
         }
     }
-    
+
     /* (non-Javadoc)
      * @see org.apache.pig.EvalFunc#getArgToFuncMapping()
      */
@@ -76,6 +76,8 @@ public class MAX extends AlgebraicByteArrayMathBase {
         funcList.add(new FuncSpec(LongMax.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.LONG)));
         funcList.add(new FuncSpec(StringMax.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.CHARARRAY)));
         funcList.add(new FuncSpec(DateTimeMax.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.DATETIME)));
+        funcList.add(new FuncSpec(BigDecimalMax.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.BIGDECIMAL)));
+        funcList.add(new FuncSpec(BigIntegerMax.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.BIGINTEGER)));
         return funcList;
     }
 }

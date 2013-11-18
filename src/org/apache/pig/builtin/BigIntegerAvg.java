@@ -18,61 +18,44 @@
 package org.apache.pig.builtin;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.math.MathContext;
 
 import org.apache.pig.Accumulator;
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
-import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
 import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.backend.executionengine.ExecException;
 
 
 /**
- * Generates the average of a set of values. This class implements
- * {@link org.apache.pig.Algebraic}, so if possible the execution will
- * performed in a distributed fashion.
- * <p>
- * AVG can operate on any numeric type.  It can also operate on bytearrays,
- * which it will cast to doubles.    It expects a bag of
- * tuples of one record each.  If Pig knows from the schema that this function
- * will be passed a bag of integers or longs, it will use a specially adapted version of
- * AVG that uses integer arithmetic for summing the data.  The return type
- * of AVG will always be double, regardless of the input type.
- * <p>
- * AVG implements the {@link org.apache.pig.Accumulator} interface as well.
- * While this will never be
- * the preferred method of usage it is available in case the combiner can not be
- * used for a given calculation
+ * This method should never be used directly, use {@link AVG}.
  */
-public class AVG extends EvalFunc<Double> implements Algebraic, Accumulator<Double> {
+public class BigIntegerAvg extends EvalFunc<BigDecimal> implements Algebraic, Accumulator<BigDecimal> {
 
     private static TupleFactory mTupleFactory = TupleFactory.getInstance();
 
     @Override
-    public Double exec(Tuple input) throws IOException {
+    public BigDecimal exec(Tuple input) throws IOException {
         try {
-            Double sum = sum(input);
-            if(sum == null) {
+            BigInteger sum = sum(input);
+            if (sum == null) {
                 // either we were handed an empty bag or a bag
                 // filled with nulls - return null in this case
                 return null;
             }
-            double count = count(input);
+            BigInteger count = count(input);
 
-            Double avg = null;
-            if (count > 0)
-                avg = new Double(sum / count);
-
+            BigDecimal avg = null;
+            if (count.compareTo(BigInteger.ZERO) > 0)
+                avg = div(sum, count);
             return avg;
         } catch (ExecException ee) {
             throw ee;
@@ -94,30 +77,21 @@ public class AVG extends EvalFunc<Double> implements Algebraic, Accumulator<Doub
     static public class Initial extends EvalFunc<Tuple> {
         @Override
         public Tuple exec(Tuple input) throws IOException {
-            Tuple t = mTupleFactory.newTuple(2);
             try {
+                Tuple t = mTupleFactory.newTuple(2);
                 // input is a bag with one tuple containing
-                // the column we are trying to avg
+                // the column we are trying to avg on
                 DataBag bg = (DataBag) input.get(0);
-                DataByteArray dba = null;
-                if(bg.iterator().hasNext()) {
+                BigInteger d = null;
+                if (bg.iterator().hasNext()) {
                     Tuple tp = bg.iterator().next();
-                    dba = (DataByteArray)tp.get(0);
+                    d = (BigInteger)(tp.get(0));
                 }
-                t.set(0, dba != null ? Double.valueOf(dba.toString()) : null);
-                if (dba == null)
-                    t.set(1, 0L);
-                else
-                    t.set(1, 1L);
-                return t;
-            } catch(NumberFormatException nfe) {
-                // invalid input,
-                // treat this input as null
-                try {
-                    t.set(0, null);
-                    t.set(1, 0L);
-                } catch (ExecException e) {
-                    throw e;
+                t.set(0, d);
+                if (d != null) {
+                    t.set(1, BigInteger.ONE);
+                } else {
+                    t.set(1, BigInteger.ZERO);
                 }
                 return t;
             } catch (ExecException ee) {
@@ -143,27 +117,26 @@ public class AVG extends EvalFunc<Double> implements Algebraic, Accumulator<Doub
                 int errCode = 2106;
                 String msg = "Error while computing average in " + this.getClass().getSimpleName();
                 throw new ExecException(msg, errCode, PigException.BUG, e);
-
             }
         }
     }
 
-    static public class Final extends EvalFunc<Double> {
+    static public class Final extends EvalFunc<BigDecimal> {
         @Override
-        public Double exec(Tuple input) throws IOException {
+        public BigDecimal exec(Tuple input) throws IOException {
             try {
                 DataBag b = (DataBag)input.get(0);
                 Tuple combined = combine(b);
 
-                Double sum = (Double)combined.get(0);
-                if(sum == null) {
+                BigInteger sum = (BigInteger)combined.get(0);
+                if (sum == null) {
                     return null;
                 }
-                double count = (Long)combined.get(1);
+                BigInteger count = (BigInteger)combined.get(1);
 
-                Double avg = null;
-                if (count > 0) {
-                    avg = new Double(sum / count);
+                BigDecimal avg = null;
+                if (count.compareTo(BigInteger.ZERO) > 0) {
+                    avg = div(sum,count);
                 }
                 return avg;
             } catch (ExecException ee) {
@@ -177,8 +150,8 @@ public class AVG extends EvalFunc<Double> implements Algebraic, Accumulator<Doub
     }
 
     static protected Tuple combine(DataBag values) throws ExecException {
-        double sum = 0;
-        long count = 0;
+        BigInteger sum = BigInteger.ZERO;
+        BigInteger count = BigInteger.ZERO;
 
         // combine is called from Intermediate and Final
         // In either case, Initial would have been called
@@ -190,118 +163,105 @@ public class AVG extends EvalFunc<Double> implements Algebraic, Accumulator<Doub
         boolean sawNonNull = false;
         for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
             Tuple t = it.next();
-            Double d = (Double)t.get(0);
-
+            BigInteger d = (BigInteger)t.get(0);
             // we count nulls in avg as contributing 0
             // a departure from SQL for performance of
             // COUNT() which implemented by just inspecting
             // size of the bag
-            if(d == null) {
-                d = 0.0;
+            if (d == null) {
+                d = BigInteger.ZERO;
             } else {
                 sawNonNull = true;
             }
-            sum += d;
-            count += (Long)t.get(1);
+            sum = sum.add(d);
+            count = count.add((BigInteger)t.get(1));
         }
-        if(sawNonNull) {
-            output.set(0, new Double(sum));
+        if (sawNonNull) {
+            output.set(0, sum);
         } else {
             output.set(0, null);
         }
-        output.set(1, Long.valueOf(count));
+        output.set(1, count);
         return output;
     }
 
-    static protected long count(Tuple input) throws ExecException {
+    static protected BigInteger count(Tuple input) throws ExecException {
         DataBag values = (DataBag)input.get(0);
-        long cnt = 0;
         Iterator<Tuple> it = values.iterator();
-        while (it.hasNext()){
+        BigInteger cnt = BigInteger.ZERO;
+        while (it.hasNext()) {
             Tuple t = (Tuple)it.next();
             if (t != null && t.size() > 0 && t.get(0) != null)
-                cnt ++;
+                cnt = cnt.add(BigInteger.ONE);
         }
-
         return cnt;
     }
 
-    static protected Double sum(Tuple input) throws ExecException, IOException {
+    static protected BigInteger sum(Tuple input) throws ExecException, IOException {
         DataBag values = (DataBag)input.get(0);
 
         // if we were handed an empty bag, return NULL
-        if(values.size() == 0) {
+        if (values.size() == 0) {
             return null;
         }
 
-        double sum = 0;
+        BigInteger sum = BigInteger.ZERO;
         boolean sawNonNull = false;
         for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
             Tuple t = it.next();
-            try{
-                DataByteArray dba = (DataByteArray)t.get(0);
-                Double d = dba != null ? Double.valueOf(dba.toString()) : null;
+            try {
+                BigInteger d = (BigInteger)(t.get(0));
                 if (d == null) continue;
                 sawNonNull = true;
-                sum += d;
-            }catch(RuntimeException exp) {
+                sum = sum.add(d);
+            } catch (RuntimeException exp) {
                 int errCode = 2103;
                 String msg = "Problem while computing sum of doubles.";
                 throw new ExecException(msg, errCode, PigException.BUG, exp);
             }
         }
 
-        if(sawNonNull) {
-            return new Double(sum);
+        if (sawNonNull) {
+            return sum;
         } else {
             return null;
         }
     }
 
+    static protected BigDecimal div(BigInteger dividend, BigInteger divisor) {
+        // Averages will have IEEE 754R Decimal64 format, 16 digits, and a
+        // rounding mode of HALF_EVEN, the IEEE 754R default
+        return (new BigDecimal(dividend)).divide((new BigDecimal(divisor)), MathContext.DECIMAL128);
+    }
+
     @Override
     public Schema outputSchema(Schema input) {
-        return new Schema(new Schema.FieldSchema(null, DataType.DOUBLE));
+        return new Schema(new Schema.FieldSchema(null, DataType.BIGDECIMAL));
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.EvalFunc#getArgToFuncMapping()
-     */
-    @Override
-    public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
-        List<FuncSpec> funcList = new ArrayList<FuncSpec>();
-        funcList.add(new FuncSpec(this.getClass().getName(), Schema.generateNestedSchema(DataType.BAG, DataType.BYTEARRAY)));
-        funcList.add(new FuncSpec(DoubleAvg.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.DOUBLE)));
-        funcList.add(new FuncSpec(FloatAvg.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.FLOAT)));
-        funcList.add(new FuncSpec(IntAvg.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.INTEGER)));
-        funcList.add(new FuncSpec(LongAvg.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.LONG)));
-        funcList.add(new FuncSpec(BigDecimalAvg.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.BIGDECIMAL)));
-        funcList.add(new FuncSpec(BigIntegerAvg.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.BIGINTEGER)));
-        return funcList;
-    }
+    /* Accumulator interface */
 
-    /* Accumulator interface implementation */
-
-    private Double intermediateSum = null;
-    private Double intermediateCount = null;
+    private BigInteger intermediateSum = null;
+    private BigInteger intermediateCount = null;
 
     @Override
     public void accumulate(Tuple b) throws IOException {
         try {
-            Double sum = sum(b);
-            if(sum == null) {
+            BigInteger sum = sum(b);
+            if (sum == null) {
                 return;
             }
             // set default values
             if (intermediateSum == null || intermediateCount == null) {
-                intermediateSum = 0.0;
-                intermediateCount = 0.0;
+                intermediateSum = BigInteger.ZERO;
+                intermediateCount = BigInteger.ZERO;
             }
 
-            double count = (Long)count(b);
+            BigInteger count = (BigInteger)count(b);
 
-            if (count > 0) {
-                intermediateCount += count;
-                intermediateSum += sum;
+            if (count.compareTo(BigInteger.ZERO) > 0) {
+                intermediateCount = intermediateCount.add(count);
+                intermediateSum = intermediateSum.add(sum);
             }
         } catch (ExecException ee) {
             throw ee;
@@ -319,10 +279,10 @@ public class AVG extends EvalFunc<Double> implements Algebraic, Accumulator<Doub
     }
 
     @Override
-    public Double getValue() {
-        Double avg = null;
-        if (intermediateCount != null && intermediateCount > 0) {
-            avg = new Double(intermediateSum / intermediateCount);
+    public BigDecimal getValue() {
+        BigDecimal avg = null;
+        if (intermediateCount != null && (intermediateCount.compareTo(BigInteger.ZERO) > 0)) {
+            avg = div(intermediateSum,intermediateCount);
         }
         return avg;
     }

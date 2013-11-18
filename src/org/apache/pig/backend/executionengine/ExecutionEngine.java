@@ -167,6 +167,15 @@ public interface ExecutionEngine {
     public ScriptState instantiateScriptState();
 
     /**
+     * Creates a PigStats object which will be accessible as a ThreadLocal
+     * variable inside the PigStats class. This method is called when first
+     * initializing the PigStats.
+     *
+     * @return PigStats object.
+     */
+    public PigStats instantiatePigStats();
+
+    /**
      * Returns the ExecutableManager to be used in Pig Streaming.
      *
      * @return ExecutableManager to be used in Pig Streaming.

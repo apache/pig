@@ -43,7 +43,6 @@ import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanVisitor;
 import org.apache.pig.tools.pigstats.JobStats.JobState;
-import org.apache.pig.tools.pigstats.mapreduce.SimplePigStats;
 
 import com.google.common.collect.Maps;
 
@@ -74,15 +73,7 @@ public abstract class PigStats {
     protected int returnCode = ReturnCode.UNKNOWN;
 
     public static PigStats get() {
-        if (tps.get() == null) {
-            LOG.info("PigStats has not been set. Defaulting to SimplePigStats");
-            tps.set(new SimplePigStats());
-        }
         return tps.get();
-    }
-
-    static void set(PigStats stats) {
-        tps.set(stats);
     }
 
     public static PigStats start(PigStats stats) {

@@ -28,6 +28,8 @@ PIG-3419: Pluggable Execution Engine (achalsoni81 via cheolsoo)
 
 IMPROVEMENTS
 
+PIG-3580: MIN, MAX and AVG functions for BigDecimal and BigInteger (harichinnan via cheolsoo)
+
 PIG-3569: SUM function for BigDecimal and BigInteger (harichinnan via rohini)
 
 PIG-3505: Make AvroStorage sync interval take default from io.file.buffer.size (rohini)
@@ -51,6 +53,10 @@ PIG-3484: Make the size of pig.script property configurable (cheolsoo)
 OPTIMIZATIONS
  
 BUG FIXES
+
+PIG-3576: NPE due to PIG-3549 when job never gets submitted (lbendig via cheolsoo)
+
+PIG-3525: PigStats.get() and ScriptState.get() shouldn't return MR-specific objects (cheolsoo)
 
 PIG-3568: Define the semantics of POStatus.STATUS_NULL (mwagner via cheolsoo)
 

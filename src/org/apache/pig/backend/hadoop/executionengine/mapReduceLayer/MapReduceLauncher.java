@@ -537,7 +537,7 @@ public class MapReduceLauncher extends Launcher{
 
             for (int i=0; i<jc.getFailedJobs().size(); i++) {
                 Job j = jc.getFailedJobs().get(i);
-                msg.append("JobID: " + j.getAssignedJobID().toString() + " Reason: " + j.getMessage());
+                msg.append("JobID: " + String.valueOf(j.getAssignedJobID()) + " Reason: " + j.getMessage());
                 if (i!=jc.getFailedJobs().size()-1) {
                     msg.append("\n");
                 }
