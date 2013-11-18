@@ -22,10 +22,10 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 import java.util.Iterator;
-import java.util.Properties;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigConfiguration;
+import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -39,11 +39,13 @@ import org.junit.Test;
  * Test POPartialAgg runtime
  */
 public class TestPOPartialAggPlan  {
-    PigContext pc;
+    private static PigContext pc;
+    private static PigServer ps;
 
     @Before
     public void setUp() throws ExecException {
-        pc = new PigContext(ExecType.LOCAL, new Properties());
+        ps = new PigServer(ExecType.LOCAL);
+        pc = ps.getPigContext();
         pc.connect();
     }
 

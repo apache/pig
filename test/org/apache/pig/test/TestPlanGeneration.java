@@ -20,12 +20,12 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 import java.io.IOException;
-import java.util.Properties;
 
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.ExecType;
 import org.apache.pig.Expression;
 import org.apache.pig.LoadMetadata;
+import org.apache.pig.PigServer;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceStatistics;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -57,11 +57,13 @@ import org.junit.Test;
 
 public class TestPlanGeneration {
 
-    static PigContext pc;
+    private static PigContext pc;
+    private static PigServer ps;
 
     @BeforeClass
     public static void setUp() throws ExecException {
-        pc = new PigContext(ExecType.LOCAL, new Properties());
+        ps = new PigServer(ExecType.LOCAL);
+        pc = ps.getPigContext();
         pc.connect();
     }
 

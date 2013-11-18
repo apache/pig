@@ -33,7 +33,6 @@ import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Properties;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
@@ -55,6 +54,7 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
@@ -109,7 +109,8 @@ public class TestJobControlCompiler {
     final String testUDFFileName = className+".class";
 
     // JobControlCompiler setup
-    PigContext pigContext = new PigContext(ExecType.MAPREDUCE, new Properties());
+    PigServer pigServer = new PigServer(ExecType.MAPREDUCE);
+    PigContext pigContext = pigServer.getPigContext();
     pigContext.connect();
     pigContext.addJar(tmpFile.getAbsolutePath());
     JobControlCompiler jobControlCompiler = new JobControlCompiler(pigContext, CONF);
@@ -168,7 +169,8 @@ public class TestJobControlCompiler {
         zipArchives.add(textFile);
         final List<File> tarArchives = createFiles(".tgz", ".tar.gz", ".tar");
 
-        final PigContext pigContext = new PigContext();
+        final PigServer pigServer = new PigServer(ExecType.MAPREDUCE);
+        final PigContext pigContext = pigServer.getPigContext();
         pigContext.connect();
         pigContext.getProperties().put("pig.streaming.ship.files",
                 StringUtils.join(zipArchives, ","));

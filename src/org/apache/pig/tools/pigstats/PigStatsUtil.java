@@ -161,8 +161,7 @@ public class PigStatsUtil {
     }
 
     public static void setStatsMap(Map<String, List<PigStats>> statsMap) {
-        EmbeddedPigStats stats = new EmbeddedPigStats(statsMap);
-        PigStats.set(stats);
+        PigStats.start(new EmbeddedPigStats(statsMap));
     }
 
 
