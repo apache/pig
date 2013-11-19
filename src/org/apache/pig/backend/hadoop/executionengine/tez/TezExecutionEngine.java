@@ -22,8 +22,10 @@ import java.util.UUID;
 
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.ScriptState;
 import org.apache.pig.tools.pigstats.tez.TezScriptState;
+import org.apache.pig.tools.pigstats.tez.TezStats;
 
 public class TezExecutionEngine extends HExecutionEngine {
 
@@ -32,8 +34,15 @@ public class TezExecutionEngine extends HExecutionEngine {
         this.launcher = new TezLauncher();
     }
 
+    @Override
     public ScriptState instantiateScriptState() {
-        return new TezScriptState(UUID.randomUUID().toString());
+        TezScriptState ss = new TezScriptState(UUID.randomUUID().toString());
+        ss.setPigContext(pigContext);
+        return ss;
+    }
+
+    @Override
+    public PigStats instantiatePigStats() {
+        return new TezStats(pigContext);
     }
 }
-
