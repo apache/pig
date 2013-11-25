@@ -61,7 +61,7 @@ public class TezJobControlCompiler {
             Configuration conf, TezPlanContainer planContainer)
                     throws JobCreationException {
         int timeToSleep;
-        String defaultPigJobControlSleep = pigContext.getExecType().isLocal() ? "100" : "5000";
+        String defaultPigJobControlSleep = pigContext.getExecType().isLocal() ? "100" : "1000";
         String pigJobControlSleep = tezConf.get("pig.jobcontrol.sleep", defaultPigJobControlSleep);
         if (!pigJobControlSleep.equals(defaultPigJobControlSleep)) {
             log.info("overriding default JobControl sleep (" +

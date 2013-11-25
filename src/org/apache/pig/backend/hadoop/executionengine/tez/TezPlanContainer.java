@@ -17,9 +17,12 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.tez;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +34,7 @@ import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.plan.PlanException;
+import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.JarManager;
 
 public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
@@ -107,20 +111,50 @@ public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
 
     public void split(TezPlanContainerNode planNode) throws PlanException {
         TezOperPlan tezOperPlan = planNode.getNode();
+        TezOperator operToSegment = null;
+        List<TezOperator> succs = new ArrayList<TezOperator>();
         for (TezOperator tezOper : tezOperPlan) {
             if (tezOper.needSegmentBelow() && tezOperPlan.getSuccessors(tezOper)!=null) {
-                for (TezOperator succ : tezOperPlan.getSuccessors(tezOper)) {
-                    tezOperPlan.disconnect(tezOper, succ);
-                    TezOperPlan newOperPlan = new TezOperPlan();
-                    tezOperPlan.moveTree(succ, newOperPlan);
-                    TezPlanContainerNode newPlanNode = new TezPlanContainerNode(tezOper.getOperatorKey(), newOperPlan);
-                    add(newPlanNode);
-                    connect(planNode, newPlanNode);
-                    split(planNode);
-                    split(newPlanNode);
-                }
+                operToSegment = tezOper;
+                succs.addAll(tezOperPlan.getSuccessors(tezOper));
+                break;
             }
         }
+        if (operToSegment != null) {
+            for (TezOperator succ : succs) {
+                tezOperPlan.disconnect(operToSegment, succ);
+                TezOperPlan newOperPlan = new TezOperPlan();
+                List<TezPlanContainerNode> containerSuccs = new ArrayList<TezPlanContainerNode>();
+                if (getSuccessors(planNode)!=null) {
+                    containerSuccs.addAll(getSuccessors(planNode));
+                }
+                tezOperPlan.moveTree(succ, newOperPlan);
+                String scope = operToSegment.getOperatorKey().getScope();
+                TezPlanContainerNode newPlanNode = new TezPlanContainerNode(new OperatorKey(scope, NodeIdGenerator.getGenerator().getNextNodeId(scope)), newOperPlan);
+                add(newPlanNode);
+                for (TezPlanContainerNode containerNodeSucc : containerSuccs) {
+                    disconnect(planNode, containerNodeSucc);
+                    connect(newPlanNode, containerNodeSucc);
+                }
+                connect(planNode, newPlanNode);
+                split(newPlanNode);
+            }
+            split(planNode);
+        }
+    }
+    
+    @Override
+    public String toString() {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(baos);
+        TezPlanContainerPrinter printer = new TezPlanContainerPrinter(ps, this);
+        printer.setVerbose(true);
+        try {
+            printer.visit();
+        } catch (VisitorException e) {
+            throw new RuntimeException(e);
+        }
+        return baos.toString();
     }
 }
 

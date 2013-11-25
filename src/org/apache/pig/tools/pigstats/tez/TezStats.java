@@ -163,9 +163,11 @@ public class TezStats extends PigStats {
         DAG dag = tezJob.getDag();
         for (String name : tezOpVertexMap.keySet()) {
             Vertex v = dag.getVertex(name);
-            byte[] bb = v.getProcessorDescriptor().getUserPayload();
-            Configuration conf = TezUtils.createConfFromUserPayload(bb);
-            addVertexStats(name, conf, succeeded);
+            if (v != null) {
+                byte[] bb = v.getProcessorDescriptor().getUserPayload();
+                Configuration conf = TezUtils.createConfFromUserPayload(bb);
+                addVertexStats(name, conf, succeeded);
+            }
         }
         if (!succeeded) {
             errorMessage = tezJob.getMessage();

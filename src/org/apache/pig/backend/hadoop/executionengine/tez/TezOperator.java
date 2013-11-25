@@ -65,7 +65,26 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     // Indicates that the plan creation is complete
     boolean closed = false;
     
+    // Indicate whether we need to split the DAG below the operator
+    // The result is two or more DAG connected DAG inside the same plan container
     boolean segmentBelow = false;
+    
+    // Indicates if this is a limit after a sort
+    boolean limitAfterSort = false;
+    
+    //Indicates if this job is an order by job
+    boolean globalSort = false;
+    
+    //The quantiles file name if globalSort is true
+    String quantFile;
+    
+    //The sort order of the columns;
+    //asc is true and desc is false
+    boolean[] sortOrder;
+    
+    // Last POLimit value in this map reduce operator, needed by LimitAdjuster
+    // to add additional map reduce operator with 1 reducer after this
+    long limit = -1;
 
     // Types of blocking operators. For now, we only support the following ones.
     private static enum OPER_FEATURE {
@@ -186,6 +205,38 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
 
     public boolean needSegmentBelow() {
         return segmentBelow;
+    }
+    
+    public String getQuantFile() {
+        return quantFile;
+    }
+
+    public void setQuantFile(String quantFile) {
+        this.quantFile = quantFile;
+    }
+
+    public void setSortOrder(boolean[] sortOrder) {
+        if(null == sortOrder) return;
+        this.sortOrder = new boolean[sortOrder.length];
+        for(int i = 0; i < sortOrder.length; ++i) {
+            this.sortOrder[i] = sortOrder[i];
+        }
+    }
+    
+    public boolean[] getSortOrder() {
+        return sortOrder;
+    }
+    
+    public void setGlobalSort(boolean globalSort) {
+        this.globalSort = globalSort;
+    }
+    
+    public boolean isGlobalSort() {
+        return globalSort;
+    }
+    
+    public boolean isLimitAfterSort() {
+        return limitAfterSort;
     }
 }
 

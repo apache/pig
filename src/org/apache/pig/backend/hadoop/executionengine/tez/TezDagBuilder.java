@@ -28,14 +28,20 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.OutputFormat;
+import org.apache.hadoop.mapreduce.Partitioner;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.api.records.LocalResourceType;
+import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.StoreFuncInterface;
@@ -65,6 +71,7 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCo
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigIntWritableComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigLongWritableComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigTupleWritableComparator;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.WeightedRangePartitioner;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigCombiner;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigInputFormat;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigOutputFormat;
@@ -284,6 +291,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         if (leaves.size() == 1 && leaves.get(0) instanceof POLocalRearrange) {
             byte keyType = ((POLocalRearrange)leaves.get(0)).getKeyType();
             setIntermediateOutputKeyValue(keyType, conf);
+            conf.set("pig.reduce.key.type", Byte.toString(keyType));
         }
 
         // Configure the classes for incoming shuffles to this TezOp
@@ -296,11 +304,32 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             conf.set("pig.reduce.key.type", Byte.toString(keyType));
             setIntermediateInputKeyValue(keyType, conf);
             conf.setClass("pig.input.handler.class", ShuffledInputHandler.class, InputHandler.class);
+            conf.set("pig.reduce.key.type", Byte.toString(keyType));
         } else {
             conf.setClass("pig.input.handler.class", FileInputHandler.class, InputHandler.class);
         }
 
         conf.setClass("mapreduce.outputformat.class", PigOutputFormat.class, OutputFormat.class);
+        
+        if(tezOp.isGlobalSort() || tezOp.isLimitAfterSort()){
+            if (tezOp.isGlobalSort()) {
+                FileSystem fs = FileSystem.get(conf);
+                Path quantFilePath = new Path(tezOp.getQuantFile() + "/part-r-00000");
+                FileStatus fstat = fs.getFileStatus(quantFilePath);
+                LocalResource quantFileResource = LocalResource.newInstance(
+                        ConverterUtils.getYarnUrlFromPath(fstat.getPath()),
+                        LocalResourceType.FILE,
+                        LocalResourceVisibility.APPLICATION,
+                        fstat.getLen(),
+                        fstat.getModificationTime());
+                localResources.put(quantFilePath.getName(), quantFileResource);
+                conf.set("pig.quantilesFile", fstat.getPath().toString());
+                conf.set("pig.sortOrder",
+                        ObjectSerializer.serialize(tezOp.getSortOrder()));
+                conf.setClass("mapreduce.job.partitioner.class", WeightedRangePartitioner.class, 
+                        Partitioner.class);
+            }
+        }
 
         // Serialize the execution plan
         conf.set(PigProcessor.PLAN, ObjectSerializer.serialize(tezOp.plan));

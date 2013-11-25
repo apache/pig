@@ -740,8 +740,6 @@ public class JobControlCompiler{
             }
 
             if(mro.isGlobalSort() || mro.isLimitAfterSort()){
-                // Only set the quantiles file and sort partitioner if we're a
-                // global sort, not for limit after sort.
                 if (mro.isGlobalSort()) {
                     String symlink = addSingleFileToDistributedCache(
                             pigContext, conf, mro.getQuantFile(), "pigsample");

@@ -50,7 +50,7 @@ public class TezOperPlan extends OperatorPlan<TezOperator> {
         try {
             printer.visit();
         } catch (VisitorException e) {
-            // TODO Auto-generated catch block
+            throw new RuntimeException(e);
         }
         return baos.toString();
     }

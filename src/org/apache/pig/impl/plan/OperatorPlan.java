@@ -290,7 +290,15 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
      * @throws PlanException 
      */
     public void moveTree(E root, OperatorPlan<E> newPlan) throws PlanException {
-        List<E> succs = getSuccessors(root);
+        newPlan.add(root);
+        if (getSuccessors(root) == null) {
+            remove(root);
+            return;
+        }
+        
+        List<E> succs = new ArrayList<E>();
+        succs.addAll(getSuccessors(root));
+        
         for (E succ : succs) {
             moveTree(succ, newPlan);
         }

@@ -65,5 +65,10 @@ public class TezPlanContainerNode extends Operator<TezPlanContainerVisitor>{
     public int hashCode() {
         return getNode().hashCode();
     }
+    
+    @Override
+    public String toString() {
+        return getNode().toString();
+    }
 }
 
