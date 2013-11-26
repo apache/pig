@@ -500,6 +500,34 @@ public class TestPigServer {
         assertEquals(expectedSchema, dumpedSchema);
     }
 
+    private void registerScalarScript(boolean useScalar, String expectedSchemaStr) throws IOException {
+        pig.registerQuery("A = load 'adata' AS (a: int, b: int);");
+        //scalar
+        pig.registerQuery("C = FOREACH A GENERATE *;");
+        String overrideScalar = useScalar ? "C = FILTER A BY b % 2 == 0; " : "";
+        pig.registerQuery("B = FOREACH (GROUP A BY a) { " +
+                overrideScalar +
+                "D = FILTER A BY b % 2 == 1;" +
+                "GENERATE group AS a, A.b AS every, C.b AS even, D.b AS odd;" +
+                "};");
+        Schema dumpedSchema = pig.dumpSchema("B");
+        Schema expectedSchema = Utils.getSchemaFromString(
+                expectedSchemaStr);
+        assertEquals(expectedSchema, dumpedSchema);
+    }
+
+    // PIG-3581
+    @Test
+    public void testScalarPrecedence() throws Throwable {
+        registerScalarScript(true, "a: int,every: {(b: int)},even: {(b: int)},odd: {(b: int)}");
+    }
+
+    // PIG-3581
+    @Test
+    public void testScalarResolution() throws Throwable {
+        registerScalarScript(false, "a: int,every: {(b: int)},even: int,odd: {(b: int)}");
+    }
+
     @Test
     public void testExplainXmlComplex() throws Throwable {
         pig.registerQuery("a = load 'a' as (site: chararray, count: int, itemCounts: bag { itemCountsTuple: tuple (type: chararray, typeCount: int, f: float, m: map[]) } ) ;") ;

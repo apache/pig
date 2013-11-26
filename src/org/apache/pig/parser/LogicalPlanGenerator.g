@@ -1759,15 +1759,17 @@ alias_col_ref[LogicalExpressionPlan plan] returns[LogicalExpression expr]
            throw new PlanGenerationFailureException( input, loc, e );
        }
 
-       Operator op = builder.lookupOperator( alias );
-       if( op != null && ( schema == null || schema.getFieldPosition( alias ) == -1 ) ) {
-           $expr = new ScalarExpression( plan, op,
-               inForeachPlan ? $foreach_clause::foreachOp : $GScope::currentOp );
-           $expr.setLocation( loc );
+       // PIG-3581
+       // check within foreach scope before looking at outer scope for scalar
+       if( inForeachPlan && ($foreach_plan::operators).containsKey(alias)) {
+           $expr = builder.buildProjectExpr( loc, $plan, $GScope::currentOp,
+               $foreach_plan::operators, $foreach_plan::exprPlans, alias, 0 );
        } else {
-           if( inForeachPlan ) {
-               $expr = builder.buildProjectExpr( loc, $plan, $GScope::currentOp,
-                    $foreach_plan::operators, $foreach_plan::exprPlans, alias, 0 );
+           Operator op = builder.lookupOperator( alias );
+           if( op != null && ( schema == null || schema.getFieldPosition( alias ) == -1 ) ) {
+               $expr = new ScalarExpression( plan, op,
+                   inForeachPlan ? $foreach_clause::foreachOp : $GScope::currentOp );
+               $expr.setLocation( loc );
            } else {
                $expr = builder.buildProjectExpr( loc, $plan, $GScope::currentOp,
                    $statement::inputIndex, alias, 0 );
