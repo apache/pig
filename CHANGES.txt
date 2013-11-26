@@ -32,6 +32,8 @@ PIG-3480: TFile-based tmpfile compression crashes in some cases (dvryaboy via an
 
 BUG FIXES
 
+PIG-3567: LogicalPlanPrinter throws OOM for large scripts (aniket486)
+
 PIG-3579: pig.script's deserialized version does not maintain line numbers (jgzhang via aniket486)
 
 PIG-3570: Rollback PIG-3060 (daijy)
