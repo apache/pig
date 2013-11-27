@@ -386,13 +386,11 @@
       <artifact name="tez-mapreduce" ext="jar" />
       <artifact name="tez-mapreduce" type="tests" ext="jar" m:classifier="tests" />
     </dependency>
-    <dependency org="org.apache.tez" name="tez-mapreduce-tests" rev="${tez.version}"
+    <dependency org="org.apache.tez" name="tez-tests" rev="${tez.version}"
        conf="hadoop23->master">
-      <artifact name="tez-mapreduce-tests" ext="jar" />
-      <artifact name="tez-mapreduce-tests" type="tests" ext="jar" m:classifier="tests" />
+      <artifact name="tez-tests" ext="jar" />
+      <artifact name="tez-tests" type="tests" ext="jar" m:classifier="tests" />
     </dependency>
-    <dependency org="org.apache.tez" name="tez-yarn-client" rev="${tez.version}"
-       conf="hadoop23->master"/>
   </dependencies>
 </ivy-module>
 
