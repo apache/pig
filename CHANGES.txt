@@ -54,6 +54,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-2132: [Piggybank] MIN and MAX functions should ignore nulls (rekhajoshm via cheolsoo)
+
 PIG-3581: Incorrect scope resolution with nested foreach (aniket486)
 
 PIG-3285: Jobs using HBaseStorage fail to ship dependency jars (ndimiduk via cheolsoo)

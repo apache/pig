@@ -27,19 +27,19 @@ import org.apache.pig.data.DataType;
 /**
   * math.max implements a binding to the Java function
  * {@link java.lang.Math#max(long,long) Math.max(long,long)} for computing the
- * the max value of the arguments. The returned value will be an nt which is 
+ * the max value of the arguments. The returned value will be an nt which is
  * the maximum of the inputs.
- * 
+ *
  * <dl>
  * <dt><b>Parameters:</b></dt>
  * <dd><code>value</code> - <code>2 long values</code>.</dd>
- * 
+ *
  * <dt><b>Return Value:</b></dt>
  * <dd><code>long</code> max value of two input</dd>
- * 
+ *
  * <dt><b>Return Schema:</b></dt>
  * <dd>max_inputSchema</dd>
- * 
+ *
  * <dt><b>Example:</b></dt>
  * <dd><code>
  * register math.jar;<br/>
@@ -47,33 +47,37 @@ import org.apache.pig.data.DataType;
  * B = foreach A generate float1, math.max(float1);
  * </code></dd>
  * </dl>
- * 
+ *
  * @see Math#max(double)
  * @see
  * @author ajay garg
  *
  */
 public class LongMax extends EvalFunc<Long>{
-	/**
-	 * java level API
-	 * @param input expects a two numeric value
-	 * @param output returns a single numeric value, which is the smaller of two inputs
-	 */
-	public Long exec(Tuple input) throws IOException {
+    /**
+     * java level API
+     * @param input expects a two numeric value
+     * @param output returns a single numeric value, which is the smaller of two inputs
+     */
+    public Long exec(Tuple input) throws IOException {
         if (input == null || input.size() == 0)
             return null;
 
         try{
             Long first = (Long)input.get(0);
             Long second = (Long)input.get(1);
-		    return Math.max(first, second);
+            if (first==null)
+                return second;
+            if (second==null)
+                return first;
+            return Math.max(first, second);
         } catch (Exception e){
             throw new IOException("Caught exception processing input row ", e);
         }
-	}
-	
-	@Override
-	public Schema outputSchema(Schema input) {
+    }
+
+    @Override
+    public Schema outputSchema(Schema input) {
         return new Schema(new Schema.FieldSchema(getSchemaName(this.getClass().getName().toLowerCase(), input), DataType.LONG));
-	}
+    }
 }

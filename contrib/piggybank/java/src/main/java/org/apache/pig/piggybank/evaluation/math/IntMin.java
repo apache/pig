@@ -27,19 +27,19 @@ import org.apache.pig.data.DataType;
 /**
   * math.min implements a binding to the Java function
  * {@link java.lang.Math#min(int,int) Math.min(int,int)} for computing the
- * the min value of the arguments. The returned value will be an int which is 
+ * the min value of the arguments. The returned value will be an int which is
  * the minimum of the inputs.
- * 
+ *
  * <dl>
  * <dt><b>Parameters:</b></dt>
  * <dd><code>value</code> - <code>2 int values</code>.</dd>
- * 
+ *
  * <dt><b>Return Value:</b></dt>
  * <dd><code>int</code> min value of two input</dd>
- * 
+ *
  * <dt><b>Return Schema:</b></dt>
  * <dd>min_inputSchema</dd>
- * 
+ *
  * <dt><b>Example:</b></dt>
  * <dd><code>
  * register math.jar;<br/>
@@ -47,33 +47,37 @@ import org.apache.pig.data.DataType;
  * B = foreach A generate float1, math.min(float1);
  * </code></dd>
  * </dl>
- * 
+ *
  * @see Math#min(double)
  * @see
  * @author ajay garg
  *
  */
 public class IntMin extends EvalFunc<Integer>{
-	/**
-	 * java level API
-	 * @param input expects a two numeric value
-	 * @param output returns a single numeric value, which is the smaller of two inputs
-	 */
-	public Integer exec(Tuple input) throws IOException {
+    /**
+     * java level API
+     * @param input expects a two numeric value
+     * @param output returns a single numeric value, which is the smaller of two inputs
+     */
+    public Integer exec(Tuple input) throws IOException {
         if (input == null || input.size() == 0)
             return null;
 
         try{
             Integer first = (Integer)input.get(0);
             Integer second = (Integer)input.get(1);
-		    return Math.min(first, second);
+            if (first==null)
+                return first;
+            if (second==null)
+                return second;
+            return Math.min(first, second);
         } catch (Exception e){
             throw new IOException("Caught exception processing input row ", e);
         }
-	}
-	
-	@Override
-	public Schema outputSchema(Schema input) {
+    }
+
+    @Override
+    public Schema outputSchema(Schema input) {
         return new Schema(new Schema.FieldSchema(getSchemaName(this.getClass().getName().toLowerCase(), input), DataType.INTEGER));
-	}
+    }
 }
