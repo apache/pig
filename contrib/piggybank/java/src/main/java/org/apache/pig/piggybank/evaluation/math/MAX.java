@@ -31,57 +31,61 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 
 /**
  * math.MAX implements a binding to the Java function
-* {@link java.lang.Math#max(double,double) Math.max(double,double)}. 
-* Given a tuple with two numeric values it returns the
-* large value.
-* 
-* <dl>
-* <dt><b>Parameters:</b></dt>
-* <dd><code>value</code> - <code>Tuple containing two double</code>.</dd>
-* 
-* <dt><b>Return Value:</b></dt>
-* <dd><code>double</code> </dd>
-* 
-* <dt><b>Return Schema:</b></dt>
-* <dd>MAX_inputSchema</dd>
-* 
-* <dt><b>Example:</b></dt>
-* <dd><code>
-* register math.jar;<br/>
-* A = load 'mydata' using PigStorage() as ( float1 );<br/>
-* B = foreach A generate float1, math.MAX(float1);
-* </code></dd>
-* </dl>
-* 
-* @see Math#MAX(double,double)
-* @see
-* @author ajay garg
-*
-*/
+ * {@link java.lang.Math#max(double,double) Math.max(double,double)}.
+ * Given a tuple with two numeric values it returns the
+ * large value.
+ *
+ * <dl>
+ * <dt><b>Parameters:</b></dt>
+ * <dd><code>value</code> - <code>Tuple containing two double</code>.</dd>
+ *
+ * <dt><b>Return Value:</b></dt>
+ * <dd><code>double</code> </dd>
+ *
+ * <dt><b>Return Schema:</b></dt>
+ * <dd>MAX_inputSchema</dd>
+ *
+ * <dt><b>Example:</b></dt>
+ * <dd><code>
+ * register math.jar;<br/>
+ * A = load 'mydata' using PigStorage() as ( float1 );<br/>
+ * B = foreach A generate float1, math.MAX(float1);
+ * </code></dd>
+ * </dl>
+ *
+ * @see Math#MAX(double,double)
+ * @see
+ * @author ajay garg
+ *
+ */
 public class MAX extends EvalFunc<Double>{
-	/**
-	 * java level API
-	 * @param input expects a tuple containing two numeric DataAtom value
-	 * @param output returns a single numeric value, which is 
-	 * the the larger value among the two.
-	 */
-	@Override
-	public Double exec(Tuple input) throws IOException {
+    /**
+     * java level API
+     * @param input expects a tuple containing two numeric DataAtom value
+     * @param output returns a single numeric value, which is
+     * the the larger value among the two.
+     */
+    @Override
+    public Double exec(Tuple input) throws IOException {
         if (input == null || input.size() < 2)
             return null;
 
-		try{
-			Double first = DataType.toDouble(input.get(0));
-			Double second  = DataType.toDouble(input.get(1));
-			return Math.max(first, second);
-		} catch (NumberFormatException nfe){
+        try{
+            Double first = DataType.toDouble(input.get(0));
+            Double second  = DataType.toDouble(input.get(1));
+            if (first==null)
+                return second;
+            if (second==null)
+                return first;
+            return Math.max(first, second);
+        } catch (NumberFormatException nfe){
             System.err.println("Failed to process input; error - " + nfe.getMessage());
             return null;
         } catch(Exception e){
             throw new IOException("Caught exception in MAX.Initial", e);
-		}
-		
-	}
+        }
+
+    }
 
     @Override
     public Schema outputSchema(Schema input) {
@@ -101,6 +105,5 @@ public class MAX extends EvalFunc<Double>{
         Util.addToFunctionList(funcList, LongMax.class.getName(), DataType.LONG);
 
         return funcList;
-   }
+    }
 }
-
