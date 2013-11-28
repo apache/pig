@@ -28,6 +28,8 @@ PIG-3419: Pluggable Execution Engine (achalsoni81 via cheolsoo)
 
 IMPROVEMENTS
 
+PIG-3590: remove PartitionFilterOptimizer from trunk (aniket486)
+
 PIG-3580: MIN, MAX and AVG functions for BigDecimal and BigInteger (harichinnan via cheolsoo)
 
 PIG-3569: SUM function for BigDecimal and BigInteger (harichinnan via rohini)
@@ -54,7 +56,15 @@ OPTIMIZATIONS
  
 BUG FIXES
 
-PIG-3576: NPE due to PIG-3549 when job never gets submitted (lbendig via cheolsoo)
+PIG-3566: Cannot set useMatches of REGEX_EXTRACT_ALL and REGEX_EXTRACT (nezihyigitbasi via cheolsoo)
+
+PIG-2132: [Piggybank] MIN and MAX functions should ignore nulls (rekhajoshm via cheolsoo)
+
+PIG-3581: Incorrect scope resolution with nested foreach (aniket486)
+
+PIG-3285: Jobs using HBaseStorage fail to ship dependency jars (ndimiduk via cheolsoo)
+
+PIG-3582: Document SUM, MIN, MAX, and AVG functions for BigInteger and BigDecimal (harichinnan via cheolsoo)
 
 PIG-3525: PigStats.get() and ScriptState.get() shouldn't return MR-specific objects (cheolsoo)
 
@@ -112,6 +122,12 @@ PIG-3047: Check the size of a relation before adding it to distributed cache in 
 PIG-3480: TFile-based tmpfile compression crashes in some cases (dvryaboy via aniket486)
 
 BUG FIXES
+
+PIG-3576: NPE due to PIG-3549 when job never gets submitted (lbendig via cheolsoo)
+
+PIG-3567: LogicalPlanPrinter throws OOM for large scripts (aniket486)
+
+PIG-3579: pig.script's deserialized version does not maintain line numbers (jgzhang via aniket486)
 
 PIG-3570: Rollback PIG-3060 (daijy)
 

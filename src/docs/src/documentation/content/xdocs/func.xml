@@ -87,7 +87,7 @@ decoded_strings = FOREACH encoded_strings GENERATE UrlDecode(encoded, 'UTF-8');
                <p>expression</p>
             </td>
             <td>
-               <p>Any expression whose result is a bag. The elements of the bag should be data type int, long, float, or double.</p>
+               <p>Any expression whose result is a bag. The elements of the bag should be data type int, long, float, double, bigdecimal, biginteger or bytearray.</p>
             </td>
          </tr> 
    </table>
@@ -150,6 +150,12 @@ DUMP C;
                <p>double </p>
             </td>
             <td>
+               <p>bigdecimal </p>
+            </td>
+            <td>
+               <p>biginteger </p>
+            </td>
+            <td>
                <p>chararray </p>
             </td>
             <td>
@@ -173,6 +179,12 @@ DUMP C;
                <p>double </p>
             </td>
             <td>
+               <p>bigdecimal *</p>
+            </td>
+            <td>
+               <p>bigdecimal *</p>
+            </td>
+            <td>
                <p>error </p>
             </td>
             <td>
@@ -180,6 +192,7 @@ DUMP C;
             </td>
          </tr> 
    </table>
+   <p>* Average values for datatypes bigdecimal and biginteger have precision setting <a href="http://docs.oracle.com/javase/7/docs/api/java/math/MathContext.html#DECIMAL128">java.math.MathContext.DECIMAL128</a>.</p>
    </section></section>
    
    <!-- ++++++++++++++++++++++++++++++++++++++++++++++ --> 
@@ -553,7 +566,7 @@ Y = filter X by IsEmpty(SSN_NAME);
                <p>expression</p>
             </td>
             <td>
-               <p>An expression with data types int, long, float, double, or chararray.</p>
+               <p>An expression with data types int, long, float, double, bigdecimal, biginteger, chararray, datetime or bytearray.</p>
             </td>
          </tr> 
    </table></section>
@@ -614,6 +627,12 @@ DUMP X;
                <p>double </p>
             </td>
             <td>
+               <p>bigdecimal </p>
+            </td>
+            <td>
+               <p>biginteger </p>
+            </td>
+            <td>
                <p>chararray </p>
             </td>
             <td>
@@ -638,6 +657,12 @@ DUMP X;
             </td>
             <td>
                <p>double </p>
+            </td>
+            <td>
+               <p>bigdecimal </p>
+            </td>
+            <td>
+               <p>biginteger </p>
             </td>
             <td>
                <p>chararray </p>
@@ -676,7 +701,7 @@ DUMP X;
                <p>expression</p>
             </td>
             <td>
-               <p>An expression with data types int, long, float, double, or chararray.</p>
+               <p>An expression with data types int, long, float, double, bigdecimal, biginteger, chararray, datetime or bytearray.</p>
             </td>
          </tr> 
    </table></section>
@@ -738,6 +763,12 @@ DUMP X;
                <p>double </p>
             </td>
             <td>
+               <p>bigdecimal </p>
+            </td>
+            <td>
+               <p>biginteger </p>
+            </td>
+            <td>
                <p>chararray </p>
             </td>
             <td>
@@ -762,6 +793,12 @@ DUMP X;
             </td>
             <td>
                <p>double </p>
+            </td>
+            <td>
+               <p>bigdecimal </p>
+            </td>
+            <td>
+               <p>biginteger </p>
             </td>
             <td>
                <p>chararray </p>
@@ -1045,7 +1082,7 @@ DUMP X;
                <p>expression</p>
             </td>
             <td>
-               <p>An expression with data types int, long, float, double, or bytearray cast as double.</p>
+               <p>An expression with data types int, long, float, double, bigdecimal, biginteger or bytearray cast as double.</p>
             </td>
          </tr> 
    </table></section>
@@ -1102,6 +1139,12 @@ DUMP X;
                <p>double </p>
             </td>
             <td>
+               <p>bigdecimal </p>
+            </td>
+            <td>
+               <p>biginteger </p>
+            </td>
+            <td>
                <p>chararray </p>
             </td>
             <td>
@@ -1123,6 +1166,12 @@ DUMP X;
             </td>
             <td>
                <p>double </p>
+            </td>
+            <td>
+               <p>bigdecimal </p>
+            </td>
+            <td>
+               <p>biginteger </p>
             </td>
             <td>
                <p>error </p>
