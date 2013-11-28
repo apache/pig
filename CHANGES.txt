@@ -123,6 +123,8 @@ PIG-3480: TFile-based tmpfile compression crashes in some cases (dvryaboy via an
 
 BUG FIXES
 
+PIG-3593: Import jython standard module fail on cluster (daijy)
+
 PIG-3576: NPE due to PIG-3549 when job never gets submitted (lbendig via cheolsoo)
 
 PIG-3567: LogicalPlanPrinter throws OOM for large scripts (aniket486)
