@@ -30,10 +30,10 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.PORelationToExprProject;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.JoinPackager;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PODistinct;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFilter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POJoinPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLimit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
@@ -100,7 +100,7 @@ public class SecondaryKeyOptimizer extends MROpPlanVisitor {
                 columns
                         .add(rearrange.getIndex()
                                 & PigNullableWritable.idxSpace);
-                
+
                 // The first item inside columnChainInfo is set to type Tuple.
                 // This value is not actually in use, but it intends to match
                 // the type of POProject in reduce side
@@ -111,13 +111,13 @@ public class SecondaryKeyOptimizer extends MROpPlanVisitor {
                     if (node instanceof POProject) {
                         POProject project = (POProject) node;
                         if(project.isProjectToEnd()){
-                            columnChainInfo.insert(project.getStartCol(), 
+                            columnChainInfo.insert(project.getStartCol(),
                                     project.getResultType());
                         }else {
                             columnChainInfo.insert(
                                     project.getColumns(), project.getResultType());
                         }
-                        
+
                         if (plan.getSuccessors(node) == null)
                             node = null;
                         else if (plan.getSuccessors(node).size() != 1) {
@@ -154,8 +154,7 @@ public class SecondaryKeyOptimizer extends MROpPlanVisitor {
 
         List<PhysicalOperator> mapLeaves = mr.mapPlan.getLeaves();
         if (mapLeaves == null || mapLeaves.size() != 1) {
-            log
-                    .debug("Expected map to have single leaf! Skip secondary key optimizing");
+            log.debug("Expected map to have single leaf! Skip secondary key optimizing");
             return;
         }
         PhysicalOperator mapLeaf = mapLeaves.get(0);
@@ -165,8 +164,7 @@ public class SecondaryKeyOptimizer extends MROpPlanVisitor {
             if (mapLeaf instanceof POLocalRearrange) {
                 SortKeyInfo sortKeyInfo = getSortKeyInfo((POLocalRearrange) mapLeaf);
                 if (sortKeyInfo == null) {
-                    log
-                            .debug("Cannot get sortKeyInfo from POLocalRearrange, skip secondary key optimizing");
+                    log.debug("Cannot get sortKeyInfo from POLocalRearrange, skip secondary key optimizing");
                     return;
                 }
                 sortKeyInfos.add(sortKeyInfo);
@@ -188,8 +186,7 @@ public class SecondaryKeyOptimizer extends MROpPlanVisitor {
                 return;
             }
         } catch (ExecException e) {
-            log
-                    .debug("Cannot get sortKeyInfo from POLocalRearrange, skip secondary key optimizing");
+            log.debug("Cannot get sortKeyInfo from POLocalRearrange, skip secondary key optimizing");
             return;
         }
 
@@ -200,15 +197,13 @@ public class SecondaryKeyOptimizer extends MROpPlanVisitor {
 
         List<PhysicalOperator> reduceRoots = mr.reducePlan.getRoots();
         if (reduceRoots.size() != 1) {
-            log
-                    .debug("Expected reduce to have single root, skip secondary key optimizing");
+            log.debug("Expected reduce to have single root, skip secondary key optimizing");
             return;
         }
 
         PhysicalOperator root = reduceRoots.get(0);
         if (!(root instanceof POPackage)) {
-            log
-                    .debug("Expected reduce root to be a POPackage, skip secondary key optimizing");
+            log.debug("Expected reduce root to be a POPackage, skip secondary key optimizing");
             return;
         }
 
@@ -217,7 +212,8 @@ public class SecondaryKeyOptimizer extends MROpPlanVisitor {
         PhysicalOperator currentNode = root;
         POForEach foreach = null;
         while (currentNode != null) {
-            if (currentNode instanceof POPackage && !(currentNode instanceof POJoinPackage)
+            if (currentNode instanceof POPackage
+                    && !(((POPackage) currentNode).getPkgr() instanceof JoinPackager)
                     || currentNode instanceof POFilter
                     || currentNode instanceof POLimit) {
                 List<PhysicalOperator> succs = mr.reducePlan
@@ -237,7 +233,7 @@ public class SecondaryKeyOptimizer extends MROpPlanVisitor {
                 return;
             }
         }
-        
+
         // We do not find a foreach (we shall not come here, a trick to fool findbugs)
         if (foreach==null)
             return;
@@ -355,7 +351,7 @@ public class SecondaryKeyOptimizer extends MROpPlanVisitor {
                 for (PhysicalOperator pred : preds) {
                     POLocalRearrange rearrange = (POLocalRearrange) pred;
                     rearrange.setUseSecondaryKey(true);
-                    if (rearrange.getIndex() == indexOfRearrangeToChange) { 
+                    if (rearrange.getIndex() == indexOfRearrangeToChange) {
                         // Try to find the POLocalRearrange for the secondary key
                         found = true;
                         setSecondaryPlan(mr.mapPlan, rearrange, secondarySortKeyInfo);
@@ -368,7 +364,7 @@ public class SecondaryKeyOptimizer extends MROpPlanVisitor {
                 }
             }
             POPackage pack = (POPackage) root;
-            pack.setUseSecondaryKey(true);
+            pack.getPkgr().setUseSecondaryKey(true);
         }
     }
 
@@ -443,7 +439,7 @@ public class SecondaryKeyOptimizer extends MROpPlanVisitor {
     // sort key.
     private static class SecondaryKeyDiscover {
         PhysicalPlan mPlan;
-        
+
         List<POSort> sortsToRemove = new ArrayList<POSort>();
 
         List<PODistinct> distinctsToChange = new ArrayList<PODistinct>();
@@ -461,7 +457,7 @@ public class SecondaryKeyOptimizer extends MROpPlanVisitor {
             this.sortKeyInfos = sortKeyInfos;
             this.secondarySortKeyInfo = secondarySortKeyInfo;
         }
-        
+
         public void process() throws FrontendException
         {
             List<PhysicalOperator> roots = mPlan.getRoots();
@@ -470,7 +466,7 @@ public class SecondaryKeyOptimizer extends MROpPlanVisitor {
                 processRoot(root);
             }
         }
-        
+
         public void processRoot(PhysicalOperator root) throws FrontendException {
             PhysicalOperator currentNode = root;
             while (currentNode!=null) {
@@ -486,10 +482,10 @@ public class SecondaryKeyOptimizer extends MROpPlanVisitor {
                          // We don't process foreach, since foreach is too complex to get right
                          currentNode instanceof POForEach)
                     break;
-                
+
                 if (sawInvalidPhysicalOper)
                     break;
-                
+
                 List<PhysicalOperator> succs = mPlan.getSuccessors(currentNode);
                 if (succs==null)
                     currentNode = null;
@@ -609,7 +605,7 @@ public class SecondaryKeyOptimizer extends MROpPlanVisitor {
     static private boolean collectColumnChain(PhysicalPlan plan,
             ColumnChainInfo columnChainInfo) throws PlanException {
         if (plan.getRoots().size() != 1) {
-        	return true;
+            return true;
         }
 
         PhysicalOperator currentNode = plan.getRoots().get(0);

@@ -5,7 +5,7 @@ MapReduce(-1) - -13:
 |       |   |
 |       |   Project[tuple][0] - -15
 |       |
-|       |---Package[tuple]{tuple} - -14
+|       |---Package(Packager)[tuple]{tuple} - -14
 |   Local Rearrange[tuple]{tuple}(true) - -10
 |   |   |
 |   |   Project[tuple][*] - -9
@@ -15,7 +15,7 @@ MapReduce(-1) - -13:
 |---MapReduce(-1) - -8:
     |   Store(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.impl.io.InterStorage) - -11
     |   |
-    |   |---Package[tuple]{Unknown} - -2975419344702132532
+    |   |---Package(Packager)[tuple]{Unknown} - -2975419344702132532
     |   Local Rearrange[tuple]{Unknown}(false) - -6555138338004402415
     |   |
     |   |---Load(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.io.InterStorage) - -7
@@ -27,7 +27,7 @@ MapReduce(-1) - -13:
         |       |   |
         |       |   Project[tuple][0] - -4
         |       |
-        |       |---Package[tuple]{tuple} - -3
+        |       |---Package(Packager)[tuple]{tuple} - -3
         |   Local Rearrange[tuple]{tuple}(true) - -2
         |   |   |
         |   |   Project[tuple][*] - -1

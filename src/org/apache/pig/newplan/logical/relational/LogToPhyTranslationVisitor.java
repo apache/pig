@@ -56,7 +56,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PONative;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage.PackageType;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PORank;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSkewedJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
@@ -64,6 +63,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.Packager.PackageType;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
 import org.apache.pig.data.SchemaTupleFrontend;
@@ -218,7 +218,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
         pushWalker(childWalker);
         //currentWalker.walk(this);
         currentWalker.walk(
-                new ExpToPhyTranslationVisitor( currentWalker.getPlan(), 
+                new ExpToPhyTranslationVisitor( currentWalker.getPlan(),
                         childWalker, filter, currentPlan, logToPhyMap ) );
         popWalker();
 
@@ -260,7 +260,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
             currentPlan = new PhysicalPlan();
             PlanWalker childWalker = new ReverseDependencyOrderWalkerWOSeenChk(plan);
             pushWalker(childWalker);
-            childWalker.walk(new ExpToPhyTranslationVisitor( currentWalker.getPlan(), 
+            childWalker.walk(new ExpToPhyTranslationVisitor( currentWalker.getPlan(),
                     childWalker, sort, currentPlan, logToPhyMap));
             sortPlans.add(currentPlan);
             popWalker();
@@ -357,7 +357,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                     expressionPlans.put(i,loRank.getRankColPlans());
 
                 POPackage poPackage = compileToLR_GR_PackTrio(loRank, null, flags, expressionPlans);
-                poPackage.setPackageType(PackageType.GROUP);
+                poPackage.getPkgr().setPackageType(PackageType.GROUP);
                 translateSoftLinks(loRank);
 
                 List<Boolean> flattenLst = Arrays.asList(true, false);
@@ -366,7 +366,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                 POProject feproj1 = new POProject(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), -1);
                 feproj1.addOriginalLocation(loRank.getAlias(), loRank.getLocation());
                 feproj1.setColumn(0);
-                feproj1.setResultType(poPackage.getKeyType());
+                feproj1.setResultType(poPackage.getPkgr().getKeyType());
                 feproj1.setStar(false);
                 feproj1.setOverloaded(false);
                 fep1.add(feproj1);
@@ -667,14 +667,14 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                 throw new VisitorException(msg, errCode, PigException.BUG, e);
             }
 
-            poPackage.setKeyType(DataType.TUPLE);
+            poPackage.getPkgr().setKeyType(DataType.TUPLE);
             poPackage.setResultType(DataType.TUPLE);
             poPackage.setNumInps(count);
             boolean inner[] = new boolean[count];
             for (int i=0;i<count;i++) {
                 inner[i] = true;
             }
-            poPackage.setInner(inner);
+            poPackage.getPkgr().setInner(inner);
 
             List<PhysicalPlan> fePlans = new ArrayList<PhysicalPlan>();
             List<Boolean> flattenLst = new ArrayList<Boolean>();
@@ -872,7 +872,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
         poFE.addOriginalLocation(foreach.getAlias(), foreach.getLocation());
         poFE.setResultType(DataType.BAG);
         logToPhyMap.put(foreach, poFE);
-        currentPlan.add(poFE); 
+        currentPlan.add(poFE);
 
         // generate cannot have multiple inputs
         List<Operator> op = foreach.getPlan().getPredecessors(foreach);
@@ -977,8 +977,8 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
 //        } else {
 //            int errCode = 2051;
 //            String msg = "Did not find a predecessor for Store." ;
-//            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG);            
-        }        
+//            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG);
+        }
 
         try {
             currentPlan.connect(from, store);
@@ -999,7 +999,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
             break;
         case REGULAR:
             POPackage poPackage = compileToLR_GR_PackTrio(cg, cg.getCustomPartitioner(), cg.getInner(), cg.getExpressionPlans());
-            poPackage.setPackageType(PackageType.GROUP);            
+            poPackage.getPkgr().setPackageType(PackageType.GROUP);
             logToPhyMap.put(cg, poPackage);
             break;
         case MERGE:
@@ -1350,8 +1350,8 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                     SchemaTupleFrontend.registerToGenerateIfPossible(mergedSchema, false, GenContext.MERGE_JOIN);
                 }
 
-                // inner join on two sorted inputs. We have less restrictive 
-                // implementation here in a form of POMergeJoin which doesn't 
+                // inner join on two sorted inputs. We have less restrictive
+                // implementation here in a form of POMergeJoin which doesn't
                 // require loaders to implement collectable interface.
                 try {
                     smj = new POMergeJoin(new OperatorKey(scope,nodeGen.getNextNodeId(scope)),
@@ -1414,7 +1414,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                         e.getErrorCode(),e.getErrorSource(),e);
             }
             logToPhyMap.put(loj, fe);
-            poPackage.setPackageType(POPackage.PackageType.JOIN);
+            poPackage.getPkgr().setPackageType(PackageType.JOIN);
         }
         translateSoftLinks(loj);
     }
@@ -1485,10 +1485,10 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
             }
         }
 
-        poPackage.setKeyType(type);
+        poPackage.getPkgr().setKeyType(type);
         poPackage.setResultType(DataType.TUPLE);
         poPackage.setNumInps(count);
-        poPackage.setInner(innerFlags);
+        poPackage.getPkgr().setInner(innerFlags);
         return poPackage;
     }
 
@@ -1502,7 +1502,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
         try{
             for(int i=0;i< inputs.size();i++){
                 PhysicalPlan fep1 = new PhysicalPlan();
-                POProject feproj1 = new POProject(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), 
+                POProject feproj1 = new POProject(new OperatorKey(scope, nodeGen.getNextNodeId(scope)),
                         parallel, i+1); //i+1 since the first column is the "group" field
                 feproj1.addOriginalLocation(alias, location);
                 feproj1.setResultType(DataType.BAG);
@@ -1656,8 +1656,8 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
         } else {
             int errCode = 2051;
             String msg = "Did not find a predecessor for Split." ;
-            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG);            
-        }        
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG);
+        }
 
         try {
             currentPlan.connect(from, physOp);
@@ -1688,7 +1688,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
         pushWalker(childWalker);
         //currentWalker.walk(this);
         currentWalker.walk(
-                new ExpToPhyTranslationVisitor( currentWalker.getPlan(), 
+                new ExpToPhyTranslationVisitor( currentWalker.getPlan(),
                         childWalker, loSplitOutput, currentPlan, logToPhyMap) );
         popWalker();
 
@@ -1722,7 +1722,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
      * with as many null's as dictated by the schema
      * @param fePlan the plan to update
      * @param joinInput the relation for which the corresponding bag is being checked
-     * @throws FrontendException 
+     * @throws FrontendException
      */
     public static void updateWithEmptyBagCheck(PhysicalPlan fePlan, Operator joinInput) throws FrontendException {
         LogicalSchema inputSchema = null;

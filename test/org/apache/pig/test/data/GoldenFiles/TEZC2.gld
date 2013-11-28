@@ -31,4 +31,4 @@ c: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-35
     |   |
     |   Project[bag][1] - scope-32
     |
-    |---b: Package[tuple]{int} - scope-27
+    |---b: Package(Packager)[tuple]{int} - scope-27

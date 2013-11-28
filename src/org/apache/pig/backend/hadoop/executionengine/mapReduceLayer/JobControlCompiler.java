@@ -20,7 +20,6 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -43,7 +42,6 @@ import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.mapred.Counters;
@@ -305,7 +303,7 @@ public class JobControlCompiler{
                 jobCtrl.addJob(job);
             }
         } catch (JobCreationException jce) {
-        	throw jce;
+            throw jce;
         } catch(Exception e) {
             int errCode = 2017;
             String msg = "Internal error creating job configuration.";
@@ -485,7 +483,7 @@ public class JobControlCompiler{
                     inp.add(ld.getLFile());
                 }
             }
-            
+
             if(!mro.reducePlan.isEmpty()){
                 log.info("Reduce phase detected, estimating # of required reducers.");
                 adjustNumReducers(plan, mro, nwJob);
@@ -699,7 +697,7 @@ public class JobControlCompiler{
                 nwJob.setReducerClass(PigMapReduce.Reduce.class);
 
                 if (mro.customPartitioner != null)
-                	nwJob.setPartitionerClass(PigContext.resolveClassName(mro.customPartitioner));
+                    nwJob.setPartitionerClass(PigContext.resolveClassName(mro.customPartitioner));
 
                 if(!pigContext.inIllustrator)
                     conf.set("pig.mapPlan", ObjectSerializer.serialize(mro.mapPlan));
@@ -719,7 +717,8 @@ public class JobControlCompiler{
                 }
                 if (!pigContext.inIllustrator)
                     conf.set("pig.reduce.package", ObjectSerializer.serialize(pack));
-                conf.set("pig.reduce.key.type", Byte.toString(pack.getKeyType()));
+                conf.set("pig.reduce.key.type",
+                        Byte.toString(pack.getPkgr().getKeyType()));
 
                 if (mro.getUseSecondaryKey()) {
                     nwJob.setGroupingComparatorClass(PigSecondaryKeyGroupComparator.class);
@@ -732,9 +731,11 @@ public class JobControlCompiler{
                 }
                 else
                 {
-                    Class<? extends WritableComparable> keyClass = HDataType.getWritableComparableTypes(pack.getKeyType()).getClass();
+                    Class<? extends WritableComparable> keyClass = HDataType
+                            .getWritableComparableTypes(
+                                    pack.getPkgr().getKeyType()).getClass();
                     nwJob.setOutputKeyClass(keyClass);
-                    selectComparator(mro, pack.getKeyType(), nwJob);
+                    selectComparator(mro, pack.getPkgr().getKeyType(), nwJob);
                 }
                 nwJob.setOutputValueClass(NullableTuple.class);
             }
@@ -1464,7 +1465,7 @@ public class JobControlCompiler{
             fragment = pathInString.substring(pathInString.indexOf("#"));
             pathInString = pathInString.substring(0, pathInString.indexOf("#"));
         }
-        
+
         // Encode the path
         URI uri = new Path(pathInString).toUri();
         String uriEncoded = uri.toString();
@@ -1643,7 +1644,7 @@ public class JobControlCompiler{
             super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(
                     plan));
             this.rp = rp;
-}
+        }
 
         @Override
         public void visitConstant(ConstantExpression cnst) throws VisitorException {

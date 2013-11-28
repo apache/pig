@@ -56,4 +56,4 @@ d: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-73
         |   |
         |   Project[bag][2] - scope-64
         |
-        |---c: Package[tuple]{int} - scope-58
+        |---c: Package(Packager)[tuple]{int} - scope-58

@@ -6,37 +6,36 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
-import org.apache.pig.PigException;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
-import org.apache.pig.data.DataType;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.CombinerPackager;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PODistinct;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFilter;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLimit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCombinerPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPartialAgg;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPreCombinerLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
+import org.apache.pig.data.DataType;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
+import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.DepthFirstWalker;
-import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.PlanWalker;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.plan.optimizer.OptimizerException;
 import org.apache.pig.impl.util.Pair;
 
@@ -214,7 +213,10 @@ public class CombinerOptimizerUtil {
                 // Use the POCombiner package in the combine plan
                 // as it needs to act differently than the regular
                 // package operator.
-                POCombinerPackage combinePack = new POCombinerPackage(pack, bags);
+                POPackage combinePack = pack.clone();
+                CombinerPackager combinePkgr = new CombinerPackager(
+                        pack.getPkgr(), bags);
+                combinePack.setPkgr(combinePkgr);
                 combinePlan.add(combinePack);
                 combinePlan.add(cfe);
                 combinePlan.connect(combinePack, cfe);
@@ -251,19 +253,7 @@ public class CombinerOptimizerUtil {
                 // Change the package operator in the reduce plan to
                 // be the POCombiner package, as it needs to act
                 // differently than the regular package operator.
-                POCombinerPackage newReducePack = new POCombinerPackage(pack, bags);
-                reducePlan.replace(pack, newReducePack);
-
-                // the replace() above only changes
-                // the plan and does not change "inputs" to
-                // operators
-                // set up "inputs" for the operator after
-                // package correctly
-                List<PhysicalOperator> packList = Lists.newArrayList();
-                packList.add(newReducePack);
-                List<PhysicalOperator> sucs = reducePlan.getSuccessors(newReducePack);
-                // there should be only one successor to package
-                sucs.get(0).setInputs(packList);
+                pack.setPkgr(combinePkgr.clone());
             } catch (Exception e) {
                 int errCode = 2018;
                 String msg = "Internal error. Unable to introduce the combiner for optimization.";

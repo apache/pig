@@ -19,73 +19,63 @@
 package org.apache.pig.pen;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.Map;
-import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.EqualToExpr;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.GTOrEqualToExpr;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.GreaterThanExpr;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.LTOrEqualToExpr;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.LessThanExpr;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.NotEqualToExpr;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POAnd;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POBinCond;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POCast;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POIsNull;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POMapLookUp;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.PONegative;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.PONot;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POOr;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.PORegexp;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserComparisonFunc;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.LitePackager;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCounter;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PORank;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFilter;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCollectedGroup;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackageLite;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCombinerPackage;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMultiQueryPackage;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PODemux;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PODistinct;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFilter;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLimit;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POOptimizedForEach;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PORank;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.GreaterThanExpr;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.LessThanExpr;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.GTOrEqualToExpr;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.LTOrEqualToExpr;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.EqualToExpr;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.NotEqualToExpr;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.PORegexp;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POIsNull;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POAnd;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POOr;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.PONot;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POBinCond;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.PONegative;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserComparisonFunc;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POMapLookUp;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POJoinPackage;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POCast;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLimit;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFRJoin;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeCogroup;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSkewedJoin;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPartitionRearrange;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POOptimizedForEach;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPreCombinerLocalRearrange;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.PlanWalker;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.IdentityHashSet;
-import org.apache.pig.data.Tuple;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
-import org.apache.pig.pen.util.LineageTracer;
-import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
+import org.apache.pig.pen.util.LineageTracer;
 
 /**
  * The class used to (re)attach illustrators to physical operators
- * 
+ *
  *
  */
 public class IllustratorAttacher extends PhyPlanVisitor {
@@ -206,20 +196,10 @@ public class IllustratorAttacher extends PhyPlanVisitor {
 
     @Override
     public void visitPackage(POPackage pkg) throws VisitorException{
-        if (!(pkg instanceof POPackageLite) && pkg.isDistinct())
-            setIllustrator(pkg, 1);
-        else
-            setIllustrator(pkg, null);
-    }
-
-    @Override
-    public void visitCombinerPackage(POCombinerPackage pkg) throws VisitorException{
-        setIllustrator(pkg);
-    }
-
-    @Override
-    public void visitMultiQueryPackage(POMultiQueryPackage pkg) throws VisitorException{
-      setIllustrator(pkg);
+         if (!(pkg.getPkgr() instanceof LitePackager) && pkg.getPkgr().isDistinct())
+             setIllustrator(pkg, 1);
+         else
+             setIllustrator(pkg, null);
     }
 
     @Override
@@ -230,16 +210,17 @@ public class IllustratorAttacher extends PhyPlanVisitor {
         for (PhysicalPlan innerPlan : innerPlans)
           innerPlanAttach(nfe, innerPlan);
         List<PhysicalOperator> preds = mPlan.getPredecessors(nfe);
-        if (preds != null && preds.size() == 1 &&
-            preds.get(0) instanceof POPackage &&
-            !(preds.get(0) instanceof POPackageLite) &&
-            ((POPackage) preds.get(0)).isDistinct()) {
-            // equivalence class of POPackage for DISTINCT needs to be used
-            //instead of the succeeding POForEach's equivalence class
-            setIllustrator(nfe, preds.get(0).getIllustrator().getEquivalenceClasses());
-            nfe.getIllustrator().setEqClassesShared();
-        } else
+        if (preds != null && preds.size() == 1 && preds.get(0) instanceof POPackage) {
+            POPackage pkg = (POPackage) preds.get(0);
+            if (!(pkg.getPkgr() instanceof LitePackager) && pkg.getPkgr().isDistinct()) {
+                // equivalence class of POPackage for DISTINCT needs to be used
+                // instead of the succeeding POForEach's equivalence class
+                setIllustrator(nfe, pkg.getIllustrator().getEquivalenceClasses());
+                nfe.getIllustrator().setEqClassesShared();
+            }
+        } else {
             setIllustrator(nfe, 1);
+        }
     }
 
     @Override
@@ -269,14 +250,14 @@ public class IllustratorAttacher extends PhyPlanVisitor {
     }
 
     @Override
-	public void visitDistinct(PODistinct distinct) throws VisitorException {
+    public void visitDistinct(PODistinct distinct) throws VisitorException {
         setIllustrator(distinct, 1);
-	}
+    }
 
     @Override
-	public void visitSort(POSort sort) throws VisitorException {
+    public void visitSort(POSort sort) throws VisitorException {
         setIllustrator(sort, 1);
-	}
+    }
 
     @Override
     public void visitRank(PORank rank) throws VisitorException {
@@ -388,14 +369,6 @@ public class IllustratorAttacher extends PhyPlanVisitor {
     @Override
     public void visitMapLookUp(POMapLookUp mapLookUp) {
       setIllustrator(mapLookUp, 1);
-    }
-
-    @Override
-    public void visitJoinPackage(POJoinPackage joinPackage) throws VisitorException{
-        if (revisit &&  joinPackage.getIllustrator() != null)
-            return;
-        setIllustrator(joinPackage);
-        joinPackage.getForEach().setIllustrator(joinPackage.getIllustrator());
     }
 
     @Override

@@ -71,10 +71,10 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCo
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigIntWritableComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigLongWritableComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigTupleWritableComparator;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.WeightedRangePartitioner;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigCombiner;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigInputFormat;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigOutputFormat;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.WeightedRangePartitioner;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
@@ -189,7 +189,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
     private void addCombiner(PhysicalPlan combinePlan, Configuration conf) throws IOException {
         POPackage combPack = (POPackage)combinePlan.getRoots().get(0);
-        setIntermediateInputKeyValue(combPack.getKeyType(), conf);
+        setIntermediateInputKeyValue(combPack.getPkgr().getKeyType(), conf);
 
         POLocalRearrange combRearrange = (POLocalRearrange)combinePlan.getLeaves().get(0);
         setIntermediateOutputKeyValue(combRearrange.getKeyType(), conf);
@@ -232,7 +232,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         for (POStore st: stores) {
             storeLocations.add(st);
             StoreFuncInterface sFunc = st.getStoreFunc();
-            sFunc.setStoreLocation(st.getSFile().getFileName(), job); 
+            sFunc.setStoreLocation(st.getSFile().getFileName(), job);
         }
 
         if (stores.size() == 1){
@@ -298,7 +298,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         List<PhysicalOperator> roots = tezOp.plan.getRoots();
         if (roots.size() == 1 && roots.get(0) instanceof POPackage) {
             POPackage pack = (POPackage) roots.get(0);
-            byte keyType = pack.getKeyType();
+            byte keyType = pack.getPkgr().getKeyType();
             tezOp.plan.remove(pack);
             conf.set("pig.reduce.package", ObjectSerializer.serialize(pack));
             conf.set("pig.reduce.key.type", Byte.toString(keyType));
@@ -310,7 +310,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         }
 
         conf.setClass("mapreduce.outputformat.class", PigOutputFormat.class, OutputFormat.class);
-        
+
         if(tezOp.isGlobalSort() || tezOp.isLimitAfterSort()){
             if (tezOp.isGlobalSort()) {
                 FileSystem fs = FileSystem.get(conf);
@@ -326,7 +326,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 conf.set("pig.quantilesFile", fstat.getPath().toString());
                 conf.set("pig.sortOrder",
                         ObjectSerializer.serialize(tezOp.getSortOrder()));
-                conf.setClass("mapreduce.job.partitioner.class", WeightedRangePartitioner.class, 
+                conf.setClass("mapreduce.job.partitioner.class", WeightedRangePartitioner.class,
                         Partitioner.class);
             }
         }

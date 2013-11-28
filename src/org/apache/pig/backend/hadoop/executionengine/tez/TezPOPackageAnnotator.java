@@ -27,11 +27,9 @@ import org.apache.pig.PigException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCombinerPackage;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POJoinPackage;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.LitePackager;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackageLite;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.plan.optimizer.OptimizerException;
@@ -102,31 +100,10 @@ public class TezPOPackageAnnotator extends TezOpPlanVisitor {
             super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(plan));
         }
 
-        /* (non-Javadoc)
-         * @see org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor#visitStream(org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStream)
-         */
         @Override
         public void visitPackage(POPackage pkg) throws VisitorException {
             this.pkg = pkg;
         };
-
-        /* (non-Javadoc)
-         * @see org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor#visitJoinPackage(org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POJoinPackage)
-         */
-        @Override
-        public void visitJoinPackage(POJoinPackage joinPackage)
-                throws VisitorException {
-            this.pkg = joinPackage;
-        }
-
-        /* (non-Javadoc)
-         * @see org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor#visitCombinerPackage(org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPostCombinerPackage)
-         */
-        @Override
-        public void visitCombinerPackage(POCombinerPackage pkg)
-                throws VisitorException {
-            this.pkg = pkg;
-        }
 
         /**
          * @return the pkg
@@ -154,15 +131,12 @@ public class TezPOPackageAnnotator extends TezOpPlanVisitor {
             this.pkg = pkg;
         }
 
-        /* (non-Javadoc)
-         * @see org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor#visitStream(org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStream)
-         */
         @Override
         public void visitLocalRearrange(POLocalRearrange lrearrange) throws VisitorException {
             loRearrangeFound++;
             Map<Integer,Pair<Boolean, Map<Integer, Integer>>> keyInfo;
 
-            if (pkg instanceof POPackageLite) {
+            if (pkg.getPkgr() instanceof LitePackager) {
                 if(lrearrange.getIndex() != 0) {
                     // Throw some exception here
                     throw new RuntimeException("POLocalRearrange for POPackageLite cannot have index other than 0, but has index - "+lrearrange.getIndex());
@@ -171,7 +145,7 @@ public class TezPOPackageAnnotator extends TezOpPlanVisitor {
 
             // annotate the package with information from the LORearrange
             // update the keyInfo information if already present in the POPackage
-            keyInfo = pkg.getKeyInfo();
+            keyInfo = pkg.getPkgr().getKeyInfo();
             if(keyInfo == null)
                 keyInfo = new HashMap<Integer, Pair<Boolean, Map<Integer, Integer>>>();
 
@@ -188,9 +162,9 @@ public class TezPOPackageAnnotator extends TezOpPlanVisitor {
             keyInfo.put(Integer.valueOf(lrearrange.getIndex()),
                     new Pair<Boolean, Map<Integer, Integer>>(
                             lrearrange.isProjectStar(), lrearrange.getProjectedColsMap()));
-            pkg.setKeyInfo(keyInfo);
-            pkg.setKeyTuple(lrearrange.isKeyTuple());
-            pkg.setKeyCompound(lrearrange.isKeyCompound());
+            pkg.getPkgr().setKeyInfo(keyInfo);
+            pkg.getPkgr().setKeyTuple(lrearrange.isKeyTuple());
+            pkg.getPkgr().setKeyCompound(lrearrange.isKeyCompound());
         }
 
         /**

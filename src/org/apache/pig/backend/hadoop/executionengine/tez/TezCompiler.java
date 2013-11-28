@@ -39,6 +39,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.LitePackager;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCollectedGroup;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCounter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCross;
@@ -54,8 +55,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PONative;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackageLite;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage.PackageType;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PORank;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSkewedJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
@@ -63,6 +62,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.Packager.PackageType;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
@@ -160,7 +160,7 @@ public class TezCompiler extends PhyPlanVisitor {
     public TezOperPlan getTezPlan() {
         return tezPlan;
     }
-    
+
     // Segment a single DAG into a DAG graph
     public TezPlanContainer getPlanContainer() throws PlanException {
         TezPlanContainer tezPlanContainer = new TezPlanContainer(pigContext);
@@ -345,7 +345,7 @@ public class TezCompiler extends PhyPlanVisitor {
         tezOp.plan.addAsLeaf(op);
         curTezOp = tezOp;
     }
-    
+
     private void connect(TezOperPlan plan, TezOperator from, TezOperator to) throws PlanException {
         plan.connect(from, to);
         // Add edge descriptors to old and new operators
@@ -504,7 +504,7 @@ public class TezCompiler extends PhyPlanVisitor {
             blocking();
 
             POPackage pkg = getPackage();
-            pkg.setDistinct(true);
+            pkg.getPkgr().setDistinct(true);
             curTezOp.plan.add(pkg);
 
             POProject project = new POProject(new OperatorKey(scope, nig.getNextNodeId(scope)));
@@ -659,9 +659,9 @@ public class TezCompiler extends PhyPlanVisitor {
         try{
             nonBlocking(op);
             phyToTezOpMap.put(op, curTezOp);
-            if (op.getPackageType() == PackageType.JOIN) {
+            if (op.getPkgr().getPackageType() == PackageType.JOIN) {
                 curTezOp.markRegularJoin();
-            } else if (op.getPackageType() == PackageType.GROUP) {
+            } else if (op.getPkgr().getPackageType() == PackageType.GROUP) {
                 if (op.getNumInps() == 1) {
                     curTezOp.markGroupBy();
                 } else if (op.getNumInps() > 1) {
@@ -716,7 +716,7 @@ public class TezCompiler extends PhyPlanVisitor {
         return new FileSpec(FileLocalizer.getTemporaryPath(pigContext).toString(),
                 new FuncSpec(Utils.getTmpFileCompressorName(pigContext)));
     }
-    
+
     private POStore getStore(){
         POStore st = new POStore(new OperatorKey(scope,nig.getNextNodeId(scope)));
         // mark store as tmp store. These could be removed by the
@@ -724,7 +724,7 @@ public class TezCompiler extends PhyPlanVisitor {
         st.setIsTmpStore(true);
         return st;
     }
-    
+
     /**
      * Force an end to the current vertex with a store into a temporary
      * file.
@@ -750,19 +750,19 @@ public class TezCompiler extends PhyPlanVisitor {
         }
         return oper;
     }
-    
+
     private Pair<TezOperator[],Integer> getQuantileJobs(
             POSort inpSort,
             TezOperator prevJob,
             FileSpec lFile,
             FileSpec quantFile,
             int rp) throws PlanException, VisitorException {
-        
+
         POSort sort = new POSort(inpSort.getOperatorKey(), inpSort
                 .getRequestedParallelism(), null, inpSort.getSortPlans(),
                 inpSort.getMAscCols(), inpSort.getMSortFunc());
         sort.addOriginalLocation(inpSort.getAlias(), inpSort.getOriginalLocations());
-        
+
         // Turn the asc/desc array into an array of strings so that we can pass it
         // to the FindQuantiles function.
         List<Boolean> ascCols = inpSort.getMAscCols();
@@ -780,10 +780,10 @@ public class TezCompiler extends PhyPlanVisitor {
                 ctorArgs[j+1] = ascs[j];
             }
         }
-        
+
         return getSamplingJobs(sort, prevJob, null, lFile, quantFile, rp, null, FindQuantiles.class.getName(), ctorArgs, RandomSampleLoader.class.getName());
     }
-    
+
     /**
      * Create a sampling job to collect statistics by sampling an input file. The sequence of operations is as
      * following:
@@ -794,7 +794,7 @@ public class TezCompiler extends PhyPlanVisitor {
      * <li>Sorting the bag </li>
      * <li>Invoke UDF with the number of reducers and the sorted bag.</li>
      * <li>Data generated by UDF is stored into a file.</li>
-     * 
+     *
      * @param sort  the POSort operator used to sort the bag
      * @param prevJob  previous job of current sampling job
      * @param transformPlans  PhysicalPlans to transform input samples
@@ -809,44 +809,43 @@ public class TezCompiler extends PhyPlanVisitor {
      * @throws PlanException
      * @throws VisitorException
      */
-    @SuppressWarnings("deprecation")
     private Pair<TezOperator[],Integer> getSamplingJobs(POSort sort, TezOperator prevJob, List<PhysicalPlan> transformPlans,
-            FileSpec lFile, FileSpec sampleFile, int rp, List<PhysicalPlan> sortKeyPlans, 
+            FileSpec lFile, FileSpec sampleFile, int rp, List<PhysicalPlan> sortKeyPlans,
             String udfClassName, String[] udfArgs, String sampleLdrClassName ) throws PlanException, VisitorException {
-        
+
         String[] rslargs = new String[2];
-        // SampleLoader expects string version of FuncSpec 
+        // SampleLoader expects string version of FuncSpec
         // as its first constructor argument.
-        
+
         rslargs[0] = (new FuncSpec(Utils.getTmpFileCompressorName(pigContext))).toString();
-        
+
         rslargs[1] = "100"; // The value is calculated based on the file size for skewed join
         FileSpec quantLdFilName = new FileSpec(lFile.getFileName(),
                 new FuncSpec(sampleLdrClassName, rslargs));
-        
+
         TezOperator[] opers = new TezOperator[2];
-        
+
         TezOperator oper1 = startNew(quantLdFilName, prevJob);
         opers[0] = oper1;
-       
+
         // TODO: Review sort udf
 //        if(sort.isUDFComparatorUsed) {
 //            mro.UDFs.add(sort.getMSortFunc().getFuncSpec().toString());
 //            curMROp.isUDFComparatorUsed = true;
-//        }        
-    
-        List<Boolean> flat1 = new ArrayList<Boolean>();         
+//        }
+
+        List<Boolean> flat1 = new ArrayList<Boolean>();
         List<PhysicalPlan> eps1 = new ArrayList<PhysicalPlan>();
-        
+
         // if transform plans are not specified, project the columns of sorting keys
-        if (transformPlans == null) {           
+        if (transformPlans == null) {
             Pair<POProject, Byte>[] sortProjs = null;
             try{
                 sortProjs = getSortCols(sort.getSortPlans());
             }catch(Exception e) {
                 throw new RuntimeException(e);
             }
-            // Set up the projections of the key columns 
+            // Set up the projections of the key columns
             if (sortProjs == null) {
                 PhysicalPlan ep = new PhysicalPlan();
                 POProject prj = new POProject(new OperatorKey(scope,
@@ -860,7 +859,7 @@ public class TezCompiler extends PhyPlanVisitor {
             } else {
                 for (Pair<POProject, Byte> sortProj : sortProjs) {
                     // Check for proj being null, null is used by getSortCols for a non POProject
-                    // operator. Since Order by does not allow expression operators, 
+                    // operator. Since Order by does not allow expression operators,
                     //it should never be set to null
                     if(sortProj == null){
                         int errCode = 2174;
@@ -889,10 +888,10 @@ public class TezCompiler extends PhyPlanVisitor {
             }
         }
 
-        // This foreach will pick the sort key columns from the RandomSampleLoader output 
+        // This foreach will pick the sort key columns from the RandomSampleLoader output
         POForEach nfe1 = new POForEach(new OperatorKey(scope,nig.getNextNodeId(scope)),-1,eps1,flat1);
         oper1.plan.addAsLeaf(nfe1);
-        
+
         // Now set up a POLocalRearrange which has "all" as the key and the output of the
         // foreach will be the "value" out of POLocalRearrange
         PhysicalPlan ep1 = new PhysicalPlan();
@@ -900,10 +899,10 @@ public class TezCompiler extends PhyPlanVisitor {
         ce.setValue("all");
         ce.setResultType(DataType.CHARARRAY);
         ep1.add(ce);
-        
+
         List<PhysicalPlan> eps = new ArrayList<PhysicalPlan>();
         eps.add(ep1);
-        
+
         POLocalRearrange lr = new POLocalRearrange(new OperatorKey(scope,nig.getNextNodeId(scope)));
         try {
             lr.setIndex(0);
@@ -918,46 +917,46 @@ public class TezCompiler extends PhyPlanVisitor {
         lr.addOriginalLocation(sort.getAlias(), sort.getOriginalLocations());
         oper1.plan.add(lr);
         oper1.plan.connect(nfe1, lr);
-        
+
         oper1.setClosed(true);
-        
+
         TezOperator oper2 = getTezOp();
         opers[1] = oper2;
         tezPlan.add(oper2);
         connect(tezPlan, oper1, oper2);
-        
+
         POPackage pkg = new POPackage(new OperatorKey(scope,nig.getNextNodeId(scope)));
-        pkg.setKeyType(DataType.CHARARRAY);
+        pkg.getPkgr().setKeyType(DataType.CHARARRAY);
         pkg.setNumInps(1);
-        boolean[] inner = {false}; 
-        pkg.setInner(inner);
+        boolean[] inner = {false};
+        pkg.getPkgr().setInner(inner);
         oper2.plan.add(pkg);
-        
+
         // Lets start building the plan which will have the sort
         // for the foreach
         PhysicalPlan fe2Plan = new PhysicalPlan();
-        // Top level project which just projects the tuple which is coming 
+        // Top level project which just projects the tuple which is coming
         // from the foreach after the package
         POProject topPrj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
         topPrj.setColumn(1);
         topPrj.setResultType(DataType.BAG);
         topPrj.setOverloaded(true);
         fe2Plan.add(topPrj);
-        
+
         // the projections which will form sort plans
-        List<PhysicalPlan> nesSortPlanLst = new ArrayList<PhysicalPlan>();             
+        List<PhysicalPlan> nesSortPlanLst = new ArrayList<PhysicalPlan>();
         if (sortKeyPlans != null) {
-            for(int i=0; i<sortKeyPlans.size(); i++) {          
-                nesSortPlanLst.add(sortKeyPlans.get(i));            
+            for(int i=0; i<sortKeyPlans.size(); i++) {
+                nesSortPlanLst.add(sortKeyPlans.get(i));
             }
-        }else{   
+        }else{
             Pair<POProject, Byte>[] sortProjs = null;
             try{
                 sortProjs = getSortCols(sort.getSortPlans());
             }catch(Exception e) {
                 throw new RuntimeException(e);
             }
-            // Set up the projections of the key columns 
+            // Set up the projections of the key columns
             if (sortProjs == null) {
                 PhysicalPlan ep = new PhysicalPlan();
                 POProject prj = new POProject(new OperatorKey(scope,
@@ -971,7 +970,7 @@ public class TezCompiler extends PhyPlanVisitor {
                 for (int i=0; i<sortProjs.length; i++) {
                     POProject prj =
                         new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
-                    
+
                     prj.setResultType(sortProjs[i].second);
                     if(sortProjs[i].first != null && sortProjs[i].first.isProjectToEnd()){
                         if(i != sortProjs.length -1){
@@ -991,14 +990,14 @@ public class TezCompiler extends PhyPlanVisitor {
                     ep.add(prj);
                     nesSortPlanLst.add(ep);
                 }
-            }                       
+            }
         }
-        
+
         sort.setSortPlans(nesSortPlanLst);
         sort.setResultType(DataType.BAG);
         fe2Plan.add(sort);
         fe2Plan.connect(topPrj, sort);
-        
+
         // The plan which will have a constant representing the
         // degree of parallelism for the final order by map-reduce job
         // this will either come from a "order by parallel x" in the script
@@ -1007,66 +1006,66 @@ public class TezCompiler extends PhyPlanVisitor {
         PhysicalPlan rpep = new PhysicalPlan();
         ConstantExpression rpce = new ConstantExpression(new OperatorKey(scope,nig.getNextNodeId(scope)));
         rpce.setRequestedParallelism(rp);
-        
+
         // We temporarily set it to rp and will adjust it at runtime, because the final degree of parallelism
         // is unknown until we are ready to submit it. See PIG-2779.
         rpce.setValue(rp);
-        
+
         rpce.setResultType(DataType.INTEGER);
         rpep.add(rpce);
-        
+
         List<PhysicalPlan> genEps = new ArrayList<PhysicalPlan>();
         genEps.add(rpep);
         genEps.add(fe2Plan);
-        
+
         List<Boolean> flattened2 = new ArrayList<Boolean>();
         flattened2.add(false);
         flattened2.add(false);
-        
+
         POForEach nfe2 = new POForEach(new OperatorKey(scope,nig.getNextNodeId(scope)),-1, genEps, flattened2);
         oper2.plan.add(nfe2);
         oper2.plan.connect(pkg, nfe2);
-        
+
         // Let's connect the output from the foreach containing
         // number of quantiles and the sorted bag of samples to
         // another foreach with the FindQuantiles udf. The input
-        // to the FindQuantiles udf is a project(*) which takes the 
+        // to the FindQuantiles udf is a project(*) which takes the
         // foreach input and gives it to the udf
         PhysicalPlan ep4 = new PhysicalPlan();
         POProject prjStar4 = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
         prjStar4.setResultType(DataType.TUPLE);
         prjStar4.setStar(true);
         ep4.add(prjStar4);
-        
+
         List<PhysicalOperator> ufInps = new ArrayList<PhysicalOperator>();
         ufInps.add(prjStar4);
-      
-        POUserFunc uf = new POUserFunc(new OperatorKey(scope,nig.getNextNodeId(scope)), -1, ufInps, 
+
+        POUserFunc uf = new POUserFunc(new OperatorKey(scope,nig.getNextNodeId(scope)), -1, ufInps,
             new FuncSpec(udfClassName, udfArgs));
         ep4.add(uf);
         ep4.connect(prjStar4, uf);
-        
+
         List<PhysicalPlan> ep4s = new ArrayList<PhysicalPlan>();
         ep4s.add(ep4);
         List<Boolean> flattened3 = new ArrayList<Boolean>();
         flattened3.add(false);
         POForEach nfe3 = new POForEach(new OperatorKey(scope,nig.getNextNodeId(scope)), -1, ep4s, flattened3);
-        
+
         oper2.plan.add(nfe3);
         oper2.plan.connect(nfe2, nfe3);
-        
+
         POStore str = getStore();
         str.setSFile(sampleFile);
-        
+
         oper2.plan.add(str);
         oper2.plan.connect(nfe3, str);
-        
+
         oper2.setClosed(true);
         oper2.requestedParallelism = 1;
         // oper2.markSampler();
         return new Pair<TezOperator[], Integer>(opers, rp);
     }
-    
+
     private static class FindKeyTypeVisitor extends PhyPlanVisitor {
 
         byte keyType = DataType.UNKNOWN;
@@ -1081,7 +1080,7 @@ public class TezCompiler extends PhyPlanVisitor {
             keyType = p.getResultType();
         }
     }
-    
+
     private Pair<POProject,Byte> [] getSortCols(List<PhysicalPlan> plans) throws PlanException, ExecException {
         if(plans!=null){
             @SuppressWarnings("unchecked")
@@ -1105,7 +1104,7 @@ public class TezCompiler extends PhyPlanVisitor {
         String msg = "No expression plan found in POSort.";
         throw new PlanException(msg, errCode, PigException.BUG);
     }
-    
+
     private TezOperator[] getSortJobs(
             POSort sort,
             TezOperator quantJob,
@@ -1123,11 +1122,11 @@ public class TezCompiler extends PhyPlanVisitor {
 
         long limit = sort.getLimit();
         oper1.limit = limit;
-        
+
         List<PhysicalPlan> eps1 = new ArrayList<PhysicalPlan>();
 
         byte keyType = DataType.UNKNOWN;
-        
+
         boolean[] sortOrder;
 
         List<Boolean> sortOrderList = sort.getMAscCols();
@@ -1167,7 +1166,7 @@ public class TezCompiler extends PhyPlanVisitor {
                 throw new PlanException(msg, errCode, PigException.BUG, ve);
             }
         }
-        
+
         POLocalRearrange lr = new POLocalRearrange(new OperatorKey(scope,nig.getNextNodeId(scope)));
         try {
             lr.setIndex(0);
@@ -1182,23 +1181,26 @@ public class TezCompiler extends PhyPlanVisitor {
         lr.setResultType(DataType.TUPLE);
         lr.addOriginalLocation(sort.getAlias(), sort.getOriginalLocations());
         oper1.plan.addAsLeaf(lr);
-        
+
         oper1.setClosed(true);
-        
+
         TezOperator oper2 = getTezOp();
         opers[1] = oper2;
         tezPlan.add(oper2);
         connect(tezPlan, oper1, oper2);
-        
+
         if (limit!=-1) {
-            POPackageLite pkg_c = new POPackageLite(new OperatorKey(scope,nig.getNextNodeId(scope)));
-            pkg_c.setKeyType((fields.length>1) ? DataType.TUPLE : keyType);
+            POPackage pkg_c = new POPackage(new OperatorKey(scope,
+                    nig.getNextNodeId(scope)));
+            pkg_c.setPkgr(new LitePackager());
+            pkg_c.getPkgr().setKeyType(
+                    (fields.length > 1) ? DataType.TUPLE : keyType);
             pkg_c.setNumInps(1);
             oper2.inEdges.put(oper1.getOperatorKey(), new TezEdgeDescriptor());
             PhysicalPlan combinePlan = oper2.inEdges.get(oper1.getOperatorKey()).combinePlan;
-            
+
             combinePlan.add(pkg_c);
-            
+
             List<PhysicalPlan> eps_c1 = new ArrayList<PhysicalPlan>();
             List<Boolean> flat_c1 = new ArrayList<Boolean>();
             PhysicalPlan ep_c1 = new PhysicalPlan();
@@ -1209,25 +1211,25 @@ public class TezCompiler extends PhyPlanVisitor {
             ep_c1.add(prj_c1);
             eps_c1.add(ep_c1);
             flat_c1.add(true);
-            POForEach fe_c1 = new POForEach(new OperatorKey(scope,nig.getNextNodeId(scope)), 
+            POForEach fe_c1 = new POForEach(new OperatorKey(scope,nig.getNextNodeId(scope)),
                     -1, eps_c1, flat_c1);
             fe_c1.setResultType(DataType.TUPLE);
-            
+
             combinePlan.addAsLeaf(fe_c1);
-            
+
             POLimit pLimit = new POLimit(new OperatorKey(scope,nig.getNextNodeId(scope)));
             pLimit.setLimit(limit);
             combinePlan.addAsLeaf(pLimit);
-            
+
             List<PhysicalPlan> eps_c2 = new ArrayList<PhysicalPlan>();
             eps_c2.addAll(sort.getSortPlans());
-        
+
             POLocalRearrange lr_c2 = new POLocalRearrange(new OperatorKey(scope,nig.getNextNodeId(scope)));
             try {
                 lr_c2.setIndex(0);
             } catch (ExecException e) {
                 int errCode = 2058;
-                String msg = "Unable to set index on newly created POLocalRearrange.";              
+                String msg = "Unable to set index on newly created POLocalRearrange.";
                 throw new PlanException(msg, errCode, PigException.BUG, e);
             }
             lr_c2.setKeyType((fields.length>1) ? DataType.TUPLE : keyType);
@@ -1235,13 +1237,17 @@ public class TezCompiler extends PhyPlanVisitor {
             lr_c2.setResultType(DataType.TUPLE);
             combinePlan.addAsLeaf(lr_c2);
         }
-        
-        POPackageLite pkg = new POPackageLite(new OperatorKey(scope,nig.getNextNodeId(scope)));
-        pkg.setKeyType((fields == null || fields.length>1) ? DataType.TUPLE :
+
+        POPackage pkg = new POPackage(new OperatorKey(scope,
+                nig.getNextNodeId(scope)));
+        pkg.setPkgr(new LitePackager());
+        pkg.getPkgr().setKeyType(
+                (fields == null || fields.length > 1) ? DataType.TUPLE
+                        :
             keyType);
-        pkg.setNumInps(1);       
+        pkg.setNumInps(1);
         oper2.plan.add(pkg);
-        
+
         PhysicalPlan ep = new PhysicalPlan();
         POProject prj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
         prj.setColumn(1);
@@ -1264,7 +1270,7 @@ public class TezCompiler extends PhyPlanVisitor {
 
         return opers;
     }
-    
+
     @Override
     public void visitSort(POSort op) throws VisitorException {
         try{
@@ -1274,15 +1280,15 @@ public class TezCompiler extends PhyPlanVisitor {
             FileSpec quantFile = getTempFileSpec();
             int rp = op.getRequestedParallelism();
             Pair<POProject, Byte>[] fields = getSortCols(op.getSortPlans());
-            Pair<TezOperator[], Integer> quantJobParallelismPair = 
+            Pair<TezOperator[], Integer> quantJobParallelismPair =
                 getQuantileJobs(op, oper, fSpec, quantFile, rp);
-            TezOperator[] opers = getSortJobs(op, quantJobParallelismPair.first[1], fSpec, quantFile, 
+            TezOperator[] opers = getSortJobs(op, quantJobParallelismPair.first[1], fSpec, quantFile,
                     quantJobParallelismPair.second, fields);
 
             quantJobParallelismPair.first[1].segmentBelow = true;
-            
+
             curTezOp = opers[1];
-            
+
             // TODO: Review sort udf
 //            if(op.isUDFComparatorUsed){
 //                curTezOp.UDFs.add(op.getMSortFunc().getFuncSpec().toString());
@@ -1396,8 +1402,8 @@ public class TezCompiler extends PhyPlanVisitor {
     private POPackage getPackage() {
         boolean[] inner = { false };
         POPackage pkg = new POPackage(new OperatorKey(scope, nig.getNextNodeId(scope)));
-        pkg.setInner(inner);
-        pkg.setKeyType(DataType.TUPLE);
+        pkg.getPkgr().setInner(inner);
+        pkg.getPkgr().setKeyType(DataType.TUPLE);
         pkg.setNumInps(1);
         return pkg;
     }

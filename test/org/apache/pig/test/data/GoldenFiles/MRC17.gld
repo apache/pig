@@ -7,7 +7,7 @@ MapReduce(1) - -0:
 |           |   |
 |           |   Project[tuple][1] - -4
 |           |
-|           |---Package[tuple]{tuple} - -3
+|           |---Package(Packager)[tuple]{tuple} - -3
 |   Local Rearrange[tuple]{tuple}(false) - -2
 |   |   |
 |   |   Project[tuple][*] - -1

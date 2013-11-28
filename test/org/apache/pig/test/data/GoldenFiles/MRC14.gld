@@ -19,7 +19,7 @@ Reduce Plan Empty
 |---MapReduce(40) - -14:
     |   Store(file:/tmp/temp-1456742965/tmp-586682361:org.apache.pig.impl.io.InterStorage) - -16
     |   |
-    |   |---Package[tuple]{Unknown} - --7096529877081178520
+    |   |---Package(Packager)[tuple]{Unknown} - --7096529877081178520
     |   Union[tuple] - -15
     |   |
     |   |---Local Rearrange[tuple]{Unknown}(false) - --7868505214447593853
