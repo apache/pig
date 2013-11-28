@@ -35,7 +35,6 @@ import org.apache.pig.newplan.FilterExtractor;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.OperatorSubPlan;
-import org.apache.pig.newplan.PColFilterExtractor;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.newplan.logical.relational.LOFilter;
 import org.apache.pig.newplan.logical.relational.LOLoad;
@@ -96,43 +95,7 @@ public class PartitionFilterOptimizer extends Rule {
 
     @Override
     public Transformer getNewTransformer() {
-        if(name.equals("PartitionFilterOptimizer")) {
-            return new PartitionFilterPushDownTransformer();
-        } else {
-            return new NewPartitionFilterPushDownTransformer();
-        }
-    }
-
-    public class NewPartitionFilterPushDownTransformer extends PartitionFilterPushDownTransformer {
-        @Override
-        public void transform(OperatorPlan matched) throws FrontendException {
-            subPlan = new OperatorSubPlan( currentPlan );
-
-            setupColNameMaps();
-
-            FilterExtractor filterFinder = new FilterExtractor(
-                    loFilter.getFilterPlan(), getMappedKeys( partitionKeys ) );
-            filterFinder.visit();
-            Expression partitionFilter = filterFinder.getPColCondition();
-
-            if(partitionFilter != null) {
-                // the column names in the filter may be the ones provided by
-                // the user in the schema in the load statement - we may need
-                // to replace them with partition column names as given by
-                // LoadFunc.getSchema()
-                updateMappedColNames(partitionFilter);
-                try {
-                    loadMetadata.setPartitionFilter(partitionFilter);
-                } catch (IOException e) {
-                    throw new FrontendException( e );
-                }
-                if(filterFinder.isFilterRemovable()) {
-                    currentPlan.removeAndReconnect( loFilter );
-                } else {
-                    loFilter.setFilterPlan(filterFinder.getFilteredPlan());
-                }
-            }
-        }
+        return new PartitionFilterPushDownTransformer();
     }
 
     public class PartitionFilterPushDownTransformer extends Transformer {
@@ -182,33 +145,26 @@ public class PartitionFilterOptimizer extends Rule {
 
         	setupColNameMaps();
         	
-        	// PIG-1871: Don't throw exception if partition filters cannot be pushed up. 
-        	// Perform transformation on a copy of the filter plan, and replace the 
-        	// original filter plan only if the transformation is successful 
-        	// (i.e. partition filter can be pushed down) 
-        	LogicalExpressionPlan filterExpr = loFilter.getFilterPlan();
-        	LogicalExpressionPlan filterExprCopy = filterExpr.deepCopy();
-        	
-        	PColFilterExtractor pColFilterFinder = new PColFilterExtractor(
-        	        filterExprCopy, getMappedKeys( partitionKeys ) );
-        	pColFilterFinder.visit();
-        	Expression partitionFilter = pColFilterFinder.getPColCondition();
-        	
-        	if(partitionFilter != null) {
-        		// the column names in the filter may be the ones provided by
-        		// the user in the schema in the load statement - we may need
-        		// to replace them with partition column names as given by
-        		// LoadFunc.getSchema()
-        		updateMappedColNames(partitionFilter);
-        		try {
-					loadMetadata.setPartitionFilter(partitionFilter);
-				} catch (IOException e) {
-					throw new FrontendException( e );
-				}
-        		if(pColFilterFinder.isFilterRemovable()) {  
-        			currentPlan.removeAndReconnect( loFilter );
-        		} else {
-                    loFilter.setFilterPlan(filterExprCopy);
+        	FilterExtractor filterFinder = new FilterExtractor(
+                    loFilter.getFilterPlan(), getMappedKeys( partitionKeys ) );
+            filterFinder.visit();
+            Expression partitionFilter = filterFinder.getPColCondition();
+
+            if(partitionFilter != null) {
+                // the column names in the filter may be the ones provided by
+                // the user in the schema in the load statement - we may need
+                // to replace them with partition column names as given by
+                // LoadFunc.getSchema()
+                updateMappedColNames(partitionFilter);
+                try {
+                    loadMetadata.setPartitionFilter(partitionFilter);
+                } catch (IOException e) {
+                    throw new FrontendException( e );
+                }
+                if(filterFinder.isFilterRemovable()) {
+                    currentPlan.removeAndReconnect( loFilter );
+                } else {
+                    loFilter.setFilterPlan(filterFinder.getFilteredPlan());
                 }
             }
         }

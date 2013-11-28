@@ -28,6 +28,8 @@ PIG-3419: Pluggable Execution Engine (achalsoni81 via cheolsoo)
 
 IMPROVEMENTS
 
+PIG-3590: remove PartitionFilterOptimizer from trunk (aniket486)
+
 PIG-3580: MIN, MAX and AVG functions for BigDecimal and BigInteger (harichinnan via cheolsoo)
 
 PIG-3569: SUM function for BigDecimal and BigInteger (harichinnan via rohini)
