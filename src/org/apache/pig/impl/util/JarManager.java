@@ -169,9 +169,6 @@ public class JarManager {
             // log.error("Adding " + jarEntry.jar + ":" + jarEntry.prefix);
             mergeJar(jarFile, jarEntry.jar, jarEntry.prefix, contents);
         }
-        for (String scriptJar: pigContext.scriptJars) {
-            mergeJar(jarFile, scriptJar, null, contents);
-        }
         for (String path: pigContext.scriptFiles) {
             log.debug("Adding entry " + path + " to job jar" );
             InputStream stream = null;
