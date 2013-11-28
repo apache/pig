@@ -798,7 +798,7 @@ public class TestNewPartitionFilterPushDown {
 
             Set<Rule> s = new HashSet<Rule>();
             // add split filter rule
-            Rule r = new PartitionFilterOptimizer("NewPartitionFilterPushDown");
+            Rule r = new PartitionFilterOptimizer("PartitionFilterPushDown");
             s = new HashSet<Rule>();
             s.add(r);
             ls.add(s);
