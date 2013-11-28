@@ -12,6 +12,7 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.NullableTuple;
+import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.util.Pair;
 
 public class Packager implements Serializable, Cloneable {
@@ -64,18 +65,18 @@ public class Packager implements Serializable, Cloneable {
     private PackageType pkgType;
 
     protected static final BagFactory mBagFactory = BagFactory.getInstance();
-    protected static final TupleFactory mTupleFactory = TupleFactory
-            .getInstance();
+    protected static final TupleFactory mTupleFactory = TupleFactory.getInstance();
 
-    Object getKey(Object key) throws ExecException {
+    public Object getKey(PigNullableWritable key) throws ExecException {
+        Object keyObject = key.getValueAsPigType();
         if (useSecondaryKey) {
-            return ((Tuple) key).get(0);
+            return ((Tuple) keyObject).get(0);
         } else {
-            return key;
+            return keyObject;
         }
     }
 
-    void attachInput(Object key, DataBag[] bags, boolean[] readOnce)
+    public void attachInput(Object key, DataBag[] bags, boolean[] readOnce)
             throws ExecException {
         this.key = key;
         this.bags = bags;
@@ -83,6 +84,9 @@ public class Packager implements Serializable, Cloneable {
     }
 
     public Result getNext() throws ExecException {
+        if (bags == null) {
+            return new Result(POStatus.STATUS_EOP, null);
+        }
         Tuple res;
 
         if (isDistinct()) {
@@ -117,21 +121,19 @@ public class Packager implements Serializable, Cloneable {
                 }
             }
         }
+        detachInput();
         Result r = new Result();
         r.returnStatus = POStatus.STATUS_OK;
-        // if (!isAccumulative())
-        // r.result = illustratorMarkup(null, res, 0);
-        // else
         r.result = res;
         return r;
     }
 
-    void detachInput() {
+    public void detachInput() {
         key = null;
         bags = null;
     }
 
-    protected Tuple getValueTuple(Object key, NullableTuple ntup, int index)
+    public Tuple getValueTuple(Object key, NullableTuple ntup, int index)
             throws ExecException {
         // Need to make a copy of the value, as hadoop uses the same ntup
         // to represent each value.

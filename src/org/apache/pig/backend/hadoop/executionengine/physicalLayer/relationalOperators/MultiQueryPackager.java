@@ -24,6 +24,7 @@ import java.util.List;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
@@ -128,6 +129,9 @@ public class MultiQueryPackager extends Packager {
      */
     @Override
     public Result getNext() throws ExecException {
+        if (bags == null) {
+            return new Result(POStatus.STATUS_EOP, null);
+        }
 
         byte origIndex = myKey.getIndex();
 
@@ -159,6 +163,7 @@ public class MultiQueryPackager extends Packager {
 
         Result res = pkgr.getNext();
         pkgr.detachInput();
+        detachInput();
 
         Tuple tuple = (Tuple)res.result;
 

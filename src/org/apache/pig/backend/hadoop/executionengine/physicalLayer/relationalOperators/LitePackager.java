@@ -112,6 +112,10 @@ public class LitePackager extends Packager {
      */
     @Override
     public Result getNext() throws ExecException {
+        if (bags == null) {
+            return new Result(POStatus.STATUS_EOP, null);
+        }
+
         Tuple res;
 
         //Construct the output tuple by appending

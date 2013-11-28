@@ -70,12 +70,12 @@ public class POPackage extends PhysicalOperator {
     transient Iterator<NullableTuple> tupIter;
 
     //The key being worked on
-    Object key;
+    protected Object key;
 
     //The number of inputs to this
     //co-group.  0 indicates a distinct, which means there will only be a
     //key, no value.
-    int numInputs;
+    protected int numInputs;
 
     // A mapping of input index to key information got from LORearrange
     // for that index. The Key information is a pair of boolean, Map.
@@ -152,7 +152,7 @@ public class POPackage extends PhysicalOperator {
     public void attachInput(PigNullableWritable k, Iterator<NullableTuple> inp) {
         try {
             tupIter = inp;
-            key = pkgr.getKey(k.getValueAsPigType());
+            key = pkgr.getKey(k);
             inputAttached = true;
         } catch (Exception e) {
             throw new RuntimeException(

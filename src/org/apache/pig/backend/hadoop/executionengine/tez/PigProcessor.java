@@ -18,9 +18,9 @@
 package org.apache.pig.backend.hadoop.executionengine.tez;
 
 import java.io.IOException;
-import java.lang.reflect.Constructor;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -31,12 +31,14 @@ import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POSimpleTezLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.data.SchemaTupleBackend;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
@@ -70,8 +72,6 @@ public class PigProcessor implements LogicalIOProcessor {
     private boolean shuffle;
     private byte keyType;
 
-    private InputHandler input;
-
     private Configuration conf;
 
     @Override
@@ -80,8 +80,6 @@ public class PigProcessor implements LogicalIOProcessor {
         byte[] payload = processorContext.getUserPayload();
         conf = TezUtils.createConfFromUserPayload(payload);
         PigContext pc = (PigContext) ObjectSerializer.deserialize(conf.get("pig.pigContext"));
-
-        input = createInputHandler(conf);
 
         UDFContext.getUDFContext().addJobConf(conf);
         UDFContext.getUDFContext().deserialize();
@@ -106,7 +104,7 @@ public class PigProcessor implements LogicalIOProcessor {
     public void run(Map<String, LogicalInput> inputs,
             Map<String, LogicalOutput> outputs) throws Exception {
 
-        input.initialize(conf, inputs);
+        initializeInputs(inputs);
 
         initializeOutputs(outputs);
 
@@ -124,34 +122,24 @@ public class PigProcessor implements LogicalIOProcessor {
             }
         }
 
-        while (input.next()){
-            Tuple inputTuple = input.getCurrentTuple();
-            if (execPlan.isEmpty()) {
-                writeResult(inputTuple);
-                continue;
-            }
-
-            for (PhysicalOperator root : roots) {
-                root.attachInput(inputTuple);
-            }
-
-            runPipeline(leaf);
-        }
+        runPipeline(leaf);
 
         for (MROutput fileOutput : fileOutputs){
             fileOutput.commit();
         }
     }
 
-    private  InputHandler createInputHandler(Configuration conf) throws PigException {
-        Class<? extends InputHandler> inputClass;
-        try {
-            inputClass = (Class<? extends InputHandler>)
-                    Class.forName(conf.get("pig.input.handler.class"));
-            Constructor<? extends InputHandler> constructor = inputClass.getConstructor();
-            return constructor.newInstance();
-        } catch (Exception e) {
-            throw new PigException("Could not instantiate input handler", e);
+    private void initializeInputs(Map<String, LogicalInput> inputs)
+            throws IOException {
+        //getPhysicalOperators only accept C extends PhysicalOperator, so we can't change it to look for TezLoad
+        // TODO: Change that.
+        LinkedList<POSimpleTezLoad> tezLds = PlanHelper.getPhysicalOperators(execPlan, POSimpleTezLoad.class);
+        for (POSimpleTezLoad tezLd : tezLds){
+            tezLd.attachInputs(inputs, conf);
+        }
+        LinkedList<POShuffleTezLoad> shuffles = PlanHelper.getPhysicalOperators(execPlan, POShuffleTezLoad.class);
+        for (POShuffleTezLoad shuffle : shuffles){
+            shuffle.attachInputs(inputs, conf);
         }
     }
 

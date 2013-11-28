@@ -2208,8 +2208,7 @@ public class MRCompiler extends PhyPlanVisitor {
         POPackage pkg = new POPackage(new OperatorKey(scope,
                 nig.getNextNodeId(scope)));
         LitePackager pkgr = new LitePackager();
-        pkgr.setKeyType((fields == null || fields.length > 1) ? DataType.TUPLE
-                : keyType);
+        pkgr.setKeyType((fields == null || fields.length > 1) ? DataType.TUPLE : keyType);
         pkg.setPkgr(pkgr);
         pkg.setNumInps(1);
         mro.reducePlan.add(pkg);

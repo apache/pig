@@ -216,7 +216,7 @@ public class JoinPackager extends Packager {
     }
 
     @Override
-    void attachInput(Object key, DataBag[] bags, boolean[] readOnce)
+    public void attachInput(Object key, DataBag[] bags, boolean[] readOnce)
             throws ExecException {
         super.attachInput(key, bags, readOnce);
         this.newKey = true;

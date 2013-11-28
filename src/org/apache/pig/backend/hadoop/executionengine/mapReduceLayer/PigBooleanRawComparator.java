@@ -40,14 +40,8 @@ public class PigBooleanRawComparator extends WritableComparator implements Confi
         mWrappedComp = new BooleanWritable.Comparator();
     }
     public void setConf(Configuration conf) {
-        if (!(conf instanceof JobConf)) {
-            mLog.warn("Expected jobconf in setConf, got " +
-                conf.getClass().getName());
-            return;
-        }
-        JobConf jconf = (JobConf)conf;
         try {
-            mAsc = (boolean[])ObjectSerializer.deserialize(jconf.get(
+            mAsc = (boolean[])ObjectSerializer.deserialize(conf.get(
                 "pig.sortOrder"));
         } catch (IOException ioe) {
             mLog.error("Unable to deserialize pig.sortOrder " +
@@ -76,7 +70,7 @@ public class PigBooleanRawComparator extends WritableComparator implements Confi
         if (b1[s1] == 0 && b2[s2] == 0) {
             byte byte1 = b1[s1 + 1];
             byte byte2 = b2[s2 + 1];
-            rc = (byte1 < byte2) ? -1 : ((byte1 > byte2) ? 1 : 0); 
+            rc = (byte1 < byte2) ? -1 : ((byte1 > byte2) ? 1 : 0);
         } else {
             // For sorting purposes two nulls are equal.
             if (b1[s1] != 0 && b2[s2] != 0) rc = 0;

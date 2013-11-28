@@ -45,14 +45,8 @@ public class PigLongRawComparator extends WritableComparator implements Configur
 
 
     public void setConf(Configuration conf) {
-        if (!(conf instanceof JobConf)) {
-            mLog.warn("Expected jobconf in setConf, got " +
-                conf.getClass().getName());
-            return;
-        }
-        JobConf jconf = (JobConf)conf;
         try {
-            mAsc = (boolean[])ObjectSerializer.deserialize(jconf.get(
+            mAsc = (boolean[])ObjectSerializer.deserialize(conf.get(
                 "pig.sortOrder"));
         } catch (IOException ioe) {
             mLog.error("Unable to deserialize pig.sortOrder " +

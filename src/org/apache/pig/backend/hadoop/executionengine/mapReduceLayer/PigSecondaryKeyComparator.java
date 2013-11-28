@@ -34,11 +34,6 @@ public class PigSecondaryKeyComparator extends WritableComparator implements Con
 
     @Override
     public void setConf(Configuration conf) {
-        if (!(conf instanceof JobConf)) {
-            mLog.warn("Expected jobconf in setConf, got " + conf.getClass().getName());
-            return;
-        }
-        JobConf jconf = (JobConf) conf;
         try {
             Class<? extends TupleRawComparator> mComparatorClass = TupleFactory.getInstance().tupleRawComparatorClass();
             mComparator = mComparatorClass.newInstance();
@@ -47,7 +42,7 @@ public class PigSecondaryKeyComparator extends WritableComparator implements Con
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         }
-        mComparator.setConf(jconf);
+        mComparator.setConf(conf);
     }
 
     protected PigSecondaryKeyComparator() {

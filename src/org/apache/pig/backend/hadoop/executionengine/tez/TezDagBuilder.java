@@ -33,6 +33,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.WritableComparable;
+import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.OutputFormat;
@@ -47,34 +48,25 @@ import org.apache.pig.PigException;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.JobCreationException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigBigDecimalWritableComparator;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigBigIntegerWritableComparator;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigBooleanWritableComparator;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigCharArrayWritableComparator;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigDBAWritableComparator;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigDateTimeWritableComparator;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigDoubleWritableComparator;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigFloatWritableComparator;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingBigDecimalWritableComparator;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingBigIntegerWritableComparator;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingBooleanWritableComparator;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingCharArrayWritableComparator;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingDBAWritableComparator;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingDateTimeWritableComparator;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingDoubleWritableComparator;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingFloatWritableComparator;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingIntWritableComparator;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingLongWritableComparator;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingTupleWritableComparator;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigIntWritableComparator;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigLongWritableComparator;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigTupleWritableComparator;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigBigDecimalRawComparator;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigBigIntegerRawComparator;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigBooleanRawComparator;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigBytesRawComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigCombiner;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigDateTimeRawComparator;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigDoubleRawComparator;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigFloatRawComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigInputFormat;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigIntRawComparator;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigLongRawComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigOutputFormat;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigTextRawComparator;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigTupleSortComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.WeightedRangePartitioner;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POSimpleTezLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
@@ -89,6 +81,7 @@ import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
+import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.ObjectSerializer;
@@ -119,12 +112,20 @@ public class TezDagBuilder extends TezOpPlanVisitor {
     private DAG dag;
     private Map<String, LocalResource> localResources;
     private PigContext pc;
+    private Configuration globalConf;
 
-    public TezDagBuilder(PigContext pc, TezOperPlan plan, DAG dag, Map<String, LocalResource> localResources) {
+    private String scope;
+    private NodeIdGenerator nig;
+
+    public TezDagBuilder(PigContext pc, TezOperPlan plan, DAG dag,
+            Map<String, LocalResource> localResources) {
         super(plan, new DependencyOrderWalker<TezOperator, TezOperPlan>(plan));
         this.pc = pc;
+        this.globalConf = ConfigurationUtil.toConfiguration(pc.getProperties(), true);
         this.localResources = localResources;
         this.dag = dag;
+        this.scope = plan.getRoots().get(0).getOperatorKey().getScope();
+        this.nig = NodeIdGenerator.getGenerator();
     }
 
     @Override
@@ -135,11 +136,12 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             to = newVertex(tezOp);
             dag.addVertex(to);
         } catch (IOException e) {
-            throw new VisitorException("Cannot create vertex for " + tezOp.name(), e);
+            throw new VisitorException("Cannot create vertex for "
+                    + tezOp.name(), e);
         }
 
         // Connect the new vertex with predecessor vertices
-        TezOperPlan tezPlan =  getPlan();
+        TezOperPlan tezPlan = getPlan();
         List<TezOperator> predecessors = tezPlan.getPredecessors(tezOp);
         if (predecessors != null) {
             for (TezOperator predecessor : predecessors) {
@@ -150,8 +152,8 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 try {
                     prop = newEdge(predecessor, tezOp);
                 } catch (IOException e) {
-                    throw new VisitorException("Cannot create edge from " +
-                            predecessor.name() + " to " + tezOp.name(), e);
+                    throw new VisitorException("Cannot create edge from "
+                            + predecessor.name() + " to " + tezOp.name(), e);
                 }
                 Edge edge = new Edge(from, to, prop);
                 dag.addEdge(edge);
@@ -161,12 +163,14 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
     /**
      * Return EdgeProperty that connects two vertices.
+     *
      * @param from
      * @param to
      * @return EdgeProperty
      * @throws IOException
      */
-    private EdgeProperty newEdge(TezOperator from, TezOperator to) throws IOException {
+    private EdgeProperty newEdge(TezOperator from, TezOperator to)
+            throws IOException {
         TezEdgeDescriptor edge = to.inEdges.get(from.getOperatorKey());
         PhysicalPlan combinePlan = edge.combinePlan;
 
@@ -180,107 +184,127 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             out.setUserPayload(TezUtils.createUserPayloadFromConf(conf));
         }
 
-        return new EdgeProperty(
-                edge.dataMovementType,
-                edge.dataSourceType,
-                edge.schedulingType,
-                out, in);
+        return new EdgeProperty(edge.dataMovementType, edge.dataSourceType,
+                edge.schedulingType, out, in);
     }
 
     private void addCombiner(PhysicalPlan combinePlan, Configuration conf) throws IOException {
         POPackage combPack = (POPackage)combinePlan.getRoots().get(0);
         setIntermediateInputKeyValue(combPack.getPkgr().getKeyType(), conf);
 
-        POLocalRearrange combRearrange = (POLocalRearrange)combinePlan.getLeaves().get(0);
+        POLocalRearrange combRearrange = (POLocalRearrange) combinePlan
+                .getLeaves().get(0);
         setIntermediateOutputKeyValue(combRearrange.getKeyType(), conf);
 
-        LoRearrangeDiscoverer lrDiscoverer = new LoRearrangeDiscoverer(combinePlan, combPack);
+        LoRearrangeDiscoverer lrDiscoverer = new LoRearrangeDiscoverer(
+                combinePlan, combPack);
         lrDiscoverer.visit();
 
         combinePlan.remove(combPack);
-        conf.set(TezJobConfig.TEZ_RUNTIME_COMBINER_CLASS, MRCombiner.class.getName());
-        conf.set(MRJobConfig.COMBINE_CLASS_ATTR, PigCombiner.Combine.class.getName());
+        conf.set(TezJobConfig.TEZ_RUNTIME_COMBINER_CLASS,
+                MRCombiner.class.getName());
+        conf.set(MRJobConfig.COMBINE_CLASS_ATTR,
+                PigCombiner.Combine.class.getName());
         conf.setBoolean("mapred.mapper.new-api", true);
         conf.set("pig.pigContext", ObjectSerializer.serialize(pc));
         conf.set("pig.combinePlan", ObjectSerializer.serialize(combinePlan));
         conf.set("pig.combine.package", ObjectSerializer.serialize(combPack));
-        conf.set("pig.map.keytype", ObjectSerializer.serialize(new byte[] {combRearrange.getKeyType()}));
+        conf.set("pig.map.keytype", ObjectSerializer
+                .serialize(new byte[] { combRearrange.getKeyType() }));
     }
 
     private Vertex newVertex(TezOperator tezOp) throws IOException {
-        ProcessorDescriptor procDesc = new ProcessorDescriptor(tezOp.getProcessorName());
+        ProcessorDescriptor procDesc = new ProcessorDescriptor(
+                tezOp.getProcessorName());
 
         // Pass physical plans to vertex as user payload.
-        Configuration conf = new Configuration();
-        // We won't actually use this job, but we need it to talk with the Load Store funcs
+        Configuration payloadConf = new Configuration();
+        // We won't actually use this job, but we need it to talk with the Load
+        // Store funcs
         @SuppressWarnings("deprecation")
-        Job job = new Job(conf);
+        Job job = new Job(payloadConf);
 
         ArrayList<POStore> storeLocations = new ArrayList<POStore>();
         Path tmpLocation = null;
 
-        boolean loads = processLoads(tezOp, conf, job);
-        conf.set("pig.pigContext", ObjectSerializer.serialize(pc));
+        List<POLoad> loads = processLoads(tezOp, payloadConf, job);
+        payloadConf.set("pig.pigContext", ObjectSerializer.serialize(pc));
 
-        conf.set("udf.import.list", ObjectSerializer.serialize(PigContext.getPackageImportList()));
-        conf.setBoolean("mapred.mapper.new-api", true);
-        conf.setClass("mapreduce.inputformat.class", PigInputFormat.class, InputFormat.class);
+        payloadConf.set("udf.import.list",
+                ObjectSerializer.serialize(PigContext.getPackageImportList()));
+        payloadConf.setBoolean("mapred.mapper.new-api", true);
+        payloadConf.setClass("mapreduce.inputformat.class",
+                PigInputFormat.class, InputFormat.class);
 
-        // We need to remove all the POStores from the exec plan and later add them as outputs of the vertex
-        LinkedList<POStore> stores = PlanHelper.getPhysicalOperators(tezOp.plan, POStore.class);
+        // We need to remove all the POStores from the exec plan and later add
+        // them as outputs of the vertex
+        LinkedList<POStore> stores = PlanHelper.getPhysicalOperators(
+                tezOp.plan, POStore.class);
 
-        for (POStore st: stores) {
+        for (POStore st : stores) {
             storeLocations.add(st);
             StoreFuncInterface sFunc = st.getStoreFunc();
             sFunc.setStoreLocation(st.getSFile().getFileName(), job);
         }
 
-        if (stores.size() == 1){
+        if (stores.size() == 1) {
             POStore st = stores.get(0);
-            if(!pc.inIllustrator)
+            if (!pc.inIllustrator)
                 tezOp.plan.remove(st);
 
             // set out filespecs
             String outputPathString = st.getSFile().getFileName();
-            if (!outputPathString.contains("://") || outputPathString.startsWith("hdfs://")) {
-                conf.set("pig.streaming.log.dir",
-                        new Path(outputPathString, JobControlCompiler.LOG_DIR).toString());
+            if (!outputPathString.contains("://")
+                    || outputPathString.startsWith("hdfs://")) {
+                payloadConf.set("pig.streaming.log.dir", new Path(
+                        outputPathString, JobControlCompiler.LOG_DIR)
+                        .toString());
             } else {
-                String tmpLocationStr =  FileLocalizer
-                        .getTemporaryPath(pc).toString();
+                String tmpLocationStr = FileLocalizer.getTemporaryPath(pc)
+                        .toString();
                 tmpLocation = new Path(tmpLocationStr);
-                conf.set("pig.streaming.log.dir",
-                        new Path(tmpLocation, JobControlCompiler.LOG_DIR).toString());
+                payloadConf.set("pig.streaming.log.dir", new Path(tmpLocation,
+                        JobControlCompiler.LOG_DIR).toString());
             }
-            conf.set("pig.streaming.task.output.dir", outputPathString);
+            payloadConf.set("pig.streaming.task.output.dir", outputPathString);
         } else if (stores.size() > 0) { // multi store case
             log.info("Setting up multi store job");
-            String tmpLocationStr =  FileLocalizer
-                    .getTemporaryPath(pc).toString();
+            String tmpLocationStr = FileLocalizer.getTemporaryPath(pc)
+                    .toString();
             tmpLocation = new Path(tmpLocationStr);
 
-            boolean disableCounter = conf.getBoolean("pig.disable.counter", false);
+            boolean disableCounter = payloadConf.getBoolean(
+                    "pig.disable.counter", false);
             if (disableCounter) {
                 log.info("Disable Pig custom output counters");
             }
             int idx = 0;
-            for (POStore sto: storeLocations) {
+            for (POStore sto : storeLocations) {
                 sto.setDisableCounter(disableCounter);
                 sto.setMultiStore(true);
                 sto.setIndex(idx++);
             }
 
-            conf.set("pig.streaming.log.dir",
-                    new Path(tmpLocation, JobControlCompiler.LOG_DIR).toString());
-            conf.set("pig.streaming.task.output.dir", tmpLocation.toString());
+            payloadConf.set("pig.streaming.log.dir", new Path(tmpLocation,
+                    JobControlCompiler.LOG_DIR).toString());
+            payloadConf.set("pig.streaming.task.output.dir",
+                    tmpLocation.toString());
         }
 
         if (!pc.inIllustrator) {
-            // Unset inputs for POStore, otherwise, exec plan will be unnecessarily deserialized
-            for (POStore st: stores) { st.setInputs(null); st.setParentPlan(null);}
-            // We put them in the reduce because PigOutputCommitter checks the ID of the task to see if it's a map, and if not, calls the reduce committers.
-            conf.set(JobControlCompiler.PIG_MAP_STORES, ObjectSerializer.serialize(new ArrayList<POStore>()));
-            conf.set(JobControlCompiler.PIG_REDUCE_STORES, ObjectSerializer.serialize(stores));
+            // Unset inputs for POStore, otherwise, exec plan will be
+            // unnecessarily deserialized
+            for (POStore st : stores) {
+                st.setInputs(null);
+                st.setParentPlan(null);
+            }
+            // We put them in the reduce because PigOutputCommitter checks the
+            // ID of the task to see if it's a map, and if not, calls the reduce
+            // committers.
+            payloadConf.set(JobControlCompiler.PIG_MAP_STORES,
+                    ObjectSerializer.serialize(new ArrayList<POStore>()));
+            payloadConf.set(JobControlCompiler.PIG_REDUCE_STORES,
+                    ObjectSerializer.serialize(stores));
         }
 
         // For all shuffle outputs, configure the classes
@@ -290,30 +314,52 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         // different keys.
         if (leaves.size() == 1 && leaves.get(0) instanceof POLocalRearrange) {
             byte keyType = ((POLocalRearrange)leaves.get(0)).getKeyType();
-            setIntermediateOutputKeyValue(keyType, conf);
-            conf.set("pig.reduce.key.type", Byte.toString(keyType));
+            setIntermediateOutputKeyValue(keyType, payloadConf);
+            payloadConf.set("pig.reduce.key.type", Byte.toString(keyType));
         }
 
         // Configure the classes for incoming shuffles to this TezOp
         List<PhysicalOperator> roots = tezOp.plan.getRoots();
         if (roots.size() == 1 && roots.get(0) instanceof POPackage) {
             POPackage pack = (POPackage) roots.get(0);
+
+            List<PhysicalOperator> succsList = tezOp.plan.getSuccessors(pack);
+            if (succsList != null) {
+                succsList = new ArrayList<PhysicalOperator>(succsList);
+            }
             byte keyType = pack.getPkgr().getKeyType();
             tezOp.plan.remove(pack);
-            conf.set("pig.reduce.package", ObjectSerializer.serialize(pack));
-            conf.set("pig.reduce.key.type", Byte.toString(keyType));
-            setIntermediateInputKeyValue(keyType, conf);
-            conf.setClass("pig.input.handler.class", ShuffledInputHandler.class, InputHandler.class);
-            conf.set("pig.reduce.key.type", Byte.toString(keyType));
-        } else {
-            conf.setClass("pig.input.handler.class", FileInputHandler.class, InputHandler.class);
-        }
+            payloadConf.set("pig.reduce.package",
+                    ObjectSerializer.serialize(pack));
+            payloadConf.set("pig.reduce.key.type", Byte.toString(keyType));
+            setIntermediateInputKeyValue(keyType, payloadConf);
+            // TODO: Move POShuffleTezLoad upstream to Physical Plan generation
+            POShuffleTezLoad shuffleLoad = new POShuffleTezLoad(
+                    new OperatorKey(scope, nig.getNextNodeId(scope)), pack);
+            tezOp.plan.add(shuffleLoad);
 
-        conf.setClass("mapreduce.outputformat.class", PigOutputFormat.class, OutputFormat.class);
+            if (succsList != null) {
+                for (PhysicalOperator succs : succsList) {
+                    tezOp.plan.connect(shuffleLoad, succs);
+                }
+            }
+
+            @SuppressWarnings("rawtypes")
+            Class<? extends WritableComparable> keyClass = HDataType
+                    .getWritableComparableTypes(pack.getPkgr().getKeyType())
+                    .getClass();
+            payloadConf.set(
+                    TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_CLASS,
+                    keyClass.getName());
+            payloadConf.set(
+                    TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_VALUE_CLASS,
+                    NullableTuple.class.getName());
+            selectInputComparator(payloadConf, pack.getPkgr().getKeyType());
+        }
 
         if(tezOp.isGlobalSort() || tezOp.isLimitAfterSort()){
             if (tezOp.isGlobalSort()) {
-                FileSystem fs = FileSystem.get(conf);
+                FileSystem fs = FileSystem.get(globalConf);
                 Path quantFilePath = new Path(tezOp.getQuantFile() + "/part-r-00000");
                 FileStatus fstat = fs.getFileStatus(quantFilePath);
                 LocalResource quantFileResource = LocalResource.newInstance(
@@ -323,48 +369,66 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                         fstat.getLen(),
                         fstat.getModificationTime());
                 localResources.put(quantFilePath.getName(), quantFileResource);
-                conf.set("pig.quantilesFile", fstat.getPath().toString());
-                conf.set("pig.sortOrder",
+                payloadConf.set("pig.quantilesFile", fstat.getPath().toString());
+                payloadConf.set("pig.sortOrder",
                         ObjectSerializer.serialize(tezOp.getSortOrder()));
-                conf.setClass("mapreduce.job.partitioner.class", WeightedRangePartitioner.class,
+                payloadConf.setClass("mapreduce.job.partitioner.class",
+                        WeightedRangePartitioner.class,
                         Partitioner.class);
             }
         }
 
+        payloadConf.setClass("mapreduce.outputformat.class",
+                PigOutputFormat.class, OutputFormat.class);
+
         // Serialize the execution plan
-        conf.set(PigProcessor.PLAN, ObjectSerializer.serialize(tezOp.plan));
-        UDFContext.getUDFContext().serialize(conf);
+        payloadConf.set(PigProcessor.PLAN,
+                ObjectSerializer.serialize(tezOp.plan));
+        UDFContext.getUDFContext().serialize(payloadConf);
 
         // Take our assembled configuration and create a vertex
-        byte[] userPayload = TezUtils.createUserPayloadFromConf(conf);
+        byte[] userPayload = TezUtils.createUserPayloadFromConf(payloadConf);
         procDesc.setUserPayload(userPayload);
-        // Can only set parallelism here if the parallelism isn't derived from splits
-        int parallelism = !loads ? tezOp.requestedParallelism : -1;
+        // Can only set parallelism here if the parallelism isn't derived from
+        // splits
+        int parallelism = (loads.size() == 0) ? tezOp.requestedParallelism : -1;
         Vertex vertex = new Vertex(tezOp.name(), procDesc, parallelism,
                 Resource.newInstance(tezOp.requestedMemory, tezOp.requestedCpu));
 
         Map<String, String> env = new HashMap<String, String>();
-        MRHelpers.updateEnvironmentForMRTasks(conf, env, true);
+        MRHelpers.updateEnvironmentForMRTasks(globalConf, env, true);
         vertex.setTaskEnvironment(env);
 
         vertex.setTaskLocalResources(localResources);
 
         // This could also be reduce, but we need to choose one
-        // TODO: Create new or use existing settings that are specifically for Tez.
-        vertex.setJavaOpts(MRHelpers.getMapJavaOpts(conf));
+        // TODO: Create new or use existing settings that are specifically for
+        // Tez.
+        vertex.setJavaOpts(MRHelpers.getMapJavaOpts(globalConf));
 
-        // Right now there can only be one of each of these. Will need to be more generic when there can be more.
-        if (loads){
-            vertex.addInput("PigInput", new InputDescriptor(MRInput.class.getName()).setUserPayload(MRHelpers.createMRInputPayload(userPayload, null)), MRInputAMSplitGenerator.class);
+        // Right now there can only be one of each of these. Will need to be
+        // more generic when there can be more.
+        for (POLoad ld : loads) {
+
+            // TODO: These should get the globalConf, or a merged version that
+            // keeps settings like pig.maxCombinedSplitSize
+            vertex.addInput(ld.getOperatorKey().toString(),
+                    new InputDescriptor(MRInput.class.getName())
+                            .setUserPayload(MRHelpers.createMRInputPayload(
+                                    userPayload, null)),
+                    MRInputAMSplitGenerator.class);
         }
-        if (!stores.isEmpty()){
-            vertex.addOutput("PigOutput", new OutputDescriptor(MROutput.class.getName()));
+        if (!stores.isEmpty()) {
+            vertex.addOutput("PigOutput",
+                    new OutputDescriptor(MROutput.class.getName()));
         }
         return vertex;
     }
 
     /**
-     * Do the final configuration of LoadFuncs and store what goes where. This will need to be changed as the inputs get un-bundled
+     * Do the final configuration of LoadFuncs and store what goes where. This
+     * will need to be changed as the inputs get un-bundled
+     *
      * @param tezOp
      * @param conf
      * @param job
@@ -372,32 +436,34 @@ public class TezDagBuilder extends TezOpPlanVisitor {
      * @throws VisitorException
      * @throws IOException
      */
-    private boolean processLoads(TezOperator tezOp, Configuration conf, Job job)
-            throws VisitorException, IOException {
+    private List<POLoad> processLoads(TezOperator tezOp, Configuration conf,
+            Job job) throws VisitorException, IOException {
         ArrayList<FileSpec> inp = new ArrayList<FileSpec>();
         ArrayList<List<OperatorKey>> inpTargets = new ArrayList<List<OperatorKey>>();
         ArrayList<String> inpSignatureLists = new ArrayList<String>();
         ArrayList<Long> inpLimits = new ArrayList<Long>();
 
-        List<POLoad> lds = PlanHelper.getPhysicalOperators(tezOp.plan, POLoad.class);
+        List<POLoad> lds = PlanHelper.getPhysicalOperators(tezOp.plan,
+                POLoad.class);
 
-        if(lds!=null && lds.size()>0){
+        if (lds != null && lds.size() > 0) {
             for (POLoad ld : lds) {
                 LoadFunc lf = ld.getLoadFunc();
                 lf.setLocation(ld.getLFile().getFileName(), job);
 
-                //Store the inp filespecs
+                // Store the inp filespecs
                 inp.add(ld.getLFile());
             }
         }
 
-        if(lds!=null && lds.size()>0){
+        if (lds != null && lds.size() > 0) {
             for (POLoad ld : lds) {
-                //Store the target operators for tuples read
-                //from this input
-                List<PhysicalOperator> ldSucs = tezOp.plan.getSuccessors(ld);
+                // Store the target operators for tuples read
+                // from this input
+                List<PhysicalOperator> ldSucs = new ArrayList<PhysicalOperator>(
+                        tezOp.plan.getSuccessors(ld));
                 List<OperatorKey> ldSucKeys = new ArrayList<OperatorKey>();
-                if(ldSucs!=null){
+                if (ldSucs != null) {
                     for (PhysicalOperator operator2 : ldSucs) {
                         ldSucKeys.add(operator2.getOperatorKey());
                     }
@@ -405,8 +471,18 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 inpTargets.add(ldSucKeys);
                 inpSignatureLists.add(ld.getSignature());
                 inpLimits.add(ld.getLimit());
-                //Remove the POLoad from the plan
+                // Remove the POLoad from the plan
                 tezOp.plan.remove(ld);
+                // Now add the input handling operator for the Tez backend
+                // TODO: Move this upstream to the PhysicalPlan generation
+                POSimpleTezLoad tezLoad = new POSimpleTezLoad(new OperatorKey(
+                        scope, nig.getNextNodeId(scope)));
+                tezLoad.setInputKey(ld.getOperatorKey().toString());
+                tezOp.plan.add(tezLoad);
+                for (PhysicalOperator sucs : ldSucs) {
+                    tezOp.plan.connect(tezLoad, sucs);
+                }
+
             }
         }
 
@@ -415,69 +491,69 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         conf.set("pig.inpSignatures", ObjectSerializer.serialize(inpSignatureLists));
         conf.set("pig.inpLimits", ObjectSerializer.serialize(inpLimits));
 
-        return (lds.size() > 0);
+        return lds;
     }
 
     @SuppressWarnings("rawtypes")
-    private void setIntermediateInputKeyValue(byte keyType, Configuration conf) throws JobCreationException, ExecException {
-        Class<? extends WritableComparable> keyClass = HDataType.getWritableComparableTypes(keyType).getClass();
-        conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_CLASS, keyClass.getName());
-        conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_VALUE_CLASS, NullableTuple.class.getName());
-        selectInputComparator(keyType, conf);
+    private void setIntermediateInputKeyValue(byte keyType, Configuration conf)
+            throws JobCreationException, ExecException {
+        Class<? extends WritableComparable> keyClass = HDataType
+                .getWritableComparableTypes(keyType).getClass();
+        conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_CLASS,
+                keyClass.getName());
+        conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_VALUE_CLASS,
+                NullableTuple.class.getName());
+        selectInputComparator(conf, keyType);
     }
 
     @SuppressWarnings("rawtypes")
-    private void setIntermediateOutputKeyValue(byte keyType, Configuration conf) throws JobCreationException, ExecException {
-        Class<? extends WritableComparable> keyClass = HDataType.getWritableComparableTypes(keyType).getClass();
-        conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_CLASS, keyClass.getName());
-        conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_VALUE_CLASS, NullableTuple.class.getName());
-        conf.set(TezJobConfig.TEZ_RUNTIME_PARTITIONER_CLASS, MRPartitioner.class.getName());
+    private void setIntermediateOutputKeyValue(byte keyType, Configuration conf)
+            throws JobCreationException, ExecException {
+        Class<? extends WritableComparable> keyClass = HDataType
+                .getWritableComparableTypes(keyType).getClass();
+        conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_CLASS,
+                keyClass.getName());
+        conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_VALUE_CLASS,
+                NullableTuple.class.getName());
+        conf.set(TezJobConfig.TEZ_RUNTIME_PARTITIONER_CLASS,
+                MRPartitioner.class.getName());
         selectOutputComparator(keyType, conf);
     }
 
-    private void selectInputComparator(byte keyType, Configuration conf) throws JobCreationException {
-        //TODO: Handle sorting like in JobControlCompiler
+    static Class<? extends WritableComparator> comparatorForKeyType(byte keyType)
+            throws JobCreationException {
+        // TODO: Handle sorting like in JobControlCompiler
 
         switch (keyType) {
         case DataType.BOOLEAN:
-            conf.setClass(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_COMPARATOR_CLASS, PigBooleanWritableComparator.class, RawComparator.class);
-            break;
+            return PigBooleanRawComparator.class;
 
         case DataType.INTEGER:
-            conf.setClass(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_COMPARATOR_CLASS, PigIntWritableComparator.class, RawComparator.class);
-            break;
+            return PigIntRawComparator.class;
 
         case DataType.BIGINTEGER:
-            conf.setClass(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_COMPARATOR_CLASS, PigBigIntegerWritableComparator.class, RawComparator.class);
-            break;
+            return PigBigIntegerRawComparator.class;
 
         case DataType.BIGDECIMAL:
-            conf.setClass(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_COMPARATOR_CLASS, PigBigDecimalWritableComparator.class, RawComparator.class);
-            break;
+            return PigBigDecimalRawComparator.class;
 
         case DataType.LONG:
-            conf.setClass(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_COMPARATOR_CLASS, PigLongWritableComparator.class, RawComparator.class);
-            break;
+            return PigLongRawComparator.class;
 
         case DataType.FLOAT:
-            conf.setClass(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_COMPARATOR_CLASS, PigFloatWritableComparator.class, RawComparator.class);
-            break;
+            return PigFloatRawComparator.class;
 
         case DataType.DOUBLE:
-            conf.setClass(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_COMPARATOR_CLASS, PigDoubleWritableComparator.class, RawComparator.class);
-            break;
+            return PigDoubleRawComparator.class;
 
         case DataType.DATETIME:
-            conf.setClass(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_COMPARATOR_CLASS, PigDateTimeWritableComparator.class, RawComparator.class);
-            break;
+            return PigDateTimeRawComparator.class;
 
         case DataType.CHARARRAY:
-            conf.setClass(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_COMPARATOR_CLASS, PigCharArrayWritableComparator.class, RawComparator.class);
-            break;
+            return PigTextRawComparator.class;
 
         case DataType.BYTEARRAY:
-            conf.setClass(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_COMPARATOR_CLASS, PigDBAWritableComparator.class, RawComparator.class);
-            break;
+            return PigBytesRawComparator.class;
 
         case DataType.MAP:
             int errCode = 1068;
@@ -485,8 +561,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             throw new JobCreationException(msg, errCode, PigException.INPUT);
 
         case DataType.TUPLE:
-            conf.setClass(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_COMPARATOR_CLASS, PigTupleWritableComparator.class, RawComparator.class);
-            break;
+            return PigTupleSortComparator.class;
 
         case DataType.BAG:
             errCode = 1068;
@@ -500,80 +575,19 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         }
     }
 
-    private void selectOutputComparator(byte keyType, Configuration conf) throws JobCreationException {
-        //TODO: Handle sorting like in JobControlCompiler
+    void selectInputComparator(Configuration conf, byte keyType)
+            throws JobCreationException {
+        // TODO: Handle sorting like in JobControlCompiler
+        conf.setClass(
+                TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_COMPARATOR_CLASS,
+                comparatorForKeyType(keyType), RawComparator.class);
+    }
 
-        switch (keyType) {
-        case DataType.BOOLEAN:
-            conf.setClass(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_COMPARATOR_CLASS, PigBooleanWritableComparator.class, RawComparator.class);
-            conf.setClass(TezJobConfig.TEZ_RUNTIME_GROUP_COMPARATOR_CLASS, PigGroupingBooleanWritableComparator.class, RawComparator.class);
-            break;
-
-        case DataType.INTEGER:
-            conf.setClass(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_COMPARATOR_CLASS, PigIntWritableComparator.class, RawComparator.class);
-            conf.setClass(TezJobConfig.TEZ_RUNTIME_GROUP_COMPARATOR_CLASS, PigGroupingIntWritableComparator.class, RawComparator.class);
-            break;
-
-        case DataType.BIGINTEGER:
-            conf.setClass(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_COMPARATOR_CLASS, PigBigIntegerWritableComparator.class, RawComparator.class);
-            conf.setClass(TezJobConfig.TEZ_RUNTIME_GROUP_COMPARATOR_CLASS, PigGroupingBigIntegerWritableComparator.class, RawComparator.class);
-            break;
-
-        case DataType.BIGDECIMAL:
-            conf.setClass(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_COMPARATOR_CLASS, PigBigDecimalWritableComparator.class, RawComparator.class);
-            conf.setClass(TezJobConfig.TEZ_RUNTIME_GROUP_COMPARATOR_CLASS, PigGroupingBigDecimalWritableComparator.class, RawComparator.class);
-            break;
-
-        case DataType.LONG:
-            conf.setClass(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_COMPARATOR_CLASS, PigLongWritableComparator.class, RawComparator.class);
-            conf.setClass(TezJobConfig.TEZ_RUNTIME_GROUP_COMPARATOR_CLASS, PigGroupingLongWritableComparator.class, RawComparator.class);
-            break;
-
-        case DataType.FLOAT:
-            conf.setClass(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_COMPARATOR_CLASS, PigFloatWritableComparator.class, RawComparator.class);
-            conf.setClass(TezJobConfig.TEZ_RUNTIME_GROUP_COMPARATOR_CLASS, PigGroupingFloatWritableComparator.class, RawComparator.class);
-            break;
-
-        case DataType.DOUBLE:
-            conf.setClass(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_COMPARATOR_CLASS, PigDoubleWritableComparator.class, RawComparator.class);
-            conf.setClass(TezJobConfig.TEZ_RUNTIME_GROUP_COMPARATOR_CLASS, PigGroupingDoubleWritableComparator.class, RawComparator.class);
-            break;
-
-        case DataType.DATETIME:
-            conf.setClass(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_COMPARATOR_CLASS, PigDateTimeWritableComparator.class, RawComparator.class);
-            conf.setClass(TezJobConfig.TEZ_RUNTIME_GROUP_COMPARATOR_CLASS, PigGroupingDateTimeWritableComparator.class, RawComparator.class);
-            break;
-
-        case DataType.CHARARRAY:
-            conf.setClass(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_COMPARATOR_CLASS, PigCharArrayWritableComparator.class, RawComparator.class);
-            conf.setClass(TezJobConfig.TEZ_RUNTIME_GROUP_COMPARATOR_CLASS, PigGroupingCharArrayWritableComparator.class, RawComparator.class);
-            break;
-
-        case DataType.BYTEARRAY:
-            conf.setClass(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_COMPARATOR_CLASS, PigDBAWritableComparator.class, RawComparator.class);
-            conf.setClass(TezJobConfig.TEZ_RUNTIME_GROUP_COMPARATOR_CLASS, PigGroupingDBAWritableComparator.class, RawComparator.class);
-            break;
-
-        case DataType.MAP:
-            int errCode = 1068;
-            String msg = "Using Map as key not supported.";
-            throw new JobCreationException(msg, errCode, PigException.INPUT);
-
-        case DataType.TUPLE:
-            conf.setClass(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_COMPARATOR_CLASS, PigTupleWritableComparator.class, RawComparator.class);
-            conf.setClass(TezJobConfig.TEZ_RUNTIME_GROUP_COMPARATOR_CLASS, PigGroupingTupleWritableComparator.class, RawComparator.class);
-            break;
-
-        case DataType.BAG:
-            errCode = 1068;
-            msg = "Using Bag as key not supported.";
-            throw new JobCreationException(msg, errCode, PigException.INPUT);
-
-        default:
-            errCode = 2036;
-            msg = "Unhandled key type " + DataType.findTypeName(keyType);
-            throw new JobCreationException(msg, errCode, PigException.BUG);
-        }
+    void selectOutputComparator(byte keyType, Configuration conf)
+            throws JobCreationException {
+        // TODO: Handle sorting like in JobControlCompiler
+        conf.setClass(
+                TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_COMPARATOR_CLASS,
+                comparatorForKeyType(keyType), RawComparator.class);
     }
 }
-

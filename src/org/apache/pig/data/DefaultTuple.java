@@ -230,13 +230,8 @@ public class DefaultTuple extends AbstractTuple {
 
         @Override
         public void setConf(Configuration conf) {
-            if (!(conf instanceof JobConf)) {
-                mLog.warn("Expected jobconf in setConf, got " + conf.getClass().getName());
-                return;
-            }
-            JobConf jconf = (JobConf) conf;
             try {
-                mAsc = (boolean[]) ObjectSerializer.deserialize(jconf.get("pig.sortOrder"));
+                mAsc = (boolean[]) ObjectSerializer.deserialize(conf.get("pig.sortOrder"));
             } catch (IOException ioe) {
                 mLog.error("Unable to deserialize pig.sortOrder " + ioe.getMessage());
                 throw new RuntimeException(ioe);

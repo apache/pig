@@ -102,7 +102,11 @@ public class CombinerPackager extends Packager {
 
     @Override
     public Result getNext() throws ExecException {
-        //Create numInputs bags
+        if (bags == null) {
+            return new Result(POStatus.STATUS_EOP, null);
+        }
+
+        // Create numInputs bags
         Object[] fields = new Object[mBags.length];
         for (int i = 0; i < mBags.length; i++) {
             if (mBags[i]) fields[i] = createDataBag(numBags);
@@ -131,6 +135,8 @@ public class CombinerPackager extends Packager {
             }
         }
 
+        detachInput();
+
         // The successor of the POCombinerPackage as of
         // now SHOULD be a POForeach which has been adjusted
         // to look for its inputs by projecting from the corresponding
@@ -147,7 +153,7 @@ public class CombinerPackager extends Packager {
     }
 
     @Override
-    protected Tuple getValueTuple(Object key, NullableTuple ntup, int index)
+    public Tuple getValueTuple(Object key, NullableTuple ntup, int index)
             throws ExecException {
         return (Tuple) ntup.getValueAsPigType();
     }

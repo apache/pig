@@ -213,10 +213,10 @@ public class CombinerOptimizerUtil {
                 // Use the POCombiner package in the combine plan
                 // as it needs to act differently than the regular
                 // package operator.
+                CombinerPackager pkgr = new CombinerPackager(pack.getPkgr(), bags);
                 POPackage combinePack = pack.clone();
-                CombinerPackager combinePkgr = new CombinerPackager(
-                        pack.getPkgr(), bags);
-                combinePack.setPkgr(combinePkgr);
+                combinePack.setPkgr(pkgr);
+
                 combinePlan.add(combinePack);
                 combinePlan.add(cfe);
                 combinePlan.connect(combinePack, cfe);
@@ -253,7 +253,7 @@ public class CombinerOptimizerUtil {
                 // Change the package operator in the reduce plan to
                 // be the POCombiner package, as it needs to act
                 // differently than the regular package operator.
-                pack.setPkgr(combinePkgr.clone());
+                pack.setPkgr(pkgr.clone());
             } catch (Exception e) {
                 int errCode = 2018;
                 String msg = "Internal error. Unable to introduce the combiner for optimization.";

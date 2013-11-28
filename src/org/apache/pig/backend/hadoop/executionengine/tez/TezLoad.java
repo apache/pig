@@ -15,17 +15,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.pig.backend.hadoop.executionengine.tez;
 
-import java.io.IOException;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.pig.data.Tuple;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.tez.runtime.api.LogicalInput;
 
-public interface InputHandler {
-    public void initialize(Configuration conf, Map<String, LogicalInput> inputs) throws IOException;
-    public boolean next() throws IOException;
-    public Tuple getCurrentTuple() throws IOException;
+/**
+ * This interface is implemented by PhysicalOperators that can have Tez inputs
+ * attached directly to the operator.
+ */
+
+public interface TezLoad {
+    public void attachInputs(Map<String, LogicalInput> inputs,
+            Configuration conf) throws ExecException;
 }
