@@ -43,7 +43,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
  * <dt><b>Matching strategy:</b></dt>
  * <dd>Trying to match the entire input by using {@link Matcher#matches()} instead of
  * {@link Matcher#find()} (default useMatches=true).</dd>
- * <dd><code>DEFINE GREEDY_EXTRACT REGEX_EXTRACT_ALL(false);</code></dd>
+ * <dd><code>DEFINE GREEDY_EXTRACT REGEX_EXTRACT_ALL('false');</code></dd>
  * </dl>
  */
 
@@ -53,8 +53,8 @@ public class REGEX_EXTRACT_ALL extends EvalFunc<Tuple> {
 
     public REGEX_EXTRACT_ALL() {}
 
-    public REGEX_EXTRACT_ALL(boolean useMatches) {
-      this.mUseMatches = useMatches;
+    public REGEX_EXTRACT_ALL(String useMatches) {
+        this.mUseMatches = Boolean.parseBoolean(useMatches);
     }
 
     @Override

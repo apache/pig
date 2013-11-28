@@ -54,6 +54,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3566: Cannot set useMatches of REGEX_EXTRACT_ALL and REGEX_EXTRACT (nezihyigitbasi via cheolsoo)
+
 PIG-2132: [Piggybank] MIN and MAX functions should ignore nulls (rekhajoshm via cheolsoo)
 
 PIG-3581: Incorrect scope resolution with nested foreach (aniket486)

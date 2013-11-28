@@ -44,7 +44,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 * <dt><b>Matching strategy:</b></dt>
 * <dd>Try to only match the first sequence by using {@link Matcher#find()} instead of
 * {@link Matcher#matches()} (default useMatches=false).</dd>
-* <dd><code>DEFINE NON_GREEDY_EXTRACT REGEX_EXTRACT(true);</code></dd>
+* <dd><code>DEFINE NON_GREEDY_EXTRACT REGEX_EXTRACT('true');</code></dd>
 * </dl>
 */
 
@@ -55,8 +55,8 @@ public class REGEX_EXTRACT extends EvalFunc<String> {
 
     public REGEX_EXTRACT() {}
 
-    public REGEX_EXTRACT(boolean useMatches) {
-      this.mUseMatches = useMatches;
+    public REGEX_EXTRACT(String useMatches) {
+        this.mUseMatches = Boolean.parseBoolean(useMatches);
     }
 
     @Override

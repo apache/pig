@@ -1861,7 +1861,7 @@ public class TestBuiltin {
         r = func.exec(t4);
         assertEquals("m", r);
 
-        func = new REGEX_EXTRACT(true);
+        func = new REGEX_EXTRACT("true");
         r = func.exec(t4);
         assertEquals("match", r);
 
@@ -1903,7 +1903,7 @@ public class TestBuiltin {
         assertEquals("t", re.get(0));
         assertEquals("his is a match", re.get(1));
 
-        funce = new REGEX_EXTRACT_ALL(false);
+        funce = new REGEX_EXTRACT_ALL("false");
         re = funce.exec(te1);
         assertEquals(re.size(), 2);
         assertEquals("t", re.get(0));
