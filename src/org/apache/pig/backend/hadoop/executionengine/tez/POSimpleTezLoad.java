@@ -16,15 +16,16 @@
  * limitations under the License.
  */
 
-package org.apache.pig.backend.hadoop.executionengine.physicalLayer;
+package org.apache.pig.backend.hadoop.executionengine.tez;
 
 import java.io.IOException;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
-import org.apache.pig.backend.hadoop.executionengine.tez.TezLoad;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.tez.mapreduce.input.MRInput;
@@ -35,9 +36,7 @@ import org.apache.tez.runtime.library.api.KeyValueReader;
  * POSimpleTezLoad is used on the backend to read tuples from a Tez MRInput
  */
 public class POSimpleTezLoad extends POLoad implements TezLoad {
-    /**
-     *
-     */
+
     private static final long serialVersionUID = 1L;
     private String inputKey;
     private MRInput input;
