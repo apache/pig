@@ -70,7 +70,12 @@ public class PigConfiguration {
 
     public static final String SCHEMA_TUPLE_SHOULD_ALLOW_FORCE = "pig.schematuple.force";
 
-    /*
+    /**
+     * This key is used to define whether to reuse AM in Tez jobs.
+     */
+    public static final String TEZ_SESSION_REUSE = "pig.tez.session.reuse";
+
+    /**
      * Turns off use of combiners in MapReduce jobs produced by Pig.
      */
     public static final String PROP_NO_COMBINER = "pig.exec.nocombiner";

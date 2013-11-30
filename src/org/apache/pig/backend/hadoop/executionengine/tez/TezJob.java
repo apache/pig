@@ -25,6 +25,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.lib.jobcontrol.ControlledJob;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.pig.PigConfiguration;
 import org.apache.tez.client.TezSession;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -44,6 +45,7 @@ public class TezJob extends ControlledJob {
     private DAGClient dagClient;
     private Map<String, LocalResource> requestAMResources;
     private TezSession tezSession;
+    private boolean reuseSession;
 
     public TezJob(TezConfiguration conf, DAG dag, Map<String, LocalResource> requestAMResources)
             throws IOException {
@@ -51,6 +53,7 @@ public class TezJob extends ControlledJob {
         this.conf = conf;
         this.dag = dag;
         this.requestAMResources = requestAMResources;
+        this.reuseSession = conf.getBoolean(PigConfiguration.TEZ_SESSION_REUSE, true);
     }
 
     public DAG getDag() {
@@ -94,8 +97,17 @@ public class TezJob extends ControlledJob {
                 }
                 setMessage(sb.toString());
                 TezSessionManager.freeSession(tezSession);
-                tezSession = null;
-                dagClient = null;
+                try {
+                    if (!reuseSession) {
+                        log.info("Shutting down Tez session");
+                        tezSession.stop();
+                    }
+                    tezSession = null;
+                    dagClient = null;
+                } catch (Exception e) {
+                    log.info("Cannot stop Tez session", e);
+                    setJobState(ControlledJob.State.FAILED);
+                }
                 break;
             }
 
@@ -110,8 +122,12 @@ public class TezJob extends ControlledJob {
     @Override
     public void killJob() throws IOException {
         try {
-            dagClient.tryKillDAG();
-            tezSession.stop();
+            if (dagClient != null) {
+                dagClient.tryKillDAG();
+            }
+            if (tezSession != null) {
+                tezSession.stop();
+            }
         } catch (TezException e) {
             throw new IOException("Cannot kill DAG - Application Id: " + tezSession.getApplicationId(), e);
         }

@@ -57,9 +57,8 @@ public class TezJobControlCompiler {
         return tezDag;
     }
 
-    public TezJobControl compile(TezOperPlan tezPlan, String grpName,
-            Configuration conf, TezPlanContainer planContainer)
-                    throws JobCreationException {
+    public TezJobControl compile(TezOperPlan tezPlan, String grpName, TezPlanContainer planContainer)
+            throws JobCreationException {
         int timeToSleep;
         String defaultPigJobControlSleep = pigContext.getExecType().isLocal() ? "100" : "1000";
         String pigJobControlSleep = tezConf.get("pig.jobcontrol.sleep", defaultPigJobControlSleep);
@@ -81,7 +80,7 @@ public class TezJobControlCompiler {
         try {
             // A single Tez job always pack only 1 Tez plan. We will track 
             // Tez job asynchronously to exploit parallel execution opportunities.
-            TezJob job = getJob(tezPlan, conf, planContainer);
+            TezJob job = getJob(tezPlan, planContainer);
             jobCtrl.addJob(job);
         } catch (JobCreationException jce) {
             throw jce;
@@ -94,7 +93,7 @@ public class TezJobControlCompiler {
         return jobCtrl;
     }
 
-    private TezJob getJob(TezOperPlan tezPlan, Configuration conf, TezPlanContainer planContainer)
+    private TezJob getJob(TezOperPlan tezPlan, TezPlanContainer planContainer)
             throws JobCreationException {
         try {
             Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();

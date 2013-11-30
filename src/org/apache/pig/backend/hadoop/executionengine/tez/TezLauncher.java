@@ -81,7 +81,7 @@ public class TezLauncher extends Launcher {
 
             tezStats.initialize(tezPlan);
 
-            jc = jcc.compile(tezPlan, grpName, conf, tezPlanContainer);
+            jc = jcc.compile(tezPlan, grpName, tezPlanContainer);
             TezJobNotifier notifier = new TezJobNotifier(tezPlanContainer, tezPlan);
             ((TezJobControl)jc).setJobNotifier(notifier);
             ((TezJobControl)jc).setTezStats(tezStats);
