@@ -160,7 +160,6 @@ public class PigProcessor implements LogicalIOProcessor {
                 MROutput mrOut = (MROutput) logicalOutput;
                 fileOutputs.add(mrOut);
                 writers.put(name, mrOut.getWriter());
-                // Since we only have one output, we can cheat here
                 outputType = OUTPUT_TYPE.FILE;
             } else if (logicalOutput instanceof OnFileSortedOutput){
                 OnFileSortedOutput onFileOut = (OnFileSortedOutput) logicalOutput;
@@ -190,10 +189,6 @@ public class PigProcessor implements LogicalIOProcessor {
                 continue;
 
             if(res.returnStatus==POStatus.STATUS_ERR){
-                // remember that we had an issue so that in
-                // close() we can do the right thing
-                //    errorInMap  = true;
-                // if there is an errmessage use it
                 String errMsg;
                 if(res.result != null) {
                     errMsg = "Received Error while " +
