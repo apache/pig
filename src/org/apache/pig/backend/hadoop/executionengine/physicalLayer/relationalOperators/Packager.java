@@ -24,7 +24,7 @@ public class Packager implements Serializable, Cloneable {
     protected DataBag[] bags;
 
     public static enum PackageType {
-        GROUP, JOIN
+        GROUP, JOIN, UNION
     };
 
     // The key being worked on

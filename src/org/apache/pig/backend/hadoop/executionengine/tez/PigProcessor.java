@@ -40,6 +40,7 @@ import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.data.SchemaTupleBackend;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
@@ -54,21 +55,28 @@ import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.TezProcessorContext;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.output.OnFileSortedOutput;
+import org.apache.tez.runtime.library.output.OnFileUnorderedKVOutput;
 
 public class PigProcessor implements LogicalIOProcessor {
     // Names of the properties that store serialized physical plans
     public static final String PLAN = "pig.exec.tez.plan";
     public static final String COMBINE_PLAN = "pig.exec.tez.combine.plan";
+    private static TupleFactory tupleFactory = TupleFactory.getInstance();
+
     private PhysicalPlan execPlan;
 
-    private Set<OnFileSortedOutput> shuffleOutputs = new HashSet<OnFileSortedOutput>();
     private Set<MROutput> fileOutputs = new HashSet<MROutput>();
 
-    private Map<String,KeyValueWriter> writers = new HashMap<String, KeyValueWriter>();
+    private Map<String, KeyValueWriter> writers = new HashMap<String, KeyValueWriter>();
 
     private PhysicalOperator leaf;
 
-    private boolean shuffle;
+    private enum OUTPUT_TYPE {
+        FILE,
+        SHUFFLE,
+        BROADCAST,
+    }
+    private OUTPUT_TYPE outputType;
     private byte keyType;
 
     private Configuration conf;
@@ -107,16 +115,14 @@ public class PigProcessor implements LogicalIOProcessor {
 
         initializeOutputs(outputs);
 
-        List<PhysicalOperator> roots = null;
         List<PhysicalOperator> leaves = null;
 
         if (!execPlan.isEmpty()) {
-            roots = execPlan.getRoots();
             leaves = execPlan.getLeaves();
             // TODO: Pull from all leaves when there are multiple leaves/outputs
             leaf = leaves.get(0);
             // TODO: Remove in favor of maps/indexed arrays in a multi-output world
-            if (shuffle){
+            if (outputType == OUTPUT_TYPE.SHUFFLE || outputType == OUTPUT_TYPE.BROADCAST) {
                 keyType = ((POLocalRearrange)leaf).getKeyType();
             }
         }
@@ -130,7 +136,7 @@ public class PigProcessor implements LogicalIOProcessor {
 
     private void initializeInputs(Map<String, LogicalInput> inputs)
             throws IOException {
-        //getPhysicalOperators only accept C extends PhysicalOperator, so we can't change it to look for TezLoad
+        // getPhysicalOperators only accept C extends PhysicalOperator, so we can't change it to look for TezLoad
         // TODO: Change that.
         LinkedList<POSimpleTezLoad> tezLds = PlanHelper.getPhysicalOperators(execPlan, POSimpleTezLoad.class);
         for (POSimpleTezLoad tezLd : tezLds){
@@ -140,9 +146,13 @@ public class PigProcessor implements LogicalIOProcessor {
         for (POShuffleTezLoad shuffle : shuffles){
             shuffle.attachInputs(inputs, conf);
         }
+        LinkedList<POBroadcastTezLoad> broadcasts = PlanHelper.getPhysicalOperators(execPlan, POBroadcastTezLoad.class);
+        for (POBroadcastTezLoad broadcast : broadcasts){
+            broadcast.attachInputs(inputs, conf);
+        }
     }
 
-    private void initializeOutputs(Map<String, LogicalOutput> outputs) throws IOException{
+    private void initializeOutputs(Map<String, LogicalOutput> outputs) throws Exception {
         for (Entry<String, LogicalOutput> entry : outputs.entrySet()){
             String name = entry.getKey();
             LogicalOutput logicalOutput = entry.getValue();
@@ -151,12 +161,15 @@ public class PigProcessor implements LogicalIOProcessor {
                 fileOutputs.add(mrOut);
                 writers.put(name, mrOut.getWriter());
                 // Since we only have one output, we can cheat here
-                shuffle = false;
+                outputType = OUTPUT_TYPE.FILE;
             } else if (logicalOutput instanceof OnFileSortedOutput){
                 OnFileSortedOutput onFileOut = (OnFileSortedOutput) logicalOutput;
-                shuffleOutputs.add(onFileOut);
                 writers.put(name, onFileOut.getWriter());
-                shuffle = true;
+                outputType = OUTPUT_TYPE.SHUFFLE;
+            } else if (logicalOutput instanceof OnFileUnorderedKVOutput){
+                OnFileUnorderedKVOutput onFileOut = (OnFileUnorderedKVOutput) logicalOutput;
+                writers.put(name, onFileOut.getWriter());
+                outputType = OUTPUT_TYPE.BROADCAST;
             }
         }
     }
@@ -198,22 +211,41 @@ public class PigProcessor implements LogicalIOProcessor {
     }
 
     private void writeResult(Tuple result) throws IOException {
-        // For now we'll just have one output.
-        if (shuffle){
-            Byte index = (Byte)result.get(0);
-            PigNullableWritable key =
-                HDataType.getWritableComparableTypes(result.get(1), keyType);
-            NullableTuple val = new NullableTuple((Tuple)result.get(2));
+        switch (outputType) {
+            case FILE: {
+                writers.values().iterator().next().write(null, result);
+                break;
+            }
+            case SHUFFLE: {
+                Byte index = (Byte)result.get(0);
+                PigNullableWritable key =
+                    HDataType.getWritableComparableTypes(result.get(1), keyType);
+                NullableTuple val = new NullableTuple((Tuple)result.get(2));
 
-            // Both the key and the value need the index.  The key needs it so
-            // that it can be sorted on the index in addition to the key
-            // value.  The value needs it so that POPackage can properly
-            // assign the tuple to its slot in the projection.
-            key.setIndex(index);
-            val.setIndex(index);
-            writers.values().iterator().next().write(key, val);
-        } else {
-            writers.values().iterator().next().write(null, result);
+                // Both the key and the value need the index.  The key needs it so
+                // that it can be sorted on the index in addition to the key
+                // value.  The value needs it so that POPackage can properly
+                // assign the tuple to its slot in the projection.
+                key.setIndex(index);
+                val.setIndex(index);
+                writers.values().iterator().next().write(key, val);
+                break;
+            }
+            case BROADCAST: {
+                Byte index = (Byte)result.get(0);
+                // Key isn't used by broadcast edge, so it can be an empty tuple.
+                Tuple nullTuple = tupleFactory.newTuple();
+                PigNullableWritable key =
+                        HDataType.getWritableComparableTypes(nullTuple, keyType);
+                NullableTuple val = new NullableTuple((Tuple)result.get(1));
+                key.setIndex(index);
+                val.setIndex(index);
+                writers.values().iterator().next().write(key, val);
+                break;
+            }
+            default: {
+                throw new IOException("Unkonwn output type: " + outputType);
+            }
         }
     }
 }

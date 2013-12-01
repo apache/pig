@@ -79,6 +79,9 @@ import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.util.Utils;
+import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
+import org.apache.tez.runtime.library.input.ShuffledUnorderedKVInput;
+import org.apache.tez.runtime.library.output.OnFileUnorderedKVOutput;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -659,7 +662,9 @@ public class TezCompiler extends PhyPlanVisitor {
         try{
             nonBlocking(op);
             phyToTezOpMap.put(op, curTezOp);
-            if (op.getPkgr().getPackageType() == PackageType.JOIN) {
+            if (op.getPkgr().getPackageType() == PackageType.UNION) {
+                curTezOp.markUnion();
+            } else if (op.getPkgr().getPackageType() == PackageType.JOIN) {
                 curTezOp.markRegularJoin();
             } else if (op.getPkgr().getPackageType() == PackageType.GROUP) {
                 if (op.getNumInps() == 1) {
@@ -1175,8 +1180,7 @@ public class TezCompiler extends PhyPlanVisitor {
             String msg = "Unable to set index on newly created POLocalRearrange.";
             throw new PlanException(msg, errCode, PigException.BUG, e);
         }
-        lr.setKeyType((fields == null || fields.length>1) ? DataType.TUPLE :
-            keyType);
+        lr.setKeyType((fields == null || fields.length>1) ? DataType.TUPLE : keyType);
         lr.setPlans(eps1);
         lr.setResultType(DataType.TUPLE);
         lr.addOriginalLocation(sort.getAlias(), sort.getOriginalLocations());
@@ -1190,11 +1194,9 @@ public class TezCompiler extends PhyPlanVisitor {
         connect(tezPlan, oper1, oper2);
 
         if (limit!=-1) {
-            POPackage pkg_c = new POPackage(new OperatorKey(scope,
-                    nig.getNextNodeId(scope)));
+            POPackage pkg_c = new POPackage(new OperatorKey(scope, nig.getNextNodeId(scope)));
             pkg_c.setPkgr(new LitePackager());
-            pkg_c.getPkgr().setKeyType(
-                    (fields.length > 1) ? DataType.TUPLE : keyType);
+            pkg_c.getPkgr().setKeyType((fields.length > 1) ? DataType.TUPLE : keyType);
             pkg_c.setNumInps(1);
             oper2.inEdges.put(oper1.getOperatorKey(), new TezEdgeDescriptor());
             PhysicalPlan combinePlan = oper2.inEdges.get(oper1.getOperatorKey()).combinePlan;
@@ -1238,13 +1240,9 @@ public class TezCompiler extends PhyPlanVisitor {
             combinePlan.addAsLeaf(lr_c2);
         }
 
-        POPackage pkg = new POPackage(new OperatorKey(scope,
-                nig.getNextNodeId(scope)));
+        POPackage pkg = new POPackage(new OperatorKey(scope, nig.getNextNodeId(scope)));
         pkg.setPkgr(new LitePackager());
-        pkg.getPkgr().setKeyType(
-                (fields == null || fields.length > 1) ? DataType.TUPLE
-                        :
-            keyType);
+        pkg.getPkgr().setKeyType((fields == null || fields.length > 1) ? DataType.TUPLE : keyType);
         pkg.setNumInps(1);
         oper2.plan.add(pkg);
 
@@ -1261,8 +1259,7 @@ public class TezCompiler extends PhyPlanVisitor {
         POForEach nfe1 = new POForEach(new OperatorKey(scope,nig.getNextNodeId(scope)),-1,eps2,flattened);
         oper2.plan.add(nfe1);
         oper2.plan.connect(pkg, nfe1);
-        if (limit!=-1)
-        {
+        if (limit!=-1) {
             POLimit pLimit2 = new POLimit(new OperatorKey(scope,nig.getNextNodeId(scope)));
             pLimit2.setLimit(limit);
             oper2.plan.addAsLeaf(pLimit2);
@@ -1333,8 +1330,29 @@ public class TezCompiler extends PhyPlanVisitor {
     @Override
     public void visitUnion(POUnion op) throws VisitorException {
         try {
-            nonBlocking(op);
-            phyToTezOpMap.put(op, curTezOp);
+            // Need to add POLocalRearrange to the end of each previous tezOp
+            // before we broadcast.
+            for (int i = 0; i < compiledInputs.length; i++) {
+                POLocalRearrange lr = getLocalRearrange(i);
+                compiledInputs[i].plan.addAsLeaf(lr);
+            }
+
+            // Mark the start of a new TezOperator, connecting the inputs. Note
+            // the parallelism is currently fixed to 1 for all TezOperators.
+            blocking();
+
+            // Then add a POPackage to the start of the new tezOp.
+            POPackage pkg = getPackage(compiledInputs.length);
+            curTezOp.markUnion();
+            curTezOp.plan.add(pkg);
+
+            // Configure broadcast edges.
+            for (TezOperator prevTezOp : compiledInputs) {
+                TezEdgeDescriptor edge = curTezOp.inEdges.get(prevTezOp.getOperatorKey());
+                edge.dataMovementType = DataMovementType.BROADCAST;
+                edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
+                edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
+            }
         } catch (Exception e) {
             int errCode = 2034;
             String msg = "Error compiling operator " + op.getClass().getSimpleName();
@@ -1375,6 +1393,10 @@ public class TezCompiler extends PhyPlanVisitor {
     }
 
     private POLocalRearrange getLocalRearrange() throws PlanException {
+        return getLocalRearrange(0);
+    }
+
+    private POLocalRearrange getLocalRearrange(int index) throws PlanException {
         POProject projectStar = new POProject(new OperatorKey(scope, nig.getNextNodeId(scope)));
         projectStar.setResultType(DataType.TUPLE);
         projectStar.setStar(true);
@@ -1387,7 +1409,7 @@ public class TezCompiler extends PhyPlanVisitor {
 
         POLocalRearrange lr = new POLocalRearrange(new OperatorKey(scope, nig.getNextNodeId(scope)));
         try {
-            lr.setIndex(0);
+            lr.setIndex(index);
         } catch (ExecException e) {
             int errCode = 2058;
             String msg = "Unable to set index on the newly created POLocalRearrange.";
@@ -1400,11 +1422,15 @@ public class TezCompiler extends PhyPlanVisitor {
     }
 
     private POPackage getPackage() {
+        return getPackage(1);
+    }
+
+    private POPackage getPackage(int numOfInputs) {
         boolean[] inner = { false };
         POPackage pkg = new POPackage(new OperatorKey(scope, nig.getNextNodeId(scope)));
         pkg.getPkgr().setInner(inner);
         pkg.getPkgr().setKeyType(DataType.TUPLE);
-        pkg.setNumInps(1);
+        pkg.setNumInps(numOfInputs);
         return pkg;
     }
 

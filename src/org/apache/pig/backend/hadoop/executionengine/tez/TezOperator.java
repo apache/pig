@@ -89,6 +89,8 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     // Types of blocking operators. For now, we only support the following ones.
     private static enum OPER_FEATURE {
         NONE,
+        // Indicate if this job is a union job
+        UNION,
         // Indicate if this job is a group by job
         GROUPBY,
         // Indicate if this job is a cogroup job
@@ -155,6 +157,14 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
 
     public void markRegularJoin() {
         feature = OPER_FEATURE.HASHJOIN;
+    }
+
+    public boolean isUnion() {
+        return (feature == OPER_FEATURE.UNION);
+    }
+
+    public void markUnion() {
+        feature = OPER_FEATURE.UNION;
     }
 
     @Override

@@ -328,18 +328,20 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             }
             byte keyType = pack.getPkgr().getKeyType();
             tezOp.plan.remove(pack);
-            payloadConf.set("pig.reduce.package",
-                    ObjectSerializer.serialize(pack));
+            payloadConf.set("pig.reduce.package", ObjectSerializer.serialize(pack));
             payloadConf.set("pig.reduce.key.type", Byte.toString(keyType));
             setIntermediateInputKeyValue(keyType, payloadConf);
-            // TODO: Move POShuffleTezLoad upstream to Physical Plan generation
-            POShuffleTezLoad shuffleLoad = new POShuffleTezLoad(
-                    new OperatorKey(scope, nig.getNextNodeId(scope)), pack);
-            tezOp.plan.add(shuffleLoad);
+            POPackage newPack;
+            if (tezOp.isUnion()) {
+                newPack = new POBroadcastTezLoad(new OperatorKey(scope, nig.getNextNodeId(scope)));
+            } else {
+                newPack = new POShuffleTezLoad(new OperatorKey(scope, nig.getNextNodeId(scope)), pack);
+            }
+            tezOp.plan.add(newPack);
 
             if (succsList != null) {
                 for (PhysicalOperator succs : succsList) {
-                    tezOp.plan.connect(shuffleLoad, succs);
+                    tezOp.plan.connect(newPack, succs);
                 }
             }
 
