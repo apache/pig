@@ -60,13 +60,13 @@ public class TezPOPackageAnnotator extends TezOpPlanVisitor {
         }
     }
 
-    private void handlePackage(TezOperator tezOp, POPackage pkg) throws VisitorException {
+    private void handlePackage(TezOperator pkgTezOp, POPackage pkg) throws VisitorException {
         // the LocalRearrange(s) must be in the plan of a predecessor tez op
         int lrFound = 0;
-            List<TezOperator> preds = this.mPlan.getPredecessors(tezOp);
+            List<TezOperator> preds = this.mPlan.getPredecessors(pkgTezOp);
             for (Iterator<TezOperator> it = preds.iterator(); it.hasNext();) {
-                TezOperator tezOper = it.next();
-                lrFound += patchPackage(tezOper.plan, pkg);
+                TezOperator predTezOp = it.next();
+                lrFound += patchPackage(predTezOp, pkgTezOp, pkg);
                 if(lrFound == pkg.getNumInps()) {
                     break;
                 }
@@ -79,8 +79,8 @@ public class TezPOPackageAnnotator extends TezOpPlanVisitor {
         }
     }
 
-    private int patchPackage(PhysicalPlan plan, POPackage pkg) throws VisitorException {
-        LoRearrangeDiscoverer lrDiscoverer = new LoRearrangeDiscoverer(plan, pkg);
+    private int patchPackage(TezOperator predTezOp, TezOperator pkgTezOp, POPackage pkg) throws VisitorException {
+        LoRearrangeDiscoverer lrDiscoverer = new LoRearrangeDiscoverer(predTezOp.plan, pkgTezOp, pkg);
         lrDiscoverer.visit();
         // let our caller know if we managed to patch
         // the package
@@ -124,15 +124,21 @@ public class TezPOPackageAnnotator extends TezOpPlanVisitor {
     static class LoRearrangeDiscoverer extends PhyPlanVisitor {
 
         private int loRearrangeFound = 0;
+        private TezOperator pkgTezOp;
         private POPackage pkg;
 
-        public LoRearrangeDiscoverer(PhysicalPlan plan, POPackage pkg) {
+        public LoRearrangeDiscoverer(PhysicalPlan plan, TezOperator pkgTezOp, POPackage pkg) {
             super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(plan));
+            this.pkgTezOp = pkgTezOp;
             this.pkg = pkg;
         }
 
         @Override
         public void visitLocalRearrange(POLocalRearrange lrearrange) throws VisitorException {
+            POLocalRearrangeTez lr = (POLocalRearrangeTez) lrearrange;
+            if (!lr.getOutputKey().equals(pkgTezOp.getOperatorKey().toString())) {
+                return;
+            }
             loRearrangeFound++;
             Map<Integer,Pair<Boolean, Map<Integer, Integer>>> keyInfo;
 

@@ -152,6 +152,32 @@ public class POLocalRearrange extends PhysicalOperator {
         mSecondaryProjectedColsMap = new HashMap<Integer, Integer>();
     }
 
+    public POLocalRearrange(POLocalRearrange copy) {
+        super(copy);
+        this.plans = copy.plans;
+        this.secondaryPlans = copy.secondaryPlans;
+        this.leafOps = copy.leafOps;
+        this.secondaryLeafOps = copy.secondaryLeafOps;
+        this.index = copy.index;
+        this.keyType = copy.keyType;
+        this.mainKeyType = copy.mainKeyType;
+        this.secondaryKeyType = copy.secondaryKeyType;
+        this.mIsDistinct = copy.mIsDistinct;
+        this.isCross = copy.isCross;
+        this.mProjectedColsMap = copy.mProjectedColsMap;
+        this.mSecondaryProjectedColsMap = copy.mSecondaryProjectedColsMap;
+        this.mFakeTuple = copy.mFakeTuple;
+        this.mProjectStar = copy.mProjectStar;
+        this.mSecondaryProjectStar = copy.mSecondaryProjectStar;
+        this.isKeyTuple = copy.isKeyTuple;
+        this.isKeyCompound = copy.isKeyCompound;
+        this.isSecondaryKeyTuple = copy.isSecondaryKeyTuple;
+        this.mProjectedColsMapSize = copy.mProjectedColsMapSize;
+        this.mSecondaryProjectedColsMapSize = copy.mSecondaryProjectedColsMapSize;
+        this.useSecondaryKey = copy.useSecondaryKey;
+        this.stripKeyFromValue = copy.stripKeyFromValue;
+    }
+
     @Override
     public void visit(PhyPlanVisitor v) throws VisitorException {
         v.visitLocalRearrange(this);
@@ -676,15 +702,21 @@ public class POLocalRearrange extends PhysicalOperator {
      */
     @Override
     public POLocalRearrange clone() throws CloneNotSupportedException {
-        List<PhysicalPlan> clonePlans = new
-            ArrayList<PhysicalPlan>(plans.size());
-        for (PhysicalPlan plan : plans) {
-            clonePlans.add(plan.clone());
-        }
         POLocalRearrange clone = new POLocalRearrange(new OperatorKey(
             mKey.scope,
             NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)),
             requestedParallelism);
+        deepCopyTo(clone);
+        return clone;
+    }
+
+    protected void deepCopyTo(POLocalRearrange clone)
+            throws CloneNotSupportedException {
+        List<PhysicalPlan> clonePlans = new ArrayList<PhysicalPlan>(
+                plans.size());
+        for (PhysicalPlan plan : plans) {
+            clonePlans.add(plan.clone());
+        }
         try {
             clone.setPlans(clonePlans);
         } catch (PlanException pe) {
@@ -701,7 +733,6 @@ public class POLocalRearrange extends PhysicalOperator {
         // created.
         clone.setDistinct(mIsDistinct);
         clone.addOriginalLocation(alias, getOriginalLocations());
-        return clone;
     }
 
     public boolean isCross() {

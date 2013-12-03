@@ -123,7 +123,7 @@ public class PigServer {
     public static final String PRETTY_PRINT_SCHEMA_PROPERTY = "pig.pretty.print.schema";
     private static final String PIG_LOCATION_CHECK_STRICT = "pig.location.check.strict";
 
-    /*    
+    /*
      * The data structure to support grunt shell operations.
      * The grunt shell can only work on one graph at a time.
      * If a script is contained inside another script, the grunt
@@ -172,10 +172,10 @@ public class PigServer {
     /**
      * @param execTypeString can be 'mapreduce' or 'local'.  Local mode will
      * use Hadoop's local job runner to execute the job on the local machine.
-     * Mapreduce mode will connect to a cluster to execute the job. If 
+     * Mapreduce mode will connect to a cluster to execute the job. If
      * execTypeString is not one of these two, Pig will deduce the ExecutionEngine
      * if it is on the classpath and use it for the backend execution.
-     * @throws ExecException 
+     * @throws ExecException
      * @throws IOException
      */
     public PigServer(String execTypeString) throws ExecException, IOException {
@@ -275,7 +275,7 @@ public class PigServer {
 
     /**
      * Current DAG
-     * 
+     *
      * @return
      */
     public Graph getCurrentDAG() {
@@ -350,7 +350,7 @@ public class PigServer {
      * should be followed by {@link PigServer#executeBatch(boolean)} with
      * argument as false. Do Not use {@link PigServer#executeBatch()} after
      * calling this method as that will re-parse and build the script.
-     * 
+     *
      * @throws IOException
      */
     public void parseAndBuild() throws IOException {
@@ -365,7 +365,7 @@ public class PigServer {
 
     /**
      * Submits a batch of Pig commands for execution.
-     * 
+     *
      * @return list of jobs being executed
      * @throws IOException
      */
@@ -377,7 +377,7 @@ public class PigServer {
      * Submits a batch of Pig commands for execution. Parse and build of script
      * should be skipped if user called {@link PigServer#parseAndBuild()}
      * before. Pass false as an argument in which case.
-     * 
+     *
      * @param parseAndBuild
      * @return
      * @throws IOException
@@ -746,7 +746,7 @@ public class PigServer {
             registerScript(fis, params, paramsFiles);
         }catch (FileNotFoundException e){
             log.error(e.getLocalizedMessage());
-            throw new IOException(e.getCause());
+            throw new IOException(e);
         } finally {
             if (fis != null) {
                 fis.close();
@@ -1029,7 +1029,7 @@ public class PigServer {
      * @param lps Stream to print the logical tree
      * @param eps Stream to print the ExecutionEngine trees. If null, then will print to files
      * @param dir Directory to print ExecutionEngine trees. If null, will use eps
-     * @param suffix Suffix of file names 
+     * @param suffix Suffix of file names
      * @throws IOException if the requested alias cannot be found.
      */
     @SuppressWarnings("unchecked")
@@ -1044,7 +1044,7 @@ public class PigServer {
         try {
             pigContext.inExplain = true;
             buildStorePlan( alias );
-            
+
             //Only add root xml node if all plans are being written to same stream.
             if (format == "xml" && lps == eps) {
                 lps.println("<plan>");
@@ -1064,7 +1064,7 @@ public class PigServer {
             if (format.equals("xml") && lps == eps) {
                 lps.println("</plan>");
             }
-            
+
             if (markAsExecute) {
                 currDAG.markAsExecuted();
             }
@@ -1337,9 +1337,9 @@ public class PigServer {
         try {
             stats = pigContext.getExecutionEngine().launchPig(lp, jobName, pigContext);
         } catch (ExecException e) {
-            throw (ExecException) e;
+            throw e;
         } catch (FrontendException e) {
-            throw (FrontendException) e;
+            throw e;
         } catch (Exception e) {
             // There are a lot of exceptions thrown by the launcher.  If this
             // is an ExecException, just let it through.  Else wrap it.
@@ -1372,13 +1372,13 @@ public class PigServer {
         }
         return op;
     }
-    
+
     /**
      * Returns data associated with LogicalPlan. It makes
      * sense to call this method only after a query/script
      * has been registered with one of the {@link #registerQuery(String)}
      * or {@link #registerScript(InputStream)} methods.
-     * 
+     *
      * @return LogicalPlanData
      */
     public LogicalPlanData getLogicalPlanData() {
@@ -1694,7 +1694,7 @@ public class PigServer {
         private void compile(LogicalPlan lp) throws FrontendException  {
             DanglingNestedNodeRemover DanglingNestedNodeRemover = new DanglingNestedNodeRemover( lp );
             DanglingNestedNodeRemover.visit();
-            
+
             new ColumnAliasConversionVisitor(lp).visit();
             new SchemaAliasVisitor(lp).visit();
             new ScalarVisitor(lp, pigContext, scope).visit();
@@ -1777,7 +1777,7 @@ public class PigServer {
         /**
          * This method checks whether the multiple sinks (STORE) use the same
          * "file-based" location. If yes, throws a RuntimeException
-         * 
+         *
          * @param storeOps
          */
         private void checkDuplicateStoreLoc(Set<LOStore> storeOps) {

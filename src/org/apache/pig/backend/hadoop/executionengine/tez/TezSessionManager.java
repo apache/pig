@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.pig.impl.PigContext;
@@ -75,7 +76,7 @@ public class TezSessionManager {
         }
     }
 
-    private static SessionInfo createSession(Configuration conf, Map<String, LocalResource> requestedAMResources) throws TezException, IOException {
+    private static SessionInfo createSession(Configuration conf, Map<String, LocalResource> requestedAMResources, Credentials creds) throws TezException, IOException {
         TezConfiguration tezConf = new TezConfiguration(conf);
         TezClient tezClient = new TezClient(tezConf);
         ApplicationId appId = tezClient.createApplication();
@@ -84,7 +85,7 @@ public class TezSessionManager {
         resources.putAll(requestedAMResources);
 
         String jobName = conf.get(PigContext.JOB_NAME, "pig");
-        AMConfiguration amConfig = new AMConfiguration(null, resources, tezConf, null);
+        AMConfiguration amConfig = new AMConfiguration(null, resources, tezConf, creds);
         TezSessionConfiguration sessionConfig = new TezSessionConfiguration(amConfig, tezConf);
         TezSession tezSession = new TezSession(jobName, appId, sessionConfig);
         tezSession.start();
@@ -101,7 +102,7 @@ public class TezSessionManager {
         return true;
     }
 
-    static TezSession getSession(Configuration conf, Map<String, LocalResource> requestedAMResources) throws TezException, IOException {
+    static TezSession getSession(Configuration conf, Map<String, LocalResource> requestedAMResources, Credentials creds) throws TezException, IOException {
         synchronized (sessionPool) {
             List<SessionInfo> sessionsToRemove = new ArrayList<SessionInfo>();
             for (SessionInfo sessionInfo : sessionPool) {
@@ -120,7 +121,7 @@ public class TezSessionManager {
             }
 
             // We cannot find available AM, create new one
-            SessionInfo sessionInfo = createSession(conf, requestedAMResources);
+            SessionInfo sessionInfo = createSession(conf, requestedAMResources, creds);
             sessionInfo.inUse = true;
             sessionPool.add(sessionInfo);
             return sessionInfo.session;

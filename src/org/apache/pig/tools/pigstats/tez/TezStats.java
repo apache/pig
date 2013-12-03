@@ -74,7 +74,7 @@ public class TezStats extends PigStats {
                     }
                 }
             }
-            tezOpVertexMap.put(tezOp.name(), currStats);
+            tezOpVertexMap.put(tezOp.getOperatorKey().toString(), currStats);
         }
     }
 

@@ -21,6 +21,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
@@ -60,10 +61,14 @@ import org.junit.runner.RunWith;
 public class TestTezJobControlCompiler {
     private static PigContext pc;
     private static PigServer pigServer;
+    private static URI input1;
+    private static URI input2;
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
         pc = new PigContext(new TezLocalExecType(), new Properties());
+        input1 = Util.createTempFileDelOnExit("input1", "txt").toURI();
+        input2 = Util.createTempFileDelOnExit("input2", "txt").toURI();
     }
 
     @AfterClass
@@ -78,7 +83,7 @@ public class TestTezJobControlCompiler {
     @Test
     public void testRun1() throws Exception {
         String query =
-                "a = load 'file:///tmp/input' as (x:int, y:int);" +
+                "a = load '" + input1 +"' as (x:int, y:int);" +
                 "b = filter a by x > 0;" +
                 "c = foreach b generate y;" +
                 "store c into 'file:///tmp/output';";
@@ -89,7 +94,7 @@ public class TestTezJobControlCompiler {
         List<TezOperator> roots = compiledPlan.first.getRoots();
         assertEquals(1, roots.size());
 
-        Vertex root = compiledPlan.second.getVertex(roots.get(0).name());
+        Vertex root = compiledPlan.second.getVertex(roots.get(0).getOperatorKey().toString());
         assertNotNull(root);
         assertEquals(0, root.getInputVertices().size());
         assertEquals(0, root.getOutputVertices().size());
@@ -98,7 +103,7 @@ public class TestTezJobControlCompiler {
     @Test
     public void testRun2() throws Exception {
         String query =
-                "a = load 'file:///tmp/input' as (x:int, y:int);" +
+                "a = load '" + input1 +"' as (x:int, y:int);" +
                 "b = group a by x;" +
                 "c = foreach b generate group, a;" +
                 "store c into 'file:///tmp/output';";
@@ -112,12 +117,12 @@ public class TestTezJobControlCompiler {
         List<TezOperator> leaves = compiledPlan.first.getLeaves();
         assertEquals(1, leaves.size());
 
-        Vertex root = compiledPlan.second.getVertex(roots.get(0).name());
+        Vertex root = compiledPlan.second.getVertex(roots.get(0).getOperatorKey().toString());
         assertNotNull(root);
         assertEquals(0, root.getInputVertices().size());
         assertEquals(1, root.getOutputVertices().size());
 
-        Vertex leaf = compiledPlan.second.getVertex(leaves.get(0).name());
+        Vertex leaf = compiledPlan.second.getVertex(leaves.get(0).getOperatorKey().toString());
         assertNotNull(leaf);
         assertEquals(1, leaf.getInputVertices().size());
         assertEquals(0, leaf.getOutputVertices().size());
@@ -129,8 +134,8 @@ public class TestTezJobControlCompiler {
     @Test
     public void testRun3() throws Exception {
         String query =
-                "a = load 'file:///tmp/input1' as (x:int, y:int);" +
-                "b = load 'file:///tmp/input2' as (x:int, z:int);" +
+                "a = load '" + input1 +"' as (x:int, y:int);" +
+                "b = load '" + input2 +"' as (x:int, z:int);" +
                 "c = join a by x, b by x;" +
                 "d = foreach c generate a::x as x, y, z;" +
                 "store d into 'file:///tmp/output';";
@@ -144,14 +149,14 @@ public class TestTezJobControlCompiler {
         List<TezOperator> leaves = compiledPlan.first.getLeaves();
         assertEquals(1, leaves.size());
 
-        Vertex root0 = compiledPlan.second.getVertex(roots.get(0).name());
-        Vertex root1 = compiledPlan.second.getVertex(roots.get(1).name());
+        Vertex root0 = compiledPlan.second.getVertex(roots.get(0).getOperatorKey().toString());
+        Vertex root1 = compiledPlan.second.getVertex(roots.get(1).getOperatorKey().toString());
         assertNotNull(root0);
         assertNotNull(root1);
         assertEquals(0, root0.getInputVertices().size());
         assertEquals(1, root1.getOutputVertices().size());
 
-        Vertex leaf = compiledPlan.second.getVertex(leaves.get(0).name());
+        Vertex leaf = compiledPlan.second.getVertex(leaves.get(0).getOperatorKey().toString());
         assertNotNull(leaf);
         assertEquals(2, leaf.getInputVertices().size());
         assertEquals(0, leaf.getOutputVertices().size());

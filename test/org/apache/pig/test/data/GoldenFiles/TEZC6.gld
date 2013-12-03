@@ -1,0 +1,51 @@
+#--------------------------------------------------
+# There are 1 DAGs in the session
+#--------------------------------------------------
+#--------------------------------------------------
+# TEZ plan: scope-148
+#--------------------------------------------------
+Tez vertex scope-142
+# Plan on vertex
+6-1: Split - scope-126
+|   |
+|   b: Store(file:///tmp/output/b:org.apache.pig.builtin.PigStorage) - scope-131
+|   |
+|   |---b: Filter[bag] - scope-127
+|       |   |
+|       |   Less Than or Equal[boolean] - scope-130
+|       |   |
+|       |   |---Project[int][0] - scope-128
+|       |   |
+|       |   |---Constant(5) - scope-129
+|   |
+|   c: Store(file:///tmp/output/c:org.apache.pig.builtin.PigStorage) - scope-136
+|   |
+|   |---c: Filter[bag] - scope-132
+|       |   |
+|       |   Less Than or Equal[boolean] - scope-135
+|       |   |
+|       |   |---Project[int][0] - scope-133
+|       |   |
+|       |   |---Constant(10) - scope-134
+|   |
+|   d: Store(file:///tmp/output/d:org.apache.pig.builtin.PigStorage) - scope-141
+|   |
+|   |---d: Filter[bag] - scope-137
+|       |   |
+|       |   Greater Than[boolean] - scope-140
+|       |   |
+|       |   |---Project[int][0] - scope-138
+|       |   |
+|       |   |---Constant(10) - scope-139
+|
+|---a: New For Each(false,false)[bag] - scope-125
+    |   |
+    |   Cast[int] - scope-120
+    |   |
+    |   |---Project[bytearray][0] - scope-119
+    |   |
+    |   Cast[int] - scope-123
+    |   |
+    |   |---Project[bytearray][1] - scope-122
+    |
+    |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-118

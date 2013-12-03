@@ -137,6 +137,21 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
         res = new Result();
     }
 
+    public PhysicalOperator(PhysicalOperator copy) {
+        super (copy.getOperatorKey());
+        this.res = new Result();
+        this.requestedParallelism = copy.requestedParallelism;
+        this.inputs = copy.inputs;
+        this.outputs = copy.outputs;
+        this.resultType = copy.resultType;
+        this.parentPlan = copy.parentPlan;
+        this.inputAttached = copy.inputAttached;
+        this.alias = copy.alias;
+        this.lineageTracer = copy.lineageTracer;
+        this.accum = copy.accum;
+        this.originalLocations = copy.originalLocations;
+    }
+
     @Override
     public void setIllustrator(Illustrator illustrator) {
 	      this.illustrator = illustrator;

@@ -53,11 +53,14 @@ import org.junit.runner.RunWith;
  */
 @RunWith(OrderedJUnit4Runner.class)
 @TestOrder({
-    "testRun1",
-    "testRun2",
-    "testRun3",
-    "testRun4",
-    "testRun5"
+    "testFilter",
+    "testGroupBy",
+    "testJoin",
+    "testLimit",
+    "testDistinct",
+    "testSplitSingleVertex",
+    "testSplitMultiVertex",
+    "testMultipleGroupBySplit"
 })
 public class TestTezCompiler {
     private static PigContext pc;
@@ -79,7 +82,7 @@ public class TestTezCompiler {
     }
 
     @Test
-    public void testRun1() throws Exception {
+    public void testFilter() throws Exception {
         String query =
                 "a = load 'file:///tmp/input' as (x:int, y:int);" +
                 "b = filter a by x > 0;" +
@@ -91,7 +94,7 @@ public class TestTezCompiler {
     }
 
     @Test
-    public void testRun2() throws Exception {
+    public void testGroupBy() throws Exception {
         String query =
                 "a = load 'file:///tmp/input' as (x:int, y:int);" +
                 "b = group a by x;" +
@@ -103,7 +106,7 @@ public class TestTezCompiler {
     }
 
     @Test
-    public void testRun3() throws Exception {
+    public void testJoin() throws Exception {
         String query =
                 "a = load 'file:///tmp/input1' as (x:int, y:int);" +
                 "b = load 'file:///tmp/input2' as (x:int, z:int);" +
@@ -116,7 +119,7 @@ public class TestTezCompiler {
     }
 
     @Test
-    public void testRun4() throws Exception {
+    public void testLimit() throws Exception {
         String query =
                 "a = load 'file:///tmp/input' as (x:int, y:int);" +
                 "b = limit a 10;" +
@@ -128,7 +131,7 @@ public class TestTezCompiler {
     }
 
     @Test
-    public void testRun5() throws Exception {
+    public void testDistinct() throws Exception {
         String query =
                 "a = load 'file:///tmp/input' as (x:int, y:int);" +
                 "b = distinct a;" +
@@ -137,6 +140,52 @@ public class TestTezCompiler {
 
         PhysicalPlan pp = Util.buildPp(pigServer, query);
         run(pp, "test/org/apache/pig/test/data/GoldenFiles/TEZC5.gld");
+    }
+
+    @Test
+    public void testSplitSingleVertex() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input' as (x:int, y:int);" +
+                "split a into b if x <= 5, c if x <= 10, d if x >10;" +
+                "store b into 'file:///tmp/output/b';" +
+                "store c into 'file:///tmp/output/c';" +
+                "store d into 'file:///tmp/output/d';";
+
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
+        run(pp, "test/org/apache/pig/test/data/GoldenFiles/TEZC6.gld");
+    }
+
+    @Test
+    public void testSplitMultiVertex() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input' as (x:int, y:int);" +
+                "split a into b if x <= 5, c if x <= 10, d if x >10;" +
+                "b1 = group b by x;" +
+                "c1 = limit c 1;" +
+                "d1 = filter d by x == 5;" +
+                //"d2 = order d by x;" + //TODO
+                //"d3 = join c1 by x, d1 by x;" +
+                "store b1 into 'file:///tmp/output/b1';" +
+                "store c1 into 'file:///tmp/output/c1';" +
+                "store d1 into 'file:///tmp/output/d1';";
+                //"store d2 into 'file:///tmp/output/d2';" +
+                //"store d3 into 'file:///tmp/output/d3';";
+
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
+        run(pp, "test/org/apache/pig/test/data/GoldenFiles/TEZC7.gld");
+    }
+
+    @Test
+    public void testMultipleGroupBySplit() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input' as (x:int, y:int);" +
+                "b = group a by x;" +
+                "c = group a by (x,y);" +
+                "store b into 'file:///tmp/output/b';" +
+                "store c into 'file:///tmp/output/c';";
+
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
+        run(pp, "test/org/apache/pig/test/data/GoldenFiles/TEZC8.gld");
     }
 
     private void run(PhysicalPlan pp, String expectedFile) throws Exception {
@@ -149,6 +198,8 @@ public class TestTezCompiler {
         TezPlanContainerPrinter printer = new TezPlanContainerPrinter(ps, tezPlanContainer);
         printer.visit();
         String compiledPlan = baos.toString();
+        System.out.println();
+        System.out.println("<<<" + compiledPlan + ">>>");
 
         FileInputStream fis = new FileInputStream(expectedFile);
         byte[] b = new byte[MAX_SIZE];
@@ -159,8 +210,6 @@ public class TestTezCompiler {
             goldenPlan = goldenPlan.substring(0, len-1);
         }
 
-        System.out.println();
-        System.out.println("<<<" + compiledPlan + ">>>");
         System.out.println("-------------");
         System.out.println("Golden");
         System.out.println("<<<" + goldenPlan + ">>>");

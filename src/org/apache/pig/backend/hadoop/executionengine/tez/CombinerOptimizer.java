@@ -26,6 +26,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelp
 import org.apache.pig.backend.hadoop.executionengine.util.CombinerOptimizerUtil;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.DepthFirstWalker;
+import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 
 /**
@@ -77,6 +78,18 @@ public class CombinerOptimizer extends TezOpPlanVisitor {
             // plan with multiple POLocalRearrange leaves. i.e. SPLIT + multiple
             // GROUP BY with different keys.
             CombinerOptimizerUtil.addCombiner(from.plan, to.plan, combinePlan, messageCollector, doMapAgg);
+
+            //Replace POLocalRearrange with POLocalRearrangeTez
+            if (!combinePlan.isEmpty()) {
+                POLocalRearrange lr = (POLocalRearrange) combinePlan.getLeaves().get(0);
+                POLocalRearrangeTez lrt = new POLocalRearrangeTez(lr);
+                lrt.setOutputKey(to.getOperatorKey().toString());
+                try {
+                    combinePlan.replace(lr, lrt);
+                } catch (PlanException e) {
+                    throw new VisitorException(e);
+                }
+            }
         }
     }
 }

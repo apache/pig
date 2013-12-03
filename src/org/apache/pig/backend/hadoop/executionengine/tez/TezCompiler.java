@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
 
@@ -108,11 +109,9 @@ public class TezCompiler extends PhyPlanVisitor {
     //The output of compiling the inputs
     private TezOperator[] compiledInputs = null;
 
-    //The split operators seen till now. If not maintained they will haunt you.
+    //The split operators seen till now.
     //During the traversal a split is the only operator that can be revisited
-    //from a different path. So this map stores the split job. So  whenever we
-    //hit the split, we create a new TezOper and connect the split job using
-    //load-store and also in the TezPlan
+    //from a different path.
     private Map<OperatorKey, TezOperator> splitsSeen;
 
     private NodeIdGenerator nig;
@@ -204,11 +203,53 @@ public class TezCompiler extends PhyPlanVisitor {
 
         for (PhysicalOperator op : ops) {
             compile(op);
+            if (curTezOp.isSplitSubPlan()) {
+                // Set inputs to null as POSplit will attach input to roots
+                for (PhysicalOperator root : curTezOp.plan.getRoots()) {
+                    root.setInputs(null);
+                }
+                TezOperator splitOp = splitsSeen.get(curTezOp.getSplitOperatorKey());
+                POSplit split = (POSplit)splitOp.plan.getLeaves().get(0);
+                split.addPlan(curTezOp.plan);
+                addSubPlanPropertiesToParent(splitOp, curTezOp);
+                curTezOp = splitOp;
+            }
+        }
+
+        for (TezOperator tezOper : splitsSeen.values()) {
+            int idx = 0;
+            List<POLocalRearrange> rearranges = PlanHelper
+                    .getPhysicalOperators(tezOper.plan, POLocalRearrange.class);
+            for (POLocalRearrange op : rearranges) {
+                op.setIndex(idx++);
+            }
+            idx = 0;
+            List<POStore> strs = PlanHelper.getPhysicalOperators(tezOper.plan,
+                    POStore.class);
+            for (POStore op : strs) {
+                op.setIndex(idx++);
+            }
+            tezOper.setClosed(true);
         }
 
         connectSoftLink();
 
         return tezPlan;
+    }
+
+    private void addSubPlanPropertiesToParent(TezOperator parentOper, TezOperator subPlanOper) {
+        if (subPlanOper.requestedParallelism > parentOper.requestedParallelism) {
+            parentOper.requestedParallelism = subPlanOper.requestedParallelism;
+        }
+        if (subPlanOper.UDFs != null) {
+            parentOper.UDFs.addAll(subPlanOper.UDFs);
+        }
+        if (subPlanOper.outEdges != null) {
+            for (Entry<OperatorKey, TezEdgeDescriptor> entry: subPlanOper.outEdges.entrySet()) {
+                parentOper.outEdges.put(entry.getKey(), entry.getValue());
+            }
+        }
+        // TODO: handle custom partitioner, secondary key on edges
     }
 
     private void connectSoftLink() throws PlanException, IOException {
@@ -283,10 +324,6 @@ public class TezCompiler extends PhyPlanVisitor {
             compiledInputs = new TezOperator[predecessors.size()];
             int i = -1;
             for (PhysicalOperator pred : predecessors) {
-                if (pred instanceof POSplit && splitsSeen.containsKey(pred.getOperatorKey())) {
-                    compiledInputs[++i] = startNew(((POSplit)pred).getSplitStore(), splitsSeen.get(pred.getOperatorKey()));
-                    continue;
-                }
                 compile(pred);
                 compiledInputs[++i] = curTezOp;
             }
@@ -329,7 +366,21 @@ public class TezCompiler extends PhyPlanVisitor {
         ld.setLFile(fSpec);
         ret.plan.add(ld);
         tezPlan.add(ret);
-        connect(tezPlan, old, ret);
+        handleSplitAndConnect(old, ret);
+        return ret;
+    }
+
+    /**
+     * Start a new TezOperator whose plan will be the sub-plan of POSplit
+     *
+     * @param splitOperatorKey
+     *            OperatorKey of the POSplit for which the new plan is a sub-plan
+     * @return the new TezOperator
+     * @throws PlanException
+     */
+    private TezOperator startNew(OperatorKey splitOperatorKey) throws PlanException {
+        TezOperator ret = getTezOp();
+        ret.setSplitOperatorKey(splitOperatorKey);
         return ret;
     }
 
@@ -361,9 +412,34 @@ public class TezCompiler extends PhyPlanVisitor {
         tezPlan.add(newTezOp);
         for (TezOperator tezOp : compiledInputs) {
             tezOp.setClosed(true);
-            connect(tezPlan, tezOp, newTezOp);
+            handleSplitAndConnect(tezOp, newTezOp);
         }
         curTezOp = newTezOp;
+    }
+
+    private void handleSplitAndConnect(TezOperator from, TezOperator to)
+            throws PlanException {
+        // Add edge descriptors from POLocalRearrange in POSplit
+        // sub-plan to new operators
+        PhysicalOperator leaf = from.plan.getLeaves().get(0);
+        // It could be POStoreTez incase of sampling job in order by
+        if (leaf instanceof POLocalRearrangeTez) {
+            POLocalRearrangeTez lr = (POLocalRearrangeTez) leaf;
+            lr.setOutputKey(to.getOperatorKey().toString());
+        }
+        if (from.isSplitSubPlan()) {
+            // Set inputs to null as POSplit will attach input to roots
+            for (PhysicalOperator root : from.plan.getRoots()) {
+                root.setInputs(null);
+            }
+            TezOperator splitOp = splitsSeen.get(curTezOp.getSplitOperatorKey());
+            POSplit split = (POSplit) splitOp.plan.getLeaves().get(0);
+            split.addPlan(from.plan);
+            addSubPlanPropertiesToParent(splitOp, curTezOp);
+            connect(tezPlan, splitOp, to);
+        } else {
+            connect(tezPlan, from, to);
+        }
     }
 
     /**
@@ -608,14 +684,15 @@ public class TezCompiler extends PhyPlanVisitor {
     @Override
     public void visitLocalRearrange(POLocalRearrange op) throws VisitorException {
         try{
-            nonBlocking(op);
-            List<PhysicalPlan> plans = op.getPlans();
+            POLocalRearrange opTez = new POLocalRearrangeTez(op);
+            nonBlocking(opTez);
+            List<PhysicalPlan> plans = opTez.getPlans();
             if (plans != null) {
                 for (PhysicalPlan ep : plans) {
                     processUDFs(ep);
                 }
             }
-            phyToTezOpMap.put(op, curTezOp);
+            phyToTezOpMap.put(opTez, curTezOp);
         } catch (Exception e) {
             int errCode = 2034;
             String msg = "Error compiling operator " + op.getClass().getSimpleName();
@@ -723,7 +800,7 @@ public class TezCompiler extends PhyPlanVisitor {
     }
 
     private POStore getStore(){
-        POStore st = new POStore(new OperatorKey(scope,nig.getNextNodeId(scope)));
+        POStore st = new POStoreTez(new OperatorKey(scope, nig.getNextNodeId(scope)));
         // mark store as tmp store. These could be removed by the
         // optimizer, because it wasn't the user requesting it.
         st.setIsTmpStore(true);
@@ -908,7 +985,7 @@ public class TezCompiler extends PhyPlanVisitor {
         List<PhysicalPlan> eps = new ArrayList<PhysicalPlan>();
         eps.add(ep1);
 
-        POLocalRearrange lr = new POLocalRearrange(new OperatorKey(scope,nig.getNextNodeId(scope)));
+        POLocalRearrangeTez lr = new POLocalRearrangeTez(new OperatorKey(scope,nig.getNextNodeId(scope)));
         try {
             lr.setIndex(0);
         } catch (ExecException e) {
@@ -929,6 +1006,7 @@ public class TezCompiler extends PhyPlanVisitor {
         opers[1] = oper2;
         tezPlan.add(oper2);
         connect(tezPlan, oper1, oper2);
+        lr.setOutputKey(oper2.getOperatorKey().toString());
 
         POPackage pkg = new POPackage(new OperatorKey(scope,nig.getNextNodeId(scope)));
         pkg.getPkgr().setKeyType(DataType.CHARARRAY);
@@ -1172,7 +1250,7 @@ public class TezCompiler extends PhyPlanVisitor {
             }
         }
 
-        POLocalRearrange lr = new POLocalRearrange(new OperatorKey(scope,nig.getNextNodeId(scope)));
+        POLocalRearrangeTez lr = new POLocalRearrangeTez(new OperatorKey(scope,nig.getNextNodeId(scope)));
         try {
             lr.setIndex(0);
         } catch (ExecException e) {
@@ -1192,6 +1270,7 @@ public class TezCompiler extends PhyPlanVisitor {
         opers[1] = oper2;
         tezPlan.add(oper2);
         connect(tezPlan, oper1, oper2);
+        lr.setOutputKey(oper2.getOperatorKey().toString());
 
         if (limit!=-1) {
             POPackage pkg_c = new POPackage(new OperatorKey(scope, nig.getNextNodeId(scope)));
@@ -1226,7 +1305,8 @@ public class TezCompiler extends PhyPlanVisitor {
             List<PhysicalPlan> eps_c2 = new ArrayList<PhysicalPlan>();
             eps_c2.addAll(sort.getSortPlans());
 
-            POLocalRearrange lr_c2 = new POLocalRearrange(new OperatorKey(scope,nig.getNextNodeId(scope)));
+            POLocalRearrangeTez lr_c2 = new POLocalRearrangeTez(new OperatorKey(scope,nig.getNextNodeId(scope)));
+            lr_c2.setOutputKey(oper2.getOperatorKey().toString());
             try {
                 lr_c2.setIndex(0);
             } catch (ExecException e) {
@@ -1301,18 +1381,33 @@ public class TezCompiler extends PhyPlanVisitor {
 
     @Override
     public void visitSplit(POSplit op) throws VisitorException {
-        int errCode = 2034;
-        String msg = "Cannot compile " + op.getClass().getSimpleName();
-        throw new TezCompilerException(msg, errCode, PigException.BUG);
+        try {
+            if (splitsSeen.containsKey(op.getOperatorKey())) {
+                tezPlan.remove(curTezOp);
+                curTezOp = startNew(op.getOperatorKey());
+            } else {
+                nonBlocking(op);
+                splitsSeen.put(op.getOperatorKey(), curTezOp);
+                phyToTezOpMap.put(op, curTezOp);
+                curTezOp = startNew(op.getOperatorKey());
+            }
+        } catch (Exception e) {
+            int errCode = 2034;
+            String msg = "Error compiling operator "
+                    + op.getClass().getSimpleName();
+            throw new TezCompilerException(msg, errCode, PigException.BUG, e);
+        }
+
     }
 
     @Override
     public void visitStore(POStore op) throws VisitorException {
         try {
-            nonBlocking(op);
-            phyToTezOpMap.put(op, curTezOp);
-            if (op.getSFile()!=null && op.getSFile().getFuncSpec()!=null)
-                curTezOp.UDFs.add(op.getSFile().getFuncSpec().toString());
+            POStoreTez store = new POStoreTez(op);
+            nonBlocking(store);
+            phyToTezOpMap.put(store, curTezOp);
+            if (store.getSFile()!=null && store.getSFile().getFuncSpec()!=null)
+                curTezOp.UDFs.add(store.getSFile().getFuncSpec().toString());
         } catch (Exception e) {
             int errCode = 2034;
             String msg = "Error compiling operator " + op.getClass().getSimpleName();
@@ -1407,7 +1502,7 @@ public class TezCompiler extends PhyPlanVisitor {
         List<PhysicalPlan> addPlans = Lists.newArrayList();
         addPlans.add(addPlan);
 
-        POLocalRearrange lr = new POLocalRearrange(new OperatorKey(scope, nig.getNextNodeId(scope)));
+        POLocalRearrange lr = new POLocalRearrangeTez(new OperatorKey(scope, nig.getNextNodeId(scope)));
         try {
             lr.setIndex(index);
         } catch (ExecException e) {

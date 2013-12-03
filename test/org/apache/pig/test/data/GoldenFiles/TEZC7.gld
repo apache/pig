@@ -1,0 +1,81 @@
+#--------------------------------------------------
+# There are 1 DAGs in the session
+#--------------------------------------------------
+#--------------------------------------------------
+# TEZ plan: scope-196
+#--------------------------------------------------
+Tez vertex scope-182
+# Plan on vertex
+7-1: Split - scope-157
+|   |
+|   b1: Local Rearrange[tuple]{int}(false) - scope-164
+|   |   |
+|   |   Project[int][0] - scope-165
+|   |
+|   |---b: Filter[bag] - scope-158
+|       |   |
+|       |   Less Than or Equal[boolean] - scope-161
+|       |   |
+|       |   |---Project[int][0] - scope-159
+|       |   |
+|       |   |---Constant(5) - scope-160
+|   |
+|   Local Rearrange[tuple]{tuple}(false) - scope-188
+|   |   |
+|   |   Project[tuple][*] - scope-187
+|   |
+|   |---c1: Limit - scope-171
+|       |
+|       |---c: Filter[bag] - scope-167
+|           |   |
+|           |   Less Than or Equal[boolean] - scope-170
+|           |   |
+|           |   |---Project[int][0] - scope-168
+|           |   |
+|           |   |---Constant(10) - scope-169
+|   |
+|   d1: Store(file:///tmp/output/d1:org.apache.pig.builtin.PigStorage) - scope-181
+|   |
+|   |---d1: Filter[bag] - scope-177
+|       |   |
+|       |   Equal To[boolean] - scope-180
+|       |   |
+|       |   |---Project[int][0] - scope-178
+|       |   |
+|       |   |---Constant(5) - scope-179
+|       |
+|       |---d: Filter[bag] - scope-173
+|           |   |
+|           |   Greater Than[boolean] - scope-176
+|           |   |
+|           |   |---Project[int][0] - scope-174
+|           |   |
+|           |   |---Constant(10) - scope-175
+|
+|---a: New For Each(false,false)[bag] - scope-156
+    |   |
+    |   Cast[int] - scope-151
+    |   |
+    |   |---Project[bytearray][0] - scope-150
+    |   |
+    |   Cast[int] - scope-154
+    |   |
+    |   |---Project[bytearray][1] - scope-153
+    |
+    |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-149
+Tez vertex scope-184
+# Plan on vertex
+b1: Store(file:///tmp/output/b1:org.apache.pig.builtin.PigStorage) - scope-166
+|
+|---b1: Package(Packager)[tuple]{int} - scope-163
+Tez vertex scope-189
+# Plan on vertex
+c1: Store(file:///tmp/output/c1:org.apache.pig.builtin.PigStorage) - scope-172
+|
+|---Limit - scope-193
+    |
+    |---New For Each(true)[bag] - scope-192
+        |   |
+        |   Project[tuple][1] - scope-191
+        |
+        |---Package(Packager)[tuple]{tuple} - scope-190

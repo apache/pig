@@ -41,13 +41,13 @@ public class TezJob extends ControlledJob {
     private static final Log log = LogFactory.getLog(TezJob.class);
     private DAGStatus dagStatus;
     private Configuration conf;
-    private DAG dag;
+    private TezDAG dag;
     private DAGClient dagClient;
     private Map<String, LocalResource> requestAMResources;
     private TezSession tezSession;
     private boolean reuseSession;
 
-    public TezJob(TezConfiguration conf, DAG dag, Map<String, LocalResource> requestAMResources)
+    public TezJob(TezConfiguration conf, TezDAG dag, Map<String, LocalResource> requestAMResources)
             throws IOException {
         super(conf);
         this.conf = conf;
@@ -67,12 +67,14 @@ public class TezJob extends ControlledJob {
     @Override
     public void submit() {
         try {
-            tezSession = TezSessionManager.getSession(conf, requestAMResources);
+            tezSession = TezSessionManager.getSession(conf, requestAMResources, dag.getCredentials());
             log.info("Submitting DAG - Application id: " + tezSession.getApplicationId());
             dagClient = tezSession.submitDAG(dag);
         } catch (Exception e) {
-            if (tezSession!=null) {
-                log.info("Cannot submit DAG - Application id: " + tezSession.getApplicationId(), e);
+            if (tezSession != null) {
+                log.error("Cannot submit DAG - Application id: " + tezSession.getApplicationId(), e);
+            } else {
+                log.error("Cannot submit DAG", e);
             }
             setJobState(ControlledJob.State.FAILED);
             return;

@@ -62,26 +62,30 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     // Name of the Custom Partitioner used
     String customPartitioner = null;
 
+    // Presence indicates that this TezOper is sub-plan of a POSplit.
+    // Only POStore or POLocalRearrange leaf can be a sub-plan of POSplit
+    private OperatorKey splitOperatorKey = null;
+
     // Indicates that the plan creation is complete
     boolean closed = false;
-    
+
     // Indicate whether we need to split the DAG below the operator
     // The result is two or more DAG connected DAG inside the same plan container
     boolean segmentBelow = false;
-    
+
     // Indicates if this is a limit after a sort
     boolean limitAfterSort = false;
-    
+
     //Indicates if this job is an order by job
     boolean globalSort = false;
-    
+
     //The quantiles file name if globalSort is true
     String quantFile;
-    
+
     //The sort order of the columns;
     //asc is true and desc is false
     boolean[] sortOrder;
-    
+
     // Last POLimit value in this map reduce operator, needed by LimitAdjuster
     // to add additional map reduce operator with 1 reducer after this
     long limit = -1;
@@ -119,12 +123,26 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
         v.visitTezOp(this);
     }
 
+    @Override
     public boolean supportsMultipleInputs() {
         return true;
     }
 
+    @Override
     public boolean supportsMultipleOutputs() {
         return true;
+    }
+
+    public OperatorKey getSplitOperatorKey() {
+        return splitOperatorKey;
+    }
+
+    public void setSplitOperatorKey(OperatorKey splitOperatorKey) {
+        this.splitOperatorKey = splitOperatorKey;
+    }
+
+    public boolean isSplitSubPlan() {
+        return splitOperatorKey != null;
     }
 
     public boolean isClosed() {
@@ -216,7 +234,7 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     public boolean needSegmentBelow() {
         return segmentBelow;
     }
-    
+
     public String getQuantFile() {
         return quantFile;
     }
@@ -232,19 +250,19 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
             this.sortOrder[i] = sortOrder[i];
         }
     }
-    
+
     public boolean[] getSortOrder() {
         return sortOrder;
     }
-    
+
     public void setGlobalSort(boolean globalSort) {
         this.globalSort = globalSort;
     }
-    
+
     public boolean isGlobalSort() {
         return globalSort;
     }
-    
+
     public boolean isLimitAfterSort() {
         return limitAfterSort;
     }
