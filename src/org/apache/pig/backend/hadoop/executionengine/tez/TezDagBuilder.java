@@ -196,6 +196,30 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 break;
             }
         }
+        
+        conf.setBoolean("mapred.mapper.new-api", true);
+        conf.set("pig.pigContext", ObjectSerializer.serialize(pc));
+
+        if(from.isGlobalSort() || from.isLimitAfterSort()){
+            if (from.isGlobalSort()) {
+                FileSystem fs = FileSystem.get(globalConf);
+                Path quantFilePath = new Path(from.getQuantFile() + "/part-r-00000");
+                FileStatus fstat = fs.getFileStatus(quantFilePath);
+                LocalResource quantFileResource = LocalResource.newInstance(
+                        ConverterUtils.getYarnUrlFromPath(fstat.getPath()),
+                        LocalResourceType.FILE,
+                        LocalResourceVisibility.APPLICATION,
+                        fstat.getLen(),
+                        fstat.getModificationTime());
+                localResources.put(quantFilePath.getName(), quantFileResource);
+                conf.set("pig.quantilesFile", fstat.getPath().toString());
+                conf.set("pig.sortOrder",
+                        ObjectSerializer.serialize(from.getSortOrder()));
+                conf.setClass("mapreduce.job.partitioner.class",
+                        WeightedRangePartitioner.class,
+                        Partitioner.class);
+            }
+        }
 
         in.setUserPayload(TezUtils.createUserPayloadFromConf(conf));
         out.setUserPayload(TezUtils.createUserPayloadFromConf(conf));
@@ -293,27 +317,6 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                     TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_VALUE_CLASS,
                     NullableTuple.class.getName());
             selectInputComparator(payloadConf, pack.getPkgr().getKeyType());
-        }
-
-        if(tezOp.isGlobalSort() || tezOp.isLimitAfterSort()){
-            if (tezOp.isGlobalSort()) {
-                FileSystem fs = FileSystem.get(globalConf);
-                Path quantFilePath = new Path(tezOp.getQuantFile() + "/part-r-00000");
-                FileStatus fstat = fs.getFileStatus(quantFilePath);
-                LocalResource quantFileResource = LocalResource.newInstance(
-                        ConverterUtils.getYarnUrlFromPath(fstat.getPath()),
-                        LocalResourceType.FILE,
-                        LocalResourceVisibility.APPLICATION,
-                        fstat.getLen(),
-                        fstat.getModificationTime());
-                localResources.put(quantFilePath.getName(), quantFileResource);
-                payloadConf.set("pig.quantilesFile", fstat.getPath().toString());
-                payloadConf.set("pig.sortOrder",
-                        ObjectSerializer.serialize(tezOp.getSortOrder()));
-                payloadConf.setClass("mapreduce.job.partitioner.class",
-                        WeightedRangePartitioner.class,
-                        Partitioner.class);
-            }
         }
 
         payloadConf.setClass("mapreduce.outputformat.class",
