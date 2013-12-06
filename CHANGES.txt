@@ -56,6 +56,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3612: Storing schema does not work cross cluster with PigStorage and JsonStorage (rohini)
+
 PIG-3607: PigRecordReader should report progress for each inputsplit processed (rohini)
 
 PIG-3566: Cannot set useMatches of REGEX_EXTRACT_ALL and REGEX_EXTRACT (nezihyigitbasi via cheolsoo)

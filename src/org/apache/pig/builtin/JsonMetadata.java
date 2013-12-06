@@ -105,9 +105,9 @@ public class JsonMetadata implements LoadMetadata, StoreMetadata {
         String[] locations = LoadFunc.getPathStrings(path);
         for (String loc : locations) {
             DataStorage storage;
-            
+
             storage = new HDataStorage(new Path(loc).toUri(), ConfigurationUtil.toProperties(conf));
-            
+
             String fullPath = FileLocalizer.fullPath(loc, storage);
 
             if(storage.isContainer(fullPath)) {
@@ -119,7 +119,7 @@ public class JsonMetadata implements LoadMetadata, StoreMetadata {
                 ElementDescriptor[] descriptors = storage.asCollection(loc);
                 for(ElementDescriptor descriptor : descriptors) {
                     ContainerDescriptor container = null;
-                    
+
                     if (descriptor instanceof HFile) {
                         Path descriptorPath = ((HPath) descriptor).getPath();
                         String fileName = descriptorPath.getName();
@@ -275,7 +275,8 @@ public class JsonMetadata implements LoadMetadata, StoreMetadata {
     @Override
     public void storeStatistics(ResourceStatistics stats, String location, Job job) throws IOException {
         Configuration conf = job.getConfiguration();
-        DataStorage storage = new HDataStorage(ConfigurationUtil.toProperties(conf));
+        DataStorage storage = new HDataStorage(new Path(location).toUri(),
+                ConfigurationUtil.toProperties(conf));
         ElementDescriptor statFilePath = storage.asElement(location, statFileName);
         if(!statFilePath.exists() && stats != null) {
             try {
@@ -293,7 +294,8 @@ public class JsonMetadata implements LoadMetadata, StoreMetadata {
     @Override
     public void storeSchema(ResourceSchema schema, String location, Job job) throws IOException {
         Configuration conf = job.getConfiguration();
-        DataStorage storage = new HDataStorage(ConfigurationUtil.toProperties(conf));
+        DataStorage storage = new HDataStorage(new Path(location).toUri(),
+                ConfigurationUtil.toProperties(conf));
         ElementDescriptor schemaFilePath = storage.asElement(location, schemaFileName);
         if(!schemaFilePath.exists() && schema != null) {
             try {
