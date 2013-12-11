@@ -80,9 +80,6 @@ import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.util.Utils;
-import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
-import org.apache.tez.runtime.library.input.ShuffledUnorderedKVInput;
-import org.apache.tez.runtime.library.output.OnFileUnorderedKVOutput;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -1429,6 +1426,7 @@ public class TezCompiler extends PhyPlanVisitor {
             // before we broadcast.
             for (int i = 0; i < compiledInputs.length; i++) {
                 POLocalRearrange lr = getLocalRearrange(i);
+                ((POLocalRearrangeTez) lr).setUnion(true);
                 compiledInputs[i].plan.addAsLeaf(lr);
             }
 
@@ -1440,14 +1438,9 @@ public class TezCompiler extends PhyPlanVisitor {
             POPackage pkg = getPackage(compiledInputs.length);
             curTezOp.markUnion();
             curTezOp.plan.add(pkg);
-
-            // Configure broadcast edges.
-            for (TezOperator prevTezOp : compiledInputs) {
-                TezEdgeDescriptor edge = curTezOp.inEdges.get(prevTezOp.getOperatorKey());
-                edge.dataMovementType = DataMovementType.BROADCAST;
-                edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
-                edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
-            }
+            // TODO: Union should use OnFileUnorderedKVOutput instead of
+            // OnFileSortedOutput. Currently, it's not supported by Tez.
+            // (TEZ-661)
         } catch (Exception e) {
             int errCode = 2034;
             String msg = "Error compiling operator " + op.getClass().getSimpleName();
@@ -1521,7 +1514,8 @@ public class TezCompiler extends PhyPlanVisitor {
     }
 
     private POPackage getPackage(int numOfInputs) {
-        boolean[] inner = { false };
+        // The default value of boolean is false
+        boolean[] inner = new boolean[numOfInputs];
         POPackage pkg = new POPackage(new OperatorKey(scope, nig.getNextNodeId(scope)));
         pkg.getPkgr().setInner(inner);
         pkg.getPkgr().setKeyType(DataType.TUPLE);

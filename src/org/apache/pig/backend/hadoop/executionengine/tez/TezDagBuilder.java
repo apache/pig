@@ -196,7 +196,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 break;
             }
         }
-        
+
         conf.setBoolean("mapred.mapper.new-api", true);
         conf.set("pig.pigContext", ObjectSerializer.serialize(pc));
 
@@ -294,7 +294,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             setIntermediateInputKeyValue(keyType, payloadConf);
             POPackage newPack;
             if (tezOp.isUnion()) {
-                newPack = new POBroadcastTezLoad(new OperatorKey(scope, nig.getNextNodeId(scope)));
+                newPack = new POUnionTezLoad(new OperatorKey(scope, nig.getNextNodeId(scope)), pack);
             } else {
                 newPack = new POShuffleTezLoad(new OperatorKey(scope, nig.getNextNodeId(scope)), pack);
             }

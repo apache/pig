@@ -51,6 +51,8 @@ public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
     private String outputKey;
     private DataMovementType outputType;
     private transient KeyValueWriter writer;
+    // Tez union is implemented as LR + Pkg
+    private boolean isUnion = false;
 
     public POLocalRearrangeTez(OperatorKey k) {
         super(k);
@@ -70,6 +72,14 @@ public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
 
     public void setOutputKey(String outputKey) {
         this.outputKey = outputKey;
+    }
+
+    public boolean isUnion() {
+        return isUnion;
+    }
+
+    public void setUnion(boolean isUnion) {
+        this.isUnion = isUnion;
     }
 
     @Override
@@ -118,9 +128,16 @@ public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
                     switch (outputType) {
                     case SCATTER_GATHER: {
                         Byte index = (Byte)result.get(0);
-                        PigNullableWritable key =
-                            HDataType.getWritableComparableTypes(result.get(1), keyType);
-                        NullableTuple val = new NullableTuple((Tuple)result.get(2));
+                        PigNullableWritable key = null;
+                        NullableTuple val = null;
+                        if (isUnion()) {
+                            // Use the entire tuple as both key and value
+                            key = HDataType.getWritableComparableTypes(result.get(1), keyType);
+                            val = new NullableTuple((Tuple)result.get(1));
+                        } else {
+                            key = HDataType.getWritableComparableTypes(result.get(1), keyType);
+                            val = new NullableTuple((Tuple)result.get(2));
+                        }
 
                         // Both the key and the value need the index.  The key needs it so
                         // that it can be sorted on the index in addition to the key
@@ -143,12 +160,12 @@ public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
                         writer.write(key, val);
                         break;
                     }
-                    default: {
+                    default:
                         throw new IOException("Unkonwn output type: " + outputType);
                     }
-                }
-                } else
+                } else {
                     illustratorMarkup(res.result, res.result, 0);
+                }
                 res = empty;
 
                 break;

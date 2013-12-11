@@ -63,14 +63,14 @@ public class TezPOPackageAnnotator extends TezOpPlanVisitor {
     private void handlePackage(TezOperator pkgTezOp, POPackage pkg) throws VisitorException {
         // the LocalRearrange(s) must be in the plan of a predecessor tez op
         int lrFound = 0;
-            List<TezOperator> preds = this.mPlan.getPredecessors(pkgTezOp);
-            for (Iterator<TezOperator> it = preds.iterator(); it.hasNext();) {
-                TezOperator predTezOp = it.next();
-                lrFound += patchPackage(predTezOp, pkgTezOp, pkg);
-                if(lrFound == pkg.getNumInps()) {
-                    break;
-                }
+        List<TezOperator> preds = this.mPlan.getPredecessors(pkgTezOp);
+        for (Iterator<TezOperator> it = preds.iterator(); it.hasNext();) {
+            TezOperator predTezOp = it.next();
+            lrFound += patchPackage(predTezOp, pkgTezOp, pkg);
+            if(lrFound == pkg.getNumInps()) {
+                break;
             }
+        }
 
         if(lrFound != pkg.getNumInps()) {
             int errCode = 2086;
