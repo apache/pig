@@ -19,6 +19,7 @@ package org.apache.pig.backend.hadoop.executionengine.tez;
 
 import java.io.PrintStream;
 
+import org.apache.pig.backend.hadoop.executionengine.tez.TezPrinter.TezGraphPrinter;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.VisitorException;
 
@@ -45,8 +46,11 @@ public class TezPlanContainerPrinter extends TezPlanContainerVisitor {
     @Override
     public void visitTezPlanContainerNode(TezPlanContainerNode tezPlanContainerNode) throws VisitorException {
         mStream.println("#--------------------------------------------------");
-        mStream.println("# TEZ plan: " + tezPlanContainerNode.getOperatorKey());
+        mStream.println("# TEZ DAG plan: " + tezPlanContainerNode.getOperatorKey());
         mStream.println("#--------------------------------------------------");
+        TezGraphPrinter graphPrinter = new TezGraphPrinter(tezPlanContainerNode.getNode());
+        graphPrinter.visit();
+        mStream.print(graphPrinter.toString());
         TezPrinter printer = new TezPrinter(mStream, tezPlanContainerNode.getNode());
         printer.setVerbose(isVerbose);
         printer.visit();

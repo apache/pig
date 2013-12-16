@@ -2,48 +2,54 @@
 # There are 1 DAGs in the session
 #--------------------------------------------------
 #--------------------------------------------------
-# TEZ plan: scope-227
+# TEZ DAG plan: scope-37
 #--------------------------------------------------
-Tez vertex scope-221
+Tez vertex scope-31	->	Tez vertex scope-33,Tez vertex scope-36,
+Tez vertex scope-36
+Tez vertex scope-33
+
+Tez vertex scope-31
 # Plan on vertex
-a: Split - scope-205
+a: Split - scope-8
 |   |
-|   b: Local Rearrange[tuple]{int}(false) - scope-210
+|   b: Local Rearrange[tuple]{int}(false) - scope-13	->	 scope-33
 |   |   |
-|   |   Project[int][0] - scope-211
+|   |   Project[int][0] - scope-14
 |   |
-|   |---a: Filter[bag] - scope-206
-|       |   |
-|       |   Constant(true) - scope-207
-|   |
-|   c: Local Rearrange[tuple]{tuple}(false) - scope-217
+|   c: Local Rearrange[tuple]{tuple}(false) - scope-27	->	 scope-36
 |   |   |
-|   |   Project[int][0] - scope-218
+|   |   Project[int][0] - scope-28
 |   |   |
-|   |   Project[int][1] - scope-219
-|   |
-|   |---a: Filter[bag] - scope-213
-|       |   |
-|       |   Constant(true) - scope-214
+|   |   Project[int][1] - scope-29
 |
-|---a: New For Each(false,false)[bag] - scope-204
+|---a: New For Each(false,false)[bag] - scope-7
     |   |
-    |   Cast[int] - scope-199
+    |   Cast[int] - scope-2
     |   |
-    |   |---Project[bytearray][0] - scope-198
+    |   |---Project[bytearray][0] - scope-1
     |   |
-    |   Cast[int] - scope-202
+    |   Cast[int] - scope-5
     |   |
-    |   |---Project[bytearray][1] - scope-201
+    |   |---Project[bytearray][1] - scope-4
     |
-    |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-197
-Tez vertex scope-226
+    |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-0
+Tez vertex scope-36
 # Plan on vertex
-c: Store(file:///tmp/output/c:org.apache.pig.builtin.PigStorage) - scope-220
+c: Store(file:///tmp/output/c:org.apache.pig.builtin.PigStorage) - scope-30
 |
-|---c: Package(Packager)[tuple]{tuple} - scope-216
-Tez vertex scope-223
+|---c: Package(Packager)[tuple]{tuple} - scope-26
+Tez vertex scope-33
 # Plan on vertex
-b: Store(file:///tmp/output/b:org.apache.pig.builtin.PigStorage) - scope-212
+b1: Store(file:///tmp/output/b:org.apache.pig.builtin.PigStorage) - scope-22
 |
-|---b: Package(Packager)[tuple]{int} - scope-209
+|---b1: New For Each(false,false)[bag] - scope-21
+    |   |
+    |   Project[int][0] - scope-15
+    |   |
+    |   POUserFunc(org.apache.pig.builtin.COUNT)[long] - scope-19
+    |   |
+    |   |---Project[bag][1] - scope-18
+    |       |
+    |       |---Project[bag][1] - scope-17
+    |
+    |---b: Package(Packager)[tuple]{int} - scope-12

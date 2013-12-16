@@ -196,4 +196,9 @@ public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
         clone.setOutputKey(outputKey);
         return clone;
     }
+
+    @Override
+    public String name() {
+        return super.name() + "\t->\t " + outputKey;
+    }
 }

@@ -2,8 +2,10 @@
 # There are 1 DAGs in the session
 #--------------------------------------------------
 #--------------------------------------------------
-# TEZ plan: scope-17
+# TEZ DAG plan: scope-17
 #--------------------------------------------------
+Tez vertex scope-16
+
 Tez vertex scope-16
 # Plan on vertex
 c: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-15

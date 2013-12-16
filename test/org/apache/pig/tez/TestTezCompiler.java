@@ -27,41 +27,28 @@ import java.util.Properties;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.tez.TezCompiler;
+import org.apache.pig.backend.hadoop.executionengine.tez.TezLauncher;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezLocalExecType;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezPlanContainer;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezPlanContainerPrinter;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.test.Util;
-import org.apache.pig.test.junit.OrderedJUnit4Runner;
-import org.apache.pig.test.junit.OrderedJUnit4Runner.TestOrder;
 import org.apache.pig.test.utils.TestHelper;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 /**
  * Test cases to test the TezCompiler. VERY IMPORTANT NOTE: The tests here
  * compare results with a "golden" set of outputs. In each test case here, the
  * operators generated have a random operator key which uses Java's Random
  * class. So if there is a code change which changes the number of operators
- * created in a plan, then not only will the "golden" file for that test case
- * need to be changed, but also for the tests that follow it since the operator
- * keys that will be generated through Random will be different.
+ * created in a plan, then  the "golden" file for that test case
+ * need to be changed.
  */
-@RunWith(OrderedJUnit4Runner.class)
-@TestOrder({
-    "testFilter",
-    "testGroupBy",
-    "testJoin",
-    "testLimit",
-    "testDistinct",
-    "testSplitSingleVertex",
-    "testSplitMultiVertex",
-    "testMultipleGroupBySplit"
-})
+
 public class TestTezCompiler {
     private static PigContext pc;
     private static PigServer pigServer;
@@ -78,6 +65,8 @@ public class TestTezCompiler {
 
     @Before
     public void setUp() throws ExecException {
+        NodeIdGenerator.reset();
+        PigServer.resetScope();
         pigServer = new PigServer(pc);
     }
 
@@ -98,7 +87,7 @@ public class TestTezCompiler {
         String query =
                 "a = load 'file:///tmp/input' as (x:int, y:int);" +
                 "b = group a by x;" +
-                "c = foreach b generate group, a;" +
+                "c = foreach b generate group, COUNT(a.x);" +
                 "store c into 'file:///tmp/output';";
 
         PhysicalPlan pp = Util.buildPp(pigServer, query);
@@ -160,16 +149,30 @@ public class TestTezCompiler {
         String query =
                 "a = load 'file:///tmp/input' as (x:int, y:int);" +
                 "split a into b if x <= 5, c if x <= 10, d if x >10;" +
+                "split b into e if x < 3, f if x >= 3;" +
+                // No Combiner on this split groupby when both b1 and b2 are stored
                 "b1 = group b by x;" +
-                "c1 = limit c 1;" +
+                "b2 = foreach b1 generate group, SUM(b.x);" +
+                // Case of two outputs within a split going to same edge as input
+                "c1 = join c by x, b by x;" +
+                "c2 = group c by x;" +
+                // TODO: Combiner as only c3 is stored.
+                "c3 = foreach c2 generate group, SUM(c.x);" +
                 "d1 = filter d by x == 5;" +
-                //"d2 = order d by x;" + //TODO
-                //"d3 = join c1 by x, d1 by x;" +
+                //"e1 = order e by x;" + //TODO
+                // TODO: Physical plan has extra split for f1 - 1-2: Split - scope-80
+                // POSplit has only 1 sub plan. Optimized and removed in MR plan.
+                // Needs to be removed in Tez plan as well.
+                "f1 = limit f 1;" +
+                //"f2 = union d1, f1;" + //TODO
                 "store b1 into 'file:///tmp/output/b1';" +
+                "store b2 into 'file:///tmp/output/b2';" +
                 "store c1 into 'file:///tmp/output/c1';" +
-                "store d1 into 'file:///tmp/output/d1';";
-                //"store d2 into 'file:///tmp/output/d2';" +
-                //"store d3 into 'file:///tmp/output/d3';";
+                "store c3 into 'file:///tmp/output/c1';" +
+                "store d1 into 'file:///tmp/output/d1';" +
+                //"store e1 into 'file:///tmp/output/e1';" +
+                "store f1 into 'file:///tmp/output/f1';";
+                //"store f2 into 'file:///tmp/output/f2';";
 
         PhysicalPlan pp = Util.buildPp(pigServer, query);
         run(pp, "test/org/apache/pig/test/data/GoldenFiles/TEZC7.gld");
@@ -180,18 +183,34 @@ public class TestTezCompiler {
         String query =
                 "a = load 'file:///tmp/input' as (x:int, y:int);" +
                 "b = group a by x;" +
+                "b1 = foreach b generate group, COUNT(a.y);" +
                 "c = group a by (x,y);" +
-                "store b into 'file:///tmp/output/b';" +
+                "store b1 into 'file:///tmp/output/b';" +
                 "store c into 'file:///tmp/output/c';";
 
         PhysicalPlan pp = Util.buildPp(pigServer, query);
         run(pp, "test/org/apache/pig/test/data/GoldenFiles/TEZC8.gld");
     }
 
+    @Test
+    public void testJoinWithSplit() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input1' as (x:int, y:int);" +
+                "b = load 'file:///tmp/input2' as (x:int, z:int);" +
+                "c = join a by x, b by x;" +
+                "d = foreach c generate $0, $1, $3;" +
+                "e = foreach c generate $0, $1, $2, $3;" +
+                "store c into 'file:///tmp/output/c';" +
+                "store d into 'file:///tmp/output/d';" +
+                "store e into 'file:///tmp/output/e';";
+
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
+        run(pp, "test/org/apache/pig/test/data/GoldenFiles/TEZC9.gld");
+    }
+
     private void run(PhysicalPlan pp, String expectedFile) throws Exception {
-        TezCompiler comp = new TezCompiler(pp, pc);
-        comp.compile();
-        TezPlanContainer tezPlanContainer = comp.getPlanContainer();
+        TezLauncher launcher = new TezLauncher();
+        TezPlanContainer tezPlanContainer = launcher.compile(pp, pc);
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PrintStream ps = new PrintStream(baos);

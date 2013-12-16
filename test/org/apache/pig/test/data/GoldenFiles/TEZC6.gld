@@ -2,50 +2,52 @@
 # There are 1 DAGs in the session
 #--------------------------------------------------
 #--------------------------------------------------
-# TEZ plan: scope-148
+# TEZ DAG plan: scope-30
 #--------------------------------------------------
-Tez vertex scope-142
+Tez vertex scope-24
+
+Tez vertex scope-24
 # Plan on vertex
-6-1: Split - scope-126
+1-1: Split - scope-8
 |   |
-|   b: Store(file:///tmp/output/b:org.apache.pig.builtin.PigStorage) - scope-131
+|   b: Store(file:///tmp/output/b:org.apache.pig.builtin.PigStorage) - scope-13
 |   |
-|   |---b: Filter[bag] - scope-127
+|   |---b: Filter[bag] - scope-9
 |       |   |
-|       |   Less Than or Equal[boolean] - scope-130
+|       |   Less Than or Equal[boolean] - scope-12
 |       |   |
-|       |   |---Project[int][0] - scope-128
+|       |   |---Project[int][0] - scope-10
 |       |   |
-|       |   |---Constant(5) - scope-129
+|       |   |---Constant(5) - scope-11
 |   |
-|   c: Store(file:///tmp/output/c:org.apache.pig.builtin.PigStorage) - scope-136
+|   c: Store(file:///tmp/output/c:org.apache.pig.builtin.PigStorage) - scope-18
 |   |
-|   |---c: Filter[bag] - scope-132
+|   |---c: Filter[bag] - scope-14
 |       |   |
-|       |   Less Than or Equal[boolean] - scope-135
+|       |   Less Than or Equal[boolean] - scope-17
 |       |   |
-|       |   |---Project[int][0] - scope-133
+|       |   |---Project[int][0] - scope-15
 |       |   |
-|       |   |---Constant(10) - scope-134
+|       |   |---Constant(10) - scope-16
 |   |
-|   d: Store(file:///tmp/output/d:org.apache.pig.builtin.PigStorage) - scope-141
+|   d: Store(file:///tmp/output/d:org.apache.pig.builtin.PigStorage) - scope-23
 |   |
-|   |---d: Filter[bag] - scope-137
+|   |---d: Filter[bag] - scope-19
 |       |   |
-|       |   Greater Than[boolean] - scope-140
+|       |   Greater Than[boolean] - scope-22
 |       |   |
-|       |   |---Project[int][0] - scope-138
+|       |   |---Project[int][0] - scope-20
 |       |   |
-|       |   |---Constant(10) - scope-139
+|       |   |---Constant(10) - scope-21
 |
-|---a: New For Each(false,false)[bag] - scope-125
+|---a: New For Each(false,false)[bag] - scope-7
     |   |
-    |   Cast[int] - scope-120
+    |   Cast[int] - scope-2
     |   |
-    |   |---Project[bytearray][0] - scope-119
+    |   |---Project[bytearray][0] - scope-1
     |   |
-    |   Cast[int] - scope-123
+    |   Cast[int] - scope-5
     |   |
-    |   |---Project[bytearray][1] - scope-122
+    |   |---Project[bytearray][1] - scope-4
     |
-    |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-118
+    |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-0

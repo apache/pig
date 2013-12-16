@@ -105,6 +105,8 @@ import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 import org.apache.pig.tools.pigstats.ScriptState;
 
+import com.google.common.annotations.VisibleForTesting;
+
 /**
  *
  * A class for Java programs to connect to Pig. Typically a program will create a PigServer
@@ -167,6 +169,11 @@ public class PigServer {
         // scope is needed again, we might need to update all the
         // operators to not include scope in their name().
         return "" + scopeCounter.incrementAndGet();
+    }
+
+    @VisibleForTesting
+    public static void resetScope() {
+        scopeCounter.set(0);
     }
 
     /**

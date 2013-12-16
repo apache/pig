@@ -18,6 +18,7 @@
 package org.apache.pig.backend.hadoop.executionengine.tez;
 
 import java.io.PrintStream;
+import java.util.List;
 import java.util.Map.Entry;
 
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -71,6 +72,38 @@ public class TezPrinter extends TezOpPlanVisitor {
             printer.setVerbose(isVerbose);
             printer.visit();
             mStream.println();
+        }
+    }
+
+    /**
+     * This class prints the Tez Vertex Graph
+     */
+    public static class TezGraphPrinter extends TezOpPlanVisitor {
+
+        StringBuffer buf;
+
+        public TezGraphPrinter(TezOperPlan plan) {
+            super(plan, new DependencyOrderWalker<TezOperator, TezOperPlan>(plan));
+            buf = new StringBuffer();
+        }
+
+        @Override
+        public void visitTezOp(TezOperator tezOper) throws VisitorException {
+            buf.append("Tez vertex " + tezOper.getOperatorKey().toString());
+            List<TezOperator> succs = mPlan.getSuccessors(tezOper);
+            if (succs != null) {
+                buf.append("\t->\t");
+                for (TezOperator op : succs) {
+                    buf.append("Tez vertex " + op.getOperatorKey().toString()).append(",");
+                }
+            }
+            buf.append("\n");
+        }
+
+        @Override
+        public String toString() {
+            buf.append("\n");
+            return buf.toString();
         }
     }
 }
