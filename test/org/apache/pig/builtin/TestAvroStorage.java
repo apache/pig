@@ -69,7 +69,7 @@ public class TestAvroStorage {
     final protected static Log LOG = LogFactory.getLog(TestAvroStorage.class);
 
     final private static String basedir = "test/org/apache/pig/builtin/avro/";
-    final private static String outbasedir = System.getProperty("user.dir") + "/build/test/TestAvroStorage/";
+    private static String outbasedir = System.getProperty("user.dir") + "/build/test/TestAvroStorage/";
     final private static String[] datadir = {
         "data/avro",
         "data/avro/compressed",
@@ -302,6 +302,9 @@ public class TestAvroStorage {
 
     private String createOutputName() {
         final StackTraceElement[] st = Thread.currentThread().getStackTrace();
+        if(Util.WINDOWS){
+            outbasedir = outbasedir.replace('\\','/');
+        }
         return outbasedir + st[2].getMethodName();
     }
 
