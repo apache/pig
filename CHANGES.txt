@@ -58,6 +58,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3633: AvroStorage tests are failing when running against Avro 1.7.5 (jarcec via cheolsoo)
+
 PIG-3612: Storing schema does not work cross cluster with PigStorage and JsonStorage (rohini)
 
 PIG-3607: PigRecordReader should report progress for each inputsplit processed (rohini)

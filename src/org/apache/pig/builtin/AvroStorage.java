@@ -131,7 +131,7 @@ public class AvroStorage extends LoadFunc
   public AvroStorage(final String sn, final String opts) {
     super();
 
-    if (sn != null) {
+    if (sn != null && sn.length() > 0) {
       try {
         Schema s = (new Schema.Parser()).parse(sn);
         // must be a valid schema
