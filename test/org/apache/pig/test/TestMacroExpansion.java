@@ -2185,11 +2185,20 @@ public class TestMacroExpansion {
     // Test for PIG-3359
     @Test
     public void testDeclareInMacroFile() throws Exception {
-        String macro =
-            "%declare ECHOED_MULTIPLIER `echo \"$MULTIPLIER\"`" +
-            "DEFINE MultiplyMacro(numbers) RETURNS multiplied {\n" +
-            "    $multiplied = FOREACH $numbers GENERATE $0 * $ECHOED_MULTIPLIER;\n" +
-            "};";
+        String macro;
+        if(Util.WINDOWS){
+            macro =
+                "%declare ECHOED_MULTIPLIER `echo $MULTIPLIER`" +
+                "DEFINE MultiplyMacro(numbers) RETURNS multiplied {\n" +
+                "    $multiplied = FOREACH $numbers GENERATE $0 * $ECHOED_MULTIPLIER;\n" +
+                "};";
+        } else {
+             macro =
+                "%declare ECHOED_MULTIPLIER `echo \"$MULTIPLIER\"`" +
+                "DEFINE MultiplyMacro(numbers) RETURNS multiplied {\n" +
+                "    $multiplied = FOREACH $numbers GENERATE $0 * $ECHOED_MULTIPLIER;\n" +
+                "};";
+        }
         createFile("my_macro.pig", macro);
 
         String script =
@@ -2267,7 +2276,7 @@ public class TestMacroExpansion {
     
     private void verify(String s, String expected) throws Exception {
         createFile("myscript.pig", s);
-        
+
         String[] args = { "-Dpig.import.search.path=/tmp", "-x", "local", "-c", "myscript.pig" };
         PigStats stats = PigRunner.run(args, null);
         
