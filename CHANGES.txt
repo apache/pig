@@ -131,6 +131,8 @@ PIG-3480: TFile-based tmpfile compression crashes in some cases (dvryaboy via an
 
 BUG FIXES
 
+PIG-3592: Should not try to create success file for non-fs schemes like hbase (rohini)
+
 PIG-3572: Fix all unit test for during build pig with Hadoop 2.X on Windows (ssvinarchukhorton via daijy)
 
 PIG-2629: Wrong Usage of Scalar which is null causes high namenode operation (rohini)
