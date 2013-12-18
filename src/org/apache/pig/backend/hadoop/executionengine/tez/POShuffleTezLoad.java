@@ -34,7 +34,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.InternalCachedBag;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -46,19 +45,14 @@ public class POShuffleTezLoad extends POPackage implements TezLoad {
 
     private static final long serialVersionUID = 1L;
 
-    List<String> inputKeys = new ArrayList<String>();
+    protected List<String> inputKeys = new ArrayList<String>();
+    protected List<ShuffledMergedInput> inputs = new ArrayList<ShuffledMergedInput>();
+    protected List<KeyValuesReader> readers = new ArrayList<KeyValuesReader>();
 
-    List<ShuffledMergedInput> inputs = new ArrayList<ShuffledMergedInput>();
-    List<KeyValuesReader> readers = new ArrayList<KeyValuesReader>();
-    List<Boolean> finished = new ArrayList<Boolean>();
-
+    private boolean[] finished;
     private boolean[] readOnce;
 
-    Result res;
-
-    protected static final TupleFactory tf = TupleFactory.getInstance();
-
-    WritableComparator comparator = null;
+    private WritableComparator comparator = null;
 
     public POShuffleTezLoad(OperatorKey k, POPackage pack) {
         super(k);
@@ -69,11 +63,6 @@ public class POShuffleTezLoad extends POPackage implements TezLoad {
     @Override
     public void attachInputs(Map<String, LogicalInput> inputs, Configuration conf)
             throws ExecException {
-        readOnce = new boolean[numInputs];
-        for (int i = 0; i < numInputs; i++) {
-            readOnce[i] = false;
-        }
-
         try {
             comparator = ReflectionUtils.newInstance(
                     TezDagBuilder.comparatorForKeyType(pkgr.getKeyType()), conf);
@@ -81,15 +70,29 @@ public class POShuffleTezLoad extends POPackage implements TezLoad {
             throw new ExecException(e);
         }
         try {
-            // TODO: Only take the inputs which are actually specified.
-            for (LogicalInput input : inputs.values()) {
-                ShuffledMergedInput smInput = (ShuffledMergedInput) input;
-                this.inputs.add(smInput);
-                this.readers.add(smInput.getReader());
+            for (String key : inputKeys) {
+                LogicalInput input = inputs.get(key);
+                if (input instanceof ShuffledMergedInput) {
+                    ShuffledMergedInput smInput = (ShuffledMergedInput) input;
+                    this.inputs.add(smInput);
+                    this.readers.add(smInput.getReader());
+                }
             }
 
+            // We need to adjust numInputs because it's possible for both
+            // ShuffledMergedInputs and non-ShuffledMergedInputs to be attached
+            // to the same vertex. If so, we're only interested in
+            // ShuffledMergedInputs. So we ignore the others.
+            this.numInputs = this.inputs.size();
+
+            readOnce = new boolean[numInputs];
             for (int i = 0; i < numInputs; i++) {
-                finished.add(!readers.get(i).next());
+                readOnce[i] = false;
+            }
+
+            finished = new boolean[numInputs];
+            for (int i = 0; i < numInputs; i++) {
+                finished[i] = !readers.get(i).next();
             }
         } catch (IOException e) {
             throw new ExecException(e);
@@ -104,7 +107,7 @@ public class POShuffleTezLoad extends POPackage implements TezLoad {
             boolean newData = false;
             try {
                 for (int i = 0; i < numInputs; i++) {
-                    if (!finished.get(i)) {
+                    if (!finished[i]) {
                         newData = true;
                         PigNullableWritable current = (PigNullableWritable) readers
                                 .get(i).getCurrentKey();
@@ -128,7 +131,7 @@ public class POShuffleTezLoad extends POPackage implements TezLoad {
 
             try {
                 for (int i = 0; i < numInputs; i++) {
-                    if (!finished.get(i)) {
+                    if (!finished[i]) {
                         PigNullableWritable current = (PigNullableWritable) readers
                                 .get(i).getCurrentKey();
                         if (comparator.compare(minimum, current) == 0) {
@@ -140,7 +143,7 @@ public class POShuffleTezLoad extends POPackage implements TezLoad {
                                 Tuple tup = pkgr.getValueTuple(key, nTup, index);
                                 bag.add(tup);
                             }
-                            finished.set(i, !readers.get(i).next());
+                            finished[i] = !readers.get(i).next();
                             bags[i] = bag;
                         } else {
                             bags[i] = new InternalCachedBag(numInputs);

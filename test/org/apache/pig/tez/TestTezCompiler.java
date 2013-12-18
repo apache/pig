@@ -208,6 +208,33 @@ public class TestTezCompiler {
         run(pp, "test/org/apache/pig/test/data/GoldenFiles/TEZC9.gld");
     }
 
+    @Test
+    public void testReplicatedJoinInMapper() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input1' as (x:int, y:int);" +
+                "b = load 'file:///tmp/input2' as (x:int, z:int);" +
+                "c = load 'file:///tmp/input3' as (x:int, z:int);" +
+                "d = join a by x, b by x, c by x using 'replicated';" +
+                "store d into 'file:///tmp/output/d';";
+
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
+        run(pp, "test/org/apache/pig/test/data/GoldenFiles/TEZC10.gld");
+    }
+
+    @Test
+    public void testReplicatedJoinInReducer() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input1' as (x:int, y:int);" +
+                "b = group a by x;" +
+                "b1 = foreach b generate group, COUNT(a.y);" +
+                "c = load 'file:///tmp/input2' as (x:int, z:int);" +
+                "d = join b1 by group, c by x using 'replicated';" +
+                "store d into 'file:///tmp/output/e';";
+
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
+        run(pp, "test/org/apache/pig/test/data/GoldenFiles/TEZC11.gld");
+    }
+
     private void run(PhysicalPlan pp, String expectedFile) throws Exception {
         TezLauncher launcher = new TezLauncher();
         TezPlanContainer tezPlanContainer = launcher.compile(pp, pc);

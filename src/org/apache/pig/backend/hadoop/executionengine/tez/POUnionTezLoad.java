@@ -42,6 +42,7 @@ public class POUnionTezLoad extends POShuffleTezLoad {
     private static Result eopResult = new Result(POStatus.STATUS_EOP, null);
     private int currIdx = 0;
     private int tuplCnt = 0;
+    private Result res;
 
     public POUnionTezLoad(OperatorKey k, POPackage pack) {
         super(k, pack);
@@ -51,11 +52,20 @@ public class POUnionTezLoad extends POShuffleTezLoad {
     public void attachInputs(Map<String, LogicalInput> inputs, Configuration conf)
             throws ExecException {
         try {
-            for (LogicalInput input : inputs.values()) {
-                ShuffledMergedInput suInput = (ShuffledMergedInput) input;
-                this.inputs.add(suInput);
-                this.readers.add((KeyValuesReader) suInput.getReader());
+            for (String key : inputKeys) {
+                LogicalInput input = inputs.get(key);
+                if (input instanceof ShuffledMergedInput) {
+                    ShuffledMergedInput suInput = (ShuffledMergedInput) input;
+                    this.inputs.add(suInput);
+                    this.readers.add((KeyValuesReader) suInput.getReader());
+                }
             }
+
+            // We need to adjust numInputs because it's possible for both
+            // ShuffledMergedInputs and non-ShuffledMergedInputs to be attached
+            // to the same vertex. If so, we're only interested in
+            // ShuffledMergedInputs. So we ignore the others.
+            this.numInputs = this.inputs.size();
         } catch (Exception e) {
             throw new ExecException(e);
         }

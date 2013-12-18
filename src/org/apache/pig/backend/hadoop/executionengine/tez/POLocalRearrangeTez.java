@@ -28,12 +28,10 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.output.OnFileSortedOutput;
@@ -46,10 +44,9 @@ import org.apache.tez.runtime.library.output.OnFileUnorderedKVOutput;
 public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
 
     private static final long serialVersionUID = 1L;
-    private static TupleFactory tupleFactory = TupleFactory.getInstance();
     private static Result empty = new Result(POStatus.STATUS_NULL, null);
+
     private String outputKey;
-    private DataMovementType outputType;
     private transient KeyValueWriter writer;
     // Tez union is implemented as LR + Pkg
     private boolean isUnion = false;
@@ -96,10 +93,8 @@ public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
         try {
             if (logicalOut instanceof OnFileSortedOutput) {
                 writer = ((OnFileSortedOutput) logicalOut).getWriter();
-                outputType = DataMovementType.SCATTER_GATHER;
             } else if (logicalOut instanceof OnFileUnorderedKVOutput) {
                 writer = ((OnFileUnorderedKVOutput) logicalOut).getWriter();
-                outputType = DataMovementType.BROADCAST;
             } else {
                 throw new ExecException(
                         "POLocalRearrangeTez only accepts OnFileSortedOutput (shuffle)"
@@ -117,57 +112,38 @@ public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
     @Override
     public Result getNextTuple() throws ExecException {
         Result res = super.getNextTuple();
-        if (outputType == null) { //In the case of combiner
+        if (writer == null) { // In the case of combiner
             return res;
         }
+
         try {
             switch (res.returnStatus) {
             case POStatus.STATUS_OK:
                 if (illustrator == null) {
                     Tuple result = (Tuple) res.result;
-                    switch (outputType) {
-                    case SCATTER_GATHER: {
-                        Byte index = (Byte)result.get(0);
-                        PigNullableWritable key = null;
-                        NullableTuple val = null;
-                        if (isUnion()) {
-                            // Use the entire tuple as both key and value
-                            key = HDataType.getWritableComparableTypes(result.get(1), keyType);
-                            val = new NullableTuple((Tuple)result.get(1));
-                        } else {
-                            key = HDataType.getWritableComparableTypes(result.get(1), keyType);
-                            val = new NullableTuple((Tuple)result.get(2));
-                        }
+                    Byte index = (Byte)result.get(0);
+                    PigNullableWritable key = null;
+                    NullableTuple val = null;
+                    if (isUnion()) {
+                        // Use the entire tuple as both key and value
+                        key = HDataType.getWritableComparableTypes(result.get(1), keyType);
+                        val = new NullableTuple((Tuple)result.get(1));
+                    } else {
+                        key = HDataType.getWritableComparableTypes(result.get(1), keyType);
+                        val = new NullableTuple((Tuple)result.get(2));
+                    }
 
-                        // Both the key and the value need the index.  The key needs it so
-                        // that it can be sorted on the index in addition to the key
-                        // value.  The value needs it so that POPackage can properly
-                        // assign the tuple to its slot in the projection.
-                        key.setIndex(index);
-                        val.setIndex(index);
-                        writer.write(key, val);
-                        break;
-                    }
-                    case BROADCAST: {
-                        Byte index = (Byte)result.get(0);
-                        // Key isn't used by broadcast edge, so it can be an empty tuple.
-                        Tuple nullTuple = tupleFactory.newTuple();
-                        PigNullableWritable key =
-                                HDataType.getWritableComparableTypes(nullTuple, keyType);
-                        NullableTuple val = new NullableTuple((Tuple)result.get(1));
-                        key.setIndex(index);
-                        val.setIndex(index);
-                        writer.write(key, val);
-                        break;
-                    }
-                    default:
-                        throw new IOException("Unkonwn output type: " + outputType);
-                    }
+                    // Both the key and the value need the index.  The key needs it so
+                    // that it can be sorted on the index in addition to the key
+                    // value.  The value needs it so that POPackage can properly
+                    // assign the tuple to its slot in the projection.
+                    key.setIndex(index);
+                    val.setIndex(index);
+                    writer.write(key, val);
                 } else {
                     illustratorMarkup(res.result, res.result, 0);
                 }
                 res = empty;
-
                 break;
             case POStatus.STATUS_EOP:
             case POStatus.STATUS_ERR:
@@ -180,6 +156,7 @@ public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
             String msg = "Received error from POLocalRearrage function." + ioe.getMessage();
             throw new ExecException(msg, errCode, ioe);
         }
+
         return res;
     }
 

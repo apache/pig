@@ -223,11 +223,11 @@ public class POMergeJoin extends PhysicalOperator {
      * from Tuple to SchemaTuple. This is necessary because we are not getting SchemaTuples
      * from the source, though in the future that is what we would like to do.
      */
-    protected static class TuplesToSchemaTupleList {
+    public static class TuplesToSchemaTupleList {
         private List<Tuple> tuples;
         private SchemaTupleFactory tf;
 
-        protected TuplesToSchemaTupleList(int ct, TupleMaker<?> tf) {
+        public TuplesToSchemaTupleList(int ct, TupleMaker<?> tf) {
             tuples = new ArrayList<Tuple>(ct);
             if (tf instanceof SchemaTupleFactory) {
                 this.tf = (SchemaTupleFactory)tf;

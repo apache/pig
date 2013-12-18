@@ -81,6 +81,9 @@ import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.util.Utils;
+import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
+import org.apache.tez.runtime.library.input.ShuffledUnorderedKVInput;
+import org.apache.tez.runtime.library.output.OnFileUnorderedKVOutput;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -713,9 +716,69 @@ public class TezCompiler extends PhyPlanVisitor {
 
     @Override
     public void visitFRJoin(POFRJoin op) throws VisitorException {
-        int errCode = 2034;
-        String msg = "Cannot compile " + op.getClass().getSimpleName();
-        throw new TezCompilerException(msg, errCode, PigException.BUG);
+        try {
+            FileSpec[] replFiles = new FileSpec[op.getInputs().size()];
+            for (int i = 0; i < replFiles.length; i++) {
+                if (i == op.getFragment()) {
+                    continue;
+                }
+                replFiles[i] = getTempFileSpec();
+            }
+            op.setReplFiles(replFiles);
+
+            List<String> inputKeys = Lists.newArrayList();
+            curTezOp = phyToTezOpMap.get(op.getInputs().get(op.getFragment()));
+
+            for (int i = 0; i < compiledInputs.length; i++) {
+                TezOperator tezOp = compiledInputs[i];
+                if (curTezOp.equals(tezOp)) {
+                    continue;
+                }
+
+                if (!tezOp.isClosed()) {
+                    POLocalRearrangeTez lr = new POLocalRearrangeTez(op.getLRs()[i]);
+                    lr.setOutputKey(curTezOp.getOperatorKey().toString());
+
+                    tezOp.plan.addAsLeaf(lr);
+                    connect(tezPlan, tezOp, curTezOp);
+                    inputKeys.add(tezOp.getOperatorKey().toString());
+
+                    // Configure broadcast edges for replicated tables
+                    TezEdgeDescriptor edge = curTezOp.inEdges.get(tezOp.getOperatorKey());
+                    edge.dataMovementType = DataMovementType.BROADCAST;
+                    edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
+                    edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
+                } else {
+                    int errCode = 2022;
+                    String msg = "The current operator is closed. This is unexpected while compiling.";
+                    throw new TezCompilerException(msg, errCode, PigException.BUG);
+                }
+            }
+
+            if (!curTezOp.isClosed()) {
+                curTezOp.plan.addAsLeaf(new POFRJoinTez(op, inputKeys));
+            } else {
+                int errCode = 2022;
+                String msg = "The current operator is closed. This is unexpected while compiling.";
+                throw new TezCompilerException(msg, errCode, PigException.BUG);
+            }
+
+            List<List<PhysicalPlan>> joinPlans = op.getJoinPlans();
+            if (joinPlans != null) {
+                for (List<PhysicalPlan> joinPlan : joinPlans) {
+                    if (joinPlan != null) {
+                        for (PhysicalPlan plan : joinPlan) {
+                            processUDFs(plan);
+                        }
+                    }
+                }
+            }
+            phyToTezOpMap.put(op, curTezOp);
+        } catch (Exception e) {
+            int errCode = 2034;
+            String msg = "Error compiling operator " + op.getClass().getSimpleName();
+            throw new TezCompilerException(msg, errCode, PigException.BUG, e);
+        }
     }
 
     @Override

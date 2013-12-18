@@ -277,7 +277,6 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         payloadConf.setClass("mapreduce.inputformat.class",
                 PigInputFormat.class, InputFormat.class);
 
-
         // Configure the classes for incoming shuffles to this TezOp
         List<PhysicalOperator> roots = tezOp.plan.getRoots();
         if (roots.size() == 1 && roots.get(0) instanceof POPackage) {
@@ -292,13 +291,20 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             payloadConf.set("pig.reduce.package", ObjectSerializer.serialize(pack));
             payloadConf.set("pig.reduce.key.type", Byte.toString(keyType));
             setIntermediateInputKeyValue(keyType, payloadConf);
-            POPackage newPack;
+            POShuffleTezLoad newPack;
             if (tezOp.isUnion()) {
                 newPack = new POUnionTezLoad(new OperatorKey(scope, nig.getNextNodeId(scope)), pack);
             } else {
                 newPack = new POShuffleTezLoad(new OperatorKey(scope, nig.getNextNodeId(scope)), pack);
             }
             tezOp.plan.add(newPack);
+
+            // Set input keys for POShuffleTezLoad. This is used to identify
+            // the inputs that are attached to the POShuffleTezLoad in the
+            // backend.
+            for (TezOperator pred : mPlan.getPredecessors(tezOp)) {
+                newPack.addInputKey(pred.getOperatorKey().toString());
+            }
 
             if (succsList != null) {
                 for (PhysicalOperator succs : succsList) {

@@ -121,6 +121,10 @@ public class PigProcessor implements LogicalIOProcessor {
         for (POShuffleTezLoad shuffle : shuffles){
             shuffle.attachInputs(inputs, conf);
         }
+        LinkedList<POFRJoinTez> broadcasts = PlanHelper.getPhysicalOperators(execPlan, POFRJoinTez.class);
+        for (POFRJoinTez broadcast : broadcasts){
+            broadcast.attachInputs(inputs, conf);
+        }
     }
 
     private void initializeOutputs(Map<String, LogicalOutput> outputs) throws Exception {
