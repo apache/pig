@@ -103,7 +103,7 @@ public class Utils {
 
     /**
      * This method is a helper for classes to implement {@link java.lang.Object#equals(java.lang.Object)}
-     * The method checks whether the two arguments are both null or both not null and 
+     * The method checks whether the two arguments are both null or both not null and
      * whether they are of the same class
      * @param obj1 first object to compare
      * @param obj2 second object to compare
@@ -126,7 +126,7 @@ public class Utils {
     /**
      * A helper function for retrieving the script schema set by the LOLoad
      * function.
-     * 
+     *
      * @param loadFuncSignature
      * @param conf
      * @return Schema
@@ -509,6 +509,25 @@ public class Utils {
         PrintStream ps = new PrintStream(baos);
         e.printStackTrace(ps);
         return baos.toString();
+    }
+
+    /**
+     * Returns whether the give path has a FileSystem implementation.
+     *
+     * @param path path
+     * @param conf configuration
+     * @return true if the give path's scheme has a FileSystem implementation,
+     *         false otherwise
+     */
+    public static boolean hasFileSystemImpl(Path path, Configuration conf) {
+        String scheme = path.toUri().getScheme();
+        if (scheme != null) {
+            String fsImpl = conf.get("fs." + scheme + ".impl");
+            if (fsImpl == null) {
+                return false;
+            }
+        }
+        return true;
     }
 
 }
