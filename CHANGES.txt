@@ -58,8 +58,6 @@ OPTIMIZATIONS
  
 BUG FIXES
 
-PIG-3621: Python Avro library can't read Avros made with builtin AvroStorage (rusell.jurney via cheolsoo)
-
 PIG-3633: AvroStorage tests are failing when running against Avro 1.7.5 (jarcec via cheolsoo)
 
 PIG-3612: Storing schema does not work cross cluster with PigStorage and JsonStorage (rohini)
@@ -132,6 +130,8 @@ PIG-3047: Check the size of a relation before adding it to distributed cache in 
 PIG-3480: TFile-based tmpfile compression crashes in some cases (dvryaboy via aniket486)
 
 BUG FIXES
+
+PIG-3621: Python Avro library can't read Avros made with builtin AvroStorage (rusell.jurney via cheolsoo)
 
 PIG-3592: Should not try to create success file for non-fs schemes like hbase (rohini)
 
