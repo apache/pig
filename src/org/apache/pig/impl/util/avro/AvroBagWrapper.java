@@ -18,11 +18,8 @@
 
 package org.apache.pig.impl.util.avro;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
-import java.util.Iterator;
-
+import com.google.common.base.Function;
+import com.google.common.collect.Iterators;
 import org.apache.avro.generic.GenericArray;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.IndexedRecord;
@@ -30,8 +27,10 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterators;
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
+import java.util.Iterator;
 
 /**
  * Class that implements the Pig bag interface, wrapping an Avro array.
@@ -89,7 +88,7 @@ public final class AvroBagWrapper<T> implements DataBag {
               if (arg instanceof IndexedRecord) {
                 return new AvroTupleWrapper<IndexedRecord>((IndexedRecord) arg);
               } else {
-                return TupleFactory.getInstance().newTuple(arg);
+                return TupleFactory.getInstance().newTuple(AvroTupleWrapper.unionResolver(arg));
               }
             }
           }
