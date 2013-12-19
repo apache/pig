@@ -103,7 +103,7 @@ public class AvroStorage extends LoadFunc
     this(sn, null);
   }
 
-  private String schemaName = "record";
+  private String schemaName = "pig_output";
   private String schemaNameSpace = null;
   protected boolean allowRecursive = false;
   protected boolean doubleColonsToDoubleUnderscores = false;
