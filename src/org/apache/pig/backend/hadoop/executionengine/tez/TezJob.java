@@ -101,8 +101,7 @@ public class TezJob extends ControlledJob {
                 TezSessionManager.freeSession(tezSession);
                 try {
                     if (!reuseSession) {
-                        log.info("Shutting down Tez session");
-                        tezSession.stop();
+                        TezSessionManager.stopSession(tezSession);
                     }
                     tezSession = null;
                     dagClient = null;

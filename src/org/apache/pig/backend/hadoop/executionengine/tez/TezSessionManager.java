@@ -20,9 +20,12 @@ package org.apache.pig.backend.hadoop.executionengine.tez;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
@@ -36,7 +39,25 @@ import org.apache.tez.client.TezSessionStatus;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 
+import com.google.common.annotations.VisibleForTesting;
+
 public class TezSessionManager {
+
+    private static final Log log = LogFactory.getLog(TezSessionManager.class);
+
+    static {
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+
+            @Override
+            public void run() {
+                TezSessionManager.shutdown();
+            }
+        });
+    }
+
+    private TezSessionManager() {
+    }
+
     public static class SessionInfo {
         SessionInfo(TezSession session, Map<String, LocalResource> resources) {
             this.session = session;
@@ -131,10 +152,41 @@ public class TezSessionManager {
     static void freeSession(TezSession session) {
         synchronized (sessionPool) {
             for (SessionInfo sessionInfo : sessionPool) {
-                if (sessionInfo.session==session) {
+                if (sessionInfo.session == session) {
                     sessionInfo.inUse = false;
+                    break;
                 }
             }
+        }
+    }
+
+    static void stopSession(TezSession session) throws TezException, IOException {
+        synchronized (sessionPool) {
+            Iterator<SessionInfo> iter = sessionPool.iterator();
+            while (iter.hasNext()) {
+                SessionInfo sessionInfo = iter.next();
+                if (sessionInfo.session == session) {
+                    log.info("Shutting down Tez session " + session);
+                    session.stop();
+                    iter.remove();
+                    break;
+                }
+            }
+        }
+    }
+
+    @VisibleForTesting
+    public static void shutdown() {
+        synchronized (sessionPool) {
+            for (SessionInfo sessionInfo : sessionPool) {
+                try {
+                    log.info("Shutting down Tez session " + sessionInfo.session);
+                    sessionInfo.session.stop();
+                } catch (Exception e) {
+                    log.error("Error shutting down Tez session "  + sessionInfo.session, e);
+                }
+            }
+            sessionPool.clear();
         }
     }
 }

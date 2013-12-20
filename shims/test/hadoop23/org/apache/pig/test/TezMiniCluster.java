@@ -29,7 +29,7 @@ import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.v2.MiniMRYarnCluster;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
-import org.apache.pig.test.MiniGenericCluster;
+import org.apache.pig.backend.hadoop.executionengine.tez.TezSessionManager;
 
 public class TezMiniCluster extends MiniGenericCluster {
     private static final File CONF_DIR = new File("build/classes");
@@ -129,6 +129,12 @@ public class TezMiniCluster extends MiniGenericCluster {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    protected void shutdownMiniDfsAndMrClusters() {
+        TezSessionManager.shutdown();
+        super.shutdownMiniDfsAndMrClusters();
     }
 
     @Override
