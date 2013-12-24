@@ -58,6 +58,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3640: Retain intermediate files for debugging purpose in batch mode (cheolsoo)
+
 PIG-3609: ClassCastException when calling compareTo method on AvroBagWrapper (rding via cheolsoo)
 
 PIG-3584: AvroStorage does not correctly translate arrays of strings (jadler via cheolsoo)
