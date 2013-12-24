@@ -32,29 +32,33 @@ import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 
 public class TestAlgebraicInstantiation {
 
     Boolean[] nullFlags = new Boolean[]{ false, true};
-    MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniCluster cluster = MiniCluster.buildCluster();
     private PigServer pig;
     private File tmpFile;
     
     public TestAlgebraicInstantiation() throws ExecException {
         pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
     }
-    
+
     @Before
     public void setUp() throws Exception {
-
         tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         ps.println("1\t2");
         ps.close();
     }
 
+    @AfterClass
+    public static void tearDownAfterClass() throws Exception {
+        cluster.shutDown();
+    }
 
     @Test
     public void testAlgebraicInstantiation() throws IOException {

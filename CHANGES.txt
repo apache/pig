@@ -28,6 +28,8 @@ PIG-3419: Pluggable Execution Engine (achalsoni81 via cheolsoo)
 
 IMPROVEMENTS
 
+PIG-3619: Provide XPath function (Saad Patel via gates)
+
 PIG-3590: remove PartitionFilterOptimizer from trunk (aniket486)
 
 PIG-3580: MIN, MAX and AVG functions for BigDecimal and BigInteger (harichinnan via cheolsoo)
@@ -55,6 +57,18 @@ PIG-3484: Make the size of pig.script property configurable (cheolsoo)
 OPTIMIZATIONS
  
 BUG FIXES
+
+PIG-3640: Retain intermediate files for debugging purpose in batch mode (cheolsoo)
+
+PIG-3609: ClassCastException when calling compareTo method on AvroBagWrapper (rding via cheolsoo)
+
+PIG-3584: AvroStorage does not correctly translate arrays of strings (jadler via cheolsoo)
+
+PIG-3633: AvroStorage tests are failing when running against Avro 1.7.5 (jarcec via cheolsoo)
+
+PIG-3612: Storing schema does not work cross cluster with PigStorage and JsonStorage (rohini)
+
+PIG-3607: PigRecordReader should report progress for each inputsplit processed (rohini)
 
 PIG-3566: Cannot set useMatches of REGEX_EXTRACT_ALL and REGEX_EXTRACT (nezihyigitbasi via cheolsoo)
 
@@ -122,6 +136,16 @@ PIG-3047: Check the size of a relation before adding it to distributed cache in 
 PIG-3480: TFile-based tmpfile compression crashes in some cases (dvryaboy via aniket486)
 
 BUG FIXES
+
+PIG-3621: Python Avro library can't read Avros made with builtin AvroStorage (rusell.jurney via cheolsoo)
+
+PIG-3592: Should not try to create success file for non-fs schemes like hbase (rohini)
+
+PIG-3572: Fix all unit test for during build pig with Hadoop 2.X on Windows (ssvinarchukhorton via daijy)
+
+PIG-2629: Wrong Usage of Scalar which is null causes high namenode operation (rohini)
+
+PIG-3593: Import jython standard module fail on cluster (daijy)
 
 PIG-3576: NPE due to PIG-3549 when job never gets submitted (lbendig via cheolsoo)
 

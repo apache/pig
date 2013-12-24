@@ -705,13 +705,18 @@ public class MapReduceLauncher extends Launcher{
     private void createSuccessFile(Job job, POStore store) throws IOException {
         if(shouldMarkOutputDir(job)) {
             Path outputPath = new Path(store.getSFile().getFileName());
-            FileSystem fs = outputPath.getFileSystem(job.getJobConf());
-            if(fs.exists(outputPath)){
-                // create a file in the folder to mark it
-                Path filePath = new Path(outputPath, SUCCEEDED_FILE_NAME);
-                if(!fs.exists(filePath)) {
-                    fs.create(filePath).close();
+            String scheme = outputPath.toUri().getScheme();
+            if (Utils.hasFileSystemImpl(outputPath, job.getJobConf())) {
+                FileSystem fs = outputPath.getFileSystem(job.getJobConf());
+                if (fs.exists(outputPath)) {
+                    // create a file in the folder to mark it
+                    Path filePath = new Path(outputPath, SUCCEEDED_FILE_NAME);
+                    if (!fs.exists(filePath)) {
+                        fs.create(filePath).close();
+                    }
                 }
+            } else {
+                log.warn("No FileSystem for scheme: " + scheme + ". Not creating success file");
             }
         }
     }

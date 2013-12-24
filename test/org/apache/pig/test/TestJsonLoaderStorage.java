@@ -120,9 +120,12 @@ public class TestJsonLoaderStorage {
     FileWriter writer = new FileWriter(tempFile);
     writer.write(input);
     writer.close();
-
+    String path = tempFile.getAbsolutePath();
+    if (Util.WINDOWS){
+      path = path.replace('\\','/');
+    }
     PigServer pigServer = new PigServer(ExecType.LOCAL);
-    pigServer.registerQuery("data = load '" + tempFile.getAbsolutePath()
+    pigServer.registerQuery("data = load '" + path
         + "' using JsonLoader('" + schema + "');");
 
     return pigServer.openIterator("data");
@@ -138,11 +141,16 @@ public class TestJsonLoaderStorage {
     FileWriter w = new FileWriter(tempInputFile);
     w.write(input);
     w.close();
-
+    String pathInputFile = tempInputFile.getAbsolutePath();
+    String pathJsonFile = tempJsonFile.getAbsolutePath();
+    if (Util.WINDOWS){
+      pathInputFile = pathInputFile.replace('\\','/');
+      pathJsonFile = pathJsonFile.replace('\\','/');
+    }
     PigServer pigServer = new PigServer(ExecType.LOCAL);
-    pigServer.registerQuery("data = load '" + tempInputFile.getAbsolutePath()
+    pigServer.registerQuery("data = load '" + pathInputFile
         + "' as (" + schema + ");");
-    pigServer.registerQuery("store data into '" + tempJsonFile.getAbsolutePath()
+    pigServer.registerQuery("store data into '" + pathJsonFile
         + "' using JsonStorage();");
 
     tempJsonFile.deleteOnExit();
@@ -274,15 +282,23 @@ public class TestJsonLoaderStorage {
     FileWriter w = new FileWriter(tempInputFile);
     w.write(rawInput);
     w.close();
+    String pattInputFile = tempInputFile.getAbsolutePath();
+    String pattJsonFile = tempJsonFile.getAbsolutePath();
+    String pattJson2File = tempJson2File.getAbsolutePath();
+    if(Util.WINDOWS){
+       pattInputFile = pattInputFile.replace('\\','/');
+       pattJsonFile = pattJsonFile.replace('\\','/');
+       pattJson2File = pattJson2File.replace('\\','/');
+    }
 
     PigServer pigServer = new PigServer(ExecType.LOCAL);
-    pigServer.registerQuery("data = load '" + tempInputFile.getAbsolutePath()
+    pigServer.registerQuery("data = load '" + pattInputFile
         + "' as (" + schema + ");");
-    pigServer.registerQuery("store data into '" + tempJsonFile.getAbsolutePath()
+    pigServer.registerQuery("store data into '" + pattJsonFile
         + "' using JsonStorage();");
-    pigServer.registerQuery("json = load '" + tempJsonFile.getAbsolutePath()
+    pigServer.registerQuery("json = load '" + pattJsonFile
         + "' using JsonLoader('" + schema + "');");
-    pigServer.registerQuery("store json into '" + tempJson2File.getAbsolutePath()
+    pigServer.registerQuery("store json into '" + pattJson2File
         + "' using JsonStorage();");
 
     tempJsonFile.deleteOnExit();

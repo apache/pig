@@ -348,6 +348,9 @@ public class Util {
 
     static public void createInputFile(FileSystem fs, String fileName,
             String[] inputData) throws IOException {
+        if(Util.WINDOWS){
+            fileName = fileName.replace('\\','/');
+        }
         if(fs.exists(new Path(fileName))) {
             throw new IOException("File " + fileName + " already exists on the FileSystem");
         }
@@ -362,6 +365,9 @@ public class Util {
     }
 
     static public String[] readOutput(FileSystem fs, String fileName) throws IOException {
+        if(Util.WINDOWS){
+            fileName = fileName.replace('\\','/');
+        }
         Path path = new Path(fileName);
         if(!fs.exists(path)) {
             throw new IOException("Path " + fileName + " does not exist on the FileSystem");
@@ -405,6 +411,9 @@ public class Util {
     static public OutputStream createInputFile(MiniGenericCluster cluster,
             String fileName) throws IOException {
         FileSystem fs = cluster.getFileSystem();
+        if(Util.WINDOWS){
+            fileName = fileName.replace('\\','/');
+        }
         if (fs.exists(new Path(fileName))) {
             throw new IOException("File " + fileName
                     + " already exists on the minicluster");
@@ -438,6 +447,9 @@ public class Util {
     static public void deleteFile(MiniGenericCluster miniCluster, String fileName)
     throws IOException {
         FileSystem fs = miniCluster.getFileSystem();
+        if(Util.WINDOWS){
+            fileName = fileName.replace('\\','/');
+        }
         fs.delete(new Path(fileName), true);
     }
 
@@ -446,6 +458,9 @@ public class Util {
         Configuration conf = ConfigurationUtil.toConfiguration(
                 pigContext.getProperties());
         FileSystem fs = FileSystem.get(conf);
+        if(Util.WINDOWS){
+            fileName = fileName.replace('\\','/');
+        }
         fs.delete(new Path(fileName), true);
     }
 
@@ -454,6 +469,9 @@ public class Util {
         Configuration conf = ConfigurationUtil.toConfiguration(
                 pigContext.getProperties());
         FileSystem fs = FileSystem.get(conf);
+        if(Util.WINDOWS){
+            fileName = fileName.replace('\\','/');
+        }
         return fs.exists(new Path(fileName));
     }
 
@@ -587,6 +605,10 @@ public class Util {
 	 */
      static public void copyFromLocalToCluster(MiniGenericCluster cluster,
         String localFileName, String fileNameOnCluster) throws IOException {
+        if(Util.WINDOWS){
+            localFileName = localFileName.replace('\\','/');
+            fileNameOnCluster = fileNameOnCluster.replace('\\','/');
+        }
         PigServer ps = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         String script = getMkDirCommandForHadoop2_0(fileNameOnCluster) + "fs -put " + localFileName + " " + fileNameOnCluster;
 
@@ -602,6 +624,10 @@ public class Util {
 
     static public void copyFromLocalToLocal(String fromLocalFileName,
             String toLocalFileName) throws IOException {
+        if(Util.WINDOWS){
+            fromLocalFileName = fromLocalFileName.replace('\\','/');
+            toLocalFileName = toLocalFileName.replace('\\','/');
+        }
         PigServer ps = new PigServer(ExecType.LOCAL, new Properties());
         String script = getMkDirCommandForHadoop2_0(toLocalFileName) + "fs -cp " + fromLocalFileName + " " + toLocalFileName;
 
@@ -620,6 +646,10 @@ public class Util {
 
     static public void copyFromClusterToLocal(MiniGenericCluster cluster,
             String fileNameOnCluster, String localFileName) throws IOException {
+        if(Util.WINDOWS){
+            fileNameOnCluster = fileNameOnCluster.replace('\\','/');
+            localFileName = localFileName.replace('\\','/');
+        }
 	    File parent = new File(localFileName).getParentFile();
 	    if (!parent.exists()) {
 	        parent.mkdirs();
@@ -680,6 +710,9 @@ public class Util {
 
     public static String generateURI(String filename, PigContext context)
             throws IOException {
+        if(Util.WINDOWS){
+            filename = filename.replace('\\','/');
+        }
         if (context.getExecType() == ExecType.MAPREDUCE) {
             return FileLocalizer.hadoopify(filename, context);
         } else if (context.getExecType() == ExecType.LOCAL) {

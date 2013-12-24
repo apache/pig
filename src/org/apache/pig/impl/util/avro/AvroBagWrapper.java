@@ -18,20 +18,20 @@
 
 package org.apache.pig.impl.util.avro;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
-import java.util.Iterator;
-
+import com.google.common.base.Function;
+import com.google.common.collect.Iterators;
 import org.apache.avro.generic.GenericArray;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.IndexedRecord;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterators;
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
+import java.util.Iterator;
 
 /**
  * Class that implements the Pig bag interface, wrapping an Avro array.
@@ -39,6 +39,8 @@ import com.google.common.collect.Iterators;
  * @param <T> Type of objects in Avro array
  */
 public final class AvroBagWrapper<T> implements DataBag {
+
+  private static final long serialVersionUID = 1L;
 
   /**
    * The array object wrapped in this AvroBagWrapper object.
@@ -73,7 +75,15 @@ public final class AvroBagWrapper<T> implements DataBag {
 
   @Override
   public int compareTo(final Object o) {
-    return GenericData.get().compare(theArray, o, theArray.getSchema());
+    if (this == o) return 0;
+
+    if (o instanceof AvroBagWrapper) {
+      @SuppressWarnings("rawtypes")
+      AvroBagWrapper bOther = (AvroBagWrapper) o;
+      return GenericData.get().compare(theArray, bOther.theArray, theArray.getSchema());
+    } else {
+      return DataType.compare(this, o);
+    }
   }
 
   @Override public long size() { return theArray.size(); }
@@ -89,7 +99,7 @@ public final class AvroBagWrapper<T> implements DataBag {
               if (arg instanceof IndexedRecord) {
                 return new AvroTupleWrapper<IndexedRecord>((IndexedRecord) arg);
               } else {
-                return TupleFactory.getInstance().newTuple(arg);
+                return TupleFactory.getInstance().newTuple(AvroTupleWrapper.unionResolver(arg));
               }
             }
           }

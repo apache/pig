@@ -242,6 +242,7 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
             if (idx > 0) {
                 progress += pigSplit.getLength(idx-1);    // done processing so far
             }
+            context.progress();
         }
 
         // if all chunks have been processed, nothing more to do.

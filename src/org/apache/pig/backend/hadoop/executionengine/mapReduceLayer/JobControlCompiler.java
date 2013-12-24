@@ -517,6 +517,11 @@ public class JobControlCompiler{
                     log.debug("Adding jar to DistributedCache: " + extraJar.toString());
                     Utils.putJarOnClassPathThroughDistributedCache(pigContext, conf, extraJar);
                 }
+                
+                for (String scriptJar : pigContext.scriptJars) {
+                    log.debug("Adding jar to DistributedCache: " + scriptJar.toString());
+                    Utils.putJarOnClassPathThroughDistributedCache(pigContext, conf, new File(scriptJar).toURI().toURL());
+                }
 
                 //Create the jar of all functions and classes required
                 File submitJarFile = File.createTempFile("Job", ".jar");
