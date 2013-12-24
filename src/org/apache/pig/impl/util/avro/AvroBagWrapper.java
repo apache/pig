@@ -24,6 +24,7 @@ import org.apache.avro.generic.GenericArray;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.IndexedRecord;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 
@@ -38,6 +39,8 @@ import java.util.Iterator;
  * @param <T> Type of objects in Avro array
  */
 public final class AvroBagWrapper<T> implements DataBag {
+
+  private static final long serialVersionUID = 1L;
 
   /**
    * The array object wrapped in this AvroBagWrapper object.
@@ -72,7 +75,15 @@ public final class AvroBagWrapper<T> implements DataBag {
 
   @Override
   public int compareTo(final Object o) {
-    return GenericData.get().compare(theArray, o, theArray.getSchema());
+    if (this == o) return 0;
+
+    if (o instanceof AvroBagWrapper) {
+      @SuppressWarnings("rawtypes")
+      AvroBagWrapper bOther = (AvroBagWrapper) o;
+      return GenericData.get().compare(theArray, bOther.theArray, theArray.getSchema());
+    } else {
+      return DataType.compare(this, o);
+    }
   }
 
   @Override public long size() { return theArray.size(); }

@@ -58,6 +58,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3609: ClassCastException when calling compareTo method on AvroBagWrapper (rding via cheolsoo)
+
 PIG-3584: AvroStorage does not correctly translate arrays of strings (jadler via cheolsoo)
 
 PIG-3633: AvroStorage tests are failing when running against Avro 1.7.5 (jarcec via cheolsoo)
