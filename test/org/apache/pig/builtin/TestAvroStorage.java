@@ -39,6 +39,8 @@ import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
 import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.util.avro.AvroBagWrapper;
+import org.apache.pig.impl.util.avro.AvroTupleWrapper;
 import org.apache.pig.test.Util;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -334,7 +336,7 @@ public class TestAvroStorage {
         verifyResults(createOutputName(),check);
       }
 
-    
+
     @Test public void testProjection() throws Exception {
         final String input = basedir + "data/avro/uncompressed/records.avro";
         final String check = basedir + "data/avro/uncompressed/projectionTest.avro";
@@ -348,7 +350,7 @@ public class TestAvroStorage {
         verifyResults(createOutputName(),check);
       }
 
-    
+
     @Test public void testDates() throws Exception {
       final String input = basedir + "data/avro/uncompressed/records.avro";
       final String check = basedir + "data/avro/uncompressed/recordsAsOutputByPigWithDates.avro";
@@ -361,7 +363,7 @@ public class TestAvroStorage {
         );
       verifyResults(createOutputName(),check);
     }
-    
+
     @Test public void testLoadRecordsSpecifyFullSchema() throws Exception {
       final String input = basedir + "data/avro/uncompressed/records.avro";
       final String check = basedir + "data/avro/uncompressed/recordsAsOutputByPig.avro";
@@ -403,8 +405,8 @@ public class TestAvroStorage {
                "AVROSTORAGE_IN_1",  loadFileIntoString(basedir + "schema/recordsSubSchema.avsc"))
         );
       verifyResults(createOutputName(),check);
-    }    
-    
+    }
+
     @Test public void testLoadRecordsSpecifySubSchemaFromFile() throws Exception {
       final String input = basedir + "data/avro/uncompressed/records.avro";
       final String check = basedir + "data/avro/uncompressed/recordsSubSchema.avro";
@@ -737,7 +739,7 @@ public class TestAvroStorage {
         );
       verifyResults(createOutputName(), check);
     }
-    
+
     @Test
     public void testRetrieveDataFromMap() throws Exception {
         pigServerLocal = new PigServer(ExecType.LOCAL);
@@ -751,7 +753,7 @@ public class TestAvroStorage {
         data.set("testMap", "maps:map[chararray]", tuple(mapv1), tuple(mapv2));
         String schemaDescription = new String(
                 "{" +
-                      "\"type\": \"record\"," + 
+                      "\"type\": \"record\"," +
                       "\"name\": \"record\"," +
                       "\"fields\" : [" +
                       "{\"name\" : \"maps\", \"type\" :{\"type\" : \"map\", \"values\" : \"string\"}}" +
@@ -762,11 +764,48 @@ public class TestAvroStorage {
         pigServerLocal.registerQuery("B = LOAD '" + createOutputName() + "' USING AvroStorage();");
         pigServerLocal.registerQuery("C = FOREACH B generate maps#'key1';");
         pigServerLocal.registerQuery("STORE C INTO 'out' USING mock.Storage();");
-        
+
 
         List<Tuple> out = data.get("out");
         assertEquals(tuple("v11"), out.get(0));
         assertEquals(tuple("v21"), out.get(1));
+    }
+
+    @SuppressWarnings("rawtypes")
+    @Test
+    public void testCompareToOfBagWrapper() throws Exception {
+        final String check = basedir + "data/avro/uncompressed/arraysAsOutputByPig.avro";
+
+        Set<GenericData.Record> records = getExpected(check);
+        assertEquals(3, records.size());
+
+        AvroBagWrapper size0 = null; // [ ]
+        AvroBagWrapper size1 = null; // [ 6 ]
+        AvroBagWrapper size5 = null; // [ 1, 2, 3, 4, 5 ]
+
+        // 3 arrays in records are in an arbitrary order. We re-order them by
+        // their size.
+        for (GenericData.Record record : records) {
+            AvroTupleWrapper tw = new AvroTupleWrapper<GenericData.Record>(record);
+            if (((AvroBagWrapper)tw.get(0)).size() == 0) {
+                size0 = (AvroBagWrapper)tw.get(0);
+            } else if (((AvroBagWrapper)tw.get(0)).size() == 1) {
+                size1 = (AvroBagWrapper)tw.get(0);
+            } else if (((AvroBagWrapper)tw.get(0)).size() == 5) {
+                size5 = (AvroBagWrapper)tw.get(0);
+            }
+        }
+
+        assertEquals(0, size0.size());
+        assertEquals(1, size1.size());
+        assertEquals(5, size5.size());
+
+        assertTrue(size0.compareTo(size0) == 0);
+        assertTrue(size0.compareTo(size1) < 0);
+        assertTrue(size0.compareTo(size5) < 0);
+        assertTrue(size1.compareTo(size0) > 0);
+        // 6 > 1, so size1 > size5 even though size1 is smaller than size5.
+        assertTrue(size1.compareTo(size5) > 0);
     }
 
     private void testAvroStorage(boolean expectedToSucceed, String scriptFile, Map<String,String> parameterMap) throws IOException {
@@ -826,7 +865,7 @@ public class TestAvroStorage {
             int count = 0;
             while (in.hasNext()) {
                 GenericData.Record obj = in.next();
-                assertTrue("Avro result object found that's not expected: Found " 
+                assertTrue("Avro result object found that's not expected: Found "
                         + (obj != null ? obj.getSchema() : "null") + ", " + obj.toString()
                         + "\nExpected " + (expected != null ? expected.toString() : "null") + "\n"
                         , expected.contains(obj));
