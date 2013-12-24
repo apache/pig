@@ -19,9 +19,7 @@ package org.apache.pig.backend.hadoop.executionengine.tez;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.IOException;
 import java.io.PrintStream;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -29,6 +27,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.api.records.URL;
+import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -47,12 +47,14 @@ public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
 
     // Use pig.jar and udf jars for the AM resources (all DAG in the planContainer will
     // use it for simplicity)
-    public Map<String, LocalResource> getLocalResources() throws IOException {
+    public Map<String, LocalResource> getLocalResources() throws Exception {
         Set<URL> jarLists = new HashSet<URL>();
 
         jarLists.add(TezResourceManager.getBootStrapJar());
 
-        jarLists.addAll(pigContext.extraJars);
+        for (java.net.URL jarUrl : pigContext.extraJars) {
+            jarLists.add(ConverterUtils.getYarnUrlFromURI(jarUrl.toURI()));
+        }
 
         TezPlanContainerUDFCollector tezPlanContainerUDFCollector = new TezPlanContainerUDFCollector(this);
         tezPlanContainerUDFCollector.visit();
@@ -62,7 +64,7 @@ public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
             Class clazz = pigContext.getClassForAlias(func);
             if (clazz != null) {
                 String jarName = JarManager.findContainingJar(clazz);
-                URL jarUrl = new File(jarName).toURI().toURL();
+                URL jarUrl = ConverterUtils.getYarnUrlFromURI(new File(jarName).toURI());
                 jarLists.add(jarUrl);
             }
         }

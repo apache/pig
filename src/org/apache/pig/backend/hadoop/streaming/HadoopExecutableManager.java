@@ -97,6 +97,7 @@ public class HadoopExecutableManager extends ExecutableManager {
         scriptLogDir = job.get("pig.streaming.log.dir", "_logs");
         
         // Save the taskid
+        // TODO Get an equivalent property in Tez mode (currently this returns null)
         taskId = job.get("mapred.task.id");
     }
     
@@ -171,7 +172,7 @@ public class HadoopExecutableManager extends ExecutableManager {
      *         HDFS, <code>false</code> otherwise
      */
     private boolean writeErrorToHDFS(int limit, String taskId) {
-        if (command.getPersistStderr()) {
+        if (command.getPersistStderr() && taskId != null) {
             int tipId = TaskAttemptID.forName(taskId).getTaskID().getId();
             return tipId < command.getLogFilesLimit();
         }

@@ -68,6 +68,7 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigOutputFor
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigTextRawComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigTupleSortComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.WeightedRangePartitioner;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.EndOfAllInputSetter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
@@ -276,6 +277,18 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         payloadConf.setBoolean("mapred.mapper.new-api", true);
         payloadConf.setClass("mapreduce.inputformat.class",
                 PigInputFormat.class, InputFormat.class);
+
+        // Set parent plan for all operators in the Tez plan.
+        new PhyPlanSetter(tezOp.plan).visit();
+
+        // Set the endOfAllInput flag on the physical plan if certain operators that
+        // use this property (such as STREAM) are present in the plan.
+        EndOfAllInputSetter.EndOfAllInputChecker checker =
+                new EndOfAllInputSetter.EndOfAllInputChecker(tezOp.plan);
+        checker.visit();
+        if (checker.isEndOfAllInputPresent()) {
+            payloadConf.set(JobControlCompiler.END_OF_INP_IN_MAP, "true");
+        }
 
         // Configure the classes for incoming shuffles to this TezOp
         List<PhysicalOperator> roots = tezOp.plan.getRoots();

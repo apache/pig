@@ -1591,9 +1591,14 @@ public class TezCompiler extends PhyPlanVisitor {
 
     @Override
     public void visitStream(POStream op) throws VisitorException {
-        int errCode = 2034;
-        String msg = "Cannot compile " + op.getClass().getSimpleName();
-        throw new TezCompilerException(msg, errCode, PigException.BUG);
+        try {
+            nonBlocking(op);
+            phyToTezOpMap.put(op, curTezOp);
+        } catch(Exception e) {
+            int errCode = 2034;
+            String msg = "Error compiling operator " + op.getClass().getSimpleName();
+            throw new TezCompilerException(msg, errCode, PigException.BUG, e);
+        }
     }
 
     @Override

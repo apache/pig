@@ -99,7 +99,7 @@ public class TezJobControlCompiler {
             localResources.putAll(planContainer.getLocalResources());
             localResources.putAll(tezPlan.getLocalExtraResources());
             TezDAG tezDag = buildDAG(tezPlan, localResources);
-            return new TezJob(tezConf, tezDag, planContainer.getLocalResources());
+            return new TezJob(tezConf, tezDag, localResources);
         } catch (Exception e) {
             int errCode = 2017;
             String msg = "Internal error creating job configuration.";

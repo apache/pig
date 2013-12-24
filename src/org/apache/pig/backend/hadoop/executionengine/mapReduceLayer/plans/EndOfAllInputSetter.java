@@ -62,7 +62,7 @@ public class EndOfAllInputSetter extends MROpPlanVisitor {
         
     }
 
-    static class EndOfAllInputChecker extends PhyPlanVisitor {
+    public static class EndOfAllInputChecker extends PhyPlanVisitor {
         
         private boolean endOfAllInputFlag = false;
         public EndOfAllInputChecker(PhysicalPlan plan) {

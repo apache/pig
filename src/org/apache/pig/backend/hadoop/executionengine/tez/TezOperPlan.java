@@ -18,14 +18,18 @@
 package org.apache.pig.backend.hadoop.executionengine.tez;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.net.URL;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.api.records.URL;
+import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.plan.VisitorException;
 
@@ -37,6 +41,8 @@ import org.apache.pig.impl.plan.VisitorException;
 public class TezOperPlan extends OperatorPlan<TezOperator> {
 
     private static final long serialVersionUID = 1L;
+
+    private Map<URL, Path> extraResources = new HashMap<URL, Path>();
 
     public TezOperPlan() {
     }
@@ -54,11 +60,75 @@ public class TezOperPlan extends OperatorPlan<TezOperator> {
         }
         return baos.toString();
     }
-    
-    public Map<String, LocalResource> getLocalExtraResources() throws IOException {
-        Set<URL> jarLists = new HashSet<URL>();
-        // TODO: Add script jars/pig-misc jars
-        return TezResourceManager.getTezResources(jarLists);
+
+    // Add extra plan-specific local resources to HDFS
+    public void addExtraResource(URL url) throws IOException {
+        if (!extraResources.containsKey(url)) {
+            Path pathInHDFS = TezResourceManager.addLocalResource(url);
+            extraResources.put(url, pathInHDFS);
+        }
+    }
+
+    // Add extra plan-specific local resources already present in HDFS
+    public void addExtraResource(URL url, Path pathInHDFS) throws IOException {
+        if (!extraResources.containsKey(url)) {
+            TezResourceManager.addLocalResource(url, pathInHDFS);
+            extraResources.put(url, pathInHDFS);
+        }
+    }
+
+    // Get the plan-specific resources
+    public Map<String, LocalResource> getLocalExtraResources() throws Exception {
+        TezPOStreamVisitor streamVisitor = new TezPOStreamVisitor(this);
+        streamVisitor.visit();
+
+        // In a STREAM add the files specified in SHIP and CACHE
+        // as local resources for the plan.
+        addFileResources(streamVisitor.getShipFiles());
+        addHdfsResources(streamVisitor.getCacheFiles());
+
+        Set<URL> resourceUrls = extraResources.keySet();
+        return TezResourceManager.getTezResources(resourceUrls);
+    }
+
+    private void addFileResources(Set<String> fileNames) throws IOException {
+        Set<URL> fileUrls = new HashSet<URL>();
+
+        for (String fileName : fileNames) {
+            fileName = fileName.trim();
+            if (fileName.length() > 0) {
+                fileUrls.add(ConverterUtils.getYarnUrlFromURI(new File(fileName).toURI()));
+            }
+        }
+
+        for (URL url : fileUrls) {
+            addExtraResource(url);
+        }
+    }
+
+    // In the statement "CACHE('/input/data.txt#alias.txt')" we'll map the
+    // URL 'hdfs:/input/data.txt#alias.txt' to the actual resource path in
+    // HDFS at '/input/data.txt'.
+    private void addHdfsResources(Set<String> fileNames) throws Exception {
+        Map<URL, Path> resourceMap = new HashMap<URL, Path>();
+
+        for (String fileName : fileNames) {
+            fileName = fileName.trim();
+            if (fileName.length() > 0) {
+                URL urlOnHDFS = ConverterUtils.getYarnUrlFromURI(new File(fileName).toURI());
+                urlOnHDFS.setScheme("hdfs");
+
+                // Get the path on HDFS without a fragment at the end
+                int aliasIndex = fileName.indexOf("#");
+                String path = (aliasIndex == -1) ? fileName : fileName.substring(0, aliasIndex);
+                Path pathOnHDFS = new Path(path);
+                resourceMap.put(urlOnHDFS, pathOnHDFS);
+            }
+        }
+
+        for (Map.Entry<URL, Path> entry : resourceMap.entrySet()) {
+            addExtraResource(entry.getKey(), entry.getValue());
+        }
     }
 }
 

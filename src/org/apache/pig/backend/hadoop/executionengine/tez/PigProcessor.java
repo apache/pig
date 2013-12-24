@@ -28,6 +28,7 @@ import java.util.Set;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -74,6 +75,10 @@ public class PigProcessor implements LogicalIOProcessor {
         execPlan = (PhysicalPlan) ObjectSerializer.deserialize(execPlanString);
         SchemaTupleBackend.initialize(conf, pc);
         PigMapReduce.sJobContext = HadoopShims.createJobContext(conf, new org.apache.hadoop.mapreduce.JobID());
+
+        // Set the job conf as a thread-local member of PigMapReduce
+        // for backwards compatibility with the existing code base.
+        PigMapReduce.sJobConfInternal.set(conf);
     }
 
     @Override
@@ -81,11 +86,13 @@ public class PigProcessor implements LogicalIOProcessor {
         // TODO Auto-generated method stub
 
     }
+
     @Override
     public void close() throws Exception {
         // TODO Auto-generated method stub
 
     }
+
     @Override
     public void run(Map<String, LogicalInput> inputs,
             Map<String, LogicalOutput> outputs) throws Exception {
@@ -103,6 +110,14 @@ public class PigProcessor implements LogicalIOProcessor {
         }
 
         runPipeline(leaf);
+
+        // For certain operators (such as STREAM), we could still have some work
+        // to do even after seeing the last input. These operators set a flag that
+        // says all input has been sent and to run the pipeline one more time.
+        if (Boolean.valueOf(conf.get(JobControlCompiler.END_OF_INP_IN_MAP, "false"))) {
+            execPlan.endOfAllInput = true;
+            runPipeline(leaf);
+        }
 
         for (MROutput fileOutput : fileOutputs){
             fileOutput.commit();

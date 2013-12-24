@@ -235,6 +235,16 @@ public class TestTezCompiler {
         run(pp, "test/org/apache/pig/test/data/GoldenFiles/TEZC11.gld");
     }
 
+    public void testStream() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input' using PigStorage(',') as (x:int, y:int);" +
+                "b = stream a through `stream.pl -n 5`;" +
+                "STORE b INTO 'file:///tmp/output';";
+
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
+        run(pp, "test/org/apache/pig/test/data/GoldenFiles/TEZC12.gld");
+    }
+
     private void run(PhysicalPlan pp, String expectedFile) throws Exception {
         TezLauncher launcher = new TezLauncher();
         TezPlanContainer tezPlanContainer = launcher.compile(pp, pc);

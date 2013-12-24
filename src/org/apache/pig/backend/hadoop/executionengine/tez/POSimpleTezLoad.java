@@ -42,11 +42,8 @@ public class POSimpleTezLoad extends POLoad implements TezLoad {
     private MRInput input;
     private KeyValueReader reader;
 
-    private Result res;
-
     public POSimpleTezLoad(OperatorKey k) {
         super(k);
-        res = new Result();
     }
 
     @Override
@@ -65,9 +62,15 @@ public class POSimpleTezLoad extends POLoad implements TezLoad {
         }
     }
 
+    /**
+     * Previously, we reused the same Result object for all results, but we found
+     * certain operators (e.g. POStream) save references to the Result object and
+     * expect it to be constant.
+     */
     @Override
     public Result getNextTuple() throws ExecException {
         try {
+            Result res = new Result();
             if (!reader.next()) {
                 res.result = null;
                 res.returnStatus = POStatus.STATUS_EOP;
