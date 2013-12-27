@@ -306,9 +306,9 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             setIntermediateInputKeyValue(keyType, payloadConf);
             POShuffleTezLoad newPack;
             if (tezOp.isUnion()) {
-                newPack = new POUnionTezLoad(new OperatorKey(scope, nig.getNextNodeId(scope)), pack);
+                newPack = new POUnionTezLoad(pack);
             } else {
-                newPack = new POShuffleTezLoad(new OperatorKey(scope, nig.getNextNodeId(scope)), pack);
+                newPack = new POShuffleTezLoad(pack);
             }
             tezOp.plan.add(newPack);
 

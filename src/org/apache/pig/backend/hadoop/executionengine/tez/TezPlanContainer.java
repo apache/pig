@@ -64,6 +64,13 @@ public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
             Class clazz = pigContext.getClassForAlias(func);
             if (clazz != null) {
                 String jarName = JarManager.findContainingJar(clazz);
+                if (jarName == null) {
+                    // It's possible that clazz is not registered by an external
+                    // jar. For eg, in unit tests, UDFs that are not in default
+                    // packages may be used. In that case, we should skip it to
+                    // avoid NPE.
+                    continue;
+                }
                 URL jarUrl = ConverterUtils.getYarnUrlFromURI(new File(jarName).toURI());
                 jarLists.add(jarUrl);
             }

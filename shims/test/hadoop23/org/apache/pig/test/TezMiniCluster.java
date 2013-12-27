@@ -68,6 +68,8 @@ public class TezMiniCluster extends MiniGenericCluster {
                     .build();
             m_fileSys = m_dfs.getFileSystem();
             m_dfs_conf = m_dfs.getConfiguration(0);
+            //Create user home directory
+            m_fileSys.mkdirs(m_fileSys.getWorkingDirectory());
 
             m_dfs_conf.writeXml(new FileOutputStream(HDFS_CONF_FILE));
             m_fileSys.copyFromLocalFile(

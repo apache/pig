@@ -71,6 +71,16 @@ public class PigConfiguration {
     public static final String SCHEMA_TUPLE_SHOULD_ALLOW_FORCE = "pig.schematuple.force";
 
     /**
+     * This key is used to enable multiquery optimization.
+     */
+    public static final String OPT_MULTIQUERY = "opt.multiquery";
+
+    /**
+     * This key is used to enable accumulator optimization.
+     */
+    public static final String OPT_ACCUMULATOR = "opt.accumulator";
+
+    /**
      * This key is used to define whether to reuse AM in Tez jobs.
      */
     public static final String TEZ_SESSION_REUSE = "pig.tez.session.reuse";

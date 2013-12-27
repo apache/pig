@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
+import java.util.UUID;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -55,9 +56,11 @@ import org.apache.pig.backend.hadoop.datastorage.HPath;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.impl.PigContext;
 
+import com.google.common.annotations.VisibleForTesting;
+
 public class FileLocalizer {
     private static final Log log = LogFactory.getLog(FileLocalizer.class);
-    
+
     static public final String LOCAL_PREFIX  = "file:";
     static public final int STYLE_UNIX = 0;
     static public final int STYLE_WINDOWS = 1;
@@ -419,7 +422,10 @@ public class FileLocalizer {
         return true;
     }
 
-    static Random      r           = new Random();
+    // To generate temporary filenames, UUID.randomUUID() is used now.
+    // We keep this Random object for testing.
+    static Random r = null;
+    static boolean useRandom = false;
 
     /**
      * Thread local relativeRoot ContainerDescriptor. Do not access this object
@@ -454,7 +460,8 @@ public class FileLocalizer {
 
         if (relativeRoot.get() == null) {
             String tdir= pigContext.getProperties().getProperty("pig.temp.dir", "/tmp");
-            relativeRoot.set(pigContext.getDfs().asContainer(tdir + "/temp" + r.nextInt()));
+            String rand = useRandom ? "temp" + r.nextInt() : UUID.randomUUID().toString();
+            relativeRoot.set(pigContext.getDfs().asContainer(tdir + "/" + rand));
         }
 
         return relativeRoot.get();
@@ -481,8 +488,9 @@ public class FileLocalizer {
       if (!relativeRoot(pigContext).exists()) {
           relativeRoot(pigContext).create();
       }
+      String rand = useRandom ? "tmp" + r.nextInt() : UUID.randomUUID().toString();
       ElementDescriptor elem=
-          pigContext.getDfs().asElement(relative.toString(), "tmp" + r.nextInt() + suffix);
+          pigContext.getDfs().asElement(relative.toString(), rand + suffix);
       return ((HPath)elem).getPath();
   }
 
@@ -604,14 +612,12 @@ public class FileLocalizer {
         }
     }
 
-    public static Random getR() {
-        return r;
-    }
-
+    @VisibleForTesting
     public static void setR(Random r) {
         FileLocalizer.r = r;
+        useRandom = true;
     }
-    
+
     /**
      * Convert path from Windows convention to Unix convention. Invoked under
      * cygwin.

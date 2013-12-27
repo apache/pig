@@ -16,25 +16,23 @@
  * limitations under the License.
  */
 
-package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
+package org.apache.pig.backend.hadoop.executionengine.tez;
 
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROpPlanVisitor;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.util.AccumulatorOptimizerUtil;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.VisitorException;
 
 /**
- * A visitor to optimize plans that determines if a reduce plan can run in
+ * A visitor to optimize plans that determines if a vertex plan can run in
  * accumulative mode.
  */
-public class AccumulatorOptimizer extends MROpPlanVisitor {
+public class AccumulatorOptimizer extends TezOpPlanVisitor {
 
-    public AccumulatorOptimizer(MROperPlan plan) {
-        super(plan, new DepthFirstWalker<MapReduceOper, MROperPlan>(plan));
+    public AccumulatorOptimizer(TezOperPlan plan) {
+        super(plan, new DepthFirstWalker<TezOperator, TezOperPlan>(plan));
     }
 
-    public void visitMROp(MapReduceOper mr) throws VisitorException {
-        AccumulatorOptimizerUtil.addAccumulator(mr.reducePlan);
+    public void visitTezOp(TezOperator tezOp) throws VisitorException {
+        AccumulatorOptimizerUtil.addAccumulator(tezOp.plan);
     }
 }

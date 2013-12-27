@@ -119,8 +119,6 @@ public class TezCompiler extends PhyPlanVisitor {
 
     private String scope;
 
-    private Random r;
-
     private UDFFinder udfFinder;
 
     private Map<PhysicalOperator, TezOperator> phyToTezOpMap;
@@ -140,8 +138,6 @@ public class TezCompiler extends PhyPlanVisitor {
         splitsSeen = Maps.newHashMap();
         tezPlan = new TezOperPlan();
         nig = NodeIdGenerator.getGenerator();
-        r = new Random(1331);
-        FileLocalizer.setR(r);
         udfFinder = new UDFFinder();
         List<PhysicalOperator> roots = plan.getRoots();
         if((roots == null) || (roots.size() <= 0)) {

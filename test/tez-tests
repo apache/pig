@@ -2,3 +2,4 @@
 **/TestTezJobControlCompiler.java
 **/TestTezLauncher.java
 **/TestCombiner.java
+**/TestAccumulator.java

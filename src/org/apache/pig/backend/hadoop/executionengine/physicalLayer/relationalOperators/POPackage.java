@@ -115,9 +115,16 @@ public class POPackage extends PhysicalOperator {
     public POPackage(OperatorKey k, int rp, List<PhysicalOperator> inp,
             Packager pkgr) {
         super(k, rp, inp);
-        numInputs = -1;
-        keyInfo = new HashMap<Integer, Pair<Boolean, Map<Integer, Integer>>>();
+        this.numInputs = -1;
+        this.keyInfo = new HashMap<Integer, Pair<Boolean, Map<Integer, Integer>>>();
         this.pkgr = pkgr;
+    }
+
+    public POPackage(POPackage copy) {
+        super(copy);
+        this.numInputs = copy.numInputs;
+        this.keyInfo = copy.keyInfo;
+        this.pkgr = copy.pkgr;
     }
 
     @Override
@@ -209,6 +216,8 @@ public class POPackage extends PhysicalOperator {
                 // all bags have reference to the sample tuples buffer
                 // which contains tuples from one batch
                 POPackageTupleBuffer buffer = new POPackageTupleBuffer();
+                buffer.setKey(key);
+                buffer.setIterator(tupIter);
                 for (int i = 0; i < numInputs; i++) {
                     dbs[i] = new AccumulativeBag(buffer, i);
                 }
@@ -286,7 +295,7 @@ public class POPackage extends PhysicalOperator {
         return clone;
     }
 
-    class POPackageTupleBuffer implements AccumulativeTupleBuffer {
+    public class POPackageTupleBuffer implements AccumulativeTupleBuffer {
         private List<Tuple>[] bags;
         private Iterator<NullableTuple> iter;
         private int batchSize;
@@ -306,8 +315,14 @@ public class POPackage extends PhysicalOperator {
             for(int i=0; i<numInputs; i++) {
                 this.bags[i] = new ArrayList<Tuple>();
             }
-            this.iter = tupIter;
+        }
+
+        public void setKey(Object key) {
             this.currKey = key;
+        }
+
+        public void setIterator(Iterator<NullableTuple> iter) {
+            this.iter = iter;
         }
 
         @Override

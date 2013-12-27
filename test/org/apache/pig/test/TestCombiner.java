@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Properties;
 
 import org.apache.pig.EvalFunc;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataBag;
@@ -43,12 +44,19 @@ import org.apache.pig.tools.pigstats.ScriptState;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestCombiner {
 
     static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
     static String execType = System.getProperty("test.exec.type");
+
+    @BeforeClass
+    public static void oneTimeSetUp() throws Exception {
+        // Disable tez session reuse to ensure each test case runs fresh
+        cluster.getProperties().setProperty(PigConfiguration.TEZ_SESSION_REUSE, "false");
+    }
 
     @AfterClass
     public static void oneTimeTearDown() throws Exception {

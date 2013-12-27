@@ -44,8 +44,8 @@ public class POUnionTezLoad extends POShuffleTezLoad {
     private int tuplCnt = 0;
     private Result res;
 
-    public POUnionTezLoad(OperatorKey k, POPackage pack) {
-        super(k, pack);
+    public POUnionTezLoad(POPackage pack) {
+        super(pack);
     }
 
     @Override

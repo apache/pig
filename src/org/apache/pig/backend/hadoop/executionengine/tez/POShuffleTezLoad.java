@@ -31,12 +31,12 @@ import org.apache.pig.backend.hadoop.executionengine.JobCreationException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
+import org.apache.pig.data.AccumulativeBag;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.InternalCachedBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
-import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
 import org.apache.tez.runtime.library.input.ShuffledMergedInput;
@@ -54,10 +54,8 @@ public class POShuffleTezLoad extends POPackage implements TezLoad {
 
     private WritableComparator comparator = null;
 
-    public POShuffleTezLoad(OperatorKey k, POPackage pack) {
-        super(k);
-        setPkgr(pack.getPkgr());
-        this.setNumInps(pack.getNumInps());
+    public POShuffleTezLoad(POPackage pack) {
+        super(pack);
     }
 
     @Override
@@ -102,18 +100,19 @@ public class POShuffleTezLoad extends POPackage implements TezLoad {
     @Override
     public Result getNextTuple() throws ExecException {
         Result res = pkgr.getNext();
+
         while (res.returnStatus == POStatus.STATUS_EOP) {
-            PigNullableWritable minimum = null;
-            boolean newData = false;
+            boolean hasData = false;
+            Object cur = null;
+            Object min = null;
+
             try {
                 for (int i = 0; i < numInputs; i++) {
                     if (!finished[i]) {
-                        newData = true;
-                        PigNullableWritable current = (PigNullableWritable) readers
-                                .get(i).getCurrentKey();
-                        if (minimum == null
-                                || comparator.compare(minimum, current) > 0) {
-                            minimum = current;
+                        hasData = true;
+                        cur = readers.get(i).getCurrentKey();
+                        if (min == null || comparator.compare(min, cur) > 0) {
+                            min = cur;
                         }
                     }
                 }
@@ -121,40 +120,67 @@ public class POShuffleTezLoad extends POPackage implements TezLoad {
                 throw new ExecException(e);
             }
 
-            if (!newData) {
+            if (!hasData) {
                 return new Result(POStatus.STATUS_EOP, null);
             }
 
-            key = pkgr.getKey(minimum);
+            key = pkgr.getKey((PigNullableWritable) min);
 
             DataBag[] bags = new DataBag[numInputs];
+            POPackageTupleBuffer buffer = new POPackageTupleBuffer();
+            List<NullableTuple> nTups = new ArrayList<NullableTuple>();
 
             try {
                 for (int i = 0; i < numInputs; i++) {
+                    DataBag bag = null;
+
                     if (!finished[i]) {
-                        PigNullableWritable current = (PigNullableWritable) readers
-                                .get(i).getCurrentKey();
-                        if (comparator.compare(minimum, current) == 0) {
-                            DataBag bag = new InternalCachedBag(numInputs);
+                        cur = readers.get(i).getCurrentKey();
+                        if (comparator.compare(min, cur) == 0) {
                             Iterable<Object> vals = readers.get(i).getCurrentValues();
-                            for (Object val : vals) {
-                                NullableTuple nTup = (NullableTuple) val;
-                                int index = nTup.getIndex();
-                                Tuple tup = pkgr.getValueTuple(key, nTup, index);
-                                bag.add(tup);
+                            if (isAccumulative()) {
+                                // TODO: POPackageTupleBuffer expects the
+                                // iterator for all the values from 1st to ith
+                                // inputs. Ideally, we should directly pass
+                                // iterators returned by getCurrentValues()
+                                // instead of copying objects. But if we pass
+                                // iterators directly, reuse of iterators causes
+                                // a tez runtime error. For now, we copy objects
+                                // into a new list and pass the iterator of this
+                                // new list.
+                                for (Object val : vals) {
+                                    nTups.add((NullableTuple) val);
+                                }
+                                // Attach input to POPackageTupleBuffer
+                                buffer.setKey(cur);
+                                buffer.setIterator(nTups.iterator());
+                                bag = new AccumulativeBag(buffer, i);
+                            } else {
+                                bag = new InternalCachedBag(numInputs);
+                                for (Object val : vals) {
+                                    NullableTuple nTup = (NullableTuple) val;
+                                    int index = nTup.getIndex();
+                                    Tuple tup = pkgr.getValueTuple(key, nTup, index);
+                                    bag.add(tup);
+                                }
                             }
                             finished[i] = !readers.get(i).next();
                             bags[i] = bag;
+                        }
+                    }
+
+                    if (bag == null) {
+                        if (isAccumulative()) {
+                            bags[i] = new AccumulativeBag(buffer, i);
                         } else {
                             bags[i] = new InternalCachedBag(numInputs);
                         }
-                    } else {
-                        bags[i] = new InternalCachedBag(numInputs);
                     }
                 }
             } catch (IOException e) {
                 throw new ExecException(e);
             }
+
             pkgr.attachInput(key, bags, readOnce);
             res = pkgr.getNext();
         }

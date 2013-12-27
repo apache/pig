@@ -161,6 +161,15 @@ public class TezLauncher extends Launcher {
             co.visit();
             co.getMessageCollector().logMessages(MessageType.Warning, aggregateWarning, log);
         }
+
+        // Run AccumulatorOptimizer on Tez plan
+        boolean isAccum = Boolean.parseBoolean(pc.getProperties().getProperty(
+                    PigConfiguration.OPT_ACCUMULATOR, "true"));
+        if (isAccum) {
+            AccumulatorOptimizer accum = new AccumulatorOptimizer(tezPlan);
+            accum.visit();
+        }
+
         return comp.getPlanContainer();
     }
 
