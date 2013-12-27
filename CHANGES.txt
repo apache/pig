@@ -62,6 +62,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3639: TestRegisteredJarVisibility is broken in trunk (cheolsoo)
+
 PIG-3640: Retain intermediate files for debugging purpose in batch mode (cheolsoo)
 
 PIG-3609: ClassCastException when calling compareTo method on AvroBagWrapper (rding via cheolsoo)
