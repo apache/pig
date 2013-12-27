@@ -18,32 +18,32 @@ package org.apache.pig.test;
 
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
 
+import org.apache.commons.cli.ParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.MiniHBaseCluster;
 import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
 import org.apache.pig.backend.hadoop.hbase.HBaseStorage;
 import org.apache.pig.data.DataByteArray;
-import org.apache.pig.data.Tuple;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.Tuple;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -146,7 +146,7 @@ public class TestHBaseStorage {
                 + " "
                 + TESTCOLUMN_C
                 + " pig:"
-                + "','-loadKey') as (rowKey, col_a, col_b, col_c, pig_cf_map);");
+                + "','-loadKey -cacheBlocks true') as (rowKey, col_a, col_b, col_c, pig_cf_map);");
         Iterator<Tuple> it = pig.openIterator("a");
         int count = 0;
         LOG.info("LoadFromHBase Starting");
