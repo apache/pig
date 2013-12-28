@@ -24,6 +24,7 @@ import org.apache.avro.tool.DataFileWriteTool;
 import org.apache.avro.tool.Tool;
 import org.apache.avro.tool.TrevniCreateRandomTool;
 import org.apache.avro.tool.TrevniToJsonTool;
+import org.apache.avro.util.Utf8;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -40,6 +41,7 @@ import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
 import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.util.avro.AvroBagWrapper;
+import org.apache.pig.impl.util.avro.AvroMapWrapper;
 import org.apache.pig.impl.util.avro.AvroTupleWrapper;
 import org.apache.pig.test.Util;
 import org.junit.AfterClass;
@@ -59,6 +61,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 
 import static junit.framework.Assert.assertEquals;
@@ -806,6 +809,19 @@ public class TestAvroStorage {
         assertTrue(size1.compareTo(size0) > 0);
         // 6 > 1, so size1 > size5 even though size1 is smaller than size5.
         assertTrue(size1.compareTo(size5) > 0);
+    }
+
+    @Test
+    public void testUtf8KeyLookupFromMap() throws Exception {
+        Map<CharSequence, Object> tm = new TreeMap<CharSequence, Object> ();
+        tm.put(new Utf8("foo"), "foo");
+        tm.put(new Utf8("bar"), "bar");
+
+        AvroMapWrapper wrapper = new AvroMapWrapper(tm);
+        String v = (String)wrapper.get(new Utf8("foo"));
+        assertEquals("foo", v);
+        v = (String)wrapper.get(new Utf8("bar"));
+        assertEquals("bar", v);
     }
 
     private void testAvroStorage(boolean expectedToSucceed, String scriptFile, Map<String,String> parameterMap) throws IOException {
