@@ -19,11 +19,11 @@ package org.apache.pig.backend.hadoop.hbase;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.UndeclaredThrowableException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -53,10 +53,10 @@ import org.apache.hadoop.hbase.filter.CompareFilter.CompareOp;
 import org.apache.hadoop.hbase.filter.FamilyFilter;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
+import org.apache.hadoop.hbase.filter.QualifierFilter;
 import org.apache.hadoop.hbase.filter.RegexStringComparator;
 import org.apache.hadoop.hbase.filter.RowFilter;
 import org.apache.hadoop.hbase.filter.WhileMatchFilter;
-import org.apache.hadoop.hbase.filter.QualifierFilter;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
 import org.apache.hadoop.hbase.mapreduce.TableMapReduceUtil;
@@ -164,6 +164,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
     private String delimiter_;
     private boolean ignoreWhitespace_;
     private final long limit_;
+    private final boolean cacheBlocks_;
     private final int caching_;
     private final boolean noWAL_;
     private final long minTimestamp_;
@@ -189,6 +190,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         validOptions_.addOption("gte", true, "Records must be greater than or equal to this value");
         validOptions_.addOption("lte", true, "Records must be less than or equal to this value");
         validOptions_.addOption("regex", true, "Record must match this regular expression");
+        validOptions_.addOption("cacheBlocks", true, "Set whether blocks should be cached for the scan");
         validOptions_.addOption("caching", true, "Number of rows scanners should cache");
         validOptions_.addOption("limit", true, "Per-region limit");
         validOptions_.addOption("delim", true, "Column delimiter");
@@ -237,6 +239,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
      * <li>-limit=numRowsPerRegion max number of rows to retrieve per region
      * <li>-delim=char delimiter to use when parsing column names (default is space or comma)
      * <li>-ignoreWhitespace=(true|false) ignore spaces when parsing column names (default true)
+     * <li>-cacheBlocks=(true|false) Set whether blocks should be cached for the scan (default false).
      * <li>-caching=numRows  number of rows to cache (faster scans, more memory).
      * <li>-noWAL=(true|false) Sets the write ahead to false for faster loading.
      * <li>-minTimestamp= Scan's timestamp for min timeRange
@@ -256,7 +259,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
             configuredOptions_ = parser_.parse(validOptions_, optsArr);
         } catch (ParseException e) {
             HelpFormatter formatter = new HelpFormatter();
-            formatter.printHelp( "[-loadKey] [-gt] [-gte] [-lt] [-lte] [-regex] [-columnPrefix] [-caching] [-caster] [-noWAL] [-limit] [-delim] [-ignoreWhitespace] [-minTimestamp] [-maxTimestamp] [-timestamp]", validOptions_ );
+            formatter.printHelp( "[-loadKey] [-gt] [-gte] [-lt] [-lte] [-regex] [-columnPrefix] [-cacheBlocks] [-caching] [-caster] [-noWAL] [-limit] [-delim] [-ignoreWhitespace] [-minTimestamp] [-maxTimestamp] [-timestamp]", validOptions_ );
             throw e;
         }
 
@@ -297,6 +300,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         LOG.debug("Using caster " + caster_.getClass());
 
         caching_ = Integer.valueOf(configuredOptions_.getOptionValue("caching", "100"));
+        cacheBlocks_ = Boolean.valueOf(configuredOptions_.getOptionValue("cacheBlocks", "false"));
         limit_ = Long.valueOf(configuredOptions_.getOptionValue("limit", "-1"));
         noWAL_ = configuredOptions_.hasOption("noWAL");
 
@@ -377,8 +381,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
     private void initScan() throws IOException{
         scan = new Scan();
 
-        // Map-reduce jobs should not run with cacheBlocks
-        scan.setCacheBlocks(false);
+        scan.setCacheBlocks(cacheBlocks_);
         scan.setCaching(caching_);
 
         // Set filters, if any.

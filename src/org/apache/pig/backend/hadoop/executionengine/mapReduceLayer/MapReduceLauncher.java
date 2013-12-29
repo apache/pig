@@ -606,7 +606,6 @@ public class MapReduceLauncher extends Launcher{
             PhysicalPlan php,
             PigContext pc) throws PlanException, IOException, VisitorException {
         MRCompiler comp = new MRCompiler(php, pc);
-        comp.randomizeFileLocalizer();
         comp.compile();
         comp.aggregateScalarsFiles();
         MROperPlan plan = comp.getMRPlan();

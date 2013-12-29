@@ -1,17 +1,17 @@
 MapReduce(-1) - -2:
-|   Store(DummyFil:DummyLdr) - --3148893660811981376
+|   Store(DummyFil:DummyLdr) - -7714111612268358662
 |   |
-|   |---Package(Packager)[tuple]{Unknown} - --3359714221559579809
+|   |---Package[tuple]{Unknown} - --1613182091613226659
 |   Union[tuple] - -3
 |   |
-|   |---Filter[tuple] - -727770031531364881
+|   |---Filter[tuple] - -5165956429696944631
 |   |   |   |
-|   |   |   Constant(true) - --8002381389674382470
+|   |   |   Constant(true) - -5321755951016030071
 |   |   |
-|   |   |---Load(DummyFil:DummyLdr) - -7128285064986147947
+|   |   |---Load(DummyFil:DummyLdr) - -2197807331204639125
 |   |
-|   |---Filter[tuple] - -8639002377389679348
+|   |---Filter[tuple] - -6139496040975471496
 |       |   |
-|       |   Constant(true) - --7926255547935388282
+|       |   Constant(true) - --8447156979210379761
 |       |
-|       |---Load(DummyFil:DummyLdr) - --5683415113785058706
+|       |---Load(DummyFil:DummyLdr) - -5878058249424113280

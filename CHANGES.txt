@@ -28,6 +28,12 @@ PIG-3419: Pluggable Execution Engine (achalsoni81 via cheolsoo)
 
 IMPROVEMENTS
 
+PIG-3645: Move FileLocalizer.setR() calls to unit tests (cheolsoo)
+
+PIG-3637: PigCombiner creating log spam (rohini)
+
+PIG-3632: Add option to configure cacheBlocks in HBaseStorage (rohini)
+
 PIG-3619: Provide XPath function (Saad Patel via gates)
 
 PIG-3590: remove PartitionFilterOptimizer from trunk (aniket486)
@@ -57,6 +63,14 @@ PIG-3484: Make the size of pig.script property configurable (cheolsoo)
 OPTIMIZATIONS
  
 BUG FIXES
+
+PIG-3643: Nested Foreach with UDF and bincond is broken (cheolsoo)
+
+PIG-3616: TestBuiltIn.testURIwithCurlyBrace() silently fails (lbendig via cheolsoo)
+
+PIG-3608: ClassCastException when looking up a value from AvroMapWrapper using a Utf8 key (rding)
+
+PIG-3639: TestRegisteredJarVisibility is broken in trunk (cheolsoo)
 
 PIG-3640: Retain intermediate files for debugging purpose in batch mode (cheolsoo)
 

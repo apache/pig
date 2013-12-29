@@ -51,7 +51,10 @@ public class PigCombiner {
     public static class Combine
             extends Reducer<PigNullableWritable, NullableTuple, PigNullableWritable, Writable> {
 
-        private final Log log = LogFactory.getLog(getClass());
+        private static final Log log = LogFactory.getLog(Combine.class);
+
+        //HADOOP-3226 Combiners can be called multiple times in both map and reduce
+        private static boolean firstTime = true;
 
         private byte keyType;
 
@@ -113,7 +116,12 @@ public class PigCombiner {
                 String msg = "Problem while configuring combiner's reduce plan.";
                 throw new RuntimeException(msg, ioe);
             }
-            log.info("Aliases being processed per job phase (AliasName[line,offset]): " + jConf.get("pig.alias.location"));
+
+            // Avoid log spamming
+            if (firstTime) {
+                log.info("Aliases being processed per job phase (AliasName[line,offset]): " + jConf.get("pig.alias.location"));
+                firstTime = false;
+            }
         }
 
         /**

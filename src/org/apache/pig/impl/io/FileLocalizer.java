@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
-import java.util.UUID;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -422,10 +421,7 @@ public class FileLocalizer {
         return true;
     }
 
-    // To generate temporary filenames, UUID.randomUUID() is used now.
-    // We keep this Random object for testing.
-    static Random r = null;
-    static boolean useRandom = false;
+    static Random      r           = new Random();
 
     /**
      * Thread local relativeRoot ContainerDescriptor. Do not access this object
@@ -460,8 +456,7 @@ public class FileLocalizer {
 
         if (relativeRoot.get() == null) {
             String tdir= pigContext.getProperties().getProperty("pig.temp.dir", "/tmp");
-            String rand = useRandom ? "temp" + r.nextInt() : UUID.randomUUID().toString();
-            relativeRoot.set(pigContext.getDfs().asContainer(tdir + "/" + rand));
+            relativeRoot.set(pigContext.getDfs().asContainer(tdir + "/temp" + r.nextInt()));
         }
 
         return relativeRoot.get();
@@ -488,9 +483,8 @@ public class FileLocalizer {
       if (!relativeRoot(pigContext).exists()) {
           relativeRoot(pigContext).create();
       }
-      String rand = useRandom ? "tmp" + r.nextInt() : UUID.randomUUID().toString();
       ElementDescriptor elem=
-          pigContext.getDfs().asElement(relative.toString(), rand + suffix);
+          pigContext.getDfs().asElement(relative.toString(), "tmp" + r.nextInt() + suffix);
       return ((HPath)elem).getPath();
   }
 
@@ -615,7 +609,6 @@ public class FileLocalizer {
     @VisibleForTesting
     public static void setR(Random r) {
         FileLocalizer.r = r;
-        useRandom = true;
     }
 
     /**

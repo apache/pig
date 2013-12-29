@@ -70,6 +70,7 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.builtin.GFCross;
+import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.Utils;
@@ -104,6 +105,7 @@ import org.junit.runner.RunWith;
     "testSim1",
     "testSim2",
     "testSim3",
+    "testSim4",
     "testSim5",
     "testSim6",
     "testSim7",
@@ -164,9 +166,10 @@ public class TestMRCompiler {
     @Before
     public void setUp() throws ExecException {
         GenPhyOp.setR(r);
-
         GenPhyOp.setPc(pc);
-        NodeIdGenerator.getGenerator().reset("");
+        // Set random seed to generate deterministic temporary paths
+        FileLocalizer.setR(new Random(1331L));
+        NodeIdGenerator.reset("");
         pigServer = new PigServer(pc);
         pigServerMR = new PigServer(pcMR);
     }
@@ -616,7 +619,8 @@ public class TestMRCompiler {
         run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC3.gld");
     }
 
-    public void intTestSim4() throws Exception {
+    @Test
+    public void testSim4() throws Exception {
         PhysicalPlan php = new PhysicalPlan();
 
         PhysicalPlan ldGrpChain1 = GenPhyOp.loadedGrpChain();

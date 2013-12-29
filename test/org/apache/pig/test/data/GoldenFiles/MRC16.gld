@@ -1,5 +1,5 @@
 MapReduce(-1) - -13:
-|   Store(DummyFil:DummyLdr) - --696216369324861973
+|   Store(DummyFil:DummyLdr) - -4018528681081334812
 |   |
 |   |---New For Each(true)[bag] - -16
 |       |   |
@@ -15,8 +15,8 @@ MapReduce(-1) - -13:
 |---MapReduce(-1) - -8:
     |   Store(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.impl.io.InterStorage) - -11
     |   |
-    |   |---Package(Packager)[tuple]{Unknown} - -2975419344702132532
-    |   Local Rearrange[tuple]{Unknown}(false) - -6555138338004402415
+    |   |---Package[tuple]{Unknown} - -3088212343542276753
+    |   Local Rearrange[tuple]{Unknown}(false) - --881122551222328650
     |   |
     |   |---Load(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.io.InterStorage) - -7
     |
@@ -32,8 +32,8 @@ MapReduce(-1) - -13:
         |   |   |
         |   |   Project[tuple][*] - -1
         |   |
-        |   |---Filter[tuple] - --8322891634142946616
+        |   |---Filter[tuple] - --790930717481674068
         |       |   |
-        |       |   Constant(true) - -7251706569645724914
+        |       |   Constant(true) - --5950301624820678451
         |       |
-        |       |---Load(DummyFil:DummyLdr) - --7448840386612739853
+        |       |---Load(DummyFil:DummyLdr) - -4086340370247387675

@@ -44,7 +44,6 @@ import org.apache.pig.data.DefaultBagFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigImplConstants;
-import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.LogUtils;
@@ -68,9 +67,7 @@ public class TestEvalPipeline2 {
     
     @Before
     public void setUp() throws Exception{
-        FileLocalizer.setR(new Random());
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-//        pigServer = new PigServer(ExecType.LOCAL);
     }
     
     @AfterClass

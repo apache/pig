@@ -1,43 +1,43 @@
 MapReduce(1,GFCross) - -29:
-|   Store(DummyFil:DummyLdr) - --6405280822876279137
+|   Store(DummyFil:DummyLdr) - -3725681661758899536
 |   |
-|   |---New For Each(false)[tuple] - -6741648588878535427
+|   |---New For Each(false)[tuple] - -1346588723849924960
 |       |   |
-|       |   POUserFunc(org.apache.pig.impl.builtin.GFCross)[tuple] - -6101282397594931701
+|       |   POUserFunc(org.apache.pig.impl.builtin.GFCross)[tuple] - -5831184868475101694
 |       |   |
-|       |   |---Project[tuple][*] - -5692939642430999118
+|       |   |---Project[tuple][*] - -3845271178065259412
 |       |
-|       |---Package(Packager)[tuple]{Unknown} - -6079615556647418436
-|   Local Rearrange[tuple]{Unknown}(false) - -8219725798912083822
+|       |---Package[tuple]{Unknown} - -3851605818031718348
+|   Local Rearrange[tuple]{Unknown}(false) - --3658165997714269604
 |   |
 |   |---Load(file:/tmp/temp-1456742965/tmp-586682361:org.apache.pig.impl.io.InterStorage) - -28
 |
 |---MapReduce(1,AVG) - -26:
     |   Store(file:/tmp/temp-1456742965/tmp-586682361:org.apache.pig.impl.io.InterStorage) - -27
     |   |
-    |   |---New For Each(false)[tuple] - --2783416442434419494
+    |   |---New For Each(false)[tuple] - --696216369324861973
     |       |   |
-    |       |   POUserFunc(org.apache.pig.builtin.AVG)[tuple] - --3889827013424534115
+    |       |   POUserFunc(org.apache.pig.builtin.AVG)[tuple] - -7456418838947193268
     |       |   |
-    |       |   |---Project[tuple][*] - -7714111612268358662
+    |       |   |---Project[tuple][*] - -2975419344702132532
     |       |
-    |       |---Package(Packager)[tuple]{Unknown} - --1613182091613226659
-    |   Local Rearrange[tuple]{Unknown}(false) - -5165956429696944631
+    |       |---Package[tuple]{Unknown} - --368145047166239648
+    |   Local Rearrange[tuple]{Unknown}(false) - -6541270116190953413
     |   |
     |   |---Load(file:/tmp/temp-1456742965/tmp-26634357:org.apache.pig.impl.io.InterStorage) - -25
     |
     |---MapReduce(20,SUM,COUNT,TestMRCompiler$WeirdComparator) - -18:
         |   Store(file:/tmp/temp-1456742965/tmp-26634357:org.apache.pig.impl.io.InterStorage) - -24
         |   |
-        |   |---New For Each(false,false)[tuple] - -2197807331204639125
+        |   |---New For Each(false,false)[tuple] - -7251706569645724914
         |       |   |
-        |       |   POUserFunc(org.apache.pig.builtin.COUNT)[tuple] - -5878058249424113280
+        |       |   POUserFunc(org.apache.pig.builtin.COUNT)[tuple] - --6405280822876279137
         |       |   |
-        |       |   |---Project[tuple][*] - -7085374960058856883
+        |       |   |---Project[tuple][*] - -6741648588878535427
         |       |   |
-        |       |   POUserFunc(org.apache.pig.builtin.SUM)[tuple] - --8447156979210379761
+        |       |   POUserFunc(org.apache.pig.builtin.SUM)[tuple] - --8322891634142946616
         |       |   |
-        |       |   |---Project[tuple][*] - -6139496040975471496
+        |       |   |---Project[tuple][*] - --7448840386612739853
         |       |
         |       |---New For Each(true)[tuple] - -23
         |           |   |
@@ -63,7 +63,7 @@ MapReduce(1,GFCross) - -29:
             |           |   |
             |           |   Constant(20) - -11
             |           |   |
-            |           |   POSort[bag](org.apache.pig.test.TestMRCompiler$WeirdComparator) - -4188863770717253580
+            |           |   POSort[bag](org.apache.pig.test.TestMRCompiler$WeirdComparator) - -6079615556647418436
             |           |   |   |
             |           |   |   Project[tuple][*] - -10
             |           |   |
@@ -84,8 +84,8 @@ MapReduce(1,GFCross) - -29:
                 Reduce Plan Empty
                 |   Store(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.io.InterStorage) - -1
                 |   |
-                |   |---Filter[tuple] - -2082992246427879202
+                |   |---Filter[tuple] - --2783416442434419494
                 |       |   |
-                |       |   Constant(true) - --6860857982727545176
+                |       |   Constant(true) - -8219725798912083822
                 |       |
-                |       |---Load(DummyFil:DummyLdr) - -737965411848544085
+                |       |---Load(DummyFil:DummyLdr) - --3889827013424534115

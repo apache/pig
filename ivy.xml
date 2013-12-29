@@ -179,9 +179,15 @@
     <dependency org="commons-cli" name="commons-cli" rev="${commons-cli.version}"
       conf="compile->master;checkstyle->master"/>
     <dependency org="org.apache.avro" name="avro" rev="${avro.version}"
-      conf="compile->default;checkstyle->master"/>
+      conf="compile->default;checkstyle->master">
+      <exclude org="org.codehaus.jackson" module="jackson-core-asl"/>
+      <exclude org="org.codehaus.jackson" module="jackson-mapper-asl"/>
+    </dependency>
     <dependency org="org.apache.avro" name="avro-mapred" rev="${avro.version}"
-      conf="compile->default;checkstyle->master"/>
+      conf="compile->default;checkstyle->master">
+      <exclude org="org.codehaus.jackson" module="jackson-core-asl"/>
+      <exclude org="org.codehaus.jackson" module="jackson-mapper-asl"/>
+    </dependency>
     <dependency org="org.apache.avro" name="trevni-core" rev="${avro.version}"
       conf="compile->default;checkstyle->master">
       <artifact name="trevni-core" ext="jar" />

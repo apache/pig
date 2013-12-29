@@ -29,7 +29,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Random;
 import java.util.Set;
 
 import org.apache.pig.ExecType;
@@ -51,7 +50,6 @@ import org.apache.pig.newplan.logical.relational.LOJoin.JOINTYPE;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.parser.ParserException;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.Sets;
@@ -68,11 +66,6 @@ public class TestJoin {
     TupleFactory mTf = TupleFactory.getInstance();
     BagFactory mBf = BagFactory.getInstance();
     ExecType[] execTypes = new ExecType[] {ExecType.LOCAL, ExecType.MAPREDUCE};
-
-    @Before
-    public void setUp() throws Exception{
-        FileLocalizer.setR(new Random());
-    }
 
     @AfterClass
     public static void oneTimeTearDown() throws Exception {

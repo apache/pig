@@ -76,12 +76,12 @@ public final class AvroMapWrapper implements Map<CharSequence, Object> {
   @Override
   public Object get(final Object key) {
     Object v = null;
-    if (isUtf8key) {
+    if (isUtf8key && !(key instanceof Utf8)) {
       v = innerMap.get(new Utf8((String) key));
     } else {
       v = innerMap.get(key);
     }
-    
+
     if (v instanceof Utf8) {
       return v.toString();
     } else {

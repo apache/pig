@@ -73,8 +73,6 @@ public class TestEvalPipelineLocal {
     
     @Before
     public void setUp() throws Exception{
-        FileLocalizer.setR(new Random());
-//        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         pigServer = new PigServer(ExecType.LOCAL);
     }
     

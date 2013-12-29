@@ -119,6 +119,7 @@ import org.apache.pig.data.DefaultBagFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.ReadToEndLoader;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -200,6 +201,10 @@ public class TestBuiltin {
 
     @Before
     public void setUp() throws Exception {
+        // re initialize FileLocalizer so that each test will run correctly
+        // without any side effect of other tests - this is needed since some
+        // tests are in mapred and some in local mode.
+        FileLocalizer.setInitialized(false);
 
         pigServer = new PigServer(ExecType.LOCAL, new Properties());
         pigServer.setValidateEachStatement(true);
@@ -2704,25 +2709,23 @@ public class TestBuiltin {
                 "1",
                 "a",
                 "r"};
-        Util.createInputFile(cluster, inputFileName, inputData);
 
-         try {
-             pigServer.registerQuery("a = load '" + inputFileName + "'AS (s:chararray);");
-             pigServer.store("a", inputFileName1, "BinStorage");
-             pigServer.registerQuery("b = load 'part-{1,2}' using BinStorage() AS (s:chararray);");
-             Iterator<Tuple> it = pigServer.openIterator("b");
-             int i=0;
-             while(it.hasNext())
-             {
-                 assertTrue(it.next().get(0).equals(inputData[i]));
-                 i++;
-             }
-             assertTrue(i==3);
-         } catch (Exception e) {
-         } finally {
-             Util.deleteFile(cluster, inputFileName);
-         }
+        Util.createLocalInputFile(inputFileName, inputData);
+        pigServer.registerQuery("a = load '" + inputFileName + "'AS (s:chararray);");
+        pigServer.store("a", inputFileName1, "BinStorage");
+        pigServer.registerQuery("b = load 'part-{1,2}' using BinStorage() AS (s:chararray);");
+        Iterator<Tuple> it = pigServer.openIterator("b");
+        int i=0;
+        while(it.hasNext())
+        {
+            assertTrue(it.next().get(0).equals(inputData[i]));
+            i++;
+        }
+        assertTrue(i==3);
+        Util.deleteFile(pigServer.getPigContext(), inputFileName);
+        Util.deleteFile(pigServer.getPigContext(), inputFileName1);
     }
+
     private static String getInputType(String typeFor) {
         return allowedInput.get(typeFor);
     }
