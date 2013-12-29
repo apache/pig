@@ -62,6 +62,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3616: TestBuiltIn.testURIwithCurlyBrace() silently fails (lbendig via cheolsoo)
+
 PIG-3608: ClassCastException when looking up a value from AvroMapWrapper using a Utf8 key (rding)
 
 PIG-3639: TestRegisteredJarVisibility is broken in trunk (cheolsoo)
