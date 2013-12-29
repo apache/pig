@@ -1770,6 +1770,9 @@ alias_col_ref[LogicalExpressionPlan plan] returns[LogicalExpression expr]
                $expr = new ScalarExpression( plan, op,
                    inForeachPlan ? $foreach_clause::foreachOp : $GScope::currentOp );
                $expr.setLocation( loc );
+           } else if( inForeachPlan ) {
+               $expr = builder.buildProjectExpr( loc, $plan, $GScope::currentOp,
+                   $foreach_plan::operators, $foreach_plan::exprPlans, alias, 0 );
            } else {
                $expr = builder.buildProjectExpr( loc, $plan, $GScope::currentOp,
                    $statement::inputIndex, alias, 0 );
