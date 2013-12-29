@@ -55,6 +55,8 @@ import org.apache.pig.backend.hadoop.datastorage.HPath;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.impl.PigContext;
 
+import com.google.common.annotations.VisibleForTesting;
+
 public class FileLocalizer {
     private static final Log log = LogFactory.getLog(FileLocalizer.class);
     
@@ -604,10 +606,7 @@ public class FileLocalizer {
         }
     }
 
-    public static Random getR() {
-        return r;
-    }
-
+    @VisibleForTesting
     public static void setR(Random r) {
         FileLocalizer.r = r;
     }

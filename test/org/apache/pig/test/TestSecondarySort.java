@@ -26,7 +26,6 @@ import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Random;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
@@ -64,7 +63,6 @@ public class TestSecondarySort {
 
     @Before
     public void setUp() throws Exception {
-        FileLocalizer.setR(new Random());
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
     }
 

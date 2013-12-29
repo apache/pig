@@ -19,7 +19,6 @@ package org.apache.pig.test;
 
 import java.io.File;
 import java.util.Iterator;
-import java.util.Random;
 
 import junit.framework.Assert;
 
@@ -29,7 +28,6 @@ import org.apache.pig.PigServer;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.impl.io.FileLocalizer;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
@@ -43,7 +41,6 @@ public class TestScriptUDF{
     
     @Before
     public void setUp() throws Exception{
-        FileLocalizer.setR(new Random());
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
     }
     
