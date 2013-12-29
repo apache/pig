@@ -26,7 +26,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 
 import org.apache.commons.logging.Log;
@@ -176,8 +175,6 @@ public class MRCompiler extends PhyPlanVisitor {
 
     private String scope;
     
-    private Random r;
-    
     private UDFFinder udfFinder;
     
     private CompilationMessageCollector messageCollector = null;
@@ -206,14 +203,12 @@ public class MRCompiler extends PhyPlanVisitor {
         splitsSeen = new HashMap<OperatorKey, MapReduceOper>();
         MRPlan = new MROperPlan();
         nig = NodeIdGenerator.getGenerator();
-        r = new Random(1331);
-        FileLocalizer.setR(r);
         udfFinder = new UDFFinder();
         List<PhysicalOperator> roots = plan.getRoots();
         if((roots == null) || (roots.size() <= 0)) {
-        	int errCode = 2053;
-        	String msg = "Internal error. Did not find roots in the physical plan.";
-        	throw new MRCompilerException(msg, errCode, PigException.BUG);
+            int errCode = 2053;
+            String msg = "Internal error. Did not find roots in the physical plan.";
+            throw new MRCompilerException(msg, errCode, PigException.BUG);
         }
         scope = roots.get(0).getOperatorKey().getScope();
         messageCollector = new CompilationMessageCollector() ;
@@ -275,11 +270,7 @@ public class MRCompiler extends PhyPlanVisitor {
             }
         }
     }
-    
-    public void randomizeFileLocalizer(){
-        FileLocalizer.setR(new Random());
-    }
-    
+
     /**
      * Used to get the compiled plan
      * @return map reduce plan built by the compiler

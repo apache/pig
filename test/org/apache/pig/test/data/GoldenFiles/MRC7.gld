@@ -1,35 +1,35 @@
 MapReduce(-1) - -9:
-|   Store(DummyFil:DummyLdr) - --6047015131487356012
+|   Store(DummyFil:DummyLdr) - --4867358672373443663
 |   |
-|   |---Package[tuple]{Unknown} - --2771799342014688397
+|   |---Package[tuple]{Unknown} - -31712229583931650
 |   Union[tuple] - -10
 |   |
-|   |---Local Rearrange[tuple]{Unknown}(false) - --4160312061837144266
-|   |   |
-|   |   |---Load(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.io.InterStorage) - -2
-|   |
-|   |---Filter[tuple] - --1524666447399813617
+|   |---Filter[tuple] - --4213306726552862637
 |   |   |   |
-|   |   |   Constant(true) - --997494992827460962
+|   |   |   Constant(true) - --7335024873119453444
 |   |   |
-|   |   |---Load(DummyFil:DummyLdr) - -7955165653808522445
+|   |   |---Load(DummyFil:DummyLdr) - -4589138876054328603
 |   |
-|   |---Local Rearrange[tuple]{Unknown}(false) - -4636081797237532954
+|   |---Local Rearrange[tuple]{Unknown}(false) - --1848504978980807369
+|   |   |
+|   |   |---Load(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.io.InterStorage) - -3
+|   |
+|   |---Local Rearrange[tuple]{Unknown}(false) - -4744867519639813717
 |       |
 |       |---Load(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.impl.io.InterStorage) - -7
 |
-|---MapReduce(-1) - -0:
-|   |   Store(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.io.InterStorage) - -1
+|---MapReduce(-1) - -1:
+|   |   Store(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.io.InterStorage) - -2
 |   |   |
-|   |   |---Package[tuple]{Unknown} - --8706893458091286727
-|   |   Local Rearrange[tuple]{Unknown}(false) - -6693653468874366867
+|   |   |---Package[tuple]{Unknown} - --8479692259657755370
+|   |   Local Rearrange[tuple]{Unknown}(false) - -9193928674704944093
 |   |   |
-|   |   |---Load(DummyFil:DummyLdr) - --3347320220748403847
+|   |   |---Load(DummyFil:DummyLdr) - --4238531569995320849
 |
 |---MapReduce(-1) - -5:
     |   Store(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.impl.io.InterStorage) - -6
     |   |
-    |   |---Package[tuple]{Unknown} - -2997708366016271267
-    |   Local Rearrange[tuple]{Unknown}(false) - --1195368474144577564
+    |   |---Package[tuple]{Unknown} - -8767305735755351861
+    |   Local Rearrange[tuple]{Unknown}(false) - -5965044993061572808
     |   |
-    |   |---Load(DummyFil:DummyLdr) - -3615014757987062850
+    |   |---Load(DummyFil:DummyLdr) - -8914265632748254170

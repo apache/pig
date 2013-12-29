@@ -1,11 +1,11 @@
 MapReduce(1) - -0:
-|   Store(DummyFil:DummyLdr) - -3088212343542276753
+|   Store(DummyFil:DummyLdr) - -1662763901266102631
 |   |
-|   |---New For Each(false)[tuple] - --274910157919533456
+|   |---New For Each(false)[tuple] - -6357361387299749270
 |       |   |
-|       |   POSortedDistinct[tuple] - --881122551222328650
+|       |   POSortedDistinct[tuple] - -1793365165218576787
 |       |
-|       |---Package[tuple]{Unknown} - -49912403876500969
-|   Local Rearrange[tuple]{Unknown}(false) - --790930717481674068
+|       |---Package[tuple]{Unknown} - --3258087883799592471
+|   Local Rearrange[tuple]{Unknown}(false) - --8083579488061691196
 |   |
-|   |---Load(DummyFil:DummyLdr) - -4086340370247387675
+|   |---Load(DummyFil:DummyLdr) - -698333249886773960
