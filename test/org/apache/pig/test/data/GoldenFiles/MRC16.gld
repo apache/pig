@@ -15,7 +15,7 @@ MapReduce(-1) - -13:
 |---MapReduce(-1) - -8:
     |   Store(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.impl.io.InterStorage) - -11
     |   |
-    |   |---Package[tuple]{Unknown} - -3088212343542276753
+    |   |---Package(Packager)[tuple]{Unknown} - -3088212343542276753
     |   Local Rearrange[tuple]{Unknown}(false) - --881122551222328650
     |   |
     |   |---Load(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.io.InterStorage) - -7
