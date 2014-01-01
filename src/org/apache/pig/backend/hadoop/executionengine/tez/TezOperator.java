@@ -89,12 +89,17 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     // Last POLimit value in this map reduce operator, needed by LimitAdjuster
     // to add additional map reduce operator with 1 reducer after this
     long limit = -1;
+    
+    // If not null, need to collect sample sent from predecessor
+    TezOperator sampleOperator = null;
 
     // Types of blocking operators. For now, we only support the following ones.
     private static enum OPER_FEATURE {
         NONE,
         // Indicate if this job is a union job
         UNION,
+        // Indicate if this job is a sampling job
+        SAMPLER,
         // Indicate if this job is a group by job
         GROUPBY,
         // Indicate if this job is a cogroup job
@@ -183,6 +188,14 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
 
     public void markUnion() {
         feature = OPER_FEATURE.UNION;
+    }
+
+    public boolean isSampler() {
+        return (feature == OPER_FEATURE.SAMPLER);
+    }
+
+    public void markSampler() {
+        feature = OPER_FEATURE.SAMPLER;
     }
 
     @Override

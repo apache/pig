@@ -17,6 +17,7 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.tez;
 
+import org.apache.hadoop.mapreduce.Partitioner;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
@@ -33,6 +34,7 @@ public class TezEdgeDescriptor {
 
     public String inputClassName;
     public String outputClassName;
+    public Class<? extends Partitioner> partitionerClass;
     public SchedulingType schedulingType;
     public DataSourceType dataSourceType;
     public DataMovementType dataMovementType;
@@ -43,6 +45,7 @@ public class TezEdgeDescriptor {
         // The default is shuffle edge.
         inputClassName = ShuffledMergedInput.class.getName();
         outputClassName = OnFileSortedOutput.class.getName();
+        partitionerClass = null;
         schedulingType = SchedulingType.SEQUENTIAL;
         dataSourceType = DataSourceType.PERSISTED;
         dataMovementType = DataMovementType.SCATTER_GATHER;

@@ -156,8 +156,7 @@ public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
             String msg = "Received error from POLocalRearrage function." + ioe.getMessage();
             throw new ExecException(msg, errCode, ioe);
         }
-
-        return res;
+        return inp;
     }
 
     /**

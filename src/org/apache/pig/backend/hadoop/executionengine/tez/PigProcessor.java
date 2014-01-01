@@ -37,7 +37,9 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.data.SchemaTupleBackend;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.tez.common.TezUtils;
@@ -47,6 +49,7 @@ import org.apache.tez.runtime.api.LogicalIOProcessor;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.TezProcessorContext;
+import org.apache.tez.runtime.library.broadcast.input.BroadcastKVReader;
 
 public class PigProcessor implements LogicalIOProcessor {
     // Names of the properties that store serialized physical plans
@@ -60,6 +63,8 @@ public class PigProcessor implements LogicalIOProcessor {
     private PhysicalOperator leaf;
 
     private Configuration conf;
+    
+    public static Map<String, Object> quantileMap = null;
 
     @Override
     public void initialize(TezProcessorContext processorContext)
@@ -96,10 +101,13 @@ public class PigProcessor implements LogicalIOProcessor {
     @Override
     public void run(Map<String, LogicalInput> inputs,
             Map<String, LogicalOutput> outputs) throws Exception {
-
         initializeInputs(inputs);
 
         initializeOutputs(outputs);
+        
+        if (conf.get("pig.sampleVertex") != null) {
+            collectQuantile((BroadcastKVReader)inputs.get(conf.get("pig.sampleVertex")).getReader());
+        }
 
         List<PhysicalOperator> leaves = null;
 
@@ -164,7 +172,7 @@ public class PigProcessor implements LogicalIOProcessor {
         while(true){
             Result res = leaf.getNextTuple();
             if(res.returnStatus==POStatus.STATUS_OK){
-                throw new IOException("Not expected. Got STATUS_OK with result " + res);
+                continue;
             }
 
             if(res.returnStatus==POStatus.STATUS_EOP) {
@@ -189,6 +197,17 @@ public class PigProcessor implements LogicalIOProcessor {
                 throw ee;
             }
         }
+    }
+    
+    private void collectQuantile(BroadcastKVReader reader) throws IOException {
+        reader.next();
+        Object val = reader.getCurrentValue();
+        NullableTuple nTup = (NullableTuple) val;
+        Tuple t = (Tuple) nTup.getValueAsPigType();
+        // the Quantiles file has a tuple as under:
+        // (numQuantiles, bag of samples)
+        // numQuantiles here is the reduce parallelism
+        quantileMap = (Map<String, Object>) t.get(0);
     }
 
 }

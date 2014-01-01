@@ -81,6 +81,8 @@ public class POLocalRearrange extends PhysicalOperator {
     protected boolean mIsDistinct = false;
 
     protected boolean isCross = false;
+    
+    protected Result inp;
 
     // map to store mapping of projected columns to
     // the position in the "Key" where these will be projected to.
@@ -283,7 +285,7 @@ public class POLocalRearrange extends PhysicalOperator {
     @Override
     public Result getNextTuple() throws ExecException {
 
-        Result inp = null;
+        inp = null;
         Result res = ERR_RESULT;
         while (true) {
             inp = processInput();

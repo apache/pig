@@ -67,7 +67,6 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigLongRawCo
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigOutputFormat;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigTextRawComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigTupleSortComparator;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.WeightedRangePartitioner;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.EndOfAllInputSetter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -200,6 +199,11 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
         conf.setBoolean("mapred.mapper.new-api", true);
         conf.set("pig.pigContext", ObjectSerializer.serialize(pc));
+        
+        if (edge.partitionerClass != null) {
+            conf.setClass("mapreduce.job.partitioner.class",
+                    edge.partitionerClass, Partitioner.class);
+        }
 
         if(from.isGlobalSort() || from.isLimitAfterSort()){
             if (from.isGlobalSort()) {
@@ -213,12 +217,8 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                         fstat.getLen(),
                         fstat.getModificationTime());
                 localResources.put(quantFilePath.getName(), quantFileResource);
-                conf.set("pig.quantilesFile", fstat.getPath().toString());
                 conf.set("pig.sortOrder",
                         ObjectSerializer.serialize(from.getSortOrder()));
-                conf.setClass("mapreduce.job.partitioner.class",
-                        WeightedRangePartitioner.class,
-                        Partitioner.class);
             }
         }
 
@@ -266,6 +266,10 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
         // Pass physical plans to vertex as user payload.
         Configuration payloadConf = job.getConfiguration();
+        
+        if (tezOp.sampleOperator != null) {
+            payloadConf.set("pig.sampleVertex", tezOp.sampleOperator.getOperatorKey().toString());
+        }
 
         List<POLoad> loads = processLoads(tezOp, payloadConf, job);
         LinkedList<POStore> stores = processStores(tezOp, payloadConf, job);
@@ -316,7 +320,11 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             // the inputs that are attached to the POShuffleTezLoad in the
             // backend.
             for (TezOperator pred : mPlan.getPredecessors(tezOp)) {
-                newPack.addInputKey(pred.getOperatorKey().toString());
+                if (tezOp.sampleOperator != null && tezOp.sampleOperator == pred) {
+                    // skip sample vertex input
+                } else {
+                    newPack.addInputKey(pred.getOperatorKey().toString());
+                }
             }
 
             if (succsList != null) {
@@ -348,6 +356,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         // Serialize the execution plan
         payloadConf.set(PigProcessor.PLAN,
                 ObjectSerializer.serialize(tezOp.plan));
+
         UDFContext.getUDFContext().serialize(payloadConf);
 
         // Take our assembled configuration and create a vertex
