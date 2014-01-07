@@ -17,8 +17,7 @@
  */
 package org.apache.pig.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,6 +44,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.base.Strings;
+
 /**
  * Test POPartialAgg runtime
  */
@@ -55,10 +56,10 @@ public class TestPOPartialAgg {
 
     @Before
     public void setUp() throws Exception {
-        createPOPartialPlan();
+        createPOPartialPlan(1);
     }
 
-    private void createPOPartialPlan() throws PlanException {
+    private void createPOPartialPlan(int valueCount) throws PlanException {
         parentPlan = new PhysicalPlan();
         partAggOp = GenPhyOp.topPOPartialAgg();
         partAggOp.setParentPlan(parentPlan);
@@ -70,24 +71,27 @@ public class TestPOPartialAgg {
         keyPlan.add(keyProj);
         partAggOp.setKeyPlan(keyPlan);
 
-        // setup value plan
-        // project arg for udf
-        PhysicalPlan valPlan1 = new PhysicalPlan();
-        POProject projVal1 = new POProject(GenPhyOp.getOK(), -1, 1);
-        projVal1.setResultType(DataType.BAG);
-        valPlan1.add(projVal1);
-
-        // setup udf
-        List<PhysicalOperator> udfInps = new ArrayList<PhysicalOperator>();
-        udfInps.add(projVal1);
-        FuncSpec sumSpec = new FuncSpec(IntSum.Intermediate.class.getName());
-        POUserFunc sumUdf = new POUserFunc(GenPhyOp.getOK(), -1, udfInps,
-                sumSpec);
-        valPlan1.add(sumUdf);
-        valPlan1.connect(projVal1, sumUdf);
-
+        // setup value plans
         List<PhysicalPlan> valuePlans = new ArrayList<PhysicalPlan>();
-        valuePlans.add(valPlan1);
+        
+        for (int i = 0; i < valueCount; i++) {
+            // project arg for udf
+            PhysicalPlan valPlan = new PhysicalPlan();
+            POProject projVal1 = new POProject(GenPhyOp.getOK(), -1, i + 1);
+            projVal1.setResultType(DataType.BAG);
+            valPlan.add(projVal1);
+    
+            // setup udf
+            List<PhysicalOperator> udfInps = new ArrayList<PhysicalOperator>();
+            udfInps.add(projVal1);
+            FuncSpec sumSpec = new FuncSpec(IntSum.Intermediate.class.getName());
+            POUserFunc sumUdf = new POUserFunc(GenPhyOp.getOK(), -1, udfInps,
+                    sumSpec);
+            valPlan.add(sumUdf);
+            valPlan.connect(projVal1, sumUdf);
+    
+            valuePlans.add(valPlan);
+        }
 
         partAggOp.setValuePlans(valuePlans);
     }
@@ -217,7 +221,57 @@ public class TestPOPartialAgg {
         checkInputAndOutput(inputTups, outputTups, false);
     }
 
+    @Test
+    public void testMultiVals() throws Exception {
+        // more than one value to be aggregated
+        createPOPartialPlan(2);
+        
+        // input tuple has key, and bag containing SUM.Init output
+        String[] inputTups = { "(1,(1L),(2L))", "(2,(2L),(1L))", "(1,(2L),(2L))" };
+        String[] outputTups = { "(1,(3L),(4L))", "(2,(2L),(1L))" };
+        checkInputAndOutput(inputTups, outputTups, false);
+    }
 
+    @Test
+    public void testMultiValCheckNotDisabled() throws Exception {
+        // "large" number of values per input to aggregate but good reduction 
+        // in size due to aggregation. 
+        // This case should result in a reduction from 10500 inputs to 500 
+        // outputs (factor of 20), so in-memory aggregation should not be 
+        // disabled in checkSize(). If it is disabled, too many output rows 
+        // will be generated.
+        
+        int numKeys = 500;
+        int numVals = 3;
+
+        createPOPartialPlan(numVals);
+        
+        // Build a string of values to use in all input tuples
+        String vals = Strings.repeat(",(1L)", numVals);
+        
+        // And input tuples.
+        // We need the next multiple of numKeys over 10,000 because we need to
+        // trigger the size check (at 10,000), and we want an even multiple of
+        // numKeys so result values end up even across keys
+        int numInputs = (10000 + numKeys * 2 - 1) / numKeys * numKeys;
+        String[] inputTups = new String[numInputs];
+        for (int i = 0; i < numInputs; i++) {
+            inputTups[i] = "(" + (i % numKeys) + vals + ")";
+        }
+        
+        // Build expected results
+        int expectedVal = numInputs / numKeys;
+        vals = Strings.repeat(",(" + expectedVal + "L)", numVals);
+        String[] outputTups = new String[numKeys];
+        for (int i = 0; i < numKeys; i++) {
+            outputTups[i] = "(" + i + vals + ")";
+        }
+        
+        // input tuple has key, and bag containing SUM.Init output
+        checkInputAndOutput(inputTups, outputTups, false);
+    }
+    
+    
     /**
      * run the plan on inputTups and check if output matches outputTups if
      * isMapMemEmpty is set to true, set memory available for the hash-map to
