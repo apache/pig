@@ -307,8 +307,12 @@ LoadPushDown, LoadMetadata, StoreMetadata {
             // only contains required fields.
             // We walk the requiredColumns array to find required fields,
             // and cast those.
-            for (int i = 0; i < Math.min(fieldSchemas.length, tup.size()); i++) {
+            for (int i = 0; i < fieldSchemas.length; i++) {
                 if (mRequiredColumns == null || (mRequiredColumns.length>i && mRequiredColumns[i])) {
+                    if (tupleIdx >= tup.size()) {
+                        tup.append(null);
+                    }
+                    
                     Object val = null;
                     if(tup.get(tupleIdx) != null){
                         byte[] bytes = ((DataByteArray) tup.get(tupleIdx)).get();
@@ -318,9 +322,6 @@ LoadPushDown, LoadMetadata, StoreMetadata {
                     }
                     tupleIdx++;
                 }
-            }
-            for (int i = tup.size(); i < fieldSchemas.length; i++) {
-                tup.append(null);
             }
         }
         return tup;

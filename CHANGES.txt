@@ -64,6 +64,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3650: Fix for PIG-3100 breaks column pruning (tmwoodruff via daijy)
+
 PIG-3643: Nested Foreach with UDF and bincond is broken (cheolsoo)
 
 PIG-3616: TestBuiltIn.testURIwithCurlyBrace() silently fails (lbendig via cheolsoo)
