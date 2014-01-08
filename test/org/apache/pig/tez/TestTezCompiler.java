@@ -132,6 +132,18 @@ public class TestTezCompiler {
     }
 
     @Test
+    public void testDistinctAlgebraicUdfCombiner() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input' as (x:int, y:int);" +
+                "b = group a by x;" +
+                "c = foreach b { d = distinct a; generate COUNT(d); };" +
+                "store c into 'file:///tmp/output';";
+
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
+        run(pp, "test/org/apache/pig/test/data/GoldenFiles/TEZC13.gld");
+    }
+
+    @Test
     public void testSplitSingleVertex() throws Exception {
         String query =
                 "a = load 'file:///tmp/input' as (x:int, y:int);" +

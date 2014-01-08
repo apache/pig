@@ -636,31 +636,44 @@ public class TezCompiler extends PhyPlanVisitor {
             lr.setDistinct(true);
             curTezOp.plan.addAsLeaf(lr);
             curTezOp.customPartitioner = op.getCustomPartitioner();
+            TezOperator lastOp = curTezOp;
 
             // Mark the start of a new TezOperator, connecting the inputs.
-            // TODO add distinct combiner as an optimization when supported by Tez
             blocking();
 
-            POPackage pkg = getPackage(1, DataType.TUPLE);
-            pkg.getPkgr().setDistinct(true);
-            curTezOp.plan.add(pkg);
+            // Add the DISTINCT plan as the combine plan. In MR Pig, the combiner is implemented
+            // with a global variable and a specific DistinctCombiner class. This seems better.
+            PhysicalPlan combinePlan = curTezOp.inEdges.get(lastOp.getOperatorKey()).combinePlan;
+            addDistinctPlan(combinePlan, 1);
 
-            POProject project = new POProject(new OperatorKey(scope, nig.getNextNodeId(scope)));
-            project.setResultType(DataType.TUPLE);
-            project.setStar(false);
-            project.setColumn(0);
-            project.setOverloaded(false);
+            POLocalRearrangeTez clr = localRearrangeFactory.create();
+            clr.setDistinct(true);
+            combinePlan.addAsLeaf(clr);
 
-            // Note that the PODistinct is not actually added to any Tez vertex, but rather is
-            // implemented by the action of the local rearrange, shuffle and project operations.
-            POForEach forEach = getForEach(project, op.getRequestedParallelism());
-            curTezOp.plan.addAsLeaf(forEach);
+            addDistinctPlan(curTezOp.plan, op.getRequestedParallelism());
             phyToTezOpMap.put(op, curTezOp);
         } catch (Exception e) {
             int errCode = 2034;
             String msg = "Cannot compile " + op.getClass().getSimpleName();
             throw new TezCompilerException(msg, errCode, PigException.BUG);
         }
+    }
+
+    // Adds the plan for DISTINCT. Note that the PODistinct is not actually added to the plan, but
+    // rather is implemented by the action of the local rearrange, shuffle and project operations.
+    private void addDistinctPlan(PhysicalPlan plan, int rp) throws PlanException {
+        POPackage pkg = getPackage(1, DataType.TUPLE);
+        pkg.getPkgr().setDistinct(true);
+        plan.addAsLeaf(pkg);
+
+        POProject project = new POProject(new OperatorKey(scope, nig.getNextNodeId(scope)));
+        project.setResultType(DataType.TUPLE);
+        project.setStar(false);
+        project.setColumn(0);
+        project.setOverloaded(false);
+
+        POForEach forEach = getForEach(project, rp);
+        plan.addAsLeaf(forEach);
     }
 
     @Override
