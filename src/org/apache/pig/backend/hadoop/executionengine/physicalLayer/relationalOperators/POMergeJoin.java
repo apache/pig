@@ -123,6 +123,8 @@ public class POMergeJoin extends PhysicalOperator {
 
     private String signature;
 
+    private byte endOfRecordMark;
+
     // This serves as the default TupleFactory
     private transient TupleFactory mTupleFactory;
 
@@ -154,14 +156,23 @@ public class POMergeJoin extends PhysicalOperator {
         LRs = new POLocalRearrange[2];
         this.createJoinPlans(inpPlans,keyTypes);
         this.indexFile = null;
-        this.joinType = joinType;  
+        this.joinType = joinType;
         this.leftInputSchema = leftInputSchema;
         this.mergedInputSchema = mergedInputSchema;
+        this.endOfRecordMark = POStatus.STATUS_EOP;
+    }
+
+    // Set to POStatus.STATUS_EOP (default) for MR and POStatus.STATUS_NULL for Tez.
+    // This is because:
+    // For MR, we send EOP at the end of every record
+    // For Tez, we only use a global EOP, so send NULL for end of record
+    public void setEndOfRecordMark(byte endOfRecordMark) {
+        this.endOfRecordMark = endOfRecordMark;
     }
 
     /**
      * Configures the Local Rearrange operators to get keys out of tuple.
-     * @throws ExecException 
+     * @throws ExecException
      */
     private void createJoinPlans(MultiMap<PhysicalOperator, PhysicalPlan> inpPlans, List<List<Byte>> keyTypes) throws PlanException{
 
@@ -285,8 +296,8 @@ public class POMergeJoin extends PhysicalOperator {
 
             curLeftKey = extractKeysFromTuple(curLeftInp, 0);
             if(null == curLeftKey) // We drop the tuples which have null keys.
-                return new Result(POStatus.STATUS_EOP, null);
-            
+                return new Result(endOfRecordMark, null);
+
             try {
                 seekInRightStream(curLeftKey);
             } catch (IOException e) {
@@ -297,7 +308,7 @@ public class POMergeJoin extends PhysicalOperator {
             leftTuples.add((Tuple)curLeftInp.result);
             firstTime = false;
             prevLeftKey = curLeftKey;
-            return new Result(POStatus.STATUS_EOP, null);
+            return new Result(endOfRecordMark, null);
         }
 
         if(doingJoin){
@@ -363,7 +374,7 @@ public class POMergeJoin extends PhysicalOperator {
                                 log.error("Received exception while trying to close right side file: " + e.getMessage());
                             }
                         }
-                        return new Result(POStatus.STATUS_EOP, null);
+                        return new Result(endOfRecordMark, null);
                     }
                     else{   // At this point right side can't be behind.
                         int errCode = 1102;
@@ -381,17 +392,17 @@ public class POMergeJoin extends PhysicalOperator {
         case POStatus.STATUS_OK:
             curLeftKey = extractKeysFromTuple(curLeftInp, 0);
             if(null == curLeftKey) // We drop the tuples which have null keys.
-                return new Result(POStatus.STATUS_EOP, null);
-            
+                return new Result(endOfRecordMark, null);
+
             int cmpVal = ((Comparable)curLeftKey).compareTo(prevLeftKey);
             if(cmpVal == 0){
                 // Keep on accumulating.
                 leftTuples.add((Tuple)curLeftInp.result);
-                return new Result(POStatus.STATUS_EOP, null);
+                return new Result(endOfRecordMark, null);
             }
             else if(cmpVal > 0){ // Filled with left bag. Move on.
                 curJoinKey = prevLeftKey;
-                break;   
+                break;
             }
             else{   // Current key < Prev Key
                 int errCode = 1102;
@@ -423,7 +434,7 @@ public class POMergeJoin extends PhysicalOperator {
             leftTuples.add((Tuple)curLeftInp.result);
             prevLeftInp = curLeftInp;
             prevLeftKey = curLeftKey;
-            return new Result(POStatus.STATUS_EOP, null);
+            return new Result(endOfRecordMark, null);
         }
 
         // Accumulated tuples with same key on left side.
@@ -504,14 +515,14 @@ public class POMergeJoin extends PhysicalOperator {
                         log.error("Received exception while trying to close right side file: " + e.getMessage());
                     }
                 }
-                return new Result(POStatus.STATUS_EOP, null);
+                return new Result(endOfRecordMark, null);
             }
         }
     }
-    
+
     private void seekInRightStream(Object firstLeftKey) throws IOException{
         rightLoader = (LoadFunc)PigContext.instantiateFuncFromSpec(rightLoaderFuncSpec);
-        
+
         // check if hadoop distributed cache is used
         if (indexFile != null && rightLoader instanceof DefaultIndexableLoader) {
             DefaultIndexableLoader loader = (DefaultIndexableLoader)rightLoader;

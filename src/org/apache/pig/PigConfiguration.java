@@ -153,5 +153,21 @@ public class PigConfiguration {
       * the distributed cache when doing fragment-replicated join
       */
     public static final String PIG_JOIN_REPLICATED_MAX_BYTES = "pig.join.replicated.max.bytes";
+
+    /**
+     * Turns combine split files on or off
+     */
+    public static final String PIG_SPLIT_COMBINATION = "pig.splitCombination";
+
+    /**
+     * Whether turns combine split files off. This is for internal use only
+     */
+    public static final String PIG_NO_SPLIT_COMBINATION = "pig.noSplitCombination";
+
+    /**
+     * Specifies the size, in bytes, of data to be processed by a single map.
+     * Smaller files are combined untill this size is reached.
+     */
+    public static final String PIG_MAX_COMBINED_SPLIT_SIZE = "pig.maxCombinedSplitSize";
 }
 

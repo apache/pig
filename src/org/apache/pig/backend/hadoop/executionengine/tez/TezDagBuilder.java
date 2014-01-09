@@ -45,6 +45,7 @@ import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -266,10 +267,24 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
         // Pass physical plans to vertex as user payload.
         Configuration payloadConf = job.getConfiguration();
-        
+
         if (tezOp.sampleOperator != null) {
             payloadConf.set("pig.sampleVertex", tezOp.sampleOperator.getOperatorKey().toString());
         }
+
+        String tmp;
+        long maxCombinedSplitSize = 0;
+        if (!tezOp.combineSmallSplits() || pc.getProperties().getProperty(PigConfiguration.PIG_SPLIT_COMBINATION, "true").equals("false"))
+            payloadConf.setBoolean(PigConfiguration.PIG_NO_SPLIT_COMBINATION, true);
+        else if ((tmp = pc.getProperties().getProperty(PigConfiguration.PIG_MAX_COMBINED_SPLIT_SIZE, null)) != null) {
+            try {
+                maxCombinedSplitSize = Long.parseLong(tmp);
+            } catch (NumberFormatException e) {
+                log.warn("Invalid numeric format for pig.maxCombinedSplitSize; use the default maximum combined split size");
+            }
+        }
+        if (maxCombinedSplitSize > 0)
+            payloadConf.setLong("pig.maxCombinedSplitSize", maxCombinedSplitSize);
 
         List<POLoad> loads = processLoads(tezOp, payloadConf, job);
         LinkedList<POStore> stores = processStores(tezOp, payloadConf, job);
@@ -278,6 +293,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
         payloadConf.set("udf.import.list",
                 ObjectSerializer.serialize(PigContext.getPackageImportList()));
+        payloadConf.set("exectype", "TEZ");
         payloadConf.setBoolean("mapred.mapper.new-api", true);
         payloadConf.setClass("mapreduce.inputformat.class",
                 PigInputFormat.class, InputFormat.class);

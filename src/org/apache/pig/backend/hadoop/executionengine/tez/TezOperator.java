@@ -89,7 +89,12 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     // Last POLimit value in this map reduce operator, needed by LimitAdjuster
     // to add additional map reduce operator with 1 reducer after this
     long limit = -1;
-    
+
+    // Flag to indicate if the small input splits need to be combined to form a larger
+    // one in order to reduce the number of mappers. For merge join, both tables
+    // are NOT combinable for correctness.
+    private boolean combineSmallSplits = true;
+
     // If not null, need to collect sample sent from predecessor
     TezOperator sampleOperator = null;
 
@@ -98,6 +103,8 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
         NONE,
         // Indicate if this job is a union job
         UNION,
+        // Indicate if this job is a merge indexer
+        INDEXER,
         // Indicate if this job is a sampling job
         SAMPLER,
         // Indicate if this job is a group by job
@@ -184,6 +191,10 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
 
     public boolean isUnion() {
         return (feature == OPER_FEATURE.UNION);
+    }
+
+    public void markIndexer() {
+        feature = OPER_FEATURE.INDEXER;
     }
 
     public void markUnion() {
@@ -278,6 +289,14 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
 
     public boolean isLimitAfterSort() {
         return limitAfterSort;
+    }
+
+    protected void noCombineSmallSplits() {
+        combineSmallSplits = false;
+    }
+
+    public boolean combineSmallSplits() {
+        return combineSmallSplits;
     }
 }
 

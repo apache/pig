@@ -18,6 +18,7 @@
 package org.apache.pig.backend.hadoop.executionengine.tez;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -30,10 +31,16 @@ import java.util.Stack;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.IndexableLoadFunc;
+import org.apache.pig.LoadFunc;
+import org.apache.pig.OrderedLoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompilerException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MergeJoinIndexer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.ScalarPhyFinder;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.UDFFinder;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
@@ -69,6 +76,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelp
 import org.apache.pig.backend.hadoop.executionengine.tez.POLocalRearrangeTezFactory.LocalRearrangeType;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.builtin.DefaultIndexableLoader;
 import org.apache.pig.impl.builtin.FindQuantiles;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
@@ -79,8 +87,10 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.util.Utils;
+import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.runtime.library.input.ShuffledUnorderedKVInput;
 import org.apache.tez.runtime.library.output.OnFileUnorderedKVOutput;
@@ -380,13 +390,6 @@ public class TezCompiler extends PhyPlanVisitor {
         curTezOp = tezOp;
     }
 
-    private void connect(TezOperPlan plan, TezOperator from, TezOperator to) throws PlanException {
-        plan.connect(from, to);
-        // Add edge descriptors to old and new operators
-        to.inEdges.put(from.getOperatorKey(), new TezEdgeDescriptor());
-        from.outEdges.put(to.getOperatorKey(), new TezEdgeDescriptor());
-    }
-
     private void blocking() throws IOException, PlanException {
         TezOperator newTezOp = getTezOp();
         tezPlan.add(newTezOp);
@@ -416,9 +419,9 @@ public class TezCompiler extends PhyPlanVisitor {
             POSplit split = findPOSplit(splitOp, from.getSplitOperatorKey());
             split.addPlan(from.plan);
             addSubPlanPropertiesToParent(splitOp, curTezOp);
-            connect(tezPlan, splitOp, to);
+            TezCompilerUtil.connect(tezPlan, splitOp, to);
         } else {
-            connect(tezPlan, from, to);
+            TezCompilerUtil.connect(tezPlan, from, to);
         }
     }
 
@@ -672,7 +675,7 @@ public class TezCompiler extends PhyPlanVisitor {
         project.setColumn(0);
         project.setOverloaded(false);
 
-        POForEach forEach = getForEach(project, rp);
+        POForEach forEach = TezCompilerUtil.getForEach(project, rp, scope, nig);
         plan.addAsLeaf(forEach);
     }
 
@@ -732,7 +735,7 @@ public class TezCompiler extends PhyPlanVisitor {
                     lr.setOutputKey(curTezOp.getOperatorKey().toString());
 
                     tezOp.plan.addAsLeaf(lr);
-                    connect(tezPlan, tezOp, curTezOp);
+                    TezCompilerUtil.connect(tezPlan, tezOp, curTezOp);
                     inputKeys.add(tezOp.getOperatorKey().toString());
 
                     // Configure broadcast edges for replicated tables
@@ -799,7 +802,7 @@ public class TezCompiler extends PhyPlanVisitor {
 
             // Then add a POPackage and a POForEach to the start of the new tezOp.
             POPackage pkg = getPackage(1, DataType.TUPLE);
-            POForEach forEach = getForEachPlain();
+            POForEach forEach = TezCompilerUtil.getForEachPlain(scope, nig);
             curTezOp.plan.add(pkg);
             curTezOp.plan.addAsLeaf(forEach);
 
@@ -869,11 +872,221 @@ public class TezCompiler extends PhyPlanVisitor {
         throw new TezCompilerException(msg, errCode, PigException.BUG);
     }
 
+    /** Since merge-join works on two inputs there are exactly two TezOper predecessors identified  as left and right.
+     *  Right input generates index on-the-fly. This consists of two Tez vertexes. The first vertex generates index,
+     *  and the second vertex sort them.
+     *  Left input contains POMergeJoin which do the actual join.
+     *  First right Tez oper is identified as rightTezOpr, second is identified as rightTezOpr2
+     *  Left Tez oper is identified as curTezOper.
+
+     *  1) RightTezOpr: It can be preceded only by POLoad. If there is anything else
+     *                  in physical plan, that is yanked and set as inner plans of joinOp.
+     *  2) LeftTezOper:  add the Join operator in it.
+     *
+     *  We also need to segment the DAG into two, because POMergeJoin depends on the index file which loads with
+     *  DefaultIndexableLoader. It is possible to convert the index as a broadcast input, but that is costly
+     *  because a lot of logic is built into DefaultIndexableLoader. We can revisit it later.
+     */
     @Override
-    public void visitMergeJoin(POMergeJoin op) throws VisitorException {
-        int errCode = 2034;
-        String msg = "Cannot compile " + op.getClass().getSimpleName();
-        throw new TezCompilerException(msg, errCode, PigException.BUG);
+    public void visitMergeJoin(POMergeJoin joinOp) throws VisitorException {
+
+        try{
+            joinOp.setEndOfRecordMark(POStatus.STATUS_NULL);
+            if(compiledInputs.length != 2 || joinOp.getInputs().size() != 2){
+                int errCode=1101;
+                throw new MRCompilerException("Merge Join must have exactly two inputs. Found : "+compiledInputs.length, errCode);
+            }
+
+            curTezOp = phyToTezOpMap.get(joinOp.getInputs().get(0));
+
+            TezOperator rightTezOpr = null;
+            TezOperator rightTezOprAggr = null;
+            if(curTezOp.equals(compiledInputs[0]))
+                rightTezOpr = compiledInputs[1];
+            else
+                rightTezOpr = compiledInputs[0];
+
+            // We will first operate on right side which is indexer job.
+            // First yank plan of the compiled right input and set that as an inner plan of right operator.
+            PhysicalPlan rightPipelinePlan;
+            if(!rightTezOpr.closed){
+                PhysicalPlan rightPlan = rightTezOpr.plan;
+                if(rightPlan.getRoots().size() != 1){
+                    int errCode = 2171;
+                    String errMsg = "Expected one but found more then one root physical operator in physical plan.";
+                    throw new MRCompilerException(errMsg,errCode,PigException.BUG);
+                }
+
+                PhysicalOperator rightLoader = rightPlan.getRoots().get(0);
+                if(! (rightLoader instanceof POLoad)){
+                    int errCode = 2172;
+                    String errMsg = "Expected physical operator at root to be POLoad. Found : "+rightLoader.getClass().getCanonicalName();
+                    throw new MRCompilerException(errMsg,errCode);
+                }
+
+                if (rightPlan.getSuccessors(rightLoader) == null || rightPlan.getSuccessors(rightLoader).isEmpty())
+                    // Load - Join case.
+                    rightPipelinePlan = null;
+
+                else{ // We got something on right side. Yank it and set it as inner plan of right input.
+                    rightPipelinePlan = rightPlan.clone();
+                    PhysicalOperator root = rightPipelinePlan.getRoots().get(0);
+                    rightPipelinePlan.disconnect(root, rightPipelinePlan.getSuccessors(root).get(0));
+                    rightPipelinePlan.remove(root);
+                    rightPlan.trimBelow(rightLoader);
+                }
+            }
+            else{
+                int errCode = 2022;
+                String msg = "Right input plan have been closed. This is unexpected while compiling.";
+                throw new PlanException(msg, errCode, PigException.BUG);
+            }
+
+            joinOp.setupRightPipeline(rightPipelinePlan);
+
+            // At this point, we must be operating on input plan of right input and it would contain nothing else other then a POLoad.
+            POLoad rightLoader = (POLoad)rightTezOpr.plan.getRoots().get(0);
+            joinOp.setSignature(rightLoader.getSignature());
+            LoadFunc rightLoadFunc = rightLoader.getLoadFunc();
+            List<String> udfs = new ArrayList<String>();
+            if(IndexableLoadFunc.class.isAssignableFrom(rightLoadFunc.getClass())) {
+                joinOp.setRightLoaderFuncSpec(rightLoader.getLFile().getFuncSpec());
+                joinOp.setRightInputFileName(rightLoader.getLFile().getFileName());
+                udfs.add(rightLoader.getLFile().getFuncSpec().toString());
+
+                // we don't need the right TezOper since
+                // the right loader is an IndexableLoadFunc which can handle the index
+                // itself
+                tezPlan.remove(rightTezOpr);
+                if(rightTezOpr == compiledInputs[0]) {
+                    compiledInputs[0] = null;
+                } else if(rightTezOpr == compiledInputs[1]) {
+                    compiledInputs[1] = null;
+                }
+                rightTezOpr = null;
+
+                // validate that the join keys in merge join are only
+                // simple column projections or '*' and not expression - expressions
+                // cannot be handled when the index is built by the storage layer on the sorted
+                // data when the sorted data (and corresponding index) is written.
+                // So merge join will be restricted not have expressions as
+                // join keys
+                int numInputs = mPlan.getPredecessors(joinOp).size(); // should be 2
+                for(int i = 0; i < numInputs; i++) {
+                    List<PhysicalPlan> keyPlans = joinOp.getInnerPlansOf(i);
+                    for (PhysicalPlan keyPlan : keyPlans) {
+                        for(PhysicalOperator op : keyPlan) {
+                            if(!(op instanceof POProject)) {
+                                int errCode = 1106;
+                                String errMsg = "Merge join is possible only for simple column or '*' join keys when using " +
+                                rightLoader.getLFile().getFuncSpec() + " as the loader";
+                                throw new MRCompilerException(errMsg, errCode, PigException.INPUT);
+                            }
+                        }
+                    }
+                }
+            } else {
+                LoadFunc loadFunc = rightLoader.getLoadFunc();
+                //Replacing POLoad with indexer is disabled for 'merge-sparse' joins.  While
+                //this feature would be useful, the current implementation of DefaultIndexableLoader
+                //is not designed to handle multiple calls to seekNear.  Specifically, it rereads the entire index
+                //for each call.  Some refactoring of this class is required - and then the check below could be removed.
+                if (joinOp.getJoinType() == LOJoin.JOINTYPE.MERGESPARSE) {
+                    int errCode = 1104;
+                    String errMsg = "Right input of merge-join must implement IndexableLoadFunc. " +
+                    "The specified loader " + loadFunc + " doesn't implement it";
+                    throw new MRCompilerException(errMsg,errCode);
+                }
+
+                // Replace POLoad with  indexer.
+
+                if (! (OrderedLoadFunc.class.isAssignableFrom(loadFunc.getClass()))){
+                    int errCode = 1104;
+                    String errMsg = "Right input of merge-join must implement " +
+                    "OrderedLoadFunc interface. The specified loader "
+                    + loadFunc + " doesn't implement it";
+                    throw new MRCompilerException(errMsg,errCode);
+                }
+
+                String[] indexerArgs = new String[6];
+                List<PhysicalPlan> rightInpPlans = joinOp.getInnerPlansOf(1);
+                FileSpec origRightLoaderFileSpec = rightLoader.getLFile();
+
+                indexerArgs[0] = origRightLoaderFileSpec.getFuncSpec().toString();
+                indexerArgs[1] = ObjectSerializer.serialize((Serializable)rightInpPlans);
+                indexerArgs[2] = ObjectSerializer.serialize(rightPipelinePlan);
+                indexerArgs[3] = rightLoader.getSignature();
+                indexerArgs[4] = rightLoader.getOperatorKey().scope;
+                indexerArgs[5] = Boolean.toString(true);
+
+                FileSpec lFile = new FileSpec(rightLoader.getLFile().getFileName(),new FuncSpec(MergeJoinIndexer.class.getName(), indexerArgs));
+                rightLoader.setLFile(lFile);
+
+                // Loader of operator will return a tuple of form -
+                // (keyFirst1, keyFirst2, .. , position, splitIndex) See MergeJoinIndexer
+
+                rightTezOprAggr = getTezOp();
+                tezPlan.add(rightTezOprAggr);
+                TezCompilerUtil.simpleConnectTwoVertex(tezPlan, rightTezOpr, rightTezOprAggr, scope, nig);
+                rightTezOprAggr.requestedParallelism = 1; // we need exactly one task for indexing job.
+
+                POStore st = TezCompilerUtil.getStore(scope, nig);
+                FileSpec strFile = getTempFileSpec();
+                st.setSFile(strFile);
+                rightTezOprAggr.plan.addAsLeaf(st);
+                rightTezOprAggr.setClosed(true);
+                rightTezOprAggr.segmentBelow = true;
+
+                // set up the DefaultIndexableLoader for the join operator
+                String[] defaultIndexableLoaderArgs = new String[5];
+                defaultIndexableLoaderArgs[0] = origRightLoaderFileSpec.getFuncSpec().toString();
+                defaultIndexableLoaderArgs[1] = strFile.getFileName();
+                defaultIndexableLoaderArgs[2] = strFile.getFuncSpec().toString();
+                defaultIndexableLoaderArgs[3] = joinOp.getOperatorKey().scope;
+                defaultIndexableLoaderArgs[4] = origRightLoaderFileSpec.getFileName();
+                joinOp.setRightLoaderFuncSpec((new FuncSpec(DefaultIndexableLoader.class.getName(), defaultIndexableLoaderArgs)));
+                joinOp.setRightInputFileName(origRightLoaderFileSpec.getFileName());
+
+                joinOp.setIndexFile(strFile.getFileName());
+                udfs.add(origRightLoaderFileSpec.getFuncSpec().toString());
+            }
+
+            // We are done with right side. Lets work on left now.
+            // Join will be materialized in leftTezOper.
+            if(!curTezOp.isClosed()) // Life is easy
+                curTezOp.plan.addAsLeaf(joinOp);
+
+            else{
+                int errCode = 2022;
+                String msg = "Input plan has been closed. This is unexpected while compiling.";
+                throw new PlanException(msg, errCode, PigException.BUG);
+            }
+            if(rightTezOprAggr != null) {
+                rightTezOprAggr.markIndexer();
+                // We want to ensure indexing job runs prior to actual join job. So, connect them in order.
+                TezCompilerUtil.connect(tezPlan, rightTezOprAggr, curTezOp);
+            }
+            phyToTezOpMap.put(joinOp, curTezOp);
+            // no combination of small splits as there is currently no way to guarantee the sortness
+            // of the combined splits.
+            curTezOp.noCombineSmallSplits();
+            curTezOp.UDFs.addAll(udfs);
+        }
+        catch(PlanException e){
+            int errCode = 2034;
+            String msg = "Error compiling operator " + joinOp.getClass().getCanonicalName();
+            throw new MRCompilerException(msg, errCode, PigException.BUG, e);
+        }
+       catch (IOException e){
+           int errCode = 3000;
+           String errMsg = "IOException caught while compiling POMergeJoin";
+            throw new MRCompilerException(errMsg, errCode,e);
+        }
+       catch(CloneNotSupportedException e){
+           int errCode = 2127;
+           String errMsg = "Cloning exception caught while compiling POMergeJoin";
+           throw new MRCompilerException(errMsg, errCode, PigException.BUG, e);
+       }
     }
 
     @Override
@@ -1284,7 +1497,7 @@ public class TezCompiler extends PhyPlanVisitor {
         project.setResultType(DataType.BAG);
         project.setStar(false);
         project.setColumn(1);
-        POForEach forEach = getForEach(project, sort.getRequestedParallelism());
+        POForEach forEach = TezCompilerUtil.getForEach(project, sort.getRequestedParallelism(), scope, nig);
         oper1.plan.addAsLeaf(forEach);
 
         boolean[] sortOrder;
@@ -1442,7 +1655,7 @@ public class TezCompiler extends PhyPlanVisitor {
             lr.setOutputKey(sortOpers[0].getOperatorKey().toString());
             lrSample.setOutputKey(quantJobParallelismPair.first.getOperatorKey().toString());
 
-            connect(tezPlan, prevOper, sortOpers[0]);
+            TezCompilerUtil.connect(tezPlan, prevOper, sortOpers[0]);
             TezEdgeDescriptor edge = sortOpers[0].inEdges.get(prevOper.getOperatorKey());
 
             // TODO: Convert to unsorted shuffle after TEZ-661
@@ -1450,9 +1663,9 @@ public class TezCompiler extends PhyPlanVisitor {
             // edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
             edge.partitionerClass = RoundRobinPartitioner.class;
 
-            connect(tezPlan, prevOper, quantJobParallelismPair.first);
+            TezCompilerUtil.connect(tezPlan, prevOper, quantJobParallelismPair.first);
 
-            connect(tezPlan, quantJobParallelismPair.first, sortOpers[0]);
+            TezCompilerUtil.connect(tezPlan, quantJobParallelismPair.first, sortOpers[0]);
             edge = sortOpers[0].inEdges.get(quantJobParallelismPair.first.getOperatorKey());
             edge.dataMovementType = DataMovementType.BROADCAST;
             edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
@@ -1461,7 +1674,7 @@ public class TezCompiler extends PhyPlanVisitor {
             lr.setOutputKey(sortOpers[0].getOperatorKey().toString());
             sortOpers[0].sampleOperator = quantJobParallelismPair.first;
 
-            connect(tezPlan, sortOpers[0], sortOpers[1]);
+            TezCompilerUtil.connect(tezPlan, sortOpers[0], sortOpers[1]);
             edge = sortOpers[1].inEdges.get(sortOpers[0].getOperatorKey());
             edge.partitionerClass = WeightedRangePartitionerTez.class;
 
@@ -1574,30 +1787,7 @@ public class TezCompiler extends PhyPlanVisitor {
         }
     }
 
-    private POForEach getForEach(POProject project, int rp) {
-        PhysicalPlan forEachPlan = new PhysicalPlan();
-        forEachPlan.add(project);
 
-        List<PhysicalPlan> forEachPlans = Lists.newArrayList();
-        forEachPlans.add(forEachPlan);
-
-        List<Boolean> flatten = Lists.newArrayList();
-        flatten.add(true);
-
-        POForEach forEach = new POForEach(new OperatorKey(scope, nig.getNextNodeId(scope)), rp, forEachPlans, flatten);
-        forEach.setResultType(DataType.BAG);
-        return forEach;
-    }
-
-    // Get a plain POForEach: ForEach X generate flatten($1)
-    private POForEach getForEachPlain() {
-        POProject project = new POProject(new OperatorKey(scope, nig.getNextNodeId(scope)));
-        project.setResultType(DataType.TUPLE);
-        project.setStar(false);
-        project.setColumn(1);
-        project.setOverloaded(true);
-        return getForEach(project, -1);
-    }
 
     /**
      * Returns a POPackage with default packager. This method shouldn't be used
