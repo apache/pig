@@ -229,6 +229,7 @@ public class PigServer {
         }
 
         addJarsFromProperties();
+        markPredeployedJarsFromProperties();
 
         if (PigStats.get() == null) {
             PigStats.start(pigContext.getExecutionEngine().instantiatePigStats());
@@ -260,6 +261,22 @@ public class PigServer {
                             PigException.USER_ENVIRONMENT,
                             e
                     );
+                }
+            }
+        }
+    }
+
+    private void markPredeployedJarsFromProperties() throws ExecException {
+        // mark jars as predeployed from properties
+        String jar_str = pigContext.getProperties().getProperty("pig.predeployed.jars");
+		
+        if(jar_str != null){
+            // Use File.pathSeparator (":" on Linux, ";" on Windows)
+            // to correctly handle path aggregates as they are represented
+            // on the Operating System.
+            for(String jar : jar_str.split(File.pathSeparator)){
+                if (jar.length() > 0) {
+                    pigContext.markJarAsPredeployed(jar);
                 }
             }
         }
