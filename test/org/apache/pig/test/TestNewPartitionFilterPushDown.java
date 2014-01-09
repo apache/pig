@@ -61,6 +61,7 @@ import org.apache.pig.newplan.logical.expression.OrExpression;
 import org.apache.pig.newplan.logical.expression.ProjectExpression;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
 import org.apache.pig.newplan.logical.relational.LOFilter;
+import org.apache.pig.newplan.logical.relational.LogToPhyTranslationVisitor;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.rules.LoadTypeCastInserter;
 import org.apache.pig.newplan.logical.rules.PartitionFilterOptimizer;
@@ -466,6 +467,10 @@ public class TestNewPartitionFilterPushDown {
                         (it.next() instanceof LOFilter));
             }
         }
+
+        // Test that the filtered plan can be translated to physical plan (PIG-3657)
+        LogToPhyTranslationVisitor translator = new LogToPhyTranslationVisitor(newLogicalPlan);
+        translator.visit();
     }
 
     /**
@@ -669,6 +674,16 @@ public class TestNewPartitionFilterPushDown {
                 "or (name is null);" +
                 "store b into 'out';";
         negativeTest(q, Arrays.asList("srcid", "mrkt", "dstid"));
+    }
+
+    // PIG-3657
+    @Test
+    public void testFilteredPlanWithLogToPhyTranslator() throws Exception {
+        String q = "a = load 'foo' using " + TestLoader.class.getName() +
+                "('srcid:int, mrkt:chararray', 'srcid') as (f1, f2);" +
+                "b = filter a by (f1 < 5 or (f1 == 10 and f2 == 'UK'));" +
+                "store b into 'out';";
+        testFull(q, "((srcid < 5) or (srcid == 10))", "((f1 < 5) or (f2 == 'UK'))", false);
     }
 
     //// helper methods ///////
