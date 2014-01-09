@@ -64,6 +64,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3617: problem with temp file deletion in MAPREDUCE operator (nezihyigitbasi via cheolsoo)
+
 PIG-3649: POPartialAgg incorrectly calculates size reduction when multiple values aggregated (tmwoodruff via daijy)
 
 PIG-3650: Fix for PIG-3100 breaks column pruning (tmwoodruff via daijy)

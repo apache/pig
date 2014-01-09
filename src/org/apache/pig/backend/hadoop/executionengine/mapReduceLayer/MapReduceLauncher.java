@@ -418,7 +418,10 @@ public class MapReduceLauncher extends Launcher{
         if (!"false".equalsIgnoreCase(pc.getProperties().getProperty(PigConfiguration.PIG_DELETE_TEMP_FILE))) {
             // Clean up all the intermediate data
             for (String path : intermediateVisitor.getIntermediate()) {
-                FileLocalizer.delete(path, pc);
+                // Skip non-file system paths such as hbase, see PIG-3617
+                if (Utils.hasFileSystemImpl(new Path(path), conf)) {
+                    FileLocalizer.delete(path, pc);
+                }
             }
         }
 
