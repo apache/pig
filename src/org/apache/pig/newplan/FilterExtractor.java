@@ -180,22 +180,34 @@ public class FilterExtractor {
     }
 
     private LogicalExpression andLogicalExpressions(
-            LogicalExpressionPlan plan, LogicalExpression a, LogicalExpression b) {
+            LogicalExpressionPlan plan, LogicalExpression a, LogicalExpression b) throws FrontendException {
         if (a == null) {
             return b;
         }
         if (b == null) {
             return a;
         }
+        if (!plan.ops.contains(a)) {
+            a = a.deepCopy(plan);
+        }
+        if (!plan.ops.contains(b)) {
+            b = b.deepCopy(plan);
+        }
         LogicalExpression andOp = new AndExpression(plan, a, b);
         return andOp;
     }
 
     private LogicalExpression orLogicalExpressions(
-            LogicalExpressionPlan plan, LogicalExpression a, LogicalExpression b) {
+            LogicalExpressionPlan plan, LogicalExpression a, LogicalExpression b) throws FrontendException {
         // Or 2 operators if they are not null
         if (a == null || b == null) {
             return null;
+        }
+        if (!plan.ops.contains(a)) {
+            a = a.deepCopy(plan);
+        }
+        if (!plan.ops.contains(b)) {
+            b = b.deepCopy(plan);
         }
         LogicalExpression orOp = new OrExpression(plan, a, b);
         return orOp;
@@ -234,7 +246,7 @@ public class FilterExtractor {
             //              AND (leftState.filterExpr OR rightState.pushdownExpr)
             //              AND (leftState.filterExpr OR rightState.filterExpr)
             state.pushdownExpr = orLogicalExpressions(pushdownExprPlan, leftState.pushdownExpr, rightState.pushdownExpr);
-            if(state.pushdownExpr == null) {
+            if (state.pushdownExpr == null) {
                 // Whatever we did so far on the right tree is all wasted :(
                 // Undo all the mutation (AND OR distributions) until now
                 removeFromFilteredPlan(leftState.filterExpr);
