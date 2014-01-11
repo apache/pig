@@ -66,6 +66,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3662: Static loadcaster in BinStorage can cause exception (lbendig via rohini)
+
 PIG-3657: New partition filter extractor fails with NPE (cheolsoo)
 
 PIG-3617: problem with temp file deletion in MAPREDUCE operator (nezihyigitbasi via cheolsoo)
