@@ -325,6 +325,7 @@ public class TezCompiler extends PhyPlanVisitor {
                 tezPlan.add(curTezOp);
 
                 plan.disconnect(op, p);
+                oper.segmentBelow = true;
                 tezPlan.connect(oper, curTezOp);
                 phyToTezOpMap.put(op, curTezOp);
                 return;
@@ -1736,7 +1737,7 @@ public class TezCompiler extends PhyPlanVisitor {
         try {
             POStoreTez store = new POStoreTez(op);
             nonBlocking(store);
-            phyToTezOpMap.put(store, curTezOp);
+            phyToTezOpMap.put(op, curTezOp);
             if (store.getSFile()!=null && store.getSFile().getFuncSpec()!=null)
                 curTezOp.UDFs.add(store.getSFile().getFuncSpec().toString());
         } catch (Exception e) {
