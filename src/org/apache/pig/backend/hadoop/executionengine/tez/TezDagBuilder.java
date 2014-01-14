@@ -98,6 +98,7 @@ import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.mapreduce.combine.MRCombiner;
+import org.apache.tez.mapreduce.committer.MROutputCommitter;
 import org.apache.tez.mapreduce.common.MRInputSplitDistributor;
 import org.apache.tez.mapreduce.hadoop.InputSplitInfo;
 import org.apache.tez.mapreduce.hadoop.MRHelpers;
@@ -433,7 +434,8 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
             vertex.addOutput(store.getOperatorKey().toString(),
                     new OutputDescriptor(MROutput.class.getName())
-                            .setUserPayload(TezUtils.createUserPayloadFromConf(outputPayLoad)));
+                            .setUserPayload(TezUtils.createUserPayloadFromConf(outputPayLoad)),
+                            MROutputCommitter.class);
         }
 
         if (stores.size() > 0) {
