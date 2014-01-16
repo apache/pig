@@ -792,14 +792,34 @@ public class TezCompiler extends PhyPlanVisitor {
                 phyToTezOpMap.put(op, curTezOp);
             }
 
+            // If the parallelism of the current vertex is one and it doesn't do a LOAD (whose
+            // parallelism is determined by the InputFormat), we don't need another vertex.
+            if (curTezOp.requestedParallelism == 1) {
+                boolean canStop = true;
+                for (PhysicalOperator planOp : curTezOp.plan.getRoots()) {
+                    if (planOp instanceof POLoad) {
+                      canStop = false;
+                      break;
+                    }
+                }
+                if (canStop) {
+                    return;
+                }
+            }
+
             // Need to add POLocalRearrange to the end of the last tezOp before we shuffle.
             POLocalRearrange lr = localRearrangeFactory.create();
             curTezOp.plan.addAsLeaf(lr);
 
-            // Mark the start of a new TezOperator, connecting the inputs. Note the parallelism is
-            // currently fixed to 1 for all TezOperators.
-            // TODO Explicitly set the parallelism once this is supported by TezOperator.
+            // Mark the start of a new TezOperator, connecting the inputs.
             blocking();
+
+            // As an optimization, don't do any sorting in the shuffle, as LIMIT does not make any
+            // ordering guarantees.
+            // TODO Enable this after TEZ-661
+            // TezEdgeDescriptor edge = curTezOp.inEdges.get(lastOp.getOperatorKey());
+            // edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
+            // edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
 
             // Then add a POPackage and a POForEach to the start of the new tezOp.
             POPackage pkg = getPackage(1, DataType.TUPLE);
@@ -815,6 +835,9 @@ public class TezCompiler extends PhyPlanVisitor {
             } else {
                 curTezOp.plan.addAsLeaf(op);
             }
+
+            // Explicitly set the parallelism for the new vertex to 1.
+            curTezOp.requestedParallelism = 1;
         } catch (Exception e) {
             int errCode = 2034;
             String msg = "Error compiling operator " + op.getClass().getSimpleName();

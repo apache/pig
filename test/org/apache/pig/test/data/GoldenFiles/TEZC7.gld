@@ -2,11 +2,10 @@
 # There are 1 DAGs in the session
 #--------------------------------------------------
 #--------------------------------------------------
-# TEZ DAG plan: scope-121
+# TEZ DAG plan: scope-114
 #--------------------------------------------------
-Tez vertex scope-87	->	Tez vertex scope-90,Tez vertex scope-103,Tez vertex scope-103,Tez vertex scope-107,Tez vertex scope-116,
+Tez vertex scope-87	->	Tez vertex scope-90,Tez vertex scope-103,Tez vertex scope-103,Tez vertex scope-107,
 Tez vertex scope-90
-Tez vertex scope-116
 Tez vertex scope-107
 Tez vertex scope-103
 
@@ -26,9 +25,7 @@ Tez vertex scope-87
 |   |   |
 |   |   1-2: Split - scope-80
 |   |   |   |
-|   |   |   Local Rearrange[tuple]{tuple}(false) - scope-115	->	 scope-116
-|   |   |   |   |
-|   |   |   |   Project[tuple][*] - scope-114
+|   |   |   f1: Store(file:///tmp/output/f1:org.apache.pig.builtin.PigStorage) - scope-86
 |   |   |   |
 |   |   |   |---f1: Limit - scope-85
 |   |   |       |
@@ -114,17 +111,6 @@ b1: Split - scope-20
 |       |       |---Project[bag][1] - scope-28
 |
 |---b1: Package(Packager)[tuple]{int} - scope-17
-Tez vertex scope-116
-# Plan on vertex
-f1: Store(file:///tmp/output/f1:org.apache.pig.builtin.PigStorage) - scope-86
-|
-|---Limit - scope-120
-    |
-    |---New For Each(true)[bag] - scope-119
-        |   |
-        |   Project[tuple][1] - scope-118
-        |
-        |---Package(Packager)[tuple]{tuple} - scope-117
 Tez vertex scope-107
 # Plan on vertex
 c3: Store(file:///tmp/output/c1:org.apache.pig.builtin.PigStorage) - scope-68
