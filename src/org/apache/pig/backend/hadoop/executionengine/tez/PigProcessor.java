@@ -63,8 +63,8 @@ public class PigProcessor implements LogicalIOProcessor {
     private PhysicalOperator leaf;
 
     private Configuration conf;
-    
-    public static Map<String, Object> quantileMap = null;
+
+    public static Map<String, Object> sampleMap = null;
 
     @Override
     public void initialize(TezProcessorContext processorContext)
@@ -98,15 +98,16 @@ public class PigProcessor implements LogicalIOProcessor {
 
     }
 
+    @SuppressWarnings("rawtypes")
     @Override
     public void run(Map<String, LogicalInput> inputs,
             Map<String, LogicalOutput> outputs) throws Exception {
         initializeInputs(inputs);
 
         initializeOutputs(outputs);
-        
+
         if (conf.get("pig.sampleVertex") != null) {
-            collectQuantile((BroadcastKVReader)inputs.get(conf.get("pig.sampleVertex")).getReader());
+            collectSample((BroadcastKVReader)inputs.get(conf.get("pig.sampleVertex")).getReader());
         }
 
         List<PhysicalOperator> leaves = null;
@@ -198,16 +199,14 @@ public class PigProcessor implements LogicalIOProcessor {
             }
         }
     }
-    
-    private void collectQuantile(BroadcastKVReader reader) throws IOException {
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    private void collectSample(BroadcastKVReader reader) throws IOException {
         reader.next();
         Object val = reader.getCurrentValue();
         NullableTuple nTup = (NullableTuple) val;
         Tuple t = (Tuple) nTup.getValueAsPigType();
-        // the Quantiles file has a tuple as under:
-        // (numQuantiles, bag of samples)
-        // numQuantiles here is the reduce parallelism
-        quantileMap = (Map<String, Object>) t.get(0);
+        sampleMap = (Map<String, Object>) t.get(0);
     }
 
 }

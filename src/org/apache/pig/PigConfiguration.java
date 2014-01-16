@@ -149,6 +149,17 @@ public class PigConfiguration {
     public static final String PIG_DELETE_TEMP_FILE = "pig.delete.temp.files";
 
     /**
+     * For a given mean and a confidence, a sample rate is obtained from a poisson udf
+     */
+    public static final String SAMPLE_RATE = "pig.sksampler.samplerate";
+
+    /**
+     * % of memory available for the input data. This is currently equal to the
+     * memory available for the skewed join
+     */
+    public static final String PERC_MEM_AVAIL = "pig.skewedjoin.reduce.memusage";
+
+    /**
       * This key used to control the maximum size loaded into
       * the distributed cache when doing fragment-replicated join
       */

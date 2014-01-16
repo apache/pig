@@ -28,6 +28,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.io.NullablePartitionWritable;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.plan.NodeIdGenerator;
@@ -44,12 +45,14 @@ import org.apache.tez.runtime.library.output.OnFileUnorderedKVOutput;
 public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
 
     private static final long serialVersionUID = 1L;
-    private static Result empty = new Result(POStatus.STATUS_NULL, null);
+    protected static Result empty = new Result(POStatus.STATUS_NULL, null);
 
-    private String outputKey;
-    private transient KeyValueWriter writer;
+    protected String outputKey;
+    protected transient KeyValueWriter writer;
+
     // Tez union is implemented as LR + Pkg
     private boolean isUnion = false;
+    private boolean isSkewedJoin = false;
 
     public POLocalRearrangeTez(OperatorKey k) {
         super(k);
@@ -77,6 +80,14 @@ public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
 
     public void setUnion(boolean isUnion) {
         this.isUnion = isUnion;
+    }
+
+    public boolean isSkewedJoin() {
+        return isSkewedJoin;
+    }
+
+    public void setSkewedJoin(boolean isSkewedJoin) {
+        this.isSkewedJoin = isSkewedJoin;
     }
 
     @Override
@@ -124,10 +135,25 @@ public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
                     Byte index = (Byte)result.get(0);
                     PigNullableWritable key = null;
                     NullableTuple val = null;
-                    if (isUnion()) {
+                    if (isUnion) {
                         // Use the entire tuple as both key and value
                         key = HDataType.getWritableComparableTypes(result.get(1), keyType);
                         val = new NullableTuple((Tuple)result.get(1));
+                    } else if (isSkewedJoin) {
+                        // Skewed join uses NullablePartitionWritable as key
+                        Byte tupleKeyIdx = 2;
+                        Byte tupleValIdx = 3;
+
+                        Integer partitionIndex = -1;
+                        tupleKeyIdx--;
+                        tupleValIdx--;
+
+                        key = HDataType.getWritableComparableTypes(result.get(tupleKeyIdx), keyType);
+                        NullablePartitionWritable wrappedKey = new NullablePartitionWritable(key);
+                        wrappedKey.setIndex(index);
+                        wrappedKey.setPartition(partitionIndex);
+                        key = wrappedKey;
+                        val = new NullableTuple((Tuple)result.get(tupleValIdx));
                     } else {
                         key = HDataType.getWritableComparableTypes(result.get(1), keyType);
                         val = new NullableTuple((Tuple)result.get(2));

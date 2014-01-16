@@ -90,8 +90,7 @@ public class POReservoirSample extends PhysicalOperator {
                 rowProcessed++;
             } else if (res.returnStatus == POStatus.STATUS_NULL) {
                 continue;
-            }
-            else {
+            } else {
                 break;
             }
         }

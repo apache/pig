@@ -90,6 +90,8 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     // to add additional map reduce operator with 1 reducer after this
     long limit = -1;
 
+    private boolean skewedJoin = false;
+
     // Flag to indicate if the small input splits need to be combined to form a larger
     // one in order to reduce the number of mappers. For merge join, both tables
     // are NOT combinable for correctness.
@@ -287,8 +289,20 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
         return globalSort;
     }
 
+    public void setLimitAfterSort(boolean limitAfterSort) {
+        this.limitAfterSort = limitAfterSort;
+    }
+
     public boolean isLimitAfterSort() {
         return limitAfterSort;
+    }
+
+    public void setSkewedJoin(boolean skewedJoin) {
+        this.skewedJoin = skewedJoin;
+    }
+
+    public boolean isSkewedJoin() {
+        return skewedJoin;
     }
 
     protected void noCombineSmallSplits() {

@@ -53,6 +53,7 @@ public class POShuffleTezLoad extends POPackage implements TezLoad {
     private boolean[] readOnce;
 
     private WritableComparator comparator = null;
+    private boolean isSkewedJoin = false;
 
     public POShuffleTezLoad(POPackage pack) {
         super(pack);
@@ -63,7 +64,7 @@ public class POShuffleTezLoad extends POPackage implements TezLoad {
             throws ExecException {
         try {
             comparator = ReflectionUtils.newInstance(
-                    TezDagBuilder.comparatorForKeyType(pkgr.getKeyType()), conf);
+                    TezDagBuilder.comparatorForKeyType(pkgr.getKeyType(), isSkewedJoin), conf);
         } catch (JobCreationException e) {
             throw new ExecException(e);
         }
@@ -193,6 +194,14 @@ public class POShuffleTezLoad extends POPackage implements TezLoad {
 
     public void addInputKey(String inputKey) {
         inputKeys.add(inputKey);
+    }
+
+    public void setSkewedJoins(boolean isSkewedJoin) {
+        this.isSkewedJoin = isSkewedJoin;
+    }
+
+    public boolean isSkewedJoin() {
+        return isSkewedJoin;
     }
 
     @Override

@@ -36,9 +36,9 @@ public class WeightedRangePartitionerTez extends WeightedRangePartitioner {
     @Override
     public void init() {
         Map<String, Object> quantileMap = null;
-        if (PigProcessor.quantileMap!=null){
-            // We've already collect quantileMap in PigProcessor.quantileMap
-            quantileMap = PigProcessor.quantileMap;
+        if (PigProcessor.sampleMap != null) {
+            // We've collected sampleMap in PigProcessor
+            quantileMap = PigProcessor.sampleMap;
         } else {
             throw new RuntimeException(this.getClass().getSimpleName()
                     + " used but no quantiles found");
