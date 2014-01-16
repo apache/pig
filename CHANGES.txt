@@ -66,6 +66,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3664: Piggy Bank XPath UDF can't be called (nezihyigitbasi via daijy)
+
 PIG-3662: Static loadcaster in BinStorage can cause exception (lbendig via rohini)
 
 PIG-3657: New partition filter extractor fails with NPE (cheolsoo)

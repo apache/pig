@@ -29,6 +29,7 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.w3c.dom.Document;
 import org.xml.sax.InputSource;
 
@@ -115,15 +116,32 @@ public class XPath extends EvalFunc<String> {
         }
     }
 
-    @Override
-    public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
-        
-        final List<FuncSpec> funcList = new ArrayList<FuncSpec>();
-        
-        funcList.add(new FuncSpec(this.getClass().getName(), new Schema(new Schema.FieldSchema(null, DataType.CHARARRAY))));
-        
-        return funcList;
-    }
+	@Override
+	public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
+
+		final List<FuncSpec> funcList = new ArrayList<FuncSpec>();
+
+		/*either two chararray arguments*/
+		List<FieldSchema> fields = new ArrayList<FieldSchema>();
+		fields.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
+		fields.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
+
+		Schema twoArgInSchema = new Schema(fields);
+
+		funcList.add(new FuncSpec(this.getClass().getName(), twoArgInSchema));
+
+		/*or two chararray and a boolean argument*/
+		fields = new ArrayList<FieldSchema>();
+		fields.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
+		fields.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
+		fields.add(new Schema.FieldSchema(null, DataType.BOOLEAN));
+
+		Schema threeArgInSchema = new Schema(fields);
+
+		funcList.add(new FuncSpec(this.getClass().getName(), threeArgInSchema));
+
+		return funcList;
+	}
 
 }
 
