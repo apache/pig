@@ -28,6 +28,8 @@ PIG-3419: Pluggable Execution Engine (achalsoni81 via cheolsoo)
 
 IMPROVEMENTS
 
+PIG-3573: Provide StoreFunc and LoadFunc for Accumulo (elserj via daijy)
+
 PIG-3653: Add support for pre-deployed jars (tmwoodruff via daijy)
 
 PIG-3645: Move FileLocalizer.setR() calls to unit tests (cheolsoo)

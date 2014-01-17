@@ -1,2 +1,3 @@
 **/TestHBaseStorage.java
 **/TestStreamingUDF.java
+**/TestAccumuloPigCluster.java
