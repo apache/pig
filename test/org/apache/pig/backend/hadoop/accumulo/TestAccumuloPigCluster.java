@@ -100,6 +100,7 @@ public class TestAccumuloPigCluster {
 
     @AfterClass
     public static void stopClusters() throws Exception {
+        cluster.shutDown();
         accumuloCluster.stop();
         FileUtils.deleteDirectory(tmpdir);
     }
