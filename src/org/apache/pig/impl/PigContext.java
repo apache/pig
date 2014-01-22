@@ -148,6 +148,9 @@ public class PigContext implements Serializable {
     private static ThreadLocal<ArrayList<String>> packageImportList =
         new ThreadLocal<ArrayList<String>>();
 
+    private static ThreadLocal<Map<String,Class<?>>> classCache = 
+        new ThreadLocal<Map<String,Class<?>>>();
+
     private Properties log4jProperties = new Properties();
 
     private Level defaultLogLevel = Level.INFO;
@@ -620,12 +623,30 @@ public class PigContext implements Serializable {
         return new ContextClassLoader(urls, PigContext.class.getClassLoader());
     }
 
+    private static Map<String,Class<?>> getClassCache() {
+        Map<String,Class<?>> c = classCache.get();
+        if (c == null) {
+            c = new HashMap<String,Class<?>>();
+            classCache.set(c);
+        }
+             
+        return c;
+    }
+    
     @SuppressWarnings("rawtypes")
     public static Class resolveClassName(String name) throws IOException{
+        Map<String,Class<?>> cache = getClassCache(); 
+        
+        Class c = cache.get(name);
+        if (c != null) {
+            return c;
+        }
+        
         for(String prefix: getPackageImportList()) {
-            Class c;
             try {
                 c = Class.forName(prefix+name,true, PigContext.classloader);
+                cache.put(name, c);
+                
                 return c;
             }
             catch (ClassNotFoundException e) {
