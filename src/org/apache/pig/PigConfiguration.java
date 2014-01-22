@@ -81,13 +81,13 @@ public class PigConfiguration {
      * will be set in the environment.
      */
     public static final String PIG_STREAMING_ENVIRONMENT = "pig.streaming.environment";
-    
+
     /**
      * This key is used to define the default load func. Pig will fallback on PigStorage
      * as default in case this is undefined.
      */
     public static final String PIG_DEFAULT_LOAD_FUNC = "pig.default.load.func";
-    
+
     /**
      * This key is used to define the default store func. Pig will fallback on PigStorage
      * as default in case this is undefined.
@@ -110,7 +110,7 @@ public class PigConfiguration {
      */
     public static final String MAX_SCRIPT_SIZE = "pig.script.max.size";
 
-   /**
+    /**
      * This key is used to define whether to have intermediate file compressed
      */
     public static final String PIG_ENABLE_TEMP_FILE_COMPRESSION = "pig.tmpfilecompression";
@@ -134,9 +134,19 @@ public class PigConfiguration {
     public static final String PIG_DELETE_TEMP_FILE = "pig.delete.temp.files";
 
     /**
-      * This key used to control the maximum size loaded into
-      * the distributed cache when doing fragment-replicated join
-      */
+     * This key used to control the maximum size loaded into
+     * the distributed cache when doing fragment-replicated join
+     */
     public static final String PIG_JOIN_REPLICATED_MAX_BYTES = "pig.join.replicated.max.bytes";
+
+    /**
+     * This key is to turn on auto local mode feature
+     */
+    public static final String PIG_AUTO_LOCAL_ENABLED = "pig.auto.local.enabled";
+
+    /**
+     * Controls the max threshold size to convert jobs to run in local mode
+     */
+    public static final String PIG_AUTO_LOCAL_INPUT_MAXBYTES = "pig.auto.local.input.maxbytes";
 }
 
