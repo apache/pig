@@ -26,9 +26,9 @@ PIG-3485: Remove CastUtils.bytesToMap(byte[] b) method from LoadCaster interface
 
 PIG-3419: Pluggable Execution Engine (achalsoni81 via cheolsoo)
 
-IMPROVEMENTS
-
 PIG-2207: Support custom counters for aggregating warnings from different udfs (aniket486)
+
+IMPROVEMENTS
 
 PIG-3654: Add class cache to PigContext (tmwoodruff via daijy)
 
