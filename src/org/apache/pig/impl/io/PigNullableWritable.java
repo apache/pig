@@ -61,6 +61,14 @@ public abstract class PigNullableWritable implements WritableComparable {
 
     private byte mIndex;
 
+    public static PigNullableWritable newInstance(PigNullableWritable copy) throws Exception {
+        PigNullableWritable instance = copy.getClass().newInstance();
+        instance.mNull = copy.mNull;
+        instance.mValue = copy.mValue;
+        instance.mIndex = copy.mIndex;
+        return instance;
+    }
+
     /**
      * Compare two nullable objects.  Step one is to check if either or both
      * are null.  If one is null and the other is not, then the one that is

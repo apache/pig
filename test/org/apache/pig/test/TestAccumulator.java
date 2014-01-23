@@ -37,7 +37,6 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class TestAccumulator {
@@ -413,8 +412,6 @@ public class TestAccumulator {
     }
 
     @Test
-    @Ignore
-    // TODO: Enabled the test case after SecondaryKeyOptimization is implemented in Tez
     public void testAccumWithDistinct() throws IOException{
         pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (id:int, f);");
         pigServer.registerQuery("B = group A by id;");
@@ -429,15 +426,16 @@ public class TestAccumulator {
 
         Iterator<Tuple> iter = pigServer.openIterator("C");
 
+        int count = 0;
         while(iter.hasNext()) {
+            count++;
             Tuple t = iter.next();
             assertEquals(expected.get((Integer)t.get(0)), (Integer)t.get(1));
         }
+        assertEquals(4, count);
     }
 
     @Test
-    @Ignore
-    // TODO: Enabled the test case after SecondaryKeyOptimization is implemented in Tez
     public void testAccumWithSort() throws IOException{
         pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (id:int, f);");
         pigServer.registerQuery("B = foreach A generate id, f, id as t;");
@@ -453,10 +451,13 @@ public class TestAccumulator {
 
         Iterator<Tuple> iter = pigServer.openIterator("D");
 
+        int count = 0;
         while(iter.hasNext()) {
+            count++;
             Tuple t = iter.next();
             assertEquals(expected.get((Integer)t.get(0)), (String)t.get(1));
         }
+        assertEquals(4, count);
     }
 
     @Test
@@ -683,8 +684,6 @@ public class TestAccumulator {
      * @throws ParseException
      */
     @Test
-    @Ignore
-    // TODO: Enabled the test case after SecondaryKeyOptimization is implemented in Tez
     public void testAccumAfterNestedOp() throws IOException, ParserException{
         // test group by
         pigServer.registerQuery("A = load '" + INPUT_FILE1 + "' as (id:int, fruit);");

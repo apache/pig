@@ -81,7 +81,7 @@ public class POLocalRearrange extends PhysicalOperator {
     protected boolean mIsDistinct = false;
 
     protected boolean isCross = false;
-    
+
     protected Result inp;
 
     // map to store mapping of projected columns to
@@ -529,11 +529,16 @@ public class POLocalRearrange extends PhysicalOperator {
         return keyType;
     }
 
+    public byte getMainKeyType() {
+        return mainKeyType;
+    }
+
     public void setKeyType(byte keyType) {
         if (useSecondaryKey) {
             this.mainKeyType = keyType;
         } else {
             this.keyType = keyType;
+            this.mainKeyType = keyType;
         }
     }
 

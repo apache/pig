@@ -28,8 +28,6 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.WritableComparable;
@@ -37,13 +35,9 @@ import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.OutputFormat;
-import org.apache.hadoop.mapreduce.Partitioner;
 import org.apache.hadoop.mapreduce.security.TokenCache;
 import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.hadoop.yarn.api.records.LocalResourceType;
-import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
@@ -53,6 +47,8 @@ import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.JobCreationException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigGroupingPartitionWritableComparator;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler.PigSecondaryKeyGroupComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PhyPlanSetter;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigBigDecimalRawComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigBigIntegerRawComparator;
@@ -66,8 +62,10 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigInputForm
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigIntRawComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigLongRawComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigOutputFormat;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSecondaryKeyComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigTextRawComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigTupleSortComparator;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.SecondaryKeyPartitioner;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.EndOfAllInputSetter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -193,9 +191,10 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         for (POLocalRearrangeTez lr : lrs) {
             if (lr.getOutputKey().equals(to.getOperatorKey().toString())) {
                 byte keyType = lr.getKeyType();
-                setIntermediateInputKeyValue(keyType, conf, to.isSkewedJoin());
-                setIntermediateOutputKeyValue(keyType, conf, to.isSkewedJoin());
-                conf.set("pig.reduce.key.type", Byte.toString(keyType));
+                setIntermediateInputKeyValue(keyType, conf, to);
+                setIntermediateOutputKeyValue(keyType, conf, to);
+                // In case of secondary key sort, main key type is the actual key type
+                conf.set("pig.reduce.key.type", Byte.toString(lr.getMainKeyType()));
                 break;
             }
         }
@@ -203,26 +202,40 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         conf.setBoolean("mapred.mapper.new-api", true);
         conf.set("pig.pigContext", ObjectSerializer.serialize(pc));
 
-        if (edge.partitionerClass != null) {
-            conf.setClass("mapreduce.job.partitioner.class",
-                    edge.partitionerClass, Partitioner.class);
-        }
-
         if(from.isGlobalSort() || from.isLimitAfterSort()){
             if (from.isGlobalSort()) {
-                FileSystem fs = FileSystem.get(globalConf);
-                Path quantFilePath = new Path(from.getQuantFile() + "/part-r-00000");
-                FileStatus fstat = fs.getFileStatus(quantFilePath);
-                LocalResource quantFileResource = LocalResource.newInstance(
-                        ConverterUtils.getYarnUrlFromPath(fstat.getPath()),
-                        LocalResourceType.FILE,
-                        LocalResourceVisibility.APPLICATION,
-                        fstat.getLen(),
-                        fstat.getModificationTime());
-                localResources.put(quantFilePath.getName(), quantFileResource);
                 conf.set("pig.sortOrder",
                         ObjectSerializer.serialize(from.getSortOrder()));
             }
+        }
+
+        if (edge.isUseSecondaryKey()) {
+            conf.set("pig.secondarySortOrder",
+                    ObjectSerializer.serialize(edge.getSecondarySortOrder()));
+            conf.set(org.apache.hadoop.mapreduce.MRJobConfig.PARTITIONER_CLASS_ATTR,
+                    SecondaryKeyPartitioner.class.getName());
+            // In MR - job.setSortComparatorClass() or MRJobConfig.KEY_COMPARATOR
+            conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_COMPARATOR_CLASS,
+                    PigSecondaryKeyComparator.class.getName());
+            // In MR - job.setOutputKeyClass() or MRJobConfig.OUTPUT_KEY_CLASS
+            conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_CLASS, NullableTuple.class.getName());
+            // These needs to be on the vertex as well for POShuffleTezLoad to pick it up.
+            // Tez framework also expects this to be per vertex and not edge. IFile.java picks
+            // up keyClass and valueClass from vertex config. TODO - check with Tez folks
+            conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_COMPARATOR_CLASS,
+                    PigSecondaryKeyComparator.class.getName());
+            conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_CLASS, NullableTuple.class.getName());
+            // In MR - job.setGroupingComparatorClass() or MRJobConfig.GROUP_COMPARATOR_CLASS
+            // TODO: Check why tez-mapreduce ReduceProcessor use two different tez
+            // settings for the same MRJobConfig.GROUP_COMPARATOR_CLASS and use only one
+            conf.set(TezJobConfig.TEZ_RUNTIME_GROUP_COMPARATOR_CLASS, PigSecondaryKeyGroupComparator.class.getName());
+            conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_SECONDARY_COMPARATOR_CLASS,
+                    PigSecondaryKeyGroupComparator.class.getName());
+        }
+
+        if (edge.partitionerClass != null) {
+            conf.set(org.apache.hadoop.mapreduce.MRJobConfig.PARTITIONER_CLASS_ATTR,
+                    edge.partitionerClass.getName());
         }
 
         in.setUserPayload(TezUtils.createUserPayloadFromConf(conf));
@@ -235,11 +248,11 @@ public class TezDagBuilder extends TezOpPlanVisitor {
     private void addCombiner(PhysicalPlan combinePlan, TezOperator pkgTezOp,
             Configuration conf) throws IOException {
         POPackage combPack = (POPackage) combinePlan.getRoots().get(0);
-        setIntermediateInputKeyValue(combPack.getPkgr().getKeyType(), conf, pkgTezOp.isSkewedJoin());
+        setIntermediateInputKeyValue(combPack.getPkgr().getKeyType(), conf, pkgTezOp);
 
         POLocalRearrange combRearrange = (POLocalRearrange) combinePlan
                 .getLeaves().get(0);
-        setIntermediateOutputKeyValue(combRearrange.getKeyType(), conf, pkgTezOp.isSkewedJoin());
+        setIntermediateOutputKeyValue(combRearrange.getKeyType(), conf, pkgTezOp);
 
         LoRearrangeDiscoverer lrDiscoverer = new LoRearrangeDiscoverer(
                 combinePlan, pkgTezOp, combPack);
@@ -324,8 +337,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             byte keyType = pack.getPkgr().getKeyType();
             tezOp.plan.remove(pack);
             payloadConf.set("pig.reduce.package", ObjectSerializer.serialize(pack));
-            payloadConf.set("pig.reduce.key.type", Byte.toString(keyType));
-            setIntermediateInputKeyValue(keyType, payloadConf, tezOp.isSkewedJoin());
+            setIntermediateInputKeyValue(keyType, payloadConf, tezOp);
             POShuffleTezLoad newPack;
             if (tezOp.isUnion()) {
                 newPack = new POUnionTezLoad(pack);
@@ -355,7 +367,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             }
 
             setIntermediateInputKeyValue(pack.getPkgr().getKeyType(), payloadConf,
-                    tezOp.isSkewedJoin());
+                    tezOp);
         }
 
         payloadConf.setClass("mapreduce.outputformat.class",
@@ -601,28 +613,32 @@ public class TezDagBuilder extends TezOpPlanVisitor {
     }
 
     @SuppressWarnings("rawtypes")
-    private void setIntermediateInputKeyValue(byte keyType, Configuration conf, boolean isSkewedJoin)
+    private void setIntermediateInputKeyValue(byte keyType, Configuration conf, TezOperator tezOp)
             throws JobCreationException, ExecException {
-        Class<? extends WritableComparable> keyClass = HDataType
-                .getWritableComparableTypes(keyType).getClass();
-        if (isSkewedJoin) {
+        if (tezOp.isUseSecondaryKey()) {
+            conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_CLASS,
+                    NullableTuple.class.getName());
+        } else if (tezOp.isSkewedJoin()) {
             conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_CLASS,
                     NullablePartitionWritable.class.getName());
         } else {
+            Class<? extends WritableComparable> keyClass = HDataType
+                    .getWritableComparableTypes(keyType).getClass();
             conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_CLASS,
                     keyClass.getName());
+
         }
+        selectInputComparator(conf, keyType, tezOp);
         conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_VALUE_CLASS,
                 NullableTuple.class.getName());
-        selectInputComparator(conf, keyType, isSkewedJoin);
     }
 
     @SuppressWarnings("rawtypes")
-    private void setIntermediateOutputKeyValue(byte keyType, Configuration conf, boolean isSkewedJoin)
+    private void setIntermediateOutputKeyValue(byte keyType, Configuration conf, TezOperator tezOp)
             throws JobCreationException, ExecException {
         Class<? extends WritableComparable> keyClass = HDataType
                 .getWritableComparableTypes(keyType).getClass();
-        if (isSkewedJoin) {
+        if (tezOp.isSkewedJoin()) {
             conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_CLASS,
                     NullablePartitionWritable.class.getName());
         } else {
@@ -633,16 +649,12 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 NullableTuple.class.getName());
         conf.set(TezJobConfig.TEZ_RUNTIME_PARTITIONER_CLASS,
                 MRPartitioner.class.getName());
-        selectOutputComparator(keyType, conf, isSkewedJoin);
+        selectOutputComparator(keyType, conf, tezOp);
     }
 
-    static Class<? extends WritableComparator> comparatorForKeyType(byte keyType, boolean isSkewedJoin)
+    static Class<? extends WritableComparator> comparatorForKeyType(byte keyType)
             throws JobCreationException {
         // TODO: Handle sorting like in JobControlCompiler
-
-        if (isSkewedJoin) {
-            return JobControlCompiler.PigGroupingPartitionWritableComparator.class;
-        }
 
         switch (keyType) {
         case DataType.BOOLEAN:
@@ -695,19 +707,47 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         }
     }
 
-    void selectInputComparator(Configuration conf, byte keyType, boolean isSkewedJoin)
+    void selectInputComparator(Configuration conf, byte keyType, TezOperator tezOp)
             throws JobCreationException {
         // TODO: Handle sorting like in JobControlCompiler
-        conf.setClass(
-                TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_COMPARATOR_CLASS,
-                comparatorForKeyType(keyType, isSkewedJoin), RawComparator.class);
+        // TODO: Group comparators as in JobControlCompiler
+        if (tezOp.isUseSecondaryKey()) {
+            conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_COMPARATOR_CLASS,
+                    PigSecondaryKeyComparator.class.getName());
+            conf.set(TezJobConfig.TEZ_RUNTIME_GROUP_COMPARATOR_CLASS,
+                    PigSecondaryKeyGroupComparator.class.getName());
+            conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_SECONDARY_COMPARATOR_CLASS,
+                    PigSecondaryKeyGroupComparator.class.getName());
+        } else {
+            if (tezOp.isSkewedJoin()) {
+                // TODO: PigGroupingPartitionWritableComparator only used as Group comparator in MR.
+                // What should be TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_COMPARATOR_CLASS if same as MR?
+                conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_COMPARATOR_CLASS,
+                        PigGroupingPartitionWritableComparator.class.getName());
+                conf.set(TezJobConfig.TEZ_RUNTIME_GROUP_COMPARATOR_CLASS,
+                        PigGroupingPartitionWritableComparator.class.getName());
+                conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_SECONDARY_COMPARATOR_CLASS,
+                        PigGroupingPartitionWritableComparator.class.getName());
+            } else {
+                conf.setClass(
+                        TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_COMPARATOR_CLASS,
+                        comparatorForKeyType(keyType), RawComparator.class);
+            }
+        }
     }
 
-    void selectOutputComparator(byte keyType, Configuration conf, boolean isSkewedJoin)
+    void selectOutputComparator(byte keyType, Configuration conf, TezOperator tezOp)
             throws JobCreationException {
         // TODO: Handle sorting like in JobControlCompiler
-        conf.setClass(
-                TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_COMPARATOR_CLASS,
-                comparatorForKeyType(keyType, isSkewedJoin), RawComparator.class);
+        if (tezOp.isSkewedJoin()) {
+            // TODO: PigGroupingPartitionWritableComparator only used as Group comparator in MR.
+            // What should be TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_COMPARATOR_CLASS if same as MR?
+            conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_COMPARATOR_CLASS,
+                    PigGroupingPartitionWritableComparator.class.getName());
+        } else {
+            conf.setClass(
+                    TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_COMPARATOR_CLASS,
+                    comparatorForKeyType(keyType), RawComparator.class);
+        }
     }
 }

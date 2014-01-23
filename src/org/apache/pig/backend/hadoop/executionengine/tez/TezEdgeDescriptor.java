@@ -34,10 +34,18 @@ public class TezEdgeDescriptor {
 
     public String inputClassName;
     public String outputClassName;
-    public Class<? extends Partitioner> partitionerClass;
+
     public SchedulingType schedulingType;
     public DataSourceType dataSourceType;
     public DataMovementType dataMovementType;
+
+    public Class<? extends Partitioner> partitionerClass;
+
+    // If true, we will use secondary key sort in the job
+    private boolean useSecondaryKey = false;
+
+    // Sort order for secondary keys;
+    private boolean[] secondarySortOrder;
 
     public TezEdgeDescriptor() {
         combinePlan = new PhysicalPlan();
@@ -50,4 +58,25 @@ public class TezEdgeDescriptor {
         dataSourceType = DataSourceType.PERSISTED;
         dataMovementType = DataMovementType.SCATTER_GATHER;
     }
+
+    public boolean isUseSecondaryKey() {
+        return useSecondaryKey;
+    }
+
+    public void setUseSecondaryKey(boolean useSecondaryKey) {
+        this.useSecondaryKey = useSecondaryKey;
+    }
+
+    public boolean[] getSecondarySortOrder() {
+        return secondarySortOrder;
+    }
+
+    public void setSecondarySortOrder(boolean[] secondarySortOrder) {
+        if(null == secondarySortOrder) return;
+        this.secondarySortOrder = new boolean[secondarySortOrder.length];
+        for(int i = 0; i < secondarySortOrder.length; ++i) {
+            this.secondarySortOrder[i] = secondarySortOrder[i];
+        }
+    }
+
 }

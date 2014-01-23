@@ -43,12 +43,11 @@ public class SkewedPartitionerTez extends SkewedPartitioner {
 
         try {
             if (distMap != null) {
-                Integer[] totalReducers = new Integer[1];
 
                 // The distMap is structured as (key, min, max) where min, max
                 // being the index of the reducers
                 DataBag partitionList = (DataBag) distMap.get(PartitionSkewedKeys.PARTITION_LIST);
-                totalReducers[0] = Integer.valueOf("" + distMap.get(PartitionSkewedKeys.TOTAL_REDUCERS));
+                totalReducers = Integer.valueOf("" + distMap.get(PartitionSkewedKeys.TOTAL_REDUCERS));
                 Iterator<Tuple> it = partitionList.iterator();
                 while (it.hasNext()) {
                     Tuple idxTuple = it.next();
@@ -56,7 +55,7 @@ public class SkewedPartitionerTez extends SkewedPartitioner {
                     Integer minIndex = (Integer) idxTuple.get(idxTuple.size() - 2);
                     // Used to replace the maxIndex with the number of reducers
                     if (maxIndex < minIndex) {
-                        maxIndex = totalReducers[0] + maxIndex;
+                        maxIndex = totalReducers + maxIndex;
                     }
 
                     Tuple keyT;

@@ -95,6 +95,7 @@ public class MapReduceLauncher extends Launcher{
 
     private boolean aggregateWarning = false;
 
+    @Override
     public void kill() {
         try {
             log.debug("Receive kill signal");
@@ -111,6 +112,7 @@ public class MapReduceLauncher extends Launcher{
         }
     }
 
+    @Override
     public void killJob(String jobID, Configuration conf) throws BackendException {
         try {
             if (conf != null) {
@@ -639,9 +641,9 @@ public class MapReduceLauncher extends Launcher{
         la.adjust();
         }
         // Optimize to use secondary sort key if possible
-        prop = pc.getProperties().getProperty("pig.exec.nosecondarykey");
+        prop = pc.getProperties().getProperty(PigConfiguration.PIG_EXEC_NO_SECONDARY_KEY);
         if (!pc.inIllustrator && !("true".equals(prop)))  {
-            SecondaryKeyOptimizer skOptimizer = new SecondaryKeyOptimizer(plan);
+            SecondaryKeyOptimizerMR skOptimizer = new SecondaryKeyOptimizerMR(plan);
             skOptimizer.visit();
         }
 

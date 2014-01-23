@@ -24,6 +24,7 @@ import java.io.FileInputStream;
 import java.io.PrintStream;
 import java.util.Properties;
 
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -78,8 +79,7 @@ public class TestTezCompiler {
                 "c = foreach b generate y;" +
                 "store c into 'file:///tmp/output';";
 
-        PhysicalPlan pp = Util.buildPp(pigServer, query);
-        run(pp, "test/org/apache/pig/test/data/GoldenFiles/TEZC1.gld");
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC1.gld");
     }
 
     @Test
@@ -90,8 +90,7 @@ public class TestTezCompiler {
                 "c = foreach b generate group, COUNT(a.x);" +
                 "store c into 'file:///tmp/output';";
 
-        PhysicalPlan pp = Util.buildPp(pigServer, query);
-        run(pp, "test/org/apache/pig/test/data/GoldenFiles/TEZC2.gld");
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC2.gld");
     }
 
     @Test
@@ -103,8 +102,7 @@ public class TestTezCompiler {
                 "d = foreach c generate a::x as x, y, z;" +
                 "store d into 'file:///tmp/output';";
 
-        PhysicalPlan pp = Util.buildPp(pigServer, query);
-        run(pp, "test/org/apache/pig/test/data/GoldenFiles/TEZC3.gld");
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC3.gld");
     }
 
     @Test
@@ -115,8 +113,7 @@ public class TestTezCompiler {
                 "c = foreach b generate y;" +
                 "store c into 'file:///tmp/output';";
 
-        PhysicalPlan pp = Util.buildPp(pigServer, query);
-        run(pp, "test/org/apache/pig/test/data/GoldenFiles/TEZC4.gld");
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC4.gld");
     }
 
     @Test
@@ -127,8 +124,7 @@ public class TestTezCompiler {
                 "c = foreach b generate y;" +
                 "store c into 'file:///tmp/output';";
 
-        PhysicalPlan pp = Util.buildPp(pigServer, query);
-        run(pp, "test/org/apache/pig/test/data/GoldenFiles/TEZC5.gld");
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC5.gld");
     }
 
     @Test
@@ -139,8 +135,7 @@ public class TestTezCompiler {
                 "c = foreach b { d = distinct a; generate COUNT(d); };" +
                 "store c into 'file:///tmp/output';";
 
-        PhysicalPlan pp = Util.buildPp(pigServer, query);
-        run(pp, "test/org/apache/pig/test/data/GoldenFiles/TEZC13.gld");
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC13.gld");
     }
 
     @Test
@@ -152,8 +147,7 @@ public class TestTezCompiler {
                 "store c into 'file:///tmp/output/c';" +
                 "store d into 'file:///tmp/output/d';";
 
-        PhysicalPlan pp = Util.buildPp(pigServer, query);
-        run(pp, "test/org/apache/pig/test/data/GoldenFiles/TEZC6.gld");
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC6.gld");
     }
 
     @Test
@@ -162,32 +156,31 @@ public class TestTezCompiler {
                 "a = load 'file:///tmp/input' as (x:int, y:int);" +
                 "split a into b if x <= 5, c if x <= 10, d if x >10;" +
                 "split b into e if x < 3, f if x >= 3;" +
-                // No Combiner on this split groupby when both b1 and b2 are stored
+                // No Combiner on the edge to b1/b2 vertex as both b1 and b2 are stored
                 "b1 = group b by x;" +
                 "b2 = foreach b1 generate group, SUM(b.x);" +
                 // Case of two outputs within a split going to same edge as input
                 "c1 = join c by x, b by x;" +
                 "c2 = group c by x;" +
-                // TODO: Combiner as only c3 is stored.
+                // Combiner on the edge to c3 vertex
                 "c3 = foreach c2 generate group, SUM(c.x);" +
                 "d1 = filter d by x == 5;" +
-                //"e1 = order e by x;" + //TODO
+                "e1 = order e by x;" +
                 // TODO: Physical plan has extra split for f1 - 1-2: Split - scope-80
                 // POSplit has only 1 sub plan. Optimized and removed in MR plan.
                 // Needs to be removed in Tez plan as well.
                 "f1 = limit f 1;" +
-                //"f2 = union d1, f1;" + //TODO
+                "f2 = union d1, f1;" +
                 "store b1 into 'file:///tmp/output/b1';" +
                 "store b2 into 'file:///tmp/output/b2';" +
                 "store c1 into 'file:///tmp/output/c1';" +
                 "store c3 into 'file:///tmp/output/c1';" +
                 "store d1 into 'file:///tmp/output/d1';" +
-                //"store e1 into 'file:///tmp/output/e1';" +
-                "store f1 into 'file:///tmp/output/f1';";
-                //"store f2 into 'file:///tmp/output/f2';";
+                "store e1 into 'file:///tmp/output/e1';" +
+                "store f1 into 'file:///tmp/output/f1';" +
+                "store f2 into 'file:///tmp/output/f2';";
 
-        PhysicalPlan pp = Util.buildPp(pigServer, query);
-        run(pp, "test/org/apache/pig/test/data/GoldenFiles/TEZC7.gld");
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC7.gld");
     }
 
     @Test
@@ -195,13 +188,13 @@ public class TestTezCompiler {
         String query =
                 "a = load 'file:///tmp/input' as (x:int, y:int);" +
                 "b = group a by x;" +
-                "b1 = foreach b generate group, COUNT(a.y);" +
+                "b = foreach b generate group, COUNT(a.x);" +
                 "c = group a by (x,y);" +
-                "store b1 into 'file:///tmp/output/b';" +
+                "c = foreach c generate group, COUNT(a.y);" +
+                "store b into 'file:///tmp/output/b';" +
                 "store c into 'file:///tmp/output/c';";
 
-        PhysicalPlan pp = Util.buildPp(pigServer, query);
-        run(pp, "test/org/apache/pig/test/data/GoldenFiles/TEZC8.gld");
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC8.gld");
     }
 
     @Test
@@ -216,8 +209,7 @@ public class TestTezCompiler {
                 "store d into 'file:///tmp/output/d';" +
                 "store e into 'file:///tmp/output/e';";
 
-        PhysicalPlan pp = Util.buildPp(pigServer, query);
-        run(pp, "test/org/apache/pig/test/data/GoldenFiles/TEZC9.gld");
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC9.gld");
     }
 
     @Test
@@ -229,8 +221,7 @@ public class TestTezCompiler {
                 "d = join a by x, b by x, c by x using 'replicated';" +
                 "store d into 'file:///tmp/output/d';";
 
-        PhysicalPlan pp = Util.buildPp(pigServer, query);
-        run(pp, "test/org/apache/pig/test/data/GoldenFiles/TEZC10.gld");
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC10.gld");
     }
 
     @Test
@@ -243,21 +234,55 @@ public class TestTezCompiler {
                 "d = join b1 by group, c by x using 'replicated';" +
                 "store d into 'file:///tmp/output/e';";
 
-        PhysicalPlan pp = Util.buildPp(pigServer, query);
-        run(pp, "test/org/apache/pig/test/data/GoldenFiles/TEZC11.gld");
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC11.gld");
     }
 
+    @Test
     public void testStream() throws Exception {
         String query =
                 "a = load 'file:///tmp/input' using PigStorage(',') as (x:int, y:int);" +
                 "b = stream a through `stream.pl -n 5`;" +
                 "STORE b INTO 'file:///tmp/output';";
 
-        PhysicalPlan pp = Util.buildPp(pigServer, query);
-        run(pp, "test/org/apache/pig/test/data/GoldenFiles/TEZC12.gld");
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC12.gld");
     }
 
-    private void run(PhysicalPlan pp, String expectedFile) throws Exception {
+    @Test
+    public void testSecondaryKeySort() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input' using PigStorage(',') as (x:int, y:int, z:int);" +
+                "b = group a by $0;" +
+                "c = foreach b { d = limit a 10; e = order d by $1; f = order e by $0; generate group, f;};"+
+                "store c INTO 'file:///tmp/output';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC14.gld");
+
+        // With optimization turned off
+        pigServer.getPigContext().getProperties()
+                    .setProperty(PigConfiguration.PIG_EXEC_NO_SECONDARY_KEY, "true");
+
+        try {
+            run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC15.gld");
+        } finally {
+            pigServer.getPigContext().getProperties()
+                    .setProperty(PigConfiguration.PIG_EXEC_NO_SECONDARY_KEY, "false");
+        }
+
+
+    }
+
+    @Test
+    public void testOrderBy() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input' using PigStorage(',') as (x:int, y:int);" +
+                "b = order a by x;" +
+                "STORE b INTO 'file:///tmp/output';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC16.gld");
+    }
+
+    private void run(String query, String expectedFile) throws Exception {
+        PhysicalPlan pp = Util.buildPp(pigServer, query);
         TezLauncher launcher = new TezLauncher();
         TezPlanContainer tezPlanContainer = launcher.compile(pp, pc);
 

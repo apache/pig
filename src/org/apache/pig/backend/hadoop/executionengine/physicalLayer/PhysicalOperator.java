@@ -181,6 +181,10 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
         return (alias == null) ? "" : (alias + ": ");
     }
 
+    public void setAlias(String alias) {
+        this.alias = alias;
+    }
+
     public void addOriginalLocation(String alias, SourceLocation sourceLocation) {
         this.alias = alias;
         this.originalLocations.add(new OriginalLocation(alias, sourceLocation.line(), sourceLocation.offset()));
@@ -282,9 +286,7 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
         try {
             if (input == null && (inputs == null || inputs.size() == 0)) {
                 // log.warn("No inputs found. Signaling End of Processing.");
-                Result res = new Result();
-                res.returnStatus = POStatus.STATUS_EOP;
-                return res;
+                return new Result(POStatus.STATUS_EOP, null);
             }
 
             // Should be removed once the model is clear

@@ -19,6 +19,7 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.util;
 
 import java.net.URI;
 import java.util.LinkedList;
+import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -76,6 +77,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 
 import com.google.common.collect.Lists;
@@ -126,6 +128,25 @@ public class PlanHelper {
         OpFinder<C> finder = new OpFinder<C>(plan, opClass);
         finder.visit();
         return finder.getFoundOps();
+    }
+
+    /**
+     * Finds POLocalRearrange from POSplit sub-plan
+     * @param plan physical plan
+     * @param rearrangeKey operator key of the POLocalRearrange
+     * @return POLocalRearrange with the specified operator key which is in a sub-plan of POSplit
+     * @throws VisitorException
+     */
+    public static PhysicalPlan getLocalRearrangePlanFromSplit(PhysicalPlan plan, OperatorKey rearrangeKey) throws VisitorException {
+        List<POSplit> splits = PlanHelper.getPhysicalOperators(plan, POSplit.class);
+        for (POSplit split : splits) {
+            for (PhysicalPlan subPlan : split.getPlans()) {
+                if (subPlan.getOperator(rearrangeKey) != null) {
+                    return subPlan;
+                }
+            }
+        }
+        return plan;
     }
 
     private static class OpFinder<C extends PhysicalOperator> extends PhyPlanVisitor {
@@ -425,6 +446,7 @@ public class PlanHelper {
             visit(stream);
         }
 
+        @Override
         public void visitSkewedJoin(POSkewedJoin sk) throws VisitorException {
             super.visitSkewedJoin(sk);
             visit(sk);

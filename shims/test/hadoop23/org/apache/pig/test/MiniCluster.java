@@ -22,10 +22,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.mapreduce.filecache.DistributedCache;
-import org.apache.hadoop.mapreduce.v2.MiniMRYarnCluster;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
+import org.apache.hadoop.mapreduce.filecache.DistributedCache;
+import org.apache.hadoop.mapreduce.v2.MiniMRYarnCluster;
+import org.apache.pig.ExecType;
 
 /**
  * This class builds a single instance of itself with the Singleton
@@ -48,7 +49,12 @@ public class MiniCluster extends MiniGenericCluster {
     @Deprecated
     public static MiniCluster buildCluster() {
         System.setProperty("test.exec.type", "mr");
-        return (MiniCluster)MiniGenericCluster.buildCluster();
+        return (MiniCluster)MiniGenericCluster.buildCluster("mr");
+    }
+
+    @Override
+    protected ExecType getExecType() {
+        return ExecType.MAPREDUCE;
     }
 
     @Override

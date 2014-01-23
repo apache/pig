@@ -1,5 +1,6 @@
 package org.apache.pig.backend.hadoop.executionengine.tez;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,6 +12,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.data.DataType;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
@@ -18,6 +20,9 @@ import org.apache.pig.impl.plan.PlanException;
 import com.google.common.collect.Lists;
 
 public class TezCompilerUtil {
+
+    private TezCompilerUtil() {
+    }
 
     // simpleConnectTwoVertex is a utility to end a vertex equivalent to map and start vertex equivalent to
     // reduce in a tez operator:
@@ -64,11 +69,13 @@ public class TezCompilerUtil {
         connect(tezPlan, op1, op2);
     }
 
-    static public void connect(TezOperPlan plan, TezOperator from, TezOperator to) throws PlanException {
+    static public TezEdgeDescriptor connect(TezOperPlan plan, TezOperator from, TezOperator to) throws PlanException {
         plan.connect(from, to);
         // Add edge descriptors to old and new operators
-        to.inEdges.put(from.getOperatorKey(), new TezEdgeDescriptor());
-        from.outEdges.put(to.getOperatorKey(), new TezEdgeDescriptor());
+        TezEdgeDescriptor edge = new TezEdgeDescriptor();
+        to.inEdges.put(from.getOperatorKey(), edge);
+        from.outEdges.put(to.getOperatorKey(), edge);
+        return edge;
     }
 
     static public POForEach getForEach(POProject project, int rp, String scope, NodeIdGenerator nig) {
@@ -102,5 +109,13 @@ public class TezCompilerUtil {
         // optimizer, because it wasn't the user requesting it.
         st.setIsTmpStore(true);
         return st;
+    }
+
+    static public void setCustomPartitioner(String customPartitioner, TezOperator tezOp) throws IOException {
+        if (customPartitioner != null) {
+            for (TezEdgeDescriptor edge : tezOp.inEdges.values()) {
+                edge.partitionerClass = PigContext.resolveClassName(customPartitioner);
+            }
+        }
     }
 }

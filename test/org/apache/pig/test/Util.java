@@ -189,6 +189,7 @@ public class Util {
     static public Tuple buildBinTuple(final Object... args) throws IOException {
         return TupleFactory.getInstance().newTuple(Lists.transform(
                 Lists.newArrayList(args), new Function<Object, DataByteArray>() {
+                    @Override
                     public DataByteArray apply(Object o) {
                         if (o == null) {
                             return null;
@@ -376,6 +377,7 @@ public class Util {
         FileStatus[] files;
         if (fileStatus.isDir()) {
             files = fs.listStatus(path, new PathFilter() {
+                @Override
                 public boolean accept(Path p) {
                     return !p.getName().startsWith("_");
                 }
@@ -713,7 +715,7 @@ public class Util {
         if(Util.WINDOWS){
             filename = filename.replace('\\','/');
         }
-        if (context.getExecType() == ExecType.MAPREDUCE) {
+        if (context.getExecType() == ExecType.MAPREDUCE || context.getExecType().name().equals("TEZ")) {
             return FileLocalizer.hadoopify(filename, context);
         } else if (context.getExecType() == ExecType.LOCAL) {
             return filename;
@@ -780,7 +782,7 @@ public class Util {
             }else if(col instanceof DataBag){
                 Iterator<Tuple> it = ((DataBag)col).iterator();
                 while(it.hasNext()){
-                    convertStringToDataByteArray((Tuple)it.next());
+                    convertStringToDataByteArray(it.next());
                 }
             }
 
@@ -1063,7 +1065,7 @@ public class Util {
     public static PhysicalPlan buildPp(PigServer pigServer, String query)
     throws Exception {
         LogicalPlan lp = buildLp( pigServer, query );
-        return ((HExecutionEngine)pigServer.getPigContext().getExecutionEngine()).compile(lp, 
+        return ((HExecutionEngine)pigServer.getPigContext().getExecutionEngine()).compile(lp,
                 pigServer.getPigContext().getProperties());
     }
 
@@ -1229,21 +1231,21 @@ public class Util {
             return true;
         return false;
     }
-    
+
     public static boolean isHadoop203plus() {
         String version = org.apache.hadoop.util.VersionInfo.getVersion();
         if (version.matches("\\b0\\.20\\.2\\b"))
             return false;
         return true;
     }
-    
+
     public static boolean isHadoop205() {
         String version = org.apache.hadoop.util.VersionInfo.getVersion();
         if (version.matches("\\b0\\.20\\.205\\..+"))
             return true;
         return false;
     }
-    
+
     public static boolean isHadoop1_x() {
         String version = org.apache.hadoop.util.VersionInfo.getVersion();
         if (version.matches("\\b1\\.*\\..+"))

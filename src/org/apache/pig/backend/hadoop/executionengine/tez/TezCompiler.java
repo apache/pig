@@ -92,9 +92,9 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.CompilerUtils;
 import org.apache.pig.impl.util.MultiMap;
+import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.newplan.logical.relational.LOJoin;
@@ -237,12 +237,6 @@ public class TezCompiler extends PhyPlanVisitor {
 
         for (TezOperator tezOper : splitsSeen.values()) {
             int idx = 0;
-            List<POLocalRearrange> rearranges = PlanHelper
-                    .getPhysicalOperators(tezOper.plan, POLocalRearrange.class);
-            for (POLocalRearrange op : rearranges) {
-                op.setIndex(idx++);
-            }
-            idx = 0;
             List<POStore> strs = PlanHelper.getPhysicalOperators(tezOper.plan,
                     POStore.class);
             for (POStore op : strs) {
@@ -268,7 +262,6 @@ public class TezCompiler extends PhyPlanVisitor {
                 parentOper.outEdges.put(entry.getKey(), entry.getValue());
             }
         }
-        // TODO: handle custom partitioner, secondary key on edges
     }
 
     private void connectSoftLink() throws PlanException, IOException {
@@ -405,12 +398,18 @@ public class TezCompiler extends PhyPlanVisitor {
         tezPlan.add(newTezOp);
         for (TezOperator tezOp : compiledInputs) {
             tezOp.setClosed(true);
-            handleSplitAndConnect(tezOp, newTezOp);
+            handleSplitAndConnect(tezPlan, tezOp, newTezOp);
         }
         curTezOp = newTezOp;
     }
 
-    private void handleSplitAndConnect(TezOperator from, TezOperator to)
+    private TezEdgeDescriptor handleSplitAndConnect(TezOperPlan tezPlan, TezOperator from, TezOperator to)
+            throws PlanException {
+        return handleSplitAndConnect(tezPlan, from, to, true);
+    }
+
+    private TezEdgeDescriptor handleSplitAndConnect(TezOperPlan tezPlan,
+            TezOperator from, TezOperator to, boolean addToSplitPlan)
             throws PlanException {
         // Add edge descriptors from POLocalRearrange in POSplit
         // sub-plan to new operators
@@ -420,19 +419,23 @@ public class TezCompiler extends PhyPlanVisitor {
             POLocalRearrangeTez lr = (POLocalRearrangeTez) leaf;
             lr.setOutputKey(to.getOperatorKey().toString());
         }
+        TezEdgeDescriptor edge = null;
         if (from.isSplitSubPlan()) {
-            // Set inputs to null as POSplit will attach input to roots
-            for (PhysicalOperator root : from.plan.getRoots()) {
-                root.setInputs(null);
-            }
             TezOperator splitOp = splitsSeen.get(from.getSplitOperatorKey());
-            POSplit split = findPOSplit(splitOp, from.getSplitOperatorKey());
-            split.addPlan(from.plan);
-            addSubPlanPropertiesToParent(splitOp, curTezOp);
-            TezCompilerUtil.connect(tezPlan, splitOp, to);
+            if (addToSplitPlan) {
+                // Set inputs to null as POSplit will attach input to roots
+                for (PhysicalOperator root : from.plan.getRoots()) {
+                    root.setInputs(null);
+                }
+                POSplit split = findPOSplit(splitOp, from.getSplitOperatorKey());
+                split.addPlan(from.plan);
+                addSubPlanPropertiesToParent(splitOp, curTezOp);
+            }
+            edge = TezCompilerUtil.connect(tezPlan, splitOp, to);
         } else {
-            TezCompilerUtil.connect(tezPlan, from, to);
+            edge = TezCompilerUtil.connect(tezPlan, from, to);
         }
+        return edge;
     }
 
     private POSplit findPOSplit(TezOperator tezOp, OperatorKey splitKey)
@@ -647,12 +650,13 @@ public class TezCompiler extends PhyPlanVisitor {
         try {
             POLocalRearrange lr = localRearrangeFactory.create();
             lr.setDistinct(true);
+            lr.setAlias(op.getAlias());
             curTezOp.plan.addAsLeaf(lr);
-            curTezOp.customPartitioner = op.getCustomPartitioner();
             TezOperator lastOp = curTezOp;
 
             // Mark the start of a new TezOperator, connecting the inputs.
             blocking();
+            TezCompilerUtil.setCustomPartitioner(op.getCustomPartitioner(), curTezOp);
 
             // Add the DISTINCT plan as the combine plan. In MR Pig, the combiner is implemented
             // with a global variable and a specific DistinctCombiner class. This seems better.
@@ -660,6 +664,7 @@ public class TezCompiler extends PhyPlanVisitor {
             addDistinctPlan(combinePlan, 1);
 
             POLocalRearrangeTez clr = localRearrangeFactory.create();
+            clr.setOutputKey(curTezOp.getOperatorKey().toString());
             clr.setDistinct(true);
             combinePlan.addAsLeaf(clr);
 
@@ -745,11 +750,14 @@ public class TezCompiler extends PhyPlanVisitor {
                     lr.setOutputKey(curTezOp.getOperatorKey().toString());
 
                     tezOp.plan.addAsLeaf(lr);
-                    TezCompilerUtil.connect(tezPlan, tezOp, curTezOp);
-                    inputKeys.add(tezOp.getOperatorKey().toString());
+                    TezEdgeDescriptor edge = handleSplitAndConnect(tezPlan, tezOp, curTezOp);
+                    if (tezOp.getSplitOperatorKey() == null) {
+                        inputKeys.add(tezOp.getSplitOperatorKey().toString());
+                    } else {
+                        inputKeys.add(tezOp.getOperatorKey().toString());
+                    }
 
                     // Configure broadcast edges for replicated tables
-                    TezEdgeDescriptor edge = curTezOp.inEdges.get(tezOp.getOperatorKey());
                     edge.dataMovementType = DataMovementType.BROADCAST;
                     edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
                     edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
@@ -818,6 +826,7 @@ public class TezCompiler extends PhyPlanVisitor {
 
             // Need to add POLocalRearrange to the end of the last tezOp before we shuffle.
             POLocalRearrange lr = localRearrangeFactory.create();
+            lr.setAlias(op.getAlias());
             curTezOp.plan.addAsLeaf(lr);
 
             // Mark the start of a new TezOperator, connecting the inputs.
@@ -833,11 +842,14 @@ public class TezCompiler extends PhyPlanVisitor {
             // Then add a POPackage and a POForEach to the start of the new tezOp.
             POPackage pkg = getPackage(1, DataType.TUPLE);
             POForEach forEach = TezCompilerUtil.getForEachPlain(scope, nig);
+            pkg.setAlias(op.getAlias());
+            forEach.setAlias(op.getAlias());
             curTezOp.plan.add(pkg);
             curTezOp.plan.addAsLeaf(forEach);
 
             if (!pigContext.inIllustrator) {
                 POLimit limitCopy = new POLimit(new OperatorKey(scope, nig.getNextNodeId(scope)));
+                limitCopy.setAlias(op.getAlias());
                 limitCopy.setLimit(op.getLimit());
                 limitCopy.setLimitPlan(op.getLimitPlan());
                 curTezOp.plan.addAsLeaf(limitCopy);
@@ -889,7 +901,7 @@ public class TezCompiler extends PhyPlanVisitor {
     public void visitGlobalRearrange(POGlobalRearrange op) throws VisitorException {
         try {
             blocking();
-            curTezOp.customPartitioner = op.getCustomPartitioner();
+            TezCompilerUtil.setCustomPartitioner(op.getCustomPartitioner(), curTezOp);
             phyToTezOpMap.put(op, curTezOp);
         } catch (Exception e) {
             int errCode = 2034;
@@ -1179,6 +1191,7 @@ public class TezCompiler extends PhyPlanVisitor {
 
     @Override
     public void visitSkewedJoin(POSkewedJoin op) throws VisitorException {
+        //TODO: handle split and connect
         try {
             // LR that transfers loaded input to partition vertex
             POLocalRearrangeTez lrTez = localRearrangeFactory.create(LocalRearrangeType.NULL);
@@ -1939,21 +1952,18 @@ public class TezCompiler extends PhyPlanVisitor {
             Pair<TezOperator, Integer> quantJobParallelismPair = getQuantileJobs(op, rp);
             TezOperator[] sortOpers = getSortJobs(op, quantJobParallelismPair.second, keyType, fields);
 
-            lr.setOutputKey(sortOpers[0].getOperatorKey().toString());
-            lrSample.setOutputKey(quantJobParallelismPair.first.getOperatorKey().toString());
-
-            TezCompilerUtil.connect(tezPlan, prevOper, sortOpers[0]);
-            TezEdgeDescriptor edge = sortOpers[0].inEdges.get(prevOper.getOperatorKey());
+            TezEdgeDescriptor edge = handleSplitAndConnect(tezPlan, prevOper, sortOpers[0]);
 
             // TODO: Convert to unsorted shuffle after TEZ-661
             // edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
             // edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
             edge.partitionerClass = RoundRobinPartitioner.class;
 
-            TezCompilerUtil.connect(tezPlan, prevOper, quantJobParallelismPair.first);
+            handleSplitAndConnect(tezPlan, prevOper, quantJobParallelismPair.first, false);
+            lr.setOutputKey(sortOpers[0].getOperatorKey().toString());
+            lrSample.setOutputKey(quantJobParallelismPair.first.getOperatorKey().toString());
 
-            TezCompilerUtil.connect(tezPlan, quantJobParallelismPair.first, sortOpers[0]);
-            edge = sortOpers[0].inEdges.get(quantJobParallelismPair.first.getOperatorKey());
+            edge = TezCompilerUtil.connect(tezPlan, quantJobParallelismPair.first, sortOpers[0]);
             edge.dataMovementType = DataMovementType.BROADCAST;
             edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
             edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
@@ -1961,8 +1971,7 @@ public class TezCompiler extends PhyPlanVisitor {
             lr.setOutputKey(sortOpers[0].getOperatorKey().toString());
             sortOpers[0].sampleOperator = quantJobParallelismPair.first;
 
-            TezCompilerUtil.connect(tezPlan, sortOpers[0], sortOpers[1]);
-            edge = sortOpers[1].inEdges.get(sortOpers[0].getOperatorKey());
+            edge = TezCompilerUtil.connect(tezPlan, sortOpers[0], sortOpers[1]);
             edge.partitionerClass = WeightedRangePartitionerTez.class;
 
             curTezOp = sortOpers[1];
@@ -2052,6 +2061,7 @@ public class TezCompiler extends PhyPlanVisitor {
             // before we broadcast.
             for (int i = 0; i < compiledInputs.length; i++) {
                 POLocalRearrangeTez lr = localRearrangeFactory.create(i, LocalRearrangeType.STAR);
+                lr.setAlias(op.getAlias());
                 lr.setUnion(true);
                 compiledInputs[i].plan.addAsLeaf(lr);
             }
@@ -2062,6 +2072,7 @@ public class TezCompiler extends PhyPlanVisitor {
 
             // Then add a POPackage to the start of the new tezOp.
             POPackage pkg = getPackage(compiledInputs.length, DataType.TUPLE);
+            pkg.setAlias(op.getAlias());
             curTezOp.markUnion();
             curTezOp.plan.add(pkg);
             // TODO: Union should use OnFileUnorderedKVOutput instead of

@@ -25,9 +25,7 @@ import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.WritableComparator;
-import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.executionengine.JobCreationException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
@@ -39,6 +37,7 @@ import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
+import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.input.ShuffledMergedInput;
 
 public class POShuffleTezLoad extends POPackage implements TezLoad {
@@ -62,12 +61,8 @@ public class POShuffleTezLoad extends POPackage implements TezLoad {
     @Override
     public void attachInputs(Map<String, LogicalInput> inputs, Configuration conf)
             throws ExecException {
-        try {
-            comparator = ReflectionUtils.newInstance(
-                    TezDagBuilder.comparatorForKeyType(pkgr.getKeyType(), isSkewedJoin), conf);
-        } catch (JobCreationException e) {
-            throw new ExecException(e);
-        }
+
+        comparator = (WritableComparator) ConfigUtils.getInputKeySecondaryGroupingComparator(conf);
         try {
             for (String key : inputKeys) {
                 LogicalInput input = inputs.get(key);
@@ -105,7 +100,7 @@ public class POShuffleTezLoad extends POPackage implements TezLoad {
         while (res.returnStatus == POStatus.STATUS_EOP) {
             boolean hasData = false;
             Object cur = null;
-            Object min = null;
+            PigNullableWritable min = null;
 
             try {
                 for (int i = 0; i < numInputs; i++) {
@@ -113,11 +108,12 @@ public class POShuffleTezLoad extends POPackage implements TezLoad {
                         hasData = true;
                         cur = readers.get(i).getCurrentKey();
                         if (min == null || comparator.compare(min, cur) > 0) {
-                            min = cur;
+                            min = PigNullableWritable.newInstance((PigNullableWritable)cur);
+                            cur = min;
                         }
                     }
                 }
-            } catch (IOException e) {
+            } catch (Exception e) {
                 throw new ExecException(e);
             }
 
@@ -125,7 +121,7 @@ public class POShuffleTezLoad extends POPackage implements TezLoad {
                 return new Result(POStatus.STATUS_EOP, null);
             }
 
-            key = pkgr.getKey((PigNullableWritable) min);
+            key = pkgr.getKey(min);
 
             DataBag[] bags = new DataBag[numInputs];
             POPackageTupleBuffer buffer = new POPackageTupleBuffer();
@@ -133,11 +129,13 @@ public class POShuffleTezLoad extends POPackage implements TezLoad {
 
             try {
                 for (int i = 0; i < numInputs; i++) {
+
                     DataBag bag = null;
 
                     if (!finished[i]) {
                         cur = readers.get(i).getCurrentKey();
-                        if (comparator.compare(min, cur) == 0) {
+                        // We need to loop in case of Grouping Comparators
+                        while (comparator.compare(min, cur) == 0) {
                             Iterable<Object> vals = readers.get(i).getCurrentValues();
                             if (isAccumulative()) {
                                 // TODO: POPackageTupleBuffer expects the
@@ -150,14 +148,21 @@ public class POShuffleTezLoad extends POPackage implements TezLoad {
                                 // into a new list and pass the iterator of this
                                 // new list.
                                 for (Object val : vals) {
-                                    nTups.add((NullableTuple) val);
+                                    // Make a copy of key and val and avoid reference.
+                                    // getCurrentKey() or value iterator resets value
+                                    // on the same object by calling readFields() again.
+                                    nTups.add(new NullableTuple((NullableTuple) val));
                                 }
                                 // Attach input to POPackageTupleBuffer
-                                buffer.setKey(cur);
                                 buffer.setIterator(nTups.iterator());
-                                bag = new AccumulativeBag(buffer, i);
+                                if(bags[i] == null) {
+                                    buffer.setKey(cur);
+                                    bag = new AccumulativeBag(buffer, i);
+                                } else {
+                                    bag = bags[i];
+                                }
                             } else {
-                                bag = new InternalCachedBag(numInputs);
+                                bag = bags[i] == null? new InternalCachedBag(numInputs) : bags[i];
                                 for (Object val : vals) {
                                     NullableTuple nTup = (NullableTuple) val;
                                     int index = nTup.getIndex();
@@ -165,8 +170,12 @@ public class POShuffleTezLoad extends POPackage implements TezLoad {
                                     bag.add(tup);
                                 }
                             }
-                            finished[i] = !readers.get(i).next();
                             bags[i] = bag;
+                            finished[i] = !readers.get(i).next();
+                            if (finished[i]) {
+                                break;
+                            }
+                            cur = readers.get(i).getCurrentKey();
                         }
                     }
 

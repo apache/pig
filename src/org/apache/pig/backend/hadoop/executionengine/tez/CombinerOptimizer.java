@@ -20,13 +20,11 @@ package org.apache.pig.backend.hadoop.executionengine.tez;
 import java.util.List;
 
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.util.CombinerOptimizerUtil;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.DepthFirstWalker;
-import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 
 /**
@@ -34,7 +32,6 @@ import org.apache.pig.impl.plan.VisitorException;
  */
 public class CombinerOptimizer extends TezOpPlanVisitor {
     private CompilationMessageCollector messageCollector = null;
-    private TezOperPlan parentPlan;
     private boolean doMapAgg;
 
     public CombinerOptimizer(TezOperPlan plan, boolean doMapAgg) {
@@ -46,7 +43,6 @@ public class CombinerOptimizer extends TezOpPlanVisitor {
         super(plan, new DepthFirstWalker<TezOperator, TezOperPlan>(plan));
         this.messageCollector = messageCollector;
         this.doMapAgg = doMapAgg;
-        this.parentPlan = plan;
     }
 
     public CompilationMessageCollector getMessageCollector() {
@@ -60,37 +56,38 @@ public class CombinerOptimizer extends TezOpPlanVisitor {
             return;
         }
 
-        List<TezOperator> predecessors = parentPlan.getPredecessors(to);
+        List<TezOperator> predecessors = mPlan.getPredecessors(to);
         if (predecessors == null) {
             return;
         }
 
         for (TezOperator from : predecessors) {
-            List<POLocalRearrange> rearranges = PlanHelper.getPhysicalOperators(from.plan, POLocalRearrange.class);
+            List<POLocalRearrangeTez> rearranges = PlanHelper.getPhysicalOperators(from.plan, POLocalRearrangeTez.class);
             if (rearranges.isEmpty()) {
                 continue;
+            }
+
+            POLocalRearrangeTez connectingLR = null;
+            PhysicalPlan rearrangePlan = from.plan;
+            for (POLocalRearrangeTez lr : rearranges) {
+                if (lr.getOutputKey().equals(to.getOperatorKey().toString())) {
+                    connectingLR = lr;
+                    break;
+                }
+            }
+
+            if (from.plan.getOperator(connectingLR.getOperatorKey()) == null) {
+                // The POLocalRearrange is sub-plan of a POSplit
+                rearrangePlan = PlanHelper.getLocalRearrangePlanFromSplit(from.plan, connectingLR.getOperatorKey());
             }
 
             // Detected the POLocalRearrange -> POPackage pattern. Let's add
             // combiner if possible.
             PhysicalPlan combinePlan = to.inEdges.get(from.getOperatorKey()).combinePlan;
-            // TODO: Right now, CombinerOptimzerUtil doesn't handle a single map
-            // plan with multiple POLocalRearrange leaves. i.e. SPLIT + multiple
-            // GROUP BY with different keys.
-            CombinerOptimizerUtil.addCombiner(from.plan, to.plan, combinePlan, messageCollector, doMapAgg);
+            CombinerOptimizerUtil.addCombiner(rearrangePlan, to.plan, combinePlan, messageCollector, doMapAgg);
 
-            //Replace POLocalRearrange with POLocalRearrangeTez
-            if (!combinePlan.isEmpty()) {
-                POLocalRearrange lr = (POLocalRearrange) combinePlan.getLeaves().get(0);
-                POLocalRearrangeTez lrt = new POLocalRearrangeTez(lr);
-                lrt.setOutputKey(to.getOperatorKey().toString());
-                try {
-                    combinePlan.replace(lr, lrt);
-                } catch (PlanException e) {
-                    throw new VisitorException(e);
-                }
-            }
         }
     }
+
 }
 

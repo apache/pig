@@ -3,3 +3,7 @@
 **/TestTezLauncher.java
 **/TestCombiner.java
 **/TestAccumulator.java
+**/TestSplitStore.java
+**/TestCustomPartitioner.java
+## TODO: Runs fine individually. Hangs with file.out.index not found when run together. Likely Tez Bug
+##**/TestSecondarySortTez.java

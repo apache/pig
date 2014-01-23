@@ -9,7 +9,7 @@ Tez vertex scope-13
 
 Tez vertex scope-10
 # Plan on vertex
-Local Rearrange[tuple]{tuple}(false) - scope-12	->	 scope-13
+b: Local Rearrange[tuple]{tuple}(false) - scope-12	->	 scope-13
 |   |
 |   Project[tuple][*] - scope-11
 |
@@ -30,10 +30,10 @@ c: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-9
         |   |
         |   |---Project[bytearray][0] - scope-2
         |
-        |---Limit - scope-17
+        |---b: Limit - scope-17
             |
-            |---New For Each(true)[bag] - scope-16
+            |---b: New For Each(true)[bag] - scope-16
                 |   |
                 |   Project[tuple][1] - scope-15
                 |
-                |---Package(Packager)[tuple]{tuple} - scope-14
+                |---b: Package(Packager)[tuple]{tuple} - scope-14

@@ -28,7 +28,7 @@ public class ColumnInfo implements Cloneable {
     byte resultType;
     int startCol = -1;
     boolean isRangeProject = false;
-    
+
     public ColumnInfo(List<Integer> columns, byte type) {
         this.columns = columns;
         this.resultType = type;
@@ -44,7 +44,24 @@ public class ColumnInfo implements Cloneable {
         this.resultType = type;
         this.isRangeProject = true;
     }
-    
+
+    public byte getResultType() {
+        return resultType;
+    }
+
+    public int getStartCol() {
+        return startCol;
+    }
+
+    public boolean isRangeProject() {
+        return isRangeProject;
+    }
+
+    public List<Integer> getColumns() {
+        return columns;
+    }
+
+    @Override
     public String toString() {
         String result;
         if (isStar())
@@ -53,32 +70,33 @@ public class ColumnInfo implements Cloneable {
         result+=DataType.findTypeName(resultType);
         return result;
     }
-    
+
     private boolean isStar() {
         return isRangeProject && startCol == 0;
     }
 
+    @Override
     public boolean equals(Object o2)
     {
-        
+
         if (o2 == null || !(o2 instanceof ColumnInfo))
             return false;
         ColumnInfo c2 = (ColumnInfo)o2;
         if (
                 isRangeProject == c2.isRangeProject &&
                 startCol == c2.startCol &&
-                ((columns == null && c2.columns == null) || 
+                ((columns == null && c2.columns == null) ||
                         (columns != null && columns.equals(c2.columns)))
         )
             return true;
-        
+
         return false;
     }
     @Override
     public int hashCode() {
         return toString().hashCode();
     }
-    
+
     @Override
     public Object clone() throws CloneNotSupportedException{
         ColumnInfo newColInfo = (ColumnInfo)super.clone();
@@ -87,6 +105,6 @@ public class ColumnInfo implements Cloneable {
         cols.addAll(this.columns);
         newColInfo.columns = cols;
         return newColInfo;
-        
+
     }
 }

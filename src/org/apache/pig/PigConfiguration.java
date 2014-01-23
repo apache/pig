@@ -96,13 +96,13 @@ public class PigConfiguration {
      * will be set in the environment.
      */
     public static final String PIG_STREAMING_ENVIRONMENT = "pig.streaming.environment";
-    
+
     /**
      * This key is used to define the default load func. Pig will fallback on PigStorage
      * as default in case this is undefined.
      */
     public static final String PIG_DEFAULT_LOAD_FUNC = "pig.default.load.func";
-    
+
     /**
      * This key is used to define the default store func. Pig will fallback on PigStorage
      * as default in case this is undefined.
@@ -180,5 +180,11 @@ public class PigConfiguration {
      * Smaller files are combined untill this size is reached.
      */
     public static final String PIG_MAX_COMBINED_SPLIT_SIZE = "pig.maxCombinedSplitSize";
+
+    /**
+     * This key controls whether secondary sort key is used for optimization in case
+     * of nested distinct or sort
+     */
+    public static final String PIG_EXEC_NO_SECONDARY_KEY = "pig.exec.nosecondarykey";
 }
 

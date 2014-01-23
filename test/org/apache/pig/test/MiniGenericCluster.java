@@ -17,20 +17,20 @@
  */
 package org.apache.pig.test;
 
-import java.io.*;
+import java.io.IOException;
 import java.util.Properties;
-
-import org.apache.hadoop.hdfs.MiniDFSCluster;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.hdfs.MiniDFSCluster;
+import org.apache.pig.ExecType;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 
 /**
- * This class builds a single instance of itself with the Singleton 
- * design pattern. While building the single instance, it sets up a 
- * mini cluster that actually consists of a mini DFS cluster and a 
- * mini MapReduce cluster on the local machine and also sets up the 
+ * This class builds a single instance of itself with the Singleton
+ * design pattern. While building the single instance, it sets up a
+ * mini cluster that actually consists of a mini DFS cluster and a
+ * mini MapReduce cluster on the local machine and also sets up the
  * environment for Pig to run on top of the mini cluster.
  *
  * This class is the base class for MiniCluster, which has slightly
@@ -45,6 +45,9 @@ abstract public class MiniGenericCluster {
     protected static MiniGenericCluster INSTANCE = null;
     protected static boolean isSetup = false;
 
+    public static String EXECTYPE_MR = "mr";
+    public static String EXECTYPE_TEZ = "tez";
+
     /**
      * Returns the single instance of class MiniGenericCluster that represents
      * the resources for a mini dfs cluster and a mini mr (or tez) cluster. The
@@ -58,9 +61,16 @@ abstract public class MiniGenericCluster {
                 throw new RuntimeException("test.exec.type is not set");
             }
 
-            if (execType.equalsIgnoreCase("mr")) {
+            return buildCluster(execType);
+        }
+        return INSTANCE;
+    }
+
+    public static MiniGenericCluster buildCluster(String execType) {
+        if (INSTANCE == null) {
+            if (execType.equalsIgnoreCase(EXECTYPE_MR)) {
                 INSTANCE = new MiniCluster();
-            } else if (execType.equalsIgnoreCase("tez")) {
+            } else if (execType.equalsIgnoreCase(EXECTYPE_TEZ)) {
                 INSTANCE = new TezMiniCluster();
             } else {
                 throw new RuntimeException("Unknown test.exec.type: " + execType);
@@ -73,22 +83,25 @@ abstract public class MiniGenericCluster {
         return INSTANCE;
     }
 
+    abstract protected ExecType getExecType();
+
     abstract protected void setupMiniDfsAndMrClusters();
 
     public void shutDown(){
         INSTANCE.shutdownMiniDfsAndMrClusters();
     }
-    
+
+    @Override
     protected void finalize() {
         shutdownMiniDfsAndMrClusters();
     }
-    
+
     protected void shutdownMiniDfsAndMrClusters() {
         isSetup = false;
         shutdownMiniDfsClusters();
         shutdownMiniMrClusters();
     }
-    
+
     protected void shutdownMiniDfsClusters() {
         try {
             if (m_fileSys != null) { m_fileSys.close(); }
@@ -99,7 +112,7 @@ abstract public class MiniGenericCluster {
         m_fileSys = null;
         m_dfs = null;
     }
-    
+
     abstract protected void shutdownMiniMrClusters();
 
     public Properties getProperties() {
@@ -115,12 +128,12 @@ abstract public class MiniGenericCluster {
         errorIfNotSetup();
         m_conf.set(name, value);
     }
-    
+
     public FileSystem getFileSystem() {
         errorIfNotSetup();
         return m_fileSys;
     }
-    
+
     /**
      * Throw RunTimeException if isSetup is false
      */

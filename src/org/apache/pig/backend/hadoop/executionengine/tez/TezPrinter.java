@@ -54,6 +54,7 @@ public class TezPrinter extends TezOpPlanVisitor {
         mStream.println("Tez vertex " + tezOper.getOperatorKey().toString());
         if (tezOper.inEdges.size() > 0) {
             for (Entry<OperatorKey, TezEdgeDescriptor> inEdge : tezOper.inEdges.entrySet()) {
+                //TODO: Print other edge properties like custom partitioner
                 if (!inEdge.getValue().combinePlan.isEmpty()) {
                     mStream.println("# Combine plan on edge <" + inEdge.getKey() + ">");
                     PlanPrinter<PhysicalOperator, PhysicalPlan> printer =

@@ -535,16 +535,16 @@ public class TestPigServer {
         pig.registerQuery("c = group b by site;");
         pig.registerQuery("d = foreach c generate FLATTEN($1);");
         pig.registerQuery("e = group d by $2;");
-        
+
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PrintStream ps = new PrintStream(baos);
         pig.explain("e", "xml", true, false, ps, ps, null, null);
-        
+
         ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
         DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
         Document doc = dBuilder.parse(bais);
-        
+
         //Verify Logical and Physical Plans aren't supported.
         NodeList logicalPlan = doc.getElementsByTagName("logicalPlan");
         assertEquals(1, logicalPlan.getLength());
@@ -552,20 +552,20 @@ public class TestPigServer {
         NodeList physicalPlan = doc.getElementsByTagName("physicalPlan");
         assertEquals(1, physicalPlan.getLength());
         assertTrue(physicalPlan.item(0).getTextContent().contains("Not Supported"));
-        
+
         //Verify we have two loads and one is temporary
         NodeList loads = doc.getElementsByTagName("POLoad");
         assertEquals(2, loads.getLength());
-        
+
         boolean sawTempLoad = false;
         boolean sawNonTempLoad = false;
         for (int i = 0; i < loads.getLength(); i++) {
             Boolean isTempLoad = null;
             boolean hasAlias = false;
-            
+
             Node poLoad = loads.item(i);
             NodeList children = poLoad.getChildNodes();
-            
+
             for (int j = 0; j < children.getLength(); j++) {
                 Node child = children.item(j);
                 if (child.getNodeName().equals("alias")) {
@@ -579,7 +579,7 @@ public class TestPigServer {
                     }
                 }
             }
-            
+
             if (isTempLoad == null) {
                 fail("POLoad elements should have isTmpLoad child node.");
             } else if (isTempLoad && hasAlias) {
@@ -587,11 +587,11 @@ public class TestPigServer {
             } else if (!isTempLoad && !hasAlias) {
                 fail("Non temporary loads should be associated with alias.");
             }
-            
+
             sawTempLoad = sawTempLoad || isTempLoad;
             sawNonTempLoad = sawNonTempLoad || !isTempLoad;
         }
-        
+
         assertTrue(sawTempLoad && sawNonTempLoad);
     }
 

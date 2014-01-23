@@ -83,9 +83,9 @@ public class POReservoirSample extends PhysicalOperator {
         // populate the samples array with first numSamples tuples
         Result res = null;
         int rowProcessed = 0;
-        while (rowProcessed<numSamples) {
+        while (rowProcessed < numSamples) {
             res = processInput();
-            if(res.returnStatus == POStatus.STATUS_OK) {
+            if (res.returnStatus == POStatus.STATUS_OK) {
                 samples[rowProcessed] = res;
                 rowProcessed++;
             } else if (res.returnStatus == POStatus.STATUS_NULL) {
@@ -95,14 +95,14 @@ public class POReservoirSample extends PhysicalOperator {
             }
         }
 
-        int rowNum = numSamples+1;
+        int rowNum = numSamples + 1;
         Random randGen = new Random();
 
-        if(res.returnStatus == POStatus.STATUS_OK){ // did not exhaust all tuples
-            while(true){
+        if (res.returnStatus == POStatus.STATUS_OK) { // did not exhaust all tuples
+            while (true) {
                 // pick this as sample
                 Result sampleResult = processInput();
-                if(sampleResult.returnStatus == POStatus.STATUS_NULL) {
+                if (sampleResult.returnStatus == POStatus.STATUS_NULL) {
                     continue;
                 } else if (sampleResult.returnStatus != POStatus.STATUS_OK) {
                     break;
@@ -110,7 +110,7 @@ public class POReservoirSample extends PhysicalOperator {
 
                 // collect samples until input is exhausted
                 int rand = randGen.nextInt(rowNum);
-                if(rand < numSamples){
+                if (rand < numSamples) {
                     samples[rand] = sampleResult;
                 }
                 rowNum++;
@@ -125,11 +125,14 @@ public class POReservoirSample extends PhysicalOperator {
             if (illustrator != null) {
                 illustratorMarkup(samples[nextSampleIdx].result, samples[nextSampleIdx].result, 0);
             }
-            return samples[nextSampleIdx++];
+             Result res = samples[nextSampleIdx++];
+             if (res == null) { // Input data has lesser rows than numSamples
+                 return new Result(POStatus.STATUS_EOP, null);
+             }
+             return res;
         }
         else{
-            Result res = new Result();
-            res.returnStatus = POStatus.STATUS_EOP;
+            Result res = new Result(POStatus.STATUS_EOP, null);
             return res;
         }
     }

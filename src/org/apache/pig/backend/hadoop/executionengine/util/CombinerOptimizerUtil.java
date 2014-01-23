@@ -26,6 +26,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPartialAgg;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPreCombinerLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
+import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
@@ -42,9 +43,13 @@ import org.apache.pig.impl.util.Pair;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+@InterfaceAudience.Private
 public class CombinerOptimizerUtil {
     private static final String DISTINCT_UDF_CLASSNAME = org.apache.pig.builtin.Distinct.class.getName();
     private static final Log LOG = LogFactory.getLog(CombinerOptimizerUtil.class);
+
+    private CombinerOptimizerUtil() {
+    }
 
     /**
      * Algebraic functions and distinct in nested plan of a foreach are

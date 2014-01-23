@@ -150,7 +150,7 @@ public class TezLauncher extends Launcher {
             throws PlanException, IOException, VisitorException {
         TezCompiler comp = new TezCompiler(php, pc);
         TezOperPlan tezPlan = comp.compile();
-        Boolean nocombiner = Boolean.parseBoolean(pc.getProperties().getProperty(
+        boolean nocombiner = Boolean.parseBoolean(pc.getProperties().getProperty(
                 PigConfiguration.PROP_NO_COMBINER, "false"));
 
         // Run CombinerOptimizer on Tez plan
@@ -160,6 +160,15 @@ public class TezLauncher extends Launcher {
             CombinerOptimizer co = new CombinerOptimizer(tezPlan, doMapAgg);
             co.visit();
             co.getMessageCollector().logMessages(MessageType.Warning, aggregateWarning, log);
+        }
+
+        // Run optimizer to make use of secondary sort key when possible for nested foreach
+        // order by and distinct. Should be done before AccumulatorOptimizer
+        boolean noSecKeySort = Boolean.parseBoolean(pc.getProperties().getProperty(
+                PigConfiguration.PIG_EXEC_NO_SECONDARY_KEY, "false"));
+        if (!pc.inIllustrator && !noSecKeySort)  {
+            SecondaryKeyOptimizerTez skOptimizer = new SecondaryKeyOptimizerTez(tezPlan);
+            skOptimizer.visit();
         }
 
         // Run AccumulatorOptimizer on Tez plan

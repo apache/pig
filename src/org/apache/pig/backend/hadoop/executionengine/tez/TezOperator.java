@@ -59,9 +59,6 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     int requestedMemory = 1024;
     int requestedCpu = 1;
 
-    // Name of the Custom Partitioner used
-    String customPartitioner = null;
-
     // Presence indicates that this TezOper is sub-plan of a POSplit.
     // Only POStore or POLocalRearrange leaf can be a sub-plan of POSplit
     private OperatorKey splitOperatorKey = null;
@@ -78,9 +75,6 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
 
     //Indicates if this job is an order by job
     boolean globalSort = false;
-
-    //The quantiles file name if globalSort is true
-    String quantFile;
 
     //The sort order of the columns;
     //asc is true and desc is false
@@ -99,6 +93,9 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
 
     // If not null, need to collect sample sent from predecessor
     TezOperator sampleOperator = null;
+
+    // If true, we will use secondary key sort in the job
+    private boolean useSecondaryKey = false;
 
     // Types of blocking operators. For now, we only support the following ones.
     private static enum OPER_FEATURE {
@@ -211,6 +208,14 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
         feature = OPER_FEATURE.SAMPLER;
     }
 
+    public boolean isUseSecondaryKey() {
+        return useSecondaryKey;
+    }
+
+    public void setUseSecondaryKey(boolean useSecondaryKey) {
+        this.useSecondaryKey = useSecondaryKey;
+    }
+
     @Override
     public String name() {
         String udfStr = getUDFsAsStr();
@@ -259,14 +264,6 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
 
     public boolean needSegmentBelow() {
         return segmentBelow;
-    }
-
-    public String getQuantFile() {
-        return quantFile;
-    }
-
-    public void setQuantFile(String quantFile) {
-        this.quantFile = quantFile;
     }
 
     public void setSortOrder(boolean[] sortOrder) {
