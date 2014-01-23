@@ -17,26 +17,31 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
+import java.util.Map;
+import java.util.WeakHashMap;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.EvalFunc;
+import org.apache.pig.LoadFunc;
+import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PigLogger;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
 
 /**
- * 
+ *
  * A singleton class that implements the PigLogger interface
  * for use in map reduce context. Provides ability to aggregate
  * warning messages
  */
 public final class PigHadoopLogger implements PigLogger {
-    private static PigHadoopLogger instance = new PigHadoopLogger();  
-    
-    public static synchronized PigHadoopLogger getInstance() {
-        if (instance == null) {
-            instance = new PigHadoopLogger();
-        }
-        return instance;
-    } 
+    private static class PigHadoopLoggerHelper {
+        private static PigHadoopLogger instance = new PigHadoopLogger();
+    }
+
+    public static PigHadoopLogger getInstance() {
+        return PigHadoopLoggerHelper.instance;
+    }
 
     private static Log log = LogFactory.getLog(PigHadoopLogger.class);
 
@@ -44,21 +49,33 @@ public final class PigHadoopLogger implements PigLogger {
 
     private boolean aggregate = false;
 
-    private PigHadoopLogger() {
-    }    
+    private Map<Object, String> msgMap = new WeakHashMap<Object, String>();
 
-    @SuppressWarnings("unchecked")
+    private PigHadoopLogger() {
+    }
+
+    @SuppressWarnings("rawtypes")
     public void warn(Object o, String msg, Enum warningEnum) {
-        String displayMessage = o.getClass().getName() + ": " + msg;
-        
+        String className = o.getClass().getName();
+        String displayMessage = className + "(" + warningEnum + "): " + msg;
+
         if (getAggregate()) {
             if (reporter != null) {
-                reporter.getCounter(warningEnum).increment(1);
+                // log atleast once
+                if (!msgMap.get(o).equals(displayMessage)) {
+                    log.warn(displayMessage);
+                    msgMap.put(o, displayMessage);
+                }
+                if (o instanceof EvalFunc || o instanceof LoadFunc || o instanceof StoreFunc) {
+                    reporter.getCounter(className, warningEnum.name()).increment(1);
+                } else {
+                    reporter.getCounter(warningEnum).increment(1);
+                }
             } else {
                 //TODO:
                 //in local mode of execution if the PigHadoopLogger is used initially,
-                //then aggregation cannot be performed as the reporter will be null. 
-                //The reference to a reporter is given by Hadoop at run time. 
+                //then aggregation cannot be performed as the reporter will be null.
+                //The reference to a reporter is given by Hadoop at run time.
                 //In local mode, due to the absence of Hadoop there will be no reporter
                 //Just print the warning message as is.
                 //If a warning message is printed in map reduce mode when aggregation
@@ -68,16 +85,16 @@ public final class PigHadoopLogger implements PigLogger {
         } else {
             log.warn(displayMessage);
         }
-    }    
+    }
 
     public synchronized void setReporter(PigStatusReporter rep) {
         this.reporter = rep;
     }
-    
+
     public synchronized boolean getAggregate() {
         return aggregate;
     }
-    
+
     public synchronized void setAggregate(boolean aggregate) {
         this.aggregate = aggregate;
     }
