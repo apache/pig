@@ -97,7 +97,7 @@ public class HadoopShims {
     public static JobControl newJobControl(String groupName, int timeToSleep) {
       return new PigJobControl(groupName, timeToSleep);
     }
-    
+
     public static long getDefaultBlockSize(FileSystem fs, Path path) {
         return fs.getDefaultBlockSize();
     }
@@ -114,5 +114,9 @@ public class HadoopShims {
         // this comparison is in place for the backward compatibility
         // for Hadoop 0.20
         return report.getProgress() != successfulProgress;
+    }
+
+    public static void unsetConf(Configuration conf, String key) {
+        // Not supported in Hadoop 0.20/1.x
     }
 }
