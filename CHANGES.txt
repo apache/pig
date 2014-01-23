@@ -74,6 +74,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3677: ConfigurationUtil.getLocalFSProperties can return an inconsistent property set (rohini)
+
 PIG-3511: Security: Pig temporary directories might have world readable permissions (rohini)
 
 PIG-3664: Piggy Bank XPath UDF can't be called (nezihyigitbasi via daijy)
