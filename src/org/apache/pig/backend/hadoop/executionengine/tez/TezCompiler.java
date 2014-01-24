@@ -751,7 +751,7 @@ public class TezCompiler extends PhyPlanVisitor {
 
                     tezOp.plan.addAsLeaf(lr);
                     TezEdgeDescriptor edge = handleSplitAndConnect(tezPlan, tezOp, curTezOp);
-                    if (tezOp.getSplitOperatorKey() == null) {
+                    if (tezOp.getSplitOperatorKey() != null) {
                         inputKeys.add(tezOp.getSplitOperatorKey().toString());
                     } else {
                         inputKeys.add(tezOp.getOperatorKey().toString());
