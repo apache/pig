@@ -5,9 +5,9 @@
  * licenses this file to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -18,9 +18,9 @@
 package org.apache.pig.piggybank.storage.avro;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.avro.Schema;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
@@ -32,6 +32,7 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 
 /**
  * The InputFormat for avro data.
@@ -84,6 +85,16 @@ public class PigAvroInputFormat extends FileInputFormat<NullWritable, Writable> 
         context.setStatus(split.toString());
         return new PigAvroRecordReader(context, (FileSplit) split, readerSchema,
                 ignoreBadFiles, schemaToMergedSchemaMap, useMultipleSchemas);
+    }
+
+    /*
+     * This is to support multi-level/recursive directory listing until
+     * MAPREDUCE-1577 is fixed.
+     */
+    @Override
+    protected List<FileStatus> listStatus(JobContext job) throws IOException {
+        return MapRedUtil.getAllFileRecursively(super.listStatus(job),
+                job.getConfiguration());
     }
 
 }
