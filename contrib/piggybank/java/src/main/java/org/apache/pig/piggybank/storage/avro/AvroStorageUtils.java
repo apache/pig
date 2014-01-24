@@ -17,12 +17,10 @@
 
 package org.apache.pig.piggybank.storage.avro;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -30,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.net.URI;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
 import org.apache.avro.generic.GenericDatumReader;
@@ -40,14 +37,10 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
-import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.data.DataType;
-import org.apache.pig.piggybank.storage.avro.AvroStorageLog;
-
 import org.codehaus.jackson.JsonNode;
 /**
  * This is utility class for this package
@@ -100,51 +93,59 @@ public class AvroStorageUtils {
     }
 
     /**
-     * get input paths to job config
-     */
-    public static boolean addInputPaths(String pathString, Job job) throws IOException {
-      Configuration conf = job.getConfiguration();
-      FileSystem fs = FileSystem.get(conf);
-      HashSet<Path> paths = new  HashSet<Path>();
-      if (getAllSubDirs(new Path(pathString), conf, paths)) {
-        paths.addAll(Arrays.asList(FileInputFormat.getInputPaths(job)));
-        FileInputFormat.setInputPaths(job, paths.toArray(new Path[0]));
-        return true;
-      }
-      return false;
-    }
-
-    /**
-     * Adds all non-hidden directories and subdirectories to set param
-     * it supports comma-separated input paths and glob style path
+     * Gets the list of paths from the pathString specified which may contain
+     * comma-separated paths and glob style path
      *
      * @throws IOException
      */
-    public static boolean getAllSubDirs(Path path, Configuration conf,
-            Set<Path> paths) throws IOException {
-        String[] pathStrs = LoadFunc.getPathStrings(path.toString());
+    public static Set<Path> getPaths(String pathString, Configuration conf, boolean failIfNotFound)
+            throws IOException {
+        Set<Path> paths = new HashSet<Path>();
+        String[] pathStrs = LoadFunc.getPathStrings(pathString);
         for (String pathStr : pathStrs) {
             FileSystem fs = FileSystem.get(new Path(pathStr).toUri(), conf);
             FileStatus[] matchedFiles = fs.globStatus(new Path(pathStr), PATH_FILTER);
             if (matchedFiles == null || matchedFiles.length == 0) {
-                return false;
+                if (failIfNotFound) {
+                    throw new IOException("Input Pattern " + pathStr + " matches 0 files");
+                } else {
+                    continue;
+                }
             }
             for (FileStatus file : matchedFiles) {
-                getAllSubDirsInternal(file, conf, paths, fs);
+                paths.add(file.getPath());
             }
         }
-        return true;
+        return paths;
     }
 
-    private static void getAllSubDirsInternal(FileStatus file, Configuration conf,
-            Set<Path> paths, FileSystem fs) throws IOException {
-        if (file.isDir()) {
-            for (FileStatus sub : fs.listStatus(file.getPath())) {
-                getAllSubDirsInternal(sub, conf, paths, fs);
+    /**
+     * Returns all non-hidden files recursively inside the base paths given
+     *
+     * @throws IOException
+     */
+    public static Set<Path> getAllFilesRecursively(Set<Path> basePaths, Configuration conf) throws IOException {
+        Set<Path> paths = new HashSet<Path>();
+        for (Path path : basePaths) {
+            FileSystem fs = FileSystem.get(path.toUri(), conf);
+            FileStatus f = fs.getFileStatus(path);
+            if (f.isDir()) {
+                getAllFilesInternal(f, conf, paths, fs);
+            } else {
+                paths.add(path);
             }
-        } else {
-            AvroStorageLog.details("Add input file:" + file);
-            paths.add(file.getPath());
+        }
+        return paths;
+    }
+
+    private static void getAllFilesInternal(FileStatus file, Configuration conf,
+            Set<Path> paths, FileSystem fs) throws IOException {
+        for (FileStatus f : fs.listStatus(file.getPath(), PATH_FILTER)) {
+            if (f.isDir()) {
+                getAllFilesInternal(f, conf, paths, fs);
+            } else {
+                paths.add(f.getPath());
+            }
         }
     }
 
@@ -160,22 +161,24 @@ public class AvroStorageUtils {
     /** get last file of a hdfs path if it is  a directory;
      *   or return the file itself if path is a file
      */
-    public static Path getLast(String path, FileSystem fs) throws IOException {
-        return getLast(new Path(path), fs);
-    }
-
-    /** get last file of a hdfs path if it is  a directory;
-     *   or return the file itself if path is a file
-     */
     public static Path getLast(Path path, FileSystem fs) throws IOException {
 
+        FileStatus status = fs.getFileStatus(path);
+        if (!status.isDir()) {
+            return path;
+        }
         FileStatus[] statuses = fs.listStatus(path, PATH_FILTER);
 
         if (statuses.length == 0) {
-            return path;
+            return null;
         } else {
             Arrays.sort(statuses);
-            return statuses[statuses.length - 1].getPath();
+            for (int i = statuses.length - 1; i >= 0; i--) {
+                if (!statuses[i].isDir()) {
+                    return statuses[i].getPath();
+                }
+            }
+            return null;
         }
     }
 
@@ -705,6 +708,9 @@ public class AvroStorageUtils {
     public static Schema getSchema(Path path, FileSystem fs) throws IOException {
         /* get path of the last file */
         Path lastFile = AvroStorageUtils.getLast(path, fs);
+        if (lastFile == null) {
+            return null;
+        }
 
         /* read in file and obtain schema */
         GenericDatumReader<Object> avroReader = new GenericDatumReader<Object>();

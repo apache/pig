@@ -21,16 +21,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
-import java.util.HashSet;
-import java.net.URI;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
-import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -105,6 +103,7 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
 
     private boolean checkSchema = true; /*whether check schema of input directories*/
     private boolean ignoreBadFiles = false; /* whether ignore corrupted files during load */
+    private String contextSignature = null;
 
     /**
      * Empty constructor. Output schema is derived from pig schema.
@@ -151,11 +150,15 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
         if (inputAvroSchema != null) {
             return;
         }
-        Set<Path> paths = new HashSet<Path>();
+
         Configuration conf = job.getConfiguration();
-        if (AvroStorageUtils.getAllSubDirs(new Path(location), conf, paths)) {
+        Set<Path> paths = AvroStorageUtils.getPaths(location, conf, true);
+        if (!paths.isEmpty()) {
+            // Set top level directories in input format. Adding all files will
+            // bloat configuration size
+            FileInputFormat.setInputPaths(job, paths.toArray(new Path[paths.size()]));
+            // Scan all directories including sub directories for schema
             setInputAvroSchema(paths, conf);
-            FileInputFormat.setInputPaths(job, paths.toArray(new Path[0]));
         } else {
             throw new IOException("Input path \'" + location + "\' is not found");
         }
@@ -193,9 +196,17 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
         if (paths == null || paths.isEmpty()) {
             return null;
         }
-        Path path = paths.iterator().next();
-        FileSystem fs = FileSystem.get(path.toUri(), conf);
-        return getAvroSchema(path, fs);
+        Iterator<Path> iterator = paths.iterator();
+        Schema schema = null;
+        while (iterator.hasNext()) {
+            Path path = iterator.next();
+            FileSystem fs = FileSystem.get(path.toUri(), conf);
+            schema = getAvroSchema(path, fs);
+            if (schema != null) {
+                break;
+            }
+        }
+        return schema;
     }
 
     /**
@@ -237,7 +248,7 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
                         System.out.println("Do not check schema; use schema of " + s.getPath());
                         return schema;
                     }
-                } else if (!schema.equals(newSchema)) {
+                } else if (newSchema != null && !schema.equals(newSchema)) {
                     throw new IOException( "Input path is " + path + ". Sub-direcotry " + s.getPath()
                                          + " contains different schema " + newSchema + " than " + schema);
                 }
@@ -254,19 +265,23 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
      * Merge multiple input avro schemas into one. Note that we can't merge arbitrary schemas.
      * Please see AvroStorageUtils.mergeSchema() for what's allowed and what's not allowed.
      *
-     * @param paths  set of input files
+     * @param basePaths  set of input dir or files
      * @param conf  configuration
      * @return avro schema
      * @throws IOException
      */
-    protected Schema getMergedSchema(Set<Path> paths, Configuration conf) throws IOException {
+    protected Schema getMergedSchema(Set<Path> basePaths, Configuration conf) throws IOException {
         Schema result = null;
         Map<Path, Schema> mergedFiles = new HashMap<Path, Schema>();
+
+        Set<Path> paths = AvroStorageUtils.getAllFilesRecursively(basePaths, conf);
         for (Path path : paths) {
             FileSystem fs = FileSystem.get(path.toUri(), conf);
             Schema schema = getSchema(path, fs);
-            result = AvroStorageUtils.mergeSchema(result, schema);
-            mergedFiles.put(path, schema);
+            if (schema != null) {
+                result = AvroStorageUtils.mergeSchema(result, schema);
+                mergedFiles.put(path, schema);
+            }
         }
         // schemaToMergedSchemaMap is only needed when merging multiple records.
         if (mergedFiles.size() > 1 && result.getType().equals(Schema.Type.RECORD)) {
@@ -302,6 +317,9 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
     protected Schema getSchemaFromFile(Path path, FileSystem fs) throws IOException {
         /* get path of the last file */
         Path lastFile = AvroStorageUtils.getLast(path, fs);
+        if (lastFile == null) {
+            return null;
+        }
 
         /* read in file and obtain schema */
         GenericDatumReader<Object> avroReader = new GenericDatumReader<Object>();
@@ -360,9 +378,14 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
         /* get avro schema */
         AvroStorageLog.funcCall("getSchema");
         if (inputAvroSchema == null) {
-            Set<Path> paths = new HashSet<Path>();
             Configuration conf = job.getConfiguration();
-            if (AvroStorageUtils.getAllSubDirs(new Path(location), conf, paths)) {
+            // If within a script, you store to one location and read from same
+            // location using AvroStorage getPaths will be empty. Since
+            // getSchema is called during script parsing we don't want to fail
+            // here if path not found
+
+            Set<Path> paths = AvroStorageUtils.getPaths(location, conf, false);
+            if (!paths.isEmpty()) {
                 setInputAvroSchema(paths, conf);
             }
         }
@@ -617,8 +640,7 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
     @Override
     public void checkSchema(ResourceSchema s) throws IOException {
         AvroStorageLog.funcCall("Check schema");
-        UDFContext context = UDFContext.getUDFContext();
-        Properties property = context.getUDFProperties(ResourceSchema.class);
+        Properties property = getUDFProperties();
         String prevSchemaStr = property.getProperty(AVRO_OUTPUT_SCHEMA_PROPERTY);
         AvroStorageLog.details("Previously defined schemas=" + prevSchemaStr);
 
@@ -651,6 +673,14 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
         AvroStorageLog.details("New schemas=" + newSchemaStr);
     }
 
+    /**
+     * Returns UDFProperties based on <code>contextSignature</code>.
+     */
+    private Properties getUDFProperties() {
+        return UDFContext.getUDFContext()
+            .getUDFProperties(this.getClass(), new String[] {contextSignature});
+    }
+
     private String getSchemaKey() {
         return Integer.toString(storeFuncIndex);
     }
@@ -678,8 +708,7 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
     public OutputFormat getOutputFormat() throws IOException {
         AvroStorageLog.funcCall("getOutputFormat");
 
-        UDFContext context = UDFContext.getUDFContext();
-        Properties property = context.getUDFProperties(ResourceSchema.class);
+        Properties property = getUDFProperties();
         String allSchemaStr = property.getProperty(AVRO_OUTPUT_SCHEMA_PROPERTY);
         Map<String, String> map = (allSchemaStr != null)  ? parseSchemaMap(allSchemaStr) : null;
 
@@ -701,7 +730,7 @@ public class AvroStorage extends FileInputLoadFunc implements StoreFuncInterface
 
     @Override
     public void setStoreFuncUDFContextSignature(String signature) {
-        // Nothing to do
+        this.contextSignature = signature;
     }
 
     @Override
