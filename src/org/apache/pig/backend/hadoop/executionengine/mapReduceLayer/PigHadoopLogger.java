@@ -62,7 +62,7 @@ public final class PigHadoopLogger implements PigLogger {
         if (getAggregate()) {
             if (reporter != null) {
                 // log atleast once
-                if (!msgMap.get(o).equals(displayMessage)) {
+                if (msgMap.get(o) == null || !msgMap.get(o).equals(displayMessage)) {
                     log.warn(displayMessage);
                     msgMap.put(o, displayMessage);
                 }
