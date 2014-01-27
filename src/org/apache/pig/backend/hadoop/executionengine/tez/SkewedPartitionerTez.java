@@ -20,6 +20,8 @@ package org.apache.pig.backend.hadoop.executionengine.tez;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.SkewedPartitioner;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
@@ -28,10 +30,26 @@ import org.apache.pig.impl.builtin.PartitionSkewedKeys;
 import org.apache.pig.impl.util.Pair;
 
 public class SkewedPartitionerTez extends SkewedPartitioner {
+    private static final Log LOG = LogFactory.getLog(SkewedPartitionerTez.class);
     private static final TupleFactory tf = TupleFactory.getInstance();
 
+    @SuppressWarnings("unchecked")
     @Override
     protected void init() {
+
+        ObjectCache cache = ObjectCache.getInstance();
+        String isCachedKey = "sample-" + PigProcessor.sampleVertex + ".cached";
+        String totalReducersCacheKey = "sample-" + PigProcessor.sampleVertex + ".totalReducers";
+        String reducerMapCacheKey = "sample-" + PigProcessor.sampleVertex + ".reducerMap";
+        if (cache.retrieve(isCachedKey) == Boolean.TRUE) {
+            totalReducers = (Integer) cache.retrieve(totalReducersCacheKey);
+            reducerMap = (Map<Tuple, Pair<Integer, Integer>>) cache.retrieve(reducerMapCacheKey);
+            LOG.info("Found totalReducers and reducerMap in Tez cache. cachekey="
+                    + totalReducersCacheKey + "," + reducerMapCacheKey);
+            inited = true;
+            return;
+        }
+
         Map<String, Object> distMap = null;
         if (PigProcessor.sampleMap != null) {
             // We've collected sampleMap in PigProcessor
@@ -41,46 +59,49 @@ public class SkewedPartitionerTez extends SkewedPartitioner {
                     " used but no key distribution found");
         }
 
+        long start = System.currentTimeMillis();
+
         try {
-            if (distMap != null) {
-
-                // The distMap is structured as (key, min, max) where min, max
-                // being the index of the reducers
-                DataBag partitionList = (DataBag) distMap.get(PartitionSkewedKeys.PARTITION_LIST);
-                totalReducers = Integer.valueOf("" + distMap.get(PartitionSkewedKeys.TOTAL_REDUCERS));
-                Iterator<Tuple> it = partitionList.iterator();
-                while (it.hasNext()) {
-                    Tuple idxTuple = it.next();
-                    Integer maxIndex = (Integer) idxTuple.get(idxTuple.size() - 1);
-                    Integer minIndex = (Integer) idxTuple.get(idxTuple.size() - 2);
-                    // Used to replace the maxIndex with the number of reducers
-                    if (maxIndex < minIndex) {
-                        maxIndex = totalReducers + maxIndex;
-                    }
-
-                    Tuple keyT;
-                    // if the join is on more than 1 key
-                    if (idxTuple.size() > 3) {
-                        // remove the last 2 fields of the tuple, i.e: minIndex and maxIndex and store
-                        // it in the reducer map
-                        Tuple keyTuple = tf.newTuple();
-                        for (int i=0; i < idxTuple.size() - 2; i++) {
-                            keyTuple.append(idxTuple.get(i));
-                        }
-                        keyT = keyTuple;
-                    } else {
-                        keyT = tf.newTuple(1);
-                        keyT.set(0,idxTuple.get(0));
-                    }
-                    // number of reducers
-                    Integer cnt = maxIndex - minIndex;
-                    // 1 is added to account for the 0 index
-                    reducerMap.put(keyT, new Pair<Integer, Integer>(minIndex, cnt));
+            // The distMap is structured as (key, min, max) where min, max
+            // being the index of the reducers
+            DataBag partitionList = (DataBag) distMap.get(PartitionSkewedKeys.PARTITION_LIST);
+            totalReducers = Integer.valueOf("" + distMap.get(PartitionSkewedKeys.TOTAL_REDUCERS));
+            Iterator<Tuple> it = partitionList.iterator();
+            while (it.hasNext()) {
+                Tuple idxTuple = it.next();
+                Integer maxIndex = (Integer) idxTuple.get(idxTuple.size() - 1);
+                Integer minIndex = (Integer) idxTuple.get(idxTuple.size() - 2);
+                // Used to replace the maxIndex with the number of reducers
+                if (maxIndex < minIndex) {
+                    maxIndex = totalReducers + maxIndex;
                 }
+
+                Tuple keyT;
+                // if the join is on more than 1 key
+                if (idxTuple.size() > 3) {
+                    // remove the last 2 fields of the tuple, i.e: minIndex and maxIndex and store
+                    // it in the reducer map
+                    Tuple keyTuple = tf.newTuple();
+                    for (int i=0; i < idxTuple.size() - 2; i++) {
+                        keyTuple.append(idxTuple.get(i));
+                    }
+                    keyT = keyTuple;
+                } else {
+                    keyT = tf.newTuple(1);
+                    keyT.set(0,idxTuple.get(0));
+                }
+                // number of reducers
+                Integer cnt = maxIndex - minIndex;
+                // 1 is added to account for the 0 index
+                reducerMap.put(keyT, new Pair<Integer, Integer>(minIndex, cnt));
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+        LOG.info("Initialized SkewedPartitionerTez. Time taken: " + (System.currentTimeMillis() - start));
+        cache.cache(isCachedKey, Boolean.TRUE);
+        cache.cache(totalReducersCacheKey, totalReducers);
+        cache.cache(reducerMapCacheKey, reducerMap);
         inited = true;
     }
 }

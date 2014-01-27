@@ -24,8 +24,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.RawComparator;
@@ -58,11 +56,9 @@ import org.apache.pig.impl.util.Utils;
 
 public class WeightedRangePartitioner extends Partitioner<PigNullableWritable, Writable>
                                       implements Configurable {
-    final public static Map<PigNullableWritable,DiscreteProbabilitySampleGenerator> weightedParts
-        = new HashMap<PigNullableWritable, DiscreteProbabilitySampleGenerator>();
 
-    private static final Log log = LogFactory.getLog(WeightedRangePartitioner.class);
-    private PigNullableWritable[] quantiles;
+    protected Map<PigNullableWritable, DiscreteProbabilitySampleGenerator> weightedParts;
+    protected PigNullableWritable[] quantiles;
     private RawComparator<PigNullableWritable> comparator;
     private PigContext pigContext;
     private Configuration job;
@@ -94,6 +90,7 @@ public class WeightedRangePartitioner extends Partitioner<PigNullableWritable, W
 
     @SuppressWarnings("unchecked")
     public void init() {
+        weightedParts = new HashMap<PigNullableWritable, DiscreteProbabilitySampleGenerator>();
         try {
             pigContext = (PigContext)ObjectSerializer.deserialize(job.get("pig.pigContext"));
         } catch (IOException e) {

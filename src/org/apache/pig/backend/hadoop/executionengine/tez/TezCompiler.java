@@ -727,15 +727,6 @@ public class TezCompiler extends PhyPlanVisitor {
     @Override
     public void visitFRJoin(POFRJoin op) throws VisitorException {
         try {
-            FileSpec[] replFiles = new FileSpec[op.getInputs().size()];
-            for (int i = 0; i < replFiles.length; i++) {
-                if (i == op.getFragment()) {
-                    continue;
-                }
-                replFiles[i] = getTempFileSpec();
-            }
-            op.setReplFiles(replFiles);
-
             List<String> inputKeys = Lists.newArrayList();
             curTezOp = phyToTezOpMap.get(op.getInputs().get(op.getFragment()));
 

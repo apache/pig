@@ -17,6 +17,7 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.tez;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -24,17 +25,33 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.DiscreteProbabilitySampleGenerator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.WeightedRangePartitioner;
-import org.apache.pig.backend.hadoop.executionengine.tez.PigProcessor;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.InternalMap;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.builtin.FindQuantiles;
+import org.apache.pig.impl.io.PigNullableWritable;
 
 public class WeightedRangePartitionerTez extends WeightedRangePartitioner {
-    private static final Log log = LogFactory.getLog(WeightedRangePartitionerTez.class);
+    private static final Log LOG = LogFactory.getLog(WeightedRangePartitionerTez.class);
 
+    @SuppressWarnings("unchecked")
     @Override
     public void init() {
+        ObjectCache cache = ObjectCache.getInstance();
+        String isCachedKey = "sample-" + PigProcessor.sampleVertex + ".cached";
+        String quantilesCacheKey = "sample-" + PigProcessor.sampleVertex + ".quantiles";
+        String weightedPartsCacheKey = "sample-" + PigProcessor.sampleVertex + ".weightedParts";
+        if (cache.retrieve(isCachedKey) == Boolean.TRUE) {
+            quantiles = (PigNullableWritable[]) cache
+                    .retrieve(quantilesCacheKey);
+            weightedParts = (Map<PigNullableWritable, DiscreteProbabilitySampleGenerator>) cache
+                    .retrieve(weightedPartsCacheKey);
+            LOG.info("Found quantiles and weightedParts in Tez cache. cachekey="
+                    + quantilesCacheKey + "," + weightedPartsCacheKey);
+            inited = true;
+            return;
+        }
+
         Map<String, Object> quantileMap = null;
         if (PigProcessor.sampleMap != null) {
             // We've collected sampleMap in PigProcessor
@@ -44,21 +61,26 @@ public class WeightedRangePartitionerTez extends WeightedRangePartitioner {
                     + " used but no quantiles found");
         }
 
+        long start = System.currentTimeMillis();
         try {
-            if (quantileMap != null) {
-                DataBag quantilesList = (DataBag) quantileMap.get(FindQuantiles.QUANTILES_LIST);
-                InternalMap weightedPartsData = (InternalMap) quantileMap.get(FindQuantiles.WEIGHTED_PARTS);
-                convertToArray(quantilesList);
-                for (Entry<Object, Object> ent : weightedPartsData.entrySet()) {
-                    Tuple key = (Tuple)ent.getKey(); // sample item which repeats
-                    float[] probVec = getProbVec((Tuple)ent.getValue());
-                    weightedParts.put(getPigNullableWritable(key),
-                            new DiscreteProbabilitySampleGenerator(probVec));
-                }
+            weightedParts = new HashMap<PigNullableWritable, DiscreteProbabilitySampleGenerator>();
+            DataBag quantilesList = (DataBag) quantileMap.get(FindQuantiles.QUANTILES_LIST);
+            InternalMap weightedPartsData = (InternalMap) quantileMap.get(FindQuantiles.WEIGHTED_PARTS);
+            convertToArray(quantilesList);
+            for (Entry<Object, Object> ent : weightedPartsData.entrySet()) {
+                Tuple key = (Tuple) ent.getKey(); // sample item which repeats
+                float[] probVec = getProbVec((Tuple) ent.getValue());
+                weightedParts.put(getPigNullableWritable(key),
+                        new DiscreteProbabilitySampleGenerator(probVec));
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+
+        LOG.info("Initialized WeightedRangePartitionerTez. Time taken: " + (System.currentTimeMillis() - start));
+        cache.cache(isCachedKey, Boolean.TRUE);
+        cache.cache(quantilesCacheKey, quantiles);
+        cache.cache(weightedPartsCacheKey, weightedParts);
         inited = true;
     }
 }

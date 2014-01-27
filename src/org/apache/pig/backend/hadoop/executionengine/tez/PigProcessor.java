@@ -64,11 +64,16 @@ public class PigProcessor implements LogicalIOProcessor {
 
     private Configuration conf;
 
-    public static Map<String, Object> sampleMap = null;
+    public static String sampleVertex;
+    public static Map<String, Object> sampleMap;
 
     @Override
     public void initialize(TezProcessorContext processorContext)
             throws Exception {
+        // Reset any static variables to avoid conflic in container-reuse.
+        sampleVertex = null;
+        sampleMap = null;
+
         byte[] payload = processorContext.getUserPayload();
         conf = TezUtils.createConfFromUserPayload(payload);
         PigContext pc = (PigContext) ObjectSerializer.deserialize(conf.get("pig.pigContext"));
@@ -106,8 +111,9 @@ public class PigProcessor implements LogicalIOProcessor {
 
         initializeOutputs(outputs);
 
-        if (conf.get("pig.sampleVertex") != null) {
-            collectSample((BroadcastKVReader)inputs.get(conf.get("pig.sampleVertex")).getReader());
+        sampleVertex = conf.get("pig.sampleVertex");
+        if (sampleVertex != null) {
+            collectSample(sampleVertex, inputs.get(sampleVertex));
         }
 
         List<PhysicalOperator> leaves = null;
@@ -201,7 +207,12 @@ public class PigProcessor implements LogicalIOProcessor {
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    private void collectSample(BroadcastKVReader reader) throws IOException {
+    private void collectSample(String sampleVertex, LogicalInput logicalInput) throws Exception {
+        Boolean cached = (Boolean) ObjectCache.getInstance().retrieve("cached.sample." + sampleVertex);
+        if (cached == Boolean.TRUE) {
+            return;
+        }
+        BroadcastKVReader reader = (BroadcastKVReader) logicalInput.getReader();
         reader.next();
         Object val = reader.getCurrentValue();
         NullableTuple nTup = (NullableTuple) val;

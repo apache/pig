@@ -23,6 +23,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -51,6 +53,8 @@ import com.google.common.collect.Maps;
  */
 public class POPartitionRearrangeTez extends POLocalRearrangeTez {
     private static final long serialVersionUID = 1L;
+
+    private static final Log LOG = LogFactory.getLog(POPartitionRearrangeTez.class);
     private static final TupleFactory tf = TupleFactory.getInstance();
     private static final BagFactory mBagFactory = BagFactory.getInstance();
 
@@ -179,7 +183,22 @@ public class POPartitionRearrangeTez extends POLocalRearrangeTez {
         return opBag;
     }
 
+    @SuppressWarnings("unchecked")
     private void init() throws RuntimeException {
+
+        ObjectCache cache = ObjectCache.getInstance();
+        String isCachedKey = "sample-" + PigProcessor.sampleVertex + ".cached";
+        String totalReducersCacheKey = "sample-" + PigProcessor.sampleVertex + ".totalReducers";
+        String reducerMapCacheKey = "sample-" + PigProcessor.sampleVertex + ".reducerMap";
+        if (cache.retrieve(isCachedKey) == Boolean.TRUE) {
+            totalReducers = (Integer) cache.retrieve(totalReducersCacheKey);
+            reducerMap = (Map<Object, Pair<Integer, Integer>>) cache.retrieve(reducerMapCacheKey);
+            LOG.info("Found totalReducers and reducerMap in Tez cache. cachekey="
+                    + totalReducersCacheKey + "," + reducerMapCacheKey);
+            inited = true;
+            return;
+        }
+
         Map<String, Object> distMap = null;
         if (PigProcessor.sampleMap != null) {
             // We've already collected sampleMap in PigProcessor
@@ -189,47 +208,50 @@ public class POPartitionRearrangeTez extends POLocalRearrangeTez {
                     " used but no key distribution found");
         }
 
+        long start = System.currentTimeMillis();
+
         try {
-            if (distMap != null) {
-                Integer[] totalReducers = new Integer[1];
-
-                // The distMap is structured as (key, min, max) where min, max
-                // being the index of the reducers
-                DataBag partitionList = (DataBag) distMap.get(PartitionSkewedKeys.PARTITION_LIST);
-                totalReducers[0] = Integer.valueOf("" + distMap.get(PartitionSkewedKeys.TOTAL_REDUCERS));
-                Iterator<Tuple> it = partitionList.iterator();
-                while (it.hasNext()) {
-                    Tuple idxTuple = it.next();
-                    Integer maxIndex = (Integer) idxTuple.get(idxTuple.size() - 1);
-                    Integer minIndex = (Integer) idxTuple.get(idxTuple.size() - 2);
-                    // Used to replace the maxIndex with the number of reducers
-                    if (maxIndex < minIndex) {
-                        maxIndex = totalReducers[0] + maxIndex;
-                    }
-
-                    Tuple keyT;
-                    // if the join is on more than 1 key
-                    if (idxTuple.size() > 3) {
-                        // remove the last 2 fields of the tuple, i.e: minIndex
-                        // and maxIndex and store it in the reducer map
-                        Tuple keyTuple = tf.newTuple();
-                        for (int i=0; i < idxTuple.size() - 2; i++) {
-                            keyTuple.append(idxTuple.get(i));
-                        }
-                        keyT = keyTuple;
-                    } else {
-                        keyT = tf.newTuple(1);
-                        keyT.set(0,idxTuple.get(0));
-                    }
-                    // number of reducers
-                    Integer cnt = maxIndex - minIndex;
-                    // 1 is added to account for the 0 index
-                    reducerMap.put(keyT, new Pair<Integer, Integer>(minIndex, cnt));
+            // The distMap is structured as (key, min, max) where min, max
+            // being the index of the reducers
+            DataBag partitionList = (DataBag) distMap.get(PartitionSkewedKeys.PARTITION_LIST);
+            totalReducers = Integer.valueOf("" + distMap.get(PartitionSkewedKeys.TOTAL_REDUCERS));
+            Iterator<Tuple> it = partitionList.iterator();
+            while (it.hasNext()) {
+                Tuple idxTuple = it.next();
+                Integer maxIndex = (Integer) idxTuple.get(idxTuple.size() - 1);
+                Integer minIndex = (Integer) idxTuple.get(idxTuple.size() - 2);
+                // Used to replace the maxIndex with the number of reducers
+                if (maxIndex < minIndex) {
+                    maxIndex = totalReducers + maxIndex;
                 }
+
+                Tuple keyT;
+                // if the join is on more than 1 key
+                if (idxTuple.size() > 3) {
+                    // remove the last 2 fields of the tuple, i.e: minIndex
+                    // and maxIndex and store it in the reducer map
+                    Tuple keyTuple = tf.newTuple();
+                    for (int i=0; i < idxTuple.size() - 2; i++) {
+                        keyTuple.append(idxTuple.get(i));
+                    }
+                    keyT = keyTuple;
+                } else {
+                    keyT = tf.newTuple(1);
+                    keyT.set(0,idxTuple.get(0));
+                }
+                // number of reducers
+                Integer cnt = maxIndex - minIndex;
+                // 1 is added to account for the 0 index
+                reducerMap.put(keyT, new Pair<Integer, Integer>(minIndex, cnt));
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+
+        LOG.info("Initialized POPartitionRearrangeTez. Time taken: " + (System.currentTimeMillis() - start));
+        cache.cache(isCachedKey, Boolean.TRUE);
+        cache.cache(totalReducersCacheKey, totalReducers);
+        cache.cache(reducerMapCacheKey, reducerMap);
         inited = true;
     }
 }

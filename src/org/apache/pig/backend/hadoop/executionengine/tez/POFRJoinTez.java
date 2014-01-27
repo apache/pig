@@ -56,7 +56,6 @@ public class POFRJoinTez extends POFRJoin implements TezLoad {
     @SuppressWarnings("rawtypes")
     private List<BroadcastKVReader> replReaders = Lists.newArrayList();
     private List<String> inputKeys;
-    private int currIdx = 0;
 
     public POFRJoinTez(POFRJoin copy, List<String> inputKeys) throws ExecException {
        super(copy);
@@ -88,6 +87,17 @@ public class POFRJoinTez extends POFRJoin implements TezLoad {
      */
     @Override
     protected void setUpHashMap() throws ExecException {
+        String cacheKey = "replicatemap-" + getOperatorKey().toString();
+
+        Object cacheValue = ObjectCache.getInstance().retrieve(cacheKey);
+        if (cacheValue != null) {
+            replicates = (TupleToMapKey[]) cacheValue;
+            log.info("Found " + (replicates.length - 1) + " replication hash tables in Tez cache. cachekey=" + cacheKey);
+            return;
+        }
+
+        log.info("Building replication hash table");
+
         SchemaTupleFactory[] inputSchemaTupleFactories = new SchemaTupleFactory[inputSchemas.length];
         SchemaTupleFactory[] keySchemaTupleFactories = new SchemaTupleFactory[inputSchemas.length];
 
@@ -107,9 +117,9 @@ public class POFRJoinTez extends POFRJoin implements TezLoad {
         }
 
         long time1 = System.currentTimeMillis();
-        log.debug("Completed setup. Trying to build replication hash table");
 
         replicates[fragment] = null;
+        int currIdx = 0;
         while (currIdx < replInputs.size()) {
             // We need to adjust the index because the number of replInputs is
             // one less than the number of inputSchemas. The inputSchemas
@@ -118,7 +128,7 @@ public class POFRJoinTez extends POFRJoin implements TezLoad {
             SchemaTupleFactory inputSchemaTupleFactory = inputSchemaTupleFactories[adjustedIdx];
             SchemaTupleFactory keySchemaTupleFactory = keySchemaTupleFactories[adjustedIdx];
 
-            TupleToMapKey replicate = new TupleToMapKey(1000, keySchemaTupleFactory);
+            TupleToMapKey replicate = new TupleToMapKey(4000, keySchemaTupleFactory);
             POLocalRearrange lr = LRs[adjustedIdx];
 
             try {
@@ -155,7 +165,10 @@ public class POFRJoinTez extends POFRJoin implements TezLoad {
         }
 
         long time2 = System.currentTimeMillis();
-        log.info("Hash Table built. Time taken: " + (time2 - time1));
+        log.info((replicates.length - 1) + " replication hash tables built. Time taken: " + (time2 - time1));
+
+        ObjectCache.getInstance().cache(cacheKey, replicates);
+        log.info("Cached replicate hash tables in Tez ObjectRegistry with vertex scope. cachekey=" + cacheKey);
     }
 
     @Override
