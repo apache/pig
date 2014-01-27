@@ -18,17 +18,16 @@
 
 package org.apache.pig.backend.hadoop.datastorage;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Map.Entry;
+import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.ExecType;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
+import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 
 public class ConfigurationUtil {
@@ -80,21 +79,10 @@ public class ConfigurationUtil {
             // so build/classes/hadoop-site.xml contains such entry. This prevents some tests from
             // successful (They expect those files in hdfs), so we need to unset it in hadoop 23.
             // This should go away once MiniMRCluster fix the distributed cache issue.
-            Method unsetMethod = null;
-            try {
-                unsetMethod = localConf.getClass().getMethod("unset", new Class[]{String.class});
-            } catch (Exception e) {
-            }
-            if (unsetMethod!=null) {
-                try {
-                    unsetMethod.invoke(localConf, new Object[]{"mapreduce.job.cache.files"});
-                } catch (Exception e) {
-                    // Should not happen
-                }
-            }
+            HadoopShims.unsetConf(localConf, "mapreduce.job.cache.files");
         }
+        localConf.set(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
         Properties props = ConfigurationUtil.toProperties(localConf);
-        props.setProperty(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
         return props;
     }
 }
