@@ -33,6 +33,7 @@ import org.apache.pig.data.AccumulativeBag;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.InternalCachedBag;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.io.NullablePartitionWritable;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.tez.runtime.api.LogicalInput;
@@ -109,7 +110,10 @@ public class POShuffleTezLoad extends POPackage implements TezLoad {
                         cur = readers.get(i).getCurrentKey();
                         if (min == null || comparator.compare(min, cur) > 0) {
                             min = PigNullableWritable.newInstance((PigNullableWritable)cur);
-                            cur = min;
+                            if (isSkewedJoin) {
+                                ((NullablePartitionWritable)min).setKey(
+                                        ((NullablePartitionWritable)cur).getKey());
+                            }
                         }
                     }
                 }
@@ -162,7 +166,7 @@ public class POShuffleTezLoad extends POPackage implements TezLoad {
                                     bag = bags[i];
                                 }
                             } else {
-                                bag = bags[i] == null? new InternalCachedBag(numInputs) : bags[i];
+                                bag = bags[i] == null ? new InternalCachedBag(numInputs) : bags[i];
                                 for (Object val : vals) {
                                     NullableTuple nTup = (NullableTuple) val;
                                     int index = nTup.getIndex();

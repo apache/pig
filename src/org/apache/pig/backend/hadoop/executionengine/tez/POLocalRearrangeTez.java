@@ -122,7 +122,7 @@ public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
 
     @Override
     public Result getNextTuple() throws ExecException {
-        Result res = super.getNextTuple();
+        res = super.getNextTuple();
         if (writer == null) { // In the case of combiner
             return res;
         }
@@ -139,23 +139,14 @@ public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
                         // Use the entire tuple as both key and value
                         key = HDataType.getWritableComparableTypes(result.get(1), keyType);
                         val = new NullableTuple((Tuple)result.get(1));
-                    } else if (isSkewedJoin) {
-                        // Skewed join uses NullablePartitionWritable as key
-                        Byte tupleKeyIdx = 2;
-                        Byte tupleValIdx = 3;
-
-                        Integer partitionIndex = -1;
-                        tupleKeyIdx--;
-                        tupleValIdx--;
-
-                        key = HDataType.getWritableComparableTypes(result.get(tupleKeyIdx), keyType);
-                        NullablePartitionWritable wrappedKey = new NullablePartitionWritable(key);
-                        wrappedKey.setIndex(index);
-                        wrappedKey.setPartition(partitionIndex);
-                        key = wrappedKey;
-                        val = new NullableTuple((Tuple)result.get(tupleValIdx));
                     } else {
                         key = HDataType.getWritableComparableTypes(result.get(1), keyType);
+                        if (isSkewedJoin) {
+                            // Skewed join wraps key with NullablePartitionWritable
+                            NullablePartitionWritable wrappedKey = new NullablePartitionWritable(key);
+                            wrappedKey.setPartition(-1);
+                            key = wrappedKey;
+                        }
                         val = new NullableTuple((Tuple)result.get(2));
                     }
 

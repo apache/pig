@@ -25,13 +25,11 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.SkewedPartitioner;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.builtin.PartitionSkewedKeys;
 import org.apache.pig.impl.util.Pair;
 
 public class SkewedPartitionerTez extends SkewedPartitioner {
     private static final Log LOG = LogFactory.getLog(SkewedPartitionerTez.class);
-    private static final TupleFactory tf = TupleFactory.getInstance();
 
     @SuppressWarnings("unchecked")
     @Override

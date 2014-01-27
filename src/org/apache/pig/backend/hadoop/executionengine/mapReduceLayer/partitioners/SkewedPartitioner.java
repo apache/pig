@@ -45,12 +45,13 @@ import com.google.common.collect.Maps;
   * in a round robin manner.
   */
 public class SkewedPartitioner extends Partitioner<PigNullableWritable, Writable> implements Configurable {
+    protected static final TupleFactory tf = TupleFactory.getInstance();
 
     protected Map<Tuple, Pair<Integer, Integer>> reducerMap = Maps.newHashMap();
-    protected Integer totalReducers;
+    protected Integer totalReducers = -1;
     protected boolean inited = false;
 
-    private static Map<Tuple, Integer> currentIndexMap = Maps.newHashMap();
+    private Map<Tuple, Integer> currentIndexMap = Maps.newHashMap();
     private Configuration conf;
 
     @Override
@@ -68,7 +69,7 @@ public class SkewedPartitioner extends Partitioner<PigNullableWritable, Writable
         // for partition table, compute the index based on the sampler output
         Pair <Integer, Integer> indexes;
         Integer curIndex = -1;
-        Tuple keyTuple = TupleFactory.getInstance().newTuple(1);
+        Tuple keyTuple = tf.newTuple(1);
 
         // extract the key from nullablepartitionwritable
         PigNullableWritable key = ((NullablePartitionWritable) wrappedKey).getKey();
@@ -136,5 +137,6 @@ public class SkewedPartitioner extends Partitioner<PigNullableWritable, Writable
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+        inited = true;
     }
 }

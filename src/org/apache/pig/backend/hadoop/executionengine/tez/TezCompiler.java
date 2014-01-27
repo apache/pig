@@ -1288,9 +1288,12 @@ public class TezCompiler extends PhyPlanVisitor {
             curTezOp.plan.addAsLeaf(forEach);
             joinJobs[0] = curTezOp;
 
-            // Run POLocalRearrange for first join table
+            // Run POLocalRearrange for first join table. Note we set the
+            // parallelism of POLocalRearrange to that of the load vertex. So
+            // its parallelism will be determined by the size of skewed table.
             POLocalRearrangeTez lr =
-                    new POLocalRearrangeTez(new OperatorKey(scope,nig.getNextNodeId(scope)), rp);
+                    new POLocalRearrangeTez(new OperatorKey(scope,nig.getNextNodeId(scope)),
+                            prevOp.requestedParallelism);
             try {
                 lr.setIndex(0);
             } catch (ExecException e) {
@@ -1312,16 +1315,15 @@ public class TezCompiler extends PhyPlanVisitor {
             lr.setResultType(DataType.TUPLE);
             joinJobs[0].plan.addAsLeaf(lr);
             joinJobs[0].setClosed(true);
-            if (lr.getRequestedParallelism() > joinJobs[0].requestedParallelism) {
-                joinJobs[0].requestedParallelism = lr.getRequestedParallelism();
-            }
             rearrangeOutputs[0] = joinJobs[0];
 
             compiledInputs = new TezOperator[] {joinInputs[1]};
 
-            // Run POPartitionRearrange for second join table
+            // Run POPartitionRearrange for second join table. Note we set the
+            // parallelism of POPartitionRearrange to -1, so its parallelism
+            // will be determined by the size of streaming table.
             POPartitionRearrangeTez pr =
-                    new POPartitionRearrangeTez(new OperatorKey(scope, nig.getNextNodeId(scope)), rp);
+                    new POPartitionRearrangeTez(new OperatorKey(scope, nig.getNextNodeId(scope)));
             try {
                 pr.setIndex(1);
             } catch (ExecException e) {
@@ -1334,12 +1336,9 @@ public class TezCompiler extends PhyPlanVisitor {
             pr.setPlans(groups);
             pr.setKeyType(type);
             pr.setSkewedJoin(true);
-            pr.setResultType(DataType.BAG);
+            pr.setResultType(DataType.TUPLE);
             joinJobs[1].plan.addAsLeaf(pr);
             joinJobs[1].setClosed(true);
-            if (pr.getRequestedParallelism() > joinJobs[1].requestedParallelism) {
-                joinJobs[1].requestedParallelism = pr.getRequestedParallelism();
-            }
             rearrangeOutputs[1] = joinJobs[1];
 
             compiledInputs = rearrangeOutputs;
@@ -1358,10 +1357,13 @@ public class TezCompiler extends PhyPlanVisitor {
             compiledInputs = new TezOperator[] {joinJobs[2]};
 
             // Create POPakcage
-            pkg = getPackage(2, DataType.TUPLE);
+            pkg = getPackage(2, type);
+            pkg.setResultType(DataType.TUPLE);
             boolean [] inner = op.getInnerFlags();
             pkg.getPkgr().setInner(inner);
             pkg.visit(this);
+
+            compiledInputs = new TezOperator[] {curTezOp};
 
             // Create POForEach
             List<PhysicalPlan> eps = new ArrayList<PhysicalPlan>();
@@ -2075,8 +2077,6 @@ public class TezCompiler extends PhyPlanVisitor {
             throw new TezCompilerException(msg, errCode, PigException.BUG, e);
         }
     }
-
-
 
     /**
      * Returns a POPackage with default packager. This method shouldn't be used

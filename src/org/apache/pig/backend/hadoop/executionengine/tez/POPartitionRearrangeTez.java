@@ -61,7 +61,11 @@ public class POPartitionRearrangeTez extends POLocalRearrangeTez {
     // ReducerMap will store the tuple, max reducer index & min reducer index
     private Map<Object, Pair<Integer, Integer>> reducerMap = Maps.newHashMap();
     private Integer totalReducers = -1;
-    private boolean inited;
+    private boolean inited = false;
+
+    public POPartitionRearrangeTez(OperatorKey k) {
+        this(k, -1);
+    }
 
     public POPartitionRearrangeTez(OperatorKey k, int rp) {
         super(k, rp);
@@ -101,36 +105,31 @@ public class POPartitionRearrangeTez extends POLocalRearrangeTez {
                 ep.attachInput((Tuple)inp.result);
             }
 
-            Result res = null;
             List<Result> resLst = new ArrayList<Result>();
-            for (ExpressionOperator op : leafOps){
+            for (ExpressionOperator op : leafOps) {
                 res = op.getNext(op.getResultType());
                 if (res.returnStatus != POStatus.STATUS_OK) {
-                    return new Result();
+                    return res;
                 }
                 resLst.add(res);
             }
-            res.result = constructPROutput(resLst,(Tuple)inp.result);
+            res.result = constructPROutput(resLst, (Tuple)inp.result);
             if (writer == null) { // In the case of combiner
                 return res;
             }
 
             Iterator<Tuple> its = ((DataBag)res.result).iterator();
-            while(its.hasNext()) {
+            while (its.hasNext()) {
                 Tuple result = its.next();
-                Byte tupleKeyIdx = 2;
-                Byte tupleValIdx = 3;
-
-                Integer partitionIndex = -1;
-                partitionIndex = (Integer)result.get(1);
+                Byte index = (Byte)result.get(0);
 
                 PigNullableWritable key =
-                        HDataType.getWritableComparableTypes(result.get(tupleKeyIdx), keyType);
-                NullableTuple val = new NullableTuple((Tuple)result.get(tupleValIdx));
+                        HDataType.getWritableComparableTypes(result.get(2), keyType);
+                NullableTuple val = new NullableTuple((Tuple)result.get(3));
 
                 NullablePartitionWritable wrappedKey = new NullablePartitionWritable(key);
                 wrappedKey.setIndex(index);
-                wrappedKey.setPartition(partitionIndex);
+                wrappedKey.setPartition((Integer)result.get(1));
                 val.setIndex(index);
 
                 try {
@@ -166,7 +165,7 @@ public class POPartitionRearrangeTez extends POLocalRearrangeTez {
             indexes = new Pair <Integer, Integer>(-1,0);
         }
 
-        for (Integer reducerIdx=indexes.first, cnt=0; cnt <= indexes.second; reducerIdx++, cnt++) {
+        for (Integer reducerIdx = indexes.first, cnt = 0; cnt <= indexes.second; reducerIdx++, cnt++) {
             if (reducerIdx >= totalReducers) {
                 reducerIdx = 0;
             }
@@ -225,19 +224,18 @@ public class POPartitionRearrangeTez extends POLocalRearrangeTez {
                     maxIndex = totalReducers + maxIndex;
                 }
 
-                Tuple keyT;
+                Object keyT;
                 // if the join is on more than 1 key
                 if (idxTuple.size() > 3) {
-                    // remove the last 2 fields of the tuple, i.e: minIndex
-                    // and maxIndex and store it in the reducer map
-                    Tuple keyTuple = tf.newTuple();
-                    for (int i=0; i < idxTuple.size() - 2; i++) {
-                        keyTuple.append(idxTuple.get(i));
-                    }
+                // remove the last 2 fields of the tuple, i.e: minIndex
+                // and maxIndex and store it in the reducer map
+                Tuple keyTuple = tf.newTuple();
+                for (int i=0; i < idxTuple.size() - 2; i++) {
+                    keyTuple.append(idxTuple.get(i));
+                }
                     keyT = keyTuple;
                 } else {
-                    keyT = tf.newTuple(1);
-                    keyT.set(0,idxTuple.get(0));
+                    keyT = idxTuple.get(0);
                 }
                 // number of reducers
                 Integer cnt = maxIndex - minIndex;
