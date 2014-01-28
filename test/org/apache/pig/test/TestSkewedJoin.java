@@ -58,7 +58,7 @@ public class TestSkewedJoin {
     private static final String INPUT_FILE6 = "SkewedJoinInput6.txt";
     private static final String INPUT_FILE7 = "SkewedJoinInput7.txt";
     private static final String INPUT_DIR = "build/test/data";
-    private static final String OUTPUT_DIR = "skwedjoin";
+    private static final String OUTPUT_DIR = "build/test/output";
 
     private PigServer pigServer;
     private static FileSystem fs;
@@ -86,6 +86,7 @@ public class TestSkewedJoin {
 
     private static void createFiles() throws IOException {
         new File(INPUT_DIR).mkdir();
+        new File(OUTPUT_DIR).mkdir();
 
         PrintWriter w = new PrintWriter(new FileWriter(INPUT_DIR + "/" + INPUT_FILE1));
 
@@ -273,8 +274,9 @@ public class TestSkewedJoin {
 
     @Test
     public void testSkewedJoinKeyPartition() throws IOException {
+        String outputDir = "testSkewedJoinKeyPartition";
         try{
-             Util.deleteFile(cluster, OUTPUT_DIR);
+             Util.deleteFile(cluster, outputDir);
         }catch(Exception e){
             // it is ok if directory not exist
         }
@@ -282,12 +284,11 @@ public class TestSkewedJoin {
          pigServer.registerQuery("A = LOAD '" + INPUT_FILE1 + "' as (id, name, n);");
          pigServer.registerQuery("B = LOAD '" + INPUT_FILE2 + "' as (id, name);");
          pigServer.registerQuery("E = join A by id, B by id using 'skewed' parallel 7;");
-         pigServer.store("E", OUTPUT_DIR);
+         pigServer.store("E", outputDir);
 
          int[][] lineCount = new int[3][7];
 
-         new File(OUTPUT_DIR).mkdir();
-         FileStatus[] outputFiles = fs.listStatus(new Path(OUTPUT_DIR), new PathFilter() {
+         FileStatus[] outputFiles = fs.listStatus(new Path(outputDir), new PathFilter() {
                 @Override
                 public boolean accept(Path p) {
                     return !p.getName().startsWith("_");
