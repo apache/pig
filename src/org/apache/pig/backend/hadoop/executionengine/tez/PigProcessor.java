@@ -215,9 +215,12 @@ public class PigProcessor implements LogicalIOProcessor {
         BroadcastKVReader reader = (BroadcastKVReader) logicalInput.getReader();
         reader.next();
         Object val = reader.getCurrentValue();
-        NullableTuple nTup = (NullableTuple) val;
-        Tuple t = (Tuple) nTup.getValueAsPigType();
-        sampleMap = (Map<String, Object>) t.get(0);
+        if (val != null) {
+            // Sample is not empty
+            NullableTuple nTup = (NullableTuple) val;
+            Tuple t = (Tuple) nTup.getValueAsPigType();
+            sampleMap = (Map<String, Object>) t.get(0);
+        }
     }
 
 }

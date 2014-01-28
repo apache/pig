@@ -24,6 +24,7 @@ import java.io.IOException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.mapred.MiniMRCluster;
+import org.apache.pig.ExecType;
 
 public class MiniCluster extends MiniGenericCluster {
     private static final File CONF_DIR = new File("build/classes");
@@ -38,6 +39,11 @@ public class MiniCluster extends MiniGenericCluster {
     public static MiniCluster buildCluster() {
         System.setProperty("test.exec.type", "mr");
         return (MiniCluster)MiniGenericCluster.buildCluster();
+    }
+
+    @Override
+    protected ExecType getExecType() {
+        return ExecType.MAPREDUCE;
     }
 
     @Override

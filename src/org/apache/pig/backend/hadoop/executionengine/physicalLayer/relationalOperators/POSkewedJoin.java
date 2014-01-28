@@ -119,7 +119,7 @@ public class POSkewedJoin extends PhysicalOperator  {
     }
 
     @Override
-  public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
+    public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
         return null;
     }
 }

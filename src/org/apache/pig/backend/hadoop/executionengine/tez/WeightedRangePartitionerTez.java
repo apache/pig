@@ -57,8 +57,9 @@ public class WeightedRangePartitionerTez extends WeightedRangePartitioner {
             // We've collected sampleMap in PigProcessor
             quantileMap = PigProcessor.sampleMap;
         } else {
-            throw new RuntimeException(this.getClass().getSimpleName()
-                    + " used but no quantiles found");
+            LOG.info("Quantiles map is empty");
+            inited = true;
+            return;
         }
 
         long start = System.currentTimeMillis();

@@ -44,9 +44,9 @@ public class TestAccumulator {
     private static final String INPUT_FILE2 = "AccumulatorInput2.txt";
     private static final String INPUT_FILE3 = "AccumulatorInput3.txt";
     private static final String INPUT_FILE4 = "AccumulatorInput4.txt";
+    private static final String INPUT_DIR = "build/test/data";
 
     private PigServer pigServer;
-    private static String execType = System.getProperty("test.exec.type");
     private static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
 
     @BeforeClass
@@ -64,10 +64,7 @@ public class TestAccumulator {
 
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
-        new File(INPUT_FILE1).delete();
-        new File(INPUT_FILE2).delete();
-        new File(INPUT_FILE3).delete();
-        new File(INPUT_FILE4).delete();
+        deleteFiles();
         cluster.shutDown();
     }
 
@@ -75,7 +72,7 @@ public class TestAccumulator {
     public void setUp() throws Exception {
         // Drop stale configuration from previous test run
         cluster.getProperties().remove(PigConfiguration.OPT_ACCUMULATOR);
-        pigServer = new PigServer(execType, cluster.getProperties());
+        pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
     }
 
     @After
@@ -85,7 +82,9 @@ public class TestAccumulator {
     }
 
     private static void createFiles() throws IOException {
-        PrintWriter w = new PrintWriter(new FileWriter(INPUT_FILE1));
+        new File(INPUT_DIR).mkdir();
+
+        PrintWriter w = new PrintWriter(new FileWriter(INPUT_DIR + "/" + INPUT_FILE1));
 
         w.println("100\tapple");
         w.println("200\torange");
@@ -96,9 +95,9 @@ public class TestAccumulator {
         w.println("400\tapple");
         w.close();
 
-        Util.copyFromLocalToCluster(cluster, INPUT_FILE1, INPUT_FILE1);
+        Util.copyFromLocalToCluster(cluster, INPUT_DIR + "/" + INPUT_FILE1, INPUT_FILE1);
 
-        w = new PrintWriter(new FileWriter(INPUT_FILE2));
+        w = new PrintWriter(new FileWriter(INPUT_DIR + "/" + INPUT_FILE2));
 
         w.println("100\t");
         w.println("100\t");
@@ -107,9 +106,9 @@ public class TestAccumulator {
         w.println("300\tstrawberry");
         w.close();
 
-        Util.copyFromLocalToCluster(cluster, INPUT_FILE2, INPUT_FILE2);
+        Util.copyFromLocalToCluster(cluster, INPUT_DIR + "/" + INPUT_FILE2, INPUT_FILE2);
 
-        w = new PrintWriter(new FileWriter(INPUT_FILE3));
+        w = new PrintWriter(new FileWriter(INPUT_DIR + "/" + INPUT_FILE3));
 
         w.println("100\t1.0");
         w.println("100\t2.0");
@@ -124,9 +123,9 @@ public class TestAccumulator {
         w.println("400\t");
         w.close();
 
-        Util.copyFromLocalToCluster(cluster, INPUT_FILE3, INPUT_FILE3);
+        Util.copyFromLocalToCluster(cluster, INPUT_DIR + "/" + INPUT_FILE3, INPUT_FILE3);
 
-        w = new PrintWriter(new FileWriter(INPUT_FILE4));
+        w = new PrintWriter(new FileWriter(INPUT_DIR + "/" + INPUT_FILE4));
 
         w.println("100\thttp://ibm.com,ibm");
         w.println("100\thttp://ibm.com,ibm");
@@ -134,7 +133,11 @@ public class TestAccumulator {
         w.println("300\thttp://sun.com,sun");
         w.close();
 
-        Util.copyFromLocalToCluster(cluster, INPUT_FILE4, INPUT_FILE4);
+        Util.copyFromLocalToCluster(cluster, INPUT_DIR + "/" + INPUT_FILE4, INPUT_FILE4);
+    }
+
+    private static void deleteFiles() {
+        Util.deleteDirectory(new File(INPUT_DIR));
     }
 
     @Test

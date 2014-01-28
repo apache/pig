@@ -17,6 +17,7 @@
  */
 package org.apache.pig.test;
 
+import org.apache.pig.ExecType;
 import org.apache.pig.test.MiniGenericCluster;
 
 /**
@@ -24,6 +25,11 @@ import org.apache.pig.test.MiniGenericCluster;
  */
 public class TezMiniCluster extends MiniGenericCluster {
     TezMiniCluster() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    protected ExecType getExecType() {
         throw new UnsupportedOperationException();
     }
 

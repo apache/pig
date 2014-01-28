@@ -203,8 +203,9 @@ public class POPartitionRearrangeTez extends POLocalRearrangeTez {
             // We've already collected sampleMap in PigProcessor
             distMap = PigProcessor.sampleMap;
         } else {
-            throw new RuntimeException(this.getClass().getSimpleName() +
-                    " used but no key distribution found");
+            LOG.info("Key distribution map is empty");
+            inited = true;
+            return;
         }
 
         long start = System.currentTimeMillis();
