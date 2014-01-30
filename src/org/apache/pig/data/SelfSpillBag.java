@@ -56,6 +56,19 @@ public abstract class SelfSpillBag extends DefaultAbstractBag {
         private int cacheLimit = Integer.MAX_VALUE;
         private long memUsage = 0;
         private long numObjsSizeChecked = 0;
+        
+        private static float cachedMemUsage = 0.2F;
+        private static long maxMem = 0;
+        static {
+            maxMem = Runtime.getRuntime().maxMemory();
+            if (PigMapReduce.sJobConfInternal.get() != null) {
+                String usage = PigMapReduce.sJobConfInternal.get().get(
+                        PigConfiguration.PROP_CACHEDBAG_MEMUSAGE);
+                if (usage != null) {
+                    cachedMemUsage = Float.parseFloat(usage);
+                }
+            }
+        }
 
         /**
          * @param bagCount
@@ -68,18 +81,10 @@ public abstract class SelfSpillBag extends DefaultAbstractBag {
         private void init(int bagCount, float percent) {
 
             if (percent < 0) {
-                percent = 0.2F;
-                if (PigMapReduce.sJobConfInternal.get() != null) {
-                    String usage = PigMapReduce.sJobConfInternal.get().get(
-                            PigConfiguration.PROP_CACHEDBAG_MEMUSAGE);
-                    if (usage != null) {
-                        percent = Float.parseFloat(usage);
-                    }
-                }
+                percent = cachedMemUsage;
             }
 
-            long max = Runtime.getRuntime().maxMemory();
-            maxMemUsage = (long) ((max * percent) / bagCount);
+            maxMemUsage = (long) ((maxMem * percent) / bagCount);
 
             // set limit to 0, if memusage is 0 or really really small.
             // then all tuples are put into disk
