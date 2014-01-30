@@ -37,22 +37,19 @@ import javax.tools.JavaFileObject;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.io.ByteStreams;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.fs.Path;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.impl.util.JarManager;
-import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.io.ByteStreams;
 
 /**
  * Ensure classes from a registered jar are available in the UDFContext.
@@ -99,6 +96,7 @@ public class TestRegisteredJarVisibility {
         jar(filesToJar);
 
         cluster = MiniCluster.buildCluster();
+        Util.copyFromLocalToCluster(cluster, INPUT_FILE.getPath(), INPUT_FILE.getName());
     }
 
     @AfterClass()
@@ -116,14 +114,22 @@ public class TestRegisteredJarVisibility {
         }
         Assert.assertTrue(exceptionThrown);
     }
-
-    @Test()
-    public void testRegisteredJarVisibility() throws IOException {
-        Util.copyFromLocalToCluster(cluster, INPUT_FILE.getPath(), INPUT_FILE.getName());
+    
+    @Test
+    public void testRegisterJarVisibilityMR() throws IOException {
         PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        testRegisteredJarVisibility(pigServer, INPUT_FILE.getName());
+    }
 
+    @Test
+    public void testRegisteredJarVisibilityLocal() throws IOException {
+        PigServer pigServer = new PigServer(ExecType.LOCAL, new Properties());
+        testRegisteredJarVisibility(pigServer, INPUT_FILE.getAbsolutePath());
+    }
+    
+    public void testRegisteredJarVisibility(PigServer pigServer, String inputPath) throws IOException {
         String query = "register " + jarFile.getAbsolutePath() + ";\n"
-                + "a = load '" + INPUT_FILE.getName()
+                + "a = load '" + inputPath
                 + "' using org.apache.pig.test.RegisteredJarVisibilityLoader();\n"
                 // register again to test classloader consistency
                 + "register " +  jarFile.getAbsolutePath() + ";\n"
