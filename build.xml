@@ -1130,6 +1130,7 @@
                <pom refid="pig"/>
            <attach file="${output.jarfile.sources}" classifier="sources" />
            <attach file="${output.jarfile.javadoc}" classifier="javadoc" />
+           <attach file="${output.jarfile.core-h2}" classifier="h2" />
           </artifact:install>
          <artifact:pom file="${pigunit.pom}" id="pigunit"/>
           <artifact:install file="${pigunit.jarfile}">
