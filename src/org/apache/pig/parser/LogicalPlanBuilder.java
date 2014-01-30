@@ -99,6 +99,7 @@ import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchem
 import org.apache.pig.newplan.logical.rules.OptimizerUtils;
 import org.apache.pig.newplan.logical.visitor.ProjStarInUdfExpander;
 import org.apache.pig.newplan.logical.visitor.ProjectStarExpander;
+import org.apache.pig.newplan.logical.visitor.ResetProjectionAttachedRelationalOpVisitor;
 
 public class LogicalPlanBuilder {
 
@@ -296,6 +297,18 @@ public class LogicalPlanBuilder {
         }
         // using De Morgan's law (!A && !B) == !(A || B)
         currentExpr = new NotExpression(splitPlan, currentExpr);
+
+        try {
+            // Going through all the ProjectExpressions that were cloned
+            // and updating the attached operators from its original
+            // LOSplitOutput to to the "otherwise" LOSplitOutput
+            // (PIG-3641)
+            new ResetProjectionAttachedRelationalOpVisitor(splitPlan, op).visit();
+        } catch (FrontendException e) {
+            e.printStackTrace();
+            throw new PlanGenerationFailureException(intStream, loc, e);
+        }
+
         op.setFilterPlan(splitPlan);
         return buildOp(loc, op, alias, inputAlias, null);
     }
