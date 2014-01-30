@@ -76,6 +76,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3641: Split "otherwise" producing incorrect output when combined with ColumnPruning (knoguchi)
+
 PIG-3682: mvn-inst target does not install pig-h2.jar into local .m2 (raluri via aniket486)
 
 PIG-3661: Piggybank AvroStorage fails if used in more than one load or store statement (rohini)
