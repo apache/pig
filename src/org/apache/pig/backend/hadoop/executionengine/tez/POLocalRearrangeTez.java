@@ -45,7 +45,6 @@ import org.apache.tez.runtime.library.output.OnFileUnorderedKVOutput;
 public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
 
     private static final long serialVersionUID = 1L;
-    protected static Result empty = new Result(POStatus.STATUS_NULL, null);
 
     protected String outputKey;
     protected transient KeyValueWriter writer;
@@ -160,7 +159,7 @@ public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
                 } else {
                     illustratorMarkup(res.result, res.result, 0);
                 }
-                res = empty;
+                res = RESULT_EMPTY;
                 break;
             case POStatus.STATUS_EOP:
             case POStatus.STATUS_ERR:

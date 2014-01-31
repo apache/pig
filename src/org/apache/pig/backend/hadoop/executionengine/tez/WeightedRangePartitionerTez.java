@@ -17,7 +17,6 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.tez;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -64,7 +63,6 @@ public class WeightedRangePartitionerTez extends WeightedRangePartitioner {
 
         long start = System.currentTimeMillis();
         try {
-            weightedParts = new HashMap<PigNullableWritable, DiscreteProbabilitySampleGenerator>();
             DataBag quantilesList = (DataBag) quantileMap.get(FindQuantiles.QUANTILES_LIST);
             InternalMap weightedPartsData = (InternalMap) quantileMap.get(FindQuantiles.WEIGHTED_PARTS);
             convertToArray(quantilesList);

@@ -65,6 +65,8 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     private static final Log log = LogFactory.getLog(PhysicalOperator.class);
 
     protected static final long serialVersionUID = 1L;
+    protected static final Result RESULT_EMPTY = new Result(POStatus.STATUS_NULL, null);
+    protected static final Result RESULT_EOP = new Result(POStatus.STATUS_EOP, null);
 
     // The degree of parallelism requested
     protected int requestedParallelism;

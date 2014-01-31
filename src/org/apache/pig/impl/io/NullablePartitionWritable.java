@@ -55,7 +55,15 @@ public class NullablePartitionWritable extends PigNullableWritable{
 		return partitionIndex;
 	}
 
-  	@Override
+    @Override
+    public NullablePartitionWritable clone() throws CloneNotSupportedException {
+        NullablePartitionWritable clone = new NullablePartitionWritable();
+        clone.setKey(this.getKey());
+        clone.partitionIndex = this.partitionIndex;
+        return clone;
+    }
+
+    @Override
     public int compareTo(Object o) {
 		return key.compareTo(((NullablePartitionWritable)o).getKey());
 	}

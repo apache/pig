@@ -1445,8 +1445,12 @@ public class TezCompiler extends PhyPlanVisitor {
      * @return Tez operator that now is finished with a store.
      * @throws PlanException
      */
-    private TezOperator endSingleInputWithStoreAndSample(POSort sort, POLocalRearrangeTez lr,
-            POLocalRearrangeTez lrSample) throws PlanException {
+    private TezOperator endSingleInputWithStoreAndSample(
+            POSort sort,
+            POLocalRearrangeTez lr,
+            POLocalRearrangeTez lrSample,
+            byte keyType,
+            Pair<POProject, Byte>[] fields) throws PlanException {
         if(compiledInputs.length>1) {
             int errCode = 2023;
             String msg = "Received a multi input plan when expecting only a single input one.";
@@ -1454,6 +1458,35 @@ public class TezCompiler extends PhyPlanVisitor {
         }
         TezOperator oper = compiledInputs[0];
         if (!oper.isClosed()) {
+
+            List<PhysicalPlan> eps = new ArrayList<PhysicalPlan>();
+            if (fields == null) {
+                // This is project *
+                PhysicalPlan ep = new PhysicalPlan();
+                POProject prj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
+                prj.setStar(true);
+                prj.setOverloaded(false);
+                prj.setResultType(DataType.TUPLE);
+                ep.add(prj);
+                eps.add(ep);
+            } else {
+                // Attach the sort plans to the local rearrange to get the
+                // projection.
+                eps.addAll(sort.getSortPlans());
+            }
+
+            try {
+                lr.setIndex(0);
+            } catch (ExecException e) {
+                int errCode = 2058;
+                String msg = "Unable to set index on newly created POLocalRearrange.";
+                throw new PlanException(msg, errCode, PigException.BUG, e);
+            }
+            lr.setKeyType((fields == null || fields.length>1) ? DataType.TUPLE : keyType);
+            lr.setPlans(eps);
+            lr.setResultType(DataType.TUPLE);
+            lr.addOriginalLocation(sort.getAlias(), sort.getOriginalLocations());
+
             lr.setOutputKey(curTezOp.getOperatorKey().toString());
             oper.plan.addAsLeaf(lr);
 
@@ -1769,30 +1802,19 @@ public class TezCompiler extends PhyPlanVisitor {
     }
 
     private TezOperator[] getSortJobs(
+            TezOperator inputOper,
+            POLocalRearrangeTez inputOperRearrange,
             POSort sort,
-            int rp,
             byte keyType,
             Pair<POProject, Byte>[] fields) throws PlanException{
         TezOperator[] opers = new TezOperator[2];
         TezOperator oper1 = getTezOp();
         tezPlan.add(oper1);
         opers[0] = oper1;
-        oper1.requestedParallelism = rp;
 
         long limit = sort.getLimit();
+        //TODO: TezOperator limit not used at all
         oper1.limit = limit;
-
-        List<PhysicalPlan> eps1 = new ArrayList<PhysicalPlan>();
-
-        POPackage pkg = getPackage(1, DataType.BYTEARRAY);
-        oper1.plan.add(pkg);
-
-        POProject project = new POProject(new OperatorKey(scope, nig.getNextNodeId(scope)));
-        project.setResultType(DataType.BAG);
-        project.setStar(false);
-        project.setColumn(1);
-        POForEach forEach = TezCompilerUtil.getForEach(project, sort.getRequestedParallelism(), scope, nig);
-        oper1.plan.addAsLeaf(forEach);
 
         boolean[] sortOrder;
 
@@ -1805,42 +1827,18 @@ public class TezCompiler extends PhyPlanVisitor {
             oper1.setSortOrder(sortOrder);
         }
 
-        if (fields == null) {
-            // This is project *
-            PhysicalPlan ep = new PhysicalPlan();
-            POProject prj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
-            prj.setStar(true);
-            prj.setOverloaded(false);
-            prj.setResultType(DataType.TUPLE);
-            ep.add(prj);
-            eps1.add(ep);
-        } else {
-            // Attach the sort plans to the local rearrange to get the
-            // projection.
-            eps1.addAll(sort.getSortPlans());
-        }
-
-        POLocalRearrangeTez lr = new POLocalRearrangeTez(new OperatorKey(scope,nig.getNextNodeId(scope)));
-        try {
-            lr.setIndex(0);
-        } catch (ExecException e) {
-            int errCode = 2058;
-            String msg = "Unable to set index on newly created POLocalRearrange.";
-            throw new PlanException(msg, errCode, PigException.BUG, e);
-        }
-        lr.setKeyType((fields == null || fields.length>1) ? DataType.TUPLE : keyType);
-        lr.setPlans(eps1);
-        lr.setResultType(DataType.TUPLE);
-        lr.addOriginalLocation(sort.getAlias(), sort.getOriginalLocations());
-        oper1.plan.addAsLeaf(lr);
-
+        POIdentityInOutTez identityInOutTez = new POIdentityInOutTez(
+                new OperatorKey(scope, nig.getNextNodeId(scope)),
+                inputOperRearrange);
+        identityInOutTez.setInputKey(inputOper.getOperatorKey().toString());
+        oper1.plan.addAsLeaf(identityInOutTez);
         oper1.setClosed(true);
 
         TezOperator oper2 = getTezOp();
         oper2.setGlobalSort(true);
         opers[1] = oper2;
         tezPlan.add(oper2);
-        lr.setOutputKey(oper2.getOperatorKey().toString());
+        identityInOutTez.setOutputKey(oper2.getOperatorKey().toString());
 
         if (limit!=-1) {
             POPackage pkg_c = new POPackage(new OperatorKey(scope, nig.getNextNodeId(scope)));
@@ -1890,7 +1888,7 @@ public class TezCompiler extends PhyPlanVisitor {
             combinePlan.addAsLeaf(lr_c2);
         }
 
-        pkg = new POPackage(new OperatorKey(scope, nig.getNextNodeId(scope)));
+        POPackage pkg = new POPackage(new OperatorKey(scope, nig.getNextNodeId(scope)));
         pkg.setPkgr(new LitePackager());
         pkg.getPkgr().setKeyType((fields == null || fields.length > 1) ? DataType.TUPLE : keyType);
         pkg.setNumInps(1);
@@ -1935,22 +1933,33 @@ public class TezCompiler extends PhyPlanVisitor {
                 throw new PlanException(msg, errCode, PigException.BUG, ve);
             }
 
-            POLocalRearrangeTez lr = localRearrangeFactory.create(LocalRearrangeType.NULL);
+            POLocalRearrangeTez lr = new POLocalRearrangeTez(new OperatorKey(scope, nig.getNextNodeId(scope)));
             POLocalRearrangeTez lrSample = localRearrangeFactory.create(LocalRearrangeType.NULL);
 
-            TezOperator prevOper = endSingleInputWithStoreAndSample(op, lr, lrSample);
+            TezOperator prevOper = endSingleInputWithStoreAndSample(op, lr, lrSample, keyType, fields);
 
             int rp = Math.max(op.getRequestedParallelism(), 1);
 
             Pair<TezOperator, Integer> quantJobParallelismPair = getQuantileJobs(op, rp);
-            TezOperator[] sortOpers = getSortJobs(op, quantJobParallelismPair.second, keyType, fields);
+            TezOperator[] sortOpers = getSortJobs(prevOper, lr, op, keyType, fields);
 
             TezEdgeDescriptor edge = handleSplitAndConnect(tezPlan, prevOper, sortOpers[0]);
 
             // TODO: Convert to unsorted shuffle after TEZ-661
             // edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
             // edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
-            edge.partitionerClass = RoundRobinPartitioner.class;
+            // edge.partitionerClass = RoundRobinPartitioner.class;
+
+            // TODO: Test which is better - ONE_TO_ONE from prevOper to same number of
+            // tasks in sortOpers[0] and then sortOpers[1] with requestedParallelism
+            // or unsorted shuffled output (TEZ-661) from prevOper to
+            // sortOpers[0] with requestedParallelism and then sortOpers[1] with
+            // requestedParallelism
+            sortOpers[0].requestedParallelism = prevOper.requestedParallelism;
+            sortOpers[1].requestedParallelism = quantJobParallelismPair.second;
+            edge.dataMovementType = DataMovementType.ONE_TO_ONE;
+            edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
+            edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
 
             handleSplitAndConnect(tezPlan, prevOper, quantJobParallelismPair.first, false);
             lr.setOutputKey(sortOpers[0].getOperatorKey().toString());

@@ -27,6 +27,7 @@ public class TezDAG extends DAG {
     public TezDAG(String name) {
         super(name);
         this.credentials = new Credentials();
+        super.setCredentials(credentials);
     }
 
     public Credentials getCredentials() {

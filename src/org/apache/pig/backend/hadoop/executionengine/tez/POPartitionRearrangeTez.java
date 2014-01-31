@@ -141,7 +141,7 @@ public class POPartitionRearrangeTez extends POLocalRearrangeTez {
                 }
             }
 
-            res = empty;
+            res = RESULT_EMPTY;
         }
         return inp;
     }
