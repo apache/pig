@@ -148,5 +148,12 @@ public class PigConfiguration {
      * Controls the max threshold size to convert jobs to run in local mode
      */
     public static final String PIG_AUTO_LOCAL_INPUT_MAXBYTES = "pig.auto.local.input.maxbytes";
+
+    /**
+     * This key is used to define whether PigOutputFormat will be wrapped with LazyOutputFormat
+     * so that jobs won't write empty part files if no output is generated
+     */
+    public static final String PIG_OUTPUT_LAZY = "pig.output.lazy";
+
 }
 

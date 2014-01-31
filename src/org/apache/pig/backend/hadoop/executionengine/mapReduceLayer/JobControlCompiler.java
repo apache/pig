@@ -54,6 +54,7 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobPriority;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
+import org.apache.hadoop.mapreduce.lib.output.LazyOutputFormat;
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.LoadFunc;
@@ -668,8 +669,14 @@ public class JobControlCompiler{
                 sFunc.setStoreLocation(st.getSFile().getFileName(), nwJob);
             }
 
-            // the OutputFormat we report to Hadoop is always PigOutputFormat
-            nwJob.setOutputFormatClass(PigOutputFormat.class);
+            // the OutputFormat we report to Hadoop is always PigOutputFormat which
+            // can be wrapped with LazyOutputFormat if PigConfiguration.PIG_OUTPUT_LAZY is set 
+            if ("true".equalsIgnoreCase(conf.get(PigConfiguration.PIG_OUTPUT_LAZY))) {
+                LazyOutputFormat.setOutputFormatClass(nwJob, PigOutputFormat.class);
+            }
+            else {
+                nwJob.setOutputFormatClass(PigOutputFormat.class);
+            }
 
             if (mapStores.size() + reduceStores.size() == 1) { // single store case
                 log.info("Setting up single store job");
@@ -705,8 +712,6 @@ public class JobControlCompiler{
                 String tmpLocationStr =  FileLocalizer
                         .getTemporaryPath(pigContext).toString();
                 tmpLocation = new Path(tmpLocationStr);
-
-                nwJob.setOutputFormatClass(PigOutputFormat.class);
 
                 boolean disableCounter = conf.getBoolean("pig.disable.counter", false);
                 if (disableCounter) {
