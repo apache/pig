@@ -30,6 +30,8 @@ PIG-2207: Support custom counters for aggregating warnings from different udfs (
 
 IMPROVEMENTS
 
+PIG-3299: Provide support for LazyOutputFormat to avoid creating empty files (lbendig via daijy)
+
 PIG-3730: Performance issue in SelfSpillBag (rajesh.balamohan via rohini)
 
 PIG-3654: Add class cache to PigContext (tmwoodruff via daijy)

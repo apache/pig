@@ -19,6 +19,7 @@ package org.apache.pig.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
 import java.io.BufferedReader;
@@ -45,6 +46,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.ResourceSchema;
@@ -684,6 +686,71 @@ public class TestStore {
                                     execType + " mode", false,
                                     Util.exists(ps.getPigContext(), sucFile));
                         }
+                    }
+                }
+            }
+        } finally {
+            Util.deleteFile(ps.getPigContext(), TESTDIR);
+        }
+    }
+    
+    /**
+     * Test whether "part-m-00000" file is created on empty output when 
+     * {@link PigConfiguration#PIG_OUTPUT_LAZY} is set. 
+     * The test covers multi store and single store case in local and mapreduce mode
+     *
+     * @throws IOException
+     */
+    @Test
+    public void testEmptyPartFileCreation() throws IOException {
+        PigServer ps = null;
+
+        try {
+            ExecType[] modes = new ExecType[] { ExecType.LOCAL, ExecType.MAPREDUCE};
+            String[] inputData = new String[]{"hello\tworld", "hi\tworld", "bye\tworld"};
+
+            String multiStoreScript = "a = load '"+ inputFileName + "';" +
+                    "b = filter a by $0 == 'hey';" +
+                    "c = filter a by $1 == 'globe';" +
+                    "d = limit a 2;" +
+                    "e = foreach d generate *, 'x';" +
+                    "f = filter e by $3 == 'y';" +
+                    "store b into '" + outputFileName + "_1';" +
+                    "store c into '" + outputFileName + "_2';" +
+                    "store f into '" + outputFileName + "_3';";
+
+            String singleStoreScript =  "a = load '"+ inputFileName + "';" +
+                    "b = filter a by $0 == 'hey';" +
+                    "store b into '" + outputFileName + "_1';" ;
+
+            for (ExecType execType : modes) {
+                for(boolean isMultiStore: new boolean[] { true, false}) {
+                    String script = (isMultiStore ? multiStoreScript :
+                        singleStoreScript);
+                    // since we will be switching between map red and local modes
+                    // we will need to make sure filelocalizer is reset before each
+                    // run.
+                    FileLocalizer.setInitialized(false);
+                    if(execType == ExecType.MAPREDUCE) {
+                        ps = new PigServer(ExecType.MAPREDUCE,
+                                cluster.getProperties());
+                    } else {
+                        Properties props = new Properties();
+                        props.setProperty(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
+                        ps = new PigServer(ExecType.LOCAL, props);
+                    }
+                    ps.getPigContext().getProperties().setProperty(
+                            PigConfiguration.PIG_OUTPUT_LAZY, "true");
+                    Util.deleteFile(ps.getPigContext(), TESTDIR);
+                    ps.setBatchOn();
+                    Util.createInputFile(ps.getPigContext(),
+                            inputFileName, inputData);
+                    Util.registerMultiLineQuery(ps, script);
+                    ps.executeBatch();
+                    for(int i = 1; i <= (isMultiStore ? 3 : 1); i++) {
+                        String output = "part-m-00000";
+                        assertFalse("For an empty output part-m-00000 should not exist in " +
+                                execType + " mode", Util.exists(ps.getPigContext(), output));
                     }
                 }
             }
