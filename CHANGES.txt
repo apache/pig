@@ -76,6 +76,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3726: Ranking empty records leads to NullPointerException (jarcec via daijy)
+
 PIG-3652: Pigmix parser (PigPerformanceLoader) deletes chars during parsing (keren3000 via daijy)
 
 PIG-3722: Udf deserialization for registered classes fails in local_mode (aniket486)
