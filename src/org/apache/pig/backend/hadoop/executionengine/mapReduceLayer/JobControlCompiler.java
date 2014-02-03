@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -668,8 +669,26 @@ public class JobControlCompiler{
                 sFunc.setStoreLocation(st.getSFile().getFileName(), nwJob);
             }
 
-            // the OutputFormat we report to Hadoop is always PigOutputFormat
-            nwJob.setOutputFormatClass(PigOutputFormat.class);
+            // the OutputFormat we report to Hadoop is always PigOutputFormat which
+            // can be wrapped with LazyOutputFormat provided if it is supported by
+            // the Hadoop version and PigConfiguration.PIG_OUTPUT_LAZY is set 
+            if ("true".equalsIgnoreCase(conf.get(PigConfiguration.PIG_OUTPUT_LAZY))) {
+                try {
+                    Class<?> clazz = PigContext.resolveClassName(
+                            "org.apache.hadoop.mapreduce.lib.output.LazyOutputFormat");
+                    Method method = clazz.getMethod("setOutputFormatClass", nwJob.getClass(),
+                            Class.class);
+                    method.invoke(null, nwJob, PigOutputFormat.class);
+                }
+                catch (Exception e) {
+                    nwJob.setOutputFormatClass(PigOutputFormat.class);
+                    log.warn(PigConfiguration.PIG_OUTPUT_LAZY
+                            + " is set but LazyOutputFormat couldn't be loaded. Default PigOutputFormat will be used");
+                }
+            }
+            else {
+                nwJob.setOutputFormatClass(PigOutputFormat.class);
+            }
 
             if (mapStores.size() + reduceStores.size() == 1) { // single store case
                 log.info("Setting up single store job");
@@ -691,8 +710,6 @@ public class JobControlCompiler{
             else if (mapStores.size() + reduceStores.size() > 0) { // multi store case
                 log.info("Setting up multi store job");
                 MapRedUtil.setupStreamingDirsConfMulti(pigContext, conf);
-                
-                nwJob.setOutputFormatClass(PigOutputFormat.class);
 
                 boolean disableCounter = conf.getBoolean("pig.disable.counter", false);
                 if (disableCounter) {

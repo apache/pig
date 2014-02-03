@@ -154,5 +154,12 @@ public class PigConfiguration {
      */
     public static final String OPT_FETCH = "opt.fetch";
     
+
+    /**
+     * This key is used to define whether PigOutputFormat will be wrapped with LazyOutputFormat
+     * so that jobs won't write empty part files if no output is generated
+     */
+    public static final String PIG_OUTPUT_LAZY = "pig.output.lazy";
+
 }
 
