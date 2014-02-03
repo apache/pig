@@ -40,7 +40,8 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecutionEngine;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
-import org.apache.pig.backend.hadoop.executionengine.Launcher;
+import org.apache.pig.backend.hadoop.executionengine.fetch.FetchLauncher;
+import org.apache.pig.backend.hadoop.executionengine.fetch.FetchOptimizer;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
@@ -355,6 +356,13 @@ public abstract class HExecutionEngine implements ExecutionEngine {
 
         try {
             PhysicalPlan pp = compile(lp, pc.getProperties());
+            //if the compiled physical plan fulfills the requirements of the
+            //fetch optimizer, then further transformations / MR jobs creations are
+            //skipped; a SimpleFetchPigStats will be returned through which the result
+            //can be directly fetched from the underlying storage
+            if (FetchOptimizer.isPlanFetchable(pc, pp)) {
+                return new FetchLauncher(pc).launchPig(pp);
+            }
             return launcher.launchPig(pp, grpName, pigContext);
         } catch (ExecException e) {
             throw (ExecException) e;
@@ -385,6 +393,10 @@ public abstract class HExecutionEngine implements ExecutionEngine {
             pp.explain(pps, format, verbose);
 
             MapRedUtil.checkLeafIsStore(pp, pigContext);
+            if (FetchOptimizer.isPlanFetchable(pc, pp)) {
+                new FetchLauncher(pigContext).explain(pp, pc, eps, format);
+                return;
+            }
             launcher.explain(pp, pigContext, eps, format, verbose);
         } finally {
             launcher.reset();

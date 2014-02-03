@@ -506,6 +506,10 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
                     .getNextNodeId(DEFAULT_SCOPE)), -1,
                     null, op.getFuncSpec(), (EvalFunc) f);
             ((POUserFunc)p).setSignature(op.getSignature());
+            //reinitialize input schema from signature
+            if (((POUserFunc)p).getFunc().getInputSchema() == null) {
+                ((POUserFunc)p).setFuncInputSchema(op.getSignature());
+            }
             List<String> cacheFiles = ((EvalFunc)f).getCacheFiles();
             if (cacheFiles != null) {
                 ((POUserFunc)p).setCacheFiles(cacheFiles.toArray(new String[cacheFiles.size()]));

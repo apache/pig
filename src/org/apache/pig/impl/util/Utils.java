@@ -25,9 +25,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.SequenceInputStream;
-import java.net.Socket;
-import java.net.SocketException;
-import java.net.SocketImplFactory;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Enumeration;
@@ -334,7 +331,7 @@ public class Utils {
     }
 
     public static FileInputLoadFunc getTmpFileStorageObject(Configuration conf) throws IOException {
-        Class<? extends FileInputLoadFunc> storageClass = getTmpFileStorage(ConfigurationUtil.toProperties(conf)).getStorageClass();
+        Class<? extends FileInputLoadFunc> storageClass = getTmpFileStorageClass(ConfigurationUtil.toProperties(conf));
         try {
             return storageClass.newInstance();
         } catch (InstantiationException e) {
@@ -342,6 +339,10 @@ public class Utils {
         } catch (IllegalAccessException e) {
             throw new IOException(e);
         }
+    }
+
+    public static Class<? extends FileInputLoadFunc> getTmpFileStorageClass(Properties properties) {
+       return getTmpFileStorage(properties).getStorageClass();
     }
 
     private static TEMPFILE_STORAGE getTmpFileStorage(Properties properties) {

@@ -41,6 +41,7 @@ import org.apache.pig.FuncSpec;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -174,6 +175,48 @@ public class MapRedUtil {
         }
     }
     
+    /**
+     * Sets up output and log dir paths for a single-store streaming job
+     *
+     * @param st - POStore of the current job
+     * @param pigContext
+     * @param conf
+     * @throws IOException
+     */
+    public static void setupStreamingDirsConfSingle(POStore st, PigContext pigContext,
+            Configuration conf) throws IOException {
+        // set out filespecs
+        String outputPathString = st.getSFile().getFileName();
+        if (!outputPathString.contains("://") || outputPathString.startsWith("hdfs://")) {
+            conf.set("pig.streaming.log.dir",
+                    new Path(outputPathString, JobControlCompiler.LOG_DIR).toString());
+        }
+        else {
+            String tmpLocationStr = FileLocalizer.getTemporaryPath(pigContext).toString();
+            Path tmpLocation = new Path(tmpLocationStr);
+            conf.set("pig.streaming.log.dir",
+                    new Path(tmpLocation, JobControlCompiler.LOG_DIR).toString());
+        }
+        conf.set("pig.streaming.task.output.dir", outputPathString);
+    }
+
+    /**
+     * Sets up output and log dir paths for a multi-store streaming job
+     *
+     * @param pigContext
+     * @param conf
+     * @throws IOException
+     */
+    public static void setupStreamingDirsConfMulti(PigContext pigContext, Configuration conf)
+            throws IOException {
+
+        String tmpLocationStr = FileLocalizer.getTemporaryPath(pigContext).toString();
+        Path tmpLocation = new Path(tmpLocationStr);
+        conf.set("pig.streaming.log.dir",
+                new Path(tmpLocation, JobControlCompiler.LOG_DIR).toString());
+        conf.set("pig.streaming.task.output.dir", tmpLocation.toString());
+    }
+
     public static FileSpec checkLeafIsStore(
             PhysicalPlan plan,
             PigContext pigContext) throws ExecException {

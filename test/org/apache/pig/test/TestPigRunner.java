@@ -51,6 +51,7 @@ import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigProgressNotificationListener;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStatsUtil;
+import org.apache.pig.tools.pigstats.SimpleFetchPigStats;
 import org.apache.pig.tools.pigstats.mapreduce.MRJobStats;
 import org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil;
 import org.junit.AfterClass;
@@ -153,7 +154,7 @@ public class TestPigRunner {
         w.close();
         
         try {
-            String[] args = { "-Dstop.on.failure=true", "-Dopt.multiquery=false", "-Daggregate.warning=false", PIG_FILE };
+            String[] args = { "-Dstop.on.failure=true", "-Dopt.multiquery=false", "-Dopt.fetch=false", "-Daggregate.warning=false", PIG_FILE };
             PigStats stats = PigRunner.run(args, new TestNotificationListener());
      
             assertTrue(stats.isSuccessful());
@@ -171,6 +172,36 @@ public class TestPigRunner {
             assertTrue(conf.getBoolean("stop.on.failure", false));           
             assertTrue(!conf.getBoolean("aggregate.warning", true));
             assertTrue(!conf.getBoolean("opt.multiquery", true));
+            assertTrue(!conf.getBoolean("opt.fetch", true));
+        } finally {
+            new File(PIG_FILE).delete();
+            Util.deleteFile(cluster, OUTPUT_FILE);
+        }
+    }
+
+    @Test
+    public void simpleTest2() throws Exception {
+        PrintWriter w = new PrintWriter(new FileWriter(PIG_FILE));
+        w.println("A = load '" + INPUT_FILE + "' as (a0:int, a1:int, a2:int);");
+        w.println("B = filter A by a0 == 3;");
+        w.println("C = limit B 1;");
+        w.println("dump C;");
+        w.close();
+
+        try {
+            String[] args = { "-Dstop.on.failure=true", "-Dopt.multiquery=false", "-Daggregate.warning=false", PIG_FILE };
+            PigStats stats = PigRunner.run(args, new TestNotificationListener());
+
+            assertTrue(stats instanceof SimpleFetchPigStats);
+            assertTrue(stats.isSuccessful());
+            assertEquals(0, stats.getNumberJobs());
+            assertEquals(stats.getJobGraph().size(), 0);
+
+            Configuration conf = ConfigurationUtil.toConfiguration(stats.getPigProperties());
+            assertTrue(conf.getBoolean("stop.on.failure", false));
+            assertTrue(!conf.getBoolean("aggregate.warning", true));
+            assertTrue(!conf.getBoolean("opt.multiquery", true));
+            assertTrue(conf.getBoolean("opt.fetch", true));
         } finally {
             new File(PIG_FILE).delete();
             Util.deleteFile(cluster, OUTPUT_FILE);

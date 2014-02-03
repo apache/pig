@@ -29,10 +29,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Random;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.BinStorage;
@@ -1011,17 +1013,22 @@ public class TestEvalPipeline2 {
         
         Iterator<Tuple> iter = pigServer.openIterator("e");
         
+        Map<Object, Object> expected = new HashMap<Object, Object>(3);
+        expected.put(1, null);
+        expected.put(2, null);
+        expected.put(4, null);
+
         Tuple t = iter.next();
         Assert.assertTrue(t.size()==1);
-        Assert.assertTrue((Integer)t.get(0)==1);
+        Assert.assertTrue(expected.containsKey(t.get(0)));
         
         t = iter.next();
         Assert.assertTrue(t.size()==1);
-        Assert.assertTrue((Integer)t.get(0)==4);
+        Assert.assertTrue(expected.containsKey(t.get(0)));
         
         t = iter.next();
         Assert.assertTrue(t.size()==1);
-        Assert.assertTrue((Integer)t.get(0)==2);
+        Assert.assertTrue(expected.containsKey(t.get(0)));
         
         Assert.assertFalse(iter.hasNext());
     }
@@ -1595,10 +1602,36 @@ public class TestEvalPipeline2 {
             pigServer.openIterator("b");
             Assert.fail();
         } catch (Exception e) {
-            Assert.assertTrue(e.getMessage().contains(ArrayList.class.getName()));
+            String message = e.getCause().getCause().getMessage();
+            Assert.assertTrue(message.contains(ArrayList.class.getName()));
         }
     }
     
+    // See PIG-1826
+    @Test
+    public void testNonStandardDataWithoutFetch() throws Exception{
+        Properties props = pigServer.getPigContext().getProperties();
+        props.setProperty(PigConfiguration.OPT_FETCH, "false");
+        String[] input1 = {
+                "0",
+        };
+        try {
+            Util.createInputFile(cluster, "table_testNonStandardDataWithoutFetch", input1);
+            pigServer.registerQuery("a = load 'table_testNonStandardDataWithoutFetch' as (a0);");
+            pigServer.registerQuery("b = foreach a generate " + UDFWithNonStandardType.class.getName() + "(a0);");
+
+            try {
+                pigServer.openIterator("b");
+                Assert.fail();
+            } catch (Exception e) {
+                Assert.assertTrue(e.getMessage().contains(ArrayList.class.getName()));
+            }
+        }
+        finally {
+            props.setProperty(PigConfiguration.OPT_FETCH, "true");
+        }
+    }
+
     // See PIG-2078
     @Test
     public void testProjectNullBag() throws Exception{
