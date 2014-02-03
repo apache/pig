@@ -38,6 +38,8 @@ import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -63,6 +65,7 @@ import org.apache.pig.PigException;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.SecondaryKeyPartitioner;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.SkewedPartitioner;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.WeightedRangePartitioner;
@@ -1589,6 +1592,57 @@ public class JobControlCompiler{
         pigContext.skipJars.add(url.getPath());
     }
 
+    private static Path getCacheStagingDir(Configuration conf) throws IOException {
+        String pigTempDir = conf.get(PigConfiguration.PIG_USER_CACHE_LOCATION,
+                conf.get(PigConfiguration.PIG_TEMP_DIR, "/tmp"));
+        String currentUser = System.getProperty("user.name");
+        Path stagingDir = new Path(pigTempDir + "/" + currentUser + "/", ".pigcache");
+        FileSystem fs = FileSystem.get(conf);
+        fs.mkdirs(stagingDir);
+        fs.setPermission(stagingDir, FileLocalizer.OWNER_ONLY_PERMS);
+        return stagingDir;
+    }
+
+    private static Path getFromCache(PigContext pigContext,
+            Configuration conf,
+            URL url) throws IOException {
+        try {
+            Path stagingDir = getCacheStagingDir(conf);
+            String filename = FilenameUtils.getName(url.getPath());
+
+            String checksum = DigestUtils.shaHex(url.openStream());
+            FileSystem fs = FileSystem.get(conf);
+            Path cacheDir = new Path(stagingDir, checksum);
+            FileStatus [] statuses = fs.listStatus(cacheDir);
+            if (statuses != null) {
+                for (FileStatus stat : statuses) {
+                    Path jarPath = stat.getPath();
+                    if(jarPath.getName().equals(filename)) {
+                        log.info("Found " + url + " in jar cache at "+ stagingDir);
+                        long curTime = System.currentTimeMillis();
+                        fs.setTimes(jarPath, -1, curTime);
+                        return jarPath;
+                    }
+                }
+            }
+            log.info("Url "+ url + " was not found in jarcache at "+ stagingDir);
+            // attempt to copy to cache else return null
+            fs.mkdirs(cacheDir, FileLocalizer.OWNER_ONLY_PERMS);
+            Path cacheFile = new Path(cacheDir, filename);
+            OutputStream os = FileSystem.create(fs, cacheFile, FileLocalizer.OWNER_ONLY_PERMS);
+            try {
+                IOUtils.copyBytes(url.openStream(), os, 4096, true);
+            } finally {
+                os.close();
+            }
+            return cacheFile;
+
+        } catch (IOException ioe) {
+            log.info("Unable to retrieve jar from jar cache ", ioe);
+            return null;
+        }
+    }
+
     /**
      * copy the file to hdfs in a temporary path
      * @param pigContext the pig context
@@ -1602,9 +1656,15 @@ public class JobControlCompiler{
             Configuration conf,
             URL url) throws IOException {
 
-        String path = url.getPath();
-        int slash = path.lastIndexOf("/");
-        String suffix = slash == -1 ? path : path.substring(slash+1);
+        boolean cacheEnabled =
+                conf.getBoolean(PigConfiguration.PIG_USER_CACHE_ENABLED, false);
+        if (cacheEnabled) {
+            Path pathOnDfs = getFromCache(pigContext, conf, url);
+            if(pathOnDfs != null) {
+                return pathOnDfs;
+            }
+        }
+        String suffix = FilenameUtils.getName(url.getPath());
 
         Path dst = new Path(FileLocalizer.getTemporaryPath(pigContext).toUri().getPath(), suffix);
         FileSystem fs = dst.getFileSystem(conf);

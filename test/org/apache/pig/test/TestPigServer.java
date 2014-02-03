@@ -55,6 +55,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -777,7 +778,7 @@ public class TestPigServer {
         File propertyFile = new File(tempDir, "pig.properties");
         propertyFile.deleteOnExit();
         PrintWriter out = new PrintWriter(new FileWriter(propertyFile));
-        out.println("pig.temp.dir=/tmp/test");
+        out.println(PigConfiguration.PIG_TEMP_DIR + "=/tmp/test");
         out.close();
         Properties properties = PropertiesUtil.loadDefaultProperties();
         PigContext pigContext=new PigContext(ExecType.LOCAL, properties);

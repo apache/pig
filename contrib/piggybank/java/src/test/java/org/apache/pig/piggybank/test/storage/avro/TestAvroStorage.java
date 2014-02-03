@@ -41,6 +41,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
 import org.apache.pig.ExecType;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
@@ -190,7 +191,7 @@ public class TestAvroStorage {
     public static void setup() throws ExecException, IOException {
         pigServerLocal = new PigServer(ExecType.LOCAL);
         String TMP_DIR = System.getProperty("user.dir") + "/build/test/tmp/";
-        pigServerLocal.getPigContext().getProperties().setProperty("pig.temp.dir", TMP_DIR);
+        pigServerLocal.getPigContext().getProperties().setProperty(PigConfiguration.PIG_TEMP_DIR, TMP_DIR);
         outbasedir = FileLocalizer.getTemporaryPath(pigServerLocal.getPigContext()).toString() + "/TestAvroStorage/";
         deleteDirectory(new File(outbasedir));
     }

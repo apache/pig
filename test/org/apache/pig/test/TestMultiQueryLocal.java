@@ -36,6 +36,7 @@ import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRExecutionEngine;
@@ -70,7 +71,7 @@ public class TestMultiQueryLocal {
         context.getProperties().setProperty("opt.multiquery", ""+true);
         myPig = new PigServer(context);
         myPig.getPigContext().getProperties().setProperty("pig.usenewlogicalplan", "false");
-        myPig.getPigContext().getProperties().setProperty("pig.temp.dir", "build/test/tmp/");
+        myPig.getPigContext().getProperties().setProperty(PigConfiguration.PIG_TEMP_DIR, "build/test/tmp/");
         TMP_DIR = FileLocalizer.getTemporaryPath(myPig.getPigContext()).toUri().getPath();
         deleteOutputFiles();
     }

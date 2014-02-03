@@ -148,12 +148,11 @@ public class PigConfiguration {
      * Controls the max threshold size to convert jobs to run in local mode
      */
     public static final String PIG_AUTO_LOCAL_INPUT_MAXBYTES = "pig.auto.local.input.maxbytes";
-    
+
     /**
      * This parameter enables/disables fetching. By default it is turned on.
      */
     public static final String OPT_FETCH = "opt.fetch";
-    
 
     /**
      * This key is used to define whether PigOutputFormat will be wrapped with LazyOutputFormat
@@ -161,5 +160,21 @@ public class PigConfiguration {
      */
     public static final String PIG_OUTPUT_LAZY = "pig.output.lazy";
 
+    /**
+     * Location where pig stores temporary files for job setup
+     */
+    public static final String PIG_TEMP_DIR = "pig.temp.dir";
+
+    /**
+     * This key is turn on the user level cache
+     */
+    public static final String PIG_USER_CACHE_ENABLED = "pig.user.cache.enabled";
+
+    /**
+     * Location where additional jars are cached for the user
+     * Additional jar will be cached under PIG_USER_CACHE_LOCATION/${user.name}/.pigcache
+     * and will be re-used across the jobs run by the user if the jar has not changed
+     */
+    public static final String PIG_USER_CACHE_LOCATION = "pig.user.cache.location";
 }
 

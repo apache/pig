@@ -30,6 +30,8 @@ PIG-2207: Support custom counters for aggregating warnings from different udfs (
 
 IMPROVEMENTS
 
+PIG-2672: Optimize the use of DistributedCache (aniket486)
+
 PIG-3238: Pig current releases lack a UDF Stuff(). This UDF deletes a specified length of characters
  and inserts another set of characters at a specified starting point (nezihyigitbasi via daijy)
 
