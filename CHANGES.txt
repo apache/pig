@@ -30,6 +30,9 @@ PIG-2207: Support custom counters for aggregating warnings from different udfs (
 
 IMPROVEMENTS
 
+PIG-3238: Pig current releases lack a UDF Stuff(). This UDF deletes a specified length of characters
+ and inserts another set of characters at a specified starting point (nezihyigitbasi via daijy)
+
 PIG-3299: Provide support for LazyOutputFormat to avoid creating empty files (lbendig via daijy)
 
 PIG-3642: Direct HDFS access for small jobs (fetch) (lbendig via cheolsoo)
