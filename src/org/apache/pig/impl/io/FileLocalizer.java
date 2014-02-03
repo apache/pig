@@ -43,6 +43,7 @@ import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.util.Shell;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.datastorage.ContainerDescriptor;
 import org.apache.pig.backend.datastorage.DataStorage;
@@ -67,7 +68,7 @@ public class FileLocalizer {
     static public final int STYLE_UNIX = 0;
     static public final int STYLE_WINDOWS = 1;
 
-    private static FsPermission rootPerm = new FsPermission(FsAction.ALL, FsAction.NONE,
+    public static FsPermission OWNER_ONLY_PERMS = new FsPermission(FsAction.ALL, FsAction.NONE,
             FsAction.NONE); // rwx------
 
     public static class DataStorageInputStreamIterator extends InputStream {
@@ -461,7 +462,7 @@ public class FileLocalizer {
             throws DataStorageException {
 
         if (relativeRoot.get() == null) {
-            String tdir= pigContext.getProperties().getProperty("pig.temp.dir", "/tmp");
+            String tdir= pigContext.getProperties().getProperty(PigConfiguration.PIG_TEMP_DIR, "/tmp");
             ContainerDescriptor relative = pigContext.getDfs().asContainer(tdir + "/temp" + r.nextInt());
             relativeRoot.set(relative);
             try {
@@ -479,7 +480,7 @@ public class FileLocalizer {
     private static void createRelativeRoot(ContainerDescriptor relativeRoot) throws IOException {
         relativeRoot.create();
         if (relativeRoot instanceof HDirectory) {
-            ((HDirectory) relativeRoot).setPermission(rootPerm);
+            ((HDirectory) relativeRoot).setPermission(OWNER_ONLY_PERMS);
         }
     }
 
