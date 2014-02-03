@@ -367,7 +367,8 @@ public class CSVExcelStorage extends PigStorage implements StoreFuncInterface, L
         // further records to it. If they are the same (this would 
         // happen if multiple small files each with a header were combined
         // into one split), we know to skip the duplicate header record as well.
-        if (loadingFirstRecord && headerTreatment == Headers.SKIP_INPUT_HEADER && splitIndex == 0) {
+        if (loadingFirstRecord && headerTreatment == Headers.SKIP_INPUT_HEADER &&
+                (splitIndex == 0 || splitIndex == -1)) {
             try {
                 if (!in.nextKeyValue())
                     return null;

@@ -26,6 +26,7 @@ import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.PigConfiguration;
 
 public class PropertiesUtil {
     private static final String DEFAULT_PROPERTIES_FILE = "/pig-default.properties";
@@ -142,6 +143,11 @@ public class PropertiesUtil {
         if (properties.getProperty("stop.on.failure") == null) {
             //by default we keep going on error on the backend
             properties.setProperty("stop.on.failure", ""+false);
+        }
+
+        if (properties.getProperty(PigConfiguration.OPT_FETCH) == null) {
+            //by default fetch optimization is on
+            properties.setProperty(PigConfiguration.OPT_FETCH, ""+true);
         }
     }
     

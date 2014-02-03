@@ -22,10 +22,12 @@ import static org.apache.pig.builtin.mock.Storage.resetData;
 import static org.apache.pig.builtin.mock.Storage.tuple;
 
 import java.util.List;
+import java.util.Properties;
 
 import junit.framework.Assert;
 
 import org.apache.pig.ExecType;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.Tuple;
@@ -84,9 +86,36 @@ public class TestAssert {
       try {
           pigServer.openIterator("A");
       } catch (FrontendException fe) {
+            Assert.assertTrue(fe.getCause().getCause().getMessage().contains("Assertion violated"));
+      }
+  }
+
+  /**
+   * Verify that ASSERT operator works. Disable fetch for this testcase.
+   * @throws Exception
+   */
+  @Test
+  public void testNegativeWithoutFetch() throws Exception {
+      PigServer pigServer = new PigServer(ExecType.LOCAL);
+      Data data = resetData(pigServer);
+
+      data.set("foo",
+              tuple(1),
+              tuple(2),
+              tuple(3)
+              );
+
+      pigServer.registerQuery("A = LOAD 'foo' USING mock.Storage() AS (i:int);");
+      pigServer.registerQuery("ASSERT A BY i > 1 , 'i should be greater than 1';");
+
+      Properties props = pigServer.getPigContext().getProperties();
+      props.setProperty(PigConfiguration.OPT_FETCH, "false");
+      try {
+          pigServer.openIterator("A");
+      } catch (FrontendException fe) {
           Assert.assertTrue(fe.getCause().getMessage().contains(
                   "Job terminated with anomalous status FAILED"));
       }
-       
   }
+
 }

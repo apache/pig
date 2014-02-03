@@ -148,5 +148,11 @@ public class PigConfiguration {
      * Controls the max threshold size to convert jobs to run in local mode
      */
     public static final String PIG_AUTO_LOCAL_INPUT_MAXBYTES = "pig.auto.local.input.maxbytes";
+    
+    /**
+     * This parameter enables/disables fetching. By default it is turned on.
+     */
+    public static final String OPT_FETCH = "opt.fetch";
+    
 }
 
