@@ -21,12 +21,11 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 
-import org.joda.time.DateTime;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.BooleanWritable;
 import org.apache.hadoop.io.ByteWritable;
+import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.FloatWritable;
 import org.apache.hadoop.io.IntWritable;
@@ -56,42 +55,42 @@ import org.apache.pig.data.TupleFactory;
  **/
 
 public class SequenceFileLoader extends FileInputLoadFunc {
-  
+
   private SequenceFileRecordReader<Writable, Writable> reader;
- 
+
   private Writable key;
   private Writable value;
   private ArrayList<Object> mProtoTuple = null;
-  
+
   protected static final Log LOG = LogFactory.getLog(SequenceFileLoader.class);
   protected TupleFactory mTupleFactory = TupleFactory.getInstance();
   protected SerializationFactory serializationFactory;
 
   protected byte keyType = DataType.UNKNOWN;
   protected byte valType = DataType.UNKNOWN;
-    
+
   public SequenceFileLoader() {
     mProtoTuple = new ArrayList<Object>(2);
   }
- 
+
   protected void setKeyType(Class<?> keyClass) throws BackendException {
     this.keyType |= inferPigDataType(keyClass);
-    if (keyType == DataType.ERROR) { 
+    if (keyType == DataType.ERROR) {
       LOG.warn("Unable to translate key "+key.getClass()+" to a Pig datatype");
       throw new BackendException("Unable to translate "+key.getClass()+" to a Pig datatype");
-    } 
+    }
   }
-  
+
   protected void setValueType(Class<?> valueClass) throws BackendException {
     this.valType |= inferPigDataType(valueClass);
-    if (keyType == DataType.ERROR) { 
+    if (keyType == DataType.ERROR) {
       LOG.warn("Unable to translate key "+key.getClass()+" to a Pig datatype");
       throw new BackendException("Unable to translate "+key.getClass()+" to a Pig datatype");
-    } 
+    }
   }
-    
+
   protected byte inferPigDataType(Type t) {
-    if (t == DataByteArray.class) return DataType.BYTEARRAY;
+    if (t == BytesWritable.class) return DataType.BYTEARRAY;
     else if (t == Text.class) return DataType.CHARARRAY;
     else if (t == IntWritable.class) return DataType.INTEGER;
     else if (t == LongWritable.class) return DataType.LONG;
@@ -103,11 +102,14 @@ public class SequenceFileLoader extends FileInputLoadFunc {
     // not doing maps or other complex types for now
     else return DataType.ERROR;
   }
-  
+
   protected Object translateWritableToPigDataType(Writable w, byte dataType) {
     switch(dataType) {
       case DataType.CHARARRAY: return ((Text) w).toString();
-      case DataType.BYTEARRAY: return((DataByteArray) w).get();
+      case DataType.BYTEARRAY:
+            BytesWritable bw = (BytesWritable) w;
+            // Make a copy
+            return new DataByteArray(bw.getBytes(), 0, bw.getLength());
       case DataType.BOOLEAN: return ((BooleanWritable) w).get();
       case DataType.INTEGER: return ((IntWritable) w).get();
       case DataType.LONG: return ((LongWritable) w).get();
@@ -116,10 +118,10 @@ public class SequenceFileLoader extends FileInputLoadFunc {
       case DataType.BYTE: return ((ByteWritable) w).get();
       case DataType.DATETIME: return ((DateTimeWritable) w).get();
     }
-    
+
     return null;
   }
-  
+
   @Override
   public Tuple getNext() throws IOException {
     boolean next = false;
@@ -128,19 +130,19 @@ public class SequenceFileLoader extends FileInputLoadFunc {
     } catch (InterruptedException e) {
       throw new IOException(e);
     }
-    
+
     if (!next) return null;
-    
+
     key = reader.getCurrentKey();
     value = reader.getCurrentValue();
-    
+
     if (keyType == DataType.UNKNOWN && key != null) {
         setKeyType(key.getClass());
     }
     if (valType == DataType.UNKNOWN && value != null) {
         setValueType(value.getClass());
     }
-    
+
     mProtoTuple.add(translateWritableToPigDataType(key, keyType));
     mProtoTuple.add(translateWritableToPigDataType(value, valType));
     Tuple t =  mTupleFactory.newTuple(mProtoTuple);
@@ -163,6 +165,6 @@ public class SequenceFileLoader extends FileInputLoadFunc {
 
   @Override
   public void setLocation(String location, Job job) throws IOException {
-    FileInputFormat.setInputPaths(job, location);    
+    FileInputFormat.setInputPaths(job, location);
   }
 }
