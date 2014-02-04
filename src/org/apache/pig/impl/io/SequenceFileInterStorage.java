@@ -205,6 +205,8 @@ StoreFuncInterface, LoadMetadata {
 
     @Override
     public void setStoreLocation(String location, Job job) throws IOException {
+        Configuration conf = job.getConfiguration();
+        Utils.setMapredCompressionCodecProps(conf);
         FileOutputFormat.setOutputPath(job, new Path(location));
     }
 
