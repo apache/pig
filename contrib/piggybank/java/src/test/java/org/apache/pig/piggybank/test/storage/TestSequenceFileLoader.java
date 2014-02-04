@@ -18,21 +18,27 @@
 package org.apache.pig.piggybank.test.storage;
 
 import static org.apache.pig.ExecType.LOCAL;
+import static org.apache.pig.builtin.mock.Storage.resetData;
+import static org.apache.pig.builtin.mock.Storage.tuple;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 
 import junit.framework.TestCase;
+
 import org.junit.Test;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.PigServer;
+import org.apache.pig.builtin.mock.Storage.Data;
+import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 //import org.apache.pig.test.PigExecTestCase;
 import org.apache.pig.test.Util;
@@ -43,15 +49,15 @@ import org.apache.pig.test.Util;
     "one, two, buckle my shoe",
     "three, four, shut the door",
     "five, six, something else" };
-  
+
   private static final String[][] EXPECTED = {
     {"0", "one, two, buckle my shoe"},
     {"1", "three, four, shut the door"},
     {"2", "five, six, something else"}
   };
-  
+
   private String tmpFileName;
-  
+
   private PigServer pigServer;
   @Override
   public void setUp() throws Exception {
@@ -62,12 +68,12 @@ import org.apache.pig.test.Util;
     Path path = new Path("file:///"+tmpFileName);
     JobConf conf = new JobConf();
     FileSystem fs = FileSystem.get(path.toUri(), conf);
-    
+
     IntWritable key = new IntWritable();
     Text value = new Text();
     SequenceFile.Writer writer = null;
     try {
-      writer = SequenceFile.createWriter(fs, conf, path, 
+      writer = SequenceFile.createWriter(fs, conf, path,
                                          key.getClass(), value.getClass());
       for (int i=0; i < DATA.length; i++) {
         key.set(i);
@@ -78,10 +84,10 @@ import org.apache.pig.test.Util;
       IOUtils.closeStream(writer);
     }
   }
-  
+
   @Test
   public void testReadsNocast() throws IOException {
-    pigServer.registerQuery("A = LOAD '" + Util.encodeEscape(tmpFileName) + 
+    pigServer.registerQuery("A = LOAD '" + Util.encodeEscape(tmpFileName) +
     "' USING org.apache.pig.piggybank.storage.SequenceFileLoader() AS (key, val);");
     Iterator<?> it = pigServer.openIterator("A");
     int tupleCount = 0;
@@ -98,10 +104,10 @@ import org.apache.pig.test.Util;
     }
     assertEquals(DATA.length, tupleCount);
   }
-  
+
   @Test
   public void testReadsStringCast() throws IOException {
-    pigServer.registerQuery("A = LOAD '" + Util.encodeEscape(tmpFileName) + 
+    pigServer.registerQuery("A = LOAD '" + Util.encodeEscape(tmpFileName) +
     "' USING org.apache.pig.piggybank.storage.SequenceFileLoader() AS (key:long, val);");
     Iterator<?> it = pigServer.openIterator("A");
     int tupleCount = 0;
@@ -117,4 +123,41 @@ import org.apache.pig.test.Util;
     }
     assertEquals(DATA.length, tupleCount);
   }
+
+    @Test
+    public void testReadBytesWritable() throws IOException {
+        File inputFile = File.createTempFile("test", ".txt");
+        System.err.println("fileName: " + inputFile.getAbsolutePath());
+        Path path = new Path("file:///" + inputFile.getAbsolutePath());
+        JobConf conf = new JobConf();
+        FileSystem fs = FileSystem.get(path.toUri(), conf);
+
+        IntWritable key = new IntWritable();
+        SequenceFile.Writer writer = null;
+        try {
+            writer = SequenceFile.createWriter(fs, conf, path, key.getClass(), BytesWritable.class);
+            int numRecords = 3;
+            for (int i = 0; i < numRecords; i++) {
+                key.set(i);
+                String val = "" + Math.pow(10, (numRecords - i));
+                writer.append(key, new BytesWritable(val.getBytes()));
+            }
+        } finally {
+            IOUtils.closeStream(writer);
+        }
+
+        Data data = resetData(pigServer);
+        data.set("expected",
+                tuple(0L, new DataByteArray("1000.0")),
+                tuple(1L, new DataByteArray("100.0")),
+                tuple(2L, new DataByteArray("10.0")));
+
+        pigServer.registerQuery(
+                "A = LOAD '" + Util.encodeEscape(inputFile.getAbsolutePath()) +
+                "' USING org.apache.pig.piggybank.storage.SequenceFileLoader() AS (key:long, val);");
+        pigServer.registerQuery("STORE A into 'actual' USING mock.Storage();");
+
+        assertEquals(data.get("expected"), data.get("actual"));
+
+    }
 }
