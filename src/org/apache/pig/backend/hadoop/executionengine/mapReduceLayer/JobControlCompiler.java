@@ -60,7 +60,7 @@ import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.LoadFunc;
-import org.apache.pig.OverwritingStoreFunc;
+import org.apache.pig.OverwritableStoreFunc;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.StoreFuncInterface;
@@ -669,9 +669,9 @@ public class JobControlCompiler{
                 storeLocations.add(st);
                 StoreFuncInterface sFunc = st.getStoreFunc();
                 sFunc.setStoreLocation(st.getSFile().getFileName(), nwJob);
-                if (sFunc instanceof OverwritingStoreFunc) {
-                    OverwritingStoreFunc osf = (OverwritingStoreFunc) sFunc;
-                    if (osf.isOverwrite()) {
+                if (sFunc instanceof OverwritableStoreFunc) {
+                    OverwritableStoreFunc osf = (OverwritableStoreFunc) sFunc;
+                    if (osf.shouldOverwrite()) {
                         osf.cleanupOutput(st, nwJob);
                     }
                 }
@@ -681,9 +681,9 @@ public class JobControlCompiler{
                 storeLocations.add(st);
                 StoreFuncInterface sFunc = st.getStoreFunc();
                 sFunc.setStoreLocation(st.getSFile().getFileName(), nwJob);
-                if (sFunc instanceof OverwritingStoreFunc) {
-                    OverwritingStoreFunc osf = (OverwritingStoreFunc) sFunc;
-                    if (osf.isOverwrite()) {
+                if (sFunc instanceof OverwritableStoreFunc) {
+                    OverwritableStoreFunc osf = (OverwritableStoreFunc) sFunc;
+                    if (osf.shouldOverwrite()) {
                         osf.cleanupOutput(st, nwJob);
                     }
                 }

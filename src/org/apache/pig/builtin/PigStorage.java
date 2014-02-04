@@ -54,7 +54,7 @@ import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.LoadMetadata;
 import org.apache.pig.LoadPushDown;
-import org.apache.pig.OverwritingStoreFunc;
+import org.apache.pig.OverwritableStoreFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
@@ -132,7 +132,7 @@ import org.apache.pig.parser.ParserException;
  */
 @SuppressWarnings("unchecked")
 public class PigStorage extends FileInputLoadFunc implements StoreFuncInterface,
-LoadPushDown, LoadMetadata, StoreMetadata, OverwritingStoreFunc {
+LoadPushDown, LoadMetadata, StoreMetadata, OverwritableStoreFunc {
     protected RecordReader in = null;
     protected RecordWriter writer = null;
     protected final Log mLog = LogFactory.getLog(getClass());
@@ -586,7 +586,7 @@ LoadPushDown, LoadMetadata, StoreMetadata, OverwritingStoreFunc {
     }
 
     @Override
-    public boolean isOverwrite() {
+    public boolean shouldOverwrite() {
         return this.overwriteOutput;
     }
 

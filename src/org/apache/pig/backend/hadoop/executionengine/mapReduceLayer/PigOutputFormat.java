@@ -31,7 +31,7 @@ import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.pig.OverwritingStoreFunc;
+import org.apache.pig.OverwritableStoreFunc;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
@@ -212,8 +212,8 @@ public class PigOutputFormat extends OutputFormat<WritableComparable, Tuple> {
                 of.checkOutputSpecs(jobContextCopy);
             } catch (IOException ioe) {
                 boolean shouldThrowException = true;
-                if (sFunc instanceof OverwritingStoreFunc) {
-                    if (((OverwritingStoreFunc) sFunc).isOverwrite()) {
+                if (sFunc instanceof OverwritableStoreFunc) {
+                    if (((OverwritableStoreFunc) sFunc).shouldOverwrite()) {
                         if (ioe instanceof FileAlreadyExistsException
                                 || ioe instanceof org.apache.hadoop.fs.FileAlreadyExistsException) {
                             shouldThrowException = false;
