@@ -21,7 +21,7 @@ import java.io.IOException;
 
 import org.apache.hadoop.mapred.FileAlreadyExistsException;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.pig.OverwritingStoreFunc;
+import org.apache.pig.OverwritableStoreFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.StoreFuncInterface;
@@ -95,8 +95,8 @@ public class InputOutputFileValidator {
                 }
                 
                 boolean shouldThrowException = true;
-                if (sf instanceof OverwritingStoreFunc) {
-                    if (((OverwritingStoreFunc) sf).isOverwrite()) {
+                if (sf instanceof OverwritableStoreFunc) {
+                    if (((OverwritableStoreFunc) sf).shouldOverwrite()) {
                         if (ioe instanceof FileAlreadyExistsException
                                 || ioe instanceof org.apache.hadoop.fs.FileAlreadyExistsException) {
                             shouldThrowException = false;
