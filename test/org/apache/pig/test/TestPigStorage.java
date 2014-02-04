@@ -669,4 +669,46 @@ public class TestPigStorage  {
         assertEquals(tuple(null,null), it.next());
         assertFalse(it.hasNext());
     }
+
+
+    @Test
+    public void testPigStorageSchemaWithOverwrite() throws Exception {
+        pigContext.connect();
+        String query = "a = LOAD '" + datadir
+                + "originput' using PigStorage(',') "
+                + "as (f1:chararray, f2:int);";
+
+        List<Tuple> expectedResults = Util
+                .getTuplesFromConstantTupleStrings(new String[] { "('A',1L)",
+                        "('B',2L)", "('C',3L)", "('D',2L)", "('A',5L)",
+                        "('B',5L)", "('C',8L)", "('A',8L)", "('D',8L)",
+                        "('A',9L)", });
+
+        pig.registerQuery(query);
+        pig.store("a", datadir + "aout", "PigStorage(',')");
+        // below shouldn't fail & we should get the same result in the end
+        pig.store("a", datadir + "aout", "PigStorage(',', '--overwrite true')");
+        pig.registerQuery("b = LOAD '" + datadir + "aout' using PigStorage(',');");
+        Iterator<Tuple> iter = pig.openIterator("b");
+        int counter = 0;
+        while (iter.hasNext()) {
+            String tuple = iter.next().toString();
+            Assert.assertEquals(expectedResults.get(counter++).toString(),
+                    tuple);
+        }
+        Assert.assertEquals(expectedResults.size(), counter);
+
+    }
+
+    @Test(expected = Exception.class)
+    public void testPigStorageSchemaFailureWithoutOverwrite() throws Exception {
+        pigContext.connect();
+        String query = "a = LOAD '" + datadir + "originput' using PigStorage(',') "
+                + "as (f1:chararray, f2:int);";
+        pig.registerQuery(query);
+        // should fail without the overwrite flag
+        pig.store("a", datadir + "aout", "PigStorage(',')");
+        pig.store("a", datadir + "aout", "PigStorage(',')");
+    }
+    
 }

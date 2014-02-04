@@ -60,6 +60,7 @@ import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.OverwritingStoreFunc;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.StoreFuncInterface;
@@ -660,16 +661,28 @@ public class JobControlCompiler{
             LinkedList<POStore> mapStores = PlanHelper.getPhysicalOperators(mro.mapPlan, POStore.class);
             LinkedList<POStore> reduceStores = PlanHelper.getPhysicalOperators(mro.reducePlan, POStore.class);
 
-            for (POStore st: mapStores) {
+            for (POStore st : mapStores) {
                 storeLocations.add(st);
                 StoreFuncInterface sFunc = st.getStoreFunc();
                 sFunc.setStoreLocation(st.getSFile().getFileName(), nwJob);
+                if (sFunc instanceof OverwritingStoreFunc) {
+                    OverwritingStoreFunc osf = (OverwritingStoreFunc) sFunc;
+                    if (osf.isOverwrite()) {
+                        osf.cleanupOutput(st, nwJob);
+                    }
+                }
             }
 
-            for (POStore st: reduceStores) {
+            for (POStore st : reduceStores) {
                 storeLocations.add(st);
                 StoreFuncInterface sFunc = st.getStoreFunc();
                 sFunc.setStoreLocation(st.getSFile().getFileName(), nwJob);
+                if (sFunc instanceof OverwritingStoreFunc) {
+                    OverwritingStoreFunc osf = (OverwritingStoreFunc) sFunc;
+                    if (osf.isOverwrite()) {
+                        osf.cleanupOutput(st, nwJob);
+                    }
+                }
             }
 
             // the OutputFormat we report to Hadoop is always PigOutputFormat which

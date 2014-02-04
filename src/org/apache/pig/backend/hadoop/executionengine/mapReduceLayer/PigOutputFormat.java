@@ -22,18 +22,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hdfs.web.resources.OverwriteParam;
 import org.apache.hadoop.io.WritableComparable;
+import org.apache.hadoop.mapred.FileAlreadyExistsException;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.pig.OverwritingStoreFunc;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
+import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.util.ObjectSerializer;
@@ -204,7 +208,21 @@ public class PigOutputFormat extends OutputFormat<WritableComparable, Tuple> {
             
             // The above call should have update the conf in the JobContext
             // to have the output location - now call checkOutputSpecs()
-            of.checkOutputSpecs(jobContextCopy);
+            try {
+                of.checkOutputSpecs(jobContextCopy);
+            } catch (IOException ioe) {
+                boolean shouldThrowException = true;
+                if (sFunc instanceof OverwritingStoreFunc) {
+                    if (((OverwritingStoreFunc) sFunc).isOverwrite()) {
+                        if (ioe instanceof FileAlreadyExistsException
+                                || ioe instanceof org.apache.hadoop.fs.FileAlreadyExistsException) {
+                            shouldThrowException = false;
+                        }
+                    }
+                }
+                if (shouldThrowException)
+                    throw ioe;
+            }
         }
     }
     /**

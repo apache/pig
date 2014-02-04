@@ -27,10 +27,14 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.compress.BZip2Codec;
@@ -50,6 +54,7 @@ import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.LoadMetadata;
 import org.apache.pig.LoadPushDown;
+import org.apache.pig.OverwritingStoreFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
@@ -61,10 +66,12 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigTextInputFormat;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigTextOutputFormat;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.bzip2r.Bzip2TextInputFormat;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.CastUtils;
 import org.apache.pig.impl.util.ObjectSerializer;
@@ -125,7 +132,7 @@ import org.apache.pig.parser.ParserException;
  */
 @SuppressWarnings("unchecked")
 public class PigStorage extends FileInputLoadFunc implements StoreFuncInterface,
-LoadPushDown, LoadMetadata, StoreMetadata {
+LoadPushDown, LoadMetadata, StoreMetadata, OverwritingStoreFunc {
     protected RecordReader in = null;
     protected RecordWriter writer = null;
     protected final Log mLog = LogFactory.getLog(getClass());
@@ -138,6 +145,7 @@ LoadPushDown, LoadMetadata, StoreMetadata {
 
     boolean isSchemaOn = false;
     boolean dontLoadSchema = false;
+    boolean overwriteOutput = false;
     protected ResourceSchema schema;
     protected LoadCaster caster;
 
@@ -161,6 +169,8 @@ LoadPushDown, LoadMetadata, StoreMetadata {
         validOptions.addOption(TAG_SOURCE_FILE, false, "Appends input source file name to beginning of each tuple.");
         validOptions.addOption(TAG_SOURCE_PATH, false, "Appends input source file path to beginning of each tuple.");
         validOptions.addOption("tagsource", false, "Appends input source file name to beginning of each tuple.");
+        Option overwrite = OptionBuilder.hasOptionalArgs(1).withArgName("overwrite").withLongOpt("overwrite").withDescription("Overwrites the destination.").create();
+        validOptions.addOption(overwrite);        
     }
 
     public PigStorage() {
@@ -200,6 +210,12 @@ LoadPushDown, LoadMetadata, StoreMetadata {
         try {
             configuredOptions = parser.parse(validOptions, optsArr);
             isSchemaOn = configuredOptions.hasOption("schema");
+            if (configuredOptions.hasOption("overwrite")) {
+                String value = configuredOptions.getOptionValue("overwrite");
+                if ("true".equalsIgnoreCase(value)) {
+                    overwriteOutput = true;
+                }
+            }       
             dontLoadSchema = configuredOptions.hasOption("noschema");
             tagFile = configuredOptions.hasOption(TAG_SOURCE_FILE);
             tagPath = configuredOptions.hasOption(TAG_SOURCE_PATH);
@@ -567,5 +583,25 @@ LoadPushDown, LoadMetadata, StoreMetadata {
     public void storeStatistics(ResourceStatistics stats, String location,
             Job job) throws IOException {
 
+    }
+
+    @Override
+    public boolean isOverwrite() {
+        return this.overwriteOutput;
+    }
+
+    @Override
+    public void cleanupOutput(POStore store, Job job) throws IOException {
+        Configuration conf = job.getConfiguration();
+        String output = conf.get("mapred.output.dir");
+        Path outputPath = null;
+        if (output != null)
+            outputPath = new Path(output);
+        FileSystem fs = outputPath.getFileSystem(conf);
+        try {
+            fs.delete(outputPath, true);
+        } catch (Exception e) {
+            mLog.warn("Could not delete output " + output);
+        }
     }
 }
