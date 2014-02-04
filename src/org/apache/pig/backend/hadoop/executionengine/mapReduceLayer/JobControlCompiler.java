@@ -657,6 +657,10 @@ public class JobControlCompiler{
 
             nwJob.setInputFormatClass(PigInputFormat.class);
 
+            // tmp file compression setups
+            // PIG-3741 This must be done before setStoreLocation on POStores
+            Utils.setTmpFileCompressionOnConf(pigContext, conf);
+
             //Process POStore and remove it from the plan
             LinkedList<POStore> mapStores = PlanHelper.getPhysicalOperators(mro.mapPlan, POStore.class);
             LinkedList<POStore> reduceStores = PlanHelper.getPhysicalOperators(mro.reducePlan, POStore.class);
@@ -909,9 +913,6 @@ public class JobControlCompiler{
                 conf.set(PIG_MAP_STORES, ObjectSerializer.serialize(mapStores));
                 conf.set(PIG_REDUCE_STORES, ObjectSerializer.serialize(reduceStores));
             }
-
-            // tmp file compression setups
-            Utils.setTmpFileCompressionOnConf(pigContext, conf);
 
             String tmp;
             long maxCombinedSplitSize = 0;
