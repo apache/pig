@@ -19,7 +19,9 @@ package org.apache.pig.newplan.logical.rules;
 
 import java.io.IOException;
 
+import org.apache.hadoop.mapred.FileAlreadyExistsException;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.pig.OverwritingStoreFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.StoreFuncInterface;
@@ -91,8 +93,22 @@ public class InputOutputFileValidator {
                     errCode = 4000;
                     break;
                 }
-                validationErrStr  += ioe.getMessage();
-                throw new VisitorException(store, validationErrStr, errCode, errSrc, ioe);
+                
+                boolean shouldThrowException = true;
+                if (sf instanceof OverwritingStoreFunc) {
+                    if (((OverwritingStoreFunc) sf).isOverwrite()) {
+                        if (ioe instanceof FileAlreadyExistsException
+                                || ioe instanceof org.apache.hadoop.fs.FileAlreadyExistsException) {
+                            shouldThrowException = false;
+                        }
+                    }
+                }
+                if (shouldThrowException) {
+                    validationErrStr += ioe.getMessage();
+                    throw new VisitorException(store, validationErrStr,
+                            errCode, errSrc, ioe);
+                }
+
             } catch (InterruptedException ie) {
                 validationErrStr += ie.getMessage();
                 throw new VisitorException(store, validationErrStr, errCode, pigCtx.getErrorSource(), ie);
