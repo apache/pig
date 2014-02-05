@@ -37,6 +37,8 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.logging.Log;
@@ -166,7 +168,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
     private final long limit_;
     private final boolean cacheBlocks_;
     private final int caching_;
-    private final boolean noWAL_;
+    private boolean noWAL_;
     private final long minTimestamp_;
     private final long maxTimestamp_;
     private final long timestamp_;
@@ -183,7 +185,8 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
     private RequiredFieldList requiredFieldList;
 
     private static void populateValidOptions() {
-        validOptions_.addOption("loadKey", false, "Load Key");
+        Option loadKey = OptionBuilder.hasOptionalArgs(1).withArgName("loadKey").withLongOpt("loadKey").withDescription("Load Key").create();
+        validOptions_.addOption(loadKey);
         validOptions_.addOption("gt", true, "Records must be greater than this value " +
                 "(binary, double-slash-escaped)");
         validOptions_.addOption("lt", true, "Records must be less than this value (binary, double-slash-escaped)");
@@ -197,11 +200,11 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         validOptions_.addOption("ignoreWhitespace", true, "Ignore spaces when parsing columns");
         validOptions_.addOption("caster", true, "Caster to use for converting values. A class name, " +
                 "HBaseBinaryConverter, or Utf8StorageConverter. For storage, casters must implement LoadStoreCaster.");
-        validOptions_.addOption("noWAL", false, "Sets the write ahead to false for faster loading. To be used with extreme caution since this could result in data loss (see http://hbase.apache.org/book.html#perf.hbase.client.putwal).");
+        Option noWal = OptionBuilder.hasOptionalArgs(1).withArgName("noWAL").withLongOpt("noWAL").withDescription("Sets the write ahead to false for faster loading. To be used with extreme caution since this could result in data loss (see http://hbase.apache.org/book.html#perf.hbase.client.putwal).").create();
+        validOptions_.addOption(noWal);
         validOptions_.addOption("minTimestamp", true, "Record must have timestamp greater or equal to this value");
         validOptions_.addOption("maxTimestamp", true, "Record must have timestamp less then this value");
         validOptions_.addOption("timestamp", true, "Record must have timestamp equal to this value");
-
     }
 
     /**
@@ -263,7 +266,13 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
             throw e;
         }
 
-        loadRowKey_ = configuredOptions_.hasOption("loadKey");
+		loadRowKey_ = false;
+		if (configuredOptions_.hasOption("loadKey")) {
+			String value = configuredOptions_.getOptionValue("loadKey");
+			if ("true".equalsIgnoreCase(value) || "".equalsIgnoreCase(value) || value == null ) {//the empty string and null check is for backward compat.
+				loadRowKey_ = true;
+			}
+		}
 
         delimiter_ = ",";
         if (configuredOptions_.getOptionValue("delim") != null) {
@@ -302,7 +311,13 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         caching_ = Integer.valueOf(configuredOptions_.getOptionValue("caching", "100"));
         cacheBlocks_ = Boolean.valueOf(configuredOptions_.getOptionValue("cacheBlocks", "false"));
         limit_ = Long.valueOf(configuredOptions_.getOptionValue("limit", "-1"));
-        noWAL_ = configuredOptions_.hasOption("noWAL");
+        noWAL_ = false;
+		if (configuredOptions_.hasOption("noWAL")) {
+			String value = configuredOptions_.getOptionValue("noWAL");
+			if ("true".equalsIgnoreCase(value) || "".equalsIgnoreCase(value) || value == null) {//the empty string and null check is for backward compat.
+				noWAL_ = true;
+			}
+		}        
 
         if (configuredOptions_.hasOption("minTimestamp")){
             minTimestamp_ = Long.parseLong(configuredOptions_.getOptionValue("minTimestamp"));

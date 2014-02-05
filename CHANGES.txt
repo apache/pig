@@ -87,6 +87,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3623: HBaseStorage: setting loadKey and noWAL to false doesn't have any affect (nezihyigitbasi via rohini)
+
 PIG-3744: SequenceFileLoader does not support BytesWritable (rohini)
 
 PIG-3726: Ranking empty records leads to NullPointerException (jarcec via daijy)
