@@ -20,6 +20,7 @@ package org.apache.pig.backend.hadoop.executionengine.tez;
 import java.io.ByteArrayOutputStream;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -50,14 +51,16 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
 
     // TODO: We need to specify parallelism per vertex in Tez. For now, we set
     // them all to 1.
-    int requestedParallelism = 1;
+    // Use AtomicInteger for access by reference and being able to reset in
+    // TezDAGBuilder based on number of input splits. We just need mutability and not concurrency
+    private AtomicInteger requestedParallelism = new AtomicInteger(-1);
 
     // TODO: When constructing Tez vertex, we have to specify how much resource
     // the vertex will need. So we need to estimate these values while compiling
     // physical plan into tez plan. For now, we're using default values - 1G mem
     // and 1 core.
-    int requestedMemory = 1024;
-    int requestedCpu = 1;
+    //int requestedMemory = 1024;
+    //int requestedCpu = 1;
 
     // Presence indicates that this TezOper is sub-plan of a POSplit.
     // Only POStore or POLocalRearrange leaf can be a sub-plan of POSplit
@@ -142,6 +145,18 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     @Override
     public boolean supportsMultipleOutputs() {
         return true;
+    }
+
+    public int getRequestedParallelism() {
+        return requestedParallelism.get();
+    }
+
+    public void setRequestedParallelism(int requestedParallelism) {
+        this.requestedParallelism.set(requestedParallelism);
+    }
+
+    public void setRequestedParallelismByReference(TezOperator oper) {
+        this.requestedParallelism = oper.requestedParallelism;
     }
 
     public OperatorKey getSplitOperatorKey() {
@@ -309,5 +324,6 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     public boolean combineSmallSplits() {
         return combineSmallSplits;
     }
+
 }
 

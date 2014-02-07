@@ -35,9 +35,7 @@ import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.OutputFormat;
-import org.apache.hadoop.mapreduce.security.TokenCache;
 import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
@@ -75,6 +73,8 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezPOPackageAnnotator.LoRearrangeDiscoverer;
+import org.apache.pig.backend.hadoop.executionengine.tez.util.MRToTezHelper;
+import org.apache.pig.backend.hadoop.executionengine.tez.util.SecurityHelper;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
@@ -94,7 +94,6 @@ import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
-import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.mapreduce.combine.MRCombiner;
 import org.apache.tez.mapreduce.committer.MROutputCommitter;
@@ -133,10 +132,14 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
     @Override
     public void visitTezOp(TezOperator tezOp) throws VisitorException {
+        TezOperPlan tezPlan = getPlan();
+        List<TezOperator> predecessors = tezPlan.getPredecessors(tezOp);
+
         // Construct vertex for the current Tez operator
         Vertex to = null;
         try {
-            to = newVertex(tezOp);
+            boolean isMap = (predecessors == null || predecessors.isEmpty()) ? true : false;
+            to = newVertex(tezOp, isMap);
             dag.addVertex(to);
         } catch (Exception e) {
             throw new VisitorException("Cannot create vertex for "
@@ -144,8 +147,6 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         }
 
         // Connect the new vertex with predecessor vertices
-        TezOperPlan tezPlan = getPlan();
-        List<TezOperator> predecessors = tezPlan.getPredecessors(tezOp);
         if (predecessors != null) {
             for (TezOperator predecessor : predecessors) {
                 // Since this is a dependency order walker, predecessor vertices
@@ -238,6 +239,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                     edge.partitionerClass.getName());
         }
 
+        MRToTezHelper.convertMRToTezRuntimeConf(conf, globalConf);
         in.setUserPayload(TezUtils.createUserPayloadFromConf(conf));
         out.setUserPayload(TezUtils.createUserPayloadFromConf(conf));
 
@@ -271,7 +273,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 .serialize(new byte[] { combRearrange.getKeyType() }));
     }
 
-    private Vertex newVertex(TezOperator tezOp) throws IOException,
+    private Vertex newVertex(TezOperator tezOp, boolean isMap) throws IOException,
             ClassNotFoundException, InterruptedException {
         ProcessorDescriptor procDesc = new ProcessorDescriptor(
                 tezOp.getProcessorName());
@@ -383,12 +385,14 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
         UDFContext.getUDFContext().serialize(payloadConf);
 
+        MRToTezHelper.convertMRToTezRuntimeConf(payloadConf, globalConf);
+
         // Take our assembled configuration and create a vertex
         byte[] userPayload = TezUtils.createUserPayloadFromConf(payloadConf);
         procDesc.setUserPayload(userPayload);
         // Can only set parallelism here if the parallelism isn't derived from
         // splits
-        int parallelism = tezOp.requestedParallelism;
+        int parallelism = Math.max(tezOp.getRequestedParallelism(), 1);
         InputSplitInfo inputSplitInfo = null;
         if (loads != null && loads.size() > 0) {
             // Not using MRInputAMSplitGenerator because delegation tokens are
@@ -397,20 +401,25 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             // TODO: Can be set to -1 if TEZ-601 gets fixed and getting input
             // splits can be moved to if(loads) block below
             parallelism = inputSplitInfo.getNumTasks();
+            tezOp.setRequestedParallelism(parallelism);
         }
         Vertex vertex = new Vertex(tezOp.getOperatorKey().toString(), procDesc, parallelism,
-                Resource.newInstance(tezOp.requestedMemory, tezOp.requestedCpu));
+                isMap ? MRHelpers.getMapResource(globalConf) : MRHelpers.getReduceResource(globalConf));
 
-        Map<String, String> env = new HashMap<String, String>();
-        MRHelpers.updateEnvironmentForMRTasks(globalConf, env, true);
-        vertex.setTaskEnvironment(env);
+        Map<String, String> taskEnv = new HashMap<String, String>();
+        MRHelpers.updateEnvironmentForMRTasks(globalConf, taskEnv, isMap);
+        vertex.setTaskEnvironment(taskEnv);
 
         vertex.setTaskLocalResources(localResources);
 
-        // This could also be reduce, but we need to choose one
-        // TODO: Create new or use existing settings that are specifically for
-        // Tez.
-        vertex.setJavaOpts(MRHelpers.getMapJavaOpts(globalConf));
+        vertex.setJavaOpts(isMap ? MRHelpers.getMapJavaOpts(globalConf)
+                : MRHelpers.getReduceJavaOpts(globalConf));
+
+        log.info("For vertex - " + tezOp.getOperatorKey().toString()
+                + ": parallelism=" + parallelism
+                + ", memory=" + vertex.getTaskResource().getMemory()
+                + ", java opts=" + vertex.getJavaOpts()
+                );
 
         // Right now there can only be one of each of these. Will need to be
         // more generic when there can be more.
@@ -458,15 +467,6 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         // Add credentials from binary token file and get tokens for namenodes
         // specified in mapreduce.job.hdfs-servers
         SecurityHelper.populateTokenCache(job.getConfiguration(), dag.getCredentials());
-
-        // Unlike MR which gets staging dir from RM, tez AM is picking it up
-        // from configuration
-        Path submitJobDir = new Path(payloadConf.get(
-                TezConfiguration.TEZ_AM_STAGING_DIR,
-                TezConfiguration.TEZ_AM_STAGING_DIR_DEFAULT));
-        // Get delegation token for the job submission dir
-        TokenCache.obtainTokensForNamenodes(dag.getCredentials(),
-                new Path[] { submitJobDir }, payloadConf);
 
         return vertex;
     }

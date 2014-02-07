@@ -21,12 +21,10 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.lib.jobcontrol.ControlledJob;
 import org.apache.pig.PigConfiguration;
@@ -35,6 +33,7 @@ import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.Launcher;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
@@ -56,8 +55,7 @@ public class TezLauncher extends Launcher {
         aggregateWarning = Boolean.parseBoolean(pc.getProperties().getProperty("aggregate.warning", "false"));
         Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties(), true);
 
-        FileSystem fs = FileSystem.get(conf);
-        Path stagingDir = new Path(fs.getWorkingDirectory(), UUID.randomUUID().toString());
+        Path stagingDir = FileLocalizer.getTemporaryPath(pc, "-tez");
 
         TezResourceManager.initialize(stagingDir, pc, conf);
 

@@ -30,6 +30,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.pig.backend.hadoop.executionengine.tez.util.MRToTezHelper;
 import org.apache.pig.impl.PigContext;
 import org.apache.tez.client.AMConfiguration;
 import org.apache.tez.client.TezClient;
@@ -38,6 +39,7 @@ import org.apache.tez.client.TezSessionConfiguration;
 import org.apache.tez.client.TezSessionStatus;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
+import org.apache.tez.mapreduce.hadoop.MRHelpers;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -99,19 +101,26 @@ public class TezSessionManager {
 
     private static SessionInfo createSession(Configuration conf, Map<String, LocalResource> requestedAMResources, Credentials creds) throws TezException, IOException {
         TezConfiguration tezConf = new TezConfiguration(conf);
+        AMConfiguration amConfig = getAMConfig(tezConf, requestedAMResources, creds);
+        TezSessionConfiguration sessionConfig = new TezSessionConfiguration(amConfig, tezConf);
+
+        String jobName = conf.get(PigContext.JOB_NAME, "pig");
         TezClient tezClient = new TezClient(tezConf);
         ApplicationId appId = tezClient.createApplication();
 
-        Map<String, LocalResource> resources = new HashMap<String, LocalResource>();
-        resources.putAll(requestedAMResources);
-
-        String jobName = conf.get(PigContext.JOB_NAME, "pig");
-        AMConfiguration amConfig = new AMConfiguration(null, resources, tezConf, creds);
-        TezSessionConfiguration sessionConfig = new TezSessionConfiguration(amConfig, tezConf);
         TezSession tezSession = new TezSession(jobName, appId, sessionConfig);
         tezSession.start();
         waitForTezSessionReady(tezSession);
-        return new SessionInfo(tezSession, resources);
+        return new SessionInfo(tezSession, requestedAMResources);
+    }
+
+    private static AMConfiguration getAMConfig(TezConfiguration tezConf, Map<String, LocalResource> resources, Credentials creds) {
+        TezConfiguration dagAMConf = MRToTezHelper.getDAGAMConfFromMRConf(tezConf);
+        Map<String, String> amEnv = new HashMap<String, String>();
+        MRHelpers.updateEnvironmentForMRAM(tezConf, amEnv);
+
+        AMConfiguration amConfig = new AMConfiguration(amEnv, resources, dagAMConf, creds);
+        return amConfig;
     }
 
     private static boolean validateSessionResources(SessionInfo currentSession, Map<String, LocalResource> requestedAMResources) throws TezException, IOException {

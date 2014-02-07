@@ -31,6 +31,8 @@ import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
+import org.apache.tez.runtime.library.api.KeyValuesReader;
+import org.apache.tez.runtime.library.input.ShuffledMergedInput;
 
 /**
  * POIdentityInOutTez is used to pass through tuples as is to next vertex from
@@ -44,6 +46,8 @@ public class POIdentityInOutTez extends POLocalRearrangeTez implements TezLoad, 
     private static final long serialVersionUID = 1L;
     private String inputKey;
     private transient KeyValueReader reader;
+    private transient KeyValuesReader shuffleReader;
+    private transient boolean shuffleInput;
 
     public POIdentityInOutTez(OperatorKey k, POLocalRearrange inputRearrange) {
         super(inputRearrange);
@@ -62,7 +66,13 @@ public class POIdentityInOutTez extends POLocalRearrangeTez implements TezLoad, 
             throw new ExecException("Input from vertex " + inputKey + " is missing");
         }
         try {
-            reader = (KeyValueReader) input.getReader();
+            if (input instanceof ShuffledMergedInput) {
+                shuffleInput = true;
+                ShuffledMergedInput smInput = (ShuffledMergedInput) input;
+                shuffleReader = smInput.getReader();
+            } else {
+                reader = (KeyValueReader) input.getReader();
+            }
         } catch (Exception e) {
             throw new ExecException(e);
         }
@@ -85,12 +95,21 @@ public class POIdentityInOutTez extends POLocalRearrangeTez implements TezLoad, 
     @Override
     public Result getNextTuple() throws ExecException {
         try {
-            if (!reader.next()) {
-                return RESULT_EOP;
+            if (shuffleInput) {
+                while (shuffleReader.next()) {
+                    Object curKey = shuffleReader.getCurrentKey();
+                    Iterable<Object> vals = shuffleReader.getCurrentValues();
+                    for (Object val : vals) {
+                        writer.write(curKey, val);
+                    }
+                }
             } else {
-                writer.write(reader.getCurrentKey(), reader.getCurrentValue());
+                while (reader.next()) {
+                    writer.write(reader.getCurrentKey(),
+                            reader.getCurrentValue());
+                }
             }
-            return RESULT_EMPTY;
+            return RESULT_EOP;
         } catch (IOException e) {
             throw new ExecException(e);
         }

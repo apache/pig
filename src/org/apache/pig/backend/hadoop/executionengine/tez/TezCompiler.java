@@ -77,6 +77,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.Packager.PackageType;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.tez.POLocalRearrangeTezFactory.LocalRearrangeType;
+import org.apache.pig.backend.hadoop.executionengine.tez.util.TezCompilerUtil;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.builtin.DefaultIndexableLoader;
@@ -251,9 +252,10 @@ public class TezCompiler extends PhyPlanVisitor {
     }
 
     private void addSubPlanPropertiesToParent(TezOperator parentOper, TezOperator subPlanOper) {
-        if (subPlanOper.requestedParallelism > parentOper.requestedParallelism) {
-            parentOper.requestedParallelism = subPlanOper.requestedParallelism;
+        if (subPlanOper.getRequestedParallelism() > parentOper.getRequestedParallelism()) {
+            parentOper.setRequestedParallelism(subPlanOper.getRequestedParallelism());
         }
+        subPlanOper.setRequestedParallelismByReference(parentOper);
         if (subPlanOper.UDFs != null) {
             parentOper.UDFs.addAll(subPlanOper.UDFs);
         }
@@ -357,8 +359,8 @@ public class TezCompiler extends PhyPlanVisitor {
 
         // Now we have the inputs compiled. Do something with the input oper op.
         op.visit(this);
-        if (op.getRequestedParallelism() > curTezOp.requestedParallelism) {
-            curTezOp.requestedParallelism = op.getRequestedParallelism();
+        if (op.getRequestedParallelism() > curTezOp.getRequestedParallelism()) {
+            curTezOp.setRequestedParallelism(op.getRequestedParallelism());
         }
         compiledInputs = prevCompInp;
     }
@@ -564,8 +566,8 @@ public class TezCompiler extends PhyPlanVisitor {
             tezPlan.connect(it.next(), ret);
         }
         for (TezOperator tezOp : toBeRemoved) {
-            if (tezOp.requestedParallelism > ret.requestedParallelism) {
-                ret.requestedParallelism = tezOp.requestedParallelism;
+            if (tezOp.getRequestedParallelism() > ret.getRequestedParallelism()) {
+                ret.setRequestedParallelism(tezOp.getRequestedParallelism());
             }
             for (String udf : tezOp.UDFs) {
                 if (!ret.UDFs.contains(udf)) {
@@ -802,7 +804,7 @@ public class TezCompiler extends PhyPlanVisitor {
 
             // If the parallelism of the current vertex is one and it doesn't do a LOAD (whose
             // parallelism is determined by the InputFormat), we don't need another vertex.
-            if (curTezOp.requestedParallelism == 1) {
+            if (curTezOp.getRequestedParallelism() == 1) {
                 boolean canStop = true;
                 for (PhysicalOperator planOp : curTezOp.plan.getRoots()) {
                     if (planOp instanceof POLoad) {
@@ -849,7 +851,7 @@ public class TezCompiler extends PhyPlanVisitor {
             }
 
             // Explicitly set the parallelism for the new vertex to 1.
-            curTezOp.requestedParallelism = 1;
+            curTezOp.setRequestedParallelism(1);
         } catch (Exception e) {
             int errCode = 2034;
             String msg = "Error compiling operator " + op.getClass().getSimpleName();
@@ -1064,7 +1066,7 @@ public class TezCompiler extends PhyPlanVisitor {
                 rightTezOprAggr = getTezOp();
                 tezPlan.add(rightTezOprAggr);
                 TezCompilerUtil.simpleConnectTwoVertex(tezPlan, rightTezOpr, rightTezOprAggr, scope, nig);
-                rightTezOprAggr.requestedParallelism = 1; // we need exactly one task for indexing job.
+                rightTezOprAggr.setRequestedParallelism(1); // we need exactly one task for indexing job.
 
                 POStore st = TezCompilerUtil.getStore(scope, nig);
                 FileSpec strFile = getTempFileSpec();
@@ -1291,9 +1293,11 @@ public class TezCompiler extends PhyPlanVisitor {
             // Run POLocalRearrange for first join table. Note we set the
             // parallelism of POLocalRearrange to that of the load vertex. So
             // its parallelism will be determined by the size of skewed table.
+            //TODO: Check if this really works as load vertex parallelism
+            // is determined during vertex construction.
             POLocalRearrangeTez lr =
                     new POLocalRearrangeTez(new OperatorKey(scope,nig.getNextNodeId(scope)),
-                            prevOp.requestedParallelism);
+                            Math.max(prevOp.getRequestedParallelism(), 1));
             try {
                 lr.setIndex(0);
             } catch (ExecException e) {
@@ -1350,8 +1354,8 @@ public class TezCompiler extends PhyPlanVisitor {
             gr.setResultType(DataType.TUPLE);
             gr.visit(this);
             joinJobs[2] = curTezOp;
-            if (gr.getRequestedParallelism() > joinJobs[2].requestedParallelism) {
-                joinJobs[2].requestedParallelism = gr.getRequestedParallelism();
+            if (gr.getRequestedParallelism() > joinJobs[2].getRequestedParallelism()) {
+                joinJobs[2].setRequestedParallelism(gr.getRequestedParallelism());
             }
 
             compiledInputs = new TezOperator[] {joinJobs[2]};
@@ -1757,7 +1761,7 @@ public class TezCompiler extends PhyPlanVisitor {
         }
         oper.setClosed(true);
 
-        oper.requestedParallelism = 1;
+        oper.setRequestedParallelism(1);
         oper.markSampler();
         return new Pair<TezOperator, Integer>(oper, rp);
     }
@@ -1938,6 +1942,8 @@ public class TezCompiler extends PhyPlanVisitor {
 
             TezOperator prevOper = endSingleInputWithStoreAndSample(op, lr, lrSample, keyType, fields);
 
+            //TODO: Dynamic Reducer estimation or some equivalent of JobControlCompiler.calculateRuntimeReducers
+            // pigContext.defaultParallel to be taken into account
             int rp = Math.max(op.getRequestedParallelism(), 1);
 
             Pair<TezOperator, Integer> quantJobParallelismPair = getQuantileJobs(op, rp);
@@ -1945,21 +1951,23 @@ public class TezCompiler extends PhyPlanVisitor {
 
             TezEdgeDescriptor edge = handleSplitAndConnect(tezPlan, prevOper, sortOpers[0]);
 
-            // TODO: Convert to unsorted shuffle after TEZ-661
-            // edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
-            // edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
-            // edge.partitionerClass = RoundRobinPartitioner.class;
-
-            // TODO: Test which is better - ONE_TO_ONE from prevOper to same number of
-            // tasks in sortOpers[0] and then sortOpers[1] with requestedParallelism
-            // or unsorted shuffled output (TEZ-661) from prevOper to
-            // sortOpers[0] with requestedParallelism and then sortOpers[1] with
-            // requestedParallelism
-            sortOpers[0].requestedParallelism = prevOper.requestedParallelism;
-            sortOpers[1].requestedParallelism = quantJobParallelismPair.second;
+            // Use 1-1 edge
             edge.dataMovementType = DataMovementType.ONE_TO_ONE;
             edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
             edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
+            // If prevOper.requestedParallelism changes based on no. of input splits
+            // it will reflect for sortOpers[0] so that 1-1 edge will work.
+            sortOpers[0].setRequestedParallelismByReference(prevOper);
+            sortOpers[1].setRequestedParallelism(quantJobParallelismPair.second);
+
+            /*
+            // TODO: Convert to unsorted shuffle after TEZ-661
+            // edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
+            // edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
+            edge.partitionerClass = RoundRobinPartitioner.class;
+            sortOpers[0].setRequestedParallelism(quantJobParallelismPair.second);
+            sortOpers[1].setRequestedParallelism(quantJobParallelismPair.second);
+            */
 
             handleSplitAndConnect(tezPlan, prevOper, quantJobParallelismPair.first, false);
             lr.setOutputKey(sortOpers[0].getOperatorKey().toString());
