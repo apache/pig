@@ -180,7 +180,7 @@ if includeHCatalog == True:
     else:
       sys.exit("Please initialize HCAT_HOME to the hcatalog install directory")
 
-  hcatJars = glob.glob(os.path.join(hcatHome, "share", "hcatalog", "hcatalog-*.jar"))
+  hcatJars = glob.glob(os.path.join(hcatHome, "share", "hcatalog", "*hcatalog-*.jar"))
   found = False
   for hcatJar in hcatJars:
     if hcatJar.find("server") != -1:

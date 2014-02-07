@@ -87,6 +87,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3606: Pig script throws error when searching for hcatalog jars in latest hive (deepesh via daijy)
+
 PIG-3623: HBaseStorage: setting loadKey and noWAL to false doesn't have any affect (nezihyigitbasi via rohini)
 
 PIG-3744: SequenceFileLoader does not support BytesWritable (rohini)
