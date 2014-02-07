@@ -97,7 +97,7 @@ set PIGARGS=
   )
   
   if defined HCAT_HOME (
-      call :AddJar %HCAT_HOME%\share\hcatalog hcatalog-*.jar
+      call :AddJar %HCAT_HOME%\share\hcatalog *hcatalog-*.jar
   ) else (
       echo "HCAT_HOME should be defined"
       exit /b 1
