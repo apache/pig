@@ -87,6 +87,9 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3627: Json storage : Doesn't work in cases , where other Store Functions (like PigStorage / AvroStorage)
+ do work (ssvinarchukhorton via daijy)
+
 PIG-3606: Pig script throws error when searching for hcatalog jars in latest hive (deepesh via daijy)
 
 PIG-3623: HBaseStorage: setting loadKey and noWAL to false doesn't have any affect (nezihyigitbasi via rohini)
