@@ -45,6 +45,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.ResourceSchema;
@@ -789,7 +790,7 @@ public class TestStore {
     }
 
     private void checkStorePath(String orig, String expected, boolean isTmp) throws Exception {
-        pc.getProperties().setProperty("opt.multiquery",""+true);
+        pc.getProperties().setProperty(PigConfiguration.OPT_MULTIQUERY,""+true);
 
         DataStorage dfs = pc.getDfs();
         dfs.setActiveContainer(dfs.asContainer("/tmp"));

@@ -130,5 +130,14 @@ public class TezOperPlan extends OperatorPlan<TezOperator> {
             addExtraResource(entry.getKey(), entry.getValue());
         }
     }
+
+    @Override
+    public void remove(TezOperator op) {
+        //TODO Cleanup outEdges of predecessors and inEdges of successors
+        //TezDAGBuilder would not create the edge. So low priority
+        super.remove(op);
+    }
+
+
 }
 

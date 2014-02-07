@@ -18,15 +18,13 @@
 package org.apache.pig.test;
 
 import java.io.BufferedReader;
-import java.io.DataOutputStream;
-import java.io.FileReader;
-import java.io.StringReader;
-import java.io.IOException;
 import java.io.File;
-import java.util.Iterator;
-import java.util.List;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Properties;
 
 import junit.framework.Assert;
@@ -36,6 +34,7 @@ import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRExecutionEngine;
@@ -45,13 +44,13 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorPlan;
-import org.apache.pig.impl.PigContext;
-import org.apache.pig.tools.grunt.GruntParser;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
+import org.apache.pig.tools.grunt.GruntParser;
 import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.PigStats;
@@ -67,7 +66,7 @@ public class TestMultiQueryLocal {
     @Before
     public void setUp() throws Exception {
         PigContext context = new PigContext(ExecType.LOCAL, new Properties());
-        context.getProperties().setProperty("opt.multiquery", ""+true);
+        context.getProperties().setProperty(PigConfiguration.OPT_MULTIQUERY, ""+true);
         myPig = new PigServer(context);
         myPig.getPigContext().getProperties().setProperty("pig.usenewlogicalplan", "false");
         myPig.getPigContext().getProperties().setProperty("pig.temp.dir", "build/test/tmp/");
@@ -114,7 +113,7 @@ public class TestMultiQueryLocal {
     @Test
     public void testEmptyExecute() {
         System.out.println("=== test empty execute ===");
-        
+
         try {
             myPig.setBatchOn();
             myPig.executeBatch();
@@ -156,7 +155,7 @@ public class TestMultiQueryLocal {
     public void testMultiQueryWithTwoStores2Execs() {
 
         System.out.println("===== test multi-query with 2 stores (2) =====");
-        
+
         try {
             myPig.setBatchOn();
 
@@ -317,10 +316,10 @@ public class TestMultiQueryLocal {
             myPig.registerQuery("group b by gid;");
 
             LogicalPlan lp = checkLogicalPlan(0, 0, 0);
-            
+
             // XXX Physical plan has one less node in the local case
             PhysicalPlan pp = checkPhysicalPlan(lp, 0, 0, 0);
-            
+
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
@@ -443,7 +442,7 @@ public class TestMultiQueryLocal {
                           + "b = filter a by uid > 5;"
                           + "explain b;"
                           + "store b into '" + TMP_DIR + "/Pig-TestMultiQueryLocal1';\n";
-            
+
             GruntParser parser = new GruntParser(new StringReader(script));
             parser.setInteractive(false);
             parser.setParams(myPig);
@@ -468,7 +467,7 @@ public class TestMultiQueryLocal {
                           + "b = filter a by uid > 5;"
                           + "dump b;"
                           + "store b into '" + TMP_DIR + "/Pig-TestMultiQueryLocal1';\n";
-            
+
             GruntParser parser = new GruntParser(new StringReader(script));
             parser.setInteractive(false);
             parser.setParams(myPig);
@@ -493,7 +492,7 @@ public class TestMultiQueryLocal {
                           + "b = filter a by uid > 5;"
                           + "describe b;"
                           + "store b into '" + TMP_DIR + "/Pig-TestMultiQueryLocal1';\n";
-            
+
             GruntParser parser = new GruntParser(new StringReader(script));
             parser.setInteractive(false);
             parser.setParams(myPig);
@@ -518,7 +517,7 @@ public class TestMultiQueryLocal {
                           + "b = filter a by uid > 5;"
                           + "illustrate b;"
                           + "store b into '" + TMP_DIR + "/Pig-TestMultiQueryLocal1';\n";
-            
+
             GruntParser parser = new GruntParser(new StringReader(script));
             parser.setInteractive(false);
             myPig.getPigContext().getProperties().setProperty("pig.usenewlogicalplan", "true");
@@ -537,7 +536,7 @@ public class TestMultiQueryLocal {
     @Test
     public void testStoreOrder() {
         System.out.println("===== multi-query store order =====");
-        
+
         try {
             myPig.setBatchOn();
             myPig.registerQuery("a = load 'test/org/apache/pig/test/data/passwd';");
@@ -557,7 +556,7 @@ public class TestMultiQueryLocal {
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 15);
 
             myPig.executeBatch();
-            myPig.discardBatch(); 
+            myPig.discardBatch();
 
             Assert.assertTrue(new File(TMP_DIR + "/Pig-TestMultiQueryLocal1").exists());
             Assert.assertTrue(new File(TMP_DIR + "/Pig-TestMultiQueryLocal2").exists());
@@ -565,7 +564,7 @@ public class TestMultiQueryLocal {
             Assert.assertTrue(new File(TMP_DIR + "/Pig-TestMultiQueryLocal4").exists());
             Assert.assertTrue(new File(TMP_DIR + "/Pig-TestMultiQueryLocal5").exists());
 
-            
+
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
@@ -577,7 +576,7 @@ public class TestMultiQueryLocal {
     // --------------------------------------------------------------------------
     // Helper methods
 
-    private <T extends OperatorPlan<? extends Operator<?>>> 
+    private <T extends OperatorPlan<? extends Operator<?>>>
     void showPlanOperators(T p) {
         System.out.println("Operators:");
 
@@ -595,7 +594,7 @@ public class TestMultiQueryLocal {
             ParseException {
 
         System.out.println("===== check logical plan =====");
-    
+
         LogicalPlan lp = null;
 
         try {
@@ -627,7 +626,7 @@ public class TestMultiQueryLocal {
     private PhysicalPlan checkPhysicalPlan(LogicalPlan lp, int expectedRoots,
             int expectedLeaves, int expectedSize) throws IOException {
 
-        System.out.println("===== check physical plan =====");        
+        System.out.println("===== check physical plan =====");
 
         PhysicalPlan pp = ((MRExecutionEngine)myPig.getPigContext().getExecutionEngine()).compile(
                 lp, null);
@@ -675,14 +674,14 @@ public class TestMultiQueryLocal {
                     deleteDir( new File( outputFile ) );
                 } else {
                     FileLocalizer.delete(outputFile, myPig.getPigContext());
-                }    
-            }            
+                }
+            }
         } catch (IOException e) {
             e.printStackTrace();
             Assert.fail();
         }
     }
-    
+
     private void deleteDir( File file ) {
         if( file.isDirectory() && file.listFiles().length != 0 ) {
             for( File innerFile : file.listFiles() ) {
@@ -691,7 +690,7 @@ public class TestMultiQueryLocal {
         }
         file.delete();
     }
-    
+
     private boolean isDirectory( String filepath ) {
         File file = new File( filepath );
         return file.isDirectory();

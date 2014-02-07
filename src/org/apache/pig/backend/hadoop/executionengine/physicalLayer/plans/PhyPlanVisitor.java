@@ -93,6 +93,10 @@ public class PhyPlanVisitor extends PlanVisitor<PhysicalOperator,PhysicalPlan> {
         super(plan, walker);
     }
 
+    public void visit(PhysicalOperator op) {
+        // do nothing
+    }
+
     public void visitLoad(POLoad ld) throws VisitorException{
         //do nothing
     }

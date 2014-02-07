@@ -41,6 +41,7 @@ import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.PatternLayout;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -63,7 +64,7 @@ public class TestGrunt {
 
     @BeforeClass
     public static void oneTimeSetup() throws Exception {
-        cluster.setProperty("opt.multiquery","true");
+        cluster.setProperty(PigConfiguration.OPT_MULTIQUERY,"true");
     }
 
     @AfterClass

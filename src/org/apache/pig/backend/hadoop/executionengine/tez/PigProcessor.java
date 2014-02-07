@@ -155,6 +155,10 @@ public class PigProcessor implements LogicalIOProcessor {
         for (POIdentityInOutTez identityInOut : identityInOuts){
             identityInOut.attachInputs(inputs, conf);
         }
+        LinkedList<POValueInputTez> valueInputs = PlanHelper.getPhysicalOperators(execPlan, POValueInputTez.class);
+        for (POValueInputTez input : valueInputs){
+            input.attachInputs(inputs, conf);
+        }
         LinkedList<POFRJoinTez> broadcasts = PlanHelper.getPhysicalOperators(execPlan, POFRJoinTez.class);
         for (POFRJoinTez broadcast : broadcasts){
             broadcast.attachInputs(inputs, conf);
@@ -169,6 +173,10 @@ public class PigProcessor implements LogicalIOProcessor {
         LinkedList<POLocalRearrangeTez> rearranges = PlanHelper.getPhysicalOperators(execPlan, POLocalRearrangeTez.class);
         for (POLocalRearrangeTez lr : rearranges){
             lr.attachOutputs(outputs, conf);
+        }
+        LinkedList<POValueOutputTez> valueOutputs = PlanHelper.getPhysicalOperators(execPlan, POValueOutputTez.class);
+        for (POValueOutputTez output : valueOutputs){
+            output.attachOutputs(outputs, conf);
         }
         for (Entry<String, LogicalOutput> entry : outputs.entrySet()){
             LogicalOutput logicalOutput = entry.getValue();

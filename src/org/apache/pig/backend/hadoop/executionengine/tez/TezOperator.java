@@ -52,7 +52,11 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     // TODO: We need to specify parallelism per vertex in Tez. For now, we set
     // them all to 1.
     // Use AtomicInteger for access by reference and being able to reset in
-    // TezDAGBuilder based on number of input splits. We just need mutability and not concurrency
+    // TezDAGBuilder based on number of input splits.
+    // We just need mutability and not concurrency
+    // This is to ensure that vertexes with 1-1 edge have same parallelism
+    // even when parallelism of source vertex changes.
+    // Can change to int and set to -1 if TEZ-800 gets fixed.
     private AtomicInteger requestedParallelism = new AtomicInteger(-1);
 
     // TODO: When constructing Tez vertex, we have to specify how much resource
@@ -63,8 +67,16 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     //int requestedCpu = 1;
 
     // Presence indicates that this TezOper is sub-plan of a POSplit.
+    // This is in-case when multi-query is turned on
     // Only POStore or POLocalRearrange leaf can be a sub-plan of POSplit
     private OperatorKey splitOperatorKey = null;
+
+    // This indicates that this TezOper has POSplit as a parent.
+    // This is the case where multi-query is turned off.
+    private OperatorKey splitParent = null;
+
+    // This indicates that this TezOper is a split operator
+    private boolean isSplitOper;
 
     // Indicates that the plan creation is complete
     boolean closed = false;
@@ -169,6 +181,22 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
 
     public boolean isSplitSubPlan() {
         return splitOperatorKey != null;
+    }
+
+    public OperatorKey getSplitParent() {
+        return splitParent;
+    }
+
+    public void setSplitParent(OperatorKey splitParent) {
+        this.splitParent = splitParent;
+    }
+
+    public boolean isSplitOperator() {
+        return isSplitOper;
+    }
+
+    public void setSplitOperator(boolean isSplitOperator) {
+        this.isSplitOper = isSplitOperator;
     }
 
     public boolean isClosed() {

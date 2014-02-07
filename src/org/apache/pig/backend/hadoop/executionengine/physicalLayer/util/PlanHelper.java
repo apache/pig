@@ -168,8 +168,9 @@ public class PlanHelper {
             return !foundOps.isEmpty();
         }
 
+        @Override
         @SuppressWarnings("unchecked")
-        private void visit(PhysicalOperator op) {
+        public void visit(PhysicalOperator op) {
             if (opClass.isAssignableFrom(op.getClass())) {
                 foundOps.add((C) op);
             }

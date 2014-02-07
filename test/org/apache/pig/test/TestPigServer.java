@@ -54,6 +54,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -818,7 +819,7 @@ public class TestPigServer {
 
         assertEquals("999", properties.getProperty("pig.exec.reducers.max"));
         assertEquals("true", properties.getProperty("aggregate.warning"));
-        assertEquals("true", properties.getProperty("opt.multiquery"));
+        assertEquals("true", properties.getProperty(PigConfiguration.OPT_MULTIQUERY));
         assertEquals("false", properties.getProperty("stop.on.failure"));
 
 		//Test with properties file
@@ -828,7 +829,7 @@ public class TestPigServer {
 
 		assertEquals("999", properties.getProperty("pig.exec.reducers.max"));
         assertEquals("true", properties.getProperty("aggregate.warning"));
-        assertEquals("true", properties.getProperty("opt.multiquery"));
+        assertEquals("true", properties.getProperty(PigConfiguration.OPT_MULTIQUERY));
         assertEquals("false", properties.getProperty("stop.on.failure"));
 
 		PrintWriter out = new PrintWriter(new FileWriter(propertyFile));
@@ -840,7 +841,7 @@ public class TestPigServer {
 
 		properties = PropertiesUtil.loadDefaultProperties();
 		assertEquals("false", properties.getProperty("aggregate.warning"));
-		assertEquals("false", properties.getProperty("opt.multiquery"));
+		assertEquals("false", properties.getProperty(PigConfiguration.OPT_MULTIQUERY));
 		assertEquals("true", properties.getProperty("stop.on.failure"));
 
 		propertyFile.delete();

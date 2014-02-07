@@ -229,7 +229,8 @@ public class PigServer {
         currDAG = new Graph(false);
 
         aggregateWarning = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("aggregate.warning"));
-        isMultiQuery = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("opt.multiquery","true"));
+        isMultiQuery = "true".equalsIgnoreCase(pigContext.getProperties()
+                .getProperty(PigConfiguration.OPT_MULTIQUERY, "true"));
 
         jobName = pigContext.getProperties().getProperty(
                 PigContext.JOB_NAME,

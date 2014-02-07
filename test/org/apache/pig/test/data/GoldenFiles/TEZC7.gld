@@ -2,16 +2,17 @@
 # There are 1 DAGs in the session
 #--------------------------------------------------
 #--------------------------------------------------
-# TEZ DAG plan: scope-196
+# TEZ DAG plan: scope-210
 #--------------------------------------------------
-Tez vertex scope-106	->	Tez vertex scope-109,Tez vertex scope-122,Tez vertex scope-122,Tez vertex scope-126,Tez vertex scope-151,Tez vertex scope-140,Tez vertex scope-174,Tez vertex scope-174,
+Tez vertex scope-106	->	Tez vertex scope-109,Tez vertex scope-122,Tez vertex scope-122,Tez vertex scope-126,Tez vertex scope-151,Tez vertex scope-140,Tez vertex scope-163,Tez vertex scope-188,
 Tez vertex scope-122
-Tez vertex scope-174
 Tez vertex scope-140	->	Tez vertex scope-151,
 Tez vertex scope-151	->	Tez vertex scope-153,
 Tez vertex scope-153
 Tez vertex scope-126
 Tez vertex scope-109
+Tez vertex scope-163	->	Tez vertex scope-188,
+Tez vertex scope-188
 
 Tez vertex scope-106
 # Plan on vertex
@@ -51,13 +52,9 @@ Tez vertex scope-106
 |   |   |                   |   |
 |   |   |                   |   |---Constant(3) - scope-86
 |   |   |   |
-|   |   |   f1: Split - scope-96
+|   |   |   f1: Local Rearrange[tuple]{tuple}(false) - scope-162	->	 scope-163
 |   |   |   |   |
-|   |   |   |   f1: Store(file:///tmp/output/f1:org.apache.pig.builtin.PigStorage) - scope-99
-|   |   |   |   |
-|   |   |   |   f2: Local Rearrange[tuple]{tuple}(false) - scope-173	->	 scope-174
-|   |   |   |   |   |
-|   |   |   |   |   Project[tuple][*] - scope-172
+|   |   |   |   Project[tuple][*] - scope-161
 |   |   |   |
 |   |   |   |---f1: Limit - scope-95
 |   |   |       |
@@ -83,21 +80,21 @@ Tez vertex scope-106
 |   |   |   |
 |   |   |   Project[int][0] - scope-48
 |   |   |
-|   |   c2: Local Rearrange[tuple]{int}(false) - scope-188	->	 scope-126
+|   |   c2: Local Rearrange[tuple]{int}(false) - scope-202	->	 scope-126
 |   |   |   |
-|   |   |   Project[int][0] - scope-190
+|   |   |   Project[int][0] - scope-204
 |   |   |
-|   |   |---c3: New For Each(false,false)[bag] - scope-176
+|   |   |---c3: New For Each(false,false)[bag] - scope-190
 |   |       |   |
-|   |       |   Project[int][0] - scope-177
+|   |       |   Project[int][0] - scope-191
 |   |       |   |
-|   |       |   POUserFunc(org.apache.pig.builtin.AlgebraicMathBase$Initial)[tuple] - scope-178
+|   |       |   POUserFunc(org.apache.pig.builtin.AlgebraicMathBase$Initial)[tuple] - scope-192
 |   |       |   |
-|   |       |   |---Project[bag][0] - scope-179
+|   |       |   |---Project[bag][0] - scope-193
 |   |       |       |
-|   |       |       |---Project[bag][1] - scope-180
+|   |       |       |---Project[bag][1] - scope-194
 |   |       |
-|   |       |---Pre Combiner Local Rearrange[tuple]{Unknown} - scope-191
+|   |       |---Pre Combiner Local Rearrange[tuple]{Unknown} - scope-205
 |   |
 |   |---c: Filter[bag] - scope-34
 |       |   |
@@ -111,9 +108,9 @@ Tez vertex scope-106
 |   |   |
 |   |   d1: Store(file:///tmp/output/d1:org.apache.pig.builtin.PigStorage) - scope-80
 |   |   |
-|   |   f2: Local Rearrange[tuple]{tuple}(false) - scope-171	->	 scope-174
+|   |   f2: Local Rearrange[tuple]{tuple}(false) - scope-185	->	 scope-188
 |   |   |   |
-|   |   |   Project[tuple][*] - scope-170
+|   |   |   Project[tuple][*] - scope-184
 |   |
 |   |---d1: Filter[bag] - scope-73
 |       |   |
@@ -153,11 +150,6 @@ c1: Store(file:///tmp/output/c1:org.apache.pig.builtin.PigStorage) - scope-54
     |   Project[bag][2] - scope-52
     |
     |---c1: Package(Packager)[tuple]{int} - scope-46
-Tez vertex scope-174
-# Plan on vertex
-f2: Store(file:///tmp/output/f2:org.apache.pig.builtin.PigStorage) - scope-105
-|
-|---f2: Package(Packager)[tuple]{tuple} - scope-175
 Tez vertex scope-140
 # Plan on vertex
 Local Rearrange[tuple]{bytearray}(false) - scope-150	->	 scope-151
@@ -193,19 +185,19 @@ e1: Store(file:///tmp/output/e1:org.apache.pig.builtin.PigStorage) - scope-90
     |---Package(LitePackager)[tuple]{int} - scope-154
 Tez vertex scope-126
 # Combine plan on edge <scope-106>
-c2: Local Rearrange[tuple]{int}(false) - scope-192	->	 scope-126
+c2: Local Rearrange[tuple]{int}(false) - scope-206	->	 scope-126
 |   |
-|   Project[int][0] - scope-194
+|   Project[int][0] - scope-208
 |
-|---c3: New For Each(false,false)[bag] - scope-181
+|---c3: New For Each(false,false)[bag] - scope-195
     |   |
-    |   Project[int][0] - scope-182
+    |   Project[int][0] - scope-196
     |   |
-    |   POUserFunc(org.apache.pig.builtin.LongSum$Intermediate)[tuple] - scope-183
+    |   POUserFunc(org.apache.pig.builtin.LongSum$Intermediate)[tuple] - scope-197
     |   |
-    |   |---Project[bag][1] - scope-184
+    |   |---Project[bag][1] - scope-198
     |
-    |---c2: Package(CombinerPackager)[tuple]{int} - scope-187
+    |---c2: Package(CombinerPackager)[tuple]{int} - scope-201
 # Plan on vertex
 c3: Store(file:///tmp/output/c1:org.apache.pig.builtin.PigStorage) - scope-68
 |
@@ -215,7 +207,7 @@ c3: Store(file:///tmp/output/c1:org.apache.pig.builtin.PigStorage) - scope-68
     |   |
     |   POUserFunc(org.apache.pig.builtin.LongSum$Final)[long] - scope-65
     |   |
-    |   |---Project[bag][1] - scope-185
+    |   |---Project[bag][1] - scope-199
     |
     |---c2: Package(CombinerPackager)[tuple]{int} - scope-58
 Tez vertex scope-109
@@ -237,3 +229,25 @@ b1: Split - scope-20
 |       |       |---Project[bag][1] - scope-28
 |
 |---b1: Package(Packager)[tuple]{int} - scope-17
+Tez vertex scope-163
+# Plan on vertex
+f1: Split - scope-96
+|   |
+|   f1: Store(file:///tmp/output/f1:org.apache.pig.builtin.PigStorage) - scope-99
+|   |
+|   f2: Local Rearrange[tuple]{tuple}(false) - scope-187	->	 scope-188
+|   |   |
+|   |   Project[tuple][*] - scope-186
+|
+|---f1: Limit - scope-167
+    |
+    |---f1: New For Each(true)[bag] - scope-166
+        |   |
+        |   Project[tuple][1] - scope-165
+        |
+        |---f1: Package(Packager)[tuple]{tuple} - scope-164
+Tez vertex scope-188
+# Plan on vertex
+f2: Store(file:///tmp/output/f2:org.apache.pig.builtin.PigStorage) - scope-105
+|
+|---f2: Package(Packager)[tuple]{tuple} - scope-189

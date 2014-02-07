@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.Iterator;
 
 import org.apache.pig.ExecType;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRExecutionEngine;
@@ -71,17 +72,17 @@ public class TestMultiQueryCompiler {
         Util.copyFromLocalToCluster(cluster,
                 "test/org/apache/pig/test/data/passwd2", "passwd2");
     }
-    
+
     @AfterClass
     public static void tearDownAfterClass() throws IOException {
         Util.deleteFile(cluster, "passwd");
         Util.deleteFile(cluster, "passwd2");
         cluster.shutDown();
     }
-    
+
     @Before
     public void setUp() throws Exception {
-        cluster.setProperty("opt.multiquery", ""+true);
+        cluster.setProperty(PigConfiguration.OPT_MULTIQUERY, ""+true);
         myPig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         deleteOutputFiles();
     }
@@ -90,17 +91,17 @@ public class TestMultiQueryCompiler {
     public void tearDown() throws Exception {
         myPig = null;
     }
-  
+
     @Test
     public void testMultiQueryJiraPig1438() {
 
         // test case: merge multiple distinct jobs -- one group by job, one distinct job
-        
+
         String INPUT_FILE = "abc";
-        
-        try {           
+
+        try {
             myPig.setBatchOn();
-    
+
             myPig.registerQuery("A = load '" + INPUT_FILE + "' as (col1:int, col2:int, col3:int);");
             myPig.registerQuery("B1 = foreach A generate col1, col2;");
             myPig.registerQuery("B2 = foreach A generate col2, col3;");
@@ -110,23 +111,23 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("D2 = foreach C2 generate B2.col2, B2.col3;");
             myPig.registerQuery("store D1 into '/tmp/output1';");
             myPig.registerQuery("store D2 into '/tmp/output2';");
-            
+
             LogicalPlan lp = checkLogicalPlan(1, 2, 12);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 2, 15);
 
-            checkMRPlan(pp, 1, 1, 2); 
-            
+            checkMRPlan(pp, 1, 1, 2);
+
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
         }
     }
-        
+
     @Test
     public void testMultiQueryJiraPig1060() {
 
-        // test case: 
+        // test case:
 
         String INPUT_FILE = "pig-1060.txt";
 
@@ -187,7 +188,7 @@ public class TestMultiQueryCompiler {
             }
         }
     }
-     
+
     @Test
     public void testMultiQueryJiraPig920() {
 
@@ -202,19 +203,19 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("d = cogroup c by $0, b by $0;");
             myPig.registerQuery("e = foreach d generate group, COUNT(c), COUNT(b);");
             myPig.registerQuery("store e into '/tmp/output1';");
-             
+
             LogicalPlan lp = checkLogicalPlan(1, 1, 9);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 1, 13);
 
             checkMRPlan(pp, 1, 1, 1);
-            
+
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
-        } 
-    }       
- 
+        }
+    }
+
     @Test
     public void testMultiQueryJiraPig920_1() {
 
@@ -234,17 +235,17 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("g = cogroup d by $0, e by $0;");
             myPig.registerQuery("g1 = foreach g generate group, COUNT(d), COUNT(e);");
             myPig.registerQuery("store g1 into '/tmp/output2';");
-             
+
             LogicalPlan lp = checkLogicalPlan(1, 2, 16);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 2, 23);
 
             checkMRPlan(pp, 2, 2, 2);
-            
+
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
-        } 
+        }
     }
 
     @Test
@@ -267,20 +268,20 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("g = group f by uname;");
             myPig.registerQuery("h = foreach g generate group, COUNT(f.uid);");
             myPig.registerQuery("store h into '/tmp/output3';");
-             
+
             LogicalPlan lp = checkLogicalPlan(1, 3, 17);
 
             // NOTE: old way seemingly generated a useless foreach operator. Now we have one less operator. Reason unknow.
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 19);
 
             checkMRPlan(pp, 1, 1, 1);
-            
+
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
-        } 
-    }         
-    
+        }
+    }
+
     @Test
     public void testMultiQueryWithSingleMapReduceSplittee() {
 
@@ -292,7 +293,7 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname, passwd, uid, gid);");
             myPig.registerQuery("b = foreach a generate uname, uid, gid;");
-            myPig.registerQuery("split b into c1 if uid > 5, c2 if uid <= 5 ;"); 
+            myPig.registerQuery("split b into c1 if uid > 5, c2 if uid <= 5 ;");
             myPig.registerQuery("f = group c2 by uname;");
             myPig.registerQuery("f1 = foreach f generate group, SUM(c2.gid);");
             myPig.registerQuery("store f1 into '/tmp/output1';");
@@ -301,14 +302,14 @@ public class TestMultiQueryCompiler {
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 1, 9);
 
-            checkMRPlan(pp, 1, 1, 1); 
-            
+            checkMRPlan(pp, 1, 1, 1);
+
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
-        } 
+        }
     }
-    
+
     @Test
     public void testMultiQueryPhase3BaseCase() {
 
@@ -330,21 +331,21 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("c2 = foreach c1 generate group, SUM(c.uid);");
             myPig.registerQuery("store c2 into '/tmp/output2';");
             myPig.registerQuery("d1 = group d by gid;");
-            myPig.registerQuery("d2 = foreach d1 generate group, AVG(d.uid);");            
+            myPig.registerQuery("d2 = foreach d1 generate group, AVG(d.uid);");
             myPig.registerQuery("store d2 into '/tmp/output3';");
-             
+
             LogicalPlan lp = checkLogicalPlan(1, 3, 18);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 25);
 
             checkMRPlan(pp, 1, 1, 1);
-            
+
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
-        } 
-    }     
- 
+        }
+    }
+
     @Test
     public void testMultiQueryJiraPig983() {
 
@@ -364,19 +365,19 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("f = group d by c::gid;");
             myPig.registerQuery("f1 = foreach f generate group, SUM(d.c::uid);");
             myPig.registerQuery("store f1 into '/tmp/output2';");
-             
+
             LogicalPlan lp = checkLogicalPlan(1, 2, 16);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 2, 25);
 
             checkMRPlan(pp, 1, 1, 2);
-            
+
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
-        } 
-    }       
-    
+        }
+    }
+
     @Test
     public void testMultiQueryPhase3WithoutCombiner() {
 
@@ -397,22 +398,22 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("c1 = group c by gid;");
             myPig.registerQuery("c2 = foreach c1 generate group, SUM(c.uid) - COUNT(c.uid);");
             myPig.registerQuery("store c2 into '/tmp/output2';");
-            myPig.registerQuery("d1 = group d by gid;");           
+            myPig.registerQuery("d1 = group d by gid;");
             myPig.registerQuery("d2 = foreach d1 generate group, MAX(d.uid) - MIN(d.uid);");
             myPig.registerQuery("store d2 into '/tmp/output3';");
-             
+
             LogicalPlan lp = checkLogicalPlan(1, 3, 18);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 25);
 
             checkMRPlan(pp, 1, 1, 1);
-            
+
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
-        } 
-    }     
-    
+        }
+    }
+
     @Test
     public void testMultiQueryPhase3WithMixedCombiner() {
 
@@ -433,21 +434,21 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("c1 = group c by gid;");
             myPig.registerQuery("c2 = foreach c1 generate group, SUM(c.uid);");
             myPig.registerQuery("store c2 into '/tmp/output2';");
-            myPig.registerQuery("d1 = group d by gid;");            
+            myPig.registerQuery("d1 = group d by gid;");
             myPig.registerQuery("d2 = foreach d1 generate group, d.uname, MAX(d.uid) - MIN(d.uid);");
             myPig.registerQuery("store d2 into '/tmp/output3';");
-             
+
             LogicalPlan lp = checkLogicalPlan(1, 3, 18);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 25);
 
             checkMRPlan(pp, 1, 1, 2);
-            
+
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
-        } 
-    }         
+        }
+    }
 
     @Test
     public void testMultiQueryPhase3WithDifferentMapDataTypes() {
@@ -472,19 +473,19 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("d1 = group d by $1 parallel 4;");
             myPig.registerQuery("d2 = foreach d1 generate group, COUNT(d.uid);");
             myPig.registerQuery("store d2 into '/tmp/output3';");
-             
+
             LogicalPlan lp = checkLogicalPlan(1, 3, 18);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 25);
 
             checkMRPlan(pp, 1, 1, 1);
-            
+
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
-        } 
-    }         
-    
+        }
+    }
+
     @Test
     public void testMultiQueryPhase3StreamingInReducer() {
 
@@ -502,23 +503,23 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("store D into '/tmp/output1';");
             myPig.registerQuery("E = group A4 by $2;");
             myPig.registerQuery("F = foreach E generate group, COUNT(A4);");
-            myPig.registerQuery("store F into '/tmp/output2';");            
+            myPig.registerQuery("store F into '/tmp/output2';");
             myPig.registerQuery("G = group A1 by $2;");
-            myPig.registerQuery("H = foreach G generate group, COUNT(A1);");          
+            myPig.registerQuery("H = foreach G generate group, COUNT(A1);");
             myPig.registerQuery("store H into '/tmp/output3';");
-             
+
             LogicalPlan lp = checkLogicalPlan(1, 3, 18);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 24);
 
             checkMRPlan(pp, 1, 1, 2);
-            
+
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
-        } 
-    }           
-    
+        }
+    }
+
     @Test
     public void testMultiQueryWithPigMixL12() {
 
@@ -530,7 +531,7 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname, passwd, uid, gid);");
             myPig.registerQuery("b = foreach a generate uname, passwd, uid, gid;");
-            myPig.registerQuery("split b into c1 if uid > 5, c2 if uid <= 5 ;"); 
+            myPig.registerQuery("split b into c1 if uid > 5, c2 if uid <= 5 ;");
             myPig.registerQuery("split c1 into d1 if gid < 5, d2 if gid >= 5;");
             myPig.registerQuery("e = group d1 by uname;");
             myPig.registerQuery("e1 = foreach e generate group, MAX(d1.uid);");
@@ -546,14 +547,14 @@ public class TestMultiQueryCompiler {
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 23);
 
-            checkMRPlan(pp, 1, 1, 1); 
-            
+            checkMRPlan(pp, 1, 1, 1);
+
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
-        } 
+        }
     }
-    
+
     @Test
     public void testMultiQueryWithCoGroup() {
 
@@ -565,7 +566,7 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname, passwd, uid, gid);");
             myPig.registerQuery("store a into '/tmp/output1' using BinStorage();");
-            myPig.registerQuery("b = load '/tmp/output1' using BinStorage() as (uname, passwd, uid, gid);"); 
+            myPig.registerQuery("b = load '/tmp/output1' using BinStorage() as (uname, passwd, uid, gid);");
             myPig.registerQuery("c = load 'passwd2' " +
                                 "using PigStorage(':') as (uname, passwd, uid, gid);");
             myPig.registerQuery("d = cogroup b by (uname, uid) inner, c by (uname, uid) inner;");
@@ -576,14 +577,14 @@ public class TestMultiQueryCompiler {
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 2, 1, 11);
 
-            checkMRPlan(pp, 1, 1, 2); 
+            checkMRPlan(pp, 1, 1, 2);
 
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
-        } 
+        }
     }
-    
+
     @Test
     public void testMultiQueryWithFJ() {
 
@@ -607,14 +608,14 @@ public class TestMultiQueryCompiler {
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 2, 3, 16);
 
-            checkMRPlan(pp, 2, 1, 3);            
-            
+            checkMRPlan(pp, 2, 1, 3);
+
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
-        } 
+        }
     }
-   
+
     @Test
     public void testMultiQueryWithExplicitSplitAndSideFiles() {
 
@@ -636,13 +637,13 @@ public class TestMultiQueryCompiler {
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 19);
 
-            checkMRPlan(pp, 1, 1, 2); 
+            checkMRPlan(pp, 1, 1, 2);
 
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
-        } 
-    }        
+        }
+    }
 
     @Test
     public void testMultiQueryWithExplicitSplitAndOrderByAndSideFiles() {
@@ -667,22 +668,22 @@ public class TestMultiQueryCompiler {
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 21);
 
-            checkMRPlan(pp, 1, 1, 4); 
+            checkMRPlan(pp, 1, 1, 4);
 
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
-        } 
-    }     
-    
+        }
+    }
+
     @Test
     public void testMultiQueryWithIntermediateStores() {
 
         System.out.println("===== multi-query with intermediate stores =====");
 
-        try {            
+        try {
             myPig.setBatchOn();
-            
+
             myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
             myPig.registerQuery("store a into '/tmp/output1';");
@@ -693,13 +694,13 @@ public class TestMultiQueryCompiler {
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 1, 5);
 
-            checkMRPlan(pp, 1, 1, 2); 
+            checkMRPlan(pp, 1, 1, 2);
 
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
-        } 
-    }     
+        }
+    }
 
     @Test
     public void testMultiQueryWithImplicitSplitAndSideFiles() {
@@ -724,13 +725,13 @@ public class TestMultiQueryCompiler {
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 22);
 
-            checkMRPlan(pp, 1, 1, 2); 
+            checkMRPlan(pp, 1, 1, 2);
 
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
-        } 
-    }        
+        }
+    }
 
     @Test
     public void testMultiQueryWithTwoLoadsAndTwoStores() {
@@ -752,19 +753,19 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("h = filter f by c::gid > 5;");
             myPig.registerQuery("store g into '/tmp/output1';");
             myPig.registerQuery("store h into '/tmp/output2';");
-            
+
             LogicalPlan lp = checkLogicalPlan(2, 2, 13);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 2, 2, 20);
 
-            checkMRPlan(pp, 1, 1, 2); 
+            checkMRPlan(pp, 1, 1, 2);
 
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
-        } 
+        }
     }
- 
+
     @Test
     public void testMultiQueryWithSplitInReduce() {
 
@@ -786,14 +787,14 @@ public class TestMultiQueryCompiler {
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 2, 13);
 
-            checkMRPlan(pp, 1, 1, 1); 
+            checkMRPlan(pp, 1, 1, 1);
 
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
-        } 
+        }
     }
-   
+
     @Test
     public void testMultiQueryWithSplitInReduceAndReduceSplitee() {
 
@@ -817,14 +818,14 @@ public class TestMultiQueryCompiler {
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 2, 17);
 
-            checkMRPlan(pp, 1, 1, 2); 
-            
+            checkMRPlan(pp, 1, 1, 2);
+
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
-        } 
-    }    
-  
+        }
+    }
+
     @Test
     public void testMultiQueryWithSplitInReduceAndReduceSplitees() {
 
@@ -846,18 +847,18 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("f1 = group f by $1;");
             myPig.registerQuery("f2 = foreach f1 generate group, COUNT(f.$0);");
             myPig.registerQuery("store f2 into '/tmp/output2';");
-            
+
             LogicalPlan lp = checkLogicalPlan(1, 2, 15);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 2, 22);
 
-            checkMRPlan(pp, 1, 1, 2); 
-        
+            checkMRPlan(pp, 1, 1, 2);
+
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
-        } 
-    }    
+        }
+    }
 
     @Test
     public void testMultiQueryWithSplitInReduceAndReduceSpliteesAndMore() {
@@ -886,19 +887,19 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("f4 = group f3 by $1;");
             myPig.registerQuery("f5 = foreach f4 generate group, COUNT(f3.$0);");
             myPig.registerQuery("store f5 into '/tmp/output2';");
-            
+
             LogicalPlan lp = checkLogicalPlan(1, 2, 21);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 2, 32);
 
-            checkMRPlan(pp, 1, 2, 4);            
+            checkMRPlan(pp, 1, 2, 4);
 
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
-        } 
-    }    
-    
+        }
+    }
+
     @Test
     public void testMultiQueryWithSplitInMapAndReduceSplitees() {
 
@@ -922,19 +923,19 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("d1 = group d by $1;");
             myPig.registerQuery("d2 = foreach d1 generate group, COUNT(d.uid);");
             myPig.registerQuery("store d2 into '/tmp/output3';");
-             
+
             LogicalPlan lp = checkLogicalPlan(1, 3, 18);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 25);
 
             checkMRPlan(pp, 1, 1, 1);
-            
+
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
-        } 
-    }       
-  
+        }
+    }
+
     @Test
     public void testMultiQueryWithTwoStores() {
 
@@ -959,7 +960,7 @@ public class TestMultiQueryCompiler {
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
-        } 
+        }
     }
 
     @Test
@@ -983,12 +984,12 @@ public class TestMultiQueryCompiler {
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 14);
 
-            checkMRPlan(pp, 1, 1, 1);            
+            checkMRPlan(pp, 1, 1, 1);
 
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
-        } 
+        }
     }
 
     @Test
@@ -1014,18 +1015,18 @@ public class TestMultiQueryCompiler {
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 2, 3, 19);
 
-            checkMRPlan(pp, 2, 1, 3);            
+            checkMRPlan(pp, 2, 1, 3);
 
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
-        } 
+        }
     }
 
     @Test
     public void testStoreOrder() {
         System.out.println("===== multi-query store order =====");
-        
+
         try {
             myPig.setBatchOn();
             myPig.registerQuery("a = load 'passwd';");
@@ -1046,7 +1047,7 @@ public class TestMultiQueryCompiler {
             MROperPlan mp = checkMRPlan(pp, 1, 3, 5);
 
             myPig.executeBatch();
-            myPig.discardBatch(); 
+            myPig.discardBatch();
 
             Assert.assertTrue(myPig.getPigContext().getDfs().isContainer("/tmp/output1"));
             Assert.assertTrue(myPig.getPigContext().getDfs().isContainer("/tmp/output2"));
@@ -1054,17 +1055,17 @@ public class TestMultiQueryCompiler {
             Assert.assertTrue(myPig.getPigContext().getDfs().isContainer("/tmp/output4"));
             Assert.assertTrue(myPig.getPigContext().getDfs().isContainer("/tmp/output5"));
 
-            
+
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
-        } 
+        }
     }
-    
+
     @Test
     public void testUnnecessaryStoreRemoval() {
         System.out.println("===== multi-query unnecessary stores =====");
-        
+
         try {
             myPig.setBatchOn();
             myPig.registerQuery("a = load 'passwd' " +
@@ -1090,11 +1091,11 @@ public class TestMultiQueryCompiler {
             checkPhysicalPlan(mo1.mapPlan, 1, 1, 3);
             checkPhysicalPlan(mo1.reducePlan, 1, 1, 2);
             PhysicalOperator leaf = mo1.reducePlan.getLeaves().get(0);
-            
+
             Assert.assertTrue(leaf instanceof POSplit);
 
             POSplit split = (POSplit)leaf;
-            
+
             int i = 0;
             for (PhysicalPlan p: split.getPlans()) {
                 checkPhysicalPlan(p, 1, 1, 1);
@@ -1102,38 +1103,38 @@ public class TestMultiQueryCompiler {
             }
 
             Assert.assertEquals(i,2);
-            
+
             checkPhysicalPlan(mo2.mapPlan, 1, 1, 2);
             checkPhysicalPlan(mo2.reducePlan, 1, 1, 2);
             leaf = mo2.reducePlan.getLeaves().get(0);
-            
+
             Assert.assertTrue(leaf instanceof POStore);
 
             checkPhysicalPlan(mo3.mapPlan, 1, 1, 2);
             checkPhysicalPlan(mo3.reducePlan, 1, 1, 2);
             leaf = mo3.reducePlan.getLeaves().get(0);
-            
+
             Assert.assertTrue(leaf instanceof POStore);
 
             myPig.executeBatch();
-            myPig.discardBatch(); 
+            myPig.discardBatch();
 
             Assert.assertTrue(myPig.getPigContext().getDfs().isContainer("/tmp/output1"));
             Assert.assertTrue(myPig.getPigContext().getDfs().isContainer("/tmp/output2"));
             Assert.assertTrue(myPig.getPigContext().getDfs().isContainer("/tmp/output3"));
             Assert.assertTrue(myPig.getPigContext().getDfs().isContainer("/tmp/output4"));
 
-            
+
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
-        } 
+        }
     }
-    
+
     @Test
     public void testUnnecessaryStoreRemovalCollapseSplit() {
         System.out.println("===== multi-query unnecessary stores collapse split =====");
-        
+
         try {
             myPig.setBatchOn();
             myPig.registerQuery("a = load 'passwd' " +
@@ -1154,32 +1155,32 @@ public class TestMultiQueryCompiler {
             checkPhysicalPlan(mo1.mapPlan, 1, 1, 3);
             checkPhysicalPlan(mo1.reducePlan, 1, 1, 2);
             PhysicalOperator leaf = mo1.reducePlan.getLeaves().get(0);
-            
+
             Assert.assertTrue(leaf instanceof POStore);
-            
+
             checkPhysicalPlan(mo2.mapPlan, 1, 1, 2);
             checkPhysicalPlan(mo2.reducePlan, 1, 1, 2);
             leaf = mo2.reducePlan.getLeaves().get(0);
-            
+
             Assert.assertTrue(leaf instanceof POStore);
 
             myPig.executeBatch();
-            myPig.discardBatch(); 
+            myPig.discardBatch();
 
             Assert.assertTrue(myPig.getPigContext().getDfs().isContainer("/tmp/output1"));
             Assert.assertTrue(myPig.getPigContext().getDfs().isContainer("/tmp/output2"));
 
-            
+
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
-        } 
+        }
     }
-    
+
     @Test
     public void testEmptyFilterRemoval() {
         System.out.println("===== multi-query empty filters =====");
-        
+
         try {
             myPig.setBatchOn();
             myPig.registerQuery("a = load 'passwd' " +
@@ -1199,9 +1200,9 @@ public class TestMultiQueryCompiler {
 
             checkPhysicalPlan(mo.mapPlan, 1, 1, 4);
             PhysicalOperator leaf = mo.mapPlan.getLeaves().get(0);
-            
+
             Assert.assertTrue(leaf instanceof POSplit);
-            
+
             POSplit split = (POSplit)leaf;
 
             int i = 0;
@@ -1218,9 +1219,9 @@ public class TestMultiQueryCompiler {
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
-        } 
+        }
     }
-    
+
     @Test
     public void testMultiQueryWithDescribe() {
 
@@ -1232,7 +1233,7 @@ public class TestMultiQueryCompiler {
                           + "b = filter a by uid > 5;"
                           + "describe b;"
                           + "store b into '/tmp/output1';\n";
-            
+
             GruntParser parser = new GruntParser(new StringReader(script));
             parser.setInteractive(false);
             parser.setParams(myPig);
@@ -1241,7 +1242,7 @@ public class TestMultiQueryCompiler {
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
-        } 
+        }
     }
 
     @Test
@@ -1255,7 +1256,7 @@ public class TestMultiQueryCompiler {
                           + "b = filter a by uid > 5;"
                           + "illustrate b;"
                           + "store b into '/tmp/output1';\n";
-            
+
             GruntParser parser = new GruntParser(new StringReader(script));
             parser.setInteractive(false);
             parser.setParams(myPig);
@@ -1264,9 +1265,9 @@ public class TestMultiQueryCompiler {
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
-        } 
+        }
     }
-    
+
     @Test
     public void testMultiQueryWithExplain() {
 
@@ -1278,7 +1279,7 @@ public class TestMultiQueryCompiler {
                           + "b = filter a by uid > 5;"
                           + "explain b;"
                           + "store b into '/tmp/output1';\n";
-            
+
             GruntParser parser = new GruntParser(new StringReader(script));
             parser.setInteractive(false);
             parser.setParams(myPig);
@@ -1287,7 +1288,7 @@ public class TestMultiQueryCompiler {
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
-        } 
+        }
     }
 
     @Test
@@ -1301,7 +1302,7 @@ public class TestMultiQueryCompiler {
                           + "b = filter a by uid > 5;"
                           + "dump b;"
                           + "store b into '/tmp/output1';\n";
-            
+
             GruntParser parser = new GruntParser(new StringReader(script));
             parser.setInteractive(false);
             parser.setParams(myPig);
@@ -1310,14 +1311,14 @@ public class TestMultiQueryCompiler {
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
-        } 
+        }
     }
-    
+
     @Test
     public void testEmptyExecute() {
-        
+
         System.out.println("==== empty execute ====");
-        
+
         try {
             myPig.setBatchOn();
             myPig.executeBatch();
@@ -1329,7 +1330,7 @@ public class TestMultiQueryCompiler {
             Assert.fail();
         }
     }
-    
+
     // A test to verify there is no cycle in the plan if the load location is the same as the store location
     @Test
     public void testLoadStoreLoop() {
@@ -1345,7 +1346,7 @@ public class TestMultiQueryCompiler {
             Assert.fail();
         }
     }
-    
+
     @Test
     public void testMultiQueryWithNoStore2() {
 
@@ -1367,15 +1368,15 @@ public class TestMultiQueryCompiler {
             Assert.fail();
         }
     }
-    
+
     @Test
     public void testMultiQueryWithCustomPartitioner() {
 
         System.out.println("===== multi-query with intermediate stores =====");
 
-        try {            
+        try {
             myPig.setBatchOn();
-            
+
             myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
             myPig.registerQuery("l = FILTER a BY uname == 'foo';");
@@ -1400,8 +1401,8 @@ public class TestMultiQueryCompiler {
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
-        } 
-    }    
+        }
+    }
 
     @Test
     public void testMultiQueryDoNotMergeMRwithDifferentPartitioners() {
@@ -1441,11 +1442,11 @@ public class TestMultiQueryCompiler {
         }
     }
 
-    
+
     // --------------------------------------------------------------------------
     // Helper methods
 
-    private <T extends OperatorPlan<? extends Operator<?>>> 
+    private <T extends OperatorPlan<? extends Operator<?>>>
     void showPlanOperators(T p) {
         System.out.println("Operators:");
 
@@ -1463,7 +1464,7 @@ public class TestMultiQueryCompiler {
             ParseException {
 
         System.out.println("===== check logical plan =====");
-        
+
         LogicalPlan lp = null;
 
         try {
@@ -1484,7 +1485,7 @@ public class TestMultiQueryCompiler {
         }
 
         showLPOperators(lp);
-       
+
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         System.out.println("Logical Plan: " + lp );
 
@@ -1511,21 +1512,21 @@ public class TestMultiQueryCompiler {
             int expectedLeaves, int expectedSize) throws IOException {
 
         System.out.println("===== check physical plan =====");
-        
+
         showPlanOperators(pp);
-        
+
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         pp.explain(out);
-        
+
         System.out.println("===== Display Physical Plan =====");
         System.out.println(out.toString());
-        
+
         Assert.assertEquals(expectedRoots, pp.getRoots().size());
         Assert.assertEquals(expectedLeaves, pp.getLeaves().size());
         Assert.assertEquals(expectedSize, pp.size());
 
     }
-    
+
     private PhysicalPlan checkPhysicalPlan(LogicalPlan lp, int expectedRoots,
             int expectedLeaves, int expectedSize) throws IOException {
 
@@ -1535,7 +1536,7 @@ public class TestMultiQueryCompiler {
                 lp, null);
 
         showPlanOperators(pp);
-       
+
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         pp.explain(out);
 
@@ -1555,7 +1556,7 @@ public class TestMultiQueryCompiler {
         System.out.println("===== check map-reduce plan =====");
 
         MapRedUtil.checkLeafIsStore(pp, myPig.getPigContext());
-        
+
         MapReduceLauncher launcher = new MapReduceLauncher();
 
         MROperPlan mrp = null;
@@ -1579,20 +1580,20 @@ public class TestMultiQueryCompiler {
                 e.printStackTrace();
                 Assert.fail();
             }
-        }        
+        }
 
         showPlanOperators(mrp);
-        
+
         System.out.println("===== Display map-reduce Plan =====");
         System.out.println(mrp.toString());
-        
+
         Assert.assertEquals(expectedRoots, mrp.getRoots().size());
         Assert.assertEquals(expectedLeaves, mrp.getLeaves().size());
         Assert.assertEquals(expectedSize, mrp.size());
 
         return mrp;
     }
-    
+
     private void deleteOutputFiles() {
         try {
             FileLocalizer.delete("/tmp/output1", myPig.getPigContext());

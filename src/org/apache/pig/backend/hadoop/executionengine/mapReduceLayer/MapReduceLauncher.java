@@ -668,7 +668,7 @@ public class MapReduceLauncher extends Launcher{
         fRem.visit();
 
         boolean isMultiQuery =
-            "true".equalsIgnoreCase(pc.getProperties().getProperty("opt.multiquery","true"));
+            "true".equalsIgnoreCase(pc.getProperties().getProperty(PigConfiguration.OPT_MULTIQUERY, "true"));
 
         if (isMultiQuery) {
             // reduces the number of MROpers in the MR plan generated
