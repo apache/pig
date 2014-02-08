@@ -247,11 +247,12 @@ TOKEN_MGR_DECLS : {
 {
     <"split"> : PIG_START
 |   <"define"> : PIG_START
-|	<"store"> : PIG_START
-|	<"import"> : PIG_START
-| 	<(["a"-"z", "A"-"Z"])+(["a"-"z", "A"-"Z"] | ["0"-"9"] | "_")*(" " | "\t")*"="> : PIG_START
+|   <"store"> : PIG_START
+|   <"assert"> : PIG_START
+|   <"import"> : PIG_START
+|   <(["a"-"z", "A"-"Z"])+(["a"-"z", "A"-"Z"] | ["0"-"9"] | "_")*(" " | "\t")*"="> : PIG_START
 |   <"=>" (" " | "\t")*> : PIG_START
-| 	< <IDENTIFIER> (" " | "\t")* ("," (" " | "\t")* <IDENTIFIER> )* (" " | "\t")* "="> : PIG_START
+|   < <IDENTIFIER> (" " | "\t")* ("," (" " | "\t")* <IDENTIFIER> )* (" " | "\t")* "="> : PIG_START
 |   < <IDENTIFIER> (" " | "\t")* "(" > : PIG_START
 }
 
