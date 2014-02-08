@@ -20,6 +20,7 @@ package org.apache.pig.newplan.logical.visitor;
 import java.util.Map;
 
 import org.apache.pig.FuncSpec;
+import org.apache.pig.PigWarning;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
@@ -107,7 +108,8 @@ public class CastLineageSetter extends AllExpressionVisitor{
                     String msg = "Cannot resolve load function to use for casting from " + 
                                 DataType.findTypeName(inType) + " to " +
                                 DataType.findTypeName(outType) + ". ";
-                    msgCollector.collect(msg, MessageType.Warning);
+                    msgCollector.collect(msg, MessageType.Warning,
+                           PigWarning.NO_LOAD_FUNCTION_FOR_CASTING_BYTEARRAY);
                 }else {
                     cast.setFuncSpec(inLoadFunc);
                 }
