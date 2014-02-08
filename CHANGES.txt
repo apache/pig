@@ -32,6 +32,8 @@ PIG-3480: TFile-based tmpfile compression crashes in some cases (dvryaboy via an
 
 BUG FIXES
 
+PIG-3670: Fix assert in Pig script (daijy)
+
 PIG-3741: Utils.setTmpFileCompressionOnConf can cause side effect for SequenceFileInterStorage (aniket486)
 
 PIG-3641: Split "otherwise" producing incorrect output when combined with ColumnPruning (knoguchi)
