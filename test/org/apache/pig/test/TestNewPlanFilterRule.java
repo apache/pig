@@ -51,6 +51,7 @@ import org.apache.pig.newplan.logical.relational.LOStore;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
+import org.apache.pig.newplan.logical.rules.FilterAboveForeach;
 import org.apache.pig.newplan.logical.rules.LoadTypeCastInserter;
 import org.apache.pig.newplan.logical.rules.MergeFilter;
 import org.apache.pig.newplan.logical.rules.PushUpFilter;
@@ -570,6 +571,110 @@ public class TestNewPlanFilterRule {
         
     }
 
+    /**
+     * Test that filter cannot get pushed up over nested Distinct (see PIG-3347)
+     */
+    @Test
+    public void testFilterAfterNestedDistinct() throws Exception {
+        String query = "a = LOAD 'file.txt';" +
+            "a_group = group a by $0;" +
+            "b = foreach a_group { a_distinct = distinct a.$0;generate group, a_distinct;}" +
+            "c = filter b by SIZE(a_distinct) == 1;" +
+            "store c into 'empty';";
+
+        // filter should not be pushed above nested distinct,
+        //ie expect - loload -> locogroup -> foreach -> filter
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
+        newLogicalPlan.explain(System.out, "text", true);
+
+        Operator load = newLogicalPlan.getSources().get( 0 );
+        Assert.assertTrue( load instanceof LOLoad );
+        Operator cogroup = newLogicalPlan.getSuccessors( load ).get( 0 );
+        Assert.assertTrue( cogroup instanceof LOCogroup );
+        Operator foreach = newLogicalPlan.getSuccessors(cogroup).get( 0 );
+        Assert.assertTrue( foreach instanceof LOForEach );
+        Operator filter = newLogicalPlan.getSuccessors(foreach).get( 0 );
+        Assert.assertTrue( filter instanceof LOFilter );
+    }
+
+    /**
+     * Test that filter cannot get pushed up over nested Limit (see PIG-3347)
+     */
+    @Test
+    public void testFilterAfterNestedLimit() throws Exception {
+        String query = "a = LOAD 'file.txt';" +
+            "a_group = group a by $0;" +
+            "b = foreach a_group { a_limit = limit a.$0 5;generate group, a_limit;}" +
+            "c = filter b by SIZE(a_limit) == 1;" +
+            "store c into 'empty';";
+
+        // filter should not be pushed above nested distinct,
+        //ie expect - loload -> locogroup -> foreach -> filter
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
+        newLogicalPlan.explain(System.out, "text", true);
+
+        Operator load = newLogicalPlan.getSources().get( 0 );
+        Assert.assertTrue( load instanceof LOLoad );
+        Operator cogroup = newLogicalPlan.getSuccessors( load ).get( 0 );
+        Assert.assertTrue( cogroup instanceof LOCogroup );
+        Operator foreach = newLogicalPlan.getSuccessors(cogroup).get( 0 );
+        Assert.assertTrue( foreach instanceof LOForEach );
+        Operator filter = newLogicalPlan.getSuccessors(foreach).get( 0 );
+        Assert.assertTrue( filter instanceof LOFilter );
+    }
+
+    /**
+     * Test that filter cannot get pushed up over nested Filter (see PIG-3347)
+     */
+    @Test
+    public void testFilterAfterNestedFilter() throws Exception {
+        String query = "a = LOAD 'file.txt';" +
+            "a_group = group a by $0;" +
+            "b = foreach a_group { a_filter = filter a by $0 == 1;generate group, a_filter;}" +
+            "c = filter b by SIZE(a_filter) == 1;" +
+            "store c into 'empty';";
+
+        // filter should not be pushed above nested distinct,
+        //ie expect - loload -> locogroup -> foreach -> filter
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
+        newLogicalPlan.explain(System.out, "text", true);
+
+        Operator load = newLogicalPlan.getSources().get( 0 );
+        Assert.assertTrue( load instanceof LOLoad );
+        Operator cogroup = newLogicalPlan.getSuccessors( load ).get( 0 );
+        Assert.assertTrue( cogroup instanceof LOCogroup );
+        Operator foreach = newLogicalPlan.getSuccessors(cogroup).get( 0 );
+        Assert.assertTrue( foreach instanceof LOForEach );
+        Operator filter = newLogicalPlan.getSuccessors(foreach).get( 0 );
+        Assert.assertTrue( filter instanceof LOFilter );
+    }
+    
+    /**
+     * Test that filter does not get blocked for PushUpFilter/FilterAboveForeach
+     * by an unrelated nested filter (see PIG-3347)
+     */
+    @Test
+    public void testFilterAfterUnrelatedNestedFilter() throws Exception {
+        String query = "a = LOAD 'file.txt' as (a0:int, a1_bag:bag{(X:int)}, a2_bag:bag{(Y:int)});" +
+            "b = foreach a { a1_filter = filter a1_bag by X == 1; generate a0, a1_filter, a2_bag;}" +
+            "c = filter b by SIZE(a2_bag) == 1;" +
+            "store c into 'empty';";
+
+        // filter should be pushed above nested filter,
+        //ie expect - loload -> locogroup -> foreach -> filter
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( query );
+        newLogicalPlan.explain(System.out, "text", true);
+
+        Operator load = newLogicalPlan.getSources().get( 0 );
+        Assert.assertTrue( load instanceof LOLoad );
+        Operator foreach1 = newLogicalPlan.getSuccessors(load).get( 0 );
+        Assert.assertTrue( foreach1 instanceof LOForEach );
+        Operator filter = newLogicalPlan.getSuccessors( foreach1 ).get( 0 );
+        Assert.assertTrue( filter instanceof LOFilter );
+        Operator foreach2 = newLogicalPlan.getSuccessors(filter).get( 0 );
+        Assert.assertTrue( foreach2 instanceof LOForEach );
+    }
+
     private LogicalPlan migrateAndOptimizePlan(String query) throws Exception {
     	PigServer pigServer = new PigServer(pc);
         LogicalPlan newLogicalPlan = Util.buildLp(pigServer, query);
@@ -601,6 +706,11 @@ public class TestNewPlanFilterRule {
             s = new HashSet<Rule>();
             r = new PushUpFilter( "PushUpFilter" );
             s.add(r);            
+            ls.add(s);
+
+            s = new HashSet<Rule>();
+            r = new FilterAboveForeach( "PushUpFilter" );
+            s.add(r);
             ls.add(s);
             
             return ls;
