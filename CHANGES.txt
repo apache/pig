@@ -87,6 +87,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3753: LOGenerate generates null schema (daijy)
+
 PIG-3447: Compiler warning message dropped for CastLineageSetter and others with no enum kind (knoguchi via cheolsoo)
 
 PIG-3627: Json storage : Doesn't work in cases , where other Store Functions (like PigStorage / AvroStorage)
