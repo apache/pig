@@ -1731,6 +1731,9 @@ public class PigServer {
             CompilationMessageCollector collector = new CompilationMessageCollector() ;
 
             new TypeCheckingRelVisitor( lp, collector).visit();
+            new UnionOnSchemaSetter( lp ).visit();
+            new CastLineageSetter(lp, collector).visit();
+            new ScalarVariableValidator(lp).visit();
             if(aggregateWarning) {
                 CompilationMessageCollector.logMessages(collector, MessageType.Warning, aggregateWarning, log);
             } else {
@@ -1739,9 +1742,6 @@ public class PigServer {
                 }
             }
 
-            new UnionOnSchemaSetter( lp ).visit();
-            new CastLineageSetter(lp, collector).visit();
-            new ScalarVariableValidator(lp).visit();
         }
 
         private void postProcess() throws IOException {
