@@ -87,8 +87,6 @@ OPTIMIZATIONS
  
 BUG FIXES
 
-PIG-3670: Fix assert in Pig script (daijy)
-
 PIG-3447: Compiler warning message dropped for CastLineageSetter and others with no enum kind (knoguchi via cheolsoo)
 
 PIG-3627: Json storage : Doesn't work in cases , where other Store Functions (like PigStorage / AvroStorage)
@@ -212,6 +210,8 @@ PIG-3047: Check the size of a relation before adding it to distributed cache in 
 PIG-3480: TFile-based tmpfile compression crashes in some cases (dvryaboy via aniket486)
 
 BUG FIXES
+
+PIG-3670: Fix assert in Pig script (daijy)
 
 PIG-3741: Utils.setTmpFileCompressionOnConf can cause side effect for SequenceFileInterStorage (aniket486)
 
