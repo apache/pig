@@ -445,7 +445,7 @@ public class JobControlCompiler{
         long totalInputFileSize = InputSizeReducerEstimator.getTotalInputFileSize(conf, lds, job);
         long inputByteMax = conf.getLong(PigConfiguration.PIG_AUTO_LOCAL_INPUT_MAXBYTES, 100*1000*1000l);
         log.info("Size of input: " + totalInputFileSize +" bytes. Small job threshold: " + inputByteMax );
-        if (totalInputFileSize > inputByteMax) {
+        if (totalInputFileSize < 0 || totalInputFileSize > inputByteMax) {
             return false;
         }
 

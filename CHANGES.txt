@@ -87,6 +87,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3755: auto local mode selection does not check lower bound for size (aniket486)
+
 PIG-3753: LOGenerate generates null schema (daijy)
 
 PIG-3447: Compiler warning message dropped for CastLineageSetter and others with no enum kind (knoguchi via cheolsoo)
