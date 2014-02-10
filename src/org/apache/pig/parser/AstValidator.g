@@ -117,6 +117,7 @@ statement : general_statement
           | split_statement
           | realias_statement
           | register_statement
+          | assert_statement
 ;
 
 split_statement : split_clause
@@ -126,6 +127,9 @@ realias_statement : realias_clause
 ;
 
 register_statement : ^( REGISTER QUOTEDSTRING (USING IDENTIFIER AS IDENTIFIER)? )
+;
+
+assert_statement : assert_clause
 ;
 
 general_statement : ^( STATEMENT ( alias { aliases.add( $alias.name ); } )? op_clause parallel_clause? )
@@ -724,6 +728,7 @@ eid : rel_str_op
     | TOBAG
     | TOMAP
     | TOTUPLE
+    | ASSERT
 ;
 
 // relational operator

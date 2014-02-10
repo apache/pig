@@ -173,6 +173,7 @@ scope {
  : general_statement
  | split_statement
  | realias_statement
+ | assert_statement
  | register_statement
 ;
 
@@ -180,6 +181,9 @@ split_statement : split_clause
 ;
 
 realias_statement : realias_clause
+;
+
+assert_statement : assert_clause
 ;
 
 register_statement
@@ -1997,6 +2001,7 @@ eid returns[String id] : rel_str_op { $id = $rel_str_op.id; }
     | TOBAG { $id = "TOBAG"; }
     | TOMAP { $id = "TOMAP"; }
     | TOTUPLE { $id = "TOTUPLE"; }
+    | ASSERT { $id = "ASSERT"; } 
 ;
 
 // relational operator
