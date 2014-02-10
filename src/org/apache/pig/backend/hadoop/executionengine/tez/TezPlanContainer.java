@@ -45,22 +45,38 @@ public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
         this.pigContext = pigContext;
     }
 
-    // Use pig.jar and udf jars for the AM resources (all DAG in the planContainer will
-    // use it for simplicity)
+    // Add the Pig jar and the UDF jars as AM resources (all DAG's in the planContainer
+    // will use them for simplicity). This differs from MR Pig, where they are added to
+    // the job jar.
     public Map<String, LocalResource> getLocalResources() throws Exception {
         Set<URL> jarLists = new HashSet<URL>();
 
         jarLists.add(TezResourceManager.getBootStrapJar());
 
+        // In MR Pig the extra jars and script jars get put in Distributed Cache, but
+        // in Tez we'll add them as local resources.
         for (java.net.URL jarUrl : pigContext.extraJars) {
             jarLists.add(ConverterUtils.getYarnUrlFromURI(jarUrl.toURI()));
+        }
+
+        for (String jarFile : pigContext.scriptJars) {
+            jarLists.add(ConverterUtils.getYarnUrlFromURI(new File(jarFile).toURI()));
+        }
+
+        // Script files for non-Java UDF's are added to the Job.jar by the JarManager class,
+        // except for Groovy files, which need to be explicitly added as local resources due
+        // to the GroovyScriptEngine (see JarManager.java for comments).
+        for (Map.Entry<String, File> scriptFile : pigContext.getScriptFiles().entrySet()) {
+            if (scriptFile.getKey().endsWith(".groovy")) {
+                jarLists.add(ConverterUtils.getYarnUrlFromURI(scriptFile.getValue().toURI()));
+            }
         }
 
         TezPlanContainerUDFCollector tezPlanContainerUDFCollector = new TezPlanContainerUDFCollector(this);
         tezPlanContainerUDFCollector.visit();
         Set<String> udfs = tezPlanContainerUDFCollector.getUdfs();
 
-        for (String func: udfs) {
+        for (String func : udfs) {
             Class clazz = pigContext.getClassForAlias(func);
             if (clazz != null) {
                 String jarName = JarManager.findContainingJar(clazz);
@@ -71,8 +87,17 @@ public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
                     // avoid NPE.
                     continue;
                 }
+
                 URL jarUrl = ConverterUtils.getYarnUrlFromURI(new File(jarName).toURI());
                 jarLists.add(jarUrl);
+
+                // Streaming UDF's are not working under Hadoop 2 (PIG-3478), so don't bother adding
+                // resources for them yet.
+                // if ("StreamingUDF".equals(clazz.getSimpleName())) {
+                //     for (String fileName : StreamingUDF.getResourcesForJar()) {
+                //         jarLists.add(ConverterUtils.getYarnUrlFromURI(new File(fileName).toURI()));
+                //     }
+                // }
             }
         }
 
