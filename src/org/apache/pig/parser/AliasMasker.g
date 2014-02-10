@@ -85,9 +85,13 @@ query : ^( QUERY statement* )
 statement : general_statement
           | split_statement
           | realias_statement
+          | assert_statement
 ;
 
 split_statement : split_clause
+;
+
+assert_statement: assert_clause
 ;
 
 realias_statement : realias_clause
@@ -132,6 +136,7 @@ op_clause : define_clause
           | split_clause
           | foreach_clause
           | cube_clause
+          | assert_clause
 ;
 
 define_clause
@@ -297,6 +302,13 @@ flatten_clause
 
 store_clause
     : ^( STORE alias filename func_clause? )
+;
+
+assert_clause
+    : ^( ASSERT alias cond comment? )
+;
+
+comment : QUOTEDSTRING
 ;
 
 filter_clause
@@ -695,6 +707,7 @@ eid : rel_str_op
     | TOBAG
     | TOMAP
     | TOTUPLE
+    | ASSERT
 ;
 
 // relational operator

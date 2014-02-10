@@ -150,5 +150,29 @@ public class TestAssert {
                   "Job terminated with anomalous status FAILED"));
       }
   }
+  
+  /**
+   * Verify that alias is not assignable to the ASSERT operator
+   * @throws Exception
+   */
+  @Test(expected=FrontendException.class)
+  public void testNegativeWithAlias() throws Exception {
+      PigServer pigServer = new PigServer(ExecType.LOCAL);
+      Data data = resetData(pigServer);
+
+      data.set("foo",
+              tuple(1),
+              tuple(2),
+              tuple(3)
+              );
+      try {
+          pigServer.registerQuery("A = LOAD 'foo' USING mock.Storage() AS (i:int);");
+          pigServer.registerQuery("B = ASSERT A BY i > 1 , 'i should be greater than 1';");
+      }
+      catch (FrontendException fe) {
+          Util.checkMessageInException(fe, "Syntax error, unexpected symbol at or near 'B'");
+          throw fe;
+      }
+  }
 
 }
