@@ -224,6 +224,7 @@ statement : SEMI_COLON!
           | import_clause SEMI_COLON!
           | realias_clause SEMI_COLON!
           | register_clause SEMI_COLON!
+          | assert_clause SEMI_COLON!
           // semicolons after foreach_complex_statement are optional for backwards compatibility, but to keep
           // the grammar unambiguous if there is one then we'll parse it as a single, standalone semicolon
           // (which matches the first statement rule)
@@ -382,7 +383,6 @@ op_clause : define_clause
           | union_clause
           | stream_clause
           | mr_clause
-          | assert_clause
 ;
 
 ship_clause : SHIP^ LEFT_PAREN! path_list? RIGHT_PAREN!
@@ -1029,6 +1029,7 @@ eid_without_columns : rel_str_op
     | FULL
     | REALIAS
     | BOOL_COND
+    | ASSERT
 ;
 
 eid : eid_without_columns
@@ -1075,6 +1076,5 @@ reserved_identifier_whitelist : RANK
                               | THEN
                               | ELSE
                               | END
-                              | ASSERT
 ;
 
