@@ -182,7 +182,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         InputDescriptor in = new InputDescriptor(edge.inputClassName);
         OutputDescriptor out = new OutputDescriptor(edge.outputClassName);
 
-        Configuration conf = new Configuration(false);
+        Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties(), false);
         if (!combinePlan.isEmpty()) {
             addCombiner(combinePlan, to, conf);
         }
@@ -293,7 +293,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
         // We won't actually use this job, but we need it to talk with the Load Store funcs
         @SuppressWarnings("deprecation")
-        Job job = new Job();
+        Job job = new Job(ConfigurationUtil.toConfiguration(pc.getProperties(), false));
 
         // Pass physical plans to vertex as user payload.
         Configuration payloadConf = job.getConfiguration();
