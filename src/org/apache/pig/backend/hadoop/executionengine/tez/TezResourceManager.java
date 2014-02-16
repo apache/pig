@@ -20,7 +20,9 @@ package org.apache.pig.backend.hadoop.executionengine.tez;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.URL;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -31,12 +33,9 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
-import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.util.ConverterUtils;
-import org.apache.pig.PigException;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.util.JarManager;
-import org.apache.pig.impl.util.Utils;
 
 public class TezResourceManager {
     private static Path stagingDir;
@@ -44,8 +43,7 @@ public class TezResourceManager {
     private static Configuration conf;
     private static URL bootStrapJar;
     private static FileSystem remoteFs;
-
-    public static Map<URL, Path> resources = new HashMap<URL, Path>();
+    public static Map<String, Path> resources = new HashMap<String, Path>();
 
     public static URL getBootStrapJar() {
         return bootStrapJar;
@@ -56,37 +54,45 @@ public class TezResourceManager {
         TezResourceManager.pigContext = pigContext;
         TezResourceManager.conf = conf;
         String jar = JarManager.findContainingJar(org.apache.pig.Main.class);
-        TezResourceManager.bootStrapJar = ConverterUtils.getYarnUrlFromURI(new File(jar).toURI());
+        TezResourceManager.bootStrapJar = new File(jar).toURI().toURL();
         remoteFs = FileSystem.get(conf);
         addBootStrapJar();
     }
 
-    public static Path addLocalResource(URL url) throws IOException {
-        if (!"file".equals(url.getScheme())) {
-            throw new PigException("This method should only be called with file:// resources");
+    // Add files from the source FS as local resources. The resource name will
+    // be the same as the file name.
+    public static Path addTezResource(URL url) throws IOException {
+        Path resourcePath = new Path(url.getFile());
+        String resourceName = resourcePath.getName();
+
+        if (resources.containsKey(resourceName)) {
+            return resources.get(resourceName);
         }
 
-        if (resources.containsKey(url)) {
-            return resources.get(url);
-        }
-
-        java.net.URL javaUrl = new java.net.URL(url.getScheme(), url.getHost(), url.getFile());
-        Path pathInHDFS = Utils.shipToHDFS(pigContext, conf, javaUrl);
-        resources.put(url, pathInHDFS);
-        return pathInHDFS;
+        // Ship the resource to the staging directory on the remote FS
+        Path remoteFsPath = remoteFs.makeQualified(new Path(stagingDir, resourceName));
+        remoteFs.copyFromLocalFile(resourcePath, remoteFsPath);
+        resources.put(resourceName, remoteFsPath);
+        return remoteFsPath;
     }
 
-    // Add files already present in HDFS as local resources. Allow the URL
-    // to be different from the path to support resource aliasing in a CACHE
-    // statement. See TezOperPlan::addHdfsResources for an example.
-    public static void addLocalResource(URL url, Path pathInHDFS) throws IOException {
-        if (!"hdfs".equals(url.getScheme())) {
-            throw new PigException("This method should only be called with hdfs:// resources");
+    // Add files already present in the remote FS as local resources. Allow the
+    // resource name to be different from the file name to to support resource
+    // aliasing in a CACHE statement (and to allow the same file to be aliased
+    // with multiple resource names).
+    public static void addTezResource(String resourceName, Path remoteFsPath) throws IOException {
+        if (!resources.containsKey(resourceName)) {
+            resources.put(resourceName, remoteFsPath);
         }
+    }
 
-        if (!resources.containsKey(url)) {
-            resources.put(url, pathInHDFS);
+    public static Map<String, LocalResource> addTezResources(Set<URL> resources) throws Exception {
+        Set<String> resourceNames = new HashSet<String>();
+        for (URL url : resources) {
+            addTezResource(url);
+            resourceNames.add(new Path(url.getFile()).getName());
         }
+        return getTezResources(resourceNames);
     }
 
     public static void addBootStrapJar() throws IOException {
@@ -100,51 +106,30 @@ public class TezResourceManager {
         FileOutputStream fos = new FileOutputStream(jobJar);
         JarManager.createBootStrapJar(fos, pigContext);
 
-        // Ship the job.jar to the staging directory on hdfs
+        // Ship the job.jar to the staging directory on the remote FS
         Path remoteJarPath = remoteFs.makeQualified(new Path(stagingDir, new Path(bootStrapJar.getFile()).getName()));
         remoteFs.copyFromLocalFile(new Path(jobJar.getAbsolutePath()), remoteJarPath);
-        resources.put(bootStrapJar, remoteJarPath);
+        resources.put(jobJar.getName(), remoteJarPath);
     }
 
-    public static Path get(URL url) {
-        return resources.get(url);
-    }
-
-    public static Map<String, LocalResource> getTezResources(Set<URL> urls) throws Exception {
+    public static Map<String, LocalResource> getTezResources(Set<String> resourceNames) throws Exception {
         Map<String, LocalResource> tezResources = new HashMap<String, LocalResource>();
-        for (URL url : urls) {
-            if (!resources.containsKey(url)) {
-                addLocalResource(url);
-            }
-
-            // Extract the resource name from the URL, which will be
-            // symlinked in the container's working directory.
-            String resourceName = getTezResourceName(url);
-            Path resourcePath = resources.get(url);
-
+        for (String resourceName : resourceNames) {
+            // The resource name will be symlinked to the resource path in the
+            // container's working directory.
+            Path resourcePath = resources.get(resourceName);
             FileStatus fstat = remoteFs.getFileStatus(resourcePath);
+
             LocalResource tezResource = LocalResource.newInstance(
                     ConverterUtils.getYarnUrlFromPath(fstat.getPath()),
                     LocalResourceType.FILE,
                     LocalResourceVisibility.APPLICATION,
                     fstat.getLen(),
                     fstat.getModificationTime());
+
             tezResources.put(resourceName, tezResource);
         }
         return tezResources;
-    }
-
-    // If the URL has a fragment at the end, use that as the resource name.
-    // This will allow for resource aliasing in a CACHE statement.
-    private static String getTezResourceName(URL resourceUrl) throws Exception {
-        String resourcePath = resourceUrl.getFile();
-        int aliasIndex = resourcePath.indexOf("#");
-
-        if (aliasIndex != -1 && aliasIndex < (resourcePath.length() - 1)) {
-            return resourcePath.substring(aliasIndex + 1);
-        }
-
-        return resourcePath.substring(resourcePath.lastIndexOf("/") + 1);
     }
 }
 

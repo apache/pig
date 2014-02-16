@@ -20,6 +20,7 @@ package org.apache.pig.backend.hadoop.executionengine.tez;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.PrintStream;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -27,8 +28,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.hadoop.yarn.api.records.URL;
-import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -55,12 +54,12 @@ public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
 
         // In MR Pig the extra jars and script jars get put in Distributed Cache, but
         // in Tez we'll add them as local resources.
-        for (java.net.URL jarUrl : pigContext.extraJars) {
-            jarLists.add(ConverterUtils.getYarnUrlFromURI(jarUrl.toURI()));
+        for (URL jarUrl : pigContext.extraJars) {
+            jarLists.add(jarUrl);
         }
 
         for (String jarFile : pigContext.scriptJars) {
-            jarLists.add(ConverterUtils.getYarnUrlFromURI(new File(jarFile).toURI()));
+            jarLists.add(new File(jarFile).toURI().toURL());
         }
 
         // Script files for non-Java UDF's are added to the Job.jar by the JarManager class,
@@ -68,7 +67,7 @@ public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
         // to the GroovyScriptEngine (see JarManager.java for comments).
         for (Map.Entry<String, File> scriptFile : pigContext.getScriptFiles().entrySet()) {
             if (scriptFile.getKey().endsWith(".groovy")) {
-                jarLists.add(ConverterUtils.getYarnUrlFromURI(scriptFile.getValue().toURI()));
+                jarLists.add(scriptFile.getValue().toURI().toURL());
             }
         }
 
@@ -87,21 +86,20 @@ public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
                     // avoid NPE.
                     continue;
                 }
-
-                URL jarUrl = ConverterUtils.getYarnUrlFromURI(new File(jarName).toURI());
+                URL jarUrl = new File(jarName).toURI().toURL();
                 jarLists.add(jarUrl);
-
-                // Streaming UDF's are not working under Hadoop 2 (PIG-3478), so don't bother adding
-                // resources for them yet.
-                // if ("StreamingUDF".equals(clazz.getSimpleName())) {
-                //     for (String fileName : StreamingUDF.getResourcesForJar()) {
-                //         jarLists.add(ConverterUtils.getYarnUrlFromURI(new File(fileName).toURI()));
-                //     }
-                // }
             }
         }
 
-        return TezResourceManager.getTezResources(jarLists);
+        // Streaming UDF's are not working under Hadoop 2 (PIG-3478), so don't bother adding
+        // resources for them yet.
+        // if ("StreamingUDF".equals(clazz.getSimpleName())) {
+        //     for (String fileName : StreamingUDF.getResourcesForJar()) {
+        //         jarLists.add(new File(fileName).toURI().toURL());
+        //     }
+        // }
+
+        return TezResourceManager.addTezResources(jarLists);
     }
 
     public TezOperPlan getNextPlan(List<TezOperPlan> processedPlans) {
@@ -176,7 +174,7 @@ public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
             split(planNode);
         }
     }
-    
+
     @Override
     public String toString() {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();

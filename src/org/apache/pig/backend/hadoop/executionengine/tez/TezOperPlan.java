@@ -21,15 +21,14 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.net.URI;
+import java.net.URL;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.hadoop.yarn.api.records.URL;
-import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.plan.VisitorException;
 
@@ -42,7 +41,7 @@ public class TezOperPlan extends OperatorPlan<TezOperator> {
 
     private static final long serialVersionUID = 1L;
 
-    private Map<URL, Path> extraResources = new HashMap<URL, Path>();
+    private Map<String, Path> extraResources = new HashMap<String, Path>();
 
     public TezOperPlan() {
     }
@@ -61,73 +60,65 @@ public class TezOperPlan extends OperatorPlan<TezOperator> {
         return baos.toString();
     }
 
-    // Add extra plan-specific local resources to HDFS
+    // Add extra plan-specific local resources from the source FS
     public void addExtraResource(URL url) throws IOException {
-        if (!extraResources.containsKey(url)) {
-            Path pathInHDFS = TezResourceManager.addLocalResource(url);
-            extraResources.put(url, pathInHDFS);
+        Path resourcePath = new Path(url.getFile());
+        String resourceName = resourcePath.getName();
+
+        if (!extraResources.containsKey(resourceName)) {
+            Path remoteFsPath = TezResourceManager.addTezResource(url);
+            extraResources.put(resourceName, remoteFsPath);
         }
     }
 
-    // Add extra plan-specific local resources already present in HDFS
-    public void addExtraResource(URL url, Path pathInHDFS) throws IOException {
-        if (!extraResources.containsKey(url)) {
-            TezResourceManager.addLocalResource(url, pathInHDFS);
-            extraResources.put(url, pathInHDFS);
+    // Add extra plan-specific local resources already present in the remote FS
+    public void addExtraResource(String resourceName, Path remoteFsPath) throws IOException {
+        if (!extraResources.containsKey(resourceName)) {
+            TezResourceManager.addTezResource(resourceName, remoteFsPath);
+            extraResources.put(resourceName, remoteFsPath);
         }
     }
 
     // Get the plan-specific resources
-    public Map<String, LocalResource> getLocalExtraResources() throws Exception {
+    public Map<String, LocalResource> getExtraResources() throws Exception {
         TezPOStreamVisitor streamVisitor = new TezPOStreamVisitor(this);
         streamVisitor.visit();
 
         // In a STREAM add the files specified in SHIP and CACHE
         // as local resources for the plan.
-        addFileResources(streamVisitor.getShipFiles());
-        addHdfsResources(streamVisitor.getCacheFiles());
+        addShipResources(streamVisitor.getShipFiles());
+        addCacheResources(streamVisitor.getCacheFiles());
 
-        Set<URL> resourceUrls = extraResources.keySet();
-        return TezResourceManager.getTezResources(resourceUrls);
+        return TezResourceManager.getTezResources(extraResources.keySet());
     }
 
-    private void addFileResources(Set<String> fileNames) throws IOException {
-        Set<URL> fileUrls = new HashSet<URL>();
-
+    // In the statement "SHIP('/home/foo')" we'll map the resource name foo to
+    // the file that has been copied to the staging directory in the remote FS.
+    private void addShipResources(Set<String> fileNames) throws IOException {
         for (String fileName : fileNames) {
             fileName = fileName.trim();
             if (fileName.length() > 0) {
-                fileUrls.add(ConverterUtils.getYarnUrlFromURI(new File(fileName).toURI()));
+                URL url = new File(fileName).toURI().toURL();
+                addExtraResource(url);
             }
-        }
-
-        for (URL url : fileUrls) {
-            addExtraResource(url);
         }
     }
 
     // In the statement "CACHE('/input/data.txt#alias.txt')" we'll map the
-    // URL 'hdfs:/input/data.txt#alias.txt' to the actual resource path in
-    // HDFS at '/input/data.txt'.
-    private void addHdfsResources(Set<String> fileNames) throws Exception {
-        Map<URL, Path> resourceMap = new HashMap<URL, Path>();
-
+    // resource name alias.txt to the actual resource path in the remote FS
+    // at '/input/data.txt'.
+    private void addCacheResources(Set<String> fileNames) throws Exception {
         for (String fileName : fileNames) {
             fileName = fileName.trim();
             if (fileName.length() > 0) {
-                URL urlOnHDFS = ConverterUtils.getYarnUrlFromURI(new File(fileName).toURI());
-                urlOnHDFS.setScheme("hdfs");
+                URI resourceURI = new URI(fileName);
+                String fragment = resourceURI.getFragment();
 
-                // Get the path on HDFS without a fragment at the end
-                int aliasIndex = fileName.indexOf("#");
-                String path = (aliasIndex == -1) ? fileName : fileName.substring(0, aliasIndex);
-                Path pathOnHDFS = new Path(path);
-                resourceMap.put(urlOnHDFS, pathOnHDFS);
+                Path remoteFsPath = new Path(resourceURI.getPath());
+                String resourceName = (fragment != null && fragment.length() > 0) ? fragment : remoteFsPath.getName();
+
+                addExtraResource(resourceName, remoteFsPath);
             }
-        }
-
-        for (Map.Entry<URL, Path> entry : resourceMap.entrySet()) {
-            addExtraResource(entry.getKey(), entry.getValue());
         }
     }
 

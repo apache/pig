@@ -97,7 +97,7 @@ public class TezJobControlCompiler {
         try {
             Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
             localResources.putAll(planContainer.getLocalResources());
-            localResources.putAll(tezPlan.getLocalExtraResources());
+            localResources.putAll(tezPlan.getExtraResources());
             TezDAG tezDag = buildDAG(tezPlan, localResources);
             return new TezJob(tezConf, tezDag, localResources);
         } catch (Exception e) {
