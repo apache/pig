@@ -1238,8 +1238,12 @@ public class TezCompiler extends PhyPlanVisitor {
     public void visitSkewedJoin(POSkewedJoin op) throws VisitorException {
         //TODO: handle split and connect
         try {
+
+            // The first vertex (prevOp) loads the left table and sends sample of join keys to
+            // vertex 2 (sampler vertex) and all data to vertex 3 (partition vertex) via 1-1 edge
+
             // LR that transfers loaded input to partition vertex
-            POLocalRearrangeTez lrTez = localRearrangeFactory.create(LocalRearrangeType.NULL);
+            POLocalRearrangeTez lrTez = new POLocalRearrangeTez(OperatorKey.genOpKey(scope));
             // LR that broadcasts sampled input to sampling aggregation vertex
             POLocalRearrangeTez lrTezSample = localRearrangeFactory.create(LocalRearrangeType.NULL);
 
@@ -1311,8 +1315,8 @@ public class TezCompiler extends PhyPlanVisitor {
             String mc = pigProperties.getProperty("pig.skewedjoin.reduce.maxtuple", "0");
 
             int rp = Math.max(op.getRequestedParallelism(), 1);
-            Pair<TezOperator, Integer> sampleJobPair = getSamplingAggregationJobs(sort, rp, null,
-                    PartitionSkewedKeys.class.getName(), new String[]{per, mc}, 2);
+            Pair<TezOperator, Integer> sampleJobPair = getSamplingAggregationJob(sort, rp, null,
+                    PartitionSkewedKeys.class.getName(), new String[]{per, mc});
             rp = sampleJobPair.second;
 
             // Set parallelism of SkewedJoin as the value calculated by sampling
@@ -1329,17 +1333,8 @@ public class TezCompiler extends PhyPlanVisitor {
 
             blocking();
 
-            // Then add a POPackage and a POForEach to the start of the new tezOp.
-            POPackage pkg = getPackage(1, DataType.BYTEARRAY);
-            curTezOp.plan.add(pkg);
-
-            POProject project = new POProject(OperatorKey.genOpKey(scope));
-            project.setResultType(DataType.BAG);
-            project.setStar(false);
-            project.setColumn(1);
-            POForEach forEach =
-                    TezCompilerUtil.getForEach(project, sort.getRequestedParallelism(), scope, nig);
-            curTezOp.plan.addAsLeaf(forEach);
+            // Add a POIdentityInOutTez to the joinJobs[0] which is a partition vertex.
+            // It just partitions the data from first vertex based on the quantiles from sample vertex.
             joinJobs[0] = curTezOp;
 
             // Run POLocalRearrange for first join table. Note we set the
@@ -1347,11 +1342,9 @@ public class TezCompiler extends PhyPlanVisitor {
             // its parallelism will be determined by the size of skewed table.
             //TODO: Check if this really works as load vertex parallelism
             // is determined during vertex construction.
-            POLocalRearrangeTez lr =
-                    new POLocalRearrangeTez(new OperatorKey(scope,nig.getNextNodeId(scope)),
-                            Math.max(prevOp.getRequestedParallelism(), 1));
+            lrTez.setRequestedParallelism(prevOp.getRequestedParallelism());
             try {
-                lr.setIndex(0);
+                lrTez.setIndex(0);
             } catch (ExecException e) {
                 int errCode = 2058;
                 String msg = "Unable to set index on newly created POLocalRearrange.";
@@ -1363,13 +1356,15 @@ public class TezCompiler extends PhyPlanVisitor {
             if (groups.size() == 1) {
                 type = groups.get(0).getLeaves().get(0).getResultType();
             }
+            lrTez.setKeyType(type);
+            lrTez.setPlans(groups);
+            lrTez.setSkewedJoin(true);
+            lrTez.setResultType(DataType.TUPLE);
 
-            // Run POLocalRearrange for first join table
-            lr.setKeyType(type);
-            lr.setPlans(groups);
-            lr.setSkewedJoin(true);
-            lr.setResultType(DataType.TUPLE);
-            joinJobs[0].plan.addAsLeaf(lr);
+            POIdentityInOutTez identityInOutTez = new POIdentityInOutTez(
+                    OperatorKey.genOpKey(scope), lrTez);
+            identityInOutTez.setInputKey(prevOp.getOperatorKey().toString());
+            joinJobs[0].plan.addAsLeaf(identityInOutTez);
             joinJobs[0].setClosed(true);
             rearrangeOutputs[0] = joinJobs[0];
 
@@ -1413,7 +1408,7 @@ public class TezCompiler extends PhyPlanVisitor {
             compiledInputs = new TezOperator[] {joinJobs[2]};
 
             // Create POPakcage
-            pkg = getPackage(2, type);
+            POPackage pkg = getPackage(2, type);
             pkg.setResultType(DataType.TUPLE);
             boolean [] inner = op.getInnerFlags();
             pkg.getPkgr().setInner(inner);
@@ -1449,33 +1444,37 @@ public class TezCompiler extends PhyPlanVisitor {
             // Connect vertices
             lrTez.setOutputKey(joinJobs[0].getOperatorKey().toString());
             lrTezSample.setOutputKey(sampleJobPair.first.getOperatorKey().toString());
+            identityInOutTez.setOutputKey(joinJobs[2].getOperatorKey().toString());
+            pr.setOutputKey(joinJobs[2].getOperatorKey().toString());
 
             TezEdgeDescriptor edge = joinJobs[0].inEdges.get(prevOp.getOperatorKey());
             // TODO: Convert to unsorted shuffle after TEZ-661
-            // edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
-            // edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
-            edge.partitionerClass = RoundRobinPartitioner.class;
+            // Use 1-1 edge
+            edge.dataMovementType = DataMovementType.ONE_TO_ONE;
+            edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
+            edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
+            // If prevOp.requestedParallelism changes based on no. of input splits
+            // it will reflect for joinJobs[0] so that 1-1 edge will work.
+            joinJobs[0].setRequestedParallelismByReference(prevOp);
 
             TezCompilerUtil.connect(tezPlan, prevOp, sampleJobPair.first);
 
-            POSplit split = (POSplit) sampleJobPair.first.plan.getLeaves().get(0);
-            List<PhysicalPlan> pp = split.getPlans();
-            for (int i = 0; i < pp.size(); i++) {
-                TezCompilerUtil.connect(tezPlan, sampleJobPair.first, joinJobs[i]);
+            POValueOutputTez sampleOut = (POValueOutputTez) sampleJobPair.first.plan.getLeaves().get(0);
+            for (int i = 0; i < 2; i++) {
+                joinJobs[i].sampleOperator = sampleJobPair.first;
 
                 // Configure broadcast edges for distribution map
-                edge = joinJobs[i].inEdges.get(sampleJobPair.first.getOperatorKey());
+                edge = TezCompilerUtil.connect(tezPlan, sampleJobPair.first, joinJobs[i]);
                 edge.dataMovementType = DataMovementType.BROADCAST;
                 edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
                 edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
-                lrTez = (POLocalRearrangeTez) pp.get(i).getLeaves().get(0);
-                lrTez.setOutputKey(joinJobs[i].getOperatorKey().toString());
-                joinJobs[i].sampleOperator = sampleJobPair.first;
+                sampleOut.addOutputKey(joinJobs[i].getOperatorKey().toString());
 
                 // Configure skewed partitioner for join
                 edge = joinJobs[2].inEdges.get(joinJobs[i].getOperatorKey());
                 edge.partitionerClass = SkewedPartitionerTez.class;
             }
+
             joinJobs[2].setSkewedJoin(true);
 
             phyToTezOpMap.put(op, curTezOp);
@@ -1609,7 +1608,7 @@ public class TezCompiler extends PhyPlanVisitor {
         return oper;
     }
 
-    private Pair<TezOperator,Integer> getQuantileJobs(
+    private Pair<TezOperator,Integer> getOrderbySamplingAggregationJob(
             POSort inpSort,
             int rp) throws PlanException, VisitorException, ExecException {
 
@@ -1636,7 +1635,7 @@ public class TezCompiler extends PhyPlanVisitor {
             }
         }
 
-        return getSamplingAggregationJobs(sort, rp, null, FindQuantiles.class.getName(), ctorArgs, 1);
+        return getSamplingAggregationJob(sort, rp, null, FindQuantiles.class.getName(), ctorArgs);
     }
 
     /**
@@ -1659,8 +1658,8 @@ public class TezCompiler extends PhyPlanVisitor {
      * @throws VisitorException
      * @throws ExecException
      */
-    private Pair<TezOperator,Integer> getSamplingAggregationJobs(POSort sort, int rp,
-            List<PhysicalPlan> sortKeyPlans, String udfClassName, String[] udfArgs, int numLRs)
+    private Pair<TezOperator,Integer> getSamplingAggregationJob(POSort sort, int rp,
+            List<PhysicalPlan> sortKeyPlans, String udfClassName, String[] udfArgs)
                     throws PlanException, VisitorException, ExecException {
 
         TezOperator oper = getTezOp();
@@ -1791,26 +1790,9 @@ public class TezCompiler extends PhyPlanVisitor {
         oper.plan.add(nfe3);
         oper.plan.connect(nfe2, nfe3);
 
-        if (numLRs > 1) {
-            // Skewed join broadcast sample map to multiple vertices, so we need
-            // to add POSplit to the plan and attach LRs to POSplit.
-            POSplit split = new POSplit(new OperatorKey(scope,nig.getNextNodeId(scope)));
-            oper.setSplitOperatorKey(split.getOperatorKey());
-            oper.plan.add(split);
-            oper.plan.connect(nfe3, split);
-            splitsSeen.put(split.getOperatorKey(), oper);
-
-            for (int i = 0; i < numLRs; i++) {
-                POLocalRearrangeTez lr = localRearrangeFactory.create(LocalRearrangeType.NULL);
-                PhysicalPlan pp = new PhysicalPlan();
-                pp.add(lr);
-                split.addPlan(pp);
-            }
-        } else {
-            POLocalRearrangeTez lr = localRearrangeFactory.create(LocalRearrangeType.NULL);
-            oper.plan.add(lr);
-            oper.plan.connect(nfe3, lr);
-        }
+        POValueOutputTez sampleOut = new POValueOutputTez(OperatorKey.genOpKey(scope));
+        oper.plan.add(sampleOut);
+        oper.plan.connect(nfe3, sampleOut);
         oper.setClosed(true);
 
         oper.setRequestedParallelism(1);
@@ -1998,7 +1980,7 @@ public class TezCompiler extends PhyPlanVisitor {
             // pigContext.defaultParallel to be taken into account
             int rp = Math.max(op.getRequestedParallelism(), 1);
 
-            Pair<TezOperator, Integer> quantJobParallelismPair = getQuantileJobs(op, rp);
+            Pair<TezOperator, Integer> quantJobParallelismPair = getOrderbySamplingAggregationJob(op, rp);
             TezOperator[] sortOpers = getSortJobs(prevOper, lr, op, keyType, fields);
 
             TezEdgeDescriptor edge = handleSplitAndConnect(tezPlan, prevOper, sortOpers[0]);
@@ -2029,8 +2011,8 @@ public class TezCompiler extends PhyPlanVisitor {
             edge.dataMovementType = DataMovementType.BROADCAST;
             edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
             edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
-            lr = (POLocalRearrangeTez)quantJobParallelismPair.first.plan.getLeaves().get(0);
-            lr.setOutputKey(sortOpers[0].getOperatorKey().toString());
+            POValueOutputTez sampleOut = (POValueOutputTez)quantJobParallelismPair.first.plan.getLeaves().get(0);
+            sampleOut.addOutputKey(sortOpers[0].getOperatorKey().toString());
             sortOpers[0].sampleOperator = quantJobParallelismPair.first;
 
             edge = TezCompilerUtil.connect(tezPlan, sortOpers[0], sortOpers[1]);

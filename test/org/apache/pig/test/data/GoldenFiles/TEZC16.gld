@@ -2,12 +2,12 @@
 # There are 1 DAGs in the session
 #--------------------------------------------------
 #--------------------------------------------------
-# TEZ DAG plan: scope-36
+# TEZ DAG plan: scope-35
 #--------------------------------------------------
-Tez vertex scope-11	->	Tez vertex scope-29,Tez vertex scope-18,
-Tez vertex scope-18	->	Tez vertex scope-29,
-Tez vertex scope-29	->	Tez vertex scope-31,
-Tez vertex scope-31
+Tez vertex scope-11	->	Tez vertex scope-28,Tez vertex scope-18,
+Tez vertex scope-18	->	Tez vertex scope-28,
+Tez vertex scope-28	->	Tez vertex scope-30,
+Tez vertex scope-30
 
 Tez vertex scope-11
 # Plan on vertex
@@ -21,7 +21,7 @@ Local Rearrange[tuple]{tuple}(false) - scope-14	->	 scope-18
         |   |
         |   Project[int][0] - scope-15
         |
-        |---b: Local Rearrange[tuple]{int}(false) - scope-12	->	 scope-29
+        |---b: Local Rearrange[tuple]{int}(false) - scope-12	->	 scope-28
             |   |
             |   Project[int][0] - scope-8
             |
@@ -38,9 +38,7 @@ Local Rearrange[tuple]{tuple}(false) - scope-14	->	 scope-18
                 |---a: Load(file:///tmp/input:PigStorage(',')) - scope-0
 Tez vertex scope-18
 # Plan on vertex
-Local Rearrange[tuple]{bytearray}(false) - scope-28	->	 scope-29
-|   |
-|   Constant(DummyVal) - scope-27
+POValueOutputTez - scope-27	->	 [scope-28]
 |
 |---New For Each(false)[tuple] - scope-26
     |   |
@@ -55,17 +53,17 @@ Local Rearrange[tuple]{bytearray}(false) - scope-28	->	 scope-29
         |   Project[bag][1] - scope-20
         |
         |---Package(Packager)[tuple]{bytearray} - scope-19
-Tez vertex scope-29
+Tez vertex scope-28
 # Plan on vertex
-POIdentityInOutTez - scope-30	->	 scope-31
+POIdentityInOutTez - scope-29	->	 scope-30
 |   |
 |   Project[int][0] - scope-8
-Tez vertex scope-31
+Tez vertex scope-30
 # Plan on vertex
 b: Store(file:///tmp/output:org.apache.pig.builtin.PigStorage) - scope-10
 |
-|---New For Each(true)[tuple] - scope-34
+|---New For Each(true)[tuple] - scope-33
     |   |
-    |   Project[bag][1] - scope-33
+    |   Project[bag][1] - scope-32
     |
-    |---Package(LitePackager)[tuple]{int} - scope-32
+    |---Package(LitePackager)[tuple]{int} - scope-31

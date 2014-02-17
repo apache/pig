@@ -36,10 +36,9 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
+import org.apache.pig.data.BinSedesTuple;
 import org.apache.pig.data.SchemaTupleBackend;
-import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.tez.common.TezUtils;
@@ -229,8 +228,7 @@ public class PigProcessor implements LogicalIOProcessor {
         Object val = reader.getCurrentValue();
         if (val != null) {
             // Sample is not empty
-            NullableTuple nTup = (NullableTuple) val;
-            Tuple t = (Tuple) nTup.getValueAsPigType();
+            BinSedesTuple t = (BinSedesTuple) val;
             sampleMap = (Map<String, Object>) t.get(0);
         }
     }

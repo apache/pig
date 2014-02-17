@@ -26,6 +26,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
+import org.apache.pig.impl.io.NullablePartitionWritable;
+import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
@@ -99,14 +101,31 @@ public class POIdentityInOutTez extends POLocalRearrangeTez implements TezLoad, 
                 while (shuffleReader.next()) {
                     Object curKey = shuffleReader.getCurrentKey();
                     Iterable<Object> vals = shuffleReader.getCurrentValues();
+                    if (isSkewedJoin) {
+                        NullablePartitionWritable wrappedKey = new NullablePartitionWritable(
+                                (PigNullableWritable) curKey);
+                        wrappedKey.setPartition(-1);
+                        curKey = wrappedKey;
+                    }
                     for (Object val : vals) {
                         writer.write(curKey, val);
                     }
                 }
             } else {
                 while (reader.next()) {
-                    writer.write(reader.getCurrentKey(),
-                            reader.getCurrentValue());
+                    if (isSkewedJoin) {
+                        NullablePartitionWritable wrappedKey = new NullablePartitionWritable(
+                                (PigNullableWritable) reader.getCurrentKey());
+                        // Skewed join wraps key with NullablePartitionWritable
+                        // The partitionIndex in NullablePartitionWritable is not serialized.
+                        // So setting it here instead of the previous vertex POLocalRearrangeTez.
+                        // Serializing it would add overhead for MR as well.
+                        wrappedKey.setPartition(-1);
+                        writer.write(wrappedKey, reader.getCurrentValue());
+                    } else {
+                        writer.write(reader.getCurrentKey(),
+                                reader.getCurrentValue());
+                    }
                 }
             }
             return RESULT_EOP;

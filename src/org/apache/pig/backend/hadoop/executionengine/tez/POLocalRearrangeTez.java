@@ -28,7 +28,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.io.NullablePartitionWritable;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.plan.NodeIdGenerator;
@@ -50,8 +49,8 @@ public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
     protected transient KeyValueWriter writer;
 
     // Tez union is implemented as LR + Pkg
-    private boolean isUnion = false;
-    private boolean isSkewedJoin = false;
+    protected boolean isUnion = false;
+    protected boolean isSkewedJoin = false;
 
     public POLocalRearrangeTez(OperatorKey k) {
         super(k);
@@ -63,6 +62,13 @@ public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
 
     public POLocalRearrangeTez(POLocalRearrange copy) {
         super(copy);
+        if (copy instanceof POLocalRearrangeTez) {
+            POLocalRearrangeTez copyTez = (POLocalRearrangeTez) copy;
+            this.isUnion = copyTez.isUnion;
+            this.isSkewedJoin = copyTez.isSkewedJoin;
+            this.outputKey = copyTez.outputKey;
+        }
+
     }
 
     public String getOutputKey() {
@@ -140,12 +146,6 @@ public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
                         val = new NullableTuple((Tuple)result.get(1));
                     } else {
                         key = HDataType.getWritableComparableTypes(result.get(1), keyType);
-                        if (isSkewedJoin) {
-                            // Skewed join wraps key with NullablePartitionWritable
-                            NullablePartitionWritable wrappedKey = new NullablePartitionWritable(key);
-                            wrappedKey.setPartition(-1);
-                            key = wrappedKey;
-                        }
                         val = new NullableTuple((Tuple)result.get(2));
                     }
 

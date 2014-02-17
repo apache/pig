@@ -106,6 +106,18 @@ public class TestTezCompiler {
     }
 
     @Test
+    public void testSkewedJoin() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input1' as (x:int, y:int);" +
+                "b = load 'file:///tmp/input2' as (x:int, z:int);" +
+                "c = join a by x, b by x using 'skewed';" +
+                "d = foreach c generate a::x as x, y, z;" +
+                "store d into 'file:///tmp/output';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC17.gld");
+    }
+
+    @Test
     public void testLimit() throws Exception {
         String query =
                 "a = load 'file:///tmp/input' as (x:int, y:int);" +
