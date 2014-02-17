@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -84,6 +85,7 @@ import org.apache.pig.impl.builtin.DefaultIndexableLoader;
 import org.apache.pig.impl.builtin.FindQuantiles;
 import org.apache.pig.impl.builtin.GetMemNumRows;
 import org.apache.pig.impl.builtin.PartitionSkewedKeys;
+import org.apache.pig.impl.builtin.ReadScalarsTez;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.DepthFirstWalker;
@@ -223,17 +225,6 @@ public class TezCompiler extends PhyPlanVisitor {
 
         for (PhysicalOperator op : ops) {
             compile(op);
-            if (curTezOp.isSplitSubPlan()) {
-                // Set inputs to null as POSplit will attach input to roots
-                for (PhysicalOperator root : curTezOp.plan.getRoots()) {
-                    root.setInputs(null);
-                }
-                TezOperator splitOp = splitsSeen.get(curTezOp.getSplitOperatorKey());
-                POSplit split = findPOSplit(splitOp, curTezOp.getSplitOperatorKey());
-                split.addPlan(curTezOp.plan);
-                addSubPlanPropertiesToParent(splitOp, curTezOp);
-                curTezOp = splitOp;
-            }
         }
 
         for (TezOperator tezOper : splitsSeen.values()) {
@@ -245,39 +236,42 @@ public class TezCompiler extends PhyPlanVisitor {
             }
             tezOper.setClosed(true);
         }
-
-        connectSoftLink();
+        
+        fixScalar();
 
         return tezPlan;
     }
+    
+    private void fixScalar() throws VisitorException, PlanException {
+        // Mapping POStore to POValueOuptut
+        Map<POStore, POValueOutputTez> storeSeen = new HashMap<POStore, POValueOutputTez>();
+        
+        for (TezOperator tezOp : tezPlan) {
+            List<POUserFunc> userFuncs = PlanHelper.getPhysicalOperators(tezOp.plan, POUserFunc.class);
+            for (POUserFunc userFunc : userFuncs) {
+                if (userFunc.getReferencedOperator()!=null) {  // Scalar
+                    POStore store = (POStore)userFunc.getReferencedOperator();
+ 
+                    TezOperator from = phyToTezOpMap.get(store);
 
-    private void addSubPlanPropertiesToParent(TezOperator parentOper, TezOperator subPlanOper) {
-        if (subPlanOper.getRequestedParallelism() > parentOper.getRequestedParallelism()) {
-            parentOper.setRequestedParallelism(subPlanOper.getRequestedParallelism());
-        }
-        subPlanOper.setRequestedParallelismByReference(parentOper);
-        if (subPlanOper.UDFs != null) {
-            parentOper.UDFs.addAll(subPlanOper.UDFs);
-        }
-        if (subPlanOper.outEdges != null) {
-            for (Entry<OperatorKey, TezEdgeDescriptor> entry: subPlanOper.outEdges.entrySet()) {
-                parentOper.outEdges.put(entry.getKey(), entry.getValue());
-            }
-        }
-    }
+                    FuncSpec newSpec = new FuncSpec(ReadScalarsTez.class.getName(), from.getOperatorKey().toString());
+                    userFunc.setFuncSpec(newSpec);
 
-    private void connectSoftLink() throws PlanException, IOException {
-        for (PhysicalOperator op : plan) {
-            if (plan.getSoftLinkPredecessors(op)!=null) {
-                for (PhysicalOperator pred : plan.getSoftLinkPredecessors(op)) {
-                    TezOperator from = phyToTezOpMap.get(pred);
-                    TezOperator to = phyToTezOpMap.get(op);
-                    if (from==to) {
-                        continue;
+                    if (storeSeen.containsKey(store)) {
+                        storeSeen.get(store).outputKeys.add(tezOp.getOperatorKey().toString());
+                    } else {
+                        POValueOutputTez output = new POValueOutputTez(OperatorKey.genOpKey(scope));
+                        output.addOutputKey(tezOp.getOperatorKey().toString());
+                        from.plan.remove(from.plan.getOperator(store.getOperatorKey()));
+                        from.plan.addAsLeaf(output);
+                        storeSeen.put(store, output);
                     }
-                    if (tezPlan.getPredecessors(to)==null || !tezPlan.getPredecessors(to).contains(from)) {
-                        tezPlan.connect(from, to);
-                    }
+
+                    TezEdgeDescriptor edge = TezCompilerUtil.connect(tezPlan, from, tezOp);
+                    //TODO shared edge once support is available in Tez
+                    edge.dataMovementType = DataMovementType.BROADCAST;
+                    edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
+                    edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
                 }
             }
         }
@@ -314,33 +308,66 @@ public class TezCompiler extends PhyPlanVisitor {
                 }
 
                 PhysicalOperator p = predecessors.get(0);
-                TezOperator oper = null;
+                TezOperator storeTezOper = null;
                 if (p instanceof POStore) {
-                    oper = phyToTezOpMap.get(p);
+                    storeTezOper = phyToTezOpMap.get(p);
                 } else {
                     int errCode = 2126;
-                    String msg = "Predecessor of load should be a store. Got "+p.getClass();
+                    String msg = "Predecessor of load should be a store. Got " + p.getClass();
                     throw new PlanException(msg, errCode, PigException.BUG);
                 }
-
-                // Need new operator
+                PhysicalOperator store = storeTezOper.plan.getOperator(p.getOperatorKey());
+                // replace POStore to POValueOutputTez, convert the tezOperator to splitter
+                storeTezOper.plan.disconnect(storeTezOper.plan.getPredecessors(store).get(0), store);
+                storeTezOper.plan.remove(store);
+                POValueOutputTez valueOutput = new POValueOutputTez(new OperatorKey(scope,nig.getNextNodeId(scope)));
+                storeTezOper.plan.addAsLeaf(valueOutput);
+                storeTezOper.setSplitter(true);
+                
+                // Create a splittee of store only
+                TezOperator storeOnlyTezOperator = getTezOp();
+                PhysicalPlan storeOnlyPhyPlan = new PhysicalPlan();
+                POValueInputTez valueInput = new POValueInputTez(new OperatorKey(scope,nig.getNextNodeId(scope)));
+                valueInput.setInputKey(storeTezOper.getOperatorKey().toString());
+                storeOnlyPhyPlan.addAsLeaf(valueInput);
+                storeOnlyPhyPlan.addAsLeaf(store);
+                storeOnlyTezOperator.plan = storeOnlyPhyPlan;
+                tezPlan.add(storeOnlyTezOperator);
+                phyToTezOpMap.put(store, storeOnlyTezOperator);
+                
+                // Create new operator as second splittee
                 curTezOp = getTezOp();
-                curTezOp.plan.add(op);
+                POValueInputTez valueInput2 = new POValueInputTez(new OperatorKey(scope,nig.getNextNodeId(scope)));
+                valueInput2.setInputKey(storeTezOper.getOperatorKey().toString());
+                curTezOp.plan.add(valueInput2);
                 tezPlan.add(curTezOp);
 
-                plan.disconnect(op, p);
-                oper.segmentBelow = true;
-                tezPlan.connect(oper, curTezOp);
-                phyToTezOpMap.put(op, curTezOp);
+                // Connect splitter to splittee
+                TezEdgeDescriptor edge = TezCompilerUtil.connect(tezPlan, storeTezOper, storeOnlyTezOperator);
+                edge.dataMovementType = DataMovementType.ONE_TO_ONE;
+                edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
+                edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
+                storeOnlyTezOperator.setRequestedParallelismByReference(storeTezOper);
+                
+                edge = TezCompilerUtil.connect(tezPlan, storeTezOper, curTezOp);
+                edge.dataMovementType = DataMovementType.ONE_TO_ONE;
+                edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
+                edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
+                curTezOp.setRequestedParallelismByReference(storeTezOper);
+                
                 return;
             }
 
             Collections.sort(predecessors);
-            compiledInputs = new TezOperator[predecessors.size()];
-            int i = -1;
-            for (PhysicalOperator pred : predecessors) {
-                compile(pred);
-                compiledInputs[++i] = curTezOp;
+            if(op instanceof POSplit && splitsSeen.containsKey(op.getOperatorKey())){
+                // skip follow up POSplit
+            } else {
+                compiledInputs = new TezOperator[predecessors.size()];
+                int i = -1;
+                for (PhysicalOperator pred : predecessors) {
+                    compile(pred);
+                    compiledInputs[++i] = curTezOp;
+                }
             }
         } else {
             // No predecessors. Mostly a load. But this is where we start. We
@@ -365,20 +392,6 @@ public class TezCompiler extends PhyPlanVisitor {
         compiledInputs = prevCompInp;
     }
 
-    /**
-     * Start a new TezOperator whose plan will be the sub-plan of POSplit
-     *
-     * @param splitOperatorKey
-     *            OperatorKey of the POSplit for which the new plan is a sub-plan
-     * @return the new TezOperator
-     * @throws PlanException
-     */
-    private TezOperator startNew(OperatorKey splitOperatorKey) throws PlanException {
-        TezOperator ret = getTezOp();
-        ret.setSplitOperatorKey(splitOperatorKey);
-        return ret;
-    }
-
     private void nonBlocking(PhysicalOperator op) throws PlanException, IOException {
         TezOperator tezOp;
         if (compiledInputs.length == 1) {
@@ -400,44 +413,9 @@ public class TezCompiler extends PhyPlanVisitor {
         tezPlan.add(newTezOp);
         for (TezOperator tezOp : compiledInputs) {
             tezOp.setClosed(true);
-            handleSplitAndConnect(tezPlan, tezOp, newTezOp);
+            TezCompilerUtil.connect(tezPlan, tezOp, newTezOp);
         }
         curTezOp = newTezOp;
-    }
-
-    private TezEdgeDescriptor handleSplitAndConnect(TezOperPlan tezPlan, TezOperator from, TezOperator to)
-            throws PlanException {
-        return handleSplitAndConnect(tezPlan, from, to, true);
-    }
-
-    private TezEdgeDescriptor handleSplitAndConnect(TezOperPlan tezPlan,
-            TezOperator from, TezOperator to, boolean addToSplitPlan)
-            throws PlanException {
-        // Add edge descriptors from POLocalRearrange in POSplit
-        // sub-plan to new operators
-        PhysicalOperator leaf = from.plan.getLeaves().get(0);
-        // It could be POStoreTez incase of sampling job in order by
-        if (leaf instanceof POLocalRearrangeTez) {
-            POLocalRearrangeTez lr = (POLocalRearrangeTez) leaf;
-            lr.setOutputKey(to.getOperatorKey().toString());
-        }
-        TezEdgeDescriptor edge = null;
-        if (from.isSplitSubPlan()) {
-            TezOperator splitOp = splitsSeen.get(from.getSplitOperatorKey());
-            if (addToSplitPlan) {
-                // Set inputs to null as POSplit will attach input to roots
-                for (PhysicalOperator root : from.plan.getRoots()) {
-                    root.setInputs(null);
-                }
-                POSplit split = findPOSplit(splitOp, from.getSplitOperatorKey());
-                split.addPlan(from.plan);
-                addSubPlanPropertiesToParent(splitOp, curTezOp);
-            }
-            edge = TezCompilerUtil.connect(tezPlan, splitOp, to);
-        } else {
-            edge = TezCompilerUtil.connect(tezPlan, from, to);
-        }
-        return edge;
     }
 
     private POSplit findPOSplit(TezOperator tezOp, OperatorKey splitKey)
@@ -470,105 +448,6 @@ public class TezCompiler extends PhyPlanVisitor {
         throw new PlanException(
                 "Could not find the split operator " + splitKey, 2059,
                 PigException.BUG);
-    }
-
-    /**
-     * Remove the operator and the whole tree connected to that operator from
-     * the plan. Only remove corresponding connected sub-plan if you encounter
-     * another Split operator in the predecessor.
-     *
-     * @param op Operator to remove
-     * @throws VisitorException
-     */
-    private void removeDupOpTreeOfSplit(TezOperPlan plan, TezOperator op, boolean isMultiQuery)
-            throws VisitorException {
-        Stack<TezOperator> stack = new Stack<TezOperator>();
-        stack.push(op);
-        while (!stack.isEmpty()) {
-            op = stack.pop();
-            List<TezOperator> predecessors = plan.getPredecessors(op);
-            if (predecessors != null) {
-                if (isMultiQuery) {
-                    for (TezOperator pred : predecessors) {
-                        if (!pred.isSplitOperator()) {
-                            stack.push(pred);
-                        } else {
-                            List<POSplit> splits = PlanHelper.getPhysicalOperators(
-                                    pred.plan, POSplit.class);
-                            for (POSplit split : splits) {
-                                PhysicalPlan planToRemove = null;
-                                for (PhysicalPlan splitPlan : split.getPlans()) {
-                                    PhysicalOperator phyOp = splitPlan
-                                            .getLeaves().get(0);
-                                    if (phyOp instanceof POLocalRearrangeTez) {
-                                        POLocalRearrangeTez lr = (POLocalRearrangeTez) phyOp;
-                                        if (lr.getOutputKey().equals(
-                                                op.getOperatorKey().toString())) {
-                                            planToRemove = splitPlan;
-                                            break;
-                                        }
-                                    }
-                                }
-                                if (planToRemove != null) {
-                                    split.getPlans().remove(planToRemove);
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    for (TezOperator pred : predecessors) {
-                        // Remove everything till we encounter another split
-                        if (!pred.isSplitOperator()) {
-                            stack.push(pred);
-                        } else {
-                            // If split operator, just remove from the output
-                            POValueOutputTez valueOut = (POValueOutputTez)pred.plan.getLeaves().get(0);
-                            valueOut.removeOutputKey(op.getOperatorKey().toString());
-                            //TODO Handle shared edge when available in Tez
-                            pred.outEdges.remove(op.getOperatorKey().toString());
-                        }
-                    }
-                }
-            }
-            plan.remove(op);
-        }
-    }
-
-    /**
-     * In case of mulitple levels of split, after removing duplicate tree we need to reset
-     * input of operators in the old tree as some of the inputs of the PhysicalOperator in
-     * original tree will now be overwritten and referring to operators in
-     * duplicate tree. For eg: POFilter inputs will refer to the duplicate tree's
-     * POValueInputTez even though it is connected to a original split tree's POValueInputTez
-     */
-    private void resetInputsOfPredecessors(TezOperPlan plan, TezOperator op) {
-        Stack<TezOperator> stack = new Stack<TezOperator>();
-        stack.push(op);
-        while (!stack.isEmpty()) {
-            op = stack.pop();
-            List<TezOperator> predecessors = plan.getPredecessors(op);
-            if (predecessors != null) {
-                for (TezOperator pred : predecessors) {
-                    resetInputs(pred.plan, pred.plan.getLeaves());
-                    if (!pred.isSplitOperator()) {
-                        stack.push(pred);
-                    }
-                }
-            }
-        }
-    }
-
-    private void resetInputs(PhysicalPlan plan, List<PhysicalOperator> ops) {
-        for (PhysicalOperator op : ops) {
-            List<PhysicalOperator> preds = plan.getPredecessors(op);
-            if (preds != null) {
-                for (PhysicalOperator pred : preds) {
-                    pred.setInputs(plan.getPredecessors(pred));
-                    resetInputs(plan, plan.getPredecessors(pred));
-                }
-            }
-        }
     }
 
     /**
@@ -702,7 +581,7 @@ public class TezCompiler extends PhyPlanVisitor {
     @Override
     public void visitDistinct(PODistinct op) throws VisitorException {
         try {
-            POLocalRearrange lr = localRearrangeFactory.create();
+            POLocalRearrangeTez lr = localRearrangeFactory.create();
             lr.setDistinct(true);
             lr.setAlias(op.getAlias());
             curTezOp.plan.addAsLeaf(lr);
@@ -751,23 +630,6 @@ public class TezCompiler extends PhyPlanVisitor {
     @Override
     public void visitFilter(POFilter op) throws VisitorException {
         try {
-            if (curTezOp.isSplitSubPlan() || curTezOp.getSplitParent() != null) {
-                // Do not add the filter. Refer NoopFilterRemover.java of MR
-                PhysicalPlan filterPlan = op.getPlan();
-                if (filterPlan.size() == 1) {
-                    PhysicalOperator fp = filterPlan.getRoots().get(0);
-                    if (fp instanceof ConstantExpression) {
-                        ConstantExpression exp = (ConstantExpression)fp;
-                        Object value = exp.getValue();
-                        if (value instanceof Boolean) {
-                            Boolean filterValue = (Boolean)value;
-                            if (filterValue) {
-                                return;
-                            }
-                        }
-                    }
-                }
-            }
             nonBlocking(op);
             processUDFs(op.getPlan());
             phyToTezOpMap.put(op, curTezOp);
@@ -795,7 +657,7 @@ public class TezCompiler extends PhyPlanVisitor {
                     lr.setOutputKey(curTezOp.getOperatorKey().toString());
 
                     tezOp.plan.addAsLeaf(lr);
-                    TezEdgeDescriptor edge = handleSplitAndConnect(tezPlan, tezOp, curTezOp);
+                    TezEdgeDescriptor edge = TezCompilerUtil.connect(tezPlan, tezOp, curTezOp);
                     if (tezOp.getSplitOperatorKey() != null) {
                         inputKeys.add(tezOp.getSplitOperatorKey().toString());
                     } else {
@@ -1983,7 +1845,7 @@ public class TezCompiler extends PhyPlanVisitor {
             Pair<TezOperator, Integer> quantJobParallelismPair = getOrderbySamplingAggregationJob(op, rp);
             TezOperator[] sortOpers = getSortJobs(prevOper, lr, op, keyType, fields);
 
-            TezEdgeDescriptor edge = handleSplitAndConnect(tezPlan, prevOper, sortOpers[0]);
+            TezEdgeDescriptor edge = TezCompilerUtil.connect(tezPlan, prevOper, sortOpers[0]);
 
             // Use 1-1 edge
             edge.dataMovementType = DataMovementType.ONE_TO_ONE;
@@ -2003,7 +1865,7 @@ public class TezCompiler extends PhyPlanVisitor {
             sortOpers[1].setRequestedParallelism(quantJobParallelismPair.second);
             */
 
-            handleSplitAndConnect(tezPlan, prevOper, quantJobParallelismPair.first, false);
+            TezCompilerUtil.connect(tezPlan, prevOper, quantJobParallelismPair.first);
             lr.setOutputKey(sortOpers[0].getOperatorKey().toString());
             lrSample.setOutputKey(quantJobParallelismPair.first.getOperatorKey().toString());
 
@@ -2036,66 +1898,30 @@ public class TezCompiler extends PhyPlanVisitor {
     @Override
     public void visitSplit(POSplit op) throws VisitorException {
         try {
-            boolean isMultiQuery = "true".equalsIgnoreCase(pigContext
-                    .getProperties().getProperty(PigConfiguration.OPT_MULTIQUERY, "true"));
-
-            if (isMultiQuery) {
-                if (splitsSeen.containsKey(op.getOperatorKey())) {
-                    // Since the plan for this split already exists in the tez plan,
-                    // discard the hierarchy or tez operators we constructed so far
-                    // till we encountered the split in this tree
-                    removeDupOpTreeOfSplit(tezPlan, curTezOp, isMultiQuery);
-                    curTezOp = startNew(op.getOperatorKey());
-                } else {
-                    nonBlocking(op);
-                    if(curTezOp.isSplitSubPlan()) {
-                        // Split followed by another split
-                        // Set inputs to null as POSplit will attach input to roots
-                        for (PhysicalOperator root : curTezOp.plan.getRoots()) {
-                            root.setInputs(null);
-                        }
-                        TezOperator splitOp = splitsSeen.get(curTezOp.getSplitOperatorKey());
-                        POSplit split = findPOSplit(splitOp, curTezOp.getSplitOperatorKey());
-                        split.addPlan(curTezOp.plan);
-                        addSubPlanPropertiesToParent(splitOp, curTezOp);
-                        splitsSeen.put(op.getOperatorKey(), splitOp);
-                        phyToTezOpMap.put(op, splitOp);
-                    } else {
-                        curTezOp.setSplitOperator(true);
-                        splitsSeen.put(op.getOperatorKey(), curTezOp);
-                        phyToTezOpMap.put(op, curTezOp);
-                    }
-                    curTezOp = startNew(op.getOperatorKey());
-                }
+            TezOperator splitOp = curTezOp;
+            POValueOutputTez output = null;
+            if (splitsSeen.containsKey(op.getOperatorKey())) {
+                splitOp = splitsSeen.get(op.getOperatorKey());
+                output = (POValueOutputTez)splitOp.plan.getLeaves().get(0);
             } else {
-                TezOperator splitOp = curTezOp;
-                POValueOutputTez output = null;
-                if (splitsSeen.containsKey(op.getOperatorKey())) {
-                    removeDupOpTreeOfSplit(tezPlan, curTezOp, isMultiQuery);
-                    splitOp = splitsSeen.get(op.getOperatorKey());
-                    resetInputsOfPredecessors(tezPlan, splitOp);
-                    output = (POValueOutputTez)splitOp.plan.getLeaves().get(0);
-                } else {
-                    splitOp.setSplitOperator(true);
-                    splitsSeen.put(op.getOperatorKey(), splitOp);
-                    phyToTezOpMap.put(op, splitOp);
-                    output = new POValueOutputTez(OperatorKey.genOpKey(scope));
-                    splitOp.plan.addAsLeaf(output);
-                }
-                curTezOp = getTezOp();
-                curTezOp.setSplitParent(splitOp.getOperatorKey());
-                tezPlan.add(curTezOp);
-                output.addOutputKey(curTezOp.getOperatorKey().toString());
-                TezEdgeDescriptor edge = TezCompilerUtil.connect(tezPlan, splitOp, curTezOp);
-                //TODO shared edge once support is available in Tez
-                edge.dataMovementType = DataMovementType.ONE_TO_ONE;
-                edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
-                edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
-                curTezOp.setRequestedParallelismByReference(splitOp);
-                POValueInputTez input = new POValueInputTez(OperatorKey.genOpKey(scope));
-                input.setInputKey(splitOp.getOperatorKey().toString());
-                curTezOp.plan.addAsLeaf(input);
+                splitsSeen.put(op.getOperatorKey(), splitOp);
+                splitOp.setSplitter(true);
+                phyToTezOpMap.put(op, splitOp);
+                output = new POValueOutputTez(OperatorKey.genOpKey(scope));
+                splitOp.plan.addAsLeaf(output);
             }
+            curTezOp = getTezOp();
+            tezPlan.add(curTezOp);
+            output.addOutputKey(curTezOp.getOperatorKey().toString());
+            TezEdgeDescriptor edge = TezCompilerUtil.connect(tezPlan, splitOp, curTezOp);
+            //TODO shared edge once support is available in Tez
+            edge.dataMovementType = DataMovementType.ONE_TO_ONE;
+            edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
+            edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
+            curTezOp.setRequestedParallelismByReference(splitOp);
+            POValueInputTez input = new POValueInputTez(OperatorKey.genOpKey(scope));
+            input.setInputKey(splitOp.getOperatorKey().toString());
+            curTezOp.plan.addAsLeaf(input);
         } catch (Exception e) {
             int errCode = 2034;
             String msg = "Error compiling operator "

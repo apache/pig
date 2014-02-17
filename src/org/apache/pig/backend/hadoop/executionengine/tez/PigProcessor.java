@@ -33,12 +33,14 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.data.BinSedesTuple;
 import org.apache.pig.data.SchemaTupleBackend;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.builtin.ReadScalarsTez;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.tez.common.TezUtils;
@@ -157,6 +159,12 @@ public class PigProcessor implements LogicalIOProcessor {
         LinkedList<POValueInputTez> valueInputs = PlanHelper.getPhysicalOperators(execPlan, POValueInputTez.class);
         for (POValueInputTez input : valueInputs){
             input.attachInputs(inputs, conf);
+        }
+        LinkedList<POUserFunc> scalarInputs = PlanHelper.getPhysicalOperators(execPlan, POUserFunc.class);
+        for (POUserFunc userFunc : scalarInputs ) {
+            if (userFunc.getFunc() instanceof ReadScalarsTez) {
+                ((ReadScalarsTez)userFunc.getFunc()).attachInputs(inputs, conf);
+            }
         }
         LinkedList<POFRJoinTez> broadcasts = PlanHelper.getPhysicalOperators(execPlan, POFRJoinTez.class);
         for (POFRJoinTez broadcast : broadcasts){

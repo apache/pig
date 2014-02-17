@@ -3,9 +3,11 @@ package org.apache.pig.backend.hadoop.executionengine.tez.util;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map.Entry;
 
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
@@ -76,11 +78,30 @@ public class TezCompilerUtil {
 
     static public TezEdgeDescriptor connect(TezOperPlan plan, TezOperator from, TezOperator to) throws PlanException {
         plan.connect(from, to);
+        PhysicalOperator leaf = from.plan.getLeaves().get(0);
+        // It could be POStoreTez incase of sampling job in order by
+        if (leaf instanceof POLocalRearrangeTez) {
+            POLocalRearrangeTez lr = (POLocalRearrangeTez) leaf;
+            lr.setOutputKey(to.getOperatorKey().toString());
+        }
         // Add edge descriptors to old and new operators
         TezEdgeDescriptor edge = new TezEdgeDescriptor();
         to.inEdges.put(from.getOperatorKey(), edge);
         from.outEdges.put(to.getOperatorKey(), edge);
         return edge;
+    }
+    
+    static public void connect(TezOperPlan plan, TezOperator from, TezOperator to, TezEdgeDescriptor edge) throws PlanException {
+        plan.connect(from, to);
+        PhysicalOperator leaf = from.plan.getLeaves().get(0);
+        // It could be POStoreTez incase of sampling job in order by
+        if (leaf instanceof POLocalRearrangeTez) {
+            POLocalRearrangeTez lr = (POLocalRearrangeTez) leaf;
+            lr.setOutputKey(to.getOperatorKey().toString());
+        }
+        // Add edge descriptors to old and new operators
+        to.inEdges.put(from.getOperatorKey(), edge);
+        from.outEdges.put(to.getOperatorKey(), edge);
     }
 
     static public POForEach getForEach(POProject project, int rp, String scope, NodeIdGenerator nig) {

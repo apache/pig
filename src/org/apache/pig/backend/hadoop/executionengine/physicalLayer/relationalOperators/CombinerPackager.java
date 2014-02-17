@@ -59,7 +59,7 @@ public class CombinerPackager extends Packager {
         super();
         keyType = pkgr.keyType;
         numInputs = 1;
-        inner = new boolean[1];
+        inner = new boolean[pkgr.inner.length];
         for (int i = 0; i < pkgr.inner.length; i++) {
             inner[i] = true;
         }

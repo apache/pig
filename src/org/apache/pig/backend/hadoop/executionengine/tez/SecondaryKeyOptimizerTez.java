@@ -65,6 +65,10 @@ public class SecondaryKeyOptimizerTez extends TezOpPlanVisitor implements Second
                     break;
                 }
             }
+            
+            if (connectingLR == null) {
+                continue;
+            }
 
             // Detected the POLocalRearrange -> POPackage pattern. Let's add
             // combiner if possible.

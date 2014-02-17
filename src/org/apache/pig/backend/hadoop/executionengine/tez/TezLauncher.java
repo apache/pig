@@ -168,6 +168,16 @@ public class TezLauncher extends Launcher {
             SecondaryKeyOptimizerTez skOptimizer = new SecondaryKeyOptimizerTez(tezPlan);
             skOptimizer.visit();
         }
+        
+        boolean isMultiQuery =
+                "true".equalsIgnoreCase(pc.getProperties().getProperty(PigConfiguration.OPT_MULTIQUERY, "true"));
+
+        if (isMultiQuery) {
+            // reduces the number of TezOpers in the Tez plan generated
+            // by multi-query (multi-store) script.
+            MultiQueryOptimizerTez mqOptimizer = new MultiQueryOptimizerTez(tezPlan);
+            mqOptimizer.visit();
+        }
 
         // Run AccumulatorOptimizer on Tez plan
         boolean isAccum = Boolean.parseBoolean(pc.getProperties().getProperty(

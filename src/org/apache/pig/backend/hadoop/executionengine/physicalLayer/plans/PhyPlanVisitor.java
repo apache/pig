@@ -294,7 +294,12 @@ public class PhyPlanVisitor extends PlanVisitor<PhysicalOperator,PhysicalPlan> {
     }
 
     public void visitLimit(POLimit lim) throws VisitorException{
-        //do nothing
+        PhysicalPlan inpPlan = lim.getLimitPlan();
+        if (inpPlan!=null) {
+            pushWalker(mCurrentWalker.spawnChildWalker(inpPlan));
+            visit();
+            popWalker();
+        }
     }
 
     public void visitCross(POCross cross) throws VisitorException{

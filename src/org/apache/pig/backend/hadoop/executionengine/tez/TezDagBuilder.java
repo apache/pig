@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -200,6 +201,24 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 break;
             }
         }
+        
+        List<POValueOutputTez> valueOutputs = PlanHelper.getPhysicalOperators(from.plan,
+                POValueOutputTez.class);
+        if (!valueOutputs.isEmpty()) {
+            POValueOutputTez valueOutput = valueOutputs.get(0);
+            for (String outputKey : valueOutput.outputKeys) {
+                if (outputKey.equals(to.getOperatorKey().toString())) {
+                    conf.setIfUnset(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_CLASS,
+                            POValueOutputTez.EmptyWritable.class.getName());
+                    conf.setIfUnset(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_VALUE_CLASS,
+                            BinSedesTuple.class.getName());
+                    conf.setIfUnset(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_CLASS,
+                            POValueOutputTez.EmptyWritable.class.getName());
+                    conf.setIfUnset(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_VALUE_CLASS,
+                            BinSedesTuple.class.getName());
+                }
+            }
+        }
 
         conf.setBoolean("mapred.mapper.new-api", true);
         conf.set("pig.pigContext", ObjectSerializer.serialize(pc));
@@ -238,17 +257,6 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         if (edge.partitionerClass != null) {
             conf.set(org.apache.hadoop.mapreduce.MRJobConfig.PARTITIONER_CLASS_ATTR,
                     edge.partitionerClass.getName());
-        }
-
-        if (from.plan.getLeaves().get(0) instanceof POValueOutputTez) {
-            conf.setIfUnset(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_CLASS,
-                    POValueOutputTez.EmptyWritable.class.getName());
-            conf.setIfUnset(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_VALUE_CLASS,
-                    BinSedesTuple.class.getName());
-            conf.setIfUnset(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_CLASS,
-                    POValueOutputTez.EmptyWritable.class.getName());
-            conf.setIfUnset(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_VALUE_CLASS,
-                    BinSedesTuple.class.getName());
         }
 
         MRToTezHelper.convertMRToTezRuntimeConf(conf, globalConf);
@@ -367,12 +375,21 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             // Set input keys for POShuffleTezLoad. This is used to identify
             // the inputs that are attached to the POShuffleTezLoad in the
             // backend.
+            Map<Integer, String> localRearrangeMap = new TreeMap<Integer, String>();
             for (TezOperator pred : mPlan.getPredecessors(tezOp)) {
                 if (tezOp.sampleOperator != null && tezOp.sampleOperator == pred) {
                     // skip sample vertex input
                 } else {
-                    newPack.addInputKey(pred.getOperatorKey().toString());
+                    LinkedList<POLocalRearrangeTez> lrs = PlanHelper.getPhysicalOperators(pred.plan, POLocalRearrangeTez.class);
+                    for (POLocalRearrangeTez lr : lrs) {
+                        if (lr.getOutputKey().equals(tezOp.getOperatorKey().toString())) {
+                            localRearrangeMap.put((int)lr.getIndex(), pred.getOperatorKey().toString());
+                        }
+                    }
                 }
+            }
+            for (Map.Entry<Integer, String> entry : localRearrangeMap.entrySet()) {
+                newPack.addInputKey(entry.getValue());
             }
 
             if (succsList != null) {
@@ -383,8 +400,22 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
             setIntermediateInputKeyValue(pack.getPkgr().getKeyType(), payloadConf,
                     tezOp);
+        } else if (roots.size() == 1 && roots.get(0) instanceof POIdentityInOutTez) {
+            POIdentityInOutTez identityInOut = (POIdentityInOutTez) roots.get(0);
+            // TODO Need to fix multiple input key mapping
+            TezOperator identityInOutPred = null;
+            for (TezOperator pred : mPlan.getPredecessors(tezOp)) {
+                if (!pred.isSampler()) {
+                    identityInOutPred = pred;
+                    break;
+                }
+            }
+            identityInOut.setInputKey(identityInOutPred.getOperatorKey().toString());
+        } else if (roots.size() == 1 && roots.get(0) instanceof POValueInputTez) {
+            POValueInputTez valueInput = (POValueInputTez) roots.get(0);
+            TezOperator pred = mPlan.getPredecessors(tezOp).get(0);
+            valueInput.setInputKey(pred.getOperatorKey().toString());
         }
-
         payloadConf.setClass("mapreduce.outputformat.class",
                 PigOutputFormat.class, OutputFormat.class);
 

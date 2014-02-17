@@ -71,12 +71,8 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     // Only POStore or POLocalRearrange leaf can be a sub-plan of POSplit
     private OperatorKey splitOperatorKey = null;
 
-    // This indicates that this TezOper has POSplit as a parent.
-    // This is the case where multi-query is turned off.
-    private OperatorKey splitParent = null;
-
     // This indicates that this TezOper is a split operator
-    private boolean isSplitOper;
+    private boolean splitter;
 
     // Indicates that the plan creation is complete
     boolean closed = false;
@@ -179,24 +175,12 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
         this.splitOperatorKey = splitOperatorKey;
     }
 
-    public boolean isSplitSubPlan() {
-        return splitOperatorKey != null;
+    public void setSplitter(boolean spl) {
+        splitter = spl;
     }
 
-    public OperatorKey getSplitParent() {
-        return splitParent;
-    }
-
-    public void setSplitParent(OperatorKey splitParent) {
-        this.splitParent = splitParent;
-    }
-
-    public boolean isSplitOperator() {
-        return isSplitOper;
-    }
-
-    public void setSplitOperator(boolean isSplitOperator) {
-        this.isSplitOper = isSplitOperator;
+    public boolean isSplitter() {
+        return splitter;
     }
 
     public boolean isClosed() {
