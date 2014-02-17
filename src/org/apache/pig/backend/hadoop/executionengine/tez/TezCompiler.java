@@ -1712,21 +1712,6 @@ public class TezCompiler extends PhyPlanVisitor {
         tezPlan.add(oper1);
         opers[0] = oper1;
 
-        long limit = sort.getLimit();
-        //TODO: TezOperator limit not used at all
-        oper1.limit = limit;
-
-        boolean[] sortOrder;
-
-        List<Boolean> sortOrderList = sort.getMAscCols();
-        if(sortOrderList != null) {
-            sortOrder = new boolean[sortOrderList.size()];
-            for(int i = 0; i < sortOrderList.size(); ++i) {
-                sortOrder[i] = sortOrderList.get(i);
-            }
-            oper1.setSortOrder(sortOrder);
-        }
-
         POIdentityInOutTez identityInOutTez = new POIdentityInOutTez(
                 OperatorKey.genOpKey(scope),
                 inputOperRearrange);
@@ -1738,6 +1723,22 @@ public class TezCompiler extends PhyPlanVisitor {
         oper2.setGlobalSort(true);
         opers[1] = oper2;
         tezPlan.add(oper2);
+        
+        long limit = sort.getLimit();
+        //TODO: TezOperator limit not used at all
+        oper2.limit = limit;
+
+        boolean[] sortOrder;
+
+        List<Boolean> sortOrderList = sort.getMAscCols();
+        if(sortOrderList != null) {
+            sortOrder = new boolean[sortOrderList.size()];
+            for(int i = 0; i < sortOrderList.size(); ++i) {
+                sortOrder[i] = sortOrderList.get(i);
+            }
+            oper2.setSortOrder(sortOrder);
+        }
+        
         identityInOutTez.setOutputKey(oper2.getOperatorKey().toString());
 
         if (limit!=-1) {

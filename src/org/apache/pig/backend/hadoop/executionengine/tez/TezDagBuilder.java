@@ -223,11 +223,9 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         conf.setBoolean("mapred.mapper.new-api", true);
         conf.set("pig.pigContext", ObjectSerializer.serialize(pc));
 
-        if(from.isGlobalSort() || from.isLimitAfterSort()){
-            if (from.isGlobalSort()) {
-                conf.set("pig.sortOrder",
-                        ObjectSerializer.serialize(from.getSortOrder()));
-            }
+        if(to.isGlobalSort() || to.isLimitAfterSort()){
+            conf.set("pig.sortOrder",
+                    ObjectSerializer.serialize(to.getSortOrder()));
         }
 
         if (edge.isUseSecondaryKey()) {
