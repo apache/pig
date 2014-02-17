@@ -60,6 +60,9 @@ public class CombinerOptimizer extends TezOpPlanVisitor {
         if (predecessors == null) {
             return;
         }
+        if (predecessors.size()>1) {
+            return;
+        }
 
         for (TezOperator from : predecessors) {
             List<POLocalRearrangeTez> rearranges = PlanHelper.getPhysicalOperators(from.plan, POLocalRearrangeTez.class);
