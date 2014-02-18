@@ -1980,9 +1980,9 @@ public class TezCompiler extends PhyPlanVisitor {
             pkg.setAlias(op.getAlias());
             curTezOp.markUnion();
             curTezOp.plan.add(pkg);
-            // TODO: Union should use OnFileUnorderedKVOutput instead of
-            // OnFileSortedOutput. Currently, it's not supported by Tez.
-            // (TEZ-661)
+            curTezOp.setRequestedParallelism(op.getRequestedParallelism());
+            phyToTezOpMap.put(op, curTezOp);
+            // TODO: Use alias vertex that is introduced by TEZ-678 
         } catch (Exception e) {
             int errCode = 2034;
             String msg = "Error compiling operator " + op.getClass().getSimpleName();
