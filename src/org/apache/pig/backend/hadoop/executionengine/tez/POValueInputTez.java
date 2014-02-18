@@ -20,6 +20,7 @@ package org.apache.pig.backend.hadoop.executionengine.tez;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -50,6 +51,10 @@ public class POValueInputTez extends PhysicalOperator implements TezLoad {
 
     public POValueInputTez(OperatorKey k) {
         super(k);
+    }
+
+    @Override
+    public void addInputsToSkip(Set<String> inputsToSkip) {
     }
 
     @Override

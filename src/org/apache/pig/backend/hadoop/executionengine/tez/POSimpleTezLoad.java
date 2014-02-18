@@ -20,6 +20,7 @@ package org.apache.pig.backend.hadoop.executionengine.tez;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -44,6 +45,10 @@ public class POSimpleTezLoad extends POLoad implements TezLoad {
 
     public POSimpleTezLoad(OperatorKey k) {
         super(k);
+    }
+
+    @Override
+    public void addInputsToSkip(Set<String> inputsToSkip) {
     }
 
     @Override

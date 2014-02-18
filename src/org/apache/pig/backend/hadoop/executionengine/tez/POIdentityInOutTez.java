@@ -20,6 +20,7 @@ package org.apache.pig.backend.hadoop.executionengine.tez;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
@@ -58,6 +59,10 @@ public class POIdentityInOutTez extends POLocalRearrangeTez implements TezLoad, 
 
     public void setInputKey(String inputKey) {
         this.inputKey = inputKey;
+    }
+
+    @Override
+    public void addInputsToSkip(Set<String> inputsToSkip) {
     }
 
     @Override

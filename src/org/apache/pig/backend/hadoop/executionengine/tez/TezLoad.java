@@ -19,6 +19,7 @@
 package org.apache.pig.backend.hadoop.executionengine.tez;
 
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -30,6 +31,15 @@ import org.apache.tez.runtime.api.LogicalInput;
  */
 
 public interface TezLoad {
+
+    /**
+     * Add to the list of inputs to skip download if already available in vertex cache
+     *
+     * @param inputsToSkip
+     */
+    public void addInputsToSkip(Set<String> inputsToSkip);
+
     public void attachInputs(Map<String, LogicalInput> inputs,
             Configuration conf) throws ExecException;
+
 }

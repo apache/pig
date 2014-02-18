@@ -182,6 +182,13 @@
         <equals arg1="${hadoopversion}" arg2="23"/>
     </condition>
 
+    <!-- Tez needs guava 15.0 whereas Hadoop 1.x depends on guava 11 -->
+    <script language="javascript">
+        if (project.getProperty('hadoopversion').equals('23')) {
+            project.setProperty('guava.version', project.getProperty('guava-hadoop2.version'));
+        }
+    </script>
+
     <!--
       HBase master version
       Denotes how the HBase dependencies are layout. Value "94" denotes older

@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.WritableComparator;
@@ -56,6 +57,10 @@ public class POShuffleTezLoad extends POPackage implements TezLoad {
 
     public POShuffleTezLoad(POPackage pack) {
         super(pack);
+    }
+
+    @Override
+    public void addInputsToSkip(Set<String> inputsToSkip) {
     }
 
     @Override

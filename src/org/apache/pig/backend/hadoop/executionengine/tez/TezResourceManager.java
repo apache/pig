@@ -50,6 +50,7 @@ public class TezResourceManager {
     }
 
     public static void initialize(Path stagingDir, PigContext pigContext, Configuration conf) throws IOException {
+        resources.clear();
         TezResourceManager.stagingDir = stagingDir;
         TezResourceManager.pigContext = pigContext;
         TezResourceManager.conf = conf;

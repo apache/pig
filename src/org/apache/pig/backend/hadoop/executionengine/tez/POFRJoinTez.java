@@ -21,6 +21,7 @@ package org.apache.pig.backend.hadoop.executionengine.tez;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -56,16 +57,30 @@ public class POFRJoinTez extends POFRJoin implements TezLoad {
     @SuppressWarnings("rawtypes")
     private List<BroadcastKVReader> replReaders = Lists.newArrayList();
     private List<String> inputKeys;
+    private transient boolean isInputCached;
 
     public POFRJoinTez(POFRJoin copy, List<String> inputKeys) throws ExecException {
        super(copy);
        this.inputKeys = inputKeys;
     }
 
+    @Override
+    public void addInputsToSkip(Set<String> inputsToSkip) {
+        String cacheKey = "replicatemap-" + getOperatorKey().toString();
+        Object cacheValue = ObjectCache.getInstance().retrieve(cacheKey);
+        if (cacheValue != null) {
+            isInputCached = true;
+            inputsToSkip.addAll(inputKeys);
+        }
+    }
+
     @SuppressWarnings("rawtypes")
     @Override
     public void attachInputs(Map<String, LogicalInput> inputs, Configuration conf)
             throws ExecException {
+        if (isInputCached) {
+            return;
+        }
         try {
             for (String key : inputKeys) {
                 LogicalInput input = inputs.get(key);
@@ -89,8 +104,8 @@ public class POFRJoinTez extends POFRJoin implements TezLoad {
     protected void setUpHashMap() throws ExecException {
         String cacheKey = "replicatemap-" + getOperatorKey().toString();
 
-        Object cacheValue = ObjectCache.getInstance().retrieve(cacheKey);
-        if (cacheValue != null) {
+        if (isInputCached) {
+            Object cacheValue = ObjectCache.getInstance().retrieve(cacheKey);
             replicates = (TupleToMapKey[]) cacheValue;
             log.info("Found " + (replicates.length - 1) + " replication hash tables in Tez cache. cachekey=" + cacheKey);
             return;

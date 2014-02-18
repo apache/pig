@@ -25,6 +25,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -53,6 +55,8 @@ import org.apache.tez.runtime.api.TezProcessorContext;
 import org.apache.tez.runtime.library.broadcast.input.BroadcastKVReader;
 
 public class PigProcessor implements LogicalIOProcessor {
+
+    private static final Log LOG = LogFactory.getLog(PigProcessor.class);
     // Names of the properties that store serialized physical plans
     public static final String PLAN = "pig.exec.tez.plan";
     public static final String COMBINE_PLAN = "pig.exec.tez.combine.plan";
@@ -108,89 +112,100 @@ public class PigProcessor implements LogicalIOProcessor {
     @Override
     public void run(Map<String, LogicalInput> inputs,
             Map<String, LogicalOutput> outputs) throws Exception {
-        initializeInputs(inputs);
 
-        initializeOutputs(outputs);
+        try {
+            initializeInputs(inputs);
 
-        sampleVertex = conf.get("pig.sampleVertex");
-        if (sampleVertex != null) {
-            collectSample(sampleVertex, inputs.get(sampleVertex));
-        }
+            initializeOutputs(outputs);
 
-        List<PhysicalOperator> leaves = null;
 
-        if (!execPlan.isEmpty()) {
-            leaves = execPlan.getLeaves();
-            // TODO: Pull from all leaves when there are multiple leaves/outputs
-            leaf = leaves.get(0);
-        }
+            List<PhysicalOperator> leaves = null;
 
-        runPipeline(leaf);
+            if (!execPlan.isEmpty()) {
+                leaves = execPlan.getLeaves();
+                // TODO: Pull from all leaves when there are multiple leaves/outputs
+                leaf = leaves.get(0);
+            }
 
-        // For certain operators (such as STREAM), we could still have some work
-        // to do even after seeing the last input. These operators set a flag that
-        // says all input has been sent and to run the pipeline one more time.
-        if (Boolean.valueOf(conf.get(JobControlCompiler.END_OF_INP_IN_MAP, "false"))) {
-            execPlan.endOfAllInput = true;
             runPipeline(leaf);
-        }
 
-        for (MROutput fileOutput : fileOutputs){
-            fileOutput.commit();
+            // For certain operators (such as STREAM), we could still have some work
+            // to do even after seeing the last input. These operators set a flag that
+            // says all input has been sent and to run the pipeline one more time.
+            if (Boolean.valueOf(conf.get(JobControlCompiler.END_OF_INP_IN_MAP, "false"))) {
+                execPlan.endOfAllInput = true;
+                runPipeline(leaf);
+            }
+
+            for (MROutput fileOutput : fileOutputs){
+                fileOutput.commit();
+            }
+        } catch (Exception e) {
+            LOG.error("Encountered exception while processing: ", e);
+            throw e;
         }
     }
 
     private void initializeInputs(Map<String, LogicalInput> inputs)
-            throws IOException {
-        // getPhysicalOperators only accept C extends PhysicalOperator, so we can't change it to look for TezLoad
-        // TODO: Change that.
-        LinkedList<POSimpleTezLoad> tezLds = PlanHelper.getPhysicalOperators(execPlan, POSimpleTezLoad.class);
-        for (POSimpleTezLoad tezLd : tezLds){
-            tezLd.attachInputs(inputs, conf);
+            throws Exception {
+
+        Set<String> inputsToSkip = new HashSet<String>();
+
+        sampleVertex = conf.get("pig.sampleVertex");
+        if (sampleVertex != null) {
+            collectSample(sampleVertex, inputs.get(sampleVertex));
+            inputsToSkip.add(sampleVertex);
         }
-        LinkedList<POShuffleTezLoad> shuffles = PlanHelper.getPhysicalOperators(execPlan, POShuffleTezLoad.class);
-        for (POShuffleTezLoad shuffle : shuffles){
-            shuffle.attachInputs(inputs, conf);
+
+        LinkedList<TezLoad> tezLds = PlanHelper.getPhysicalOperators(execPlan, TezLoad.class);
+        for (TezLoad tezLd : tezLds){
+            tezLd.addInputsToSkip(inputsToSkip);
         }
-        LinkedList<POIdentityInOutTez> identityInOuts = PlanHelper.getPhysicalOperators(execPlan, POIdentityInOutTez.class);
-        for (POIdentityInOutTez identityInOut : identityInOuts){
-            identityInOut.attachInputs(inputs, conf);
-        }
-        LinkedList<POValueInputTez> valueInputs = PlanHelper.getPhysicalOperators(execPlan, POValueInputTez.class);
-        for (POValueInputTez input : valueInputs){
-            input.attachInputs(inputs, conf);
-        }
-        LinkedList<POUserFunc> scalarInputs = PlanHelper.getPhysicalOperators(execPlan, POUserFunc.class);
-        for (POUserFunc userFunc : scalarInputs ) {
+
+        LinkedList<ReadScalarsTez> scalarInputs = new LinkedList<ReadScalarsTez>();
+        for (POUserFunc userFunc : PlanHelper.getPhysicalOperators(execPlan, POUserFunc.class) ) {
             if (userFunc.getFunc() instanceof ReadScalarsTez) {
-                ((ReadScalarsTez)userFunc.getFunc()).attachInputs(inputs, conf);
+                scalarInputs.add((ReadScalarsTez)userFunc.getFunc());
             }
         }
-        LinkedList<POFRJoinTez> broadcasts = PlanHelper.getPhysicalOperators(execPlan, POFRJoinTez.class);
-        for (POFRJoinTez broadcast : broadcasts){
-            broadcast.attachInputs(inputs, conf);
+
+        for (ReadScalarsTez scalarInput: scalarInputs) {
+            scalarInput.addInputsToSkip(inputsToSkip);
         }
+
+        for (Entry<String, LogicalInput> entry : inputs.entrySet()) {
+            if (inputsToSkip.contains(entry.getKey())) {
+                LOG.info("Skipping fetch of input " + entry.getValue() + " from vertex " + entry.getKey());
+            } else {
+                LOG.info("Starting fetch of input " + entry.getValue() + " from vertex " + entry.getKey());
+                entry.getValue().start();
+            }
+        }
+
+        for (TezLoad tezLd : tezLds){
+            tezLd.attachInputs(inputs, conf);
+        }
+
+        for (ReadScalarsTez scalarInput: scalarInputs) {
+            scalarInput.attachInputs(inputs, conf);
+        }
+
     }
 
     private void initializeOutputs(Map<String, LogicalOutput> outputs) throws Exception {
-        LinkedList<POStoreTez> stores = PlanHelper.getPhysicalOperators(execPlan, POStoreTez.class);
-        for (POStoreTez store : stores){
-            store.attachOutputs(outputs, conf);
-        }
-        LinkedList<POLocalRearrangeTez> rearranges = PlanHelper.getPhysicalOperators(execPlan, POLocalRearrangeTez.class);
-        for (POLocalRearrangeTez lr : rearranges){
-            lr.attachOutputs(outputs, conf);
-        }
-        LinkedList<POValueOutputTez> valueOutputs = PlanHelper.getPhysicalOperators(execPlan, POValueOutputTez.class);
-        for (POValueOutputTez output : valueOutputs){
-            output.attachOutputs(outputs, conf);
-        }
-        for (Entry<String, LogicalOutput> entry : outputs.entrySet()){
-            LogicalOutput logicalOutput = entry.getValue();
-            if (logicalOutput instanceof MROutput){
-                MROutput mrOut = (MROutput) logicalOutput;
+
+        for (Entry<String, LogicalOutput> entry : outputs.entrySet()) {
+            LogicalOutput output = entry.getValue();
+            LOG.info("Starting output " + output + " to vertex " + entry.getKey());
+            output.start();
+            if (output instanceof MROutput){
+                MROutput mrOut = (MROutput) output;
                 fileOutputs.add(mrOut);
             }
+        }
+        LinkedList<TezOutput> tezOuts = PlanHelper.getPhysicalOperators(execPlan, TezOutput.class);
+        for (TezOutput tezOut : tezOuts){
+            tezOut.attachOutputs(outputs, conf);
         }
     }
 
@@ -231,6 +246,8 @@ public class PigProcessor implements LogicalIOProcessor {
         if (cached == Boolean.TRUE) {
             return;
         }
+        LOG.info("Starting fetch of input " + logicalInput + " from vertex " + sampleVertex);
+        logicalInput.start();
         BroadcastKVReader reader = (BroadcastKVReader) logicalInput.getReader();
         reader.next();
         Object val = reader.getCurrentValue();

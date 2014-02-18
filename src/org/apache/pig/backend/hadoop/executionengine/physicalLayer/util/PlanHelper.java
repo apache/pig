@@ -123,7 +123,7 @@ public class PlanHelper {
      * @return a LinkedList of operators contained within the plan which implement the supplied class; empty if no such ops exist.
      * @throws VisitorException
      */
-    public static <C extends PhysicalOperator> LinkedList<C> getPhysicalOperators(PhysicalPlan plan,
+    public static <C> LinkedList<C> getPhysicalOperators(PhysicalPlan plan,
             Class<C> opClass) throws VisitorException {
         OpFinder<C> finder = new OpFinder<C>(plan, opClass);
         finder.visit();
@@ -149,7 +149,7 @@ public class PlanHelper {
         return plan;
     }
 
-    private static class OpFinder<C extends PhysicalOperator> extends PhyPlanVisitor {
+    private static class OpFinder<C> extends PhyPlanVisitor {
 
         final Class<C> opClass;
         private LinkedList<C> foundOps = Lists.newLinkedList();

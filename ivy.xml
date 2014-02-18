@@ -388,15 +388,12 @@
     <dependency org="org.apache.tez" name="tez-runtime-library" rev="${tez.version}"
        conf="hadoop23->master"/>
     <dependency org="org.apache.tez" name="tez-mapreduce" rev="${tez.version}"
-       conf="hadoop23->master">
-      <artifact name="tez-mapreduce" ext="jar" />
-      <artifact name="tez-mapreduce" type="tests" ext="jar" m:classifier="tests" />
-    </dependency>
-    <dependency org="org.apache.tez" name="tez-tests" rev="${tez.version}"
-       conf="hadoop23->master">
-      <artifact name="tez-tests" ext="jar" />
-      <artifact name="tez-tests" type="tests" ext="jar" m:classifier="tests" />
-    </dependency>
+       conf="hadoop23->master"/>
+    <dependency org="org.apache.commons" name="commons-collections4" rev="${commons-collections4.version}"
+      conf="hadoop23->master"/>
+    <dependency org="org.codehaus.jettison" name="jettison" rev="${jettison.version}"
+      conf="hadoop23->master"/>
+
   </dependencies>
 </ivy-module>
 
