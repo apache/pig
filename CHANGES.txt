@@ -89,6 +89,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3747: Update skewed join documentation (cheolsoo)
+
 PIG-3755: auto local mode selection does not check lower bound for size (aniket486)
 
 PIG-3753: LOGenerate generates null schema (daijy)
