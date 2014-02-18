@@ -30,6 +30,8 @@ PIG-2207: Support custom counters for aggregating warnings from different udfs (
 
 IMPROVEMENTS
 
+PIG-3648: Make the sample size for RandomSampleLoader configurable (cheolsoo)
+
 PIG-259: allow store to overwrite existing directroy (nezihyigitbasi via daijy)
 
 PIG-2672: Optimize the use of DistributedCache (aniket486)

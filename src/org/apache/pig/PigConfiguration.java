@@ -138,6 +138,12 @@ public class PigConfiguration {
      * the distributed cache when doing fragment-replicated join
      */
     public static final String PIG_JOIN_REPLICATED_MAX_BYTES = "pig.join.replicated.max.bytes";
+ 
+    /**
+     * This key used to control the sample size of RandomeSampleLoader for
+     * order-by. The default value is 100 rows per task.
+     */
+    public static final String PIG_RANDOM_SAMPLER_SAMPLE_SIZE = "pig.random.sampler.sample.size";
 
     /**
      * This key is to turn on auto local mode feature
