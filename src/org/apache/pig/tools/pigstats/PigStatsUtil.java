@@ -142,15 +142,24 @@ public class PigStatsUtil {
 
 
     public static void setErrorMessage(String msg) {
-        PigStats.get().setErrorMessage(msg);
+        PigStats ps = PigStats.get();
+        if (ps != null) {
+            ps.setErrorMessage(msg);
+        }
     }
 
     public static void setErrorCode(int code) {
-        PigStats.get().setErrorCode(code);
+        PigStats ps = PigStats.get();
+        if (ps != null) {
+            ps.setErrorCode(code);
+        }
     }
 
     public static void setErrorThrowable(Throwable t) {
-        PigStats.get().setErrorThrowable(t);
+        PigStats ps = PigStats.get();
+        if (ps != null) {
+            ps.setErrorThrowable(t);
+        }
     }
 
     private static Pattern pattern = Pattern.compile("tmp(-)?[\\d]{1,10}$");
