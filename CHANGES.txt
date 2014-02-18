@@ -32,6 +32,8 @@ PIG-3480: TFile-based tmpfile compression crashes in some cases (dvryaboy via an
 
 BUG FIXES
 
+PIG-3657: New partition filter extractor fails with NPE (cheolsoo)
+
 PIG-3347: Store invocation brings side effect (daijy)
 
 PIG-3670: Fix assert in Pig script (daijy)
