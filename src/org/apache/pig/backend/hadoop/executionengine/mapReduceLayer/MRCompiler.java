@@ -42,6 +42,7 @@ import org.apache.pig.FuncSpec;
 import org.apache.pig.IndexableLoadFunc;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.OrderedLoadFunc;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -2346,8 +2347,9 @@ public class MRCompiler extends PhyPlanVisitor {
         // as its first constructor argument.
         
         rslargs[0] = (new FuncSpec(Utils.getTmpFileCompressorName(pigContext))).toString();
-        
-        rslargs[1] = "100"; // The value is calculated based on the file size for skewed join
+        // This value is only used by order by. For skewed join, it's calculated
+        // based on the file size.
+        rslargs[1] = pigContext.getProperties().getProperty(PigConfiguration.PIG_RANDOM_SAMPLER_SAMPLE_SIZE, "100");
         FileSpec quantLdFilName = new FileSpec(lFile.getFileName(),
         		new FuncSpec(sampleLdrClassName, rslargs));
         
