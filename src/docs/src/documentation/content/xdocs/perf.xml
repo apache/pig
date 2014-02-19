@@ -1047,6 +1047,34 @@ java -cp $PIG_HOME/pig.jar
 </ul>
 <p></p>
 </section>
+
+<!-- +++++++++++++++++++++++++++++++ -->
+<section id="direct-fetch">
+<title>Direct Fetch</title>
+<p>When the <a href="test.html#dump">DUMP</a> operator is used to execute Pig Latin statements, Pig can take the advantage to minimize latency by directly reading data from HDFS rather than launching MapReduce jobs.</p>
+
+<p>
+The result is fetched if the query contains any of the following operators: 
+<a href="basic.html#filter">FILTER</a>, 
+<a href="basic.html#foreach">FOREACH</a>, 
+<a href="basic.html#limit">LIMIT</a>, 
+<a href="basic.html#stream">STREAM</a>, 
+<a href="basic.html#union">UNION</a>.
+<br></br>
+Fetching will be disabled in case of:
+</p>
+<ul>
+  <li>the presence of other operators, <a href="http://pig.apache.org/docs/r0.13.0/api/org/apache/pig/impl/builtin/SampleLoader.html">sample loaders</a> and scalar expressions</li>
+  <li>implicit splits</li>
+</ul>
+
+<p>
+You can check if the query can be fetched by running EXPLAIN. You should see "No MR jobs. Fetch only." in the MapReduce part of the plan.
+<br></br>
+Direct fetch is turned on by default. To turn it off set the property opt.fetch to false or start Pig with the "-N" or "-no_fetch" option.
+</p>
+
+</section>
 </section>
   
 <!-- ==================================================================== -->
