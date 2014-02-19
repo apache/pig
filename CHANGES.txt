@@ -79,8 +79,6 @@ PIG-3295: Casting from bytearray failing after Union even when each field is fro
 
 PIG-3444: CONCAT with 2+ input parameters fail (lbendig via daijy)
 
-PIG-3529: Upgrade HBase dependency from 0.95-SNAPSHOT to 0.96 (jarcec via daijy)
-
 PIG-3117: A debug mode in which pig does not delete temporary files (ihadanny via cheolsoo)
 
 PIG-3484: Make the size of pig.script property configurable (cheolsoo)
@@ -210,6 +208,8 @@ PIG-3496: Propagate HBase 0.95 jars to the backend (Jarek Jarcec Cecho  via xuef
 Release 0.12.1 (unreleased changes)
 
 IMPROVEMENTS
+
+PIG-3529: Upgrade HBase dependency from 0.95-SNAPSHOT to 0.96 (jarcec via daijy)
 
 PIG-3552: UriUtil used by reducer estimator should support viewfs (amatsukawa via aniket486)
 
