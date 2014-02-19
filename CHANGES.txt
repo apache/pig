@@ -22,6 +22,8 @@ Release 0.12.1 (unreleased changes)
 
 IMPROVEMENTS
 
+PIG-3529: Upgrade HBase dependency from 0.95-SNAPSHOT to 0.96 (jarcec via daijy)
+
 PIG-3552: UriUtil used by reducer estimator should support viewfs (amatsukawa via aniket486)
 
 PIG-3549: Print hadoop jobids for failed, killed job (aniket486)
