@@ -106,6 +106,7 @@ public class POShuffleTezLoad extends POPackage implements TezLoad {
             boolean hasData = false;
             Object cur = null;
             PigNullableWritable min = null;
+            int minIndex = -1;
 
             try {
                 for (int i = 0; i < numInputs; i++) {
@@ -114,6 +115,7 @@ public class POShuffleTezLoad extends POPackage implements TezLoad {
                         cur = readers.get(i).getCurrentKey();
                         if (min == null || comparator.compare(min, cur) > 0) {
                             min = ((PigNullableWritable)cur).clone();
+                            minIndex = i;
                         }
                     }
                 }
@@ -139,7 +141,8 @@ public class POShuffleTezLoad extends POPackage implements TezLoad {
                     if (!finished[i]) {
                         cur = readers.get(i).getCurrentKey();
                         // We need to loop in case of Grouping Comparators
-                        while (comparator.compare(min, cur) == 0) {
+                        while (comparator.compare(min, cur) == 0 && (!min.isNull() ||
+                                min.isNull() && i==minIndex)) {
                             Iterable<Object> vals = readers.get(i).getCurrentValues();
                             if (isAccumulative()) {
                                 // TODO: POPackageTupleBuffer expects the
