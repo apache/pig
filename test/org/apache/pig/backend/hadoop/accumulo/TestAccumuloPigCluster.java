@@ -165,7 +165,6 @@ public class TestAccumuloPigCluster {
     }
 
     @Test
-    // (timeout = 60000)
     public void test() throws Exception {
         loadTestData();
 
