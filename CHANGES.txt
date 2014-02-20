@@ -87,6 +87,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3674: Fix TestAccumuloPigCluster on Hadoop 2 (elserj via daijy)
+
 PIG-3740: Document direct fetch optimization (lbendig via cheolsoo)
 
 PIG-3746: NPE is thrown if Pig fails before PigStats is intialized (cheolsoo)
