@@ -110,7 +110,7 @@ public class TezResourceManager {
         // Ship the job.jar to the staging directory on the remote FS
         Path remoteJarPath = remoteFs.makeQualified(new Path(stagingDir, new Path(bootStrapJar.getFile()).getName()));
         remoteFs.copyFromLocalFile(new Path(jobJar.getAbsolutePath()), remoteJarPath);
-        resources.put(jobJar.getName(), remoteJarPath);
+        resources.put(new Path(bootStrapJar.getFile()).getName(), remoteJarPath);
     }
 
     public static Map<String, LocalResource> getTezResources(Set<String> resourceNames) throws Exception {
