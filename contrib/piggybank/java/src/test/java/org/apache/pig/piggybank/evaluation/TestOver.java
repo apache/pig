@@ -1610,6 +1610,13 @@ public class TestOver {
         t.set(4, 0);
         DataBag outbag = func.exec(t);
         assertEquals(7, outbag.size());
+        int count = 1;
+        for (Tuple to : outbag) {
+            assertEquals(1, to.size());
+            assertEquals(count/7.0, to.get(0));
+            count++;
+        }
+        /*
         Iterator<Tuple> iter = outbag.iterator();
         t = iter.next();
         assertEquals(0.14285714285714285, t.get(0));
@@ -1625,5 +1632,6 @@ public class TestOver {
         assertEquals(0.5714285714285714, t.get(0));
         t = iter.next();
         assertEquals(1.0, t.get(0));
+        */
     }
 }
