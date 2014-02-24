@@ -367,6 +367,7 @@
       <exclude org="commons-io" module="commons-io"/>
       <exclude org="commons-lang" module="commons-lang"/>
       <exclude org="commons-logging" module="commons-logging"/>
+      <exclude org="jline" module="jline"/>
       <exclude org="log4j" module="log4j"/>
       <exclude org="org.apache.hadoop" module="hadoop-client"/>
       <exclude org="org.apache.zookeeper" module="zookeeper"/>
@@ -383,6 +384,7 @@
       <exclude org="commons-io" module="commons-io"/>
       <exclude org="commons-lang" module="commons-lang"/>
       <exclude org="commons-logging" module="commons-logging"/>
+      <exclude org="jline" module="jline"/>
       <exclude org="log4j" module="log4j"/>
       <exclude org="org.apache.hadoop" module="hadoop-client"/>
       <exclude org="org.apache.zookeeper" module="zookeeper"/>
