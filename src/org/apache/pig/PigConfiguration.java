@@ -125,7 +125,7 @@ public class PigConfiguration {
      */
     public static final String MAX_SCRIPT_SIZE = "pig.script.max.size";
 
-   /**
+    /**
      * This key is used to define whether to have intermediate file compressed
      */
     public static final String PIG_ENABLE_TEMP_FILE_COMPRESSION = "pig.tmpfilecompression";
@@ -160,9 +160,9 @@ public class PigConfiguration {
     public static final String PERC_MEM_AVAIL = "pig.skewedjoin.reduce.memusage";
 
     /**
-      * This key used to control the maximum size loaded into
-      * the distributed cache when doing fragment-replicated join
-      */
+     * This key used to control the maximum size loaded into
+     * the distributed cache when doing fragment-replicated join
+     */
     public static final String PIG_JOIN_REPLICATED_MAX_BYTES = "pig.join.replicated.max.bytes";
 
     /**
@@ -186,5 +186,49 @@ public class PigConfiguration {
      * of nested distinct or sort
      */
     public static final String PIG_EXEC_NO_SECONDARY_KEY = "pig.exec.nosecondarykey";
+ 
+    /**
+     * This key used to control the sample size of RandomeSampleLoader for
+     * order-by. The default value is 100 rows per task.
+     */
+    public static final String PIG_RANDOM_SAMPLER_SAMPLE_SIZE = "pig.random.sampler.sample.size";
+
+    /**
+     * This key is to turn on auto local mode feature
+     */
+    public static final String PIG_AUTO_LOCAL_ENABLED = "pig.auto.local.enabled";
+
+    /**
+     * Controls the max threshold size to convert jobs to run in local mode
+     */
+    public static final String PIG_AUTO_LOCAL_INPUT_MAXBYTES = "pig.auto.local.input.maxbytes";
+
+    /**
+     * This parameter enables/disables fetching. By default it is turned on.
+     */
+    public static final String OPT_FETCH = "opt.fetch";
+
+    /**
+     * This key is used to define whether PigOutputFormat will be wrapped with LazyOutputFormat
+     * so that jobs won't write empty part files if no output is generated
+     */
+    public static final String PIG_OUTPUT_LAZY = "pig.output.lazy";
+
+    /**
+     * Location where pig stores temporary files for job setup
+     */
+    public static final String PIG_TEMP_DIR = "pig.temp.dir";
+
+    /**
+     * This key is turn on the user level cache
+     */
+    public static final String PIG_USER_CACHE_ENABLED = "pig.user.cache.enabled";
+
+    /**
+     * Location where additional jars are cached for the user
+     * Additional jar will be cached under PIG_USER_CACHE_LOCATION/${user.name}/.pigcache
+     * and will be re-used across the jobs run by the user if the jar has not changed
+     */
+    public static final String PIG_USER_CACHE_LOCATION = "pig.user.cache.location";
 }
 

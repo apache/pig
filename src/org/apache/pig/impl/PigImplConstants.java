@@ -36,4 +36,9 @@ public class PigImplConstants {
      * the set of disabled optimizer rules.
      */
     public static final String PIG_OPTIMIZER_RULES_KEY = "pig.optimizer.rules";
+
+    /**
+     * Used by pig to indicate that current job has been converted to run in local mode
+     */
+    public static final String CONVERTED_TO_LOCAL = "pig.job.converted.local";
 }

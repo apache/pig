@@ -113,7 +113,7 @@ public class JsonStorage extends StoreFunc implements StoreMetadata {
         UDFContext udfc = UDFContext.getUDFContext();
         Properties p =
             udfc.getUDFProperties(this.getClass(), new String[]{udfcSignature});
-        p.setProperty(SCHEMA_SIGNATURE, s.toString());
+        p.setProperty(SCHEMA_SIGNATURE, fixSchema(s).toString());
     }
 
 
@@ -308,6 +308,14 @@ public class JsonStorage extends StoreFunc implements StoreMetadata {
         metadataWriter.setFieldDel(fieldDel);
         metadataWriter.setRecordDel(recordDel);
         metadataWriter.storeSchema(schema, location, job);
+    }
+
+    public ResourceSchema fixSchema(ResourceSchema s){
+      for (ResourceFieldSchema filed : s.getFields()) {
+        if(filed.getType() == DataType.NULL)
+          filed.setType(DataType.BYTEARRAY);
+      }
+      return s;
     }
 
 }

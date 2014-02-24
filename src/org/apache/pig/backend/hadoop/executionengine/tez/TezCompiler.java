@@ -85,7 +85,6 @@ import org.apache.pig.impl.builtin.DefaultIndexableLoader;
 import org.apache.pig.impl.builtin.FindQuantiles;
 import org.apache.pig.impl.builtin.GetMemNumRows;
 import org.apache.pig.impl.builtin.PartitionSkewedKeys;
-import org.apache.pig.impl.builtin.ReadScalarsTez;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.DepthFirstWalker;
@@ -236,22 +235,22 @@ public class TezCompiler extends PhyPlanVisitor {
             }
             tezOper.setClosed(true);
         }
-        
+
         fixScalar();
 
         return tezPlan;
     }
-    
+
     private void fixScalar() throws VisitorException, PlanException {
         // Mapping POStore to POValueOuptut
         Map<POStore, POValueOutputTez> storeSeen = new HashMap<POStore, POValueOutputTez>();
-        
+
         for (TezOperator tezOp : tezPlan) {
             List<POUserFunc> userFuncs = PlanHelper.getPhysicalOperators(tezOp.plan, POUserFunc.class);
             for (POUserFunc userFunc : userFuncs) {
                 if (userFunc.getReferencedOperator()!=null) {  // Scalar
                     POStore store = (POStore)userFunc.getReferencedOperator();
- 
+
                     TezOperator from = phyToTezOpMap.get(store);
 
                     FuncSpec newSpec = new FuncSpec(ReadScalarsTez.class.getName(), from.getOperatorKey().toString());
@@ -323,7 +322,7 @@ public class TezCompiler extends PhyPlanVisitor {
                 POValueOutputTez valueOutput = new POValueOutputTez(new OperatorKey(scope,nig.getNextNodeId(scope)));
                 storeTezOper.plan.addAsLeaf(valueOutput);
                 storeTezOper.setSplitter(true);
-                
+
                 // Create a splittee of store only
                 TezOperator storeOnlyTezOperator = getTezOp();
                 PhysicalPlan storeOnlyPhyPlan = new PhysicalPlan();
@@ -334,7 +333,7 @@ public class TezCompiler extends PhyPlanVisitor {
                 storeOnlyTezOperator.plan = storeOnlyPhyPlan;
                 tezPlan.add(storeOnlyTezOperator);
                 phyToTezOpMap.put(store, storeOnlyTezOperator);
-                
+
                 // Create new operator as second splittee
                 curTezOp = getTezOp();
                 POValueInputTez valueInput2 = new POValueInputTez(new OperatorKey(scope,nig.getNextNodeId(scope)));
@@ -348,13 +347,13 @@ public class TezCompiler extends PhyPlanVisitor {
                 edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
                 edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
                 storeOnlyTezOperator.setRequestedParallelismByReference(storeTezOper);
-                
+
                 edge = TezCompilerUtil.connect(tezPlan, storeTezOper, curTezOp);
                 edge.dataMovementType = DataMovementType.ONE_TO_ONE;
                 edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
                 edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
                 curTezOp.setRequestedParallelismByReference(storeTezOper);
-                
+
                 return;
             }
 
@@ -1723,7 +1722,7 @@ public class TezCompiler extends PhyPlanVisitor {
         oper2.setGlobalSort(true);
         opers[1] = oper2;
         tezPlan.add(oper2);
-        
+
         long limit = sort.getLimit();
         //TODO: TezOperator limit not used at all
         oper2.limit = limit;
@@ -1738,7 +1737,7 @@ public class TezCompiler extends PhyPlanVisitor {
             }
             oper2.setSortOrder(sortOrder);
         }
-        
+
         identityInOutTez.setOutputKey(oper2.getOperatorKey().toString());
 
         if (limit!=-1) {
@@ -1982,7 +1981,7 @@ public class TezCompiler extends PhyPlanVisitor {
             curTezOp.plan.add(pkg);
             curTezOp.setRequestedParallelism(op.getRequestedParallelism());
             phyToTezOpMap.put(op, curTezOp);
-            // TODO: Use alias vertex that is introduced by TEZ-678 
+            // TODO: Use alias vertex that is introduced by TEZ-678
         } catch (Exception e) {
             int errCode = 2034;
             String msg = "Error compiling operator " + op.getClass().getSimpleName();

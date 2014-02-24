@@ -29,6 +29,8 @@ import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.input.ClassLoaderObjectInputStream;
 
 public class ObjectSerializer {
 
@@ -51,12 +53,15 @@ public class ObjectSerializer {
     public static Object deserialize(String str) throws IOException {
         if (str == null || str.length() == 0)
             return null;
+        ObjectInputStream objStream = null;
         try {
             ByteArrayInputStream serialObj = new ByteArrayInputStream(decodeBytes(str));
-            ObjectInputStream objStream = new ObjectInputStream(new InflaterInputStream(serialObj));
+            objStream = new ClassLoaderObjectInputStream(Thread.currentThread().getContextClassLoader(), new InflaterInputStream(serialObj));
             return objStream.readObject();
         } catch (Exception e) {
             throw new IOException("Deserialization error: " + e.getMessage(), e);
+        } finally {
+            IOUtils.closeQuietly(objStream);
         }
     }
 

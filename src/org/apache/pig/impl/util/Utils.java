@@ -26,9 +26,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.SequenceInputStream;
-import java.net.Socket;
-import java.net.SocketException;
-import java.net.SocketImplFactory;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
@@ -340,7 +337,7 @@ public class Utils {
     }
 
     public static FileInputLoadFunc getTmpFileStorageObject(Configuration conf) throws IOException {
-        Class<? extends FileInputLoadFunc> storageClass = getTmpFileStorage(ConfigurationUtil.toProperties(conf)).getStorageClass();
+        Class<? extends FileInputLoadFunc> storageClass = getTmpFileStorageClass(ConfigurationUtil.toProperties(conf));
         try {
             return storageClass.newInstance();
         } catch (InstantiationException e) {
@@ -348,6 +345,10 @@ public class Utils {
         } catch (IllegalAccessException e) {
             throw new IOException(e);
         }
+    }
+
+    public static Class<? extends FileInputLoadFunc> getTmpFileStorageClass(Properties properties) {
+       return getTmpFileStorage(properties).getStorageClass();
     }
 
     private static TEMPFILE_STORAGE getTmpFileStorage(Properties properties) {
@@ -369,7 +370,20 @@ public class Utils {
         }
     }
 
+    public static void setMapredCompressionCodecProps(Configuration conf) {
+        String codec = conf.get(
+                PigConfiguration.PIG_TEMP_FILE_COMPRESSION_CODEC, "");
+        if ("".equals(codec) && conf.get("mapred.output.compression.codec") != null) {
+            conf.setBoolean("mapred.output.compress", true);
+        } else if(TEMPFILE_STORAGE.SEQFILE.ensureCodecSupported(codec)) {
+            conf.setBoolean("mapred.output.compress", true);
+            conf.set("mapred.output.compression.codec", TEMPFILE_CODEC.valueOf(codec.toUpperCase()).getHadoopCodecClassName());
+        }
+        // no codec specified
+    }
+
     public static void setTmpFileCompressionOnConf(PigContext pigContext, Configuration conf) throws IOException{
+        // PIG-3741 This is also called for non-intermediate jobs, do not set any mapred properties here
         if (pigContext == null) {
             return;
         }
@@ -380,7 +394,6 @@ public class Utils {
         case INTER:
             break;
         case SEQFILE:
-            conf.setBoolean("mapred.output.compress", true);
             conf.set(PigConfiguration.PIG_TEMP_FILE_COMPRESSION_STORAGE, "seqfile");
             if("".equals(codec)) {
                 // codec is not specified, ensure  is set
@@ -389,7 +402,7 @@ public class Utils {
                     throw new IOException("mapred.output.compression.codec is not set");
                 }
             } else if(storage.ensureCodecSupported(codec)) {
-                conf.set("mapred.output.compression.codec", TEMPFILE_CODEC.valueOf(codec.toUpperCase()).getHadoopCodecClassName());
+                // do nothing
             } else {
                 throw new IOException("Invalid temporary file compression codec [" + codec + "]. " +
                         "Expected compression codecs for " + storage.getStorageClass().getName() + " are " + storage.supportedCodecsToString() + ".");

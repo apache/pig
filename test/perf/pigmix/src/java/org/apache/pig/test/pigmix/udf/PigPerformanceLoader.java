@@ -121,7 +121,7 @@ public class PigPerformanceLoader extends PigStorage {
 
                 byte[] copy = new byte[pos - start];
                 int i, j;
-                for (i = start + 1, j = 0; i < pos; i++, j++) copy[j] = b[i];
+                for (i = start, j = 0; i < pos; i++, j++) copy[j] = b[i];
                 String val = bytesToCharArray(copy);
                 m.put(key, val);
                 pos++; // move past ^C
@@ -172,7 +172,7 @@ public class PigPerformanceLoader extends PigStorage {
         @Override
         public Map<String, Object> bytesToMap(byte[] arg0,
                 ResourceFieldSchema fs) throws IOException {
-            return helper.bytesToMap(arg0, fs);
+            return bytesToMap(arg0);
         }
 
         @Override

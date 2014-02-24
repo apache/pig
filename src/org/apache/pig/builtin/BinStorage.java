@@ -143,8 +143,8 @@ implements StoreFuncInterface, LoadMetadata {
     private static final Log mLog = LogFactory.getLog(BinStorage.class);
     protected long                end            = Long.MAX_VALUE;
 
-    static String casterString = null;
-    static LoadCaster caster = null;
+    private String casterString = null;
+    private LoadCaster caster = null;
 
     private BinStorageRecordReader recReader = null;
     private BinStorageRecordWriter recWriter = null;

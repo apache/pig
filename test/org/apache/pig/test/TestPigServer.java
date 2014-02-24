@@ -50,6 +50,7 @@ import java.util.Properties;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
@@ -58,6 +59,7 @@ import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.builtin.mock.Storage;
 import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.DataType;
@@ -776,14 +778,20 @@ public class TestPigServer {
         File propertyFile = new File(tempDir, "pig.properties");
         propertyFile.deleteOnExit();
         PrintWriter out = new PrintWriter(new FileWriter(propertyFile));
-        out.println("pig.temp.dir=/opt/temp");
+        out.println(PigConfiguration.PIG_TEMP_DIR + "=/tmp/test");
         out.close();
         Properties properties = PropertiesUtil.loadDefaultProperties();
         PigContext pigContext=new PigContext(ExecType.LOCAL, properties);
         pigContext.connect();
         FileLocalizer.setInitialized(false);
         String tempPath= FileLocalizer.getTemporaryPath(pigContext).toString();
-        assertTrue(tempPath.startsWith("file:/opt/temp"));
+        assertTrue(tempPath.startsWith("file:/tmp/test/"));
+        Path path = new Path(tempPath);
+        FileSystem fs = FileSystem.get(path.toUri(),
+                ConfigurationUtil.toConfiguration(pigContext.getProperties()));
+        FileStatus status = fs.getFileStatus(path.getParent());
+        // Temporary root dir should have 700 as permission
+        assertEquals("rwx------", status.getPermission().toString());
         propertyFile.delete();
         FileLocalizer.setInitialized(false);
     }

@@ -52,6 +52,7 @@ public class TestRank3 {
             pigServer = new PigServer("local");
 
             data = resetData(pigServer);
+            data.set("empty");
             data.set(
                     "testcascade",
                     tuple(3,2,3),
@@ -140,6 +141,19 @@ public class TestRank3 {
         );
 
         verifyExpected(data.get("result"), expected);
+    }
+
+    // See PIG-3726
+    @Test
+    public void testRankEmptyRelation() throws Exception {
+      String query = "DATA = LOAD 'empty' USING mock.Storage();"
+        + "A = rank DATA;"
+        + "store A into 'empty_result' using mock.Storage();";
+
+      Util.registerMultiLineQuery(pigServer, query);
+
+      Set<Tuple> expected = ImmutableSet.of();
+      verifyExpected(data.get("empty_result"), expected);
     }
 
     public void verifyExpected(List<Tuple> out, Set<Tuple> expected) {

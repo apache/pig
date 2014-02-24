@@ -125,11 +125,7 @@ public class POUserFunc extends ExpressionOperator {
     private void instantiateFunc(FuncSpec fSpec) {
         this.func = (EvalFunc) PigContext.instantiateFuncFromSpec(fSpec);
         this.setSignature(signature);
-        Properties props = UDFContext.getUDFContext().getUDFProperties(func.getClass());
-    	Schema tmpS=(Schema)props.get("pig.evalfunc.inputschema."+signature);
-
-    	if(tmpS!=null)
-    		this.func.setInputSchema(tmpS);
+        this.setFuncInputSchema(signature);
         if (func.getClass().isAnnotationPresent(MonitoredUDF.class)) {
             executor = new MonitoredUDFExecutor(func);
         }
@@ -609,4 +605,17 @@ public class POUserFunc extends ExpressionOperator {
             this.func.setUDFContextSignature(signature);
         }
     }
+
+    /**
+     * Sets EvalFunc's inputschema based on the signature
+     * @param signature
+     */
+    public void setFuncInputSchema(String signature) {
+        Properties props = UDFContext.getUDFContext().getUDFProperties(func.getClass());
+        Schema tmpS=(Schema)props.get("pig.evalfunc.inputschema."+signature);
+        if(tmpS!=null) {
+            this.func.setInputSchema(tmpS);
+        }
+    }
+
 }

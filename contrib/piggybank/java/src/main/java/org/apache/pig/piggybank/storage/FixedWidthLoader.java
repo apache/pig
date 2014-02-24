@@ -295,7 +295,7 @@ public class FixedWidthLoader extends LoadFunc implements LoadMetadata, LoadPush
     
     @Override
     public Tuple getNext() throws IOException {
-        if (loadingFirstRecord && skipHeader && splitIndex == 0) {
+        if (loadingFirstRecord && skipHeader && (splitIndex == 0 || splitIndex == -1)) {
             try {
                 if (!reader.nextKeyValue()) 
                     return null;

@@ -2152,7 +2152,164 @@ STORE measurements INTO 'measurements' USING AvroStorage(
    AvroStorage. See <a href="#AvroStorage">AvroStorage</a> for a detailed description of the
    arguments for TrevniStorage.</p>
    </section>
+
+    <!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->
+    <section id="AccumuloStorage">
+        <title>AccumuloStorage</title>
+        <p>Loads or stores data from an Accumulo table. The first element in a Tuple is equivalent to the "row"
+            from the Accumulo Key, while the columns in that row are can be grouped in various static or wildcarded
+            ways. Basic wildcarding functionality exists to group various columns families/qualifiers into a Map for
+            LOADs, or serialize a Map into some group of column families or qualifiers on STOREs.
+        </p>
+
+        <section>
+            <title>Syntax</title>
+            <table>
+                <tr>
+                     <td>
+                        <p>AccumuloStorage(['columns'[, 'options']])</p>
+                     </td>
+                  </tr>
+            </table>
+        </section>
+
+        <section>
+            <title>Arguments</title>
+            <table>
+                <tr>
+                    <td>
+                        <p>'columns'</p>
+                    </td>
+                    <td>
+                        <p>A comma-separated list of "columns" to read data from to write data to.
+                           Each of these columns can be considered one of three different types:
+                        </p>
+
+                        <ol>
+                            <li>Literal</li>
+                            <li>Column family prefix</li>
+                            <li>Column qualifier prefix</li>
+                        </ol>
+
+                        <p><strong>Literal:</strong> this is the simplest specification
+                           which is a colon-delimited string that maps to a column family and column
+                           qualifier. This will read/write a simple scalar from/to Accumulo.
+                        </p>
+
+                        <p><strong>Column family prefix:</strong> When reading data, this
+                            will fetch data from Accumulo Key-Values in the current row whose column family match the 
+                            given prefix. This will result in a Map being placed into the Tuple. When writing
+                            data, a Map is also expected at the given offset in the Tuple whose Keys will be 
+                            appended to the column family prefix, an empty column qualifier is used, and the Map
+                            value will be placed in the Accumulo Value. A valid column family prefix is a literal
+                            asterisk (*) in which case the Map Key will be equivalent to the Accumulo column family.
+                        </p>
+                        
+                        <p><strong>Column qualifier prefix:</strong> Similar to the column
+                            family prefix except it operates on the column qualifier. On reads, Accumulo Key-Values
+                            in the same row that match the given column family and column qualifier prefix will be
+                            placed into a single Map. On writes, the provided column family from the column specification
+                            will be used, the Map key will be appended to the column qualifier provided in the specification,
+                            and the Map Value will be the Accumulo Value.
+                        </p>
+
+                        <p>When "columns" is not provided or is a blank String, it is treated equivalently to "*".
+                            This is to say that when a column specification string is not provided, for reads, all columns
+                            in the given Accumulo row will be placed into a single Map (with the Map keys being colon
+                            delimited to preserve the column family/qualifier from Accumulo). For writes, the Map keys
+                            will be placed into the column family and the column qualifier will be empty.
+                        </p>
+                    </td>
+               </tr>
+               <tr>
+                    <td>
+                        <p>'options'</p>
+                    </td>
+                    <td>
+                        <p>A string that contains space-separated options ("optionA valueA -optionB valueB -optionC valueC")</p>
+                        <p>The currently supported options are:</p>
+                        <ul>
+                            <li>(-c|--caster) LoadStoreCasterImpl An implementation of a LoadStoreCaster to use when serializing types into Accumulo,
+                                usually AccumuloBinaryConverter or UTF8StringConverter, defaults to UTF8StorageConverter.
+                            </li>
+                            <li>(-auths|--authorizations) auth1,auth2... A comma-separated list of Accumulo authorizations to use when reading
+                                data from Accumulo. Defaults to the empty set of authorizations (none).
+                            </li>
+                            <li>(-s|--start) start_row The Accumulo row to begin reading from, inclusive</li>
+                            <li>(-e|--end) end_row The Accumulo row to read until, inclusive</li>
+                            <li>(-buff|--mutation-buffer-size) num_bytes The number of bytes to buffer when writing data to Accumulo. A higher
+                                value requires more memory</li>
+                            <li>(-wt|--write-threads) num_threads The number of threads used to write data to Accumulo.</li>
+                            <li>(-ml|--max-latency) milliseconds Maximum time in milliseconds before data is flushed to Accumulo.</li>
+                            <li>(-sep|--separator) str The separator character used when parsing the column specification, defaults to comma (,)</li>
+                            <li>(-iw|--ignore-whitespace) (true|false) Should whitespace be stripped from the column specification, defaults to true</li>
+                       </ul>
+                    </td>
+               </tr>
+            </table>
+        </section>
+
+        <section>
+            <title>Usage</title>
+   
+            <p>AccumuloStorage has the functionality to store or fetch data from Accumulo. Its goal is to provide
+                a simple, widely applicable table schema compatible with Pig's API. Each Tuple contains some subset
+                of the columns stored within one row of the Accumulo table, which depends on the columns provided
+                as an argument to the function. If '*' is provided, all columns in the table will be returned. The
+                second argument provides control over a variety of options that can be used to change various properties.</p>
+            <p>When invoking Pig Scripts that use AccumuloStorage, it's important to ensure that Pig has the Accumulo
+                jars on its classpath. This is easily achieved using the ACCUMULO_HOME environment variable.
+            </p>
+<source>
+PIG_CLASSPATH="$ACCUMULO_HOME/lib/*:$PIG_CLASSPATH" pig my_script.pig
+</source>
+        </section>
+
+        <section>
+            <title>Load Example</title>
+            <p>It is simple to fetch all columns from Airport codes that fall between Boston and San Francisco
+                that can be viewed with 'auth1' and/or 'auth2' Accumulo authorizations.</p>
+<source>
+raw = LOAD 'accumulo://airports?instance=accumulo&amp;user=root&amp;password=passwd&amp;zookeepers=localhost'
+      USING org.apache.pig.backend.hadoop.accumulo.AccumuloStorage(
+      '*', '-a auth1,auth2 -s BOS -e SFO') AS
+      (code:chararray, all_columns:map[]);
+</source>
+            <p>The datatypes of the columns are declared with the "AS" clause. In this example, the row key,
+                which is the unique airport code is assigned to the "code" variable while all of the other
+                columns are placed into the map. When there is a non-empty column qualifier, the key in that
+                map will have a colon which separates which portion of the key came from the column family and
+                which portion came from the column qualifier. The Accumulo value is placed in the Map value.</p>
+                
+            <p>Most times, it is not necessary, nor desired for performance reasons, to fetch all columns.</p>
+<source>
+raw = LOAD 'accumulo://airports?instance=accumulo&amp;user=root&amp;password=passwd&amp;zookeepers=localhost'
+      USING org.apache.pig.backend.hadoop.accumulo.AccumuloStorage(
+      'name,building:num_terminals,carrier*,reviews:transportation*') AS
+      (code:chararray name:bytearray carrier_map:map[] transportion_reviews_map:map[]);
+</source>      
+            <p>An asterisk can be used when requesting columns to group a collection of columns into a single 
+                Map instead of enumerating each column.</p>
+        </section>
+
+        <section>
+            <title>Store Example</title>
+            <p>Data can be easily stored into Accumulo.</p>
+<source>
+A = LOAD 'flights.txt' AS (id:chararray, carrier_name:chararray, src_airport:chararray, dest_airport:chararray, tail_number:int);
+STORE A INTO 'accumulo://flights?instance=accumulo&amp;user=root&amp;password=passwd&amp;zookeepers=localhost' USING 
+    org.apache.pig.backend.hadoop.accumulo.AccumuloStorage('carrier_name,src_airport,dest_airport,tail_number');
+</source>
+            <p>Here, we read the file 'flights.txt' out of HDFS and store the results into the relation A.
+                We extract a unique ID for the flight, its source and destination and the tail number from the
+                given file. When STORE'ing back into Accumulo, we specify the column specifications (in this case,
+                just a column family). It is also important to note that four elements are provided as columns
+                because the first element in the Tuple is used as the row in Accumulo.
+            </p>
+        </section>
+   </section>
 </section>
+
 
 <!-- ======================================================== -->  
 <!-- ======================================================== -->  

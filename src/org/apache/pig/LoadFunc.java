@@ -33,6 +33,7 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.LoadPushDown.RequiredFieldList;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigHadoopLogger;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.builtin.Utf8StorageConverter;
 import org.apache.pig.data.Tuple;
@@ -302,8 +303,6 @@ public abstract class LoadFunc {
      * @param warningEnum type of warning
      */
     public final void warn(String msg, Enum warningEnum) {
-        Counter counter = PigStatusReporter.getInstance().getCounter(warningEnum);
-        if (counter!=null)
-            counter.increment(1);
+        PigHadoopLogger.getInstance().warn(this, msg, warningEnum);
     }
 }

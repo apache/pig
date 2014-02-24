@@ -113,6 +113,9 @@ public class TestJsonLoaderStorage {
     "\"m\":null" +
     "}";
 
+  private static final String jsonOutput =
+    "{\"f1\":\"18\",\"count\":3}";
+
   private Iterator<Tuple> loadJson(String input) throws IOException {
     File tempFile = File.createTempFile("json", null);
     tempFile.deleteOnExit();
@@ -320,5 +323,54 @@ public class TestJsonLoaderStorage {
     assertEquals(1, count);
 
     br.close();
+  }
+
+  @Test
+  public void testSimpleMapSideStreaming() throws Exception {
+    PigServer pigServer = new PigServer(ExecType.LOCAL);
+    File input = Util.createInputFile("tmp", "", new String [] {"1,2,3;4,5,6,7,8",
+        "1,2,3;4,5,6,7,9",
+        "1,2,3;4,5,6,7,18"});
+    File tempJsonFile = File.createTempFile("json", "");
+    tempJsonFile.delete();
+
+    // Pig query to run
+    pigServer.registerQuery("IP = load '"+  Util.generateURI(Util.encodeEscape(input.toString()), pigServer.getPigContext())
+        +"' using PigStorage (';') as (ID:chararray,DETAILS:chararray);");
+    pigServer.registerQuery(
+        "id_details = FOREACH IP GENERATE " +
+            "FLATTEN" +
+            "(STRSPLIT" +
+            "(ID,',',3)) AS (drop, code, transaction) ," +
+            "FLATTEN" +
+            "(STRSPLIT" +
+            "(DETAILS,',',5)) AS (lname, fname, date, price, product);");
+    pigServer.registerQuery(
+        "transactions = FOREACH id_details GENERATE $0 .. ;");
+    pigServer.registerQuery(
+        "transactionsG = group transactions by code;");
+    pigServer.registerQuery(
+        "uniqcnt  = foreach transactionsG {"+
+            "sym = transactions.product ;"+
+            "dsym =  distinct sym ;"+
+            "generate flatten(dsym.product) as f1, COUNT(dsym) as count ;" +
+            "};");
+    pigServer.store("uniqcnt", tempJsonFile.getAbsolutePath(), "JsonStorage");
+
+    BufferedReader br = new BufferedReader(new FileReader(tempJsonFile.getAbsolutePath()+ "/part-r-00000"));
+    String data = br.readLine();
+
+    assertEquals(jsonOutput, data);
+
+    String line = data;
+    int count = 0;
+    while (line != null) {
+      line = br.readLine();
+      count++;
+    }
+    assertEquals(3, count);
+
+    br.close();
+    tempJsonFile.deleteOnExit();
   }
 }

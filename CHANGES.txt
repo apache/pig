@@ -26,7 +26,34 @@ PIG-3485: Remove CastUtils.bytesToMap(byte[] b) method from LoadCaster interface
 
 PIG-3419: Pluggable Execution Engine (achalsoni81 via cheolsoo)
 
+PIG-2207: Support custom counters for aggregating warnings from different udfs (aniket486)
+
 IMPROVEMENTS
+
+PIG-3675: Documentation for AccumuloStorage (elserj via daijy)
+
+PIG-3648: Make the sample size for RandomSampleLoader configurable (cheolsoo)
+
+PIG-259: allow store to overwrite existing directroy (nezihyigitbasi via daijy)
+
+PIG-2672: Optimize the use of DistributedCache (aniket486)
+
+PIG-3238: Pig current releases lack a UDF Stuff(). This UDF deletes a specified length of characters
+ and inserts another set of characters at a specified starting point (nezihyigitbasi via daijy)
+
+PIG-3299: Provide support for LazyOutputFormat to avoid creating empty files (lbendig via daijy)
+
+PIG-3642: Direct HDFS access for small jobs (fetch) (lbendig via cheolsoo)
+
+PIG-3730: Performance issue in SelfSpillBag (rajesh.balamohan via rohini)
+
+PIG-3654: Add class cache to PigContext (tmwoodruff via daijy)
+
+PIG-3463: Pig should use hadoop local mode for small jobs (aniket486)
+
+PIG-3573: Provide StoreFunc and LoadFunc for Accumulo (elserj via daijy)
+
+PIG-3653: Add support for pre-deployed jars (tmwoodruff via daijy)
 
 PIG-3645: Move FileLocalizer.setR() calls to unit tests (cheolsoo)
 
@@ -54,8 +81,6 @@ PIG-3295: Casting from bytearray failing after Union even when each field is fro
 
 PIG-3444: CONCAT with 2+ input parameters fail (lbendig via daijy)
 
-PIG-3529: Upgrade HBase dependency from 0.95-SNAPSHOT to 0.96 (jarcec via daijy)
-
 PIG-3117: A debug mode in which pig does not delete temporary files (ihadanny via cheolsoo)
 
 PIG-3484: Make the size of pig.script property configurable (cheolsoo)
@@ -63,6 +88,55 @@ PIG-3484: Make the size of pig.script property configurable (cheolsoo)
 OPTIMIZATIONS
  
 BUG FIXES
+
+PIG-3776: Conflicting versions of jline is present in trunk (cheolsoo)
+
+PIG-3674: Fix TestAccumuloPigCluster on Hadoop 2 (elserj via daijy)
+
+PIG-3740: Document direct fetch optimization (lbendig via cheolsoo)
+
+PIG-3746: NPE is thrown if Pig fails before PigStats is intialized (cheolsoo)
+
+PIG-3747: Update skewed join documentation (cheolsoo)
+
+PIG-3755: auto local mode selection does not check lower bound for size (aniket486)
+
+PIG-3753: LOGenerate generates null schema (daijy)
+
+PIG-3447: Compiler warning message dropped for CastLineageSetter and others with no enum kind (knoguchi via cheolsoo)
+
+PIG-3627: Json storage : Doesn't work in cases , where other Store Functions (like PigStorage / AvroStorage)
+ do work (ssvinarchukhorton via daijy)
+
+PIG-3606: Pig script throws error when searching for hcatalog jars in latest hive (deepesh via daijy)
+
+PIG-3623: HBaseStorage: setting loadKey and noWAL to false doesn't have any affect (nezihyigitbasi via rohini)
+
+PIG-3744: SequenceFileLoader does not support BytesWritable (rohini)
+
+PIG-3726: Ranking empty records leads to NullPointerException (jarcec via daijy)
+
+PIG-3652: Pigmix parser (PigPerformanceLoader) deletes chars during parsing (keren3000 via daijy)
+
+PIG-3722: Udf deserialization for registered classes fails in local_mode (aniket486)
+
+PIG-3641: Split "otherwise" producing incorrect output when combined with ColumnPruning (knoguchi)
+
+PIG-3682: mvn-inst target does not install pig-h2.jar into local .m2 (raluri via aniket486)
+
+PIG-3661: Piggybank AvroStorage fails if used in more than one load or store statement (rohini)
+
+PIG-3511: Security: Pig temporary directories might have world readable permissions (rohini)
+
+PIG-3664: Piggy Bank XPath UDF can't be called (nezihyigitbasi via daijy)
+
+PIG-3662: Static loadcaster in BinStorage can cause exception (lbendig via rohini)
+
+PIG-3617: problem with temp file deletion in MAPREDUCE operator (nezihyigitbasi via cheolsoo)
+
+PIG-3649: POPartialAgg incorrectly calculates size reduction when multiple values aggregated (tmwoodruff via daijy)
+
+PIG-3650: Fix for PIG-3100 breaks column pruning (tmwoodruff via daijy)
 
 PIG-3643: Nested Foreach with UDF and bincond is broken (cheolsoo)
 
@@ -141,6 +215,8 @@ Release 0.12.1 (unreleased changes)
 
 IMPROVEMENTS
 
+PIG-3529: Upgrade HBase dependency from 0.95-SNAPSHOT to 0.96 (jarcec via daijy)
+
 PIG-3552: UriUtil used by reducer estimator should support viewfs (amatsukawa via aniket486)
 
 PIG-3549: Print hadoop jobids for failed, killed job (aniket486)
@@ -150,6 +226,18 @@ PIG-3047: Check the size of a relation before adding it to distributed cache in 
 PIG-3480: TFile-based tmpfile compression crashes in some cases (dvryaboy via aniket486)
 
 BUG FIXES
+
+PIG-3774: Piggybank Over UDF get wrong result (daijy)
+
+PIG-3657: New partition filter extractor fails with NPE (cheolsoo)
+
+PIG-3347: Store invocation brings side effect (daijy)
+
+PIG-3670: Fix assert in Pig script (daijy)
+
+PIG-3741: Utils.setTmpFileCompressionOnConf can cause side effect for SequenceFileInterStorage (aniket486)
+
+PIG-3677: ConfigurationUtil.getLocalFSProperties can return an inconsistent property set (rohini)
 
 PIG-3621: Python Avro library can't read Avros made with builtin AvroStorage (rusell.jurney via cheolsoo)
 

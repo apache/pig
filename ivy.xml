@@ -358,6 +358,40 @@
     <dependency org="com.yammer.metrics" name="metrics-core" rev="${metrics-core.version}"
        conf="test->default"/>
 
+    <!-- Dependency for Accumulo{Input,Output}Format -->
+    <dependency org="org.apache.accumulo" name="accumulo-core" rev="${accumulo15.version}" conf="compile->default">
+      <exclude org="com.google.guava" module="guava"/>
+      <exclude org="commons-codec" module="commons-codec"/>
+      <exclude org="commons-collections" module="commons-collections"/>
+      <exclude org="commons-configuration" module="commons-configuration"/>
+      <exclude org="commons-io" module="commons-io"/>
+      <exclude org="commons-lang" module="commons-lang"/>
+      <exclude org="commons-logging" module="commons-logging"/>
+      <exclude org="jline" module="jline"/>
+      <exclude org="log4j" module="log4j"/>
+      <exclude org="org.apache.hadoop" module="hadoop-client"/>
+      <exclude org="org.apache.zookeeper" module="zookeeper"/>
+      <exclude org="org.slf4j" module="slf4j-api"/>
+      <exclude org="org.slf4j" module="slf4j-log4j12"/>
+    </dependency>
+
+    <!-- Used for 'functional' Accumulo tests -->
+    <dependency org="org.apache.accumulo" name="accumulo-minicluster" rev="${accumulo15.version}" conf="compile->default">
+      <exclude org="com.google.guava" module="guava"/>
+      <exclude org="commons-codec" module="commons-codec"/>
+      <exclude org="commons-collections" module="commons-collections"/>
+      <exclude org="commons-configuration" module="commons-configuration"/>
+      <exclude org="commons-io" module="commons-io"/>
+      <exclude org="commons-lang" module="commons-lang"/>
+      <exclude org="commons-logging" module="commons-logging"/>
+      <exclude org="jline" module="jline"/>
+      <exclude org="log4j" module="log4j"/>
+      <exclude org="org.apache.hadoop" module="hadoop-client"/>
+      <exclude org="org.apache.zookeeper" module="zookeeper"/>
+      <exclude org="org.slf4j" module="slf4j-api"/>
+      <exclude org="org.slf4j" module="slf4j-log4j12"/>
+    </dependency>
+
     <!-- for piggybank -->
     <dependency org="hsqldb" name="hsqldb" rev="${hsqldb.version}"
       conf="test->default" />

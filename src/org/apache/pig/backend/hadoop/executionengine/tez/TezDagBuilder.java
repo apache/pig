@@ -201,7 +201,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 break;
             }
         }
-        
+
         List<POValueOutputTez> valueOutputs = PlanHelper.getPhysicalOperators(from.plan,
                 POValueOutputTez.class);
         if (!valueOutputs.isEmpty()) {

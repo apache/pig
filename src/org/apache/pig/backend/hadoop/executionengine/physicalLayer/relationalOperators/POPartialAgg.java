@@ -369,7 +369,7 @@ public class POPartialAgg extends PhysicalOperator implements Spillable {
             Result res = getOutput(entry.getKey(), valueTuple);
             iter.remove();
             addKeyValToMap(toMap, entry.getKey(), getAggResultTuple(res.result));
-            numEntriesInTarget += valueTuple.size() - 1;
+            numEntriesInTarget++;
         }
         return numEntriesInTarget;
     }

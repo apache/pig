@@ -40,7 +40,7 @@ public class ExecTypeProvider {
         for (ExecType execType : frameworkLoader) {
             log.info("Trying ExecType : " + execType);
             if (execType.accepts(properties)) {
-                log.debug("Picked " + execType + " as the ExecType");
+                log.info("Picked " + execType + " as the ExecType");
                 return getSingleton(execType);
             } else {
                 log.debug("Cannot pick " + execType + " as the ExecType");

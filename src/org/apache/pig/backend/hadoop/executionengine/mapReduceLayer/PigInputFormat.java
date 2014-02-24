@@ -26,7 +26,6 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.InputFormat;
@@ -56,14 +55,6 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
     public static final Log log = LogFactory
             .getLog(PigInputFormat.class);
 
-    private static final PathFilter hiddenFileFilter = new PathFilter() {
-        @Override
-        public boolean accept(Path p) {
-            String name = p.getName();
-            return !name.startsWith("_") && !name.startsWith(".");
-        }
-    };
-
     public static final String PIG_INPUTS = "pig.inputs";
 
     /**
@@ -77,6 +68,7 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
     /* (non-Javadoc)
      * @see org.apache.hadoop.mapreduce.InputFormat#createRecordReader(org.apache.hadoop.mapreduce.InputSplit, org.apache.hadoop.mapreduce.TaskAttemptContext)
      */
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public org.apache.hadoop.mapreduce.RecordReader<Text, Tuple> createRecordReader(
             org.apache.hadoop.mapreduce.InputSplit split,
@@ -127,7 +119,7 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
      * @throws IOException
      */
     static void mergeSplitSpecificConf(LoadFunc loadFunc, PigSplit pigSplit, Configuration originalConf)
-    throws IOException {
+            throws IOException {
         // set up conf with entries from input specific conf
         Job job = new Job(originalConf);
         loadFunc.setLocation(getLoadLocation(pigSplit.getInputIndex(),
@@ -147,8 +139,8 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
     @SuppressWarnings("unchecked")
     private static LoadFunc getLoadFunc(int inputIndex, Configuration conf) throws IOException {
         ArrayList<FileSpec> inputs =
-            (ArrayList<FileSpec>) ObjectSerializer.deserialize(
-                    conf.get(PIG_INPUTS));
+                (ArrayList<FileSpec>) ObjectSerializer.deserialize(
+                        conf.get(PIG_INPUTS));
         FuncSpec loadFuncSpec = inputs.get(inputIndex).getFuncSpec();
         return (LoadFunc) PigContext.instantiateFuncFromSpec(loadFuncSpec);
     }
@@ -156,8 +148,8 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
     @SuppressWarnings("unchecked")
     private static String getLoadLocation(int inputIndex, Configuration conf) throws IOException {
         ArrayList<FileSpec> inputs =
-            (ArrayList<FileSpec>) ObjectSerializer.deserialize(
-                    conf.get(PIG_INPUTS));
+                (ArrayList<FileSpec>) ObjectSerializer.deserialize(
+                        conf.get(PIG_INPUTS));
         return inputs.get(inputIndex).getFileName();
     }
 
@@ -174,8 +166,8 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
     static void passLoadSignature(LoadFunc loadFunc, int inputIndex,
             Configuration conf) throws IOException {
         List<String> inpSignatureLists =
-            (ArrayList<String>)ObjectSerializer.deserialize(
-                    conf.get("pig.inpSignatures"));
+                (ArrayList<String>)ObjectSerializer.deserialize(
+                        conf.get("pig.inpSignatures"));
         // signature can be null for intermediate jobs where it will not
         // be required to be passed down
         if(inpSignatureLists.get(inputIndex) != null) {
@@ -189,10 +181,10 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
     /* (non-Javadoc)
      * @see org.apache.hadoop.mapreduce.InputFormat#getSplits(org.apache.hadoop.mapreduce.JobContext)
      */
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public List<InputSplit> getSplits(JobContext jobcontext)
-                        throws IOException, InterruptedException {
+            throws IOException, InterruptedException {
 
         Configuration conf = jobcontext.getConfiguration();
 
@@ -250,8 +242,8 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
                 LoadFunc loadFunc = (LoadFunc) PigContext.instantiateFuncFromSpec(
                         loadFuncSpec);
                 boolean combinable = !(loadFunc instanceof MergeJoinIndexer
-                                    || loadFunc instanceof IndexableLoadFunc
-                                    || (loadFunc instanceof CollectableLoadFunc && loadFunc instanceof OrderedLoadFunc));
+                        || loadFunc instanceof IndexableLoadFunc
+                        || (loadFunc instanceof CollectableLoadFunc && loadFunc instanceof OrderedLoadFunc));
                 if (combinable)
                     combinable = !conf.getBoolean("pig.noSplitCombination", false);
                 JobConf confClone = new JobConf(conf);
@@ -280,9 +272,9 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
                 int errCode = 2118;
                 String msg = "Unable to create input splits for: " + inputs.get(i).getFileName();
                 if(e.getMessage() !=null && (!e.getMessage().isEmpty()) ){
-                	throw new ExecException(e.getMessage(), errCode, PigException.BUG, e);
+                    throw new ExecException(e.getMessage(), errCode, PigException.BUG, e);
                 }else{
-                	throw new ExecException(msg, errCode, PigException.BUG, e);
+                    throw new ExecException(msg, errCode, PigException.BUG, e);
                 }
             }
         }
@@ -311,7 +303,7 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
 
     protected List<InputSplit> getPigSplits(List<InputSplit> oneInputSplits,
             int inputIndex, ArrayList<OperatorKey> targetOps, long blockSize, boolean combinable, Configuration conf)
-            throws IOException, InterruptedException {
+                    throws IOException, InterruptedException {
         ArrayList<InputSplit> pigSplits = new ArrayList<InputSplit>();
         if (!combinable) {
             int splitIndex = 0;
@@ -328,7 +320,7 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
                 // default is the block size
                 maxCombinedSplitSize = blockSize;
             List<List<InputSplit>> combinedSplits =
-                MapRedUtil.getCombinePigSplits(oneInputSplits, maxCombinedSplitSize, conf);
+                    MapRedUtil.getCombinePigSplits(oneInputSplits, maxCombinedSplitSize, conf);
             for (int i = 0; i < combinedSplits.size(); i++)
                 pigSplits.add(createPigSplit(combinedSplits.get(i), inputIndex, targetOps, i, conf));
             return pigSplits;
@@ -336,7 +328,7 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
     }
 
     private InputSplit createPigSplit(List<InputSplit> combinedSplits,
-        int inputIndex, ArrayList<OperatorKey> targetOps, int splitIndex, Configuration conf)
+            int inputIndex, ArrayList<OperatorKey> targetOps, int splitIndex, Configuration conf)
     {
         PigSplit pigSplit = new PigSplit(combinedSplits.toArray(new InputSplit[0]), inputIndex, targetOps, splitIndex);
         pigSplit.setConf(conf);

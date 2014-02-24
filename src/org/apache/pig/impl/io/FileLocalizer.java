@@ -39,8 +39,11 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsAction;
+import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.util.Shell;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.datastorage.ContainerDescriptor;
 import org.apache.pig.backend.datastorage.DataStorage;
@@ -51,6 +54,7 @@ import org.apache.pig.backend.datastorage.SeekableInputStream.FLAGS;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
+import org.apache.pig.backend.hadoop.datastorage.HDirectory;
 import org.apache.pig.backend.hadoop.datastorage.HPath;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.impl.PigContext;
@@ -64,11 +68,14 @@ public class FileLocalizer {
     static public final int STYLE_UNIX = 0;
     static public final int STYLE_WINDOWS = 1;
 
+    public static FsPermission OWNER_ONLY_PERMS = new FsPermission(FsAction.ALL, FsAction.NONE,
+            FsAction.NONE); // rwx------
+
     public static class DataStorageInputStreamIterator extends InputStream {
         InputStream current;
         ElementDescriptor[] elements;
         int currentElement;
-        
+
         public DataStorageInputStreamIterator(ElementDescriptor[] elements) {
             this.elements = elements;
         }
@@ -164,7 +171,7 @@ public class FileLocalizer {
             throw new RuntimeException(
                     "can't open DFS file while executing locally");
         }
-        
+
         return openDFSFile(fileName, ConfigurationUtil.toProperties(conf));
 
     }
@@ -174,7 +181,7 @@ public class FileLocalizer {
         ElementDescriptor elem = dds.asElement(fileName);
         return openDFSFile(elem);
     }
-    
+
     public static long getSize(String fileName) throws IOException {
     	Configuration conf = PigMapReduce.sJobConfInternal.get();
 
@@ -185,28 +192,28 @@ public class FileLocalizer {
 
         return getSize(fileName, ConfigurationUtil.toProperties(conf));
     }
-    
+
     public static long getSize(String fileName, Properties properties) throws IOException {
     	DataStorage dds = new HDataStorage(properties);
         ElementDescriptor elem = dds.asElement(fileName);
-       
+
         // recursively get all the files under this path
         ElementDescriptor[] allElems = getFileElementDescriptors(elem);
-        
+
         long size = 0;
-        
+
         // add up the sizes of all files found
         for (int i=0; i<allElems.length; i++) {
         	Map<String, Object> stats = allElems[i].getStatistics();
         	size += (Long) (stats.get(ElementDescriptor.LENGTH_KEY));
         }
-        
+
         return size;
     }
-    
+
     private static InputStream openDFSFile(ElementDescriptor elem) throws IOException{
         ElementDescriptor[] elements = null;
-        
+
         if (elem.exists()) {
             try {
                 if(! elem.getDataStorage().isContainer(elem.toString())) {
@@ -218,7 +225,7 @@ public class FileLocalizer {
             catch (DataStorageException e) {
                 throw new IOException("Failed to determine if elem=" + elem + " is container", e);
             }
-            
+
             // elem is a directory - recursively get all files in it
             elements = getFileElementDescriptors(elem);
         } else {
@@ -226,15 +233,15 @@ public class FileLocalizer {
             if (!globMatchesFiles(elem, elem.getDataStorage())) {
                 throw new IOException(elem.toString() + " does not exist");
             } else {
-                elements = getFileElementDescriptors(elem); 
+                elements = getFileElementDescriptors(elem);
                 return new DataStorageInputStreamIterator(elements);
-                
+
             }
         }
-        
+
         return new DataStorageInputStreamIterator(elements);
     }
-    
+
     /**
      * recursively get all "File" element descriptors present in the input element descriptor
      * @param elem input element descriptor
@@ -259,7 +266,7 @@ public class FileLocalizer {
             if (fullPath.systemElement()) {
                 continue;
             }
-            
+
             if (fullPath instanceof ContainerDescriptor) {
                 for (ElementDescriptor child : ((ContainerDescriptor) fullPath)) {
                     paths.add(child);
@@ -274,7 +281,7 @@ public class FileLocalizer {
         filePaths.toArray(elems);
         return elems;
     }
-    
+
     private static InputStream openLFSFile(ElementDescriptor elem) throws IOException{
         // IMPORTANT NOTE: Currently we use HXXX classes to represent
         // files and dirs in local mode - so we can just delegate this
@@ -282,7 +289,7 @@ public class FileLocalizer {
         // and dirs THIS WILL NEED TO CHANGE
         return openDFSFile(elem);
     }
-    
+
     /**
      * This function returns an input stream to a local file system file or
      * a file residing on Hadoop's DFS
@@ -306,7 +313,7 @@ public class FileLocalizer {
             return openLFSFile(elem);
         }
     }
-    
+
     /**
      * @deprecated Use {@link #fullPath(String, PigContext)} instead
      */
@@ -317,7 +324,7 @@ public class FileLocalizer {
             if (fileName.charAt(0) != '/') {
                 ElementDescriptor currentDir = storage.getActiveContainer();
                 ElementDescriptor elem = storage.asElement(currentDir.toString(), fileName);
-                
+
                 fullPath = elem.toString();
             } else {
                 fullPath = fileName;
@@ -327,7 +334,7 @@ public class FileLocalizer {
         }
         return fullPath;
     }
-    
+
     static public InputStream open(String fileSpec, PigContext pigContext) throws IOException {
         fileSpec = checkDefaultPrefix(pigContext.getExecType(), fileSpec);
         if (!fileSpec.startsWith(LOCAL_PREFIX)) {
@@ -342,35 +349,35 @@ public class FileLocalizer {
             return openLFSFile(elem);
         }
     }
-    
+
     /**
      * @param fileSpec
      * @param offset
      * @param pigContext
      * @return SeekableInputStream
      * @throws IOException
-     * 
+     *
      * This is an overloaded version of open where there is a need to seek in stream. Currently seek is supported
      * only in file, not in directory or glob.
      */
     static public SeekableInputStream open(String fileSpec, long offset, PigContext pigContext) throws IOException {
-        
+
         fileSpec = checkDefaultPrefix(pigContext.getExecType(), fileSpec);
-        
+
         ElementDescriptor elem;
-        if (!fileSpec.startsWith(LOCAL_PREFIX)) 
+        if (!fileSpec.startsWith(LOCAL_PREFIX))
             elem = pigContext.getDfs().asElement(fullPath(fileSpec, pigContext));
-                
+
         else{
             fileSpec = fileSpec.substring(LOCAL_PREFIX.length());
-            elem = pigContext.getLfs().asElement(fullPath(fileSpec, pigContext));            
+            elem = pigContext.getLfs().asElement(fullPath(fileSpec, pigContext));
         }
-        
+
         if (elem.exists() && (!elem.getDataStorage().isContainer(elem.toString()))) {
             try {
                 if (elem.systemElement())
                     throw new IOException ("Attempt is made to open system file " + elem.toString());
-                
+
                 SeekableInputStream sis = elem.sopen();
                 sis.seek(offset, FLAGS.SEEK_SET);
                 return sis;
@@ -383,7 +390,7 @@ public class FileLocalizer {
         else
             throw new IOException("Currently seek is supported only in a file, not in glob or directory.");
     }
-    
+
     static public OutputStream create(String fileSpec, PigContext pigContext) throws IOException{
         return create(fileSpec,false,pigContext);
     }
@@ -404,11 +411,11 @@ public class FileLocalizer {
                 if (!res)
                     log.warn("FileLocalizer.create: failed to create " + f);
             }
-            
+
             return new FileOutputStream(fileSpec,append);
         }
     }
-    
+
     static public boolean delete(String fileSpec, PigContext pigContext) throws IOException{
         fileSpec = checkDefaultPrefix(pigContext.getExecType(), fileSpec);
         ElementDescriptor elem = null;
@@ -455,11 +462,26 @@ public class FileLocalizer {
             throws DataStorageException {
 
         if (relativeRoot.get() == null) {
-            String tdir= pigContext.getProperties().getProperty("pig.temp.dir", "/tmp");
-            relativeRoot.set(pigContext.getDfs().asContainer(tdir + "/temp" + r.nextInt()));
+            String tdir= pigContext.getProperties().getProperty(PigConfiguration.PIG_TEMP_DIR, "/tmp");
+            ContainerDescriptor relative = pigContext.getDfs().asContainer(tdir + "/temp" + r.nextInt());
+            relativeRoot.set(relative);
+            try {
+                if (!relative.exists()) {
+                    createRelativeRoot(relative);
+                }
+            } catch (IOException e) {
+                throw new DataStorageException(e);
+            }
         }
 
         return relativeRoot.get();
+    }
+
+    private static void createRelativeRoot(ContainerDescriptor relativeRoot) throws IOException {
+        relativeRoot.create();
+        if (relativeRoot instanceof HDirectory) {
+            ((HDirectory) relativeRoot).setPermission(OWNER_ONLY_PERMS);
+        }
     }
 
     public static void deleteTempFiles() {
@@ -480,9 +502,6 @@ public class FileLocalizer {
     public static Path getTemporaryPath(PigContext pigContext, String suffix) throws IOException {
       ElementDescriptor relative = relativeRoot(pigContext);
 
-      if (!relativeRoot(pigContext).exists()) {
-          relativeRoot(pigContext).create();
-      }
       ElementDescriptor elem=
           pigContext.getDfs().asElement(relative.toString(), "tmp" + r.nextInt() + suffix);
       return ((HPath)elem).getPath();
@@ -495,30 +514,30 @@ public class FileLocalizer {
         if (filename.startsWith(LOCAL_PREFIX)) {
             filename = filename.substring(LOCAL_PREFIX.length());
         }
-        
+
         ElementDescriptor localElem =
             pigContext.getLfs().asElement(filename);
-            
+
         if (!localElem.exists()) {
             throw new FileNotFoundException(filename);
         }
-            
+
         ElementDescriptor distribElem = pigContext.getDfs().asElement(
                 getTemporaryPath(pigContext).toString());
-    
+
         int suffixStart = filename.lastIndexOf('.');
         if (suffixStart != -1) {
             distribElem = pigContext.getDfs().asElement(distribElem.toString() +
                     filename.substring(suffixStart));
         }
-            
+
         // TODO: currently the copy method in Data Storage does not allow to specify overwrite
         //       so the work around is to delete the dst file first, if it exists
         if (distribElem.exists()) {
             distribElem.delete();
         }
         localElem.copy(distribElem, null, false);
-            
+
         return distribElem.toString();
     }
 
@@ -528,7 +547,7 @@ public class FileLocalizer {
                 ElementDescriptor currentDir = pigContext.getDfs().getActiveContainer();
                 ElementDescriptor elem = pigContext.getDfs().asElement(currentDir.toString(),
                                                                                   filename);
-                
+
                 return elem.toString();
             }
             return filename;
@@ -546,7 +565,7 @@ public class FileLocalizer {
     /**
      * @deprecated Use {@link #fileExists(String, PigContext)} instead
      */
-    @Deprecated 
+    @Deprecated
     public static boolean fileExists(String filename, DataStorage store)
             throws IOException {
         ElementDescriptor elem = store.asElement(filename);
@@ -559,7 +578,7 @@ public class FileLocalizer {
     }
 
     /**
-     * @deprecated Use {@link #isFile(String, PigContext)} instead 
+     * @deprecated Use {@link #isFile(String, PigContext)} instead
      */
     @Deprecated
     public static boolean isFile(String filename, DataStorage store)
@@ -593,10 +612,10 @@ public class FileLocalizer {
             switch (elems.length) {
             case 0:
                 return false;
-    
+
             case 1:
                 return !elems[0].equals(elem);
-    
+
             default:
                 return true;
             }
@@ -614,13 +633,13 @@ public class FileLocalizer {
     /**
      * Convert path from Windows convention to Unix convention. Invoked under
      * cygwin.
-     * 
+     *
      * @param path
      *            path in Windows convention
      * @return path in Unix convention, null if fail
      */
     static public String parseCygPath(String path, int style) {
-        String[] command; 
+        String[] command;
         if (style==STYLE_WINDOWS)
             command = new String[] { "cygpath", "-w", path };
         else
@@ -653,7 +672,7 @@ public class FileLocalizer {
         }
         return line;
     }
-    
+
     static File localTempDir = null;
     static {
         File f;
@@ -669,8 +688,8 @@ public class FileLocalizer {
         if (!success) {
           throw new RuntimeException("Error creating FileLocalizer temp directory.");
         }
-    }    
-    
+    }
+
     public static class FetchFileRet {
         public FetchFileRet(File file, boolean didFetch) {
             this.file = file;
@@ -681,9 +700,9 @@ public class FileLocalizer {
     }
 
     /**
-     * Ensures that the passed path is on the local file system, fetching it 
+     * Ensures that the passed path is on the local file system, fetching it
      * to the java.io.tmpdir if necessary. If pig.jars.relative.to.dfs is true
-     * and dfs is not null, then a relative path is assumed to be relative to the passed 
+     * and dfs is not null, then a relative path is assumed to be relative to the passed
      * dfs active directory. Else they are assumed to be relative to the local working
      * directory.
      */
@@ -776,21 +795,21 @@ public class FileLocalizer {
 
         return fetchFiles;
     }
-    
+
     /**
      * Ensures that the passed resource is available from the local file system, fetching
      * it to a temporary directory.
-     * 
-     * @throws ResourceNotFoundException 
+     *
+     * @throws ResourceNotFoundException
      */
     public static FetchFileRet fetchResource(String name) throws IOException, ResourceNotFoundException {
       FetchFileRet localFileRet = null;
       InputStream resourceStream = PigContext.getClassLoader().getResourceAsStream(name);
-      if (resourceStream != null) {        
+      if (resourceStream != null) {
         File dest = new File(localTempDir, name);
-        dest.getParentFile().mkdirs();        
+        dest.getParentFile().mkdirs();
         dest.deleteOnExit();
-                
+
         OutputStream outputStream = new BufferedOutputStream(new FileOutputStream(dest));
         byte[] buffer = new byte[1024];
         int len;
@@ -798,14 +817,14 @@ public class FileLocalizer {
           outputStream.write(buffer,0,len);
         }
         outputStream.close();
-        
+
         localFileRet = new FetchFileRet(dest,false);
       }
       else
       {
         throw new ResourceNotFoundException(name);
       }
-      
+
       return localFileRet;
     }
 }

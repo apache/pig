@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
@@ -49,6 +50,7 @@ import org.apache.pig.backend.BackendException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.JobCreationException;
+import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.Launcher;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler.LastInputStreamingOptimizer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.DotMRPrinter;
@@ -89,7 +91,7 @@ public class MapReduceLauncher extends Launcher{
     public static final String SUCCEEDED_FILE_NAME = "_SUCCESS";
 
     public static final String SUCCESSFUL_JOB_OUTPUT_DIR_MARKER =
-        "mapreduce.fileoutputcommitter.marksuccessfuljobs";
+            "mapreduce.fileoutputcommitter.marksuccessfuljobs";
 
     private static final Log log = LogFactory.getLog(MapReduceLauncher.class);
 
@@ -141,32 +143,36 @@ public class MapReduceLauncher extends Launcher{
         return failureMap.get(spec);
     }
 
-    @SuppressWarnings("deprecation")
     @Override
     public PigStats launchPig(PhysicalPlan php,
-                              String grpName,
-                              PigContext pc) throws PlanException,
-                                                    VisitorException,
-                                                    IOException,
-                                                    ExecException,
-                                                    JobCreationException,
-                                                    Exception {
+            String grpName,
+            PigContext pc) throws PlanException,
+            VisitorException,
+            IOException,
+            ExecException,
+            JobCreationException,
+            Exception {
         long sleepTime = 500;
-        aggregateWarning = "true".equalsIgnoreCase(pc.getProperties().getProperty("aggregate.warning"));
+        aggregateWarning = Boolean.valueOf(pc.getProperties().getProperty("aggregate.warning"));
         MROperPlan mrp = compile(php, pc);
 
         ConfigurationValidator.validatePigProperties(pc.getProperties());
         Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties());
 
         MRExecutionEngine exe = (MRExecutionEngine) pc.getExecutionEngine();
-        JobClient jobClient = new JobClient(exe.getJobConf());
+        Properties defaultProperties = new Properties();
+        JobConf defaultJobConf = exe.getLocalConf(defaultProperties);
+        Utils.recomputeProperties(defaultJobConf, defaultProperties);
 
-        JobControlCompiler jcc = new JobControlCompiler(pc, conf);
+        // This is a generic JobClient for checking progress of the jobs
+        JobClient statsJobClient = new JobClient(exe.getJobConf());
+
+        JobControlCompiler jcc = new JobControlCompiler(pc, conf, ConfigurationUtil.toConfiguration(defaultProperties));
 
         MRScriptState.get().addWorkflowAdjacenciesToConf(mrp, conf);
 
         // start collecting statistics
-        MRPigStatsUtil.startCollection(pc, jobClient, jcc, mrp);
+        MRPigStatsUtil.startCollection(pc, statsJobClient, jcc, mrp);
 
         // Find all the intermediate data stores. The plan will be destroyed during compile/execution
         // so this needs to be done before.
@@ -187,7 +193,7 @@ public class MapReduceLauncher extends Launcher{
         JobControlThreadExceptionHandler jctExceptionHandler = new JobControlThreadExceptionHandler();
 
         boolean stop_on_failure =
-            pc.getProperties().getProperty("stop.on.failure", "false").equals("true");
+            Boolean.valueOf(pc.getProperties().getProperty("stop.on.failure", "false"));
 
         // jc is null only when mrp.size == 0
         while(mrp.size() != 0) {
@@ -210,14 +216,14 @@ public class MapReduceLauncher extends Launcher{
                             failedNativeMR.add(natOp);
 
                             String msg = "Error running native mapreduce" +
-                            " operator job :" + natOp.getJobId() + e.getMessage();
+                                    " operator job :" + natOp.getJobId() + e.getMessage();
 
                             String stackTrace = Utils.getStackStraceStr(e);
                             LogUtils.writeLog(msg,
                                     stackTrace,
                                     pc.getProperties().getProperty("pig.logfile"),
                                     log
-                            );
+                                    );
                             log.info(msg);
 
                             if (stop_on_failure) {
@@ -250,10 +256,10 @@ public class MapReduceLauncher extends Launcher{
             JobConf jobConf = jobsWithoutIds.get(0).getJobConf();
             try {
                 String port = jobConf.get("mapred.job.tracker.http.address");
-                String jobTrackerAdd = jobConf.get(MRExecutionEngine.JOB_TRACKER_LOCATION);
+                String jobTrackerAdd = jobConf.get(HExecutionEngine.JOB_TRACKER_LOCATION);
 
                 jobTrackerLoc = jobTrackerAdd.substring(0,jobTrackerAdd.indexOf(":"))
-                + port.substring(port.indexOf(":"));
+                        + port.substring(port.indexOf(":"));
             }
             catch(Exception e){
                 // Could not get the job tracker location, most probably we are running in local mode.
@@ -336,7 +342,7 @@ public class MapReduceLauncher extends Launcher{
                     }
                     jobsWithoutIds.removeAll(jobsAssignedIdInThisRun);
 
-                    double prog = (numMRJobsCompl+calculateProgress(jc, jobClient))/totalMRJobs;
+                    double prog = (numMRJobsCompl+calculateProgress(jc, statsJobClient))/totalMRJobs;
                     if (notifyProgress(prog, lastProg)) {
                         lastProg = prog;
                     }
@@ -363,8 +369,8 @@ public class MapReduceLauncher extends Launcher{
                         if (jobControlExceptionStackTrace != null) {
                             LogUtils.writeLog("Error message from job controller",
                                     jobControlExceptionStackTrace, pc
-                                            .getProperties().getProperty(
-                                                    "pig.logfile"), log);
+                                    .getProperties().getProperty(
+                                            "pig.logfile"), log);
                         }
                         throw jobControlException;
                     } else {
@@ -418,10 +424,13 @@ public class MapReduceLauncher extends Launcher{
             failed = true;
         }
 
-        if (!"false".equalsIgnoreCase(pc.getProperties().getProperty(PigConfiguration.PIG_DELETE_TEMP_FILE))) {
+        if (Boolean.valueOf(pc.getProperties().getProperty(PigConfiguration.PIG_DELETE_TEMP_FILE, "true"))) {
             // Clean up all the intermediate data
             for (String path : intermediateVisitor.getIntermediate()) {
-                FileLocalizer.delete(path, pc);
+                // Skip non-file system paths such as hbase, see PIG-3617
+                if (Utils.hasFileSystemImpl(new Path(path), conf)) {
+                    FileLocalizer.delete(path, pc);
+                }
             }
         }
 
@@ -431,7 +440,7 @@ public class MapReduceLauncher extends Launcher{
             Exception backendException = null;
             for (Job fj : failedJobs) {
                 try {
-                    getStats(fj, jobClient, true, pc);
+                    getStats(fj, statsJobClient, true, pc);
                 } catch (Exception e) {
                     backendException = e;
                 }
@@ -471,9 +480,9 @@ public class MapReduceLauncher extends Launcher{
                     }
                 }
 
-                getStats(job, jobClient, false, pc);
+                getStats(job, statsJobClient, false, pc);
                 if (aggregateWarning) {
-                    computeWarningAggregate(job, jobClient, warningAggMap);
+                    computeWarningAggregate(job, statsJobClient, warningAggMap);
                 }
             }
 
@@ -496,8 +505,8 @@ public class MapReduceLauncher extends Launcher{
 
         int ret = failed ? ((succJobs != null && succJobs.size() > 0)
                 ? ReturnCode.PARTIAL_FAILURE
-                : ReturnCode.FAILURE)
-                : ReturnCode.SUCCESS;
+                        : ReturnCode.FAILURE)
+                        : ReturnCode.SUCCESS;
 
         PigStats pigStats = PigStatsUtil.getPigStats(ret);
         // run cleanup for all of the stores
@@ -574,7 +583,7 @@ public class MapReduceLauncher extends Launcher{
             PrintStream ps,
             String format,
             boolean verbose) throws PlanException, VisitorException,
-                                   IOException {
+            IOException {
         log.trace("Entering MapReduceLauncher.explain");
         MROperPlan mrp = compile(php, pc);
 
@@ -636,9 +645,9 @@ public class MapReduceLauncher extends Launcher{
 
         // We must ensure that there is only 1 reducer for a limit. Add a single-reducer job.
         if (!pc.inIllustrator) {
-        LimitAdjuster la = new LimitAdjuster(plan, pc);
-        la.visit();
-        la.adjust();
+            LimitAdjuster la = new LimitAdjuster(plan, pc);
+            la.visit();
+            la.adjust();
         }
         // Optimize to use secondary sort key if possible
         prop = pc.getProperties().getProperty(PigConfiguration.PIG_EXEC_NO_SECONDARY_KEY);
@@ -653,7 +662,7 @@ public class MapReduceLauncher extends Launcher{
 
         // optimize joins
         LastInputStreamingOptimizer liso =
-            new MRCompiler.LastInputStreamingOptimizer(plan, lastInputChunkSize);
+                new MRCompiler.LastInputStreamingOptimizer(plan, lastInputChunkSize);
         liso.visit();
 
         // figure out the type of the key for the map plan
@@ -668,7 +677,7 @@ public class MapReduceLauncher extends Launcher{
         fRem.visit();
 
         boolean isMultiQuery =
-            "true".equalsIgnoreCase(pc.getProperties().getProperty(PigConfiguration.OPT_MULTIQUERY, "true"));
+            Boolean.valueOf(pc.getProperties().getProperty(PigConfiguration.OPT_MULTIQUERY, "true"));
 
         if (isMultiQuery) {
             // reduces the number of MROpers in the MR plan generated
@@ -690,7 +699,7 @@ public class MapReduceLauncher extends Launcher{
         checker.visit();
 
         boolean isAccum =
-            "true".equalsIgnoreCase(pc.getProperties().getProperty("opt.accumulator","true"));
+            Boolean.valueOf(pc.getProperties().getProperty("opt.accumulator","true"));
         if (isAccum) {
             AccumulatorOptimizer accum = new AccumulatorOptimizer(plan);
             accum.visit();
@@ -700,7 +709,7 @@ public class MapReduceLauncher extends Launcher{
 
     private boolean shouldMarkOutputDir(Job job) {
         return job.getJobConf().getBoolean(SUCCESSFUL_JOB_OUTPUT_DIR_MARKER,
-                               false);
+                false);
     }
 
     private void createSuccessFile(Job job, POStore store) throws IOException {

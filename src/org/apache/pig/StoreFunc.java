@@ -26,6 +26,7 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
 
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigHadoopLogger;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.data.Tuple;
@@ -202,7 +203,6 @@ public abstract class StoreFunc implements StoreFuncInterface {
      * @param warningEnum type of warning
      */
     public final void warn(String msg, Enum warningEnum) {
-        Counter counter = PigStatusReporter.getInstance().getCounter(warningEnum);
-        counter.increment(1);
+        PigHadoopLogger.getInstance().warn(this, msg, warningEnum);
     }
 }

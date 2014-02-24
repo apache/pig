@@ -343,6 +343,8 @@ public class JarManager {
      */
     private static void addContainingJar(Vector<JarListEntry> jarList, Class clazz, String prefix, PigContext pigContext) {
         String jar = findContainingJar(clazz);
+        if (pigContext.predeployedJars.contains(jar))
+            return;
         if (pigContext.skipJars.contains(jar) && prefix == null)
             return;
         if (jar == null)

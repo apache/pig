@@ -168,7 +168,7 @@ public class TezLauncher extends Launcher {
             SecondaryKeyOptimizerTez skOptimizer = new SecondaryKeyOptimizerTez(tezPlan);
             skOptimizer.visit();
         }
-        
+
         boolean isMultiQuery =
                 "true".equalsIgnoreCase(pc.getProperties().getProperty(PigConfiguration.OPT_MULTIQUERY, "true"));
 

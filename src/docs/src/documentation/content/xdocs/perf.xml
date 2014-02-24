@@ -1047,6 +1047,34 @@ java -cp $PIG_HOME/pig.jar
 </ul>
 <p></p>
 </section>
+
+<!-- +++++++++++++++++++++++++++++++ -->
+<section id="direct-fetch">
+<title>Direct Fetch</title>
+<p>When the <a href="test.html#dump">DUMP</a> operator is used to execute Pig Latin statements, Pig can take the advantage to minimize latency by directly reading data from HDFS rather than launching MapReduce jobs.</p>
+
+<p>
+The result is fetched if the query contains any of the following operators: 
+<a href="basic.html#filter">FILTER</a>, 
+<a href="basic.html#foreach">FOREACH</a>, 
+<a href="basic.html#limit">LIMIT</a>, 
+<a href="basic.html#stream">STREAM</a>, 
+<a href="basic.html#union">UNION</a>.
+<br></br>
+Fetching will be disabled in case of:
+</p>
+<ul>
+  <li>the presence of other operators, <a href="http://pig.apache.org/docs/r0.13.0/api/org/apache/pig/impl/builtin/SampleLoader.html">sample loaders</a> and scalar expressions</li>
+  <li>implicit splits</li>
+</ul>
+
+<p>
+You can check if the query can be fetched by running EXPLAIN. You should see "No MR jobs. Fetch only." in the MapReduce part of the plan.
+<br></br>
+Direct fetch is turned on by default. To turn it off set the property opt.fetch to false or start Pig with the "-N" or "-no_fetch" option.
+</p>
+
+</section>
 </section>
   
 <!-- ==================================================================== -->
@@ -1113,9 +1141,9 @@ associated with a given key is too large to fit in memory.
 <title>Usage</title>
 <p>Perform a skewed join with the USING clause (see <a href="basic.html#JOIN-inner">JOIN (inner)</a> and <a href="basic.html#JOIN-outer">JOIN (outer)</a>). </p>
 <source>
-big = LOAD 'big_data' AS (b1,b2,b3);
-massive = LOAD 'massive_data' AS (m1,m2,m3);
-C = JOIN big BY b1, massive BY m1 USING 'skewed';
+A = LOAD 'skewed_data' AS (a1,a2,a3);
+B = LOAD 'data' AS (b1,b2,b3);
+C = JOIN A BY a1, B BY b1 USING 'skewed';
 </source>
 </section>
 
@@ -1125,8 +1153,9 @@ C = JOIN big BY b1, massive BY m1 USING 'skewed';
 Skewed join will only work under these conditions: 
 </p>
 <ul>
-<li>Skewed join works with two-table inner join. Currently we do not support more than two tables for skewed join. 
+<li>Skewed join works with two-table inner and outer join. Currently we do not support more than two tables for skewed join. 
 Specifying three-way (or more) joins will fail validation. For such joins, we rely on you to break them up into two-way joins.</li>
+<li>The skewed table must be specified as the left table. Pig samples on that table and determines the number of reducers per key.</li> 
 <li>The pig.skewedjoin.reduce.memusage Java parameter specifies the fraction of heap available for the 
 reducer to perform the join. A low fraction forces Pig to use more reducers but increases 
 copying cost. We have seen good performance when we set this value 

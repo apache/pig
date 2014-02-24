@@ -104,6 +104,7 @@ import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 import org.apache.pig.tools.pigstats.ScriptState;
+import org.apache.pig.tools.pigstats.SimpleFetchPigStats;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -241,6 +242,7 @@ public class PigServer {
         }
 
         addJarsFromProperties();
+        markPredeployedJarsFromProperties();
 
         if (PigStats.get() == null) {
             PigStats.start(pigContext.getExecutionEngine().instantiatePigStats());
@@ -272,6 +274,22 @@ public class PigServer {
                             PigException.USER_ENVIRONMENT,
                             e
                     );
+                }
+            }
+        }
+    }
+
+    private void markPredeployedJarsFromProperties() throws ExecException {
+        // mark jars as predeployed from properties
+        String jar_str = pigContext.getProperties().getProperty("pig.predeployed.jars");
+		
+        if(jar_str != null){
+            // Use File.pathSeparator (":" on Linux, ";" on Windows)
+            // to correctly handle path aggregates as they are represented
+            // on the Operating System.
+            for(String jar : jar_str.split(File.pathSeparator)){
+                if (jar.length() > 0) {
+                    pigContext.markJarAsPredeployed(jar);
                 }
             }
         }
@@ -413,6 +431,12 @@ public class PigServer {
      */
     protected List<ExecJob> getJobs(PigStats stats) {
         LinkedList<ExecJob> jobs = new LinkedList<ExecJob>();
+        if (stats instanceof SimpleFetchPigStats) {
+            HJob job = new HJob(HJob.JOB_STATUS.COMPLETED, pigContext, stats.result(null)
+                    .getPOStore(), null);
+            jobs.add(job);
+            return jobs;
+        }
         JobGraph jGraph = stats.getJobGraph();
         Iterator<JobStats> iter = jGraph.iterator();
         while (iter.hasNext()) {
@@ -1719,6 +1743,9 @@ public class PigServer {
             CompilationMessageCollector collector = new CompilationMessageCollector() ;
 
             new TypeCheckingRelVisitor( lp, collector).visit();
+            new UnionOnSchemaSetter( lp ).visit();
+            new CastLineageSetter(lp, collector).visit();
+            new ScalarVariableValidator(lp).visit();
             if(aggregateWarning) {
                 CompilationMessageCollector.logMessages(collector, MessageType.Warning, aggregateWarning, log);
             } else {
@@ -1727,9 +1754,6 @@ public class PigServer {
                 }
             }
 
-            new UnionOnSchemaSetter( lp ).visit();
-            new CastLineageSetter(lp, collector).visit();
-            new ScalarVariableValidator(lp).visit();
         }
 
         private void postProcess() throws IOException {

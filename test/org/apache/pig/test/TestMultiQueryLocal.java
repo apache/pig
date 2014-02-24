@@ -69,7 +69,7 @@ public class TestMultiQueryLocal {
         context.getProperties().setProperty(PigConfiguration.OPT_MULTIQUERY, ""+true);
         myPig = new PigServer(context);
         myPig.getPigContext().getProperties().setProperty("pig.usenewlogicalplan", "false");
-        myPig.getPigContext().getProperties().setProperty("pig.temp.dir", "build/test/tmp/");
+        myPig.getPigContext().getProperties().setProperty(PigConfiguration.PIG_TEMP_DIR, "build/test/tmp/");
         TMP_DIR = FileLocalizer.getTemporaryPath(myPig.getPigContext()).toUri().getPath();
         deleteOutputFiles();
     }

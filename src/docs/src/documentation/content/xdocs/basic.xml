@@ -5655,7 +5655,7 @@ B = FOREACH A GENERATE -x, y;
    <table>
        <tr>
             <td>
-               <p>ASSERT alias BY expression [message];</p>
+               <p>ASSERT alias BY expression [, message];</p>
             </td>
         </tr>
    </table>
@@ -5721,7 +5721,7 @@ DUMP A;
 
 <p>Now, you can assert that a0 column in your data is >0, fail if otherwise</p>
 <source>
-ASSERT A by a0 > 0 'a0 should be greater than 0';
+ASSERT A by a0 > 0, 'a0 should be greater than 0';
 </source>
 
 </section></section>

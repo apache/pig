@@ -23,9 +23,9 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.IOException;
 import java.io.Serializable;
 import java.io.StringWriter;
 import java.lang.reflect.Constructor;
@@ -118,6 +118,9 @@ public class PigContext implements Serializable {
     // (some functions may come from pig.jar and we don't want the whole jar file.)
     transient public Vector<String> skipJars = new Vector<String>(2);
 
+    // jars that are predeployed to the cluster and thus should not be merged in at all (even subsets).
+    transient public Vector<String> predeployedJars = new Vector<String>(2);
+    
     // script files that are needed to run a job
     @Deprecated
     public List<String> scriptFiles = new ArrayList<String>();
@@ -144,6 +147,9 @@ public class PigContext implements Serializable {
 
     private static ThreadLocal<ArrayList<String>> packageImportList =
         new ThreadLocal<ArrayList<String>>();
+
+    private static ThreadLocal<Map<String,Class<?>>> classCache = 
+        new ThreadLocal<Map<String,Class<?>>>();
 
     private Properties log4jProperties = new Properties();
 
@@ -354,6 +360,17 @@ public class PigContext implements Serializable {
             classloader.addURL(resource);
             Thread.currentThread().setContextClassLoader(PigContext.classloader);
         }
+    }
+    
+    /**
+     * Adds the specified path to the predeployed jars list. These jars will 
+     * never be included in generated job jar.
+     * <p>
+     * This can be called for jars that are pre-installed on the Hadoop 
+     * cluster to reduce the size of the job jar.
+     */
+    public void markJarAsPredeployed(String path) {
+        predeployedJars.add(path);
     }
 
     public String doParamSubstitution(InputStream in,
@@ -606,12 +623,30 @@ public class PigContext implements Serializable {
         return new ContextClassLoader(urls, PigContext.class.getClassLoader());
     }
 
+    private static Map<String,Class<?>> getClassCache() {
+        Map<String,Class<?>> c = classCache.get();
+        if (c == null) {
+            c = new HashMap<String,Class<?>>();
+            classCache.set(c);
+        }
+             
+        return c;
+    }
+    
     @SuppressWarnings("rawtypes")
     public static Class resolveClassName(String name) throws IOException{
+        Map<String,Class<?>> cache = getClassCache(); 
+        
+        Class c = cache.get(name);
+        if (c != null) {
+            return c;
+        }
+        
         for(String prefix: getPackageImportList()) {
-            Class c;
             try {
                 c = Class.forName(prefix+name,true, PigContext.classloader);
+                cache.put(name, c);
+                
                 return c;
             }
             catch (ClassNotFoundException e) {

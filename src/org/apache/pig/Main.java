@@ -208,6 +208,7 @@ public class Main {
             opts.registerOpt('x', "exectype", CmdLineParser.ValueExpected.REQUIRED);
             opts.registerOpt('F', "stop_on_failure", CmdLineParser.ValueExpected.NOT_ACCEPTED);
             opts.registerOpt('M', "no_multiquery", CmdLineParser.ValueExpected.NOT_ACCEPTED);
+            opts.registerOpt('N', "no_fetch", CmdLineParser.ValueExpected.NOT_ACCEPTED);
             opts.registerOpt('P', "propertyFile", CmdLineParser.ValueExpected.REQUIRED);
 
             ExecMode mode = ExecMode.UNKNOWN;
@@ -298,6 +299,10 @@ public class Main {
                 case 'M':
                     // turns off multiquery optimization
                     properties.setProperty(PigConfiguration.OPT_MULTIQUERY,""+false);
+                    break;
+
+                case 'N':
+                    properties.setProperty(PigConfiguration.OPT_FETCH,""+false);
                     break;
 
                 case 'p':
@@ -863,6 +868,7 @@ public class Main {
             System.out.println("    -x, -exectype - Set execution mode: local|mapreduce, default is mapreduce.");
             System.out.println("    -F, -stop_on_failure - Aborts execution on the first failed job; default is off");
             System.out.println("    -M, -no_multiquery - Turn multiquery optimization off; default is on");
+            System.out.println("    -N, -no_fetch - Turn fetch optimization off; default is on");
             System.out.println("    -P, -propertyFile - Path to property file");
             System.out.println("    -printCmdDebug - Overrides anything else and prints the actual command used to run Pig, including");
             System.out.println("                     any environment variables that are set by the pig command.");
@@ -885,6 +891,8 @@ public class Main {
             System.out.println("            Only disable combiner as a temporary workaround for problems.");
             System.out.println("        opt.multiquery=true|false; multiquery is on by default.");
             System.out.println("            Only disable multiquery as a temporary workaround for problems.");
+            System.out.println("        opt.fetch=true|false; fetch is on by default.");
+            System.out.println("            Scripts containing Filter, Foreach, Limit, Stream, and Union can be dumped without MR jobs.");
             System.out.println("        pig.tmpfilecompression=true|false; compression is off by default.");
             System.out.println("            Determines whether output of intermediate jobs is compressed.");
             System.out.println("        pig.tmpfilecompression.codec=lzo|gzip; default is gzip.");

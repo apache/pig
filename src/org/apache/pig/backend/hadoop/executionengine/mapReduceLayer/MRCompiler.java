@@ -42,6 +42,7 @@ import org.apache.pig.FuncSpec;
 import org.apache.pig.IndexableLoadFunc;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.OrderedLoadFunc;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -1721,12 +1722,12 @@ public class MRCompiler extends PhyPlanVisitor {
             String msg = "Error compiling operator " + joinOp.getClass().getCanonicalName();
             throw new MRCompilerException(msg, errCode, PigException.BUG, e);
         }
-       catch (IOException e){
+        catch (IOException e){
            int errCode = 3000;
            String errMsg = "IOException caught while compiling POMergeJoin";
             throw new MRCompilerException(errMsg, errCode,e);
         }
-       catch(CloneNotSupportedException e){
+        catch(CloneNotSupportedException e){
            int errCode = 2127;
            String errMsg = "Cloning exception caught while compiling POMergeJoin";
            throw new MRCompilerException(errMsg, errCode, PigException.BUG, e);
@@ -2347,13 +2348,14 @@ public class MRCompiler extends PhyPlanVisitor {
               FileSpec lFile, FileSpec sampleFile, int rp, List<PhysicalPlan> sortKeyPlans,
               String udfClassName, String[] udfArgs, String sampleLdrClassName ) throws PlanException, VisitorException {
 
-          String[] rslargs = new String[2];
+        String[] rslargs = new String[2];
         // SampleLoader expects string version of FuncSpec
         // as its first constructor argument.
 
         rslargs[0] = (new FuncSpec(Utils.getTmpFileCompressorName(pigContext))).toString();
-
-        rslargs[1] = "100"; // The value is calculated based on the file size for skewed join
+        // This value is only used by order by. For skewed join, it's calculated
+        // based on the file size.
+        rslargs[1] = pigContext.getProperties().getProperty(PigConfiguration.PIG_RANDOM_SAMPLER_SAMPLE_SIZE, "100");
         FileSpec quantLdFilName = new FileSpec(lFile.getFileName(),
                 new FuncSpec(sampleLdrClassName, rslargs));
 
