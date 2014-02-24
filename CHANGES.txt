@@ -89,6 +89,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3776: Conflicting versions of jline is present in trunk (cheolsoo)
+
 PIG-3674: Fix TestAccumuloPigCluster on Hadoop 2 (elserj via daijy)
 
 PIG-3740: Document direct fetch optimization (lbendig via cheolsoo)
