@@ -30,6 +30,8 @@ PIG-2207: Support custom counters for aggregating warnings from different udfs (
 
 IMPROVEMENTS
 
+PIG-3778: Log list of running jobs along with progress (rohini)
+
 PIG-3675: Documentation for AccumuloStorage (elserj via daijy)
 
 PIG-3648: Make the sample size for RandomSampleLoader configurable (cheolsoo)
