@@ -7983,7 +7983,7 @@ X = SAMPLE A 0.01;
 a = load 'a.txt';
 b = group a all;
 c = foreach b generate COUNT(a) as num_rows;
-e = sample d 1000/num_rows;
+e = sample a 1000/c.num_rows;
 </source>
    </section></section>  
    

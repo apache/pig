@@ -34,6 +34,8 @@ PIG-3480: TFile-based tmpfile compression crashes in some cases (dvryaboy via an
 
 BUG FIXES
 
+PIG-3777: Pig 12.0 Documentation (karinahauser via daijy)
+
 PIG-3774: Piggybank Over UDF get wrong result (daijy)
 
 PIG-3657: New partition filter extractor fails with NPE (cheolsoo)
