@@ -341,6 +341,20 @@ public class MapReduceLauncher extends Launcher{
 
                     double prog = (numMRJobsCompl+calculateProgress(jc, statsJobClient))/totalMRJobs;
                     if (notifyProgress(prog, lastProg)) {
+                        List<Job> runnJobs = jc.getRunningJobs();
+                        if (runnJobs != null) {
+                            StringBuilder msg = new StringBuilder();
+                            for (Object object : runnJobs) {
+                                Job j = (Job) object;
+                                if (j != null) {
+                                    msg.append(j.getAssignedJobID()).append(",");
+                                }
+                            }
+                            if (msg.length() > 0) {
+                                msg.setCharAt(msg.length() - 1, ']');
+                                log.info("Running jobs are [" + msg);
+                            }
+                        }
                         lastProg = prog;
                     }
 
