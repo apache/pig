@@ -21,23 +21,27 @@ package org.apache.pig.test;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
+import java.util.Properties;
 
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestSplitStore {
-    private PigServer pig;
-    private PigContext pigContext;
-    private File tmpFile;
-    private static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
+    private static File tmpFile;
+    private static PigServer pig;
+    private static PigContext pigContext;
+    private static Properties properties;
+    private static MiniGenericCluster cluster;
 
     @Before
     public void setUp() throws Exception {
-        pig = new PigServer(cluster.getExecType(), cluster.getProperties());
+        pig = new PigServer(cluster.getExecType(), properties);
         pigContext = pig.getPigContext();
         int LOOP_SIZE = 20;
         tmpFile = File.createTempFile("test", "txt");
@@ -47,6 +51,12 @@ public class TestSplitStore {
             ps.println(i);
         }
         ps.close();
+    }
+
+    @BeforeClass
+    public static void oneTimeSetUp() throws Exception {
+        cluster = MiniGenericCluster.buildCluster();
+        properties = cluster.getProperties();
     }
 
     @AfterClass

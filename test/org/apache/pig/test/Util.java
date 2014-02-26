@@ -1032,6 +1032,7 @@ public class Util {
             while ((line = reader.readLine()) != null) {
                 logMessage = logMessage + line + "\n";
             }
+            reader.close();
             for (int i = 0; i < messages.length; i++) {
                 boolean present = logMessage.contains(messages[i]);
                 if (expected) {
@@ -1212,6 +1213,7 @@ public class Util {
             result += line;
             result += "\n";
         }
+        reader.close();
         return result;
     }
 
@@ -1273,5 +1275,18 @@ public class Util {
         if (version.matches("\\b2\\.\\d\\..+"))
             return true;
         return false;
+    }
+
+    /**
+     * Returns a PathFilter that filters out filenames that start with _.
+     * @return PathFilter
+     */
+    public static PathFilter getSuccessMarkerPathFilter() {
+        return new PathFilter() {
+            @Override
+            public boolean accept(Path p) {
+                return !p.getName().startsWith("_");
+            }
+        };
     }
 }

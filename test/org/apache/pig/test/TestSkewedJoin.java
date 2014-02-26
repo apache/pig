@@ -30,11 +30,12 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Properties;
 
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.PathFilter;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
@@ -60,20 +61,22 @@ public class TestSkewedJoin {
     private static final String INPUT_DIR = "build/test/data";
     private static final String OUTPUT_DIR = "build/test/output";
 
-    private PigServer pigServer;
     private static FileSystem fs;
+    private static PigServer pigServer;
+    private static Properties properties;
     private static MiniGenericCluster cluster;
 
     @Before
     public void setUp() throws Exception {
-        pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
-        pigServer.getPigContext().getProperties().setProperty("pig.skewedjoin.reduce.maxtuple", "5");
-        pigServer.getPigContext().getProperties().setProperty("pig.skewedjoin.reduce.memusage", "0.01");
+        pigServer = new PigServer(cluster.getExecType(), properties);
     }
 
     @BeforeClass
     public static void oneTimeSetUp() throws Exception {
         cluster = MiniGenericCluster.buildCluster();
+        properties = cluster.getProperties();
+        properties.setProperty("pig.skewedjoin.reduce.maxtuple", "5");
+        properties.setProperty("pig.skewedjoin.reduce.memusage", "0.01");
         fs = cluster.getFileSystem();
         createFiles();
     }
@@ -206,7 +209,7 @@ public class TestSkewedJoin {
 
     @Test
     public void testSkewedJoinWithNoProperties() throws IOException{
-        pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
+        pigServer = new PigServer(cluster.getExecType(), properties);
 
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE1 + "' as (id, name, n);");
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE2 + "' as (id, name);");
@@ -288,12 +291,7 @@ public class TestSkewedJoin {
 
          int[][] lineCount = new int[3][7];
 
-         FileStatus[] outputFiles = fs.listStatus(new Path(outputDir), new PathFilter() {
-                @Override
-                public boolean accept(Path p) {
-                    return !p.getName().startsWith("_");
-                }
-             });
+         FileStatus[] outputFiles = fs.listStatus(new Path(outputDir), Util.getSuccessMarkerPathFilter());
          // check how many times a key appear in each part- file
          for (int i=0; i<7; i++) {
              String filename = outputFiles[i].getPath().toString();

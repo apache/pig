@@ -21,6 +21,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.util.Properties;
 
@@ -54,6 +55,11 @@ public class TestTezCompiler {
     private static PigContext pc;
     private static PigServer pigServer;
     private static final int MAX_SIZE = 100000;
+
+    // If for some reason, the golden files need to be regenerated, set this to
+    // true - THIS WILL OVERWRITE THE GOLDEN FILES - So use this with caution
+    // and only for the test cases you need and are sure of.
+    private boolean generate = false;
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
@@ -306,6 +312,12 @@ public class TestTezCompiler {
         System.out.println();
         System.out.println("<<<" + compiledPlan + ">>>");
 
+        if (generate) {
+            FileOutputStream fos = new FileOutputStream(expectedFile);
+            fos.write(baos.toByteArray());
+            fos.close();
+            return;
+        }
         FileInputStream fis = new FileInputStream(expectedFile);
         byte[] b = new byte[MAX_SIZE];
         int len = fis.read(b);

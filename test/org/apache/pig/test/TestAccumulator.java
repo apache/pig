@@ -28,6 +28,7 @@ import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Properties;
 
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
@@ -46,20 +47,21 @@ public class TestAccumulator {
     private static final String INPUT_FILE4 = "AccumulatorInput4.txt";
     private static final String INPUT_DIR = "build/test/data";
 
-    private PigServer pigServer;
-    private static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
+    private static PigServer pigServer;
+    private static Properties properties;
+    private static MiniGenericCluster cluster;
 
     @BeforeClass
     public static void oneTimeSetUp() throws Exception {
-        createFiles();
-        cluster.getProperties().setProperty("pig.accumulative.batchsize", "2");
-        cluster.getProperties().setProperty("pig.exec.batchsize", "2");
-        cluster.getProperties().setProperty("pig.exec.nocombiner", "true");
+        cluster = MiniGenericCluster.buildCluster();
+        properties = cluster.getProperties();
+        properties.setProperty("pig.accumulative.batchsize", "2");
+        properties.setProperty("pig.exec.batchsize", "2");
+        properties.setProperty("pig.exec.nocombiner", "true");
         // Reducing the number of retry attempts to speed up test completion
-        cluster.getProperties().setProperty("mapred.map.max.attempts","1");
-        cluster.getProperties().setProperty("mapred.reduce.max.attempts","1");
-        // Disable tez session reuse to ensure each test case runs fresh
-        cluster.getProperties().setProperty(PigConfiguration.TEZ_SESSION_REUSE, "false");
+        properties.setProperty("mapred.map.max.attempts","1");
+        properties.setProperty("mapred.reduce.max.attempts","1");
+        createFiles();
     }
 
     @AfterClass
@@ -71,8 +73,8 @@ public class TestAccumulator {
     @Before
     public void setUp() throws Exception {
         // Drop stale configuration from previous test run
-        cluster.getProperties().remove(PigConfiguration.OPT_ACCUMULATOR);
-        pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
+        properties.remove(PigConfiguration.OPT_ACCUMULATOR);
+        pigServer = new PigServer(cluster.getExecType(), properties);
     }
 
     @After

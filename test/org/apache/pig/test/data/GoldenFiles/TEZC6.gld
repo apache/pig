@@ -2,13 +2,13 @@
 # There are 1 DAGs in the session
 #--------------------------------------------------
 #--------------------------------------------------
-# TEZ DAG plan: scope-30
+# TEZ DAG plan: scope-33
 #--------------------------------------------------
 Tez vertex scope-24
 
 Tez vertex scope-24
 # Plan on vertex
-1-1: Split - scope-8
+Split - scope-32
 |   |
 |   b: Store(file:///tmp/output/b:org.apache.pig.builtin.PigStorage) - scope-13
 |   |

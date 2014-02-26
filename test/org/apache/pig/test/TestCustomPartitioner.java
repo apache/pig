@@ -26,8 +26,13 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Properties;
 import java.util.Random;
 
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.Tuple;
@@ -37,24 +42,31 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
 public class TestCustomPartitioner {
 
-    private static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
-    private PigServer pigServer;
+    private static MiniGenericCluster cluster;
+    private static Properties properties;
+    private static PigServer pigServer;
+    private static FileSystem fs;
 
     TupleFactory mTf = TupleFactory.getInstance();
     BagFactory mBf = BagFactory.getInstance();
 
     @Before
-    public void setUp() throws Exception{
+    public void setUp() throws Exception {
         FileLocalizer.setR(new Random());
-        pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
+        pigServer = new PigServer(cluster.getExecType(), properties);
+    }
+
+    @BeforeClass
+    public static void oneTimeSetUp() throws Exception {
+        cluster = MiniGenericCluster.buildCluster();
+        properties = cluster.getProperties();
+        fs = cluster.getFileSystem();
     }
 
     @AfterClass
@@ -67,7 +79,7 @@ public class TestCustomPartitioner {
     @Ignore
     // Fails with Tez - DefaultSorter.java Illegal partition for Null: false index: 0 1 (-1), TotalPartitions: 0
     public void testCustomPartitionerParseJoins() throws Exception{
-    	String[] input = {
+        String[] input = {
                 "1\t3",
                 "1\t2"
         };
@@ -77,12 +89,12 @@ public class TestCustomPartitioner {
         try {
             pigServer.registerQuery("A = LOAD 'table_testCustomPartitionerParseJoins' as (a0:int, a1:int);");
             pigServer.registerQuery("B = ORDER A by $0;");
-        	pigServer.registerQuery("skewed = JOIN A by $0, B by $0 USING 'skewed' PARTITION BY org.apache.pig.test.utils.SimpleCustomPartitioner;");
-        	//control should not reach here
-        	Assert.fail("Skewed join cannot accept a custom partitioner");
+            pigServer.registerQuery("skewed = JOIN A by $0, B by $0 USING 'skewed' PARTITION BY org.apache.pig.test.utils.SimpleCustomPartitioner;");
+            //control should not reach here
+            Assert.fail("Skewed join cannot accept a custom partitioner");
         } catch(FrontendException e) {
-        	Assert.assertTrue( e.getMessage().contains( "Custom Partitioner is not supported for skewed join" ) );
-		}
+            Assert.assertTrue( e.getMessage().contains( "Custom Partitioner is not supported for skewed join" ) );
+        }
 
         pigServer.registerQuery("hash = JOIN A by $0, B by $0 USING 'hash' PARTITION BY org.apache.pig.test.utils.SimpleCustomPartitioner;");
         Iterator<Tuple> iter = pigServer.openIterator("hash");
@@ -120,8 +132,8 @@ public class TestCustomPartitioner {
         };
         Util.createInputFile(cluster, "table_testCustomPartitionerGroups", input);
 
+        String outputDir = "tmp_testCustomPartitionerGroup";
         pigServer.registerQuery("A = LOAD 'table_testCustomPartitionerGroups' as (a0:int, a1:int);");
-
         // It should be noted that for a map reduce job, the total number of partitions
         // is the same as the number of reduce tasks for the job. Hence we need to find a case wherein
         // we will get more than one reduce job so that we can use the partitioner.
@@ -130,28 +142,30 @@ public class TestCustomPartitioner {
         // partition number is bigger than 1.
         //
         pigServer.registerQuery("B = group A by $0 PARTITION BY org.apache.pig.test.utils.SimpleCustomPartitioner3 parallel 2;");
+        pigServer.store("B", outputDir);
 
-        pigServer.store("B", "tmp_testCustomPartitionerGroups");
+        new File(outputDir).mkdir();
+        FileStatus[] outputFiles = fs.listStatus(new Path(outputDir), Util.getSuccessMarkerPathFilter());
 
-        new File("tmp_testCustomPartitionerGroups").mkdir();
-
-        Util.copyFromClusterToLocal(cluster, "tmp_testCustomPartitionerGroups/part-r-00000", "tmp_testCustomPartitionerGroups/part-r-00000");
-        BufferedReader reader = new BufferedReader(new FileReader("tmp_testCustomPartitionerGroups/part-r-00000"));
-        String line = null;
-        while((line = reader.readLine()) != null) {
+        Util.copyFromClusterToLocal(cluster, outputFiles[0].getPath().toString(), outputDir + "/" + 0);
+        BufferedReader reader = new BufferedReader(new FileReader(outputDir + "/" + 0));
+        while(reader.readLine() != null) {
             Assert.fail("Partition 0 should be empty.  Most likely Custom Partitioner was not used.");
         }
-        Util.copyFromClusterToLocal(cluster, "tmp_testCustomPartitionerGroups/part-r-00001", "tmp_testCustomPartitionerGroups/part-r-00001");
-        reader = new BufferedReader(new FileReader("tmp_testCustomPartitionerGroups/part-r-00001"));
-        line = null;
+        reader.close();
+
+        Util.copyFromClusterToLocal(cluster, outputFiles[1].getPath().toString(), outputDir + "/" + 1);
+        reader = new BufferedReader(new FileReader(outputDir + "/" + 1));
         int count=0;
-        while((line = reader.readLine()) != null) {
+        while(reader.readLine() != null) {
             //all outputs should come to partion 1 (with SimpleCustomPartitioner3)
             count++;
         }
+        reader.close();
         Assert.assertEquals(4, count);
-        Util.deleteDirectory(new File("tmp_testCustomPartitionerGroups"));
-        Util.deleteFile(cluster, "tmp_testCustomPartitionerGroups");
+
+        Util.deleteDirectory(new File(outputDir));
+        Util.deleteFile(cluster, outputDir);
         Util.deleteFile(cluster, "table_testCustomPartitionerGroups");
     }
 
@@ -167,32 +181,34 @@ public class TestCustomPartitioner {
         };
         Util.createInputFile(cluster, "table_testCustomPartitionerDistinct", input);
 
+        String outputDir = "tmp_testCustomPartitionerDistinct";
         pigServer.registerQuery("A = LOAD 'table_testCustomPartitionerDistinct' as (a0:int, a1:int);");
         pigServer.registerQuery("B = distinct A PARTITION BY org.apache.pig.test.utils.SimpleCustomPartitioner3 parallel 2;");
-        pigServer.store("B", "tmp_testCustomPartitionerDistinct");
+        pigServer.store("B", outputDir);
 
-        new File("tmp_testCustomPartitionerDistinct").mkdir();
+        new File(outputDir).mkdir();
+        FileStatus[] outputFiles = fs.listStatus(new Path(outputDir), Util.getSuccessMarkerPathFilter());
 
         // SimpleCustomPartitioner3 simply partition all inputs to *second* reducer
-        Util.copyFromClusterToLocal(cluster, "tmp_testCustomPartitionerDistinct/part-r-00000", "tmp_testCustomPartitionerDistinct/part-r-00000");
-        BufferedReader reader = new BufferedReader(new FileReader("tmp_testCustomPartitionerDistinct/part-r-00000"));
-        String line = null;
-        while((line = reader.readLine()) != null) {
+        Util.copyFromClusterToLocal(cluster, outputFiles[0].getPath().toString(), outputDir + "/" + 0);
+        BufferedReader reader = new BufferedReader(new FileReader(outputDir + "/" + 0));
+        while (reader.readLine() != null) {
             Assert.fail("Partition 0 should be empty.  Most likely Custom Partitioner was not used.");
         }
         reader.close();
-        Util.copyFromClusterToLocal(cluster, "tmp_testCustomPartitionerDistinct/part-r-00001", "tmp_testCustomPartitionerDistinct/part-r-00001");
-        reader = new BufferedReader(new FileReader("tmp_testCustomPartitionerDistinct/part-r-00001"));
-        line = null;
+
+        Util.copyFromClusterToLocal(cluster, outputFiles[1].getPath().toString(), outputDir + "/" + 1);
+        reader = new BufferedReader(new FileReader(outputDir + "/" + 1));
         int count=0;
-        while((line = reader.readLine()) != null) {
+        while (reader.readLine() != null) {
             //all outputs should come to partion 1 (with SimpleCustomPartitioner3)
             count++;
         }
         reader.close();
         Assert.assertEquals(4, count);
-        Util.deleteDirectory(new File("tmp_testCustomPartitionerDistinct"));
-        Util.deleteFile(cluster, "tmp_testCustomPartitionerDistinct");
+
+        Util.deleteDirectory(new File(outputDir));
+        Util.deleteFile(cluster, outputDir);
         Util.deleteFile(cluster, "table_testCustomPartitionerDistinct");
     }
 

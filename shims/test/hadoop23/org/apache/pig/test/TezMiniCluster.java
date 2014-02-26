@@ -31,6 +31,7 @@ import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.hadoop.mapreduce.v2.MiniMRYarnCluster;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigConfiguration;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezExecType;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezSessionManager;
 import org.apache.tez.common.TezJobConfig;
@@ -106,6 +107,8 @@ public class TezMiniCluster extends MiniGenericCluster {
 
             // Write tez-site.xml
             Configuration tez_conf = new Configuration(false);
+            // TODO Remove this once TezSession reuse in mini cluster is fixed
+            tez_conf.set(PigConfiguration.TEZ_SESSION_REUSE, "false");
             // TODO PIG-3659 - Remove this once memory management is fixed
             tez_conf.set(TezJobConfig.TEZ_RUNTIME_IO_SORT_MB, "20");
             tez_conf.set("tez.lib.uris", "hdfs:///tez,hdfs:///tez/lib");

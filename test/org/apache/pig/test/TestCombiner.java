@@ -49,12 +49,13 @@ import org.junit.Test;
 
 public class TestCombiner {
 
-    static MiniGenericCluster cluster = MiniGenericCluster.buildCluster();
+    private static MiniGenericCluster cluster;
+    private static Properties properties;
 
     @BeforeClass
     public static void oneTimeSetUp() throws Exception {
-        // Disable tez session reuse to ensure each test case runs fresh
-        cluster.getProperties().setProperty(PigConfiguration.TEZ_SESSION_REUSE, "false");
+        cluster = MiniGenericCluster.buildCluster();
+        properties = cluster.getProperties();
     }
 
     @AfterClass
@@ -87,7 +88,7 @@ public class TestCombiner {
                 "c = group a by c2; " +
                 "f = foreach c generate COUNT(org.apache.pig.builtin.Distinct($1.$2)); " +
                 "store f into 'out';";
-        PigServer pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
+        PigServer pigServer = new PigServer(cluster.getExecType(), properties);
         PigContext pc = pigServer.getPigContext();
         assertTrue((Util.buildMRPlan(Util.buildPp(pigServer, query), pc).getRoots().get(0).combinePlan
                 .isEmpty()));
@@ -102,7 +103,7 @@ public class TestCombiner {
                 "f = foreach c generate COUNT(" + dummyUDF + "" +
                 "(org.apache.pig.builtin.Distinct($1.$2)," + dummyUDF + "())); " +
                 "store f into 'out';";
-        PigServer pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
+        PigServer pigServer = new PigServer(cluster.getExecType(), properties);
         PigContext pc = pigServer.getPigContext();
         assertTrue((Util.buildMRPlan(Util.buildPp(pigServer, query), pc).getRoots().get(0).combinePlan
                 .isEmpty()));
@@ -112,7 +113,7 @@ public class TestCombiner {
     @Test
     public void testOnCluster() throws Exception {
         // run the test on cluster
-        PigServer pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
+        PigServer pigServer = new PigServer(cluster.getExecType(), properties);
         String inputFileName = runTest(pigServer);
         Util.deleteFile(cluster, inputFileName);
         pigServer.shutdown();
@@ -187,9 +188,10 @@ public class TestCombiner {
             }
         }
         Util.createInputFile(cluster, "MultiCombinerUseInput.txt", input);
-        Properties props = cluster.getProperties();
-        props.setProperty("io.sort.mb", "1");
-        PigServer pigServer = new PigServer(cluster.getExecType(), props);
+        String oldValue = properties.getProperty("io.sort.mb");
+        properties.setProperty("io.sort.mb", "1");
+
+        PigServer pigServer = new PigServer(cluster.getExecType(), properties);
         pigServer.registerQuery("a = load 'MultiCombinerUseInput.txt' as (x:int);");
         pigServer.registerQuery("b = group a all;");
         pigServer.registerQuery("c = foreach b generate COUNT(a), SUM(a.$0), " +
@@ -214,6 +216,8 @@ public class TestCombiner {
 
         assertFalse(it.hasNext());
         Util.deleteFile(cluster, "MultiCombinerUseInput.txt");
+        // Reset io.sort.mb to the original value before exit
+        properties.setProperty("io.sort.mb", oldValue);
         pigServer.shutdown();
     }
 
@@ -230,7 +234,7 @@ public class TestCombiner {
                         "pig1\t20\t3.1" };
 
         Util.createInputFile(cluster, "distinctAggs1Input.txt", input);
-        PigServer pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
+        PigServer pigServer = new PigServer(cluster.getExecType(), properties);
         pigServer.registerQuery("a = load 'distinctAggs1Input.txt' as (name:chararray, age:int, gpa:double);");
         pigServer.registerQuery("b = group a by name;");
         pigServer.registerQuery("c = foreach b  {" +
@@ -277,7 +281,7 @@ public class TestCombiner {
         };
 
         Util.createInputFile(cluster, "testGroupElements.txt", input);
-        PigServer pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
+        PigServer pigServer = new PigServer(cluster.getExecType(), properties);
         pigServer.registerQuery("a = load 'testGroupElements.txt' as (str:chararray, num1:int, alph : chararray, num2 : int);");
         pigServer.registerQuery("b = group a by (str, num1);");
 
@@ -338,7 +342,7 @@ public class TestCombiner {
         };
 
         Util.createInputFile(cluster, "testGroupLimit.txt", input);
-        PigServer pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
+        PigServer pigServer = new PigServer(cluster.getExecType(), properties);
         pigServer.registerQuery("a = load 'testGroupLimit.txt'  using PigStorage(' ') " +
                 "as (str:chararray, num1:int) ;");
         pigServer.registerQuery("b = group a by str;");
@@ -387,7 +391,7 @@ public class TestCombiner {
                         "pig1\t20\t3.1" };
 
         Util.createInputFile(cluster, "distinctNoCombinerInput.txt", input);
-        PigServer pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
+        PigServer pigServer = new PigServer(cluster.getExecType(), properties);
         pigServer.registerQuery("a = load 'distinctNoCombinerInput.txt' as (name:chararray, age:int, gpa:double);");
         pigServer.registerQuery("b = group a by name;");
         pigServer.registerQuery("c = foreach b  {" +
@@ -438,7 +442,7 @@ public class TestCombiner {
                         "pig1\t20\t3.1" };
 
         Util.createInputFile(cluster, "forEachNoCombinerInput.txt", input);
-        PigServer pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
+        PigServer pigServer = new PigServer(cluster.getExecType(), properties);
         pigServer.registerQuery("a = load 'forEachNoCombinerInput.txt' as (name:chararray, age:int, gpa:double);");
         pigServer.registerQuery("b = group a by name;");
         pigServer.registerQuery("c = foreach b  {" +
@@ -497,7 +501,7 @@ public class TestCombiner {
         try {
             Util.createInputFile(cluster, "forEachNoCombinerInput.txt", input);
 
-            PigServer pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
+            PigServer pigServer = new PigServer(cluster.getExecType(), properties);
             pigServer.registerQuery("a = load 'forEachNoCombinerInput.txt' as (name:chararray, age:int, gpa:double);");
             pigServer.registerQuery("b = group a by name;");
             pigServer.registerQuery("c = foreach b generate group, SUM(a.age), a;");
@@ -543,7 +547,7 @@ public class TestCombiner {
 
         try {
             Util.createInputFile(cluster, "forEachNoCombinerInput.txt", input);
-            PigServer pigServer = new PigServer(cluster.getExecType(), cluster.getProperties());
+            PigServer pigServer = new PigServer(cluster.getExecType(), properties);
             pigServer.registerQuery("a = load 'forEachNoCombinerInput.txt' as (name:chararray, age:int, gpa:double);");
             pigServer.registerQuery("b = group a all;");
             pigServer.registerQuery("c = foreach b  {" +
