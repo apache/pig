@@ -299,6 +299,20 @@ public class TestTezCompiler {
         run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC16.gld");
     }
 
+    // PIG-3759, PIG-3781
+    // Combiner should not be added in case of co-group
+    @Test
+    public void testCogroupWithAlgebraiceUDF() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input1' as (x:int, y:int);" +
+                "b = load 'file:///tmp/input2' as (x:int, z:int);" +
+                "c = cogroup a by x, b by x;" +
+                "d = foreach c generate group, COUNT(a.y), COUNT(b.z);" +
+                "store d into 'file:///tmp/output/d';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC18.gld");
+    }
+
     private void run(String query, String expectedFile) throws Exception {
         PhysicalPlan pp = Util.buildPp(pigServer, query);
         TezLauncher launcher = new TezLauncher();

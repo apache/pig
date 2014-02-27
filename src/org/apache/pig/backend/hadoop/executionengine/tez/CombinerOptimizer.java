@@ -60,7 +60,7 @@ public class CombinerOptimizer extends TezOpPlanVisitor {
         if (predecessors == null) {
             return;
         }
-        if (predecessors.size()>1) {
+        if (to.isCogroup()) {
             return;
         }
 
