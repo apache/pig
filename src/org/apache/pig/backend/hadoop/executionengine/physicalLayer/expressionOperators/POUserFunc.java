@@ -186,9 +186,7 @@ public class POUserFunc extends ExpressionOperator {
         }
 
         Result res = new Result();
-        Tuple inpValue = null;
         if (input == null && (inputs == null || inputs.size()==0)) {
-//			log.warn("No inputs found. Signaling End of Processing.");
             res.returnStatus = POStatus.STATUS_EOP;
             return res;
         }
@@ -269,7 +267,6 @@ public class POUserFunc extends ExpressionOperator {
 
     private Result getNext() throws ExecException {
         Result result = processInput();
-        String errMsg = "";
         long startNanos = 0;
         boolean timeThis = doTiming && (numInvocations++ % TIMING_FREQ == 0);
         if (timeThis) {
@@ -296,10 +293,10 @@ public class POUserFunc extends ExpressionOperator {
                             result.result = null;
                             isAccumulationDone = false;
                         } else {
-                        ((Accumulator)func).accumulate((Tuple)result.result);
-                        result.returnStatus = POStatus.STATUS_BATCH_OK;
-                        result.result = null;
-                        isAccumulationDone = false;
+                            ((Accumulator)func).accumulate((Tuple)result.result);
+                            result.returnStatus = POStatus.STATUS_BATCH_OK;
+                            result.result = null;
+                            isAccumulationDone = false;
                         }
                     }else{
                         if(isAccumulationDone){
@@ -323,7 +320,7 @@ public class POUserFunc extends ExpressionOperator {
                     if (executor != null) {
                         result.result = executor.monitorExec((Tuple) result.result);
                     } else {
-                    result.result = func.exec((Tuple) result.result);
+                        result.result = func.exec((Tuple) result.result);
                     }
                 }
             }
@@ -355,7 +352,7 @@ public class POUserFunc extends ExpressionOperator {
         } catch (IndexOutOfBoundsException ie) {
             int errCode = 2078;
             String msg = "Caught error from UDF: " + funcSpec.getClassName() +
-            ", Out of bounds access [" + ie.getMessage() + "]";
+                    ", Out of bounds access [" + ie.getMessage() + "]";
             throw new ExecException(msg, errCode, PigException.BUG, ie);
         }
     }
