@@ -23,7 +23,9 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -35,6 +37,7 @@ import java.util.Properties;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.lib.input.InvalidInputException;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.BagFactory;
@@ -44,6 +47,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.builtin.PartitionSkewedKeys;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.util.Utils;
 import org.apache.pig.test.utils.TestHelper;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -95,7 +99,7 @@ public class TestSkewedJoin {
 
         int k = 0;
         for(int j=0; j<120; j++) {
-               w.println("100\tapple1\taaa" + k);
+            w.println("100\tapple1\taaa" + k);
             k++;
             w.println("200\torange1\tbbb" + k);
             k++;
@@ -532,4 +536,61 @@ public class TestSkewedJoin {
             }
         }
     }
+
+    // PIG-3469
+    // This query should fail with nothing else but InvalidInputException
+    @Test
+    public void testNonExistingInputPathInSkewJoin() throws Exception {
+        String script =
+          "exists = LOAD '" + INPUT_FILE2 + "' AS (a:long, x:chararray);" +
+          "missing = LOAD '/non/existing/directory' AS (a:long);" +
+          "missing = FOREACH ( GROUP missing BY a ) GENERATE $0 AS a, COUNT_STAR($1);" +
+          "joined = JOIN exists BY a, missing BY a USING 'skewed';";
+
+        String logFile = Util.createTempFileDelOnExit("tmp", ".log").getAbsolutePath();
+        String oldValue = (String) properties.setProperty("pig.logfile", logFile);
+
+        try {
+            pigServer.registerScript(new ByteArrayInputStream(script.getBytes("UTF-8")));
+            pigServer.openIterator("joined");
+        } catch (Exception e) {
+            boolean foundInvalidInputException = false;
+
+            // Search through chained exceptions for InvalidInputException. If
+            // input splits are calculated on the front-end, we will see this
+            // exception in the stack trace.
+            Throwable cause = e.getCause();
+            while (cause != null) {
+                if (cause instanceof InvalidInputException) {
+                    foundInvalidInputException = true;
+                    break;
+                }
+                cause = cause.getCause();
+            }
+
+            // InvalidInputException was not found in the stack trace. But it's
+            // possible that the exception was thrown in the back-end, and Pig
+            // couldn't retrieve it in the front-end. To be safe, search the log
+            // file before declaring a failure.
+            if (!foundInvalidInputException) {
+                FileInputStream fis = new FileInputStream(new File(logFile));
+                int bytes = fis.available();
+                byte[] buffer = new byte[bytes];
+                fis.read(buffer);
+                String str = new String(buffer, "UTF-8");
+                if (str.contains(InvalidInputException.class.getName())) {
+                    foundInvalidInputException = true;
+                }
+                fis.close();
+            }
+
+            assertTrue("This exception was not caused by InvalidInputException: " + e,
+                    foundInvalidInputException);
+        } finally {
+            if (oldValue != null) {
+                properties.setProperty("pig.logfile", oldValue);
+            }
+        }
+    }
+
 }

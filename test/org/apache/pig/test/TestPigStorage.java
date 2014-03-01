@@ -18,7 +18,6 @@
 
 package org.apache.pig.test;
 
-import static org.apache.pig.ExecType.MAPREDUCE;
 import static org.apache.pig.builtin.mock.Storage.tuple;
 import static org.junit.Assert.*;
 
@@ -26,16 +25,13 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
@@ -52,6 +48,8 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.test.utils.TypeCheckingTestUtil;
+import org.apache.pig.tools.pigstats.PigStats;
+import org.apache.pig.tools.pigstats.ScriptState;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -59,18 +57,15 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestPigStorage  {
-
-    protected final Log log = LogFactory.getLog(getClass());
-
-    private static MiniCluster cluster = MiniCluster.buildCluster();
-    static PigServer pig;
-    static final String datadir = "build/test/tmpdata/";
-
-    PigContext pigContext = new PigContext(ExecType.LOCAL, new Properties());
-    Map<String, String> fileNameMap = new HashMap<String, String>();
+    private static PigServer pig;
+    private static PigContext pigContext;
+    private static Properties properties;
+    private static MiniGenericCluster cluster;
+    private static final String datadir = "build/test/tmpdata/";
 
     @Before
     public void setup() throws IOException {
@@ -99,6 +94,13 @@ public class TestPigStorage  {
         pig.shutdown();
     }
 
+    @BeforeClass
+    public static void oneTimeSetup() {
+        cluster = MiniGenericCluster.buildCluster();
+        properties = cluster.getProperties();
+        pigContext = new PigContext(ExecType.LOCAL, new Properties());
+    }
+
     @AfterClass
     public static void shutdown() {
         cluster.shutDown();
@@ -120,11 +122,11 @@ public class TestPigStorage  {
         // This tests PigStorage loader with records exactly
         // on the boundary of the file blocks.
         Properties props = new Properties();
-        for (Entry<Object, Object> entry : cluster.getProperties().entrySet()) {
+        for (Entry<Object, Object> entry : properties.entrySet()) {
             props.put(entry.getKey(), entry.getValue());
         }
         props.setProperty("mapred.max.split.size", "20");
-        PigServer pigServer = new PigServer(MAPREDUCE, props);
+        PigServer pigServer = new PigServer(cluster.getExecType(), props);
         String[] inputs = {
                 "abcdefgh1", "abcdefgh2", "abcdefgh3",
                 "abcdefgh4", "abcdefgh5", "abcdefgh6",
@@ -191,7 +193,7 @@ public class TestPigStorage  {
                 inputFileName,
                 new String[] {"1\t2\t3", "4", "5\t6\t7"});
         String script = "a = load '" + inputFileName + "' as (i:int, j:int, k:int);" +
-        		"b = foreach a generate j, k;";
+                "b = foreach a generate j, k;";
         Util.registerMultiLineQuery(pig, script);
         Iterator<Tuple> it = pig.openIterator("b");
         assertEquals(Util.createTuple(new Integer[] { 2, 3}), it.next());
@@ -261,9 +263,9 @@ public class TestPigStorage  {
         "as (f1:chararray, f2:int);";
         pig.registerQuery(query);
         pig.store("a", datadir + "aout", "PigStorage('\\t', '-schema')");
-    
+
         // aout now has a schema.
-    
+
         // Verify that loaded data has the correct data type after the prune
         pig.registerQuery("b = LOAD '" + datadir + "aout' using PigStorage('\\t'); c = FOREACH b GENERATE f2;");
         
@@ -521,40 +523,41 @@ public class TestPigStorage  {
             pig.mkdirs(globtestdir+"b");
         } catch (IOException e) {};
 
+        Configuration conf = ConfigurationUtil.toConfiguration(pigContext.getProperties());
         // if schema file is not found, schema is null
-        ResourceSchema schema = pigStorage.getSchema(globtestdir, new Job(ConfigurationUtil.toConfiguration(pigContext.getProperties())));
+        ResourceSchema schema = pigStorage.getSchema(globtestdir, new Job(conf));
         Assert.assertTrue(schema==null);
 
         // if .pig_schema is in the input directory
         putSchemaFile(globtestdir+"a/a0/.pig_schema", testSchema);
-        schema = pigStorage.getSchema(globtestdir+"a/a0", new Job(ConfigurationUtil.toConfiguration(pigContext.getProperties())));
+        schema = pigStorage.getSchema(globtestdir+"a/a0", new Job(conf));
         Assert.assertTrue(ResourceSchema.equals(schema, testSchema));
         new File(globtestdir+"a/a0/.pig_schema").delete();
 
         // .pig_schema in one of globStatus returned directory
         putSchemaFile(globtestdir+"a/.pig_schema", testSchema);
-        schema = pigStorage.getSchema(globtestdir+"*", new Job(ConfigurationUtil.toConfiguration(pigContext.getProperties())));
+        schema = pigStorage.getSchema(globtestdir+"*", new Job(conf));
         Assert.assertTrue(ResourceSchema.equals(schema, testSchema));
         new File(globtestdir+"a/.pig_schema").delete();
 
         putSchemaFile(globtestdir+"b/.pig_schema", testSchema);
-        schema = pigStorage.getSchema(globtestdir+"*", new Job(ConfigurationUtil.toConfiguration(pigContext.getProperties())));
+        schema = pigStorage.getSchema(globtestdir+"*", new Job(conf));
         Assert.assertTrue(ResourceSchema.equals(schema, testSchema));
         new File(globtestdir+"b/.pig_schema").delete();
 
         // if .pig_schema is deep in the globbing, it will not get used
         putSchemaFile(globtestdir+"a/a0/.pig_schema", testSchema);
-        schema = pigStorage.getSchema(globtestdir+"*", new Job(ConfigurationUtil.toConfiguration(pigContext.getProperties())));
+        schema = pigStorage.getSchema(globtestdir+"*", new Job(conf));
         Assert.assertTrue(schema==null);
         putSchemaFile(globtestdir+"a/.pig_schema", testSchema);
-        schema = pigStorage.getSchema(globtestdir+"*", new Job(ConfigurationUtil.toConfiguration(pigContext.getProperties())));
+        schema = pigStorage.getSchema(globtestdir+"*", new Job(conf));
         Assert.assertTrue(ResourceSchema.equals(schema, testSchema));
         new File(globtestdir+"a/a0/.pig_schema").delete();
         new File(globtestdir+"a/.pig_schema").delete();
 
         pigStorage = new PigStorage("\t", "-schema");
         putSchemaFile(globtestdir+"a/.pig_schema", testSchema);
-        schema = pigStorage.getSchema(globtestdir+"{a,b}", new Job(ConfigurationUtil.toConfiguration(pigContext.getProperties())));
+        schema = pigStorage.getSchema(globtestdir+"{a,b}", new Job(conf));
         Assert.assertTrue(ResourceSchema.equals(schema, testSchema));
     }
 

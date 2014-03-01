@@ -23,7 +23,6 @@ import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.util.Properties;
 
-import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;

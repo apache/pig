@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.Properties;
 
 import org.apache.pig.EvalFunc;
-import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataBag;
@@ -48,7 +47,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestCombiner {
-
     private static MiniGenericCluster cluster;
     private static Properties properties;
 
@@ -72,14 +70,6 @@ public class TestCombiner {
         // ensure each test runs correctly in it's exectype
         // mode, let's re initialize.
         FileLocalizer.setInitialized(false);
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        // Nullify PigStats and ScriptState after every run to ensure new
-        // objects are instantiated for next run.
-        PigStats.start(null);
-        ScriptState.start(null);
     }
 
     @Test

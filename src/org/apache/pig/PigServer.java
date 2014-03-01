@@ -244,13 +244,8 @@ public class PigServer {
         addJarsFromProperties();
         markPredeployedJarsFromProperties();
 
-        if (PigStats.get() == null) {
-            PigStats.start(pigContext.getExecutionEngine().instantiatePigStats());
-        }
-
-        if (ScriptState.get() == null) {
-            ScriptState.start(pigContext.getExecutionEngine().instantiateScriptState());
-        }
+        PigStats.start(pigContext.getExecutionEngine().instantiatePigStats());
+        ScriptState.start(pigContext.getExecutionEngine().instantiateScriptState());
     }
 
     private void addJarsFromProperties() throws ExecException {

@@ -6,5 +6,10 @@
 **/TestSkewedJoin.java
 **/TestSplitStore.java
 **/TestCustomPartitioner.java
+**/TestPigContext.java
+**/TestPigStorage.java
+**/TestNestedForeach.java
+**/TestEvalPipeline.java
+**/TestPigServer.java
 ## TODO: Runs fine individually. Hangs with file.out.index not found when run together. Likely Tez Bug
 ##**/TestSecondarySortTez.java

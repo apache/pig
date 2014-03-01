@@ -34,6 +34,8 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.util.JavaCompilerHelper;
+import org.apache.pig.tools.pigstats.PigStats;
+import org.apache.pig.tools.pigstats.ScriptState;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -45,19 +47,27 @@ public class TestPigContext {
     private static final String FS_NAME = "file:///";
     private static final String JOB_TRACKER = "local";
 
+    private static PigContext pigContext;
+    private static Properties properties;
+    private static MiniGenericCluster cluster;
+
     private File input;
-    private PigContext pigContext;
-    static MiniCluster cluster = null;
 
     @BeforeClass
     public static void oneTimeSetup() {
-        cluster = MiniCluster.buildCluster();
+        cluster = MiniGenericCluster.buildCluster();
+        properties = cluster.getProperties();
     }
 
     @Before
     public void setUp() throws Exception {
         pigContext = new PigContext(ExecType.LOCAL, getProperties());
         input = File.createTempFile("PigContextTest-", ".txt");
+    }
+
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
     }
 
     /**
@@ -142,8 +152,7 @@ public class TestPigContext {
         int status = Util.executeJavaCommand("jar -cf " + jarFile +
                 " -C " + tmpDir.getAbsolutePath() + " " + "com");
         assertEquals(0, status);
-        Properties properties = cluster.getProperties();
-        PigContext localPigContext = new PigContext(ExecType.MAPREDUCE, properties);
+        PigContext localPigContext = new PigContext(cluster.getExecType(), properties);
 
         // register jar using properties
         localPigContext.getProperties().setProperty("pig.additional.jars", jarFile);
@@ -214,16 +223,6 @@ public class TestPigContext {
         // clean up
         pc.getScriptFiles().remove("path-1824");
         pc.getScriptFiles().remove("test/path-1824");
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        input.delete();
-    }
-
-    @AfterClass
-    public static void oneTimeTearDown() throws Exception {
-        cluster.shutDown();
     }
 
     private static Properties getProperties() {

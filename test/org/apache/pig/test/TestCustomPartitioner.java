@@ -47,7 +47,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 public class TestCustomPartitioner {
-
     private static MiniGenericCluster cluster;
     private static Properties properties;
     private static PigServer pigServer;
