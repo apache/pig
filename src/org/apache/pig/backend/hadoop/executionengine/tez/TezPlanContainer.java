@@ -38,10 +38,12 @@ import org.apache.pig.impl.util.JarManager;
 
 public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
     private static final long serialVersionUID = 1L;
+    private TezResourceManager tezResourceManager;
     private PigContext pigContext;
 
-    public TezPlanContainer(PigContext pigContext) {
+    public TezPlanContainer(PigContext pigContext, TezResourceManager tezResourceManager) {
         this.pigContext = pigContext;
+        this.tezResourceManager = tezResourceManager;
     }
 
     // Add the Pig jar and the UDF jars as AM resources (all DAG's in the planContainer
@@ -50,7 +52,7 @@ public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
     public Map<String, LocalResource> getLocalResources() throws Exception {
         Set<URL> jarLists = new HashSet<URL>();
 
-        jarLists.add(TezResourceManager.getBootStrapJar());
+        jarLists.add(tezResourceManager.getBootStrapJar());
 
         // In MR Pig the extra jars and script jars get put in Distributed Cache, but
         // in Tez we'll add them as local resources.
@@ -76,7 +78,7 @@ public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
         Set<String> udfs = tezPlanContainerUDFCollector.getUdfs();
 
         for (String func : udfs) {
-            Class clazz = pigContext.getClassForAlias(func);
+            Class<?> clazz = pigContext.getClassForAlias(func);
             if (clazz != null) {
                 String jarName = JarManager.findContainingJar(clazz);
                 if (jarName == null) {
@@ -99,7 +101,7 @@ public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
         //     }
         // }
 
-        return TezResourceManager.addTezResources(jarLists);
+        return tezResourceManager.addTezResources(jarLists);
     }
 
     public TezOperPlan getNextPlan(List<TezOperPlan> processedPlans) {
@@ -155,7 +157,7 @@ public class TezPlanContainer extends OperatorPlan<TezPlanContainerNode> {
         if (operToSegment != null) {
             for (TezOperator succ : succs) {
                 tezOperPlan.disconnect(operToSegment, succ);
-                TezOperPlan newOperPlan = new TezOperPlan();
+                TezOperPlan newOperPlan = new TezOperPlan(tezResourceManager);
                 List<TezPlanContainerNode> containerSuccs = new ArrayList<TezPlanContainerNode>();
                 if (getSuccessors(planNode)!=null) {
                     containerSuccs.addAll(getSuccessors(planNode));

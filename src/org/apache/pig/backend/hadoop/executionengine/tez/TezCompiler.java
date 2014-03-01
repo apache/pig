@@ -25,7 +25,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Stack;
@@ -142,6 +141,8 @@ public class TezCompiler extends PhyPlanVisitor {
     private UDFFinder udfFinder;
 
     private Map<PhysicalOperator, TezOperator> phyToTezOpMap;
+    
+    private TezResourceManager tezResourceManager;
 
     public static final String USER_COMPARATOR_MARKER = "user.comparator.func:";
     public static final String FILE_CONCATENATION_THRESHOLD = "pig.files.concatenation.threshold";
@@ -152,14 +153,16 @@ public class TezCompiler extends PhyPlanVisitor {
 
     private POLocalRearrangeTezFactory localRearrangeFactory;
 
-    public TezCompiler(PhysicalPlan plan, PigContext pigContext)
+    public TezCompiler(PhysicalPlan plan, PigContext pigContext, TezResourceManager tezResourceManager)
             throws TezCompilerException {
         super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(plan));
         this.plan = plan;
         this.pigContext = pigContext;
+        this.tezResourceManager = tezResourceManager;
+        
         pigProperties = pigContext.getProperties();
         splitsSeen = Maps.newHashMap();
-        tezPlan = new TezOperPlan();
+        tezPlan = new TezOperPlan(tezResourceManager);
         nig = NodeIdGenerator.getGenerator();
         udfFinder = new UDFFinder();
         List<PhysicalOperator> roots = plan.getRoots();
@@ -186,7 +189,7 @@ public class TezCompiler extends PhyPlanVisitor {
 
     // Segment a single DAG into a DAG graph
     public TezPlanContainer getPlanContainer() throws PlanException {
-        TezPlanContainer tezPlanContainer = new TezPlanContainer(pigContext);
+        TezPlanContainer tezPlanContainer = new TezPlanContainer(pigContext, tezResourceManager);
         TezPlanContainerNode node = new TezPlanContainerNode(OperatorKey.genOpKey(scope), tezPlan);
         tezPlanContainer.add(node);
         tezPlanContainer.split(node);

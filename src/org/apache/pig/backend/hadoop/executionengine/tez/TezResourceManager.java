@@ -38,31 +38,31 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.util.JarManager;
 
 public class TezResourceManager {
-    private static Path stagingDir;
-    private static PigContext pigContext;
-    private static Configuration conf;
-    private static URL bootStrapJar;
-    private static FileSystem remoteFs;
-    public static Map<String, Path> resources = new HashMap<String, Path>();
+    private Path stagingDir;
+    private PigContext pigContext;
+    private Configuration conf;
+    private URL bootStrapJar;
+    private FileSystem remoteFs;
+    public Map<String, Path> resources = new HashMap<String, Path>();
 
-    public static URL getBootStrapJar() {
+    public URL getBootStrapJar() {
         return bootStrapJar;
     }
 
-    public static void initialize(Path stagingDir, PigContext pigContext, Configuration conf) throws IOException {
+    public TezResourceManager(Path stagingDir, PigContext pigContext, Configuration conf) throws IOException {
         resources.clear();
-        TezResourceManager.stagingDir = stagingDir;
-        TezResourceManager.pigContext = pigContext;
-        TezResourceManager.conf = conf;
+        this.stagingDir = stagingDir;
+        this.pigContext = pigContext;
+        this.conf = conf;
         String jar = JarManager.findContainingJar(org.apache.pig.Main.class);
-        TezResourceManager.bootStrapJar = new File(jar).toURI().toURL();
+        this.bootStrapJar = new File(jar).toURI().toURL();
         remoteFs = FileSystem.get(conf);
         addBootStrapJar();
     }
 
     // Add files from the source FS as local resources. The resource name will
     // be the same as the file name.
-    public static Path addTezResource(URL url) throws IOException {
+    public Path addTezResource(URL url) throws IOException {
         Path resourcePath = new Path(url.getFile());
         String resourceName = resourcePath.getName();
 
@@ -81,13 +81,13 @@ public class TezResourceManager {
     // resource name to be different from the file name to to support resource
     // aliasing in a CACHE statement (and to allow the same file to be aliased
     // with multiple resource names).
-    public static void addTezResource(String resourceName, Path remoteFsPath) throws IOException {
+    public void addTezResource(String resourceName, Path remoteFsPath) throws IOException {
         if (!resources.containsKey(resourceName)) {
             resources.put(resourceName, remoteFsPath);
         }
     }
 
-    public static Map<String, LocalResource> addTezResources(Set<URL> resources) throws Exception {
+    public Map<String, LocalResource> addTezResources(Set<URL> resources) throws Exception {
         Set<String> resourceNames = new HashSet<String>();
         for (URL url : resources) {
             addTezResource(url);
@@ -96,7 +96,7 @@ public class TezResourceManager {
         return getTezResources(resourceNames);
     }
 
-    public static void addBootStrapJar() throws IOException {
+    public void addBootStrapJar() throws IOException {
         if (resources.containsKey(bootStrapJar)) {
             return;
         }
@@ -113,7 +113,7 @@ public class TezResourceManager {
         resources.put(new Path(bootStrapJar.getFile()).getName(), remoteJarPath);
     }
 
-    public static Map<String, LocalResource> getTezResources(Set<String> resourceNames) throws Exception {
+    public Map<String, LocalResource> getTezResources(Set<String> resourceNames) throws Exception {
         Map<String, LocalResource> tezResources = new HashMap<String, LocalResource>();
         for (String resourceName : resourceNames) {
             // The resource name will be symlinked to the resource path in the
