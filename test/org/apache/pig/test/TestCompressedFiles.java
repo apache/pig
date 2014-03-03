@@ -24,10 +24,10 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.Iterator;
+import java.util.Properties;
 import java.util.Random;
 import java.util.zip.GZIPOutputStream;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.DIFF;
 import org.apache.pig.data.BagFactory;
@@ -37,13 +37,16 @@ import org.apache.pig.test.utils.TestHelper;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestCompressedFiles {
-    static MiniCluster cluster = MiniCluster.buildCluster();
+    private static PigServer pig;
+    private static Properties properties;
+    private static MiniGenericCluster cluster;
 
-    File datFile;
-    File gzFile;
+    private File datFile;
+    private File gzFile;
 
     @Before
     public void setUp() throws Exception {
@@ -74,6 +77,12 @@ public class TestCompressedFiles {
         gzFile.delete();
     }
 
+    @BeforeClass
+    public static void oneTimeSetUp() throws Exception {
+        cluster = MiniGenericCluster.buildCluster();
+        properties = cluster.getProperties();
+    }
+
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
         cluster.shutDown();
@@ -81,7 +90,7 @@ public class TestCompressedFiles {
 
     @Test
     public void testCompressed1() throws Throwable {
-        PigServer pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        pig = new PigServer(cluster.getExecType(), properties);
         pig.registerQuery("A = foreach (cogroup (load '"
                 + Util.generateURI(gzFile.toString(), pig.getPigContext())
                 + "') by $1, (load '"
@@ -94,7 +103,7 @@ public class TestCompressedFiles {
 
     @Test
     public void testCompressed2() throws Throwable {
-        PigServer pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        pig = new PigServer(cluster.getExecType(), properties);
         pig.registerQuery("A = load '"
                 + Util.generateURI(gzFile.toString(), pig.getPigContext())
                 + "';");

@@ -11,5 +11,12 @@
 **/TestNestedForeach.java
 **/TestEvalPipeline.java
 **/TestPigServer.java
+**/TestAlgebraicEval.java
+**/TestBestFitCast.java
+**/TestBinaryExpressionOps.java
+**/TestBuiltin.java
+**/TestBZip.java
+**/TestCompressedFiles.java
+**/TestCharArrayToNumeric.java
 ## TODO: Runs fine individually. Hangs with file.out.index not found when run together. Likely Tez Bug
 ##**/TestSecondarySortTez.java

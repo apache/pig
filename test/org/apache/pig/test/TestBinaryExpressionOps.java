@@ -1,4 +1,3 @@
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -23,8 +22,8 @@ package org.apache.pig.test;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Iterator;
+import java.util.Properties;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
 import org.junit.AfterClass;
@@ -32,12 +31,11 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestBinaryExpressionOps {
-
-    private static MiniCluster cluster = MiniCluster.buildCluster();
-    
+    private static Properties properties;
+    private static MiniGenericCluster cluster;
     private static final String INPUT_1 = "input1";
     private static final String INPUT_2 = "input2";
-    
+
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
         String[] inputData1 = new String[] {
@@ -46,34 +44,40 @@ public class TestBinaryExpressionOps {
         String[] inputData2 = new String[] {
                 "id1\t2", "id2\t2"
         };
-        Util.createInputFile(cluster, INPUT_1, inputData1);        
+        Util.createInputFile(cluster, INPUT_1, inputData1);
         Util.createInputFile(cluster, INPUT_2, inputData2);
+    }
+
+    @BeforeClass
+    public static void oneTimeSetUp() throws Exception {
+        cluster = MiniGenericCluster.buildCluster();
+        properties = cluster.getProperties();
     }
 
     @AfterClass
     public static void tearDownAfterClass() throws Exception {
         cluster.shutDown();
     }
-    
+
     @Test
     public void testArithmeticOperators() throws Exception {
-        PigServer pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-        
+        PigServer pig = new PigServer(cluster.getExecType(), properties);
+
         pig.registerQuery("A = LOAD '" + INPUT_1 + "' AS (id:chararray, val:long);");
         pig.registerQuery("B = LOAD '" + INPUT_2 + "' AS (id:chararray, val:long);");
         pig.registerQuery("C = COGROUP A BY id, B BY id;");
         pig.registerQuery("D = FOREACH C GENERATE group, SUM(B.val), SUM(A.val), "
-                + "(SUM(A.val) - SUM(B.val)), (SUM(A.val) + SUM(B.val)), " 
-                + "(SUM(A.val) * SUM(B.val)), (SUM(A.val) / SUM(B.val)), " 
+                + "(SUM(A.val) - SUM(B.val)), (SUM(A.val) + SUM(B.val)), "
+                + "(SUM(A.val) * SUM(B.val)), (SUM(A.val) / SUM(B.val)), "
                 + "(SUM(A.val) % SUM(B.val)), (SUM(A.val) < 0 ? SUM(A.val) : SUM(B.val));");
-               
+
         String[] expectedResults = new String[] {"(id1,2,,,,,,,)", "(id2,2,10,8,12,20,5,0,2)"};
-        Iterator<Tuple> iter = pig.openIterator("D");             
+        Iterator<Tuple> iter = pig.openIterator("D");
         int counter = 0;
         while (iter.hasNext()) { 
-            assertEquals(expectedResults[counter++], iter.next().toString());      
+            assertEquals(expectedResults[counter++], iter.next().toString());
         }
         assertEquals(expectedResults.length, counter);
     }
-    
+
 }
