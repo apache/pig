@@ -388,9 +388,6 @@ public class TezCompiler extends PhyPlanVisitor {
 
         // Now we have the inputs compiled. Do something with the input oper op.
         op.visit(this);
-        if (op.getRequestedParallelism() > curTezOp.getRequestedParallelism()) {
-            curTezOp.setRequestedParallelism(op.getRequestedParallelism());
-        }
         compiledInputs = prevCompInp;
     }
 
@@ -811,6 +808,7 @@ public class TezCompiler extends PhyPlanVisitor {
         try {
             blocking();
             TezCompilerUtil.setCustomPartitioner(op.getCustomPartitioner(), curTezOp);
+            curTezOp.setRequestedParallelism(op.getRequestedParallelism());
             phyToTezOpMap.put(op, curTezOp);
         } catch (Exception e) {
             int errCode = 2034;

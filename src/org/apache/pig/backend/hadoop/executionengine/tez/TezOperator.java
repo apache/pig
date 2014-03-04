@@ -49,8 +49,6 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     public Set<String> UDFs;
     public Set<PhysicalOperator> scalars;
 
-    // TODO: We need to specify parallelism per vertex in Tez. For now, we set
-    // them all to 1.
     // Use AtomicInteger for access by reference and being able to reset in
     // TezDAGBuilder based on number of input splits.
     // We just need mutability and not concurrency
