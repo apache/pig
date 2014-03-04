@@ -195,4 +195,8 @@ public class POFRJoinTez extends POFRJoin implements TezLoad {
         }
         return super.name() + "\t<-\t " + inputs.toString();
     }
+
+    public List<String> getInputKeys() {
+        return inputKeys;
+    }
 }
