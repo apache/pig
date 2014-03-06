@@ -45,6 +45,7 @@ public class POValueInputTez extends PhysicalOperator implements TezLoad {
     private static final long serialVersionUID = 1L;
     private static final Log LOG = LogFactory.getLog(POValueInputTez.class);
     private String inputKey;
+    private transient boolean finished = false;
     // TODO Change this to value only reader after implementing
     // value only input output
     private transient KeyValueReader reader;
@@ -76,9 +77,13 @@ public class POValueInputTez extends PhysicalOperator implements TezLoad {
     @Override
     public Result getNextTuple() throws ExecException {
         try {
+            if (finished) {
+                return RESULT_EOP;
+            }
             if (reader.next()) {
                 return new Result(POStatus.STATUS_OK, reader.getCurrentValue());
             } else {
+                finished = true;
                 return RESULT_EOP;
             }
         } catch (IOException e) {
