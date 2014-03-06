@@ -130,6 +130,9 @@ public class HadoopExecutableManager extends ExecutableManager {
             super.close();
 
             // Copy the secondary outputs of the task to HDFS
+            if (this.scriptOutputDir==null) {
+                return;
+            }
             Path scriptOutputDir = new Path(this.scriptOutputDir);
             FileSystem fs = scriptOutputDir.getFileSystem(job);
             List<HandleSpec> outputSpecs = command.getHandleSpecs(Handle.OUTPUT);
