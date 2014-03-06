@@ -34,6 +34,7 @@ import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
+import org.apache.pig.PigWarning;
 import org.apache.pig.TerminatingAccumulator;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -61,6 +62,7 @@ public class POUserFunc extends ExpressionOperator {
     private final static String TIMING_COUNTER = "approx_microsecs";
     private final static String INVOCATION_COUNTER = "approx_invocations";
     private final static int TIMING_FREQ = 100;
+    private final static TupleFactory tf = TupleFactory.getInstance();
 
     private transient String counterGroup;
     /**
@@ -276,6 +278,34 @@ public class POUserFunc extends ExpressionOperator {
         }
         try {
             if(result.returnStatus == POStatus.STATUS_OK) {
+                Tuple t = (Tuple) result.result;
+
+                // For backward compatibility, we short-circuit tuples whose
+                // fields are all null. (See PIG-3679)
+                boolean allNulls = true;
+                for (int i = 0; i < t.size(); i++) {
+                    if (!t.isNull(i)) {
+                        allNulls = false;
+                        break;
+                    }
+                }
+                if (allNulls) {
+                    pigLogger.warn(this, "All the input values are null, skipping the invocation of UDF",
+                            PigWarning.SKIP_UDF_CALL_FOR_NULL);
+                    Schema outputSchema = func.outputSchema(func.getInputSchema());
+                    // If the output schema is tuple (i.e. multiple fields are
+                    // to be returned), we return a tuple where every field is
+                    // null.
+                    if (outputSchema != null && outputSchema.getField(0).type == DataType.TUPLE) {
+                        result.result = tf.newTuple(outputSchema.getField(0).schema.size());
+                    // Otherwise, we simply return null since it can be cast to
+                    // any data type.
+                    } else {
+                        result.result = null;
+                    }
+                    return result;
+                }
+
                 if (isAccumulative()) {
                     if (isAccumStarted()) {
                         if (!haveCheckedIfTerminatingAccumulator) {
