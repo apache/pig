@@ -2168,9 +2168,11 @@ public class TestLogicalPlanBuilder {
         LogicalPlanData lData = pigServer.getLogicalPlanData();
         assertEquals("LoadFunc must be PigStorage", "org.apache.pig.builtin.PigStorage", lData.getLoadFuncs().get(0));
         assertEquals("StoreFunc must be PigStorageWithSchema", "org.apache.pig.test.PigStorageWithSchema", lData.getStoreFuncs().get(0));
-        assertEquals("Number of sources must be 2", lData.getSources().size(), 2);
+        assertEquals("Number of sources must be 2", lData.getNumSources(), 2);
+        assertEquals("Number of sinks must be 1", lData.getNumSinks(), 1);
         assertTrue("Source must end with input.txt", lData.getSources().get(0).endsWith("input.txt"));
         assertTrue("Sink must end with output", lData.getSinks().get(0).endsWith("output"));
+        assertEquals("Number of logical relational operators must be 4", lData.getNumLogicalRelationOperators(), 4);
     }
     
     /**
