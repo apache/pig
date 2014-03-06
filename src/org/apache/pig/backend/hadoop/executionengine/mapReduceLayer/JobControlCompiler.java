@@ -584,6 +584,10 @@ public class JobControlCompiler{
                             // we don't want to change fs settings back
                             continue;
                         }
+                        if (key.startsWith("io.")) {
+                            // we don't want to change io settings back
+                            continue;
+                        }
                         String value = entry.getValue();
                         if (conf.get(key) == null || !conf.get(key).equals(value)) {
                             conf.set(key, value);
@@ -615,6 +619,10 @@ public class JobControlCompiler{
                     //Start setting the JobConf properties
                     conf.set("mapred.jar", submitJarFile.getPath());
                 }
+            }
+
+            if(isLocal(pigContext, conf)) {
+                ConfigurationUtil.replaceConfigForLocalMode(conf);
             }
             conf.set("pig.inputs", ObjectSerializer.serialize(inp));
             conf.set("pig.inpTargets", ObjectSerializer.serialize(inpTargets));

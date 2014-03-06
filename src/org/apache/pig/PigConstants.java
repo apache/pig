@@ -47,4 +47,9 @@ public class PigConstants {
      */
     public static final String PIG_OPTIMIZER_RULES_DISABLED_KEY = "pig.optimizer.rules.disabled";
 
+    /**
+     * Prefix used by pig to configure local mode configuration
+     */
+    public static final String PIG_LOCAL_CONF_PREFIX = "pig.local.";
+
 }
