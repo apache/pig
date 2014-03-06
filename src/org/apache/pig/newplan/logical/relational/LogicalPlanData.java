@@ -18,44 +18,95 @@
 
 package org.apache.pig.newplan.logical.relational;
 
-import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.newplan.Operator;
+
+import com.google.common.collect.Lists;
 
 /**
  * 
- * This class provides information regarding the LogicalPlan. Make sure to
- * avoid exposing LogicalPlan itself. Only data regarding the logical plan
- * could be exposed but none of Pig internals (plans, operators etc) should
- * be.
- *
+ * This class provides information regarding the LogicalPlan. Make sure to avoid
+ * exposing LogicalPlan itself. Only data regarding the logical plan could be
+ * exposed but none of Pig internals (plans, operators etc) should be.
+ * 
  */
+@InterfaceAudience.Public
+@InterfaceStability.Evolving
 public class LogicalPlanData {
 
     // Never expose LogicalPlan
     private final LogicalPlan lp;
+    private int numLogicalRelationalOperators;
+    // Sources and Sinks here refer to Load and Store operators
+    private final List<LOLoad> sources;
+    private final List<LOStore> sinks;
 
     public LogicalPlanData(LogicalPlan lp) {
-        if(lp == null) {
+        if (lp == null) {
             throw new RuntimeException("LogicalPlan is null.");
         }
-        this.lp = lp; 
+        this.lp = lp;
+        this.numLogicalRelationalOperators = 0;
+        this.sources = Lists.newArrayList();
+        this.sinks = Lists.newArrayList();
+        init();
+    }
+
+    private void init() {
+        Iterator<Operator> ops = this.lp.getOperators();
+
+        while (ops.hasNext()) {
+            Operator op = ops.next();
+            if (op instanceof LogicalRelationalOperator) {
+                this.numLogicalRelationalOperators++;
+                if (op instanceof LOLoad) {
+                    sources.add((LOLoad) op);
+                } else if (op instanceof LOStore) {
+                    sinks.add((LOStore) op);
+                }
+            }
+        }
+    }
+
+    /**
+     * Returns the number of {@link LogicalRelationalOperator}s present in the
+     * pig script.
+     * 
+     * @return number of logical relational operators (Load, Join, Store etc)
+     * 
+     */
+    public int getNumLogicalRelationOperators() {
+        return this.numLogicalRelationalOperators;
     }
 
     /**
      * 
-     * @return This method return the list of source paths defined 
-     *         in the script/query.
+     * @return number of Load statements in the script
+     */
+    public int getNumSources() {
+        return this.sources.size();
+    }
+
+    /**
+     * 
+     * @return number of Store statements in the script
+     */
+    public int getNumSinks() {
+        return this.sinks.size();
+    }
+
+    /**
+     * 
+     * @return This method return the list of Load paths defined in the
+     *         script/query.
      */
     public List<String> getSources() {
-        List<LOLoad> sources = getLOLoads();
-        if (sources == null) {
-            return null;
-        }
-
-        List<String> result = new ArrayList<String>();
-        for (LOLoad load : sources) {
+        List<String> result = Lists.newArrayList();
+        for (LOLoad load : this.sources) {
             result.add(load.getFileSpec().getFileName());
         }
 
@@ -67,12 +118,8 @@ public class LogicalPlanData {
      * @return This method returns the list of store paths in the script/query.
      */
     public List<String> getSinks() {
-        List<LOStore> sinks = getLOStores();
-        if (sinks == null) {
-            return null;
-        }
-        List<String> result = new ArrayList<String>();
-        for (LOStore sink : sinks) {
+        List<String> result = Lists.newArrayList();
+        for (LOStore sink : this.sinks) {
             result.add(sink.getFileSpec().getFileName());
         }
 
@@ -84,12 +131,8 @@ public class LogicalPlanData {
      * @return This method returns the list of LoadFunc(s) used.
      */
     public List<String> getLoadFuncs() {
-        List<LOLoad> sources = getLOLoads();
-        if (sources == null) {
-            return null;
-        }
-        List<String> result = new ArrayList<String>();
-        for (LOLoad load : sources) {
+        List<String> result = Lists.newArrayList();
+        for (LOLoad load : this.sources) {
             result.add(load.getFileSpec().getFuncName());
         }
 
@@ -101,56 +144,11 @@ public class LogicalPlanData {
      * @return This method returns the list of StoreFunc(s) used.
      */
     public List<String> getStoreFuncs() {
-        List<LOStore> sinks = getLOStores();
-        if (sinks == null) {
-            return null;
-        }
-        List<String> storeFuncs = new ArrayList<String>();
-        for (LOStore sink : sinks) {
+        List<String> storeFuncs = Lists.newArrayList();
+        for (LOStore sink : this.sinks) {
             storeFuncs.add(sink.getFileSpec().getFuncName());
         }
 
         return storeFuncs;
     }
-
-    /**
-     * Internal to Pig. Do not expose this method
-     * @return
-     */
-    private List<LOLoad> getLOLoads() {
-        List<Operator> sources = lp.getSources();
-        if (sources == null) {
-            return null;
-        }
-        List<LOLoad> result = new ArrayList<LOLoad>();
-        for (Operator source : sources) {
-            if (source instanceof LOLoad) {
-                LOLoad load = (LOLoad) source;
-                result.add(load);
-            }
-        }
-
-        return result;
-    }
-    
-    /**
-     * Internal to Pig. Do not expose this method
-     * @return
-     */
-    private List<LOStore> getLOStores() {
-        List<Operator> sinks = lp.getSinks();
-        if (sinks == null) {
-            return null;
-        }
-        List<LOStore> result = new ArrayList<LOStore>();
-        for (Operator sink : sinks) {
-            if (sink instanceof LOStore) {
-                LOStore store = (LOStore) sink;
-                result.add(store);
-            }
-        }
-
-        return result;
-    }
-
 }
