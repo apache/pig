@@ -38,6 +38,10 @@ public class POReservoirSample extends PhysicalOperator {
 
     private transient int nextSampleIdx= 0;
 
+    private int rowProcessed = 0;
+
+    private boolean sampleCollectionDone = false;
+
     //array to store the result
     private transient Result[] samples = null;
 
@@ -70,19 +74,21 @@ public class POReservoirSample extends PhysicalOperator {
 
     @Override
     public void visit(PhyPlanVisitor v) throws VisitorException {
+        v.visitReservoirSample(this);
     }
 
     @Override
     public Result getNextTuple() throws ExecException {
-        if(samples != null){
+        if (sampleCollectionDone){
             return getSample();
         }
         //else collect samples
-        samples = new Result[numSamples];
+        if (samples == null) {
+            samples = new Result[numSamples];
+        }
 
         // populate the samples array with first numSamples tuples
         Result res = null;
-        int rowProcessed = 0;
         while (rowProcessed < numSamples) {
             res = processInput();
             if (res.returnStatus == POStatus.STATUS_OK) {
@@ -95,26 +101,28 @@ public class POReservoirSample extends PhysicalOperator {
             }
         }
 
-        int rowNum = numSamples + 1;
+        int rowNum = rowProcessed;
         Random randGen = new Random();
 
-        if (res.returnStatus == POStatus.STATUS_OK) { // did not exhaust all tuples
-            while (true) {
-                // pick this as sample
-                Result sampleResult = processInput();
-                if (sampleResult.returnStatus == POStatus.STATUS_NULL) {
-                    continue;
-                } else if (sampleResult.returnStatus != POStatus.STATUS_OK) {
-                    break;
-                }
-
-                // collect samples until input is exhausted
-                int rand = randGen.nextInt(rowNum);
-                if (rand < numSamples) {
-                    samples[rand] = sampleResult;
-                }
-                rowNum++;
+        while (true) {
+            // pick this as sample
+            res = processInput();
+            if (res.returnStatus == POStatus.STATUS_NULL) {
+                continue;
+            } else if (res.returnStatus != POStatus.STATUS_OK) {
+                break;
             }
+
+            // collect samples until input is exhausted
+            int rand = randGen.nextInt(rowNum);
+            if (rand < numSamples) {
+                samples[rand] = res;
+            }
+            rowNum++;
+        }
+
+        if (this.parentPlan.endOfAllInput && res.returnStatus == POStatus.STATUS_EOP) {
+            sampleCollectionDone = true;
         }
 
         return getSample();

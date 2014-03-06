@@ -70,6 +70,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPartialAgg;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPartitionRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPreCombinerLocalRearrange;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POReservoirSample;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSkewedJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
@@ -469,15 +470,21 @@ public class PlanHelper {
 
         @Override
         public void visitPreCombinerLocalRearrange(
-                POPreCombinerLocalRearrange preCombinerLocalRearrange) {
+                POPreCombinerLocalRearrange preCombinerLocalRearrange) throws VisitorException {
             super.visitPreCombinerLocalRearrange(preCombinerLocalRearrange);
             visit(preCombinerLocalRearrange);
         }
 
         @Override
-        public void visitPartialAgg(POPartialAgg poPartialAgg) {
+        public void visitPartialAgg(POPartialAgg poPartialAgg) throws VisitorException {
             super.visitPartialAgg(poPartialAgg);
             visit(poPartialAgg);
+        }
+
+        @Override
+        public void visitReservoirSample(POReservoirSample reservoirSample) throws VisitorException {
+            super.visitReservoirSample(reservoirSample);
+            visit(reservoirSample);
         }
     }
 

@@ -65,6 +65,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPartitionRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPreCombinerLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PORank;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POReservoirSample;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSkewedJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
@@ -114,7 +115,6 @@ public class PhyPlanVisitor extends PlanVisitor<PhysicalOperator,PhysicalPlan> {
         visit();
         popWalker();
     }
-
 
     public void visitCollectedGroup(POCollectedGroup mg) throws VisitorException{
         List<PhysicalPlan> inpPlans = mg.getPlans();
@@ -267,12 +267,10 @@ public class PhyPlanVisitor extends PlanVisitor<PhysicalOperator,PhysicalPlan> {
 
     public void visitBinCond(POBinCond binCond) {
         // do nothing
-
     }
 
     public void visitNegative(PONegative negative) {
         //do nothing
-
     }
 
     public void visitUserFunc(POUserFunc userFunc) throws VisitorException {
@@ -285,12 +283,10 @@ public class PhyPlanVisitor extends PlanVisitor<PhysicalOperator,PhysicalPlan> {
 
     public void visitMapLookUp(POMapLookUp mapLookUp) {
         // TODO Auto-generated method stub
-
     }
 
     public void visitCast(POCast cast) {
         // TODO Auto-generated method stub
-
     }
 
     public void visitLimit(POLimit lim) throws VisitorException{
@@ -323,7 +319,6 @@ public class PhyPlanVisitor extends PlanVisitor<PhysicalOperator,PhysicalPlan> {
      */
     public void visitStream(POStream stream) throws VisitorException {
         // TODO Auto-generated method stub
-
     }
 
     public void visitSkewedJoin(POSkewedJoin sk) throws VisitorException {
@@ -344,19 +339,20 @@ public class PhyPlanVisitor extends PlanVisitor<PhysicalOperator,PhysicalPlan> {
      */
     public void visitPOOptimizedForEach(POOptimizedForEach optimizedForEach) throws VisitorException {
         // TODO Auto-generated method stub
-
     }
 
     /**
      * @param preCombinerLocalRearrange
      */
     public void visitPreCombinerLocalRearrange(
-            POPreCombinerLocalRearrange preCombinerLocalRearrange) {
+            POPreCombinerLocalRearrange preCombinerLocalRearrange) throws VisitorException {
         // TODO Auto-generated method stub
     }
 
-    public void visitPartialAgg(POPartialAgg poPartialAgg) {
+    public void visitPartialAgg(POPartialAgg poPartialAgg) throws VisitorException {
     }
 
+    public void visitReservoirSample(POReservoirSample reservoirSample) throws VisitorException {
+    }
 
 }
