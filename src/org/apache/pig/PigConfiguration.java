@@ -182,5 +182,22 @@ public class PigConfiguration {
      * and will be re-used across the jobs run by the user if the jar has not changed
      */
     public static final String PIG_USER_CACHE_LOCATION = "pig.user.cache.location";
-}
 
+    /**
+     * Comma-delimited entries of commands/operators that must be disallowed.
+     * This is a security feature to be used by administrators to block use of
+     * commands by users. For eg, an admin might like to block all filesystem
+     * commands and setting configs in pig script. In which case, the entry
+     * would be "pig.blacklist=fs,set"
+     */
+    public static final String PIG_BLACKLIST = "pig.blacklist";
+
+    /**
+     * Comma-delimited entries of commands/operators that must be allowed. This
+     * is a security feature to be used by administrators to block use of
+     * commands by users that are not a part of the whitelist. For eg, an admin
+     * might like to allow only LOAD, STORE, FILTER, GROUP in pig script. In
+     * which case, the entry would be "pig.whitelist=load,store,filter,group"
+     */
+    public static final String PIG_WHITELIST = "pig.whitelist";
+}

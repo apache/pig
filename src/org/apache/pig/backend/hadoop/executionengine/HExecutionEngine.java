@@ -64,10 +64,12 @@ import org.apache.pig.newplan.logical.relational.LogToPhyTranslationVisitor;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.rules.InputOutputFileValidator;
+import org.apache.pig.newplan.logical.rules.LogicalRelationalNodeValidator;
 import org.apache.pig.newplan.logical.visitor.SortInfoSetter;
 import org.apache.pig.newplan.logical.visitor.StoreAliasSetter;
 import org.apache.pig.pen.POOptimizeDisabler;
 import org.apache.pig.tools.pigstats.PigStats;
+import org.apache.pig.validator.BlackAndWhitelistValidator;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
@@ -308,8 +310,14 @@ public abstract class HExecutionEngine implements ExecutionEngine {
             // Validate input/output file. Currently no validation framework in
             // new logical plan, put this validator here first.
             // We might decide to move it out to a validator framework in future
-            InputOutputFileValidator validator = new InputOutputFileValidator(
+            LogicalRelationalNodeValidator validator = new InputOutputFileValidator(
                     plan, pigContext);
+            validator.validate();
+
+            // Check for blacklist and whitelist properties and disable
+            // commands/operators accordingly. Note if a user does not
+            // specify these, Pig will work without any filters or validations
+            validator = new BlackAndWhitelistValidator(pigContext, plan);
             validator.validate();
         }
 

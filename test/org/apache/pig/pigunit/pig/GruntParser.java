@@ -36,79 +36,80 @@ import java.util.regex.Pattern;
  * e.g. pig.registerQuery replace the query of a certain alias...
  */
 public class GruntParser extends org.apache.pig.tools.grunt.GruntParser {
-  /** A mapping <alias,query> to apply to the pig script. */
-  private final Map<String, String> aliasOverride;
+    /** A mapping <alias,query> to apply to the pig script. */
+    private final Map<String, String> aliasOverride;
 
-  /**
-   * Initializes the Pig parser with its list of aliases to override.
-   *
-   * @param stream The Pig script stream.
-   * @param aliasOverride The list of aliases to override in the Pig script.
-   */
-  public GruntParser(Reader stream, Map<String, String> aliasOverride) {
-    super(stream);
-    this.aliasOverride = aliasOverride;
-  }
-
-  /**
-   * Pig relations that have been blanked are dropped.
-   */
-  @Override
-  protected void processPig(String cmd) throws IOException {
-    String command = override(cmd);
-
-    if (! command.equals("")) {
-      super.processPig(command);
-    }
-  }
-
-  /**
-   * Overrides the relations of the pig script that we want to change.
-   *
-   * @param query The current pig query processed by the parser.
-   * @return The same query, or a modified query, or blank.
-   */
-  public String override(String query) {
-    // a path to be prepended to all the file names in the script
-    String fsRoot = System.getProperty("pigunit.filesystem.prefix");
-    if(fsRoot != null) {
-      query = Pattern.compile("(LOAD\\s+'(([^:/?#]+)://)?)", Pattern.CASE_INSENSITIVE).
-        matcher(query).
-        replaceFirst("$1" + fsRoot);
-      query = Pattern.compile("(STORE\\s+([^']+)\\s+INTO\\s+'(([^:/?#]+)://)?)", Pattern.CASE_INSENSITIVE).
-        matcher(query).
-        replaceFirst("$1" + fsRoot);
+    /**
+     * Initializes the Pig parser with its list of aliases to override.
+     * 
+     * @param stream The Pig script stream.
+     * @param aliasOverride The list of aliases to override in the Pig script.
+     */
+    public GruntParser(Reader stream, Map<String, String> aliasOverride) {
+        this(stream, null, aliasOverride);
     }
 
-    Map<String, String> metaData = new HashMap<String, String>();
-
-    for (Entry<String, String> alias : aliasOverride.entrySet()) {
-      saveLastStoreAlias(query, metaData);
-
-      if (query.toLowerCase().startsWith(alias.getKey().toLowerCase() + " ")) {
-        System.out.println(
-            String.format("%s\n--> %s", query, alias.getValue() == "" ? "none" : alias.getValue()));
-        query = alias.getValue();
-      }
+    public GruntParser(Reader stream, PigServer pigServer, Map<String, String> aliasOverride) {
+        super(stream, pigServer);
+        this.aliasOverride = aliasOverride;
     }
 
-    aliasOverride.putAll(metaData);
+    /**
+     * Pig relations that have been blanked are dropped.
+     */
+    @Override
+    protected void processPig(String cmd) throws IOException {
+        String command = override(cmd);
 
-    return query;
-  }
-
-  /**
-   * Saves the name of the alias of the last store.
-   *
-   * <p>Maybe better to replace it by PigServer.getPigContext().getLastAlias().
-   */
-  void saveLastStoreAlias(String cmd, Map<String, String> metaData) {
-    if (cmd.toUpperCase().startsWith("STORE")) {
-      Pattern outputFile = Pattern.compile("STORE +([^']+) INTO.*", Pattern.CASE_INSENSITIVE);
-      Matcher matcher = outputFile.matcher(cmd);
-      if (matcher.matches()) {
-        metaData.put("LAST_STORE_ALIAS", matcher.group(1));
-      }
+        if (!command.equals("")) {
+            super.processPig(command);
+        }
     }
-  }
+
+    /**
+     * Overrides the relations of the pig script that we want to change.
+     * 
+     * @param query
+     *            The current pig query processed by the parser.
+     * @return The same query, or a modified query, or blank.
+     */
+    public String override(String query) {
+        // a path to be prepended to all the file names in the script
+        String fsRoot = System.getProperty("pigunit.filesystem.prefix");
+        if (fsRoot != null) {
+            query = Pattern.compile("(LOAD\\s+'(([^:/?#]+)://)?)", Pattern.CASE_INSENSITIVE).matcher(query).replaceFirst("$1" + fsRoot);
+            query = Pattern.compile("(STORE\\s+([^']+)\\s+INTO\\s+'(([^:/?#]+)://)?)", Pattern.CASE_INSENSITIVE).matcher(query).replaceFirst("$1" + fsRoot);
+        }
+
+        Map<String, String> metaData = new HashMap<String, String>();
+
+        for (Entry<String, String> alias : aliasOverride.entrySet()) {
+            saveLastStoreAlias(query, metaData);
+
+            if (query.toLowerCase().startsWith(alias.getKey().toLowerCase() + " ")) {
+                System.out.println(String.format("%s\n--> %s", query, alias.getValue() == "" ? "none" : alias.getValue()));
+                query = alias.getValue();
+            }
+        }
+
+        aliasOverride.putAll(metaData);
+
+        return query;
+    }
+
+    /**
+     * Saves the name of the alias of the last store.
+     * 
+     * <p>
+     * Maybe better to replace it by PigServer.getPigContext().getLastAlias().
+     */
+    void saveLastStoreAlias(String cmd, Map<String, String> metaData) {
+        if (cmd.toUpperCase().startsWith("STORE")) {
+            Pattern outputFile = Pattern.compile("STORE +([^']+) INTO.*", Pattern.CASE_INSENSITIVE);
+            Matcher matcher = outputFile.matcher(cmd);
+            if (matcher.matches()) {
+                metaData.put("LAST_STORE_ALIAS", matcher.group(1));
+            }
+        }
+    }
 }

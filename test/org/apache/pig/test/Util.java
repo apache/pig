@@ -610,10 +610,8 @@ public class Util {
         }
         PigServer ps = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         String script = getMkDirCommandForHadoop2_0(fileNameOnCluster) + "fs -put " + localFileName + " " + fileNameOnCluster;
-
-	    GruntParser parser = new GruntParser(new StringReader(script));
+        GruntParser parser = new GruntParser(new StringReader(script), ps);
         parser.setInteractive(false);
-        parser.setParams(ps);
         try {
             parser.parseStopOnError();
         } catch (org.apache.pig.tools.pigscript.parser.ParseException e) {
@@ -632,9 +630,8 @@ public class Util {
 
         new File(toLocalFileName).deleteOnExit();
 
-        GruntParser parser = new GruntParser(new StringReader(script));
+        GruntParser parser = new GruntParser(new StringReader(script), ps);
         parser.setInteractive(false);
-        parser.setParams(ps);
         try {
             parser.parseStopOnError();
         } catch (org.apache.pig.tools.pigscript.parser.ParseException e) {

@@ -113,9 +113,8 @@ public class ToolsPigServer extends PigServer {
 
         // Parse in grunt so that register commands are recognized
         try {
-            GruntParser grunt = new GruntParser(new StringReader(substituted));
+            GruntParser grunt = new GruntParser(new StringReader(substituted), this);
             grunt.setInteractive(false);
-            grunt.setParams(this);
             setBatchOn();
             //grunt.setLoadOnly(true);
             grunt.parseOnly();
