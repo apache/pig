@@ -30,6 +30,8 @@ PIG-2207: Support custom counters for aggregating warnings from different udfs (
 
 IMPROVEMENTS
 
+PIG-3765: Ability to disable Pig commands and operators (prkommireddi)
+
 PIG-3731: Ability to specify local-mode specific configuration (useful for local/auto-local mode) (aniket486)
 
 PIG-3793: Provide info on number of LogicalRelationalOperator(s) used in the script through LogicalPlanData (prkommireddi)

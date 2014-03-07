@@ -50,9 +50,8 @@ public class PigServer extends org.apache.pig.PigServer {
       throws IOException {
     try {
       InputStream compositeStream = Utils.getCompositeStream(new FileInputStream(fileName), pigContext.getProperties());
-      GruntParser grunt = new GruntParser(new InputStreamReader(compositeStream), aliasOverride);
+      GruntParser grunt = new GruntParser(new InputStreamReader(compositeStream), this, aliasOverride);
       grunt.setInteractive(false);
-      grunt.setParams(this);
       grunt.parseStopOnError(true);
     } catch (FileNotFoundException e) {
       e.printStackTrace();

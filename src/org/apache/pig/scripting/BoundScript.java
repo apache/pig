@@ -272,9 +272,8 @@ public class BoundScript {
         }
         PigServer pigServer = new PigServer(scriptContext.getPigContext(), false);
         pigServer.setBatchOn();
-        GruntParser grunt = new GruntParser(new StringReader(query));
+        GruntParser grunt = new GruntParser(new StringReader(query), pigServer);
         grunt.setInteractive(false);
-        grunt.setParams(pigServer);
         try {
             grunt.parseStopOnError(true);
         } catch (ParseException e) {
@@ -283,13 +282,12 @@ public class BoundScript {
         pigServer.executeBatch();
         return PigStats.get();
     }
-        
-    private void registerQuery(PigServer pigServer, String pl) throws IOException {                
-        GruntParser grunt = new GruntParser(new StringReader(pl));
+
+    private void registerQuery(PigServer pigServer, String pl) throws IOException {
+        GruntParser grunt = new GruntParser(new StringReader(pl), pigServer);
         grunt.setInteractive(false);
-        grunt.setParams(pigServer);
         pigServer.setBatchOn();
-        try {
+      try {
             grunt.parseStopOnError(true);
         } catch (ParseException e) {
             throw new IOException("Failed to parse query: " + pl, e);
@@ -338,9 +336,8 @@ public class BoundScript {
             ScriptState.get().registerListener(adaptor);
             PigServer pigServer = new PigServer(ctx, true);
             pigServer.setBatchOn();
-            GruntParser grunt = new GruntParser(new StringReader(query));
+            GruntParser grunt = new GruntParser(new StringReader(query), pigServer);
             grunt.setInteractive(false);
-            grunt.setParams(pigServer);
             try {
                 grunt.parseStopOnError(true);
             } catch (ParseException e) {
@@ -350,5 +347,5 @@ public class BoundScript {
             return PigStats.get();
         }
     }
-          
+
 }

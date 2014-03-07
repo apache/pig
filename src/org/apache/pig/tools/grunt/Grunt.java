@@ -41,15 +41,12 @@ public class Grunt
     PigServer pig;
     GruntParser parser;    
 
-    public Grunt(BufferedReader in, PigContext pigContext) throws ExecException
-    {
+    public Grunt(BufferedReader in, PigContext pigContext) throws ExecException {
         this.in = in;
         this.pig = new PigServer(pigContext);
-        
-        if (in != null)
-        {
-            parser = new GruntParser(in);
-            parser.setParams(pig);    
+
+        if (in != null) {
+            parser = new GruntParser(in, pig);
         }
     }
 
