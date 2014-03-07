@@ -95,6 +95,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3754: InputSizeReducerEstimator.getTotalInputFileSize reports incorrect size (aniket486)
+
 PIG-3679: e2e StreamingPythonUDFs_10 fails in trunk (cheolsoo)
 
 PIG-3776: Conflicting versions of jline is present in trunk (cheolsoo)

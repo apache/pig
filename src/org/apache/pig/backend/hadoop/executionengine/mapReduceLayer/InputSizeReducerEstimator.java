@@ -97,33 +97,35 @@ public class InputSizeReducerEstimator implements PigReducerEstimator {
      * their size nor can pig look that up itself are excluded from this size.
      */
     static long getTotalInputFileSize(Configuration conf,
-                                      List<POLoad> lds, Job job) throws IOException {
+            List<POLoad> lds, Job job) throws IOException {
         long totalInputFileSize = 0;
-        boolean foundSize = false;
         for (POLoad ld : lds) {
             long size = getInputSizeFromLoader(ld, job);
-            if (size > -1) { foundSize = true; }
-            if (size > 0) {
+            if (size > -1) {
                 totalInputFileSize += size;
                 continue;
-            }
-            // the input file location might be a list of comma separated files,
-            // separate them out
-            for (String location : LoadFunc.getPathStrings(ld.getLFile().getFileName())) {
-                if (UriUtil.isHDFSFileOrLocalOrS3N(location)) {
-                    Path path = new Path(location);
-                    FileSystem fs = path.getFileSystem(conf);
-                    FileStatus[] status = fs.globStatus(path);
-                    if (status != null) {
-                        for (FileStatus s : status) {
-                            totalInputFileSize += MapRedUtil.getPathLength(fs, s);
-                            foundSize = true;
+            } else {
+
+                // the input file location might be a list of comma separated files,
+                // separate them out
+                for (String location : LoadFunc.getPathStrings(ld.getLFile().getFileName())) {
+                    if (UriUtil.isHDFSFileOrLocalOrS3N(location)) {
+                        Path path = new Path(location);
+                        FileSystem fs = path.getFileSystem(conf);
+                        FileStatus[] status = fs.globStatus(path);
+                        if (status != null) {
+                            for (FileStatus s : status) {
+                                totalInputFileSize += MapRedUtil.getPathLength(fs, s);
+                            }
                         }
+                    } else {
+                        // If we cannot estimate size of a location, we should report -1
+                        return -1;
                     }
                 }
             }
         }
-        return foundSize ? totalInputFileSize : -1;
+        return totalInputFileSize;
     }
 
     /**

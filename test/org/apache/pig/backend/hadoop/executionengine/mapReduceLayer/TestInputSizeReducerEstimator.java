@@ -17,15 +17,19 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
-import com.google.common.collect.Lists;
+import java.util.Collections;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.builtin.PigStorage;
+import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.test.PigStorageWithStatistics;
 import org.apache.pig.test.TestJobControlCompiler;
 import org.junit.Assert;
 import org.junit.Test;
+
+import com.google.common.collect.Lists;
 
 public class TestInputSizeReducerEstimator {
 
@@ -48,6 +52,15 @@ public class TestInputSizeReducerEstimator {
                 Lists.newArrayList(
                         createPOLoadWithSize(size, new PigStorage()),
                         createPOLoadWithSize(size, new PigStorageWithStatistics())),
+                        new org.apache.hadoop.mapreduce.Job(CONF)));
+
+        // Negative test - PIG-3754
+        POLoad poLoad = createPOLoadWithSize(size, new PigStorage());
+        poLoad.setLFile(new FileSpec("hbase://users", null));
+
+        Assert.assertEquals(-1, InputSizeReducerEstimator.getTotalInputFileSize(
+                CONF,
+                Collections.singletonList(poLoad),
                 new org.apache.hadoop.mapreduce.Job(CONF)));
     }
 
