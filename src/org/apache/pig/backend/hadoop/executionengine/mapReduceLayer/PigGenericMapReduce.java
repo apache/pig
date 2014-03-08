@@ -98,7 +98,7 @@ public class PigGenericMapReduce {
     @Deprecated
     public static Configuration sJobConf = null;
 
-    public static final ThreadLocal<Configuration> sJobConfInternal = new ThreadLocal<Configuration>();
+    public static ThreadLocal<Configuration> sJobConfInternal = new ThreadLocal<Configuration>();
 
     public static class Map extends PigMapBase {
 

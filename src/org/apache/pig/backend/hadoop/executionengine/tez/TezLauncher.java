@@ -59,6 +59,7 @@ public class TezLauncher extends Launcher {
 
         TezResourceManager tezResourceManager = new TezResourceManager(stagingDir, pc, conf);
 
+        log.info("Tez staging directory is " + stagingDir.toString());
         conf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDir.toString());
 
         List<TezOperPlan> processedPlans = new ArrayList<TezOperPlan>();

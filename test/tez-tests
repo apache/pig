@@ -18,5 +18,4 @@
 **/TestBZip.java
 **/TestCompressedFiles.java
 **/TestCharArrayToNumeric.java
-## TODO: Runs fine individually. Hangs with file.out.index not found when run together. Likely Tez Bug
-##**/TestSecondarySortTez.java
+**/TestSecondarySortTez.java

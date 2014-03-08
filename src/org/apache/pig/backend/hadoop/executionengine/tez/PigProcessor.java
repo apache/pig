@@ -34,6 +34,7 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCo
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PigProgressable;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -74,9 +75,15 @@ public class PigProcessor implements LogicalIOProcessor {
     @Override
     public void initialize(TezProcessorContext processorContext)
             throws Exception {
-        // Reset any static variables to avoid conflic in container-reuse.
+        // Reset any static variables to avoid conflict in container-reuse.
         sampleVertex = null;
         sampleMap = null;
+
+        // Reset static variables cleared for avoiding OOM.
+        // TODO: Figure out a cleaner way to do this. ThreadLocals actually can be avoided all together
+        // for mapreduce/tez mode and just used for Local mode.
+        PhysicalOperator.reporter = new ThreadLocal<PigProgressable>();
+        PigMapReduce.sJobConfInternal = new ThreadLocal<Configuration>();
 
         byte[] payload = processorContext.getUserPayload();
         conf = TezUtils.createConfFromUserPayload(payload);
@@ -103,8 +110,16 @@ public class PigProcessor implements LogicalIOProcessor {
 
     @Override
     public void close() throws Exception {
-        // TODO Auto-generated method stub
-
+        // Avoid memory leak. ThreadLocals especially leak a lot of memory.
+        PhysicalOperator.reporter = new ThreadLocal<PigProgressable>();
+        PigMapReduce.sJobConfInternal = new ThreadLocal<Configuration>();
+        PigMapReduce.sJobContext = null;
+        execPlan = null;
+        fileOutputs = null;
+        leaf = null;
+        conf = null;
+        sampleMap = null;
+        sampleVertex = null;
     }
 
     @SuppressWarnings("rawtypes")

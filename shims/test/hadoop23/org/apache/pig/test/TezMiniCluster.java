@@ -27,7 +27,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.hadoop.mapreduce.v2.MiniMRYarnCluster;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.pig.ExecType;
@@ -90,7 +89,7 @@ public class TezMiniCluster extends MiniGenericCluster {
             m_mr_conf.set(YarnConfiguration.YARN_APPLICATION_CLASSPATH,
                     System.getProperty("java.class.path"));
             // TODO PIG-3659 - Remove this once memory management is fixed
-            m_mr_conf.set(MRJobConfig.MAP_JAVA_OPTS, "-Xmx384M");// -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=8005 -Xnoagent -Djava.compiler=NONE");
+            // m_mr_conf.set(MRJobConfig.MAP_JAVA_OPTS, "-Xmx384M");// -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=8005 -Xnoagent -Djava.compiler=NONE");
             m_mr_conf.writeXml(new FileOutputStream(MAPRED_CONF_FILE));
             m_fileSys.copyFromLocalFile(
                     new Path(MAPRED_CONF_FILE.getAbsoluteFile().toString()),

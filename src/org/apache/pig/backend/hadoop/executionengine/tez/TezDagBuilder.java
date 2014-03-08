@@ -257,6 +257,9 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                     edge.partitionerClass.getName());
         }
 
+        conf.set("udf.import.list",
+                ObjectSerializer.serialize(PigContext.getPackageImportList()));
+
         MRToTezHelper.convertMRToTezRuntimeConf(conf, globalConf);
 
         in.setUserPayload(TezUtils.createUserPayloadFromConf(conf));

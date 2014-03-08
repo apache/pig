@@ -25,7 +25,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.log4j.PropertyConfigurator;
 import org.apache.pig.PigException;
@@ -45,8 +44,6 @@ import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
 
 public class PigCombiner {
-
-    public static JobContext sJobContext = null;
 
     public static class Combine
             extends Reducer<PigNullableWritable, NullableTuple, PigNullableWritable, Writable> {
@@ -84,7 +81,6 @@ public class PigCombiner {
         @Override
         protected void setup(Context context) throws IOException, InterruptedException {
             super.setup(context);
-            sJobContext = context;
             Configuration jConf = context.getConfiguration();
             try {
                 PigContext.setPackageImportList((ArrayList<String>)ObjectSerializer.deserialize(jConf.get("udf.import.list")));
