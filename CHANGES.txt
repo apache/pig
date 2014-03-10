@@ -99,6 +99,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3801: Auto local mode does not call storeSchema (aniket486)
+
 PIG-3754: InputSizeReducerEstimator.getTotalInputFileSize reports incorrect size (aniket486)
 
 PIG-3679: e2e StreamingPythonUDFs_10 fails in trunk (cheolsoo)

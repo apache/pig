@@ -41,7 +41,6 @@ import org.apache.hadoop.mapred.JobID;
 import org.apache.hadoop.mapred.RunningJob;
 import org.apache.hadoop.mapred.TaskReport;
 import org.apache.hadoop.mapred.jobcontrol.Job;
-import org.apache.pig.ExecType;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.PigRunner.ReturnCode;
@@ -477,7 +476,7 @@ public class MapReduceLauncher extends Launcher{
             for (Job job : succJobs) {
                 List<POStore> sts = jcc.getStores(job);
                 for (POStore st : sts) {
-                    if (pc.getExecType() == ExecType.LOCAL) {
+                    if (Utils.isLocal(pc, job.getJobConf())) {
                         HadoopShims.storeSchemaForLocal(job, st);
                     }
 
