@@ -245,7 +245,11 @@ public class PigServer {
         markPredeployedJarsFromProperties();
 
         PigStats.start(pigContext.getExecutionEngine().instantiatePigStats());
-        ScriptState.start(pigContext.getExecutionEngine().instantiateScriptState());
+        // ScriptState may have been initialized in Main. In that case, we
+        // should not overwrite it.
+        if (ScriptState.get() == null) {
+            ScriptState.start(pigContext.getExecutionEngine().instantiateScriptState());
+        }
     }
 
     private void addJarsFromProperties() throws ExecException {
@@ -277,7 +281,7 @@ public class PigServer {
     private void markPredeployedJarsFromProperties() throws ExecException {
         // mark jars as predeployed from properties
         String jar_str = pigContext.getProperties().getProperty("pig.predeployed.jars");
-		
+
         if(jar_str != null){
             // Use File.pathSeparator (":" on Linux, ";" on Windows)
             // to correctly handle path aggregates as they are represented

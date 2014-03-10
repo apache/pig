@@ -18,6 +18,8 @@
 package org.apache.pig.backend.hadoop.executionengine.tez;
 
 import java.io.IOException;
+import java.util.EnumSet;
+import java.util.Iterator;
 import java.util.Map;
 
 import org.apache.commons.logging.Log;
@@ -27,11 +29,18 @@ import org.apache.hadoop.mapreduce.lib.jobcontrol.ControlledJob;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.pig.PigConfiguration;
 import org.apache.tez.client.TezSession;
-import org.apache.tez.dag.api.DAG;
+import org.apache.tez.common.counters.CounterGroup;
+import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.dag.api.client.StatusGetOpts;
+import org.apache.tez.dag.api.client.VertexStatus;
+
+import com.google.common.collect.Maps;
 
 /**
  * Wrapper class that encapsulates Tez DAG. This class mediates between Tez DAGs
@@ -39,6 +48,7 @@ import org.apache.tez.dag.api.client.DAGStatus;
  */
 public class TezJob extends ControlledJob {
     private static final Log log = LogFactory.getLog(TezJob.class);
+    private EnumSet<StatusGetOpts> statusGetOpts;
     private DAGStatus dagStatus;
     private Configuration conf;
     private TezDAG dag;
@@ -46,6 +56,8 @@ public class TezJob extends ControlledJob {
     private Map<String, LocalResource> requestAMResources;
     private TezSession tezSession;
     private boolean reuseSession;
+    private TezCounters dagCounters;
+    private Map<String, Map<String, Long>> vertexCounters;
 
     public TezJob(TezConfiguration conf, TezDAG dag, Map<String, LocalResource> requestAMResources)
             throws IOException {
@@ -54,14 +66,24 @@ public class TezJob extends ControlledJob {
         this.dag = dag;
         this.requestAMResources = requestAMResources;
         this.reuseSession = conf.getBoolean(PigConfiguration.TEZ_SESSION_REUSE, true);
+        this.statusGetOpts = EnumSet.of(StatusGetOpts.GET_COUNTERS);
+        this.vertexCounters = Maps.newHashMap();
     }
 
-    public DAG getDag() {
+    public TezDAG getDag() {
         return dag;
     }
 
     public DAGStatus getDagStatus() {
         return dagStatus;
+    }
+
+    public TezCounters getDagCounters() {
+        return dagCounters;
+    }
+
+    public Map<String, Long> getVertexCounters(String name) {
+        return vertexCounters.get(name);
     }
 
     @Override
@@ -82,7 +104,7 @@ public class TezJob extends ControlledJob {
 
         while (true) {
             try {
-                dagStatus = dagClient.getDAGStatus(null);
+                dagStatus = dagClient.getDAGStatus(statusGetOpts);
             } catch (Exception e) {
                 log.info("Cannot retrieve DAG status", e);
                 setJobState(ControlledJob.State.FAILED);
@@ -97,6 +119,8 @@ public class TezJob extends ControlledJob {
                     sb.append(msg);
                     sb.append("\n");
                 }
+                dagCounters = dagStatus.getDAGCounters();
+                collectVertexCounters();
                 setMessage(sb.toString());
                 TezSessionManager.freeSession(tezSession);
                 try {
@@ -116,6 +140,30 @@ public class TezJob extends ControlledJob {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
                 // Do nothing
+            }
+        }
+    }
+
+    private void collectVertexCounters() {
+        for (Vertex v : dag.getVertices()) {
+            String name = v.getVertexName();
+            try {
+                VertexStatus s = dagClient.getVertexStatus(name, statusGetOpts);
+                Map<String, Long> cntMap = Maps.newHashMap();
+                TezCounters counters = s.getVertexCounters();
+                Iterator<CounterGroup> grpIt = counters.iterator();
+                while (grpIt.hasNext()) {
+                    Iterator<TezCounter> cntIt = grpIt.next().iterator();
+                    while (cntIt.hasNext()) {
+                        TezCounter cnt = cntIt.next();
+                        cntMap.put(cnt.getName(), cnt.getValue());
+                    }
+                }
+                vertexCounters.put(name, cntMap);
+            } catch (Exception e) {
+                // Don't fail the job even if vertex counters couldn't
+                // be retrieved.
+                log.info("Cannot retrieve counters for vertex " + name, e);
             }
         }
     }

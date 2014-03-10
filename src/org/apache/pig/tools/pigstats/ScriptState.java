@@ -252,7 +252,7 @@ public abstract class ScriptState {
     }
 
     public String getFileName() {
-        return fileName;
+        return (fileName == null) ? "" : fileName;
     }
 
     public void setFileName(String fileName) {

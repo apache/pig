@@ -42,14 +42,26 @@ import org.apache.pig.tools.pigstats.InputStats;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.counters.CounterGroup;
+import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Vertex;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 public class TezStats extends PigStats {
     private static final Log LOG = LogFactory.getLog(TezStats.class);
 
+    public static final String DAG_COUNTER =
+            "org.apache.tez.common.counters.DAGCounter";
+    public static final String FS_COUNTER =
+            "org.apache.tez.common.counters.FileSystemCounter";
+    public static final String TASK_COUNTER =
+            "org.apache.tez.common.counters.TaskCounter";
+
+    private List<String> dagStatsStrings;
     private Map<String, TezTaskStats> tezOpVertexMap;
 
     /**
@@ -82,6 +94,7 @@ public class TezStats extends PigStats {
         this.pigContext = pigContext;
         this.jobPlan = new JobGraph();
         this.tezOpVertexMap = Maps.newHashMap();
+        this.dagStatsStrings = Lists.newArrayList();
     }
 
     public void initialize(TezOperPlan tezPlan) {
@@ -106,6 +119,7 @@ public class TezStats extends PigStats {
         sb.append(String.format("%1$20s: %2$-100s%n", "PigVersion", getPigVersion()));
         sb.append(String.format("%1$20s: %2$-100s%n", "TezVersion", TezExecType.getTezVersion()));
         sb.append(String.format("%1$20s: %2$-100s%n", "UserId", userId));
+        sb.append(String.format("%1$20s: %2$-100s%n", "FileName", getFileName()));
         sb.append(String.format("%1$20s: %2$-100s%n", "StartedAt", sdf.format(new Date(startTime))));
         sb.append(String.format("%1$20s: %2$-100s%n", "FinishedAt", sdf.format(new Date(endTime))));
         sb.append(String.format("%1$20s: %2$-100s%n", "Features", getFeatures()));
@@ -132,6 +146,12 @@ public class TezStats extends PigStats {
                 sb.append("\n");
             }
         }
+
+        for (String s : dagStatsStrings) {
+            sb.append(s);
+            sb.append("\n");
+        }
+
         List<InputStats> is = getInputStats();
         for (int i = 0; i < is.size(); i++) {
             String s = is.get(i).getDisplayString(isLocal).trim();
@@ -152,21 +172,23 @@ public class TezStats extends PigStats {
      */
     public void accumulateStats(JobControl jc) throws IOException {
         for (ControlledJob job : jc.getSuccessfulJobList()) {
-            addJobStats((TezJob)job, true);
+            addVertexStats((TezJob)job, true);
+            dagStatsStrings.add(getDisplayString((TezJob)job));
         }
         for (ControlledJob job : jc.getFailedJobList()) {
-            addJobStats((TezJob)job, false);
+            addVertexStats((TezJob)job, false);
+            dagStatsStrings.add(getDisplayString((TezJob)job));
         }
     }
 
-    private void addJobStats(TezJob tezJob, boolean succeeded) throws IOException {
+    private void addVertexStats(TezJob tezJob, boolean succeeded) throws IOException {
         DAG dag = tezJob.getDag();
         for (String name : tezOpVertexMap.keySet()) {
             Vertex v = dag.getVertex(name);
             if (v != null) {
                 byte[] bb = v.getProcessorDescriptor().getUserPayload();
                 Configuration conf = TezUtils.createConfFromUserPayload(bb);
-                addVertexStats(name, conf, succeeded);
+                addVertexStats(name, conf, succeeded, tezJob.getVertexCounters(name));
             }
         }
         if (!succeeded) {
@@ -174,14 +196,44 @@ public class TezStats extends PigStats {
         }
     }
 
-    private void addVertexStats(String tezOpName, Configuration conf, boolean succeeded) {
+    private void addVertexStats(String tezOpName, Configuration conf, boolean succeeded,
+            Map<String, Long> counters) {
         TezTaskStats stats = tezOpVertexMap.get(tezOpName);
         stats.setConf(conf);
         stats.setId(tezOpName);
         stats.setSuccessful(succeeded);
-        // TODO: Add error messages for each task in failure case
-        stats.addInputStatistics();
-        stats.addOutputStatistics();
+        stats.addInputStatistics(counters);
+        stats.addOutputStatistics(counters);
+    }
+
+    private static String getDisplayString(TezJob tezJob) {
+        StringBuilder sb = new StringBuilder();
+        TezCounters cnt = tezJob.getDagCounters();
+
+        sb.append(String.format("%1$20s: %2$-100s%n", "JobId",
+                tezJob.getJobID()));
+
+        CounterGroup dagGrp = cnt.getGroup(DAG_COUNTER);
+        TezCounter numTasks = dagGrp.findCounter("TOTAL_LAUNCHED_TASKS");
+        sb.append(String.format("%1$20s: %2$-100s%n", "TotalLaunchedTasks",
+                numTasks.getValue()));
+
+        CounterGroup fsGrp = cnt.getGroup(FS_COUNTER);
+        TezCounter bytesRead = fsGrp.findCounter("FILE_BYTES_READ");
+        TezCounter bytesWritten = fsGrp.findCounter("FILE_BYTES_WRITTEN");
+        sb.append(String.format("%1$20s: %2$-100s%n", "FileBytesRead",
+                bytesRead.getValue()));
+        sb.append(String.format("%1$20s: %2$-100s%n", "FileBytesWritten",
+                bytesWritten.getValue()));
+
+        TezCounter hdfsBytesRead = fsGrp.findCounter("HDFS_BYTES_READ");
+        TezCounter hdfsBytesWritten = fsGrp.findCounter("HDFS_BYTES_WRITTEN");
+        sb.append(String.format("%1$20s: %2$-100s%n", "HdfsBytesRead",
+                hdfsBytesRead.getValue()));
+        sb.append(String.format("%1$20s: %2$-100s%n", "HdfsBytesWritten",
+                hdfsBytesWritten.getValue()));
+
+        return sb.toString();
     }
 
     @Override

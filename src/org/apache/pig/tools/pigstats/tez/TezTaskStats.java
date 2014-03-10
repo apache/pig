@@ -19,6 +19,7 @@ import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 import org.apache.pig.tools.pigstats.PigStats.JobGraphPrinter;
+import org.apache.pig.tools.pigstats.PigStatsUtil;
 
 public class TezTaskStats extends JobStats {
     private static final Log LOG = LogFactory.getLog(TezTaskStats.class);
@@ -77,18 +78,22 @@ public class TezTaskStats extends JobStats {
         }
     }
 
-    public void addInputStatistics() {
+    public void addInputStatistics(Map<String, Long> counters) {
         if (inputs == null) {
             LOG.warn("Unable to get inputs of the job");
             return;
         }
 
         for (FileSpec fs : loads) {
-            String filename = fs.getFileName();
-            // TODO: Records and bytesRead are always -1 now. We should update
-            // them when Tez supports counters.
             long records = -1;
             long hdfsBytesRead = -1;
+            String filename = fs.getFileName();
+            if (counters.get(PigStatsUtil.MAP_INPUT_RECORDS) != null) {
+                records = counters.get(PigStatsUtil.MAP_INPUT_RECORDS);
+            }
+            if (counters.get(PigStatsUtil.HDFS_BYTES_READ) != null) {
+                hdfsBytesRead = counters.get(PigStatsUtil.HDFS_BYTES_READ);
+            }
             InputStats is = new InputStats(filename, hdfsBytesRead,
                     records, (state == JobState.SUCCESS));
             is.setConf(conf);
@@ -96,18 +101,22 @@ public class TezTaskStats extends JobStats {
         }
     }
 
-    public void addOutputStatistics() {
+    public void addOutputStatistics(Map<String, Long> counters) {
         if (stores == null) {
             LOG.warn("Unable to get stores of the job");
             return;
         }
 
         for (POStore sto : stores) {
-            String filename = sto.getSFile().getFileName();
-            // TODO: Records and bytesRead are always -1 now. We should update
-            // them when Tez supports counters.
             long records = -1;
             long hdfsBytesWritten = -1;
+            String filename = sto.getSFile().getFileName();
+            if (counters.get(PigStatsUtil.MAP_OUTPUT_RECORDS) != null) {
+                records = counters.get(PigStatsUtil.MAP_OUTPUT_RECORDS);
+            }
+            if (counters.get(PigStatsUtil.HDFS_BYTES_WRITTEN) != null) {
+                hdfsBytesWritten = counters.get(PigStatsUtil.HDFS_BYTES_WRITTEN);
+            }
             OutputStats os = new OutputStats(filename, hdfsBytesWritten,
                     records, (state == JobState.SUCCESS));
             os.setPOStore(sto);
@@ -160,7 +169,7 @@ public class TezTaskStats extends JobStats {
 
     @Override
     @Deprecated
-    public long getAvgREduceTime() {
+    public long getAvgReduceTime() {
         throw new UnsupportedOperationException();
     }
 
@@ -178,13 +187,13 @@ public class TezTaskStats extends JobStats {
 
     @Override
     @Deprecated
-    public long getReduceOutputRecords() {
+    public long getReduceInputRecords() {
         throw new UnsupportedOperationException();
     }
 
     @Override
     @Deprecated
-    public long getReduceInputRecords() {
+    public long getReduceOutputRecords() {
         throw new UnsupportedOperationException();
     }
 
@@ -208,12 +217,6 @@ public class TezTaskStats extends JobStats {
 
     @Override
     @Deprecated
-    public long getHdfsBytesWritten() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    @Deprecated
     public Counters getHadoopCounters() {
         throw new UnsupportedOperationException();
     }
@@ -221,6 +224,12 @@ public class TezTaskStats extends JobStats {
     @Override
     @Deprecated
     public Map<String, Long> getMultiStoreCounters() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    @Deprecated
+    public Map<String, Long> getMultiInputCounters() {
         throw new UnsupportedOperationException();
     }
 }

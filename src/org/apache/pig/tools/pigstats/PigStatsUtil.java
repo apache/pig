@@ -32,6 +32,33 @@ import org.apache.pig.tools.pigstats.mapreduce.SimplePigStats;
  */
 public class PigStatsUtil {
 
+    public static final String MAP_INPUT_RECORDS
+            = "MAP_INPUT_RECORDS";
+    public static final String MAP_OUTPUT_RECORDS
+            = "MAP_OUTPUT_RECORDS";
+    public static final String REDUCE_INPUT_RECORDS
+            = "REDUCE_INPUT_RECORDS";
+    public static final String REDUCE_OUTPUT_RECORDS
+            = "REDUCE_OUTPUT_RECORDS";
+    public static final String HDFS_BYTES_WRITTEN
+            = "HDFS_BYTES_WRITTEN";
+    public static final String HDFS_BYTES_READ
+            = "HDFS_BYTES_READ";
+
+    /**
+     * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#MULTI_INPUT_RECORD_COUNTER} instead.
+     */
+    @Deprecated
+    public static final String MULTI_INPUTS_RECORD_COUNTER
+            = "Input records from ";
+
+    /**
+     * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#MULTI_INPUT_COUNTER_GROUP} instead.
+     */
+    @Deprecated
+    public static final String MULTI_INPUTS_COUNTER_GROUP
+            = "MultiInputCounters";
+
     /**
      * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#MULTI_STORE_RECORD_COUNTER} instead.
      */
@@ -59,62 +86,6 @@ public class PigStatsUtil {
     @Deprecated
     public static final String FS_COUNTER_GROUP
             = HadoopShims.getFsCounterGroupName();
-
-    /**
-     * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#MAP_INPUT_RECORDS} instead.
-     */
-    @Deprecated
-    public static final String MAP_INPUT_RECORDS
-            = "MAP_INPUT_RECORDS";
-
-    /**
-     * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#MAP_OUTPUT_RECORDS} instead.
-     */
-    @Deprecated
-    public static final String MAP_OUTPUT_RECORDS
-            = "MAP_OUTPUT_RECORDS";
-
-    /**
-     * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#REDUCE_INPUT_RECORDS} instead.
-     */
-    @Deprecated
-    public static final String REDUCE_INPUT_RECORDS
-            = "REDUCE_INPUT_RECORDS";
-
-    /**
-     * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#REDUCE_OUTPUT_RECORDS} instead.
-     */
-    @Deprecated
-    public static final String REDUCE_OUTPUT_RECORDS
-            = "REDUCE_OUTPUT_RECORDS";
-
-    /**
-     * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#HDFS_BYTES_WRITTEN} instead.
-     */
-    @Deprecated
-    public static final String HDFS_BYTES_WRITTEN
-            = "HDFS_BYTES_WRITTEN";
-
-    /**
-     * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#HDFS_BYTES_READ} instead.
-     */
-    @Deprecated
-    public static final String HDFS_BYTES_READ
-            = "HDFS_BYTES_READ";
-
-    /**
-     * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#MULTI_INPUTS_RECORD_COUNTER} instead.
-     */
-    @Deprecated
-    public static final String MULTI_INPUTS_RECORD_COUNTER
-            = "Input records from ";
-
-    /**
-     * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#MULTI_INPUTS_COUNTER_GROUP} instead.
-     */
-    @Deprecated
-    public static final String MULTI_INPUTS_COUNTER_GROUP
-            = "MultiInputCounters";
 
     /**
      * Returns an empty PigStats object Use of this method is not advised as it
@@ -173,6 +144,4 @@ public class PigStatsUtil {
         PigStats.start(new EmbeddedPigStats(statsMap));
     }
 
-
 }
-

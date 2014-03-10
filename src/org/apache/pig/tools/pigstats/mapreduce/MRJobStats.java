@@ -88,7 +88,6 @@ public final class MRJobStats extends JobStats {
 
     private Boolean disableCounter = false;
 
-    @SuppressWarnings("deprecation")
     private JobID jobId;
 
     private long maxMapTime = 0;
@@ -107,8 +106,6 @@ public final class MRJobStats extends JobStats {
     private long mapOutputRecords = 0;
     private long reduceInputRecords = 0;
     private long reduceOutputRecords = 0;
-    private long hdfsBytesWritten = 0;
-    private long hdfsBytesRead = 0;
     private long spillCount = 0;
     private long activeSpillCountObj = 0;
     private long activeSpillCountRecs = 0;
@@ -119,9 +116,7 @@ public final class MRJobStats extends JobStats {
     private HashMap<String, Long> multiInputCounters
             = new HashMap<String, Long>();
 
-    @SuppressWarnings("deprecation")
     private Counters counters = null;
-
 
     public String getJobId() {
         return (jobId == null) ? null : jobId.toString();
@@ -141,15 +136,15 @@ public final class MRJobStats extends JobStats {
 
     public long getMinReduceTime() { return minReduceTime; }
 
-    public long getAvgREduceTime() { return avgReduceTime; }
+    public long getAvgReduceTime() { return avgReduceTime; }
 
     public long getMapInputRecords() { return mapInputRecords; }
 
     public long getMapOutputRecords() { return mapOutputRecords; }
 
-    public long getReduceOutputRecords() { return reduceOutputRecords; }
-
     public long getReduceInputRecords() { return reduceInputRecords; }
+
+    public long getReduceOutputRecords() { return reduceOutputRecords; }
 
     public long getSMMSpillCount() { return spillCount; }
 
@@ -157,14 +152,14 @@ public final class MRJobStats extends JobStats {
 
     public long getProactiveSpillCountRecs() { return activeSpillCountRecs; }
 
-    public long getHdfsBytesWritten() { return hdfsBytesWritten; }
-
-    @SuppressWarnings("deprecation")
     public Counters getHadoopCounters() { return counters; }
-
 
     public Map<String, Long> getMultiStoreCounters() {
         return Collections.unmodifiableMap(multiStoreCounters);
+    }
+
+    public Map<String, Long> getMultiInputCounters() {
+        return Collections.unmodifiableMap(multiInputCounters);
     }
 
     public String getAlias() {
@@ -187,7 +182,6 @@ public final class MRJobStats extends JobStats {
         }
     }
 
-    @SuppressWarnings("deprecation")
     void setId(JobID jobId) {
         this.jobId = jobId;
     }
@@ -265,7 +259,6 @@ public final class MRJobStats extends JobStats {
         return sb.toString();
     }
 
-    @SuppressWarnings("deprecation")
     void addCounters(RunningJob rjob) {
         if (rjob != null) {
             try {

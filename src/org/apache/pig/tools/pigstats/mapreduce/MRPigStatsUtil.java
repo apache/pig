@@ -50,30 +50,18 @@ import org.apache.pig.tools.pigstats.JobStats;
  */
 public class MRPigStatsUtil extends PigStatsUtil {
 
-    public static final String MULTI_STORE_RECORD_COUNTER
-            = "Output records in ";
-    public static final String MULTI_STORE_COUNTER_GROUP
-            = "MultiStoreCounters";
     public static final String TASK_COUNTER_GROUP
             = "org.apache.hadoop.mapred.Task$Counter";
     public static final String FS_COUNTER_GROUP
             = HadoopShims.getFsCounterGroupName();
-    public static final String MAP_INPUT_RECORDS
-            = "MAP_INPUT_RECORDS";
-    public static final String MAP_OUTPUT_RECORDS
-            = "MAP_OUTPUT_RECORDS";
-    public static final String REDUCE_INPUT_RECORDS
-            = "REDUCE_INPUT_RECORDS";
-    public static final String REDUCE_OUTPUT_RECORDS
-            = "REDUCE_OUTPUT_RECORDS";
-    public static final String HDFS_BYTES_WRITTEN
-            = "HDFS_BYTES_WRITTEN";
-    public static final String HDFS_BYTES_READ
-            = "HDFS_BYTES_READ";
     public static final String MULTI_INPUTS_RECORD_COUNTER
             = "Input records from ";
     public static final String MULTI_INPUTS_COUNTER_GROUP
             = "MultiInputCounters";
+    public static final String MULTI_STORE_RECORD_COUNTER
+            = "Output records in ";
+    public static final String MULTI_STORE_COUNTER_GROUP
+            = "MultiStoreCounters";
 
     private static final Log LOG = LogFactory.getLog(MRPigStatsUtil.class);
 
@@ -90,7 +78,6 @@ public class MRPigStatsUtil extends PigStatsUtil {
      * @param counterName the counter name
      * @return the count of the given counter name
      */
-    @SuppressWarnings("deprecation")
     public static long getMultiStoreCount(Job job, JobClient jobClient,
             String counterName) {
         long value = -1;
@@ -166,7 +153,7 @@ public class MRPigStatsUtil extends PigStatsUtil {
      */
     public static void startCollection(PigContext pc, JobClient client,
             JobControlCompiler jcc, MROperPlan plan) {
-        SimplePigStats ps = (SimplePigStats)PigStats.start(new SimplePigStats());
+        SimplePigStats ps = (SimplePigStats)PigStats.get();
         ps.initialize(pc, client, jcc, plan);
 
         MRScriptState.get().emitInitialPlanNotification(plan);

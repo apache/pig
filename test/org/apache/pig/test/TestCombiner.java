@@ -40,6 +40,7 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.ScriptState;
+import org.apache.pig.tools.pigstats.mapreduce.MRScriptState;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -70,6 +71,14 @@ public class TestCombiner {
         // ensure each test runs correctly in it's exectype
         // mode, let's re initialize.
         FileLocalizer.setInitialized(false);
+    }
+
+    @After
+    public void tearDown() throws Exception{
+        // TODO: once we have Tez local mode, we can get rid of this. For now,
+        // if we run this test suite in Tez mode, we need to set ScriptState to
+        // null to force ScriptState gets initialized every time.
+        ScriptState.start(null);
     }
 
     @Test

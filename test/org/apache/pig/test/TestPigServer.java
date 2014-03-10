@@ -102,6 +102,10 @@ public class TestPigServer {
     @After
     public void tearDown() throws Exception{
         tempDir.delete();
+        // TODO: once we have Tez local mode, we can get rid of this. For now,
+        // if we run this test suite in Tez mode, we need to set ScriptState to
+        // null to force ScriptState gets initialized every time.
+        ScriptState.start(null);
     }
 
     @BeforeClass
