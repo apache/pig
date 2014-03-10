@@ -621,7 +621,7 @@ public class JobControlCompiler{
                 }
             }
 
-            if(isLocal(pigContext, conf)) {
+            if(Utils.isLocal(pigContext, conf)) {
                 ConfigurationUtil.replaceConfigForLocalMode(conf);
             }
             conf.set("pig.inputs", ObjectSerializer.serialize(inp));
@@ -1529,10 +1529,6 @@ public class JobControlCompiler{
         }
     }
 
-    private static boolean isLocal(PigContext pigContext, Configuration conf) {
-        return pigContext.getExecType().isLocal() || conf.getBoolean(PigImplConstants.CONVERTED_TO_LOCAL, false);
-    }
-
     private static String addSingleFileToDistributedCache(
             PigContext pigContext, Configuration conf, String filename,
             String prefix) throws IOException {
@@ -1547,7 +1543,7 @@ public class JobControlCompiler{
 
         // XXX Hadoop currently doesn't support distributed cache in local mode.
         // This line will be removed after the support is added by Hadoop team.
-        if (!isLocal(pigContext, conf)) {
+        if (!Utils.isLocal(pigContext, conf)) {
             symlink = prefix + "_"
                     + Integer.toString(System.identityHashCode(filename)) + "_"
                     + Long.toString(System.currentTimeMillis());
@@ -1721,7 +1717,7 @@ public class JobControlCompiler{
 
             // XXX Hadoop currently doesn't support distributed cache in local mode.
             // This line will be removed after the support is added
-            if (isLocal(pigContext, conf)) return;
+            if (Utils.isLocal(pigContext, conf)) return;
 
             // set up distributed cache for the replicated files
             FileSpec[] replFiles = join.getReplFiles();
@@ -1777,7 +1773,7 @@ public class JobControlCompiler{
 
             // XXX Hadoop currently doesn't support distributed cache in local mode.
             // This line will be removed after the support is added
-            if (isLocal(pigContext, conf)) return;
+            if (Utils.isLocal(pigContext, conf)) return;
 
             String indexFile = join.getIndexFile();
 
@@ -1801,7 +1797,7 @@ public class JobControlCompiler{
 
             // XXX Hadoop currently doesn't support distributed cache in local mode.
             // This line will be removed after the support is added
-            if (isLocal(pigContext, conf)) return;
+            if (Utils.isLocal(pigContext, conf)) return;
 
             String indexFile = mergeCoGrp.getIndexFileName();
 
@@ -1838,7 +1834,7 @@ public class JobControlCompiler{
 
             // XXX Hadoop currently doesn't support distributed cache in local mode.
             // This line will be removed after the support is added
-            if (isLocal(pigContext, conf)) return;
+            if (Utils.isLocal(pigContext, conf)) return;
 
             // set up distributed cache for files indicated by the UDF
             String[] files = func.getCacheFiles();
