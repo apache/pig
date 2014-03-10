@@ -1257,4 +1257,19 @@ public class Util {
             return true;
         return false;
     }
+
+    /**
+     * 
+     * @param expected
+     *            Exception class that is expected to be thrown
+     * @param found
+     *            Exception that occurred in the test
+     * @param message
+     *            expected String to verify against
+     */
+    public static void assertExceptionAndMessage(Class<?> expected,
+            Exception found, String message) {
+        assertEquals(expected, found.getClass());
+        assertEquals(found.getMessage(), message);
+    }
 }

@@ -20,6 +20,7 @@ package org.apache.pig.test;
 import static org.apache.pig.builtin.mock.Storage.resetData;
 import static org.apache.pig.builtin.mock.Storage.tuple;
 import static org.apache.pig.newplan.logical.relational.LOTestHelper.newLOLoad;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.util.Properties;
@@ -46,9 +47,7 @@ import org.apache.pig.tools.grunt.GruntParser;
 import org.apache.pig.validator.BlackAndWhitelistFilter;
 import org.apache.pig.validator.BlackAndWhitelistValidator;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 /**
  * 
@@ -58,9 +57,6 @@ import org.junit.rules.ExpectedException;
  */
 public class TestBlackAndWhitelistValidator {
     private PigContext ctx;
-
-    @Rule
-    public ExpectedException expectedEx = ExpectedException.none();
 
     @Before
     public void setUp() throws Exception {
@@ -76,22 +72,26 @@ public class TestBlackAndWhitelistValidator {
      */
     @Test
     public void testBlacklist() throws Exception {
-        expectedEx.expect(FrontendException.class);
-        expectedEx.expectMessage("SET command is not permitted");
-        ctx.getProperties().setProperty(PigConfiguration.PIG_BLACKLIST, "set");
-        PigServer pigServer = new PigServer(ctx);
-        Data data = resetData(pigServer);
+        try {
+            ctx.getProperties().setProperty(PigConfiguration.PIG_BLACKLIST, "set");
+            PigServer pigServer = new PigServer(ctx);
+            Data data = resetData(pigServer);
 
-        data.set("foo", tuple("a", 1, "b"), tuple("b", 2, "c"),
-                tuple("c", 3, "d"));
+            data.set("foo", tuple("a", 1, "b"), tuple("b", 2, "c"),
+                    tuple("c", 3, "d"));
 
-        StringBuilder script = new StringBuilder();
-        script.append("set io.sort.mb 1000;")
-                .append("A = LOAD 'foo' USING mock.Storage() AS (f1:chararray,f2:int,f3:chararray);")
-                .append("B = order A by f1,f2,f3 DESC;")
-                .append("STORE B INTO 'bar' USING mock.Storage();");
+            StringBuilder script = new StringBuilder();
+            script.append("set io.sort.mb 1000;")
+                    .append("A = LOAD 'foo' USING mock.Storage() AS (f1:chararray,f2:int,f3:chararray);")
+                    .append("B = order A by f1,f2,f3 DESC;")
+                    .append("STORE B INTO 'bar' USING mock.Storage();");
 
-        pigServer.registerScript(IOUtils.toInputStream(script));
+            pigServer.registerScript(IOUtils.toInputStream(script));
+            fail();
+        } catch (Exception e) {
+            Util.assertExceptionAndMessage(FrontendException.class, e,
+                    "SET command is not permitted. ");
+        }
     }
 
     /**
@@ -103,16 +103,19 @@ public class TestBlackAndWhitelistValidator {
      */
     @Test
     public void testValidator() throws Exception {
-        expectedEx.expect(FrontendException.class);
-        expectedEx.expectMessage("filter is disabled");
-        // disabling filter
-        ctx.getProperties().setProperty(PigConfiguration.PIG_BLACKLIST,
-                "filter");
+        try {
+            // disabling filter
+            ctx.getProperties().setProperty(PigConfiguration.PIG_BLACKLIST, "filter");
 
-        LogicalPlan plan = generateLogicalPlan("foo", "bar", ctx.getDfs());
+            LogicalPlan plan = generateLogicalPlan("foo", "bar", ctx.getDfs());
 
-        LogicalRelationalNodeValidator executor = new BlackAndWhitelistValidator(ctx, plan);
-        executor.validate();
+            LogicalRelationalNodeValidator executor = new BlackAndWhitelistValidator(ctx, plan);
+            executor.validate();
+            fail();
+        } catch (Exception e) {
+            Util.assertExceptionAndMessage(FrontendException.class, e,
+                    "filter is disabled. ");
+        }
     }
 
     /**
@@ -134,17 +137,19 @@ public class TestBlackAndWhitelistValidator {
 
     @Test
     public void testWhitelist2() throws Exception {
-        expectedEx.expect(FrontendException.class);
-        expectedEx.expectMessage("filter is disabled");
-        // only load and store are allowed. Having a filter in the logical plan
-        // must
-        // cause the script to fail
-        ctx.getProperties().setProperty(PigConfiguration.PIG_WHITELIST,
-                "load, store");
-        LogicalPlan plan = generateLogicalPlan("foo", "bar", ctx.getDfs());
+        try {
+            // only load and store are allowed. Having a filter in the logical
+            // plan must cause the script to fail
+            ctx.getProperties().setProperty(PigConfiguration.PIG_WHITELIST, "load, store");
+            LogicalPlan plan = generateLogicalPlan("foo", "bar", ctx.getDfs());
 
-        LogicalRelationalNodeValidator executor = new BlackAndWhitelistValidator(ctx, plan);
-        executor.validate();
+            LogicalRelationalNodeValidator executor = new BlackAndWhitelistValidator(ctx, plan);
+            executor.validate();
+            fail();
+        } catch (Exception e) {
+            Util.assertExceptionAndMessage(FrontendException.class, e,
+                    "filter is disabled. ");
+        }
     }
 
     /**
@@ -155,18 +160,18 @@ public class TestBlackAndWhitelistValidator {
      */
     @Test
     public void testBlackAndWhitelist() throws Exception {
-        expectedEx.expect(IllegalStateException.class);
-        expectedEx
-                .expectMessage("Conflict between whitelist and blacklist. 'filter' appears in both.");
+        try {
+            ctx.getProperties().setProperty(PigConfiguration.PIG_WHITELIST, "load, store, filter");
+            ctx.getProperties().setProperty(PigConfiguration.PIG_BLACKLIST, "filter");
+            LogicalPlan plan = generateLogicalPlan("foo", "bar", ctx.getDfs());
 
-        ctx.getProperties().setProperty(PigConfiguration.PIG_WHITELIST,
-                "load, store, filter");
-        ctx.getProperties().setProperty(PigConfiguration.PIG_BLACKLIST,
-                "filter");
-        LogicalPlan plan = generateLogicalPlan("foo", "bar", ctx.getDfs());
-
-        LogicalRelationalNodeValidator executor = new BlackAndWhitelistValidator(ctx, plan);
-        executor.validate();
+            LogicalRelationalNodeValidator executor = new BlackAndWhitelistValidator(ctx, plan);
+            executor.validate();
+            fail();
+        } catch (Exception e) {
+            Util.assertExceptionAndMessage(IllegalStateException.class, e,
+                    "Conflict between whitelist and blacklist. 'filter' appears in both.");
+        }
     }
 
     /**
@@ -175,8 +180,7 @@ public class TestBlackAndWhitelistValidator {
      */
     @Test(expected = FrontendException.class)
     public void testBlacklistWithPigServer() throws Exception {
-        ctx.getProperties()
-                .setProperty(PigConfiguration.PIG_BLACKLIST, "order");
+        ctx.getProperties().setProperty(PigConfiguration.PIG_BLACKLIST, "order");
         PigServer pigServer = new PigServer(ctx);
         Data data = resetData(pigServer);
 
@@ -193,13 +197,15 @@ public class TestBlackAndWhitelistValidator {
      */
     @Test
     public void testBlacklistCmdWithPigServer() throws Exception {
-        expectedEx.expect(FrontendException.class);
-        expectedEx.expectMessage("LS command is not permitted");
-
-        ctx.getProperties().setProperty(PigConfiguration.PIG_BLACKLIST, "ls");
-        PigServer pigServer = new PigServer(ctx);
-
-        pigServer.listPaths("foo");
+        try {
+            ctx.getProperties().setProperty(PigConfiguration.PIG_BLACKLIST, "ls");
+            PigServer pigServer = new PigServer(ctx);
+            pigServer.listPaths("foo");
+            fail();
+        } catch (Exception e) {
+            Util.assertExceptionAndMessage(FrontendException.class, e,
+                    "LS command is not permitted. ");
+        }
     }
 
     /**
