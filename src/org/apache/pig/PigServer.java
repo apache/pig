@@ -233,6 +233,8 @@ public class PigServer {
         if (connect) {
             pigContext.connect();
         }
+        
+        this.filter = new BlackAndWhitelistFilter(this);
 
         addJarsFromProperties();
         markPredeployedJarsFromProperties();
@@ -244,8 +246,6 @@ public class PigServer {
         if (ScriptState.get() == null) {
             ScriptState.start(pigContext.getExecutionEngine().instantiateScriptState());
         }
-
-        this.filter = new BlackAndWhitelistFilter(this);
     }
 
     private void addJarsFromProperties() throws ExecException {

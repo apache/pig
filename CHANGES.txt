@@ -99,6 +99,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3806: PigServer constructor throws NPE after PIG-3765 (aniket486)
+
 PIG-3801: Auto local mode does not call storeSchema (aniket486)
 
 PIG-3754: InputSizeReducerEstimator.getTotalInputFileSize reports incorrect size (aniket486)
