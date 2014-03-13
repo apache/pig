@@ -1111,6 +1111,25 @@ public class TestNewPlanPushDownForeachFlatten {
                   ((LOLoad)load).getSchema().getField("a1") != null );
     }
 
+    // See PIG-3782
+    @Test
+    public void testForeachJoinWithUserDefinedSchemaAndPruning() throws Exception {
+        String query =
+        "a = load '1.txt' as (a0:int, a1, a2:bag{});" +
+        "b = load '2.txt' as (b0:int, b1);" +
+        "c = foreach a generate a0, flatten(a2) as (q1, q2);" +
+        "d = join c by a0, b by b0;" +
+        "e = foreach d generate a0, q1, q2;" +
+        "f = foreach e generate a0, (int)q1, (int)q2;" +
+        "store f into 'output';" ;
+
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlanWithPruning( query );
+        //In the original issue, Exception is thrown during the Pruning due to
+        //incorrect UID assignment by the PushDownForEachFlatten failing this
+        //test
+
+    }
+
     public class MyPlanOptimizerWithPruning extends LogicalPlanOptimizer {
         protected MyPlanOptimizerWithPruning (OperatorPlan p,  int iterations) {
             super(p, iterations, new HashSet<String>());

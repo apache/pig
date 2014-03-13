@@ -34,6 +34,8 @@ PIG-3480: TFile-based tmpfile compression crashes in some cases (dvryaboy via an
 
 BUG FIXES
 
+PIG-3782: PushDownForEachFlatten + ColumnMapKeyPrune with user defined schema failing due to incorrect UID assignment (knoguchi via daijy)
+
 PIG-3779: Assert constructs ConstantExpression with null when no comment is given (thedatachef via cheolsoo)
 
 PIG-3777: Pig 12.0 Documentation (karinahauser via daijy)

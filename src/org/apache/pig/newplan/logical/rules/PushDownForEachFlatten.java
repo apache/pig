@@ -260,6 +260,7 @@ public class PushDownForEachFlatten extends Rule {
                                 fieldsToBeFlattaned.add(fieldCount);
                                 if (gen.getUserDefinedSchema()!=null && gen.getUserDefinedSchema().get(i)!=null) {
                                     cachedUserDefinedSchema.put(fieldCount, gen.getUserDefinedSchema().get(i));
+                                    cachedUserDefinedSchema.get(fieldCount).mergeUid(gen.getOutputPlanSchemas().get(i));
                                     gen.getUserDefinedSchema().set(i, null);
                                 }
                                 fieldCount++;
