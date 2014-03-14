@@ -698,7 +698,7 @@ public class PigServer {
             grunt.parseStopOnError(true);
         } catch (org.apache.pig.tools.pigscript.parser.ParseException e) {
             log.error(e.getLocalizedMessage());
-            throw new IOException(e.getCause());
+            throw new IOException(e);
         }
     }
 

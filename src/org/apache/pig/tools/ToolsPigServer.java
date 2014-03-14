@@ -104,7 +104,7 @@ public class ToolsPigServer extends PigServer {
             substituted = pigContext.doParamSubstitution(fis, paramMapToList(params), paramFiles);
         }catch (FileNotFoundException e){
             log.error(e.getLocalizedMessage());
-            throw new IOException(e.getCause());
+            throw new IOException(e);
         } finally {
             if (fis != null) {
                 fis.close();
@@ -120,7 +120,7 @@ public class ToolsPigServer extends PigServer {
             grunt.parseOnly();
         } catch (org.apache.pig.tools.pigscript.parser.ParseException e) {
             log.error(e.getLocalizedMessage());
-            throw new IOException(e.getCause());
+            throw new IOException(e);
         }
 
         Graph g = getClonedGraph();
