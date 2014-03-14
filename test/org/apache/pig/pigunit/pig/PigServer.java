@@ -54,11 +54,9 @@ public class PigServer extends org.apache.pig.PigServer {
       grunt.setInteractive(false);
       grunt.parseStopOnError(true);
     } catch (FileNotFoundException e) {
-      e.printStackTrace();
-      throw new IOException(e.getCause());
+      throw new IOException(e);
     } catch (org.apache.pig.tools.pigscript.parser.ParseException e) {
-      e.printStackTrace();
-      throw new IOException(e.getCause());
+      throw new IOException(e);
     }
   }
 }
