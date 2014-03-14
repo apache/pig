@@ -42,7 +42,6 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class TestCustomPartitioner {
@@ -74,8 +73,6 @@ public class TestCustomPartitioner {
 
     // See PIG-282
     @Test
-    @Ignore
-    // Fails with Tez - DefaultSorter.java Illegal partition for Null: false index: 0 1 (-1), TotalPartitions: 0
     public void testCustomPartitionerParseJoins() throws Exception{
         String[] input = {
                 "1\t3",
@@ -212,8 +209,6 @@ public class TestCustomPartitioner {
 
     // See PIG-282
     @Test
-    @Ignore
-    // TODO: CROSS not implemented in TEZ yet
     public void testCustomPartitionerCross() throws Exception{
     	String[] input = {
                 "1\t3",

@@ -141,7 +141,7 @@ public class TezCompiler extends PhyPlanVisitor {
     private UDFFinder udfFinder;
 
     private Map<PhysicalOperator, TezOperator> phyToTezOpMap;
-    
+
     private TezResourceManager tezResourceManager;
 
     public static final String USER_COMPARATOR_MARKER = "user.comparator.func:";
@@ -159,7 +159,7 @@ public class TezCompiler extends PhyPlanVisitor {
         this.plan = plan;
         this.pigContext = pigContext;
         this.tezResourceManager = tezResourceManager;
-        
+
         pigProperties = pigContext.getProperties();
         splitsSeen = Maps.newHashMap();
         tezPlan = new TezOperPlan(tezResourceManager);
@@ -572,9 +572,14 @@ public class TezCompiler extends PhyPlanVisitor {
 
     @Override
     public void visitCross(POCross op) throws VisitorException {
-        int errCode = 2034;
-        String msg = "Cannot compile " + op.getClass().getSimpleName();
-        throw new TezCompilerException(msg, errCode, PigException.BUG);
+        try{
+            nonBlocking(op);
+            phyToTezOpMap.put(op, curTezOp);
+        } catch (Exception e) {
+            int errCode = 2034;
+            String msg = "Error compiling operator " + op.getClass().getSimpleName();
+            throw new TezCompilerException(msg, errCode, PigException.BUG, e);
+        }
     }
 
     @Override
