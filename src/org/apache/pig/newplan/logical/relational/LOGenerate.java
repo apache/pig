@@ -146,11 +146,12 @@ public class LOGenerate extends LogicalRelationalOperator {
                         fs.stampFieldSchema();
                         mergedSchema.addField(new LogicalFieldSchema(fs));
                     }
-                    if(mergedSchema.size() == 1 && mergedSchema.getField(0).type == DataType.NULL){
-                        //this is the use case where a new alias has been specified by user
-                        mergedSchema.getField(0).type = DataType.BYTEARRAY;
+                    for (LogicalFieldSchema fs : mergedSchema.getFields()) {
+                        if (fs.type == DataType.NULL){
+                            //this is the use case where a new alias has been specified by user
+                            fs.type = DataType.BYTEARRAY;
+                        }
                     }
-                
                 } else {
 
                     // Merge uid with the exp field schema
