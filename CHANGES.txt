@@ -99,6 +99,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3809: AddForEach optimization doesn't set the alias of the added foreach (cheolsoo)
+
 PIG-3811: PigServer.registerScript() wraps exception incorrectly on parsing errors (prkommireddi)
 
 PIG-3806: PigServer constructor throws NPE after PIG-3765 (aniket486)
