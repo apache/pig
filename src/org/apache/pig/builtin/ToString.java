@@ -62,6 +62,9 @@ public class ToString extends EvalFunc<String> {
         List<FuncSpec> funcList = new ArrayList<FuncSpec>();
         Schema s = new Schema();
         s.add(new Schema.FieldSchema(null, DataType.DATETIME));
+        funcList.add(new FuncSpec(this.getClass().getName(), s));
+        s = new Schema();
+        s.add(new Schema.FieldSchema(null, DataType.DATETIME));
         s.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
         funcList.add(new FuncSpec(this.getClass().getName(), s));
         return funcList;

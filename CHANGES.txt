@@ -99,6 +99,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3805: ToString(datetime [, format string]) doesn't work without the second argument (jennythompson via daijy)
+
 PIG-3809: AddForEach optimization doesn't set the alias of the added foreach (cheolsoo)
 
 PIG-3811: PigServer.registerScript() wraps exception incorrectly on parsing errors (prkommireddi)
