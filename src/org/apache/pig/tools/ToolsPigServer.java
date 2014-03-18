@@ -104,7 +104,7 @@ public class ToolsPigServer extends PigServer {
             substituted = pigContext.doParamSubstitution(fis, paramMapToList(params), paramFiles);
         }catch (FileNotFoundException e){
             log.error(e.getLocalizedMessage());
-            throw new IOException(e.getCause());
+            throw new IOException(e);
         } finally {
             if (fis != null) {
                 fis.close();
@@ -113,15 +113,14 @@ public class ToolsPigServer extends PigServer {
 
         // Parse in grunt so that register commands are recognized
         try {
-            GruntParser grunt = new GruntParser(new StringReader(substituted));
+            GruntParser grunt = new GruntParser(new StringReader(substituted), this);
             grunt.setInteractive(false);
-            grunt.setParams(this);
             setBatchOn();
             //grunt.setLoadOnly(true);
             grunt.parseOnly();
         } catch (org.apache.pig.tools.pigscript.parser.ParseException e) {
             log.error(e.getLocalizedMessage());
-            throw new IOException(e.getCause());
+            throw new IOException(e);
         }
 
         Graph g = getClonedGraph();

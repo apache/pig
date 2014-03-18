@@ -958,9 +958,8 @@ public class TestPigServer {
             PigServer pigServer = new PigServer(pigContext);
             data = resetData(pigServer);
             data.set("foo", tuple("a", 1, "b"), tuple("b", 2, "c"), tuple("c", 3, "d"));
-            GruntParser grunt = new GruntParser(in);
+            GruntParser grunt = new GruntParser(in, pigServer);
             grunt.setInteractive(false);
-            grunt.setParams(pigServer);
             grunt.parseStopOnError(true); //not batch
         }
 

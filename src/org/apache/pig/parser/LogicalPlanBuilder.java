@@ -981,7 +981,7 @@ public class LogicalPlanBuilder {
             ConstantExpression rhs = new ConstantExpression(exprPlan, new Boolean(false));
             BinCondExpression binCond = new BinCondExpression(exprPlan, expr, lhs, rhs);
             args.add(binCond);
-            ConstantExpression constExpr = new ConstantExpression(exprPlan, comment);
+            ConstantExpression constExpr = new ConstantExpression(exprPlan, (comment == null ? "" : comment));
             args.add(constExpr);
             UserFuncExpression udf = new UserFuncExpression(exprPlan, new FuncSpec( Assert.class.getName() ), args );
             exprPlan.add(udf);

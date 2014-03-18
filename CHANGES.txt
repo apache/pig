@@ -30,6 +30,16 @@ PIG-2207: Support custom counters for aggregating warnings from different udfs (
 
 IMPROVEMENTS
 
+PIG-3802: Fix TestBlackAndWhitelistValidator failures (prkommireddi)
+
+PIG-3765: Ability to disable Pig commands and operators (prkommireddi)
+
+PIG-3731: Ability to specify local-mode specific configuration (useful for local/auto-local mode) (aniket486)
+
+PIG-3793: Provide info on number of LogicalRelationalOperator(s) used in the script through LogicalPlanData (prkommireddi)
+
+PIG-3778: Log list of running jobs along with progress (rohini)
+
 PIG-3675: Documentation for AccumuloStorage (elserj via daijy)
 
 PIG-3648: Make the sample size for RandomSampleLoader configurable (cheolsoo)
@@ -89,6 +99,22 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3673: Divide by zero error in runpigmix.pl script (suhassatish via daijy)
+
+PIG-3805: ToString(datetime [, format string]) doesn't work without the second argument (jennythompson via daijy)
+
+PIG-3809: AddForEach optimization doesn't set the alias of the added foreach (cheolsoo)
+
+PIG-3811: PigServer.registerScript() wraps exception incorrectly on parsing errors (prkommireddi)
+
+PIG-3806: PigServer constructor throws NPE after PIG-3765 (aniket486)
+
+PIG-3801: Auto local mode does not call storeSchema (aniket486)
+
+PIG-3754: InputSizeReducerEstimator.getTotalInputFileSize reports incorrect size (aniket486)
+
+PIG-3679: e2e StreamingPythonUDFs_10 fails in trunk (cheolsoo)
+
 PIG-3776: Conflicting versions of jline is present in trunk (cheolsoo)
 
 PIG-3674: Fix TestAccumuloPigCluster on Hadoop 2 (elserj via daijy)
@@ -100,8 +126,6 @@ PIG-3746: NPE is thrown if Pig fails before PigStats is intialized (cheolsoo)
 PIG-3747: Update skewed join documentation (cheolsoo)
 
 PIG-3755: auto local mode selection does not check lower bound for size (aniket486)
-
-PIG-3753: LOGenerate generates null schema (daijy)
 
 PIG-3447: Compiler warning message dropped for CastLineageSetter and others with no enum kind (knoguchi via cheolsoo)
 
@@ -226,6 +250,14 @@ PIG-3047: Check the size of a relation before adding it to distributed cache in 
 PIG-3480: TFile-based tmpfile compression crashes in some cases (dvryaboy via aniket486)
 
 BUG FIXES
+
+PIG-3753: LOGenerate generates null schema (daijy)
+
+PIG-3782: PushDownForEachFlatten + ColumnMapKeyPrune with user defined schema failing due to incorrect UID assignment (knoguchi via daijy)
+
+PIG-3779: Assert constructs ConstantExpression with null when no comment is given (thedatachef via cheolsoo)
+
+PIG-3777: Pig 12.0 Documentation (karinahauser via daijy)
 
 PIG-3774: Piggybank Over UDF get wrong result (daijy)
 

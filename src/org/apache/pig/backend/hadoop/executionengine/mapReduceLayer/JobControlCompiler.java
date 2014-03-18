@@ -66,6 +66,7 @@ import org.apache.pig.PigException;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.JobCreationException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.SecondaryKeyPartitioner;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.SkewedPartitioner;
@@ -584,6 +585,10 @@ public class JobControlCompiler{
                             // we don't want to change fs settings back
                             continue;
                         }
+                        if (key.startsWith("io.")) {
+                            // we don't want to change io settings back
+                            continue;
+                        }
                         String value = entry.getValue();
                         if (conf.get(key) == null || !conf.get(key).equals(value)) {
                             conf.set(key, value);
@@ -615,6 +620,10 @@ public class JobControlCompiler{
                     //Start setting the JobConf properties
                     conf.set("mapred.jar", submitJarFile.getPath());
                 }
+            }
+
+            if(Utils.isLocal(pigContext, conf)) {
+                ConfigurationUtil.replaceConfigForLocalMode(conf);
             }
             conf.set("pig.inputs", ObjectSerializer.serialize(inp));
             conf.set("pig.inpTargets", ObjectSerializer.serialize(inpTargets));
@@ -1522,10 +1531,6 @@ public class JobControlCompiler{
         }
     }
 
-    private static boolean isLocal(PigContext pigContext, Configuration conf) {
-        return pigContext.getExecType().isLocal() || conf.getBoolean(PigImplConstants.CONVERTED_TO_LOCAL, false);
-    }
-
     private static String addSingleFileToDistributedCache(
             PigContext pigContext, Configuration conf, String filename,
             String prefix) throws IOException {
@@ -1540,7 +1545,7 @@ public class JobControlCompiler{
 
         // XXX Hadoop currently doesn't support distributed cache in local mode.
         // This line will be removed after the support is added by Hadoop team.
-        if (!isLocal(pigContext, conf)) {
+        if (!Utils.isLocal(pigContext, conf)) {
             symlink = prefix + "_"
                     + Integer.toString(System.identityHashCode(filename)) + "_"
                     + Long.toString(System.currentTimeMillis());
@@ -1714,7 +1719,7 @@ public class JobControlCompiler{
 
             // XXX Hadoop currently doesn't support distributed cache in local mode.
             // This line will be removed after the support is added
-            if (isLocal(pigContext, conf)) return;
+            if (Utils.isLocal(pigContext, conf)) return;
 
             // set up distributed cache for the replicated files
             FileSpec[] replFiles = join.getReplFiles();
@@ -1770,7 +1775,7 @@ public class JobControlCompiler{
 
             // XXX Hadoop currently doesn't support distributed cache in local mode.
             // This line will be removed after the support is added
-            if (isLocal(pigContext, conf)) return;
+            if (Utils.isLocal(pigContext, conf)) return;
 
             String indexFile = join.getIndexFile();
 
@@ -1794,7 +1799,7 @@ public class JobControlCompiler{
 
             // XXX Hadoop currently doesn't support distributed cache in local mode.
             // This line will be removed after the support is added
-            if (isLocal(pigContext, conf)) return;
+            if (Utils.isLocal(pigContext, conf)) return;
 
             String indexFile = mergeCoGrp.getIndexFileName();
 
@@ -1831,7 +1836,7 @@ public class JobControlCompiler{
 
             // XXX Hadoop currently doesn't support distributed cache in local mode.
             // This line will be removed after the support is added
-            if (isLocal(pigContext, conf)) return;
+            if (Utils.isLocal(pigContext, conf)) return;
 
             // set up distributed cache for files indicated by the UDF
             String[] files = func.getCacheFiles();

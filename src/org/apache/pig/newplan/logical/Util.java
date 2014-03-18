@@ -128,6 +128,7 @@ public class Util {
         if (next != null) {
             LogicalRelationalOperator nextOp = (LogicalRelationalOperator)next.get(branch);
             plan.insertBetween(op, foreach, nextOp);
+            foreach.setAlias(op.getAlias());
         }
         else {
             plan.connect(op, foreach);

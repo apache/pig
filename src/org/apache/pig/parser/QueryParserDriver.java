@@ -491,7 +491,7 @@ public class QueryParserDriver {
 
         // sometimes the script has no filename, like when a string is passed to PigServer for
         // example. See PIG-2866.
-        if (fname != null) {
+        if (!fname.isEmpty()) {
             FetchFileRet localFileRet = getMacroFile(fname);
             fname = localFileRet.file.getAbsolutePath();
         }
@@ -594,7 +594,7 @@ public class QueryParserDriver {
             ScriptState ss = ScriptState.get();
             if (ss != null) file = ss.getFileName();
         }
-        if (file != null && !file.equals(importFile)) {
+        if (!file.isEmpty() && !file.equals(importFile)) {
             sb.append("at ").append(file).append(", ");
         }
         sb.append("line ").append(t.getLine()).append("> ").append(header);

@@ -1234,9 +1234,8 @@ public class TestMultiQueryCompiler {
                           + "describe b;"
                           + "store b into '/tmp/output1';\n";
 
-            GruntParser parser = new GruntParser(new StringReader(script));
+            GruntParser parser = new GruntParser(new StringReader(script), myPig);
             parser.setInteractive(false);
-            parser.setParams(myPig);
             parser.parseStopOnError();
 
         } catch (Exception e) {
@@ -1257,9 +1256,8 @@ public class TestMultiQueryCompiler {
                           + "illustrate b;"
                           + "store b into '/tmp/output1';\n";
 
-            GruntParser parser = new GruntParser(new StringReader(script));
+            GruntParser parser = new GruntParser(new StringReader(script), myPig);
             parser.setInteractive(false);
-            parser.setParams(myPig);
             parser.parseStopOnError();
 
         } catch (Exception e) {
@@ -1280,9 +1278,8 @@ public class TestMultiQueryCompiler {
                           + "explain b;"
                           + "store b into '/tmp/output1';\n";
 
-            GruntParser parser = new GruntParser(new StringReader(script));
+            GruntParser parser = new GruntParser(new StringReader(script), myPig);
             parser.setInteractive(false);
-            parser.setParams(myPig);
             parser.parseStopOnError();
 
         } catch (Exception e) {
@@ -1303,9 +1300,8 @@ public class TestMultiQueryCompiler {
                           + "dump b;"
                           + "store b into '/tmp/output1';\n";
 
-            GruntParser parser = new GruntParser(new StringReader(script));
+            GruntParser parser = new GruntParser(new StringReader(script), myPig);
             parser.setInteractive(false);
-            parser.setParams(myPig);
             parser.parseStopOnError();
 
         } catch (Exception e) {
@@ -1336,9 +1332,8 @@ public class TestMultiQueryCompiler {
     public void testLoadStoreLoop() {
         try {
             String script = "a = load 'dummy'; b = filter a by $0 == 1; store b into 'dummy';\n";
-            GruntParser parser = new GruntParser(new StringReader(script));
+            GruntParser parser = new GruntParser(new StringReader(script), myPig);
             parser.setInteractive(false);
-            parser.setParams(myPig);
             myPig.getPigContext().inExplain = true;
             parser.parseStopOnError();
         } catch (Exception e) {

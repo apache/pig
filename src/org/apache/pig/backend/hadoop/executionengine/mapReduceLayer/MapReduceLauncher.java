@@ -41,7 +41,6 @@ import org.apache.hadoop.mapred.JobID;
 import org.apache.hadoop.mapred.RunningJob;
 import org.apache.hadoop.mapred.TaskReport;
 import org.apache.hadoop.mapred.jobcontrol.Job;
-import org.apache.pig.ExecType;
 import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigException;
 import org.apache.pig.PigRunner.ReturnCode;
@@ -172,6 +171,7 @@ public class MapReduceLauncher extends Launcher{
         MRScriptState.get().addWorkflowAdjacenciesToConf(mrp, conf);
 
         // start collecting statistics
+        PigStats.start(pc.getExecutionEngine().instantiatePigStats());
         MRPigStatsUtil.startCollection(pc, statsJobClient, jcc, mrp);
 
         // Find all the intermediate data stores. The plan will be destroyed during compile/execution
@@ -344,6 +344,20 @@ public class MapReduceLauncher extends Launcher{
 
                     double prog = (numMRJobsCompl+calculateProgress(jc, statsJobClient))/totalMRJobs;
                     if (notifyProgress(prog, lastProg)) {
+                        List<Job> runnJobs = jc.getRunningJobs();
+                        if (runnJobs != null) {
+                            StringBuilder msg = new StringBuilder();
+                            for (Object object : runnJobs) {
+                                Job j = (Job) object;
+                                if (j != null) {
+                                    msg.append(j.getAssignedJobID()).append(",");
+                                }
+                            }
+                            if (msg.length() > 0) {
+                                msg.setCharAt(msg.length() - 1, ']');
+                                log.info("Running jobs are [" + msg);
+                            }
+                        }
                         lastProg = prog;
                     }
 
@@ -466,7 +480,7 @@ public class MapReduceLauncher extends Launcher{
             for (Job job : succJobs) {
                 List<POStore> sts = jcc.getStores(job);
                 for (POStore st : sts) {
-                    if (pc.getExecType() == ExecType.LOCAL) {
+                    if (Utils.isLocal(pc, job.getJobConf())) {
                         HadoopShims.storeSchemaForLocal(job, st);
                     }
 

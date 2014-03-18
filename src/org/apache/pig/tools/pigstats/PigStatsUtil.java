@@ -107,30 +107,35 @@ public class PigStatsUtil {
      */
     public static PigStats getPigStats(int code) {
         PigStats ps = PigStats.get();
+        if (ps == null) {
+            ps = PigStats.start(new EmptyPigStats());
+        }
         ps.setReturnCode(code);
         return ps;
     }
 
-
     public static void setErrorMessage(String msg) {
         PigStats ps = PigStats.get();
-        if (ps != null) {
-            ps.setErrorMessage(msg);
+        if (ps == null) {
+            ps = PigStats.start(new EmptyPigStats());
         }
+        ps.setErrorMessage(msg);
     }
 
     public static void setErrorCode(int code) {
         PigStats ps = PigStats.get();
-        if (ps != null) {
-            ps.setErrorCode(code);
+        if (ps == null) {
+            ps = PigStats.start(new EmptyPigStats());
         }
+        ps.setErrorCode(code);
     }
 
     public static void setErrorThrowable(Throwable t) {
         PigStats ps = PigStats.get();
-        if (ps != null) {
-            ps.setErrorThrowable(t);
+        if (ps == null) {
+            ps = PigStats.start(new EmptyPigStats());
         }
+        ps.setErrorThrowable(t);
     }
 
     private static Pattern pattern = Pattern.compile("tmp(-)?[\\d]{1,10}$");

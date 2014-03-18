@@ -61,6 +61,7 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.PigImplConstants;
 import org.apache.pig.impl.io.InterStorage;
 import org.apache.pig.impl.io.ReadToEndLoader;
 import org.apache.pig.impl.io.SequenceFileInterStorage;
@@ -308,7 +309,7 @@ public class Utils {
                 return false;
             }
         }
-        
+
         public String supportedCodecsToString() {
             StringBuffer sb = new StringBuffer();
             boolean first = true;
@@ -316,7 +317,7 @@ public class Utils {
                 if(first) {
                     first = false;
                 } else {
-                    sb.append(",");    
+                    sb.append(",");
                 }
                 sb.append(codec.name());
             }
@@ -595,6 +596,10 @@ public class Utils {
             }
         }
         return true;
+    }
+
+    public static boolean isLocal(PigContext pigContext, Configuration conf) {
+        return pigContext.getExecType().isLocal() || conf.getBoolean(PigImplConstants.CONVERTED_TO_LOCAL, false);
     }
 
 }

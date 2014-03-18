@@ -26,6 +26,7 @@ import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigConstants;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
@@ -88,5 +89,16 @@ public class ConfigurationUtil {
         localConf.set(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
         Properties props = ConfigurationUtil.toProperties(localConf);
         return props;
+    }
+
+    public static void replaceConfigForLocalMode(Configuration configuration) {
+        for (Entry<String, String> entry : configuration) {
+            String key = entry.getKey();
+            String value = entry.getValue();
+            if(key.startsWith(PigConstants.PIG_LOCAL_CONF_PREFIX)) {
+                String realConfKey = key.substring(PigConstants.PIG_LOCAL_CONF_PREFIX.length());
+                configuration.set(realConfKey, value);
+            }
+        }
     }
 }

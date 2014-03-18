@@ -104,7 +104,10 @@ import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 import org.apache.pig.tools.pigstats.ScriptState;
-import org.apache.pig.tools.pigstats.SimpleFetchPigStats;
+import org.apache.pig.tools.pigstats.EmptyPigStats;
+import org.apache.pig.validator.BlackAndWhitelistFilter;
+import org.apache.pig.validator.BlackAndWhitelistValidator;
+import org.apache.pig.validator.PigCommandFilter;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -157,6 +160,8 @@ public class PigServer {
 
     private boolean validateEachStatement = false;
     private boolean skipParseInRegisterForBatch = false;
+
+    private final BlackAndWhitelistFilter filter;
 
     private String constructScope() {
         // scope servers for now as a session id
@@ -241,13 +246,16 @@ public class PigServer {
             pigContext.connect();
         }
 
+        this.filter = new BlackAndWhitelistFilter(this);
+
         addJarsFromProperties();
         markPredeployedJarsFromProperties();
 
         PigStats.start(pigContext.getExecutionEngine().instantiatePigStats());
-        // ScriptState may have been initialized in Main. In that case, we
-        // should not overwrite it.
+
         if (ScriptState.get() == null) {
+            // If Pig was started via command line, ScriptState should have been
+            // already initialized in Main. If so, we should not overwrite it.
             ScriptState.start(pigContext.getExecutionEngine().instantiateScriptState());
         }
     }
@@ -430,7 +438,7 @@ public class PigServer {
      */
     protected List<ExecJob> getJobs(PigStats stats) {
         LinkedList<ExecJob> jobs = new LinkedList<ExecJob>();
-        if (stats instanceof SimpleFetchPigStats) {
+        if (stats instanceof EmptyPigStats) {
             HJob job = new HJob(HJob.JOB_STATUS.COMPLETED, pigContext, stats.result(null)
                     .getPOStore(), null);
             jobs.add(job);
@@ -540,6 +548,9 @@ public class PigServer {
      * @throws IOException
      */
     public void registerJar(String name) throws IOException {
+        // Check if this operation is permitted
+        filter.validate(PigCommandFilter.Command.REGISTER);
+
         if (pigContext.hasJar(name)) {
             log.debug("Ignoring duplicate registration for jar " + name);
             return;
@@ -694,13 +705,12 @@ public class PigServer {
     public void registerScript(InputStream in, Map<String,String> params,List<String> paramsFiles) throws IOException {
         try {
             String substituted = pigContext.doParamSubstitution(in, paramMapToList(params), paramsFiles);
-            GruntParser grunt = new GruntParser(new StringReader(substituted));
+            GruntParser grunt = new GruntParser(new StringReader(substituted), this);
             grunt.setInteractive(false);
-            grunt.setParams(this);
             grunt.parseStopOnError(true);
         } catch (org.apache.pig.tools.pigscript.parser.ParseException e) {
             log.error(e.getLocalizedMessage());
-            throw new IOException(e.getCause());
+            throw new IOException(e);
         }
     }
 
@@ -1063,7 +1073,6 @@ public class PigServer {
      * @param suffix Suffix of file names
      * @throws IOException if the requested alias cannot be found.
      */
-    @SuppressWarnings("unchecked")
     public void explain(String alias,
                         String format,
                         boolean verbose,
@@ -1175,10 +1184,14 @@ public class PigServer {
      * @throws IOException
      */
     public boolean deleteFile(String filename) throws IOException {
+        // Check if this operation is permitted
+        filter.validate(PigCommandFilter.Command.RM);
+        filter.validate(PigCommandFilter.Command.RMF);
+
         ElementDescriptor elem = pigContext.getDfs().asElement(filename);
         elem.delete();
         return true;
-    }
+   }
 
     /**
      * Rename a file.
@@ -1188,6 +1201,9 @@ public class PigServer {
      * @throws IOException
      */
     public boolean renameFile(String source, String target) throws IOException {
+        // Check if this operation is permitted
+        filter.validate(PigCommandFilter.Command.MV);
+
         pigContext.rename(source, target);
         return true;
     }
@@ -1199,6 +1215,9 @@ public class PigServer {
      * @throws IOException
      */
     public boolean mkdirs(String dirs) throws IOException {
+        // Check if this operation is permitted
+        filter.validate(PigCommandFilter.Command.MKDIR);
+
         ContainerDescriptor container = pigContext.getDfs().asContainer(dirs);
         container.create();
         return true;
@@ -1211,6 +1230,9 @@ public class PigServer {
      * @throws IOException
      */
     public String[] listPaths(String dir) throws IOException {
+        // Check if this operation is permitted
+        filter.validate(PigCommandFilter.Command.LS);
+
         Collection<String> allPaths = new ArrayList<String>();
         ContainerDescriptor container = pigContext.getDfs().asContainer(dir);
         Iterator<ElementDescriptor> iter = container.iterator();
@@ -1347,9 +1369,13 @@ public class PigServer {
         return stats;
     }
 
-    private PigStats executeCompiledLogicalPlan() throws ExecException, FrontendException {
+    private PigStats executeCompiledLogicalPlan() throws ExecException,
+            FrontendException {
         // discover pig features used in this script
-        ScriptState.get().setScriptFeatures( currDAG.lp );
+        ScriptState.get().setScriptFeatures(currDAG.lp);
+
+        BlackAndWhitelistValidator validator = new BlackAndWhitelistValidator(getPigContext(), currDAG.lp);
+        validator.validate();
 
         return launchPlan(currDAG.lp, "job_pigexec_");
     }

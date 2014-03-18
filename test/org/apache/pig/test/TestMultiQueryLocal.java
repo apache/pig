@@ -443,9 +443,8 @@ public class TestMultiQueryLocal {
                           + "explain b;"
                           + "store b into '" + TMP_DIR + "/Pig-TestMultiQueryLocal1';\n";
 
-            GruntParser parser = new GruntParser(new StringReader(script));
+            GruntParser parser = new GruntParser(new StringReader(script), myPig);
             parser.setInteractive(false);
-            parser.setParams(myPig);
             parser.parseStopOnError();
 
         } catch (Exception e) {
@@ -468,9 +467,8 @@ public class TestMultiQueryLocal {
                           + "dump b;"
                           + "store b into '" + TMP_DIR + "/Pig-TestMultiQueryLocal1';\n";
 
-            GruntParser parser = new GruntParser(new StringReader(script));
+            GruntParser parser = new GruntParser(new StringReader(script), myPig);
             parser.setInteractive(false);
-            parser.setParams(myPig);
             parser.parseStopOnError();
 
         } catch (Exception e) {
@@ -493,9 +491,8 @@ public class TestMultiQueryLocal {
                           + "describe b;"
                           + "store b into '" + TMP_DIR + "/Pig-TestMultiQueryLocal1';\n";
 
-            GruntParser parser = new GruntParser(new StringReader(script));
+            GruntParser parser = new GruntParser(new StringReader(script), myPig);
             parser.setInteractive(false);
-            parser.setParams(myPig);
             parser.parseStopOnError();
 
         } catch (Exception e) {
@@ -518,10 +515,9 @@ public class TestMultiQueryLocal {
                           + "illustrate b;"
                           + "store b into '" + TMP_DIR + "/Pig-TestMultiQueryLocal1';\n";
 
-            GruntParser parser = new GruntParser(new StringReader(script));
+            GruntParser parser = new GruntParser(new StringReader(script), myPig);
             parser.setInteractive(false);
             myPig.getPigContext().getProperties().setProperty("pig.usenewlogicalplan", "true");
-            parser.setParams(myPig);
             parser.parseStopOnError();
 
         } catch (Exception e) {

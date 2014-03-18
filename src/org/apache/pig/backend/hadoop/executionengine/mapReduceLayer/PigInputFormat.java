@@ -49,6 +49,7 @@ import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.impl.util.Utils;
 
 public class PigInputFormat extends InputFormat<Text, Tuple> {
 
@@ -227,7 +228,7 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
 
                 // if the execution is against Mapred DFS, set
                 // working dir to /user/<userid>
-                if(!pigContext.getExecType().isLocal()) {
+                if(!Utils.isLocal(pigContext, conf)) {
                     fs.setWorkingDirectory(jobcontext.getWorkingDirectory());
                 }
 

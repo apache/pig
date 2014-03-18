@@ -34,7 +34,7 @@ import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.logical.relational.LOStore;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalNodesVisitor;
 
-public class InputOutputFileValidator {
+public class InputOutputFileValidator implements LogicalRelationalNodeValidator {
     private PigContext pigCtx;
     OperatorPlan plan;
     public InputOutputFileValidator(OperatorPlan plan, PigContext pigContext) {
