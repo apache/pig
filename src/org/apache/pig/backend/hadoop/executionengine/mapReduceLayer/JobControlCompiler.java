@@ -1640,7 +1640,7 @@ public class JobControlCompiler{
                         log.info("Found " + url + " in jar cache at "+ stagingDir);
                         long curTime = System.currentTimeMillis();
                         fs.setTimes(jarPath, -1, curTime);
-                        // PIG-3815 In hadoop 1.0, addFileToClassPath uses : as separator
+                        // PIG-3815 In hadoop 0.20, addFileToClassPath uses : as separator
                         // jarPath has full uri at this point, we need to remove hdfs://nn:port
                         // part to avoid parsing errors on backend
                         return new Path(jarPath.toUri().getPath());
@@ -1659,7 +1659,8 @@ public class JobControlCompiler{
                 IOUtils.copyBytes(is, os, 4096, true);
             } finally {
                 org.apache.commons.io.IOUtils.closeQuietly(is);
-                org.apache.commons.io.IOUtils.closeQuietly(os);
+                // IOUtils should not close stream to HDFS quietly
+                os.close();
             }
             return cacheFile;
 
@@ -1695,11 +1696,15 @@ public class JobControlCompiler{
         Path dst = new Path(FileLocalizer.getTemporaryPath(pigContext).toUri().getPath(), suffix);
         FileSystem fs = dst.getFileSystem(conf);
         OutputStream os = null;
+        InputStream is = null;
         try {
+            is = url.openStream();
             os = fs.create(dst);
-            IOUtils.copyBytes(url.openStream(), os, 4096, true);
+            IOUtils.copyBytes(is, os, 4096, true);
         } finally {
-            org.apache.commons.io.IOUtils.closeQuietly(os);
+            org.apache.commons.io.IOUtils.closeQuietly(is);
+            // IOUtils should not close stream to HDFS quietly
+            os.close();
         }
         return dst;
     }
