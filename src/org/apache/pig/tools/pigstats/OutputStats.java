@@ -35,7 +35,6 @@ import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.ReadToEndLoader;
-import org.apache.pig.newplan.Operator;
 
 /**
  * This class encapsulates the runtime statistics of an user specified output.

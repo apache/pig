@@ -104,7 +104,7 @@ import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 import org.apache.pig.tools.pigstats.ScriptState;
-import org.apache.pig.tools.pigstats.SimpleFetchPigStats;
+import org.apache.pig.tools.pigstats.EmptyPigStats;
 import org.apache.pig.validator.BlackAndWhitelistFilter;
 import org.apache.pig.validator.BlackAndWhitelistValidator;
 import org.apache.pig.validator.PigCommandFilter;
@@ -233,17 +233,17 @@ public class PigServer {
         if (connect) {
             pigContext.connect();
         }
-        
+
         this.filter = new BlackAndWhitelistFilter(this);
 
         addJarsFromProperties();
         markPredeployedJarsFromProperties();
 
-        if (PigStats.get() == null) {
-            PigStats.start(pigContext.getExecutionEngine().instantiatePigStats());
-        }
+        PigStats.start(pigContext.getExecutionEngine().instantiatePigStats());
 
         if (ScriptState.get() == null) {
+            // If Pig was started via command line, ScriptState should have been
+            // already initialized in Main. If so, we should not overwrite it.
             ScriptState.start(pigContext.getExecutionEngine().instantiateScriptState());
         }
     }
@@ -277,7 +277,7 @@ public class PigServer {
     private void markPredeployedJarsFromProperties() throws ExecException {
         // mark jars as predeployed from properties
         String jar_str = pigContext.getProperties().getProperty("pig.predeployed.jars");
-		
+
         if(jar_str != null){
             // Use File.pathSeparator (":" on Linux, ";" on Windows)
             // to correctly handle path aggregates as they are represented
@@ -426,7 +426,7 @@ public class PigServer {
      */
     protected List<ExecJob> getJobs(PigStats stats) {
         LinkedList<ExecJob> jobs = new LinkedList<ExecJob>();
-        if (stats instanceof SimpleFetchPigStats) {
+        if (stats instanceof EmptyPigStats) {
             HJob job = new HJob(HJob.JOB_STATUS.COMPLETED, pigContext, stats.result(null)
                     .getPOStore(), null);
             jobs.add(job);
@@ -1061,7 +1061,6 @@ public class PigServer {
      * @param suffix Suffix of file names 
      * @throws IOException if the requested alias cannot be found.
      */
-    @SuppressWarnings("unchecked")
     public void explain(String alias,
                         String format,
                         boolean verbose,

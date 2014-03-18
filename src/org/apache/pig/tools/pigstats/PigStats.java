@@ -268,6 +268,10 @@ public abstract class PigStats {
         return ScriptState.get().getId();
     }
 
+    public String getFileName() {
+        return ScriptState.get().getFileName();
+    }
+
     public String getFeatures() {
         return ScriptState.get().getScriptFeatures();
     }

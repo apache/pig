@@ -83,7 +83,7 @@ public class SourceLocation {
             sb.append("\n");
         }
         sb.append( "<" );
-        if( file != null )
+        if( file != null && !file.isEmpty() )
             sb.append( "file " + file + ", " );
         sb.append( "line " + line +", column " + offset + "> " );
         

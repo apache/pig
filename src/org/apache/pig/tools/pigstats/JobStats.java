@@ -24,8 +24,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.Counters;
 import org.apache.pig.classification.InterfaceAudience;
@@ -47,7 +45,6 @@ public abstract class JobStats extends Operator {
     public static final String ALIAS_LOCATION = "JobStatistics:alias_location";
     public static final String FEATURE = "JobStatistics:feature";
 
-    private static final Log LOG = LogFactory.getLog(JobStats.class);
     public static final String SUCCESS_HEADER = null;
     public static final String FAILURE_HEADER = null;
 
@@ -60,6 +57,9 @@ public abstract class JobStats extends Operator {
     protected ArrayList<InputStats> inputs;
 
     protected Configuration conf;
+
+    protected long hdfsBytesRead = 0;
+    protected long hdfsBytesWritten = 0;
 
     private String errorMsg;
 
@@ -110,6 +110,14 @@ public abstract class JobStats extends Operator {
 
     public String getFeature() {
         return (String)getAnnotation(FEATURE);
+    }
+
+    public long getHdfsBytesRead() {
+        return hdfsBytesRead;
+    }
+
+    public long getHdfsBytesWritten() {
+        return hdfsBytesWritten;
     }
 
     /**
@@ -241,7 +249,7 @@ public abstract class JobStats extends Operator {
      * then use {@link org.apache.pig.tools.pigstats.mapreduce.MRJobStats#getAvgREduceTime} instead.
      */
     @Deprecated
-    abstract public long getAvgREduceTime();
+    abstract public long getAvgReduceTime();
 
     /**
      * @deprecated If you are using mapreduce, please cast JobStats to org.apache.pig.tools.pigstats.mapreduce.MRJobStats,
@@ -259,17 +267,17 @@ public abstract class JobStats extends Operator {
 
     /**
      * @deprecated If you are using mapreduce, please cast JobStats to org.apache.pig.tools.pigstats.mapreduce.MRJobStats,
-     * then use {@link org.apache.pig.tools.pigstats.mapreduce.MRJobStats#getReduceOutputRecords} instead.
-     */
-    @Deprecated
-    abstract public long getReduceOutputRecords();
-
-    /**
-     * @deprecated If you are using mapreduce, please cast JobStats to org.apache.pig.tools.pigstats.mapreduce.MRJobStats,
      * then use {@link org.apache.pig.tools.pigstats.mapreduce.MRJobStats#getReduceInputRecords} instead.
      */
     @Deprecated
     abstract public long getReduceInputRecords();
+
+    /**
+     * @deprecated If you are using mapreduce, please cast JobStats to org.apache.pig.tools.pigstats.mapreduce.MRJobStats,
+     * then use {@link org.apache.pig.tools.pigstats.mapreduce.MRJobStats#getReduceOutputRecords} instead.
+     */
+    @Deprecated
+    abstract public long getReduceOutputRecords();
 
     /**
      * @deprecated If you are using mapreduce, please cast JobStats to org.apache.pig.tools.pigstats.mapreduce.MRJobStats,
@@ -294,13 +302,6 @@ public abstract class JobStats extends Operator {
 
     /**
      * @deprecated If you are using mapreduce, please cast JobStats to org.apache.pig.tools.pigstats.mapreduce.MRJobStats,
-     * then use {@link org.apache.pig.tools.pigstats.mapreduce.MRJobStats#getHdfsBytesWritten} instead.
-     */
-    @Deprecated
-    abstract public long getHdfsBytesWritten();
-
-    /**
-     * @deprecated If you are using mapreduce, please cast JobStats to org.apache.pig.tools.pigstats.mapreduce.MRJobStats,
      * then use {@link org.apache.pig.tools.pigstats.mapreduce.MRJobStats#getHadoopCounters} instead.
      */
     @Deprecated
@@ -312,5 +313,12 @@ public abstract class JobStats extends Operator {
      */
     @Deprecated
     abstract public Map<String, Long> getMultiStoreCounters();
+
+    /**
+     * @deprecated If you are using mapreduce, please cast JobStats to org.apache.pig.tools.pigstats.mapreduce.MRJobStats,
+     * then use {@link org.apache.pig.tools.pigstats.mapreduce.MRJobStats#getMultiInputCounters} instead.
+     */
+    @Deprecated
+    abstract public Map<String, Long> getMultiInputCounters();
 
 }
