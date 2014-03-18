@@ -99,6 +99,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3813: Rank column is assigned different uids everytime when schema is reset (cheolsoo)
+
 PIG-3815: Hadoop bug causes to pig to fail silently with jar cache (aniket486)
 
 PIG-3816: Incorrect Javadoc for launchPlan() method (kyungho via prkommireddi)
