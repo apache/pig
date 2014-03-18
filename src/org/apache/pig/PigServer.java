@@ -1369,8 +1369,8 @@ public class PigServer {
     }
 
     /**
-     * A common method for launching the jobs according to the physical plan
-     * @param pp The physical plan
+     * A common method for launching the jobs according to the logical plan
+     * @param lp The logical plan
      * @param jobName A String containing the job name to be used
      * @return The PigStats object
      * @throws ExecException
