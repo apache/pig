@@ -51,7 +51,7 @@ import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigProgressNotificationListener;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStatsUtil;
-import org.apache.pig.tools.pigstats.SimpleFetchPigStats;
+import org.apache.pig.tools.pigstats.EmptyPigStats;
 import org.apache.pig.tools.pigstats.mapreduce.MRJobStats;
 import org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil;
 import org.junit.AfterClass;
@@ -192,7 +192,7 @@ public class TestPigRunner {
             String[] args = { "-Dstop.on.failure=true", "-Dopt.multiquery=false", "-Daggregate.warning=false", PIG_FILE };
             PigStats stats = PigRunner.run(args, new TestNotificationListener());
 
-            assertTrue(stats instanceof SimpleFetchPigStats);
+            assertTrue(stats instanceof EmptyPigStats);
             assertTrue(stats.isSuccessful());
             assertEquals(0, stats.getNumberJobs());
             assertEquals(stats.getJobGraph().size(), 0);

@@ -168,6 +168,7 @@ public class MapReduceLauncher extends Launcher{
         MRScriptState.get().addWorkflowAdjacenciesToConf(mrp, conf);
 
         // start collecting statistics
+        PigStats.start(pc.getExecutionEngine().instantiatePigStats());
         MRPigStatsUtil.startCollection(pc, statsJobClient, jcc, mrp);
 
         // Find all the intermediate data stores. The plan will be destroyed during compile/execution

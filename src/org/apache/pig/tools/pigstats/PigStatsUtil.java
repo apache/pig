@@ -32,6 +32,33 @@ import org.apache.pig.tools.pigstats.mapreduce.SimplePigStats;
  */
 public class PigStatsUtil {
 
+    public static final String MAP_INPUT_RECORDS
+            = "MAP_INPUT_RECORDS";
+    public static final String MAP_OUTPUT_RECORDS
+            = "MAP_OUTPUT_RECORDS";
+    public static final String REDUCE_INPUT_RECORDS
+            = "REDUCE_INPUT_RECORDS";
+    public static final String REDUCE_OUTPUT_RECORDS
+            = "REDUCE_OUTPUT_RECORDS";
+    public static final String HDFS_BYTES_WRITTEN
+            = "HDFS_BYTES_WRITTEN";
+    public static final String HDFS_BYTES_READ
+            = "HDFS_BYTES_READ";
+
+    /**
+     * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#MULTI_INPUT_RECORD_COUNTER} instead.
+     */
+    @Deprecated
+    public static final String MULTI_INPUTS_RECORD_COUNTER
+            = "Input records from ";
+
+    /**
+     * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#MULTI_INPUT_COUNTER_GROUP} instead.
+     */
+    @Deprecated
+    public static final String MULTI_INPUTS_COUNTER_GROUP
+            = "MultiInputCounters";
+
     /**
      * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#MULTI_STORE_RECORD_COUNTER} instead.
      */
@@ -61,62 +88,6 @@ public class PigStatsUtil {
             = HadoopShims.getFsCounterGroupName();
 
     /**
-     * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#MAP_INPUT_RECORDS} instead.
-     */
-    @Deprecated
-    public static final String MAP_INPUT_RECORDS
-            = "MAP_INPUT_RECORDS";
-
-    /**
-     * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#MAP_OUTPUT_RECORDS} instead.
-     */
-    @Deprecated
-    public static final String MAP_OUTPUT_RECORDS
-            = "MAP_OUTPUT_RECORDS";
-
-    /**
-     * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#REDUCE_INPUT_RECORDS} instead.
-     */
-    @Deprecated
-    public static final String REDUCE_INPUT_RECORDS
-            = "REDUCE_INPUT_RECORDS";
-
-    /**
-     * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#REDUCE_OUTPUT_RECORDS} instead.
-     */
-    @Deprecated
-    public static final String REDUCE_OUTPUT_RECORDS
-            = "REDUCE_OUTPUT_RECORDS";
-
-    /**
-     * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#HDFS_BYTES_WRITTEN} instead.
-     */
-    @Deprecated
-    public static final String HDFS_BYTES_WRITTEN
-            = "HDFS_BYTES_WRITTEN";
-
-    /**
-     * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#HDFS_BYTES_READ} instead.
-     */
-    @Deprecated
-    public static final String HDFS_BYTES_READ
-            = "HDFS_BYTES_READ";
-
-    /**
-     * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#MULTI_INPUTS_RECORD_COUNTER} instead.
-     */
-    @Deprecated
-    public static final String MULTI_INPUTS_RECORD_COUNTER
-            = "Input records from ";
-
-    /**
-     * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#MULTI_INPUTS_COUNTER_GROUP} instead.
-     */
-    @Deprecated
-    public static final String MULTI_INPUTS_COUNTER_GROUP
-            = "MultiInputCounters";
-
-    /**
      * Returns an empty PigStats object Use of this method is not advised as it
      * will return the MR execution engine version of PigStats by default, and
      * is not necessarily empty depending on the timing.
@@ -136,30 +107,35 @@ public class PigStatsUtil {
      */
     public static PigStats getPigStats(int code) {
         PigStats ps = PigStats.get();
+        if (ps == null) {
+            ps = PigStats.start(new EmptyPigStats());
+        }
         ps.setReturnCode(code);
         return ps;
     }
 
-
     public static void setErrorMessage(String msg) {
         PigStats ps = PigStats.get();
-        if (ps != null) {
-            ps.setErrorMessage(msg);
+        if (ps == null) {
+            ps = PigStats.start(new EmptyPigStats());
         }
+        ps.setErrorMessage(msg);
     }
 
     public static void setErrorCode(int code) {
         PigStats ps = PigStats.get();
-        if (ps != null) {
-            ps.setErrorCode(code);
+        if (ps == null) {
+            ps = PigStats.start(new EmptyPigStats());
         }
+        ps.setErrorCode(code);
     }
 
     public static void setErrorThrowable(Throwable t) {
         PigStats ps = PigStats.get();
-        if (ps != null) {
-            ps.setErrorThrowable(t);
+        if (ps == null) {
+            ps = PigStats.start(new EmptyPigStats());
         }
+        ps.setErrorThrowable(t);
     }
 
     private static Pattern pattern = Pattern.compile("tmp(-)?[\\d]{1,10}$");
@@ -173,6 +149,4 @@ public class PigStatsUtil {
         PigStats.start(new EmbeddedPigStats(statsMap));
     }
 
-
 }
-

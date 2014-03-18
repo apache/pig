@@ -41,7 +41,7 @@ import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.tools.pigstats.PigStats;
-import org.apache.pig.tools.pigstats.SimpleFetchPigStats;
+import org.apache.pig.tools.pigstats.EmptyPigStats;
 import org.joda.time.DateTimeZone;
 
 /**
@@ -78,7 +78,7 @@ public class FetchLauncher {
                 new DependencyOrderWalker<PhysicalOperator, PhysicalPlan>(pp));
         udfFinisher.visit();
 
-        return PigStats.start(new SimpleFetchPigStats(pigContext, poStore));
+        return PigStats.start(new EmptyPigStats(pigContext, poStore));
     }
 
     /**

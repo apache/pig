@@ -90,7 +90,6 @@ public class MRPigStatsUtil extends PigStatsUtil {
      * @param counterName the counter name
      * @return the count of the given counter name
      */
-    @SuppressWarnings("deprecation")
     public static long getMultiStoreCount(Job job, JobClient jobClient,
             String counterName) {
         long value = -1;
@@ -166,7 +165,7 @@ public class MRPigStatsUtil extends PigStatsUtil {
      */
     public static void startCollection(PigContext pc, JobClient client,
             JobControlCompiler jcc, MROperPlan plan) {
-        SimplePigStats ps = (SimplePigStats)PigStats.start(new SimplePigStats());
+        SimplePigStats ps = (SimplePigStats)PigStats.get();
         ps.initialize(pc, client, jcc, plan);
 
         MRScriptState.get().emitInitialPlanNotification(plan);

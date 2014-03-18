@@ -29,25 +29,33 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.impl.PigContext;
 
 /**
- * SimpleFetchPigStats encapsulates dummy statistics of a fetch task, since during a fetch
- * no MR jobs are executed
+ * EmptyPigStats encapsulates dummy statistics of a fetch task, since during a
+ * fetch no MR jobs are executed
  *
  */
-public class SimpleFetchPigStats extends PigStats {
+public class EmptyPigStats extends PigStats {
 
     private final List<OutputStats> outputStatsList;
     private final List<InputStats> inputStatsList;
     private final JobGraph emptyJobPlan = new JobGraph();
 
-    public SimpleFetchPigStats(PigContext pigContext, POStore poStore) {
+    public EmptyPigStats() {
+        // initialize empty stats
+        OutputStats os = new OutputStats(null, -1, -1, true);
+        this.outputStatsList = Collections.unmodifiableList(Arrays.asList(os));
 
+        InputStats is = new InputStats(null, -1, -1, true);
+        this.inputStatsList = Collections.unmodifiableList(Arrays.asList(is));
+    }
+
+    public EmptyPigStats(PigContext pigContext, POStore poStore) {
         super.pigContext = pigContext;
         super.startTime = super.endTime = System.currentTimeMillis();
         super.userId = System.getProperty("user.name");
 
         Configuration conf = ConfigurationUtil.toConfiguration(pigContext.getProperties());
 
-        //initalize empty stats
+        // initialize empty stats
         OutputStats os = new OutputStats(null, -1, -1, true);
         os.setConf(conf);
         os.setPOStore(poStore);
@@ -56,7 +64,6 @@ public class SimpleFetchPigStats extends PigStats {
         InputStats is = new InputStats(null, -1, -1, true);
         is.setConf(conf);
         this.inputStatsList = Collections.unmodifiableList(Arrays.asList(is));
-
     }
 
     @Override
