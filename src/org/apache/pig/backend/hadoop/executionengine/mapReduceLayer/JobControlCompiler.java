@@ -20,6 +20,7 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Method;
 import java.net.URI;
@@ -1639,7 +1640,10 @@ public class JobControlCompiler{
                         log.info("Found " + url + " in jar cache at "+ stagingDir);
                         long curTime = System.currentTimeMillis();
                         fs.setTimes(jarPath, -1, curTime);
-                        return jarPath;
+                        // PIG-3815 In hadoop 1.0, addFileToClassPath uses : as separator
+                        // jarPath has full uri at this point, we need to remove hdfs://nn:port
+                        // part to avoid parsing errors on backend
+                        return new Path(jarPath.toUri().getPath());
                     }
                 }
             }
@@ -1647,11 +1651,15 @@ public class JobControlCompiler{
             // attempt to copy to cache else return null
             fs.mkdirs(cacheDir, FileLocalizer.OWNER_ONLY_PERMS);
             Path cacheFile = new Path(cacheDir, filename);
-            OutputStream os = FileSystem.create(fs, cacheFile, FileLocalizer.OWNER_ONLY_PERMS);
+            OutputStream os = null;
+            InputStream is = null;
             try {
-                IOUtils.copyBytes(url.openStream(), os, 4096, true);
+                os = FileSystem.create(fs, cacheFile, FileLocalizer.OWNER_ONLY_PERMS);
+                is = url.openStream();
+                IOUtils.copyBytes(is, os, 4096, true);
             } finally {
-                os.close();
+                org.apache.commons.io.IOUtils.closeQuietly(is);
+                org.apache.commons.io.IOUtils.closeQuietly(os);
             }
             return cacheFile;
 
@@ -1686,13 +1694,12 @@ public class JobControlCompiler{
 
         Path dst = new Path(FileLocalizer.getTemporaryPath(pigContext).toUri().getPath(), suffix);
         FileSystem fs = dst.getFileSystem(conf);
-        OutputStream os = fs.create(dst);
+        OutputStream os = null;
         try {
+            os = fs.create(dst);
             IOUtils.copyBytes(url.openStream(), os, 4096, true);
         } finally {
-            // IOUtils can not close both the input and the output properly in a finally
-            // as we can get an exception in between opening the stream and calling the method
-            os.close();
+            org.apache.commons.io.IOUtils.closeQuietly(os);
         }
         return dst;
     }
