@@ -99,6 +99,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3816: Incorrect Javadoc for launchPlan() method (kyungho via prkommireddi)
+
 PIG-3673: Divide by zero error in runpigmix.pl script (suhassatish via daijy)
 
 PIG-3805: ToString(datetime [, format string]) doesn't work without the second argument (jennythompson via daijy)
