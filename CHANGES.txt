@@ -218,8 +218,6 @@ PIG-3542: Javadoc of REGEX_EXTRACT_ALL (nyigitba via daijy)
 
 PIG-3518: Need to ship jruby.jar in the release (daijy)
 
-PIG-3516: pig does not bring in joda-time as dependency in its pig-template.xml (daijy)
-
 PIG-3524: Clean up Launcher and MapReduceLauncher after PIG-3419 (cheolsoo)
 
 PIG-3515: Shell commands are limited from OS buffer (andronat via cheolsoo)
@@ -256,6 +254,8 @@ PIG-3047: Check the size of a relation before adding it to distributed cache in 
 PIG-3480: TFile-based tmpfile compression crashes in some cases (dvryaboy via aniket486)
 
 BUG FIXES
+
+PIG-3516: pig does not bring in joda-time as dependency in its pig-template.xml (daijy)
 
 PIG-3753: LOGenerate generates null schema (daijy)
 
