@@ -34,6 +34,8 @@ PIG-3480: TFile-based tmpfile compression crashes in some cases (dvryaboy via an
 
 BUG FIXES
 
+PIG-3820: TestAvroStorage fail on some OS (daijy)
+
 PIG-3818: PIG-2499 is accidently reverted (daijy)
 
 PIG-3516: pig does not bring in joda-time as dependency in its pig-template.xml (daijy)
