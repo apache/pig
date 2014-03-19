@@ -1069,14 +1069,10 @@ public class TestGrunt {
             assertFalse(new File("tempShFileToTestShCommand").exists());
 
             if (Util.WINDOWS) {
-               //FIXME
-               // We need to fix this because there is a race condition with pipes.
-               // dir command can potentially run before the TouchedFileInsideGrunt_61 is written
-               // Solved for linux/unix below using xargs
-               strCmd = "sh echo foo > TouchedFileInsideGrunt_61 | dir /B | findstr TouchedFileInsideGrunt_61 > fileContainingTouchedFileInsideGruntShell_71";
+               strCmd = "sh echo foo > TouchedFileInsideGrunt_61 && dir /B | findstr TouchedFileInsideGrunt_61 > fileContainingTouchedFileInsideGruntShell_71";
             }
             else {
-               strCmd = "sh touch TouchedFileInsideGrunt_61 | ls | grep TouchedFileInsideGrunt_61 > fileContainingTouchedFileInsideGruntShell_71";
+               strCmd = "sh touch TouchedFileInsideGrunt_61 && ls | grep TouchedFileInsideGrunt_61 > fileContainingTouchedFileInsideGruntShell_71";
             }
 
             cmd = new ByteArrayInputStream(strCmd.getBytes());
