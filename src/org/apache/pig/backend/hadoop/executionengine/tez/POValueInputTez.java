@@ -31,6 +31,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.tez.runtime.api.LogicalInput;
@@ -49,6 +50,7 @@ public class POValueInputTez extends PhysicalOperator implements TezLoad {
     // TODO Change this to value only reader after implementing
     // value only input output
     private transient KeyValueReader reader;
+    protected static final TupleFactory mTupleFactory = TupleFactory.getInstance();
 
     public POValueInputTez(OperatorKey k) {
         super(k);
@@ -81,7 +83,9 @@ public class POValueInputTez extends PhysicalOperator implements TezLoad {
                 return RESULT_EOP;
             }
             if (reader.next()) {
-                return new Result(POStatus.STATUS_OK, reader.getCurrentValue());
+                Tuple origTuple = (Tuple)reader.getCurrentValue();
+                Tuple copy = mTupleFactory.newTuple(origTuple.getAll());
+                return new Result(POStatus.STATUS_OK, copy);
             } else {
                 finished = true;
                 return RESULT_EOP;
