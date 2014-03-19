@@ -1632,25 +1632,16 @@ public class JobControlCompiler{
             String checksum = DigestUtils.shaHex(url.openStream());
             FileSystem fs = FileSystem.get(conf);
             Path cacheDir = new Path(stagingDir, checksum);
-            FileStatus [] statuses = fs.listStatus(cacheDir);
-            if (statuses != null) {
-                for (FileStatus stat : statuses) {
-                    Path jarPath = stat.getPath();
-                    if(jarPath.getName().equals(filename)) {
-                        log.info("Found " + url + " in jar cache at "+ stagingDir);
-                        long curTime = System.currentTimeMillis();
-                        fs.setTimes(jarPath, -1, curTime);
-                        // PIG-3815 In hadoop 0.20, addFileToClassPath uses : as separator
-                        // jarPath has full uri at this point, we need to remove hdfs://nn:port
-                        // part to avoid parsing errors on backend
-                        return new Path(jarPath.toUri().getPath());
-                    }
-                }
+            Path cacheFile = new Path(cacheDir, filename);
+            if (fs.exists(cacheFile)) {
+               log.info("Found " + url + " in jar cache at "+ stagingDir);
+               long curTime = System.currentTimeMillis();
+               fs.setTimes(cacheFile, -1, curTime);
+               return cacheFile;
             }
             log.info("Url "+ url + " was not found in jarcache at "+ stagingDir);
             // attempt to copy to cache else return null
             fs.mkdirs(cacheDir, FileLocalizer.OWNER_ONLY_PERMS);
-            Path cacheFile = new Path(cacheDir, filename);
             OutputStream os = null;
             InputStream is = null;
             try {
