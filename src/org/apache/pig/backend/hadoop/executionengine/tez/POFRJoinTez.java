@@ -38,7 +38,7 @@ import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.tez.runtime.api.LogicalInput;
-import org.apache.tez.runtime.library.broadcast.input.BroadcastKVReader;
+import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.input.ShuffledUnorderedKVInput;
 
 import com.google.common.collect.Lists;
@@ -54,8 +54,7 @@ public class POFRJoinTez extends POFRJoin implements TezLoad {
 
     // For replicated tables
     private List<ShuffledUnorderedKVInput> replInputs = Lists.newArrayList();
-    @SuppressWarnings("rawtypes")
-    private List<BroadcastKVReader> replReaders = Lists.newArrayList();
+    private List<KeyValueReader> replReaders = Lists.newArrayList();
     private List<String> inputKeys;
     private transient boolean isInputCached;
 
@@ -87,7 +86,7 @@ public class POFRJoinTez extends POFRJoin implements TezLoad {
                 if (input instanceof ShuffledUnorderedKVInput) {
                     ShuffledUnorderedKVInput suInput = (ShuffledUnorderedKVInput) input;
                     this.replInputs.add(suInput);
-                    this.replReaders.add((BroadcastKVReader) suInput.getReader());
+                    this.replReaders.add((KeyValueReader) suInput.getReader());
                 }
             }
         } catch (Exception e) {

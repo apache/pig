@@ -52,7 +52,7 @@ import org.apache.tez.runtime.api.LogicalIOProcessor;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.TezProcessorContext;
-import org.apache.tez.runtime.library.broadcast.input.BroadcastKVReader;
+import org.apache.tez.runtime.library.api.KeyValueReader;
 
 public class PigProcessor implements LogicalIOProcessor {
 
@@ -262,7 +262,7 @@ public class PigProcessor implements LogicalIOProcessor {
         }
         LOG.info("Starting fetch of input " + logicalInput + " from vertex " + sampleVertex);
         logicalInput.start();
-        BroadcastKVReader reader = (BroadcastKVReader) logicalInput.getReader();
+        KeyValueReader reader = (KeyValueReader) logicalInput.getReader();
         reader.next();
         Object val = reader.getCurrentValue();
         if (val != null) {
