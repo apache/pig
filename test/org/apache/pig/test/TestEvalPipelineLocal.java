@@ -1201,4 +1201,19 @@ public class TestEvalPipelineLocal {
         
         Assert.assertFalse(iter.hasNext());
     }
+    
+    // see PIG-3807
+    @Test
+    public void testDanglingNodeWrongSchema() throws Exception{
+        
+        pigServer.registerQuery("d1 = load 'test_data.txt' USING PigStorage() AS (f1: int, f2: int, f3: int, f4: int);");
+        pigServer.registerQuery("d2 = load 'test_data.txt' USING PigStorage() AS (f1: int, f2: int, f3: int, f4: int);");
+        pigServer.registerQuery("n1 = foreach (group d1 by f1) {sorted = ORDER d1 by f2; generate group, flatten(d1.f3) as x3; };");
+        pigServer.registerQuery("n2 = foreach (group d2 by f1) {sorted = ORDER d2 by f2; generate group, flatten(d2.f3) as q3; };");
+        pigServer.registerQuery("joined = join n1 by x3, n2 by q3;");
+        pigServer.registerQuery("final = foreach joined generate n1::x3;");
+        
+        Schema s = pigServer.dumpSchema("final");
+        Assert.assertEquals(s.toString(), "{n1::x3: int}");
+    }
 }

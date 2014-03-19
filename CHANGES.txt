@@ -99,6 +99,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3807: Pig creates wrong schema after dereferencing nested tuple fields with sorts (daijy)
+
 PIG-3813: Rank column is assigned different uids everytime when schema is reset (cheolsoo)
 
 PIG-3815: Hadoop bug causes to pig to fail silently with jar cache (aniket486)

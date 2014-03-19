@@ -61,8 +61,19 @@ public class LOForEach extends LogicalRelationalOperator {
     @Override
     public LogicalSchema getSchema() throws FrontendException {
         List<Operator> ll = innerPlan.getSinks();
-        if (ll != null) {
-            schema = ((LogicalRelationalOperator)ll.get(0)).getSchema();
+        LogicalRelationalOperator generate = null;
+        // We can assume LOGenerate is the only sink of the inner plan, but
+        // only after DanglingNestedNodeRemover. LOForEach.getSchema will be
+        // run before DanglingNestedNodeRemover, so need to make sure we do
+        // get LOGenerate
+        for (Operator op : ll) {
+            if (op instanceof LOGenerate) {
+                generate = (LogicalRelationalOperator)op;
+                break;
+            }
+        }
+        if (generate != null) {
+            schema = generate.getSchema();
         }
         
         return schema;
