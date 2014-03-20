@@ -59,6 +59,12 @@
   <property name="benchmark.location" value="${test.location}/benchmarks"/>
 
 
+  <condition property="harness.old.pig" value="">
+    <not>  
+      <isset property="harness.old.pig"/>
+    </not>
+  </condition>
+
   <condition property="HADOOP_PREFIX" value="">
     <not>  
       <isset property="HADOOP_PREFIX"/>
@@ -325,50 +331,10 @@
     </antcall>
   </target>
 
-  <target name="test-tez" depends="property-check, udfs, tar, init-test">
-    <!-- If they have not specified tests to run then null it out -->
-    <property name="tests.to.run" value=""/>
-    <!-- fork (parallelization) factors for e2e tests execution.
-        Defaults are 1, which means *no* parellelization: -->
-    <property name="fork.factor.group" value="1"/>
-    <property name="fork.factor.conf.file" value="1"/>
-    <property name="e2e.debug" value="false"/>
-    <property name="harness.use.python" value="false"/>
-
-    <exec executable="perl" dir="${test.location}" failonerror="true">
-      <env key="HARNESS_ROOT" value="."/>
-      <env key="HADOOP_VERSION" value="${hadoopversion}"/>
-      <env key="PH_LOCAL" value="${harness.PH_LOCAL}"/>
-      <env key="PH_OUT" value="${harness.PH_OUT}"/>
-      <env key="PH_ROOT" value="."/>
-      <env key="PH_PIG" value="${pig.dir}"/>
-      <env key="HADOOP_CONF_DIR" value="${harness.cluster.conf}"/>
-      <env key="PIG_USE_PYTHON" value="${harness.use.python}"/>
-      <env key="PH_CLUSTER_BIN" value="${harness.cluster.bin}"/>
-      <env key="PH_JYTHON_JAR" value="${jython.jar}"/>
-      <env key="PH_JRUBY_JAR" value="${jruby.jar}"/>
-      <env key="JRUBY_OPTS" value="--1.9"/>
-      <env key="HARNESS_CONF" value="${basedir}/conf/tez.conf"/>
-      <env key="HADOOP_HOME" value="${harness.hadoop.home}"/>
-      <env key="HADOOP_PREFIX" value="${HADOOP_PREFIX}"/>
-      <env key="HADOOP_COMMON_HOME" value="${HADOOP_COMMON_HOME}"/>
-      <env key="HADOOP_HDFS_HOME" value="${HADOOP_HDFS_HOME}"/>
-      <env key="HADOOP_MAPRED_HOME" value="${HADOOP_MAPRED_HOME}"/>
-      <env key="YARN_CONF_DIR" value="${YARN_CONF_DIR}"/>
-      <env key="YARN_HOME" value="${YARN_HOME}"/>
-      <env key="OLD_HADOOP_HOME" value="${OLD_HADOOP_HOME}"/>
-      <env key="PH_OLD_CLUSTER_CONF" value="${PH_OLD_CLUSTER_CONF}"/>
-      <env key="PH_BENCHMARK_CACHE_PATH" value="${PH_BENCHMARK_CACHE_PATH}"/>
-      <env key="HCAT_BIN" value="${hcat.bin}"/>
-      <env key="PERL5LIB" value="${harness.PERL5LIB}"/>
-      <env key="FORK_FACTOR_GROUP" value="${fork.factor.group}"/>
-      <env key="FORK_FACTOR_FILE" value="${fork.factor.conf.file}"/>
-      <env key="E2E_DEBUG" value="${e2e.debug}"/>
-
-      <arg value="./test_harness.pl"/>
-      <arg line="${tests.to.run}"/>
-      <arg value="${test.location}/tests/tez.conf"/>
-    </exec>
+  <target name="test-tez">
+    <antcall target="test-base">
+      <param name="harness.conf.file" value="${basedir}/conf/tez.conf"/>
+    </antcall>
   </target>
 
   <target name="deploy-base" depends="property-check, tar, init-test">

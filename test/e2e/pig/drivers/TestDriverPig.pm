@@ -128,6 +128,7 @@ sub globalSetup
     $globalHash->{'outpath'} = $globalHash->{'outpathbase'} . "/" . $globalHash->{'runid'} . "/";
     $globalHash->{'localpath'} = $globalHash->{'localpathbase'} . "/" . $globalHash->{'runid'} . "/";
     $globalHash->{'tmpPath'} = $globalHash->{'tmpPath'} . "/" . $globalHash->{'runid'} . "/";
+    $globalHash->{'orig_pig_classpath'} = $ENV{'PIG_CLASSPATH'};
 }
 
 sub globalSetupConditional() {
@@ -399,7 +400,7 @@ sub getPigCmd($$$)
 
     # Set it in our current environment.  It will get inherited by the IPC::Run
     # command.
-    $ENV{'PIG_CLASSPATH'} = $ENV{'PIG_CLASSPATH'} . $separator . $pcp;
+    $ENV{'PIG_CLASSPATH'} = $testCmd->{'orig_pig_classpath'} . $separator . $pcp;
 
     if ($testCmd->{'usePython'} eq "true") {
         @pigCmd = ("python");
@@ -656,15 +657,11 @@ sub generateBenchmark
            $modifiedTestCmd{'pig'} = $testCmd->{'pig_win'};
        }
 		# Change so we're looking at the old version of Pig
-                if (defined $testCmd->{'oldpigpath'}) {
+                if (defined $testCmd->{'oldpigpath'} && $testCmd->{'oldpigpath'} ne "") {
 		    $modifiedTestCmd{'pigpath'} = $testCmd->{'oldpigpath'};
                 }
                 if (defined($testCmd->{'oldconfigpath'})) {
 		    $modifiedTestCmd{'testconfigpath'} = $testCmd->{'oldconfigpath'};
-                }
-                # For exectype tez, we compare tez with mapreduce
-                if (defined $testCmd->{'benchmark_exectype'}) {
-                    $modifiedTestCmd{'exectype'} = $testCmd->{'benchmark_exectype'};
                 }
                 # switch environment to old hadoop
                 $orighadoophome=$ENV{'HADOOP_HOME'};
@@ -687,6 +684,10 @@ sub generateBenchmark
                     $ENV{'YARN_CONF_DIR'} = $ENV{'OLD_YARN_CONF_DIR'};
                 }
 	}
+        # For exectype tez, we compare tez with mapreduce
+        if (defined $testCmd->{'benchmark_exectype'}) {
+            $modifiedTestCmd{'exectype'} = $testCmd->{'benchmark_exectype'};
+        }
 	# Modify the test number so we don't run over the actual test output
 	# and logs
 	$modifiedTestCmd{'num'} = $testCmd->{'num'} . "_benchmark";
