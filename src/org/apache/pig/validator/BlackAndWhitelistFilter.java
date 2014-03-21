@@ -23,8 +23,8 @@ import org.apache.pig.PigConfiguration;
 import org.apache.pig.PigServer;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.python.google.common.base.Splitter;
-import org.python.google.common.collect.Sets;
+import com.google.common.base.Splitter;
+import com.google.common.collect.Sets;
 
 /**
  * 
