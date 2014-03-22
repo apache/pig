@@ -34,6 +34,8 @@ PIG-3480: TFile-based tmpfile compression crashes in some cases (dvryaboy via an
 
 BUG FIXES
 
+PIG-3827: Custom partitioner is not picked up with secondary sort optimization (daijy)
+
 PIG-3826: Outer join with PushDownForEachFlatten generates wrong result (daijy)
 
 PIG-3820: TestAvroStorage fail on some OS (daijy)
