@@ -152,6 +152,10 @@ public class SecondaryKeyOptimizer extends MROpPlanVisitor {
         if (mr.isGlobalSort())
             return;
 
+        // Don't optimize when we already have a custom partitioner
+        if (mr.getCustomPartitioner()!=null)
+            return;
+
         List<PhysicalOperator> mapLeaves = mr.mapPlan.getLeaves();
         if (mapLeaves == null || mapLeaves.size() != 1) {
             log
