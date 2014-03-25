@@ -30,6 +30,8 @@ PIG-2207: Support custom counters for aggregating warnings from different udfs (
 
 IMPROVEMENTS
 
+PIG-3449: Move JobCreationException to org.apache.pig.backend.hadoop.executionengine (cheolsoo)
+
 PIG-3802: Fix TestBlackAndWhitelistValidator failures (prkommireddi)
 
 PIG-3765: Ability to disable Pig commands and operators (prkommireddi)
