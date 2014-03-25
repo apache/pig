@@ -36,6 +36,7 @@ import org.apache.pig.backend.hadoop.executionengine.tez.TezOpPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezOperPlan;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezOperator;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.tools.pigstats.InputStats;
@@ -63,6 +64,7 @@ public class TezStats extends PigStats {
 
     private List<String> dagStatsStrings;
     private Map<String, TezTaskStats> tezOpVertexMap;
+    private List<TezTaskStats> taskStatsToBeRemoved;
 
     /**
      * This class builds the Tez DAG from a Tez plan.
@@ -86,6 +88,11 @@ public class TezStats extends PigStats {
                     }
                 }
             }
+            // Remove VertexGroups (union) from JobGraph since they're not
+            // materialized as real vertices by Tez.
+            if (tezOp.isAliasVertex()) {
+                taskStatsToBeRemoved.add(currStats);
+            }
             tezOpVertexMap.put(tezOp.getOperatorKey().toString(), currStats);
         }
     }
@@ -95,13 +102,17 @@ public class TezStats extends PigStats {
         this.jobPlan = new JobGraph();
         this.tezOpVertexMap = Maps.newHashMap();
         this.dagStatsStrings = Lists.newArrayList();
+        this.taskStatsToBeRemoved = Lists.newArrayList();
     }
 
     public void initialize(TezOperPlan tezPlan) {
         super.start();
         try {
             new JobGraphBuilder(tezPlan).visit();
-        } catch (VisitorException e) {
+            for (TezTaskStats taskStat : taskStatsToBeRemoved) {
+                jobPlan.removeAndReconnect(taskStat);
+            }
+        } catch (FrontendException e) {
             LOG.warn("Unable to build Tez DAG", e);
         }
     }

@@ -93,10 +93,15 @@ import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeProperty;
+import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
+import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
+import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
+import org.apache.tez.dag.api.GroupInputEdge;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.Vertex;
+import org.apache.tez.dag.api.VertexGroup;
 import org.apache.tez.mapreduce.combine.MRCombiner;
 import org.apache.tez.mapreduce.committer.MROutputCommitter;
 import org.apache.tez.mapreduce.common.MRInputSplitDistributor;
@@ -106,6 +111,9 @@ import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.mapreduce.partition.MRPartitioner;
+import org.apache.tez.runtime.library.input.ConcatenatedMergedKeyValuesInput;
+import org.apache.tez.runtime.library.input.ShuffledMergedInput;
+import org.apache.tez.runtime.library.output.OnFileSortedOutput;
 
 /**
  * A visitor to construct DAG out of Tez plan.
@@ -140,9 +148,14 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         // Construct vertex for the current Tez operator
         Vertex to = null;
         try {
-            boolean isMap = (predecessors == null || predecessors.isEmpty()) ? true : false;
-            to = newVertex(tezOp, isMap);
-            dag.addVertex(to);
+            if (!tezOp.isAliasVertex()) {
+                boolean isMap = (predecessors == null || predecessors.isEmpty()) ? true : false;
+                to = newVertex(tezOp, isMap);
+                dag.addVertex(to);
+            } else {
+                // For union, we construct VertexGroup after iterating the
+                // predecessors.
+            }
         } catch (Exception e) {
             throw new VisitorException("Cannot create vertex for "
                     + tezOp.name(), e);
@@ -150,21 +163,55 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
         // Connect the new vertex with predecessor vertices
         if (predecessors != null) {
-            for (TezOperator predecessor : predecessors) {
+            Vertex[] groupMembers = new Vertex[predecessors.size()];
+
+            for (int i = 0; i < predecessors.size(); i++) {
                 // Since this is a dependency order walker, predecessor vertices
                 // must have already been created.
-                Vertex from = dag.getVertex(predecessor.getOperatorKey().toString());
-                EdgeProperty prop = null;
+                TezOperator pred = predecessors.get(i);
                 try {
-                    prop = newEdge(predecessor, tezOp);
+                    if (pred.isAliasVertex()) {
+                        VertexGroup from = pred.getVertexGroup();
+                        GroupInputEdge edge = newGroupInputEdge(from, to);
+                        dag.addEdge(edge);
+                    } else {
+                        Vertex from = dag.getVertex(pred.getOperatorKey().toString());
+                        EdgeProperty prop = newEdge(pred, tezOp);
+                        if (tezOp.isAliasVertex()) {
+                            groupMembers[i] = from;
+                        } else {
+                            Edge edge = new Edge(from, to, prop);
+                            dag.addEdge(edge);
+                        }
+                    }
                 } catch (IOException e) {
                     throw new VisitorException("Cannot create edge from "
-                            + predecessor.name() + " to " + tezOp.name(), e);
+                            + pred.name() + " to " + tezOp.name(), e);
                 }
-                Edge edge = new Edge(from, to, prop);
-                dag.addEdge(edge);
+            }
+
+            if (tezOp.isAliasVertex()) {
+                String groupName = tezOp.getOperatorKey().toString();
+                tezOp.setVertexGroup(dag.createVertexGroup(groupName, groupMembers));
             }
         }
+    }
+
+    private GroupInputEdge newGroupInputEdge(VertexGroup from, Vertex to)
+            throws IOException {
+        Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties(), false);
+        setIntermediateInputKeyValue(DataType.BYTEARRAY, conf, null);
+        setIntermediateOutputKeyValue(DataType.BYTEARRAY, conf, null);
+        MRToTezHelper.convertMRToTezRuntimeConf(conf, globalConf);
+
+        return new GroupInputEdge(from, to, new EdgeProperty(
+                DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
+                SchedulingType.SEQUENTIAL,
+                new OutputDescriptor(OnFileSortedOutput.class.getName())
+                    .setUserPayload(TezUtils.createUserPayloadFromConf(conf)),
+                new InputDescriptor(ShuffledMergedInput.class.getName())
+                    .setUserPayload(TezUtils.createUserPayloadFromConf(conf))),
+                    new InputDescriptor(ConcatenatedMergedKeyValuesInput.class.getName()));
     }
 
     /**
@@ -363,11 +410,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             payloadConf.set("pig.reduce.package", ObjectSerializer.serialize(pack));
             setIntermediateInputKeyValue(keyType, payloadConf, tezOp);
             POShuffleTezLoad newPack;
-            if (tezOp.isUnion()) {
-                newPack = new POUnionTezLoad(pack);
-            } else {
-                newPack = new POShuffleTezLoad(pack);
-            }
+            newPack = new POShuffleTezLoad(pack);
             if (tezOp.isSkewedJoin()) {
                 newPack.setSkewedJoins(true);
             }
@@ -381,7 +424,8 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 if (tezOp.sampleOperator != null && tezOp.sampleOperator == pred) {
                     // skip sample vertex input
                 } else {
-                    LinkedList<POLocalRearrangeTez> lrs = PlanHelper.getPhysicalOperators(pred.plan, POLocalRearrangeTez.class);
+                    LinkedList<POLocalRearrangeTez> lrs =
+                            PlanHelper.getPhysicalOperators(pred.plan, POLocalRearrangeTez.class);
                     for (POLocalRearrangeTez lr : lrs) {
                         if (lr.getOutputKey().equals(tezOp.getOperatorKey().toString())) {
                             localRearrangeMap.put((int)lr.getIndex(), pred.getOperatorKey().toString());
@@ -399,8 +443,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 }
             }
 
-            setIntermediateInputKeyValue(pack.getPkgr().getKeyType(), payloadConf,
-                    tezOp);
+            setIntermediateInputKeyValue(pack.getPkgr().getKeyType(), payloadConf, tezOp);
         } else if (roots.size() == 1 && roots.get(0) instanceof POIdentityInOutTez) {
             POIdentityInOutTez identityInOut = (POIdentityInOutTez) roots.get(0);
             // TODO Need to fix multiple input key mapping
@@ -660,10 +703,10 @@ public class TezDagBuilder extends TezOpPlanVisitor {
     @SuppressWarnings("rawtypes")
     private void setIntermediateInputKeyValue(byte keyType, Configuration conf, TezOperator tezOp)
             throws JobCreationException, ExecException {
-        if (tezOp.isUseSecondaryKey()) {
+        if (tezOp != null && tezOp.isUseSecondaryKey()) {
             conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_CLASS,
                     NullableTuple.class.getName());
-        } else if (tezOp.isSkewedJoin()) {
+        } else if (tezOp != null && tezOp.isSkewedJoin()) {
             conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_CLASS,
                     NullablePartitionWritable.class.getName());
         } else {
@@ -683,7 +726,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             throws JobCreationException, ExecException {
         Class<? extends WritableComparable> keyClass = HDataType
                 .getWritableComparableTypes(keyType).getClass();
-        if (tezOp.isSkewedJoin()) {
+        if (tezOp != null && tezOp.isSkewedJoin()) {
             conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_CLASS,
                     NullablePartitionWritable.class.getName());
         } else {
@@ -756,7 +799,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             throws JobCreationException {
         // TODO: Handle sorting like in JobControlCompiler
         // TODO: Group comparators as in JobControlCompiler
-        if (tezOp.isUseSecondaryKey()) {
+        if (tezOp != null && tezOp.isUseSecondaryKey()) {
             conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_COMPARATOR_CLASS,
                     PigSecondaryKeyComparator.class.getName());
             conf.set(TezJobConfig.TEZ_RUNTIME_GROUP_COMPARATOR_CLASS,
@@ -764,7 +807,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_SECONDARY_COMPARATOR_CLASS,
                     PigSecondaryKeyGroupComparator.class.getName());
         } else {
-            if (tezOp.isSkewedJoin()) {
+            if (tezOp != null && tezOp.isSkewedJoin()) {
                 // TODO: PigGroupingPartitionWritableComparator only used as Group comparator in MR.
                 // What should be TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_COMPARATOR_CLASS if same as MR?
                 conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_COMPARATOR_CLASS,
@@ -784,7 +827,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
     void selectOutputComparator(byte keyType, Configuration conf, TezOperator tezOp)
             throws JobCreationException {
         // TODO: Handle sorting like in JobControlCompiler
-        if (tezOp.isSkewedJoin()) {
+        if (tezOp != null && tezOp.isSkewedJoin()) {
             // TODO: PigGroupingPartitionWritableComparator only used as Group comparator in MR.
             // What should be TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_COMPARATOR_CLASS if same as MR?
             conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_COMPARATOR_CLASS,

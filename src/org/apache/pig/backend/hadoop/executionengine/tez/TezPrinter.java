@@ -51,7 +51,12 @@ public class TezPrinter extends TezOpPlanVisitor {
 
     @Override
     public void visitTezOp(TezOperator tezOper) throws VisitorException {
-        mStream.println("Tez vertex " + tezOper.getOperatorKey().toString());
+        if (tezOper.isAliasVertex()) {
+            mStream.println("Tez vertex group " + tezOper.getOperatorKey().toString());
+            mStream.println("# No plan on vertex group");
+        } else {
+            mStream.println("Tez vertex " + tezOper.getOperatorKey().toString());
+        }
         if (tezOper.inEdges.size() > 0) {
             for (Entry<OperatorKey, TezEdgeDescriptor> inEdge : tezOper.inEdges.entrySet()) {
                 //TODO: Print other edge properties like custom partitioner

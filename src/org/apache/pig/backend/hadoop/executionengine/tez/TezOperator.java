@@ -27,6 +27,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.tez.dag.api.VertexGroup;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -124,6 +125,9 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     };
 
     OPER_FEATURE feature = OPER_FEATURE.NONE;
+
+    // For union
+    private VertexGroup group = null;
 
     public TezOperator(OperatorKey k) {
         super(k);
@@ -239,6 +243,20 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
 
     public void setUseSecondaryKey(boolean useSecondaryKey) {
         this.useSecondaryKey = useSecondaryKey;
+    }
+
+    public void setVertexGroup(VertexGroup group) {
+        this.group = group;
+    }
+
+    public VertexGroup getVertexGroup() {
+        return this.group;
+    }
+
+    // Union is the only operator that uses alias vertex (VertexGroup) now. But
+    // more operators could be added to the list in the future.
+    public boolean isAliasVertex() {
+        return isUnion();
     }
 
     @Override

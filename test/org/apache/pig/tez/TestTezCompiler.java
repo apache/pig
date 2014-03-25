@@ -313,6 +313,17 @@ public class TestTezCompiler {
         run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC18.gld");
     }
 
+    @Test
+    public void testUnion() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
+                "b = load 'file:///tmp/input' as (y:chararray, x:int);" +
+                "c = union onschema a, b;" +
+                "store c into 'file:///tmp/output';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC19.gld");
+    }
+
     private void run(String query, String expectedFile) throws Exception {
         PhysicalPlan pp = Util.buildPp(pigServer, query);
         TezLauncher launcher = new TezLauncher();

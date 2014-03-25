@@ -1968,27 +1968,45 @@ public class TezCompiler extends PhyPlanVisitor {
     @Override
     public void visitUnion(POUnion op) throws VisitorException {
         try {
-            // Need to add POLocalRearrange to the end of each previous tezOp
-            // before we broadcast.
+            // Add alias vertex. This will be converted to VertexGroup by
+            // TezDagBuilder.
+            TezOperator newTezOp = getTezOp();
+            tezPlan.add(newTezOp);
+            POLocalRearrangeTez[] outputs = new POLocalRearrangeTez[compiledInputs.length];
             for (int i = 0; i < compiledInputs.length; i++) {
-                POLocalRearrangeTez lr = localRearrangeFactory.create(i, LocalRearrangeType.STAR);
-                lr.setAlias(op.getAlias());
-                lr.setUnion(true);
-                compiledInputs[i].plan.addAsLeaf(lr);
+                TezOperator prevTezOp = compiledInputs[i];
+                TezCompilerUtil.connect(tezPlan, prevTezOp, newTezOp);
+                // TODO: Use POValueOutputTez instead of POLocalRearrange and
+                // unsorted shuffle with TEZ-661 and PIG-3775.
+                outputs[i] = localRearrangeFactory.create(LocalRearrangeType.NULL);
+                prevTezOp.plan.addAsLeaf(outputs[i]);
+                prevTezOp.setClosed(true);
             }
+            OperatorKey unionKey = newTezOp.getOperatorKey();
+            newTezOp.markUnion();
+            curTezOp = newTezOp;
 
-            // Mark the start of a new TezOperator, connecting the inputs. Note
-            // the parallelism is currently fixed to 1 for all TezOperators.
-            blocking();
+            // Start a new TezOp so that the successor in physical plan can be
+            // added to it.
+            newTezOp = getTezOp();
+            tezPlan.add(newTezOp);
+            tezPlan.connect(curTezOp, newTezOp);
 
-            // Then add a POPackage to the start of the new tezOp.
-            POPackage pkg = getPackage(compiledInputs.length, DataType.TUPLE);
-            pkg.setAlias(op.getAlias());
-            curTezOp.markUnion();
-            curTezOp.plan.add(pkg);
+            // Connect the POValueOutputTezs in the predecessor vertices to the
+            // succeeding vertex.
+            for (int i = 0; i < outputs.length; i++) {
+                outputs[i].setOutputKey(newTezOp.getOperatorKey().toString());
+            }
+            // The first operator in the succeeding vertex must be
+            // POVertexGroupInputTez.
+            POVertexGroupInputTez grpInput = new POVertexGroupInputTez(newTezOp.getOperatorKey());
+            grpInput.setInputKey(unionKey.toString());
+            grpInput.setAlias(op.getAlias());
+            newTezOp.plan.add(grpInput);
+            curTezOp = newTezOp;
+
             curTezOp.setRequestedParallelism(op.getRequestedParallelism());
             phyToTezOpMap.put(op, curTezOp);
-            // TODO: Use alias vertex that is introduced by TEZ-678
         } catch (Exception e) {
             int errCode = 2034;
             String msg = "Error compiling operator " + op.getClass().getSimpleName();
