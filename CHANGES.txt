@@ -99,8 +99,6 @@ OPTIMIZATIONS
  
 BUG FIXES
 
-PIG-3794: pig -useHCatalog fails using pig command line interface on HDInsight (ehans via daijy)
-
 PIG-3807: Pig creates wrong schema after dereferencing nested tuple fields with sorts (daijy)
 
 PIG-3813: Rank column is assigned different uids everytime when schema is reset (cheolsoo)
@@ -258,6 +256,8 @@ PIG-3047: Check the size of a relation before adding it to distributed cache in 
 PIG-3480: TFile-based tmpfile compression crashes in some cases (dvryaboy via aniket486)
 
 BUG FIXES
+
+PIG-3794: pig -useHCatalog fails using pig command line interface on HDInsight (ehans via daijy)
 
 PIG-3827: Custom partitioner is not picked up with secondary sort optimization (daijy)
 
