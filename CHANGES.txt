@@ -99,6 +99,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3794: pig -useHCatalog fails using pig command line interface on HDInsight (ehans via daijy)
+
 PIG-3807: Pig creates wrong schema after dereferencing nested tuple fields with sorts (daijy)
 
 PIG-3813: Rank column is assigned different uids everytime when schema is reset (cheolsoo)
