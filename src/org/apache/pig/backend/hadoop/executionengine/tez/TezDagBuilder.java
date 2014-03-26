@@ -200,8 +200,8 @@ public class TezDagBuilder extends TezOpPlanVisitor {
     private GroupInputEdge newGroupInputEdge(VertexGroup from, Vertex to)
             throws IOException {
         Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties(), false);
-        setIntermediateInputKeyValue(DataType.BYTEARRAY, conf, null);
-        setIntermediateOutputKeyValue(DataType.BYTEARRAY, conf, null);
+        setIntermediateInputKeyValue(DataType.TUPLE, conf, null);
+        setIntermediateOutputKeyValue(DataType.TUPLE, conf, null);
         MRToTezHelper.convertMRToTezRuntimeConf(conf, globalConf);
 
         return new GroupInputEdge(from, to, new EdgeProperty(

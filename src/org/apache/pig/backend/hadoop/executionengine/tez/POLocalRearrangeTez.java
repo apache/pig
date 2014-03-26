@@ -68,7 +68,6 @@ public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
             this.isSkewedJoin = copyTez.isSkewedJoin;
             this.outputKey = copyTez.outputKey;
         }
-
     }
 
     public String getOutputKey() {
@@ -141,9 +140,10 @@ public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
                     PigNullableWritable key = null;
                     NullableTuple val = null;
                     if (isUnion) {
-                        // Use the entire tuple as both key and value
+                        // Use the whole tuple as key and set value to null
                         key = HDataType.getWritableComparableTypes(result.get(1), keyType);
-                        val = new NullableTuple((Tuple)result.get(1));
+                        val = new NullableTuple();
+                        val.setNull(true);
                     } else {
                         key = HDataType.getWritableComparableTypes(result.get(1), keyType);
                         val = new NullableTuple((Tuple)result.get(2));

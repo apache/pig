@@ -65,7 +65,7 @@ public class POVertexGroupInputTez extends PhysicalOperator implements TezLoad {
         try {
             LogicalInput input = inputs.get(inputKey);
             if (input == null) {
-                throw new ExecException("Input GroupVertex " + inputKey + " is missing");
+                throw new ExecException("Input VertexGroup " + inputKey + " is missing");
             }
             reader = (KeyValuesReader) input.getReader();
             hasNext = reader.next();
@@ -79,8 +79,12 @@ public class POVertexGroupInputTez extends PhysicalOperator implements TezLoad {
         try {
             while (hasNext) {
                 if (reader.getCurrentValues().iterator().hasNext()) {
-                    NullableTuple val = (NullableTuple) reader.getCurrentValues().iterator().next();
-                    return new Result(POStatus.STATUS_OK, val.getValueAsPigType());
+                    NullableTuple key = (NullableTuple) reader.getCurrentKey();
+                    // The value is always null since the whole record is
+                    // shuffled as the key. Call next() on iterator to just move
+                    // it forward
+                    reader.getCurrentValues().iterator().next();
+                    return new Result(POStatus.STATUS_OK, key.getValueAsPigType());
                 }
                 hasNext = reader.next();
             }

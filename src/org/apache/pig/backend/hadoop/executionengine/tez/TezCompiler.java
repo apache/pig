@@ -1978,7 +1978,8 @@ public class TezCompiler extends PhyPlanVisitor {
                 TezCompilerUtil.connect(tezPlan, prevTezOp, newTezOp);
                 // TODO: Use POValueOutputTez instead of POLocalRearrange and
                 // unsorted shuffle with TEZ-661 and PIG-3775.
-                outputs[i] = localRearrangeFactory.create(LocalRearrangeType.NULL);
+                outputs[i] = localRearrangeFactory.create();
+                outputs[i].setUnion(true);
                 prevTezOp.plan.addAsLeaf(outputs[i]);
                 prevTezOp.setClosed(true);
             }
