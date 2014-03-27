@@ -30,11 +30,7 @@ PIG-2207: Support custom counters for aggregating warnings from different udfs (
 
 IMPROVEMENTS
 
-PIG-3832: Fix piggybank test compilation failure after PIG-3449 (rohini)
-
 PIG-3449: Move JobCreationException to org.apache.pig.backend.hadoop.executionengine (cheolsoo)
-
-PIG-3802: Fix TestBlackAndWhitelistValidator failures (prkommireddi)
 
 PIG-3765: Ability to disable Pig commands and operators (prkommireddi)
 
@@ -107,7 +103,11 @@ PIG-3833: Relation loaded by AvroStorage with schema is projected incorrectly in
 
 PIG-3836: Pig signature has has guava version dependency (amatsukawa via cheolsoo)
 
+PIG-3832: Fix piggybank test compilation failure after PIG-3449 (rohini)
+
 PIG-3807: Pig creates wrong schema after dereferencing nested tuple fields with sorts (daijy)
+
+PIG-3802: Fix TestBlackAndWhitelistValidator failures (prkommireddi)
 
 PIG-3813: Rank column is assigned different uids everytime when schema is reset (cheolsoo)
 
