@@ -1001,15 +1001,17 @@ sub wrongExecutionMode($$)
 
     # Check that we should run this test.  If the current execution type
     # doesn't match the execonly flag, then skip this one.
-    my $wrong = ((defined $testCmd->{'execonly'} &&
-            $testCmd->{'execonly'} ne $testCmd->{'exectype'}));
+    my $wrong = 0;
 
-    if ($wrong) {
-        print $log "Skipping test $testCmd->{'group'}" . "_" .
-            $testCmd->{'num'} . " since it is executed only in " .
-            $testCmd->{'execonly'} . " mode and we are executing in " .
-            $testCmd->{'exectype'} . " mode.\n";
-        return $wrong;
+    if (defined $testCmd->{'execonly'}) {
+        my @exectypes = split(',', $testCmd->{'execonly'});
+        if (!$testCmd->{'exectype'} ~~ @exectypes) {
+            print $log "Skipping test $testCmd->{'group'}" . "_" .
+                $testCmd->{'num'} . " since it is executed only in " .
+                $testCmd->{'execonly'} . " mode and we are executing in " .
+                $testCmd->{'exectype'} . " mode.\n";
+            return 1;
+        }
     }
 
     if (defined $testCmd->{'ignore23'} && $testCmd->{'hadoopversion'}=='23') {

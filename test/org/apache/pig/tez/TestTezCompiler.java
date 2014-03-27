@@ -324,6 +324,27 @@ public class TestTezCompiler {
         run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC19.gld");
     }
 
+    @Test
+    public void testRank() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input1' as (x:int, y:int);" +
+                "b = rank a;" +
+                "store b into 'file:///tmp/output/d';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC20.gld");
+    }
+
+    @Test
+    public void testRankBy() throws Exception {
+        //TODO: Physical plan (affects both MR and Tez) has extra job before order by. Does not look right.
+        String query =
+                "a = load 'file:///tmp/input1' as (x:int, y:int);" +
+                "b = rank a by x;" +
+                "store b into 'file:///tmp/output/d';";
+
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC21.gld");
+    }
+
     private void run(String query, String expectedFile) throws Exception {
         PhysicalPlan pp = Util.buildPp(pigServer, query);
         TezLauncher launcher = new TezLauncher();

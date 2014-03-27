@@ -38,9 +38,7 @@ import org.apache.pig.data.DefaultDataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.ScriptState;
-import org.apache.pig.tools.pigstats.mapreduce.MRScriptState;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -216,7 +214,11 @@ public class TestCombiner {
         assertFalse(it.hasNext());
         Util.deleteFile(cluster, "MultiCombinerUseInput.txt");
         // Reset io.sort.mb to the original value before exit
-        properties.setProperty("io.sort.mb", oldValue);
+        if (oldValue == null) {
+            properties.remove("io.sort.mb");
+        } else {
+            properties.setProperty("io.sort.mb", oldValue);
+        }
         pigServer.shutdown();
     }
 

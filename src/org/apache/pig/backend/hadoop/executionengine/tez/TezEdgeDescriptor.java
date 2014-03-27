@@ -47,6 +47,9 @@ public class TezEdgeDescriptor {
     // Sort order for secondary keys;
     private boolean[] secondarySortOrder;
 
+    private String intermediateOutputKeyClass;
+    private String intermediateOutputValueClass;
+
     public TezEdgeDescriptor() {
         combinePlan = new PhysicalPlan();
 
@@ -77,6 +80,22 @@ public class TezEdgeDescriptor {
         for(int i = 0; i < secondarySortOrder.length; ++i) {
             this.secondarySortOrder[i] = secondarySortOrder[i];
         }
+    }
+
+    public String getIntermediateOutputKeyClass() {
+        return intermediateOutputKeyClass;
+    }
+
+    public void setIntermediateOutputKeyClass(String intermediateOutputKeyClass) {
+        this.intermediateOutputKeyClass = intermediateOutputKeyClass;
+    }
+
+    public String getIntermediateOutputValueClass() {
+        return intermediateOutputValueClass;
+    }
+
+    public void setIntermediateOutputValueClass(String intermediateOutputValueClass) {
+        this.intermediateOutputValueClass = intermediateOutputValueClass;
     }
 
 }

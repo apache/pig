@@ -52,7 +52,7 @@ public class POValueOutputTez extends PhysicalOperator implements TezOutput {
     // value only input output
     protected transient List<KeyValueWriter> writers;
 
-    private static EmptyWritable EMPTY_KEY = new EmptyWritable();
+    public static EmptyWritable EMPTY_KEY = new EmptyWritable();
 
     public POValueOutputTez(OperatorKey k) {
         super(k);

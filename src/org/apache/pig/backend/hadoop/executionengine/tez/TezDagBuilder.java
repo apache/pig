@@ -249,6 +249,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             }
         }
 
+        //TODO: Remove this and set the classes on edge in TezCompiler
         List<POValueOutputTez> valueOutputs = PlanHelper.getPhysicalOperators(from.plan,
                 POValueOutputTez.class);
         if (!valueOutputs.isEmpty()) {
@@ -265,6 +266,23 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                             BinSedesTuple.class.getName());
                 }
             }
+        }
+
+        conf.setIfUnset(TezJobConfig.TEZ_RUNTIME_PARTITIONER_CLASS,
+                MRPartitioner.class.getName());
+
+        if (edge.getIntermediateOutputKeyClass() != null) {
+            conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_CLASS,
+                    edge.getIntermediateOutputKeyClass());
+            conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_CLASS,
+                    edge.getIntermediateOutputKeyClass());
+        }
+
+        if (edge.getIntermediateOutputValueClass() != null) {
+            conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_VALUE_CLASS,
+                    edge.getIntermediateOutputValueClass());
+            conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_VALUE_CLASS,
+                    edge.getIntermediateOutputValueClass());
         }
 
         conf.setBoolean("mapred.mapper.new-api", true);

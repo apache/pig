@@ -100,6 +100,11 @@ public class PigProcessor implements LogicalIOProcessor {
         // Set the job conf as a thread-local member of PigMapReduce
         // for backwards compatibility with the existing code base.
         PigMapReduce.sJobConfInternal.set(conf);
+
+        LinkedList<TezTaskConfigurable> tezTCs = PlanHelper.getPhysicalOperators(execPlan, TezTaskConfigurable.class);
+        for (TezTaskConfigurable tezTC : tezTCs){
+            tezTC.initialize(processorContext);
+        }
     }
 
     @Override

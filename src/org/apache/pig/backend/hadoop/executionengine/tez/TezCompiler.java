@@ -31,6 +31,9 @@ import java.util.Stack;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.mapreduce.lib.partition.HashPartitioner;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.IndexableLoadFunc;
 import org.apache.pig.LoadFunc;
@@ -77,7 +80,11 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.Packager.PackageType;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.tez.POLocalRearrangeTezFactory.LocalRearrangeType;
+import org.apache.pig.backend.hadoop.executionengine.tez.operators.POCounterStatsTez;
+import org.apache.pig.backend.hadoop.executionengine.tez.operators.POCounterTez;
+import org.apache.pig.backend.hadoop.executionengine.tez.operators.PORankTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.util.TezCompilerUtil;
+import org.apache.pig.data.BinSedesTuple;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.builtin.DefaultIndexableLoader;
@@ -565,9 +572,16 @@ public class TezCompiler extends PhyPlanVisitor {
 
     @Override
     public void visitCounter(POCounter op) throws VisitorException {
-        int errCode = 2034;
-        String msg = "Cannot compile " + op.getClass().getSimpleName();
-        throw new TezCompilerException(msg, errCode, PigException.BUG);
+        // Refer visitRank(PORank) for more details
+        try{
+            POCounterTez counterTez = new POCounterTez(op);
+            nonBlocking(counterTez);
+            phyToTezOpMap.put(op, curTezOp);
+        } catch (Exception e) {
+            int errCode = 2034;
+            String msg = "Error compiling operator " + op.getClass().getSimpleName();
+            throw new TezCompilerException(msg, errCode, PigException.BUG, e);
+        }
     }
 
     @Override
@@ -1097,9 +1111,71 @@ public class TezCompiler extends PhyPlanVisitor {
 
     @Override
     public void visitRank(PORank op) throws VisitorException {
-        int errCode = 2034;
-        String msg = "Cannot compile " + op.getClass().getSimpleName();
-        throw new TezCompilerException(msg, errCode, PigException.BUG);
+        try{
+            // Rank implementation has 3 vertices
+            // Vertex 1 has POCounterTez produce output tuples and send to Vertex 3 via 1-1 edge.
+            // Vertex 1 also sends the count of tuples of each task in Vertex 1 to Vertex 2 which is a single reducer.
+            // Vertex 3 has PORankTez which consumes from Vertex 2 as broadcast input and also tuples from Vertex 1 and
+            // produces tuples with updated ranks based on the count of tuples from Vertex 2.
+            // This is different from MR implementation where POCounter updates job counters, and that is
+            // copied by JobControlCompiler into the PORank job's jobconf.
+
+            // Previous operator is always POCounterTez (Vertex 1)
+            TezOperator counterOper = curTezOp;
+            POCounterTez counterTez = (POCounterTez) counterOper.plan.getLeaves().get(0);
+
+            //Construct Vertex 2
+            TezOperator statsOper = getTezOp();
+            tezPlan.add(statsOper);
+            POCounterStatsTez counterStatsTez = new POCounterStatsTez(OperatorKey.genOpKey(scope));
+            statsOper.plan.addAsLeaf(counterStatsTez);
+            statsOper.setRequestedParallelism(1);
+
+            //Construct Vertex 3
+            TezOperator rankOper = getTezOp();
+            tezPlan.add(rankOper);
+            PORankTez rankTez = new PORankTez(op);
+            rankOper.plan.addAsLeaf(rankTez);
+            curTezOp = rankOper;
+
+            // Connect counterOper vertex to rankOper vertex by 1-1 edge
+            rankOper.setRequestedParallelismByReference(counterOper);
+            TezEdgeDescriptor edge = TezCompilerUtil.connect(tezPlan, counterOper, rankOper);
+            edge.dataMovementType = DataMovementType.ONE_TO_ONE;
+            edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
+            edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
+            edge.setIntermediateOutputKeyClass(POValueOutputTez.EmptyWritable.class.getName());
+            edge.setIntermediateOutputValueClass(BinSedesTuple.class.getName());
+            counterTez.setTuplesOutputKey(rankOper.getOperatorKey().toString());
+            rankTez.setTuplesInputKey(counterOper.getOperatorKey().toString());
+
+            // Connect counterOper vertex to statsOper vertex by Shuffle edge
+            edge = TezCompilerUtil.connect(tezPlan, counterOper, statsOper);
+            // Task id
+            edge.setIntermediateOutputKeyClass(IntWritable.class.getName());
+            edge.partitionerClass = HashPartitioner.class;
+            // Number of records in that task
+            edge.setIntermediateOutputValueClass(LongWritable.class.getName());
+            counterTez.setStatsOutputKey(statsOper.getOperatorKey().toString());
+            counterStatsTez.setInputKey(counterOper.getOperatorKey().toString());
+
+            // Connect statsOper vertex to rankOper vertex by Broadcast edge
+            edge = TezCompilerUtil.connect(tezPlan, statsOper, rankOper);
+            edge.dataMovementType = DataMovementType.BROADCAST;
+            edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
+            edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
+            edge.setIntermediateOutputKeyClass(POValueOutputTez.EmptyWritable.class.getName());
+            // Map of task id, offset count based on total number of records
+            edge.setIntermediateOutputValueClass(BinSedesTuple.class.getName());
+            counterStatsTez.setOutputKey(rankOper.getOperatorKey().toString());
+            rankTez.setStatsInputKey(statsOper.getOperatorKey().toString());
+
+            phyToTezOpMap.put(op, rankOper);
+        } catch (Exception e) {
+            int errCode = 2034;
+            String msg = "Error compiling operator " + op.getClass().getSimpleName();
+            throw new TezCompilerException(msg, errCode, PigException.BUG, e);
+        }
     }
 
     @Override
