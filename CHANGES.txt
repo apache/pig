@@ -103,6 +103,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3833: Relation loaded by AvroStorage with schema is projected incorrectly in foreach statement (jeongjinku via cheolsoo)
+
 PIG-3836: Pig signature has has guava version dependency (amatsukawa via cheolsoo)
 
 PIG-3807: Pig creates wrong schema after dereferencing nested tuple fields with sorts (daijy)
