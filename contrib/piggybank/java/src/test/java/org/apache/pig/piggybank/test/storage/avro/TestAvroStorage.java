@@ -46,7 +46,7 @@ import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobCreationException;
+import org.apache.pig.backend.hadoop.executionengine.JobCreationException;
 import org.apache.pig.builtin.mock.Storage.Data;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.FileLocalizer;
@@ -69,6 +69,7 @@ public class TestAvroStorage {
     private static String outbasedir;
 
     public static final PathFilter hiddenPathFilter = new PathFilter() {
+        @Override
         public boolean accept(Path p) {
           String name = p.getName();
           return !name.startsWith("_") && !name.startsWith(".");

@@ -812,7 +812,7 @@
                 <include name="org/apache/pig/test/utils/datagen/*"/>
                 <include name="org/apache/pig/test/udf/storefunc/*"/>
             </fileset>
-            <zipfileset src="${lib.dir}/sdsuLibJKD12.jar" />
+            <zipfileset src="test/perf/pigmix/lib/sdsuLibJKD12.jar" />
         </jar>
     </target>
 

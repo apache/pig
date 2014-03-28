@@ -45,8 +45,8 @@ import org.apache.pig.newplan.logical.relational.LOStream;
 import org.apache.pig.newplan.logical.relational.LOUnion;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalNodesVisitor;
 import org.apache.pig.newplan.logical.rules.LogicalRelationalNodeValidator;
-import org.python.google.common.base.Splitter;
-import org.python.google.common.collect.Sets;
+import com.google.common.base.Splitter;
+import com.google.common.collect.Sets;
 
 /**
  * This validator walks through the list of operators defined in {@link PigConfiguration#PIG_BLACKLIST} and

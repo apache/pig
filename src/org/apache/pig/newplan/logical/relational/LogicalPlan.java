@@ -81,12 +81,12 @@ public class LogicalPlan extends BaseOperatorPlan {
             ps.println("<logicalPlan>XML Not Supported</logicalPlan>");
             return;
         }
-        
+
         ps.println("#-----------------------------------------------");
         ps.println("# New Logical Plan:");
         ps.println("#-----------------------------------------------");
 
-        if (this.size() == 0) { 
+        if (this.size() == 0) {
             ps.println("Logical plan is empty.");
         } else if (format.equals("dot")) {
             DotLOPrinter lpp = new DotLOPrinter(this, ps);
@@ -126,8 +126,8 @@ public class LogicalPlan extends BaseOperatorPlan {
      */
     public String getSignature() throws FrontendException {
 
-        // Use a streaming hash function. goodFastHash(32) is murmur3 32 bits
-        HashFunction hf = Hashing.goodFastHash(32);
+        // Use a streaming hash function. We use a murmur_32 function with a constant seed, 0.
+        HashFunction hf = Hashing.murmur3_32(0);
         HashOutputStream hos = new HashOutputStream(hf);
         PrintStream ps = new PrintStream(hos);
 

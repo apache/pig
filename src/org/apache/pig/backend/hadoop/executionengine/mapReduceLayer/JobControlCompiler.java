@@ -20,6 +20,7 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Method;
 import java.net.URI;
@@ -1633,26 +1634,25 @@ public class JobControlCompiler{
             String checksum = DigestUtils.shaHex(url.openStream());
             FileSystem fs = FileSystem.get(conf);
             Path cacheDir = new Path(stagingDir, checksum);
-            FileStatus [] statuses = fs.listStatus(cacheDir);
-            if (statuses != null) {
-                for (FileStatus stat : statuses) {
-                    Path jarPath = stat.getPath();
-                    if(jarPath.getName().equals(filename)) {
-                        log.info("Found " + url + " in jar cache at "+ stagingDir);
-                        long curTime = System.currentTimeMillis();
-                        fs.setTimes(jarPath, -1, curTime);
-                        return jarPath;
-                    }
-                }
+            Path cacheFile = new Path(cacheDir, filename);
+            if (fs.exists(cacheFile)) {
+               log.info("Found " + url + " in jar cache at "+ stagingDir);
+               long curTime = System.currentTimeMillis();
+               fs.setTimes(cacheFile, -1, curTime);
+               return cacheFile;
             }
             log.info("Url "+ url + " was not found in jarcache at "+ stagingDir);
             // attempt to copy to cache else return null
             fs.mkdirs(cacheDir, FileLocalizer.OWNER_ONLY_PERMS);
-            Path cacheFile = new Path(cacheDir, filename);
-            OutputStream os = FileSystem.create(fs, cacheFile, FileLocalizer.OWNER_ONLY_PERMS);
+            OutputStream os = null;
+            InputStream is = null;
             try {
-                IOUtils.copyBytes(url.openStream(), os, 4096, true);
+                os = FileSystem.create(fs, cacheFile, FileLocalizer.OWNER_ONLY_PERMS);
+                is = url.openStream();
+                IOUtils.copyBytes(is, os, 4096, true);
             } finally {
+                org.apache.commons.io.IOUtils.closeQuietly(is);
+                // IOUtils should not close stream to HDFS quietly
                 os.close();
             }
             return cacheFile;
@@ -1688,12 +1688,15 @@ public class JobControlCompiler{
 
         Path dst = new Path(FileLocalizer.getTemporaryPath(pigContext).toUri().getPath(), suffix);
         FileSystem fs = dst.getFileSystem(conf);
-        OutputStream os = fs.create(dst);
+        OutputStream os = null;
+        InputStream is = null;
         try {
-            IOUtils.copyBytes(url.openStream(), os, 4096, true);
+            is = url.openStream();
+            os = fs.create(dst);
+            IOUtils.copyBytes(is, os, 4096, true);
         } finally {
-            // IOUtils can not close both the input and the output properly in a finally
-            // as we can get an exception in between opening the stream and calling the method
+            org.apache.commons.io.IOUtils.closeQuietly(is);
+            // IOUtils should not close stream to HDFS quietly
             os.close();
         }
         return dst;

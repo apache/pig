@@ -70,14 +70,23 @@ public class LORank extends LogicalRelationalOperator{
      */
     private boolean isRowNumber = false;
 
+    /**
+     * This is a uid which has been generated for the rank column. It is
+     * important to keep this so that the uid will be persistent between calls
+     * of resetSchema and getSchema.
+     */
+    private long rankColumnUid;
+
     public LORank( OperatorPlan plan) {
         super("LORank", plan);
+        this.rankColumnUid = -1;
     }
 
     public LORank( OperatorPlan plan, List<LogicalExpressionPlan> rankColPlans, List<Boolean> ascCols) {
         this( plan );
         this.rankColPlans = rankColPlans;
         this.ascCols = ascCols;
+        this.rankColumnUid = -1;
     }
 
     public List<LogicalExpressionPlan> getRankColPlans() {
@@ -139,8 +148,9 @@ public class LORank extends LogicalRelationalOperator{
 
         schema = new LogicalSchema();
 
-        schema.addField(new LogicalSchema.LogicalFieldSchema(RANK_COL_NAME+SEPARATOR+input.getAlias(), null, DataType.LONG));
-        schema.getField(0).uid = LogicalExpression.getNextUid();
+        rankColumnUid = rankColumnUid == -1 ? LogicalExpression.getNextUid() : rankColumnUid;
+        schema.addField(new LogicalSchema.LogicalFieldSchema(RANK_COL_NAME + SEPARATOR + input.getAlias(),
+                null, DataType.LONG, rankColumnUid));
 
         for(LogicalSchema.LogicalFieldSchema fieldSchema: fss) {
             schema.addField(fieldSchema);

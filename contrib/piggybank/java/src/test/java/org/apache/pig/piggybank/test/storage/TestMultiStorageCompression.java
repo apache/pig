@@ -3,9 +3,9 @@
  * NOTICE file distributed with this work for additional information regarding copyright ownership. The ASF
  * licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file
  * except in compliance with the License. You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software distributed under the License is
  * distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and limitations under the License.
@@ -26,6 +26,7 @@ import java.util.List;
 
 import junit.framework.TestCase;
 
+import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.compress.BZip2Codec;
 import org.apache.hadoop.io.compress.CompressionCodec;
@@ -37,7 +38,7 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.test.Util;
 
 public class TestMultiStorageCompression extends TestCase {
-   
+
    private static String patternString = "(\\d+)!+(\\w+)~+(\\w+)";
    public static ArrayList<String[]> data = new ArrayList<String[]>();
    static {
@@ -127,13 +128,15 @@ public class TestMultiStorageCompression extends TestCase {
             // Try to read the records using the codec
             CompressionCodec codec = null;
 
-            
+
             // Use the codec according to the test case
-            if (type.equals("bz2"))
+            if (type.equals("bz2")) {
                codec = new BZip2Codec();
-            else if (type.equals("gz")) {
+            } else if (type.equals("gz")) {
                codec = new GzipCodec();
-               ((GzipCodec)codec).setConf(new Configuration());
+            }
+            if(codec instanceof Configurable) {
+                ((Configurable)codec).setConf(new Configuration());
             }
 
             CompressionInputStream createInputStream = codec
@@ -158,7 +161,7 @@ public class TestMultiStorageCompression extends TestCase {
 
    private void runQuery(String outputPath, String compressionType)
          throws Exception, ExecException, IOException, FrontendException {
-      
+
       // create a data file
       String filename = TestHelper.createTempFile(data, "");
       PigServer pig = new PigServer(LOCAL);
@@ -178,6 +181,6 @@ public class TestMultiStorageCompression extends TestCase {
 
       pig.executeBatch();
    }
-  
+
 
 }

@@ -1,0 +1,15 @@
+{
+ "key" : "A",
+ "intValue" : 1,
+ "booleanValue" : true
+}
+{
+ "key" : "B",
+ "intValue" : 2,
+ "booleanValue" : true
+}
+{
+ "key" : "C",
+ "intValue" : 3,
+ "booleanValue" : false
+}
