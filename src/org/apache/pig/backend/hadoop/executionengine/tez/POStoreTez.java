@@ -39,20 +39,40 @@ public class POStoreTez extends POStore implements TezOutput {
     private static final long serialVersionUID = 1L;
     private transient MROutput output;
     private transient KeyValueWriter writer;
+    private String outputKey;
 
     public POStoreTez(OperatorKey k) {
         super(k);
+        this.outputKey = k.toString();
     }
 
     public POStoreTez(POStore copy) {
         super(copy);
+        this.outputKey = copy.getOperatorKey().toString();
+    }
+
+    public String getOutputKey() {
+        return outputKey;
+    }
+
+    public void setOutputKey(String outputKey) {
+        this.outputKey = outputKey;
+    }
+
+    @Override
+    public String[] getTezOutputs() {
+        return new String[] { outputKey };
+    }
+
+    @Override
+    public void replaceOutput(String oldOutputKey, String newOutputKey) {
     }
 
     @Override
     public void attachOutputs(Map<String, LogicalOutput> outputs,
             Configuration conf)
             throws ExecException {
-        LogicalOutput logicalOut = outputs.get(getOperatorKey().toString());
+        LogicalOutput logicalOut = outputs.get(outputKey);
         if (logicalOut == null || !(logicalOut instanceof MROutput)) {
             throw new ExecException("POStoreTez only accepts MROutput. key =  "
                     + getOperatorKey() + ", outputs = " + outputs);

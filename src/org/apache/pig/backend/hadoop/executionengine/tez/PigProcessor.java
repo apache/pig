@@ -40,8 +40,8 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
-import org.apache.pig.data.BinSedesTuple;
 import org.apache.pig.data.SchemaTupleBackend;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.UDFContext;
@@ -176,9 +176,9 @@ public class PigProcessor implements LogicalIOProcessor {
             inputsToSkip.add(sampleVertex);
         }
 
-        LinkedList<TezLoad> tezLds = PlanHelper.getPhysicalOperators(execPlan, TezLoad.class);
-        for (TezLoad tezLd : tezLds){
-            tezLd.addInputsToSkip(inputsToSkip);
+        LinkedList<TezInput> tezInputs = PlanHelper.getPhysicalOperators(execPlan, TezInput.class);
+        for (TezInput tezInput : tezInputs){
+            tezInput.addInputsToSkip(inputsToSkip);
         }
 
         LinkedList<ReadScalarsTez> scalarInputs = new LinkedList<ReadScalarsTez>();
@@ -201,8 +201,8 @@ public class PigProcessor implements LogicalIOProcessor {
             }
         }
 
-        for (TezLoad tezLd : tezLds){
-            tezLd.attachInputs(inputs, conf);
+        for (TezInput tezInput : tezInputs){
+            tezInput.attachInputs(inputs, conf);
         }
 
         for (ReadScalarsTez scalarInput: scalarInputs) {
@@ -272,7 +272,7 @@ public class PigProcessor implements LogicalIOProcessor {
         Object val = reader.getCurrentValue();
         if (val != null) {
             // Sample is not empty
-            BinSedesTuple t = (BinSedesTuple) val;
+            Tuple t = (Tuple) val;
             sampleMap = (Map<String, Object>) t.get(0);
         }
     }

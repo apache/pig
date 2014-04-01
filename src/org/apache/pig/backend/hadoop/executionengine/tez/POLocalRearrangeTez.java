@@ -48,8 +48,6 @@ public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
     protected String outputKey;
     protected transient KeyValueWriter writer;
 
-    // Tez union is implemented as LR + Pkg
-    protected boolean isUnion = false;
     protected boolean isSkewedJoin = false;
 
     public POLocalRearrangeTez(OperatorKey k) {
@@ -64,7 +62,6 @@ public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
         super(copy);
         if (copy instanceof POLocalRearrangeTez) {
             POLocalRearrangeTez copyTez = (POLocalRearrangeTez) copy;
-            this.isUnion = copyTez.isUnion;
             this.isSkewedJoin = copyTez.isSkewedJoin;
             this.outputKey = copyTez.outputKey;
         }
@@ -78,20 +75,24 @@ public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
         this.outputKey = outputKey;
     }
 
-    public boolean isUnion() {
-        return isUnion;
-    }
-
-    public void setUnion(boolean isUnion) {
-        this.isUnion = isUnion;
-    }
-
     public boolean isSkewedJoin() {
         return isSkewedJoin;
     }
 
     public void setSkewedJoin(boolean isSkewedJoin) {
         this.isSkewedJoin = isSkewedJoin;
+    }
+
+    @Override
+    public String[] getTezOutputs() {
+        return new String[] { outputKey };
+    }
+
+    @Override
+    public void replaceOutput(String oldOutputKey, String newOutputKey) {
+        if (oldOutputKey.equals(outputKey)) {
+            outputKey = newOutputKey;
+        }
     }
 
     @Override
@@ -136,18 +137,9 @@ public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
             case POStatus.STATUS_OK:
                 if (illustrator == null) {
                     Tuple result = (Tuple) res.result;
-                    Byte index = (Byte)result.get(0);
-                    PigNullableWritable key = null;
-                    NullableTuple val = null;
-                    if (isUnion) {
-                        // Use the whole tuple as key and set value to null
-                        key = HDataType.getWritableComparableTypes(result.get(1), keyType);
-                        val = new NullableTuple();
-                        val.setNull(true);
-                    } else {
-                        key = HDataType.getWritableComparableTypes(result.get(1), keyType);
-                        val = new NullableTuple((Tuple)result.get(2));
-                    }
+                    Byte index = (Byte) result.get(0);
+                    PigNullableWritable key = HDataType.getWritableComparableTypes(result.get(1), keyType);
+                    NullableTuple val = new NullableTuple((Tuple)result.get(2));
 
                     // Both the key and the value need the index.  The key needs it so
                     // that it can be sorted on the index in addition to the key

@@ -30,6 +30,12 @@ import org.apache.tez.runtime.api.LogicalOutput;
  */
 
 public interface TezOutput {
+
+    public String[] getTezOutputs();
+
+    public void replaceOutput(String oldOutputKey, String newOutputKey);
+
     public void attachOutputs(Map<String, LogicalOutput> outputs,
             Configuration conf) throws ExecException;
+
 }

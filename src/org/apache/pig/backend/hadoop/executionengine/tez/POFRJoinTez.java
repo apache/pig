@@ -47,7 +47,7 @@ import com.google.common.collect.Lists;
  * POFRJoinTez is used on the backend to load replicated table from Tez
  * ShuffleUnorderedKVInput and load fragmented table from data pipeline.
  */
-public class POFRJoinTez extends POFRJoin implements TezLoad {
+public class POFRJoinTez extends POFRJoin implements TezInput {
 
     private static final Log log = LogFactory.getLog(POFRJoinTez.class);
     private static final long serialVersionUID = 1L;
@@ -64,6 +64,18 @@ public class POFRJoinTez extends POFRJoin implements TezLoad {
     }
 
     @Override
+    public String[] getTezInputs() {
+        return inputKeys.toArray(new String[inputKeys.size()]);
+    }
+
+    @Override
+    public void replaceInput(String oldInputKey, String newInputKey) {
+        if (inputKeys.remove(oldInputKey)) {
+            inputKeys.add(newInputKey);
+        }
+    }
+
+    @Override
     public void addInputsToSkip(Set<String> inputsToSkip) {
         String cacheKey = "replicatemap-" + getOperatorKey().toString();
         Object cacheValue = ObjectCache.getInstance().retrieve(cacheKey);
@@ -73,7 +85,6 @@ public class POFRJoinTez extends POFRJoin implements TezLoad {
         }
     }
 
-    @SuppressWarnings("rawtypes")
     @Override
     public void attachInputs(Map<String, LogicalInput> inputs, Configuration conf)
             throws ExecException {

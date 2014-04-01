@@ -32,10 +32,10 @@ import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
+import org.apache.tez.runtime.api.Reader;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
-import org.apache.tez.runtime.library.input.ShuffledMergedInput;
 
 /**
  * POIdentityInOutTez is used to pass through tuples as is to next vertex from
@@ -44,7 +44,7 @@ import org.apache.tez.runtime.library.input.ShuffledMergedInput;
  * previous vertex data uses POIdentityInOutTez.
  */
 @InterfaceAudience.Private
-public class POIdentityInOutTez extends POLocalRearrangeTez implements TezLoad, TezOutput {
+public class POIdentityInOutTez extends POLocalRearrangeTez implements TezInput, TezOutput {
 
     private static final long serialVersionUID = 1L;
     private String inputKey;
@@ -62,6 +62,18 @@ public class POIdentityInOutTez extends POLocalRearrangeTez implements TezLoad, 
     }
 
     @Override
+    public String[] getTezInputs() {
+        return new String[] { inputKey };
+    }
+
+    @Override
+    public void replaceInput(String oldInputKey, String newInputKey) {
+        if (oldInputKey.equals(inputKey)) {
+            inputKey = newInputKey;
+        }
+    }
+
+    @Override
     public void addInputsToSkip(Set<String> inputsToSkip) {
     }
 
@@ -73,12 +85,12 @@ public class POIdentityInOutTez extends POLocalRearrangeTez implements TezLoad, 
             throw new ExecException("Input from vertex " + inputKey + " is missing");
         }
         try {
-            if (input instanceof ShuffledMergedInput) {
-                shuffleInput = true;
-                ShuffledMergedInput smInput = (ShuffledMergedInput) input;
-                shuffleReader = smInput.getReader();
+            Reader r = input.getReader();
+            if (r instanceof KeyValueReader) {
+                reader = (KeyValueReader) r;
             } else {
-                reader = (KeyValueReader) input.getReader();
+                shuffleInput = true;
+                shuffleReader = (KeyValuesReader) r;
             }
         } catch (Exception e) {
             throw new ExecException(e);
@@ -141,7 +153,7 @@ public class POIdentityInOutTez extends POLocalRearrangeTez implements TezLoad, 
 
     @Override
     public String name() {
-        return "POIdentityInOutTez - " + mKey.toString() + "\t->\t " + outputKey;
+        return "POIdentityInOutTez - " + mKey.toString() + "\t<-\t " + inputKey + "\t->\t " + outputKey;
     }
 
 }

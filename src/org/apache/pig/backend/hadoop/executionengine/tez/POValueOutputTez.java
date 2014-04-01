@@ -29,6 +29,7 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.Writable;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -56,6 +57,18 @@ public class POValueOutputTez extends PhysicalOperator implements TezOutput {
 
     public POValueOutputTez(OperatorKey k) {
         super(k);
+    }
+
+    @Override
+    public String[] getTezOutputs() {
+        return outputKeys.toArray(new String[outputKeys.size()]);
+    }
+
+    @Override
+    public void replaceOutput(String oldOutputKey, String newOutputKey) {
+        if (outputKeys.remove(oldOutputKey)) {
+            outputKeys.add(oldOutputKey);
+        }
     }
 
     @Override
@@ -145,6 +158,26 @@ public class POValueOutputTez extends PhysicalOperator implements TezOutput {
         @Override
         public void readFields(DataInput in) throws IOException {
         }
+    }
+
+    //TODO: Remove after PIG-3775/TEZ-661
+    public static class EmptyWritableComparator implements RawComparator<EmptyWritable> {
+
+        @Override
+        public int compare(EmptyWritable o1, EmptyWritable o2) {
+            return 0;
+        }
+
+        @Override
+        public int compare(byte[] b1, int s1, int l1, byte[] b2, int s2, int l2) {
+            // 0 - Reverses the input order. 0 groups all values into
+            // single record on reducer which is additional overhead.
+            // -1, 1 - Returns input in random order. But comparator is invoked way more
+            // times than 0. Compared to 1, -1 invokes comparator even more.
+            // Going with 0 for now. After TEZ-661 this will not be required any more.
+            return 0;
+        }
+
     }
 
 }

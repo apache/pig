@@ -19,13 +19,12 @@ package org.apache.pig.backend.hadoop.executionengine.tez;
 
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.Partitioner;
-import org.apache.pig.impl.io.PigNullableWritable;
 
-public class RoundRobinPartitioner extends Partitioner<PigNullableWritable, Writable> {
+public class RoundRobinPartitioner extends Partitioner<Writable, Writable> {
     private int num = 0;
 
     @Override
-    public int getPartition(PigNullableWritable key, Writable value, int numPartitions) {
+    public int getPartition(Writable key, Writable value, int numPartitions) {
         num = ++num % numPartitions;
         return num;
     }

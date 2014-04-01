@@ -314,14 +314,157 @@ public class TestTezCompiler {
     }
 
     @Test
-    public void testUnion() throws Exception {
-        String query =
-                "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
-                "b = load 'file:///tmp/input' as (y:chararray, x:int);" +
-                "c = union onschema a, b;" +
-                "store c into 'file:///tmp/output';";
+    public void testUnionStore() throws Exception {
+        try {
+            String query =
+                    "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
+                    "b = load 'file:///tmp/input' as (y:chararray, x:int);" +
+                    "c = union onschema a, b;" +
+                    "store c into 'file:///tmp/output';";
 
-        run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC19.gld");
+            setProperty(PigConfiguration.TEZ_OPT_UNION, "" + true);
+            run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-1.gld");
+            setProperty(PigConfiguration.TEZ_OPT_UNION, "" + false);
+            run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-1-OPTOFF.gld");
+        } finally {
+            removeProperty(PigConfiguration.TEZ_OPT_UNION);
+        }
+    }
+
+    @Test
+    public void testUnionGroupBy() throws Exception {
+        try {
+            String query =
+                    "a = load 'file:///tmp/input' as (x:int, y:int);" +
+                    "b = load 'file:///tmp/input' as (y:int, x:int);" +
+                    "c = union onschema a, b;" +
+                    "d = group c by x;" +
+                    "e = foreach d generate group, SUM(c.y);" +
+                    "store e into 'file:///tmp/output';";
+
+            setProperty(PigConfiguration.TEZ_OPT_UNION, "" + true);
+            run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-2.gld");
+            setProperty(PigConfiguration.TEZ_OPT_UNION, "" + false);
+            run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-2-OPTOFF.gld");
+        } finally {
+            removeProperty(PigConfiguration.TEZ_OPT_UNION);
+        }
+    }
+
+    @Test
+    public void testUnionJoin() throws Exception {
+        try {
+            String query =
+                    "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
+                    "b = load 'file:///tmp/input' as (y:chararray, x:int);" +
+                    "c = union onschema a, b;" +
+                    "d = load 'file:///tmp/input1' as (x:int, z:chararray);" +
+                    "e = join c by x, d by x;" +
+                    "store e into 'file:///tmp/output';";
+
+            setProperty(PigConfiguration.TEZ_OPT_UNION, "" + true);
+            run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-3.gld");
+            setProperty(PigConfiguration.TEZ_OPT_UNION, "" + false);
+            run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-3-OPTOFF.gld");
+        } finally {
+            removeProperty(PigConfiguration.TEZ_OPT_UNION);
+        }
+    }
+
+
+    @Test
+    public void testUnionReplicateJoin() throws Exception {
+        try {
+            String query =
+                    "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
+                    "b = load 'file:///tmp/input' as (y:chararray, x:int);" +
+                    "c = union onschema a, b;" +
+                    "d = load 'file:///tmp/input1' as (x:int, z:chararray);" +
+                    "e = join c by x, d by x using 'replicated';" +
+                    "store e into 'file:///tmp/output';";
+
+            //TODO: PIG-3856 Not optimized
+            setProperty(PigConfiguration.TEZ_OPT_UNION, "" + true);
+            run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-4.gld");
+            setProperty(PigConfiguration.TEZ_OPT_UNION, "" + false);
+            run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-4-OPTOFF.gld");
+
+            query =
+                    "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
+                    "b = load 'file:///tmp/input' as (y:chararray, x:int);" +
+                    "c = union onschema a, b;" +
+                    "d = load 'file:///tmp/input1' as (x:int, z:chararray);" +
+                    "e = join d by x, c by x using 'replicated';" +
+                    "store e into 'file:///tmp/output';";
+
+            // Optimized
+            setProperty(PigConfiguration.TEZ_OPT_UNION, "" + true);
+            run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-5.gld");
+            setProperty(PigConfiguration.TEZ_OPT_UNION, "" + false);
+            run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-5-OPTOFF.gld");
+
+        } finally {
+            removeProperty(PigConfiguration.TEZ_OPT_UNION);
+        }
+    }
+
+    @Test
+    public void testUnionSkewedJoin() throws Exception {
+        try {
+            String query =
+                    "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
+                    "b = load 'file:///tmp/input' as (y:chararray, x:int);" +
+                    "c = union onschema a, b;" +
+                    "d = load 'file:///tmp/input1' as (x:int, z:chararray);" +
+                    "e = join c by x, d by x using 'skewed';" +
+                    "store e into 'file:///tmp/output';";
+
+            setProperty(PigConfiguration.TEZ_OPT_UNION, "" + true);
+            run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-6.gld");
+            setProperty(PigConfiguration.TEZ_OPT_UNION, "" + false);
+            run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-6-OPTOFF.gld");
+        } finally {
+            removeProperty(PigConfiguration.TEZ_OPT_UNION);
+        }
+    }
+
+    @Test
+    public void testUnionOrderby() throws Exception {
+        try {
+            String query =
+                    "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
+                    "b = load 'file:///tmp/input' as (y:chararray, x:int);" +
+                    "c = union onschema a, b;" +
+                    "d = order c by x;" +
+                    "store d into 'file:///tmp/output';";
+
+            setProperty(PigConfiguration.TEZ_OPT_UNION, "" + true);
+            run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-7.gld");
+            setProperty(PigConfiguration.TEZ_OPT_UNION, "" + false);
+            run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-7-OPTOFF.gld");
+        } finally {
+            removeProperty(PigConfiguration.TEZ_OPT_UNION);
+        }
+    }
+
+    //TODO: PIG-3854 Limit is too convoluted and can be simplified.
+    @Test
+    public void testUnionLimit() throws Exception {
+        try {
+            String query =
+                    "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
+                    "b = load 'file:///tmp/input' as (y:chararray, x:int);" +
+                    "c = union onschema a, b;" +
+                    "d = limit c 1;" +
+                    "store d into 'file:///tmp/output';";
+
+            setProperty(PigConfiguration.TEZ_OPT_UNION, "" + true);
+            run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-8.gld");
+            setProperty(PigConfiguration.TEZ_OPT_UNION, "" + false);
+            run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-8-OPTOFF.gld");
+        } finally {
+            removeProperty(PigConfiguration.TEZ_OPT_UNION);
+        }
     }
 
     @Test
@@ -343,6 +486,14 @@ public class TestTezCompiler {
                 "store b into 'file:///tmp/output/d';";
 
         run(query, "test/org/apache/pig/test/data/GoldenFiles/TEZC21.gld");
+    }
+
+    private void setProperty(String property, String value) {
+        pigServer.getPigContext().getProperties().setProperty(property, value);
+    }
+
+    private void removeProperty(String property) {
+        pigServer.getPigContext().getProperties().remove(property);
     }
 
     private void run(String query, String expectedFile) throws Exception {

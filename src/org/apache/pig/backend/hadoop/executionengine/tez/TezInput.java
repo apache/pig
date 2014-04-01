@@ -30,7 +30,11 @@ import org.apache.tez.runtime.api.LogicalInput;
  * attached directly to the operator.
  */
 
-public interface TezLoad {
+public interface TezInput {
+
+    public String[] getTezInputs();
+
+    public void replaceInput(String oldInputKey, String newInputKey);
 
     /**
      * Add to the list of inputs to skip download if already available in vertex cache

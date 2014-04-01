@@ -39,14 +39,13 @@ import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
 import org.apache.tez.runtime.library.common.ConfigUtils;
-import org.apache.tez.runtime.library.input.ShuffledMergedInput;
 
-public class POShuffleTezLoad extends POPackage implements TezLoad {
+public class POShuffleTezLoad extends POPackage implements TezInput {
 
     private static final long serialVersionUID = 1L;
 
     protected List<String> inputKeys = new ArrayList<String>();
-    protected List<ShuffledMergedInput> inputs = new ArrayList<ShuffledMergedInput>();
+    protected List<LogicalInput> inputs = new ArrayList<LogicalInput>();
     protected List<KeyValuesReader> readers = new ArrayList<KeyValuesReader>();
 
     private boolean[] finished;
@@ -57,6 +56,18 @@ public class POShuffleTezLoad extends POPackage implements TezLoad {
 
     public POShuffleTezLoad(POPackage pack) {
         super(pack);
+    }
+
+    @Override
+    public String[] getTezInputs() {
+        return inputKeys.toArray(new String[inputKeys.size()]);
+    }
+
+    @Override
+    public void replaceInput(String oldInputKey, String newInputKey) {
+        if (inputKeys.remove(oldInputKey)) {
+            inputKeys.add(newInputKey);
+        }
     }
 
     @Override
@@ -71,11 +82,8 @@ public class POShuffleTezLoad extends POPackage implements TezLoad {
         try {
             for (String key : inputKeys) {
                 LogicalInput input = inputs.get(key);
-                if (input instanceof ShuffledMergedInput) {
-                    ShuffledMergedInput smInput = (ShuffledMergedInput) input;
-                    this.inputs.add(smInput);
-                    this.readers.add(smInput.getReader());
-                }
+                this.inputs.add(input);
+                this.readers.add((KeyValuesReader)input.getReader());
             }
 
             // We need to adjust numInputs because it's possible for both
@@ -93,7 +101,7 @@ public class POShuffleTezLoad extends POPackage implements TezLoad {
             for (int i = 0; i < numInputs; i++) {
                 finished[i] = !readers.get(i).next();
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new ExecException(e);
         }
     }

@@ -32,6 +32,7 @@ import org.apache.pig.backend.BackendException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.Launcher;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.tez.optimizers.UnionOptimizer;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
@@ -149,6 +150,7 @@ public class TezLauncher extends Launcher {
             throws PlanException, IOException, VisitorException {
         TezCompiler comp = new TezCompiler(php, pc, tezResourceManager);
         TezOperPlan tezPlan = comp.compile();
+
         boolean nocombiner = Boolean.parseBoolean(pc.getProperties().getProperty(
                 PigConfiguration.PROP_NO_COMBINER, "false"));
 
@@ -186,6 +188,14 @@ public class TezLauncher extends Launcher {
         if (isAccum) {
             AccumulatorOptimizer accum = new AccumulatorOptimizer(tezPlan);
             accum.visit();
+        }
+
+        boolean isUnionOpt = "true".equalsIgnoreCase(pc.getProperties()
+                .getProperty(PigConfiguration.TEZ_OPT_UNION, "false"));
+        // Use VertexGroup in Tez
+        if (isUnionOpt) {
+            UnionOptimizer uo = new UnionOptimizer(tezPlan);
+            uo.visit();
         }
 
         return comp.getPlanContainer();

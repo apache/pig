@@ -33,7 +33,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.tez.POValueOutputTez;
-import org.apache.pig.backend.hadoop.executionengine.tez.TezLoad;
+import org.apache.pig.backend.hadoop.executionengine.tez.TezInput;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezOutput;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
@@ -47,7 +47,7 @@ import org.apache.tez.runtime.library.api.KeyValuesReader;
 /**
  * POCounterStatsTez is used to group counters from previous vertex POCounterTez tasks
  */
-public class POCounterStatsTez extends PhysicalOperator implements TezLoad, TezOutput {
+public class POCounterStatsTez extends PhysicalOperator implements TezInput, TezOutput {
 
     private static final long serialVersionUID = 1L;
     private static final Log LOG = LogFactory.getLog(POCounterStatsTez.class);
@@ -60,6 +60,18 @@ public class POCounterStatsTez extends PhysicalOperator implements TezLoad, TezO
 
     public POCounterStatsTez(OperatorKey k) {
         super(k);
+    }
+
+    @Override
+    public String[] getTezInputs() {
+        return new String[] { inputKey };
+    }
+
+    @Override
+    public void replaceInput(String oldInputKey, String newInputKey) {
+        if (oldInputKey.equals(inputKey)) {
+            inputKey = newInputKey;
+        }
     }
 
     @Override
@@ -79,6 +91,18 @@ public class POCounterStatsTez extends PhysicalOperator implements TezLoad, TezO
             LOG.info("Attached input from vertex " + inputKey + " : input=" + input + ", reader=" + reader);
         } catch (Exception e) {
             throw new ExecException(e);
+        }
+    }
+
+    @Override
+    public String[] getTezOutputs() {
+        return new String[] { outputKey };
+    }
+
+    @Override
+    public void replaceOutput(String oldOutputKey, String newOutputKey) {
+        if (oldOutputKey.equals(outputKey)) {
+            outputKey = newOutputKey;
         }
     }
 

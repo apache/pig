@@ -30,7 +30,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 
-public class ReadScalarsTez extends EvalFunc<Object> implements TezLoad {
+public class ReadScalarsTez extends EvalFunc<Object> implements TezInput {
     private static final Log LOG = LogFactory.getLog(ReadScalarsTez.class);
     private String inputKey;
     private transient Tuple t;
@@ -38,6 +38,18 @@ public class ReadScalarsTez extends EvalFunc<Object> implements TezLoad {
 
     public ReadScalarsTez(String inputKey) {
         this.inputKey = inputKey;
+    }
+
+    @Override
+    public String[] getTezInputs() {
+        return new String[] { inputKey };
+    }
+
+    @Override
+    public void replaceInput(String oldInputKey, String newInputKey) {
+        if (oldInputKey.equals(inputKey)) {
+            inputKey = newInputKey;
+        }
     }
 
     @Override

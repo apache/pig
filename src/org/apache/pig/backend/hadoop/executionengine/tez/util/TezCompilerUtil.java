@@ -3,7 +3,6 @@ package org.apache.pig.backend.hadoop.executionengine.tez.util;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map.Entry;
 
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -15,18 +14,26 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.tez.POLocalRearrangeTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.POStoreTez;
+import org.apache.pig.backend.hadoop.executionengine.tez.POValueOutputTez;
+import org.apache.pig.backend.hadoop.executionengine.tez.RoundRobinPartitioner;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezEdgeDescriptor;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezOperPlan;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezOperator;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
+import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
+import org.apache.tez.runtime.library.input.ShuffledUnorderedKVInput;
+import org.apache.tez.runtime.library.output.OnFileUnorderedKVOutput;
 
 import com.google.common.collect.Lists;
 
 public class TezCompilerUtil {
+
+    public static String TUPLE_CLASS = TupleFactory.getInstance().tupleClass().getName();
 
     private TezCompilerUtil() {
     }
@@ -90,7 +97,7 @@ public class TezCompilerUtil {
         from.outEdges.put(to.getOperatorKey(), edge);
         return edge;
     }
-    
+
     static public void connect(TezOperPlan plan, TezOperator from, TezOperator to, TezEdgeDescriptor edge) throws PlanException {
         plan.connect(from, to);
         PhysicalOperator leaf = from.plan.getLeaves().get(0);
@@ -144,4 +151,20 @@ public class TezCompilerUtil {
             }
         }
     }
+
+    // Used with POValueOutputTez
+    static public void configureValueOnlyTupleOutput(TezEdgeDescriptor edge, DataMovementType dataMovementType) {
+        edge.dataMovementType = dataMovementType;
+        if (dataMovementType == DataMovementType.BROADCAST || dataMovementType == DataMovementType.ONE_TO_ONE) {
+            edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
+            edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
+        } else if (dataMovementType == DataMovementType.SCATTER_GATHER) {
+            //Use unsorted shuffle with TEZ-661 and PIG-3775.
+            edge.partitionerClass = RoundRobinPartitioner.class;
+            edge.setIntermediateOutputKeyComparatorClass(POValueOutputTez.EmptyWritableComparator.class.getName());
+        }
+        edge.setIntermediateOutputKeyClass(POValueOutputTez.EmptyWritable.class.getName());
+        edge.setIntermediateOutputValueClass(TUPLE_CLASS);
+    }
+
 }

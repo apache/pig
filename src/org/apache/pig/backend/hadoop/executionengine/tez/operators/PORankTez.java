@@ -32,13 +32,13 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PORank;
 import org.apache.pig.backend.hadoop.executionengine.tez.ObjectCache;
-import org.apache.pig.backend.hadoop.executionengine.tez.TezLoad;
+import org.apache.pig.backend.hadoop.executionengine.tez.TezInput;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 
-public class PORankTez extends PORank implements TezLoad {
+public class PORankTez extends PORank implements TezInput {
 
     private static final long serialVersionUID = 1L;
     private static final Log LOG = LogFactory.getLog(PORankTez.class);
@@ -59,6 +59,20 @@ public class PORankTez extends PORank implements TezLoad {
 
     public void setStatsInputKey(String statsInputKey) {
         this.statsInputKey = statsInputKey;
+    }
+
+    @Override
+    public String[] getTezInputs() {
+        return new String[] { tuplesInputKey, statsInputKey };
+    }
+
+    @Override
+    public void replaceInput(String oldInputKey, String newInputKey) {
+        if (oldInputKey.equals(tuplesInputKey)) {
+            tuplesInputKey = newInputKey;
+        } else if (oldInputKey.equals(statsInputKey)) {
+            statsInputKey = newInputKey;
+        }
     }
 
     @Override

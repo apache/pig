@@ -90,7 +90,7 @@ public class TezStats extends PigStats {
             }
             // Remove VertexGroups (union) from JobGraph since they're not
             // materialized as real vertices by Tez.
-            if (tezOp.isAliasVertex()) {
+            if (tezOp.isVertexGroup()) {
                 taskStatsToBeRemoved.add(currStats);
             }
             tezOpVertexMap.put(tezOp.getOperatorKey().toString(), currStats);

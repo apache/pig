@@ -36,7 +36,7 @@ import org.apache.tez.runtime.library.api.KeyValueReader;
 /**
  * POSimpleTezLoad is used on the backend to read tuples from a Tez MRInput
  */
-public class POSimpleTezLoad extends POLoad implements TezLoad {
+public class POSimpleTezLoad extends POLoad implements TezInput {
 
     private static final long serialVersionUID = 1L;
     private String inputKey;
@@ -45,6 +45,18 @@ public class POSimpleTezLoad extends POLoad implements TezLoad {
 
     public POSimpleTezLoad(OperatorKey k) {
         super(k);
+    }
+
+    @Override
+    public String[] getTezInputs() {
+        return new String[] { inputKey };
+    }
+
+    @Override
+    public void replaceInput(String oldInputKey, String newInputKey) {
+        if (oldInputKey.equals(inputKey)) {
+            inputKey = newInputKey;
+        }
     }
 
     @Override

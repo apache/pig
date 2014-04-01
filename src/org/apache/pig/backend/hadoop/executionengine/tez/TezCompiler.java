@@ -83,8 +83,8 @@ import org.apache.pig.backend.hadoop.executionengine.tez.POLocalRearrangeTezFact
 import org.apache.pig.backend.hadoop.executionengine.tez.operators.POCounterStatsTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.operators.POCounterTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.operators.PORankTez;
+import org.apache.pig.backend.hadoop.executionengine.tez.operators.POShuffledValueInputTez;
 import org.apache.pig.backend.hadoop.executionengine.tez.util.TezCompilerUtil;
-import org.apache.pig.data.BinSedesTuple;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.builtin.DefaultIndexableLoader;
@@ -278,9 +278,7 @@ public class TezCompiler extends PhyPlanVisitor {
 
                     TezEdgeDescriptor edge = TezCompilerUtil.connect(tezPlan, from, tezOp);
                     //TODO shared edge once support is available in Tez
-                    edge.dataMovementType = DataMovementType.BROADCAST;
-                    edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
-                    edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
+                    TezCompilerUtil.configureValueOnlyTupleOutput(edge, DataMovementType.BROADCAST);
                 }
             }
         }
@@ -353,15 +351,11 @@ public class TezCompiler extends PhyPlanVisitor {
 
                 // Connect splitter to splittee
                 TezEdgeDescriptor edge = TezCompilerUtil.connect(tezPlan, storeTezOper, storeOnlyTezOperator);
-                edge.dataMovementType = DataMovementType.ONE_TO_ONE;
-                edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
-                edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
+                TezCompilerUtil.configureValueOnlyTupleOutput(edge,  DataMovementType.ONE_TO_ONE);
                 storeOnlyTezOperator.setRequestedParallelismByReference(storeTezOper);
 
                 edge = TezCompilerUtil.connect(tezPlan, storeTezOper, curTezOp);
-                edge.dataMovementType = DataMovementType.ONE_TO_ONE;
-                edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
-                edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
+                TezCompilerUtil.configureValueOnlyTupleOutput(edge,  DataMovementType.ONE_TO_ONE);
                 curTezOp.setRequestedParallelismByReference(storeTezOper);
 
                 return;
@@ -1073,9 +1067,7 @@ public class TezCompiler extends PhyPlanVisitor {
         try{
             nonBlocking(op);
             phyToTezOpMap.put(op, curTezOp);
-            if (op.getPkgr().getPackageType() == PackageType.UNION) {
-                curTezOp.markUnion();
-            } else if (op.getPkgr().getPackageType() == PackageType.JOIN) {
+            if (op.getPkgr().getPackageType() == PackageType.JOIN) {
                 curTezOp.markRegularJoin();
             } else if (op.getPkgr().getPackageType() == PackageType.GROUP) {
                 if (op.getNumInps() == 1) {
@@ -1141,11 +1133,7 @@ public class TezCompiler extends PhyPlanVisitor {
             // Connect counterOper vertex to rankOper vertex by 1-1 edge
             rankOper.setRequestedParallelismByReference(counterOper);
             TezEdgeDescriptor edge = TezCompilerUtil.connect(tezPlan, counterOper, rankOper);
-            edge.dataMovementType = DataMovementType.ONE_TO_ONE;
-            edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
-            edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
-            edge.setIntermediateOutputKeyClass(POValueOutputTez.EmptyWritable.class.getName());
-            edge.setIntermediateOutputValueClass(BinSedesTuple.class.getName());
+            TezCompilerUtil.configureValueOnlyTupleOutput(edge, DataMovementType.ONE_TO_ONE);
             counterTez.setTuplesOutputKey(rankOper.getOperatorKey().toString());
             rankTez.setTuplesInputKey(counterOper.getOperatorKey().toString());
 
@@ -1161,12 +1149,8 @@ public class TezCompiler extends PhyPlanVisitor {
 
             // Connect statsOper vertex to rankOper vertex by Broadcast edge
             edge = TezCompilerUtil.connect(tezPlan, statsOper, rankOper);
-            edge.dataMovementType = DataMovementType.BROADCAST;
-            edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
-            edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
-            edge.setIntermediateOutputKeyClass(POValueOutputTez.EmptyWritable.class.getName());
-            // Map of task id, offset count based on total number of records
-            edge.setIntermediateOutputValueClass(BinSedesTuple.class.getName());
+            // Map of task id, offset count based on total number of records is in the value
+            TezCompilerUtil.configureValueOnlyTupleOutput(edge, DataMovementType.BROADCAST);
             counterStatsTez.setOutputKey(rankOper.getOperatorKey().toString());
             rankTez.setStatsInputKey(statsOper.getOperatorKey().toString());
 
@@ -1409,9 +1393,7 @@ public class TezCompiler extends PhyPlanVisitor {
 
                 // Configure broadcast edges for distribution map
                 edge = TezCompilerUtil.connect(tezPlan, sampleJobPair.first, joinJobs[i]);
-                edge.dataMovementType = DataMovementType.BROADCAST;
-                edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
-                edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
+                TezCompilerUtil.configureValueOnlyTupleOutput(edge, DataMovementType.BROADCAST);
                 sampleOut.addOutputKey(joinJobs[i].getOperatorKey().toString());
 
                 // Configure skewed partitioner for join
@@ -1953,9 +1935,7 @@ public class TezCompiler extends PhyPlanVisitor {
             lrSample.setOutputKey(quantJobParallelismPair.first.getOperatorKey().toString());
 
             edge = TezCompilerUtil.connect(tezPlan, quantJobParallelismPair.first, sortOpers[0]);
-            edge.dataMovementType = DataMovementType.BROADCAST;
-            edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
-            edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
+            TezCompilerUtil.configureValueOnlyTupleOutput(edge, DataMovementType.BROADCAST);
             POValueOutputTez sampleOut = (POValueOutputTez)quantJobParallelismPair.first.plan.getLeaves().get(0);
             sampleOut.addOutputKey(sortOpers[0].getOperatorKey().toString());
             sortOpers[0].sampleOperator = quantJobParallelismPair.first;
@@ -1998,9 +1978,7 @@ public class TezCompiler extends PhyPlanVisitor {
             output.addOutputKey(curTezOp.getOperatorKey().toString());
             TezEdgeDescriptor edge = TezCompilerUtil.connect(tezPlan, splitOp, curTezOp);
             //TODO shared edge once support is available in Tez
-            edge.dataMovementType = DataMovementType.ONE_TO_ONE;
-            edge.outputClassName = OnFileUnorderedKVOutput.class.getName();
-            edge.inputClassName = ShuffledUnorderedKVInput.class.getName();
+            TezCompilerUtil.configureValueOnlyTupleOutput(edge, DataMovementType.ONE_TO_ONE);
             curTezOp.setRequestedParallelismByReference(splitOp);
             POValueInputTez input = new POValueInputTez(OperatorKey.genOpKey(scope));
             input.setInputKey(splitOp.getOperatorKey().toString());
@@ -2044,45 +2022,31 @@ public class TezCompiler extends PhyPlanVisitor {
     @Override
     public void visitUnion(POUnion op) throws VisitorException {
         try {
-            // Add alias vertex. This will be converted to VertexGroup by
-            // TezDagBuilder.
-            TezOperator newTezOp = getTezOp();
-            tezPlan.add(newTezOp);
-            POLocalRearrangeTez[] outputs = new POLocalRearrangeTez[compiledInputs.length];
+            // Without VertexGroup (UnionOptimizer), there is an extra union vertex
+            // which unions input from the two predecessor vertices
+            TezOperator unionTezOp = getTezOp();
+            tezPlan.add(unionTezOp);
+            unionTezOp.markUnion();
+            unionTezOp.setRequestedParallelism(op.getRequestedParallelism());
+            POShuffledValueInputTez unionInput =  new POShuffledValueInputTez(OperatorKey.genOpKey(scope));
+            unionTezOp.plan.addAsLeaf(unionInput);
+
+            POValueOutputTez[] outputs = new POValueOutputTez[compiledInputs.length];
             for (int i = 0; i < compiledInputs.length; i++) {
                 TezOperator prevTezOp = compiledInputs[i];
-                TezCompilerUtil.connect(tezPlan, prevTezOp, newTezOp);
-                // TODO: Use POValueOutputTez instead of POLocalRearrange and
-                // unsorted shuffle with TEZ-661 and PIG-3775.
-                outputs[i] = localRearrangeFactory.create();
-                outputs[i].setUnion(true);
+                // Some predecessors of union need not be part of the union (For eg: replicated join).
+                // So mark predecessors that are input to the union operation.
+                unionTezOp.addUnionPredecessor(prevTezOp.getOperatorKey());
+                TezEdgeDescriptor edge = TezCompilerUtil.connect(tezPlan, prevTezOp, unionTezOp);
+                TezCompilerUtil.configureValueOnlyTupleOutput(edge, DataMovementType.SCATTER_GATHER);
+                outputs[i] = new POValueOutputTez(OperatorKey.genOpKey(scope));
+                outputs[i].addOutputKey(unionTezOp.getOperatorKey().toString());
+                unionInput.addInputKey(prevTezOp.getOperatorKey().toString());
                 prevTezOp.plan.addAsLeaf(outputs[i]);
                 prevTezOp.setClosed(true);
             }
-            OperatorKey unionKey = newTezOp.getOperatorKey();
-            newTezOp.markUnion();
-            curTezOp = newTezOp;
 
-            // Start a new TezOp so that the successor in physical plan can be
-            // added to it.
-            newTezOp = getTezOp();
-            tezPlan.add(newTezOp);
-            tezPlan.connect(curTezOp, newTezOp);
-
-            // Connect the POValueOutputTezs in the predecessor vertices to the
-            // succeeding vertex.
-            for (int i = 0; i < outputs.length; i++) {
-                outputs[i].setOutputKey(newTezOp.getOperatorKey().toString());
-            }
-            // The first operator in the succeeding vertex must be
-            // POVertexGroupInputTez.
-            POVertexGroupInputTez grpInput = new POVertexGroupInputTez(newTezOp.getOperatorKey());
-            grpInput.setInputKey(unionKey.toString());
-            grpInput.setAlias(op.getAlias());
-            newTezOp.plan.add(grpInput);
-            curTezOp = newTezOp;
-
-            curTezOp.setRequestedParallelism(op.getRequestedParallelism());
+            curTezOp = unionTezOp;
             phyToTezOpMap.put(op, curTezOp);
         } catch (Exception e) {
             int errCode = 2034;

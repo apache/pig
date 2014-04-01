@@ -18,15 +18,20 @@
 package org.apache.pig.backend.hadoop.executionengine.tez;
 
 import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.VertexGroup;
 
 import com.google.common.collect.Maps;
@@ -126,8 +131,11 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
 
     OPER_FEATURE feature = OPER_FEATURE.NONE;
 
+    private List<OperatorKey> vertexGroupPredecessors;
     // For union
-    private VertexGroup group = null;
+    private VertexGroupInfo vertexGroupInfo;
+    // Mapping of OperatorKey of POStore OperatorKey to vertexGroup TezOperator
+    private Map<OperatorKey, OperatorKey> vertexGroupStores = null;
 
     public TezOperator(OperatorKey k) {
         super(k);
@@ -245,18 +253,48 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
         this.useSecondaryKey = useSecondaryKey;
     }
 
-    public void setVertexGroup(VertexGroup group) {
-        this.group = group;
+    public List<OperatorKey> getUnionPredecessors() {
+        return vertexGroupPredecessors;
     }
 
-    public VertexGroup getVertexGroup() {
-        return this.group;
+    public List<OperatorKey> getVertexGroupPredecessors() {
+        return vertexGroupPredecessors;
+    }
+
+    public void addUnionPredecessor(OperatorKey unionPredecessor) {
+        if (vertexGroupPredecessors == null) {
+            vertexGroupPredecessors = new ArrayList<OperatorKey>();
+        }
+        this.vertexGroupPredecessors.add(unionPredecessor);
+    }
+
+    public void setVertexGroupPredecessors(List<OperatorKey> vertexGroupPredecessors) {
+        this.vertexGroupPredecessors = vertexGroupPredecessors;
     }
 
     // Union is the only operator that uses alias vertex (VertexGroup) now. But
     // more operators could be added to the list in the future.
-    public boolean isAliasVertex() {
-        return isUnion();
+    public boolean isVertexGroup() {
+        return vertexGroupInfo != null;
+    }
+
+    public VertexGroupInfo getVertexGroupInfo() {
+        return vertexGroupInfo;
+    }
+
+    public void setVertexGroupInfo(VertexGroupInfo vertexGroup) {
+        this.vertexGroupInfo = vertexGroup;
+    }
+
+    public void addVertexGroupStore(OperatorKey storeKey, OperatorKey vertexGroupKey) {
+        if (this.vertexGroupStores == null) {
+            this.vertexGroupStores = new HashMap<OperatorKey, OperatorKey>();
+        }
+        this.vertexGroupStores.put(storeKey, vertexGroupKey);
+    }
+
+    public Map<OperatorKey, OperatorKey> getVertexGroupStores() {
+        return this.vertexGroupStores;
     }
 
     @Override
@@ -353,5 +391,60 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
         return combineSmallSplits;
     }
 
+    public static class VertexGroupInfo {
+
+        private List<OperatorKey> inputKeys;
+        private String outputKey;
+        private POStore store;
+        private OutputDescriptor storeOutDescriptor;
+        private VertexGroup vertexGroup;
+
+        public VertexGroupInfo() {
+        }
+
+        public VertexGroupInfo(POStore store) {
+            this.store = store;
+        }
+
+        public List<OperatorKey> getInputs() {
+            return inputKeys;
+        }
+
+        public void addInput(OperatorKey input) {
+            if (inputKeys == null) {
+                inputKeys = new ArrayList<OperatorKey>();
+            }
+            this.inputKeys.add(input);
+        }
+
+        public String getOutput() {
+            return outputKey;
+        }
+
+        public void setOutput(String output) {
+            this.outputKey = output;
+        }
+
+        public POStore getStore() {
+            return store;
+        }
+
+        public OutputDescriptor getStoreOutputDescriptor() {
+            return storeOutDescriptor;
+        }
+
+        public void setStoreOutputDescriptor(OutputDescriptor storeOutDescriptor) {
+            this.storeOutDescriptor = storeOutDescriptor;
+        }
+
+        public VertexGroup getVertexGroup() {
+            return vertexGroup;
+        }
+
+        public void setVertexGroup(VertexGroup vertexGroup) {
+            this.vertexGroup = vertexGroup;
+        }
+
+    }
 }
 

@@ -16,9 +16,13 @@
  * limitations under the License.
  */
 
-package org.apache.pig.backend.hadoop.executionengine.tez;
+package org.apache.pig.backend.hadoop.executionengine.tez.operators;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -30,41 +34,43 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
+import org.apache.pig.backend.hadoop.executionengine.tez.TezInput;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.tez.runtime.api.LogicalInput;
-import org.apache.tez.runtime.library.api.KeyValueReader;
+import org.apache.tez.runtime.library.api.KeyValuesReader;
 
 /**
- * POValueInputTez is used read tuples from a Tez Intermediate output from a 1-1
- * edge
+ * POShuffledValueInputTez is used read tuples from a Tez Intermediate output from a shuffle edge
+ * To be used with POValueOutputTez.
+ * TODO: To be removed after PIG-3775 and TEZ-661
  */
-public class POValueInputTez extends PhysicalOperator implements TezInput {
+public class POShuffledValueInputTez extends PhysicalOperator implements TezInput {
 
     private static final long serialVersionUID = 1L;
-    private static final Log LOG = LogFactory.getLog(POValueInputTez.class);
-    private String inputKey;
+    private static final Log LOG = LogFactory.getLog(POShuffledValueInputTez.class);
+    private Set<String> inputKeys = new HashSet<String>();
     private transient boolean finished = false;
-    // TODO Change this to value only reader after implementing
-    // value only input output
-    private transient KeyValueReader reader;
+    private transient Iterator<KeyValuesReader> readers;
+    private transient KeyValuesReader currentReader;
+    private transient boolean hasNext;
     protected static final TupleFactory mTupleFactory = TupleFactory.getInstance();
 
-    public POValueInputTez(OperatorKey k) {
+    public POShuffledValueInputTez(OperatorKey k) {
         super(k);
     }
 
     @Override
     public String[] getTezInputs() {
-        return new String[] { inputKey };
+        return inputKeys.toArray(new String[inputKeys.size()]);
     }
 
     @Override
     public void replaceInput(String oldInputKey, String newInputKey) {
-        if (oldInputKey.equals(inputKey)) {
-            inputKey = newInputKey;
+        if (inputKeys.remove(oldInputKey)) {
+            inputKeys.add(newInputKey);
         }
     }
 
@@ -74,15 +80,24 @@ public class POValueInputTez extends PhysicalOperator implements TezInput {
 
     @Override
     public void attachInputs(Map<String, LogicalInput> inputs,
-            Configuration conf)
-            throws ExecException {
-        LogicalInput input = inputs.get(inputKey);
-        if (input == null) {
-            throw new ExecException("Input from vertex " + inputKey + " is missing");
-        }
+            Configuration conf) throws ExecException {
+        List<KeyValuesReader> readersList = new ArrayList<KeyValuesReader>();
         try {
-            reader = (KeyValueReader) input.getReader();
-            LOG.info("Attached input from vertex " + inputKey + " : input=" + input + ", reader=" + reader);
+            for (String inputKey : inputKeys) {
+                LogicalInput input = inputs.get(inputKey);
+                if (input == null) {
+                    throw new ExecException("Input from vertex " + inputKey
+                            + " is missing");
+                }
+
+                KeyValuesReader reader = (KeyValuesReader) input.getReader();
+                readersList.add(reader);
+                LOG.info("Attached input from vertex " + inputKey + " : input="
+                        + input + ", reader=" + reader);
+            }
+            readers = readersList.iterator();
+            currentReader = readers.next();
+            hasNext = currentReader.next();
         } catch (Exception e) {
             throw new ExecException(e);
         }
@@ -94,21 +109,32 @@ public class POValueInputTez extends PhysicalOperator implements TezInput {
             if (finished) {
                 return RESULT_EOP;
             }
-            if (reader.next()) {
-                Tuple origTuple = (Tuple)reader.getCurrentValue();
-                Tuple copy = mTupleFactory.newTuple(origTuple.getAll());
-                return new Result(POStatus.STATUS_OK, copy);
-            } else {
-                finished = true;
-                return RESULT_EOP;
+            while (hasNext) {
+                if (currentReader.getCurrentValues().iterator().hasNext()) {
+                    Tuple origTuple = (Tuple)currentReader.getCurrentValues().iterator().next();
+                    Tuple copy = mTupleFactory.newTuple(origTuple.getAll());
+                    return new Result(POStatus.STATUS_OK, copy);
+                }
+                hasNext = currentReader.next();
             }
+            if (readers.hasNext()) {
+                currentReader = readers.next();
+                hasNext = currentReader.next();
+                if (hasNext) {
+                    Tuple origTuple = (Tuple)currentReader.getCurrentValues().iterator().next();
+                    Tuple copy = mTupleFactory.newTuple(origTuple.getAll());
+                    return new Result(POStatus.STATUS_OK, copy);
+                }
+            }
+            finished = true;
+            return RESULT_EOP;
         } catch (IOException e) {
             throw new ExecException(e);
         }
     }
 
-    public void setInputKey(String inputKey) {
-        this.inputKey = inputKey;
+    public void addInputKey(String inputKey) {
+        this.inputKeys.add(inputKey);
     }
 
     @Override
@@ -134,6 +160,6 @@ public class POValueInputTez extends PhysicalOperator implements TezInput {
 
     @Override
     public String name() {
-        return "POValueInputTez - " + mKey.toString() + "\t<-\t " + inputKey;
+        return "POShuffledValueInputTez - " + mKey.toString() + "\t<-\t " + inputKeys;
     }
 }

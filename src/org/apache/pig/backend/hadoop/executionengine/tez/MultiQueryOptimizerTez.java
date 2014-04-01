@@ -18,13 +18,11 @@
 package org.apache.pig.backend.hadoop.executionengine.tez;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
 
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFRJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPoissonSample;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POReservoirSample;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
@@ -155,17 +153,20 @@ public class MultiQueryOptimizerTez extends TezOpPlanVisitor {
                 plan.disconnect(splittee, succTezOperator);
                 TezCompilerUtil.connect(plan, splitter, succTezOperator, edge);
 
-                for (TezOperator succ : succs) {
-                    try {
-                        List<POFRJoinTez> frJoins = PlanHelper.getPhysicalOperators(succ.plan, POFRJoinTez.class);
-                        for (POFRJoinTez frJoin : frJoins) {
-                            if (frJoin.getInputKeys().contains(splittee.getOperatorKey().toString())) {
-                                frJoin.getInputKeys().set(frJoin.getInputKeys().indexOf(splittee.getOperatorKey().toString()),
-                                        splitter.getOperatorKey().toString());
-                            }
-                        }
-                    } catch (VisitorException e) {
-                        throw new PlanException(e);
+                try {
+                    List<TezInput> inputs = PlanHelper.getPhysicalOperators(succTezOperator.plan, TezInput.class);
+                    for (TezInput input : inputs) {
+                        input.replaceInput(splittee.getOperatorKey().toString(),
+                                splitter.getOperatorKey().toString());
+                    }
+                } catch (VisitorException e) {
+                    throw new PlanException(e);
+                }
+
+                if (succTezOperator.isUnion()) {
+                    int index = succTezOperator.getUnionPredecessors().indexOf(splittee.getOperatorKey());
+                    if (index > -1) {
+                        succTezOperator.getUnionPredecessors().set(index, splitter.getOperatorKey());
                     }
                 }
             }

@@ -71,7 +71,7 @@ POValueOutputTez - scope-40	->	 [scope-41]
         |---Package(Packager)[tuple]{bytearray} - scope-32
 Tez vertex scope-41
 # Plan on vertex
-POIdentityInOutTez - scope-42	->	 scope-43
+POIdentityInOutTez - scope-42	<-	 scope-24	->	 scope-43
 |   |
 |   Project[int][0] - scope-15
 Tez vertex scope-43

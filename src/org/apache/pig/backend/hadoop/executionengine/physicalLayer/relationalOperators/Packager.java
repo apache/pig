@@ -24,7 +24,7 @@ public class Packager implements Serializable, Cloneable {
     protected DataBag[] bags;
 
     public static enum PackageType {
-        GROUP, JOIN, UNION
+        GROUP, JOIN
     };
 
     // The key being worked on
@@ -273,6 +273,7 @@ public class Packager implements Serializable, Cloneable {
         this.numInputs = numInputs;
     }
 
+    @Override
     public Packager clone() throws CloneNotSupportedException {
         Packager clone = (Packager) super.clone();
         clone.setNumInputs(numInputs);

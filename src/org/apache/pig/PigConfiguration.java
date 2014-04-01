@@ -81,6 +81,11 @@ public class PigConfiguration {
     public static final String OPT_ACCUMULATOR = "opt.accumulator";
 
     /**
+     * This key is used to enable union optimization.
+     */
+    public static final String TEZ_OPT_UNION = "pig.tez.opt.union";
+
+    /**
      * This key is used to define whether to reuse AM in Tez jobs.
      */
     public static final String TEZ_SESSION_REUSE = "pig.tez.session.reuse";
@@ -186,7 +191,7 @@ public class PigConfiguration {
      * of nested distinct or sort
      */
     public static final String PIG_EXEC_NO_SECONDARY_KEY = "pig.exec.nosecondarykey";
- 
+
     /**
      * This key used to control the sample size of RandomeSampleLoader for
      * order-by. The default value is 100 rows per task.

@@ -29,6 +29,7 @@ import java.util.Set;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.plan.VisitorException;
 
@@ -127,11 +128,23 @@ public class TezOperPlan extends OperatorPlan<TezOperator> {
 
     @Override
     public void remove(TezOperator op) {
-        //TODO Cleanup outEdges of predecessors and inEdges of successors
-        //TezDAGBuilder would not create the edge. So low priority
+        // The remove method does not replace output and input keys in TezInput
+        // and TezOutput. That has to be handled separately.
+        for (OperatorKey opKey : op.outEdges.keySet()) {
+            getOperator(opKey).inEdges.remove(op.getOperatorKey());
+        }
+        for (OperatorKey opKey : op.inEdges.keySet()) {
+            getOperator(opKey).outEdges.remove(op.getOperatorKey());
+        }
         super.remove(op);
     }
 
+    @Override
+    public boolean disconnect(TezOperator from, TezOperator to) {
+        from.outEdges.remove(to.getOperatorKey());
+        to.outEdges.remove(from.getOperatorKey());
+        return super.disconnect(from, to);
+    }
 
 }
 

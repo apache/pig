@@ -54,6 +54,12 @@ public class POCounterTez extends POCounter implements TezOutput, TezTaskConfigu
         super(copy);
     }
 
+    @Override
+    public void initialize(TezProcessorContext processorContext)
+            throws ExecException {
+        this.setTaskId(processorContext.getTaskIndex());
+    }
+
     public void setTuplesOutputKey(String tuplesOutputKey) {
         this.tuplesOutputKey = tuplesOutputKey;
     }
@@ -63,9 +69,17 @@ public class POCounterTez extends POCounter implements TezOutput, TezTaskConfigu
     }
 
     @Override
-    public void initialize(TezProcessorContext processorContext)
-            throws ExecException {
-        this.setTaskId(processorContext.getTaskIndex());
+    public String[] getTezOutputs() {
+        return new String[] { tuplesOutputKey, statsOutputKey };
+    }
+
+    @Override
+    public void replaceOutput(String oldOutputKey, String newOutputKey) {
+        if (oldOutputKey.equals(tuplesOutputKey)) {
+            tuplesOutputKey = newOutputKey;
+        } else if (oldOutputKey.equals(statsOutputKey)) {
+            statsOutputKey = newOutputKey;
+        }
     }
 
     @Override

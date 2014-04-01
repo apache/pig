@@ -76,7 +76,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelp
 import org.apache.pig.backend.hadoop.executionengine.tez.TezPOPackageAnnotator.LoRearrangeDiscoverer;
 import org.apache.pig.backend.hadoop.executionengine.tez.util.MRToTezHelper;
 import org.apache.pig.backend.hadoop.executionengine.tez.util.SecurityHelper;
-import org.apache.pig.data.BinSedesTuple;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
@@ -94,8 +93,6 @@ import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
-import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
-import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.GroupInputEdge;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
@@ -111,9 +108,8 @@ import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.mapreduce.partition.MRPartitioner;
+import org.apache.tez.runtime.library.input.ConcatenatedMergedKeyValueInput;
 import org.apache.tez.runtime.library.input.ConcatenatedMergedKeyValuesInput;
-import org.apache.tez.runtime.library.input.ShuffledMergedInput;
-import org.apache.tez.runtime.library.output.OnFileSortedOutput;
 
 /**
  * A visitor to construct DAG out of Tez plan.
@@ -148,7 +144,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         // Construct vertex for the current Tez operator
         Vertex to = null;
         try {
-            if (!tezOp.isAliasVertex()) {
+            if (!tezOp.isVertexGroup()) {
                 boolean isMap = (predecessors == null || predecessors.isEmpty()) ? true : false;
                 to = newVertex(tezOp, isMap);
                 dag.addVertex(to);
@@ -170,16 +166,16 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 // must have already been created.
                 TezOperator pred = predecessors.get(i);
                 try {
-                    if (pred.isAliasVertex()) {
-                        VertexGroup from = pred.getVertexGroup();
-                        GroupInputEdge edge = newGroupInputEdge(from, to);
+                    if (pred.isVertexGroup()) {
+                        VertexGroup from = pred.getVertexGroupInfo().getVertexGroup();
+                        GroupInputEdge edge = newGroupInputEdge(pred, tezOp, from, to);
                         dag.addEdge(edge);
                     } else {
                         Vertex from = dag.getVertex(pred.getOperatorKey().toString());
-                        EdgeProperty prop = newEdge(pred, tezOp);
-                        if (tezOp.isAliasVertex()) {
+                        if (tezOp.isVertexGroup()) {
                             groupMembers[i] = from;
                         } else {
+                            EdgeProperty prop = newEdge(pred, tezOp);
                             Edge edge = new Edge(from, to, prop);
                             dag.addEdge(edge);
                         }
@@ -190,28 +186,30 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 }
             }
 
-            if (tezOp.isAliasVertex()) {
+            if (tezOp.isVertexGroup()) {
                 String groupName = tezOp.getOperatorKey().toString();
-                tezOp.setVertexGroup(dag.createVertexGroup(groupName, groupMembers));
+                VertexGroup vertexGroup = dag.createVertexGroup(groupName, groupMembers);
+                tezOp.getVertexGroupInfo().setVertexGroup(vertexGroup);
+                POStore store = tezOp.getVertexGroupInfo().getStore();
+                if (store != null) {
+                    vertexGroup.addOutput(store.getOperatorKey().toString(),
+                            tezOp.getVertexGroupInfo().getStoreOutputDescriptor(),
+                            MROutputCommitter.class);
+                }
             }
         }
     }
 
-    private GroupInputEdge newGroupInputEdge(VertexGroup from, Vertex to)
-            throws IOException {
-        Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties(), false);
-        setIntermediateInputKeyValue(DataType.TUPLE, conf, null);
-        setIntermediateOutputKeyValue(DataType.TUPLE, conf, null);
-        MRToTezHelper.convertMRToTezRuntimeConf(conf, globalConf);
+    private GroupInputEdge newGroupInputEdge(TezOperator fromOp,
+            TezOperator toOp, VertexGroup from, Vertex to) throws IOException {
 
-        return new GroupInputEdge(from, to, new EdgeProperty(
-                DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
-                SchedulingType.SEQUENTIAL,
-                new OutputDescriptor(OnFileSortedOutput.class.getName())
-                    .setUserPayload(TezUtils.createUserPayloadFromConf(conf)),
-                new InputDescriptor(ShuffledMergedInput.class.getName())
-                    .setUserPayload(TezUtils.createUserPayloadFromConf(conf))),
-                    new InputDescriptor(ConcatenatedMergedKeyValuesInput.class.getName()));
+        EdgeProperty edgeProperty = newEdge(fromOp, toOp);
+
+        String groupInputClass = edgeProperty.getDataMovementType().equals(
+                DataMovementType.SCATTER_GATHER) ? ConcatenatedMergedKeyValuesInput.class
+                .getName() : ConcatenatedMergedKeyValueInput.class.getName();
+        return new GroupInputEdge(from, to, edgeProperty,
+                new InputDescriptor(groupInputClass).setUserPayload(edgeProperty.getEdgeDestination().getUserPayload()));
     }
 
     /**
@@ -249,25 +247,6 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             }
         }
 
-        //TODO: Remove this and set the classes on edge in TezCompiler
-        List<POValueOutputTez> valueOutputs = PlanHelper.getPhysicalOperators(from.plan,
-                POValueOutputTez.class);
-        if (!valueOutputs.isEmpty()) {
-            POValueOutputTez valueOutput = valueOutputs.get(0);
-            for (String outputKey : valueOutput.outputKeys) {
-                if (outputKey.equals(to.getOperatorKey().toString())) {
-                    conf.setIfUnset(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_CLASS,
-                            POValueOutputTez.EmptyWritable.class.getName());
-                    conf.setIfUnset(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_VALUE_CLASS,
-                            BinSedesTuple.class.getName());
-                    conf.setIfUnset(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_CLASS,
-                            POValueOutputTez.EmptyWritable.class.getName());
-                    conf.setIfUnset(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_VALUE_CLASS,
-                            BinSedesTuple.class.getName());
-                }
-            }
-        }
-
         conf.setIfUnset(TezJobConfig.TEZ_RUNTIME_PARTITIONER_CLASS,
                 MRPartitioner.class.getName());
 
@@ -283,6 +262,13 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                     edge.getIntermediateOutputValueClass());
             conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_VALUE_CLASS,
                     edge.getIntermediateOutputValueClass());
+        }
+
+        if (edge.getIntermediateOutputKeyComparatorClass() != null) {
+            conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_KEY_COMPARATOR_CLASS,
+                    edge.getIntermediateOutputKeyComparatorClass());
+            conf.set(TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_KEY_COMPARATOR_CLASS,
+                    edge.getIntermediateOutputKeyComparatorClass());
         }
 
         conf.setBoolean("mapred.mapper.new-api", true);
@@ -442,11 +428,15 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 if (tezOp.sampleOperator != null && tezOp.sampleOperator == pred) {
                     // skip sample vertex input
                 } else {
+                    String inputKey = pred.getOperatorKey().toString();
+                    if (pred.isVertexGroup()) {
+                        pred = mPlan.getOperator(pred.getVertexGroupPredecessors().get(0));
+                    }
                     LinkedList<POLocalRearrangeTez> lrs =
                             PlanHelper.getPhysicalOperators(pred.plan, POLocalRearrangeTez.class);
                     for (POLocalRearrangeTez lr : lrs) {
                         if (lr.getOutputKey().equals(tezOp.getOperatorKey().toString())) {
-                            localRearrangeMap.put((int)lr.getIndex(), pred.getOperatorKey().toString());
+                            localRearrangeMap.put((int)lr.getIndex(), inputKey);
                         }
                     }
                 }
@@ -554,10 +544,16 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             outputPayLoad.set(JobControlCompiler.PIG_REDUCE_STORES,
                     ObjectSerializer.serialize(singleStore));
 
+            OutputDescriptor storeOutDescriptor = new OutputDescriptor(
+                    MROutput.class.getName()).setUserPayload(TezUtils
+                    .createUserPayloadFromConf(outputPayLoad));
+            if (tezOp.getVertexGroupStores() != null) {
+                if (tezOp.getVertexGroupStores().containsKey(store.getOperatorKey())) {
+                    continue;
+                }
+            }
             vertex.addOutput(store.getOperatorKey().toString(),
-                    new OutputDescriptor(MROutput.class.getName())
-                            .setUserPayload(TezUtils.createUserPayloadFromConf(outputPayLoad)),
-                            MROutputCommitter.class);
+                    storeOutDescriptor, MROutputCommitter.class);
         }
 
         if (stores.size() > 0) {
@@ -651,6 +647,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             IOException {
         LinkedList<POStore> stores = PlanHelper.getPhysicalOperators(
                 tezOp.plan, POStore.class);
+
         if (stores.size() > 0) {
 
             ArrayList<POStore> storeLocations = new ArrayList<POStore>();

@@ -49,6 +49,7 @@ public class TezEdgeDescriptor {
 
     private String intermediateOutputKeyClass;
     private String intermediateOutputValueClass;
+    private String intermediateOutputKeyComparatorClass;
 
     public TezEdgeDescriptor() {
         combinePlan = new PhysicalPlan();
@@ -96,6 +97,15 @@ public class TezEdgeDescriptor {
 
     public void setIntermediateOutputValueClass(String intermediateOutputValueClass) {
         this.intermediateOutputValueClass = intermediateOutputValueClass;
+    }
+
+    public String getIntermediateOutputKeyComparatorClass() {
+        return intermediateOutputKeyComparatorClass;
+    }
+
+    public void setIntermediateOutputKeyComparatorClass(
+            String intermediateOutputKeyComparatorClass) {
+        this.intermediateOutputKeyComparatorClass = intermediateOutputKeyComparatorClass;
     }
 
 }

@@ -24,6 +24,7 @@ import java.util.Map.Entry;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PlanPrinter;
+import org.apache.pig.backend.hadoop.executionengine.tez.TezOperator.VertexGroupInfo;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
@@ -51,8 +52,11 @@ public class TezPrinter extends TezOpPlanVisitor {
 
     @Override
     public void visitTezOp(TezOperator tezOper) throws VisitorException {
-        if (tezOper.isAliasVertex()) {
-            mStream.println("Tez vertex group " + tezOper.getOperatorKey().toString());
+        if (tezOper.isVertexGroup()) {
+            VertexGroupInfo info = tezOper.getVertexGroupInfo();
+            mStream.println("Tez vertex group "
+                    + tezOper.getOperatorKey().toString() + "\t<-\t "
+                    + info.getInputs() + "\t->\t " + info.getOutput());
             mStream.println("# No plan on vertex group");
         } else {
             mStream.println("Tez vertex " + tezOper.getOperatorKey().toString());
