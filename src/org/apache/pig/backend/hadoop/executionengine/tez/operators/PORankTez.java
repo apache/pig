@@ -27,6 +27,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
@@ -48,6 +49,7 @@ public class PORankTez extends PORank implements TezInput {
     private transient boolean isInputCached;
     private transient KeyValueReader reader;
     private transient Map<Integer, Long> counterOffsets;
+    private transient Configuration conf;
 
     public PORankTez(PORank copy) {
         super(copy);
@@ -126,6 +128,7 @@ public class PORankTez extends PORank implements TezInput {
         } catch (Exception e) {
             throw new ExecException(e);
         }
+        this.conf = conf;
     }
 
     @Override
@@ -141,6 +144,12 @@ public class PORankTez extends PORank implements TezInput {
             throw new ExecException(e);
         }
 
+        // For certain operators (such as STREAM), we could still have some work
+        // to do even after seeing the last input. These operators set a flag that
+        // says all input has been sent and to run the pipeline one more time.
+        if (Boolean.valueOf(conf.get(JobControlCompiler.END_OF_INP_IN_MAP, "false"))) {
+            this.parentPlan.endOfAllInput = true;
+        }
         return RESULT_EOP;
     }
 

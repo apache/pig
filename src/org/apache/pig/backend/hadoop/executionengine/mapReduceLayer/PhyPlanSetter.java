@@ -62,6 +62,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POOptimizedForEach;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPartialAgg;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPoissonSample;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPreCombinerLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PORank;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POReservoirSample;
@@ -357,4 +358,11 @@ public class PhyPlanSetter extends PhyPlanVisitor {
             throws VisitorException {
         reservoirSample.setParentPlan(parent);
     }
+    
+    @Override
+    public void visitPoissonSample(POPoissonSample poissonSample)
+            throws VisitorException {
+        poissonSample.setParentPlan(parent);
+    }
+
 }

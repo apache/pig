@@ -133,11 +133,11 @@ public class POReservoirSample extends PhysicalOperator {
             if (illustrator != null) {
                 illustratorMarkup(samples[nextSampleIdx].result, samples[nextSampleIdx].result, 0);
             }
-             Result res = samples[nextSampleIdx++];
-             if (res == null) { // Input data has lesser rows than numSamples
-                 return new Result(POStatus.STATUS_EOP, null);
-             }
-             return res;
+            Result res = samples[nextSampleIdx++];
+            if (res == null) { // Input data has lesser rows than numSamples
+                return new Result(POStatus.STATUS_NULL, null);
+            }
+            return res;
         }
         else{
             Result res = new Result(POStatus.STATUS_EOP, null);

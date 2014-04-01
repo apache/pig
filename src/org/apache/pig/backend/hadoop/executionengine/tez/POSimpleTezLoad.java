@@ -24,6 +24,7 @@ import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
@@ -42,6 +43,7 @@ public class POSimpleTezLoad extends POLoad implements TezInput {
     private String inputKey;
     private MRInput input;
     private KeyValueReader reader;
+    private transient Configuration conf;
 
     public POSimpleTezLoad(OperatorKey k) {
         super(k);
@@ -77,6 +79,7 @@ public class POSimpleTezLoad extends POLoad implements TezInput {
         } catch (IOException e) {
             throw new ExecException(e);
         }
+        this.conf = conf;
     }
 
     /**
@@ -91,6 +94,12 @@ public class POSimpleTezLoad extends POLoad implements TezInput {
             if (!reader.next()) {
                 res.result = null;
                 res.returnStatus = POStatus.STATUS_EOP;
+                // For certain operators (such as STREAM), we could still have some work
+                // to do even after seeing the last input. These operators set a flag that
+                // says all input has been sent and to run the pipeline one more time.
+                if (Boolean.valueOf(conf.get(JobControlCompiler.END_OF_INP_IN_MAP, "false"))) {
+                    this.parentPlan.endOfAllInput = true;
+                }
             } else {
                 Tuple next = (Tuple) reader.getCurrentValue();
                 res.result = next;

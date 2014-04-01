@@ -148,14 +148,6 @@ public class PigProcessor implements LogicalIOProcessor {
 
             runPipeline(leaf);
 
-            // For certain operators (such as STREAM), we could still have some work
-            // to do even after seeing the last input. These operators set a flag that
-            // says all input has been sent and to run the pipeline one more time.
-            if (Boolean.valueOf(conf.get(JobControlCompiler.END_OF_INP_IN_MAP, "false"))) {
-                execPlan.endOfAllInput = true;
-                runPipeline(leaf);
-            }
-
             for (MROutput fileOutput : fileOutputs){
                 fileOutput.commit();
             }

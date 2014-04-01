@@ -26,6 +26,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
@@ -47,6 +48,7 @@ public class POValueInputTez extends PhysicalOperator implements TezInput {
     private static final Log LOG = LogFactory.getLog(POValueInputTez.class);
     private String inputKey;
     private transient boolean finished = false;
+    private transient Configuration conf;
     // TODO Change this to value only reader after implementing
     // value only input output
     private transient KeyValueReader reader;
@@ -86,6 +88,7 @@ public class POValueInputTez extends PhysicalOperator implements TezInput {
         } catch (Exception e) {
             throw new ExecException(e);
         }
+        this.conf = conf;
     }
 
     @Override
@@ -100,6 +103,12 @@ public class POValueInputTez extends PhysicalOperator implements TezInput {
                 return new Result(POStatus.STATUS_OK, copy);
             } else {
                 finished = true;
+                // For certain operators (such as STREAM), we could still have some work
+                // to do even after seeing the last input. These operators set a flag that
+                // says all input has been sent and to run the pipeline one more time.
+                if (Boolean.valueOf(conf.get(JobControlCompiler.END_OF_INP_IN_MAP, "false"))) {
+                    this.parentPlan.endOfAllInput = true;
+                }
                 return RESULT_EOP;
             }
         } catch (IOException e) {

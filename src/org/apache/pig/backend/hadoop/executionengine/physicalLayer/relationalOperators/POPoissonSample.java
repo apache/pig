@@ -92,6 +92,7 @@ public class POPoissonSample extends PhysicalOperator {
 
     @Override
     public void visit(PhyPlanVisitor v) throws VisitorException {
+        v.visitPoissonSample(this);
     }
 
     @Override
@@ -110,13 +111,18 @@ public class POPoissonSample extends PhysicalOperator {
                 res = processInput();
                 if (res.returnStatus == POStatus.STATUS_NULL) {
                     continue;
-                } else if (res.returnStatus == POStatus.STATUS_EOP
-                        || res.returnStatus == POStatus.STATUS_ERR) {
+                } else if (res.returnStatus == POStatus.STATUS_EOP) {
+                    if (this.parentPlan.endOfAllInput) {
+                        return eop;
+                    } else {
+                        continue;
+                    }
+                } else if (res.returnStatus == POStatus.STATUS_ERR) {
                     return res;
                 }
 
                 if (res.result == null) {
-                    return createNumRowTuple(null);
+                    continue;
                 }
                 long availRedMem = (long) (Runtime.getRuntime().maxMemory() * heapPerc);
                 memToSkipPerSample = availRedMem/sampleRate;
@@ -135,7 +141,11 @@ public class POPoissonSample extends PhysicalOperator {
                 continue;
             } else if (res.returnStatus == POStatus.STATUS_EOP
                     || res.returnStatus == POStatus.STATUS_ERR) {
-                return createNumRowTuple((Tuple)newSample.result);
+                if (this.parentPlan.endOfAllInput) {
+                    return createNumRowTuple((Tuple)newSample.result);
+                } else {
+                    continue;
+                }
             }
             rowNum++;
         }
@@ -147,11 +157,15 @@ public class POPoissonSample extends PhysicalOperator {
                 continue;
             } else if (res.returnStatus == POStatus.STATUS_EOP
                     || res.returnStatus == POStatus.STATUS_ERR) {
-                return createNumRowTuple((Tuple)newSample.result);
+                if (this.parentPlan.endOfAllInput) {
+                    return createNumRowTuple((Tuple)newSample.result);
+                } else {
+                    continue;
+                }
             }
 
             if (res.result == null) {
-                return createNumRowTuple((Tuple)newSample.result);
+                continue;
             }
             updateSkipInterval((Tuple)res.result);
             Result currentSample = newSample;
