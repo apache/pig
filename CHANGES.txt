@@ -99,6 +99,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3798: Registered jar in pig script are appended to the classpath multiple times (cheolsoo)
+
 PIG-3844: Make ScriptState InheritableThreadLocal for threads that need it (amatsukawa via cheolsoo)
 
 PIG-3837: ant pigperf target is broken in trunk (cheolsoo)

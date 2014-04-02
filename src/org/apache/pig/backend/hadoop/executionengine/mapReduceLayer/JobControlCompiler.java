@@ -1609,7 +1609,7 @@ public class JobControlCompiler{
         Path pathInHDFS = shipToHDFS(pigContext, conf, url);
         // and add to the DistributedCache
         DistributedCache.addFileToClassPath(pathInHDFS, conf);
-        pigContext.skipJars.add(url.getPath());
+        pigContext.addSkipJar(url.getPath());
     }
 
     private static Path getCacheStagingDir(Configuration conf) throws IOException {

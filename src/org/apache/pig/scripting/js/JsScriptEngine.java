@@ -230,9 +230,9 @@ public class JsScriptEngine extends ScriptEngine {
             PigContext pigContext) throws IOException {
         // to enable passing of information to the slave
         this.scriptPath = path;
-        this.clientInstance = this;
-        
-        pigContext.scriptJars.add(getJarPath(Context.class));
+        JsScriptEngine.clientInstance = this;
+
+        pigContext.addScriptJar(getJarPath(Context.class));
         namespace = (namespace == null) ? "" : namespace + NAMESPACE_SEPARATOR;
         FileInputStream fis = new FileInputStream(path);
         try {

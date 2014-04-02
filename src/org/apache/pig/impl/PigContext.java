@@ -112,7 +112,7 @@ public class PigContext implements Serializable {
     transient private Map<URL, String> extraJarOriginalPaths = new HashMap<URL, String>();
 
     // jars needed for scripting udfs - jython.jar etc
-    public List<String> scriptJars = new ArrayList<String>(2);
+    transient public List<String> scriptJars = new ArrayList<String>(2);
 
     // jars that should not be merged in.
     // (some functions may come from pig.jar and we don't want the whole jar file.)
@@ -120,7 +120,7 @@ public class PigContext implements Serializable {
 
     // jars that are predeployed to the cluster and thus should not be merged in at all (even subsets).
     transient public Vector<String> predeployedJars = new Vector<String>(2);
-    
+
     // script files that are needed to run a job
     @Deprecated
     public List<String> scriptFiles = new ArrayList<String>();
@@ -259,9 +259,9 @@ public class PigContext implements Serializable {
         String pigJar = JarManager.findContainingJar(Main.class);
         String hadoopJar = JarManager.findContainingJar(FileSystem.class);
         if (pigJar != null) {
-            skipJars.add(pigJar);
+            addSkipJar(pigJar);
             if (!pigJar.equals(hadoopJar))
-                skipJars.add(hadoopJar);
+                addSkipJar(hadoopJar);
         }
 
         this.executionEngine = execType.getExecutionEngine(this);
@@ -320,18 +320,7 @@ public class PigContext implements Serializable {
      * @param path
      */
     public void addScriptFile(String path) {
-        if (path != null) {
-            aliasedScriptFiles.put(path.replaceFirst("^/", "").replaceAll(":", ""), new File(path));
-        }
-    }
-
-    public boolean hasJar(String path) {
-        for (URL url : extraJars) {
-            if (extraJarOriginalPaths.get(url).equals(path)) {
-                return true;
-            }
-        }
-        return false;
+        addScriptFile(path, path);
     }
 
     /**
@@ -346,6 +335,18 @@ public class PigContext implements Serializable {
         }
     }
 
+    public void addScriptJar(String path) {
+        if (path != null && !scriptJars.contains(path)) {
+            scriptJars.add(path);
+        }
+    }
+
+    public void addSkipJar(String path) {
+        if (path != null && !skipJars.contains(path)) {
+            skipJars.add(path);
+        }
+    }
+
     public void addJar(String path) throws MalformedURLException {
         if (path != null) {
             URL resource = (new File(path)).toURI().toURL();
@@ -354,14 +355,23 @@ public class PigContext implements Serializable {
     }
 
     public void addJar(URL resource, String originalPath) throws MalformedURLException{
-        if (resource != null) {
+        if (resource != null && !extraJars.contains(resource)) {
             extraJars.add(resource);
             extraJarOriginalPaths.put(resource, originalPath);
             classloader.addURL(resource);
             Thread.currentThread().setContextClassLoader(PigContext.classloader);
         }
     }
-    
+
+    public boolean hasJar(String path) {
+        for (URL url : extraJars) {
+            if (extraJarOriginalPaths.get(url).equals(path)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * Adds the specified path to the predeployed jars list. These jars will 
      * never be included in generated job jar.
@@ -370,7 +380,9 @@ public class PigContext implements Serializable {
      * cluster to reduce the size of the job jar.
      */
     public void markJarAsPredeployed(String path) {
-        predeployedJars.add(path);
+        if (path != null && !predeployedJars.contains(path)) {
+            predeployedJars.add(path);
+        }
     }
 
     public String doParamSubstitution(InputStream in,
