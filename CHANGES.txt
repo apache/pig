@@ -34,6 +34,8 @@ PIG-3480: TFile-based tmpfile compression crashes in some cases (dvryaboy via an
 
 BUG FIXES
 
+PIG-3819: e2e tests containing "perl -e "print $_;" fails on Hadoop 2 (daijy)
+
 PIG-3813: Rank column is assigned different uids everytime when schema is reset (cheolsoo)
 
 PIG-3833: Relation loaded by AvroStorage with schema is projected incorrectly in foreach statement (jeongjinku via cheolsoo)
