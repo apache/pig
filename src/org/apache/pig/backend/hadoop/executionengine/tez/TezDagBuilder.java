@@ -168,7 +168,12 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 try {
                     if (pred.isVertexGroup()) {
                         VertexGroup from = pred.getVertexGroupInfo().getVertexGroup();
-                        GroupInputEdge edge = newGroupInputEdge(pred, tezOp, from, to);
+                        // The plan of vertex group is empty. Since we create the Edge based on
+                        // some of the operators in the plan refer to one of the vertex group members.
+                        // Both the vertex group and its members reference same EdgeDescriptor object to the
+                        // the successor
+                        GroupInputEdge edge = newGroupInputEdge(
+                                getPlan().getOperator(pred.getVertexGroupMembers().get(0)), tezOp, from, to);
                         dag.addEdge(edge);
                     } else {
                         Vertex from = dag.getVertex(pred.getOperatorKey().toString());
@@ -430,7 +435,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                 } else {
                     String inputKey = pred.getOperatorKey().toString();
                     if (pred.isVertexGroup()) {
-                        pred = mPlan.getOperator(pred.getVertexGroupPredecessors().get(0));
+                        pred = mPlan.getOperator(pred.getVertexGroupMembers().get(0));
                     }
                     LinkedList<POLocalRearrangeTez> lrs =
                             PlanHelper.getPhysicalOperators(pred.plan, POLocalRearrangeTez.class);
@@ -548,7 +553,10 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                     MROutput.class.getName()).setUserPayload(TezUtils
                     .createUserPayloadFromConf(outputPayLoad));
             if (tezOp.getVertexGroupStores() != null) {
-                if (tezOp.getVertexGroupStores().containsKey(store.getOperatorKey())) {
+                OperatorKey vertexGroupKey = tezOp.getVertexGroupStores().get(store.getOperatorKey());
+                if (vertexGroupKey != null) {
+                    getPlan().getOperator(vertexGroupKey).getVertexGroupInfo()
+                            .setStoreOutputDescriptor(storeOutDescriptor);
                     continue;
                 }
             }

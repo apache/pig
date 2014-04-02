@@ -75,7 +75,7 @@ public class UnionOptimizer extends TezOpPlanVisitor {
         // For now don't optimize
         // Create a copy as disconnect while iterating modifies the original list
         List<TezOperator> predecessors = new ArrayList<TezOperator>(tezPlan.getPredecessors(unionOp));
-        if (predecessors.size() > unionOp.getVertexGroupPredecessors().size()) {
+        if (predecessors.size() > unionOp.getVertexGroupMembers().size()) {
             return;
         }
 
@@ -87,7 +87,7 @@ public class UnionOptimizer extends TezOpPlanVisitor {
         for (int i=0; i < storeVertexGroupOps.length; i++) {
             storeVertexGroupOps[i] = new TezOperator(OperatorKey.genOpKey(scope));
             storeVertexGroupOps[i].setVertexGroupInfo(new VertexGroupInfo(unionStoreOutputs.get(i)));
-            storeVertexGroupOps[i].setVertexGroupPredecessors(unionOp.getVertexGroupPredecessors());
+            storeVertexGroupOps[i].setVertexGroupMembers(unionOp.getVertexGroupMembers());
             tezPlan.add(storeVertexGroupOps[i]);
         }
 
@@ -111,7 +111,7 @@ public class UnionOptimizer extends TezOpPlanVisitor {
             outputVertexGroupOps[i] = new TezOperator(OperatorKey.genOpKey(scope));
             outputVertexGroupOps[i].setVertexGroupInfo(new VertexGroupInfo());
             outputVertexGroupOps[i].getVertexGroupInfo().setOutput(unionOutputKeys.get(i));
-            outputVertexGroupOps[i].setVertexGroupPredecessors(unionOp.getVertexGroupPredecessors());
+            outputVertexGroupOps[i].setVertexGroupMembers(unionOp.getVertexGroupMembers());
             newOutputKeys[i] = outputVertexGroupOps[i].getOperatorKey().toString();
             tezPlan.add(outputVertexGroupOps[i]);
         }
@@ -121,7 +121,7 @@ public class UnionOptimizer extends TezOpPlanVisitor {
              // Clone plan of union and merge it into the predecessor operators
              // Remove POShuffledValueInputTez from union plan root
             unionOpPlan.remove(unionOpPlan.getRoots().get(0));
-            for (OperatorKey predKey : unionOp.getVertexGroupPredecessors()) {
+            for (OperatorKey predKey : unionOp.getVertexGroupMembers()) {
                 TezOperator pred = tezPlan.getOperator(predKey);
                 PhysicalPlan predPlan = pred.plan;
                 // Remove POValueOutputTez from predecessor leaf
@@ -143,7 +143,7 @@ public class UnionOptimizer extends TezOpPlanVisitor {
                     clonedUnionStoreOutputs.get(i).setOutputKey(
                             storeVertexGroup.getVertexGroupInfo().getStore()
                                     .getOperatorKey().toString());
-                    pred.addVertexGroupStore(unionStoreOutputs.get(i++).getOperatorKey(),
+                    pred.addVertexGroupStore(clonedUnionStoreOutputs.get(i++).getOperatorKey(),
                             storeVertexGroup.getOperatorKey());
                     tezPlan.connect(pred, storeVertexGroup);
                 }
@@ -156,13 +156,21 @@ public class UnionOptimizer extends TezOpPlanVisitor {
                 tezPlan.disconnect(pred, unionOp);
             }
 
-            // Copy output edges of union -> successor to vertexgroup -> successor
-            // and connect vertexgroup -> successor
+            // Copy output edges of union -> successor to predecessor->successor, vertexgroup -> successor
+            // and connect vertexgroup -> successor in the plan.
             for (Entry<OperatorKey, TezEdgeDescriptor> entry : unionOp.outEdges.entrySet()) {
                 TezOperator succOp = tezPlan.getOperator(entry.getKey());
                 TezOperator vertexGroupOp = outputVertexGroupOps[unionOutputKeys.indexOf(entry.getKey().toString())];
+                // Required for create the Edge in TezDAGBuilder
+                for (OperatorKey predKey : vertexGroupOp.getVertexGroupMembers()) {
+                    TezOperator pred = tezPlan.getOperator(predKey);
+                    pred.outEdges.put(entry.getKey(), entry.getValue());
+                    succOp.inEdges.put(predKey, entry.getValue());
+                }
+                // Not used in TezDAGBuilder. Just setting for correctness.
                 vertexGroupOp.outEdges.put(entry.getKey(), entry.getValue());
                 succOp.inEdges.put(vertexGroupOp.getOperatorKey(), entry.getValue());
+
                 tezPlan.connect(vertexGroupOp, succOp);
             }
         } catch (Exception e) {

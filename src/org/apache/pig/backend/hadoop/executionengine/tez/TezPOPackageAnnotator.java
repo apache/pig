@@ -68,7 +68,7 @@ public class TezPOPackageAnnotator extends TezOpPlanVisitor {
             TezOperator predTezOp = it.next();
             if (predTezOp.isVertexGroup()) {
                 // Just get one of the inputs to vertex group
-                predTezOp = getPlan().getOperator(predTezOp.getVertexGroupPredecessors().get(0));
+                predTezOp = getPlan().getOperator(predTezOp.getVertexGroupMembers().get(0));
             }
             lrFound += patchPackage(predTezOp, pkgTezOp, pkg);
             if(lrFound == pkg.getNumInps()) {

@@ -131,7 +131,7 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
 
     OPER_FEATURE feature = OPER_FEATURE.NONE;
 
-    private List<OperatorKey> vertexGroupPredecessors;
+    private List<OperatorKey> vertexGroupMembers;
     // For union
     private VertexGroupInfo vertexGroupInfo;
     // Mapping of OperatorKey of POStore OperatorKey to vertexGroup TezOperator
@@ -254,22 +254,22 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     }
 
     public List<OperatorKey> getUnionPredecessors() {
-        return vertexGroupPredecessors;
+        return vertexGroupMembers;
     }
 
-    public List<OperatorKey> getVertexGroupPredecessors() {
-        return vertexGroupPredecessors;
+    public List<OperatorKey> getVertexGroupMembers() {
+        return vertexGroupMembers;
     }
 
     public void addUnionPredecessor(OperatorKey unionPredecessor) {
-        if (vertexGroupPredecessors == null) {
-            vertexGroupPredecessors = new ArrayList<OperatorKey>();
+        if (vertexGroupMembers == null) {
+            vertexGroupMembers = new ArrayList<OperatorKey>();
         }
-        this.vertexGroupPredecessors.add(unionPredecessor);
+        this.vertexGroupMembers.add(unionPredecessor);
     }
 
-    public void setVertexGroupPredecessors(List<OperatorKey> vertexGroupPredecessors) {
-        this.vertexGroupPredecessors = vertexGroupPredecessors;
+    public void setVertexGroupMembers(List<OperatorKey> vertexGroupMembers) {
+        this.vertexGroupMembers = vertexGroupMembers;
     }
 
     // Union is the only operator that uses alias vertex (VertexGroup) now. But
