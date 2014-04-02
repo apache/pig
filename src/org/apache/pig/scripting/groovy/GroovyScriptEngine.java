@@ -136,7 +136,7 @@ public class GroovyScriptEngine extends ScriptEngine {
   public void registerFunctions(String path, String namespace, PigContext pigContext) throws IOException {
 
     if (!isInitialized) {
-      pigContext.scriptJars.add(getJarPath(groovy.util.GroovyScriptEngine.class));
+      pigContext.addScriptJar(getJarPath(groovy.util.GroovyScriptEngine.class));
       isInitialized = true;
     }
 

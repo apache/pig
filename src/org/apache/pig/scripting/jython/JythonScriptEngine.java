@@ -228,7 +228,7 @@ public class JythonScriptEngine extends ScriptEngine {
                         if (modulepath.equals(JVM_JAR)) {
                             continue;
                         } else if (modulepath.endsWith(".jar") || modulepath.endsWith(".zip")) {
-                            pigContext.scriptJars.add(modulepath);
+                            pigContext.addScriptJar(modulepath);
                         } else {
                             pigContext.addScriptFile(modulename, modulepath);
                         }
@@ -342,7 +342,7 @@ public class JythonScriptEngine extends ScriptEngine {
     throws IOException {
         Interpreter.setMain(false);
         Interpreter.init(path, pigContext);
-        pigContext.scriptJars.add(getJarPath(PythonInterpreter.class));
+        pigContext.addScriptJar(getJarPath(PythonInterpreter.class));
         PythonInterpreter pi = Interpreter.interpreter;
         @SuppressWarnings("unchecked")
         List<PyTuple> locals = ((PyStringMap) pi.getLocals()).items();
