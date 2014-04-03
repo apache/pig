@@ -72,19 +72,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
-import org.apache.pig.backend.hadoop.executionengine.tez.POFRJoinTez;
-import org.apache.pig.backend.hadoop.executionengine.tez.POIdentityInOutTez;
-import org.apache.pig.backend.hadoop.executionengine.tez.POLocalRearrangeTez;
-import org.apache.pig.backend.hadoop.executionengine.tez.POPartitionRearrangeTez;
-import org.apache.pig.backend.hadoop.executionengine.tez.POShuffleTezLoad;
-import org.apache.pig.backend.hadoop.executionengine.tez.POSimpleTezLoad;
-import org.apache.pig.backend.hadoop.executionengine.tez.POStoreTez;
-import org.apache.pig.backend.hadoop.executionengine.tez.POValueInputTez;
-import org.apache.pig.backend.hadoop.executionengine.tez.POValueOutputTez;
-import org.apache.pig.backend.hadoop.executionengine.tez.operators.POCounterStatsTez;
-import org.apache.pig.backend.hadoop.executionengine.tez.operators.POCounterTez;
-import org.apache.pig.backend.hadoop.executionengine.tez.operators.PORankTez;
-import org.apache.pig.backend.hadoop.executionengine.tez.operators.POShuffledValueInputTez;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.VisitorException;
 
@@ -188,7 +175,7 @@ public class PhyPlanSetter extends PhyPlanVisitor {
 
     @Override
     public void visitRank(PORank rank) throws VisitorException {
-        rank.setParentPlan(parent);
+
     }
 
     @Override
@@ -378,68 +365,4 @@ public class PhyPlanSetter extends PhyPlanVisitor {
         poissonSample.setParentPlan(parent);
     }
 
-    @Override
-    public void visitValueInputTez(POValueInputTez valueInputTez) throws VisitorException {
-        valueInputTez.setParentPlan(parent);
-    }
-
-    @Override
-    public void visitValueOutputTez(POValueOutputTez valueOutputTez) throws VisitorException {
-        valueOutputTez.setParentPlan(parent);
-    }
-
-    @Override
-    public void visitCounterStatsTez(POCounterStatsTez counterStatsTez) throws VisitorException {
-        counterStatsTez.setParentPlan(parent);
-    }
-
-    @Override
-    public void visitFRJoinTez(POFRJoinTez frJoinTez) throws VisitorException {
-        frJoinTez.setParentPlan(parent);
-    }
-
-    @Override
-    public void visitIdentityInOutTez(POIdentityInOutTez identityInOutTez) throws VisitorException {
-        identityInOutTez.setParentPlan(parent);
-    }
-
-    @Override
-    public void visitRankTez(PORankTez rankTez) throws VisitorException {
-        rankTez.setParentPlan(parent);
-    }
-
-    @Override
-    public void visitShuffledValueInputTez(POShuffledValueInputTez shuffledValueInputTez) throws VisitorException {
-        shuffledValueInputTez.setParentPlan(parent);
-    }
-
-    @Override
-    public void visitShuffleTezLoad(POShuffleTezLoad shuffleTezLoad) throws VisitorException {
-        shuffleTezLoad.setParentPlan(parent);
-    }
-
-    @Override
-    public void visitSimpleTezLoad(POSimpleTezLoad simpleTezLoad) throws VisitorException {
-        simpleTezLoad.setParentPlan(parent);
-    }
-
-    @Override
-    public void visitCounterTez(POCounterTez counterStatsTez) throws VisitorException {
-        counterStatsTez.setParentPlan(parent);
-    }
-
-    @Override
-    public void visitPOLocalRearrangeTez(POLocalRearrangeTez localRearrangeTez) throws VisitorException {
-        localRearrangeTez.setParentPlan(parent);
-    }
-
-    @Override
-    public void visitPOPartitionRearrangeTez(POPartitionRearrangeTez partitionRearrangeTez) throws VisitorException {
-        partitionRearrangeTez.setParentPlan(parent);
-    }
-
-    @Override
-    public void visitPOStoreTez(POStoreTez storeTez) throws VisitorException {
-        storeTez.setParentPlan(parent);
-    }
 }

@@ -91,7 +91,6 @@ public class PORankTez extends PORank implements TezInput {
     @Override
     public void attachInputs(Map<String, LogicalInput> inputs,
             Configuration conf) throws ExecException {
-        this.conf = conf;
         LogicalInput input = inputs.get(tuplesInputKey);
         if (input == null) {
             throw new ExecException("Input from vertex " + tuplesInputKey + " is missing");
@@ -129,6 +128,7 @@ public class PORankTez extends PORank implements TezInput {
         } catch (Exception e) {
             throw new ExecException(e);
         }
+        this.conf = conf;
     }
 
     @Override
@@ -164,7 +164,7 @@ public class PORankTez extends PORank implements TezInput {
     @Override
     public void visit(PhyPlanVisitor v) throws VisitorException {
         super.visit(v);
-        v.visitRankTez(this);
+        v.visit(this);
     }
 
     @Override

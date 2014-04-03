@@ -153,7 +153,7 @@ public class POCounterTez extends POCounter implements TezOutput, TezTaskConfigu
     @Override
     public void visit(PhyPlanVisitor v) throws VisitorException {
         super.visit(v);
-        v.visitCounterTez(this);
+        v.visit(this);
     }
 
     @Override

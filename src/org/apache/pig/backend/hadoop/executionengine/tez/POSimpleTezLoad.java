@@ -27,11 +27,9 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.plan.VisitorException;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.library.api.KeyValueReader;
@@ -49,11 +47,6 @@ public class POSimpleTezLoad extends POLoad implements TezInput {
 
     public POSimpleTezLoad(OperatorKey k) {
         super(k);
-    }
-
-    @Override
-    public void visit(PhyPlanVisitor v) throws VisitorException {
-        v.visitSimpleTezLoad(this);
     }
 
     @Override
@@ -76,7 +69,6 @@ public class POSimpleTezLoad extends POLoad implements TezInput {
     public void attachInputs(Map<String, LogicalInput> inputs,
             Configuration conf)
             throws ExecException {
-        this.conf = conf;
         LogicalInput logInput = inputs.get(inputKey);
         if (logInput == null || !(logInput instanceof MRInput)) {
             throw new ExecException("POSimpleTezLoad only accepts MRInputs");
@@ -87,6 +79,7 @@ public class POSimpleTezLoad extends POLoad implements TezInput {
         } catch (IOException e) {
             throw new ExecException(e);
         }
+        this.conf = conf;
     }
 
     /**

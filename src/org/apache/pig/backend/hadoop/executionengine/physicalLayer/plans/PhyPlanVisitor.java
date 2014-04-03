@@ -73,19 +73,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
-import org.apache.pig.backend.hadoop.executionengine.tez.POFRJoinTez;
-import org.apache.pig.backend.hadoop.executionengine.tez.POIdentityInOutTez;
-import org.apache.pig.backend.hadoop.executionengine.tez.POLocalRearrangeTez;
-import org.apache.pig.backend.hadoop.executionengine.tez.POPartitionRearrangeTez;
-import org.apache.pig.backend.hadoop.executionengine.tez.POShuffleTezLoad;
-import org.apache.pig.backend.hadoop.executionengine.tez.POSimpleTezLoad;
-import org.apache.pig.backend.hadoop.executionengine.tez.POStoreTez;
-import org.apache.pig.backend.hadoop.executionengine.tez.POValueInputTez;
-import org.apache.pig.backend.hadoop.executionengine.tez.POValueOutputTez;
-import org.apache.pig.backend.hadoop.executionengine.tez.operators.POCounterStatsTez;
-import org.apache.pig.backend.hadoop.executionengine.tez.operators.POCounterTez;
-import org.apache.pig.backend.hadoop.executionengine.tez.operators.PORankTez;
-import org.apache.pig.backend.hadoop.executionengine.tez.operators.POShuffledValueInputTez;
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.plan.PlanWalker;
 import org.apache.pig.impl.plan.VisitorException;
@@ -370,44 +357,5 @@ public class PhyPlanVisitor extends PlanVisitor<PhysicalOperator,PhysicalPlan> {
     }
 
     public void visitPoissonSample(POPoissonSample poissonSample) throws VisitorException {
-    }
-
-    public void visitValueInputTez(POValueInputTez valueInputTez) throws VisitorException {
-    }
-
-    public void visitValueOutputTez(POValueOutputTez valueOutputTez) throws VisitorException {
-    }
-
-    public void visitCounterStatsTez(POCounterStatsTez counterStatsTez) throws VisitorException {
-    }
-
-    public void visitFRJoinTez(POFRJoinTez frJoinTez) throws VisitorException {
-    }
-
-    public void visitIdentityInOutTez(POIdentityInOutTez identityInOutTez) throws VisitorException {
-    }
-
-    public void visitRankTez(PORankTez rankTez) throws VisitorException {
-    }
-
-    public void visitShuffledValueInputTez(POShuffledValueInputTez shuffledValueInputTez) throws VisitorException {
-    }
-
-    public void visitShuffleTezLoad(POShuffleTezLoad shuffleTezLoad) throws VisitorException {
-    }
-
-    public void visitSimpleTezLoad(POSimpleTezLoad simpleTezLoad) throws VisitorException {
-    }
-
-    public void visitCounterTez(POCounterTez counterStatsTez) throws VisitorException {
-    }
-
-    public void visitPOLocalRearrangeTez(POLocalRearrangeTez localRearrangeTez) throws VisitorException {
-    }
-
-    public void visitPOPartitionRearrangeTez(POPartitionRearrangeTez partitionRearrangeTez) throws VisitorException {
-    }
-
-    public void visitPOStoreTez(POStoreTez storeTez) throws VisitorException {
     }
 }

@@ -27,7 +27,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFRJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin.TuplesToSchemaTupleList;
@@ -38,7 +37,6 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.plan.VisitorException;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.input.ShuffledUnorderedKVInput;
@@ -63,12 +61,6 @@ public class POFRJoinTez extends POFRJoin implements TezInput {
     public POFRJoinTez(POFRJoin copy, List<String> inputKeys) throws ExecException {
        super(copy);
        this.inputKeys = inputKeys;
-    }
-    
-
-    @Override
-    public void visit(PhyPlanVisitor v) throws VisitorException {
-        v.visitFRJoinTez(this);
     }
 
     @Override

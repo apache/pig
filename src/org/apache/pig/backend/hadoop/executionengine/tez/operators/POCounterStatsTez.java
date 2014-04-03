@@ -174,7 +174,7 @@ public class POCounterStatsTez extends PhysicalOperator implements TezInput, Tez
 
     @Override
     public void visit(PhyPlanVisitor v) throws VisitorException {
-        v.visitCounterStatsTez(this);
+        v.visit(this);
     }
 
     @Override
