@@ -1005,7 +1005,7 @@ sub wrongExecutionMode($$)
 
     if (defined $testCmd->{'execonly'}) {
         my @exectypes = split(',', $testCmd->{'execonly'});
-        if (!$testCmd->{'exectype'} ~~ @exectypes) {
+        if (!grep /$testCmd->{'exectype'}/, @exectypes) {
             print $log "Skipping test $testCmd->{'group'}" . "_" .
                 $testCmd->{'num'} . " since it is executed only in " .
                 $testCmd->{'execonly'} . " mode and we are executing in " .
