@@ -176,6 +176,21 @@ public class TezPOPackageAnnotator extends TezOpPlanVisitor {
             pkg.getPkgr().setKeyTuple(lrearrange.isKeyTuple());
             pkg.getPkgr().setKeyCompound(lrearrange.isKeyCompound());
         }
+        
+        @Override
+        public void visitPOLocalRearrangeTez(POLocalRearrangeTez lrearrangeTez) throws VisitorException {
+            visitLocalRearrange(lrearrangeTez);
+        }
+        
+        @Override
+        public void visitIdentityInOutTez(POIdentityInOutTez identityInOutTez) throws VisitorException {
+            visitLocalRearrange(identityInOutTez);
+        }
+        
+        @Override
+        public void visitPOPartitionRearrangeTez(POPartitionRearrangeTez partitionRearrangeTez) throws VisitorException {
+            visitLocalRearrange(partitionRearrangeTez);
+        }
 
         /**
          * @return the loRearrangeFound
