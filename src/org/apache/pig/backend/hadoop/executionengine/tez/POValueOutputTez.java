@@ -131,7 +131,7 @@ public class POValueOutputTez extends PhysicalOperator implements TezOutput {
 
     @Override
     public void visit(PhyPlanVisitor v) throws VisitorException {
-        v.visit(this);
+        v.visitValueOutputTez(this);
     }
 
     @Override

@@ -30,6 +30,7 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.data.AccumulativeBag;
 import org.apache.pig.data.DataBag;
@@ -37,6 +38,7 @@ import org.apache.pig.data.InternalCachedBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
+import org.apache.pig.impl.plan.VisitorException;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
 import org.apache.tez.runtime.library.common.ConfigUtils;
@@ -61,6 +63,12 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
         super(pack);
     }
 
+
+    @Override
+    public void visit(PhyPlanVisitor v) throws VisitorException {
+        v.visitShuffleTezLoad(this);
+    }
+
     @Override
     public String[] getTezInputs() {
         return inputKeys.toArray(new String[inputKeys.size()]);
@@ -80,7 +88,7 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
     @Override
     public void attachInputs(Map<String, LogicalInput> inputs, Configuration conf)
             throws ExecException {
-
+        this.conf = conf;
         comparator = (WritableComparator) ConfigUtils.getInputKeySecondaryGroupingComparator(conf);
         try {
             for (String key : inputKeys) {
@@ -107,7 +115,6 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
         } catch (Exception e) {
             throw new ExecException(e);
         }
-        this.conf = conf;
     }
 
     @Override

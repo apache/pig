@@ -30,6 +30,7 @@ import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ExpressionOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
@@ -41,6 +42,7 @@ import org.apache.pig.impl.io.NullablePartitionWritable;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.Pair;
 import org.python.google.common.collect.Lists;
 
@@ -71,6 +73,11 @@ public class POPartitionRearrangeTez extends POLocalRearrangeTez {
         super(k, rp);
         index = -1;
         leafOps = Lists.newArrayList();
+    }
+
+    @Override
+    public void visit(PhyPlanVisitor v) throws VisitorException {
+        v.visitPOPartitionRearrangeTez(this);
     }
 
     @Override

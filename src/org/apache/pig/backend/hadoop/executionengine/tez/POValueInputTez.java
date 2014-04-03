@@ -78,6 +78,7 @@ public class POValueInputTez extends PhysicalOperator implements TezInput {
     public void attachInputs(Map<String, LogicalInput> inputs,
             Configuration conf)
             throws ExecException {
+        this.conf = conf;
         LogicalInput input = inputs.get(inputKey);
         if (input == null) {
             throw new ExecException("Input from vertex " + inputKey + " is missing");
@@ -88,7 +89,6 @@ public class POValueInputTez extends PhysicalOperator implements TezInput {
         } catch (Exception e) {
             throw new ExecException(e);
         }
-        this.conf = conf;
     }
 
     @Override
@@ -128,7 +128,7 @@ public class POValueInputTez extends PhysicalOperator implements TezInput {
 
     @Override
     public void visit(PhyPlanVisitor v) throws VisitorException {
-        v.visit(this);
+        v.visitValueInputTez(this);
     }
 
     @Override
