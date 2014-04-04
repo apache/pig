@@ -19,15 +19,12 @@ package org.apache.pig.piggybank.test.storage.avro;
 import org.apache.avro.Schema;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.piggybank.storage.avro.AvroStorageUtils;
-
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -93,37 +90,45 @@ public class TestAvroStorageUtils {
     }
 
     @Test
-    public void testGetAllSubDirs() throws IOException {
-        final String basedir = System.getProperty("user.dir");
+    public void testGetPaths() throws IOException {
+        final String basedir = "file://" + System.getProperty("user.dir");
         final String tempdir = Long.toString(System.currentTimeMillis());
         final String nonexistentpath = basedir + "/" + tempdir + "/this_path_does_not_exist";
 
         String locationStr = null;
-        Set<Path> paths = new HashSet<Path>();
+        Set<Path> paths;
         Configuration conf = new Configuration();
 
         // existent path
         locationStr = basedir;
-        assertTrue(AvroStorageUtils.getAllSubDirs(new Path(locationStr), conf, paths));
+        paths = AvroStorageUtils.getPaths(locationStr, conf, true);
         assertFalse(paths.isEmpty());
-        paths.clear();
 
         // non-existent path
         locationStr = nonexistentpath;
-        assertFalse(AvroStorageUtils.getAllSubDirs(new Path(locationStr), conf, paths));
-        assertTrue(paths.isEmpty());
-        paths.clear();
+        try {
+            paths = AvroStorageUtils.getPaths(locationStr, conf, true);
+            fail();
+        } catch (IOException e) {
+            assertTrue(e.getMessage().contains("matches 0 files"));
+        }
 
         // empty glob pattern
         locationStr = basedir + "/{}";
-        assertFalse(AvroStorageUtils.getAllSubDirs(new Path(locationStr), conf, paths));
+        try {
+            paths = AvroStorageUtils.getPaths(locationStr, conf, true);
+            fail();
+        } catch (IOException e) {
+            assertTrue(e.getMessage().contains("matches 0 files"));
+        }
+
+        paths = AvroStorageUtils.getPaths(locationStr, conf, false);
         assertTrue(paths.isEmpty());
-        paths.clear();
 
         // bad glob pattern
         locationStr = basedir + "/{1,";
         try {
-            AvroStorageUtils.getAllSubDirs(new Path(locationStr), conf, paths);
+            AvroStorageUtils.getPaths(locationStr, conf, true);
             Assert.fail("Negative test to test illegal file pattern. Should not be succeeding!");
         } catch (IOException e) {
             // The message of the exception for illegal file pattern is rather long,
