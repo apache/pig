@@ -170,8 +170,6 @@ PIG-3641: Split "otherwise" producing incorrect output when combined with Column
 
 PIG-3682: mvn-inst target does not install pig-h2.jar into local .m2 (raluri via aniket486)
 
-PIG-3661: Piggybank AvroStorage fails if used in more than one load or store statement (rohini)
-
 PIG-3511: Security: Pig temporary directories might have world readable permissions (rohini)
 
 PIG-3664: Piggy Bank XPath UDF can't be called (nezihyigitbasi via daijy)
@@ -270,6 +268,8 @@ PIG-3047: Check the size of a relation before adding it to distributed cache in 
 PIG-3480: TFile-based tmpfile compression crashes in some cases (dvryaboy via aniket486)
 
 BUG FIXES
+
+PIG-3661: Piggybank AvroStorage fails if used in more than one load or store statement (rohini)
 
 PIG-3819: e2e tests containing "perl -e "print $_;" fails on Hadoop 2 (daijy)
 
