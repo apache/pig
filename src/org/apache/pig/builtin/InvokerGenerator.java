@@ -55,9 +55,6 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
-import org.python.google.common.collect.Maps;
-
-import com.google.common.collect.Sets;
 
 //TODO need to add support for ANY Pig type!
 //TODO statically cache the generated code based on the input Strings

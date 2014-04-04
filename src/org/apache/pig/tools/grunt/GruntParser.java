@@ -76,7 +76,8 @@ import org.apache.pig.validator.BlackAndWhitelistFilter;
 import org.apache.pig.validator.PigCommandFilter;
 import org.fusesource.jansi.Ansi;
 import org.fusesource.jansi.AnsiConsole;
-import org.python.google.common.collect.Lists;
+
+import com.google.common.collect.Lists;
 
 public class GruntParser extends PigScriptParser {
 

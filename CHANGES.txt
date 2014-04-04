@@ -99,6 +99,8 @@ OPTIMIZATIONS
  
 BUG FIXES
 
+PIG-3871: Replace org.python.google.* with com.google.* in imports (cheolsoo)
+
 PIG-3858: PigLogger/PigStatusReporter is not set for fetch tasks (lbendig via cheolsoo)
 
 PIG-3798: Registered jar in pig script are appended to the classpath multiple times (cheolsoo)
