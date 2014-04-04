@@ -42,8 +42,8 @@ import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.Pair;
-import org.python.google.common.collect.Lists;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 /**

@@ -22,7 +22,8 @@ import java.util.Set;
 
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.VisitorException;
-import org.python.google.common.collect.Sets;
+
+import com.google.common.collect.Sets;
 
 public class TezPlanContainerUDFCollector extends TezPlanContainerVisitor {
     private Set<String> udfs = Sets.newHashSet();
