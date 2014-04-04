@@ -33,7 +33,8 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.joda.time.DateTime;
-import org.python.google.common.base.Preconditions;
+
+import com.google.common.base.Preconditions;
 
 /**
  * A LoadStoreCaster implementation which stores most type implementations as

@@ -35,8 +35,8 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.util.Utils;
 import org.junit.Before;
 import org.junit.Test;
-import org.python.google.common.collect.Sets;
 
+import com.google.common.collect.Sets;
 import com.google.common.collect.ImmutableSet;
 
 public class TestBuiltinInvoker {
