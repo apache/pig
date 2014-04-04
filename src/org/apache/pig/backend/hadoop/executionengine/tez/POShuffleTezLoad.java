@@ -80,7 +80,7 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
     @Override
     public void attachInputs(Map<String, LogicalInput> inputs, Configuration conf)
             throws ExecException {
-
+        this.conf = conf;
         comparator = (WritableComparator) ConfigUtils.getInputKeySecondaryGroupingComparator(conf);
         try {
             for (String key : inputKeys) {
@@ -107,7 +107,6 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
         } catch (Exception e) {
             throw new ExecException(e);
         }
-        this.conf = conf;
     }
 
     @Override

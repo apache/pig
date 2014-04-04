@@ -83,6 +83,7 @@ public class POShuffledValueInputTez extends PhysicalOperator implements TezInpu
     @Override
     public void attachInputs(Map<String, LogicalInput> inputs,
             Configuration conf) throws ExecException {
+        this.conf = conf;
         List<KeyValuesReader> readersList = new ArrayList<KeyValuesReader>();
         try {
             for (String inputKey : inputKeys) {
@@ -103,7 +104,6 @@ public class POShuffledValueInputTez extends PhysicalOperator implements TezInpu
         } catch (Exception e) {
             throw new ExecException(e);
         }
-        this.conf = conf;
     }
 
     @Override

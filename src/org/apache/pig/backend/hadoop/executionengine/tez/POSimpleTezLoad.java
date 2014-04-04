@@ -69,6 +69,7 @@ public class POSimpleTezLoad extends POLoad implements TezInput {
     public void attachInputs(Map<String, LogicalInput> inputs,
             Configuration conf)
             throws ExecException {
+        this.conf = conf;
         LogicalInput logInput = inputs.get(inputKey);
         if (logInput == null || !(logInput instanceof MRInput)) {
             throw new ExecException("POSimpleTezLoad only accepts MRInputs");
@@ -79,7 +80,6 @@ public class POSimpleTezLoad extends POLoad implements TezInput {
         } catch (IOException e) {
             throw new ExecException(e);
         }
-        this.conf = conf;
     }
 
     /**

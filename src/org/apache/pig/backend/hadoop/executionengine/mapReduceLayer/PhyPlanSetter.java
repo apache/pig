@@ -87,6 +87,11 @@ public class PhyPlanSetter extends PhyPlanVisitor {
         super(plan, new DependencyOrderWalker<PhysicalOperator, PhysicalPlan>(plan));
         parent = plan;
     }
+    
+    @Override
+    public void visit(PhysicalOperator op) {
+        op.setParentPlan(parent);
+    }
 
     @Override
     public void visitLoad(POLoad ld) throws VisitorException{
@@ -175,7 +180,7 @@ public class PhyPlanSetter extends PhyPlanVisitor {
 
     @Override
     public void visitRank(PORank rank) throws VisitorException {
-
+        rank.setParentPlan(parent);
     }
 
     @Override
