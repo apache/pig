@@ -22,6 +22,7 @@ import org.apache.hadoop.mapreduce.Counter;
 import org.apache.hadoop.mapreduce.StatusReporter;
 import org.apache.hadoop.mapreduce.TaskInputOutputContext;
 import org.apache.hadoop.util.Progressable;
+import org.apache.pig.backend.hadoop.executionengine.fetch.FetchContext;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 
@@ -31,7 +32,10 @@ import org.apache.pig.classification.InterfaceStability;
 public class PigStatusReporter extends StatusReporter implements Progressable {
 
     private TaskInputOutputContext context;
+    private FetchContext fetchContext;
+
     private static PigStatusReporter reporter = null;
+
     /**
      * Get singleton instance of the context
      */
@@ -41,35 +45,41 @@ public class PigStatusReporter extends StatusReporter implements Progressable {
         }
         return reporter;
     }
-    
+
     public static void setContext(TaskInputOutputContext context) {
         reporter = new PigStatusReporter(context);
     }
-    
+
     private PigStatusReporter(TaskInputOutputContext context) {
         this.context = context;
     }
-    
+
     @Override
-    public Counter getCounter(Enum<?> name) {        
-        return (context == null) ? null : context.getCounter(name);
+    public Counter getCounter(Enum<?> name) {
+        if (fetchContext != null) {
+            return fetchContext.getCounter(name);  
+        }
+        return (context == null) ? null : context.getCounter(name); 
     }
 
     @Override
     public Counter getCounter(String group, String name) {
+        if (fetchContext != null) {
+            return fetchContext.getCounter(group, name);
+        }
         return (context == null) ? null : context.getCounter(group, name);
     }
 
     @Override
     public void progress() {
-        if (context != null) {
+        if (fetchContext == null && context != null) {
             context.progress();
         }
     }
 
     @Override
     public void setStatus(String status) {
-        if (context != null) {
+        if (fetchContext == null && context != null) {
             context.setStatus(status);
         }
     }
@@ -77,4 +87,13 @@ public class PigStatusReporter extends StatusReporter implements Progressable {
     public float getProgress() {
         return 0;
     }
+
+    /**
+     * Sets a dummy counter handler for fetch tasks
+     * @param fetchContext
+     */
+    public void setFetchContext(FetchContext fetchContext) {
+        this.fetchContext = fetchContext;
+    }
+
 }
