@@ -1,11 +1,9 @@
-These notes are for Pig 0.12.0 release.
+These notes are for Pig 0.12.1 release.
 
 Highlights
 ==========
 
-This release include several new features such as ASSERT operator, Streaming UDF,
-new AvroStorage, IN/CASE operator, BigInteger/BigDecimal data type, support for
-Windows, and more, see a more complete list in CHANGES.txt.
+This is a maintenance release of Pig 0.12. See CHANGES.txt for a list of changes.
 
 System Requirements
 ===================
@@ -19,9 +17,9 @@ Java installation
 Trying the Release
 ==================
 
-1. Download pig-0.12.0.tar.gz
-2. Unpack the file: tar -xzvf pig-0.12.0.tar.gz
-3. Move into the installation directory: cd pig-0.12.0
+1. Download pig-0.12.1.tar.gz
+2. Unpack the file: tar -xzvf pig-0.12.1.tar.gz
+3. Move into the installation directory: cd pig-0.12.1
 4. To run pig without Hadoop cluster, execute the command below. This will
 take you into an interactive shell called grunt that allows you to navigate
 the local file system and execute Pig commands against the local files
