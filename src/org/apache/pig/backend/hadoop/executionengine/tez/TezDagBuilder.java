@@ -36,6 +36,8 @@ import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.OutputFormat;
+import org.apache.hadoop.mapreduce.filecache.ClientDistributedCacheManager;
+import org.apache.hadoop.mapreduce.v2.util.MRApps;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigConfiguration;
@@ -511,6 +513,14 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         MRHelpers.updateEnvironmentForMRTasks(globalConf, taskEnv, isMap);
         vertex.setTaskEnvironment(taskEnv);
 
+        // All these classes are @InterfaceAudience.Private in Hadoop. Switch to Tez methods in TEZ-1012
+        // set the timestamps, public/private visibility of the archives and files
+        ClientDistributedCacheManager
+                .determineTimestampsAndCacheVisibilities(globalConf);
+        // get DelegationToken for each cached file
+        ClientDistributedCacheManager.getDelegationTokens(globalConf,
+                job.getCredentials());
+        MRApps.setupDistributedCache(globalConf, localResources);
         vertex.setTaskLocalResources(localResources);
 
         vertex.setJavaOpts(isMap ? MRHelpers.getMapJavaOpts(globalConf)
