@@ -27,11 +27,10 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POJoinPackage;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.CombinerPackager;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.LitePackager;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackageLite;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCombinerPackage;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.plan.optimizer.OptimizerException;
@@ -78,7 +77,7 @@ public class POPackageAnnotator extends MROpPlanVisitor {
             if(pkg != null) {
                 // if the POPackage is actually a POPostCombinerPackage, then we should
                 // just look for the corresponding LocalRearrange(s) in the combine plan
-                if(pkg instanceof POCombinerPackage) {
+                if (pkg.getPkgr() instanceof CombinerPackager) {
                     if(patchPackage(mr.combinePlan, pkg) != pkg.getNumInps()) {
                         int errCode = 2085;
                         String msg = "Unexpected problem during optimization." +
@@ -148,24 +147,6 @@ public class POPackageAnnotator extends MROpPlanVisitor {
         public void visitPackage(POPackage pkg) throws VisitorException {
             this.pkg = pkg;
         };
-        
-        /* (non-Javadoc)
-         * @see org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor#visitJoinPackage(org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POJoinPackage)
-         */
-        @Override
-        public void visitJoinPackage(POJoinPackage joinPackage)
-                throws VisitorException {
-            this.pkg = joinPackage;
-        }
-        
-        /* (non-Javadoc)
-         * @see org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor#visitCombinerPackage(org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPostCombinerPackage)
-         */
-        @Override
-        public void visitCombinerPackage(POCombinerPackage pkg)
-                throws VisitorException {
-            this.pkg = pkg;
-        }
 
         /**
          * @return the pkg
@@ -201,7 +182,7 @@ public class POPackageAnnotator extends MROpPlanVisitor {
             loRearrangeFound++;
             Map<Integer,Pair<Boolean, Map<Integer, Integer>>> keyInfo;
 
-            if (pkg instanceof POPackageLite) {
+            if (pkg.getPkgr() instanceof LitePackager) {
                 if(lrearrange.getIndex() != 0) {
                     // Throw some exception here
                     throw new RuntimeException("POLocalRearrange for POPackageLite cannot have index other than 0, but has index - "+lrearrange.getIndex());
@@ -210,7 +191,7 @@ public class POPackageAnnotator extends MROpPlanVisitor {
 
             // annotate the package with information from the LORearrange
             // update the keyInfo information if already present in the POPackage
-            keyInfo = pkg.getKeyInfo();
+            keyInfo = pkg.getPkgr().getKeyInfo();
             if(keyInfo == null)
                 keyInfo = new HashMap<Integer, Pair<Boolean, Map<Integer, Integer>>>();
             
@@ -227,9 +208,9 @@ public class POPackageAnnotator extends MROpPlanVisitor {
             keyInfo.put(Integer.valueOf(lrearrange.getIndex()), 
                 new Pair<Boolean, Map<Integer, Integer>>(
                         lrearrange.isProjectStar(), lrearrange.getProjectedColsMap()));
-            pkg.setKeyInfo(keyInfo);
-            pkg.setKeyTuple(lrearrange.isKeyTuple());
-            pkg.setKeyCompound(lrearrange.isKeyCompound());
+            pkg.getPkgr().setKeyInfo(keyInfo);
+            pkg.getPkgr().setKeyTuple(lrearrange.isKeyTuple());
+            pkg.getPkgr().setKeyCompound(lrearrange.isKeyCompound());
         }
 
         /**

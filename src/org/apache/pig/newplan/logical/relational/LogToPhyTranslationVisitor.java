@@ -56,7 +56,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PONative;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage.PackageType;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PORank;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSkewedJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
@@ -64,6 +63,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.Packager.PackageType;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.SchemaTupleClassGenerator.GenContext;
 import org.apache.pig.data.SchemaTupleFrontend;
@@ -357,7 +357,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                     expressionPlans.put(i,loRank.getRankColPlans());
 
                 POPackage poPackage = compileToLR_GR_PackTrio(loRank, null, flags, expressionPlans);
-                poPackage.setPackageType(PackageType.GROUP);
+                poPackage.getPkgr().setPackageType(PackageType.GROUP);
                 translateSoftLinks(loRank);
 
                 List<Boolean> flattenLst = Arrays.asList(true, false);
@@ -366,7 +366,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                 POProject feproj1 = new POProject(new OperatorKey(scope, nodeGen.getNextNodeId(scope)), -1);
                 feproj1.addOriginalLocation(loRank.getAlias(), loRank.getLocation());
                 feproj1.setColumn(0);
-                feproj1.setResultType(poPackage.getKeyType());
+                feproj1.setResultType(poPackage.getPkgr().getKeyType());
                 feproj1.setStar(false);
                 feproj1.setOverloaded(false);
                 fep1.add(feproj1);
@@ -667,14 +667,14 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                 throw new VisitorException(msg, errCode, PigException.BUG, e);
             }
 
-            poPackage.setKeyType(DataType.TUPLE);
+            poPackage.getPkgr().setKeyType(DataType.TUPLE);
             poPackage.setResultType(DataType.TUPLE);
             poPackage.setNumInps(count);
             boolean inner[] = new boolean[count];
             for (int i=0;i<count;i++) {
                 inner[i] = true;
             }
-            poPackage.setInner(inner);
+            poPackage.getPkgr().setInner(inner);
 
             List<PhysicalPlan> fePlans = new ArrayList<PhysicalPlan>();
             List<Boolean> flattenLst = new ArrayList<Boolean>();
@@ -999,7 +999,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
             break;
         case REGULAR:
             POPackage poPackage = compileToLR_GR_PackTrio(cg, cg.getCustomPartitioner(), cg.getInner(), cg.getExpressionPlans());
-            poPackage.setPackageType(PackageType.GROUP);            
+            poPackage.getPkgr().setPackageType(PackageType.GROUP);
             logToPhyMap.put(cg, poPackage);
             break;
         case MERGE:
@@ -1414,7 +1414,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                         e.getErrorCode(),e.getErrorSource(),e);
             }
             logToPhyMap.put(loj, fe);
-            poPackage.setPackageType(POPackage.PackageType.JOIN);
+            poPackage.getPkgr().setPackageType(PackageType.JOIN);
         }
         translateSoftLinks(loj);
     }
@@ -1485,10 +1485,10 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
             }
         }
 
-        poPackage.setKeyType(type);
+        poPackage.getPkgr().setKeyType(type);
         poPackage.setResultType(DataType.TUPLE);
         poPackage.setNumInps(count);
-        poPackage.setInner(innerFlags);
+        poPackage.getPkgr().setInner(innerFlags);
         return poPackage;
     }
 

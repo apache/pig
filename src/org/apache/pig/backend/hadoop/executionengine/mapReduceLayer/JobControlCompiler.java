@@ -827,7 +827,8 @@ public class JobControlCompiler{
                 }
                 if (!pigContext.inIllustrator)
                     conf.set("pig.reduce.package", ObjectSerializer.serialize(pack));
-                conf.set("pig.reduce.key.type", Byte.toString(pack.getKeyType()));
+                conf.set("pig.reduce.key.type",
+                        Byte.toString(pack.getPkgr().getKeyType()));
 
                 if (mro.getUseSecondaryKey()) {
                     nwJob.setGroupingComparatorClass(PigSecondaryKeyGroupComparator.class);
@@ -840,9 +841,11 @@ public class JobControlCompiler{
                 }
                 else
                 {
-                    Class<? extends WritableComparable> keyClass = HDataType.getWritableComparableTypes(pack.getKeyType()).getClass();
+                    Class<? extends WritableComparable> keyClass = HDataType
+                            .getWritableComparableTypes(
+                                    pack.getPkgr().getKeyType()).getClass();
                     nwJob.setOutputKeyClass(keyClass);
-                    selectComparator(mro, pack.getKeyType(), nwJob);
+                    selectComparator(mro, pack.getPkgr().getKeyType(), nwJob);
                 }
                 nwJob.setOutputValueClass(NullableTuple.class);
             }

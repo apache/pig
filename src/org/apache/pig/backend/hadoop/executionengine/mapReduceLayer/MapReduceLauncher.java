@@ -60,7 +60,7 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MRPrin
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.POPackageAnnotator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.XMLMRPrinter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POJoinPackage;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.JoinPackager;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.impl.PigContext;
@@ -637,8 +637,8 @@ public class MapReduceLauncher extends Launcher{
         comp.getMessageCollector().logMessages(MessageType.Warning, aggregateWarning, log);
 
         String lastInputChunkSize =
-                pc.getProperties().getProperty(
-                        "last.input.chunksize", POJoinPackage.DEFAULT_CHUNK_SIZE);
+            pc.getProperties().getProperty(
+                "last.input.chunksize", JoinPackager.DEFAULT_CHUNK_SIZE);
 
         String prop = pc.getProperties().getProperty(PigConfiguration.PROP_NO_COMBINER);
         if (!pc.inIllustrator && !("true".equals(prop)))  {

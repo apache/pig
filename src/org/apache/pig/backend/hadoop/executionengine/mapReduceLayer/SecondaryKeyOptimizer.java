@@ -30,10 +30,10 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.PORelationToExprProject;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.JoinPackager;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PODistinct;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFilter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POJoinPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLimit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
@@ -221,7 +221,8 @@ public class SecondaryKeyOptimizer extends MROpPlanVisitor {
         PhysicalOperator currentNode = root;
         POForEach foreach = null;
         while (currentNode != null) {
-            if (currentNode instanceof POPackage && !(currentNode instanceof POJoinPackage)
+            if (currentNode instanceof POPackage
+                    && !(((POPackage) currentNode).getPkgr() instanceof JoinPackager)
                     || currentNode instanceof POFilter
                     || currentNode instanceof POLimit) {
                 List<PhysicalOperator> succs = mr.reducePlan
@@ -372,7 +373,7 @@ public class SecondaryKeyOptimizer extends MROpPlanVisitor {
                 }
             }
             POPackage pack = (POPackage) root;
-            pack.setUseSecondaryKey(true);
+            pack.getPkgr().setUseSecondaryKey(true);
         }
     }
 

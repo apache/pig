@@ -22,30 +22,28 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Iterator;
+
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackageLite;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.Packager;
 import org.apache.pig.impl.io.NullableTuple;
+import org.apache.pig.impl.io.PigNullableWritable;
 
 /**
- * This bag is specifically created for use by POPackageLite. So it has three 
- * properties, the NullableTuple iterator, the key (Object) and the keyInfo 
- * (Map<Integer, Pair<Boolean, Map<Integer, Integer>>>) all three 
- * of which are required in the constructor call. This bag does not store 
- * the tuples in memory, but has access to an iterator typically provided by 
- * Hadoop. Use this when you already have an iterator over tuples and do not 
- * want to copy over again to a new bag.
+ * This bag does not store the tuples in memory, but has access to an iterator
+ * typically provided by Hadoop. Use this when you already have an iterator over
+ * tuples and do not want to copy over again to a new bag.
  */
 public class ReadOnceBag implements DataBag {
 
-    // The Package operator that created this
-    POPackageLite pkg;
+    // The Packager that created this
+    protected Packager pkgr;
     
     //The iterator of Tuples. Marked transient because we will never serialize this.
-    transient Iterator<NullableTuple> tupIter;
+    protected transient Iterator<NullableTuple> tupIter;
     
     // The key being worked on
-    Object key;
+    protected PigNullableWritable keyWritable;
 
     /**
      * 
@@ -60,10 +58,11 @@ public class ReadOnceBag implements DataBag {
      * @param tupIter Iterator<NullableTuple>
      * @param key Object
      */
-    public ReadOnceBag(POPackageLite pkg, Iterator<NullableTuple> tupIter, Object key) {
-        this.pkg = pkg;
+    public ReadOnceBag(Packager pkgr, Iterator<NullableTuple> tupIter,
+            PigNullableWritable keyWritable) {
+        this.pkgr = pkgr;
         this.tupIter = tupIter;
-        this.key = key;
+        this.keyWritable = keyWritable;
     }
 
     /* (non-Javadoc)
@@ -177,27 +176,23 @@ public class ReadOnceBag implements DataBag {
 
     @Override
     public boolean equals(Object other) {
-        if(other instanceof ReadOnceBag)
-        {
-            if(pkg.getKeyTuple())
-            {
-                if(tupIter == ((ReadOnceBag)other).tupIter && pkg.getKeyTuple() == ((ReadOnceBag)other).pkg.getKeyTuple() && pkg.getKeyAsTuple().equals(((ReadOnceBag)other).pkg.getKeyAsTuple()))
-                {
+        if (other instanceof ReadOnceBag) {
+            if (pkgr.getKeyTuple()) {
+                if (tupIter == ((ReadOnceBag) other).tupIter
+                        && pkgr.getKeyTuple() == ((ReadOnceBag) other).pkgr
+                                .getKeyTuple()
+                        && pkgr.getKeyAsTuple().equals(
+                                ((ReadOnceBag) other).pkgr.getKeyAsTuple())) {
                     return true;
-                }
-                else
-                {
+                } else {
                     return false;
                 }
-            }
-            else
-            {
-                if(tupIter == ((ReadOnceBag)other).tupIter && pkg.getKey().equals(((ReadOnceBag)other).pkg.getKey()))
-                {
+            } else {
+                if (tupIter == ((ReadOnceBag) other).tupIter
+                        && pkgr.getKey().equals(
+                                ((ReadOnceBag) other).pkgr.getKey())) {
                     return true;
-                }
-                else
-                {
+                } else {
                     return false;
                 }
             }
@@ -208,18 +203,18 @@ public class ReadOnceBag implements DataBag {
     @Override
     public int hashCode() {
     	int hash = 7;
-        if(pkg.getKeyTuple())
+        if (pkgr.getKeyTuple())
         {
-            hash = hash*31 + pkg.getKeyAsTuple().hashCode();
+            hash = hash * 31 + pkgr.getKeyAsTuple().hashCode();
         }
         else
         {
-        	hash = hash*31 + pkg.getKey().hashCode();
+            hash = hash * 31 + pkgr.getKey().hashCode();
         }
         return hash;
     }
 
-    class ReadOnceBagIterator implements Iterator<Tuple>
+    protected class ReadOnceBagIterator implements Iterator<Tuple>
     {
         /* (non-Javadoc)
          * @see java.util.Iterator#hasNext()
@@ -238,7 +233,7 @@ public class ReadOnceBag implements DataBag {
             int index = ntup.getIndex();
             Tuple ret = null;
             try {
-                ret = pkg.getValueTuple(ntup, index, key);
+                ret = pkgr.getValueTuple(keyWritable, ntup, index);
             } catch (ExecException e)
             {
             	throw new RuntimeException("ReadOnceBag failed to get value tuple : "+e.toString());

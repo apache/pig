@@ -24,40 +24,26 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
-import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DataType;
 import org.apache.pig.data.InternalCachedBag;
 import org.apache.pig.data.NonSpillableDataBag;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.NullableTuple;
-import org.apache.pig.impl.plan.NodeIdGenerator;
-import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.util.Pair;
 /**
  * The package operator that packages the globally rearranged tuples into
  * output format after the combiner stage.  It differs from POPackage in that
  * it does not use the index in the NullableTuple to find the bag to put a
- * tuple in.  Instead, the inputs are put in a bag corresponding to their 
+ * tuple in.  Instead, the inputs are put in a bag corresponding to their
  * offset in the tuple.
  */
-public class POCombinerPackage extends POPackage {
-    /**
-     * 
-     */
-    private static final long serialVersionUID = 1L;
-
-    private static BagFactory mBagFactory = BagFactory.getInstance();
-    private static TupleFactory mTupleFactory = TupleFactory.getInstance();
-
+public class CombinerPackager extends Packager {
     private boolean[] mBags; // For each field, indicates whether or not it
-                             // needs to be put in a bag.
-    
+    // needs to be put in a bag.
+
     private Map<Integer, Integer> keyLookup;
-    
+
     private int numBags;
 
     /**
@@ -67,11 +53,8 @@ public class POCombinerPackage extends POPackage {
      * @param bags for each field, indicates whether it should be a bag (true)
      * or a simple field (false).
      */
-    public POCombinerPackage(POPackage pkg, boolean[] bags) {
-        super(new OperatorKey(pkg.getOperatorKey().scope,
-            NodeIdGenerator.getGenerator().getNextNodeId(pkg.getOperatorKey().scope)),
-            pkg.getRequestedParallelism(), pkg.getInputs());
-        resultType = pkg.getResultType();
+    public CombinerPackager(Packager pkg, boolean[] bags) {
+        super();
         keyType = pkg.keyType;
         numInputs = 1;
         inner = new boolean[1];
@@ -83,23 +66,14 @@ public class POCombinerPackage extends POPackage {
         }
         numBags = 0;
         for (int i = 0; i < mBags.length; i++) {
-            if (mBags[i]) numBags++;            
+            if (mBags[i]) numBags++;
         }
     }
 
-    @Override
-    public String name() {
-        return "POCombinerPackage" + "[" + DataType.findTypeName(resultType) + "]" + "{" + DataType.findTypeName(keyType) + "}" +" - " + mKey.toString();
-    }
-    
-    @Override
-    public void visit(PhyPlanVisitor v) throws VisitorException {
-        v.visitCombinerPackage(this);
-    }
-    
     /**
      * @param keyInfo the keyInfo to set
      */
+    @Override
     public void setKeyInfo(Map<Integer, Pair<Boolean, Map<Integer, Integer>>> keyInfo) {
         this.keyInfo = keyInfo;
         // TODO: IMPORTANT ASSUMPTION: Currently we only combine in the
@@ -109,40 +83,40 @@ public class POCombinerPackage extends POPackage {
         // has an index of 0. When we do support combiner in Cogroups
         // THIS WILL NEED TO BE REVISITED.
         Pair<Boolean, Map<Integer, Integer>> lrKeyInfo =
-            keyInfo.get(0); // assumption: only group are "combinable", hence index 0
+                keyInfo.get(0); // assumption: only group are "combinable", hence index 0
         keyLookup = lrKeyInfo.second;
     }
 
     private DataBag createDataBag(int numBags) {
-    	String bagType = null;
+        String bagType = null;
         if (PigMapReduce.sJobConfInternal.get() != null) {
-   			bagType = PigMapReduce.sJobConfInternal.get().get("pig.cachedbag.type");       			
-   	    }
-                		          	           		
-    	if (bagType != null && bagType.equalsIgnoreCase("default")) {
-    		return new NonSpillableDataBag();
-    	}
-    	return new InternalCachedBag(numBags);  	
+            bagType = PigMapReduce.sJobConfInternal.get().get("pig.cachedbag.type");
+        }
+
+        if (bagType != null && bagType.equalsIgnoreCase("default")) {
+            return new NonSpillableDataBag();
+        }
+        return new InternalCachedBag(numBags);
     }
-    
+
     @Override
-    public Result getNextTuple() throws ExecException {
-        int keyField = -1;
+    public Result getNext() throws ExecException {
+        if (bags == null) {
+            return new Result(POStatus.STATUS_EOP, null);
+        }
+
         //Create numInputs bags
         Object[] fields = new Object[mBags.length];
         for (int i = 0; i < mBags.length; i++) {
-            if (mBags[i]) fields[i] = createDataBag(numBags);            
+            if (mBags[i]) fields[i] = createDataBag(numBags);
         }
-        
+
         // For each indexed tup in the inp, split them up and place their
         // fields into the proper bags.  If the given field isn't a bag, just
         // set the value as is.
-        while (tupIter.hasNext()) {
-            NullableTuple ntup = tupIter.next();
-            Tuple tup = (Tuple)ntup.getValueAsPigType();
-            
-            int tupIndex = 0; // an index for accessing elements from 
-                              // the value (tup) that we have currently
+        for (Tuple tup : bags[0]) {
+            int tupIndex = 0; // an index for accessing elements from
+            // the value (tup) that we have currently
             for(int i = 0; i < mBags.length; i++) {
                 Integer keyIndex = keyLookup.get(i);
                 if(keyIndex == null && mBags[i]) {
@@ -159,13 +133,15 @@ public class POCombinerPackage extends POPackage {
                 }
             }
         }
-        
-        // The successor of the POCombinerPackage as of 
+
+        detachInput();
+
+        // The successor of the POPackage(Combiner) as of
         // now SHOULD be a POForeach which has been adjusted
         // to look for its inputs by projecting from the corresponding
-		// positions in the POCombinerPackage output.
-		// So we will NOT be adding the key in the result here but merely 
-        // putting all bags into a result tuple and returning it. 
+        // positions in the POPackage(Combiner) output.
+        // So we will NOT be adding the key in the result here but merely
+        // putting all bags into a result tuple and returning it.
         Tuple res;
         res = mTupleFactory.newTuple(mBags.length);
         for (int i = 0; i < mBags.length; i++) res.set(i, fields[i]);
@@ -174,6 +150,12 @@ public class POCombinerPackage extends POPackage {
         r.returnStatus = POStatus.STATUS_OK;
         return r;
 
+    }
+
+    @Override
+    public Tuple getValueTuple(PigNullableWritable keyWritable,
+            NullableTuple ntup, int index) throws ExecException {
+        return (Tuple) ntup.getValueAsPigType();
     }
 
 }

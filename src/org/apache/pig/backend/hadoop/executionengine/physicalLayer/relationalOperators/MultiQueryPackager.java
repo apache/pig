@@ -19,50 +19,46 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOp
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.HDataType;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.NullableUnknownWritable;
 import org.apache.pig.impl.io.PigNullableWritable;
-import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.backend.hadoop.HDataType;
 
 /**
- * The package operator that packages the globally rearranged tuples 
+ * The package operator that packages the globally rearranged tuples
  * into output format as required by multi-query de-multiplexer.
  * <p>
  * This operator is used when merging multiple Map-Reduce splittees
- * into a Map-only splitter during multi-query optimization. 
+ * into a Map-only splitter during multi-query optimization.
  * The package operators of the reduce plans of the splittees form an
- * indexed package list inside this operator. When this operator 
- * receives an input, it extracts the index from the key and calls the 
+ * indexed package list inside this operator. When this operator
+ * receives an input, it extracts the index from the key and calls the
  * corresponding package to get the output data.
  * <p>
  * Due to the recursive nature of multi-query optimization, this operator
  * may be contained in another multi-query packager.
  * <p>
- * The successor of this operator must be a PODemux operator which 
+ * The successor of this operator must be a PODemux operator which
  * knows how to consume the output of this operator.
  */
-public class POMultiQueryPackage extends POPackage {
-    
+public class MultiQueryPackager extends Packager {
+
     private static final long serialVersionUID = 1L;
-    
+
     private static int idxPart = 0x7F;
 
-    private List<POPackage> packages = new ArrayList<POPackage>();
+    private List<Packager> packagers = new ArrayList<Packager>();
 
     /**
-     * If the POLocalRearranges corresponding to the reduce plans in 
+     * If the POLocalRearranges corresponding to the reduce plans in
      * myPlans (the list of inner plans of the demux) have different key types
      * then the MultiQueryOptimizer converts all the keys to be of type tuple
      * by wrapping any non-tuple keys into Tuples (keys which are already tuples
@@ -72,118 +68,44 @@ public class POMultiQueryPackage extends POPackage {
      * to "unwrap" the tuple to get to the key
      */
     private ArrayList<Boolean> isKeyWrapped = new ArrayList<Boolean>();
-    
+
     /*
      * Indicating if all the inner plans have the same
-     * map key type. If not, the keys passed in are 
+     * map key type. If not, the keys passed in are
      * wrapped inside tuples and need to be extracted
-     * out during the reduce phase 
+     * out during the reduce phase
      */
     private boolean sameMapKeyType = true;
-    
+
     /*
-     * Indicating if this operator is in a combiner. 
+     * Indicating if this operator is in a combiner.
      * If not, this operator is in a reducer and the key
      * values must first be extracted from the tuple-wrap
      * before writing out to the disk
      */
     private boolean inCombiner = false;
-    
-    transient private PigNullableWritable myKey;
+
+    private PigNullableWritable keyWritable = null;
 
     /**
-     * Constructs an operator with the specified key.
-     * 
-     * @param k the operator key
-     */
-    public POMultiQueryPackage(OperatorKey k) {
-        this(k, -1, null);
-    }
-
-    /**
-     * Constructs an operator with the specified key
-     * and degree of parallelism.
-     *  
-     * @param k the operator key
-     * @param rp the degree of parallelism requested
-     */
-    public POMultiQueryPackage(OperatorKey k, int rp) {
-        this(k, rp, null);
-    }
-
-    /**
-     * Constructs an operator with the specified key and inputs.
-     *  
-     * @param k the operator key
-     * @param inp the inputs that this operator will read data from
-     */
-    public POMultiQueryPackage(OperatorKey k, List<PhysicalOperator> inp) {
-        this(k, -1, inp);
-    }
-
-    /**
-     * Constructs an operator with the specified key,
-     * degree of parallelism and inputs.
-     * 
-     * @param k the operator key
-     * @param rp the degree of parallelism requested 
-     * @param inp the inputs that this operator will read data from
-     */
-    public POMultiQueryPackage(OperatorKey k, int rp, List<PhysicalOperator> inp) {
-        super(k, rp, inp);
-    }
-
-    @Override
-    public String name() {
-        return "MultiQuery Package [" + isKeyWrapped + "] - " +  getOperatorKey().toString();
-    }
-
-    @Override
-    public boolean supportsMultipleInputs() {
-        return false;
-    }
-
-    @Override
-    public void visit(PhyPlanVisitor v) throws VisitorException {
-        v.visitMultiQueryPackage(this);
-    }
-
-    @Override
-    public boolean supportsMultipleOutputs() {
-        return false;
-    }
-    
-    @Override
-    public void attachInput(PigNullableWritable k, Iterator<NullableTuple> inp) {
-        tupIter = inp;
-        myKey = k;
-    }
-
-    @Override
-    public void detachInput() {
-        tupIter = null;
-        myKey = null;
-    }
-
-    /**
-     * Appends the specified package object to the end of 
+     * Appends the specified package object to the end of
      * the package list.
      * 
      * @param pack package to be appended to the list
      */
-    public void addPackage(POPackage pack) {
-        packages.add(pack);        
+    public void addPackager(Packager pkgr) {
+        packagers.add(pkgr);
     }
-    
+
     /**
-     * Appends the specified package object to the end of 
+     * Appends the specified package object to the end of
      * the package list.
      * 
      * @param pack package to be appended to the list
      * @param mapKeyType the map key type associated with the package
      */
-    public void addPackage(POPackage pack, byte mapKeyType) {
-        packages.add(pack);        
+    public void addPackager(Packager pkgr, byte mapKeyType) {
+        packagers.add(pkgr);
         // if mapKeyType is already a tuple, we will NOT
         // be wrapping it in an extra tuple. If it is not
         // a tuple, we will wrap into in a tuple
@@ -192,52 +114,58 @@ public class POMultiQueryPackage extends POPackage {
 
     /**
      * Returns the list of packages.
-     *  
+     * 
      * @return the list of the packages
      */
-    public List<POPackage> getPackages() {
-        return packages;
+    public List<Packager> getPackagers() {
+        return packagers;
     }
 
     /**
      * Constructs the output tuple from the inputs.
-     * <p> 
-     * The output is consumed by for the demultiplexer operator 
-     * (PODemux) in the format (key, {bag of tuples}) where key 
+     * <p>
+     * The output is consumed by for the demultiplexer operator
+     * (PODemux) in the format (key, {bag of tuples}) where key
      * is an indexed WritableComparable, not the wrapped value as a pig type.
      */
     @Override
-    public Result getNextTuple() throws ExecException {
-        
-        byte origIndex = myKey.getIndex();
+    public Result getNext() throws ExecException {
+        if (bags == null) {
+            return new Result(POStatus.STATUS_EOP, null);
+        }
+
+        byte origIndex = keyWritable.getIndex();
 
         int index = (int)origIndex;
         index &= idxPart;
-        
-        if (index >= packages.size() || index < 0) {
+
+        if (index >= packagers.size() || index < 0) {
             int errCode = 2140;
-            String msg = "Invalid package index " + index 
-                + " should be in the range between 0 and " + packages.size();
+            String msg = "Invalid package index " + index
+                    + " should be in the range between 0 and "
+                    + packagers.size();
             throw new ExecException(msg, errCode, PigException.BUG);
         }
-                  
-        POPackage pack = packages.get(index);
-        
+
+        Packager pkgr = packagers.get(index);
+
         // check to see if we need to unwrap the key. The keys may be
-        // wrapped inside a tuple by LocalRearrange operator when jobs  
+        // wrapped inside a tuple by LocalRearrange operator when jobs
         // with different map key types are merged
-        PigNullableWritable curKey = myKey;
-        if (!sameMapKeyType && !inCombiner && isKeyWrapped.get(index)) {                                       
-            Tuple tup = (Tuple)myKey.getValueAsPigType();
-            curKey = HDataType.getWritableComparableTypes(tup.get(0), pack.getKeyType());
+        PigNullableWritable curKey = keyWritable;
+        if (!sameMapKeyType && !inCombiner && isKeyWrapped.get(index)) {
+            Tuple tup = (Tuple) keyWritable.getValueAsPigType();
+            curKey = HDataType.getWritableComparableTypes(tup.get(0),
+                    pkgr.getKeyType());
             curKey.setIndex(origIndex);
         }
-            
-        pack.attachInput(curKey, tupIter);
 
-        Result res = pack.getNextTuple();
-        pack.detachInput();
-        
+        pkgr.attachInput(curKey, bags, readOnce);
+
+        Result res = pkgr.getNext();
+        pkgr.detachInput();
+        detachInput();
+
         Tuple tuple = (Tuple)res.result;
 
         // the object present in the first field
@@ -249,7 +177,7 @@ public class POMultiQueryPackage extends POPackage {
         // which needs a PigNullableWritable first field so
         // it can figure out the index. Therefore we need
         // to add index to the first field of the tuple.
-                
+
         Object obj = tuple.get(0);
         if (obj instanceof PigNullableWritable) {
             ((PigNullableWritable)obj).setIndex(origIndex);
@@ -266,12 +194,12 @@ public class POMultiQueryPackage extends POPackage {
             myObj.setIndex(origIndex);
             tuple.set(0, myObj);
         }
-        // illustrator markup has been handled by "pack"
+        // illustrator markup has been handled by "pkgr"
         return res;
     }
 
     /**
-     * Returns the list of booleans that indicates if the 
+     * Returns the list of booleans that indicates if the
      * key needs to unwrapped for the corresponding plan.
      * 
      * @return the list of isKeyWrapped boolean values
@@ -279,7 +207,7 @@ public class POMultiQueryPackage extends POPackage {
     public List<Boolean> getIsKeyWrappedList() {
         return Collections.unmodifiableList(isKeyWrapped);
     }
-    
+
     /**
      * Adds a list of IsKeyWrapped boolean values
      * 
@@ -290,7 +218,7 @@ public class POMultiQueryPackage extends POPackage {
             isKeyWrapped.add(b);
         }
     }
-    
+
     public void setInCombiner(boolean inCombiner) {
         this.inCombiner = inCombiner;
     }
@@ -307,4 +235,16 @@ public class POMultiQueryPackage extends POPackage {
         return sameMapKeyType;
     }
 
+    @Override
+    public int getNumInputs(byte index) {
+        return packagers.get(((int) index) & idxPart).getNumInputs(index);
+    }
+
+    @Override
+    public Tuple getValueTuple(PigNullableWritable keyWritable,
+            NullableTuple ntup, int index) throws ExecException {
+        this.keyWritable = keyWritable;
+        return packagers.get(((int) index) & idxPart).getValueTuple(
+                keyWritable, ntup, index);
+    }
 }

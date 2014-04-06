@@ -1,6 +1,6 @@
 test-10: Store()
 |
-|---A: Package[tuple]{tuple} - scope-19
+|---A: Package(Packager)[tuple]{tuple} - scope-19
     |
     |---A: Global Rearrange[tuple] - scope-18
         |

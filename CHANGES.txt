@@ -30,6 +30,8 @@ PIG-2207: Support custom counters for aggregating warnings from different udfs (
 
 IMPROVEMENTS
 
+PIG-3591: Refactor POPackage to separate MR specific code from packaging (mwagner via cheolsoo)
+
 PIG-3449: Move JobCreationException to org.apache.pig.backend.hadoop.executionengine (cheolsoo)
 
 PIG-3765: Ability to disable Pig commands and operators (prkommireddi)

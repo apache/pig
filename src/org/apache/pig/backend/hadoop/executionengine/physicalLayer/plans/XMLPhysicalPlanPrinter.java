@@ -33,6 +33,7 @@ import javax.xml.transform.stream.StreamResult;
 
 import org.apache.pig.PigException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.MultiQueryPackager;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCollectedGroup;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PODemux;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFRJoin;
@@ -40,26 +41,27 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMultiQueryPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSkewedJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.Packager;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.MultiMap;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 
 
 public class XMLPhysicalPlanPrinter<P extends OperatorPlan<PhysicalOperator>> extends
-        PhyPlanVisitor {
-    
+PhyPlanVisitor {
+
     private Document doc = null;
     private Element parent = null;
-    
+
     public XMLPhysicalPlanPrinter(PhysicalPlan plan, Document doc, Element parent) {
         super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(plan));
         this.doc = doc;
@@ -84,7 +86,7 @@ public class XMLPhysicalPlanPrinter<P extends OperatorPlan<PhysicalOperator>> ex
             transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
             transformer.setOutputProperty(OutputKeys.INDENT, "yes");
             transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
-            
+
             StringWriter sw = new StringWriter();
             StreamResult result = new StreamResult(sw);
             DOMSource source = new DOMSource(doc);
@@ -94,7 +96,7 @@ public class XMLPhysicalPlanPrinter<P extends OperatorPlan<PhysicalOperator>> ex
             e.printStackTrace();
         }
     }
-    
+
     private Element createAlias(PhysicalOperator po) {
         Element aliasNode = null;
         String alias = po.getAlias();
@@ -112,8 +114,8 @@ public class XMLPhysicalPlanPrinter<P extends OperatorPlan<PhysicalOperator>> ex
             depthFirst(leaf, parentNode);
         }
     }
-    
-    
+
+
     private void visitPlan(PhysicalPlan pp, Element parentNode) throws VisitorException {
         if(pp!=null) {
             XMLPhysicalPlanPrinter<PhysicalPlan> ppp =
@@ -121,15 +123,15 @@ public class XMLPhysicalPlanPrinter<P extends OperatorPlan<PhysicalOperator>> ex
             ppp.visit();
         }
     }
-    
-    
+
+
     private void visitPlan(List<PhysicalPlan> lep, Element parentNode) throws VisitorException {
         if(lep!=null)
             for (PhysicalPlan ep : lep) {
                 visitPlan(ep, parentNode);
             }
     }
-    
+
     private Element createPONode(PhysicalOperator node) {
         Element PONode = doc.createElement(node.getClass().getSimpleName());
         PONode.setAttribute("scope", "" + node.getOperatorKey().id);
@@ -150,18 +152,18 @@ public class XMLPhysicalPlanPrinter<P extends OperatorPlan<PhysicalOperator>> ex
             Element loadFile = doc.createElement("loadFile");
             loadFile.setTextContent(((POLoad)node).getLFile().getFileName());
             PONode.appendChild(loadFile);
-            
+
             Element isTmpLoad = doc.createElement("isTmpLoad");
             isTmpLoad.setTextContent(Boolean.valueOf(((POLoad)node).isTmpLoad()).toString());
             PONode.appendChild(isTmpLoad);
         }
         return PONode;
     }
-    
+
 
     private void depthFirst(PhysicalOperator node, Element parentNode) throws VisitorException {
         Element childNode = null;
-        
+
         List<PhysicalPlan> subPlans = new ArrayList<PhysicalPlan>();
         if(node instanceof POFilter){
             subPlans.add(((POFilter) node).getPlan());
@@ -177,12 +179,11 @@ public class XMLPhysicalPlanPrinter<P extends OperatorPlan<PhysicalOperator>> ex
             subPlans = ((POSplit)node).getPlans();
         } else if (node instanceof PODemux) {
             subPlans = ((PODemux)node).getPlans();
-        } else if (node instanceof POMultiQueryPackage) {
-            childNode = createPONode(node);   
-            List<POPackage> pkgs = ((POMultiQueryPackage)node).getPackages();
-            for (POPackage pkg : pkgs) {
-                childNode.appendChild(createPONode(pkg));
-            }
+        } else if(node instanceof POPackage){
+            childNode = createPONode(node);
+            Packager pkgr = ((POPackage) node).getPkgr();
+            Node pkgrNode = createPackagerNode(pkgr);
+            childNode.appendChild(pkgrNode);
         } else if(node instanceof POFRJoin){
             childNode = createPONode(node);
             POFRJoin frj = (POFRJoin)node;
@@ -198,11 +199,11 @@ public class XMLPhysicalPlanPrinter<P extends OperatorPlan<PhysicalOperator>> ex
             MultiMap<PhysicalOperator, PhysicalPlan> joinPlans = skewed.getJoinPlans();
             if(joinPlans!=null) {
                 List<PhysicalPlan> inner_plans = new ArrayList<PhysicalPlan>();
-            	inner_plans.addAll(joinPlans.values());   
-            	visitPlan(inner_plans, childNode);
+                inner_plans.addAll(joinPlans.values());
+                visitPlan(inner_plans, childNode);
             }
         }
-        
+
         if (childNode == null) {
             childNode = createPONode(node);
             if (subPlans.size() > 0) {
@@ -210,17 +211,29 @@ public class XMLPhysicalPlanPrinter<P extends OperatorPlan<PhysicalOperator>> ex
             }
         }
         parentNode.appendChild(childNode);
-        
+
         List<PhysicalOperator> originalPredecessors = mPlan.getPredecessors(node);
         if (originalPredecessors == null) {
             return;
         }
-        
+
         List<PhysicalOperator> predecessors =  new ArrayList<PhysicalOperator>(originalPredecessors);
-        
+
         Collections.sort(predecessors);
         for (PhysicalOperator pred : predecessors) {
             depthFirst(pred, childNode);
         }
+    }
+
+    private Node createPackagerNode(Packager pkgr) {
+        Element pkgrNode = doc.createElement(pkgr.getClass().getSimpleName());
+        if (pkgr instanceof MultiQueryPackager) {
+            List<Packager> pkgrs = ((MultiQueryPackager) pkgr)
+                    .getPackagers();
+            for (Packager child : pkgrs) {
+                pkgrNode.appendChild(createPackagerNode(child));
+            }
+        }
+        return pkgrNode;
     }
 }
