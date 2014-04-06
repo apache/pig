@@ -80,7 +80,7 @@ public class TestPackage {
         // ITIterator iti = new TestPackage.ITIterator(db.iterator());
         POPackage pop = new POPackage(new OperatorKey("", r.nextLong()));
         pop.setNumInps(2);
-        pop.setInner(inner);
+        pop.getPkgr().setInner(inner);
         PigNullableWritable k = HDataType.getWritableComparableTypes(key, keyType);
         pop.attachInput(k, db.iterator());
         if (keyType != DataType.BAG) {
@@ -113,7 +113,7 @@ public class TestPackage {
                 new Pair<Boolean, Map<Integer, Integer>>(false, new HashMap<Integer, Integer>());
         keyInfo.put(0, p);
         keyInfo.put(1, p);
-        pop.setKeyInfo(keyInfo);
+        pop.getPkgr().setKeyInfo(keyInfo);
         Tuple t = null;
         Result res = null;
         res = pop.getNextTuple();

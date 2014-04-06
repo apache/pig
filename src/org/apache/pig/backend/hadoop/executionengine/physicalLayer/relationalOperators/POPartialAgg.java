@@ -229,7 +229,7 @@ public class POPartialAgg extends PhysicalOperator implements Spillable {
                 }
             }
             avgTupleSize = estTotalMem / estTuples;
-            int totalTuples = memLimits.getCacheLimit();
+            long totalTuples = memLimits.getCacheLimit();
             LOG.info("Estimated total tuples to buffer, based on " + estTuples + " tuples that took up " + estTotalMem + " bytes: " + totalTuples);
             firstTierThreshold = (int) (0.5 + totalTuples * (1f - (1f / sizeReduction)));
             secondTierThreshold = (int) (0.5 + totalTuples *  (1f / sizeReduction));

@@ -23,8 +23,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import org.joda.time.DateTimeZone;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -40,7 +38,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POJoinPackage;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.JoinPackager;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
@@ -60,6 +58,7 @@ import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.util.SpillableMemoryManager;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
+import org.joda.time.DateTimeZone;
 
 /**
  * This class is the static Mapper &amp; Reducer classes that
@@ -396,7 +395,7 @@ public class PigGenericMapReduce {
             // tuples out of the getnext() call of POJoinPackage
             // In this case, we process till we see EOP from 
             // POJoinPacakage.getNext()
-            if (pack instanceof POJoinPackage)
+            if (pack.getPkgr() instanceof JoinPackager)
             {
                 pack.attachInput(key, tupIter.iterator());
                 while (true)
@@ -583,7 +582,7 @@ public class PigGenericMapReduce {
         @Override
         protected void setup(Context context) throws IOException, InterruptedException {
             super.setup(context);
-            keyType = pack.getKeyType();
+            keyType = pack.getPkgr().getKeyType();
         }
 
         /**

@@ -18,10 +18,10 @@
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Iterator;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -31,14 +31,15 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROpPl
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.MultiQueryPackager;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PODemux;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMultiQueryPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.Packager;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.plan.NodeIdGenerator;
@@ -686,28 +687,33 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
             PhysicalPlan to, int initial, int current, byte mapKeyType) throws VisitorException {                    
         POPackage pk = (POPackage)from.getRoots().get(0);
         from.remove(pk);
+        Packager fromPkgr = pk.getPkgr();
  
-        if(!(pk instanceof POMultiQueryPackage)){
+        if (!(fromPkgr instanceof MultiQueryPackager)) {
             // XXX the index of the original keyInfo map is always 0,
             // we need to shift the index so that the lookups works
             // with the new indexed key
-            addShiftedKeyInfoIndex(initial, pk); 
+            addShiftedKeyInfoIndex(initial, fromPkgr);
         }
          
         int total = current - initial;
         
-        POMultiQueryPackage pkg = (POMultiQueryPackage)to.getRoots().get(0);        
+        MultiQueryPackager toPkgr = (MultiQueryPackager) ((POPackage) to
+                .getRoots().get(0)).getPkgr();
         int pkCount = 0;
-        if (pk instanceof POMultiQueryPackage) {
-            List<POPackage> pkgs = ((POMultiQueryPackage)pk).getPackages();
-            for (POPackage p : pkgs) {
-                pkg.addPackage(p);
+        if (fromPkgr instanceof MultiQueryPackager) {
+            List<Packager> pkgs = ((MultiQueryPackager) fromPkgr)
+                    .getPackagers();
+            for (Packager p : pkgs) {
+                ((MultiQueryPackager) toPkgr).addPackager(p);
                 pkCount++;
             }
-            pkg.addIsKeyWrappedList(((POMultiQueryPackage)pk).getIsKeyWrappedList());
-            addShiftedKeyInfoIndex(initial, current, (POMultiQueryPackage)pk);
+            toPkgr.addIsKeyWrappedList(((MultiQueryPackager) fromPkgr)
+                            .getIsKeyWrappedList());
+            addShiftedKeyInfoIndex(initial, current,
+                    (MultiQueryPackager) fromPkgr);
         } else {
-            pkg.addPackage(pk, mapKeyType);
+            toPkgr.addPackager(fromPkgr, mapKeyType);
             pkCount = 1;
         }
         
@@ -740,14 +746,15 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
             throw new OptimizerException(msg, errCode, PigException.BUG);
         }
 
-        if (pkg.isSameMapKeyType()) {
-            pkg.setKeyType(pk.getKeyType());
+        if (toPkgr.isSameMapKeyType()) {
+            toPkgr.setKeyType(fromPkgr.getKeyType());
         } else {
-            pkg.setKeyType(DataType.TUPLE);
+            toPkgr.setKeyType(DataType.TUPLE);
         }            
     }
     
-    private void addShiftedKeyInfoIndex(int index, POPackage pkg) throws OptimizerException {
+    private void addShiftedKeyInfoIndex(int index, Packager pkg)
+            throws OptimizerException {
         /**
          * we only do multi query optimization for single input MROpers
          * Hence originally the keyInfo would have had only index 0. As
@@ -761,7 +768,8 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
          * addition should be the same as the "value" in the existing Entry. After
          * addition, we should remove the older entry
          */
-        Map<Integer, Pair<Boolean, Map<Integer, Integer>>> keyInfo = pkg.getKeyInfo();
+        Map<Integer, Pair<Boolean, Map<Integer, Integer>>> keyInfo = pkg
+                .getKeyInfo();
         byte newIndex = (byte)(index | PigNullableWritable.mqFlag);
         
         Set<Integer> existingIndices = keyInfo.keySet();
@@ -792,9 +800,9 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
      * @throws OptimizerException 
      */
     private int addShiftedKeyInfoIndex(int initialIndex, int onePastEndIndex,
-            POMultiQueryPackage mpkg) throws OptimizerException {
+            MultiQueryPackager mpkgr) throws OptimizerException {
         
-        List<POPackage> pkgs = mpkg.getPackages();
+        List<Packager> pkgs = mpkgr.getPackagers();
         // if we have lesser pkgs than (onePastEndIndex - initialIndex)
         // its because one or more of the pkgs is a POMultiQueryPackage which
         // internally has packages.
@@ -810,7 +818,7 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         int i = 0;
         int curIndex = initialIndex;
         while (i < end) {
-            POPackage pkg = pkgs.get(i);
+            Packager pkg = pkgs.get(i);
             addShiftedKeyInfoIndex(curIndex, pkg);
             curIndex++;
             i++;
@@ -823,12 +831,14 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
             PhysicalPlan to, int initial, int current, byte mapKeyType) throws VisitorException {
         POPackage cpk = (POPackage)from.getRoots().get(0);
         from.remove(cpk);
+        Packager cpkgr = cpk.getPkgr();
         
         PODemux demux = (PODemux)to.getLeaves().get(0);
                 
-        POMultiQueryPackage pkg = (POMultiQueryPackage)to.getRoots().get(0);
+        MultiQueryPackager toPkgr = (MultiQueryPackager) ((POPackage) to
+                .getRoots().get(0)).getPkgr();
         
-        boolean isSameKeyType = pkg.isSameMapKeyType();
+        boolean isSameKeyType = toPkgr.isSameMapKeyType();
         
         // if current > initial + 1, it means we had
         // a split in the map of the MROper we are trying to
@@ -844,21 +854,21 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         // POLocalRearranges.
         int total = current - initial;
         int pkCount = 0;
-        if (cpk instanceof POMultiQueryPackage) {
-            List<POPackage> pkgs = ((POMultiQueryPackage)cpk).getPackages();
-            for (POPackage p : pkgs) {
-                pkg.addPackage(p);
+        if (cpkgr instanceof MultiQueryPackager) {
+            List<Packager> pkgrs = ((MultiQueryPackager) cpkgr).getPackagers();
+            for (Packager p : pkgrs) {
+                toPkgr.addPackager(p);
                 if (!isSameKeyType) {
                     p.setKeyType(DataType.TUPLE);
                 }
                 pkCount++;
             }
         } else {
-            pkg.addPackage(cpk);
+            toPkgr.addPackager(cpkgr);
             pkCount = 1;
         }
 
-        pkg.setSameMapKeyType(isSameKeyType);
+        toPkgr.setSameMapKeyType(isSameKeyType);
         
         if (pkCount != total) {
             int errCode = 2146;
@@ -868,10 +878,10 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
 
         // all packages should have the same key type
         if (!isSameKeyType) {
-            cpk.setKeyType(DataType.TUPLE);          
+            cpk.getPkgr().setKeyType(DataType.TUPLE);
         } 
         
-        pkg.setKeyType(cpk.getKeyType());
+        toPkgr.setKeyType(cpk.getPkgr().getKeyType());
         
         // See comment above for why we flatten the Packages
         // in the from plan - for the same reason, we flatten
@@ -936,7 +946,7 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
     private PhysicalPlan createDemuxPlan(boolean sameKeyType, boolean isCombiner) 
         throws VisitorException {
         PODemux demux = getDemux(isCombiner);
-        POMultiQueryPackage pkg= getMultiQueryPackage(sameKeyType, isCombiner);
+        POPackage pkg = getMultiQueryPackage(sameKeyType, isCombiner);
         
         PhysicalPlan pl = new PhysicalPlan();
         pl.add(pkg);
@@ -1186,11 +1196,14 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         return demux;
     } 
     
-    private POMultiQueryPackage getMultiQueryPackage(boolean sameMapKeyType, boolean inCombiner){
-        POMultiQueryPackage pkg =  
-            new POMultiQueryPackage(new OperatorKey(scope, nig.getNextNodeId(scope)));
-        pkg.setInCombiner(inCombiner);
-        pkg.setSameMapKeyType(sameMapKeyType);
+    private POPackage getMultiQueryPackage(boolean sameMapKeyType,
+            boolean inCombiner) {
+        POPackage pkg = new POPackage(new OperatorKey(scope,
+                nig.getNextNodeId(scope)));
+        MultiQueryPackager pkgr = new MultiQueryPackager();
+        pkgr.setInCombiner(inCombiner);
+        pkgr.setSameMapKeyType(sameMapKeyType);
+        pkg.setPkgr(pkgr);
         return pkg;
     }   
 }

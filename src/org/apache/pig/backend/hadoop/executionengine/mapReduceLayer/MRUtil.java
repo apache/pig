@@ -65,10 +65,10 @@ public class MRUtil {
         mro.mapPlan.addAsLeaf(lr);
         
         POPackage pkg = new POPackage(new OperatorKey(scope,nig.getNextNodeId(scope)));
-        pkg.setKeyType(DataType.TUPLE);
+        pkg.getPkgr().setKeyType(DataType.TUPLE);
         pkg.setNumInps(1);
         boolean[] inner = {false};
-        pkg.setInner(inner);
+        pkg.getPkgr().setInner(inner);
         mro.reducePlan.add(pkg);
         
         mro.reducePlan.addAsLeaf(getPlainForEachOP(scope, nig));

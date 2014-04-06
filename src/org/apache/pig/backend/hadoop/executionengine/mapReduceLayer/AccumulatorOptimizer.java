@@ -37,10 +37,10 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.UnaryExpressionOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PODistinct;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSortedDistinct;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.Packager;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.DepthFirstWalker;
@@ -71,13 +71,19 @@ public class AccumulatorOptimizer extends MROpPlanVisitor {
             return; 
         }
         
+        Packager pkgr = ((POPackage) po_package).getPkgr();
+        // Check that this is a standard package, not a subclass
+        if (!pkgr.getClass().equals(Packager.class)) {
+            return;
+        }
+
         // if POPackage is for distinct, just return
-        if (((POPackage)po_package).isDistinct()) {
+        if (pkgr.isDistinct()) {
             return;
         }
         
         // if any input to POPackage is inner, just return
-        boolean[] isInner = ((POPackage)po_package).getInner();
+        boolean[] isInner = pkgr.getInner();
         for(boolean b: isInner) {
             if (b) {
                 return;

@@ -53,10 +53,10 @@ public abstract class SelfSpillBag extends DefaultAbstractBag {
     public static class MemoryLimits {
 
         private long maxMemUsage;
-        private int cacheLimit = Integer.MAX_VALUE;
+        private long cacheLimit = Integer.MAX_VALUE;
         private long memUsage = 0;
         private long numObjsSizeChecked = 0;
-        
+
         private static float cachedMemUsage = 0.2F;
         private static long maxMem = 0;
         static {
@@ -99,11 +99,11 @@ public abstract class SelfSpillBag extends DefaultAbstractBag {
          * 
          * @return number of objects limit
          */
-        public int getCacheLimit() {
+        public long getCacheLimit() {
             if (numObjsSizeChecked > 0) {
                 long avgUsage = memUsage / numObjsSizeChecked;
                 if (avgUsage > 0) {
-                    cacheLimit = (int) (maxMemUsage / avgUsage);
+                    cacheLimit = maxMemUsage / avgUsage;
                 }
             }
             return cacheLimit;

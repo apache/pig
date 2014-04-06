@@ -13,7 +13,7 @@ Reduce Plan Empty
     |       |   |
     |       |   Project[tuple][1] - scope-114
     |       |
-    |       |---Package[tuple]{tuple} - scope-113
+    |       |---Package(Packager)[tuple]{tuple} - scope-113
     |   Local Rearrange[tuple]{tuple}(false) - scope-112
     |   |   |
     |   |   Project[tuple][*] - scope-111

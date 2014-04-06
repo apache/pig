@@ -1,7 +1,7 @@
 MapReduce(-1) - -10:
 |   Store(DummyFil:DummyLdr) - -7856319821130535798
 |   |
-|   |---Package[tuple]{Unknown} - -7398260302074824818
+|   |---Package(Packager)[tuple]{Unknown} - -7398260302074824818
 |   Union[tuple] - -11
 |   |
 |   |---Local Rearrange[tuple]{Unknown}(false) - --7926255547935388282
@@ -27,7 +27,7 @@ MapReduce(-1) - -10:
 |---MapReduce(-1) - -0:
 |   |   Store(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.io.InterStorage) - -1
 |   |   |
-|   |   |---Package[tuple]{Unknown} - --5683415113785058706
+|   |   |---Package(Packager)[tuple]{Unknown} - --5683415113785058706
 |   |   Local Rearrange[tuple]{Unknown}(false) - -727770031531364881
 |   |   |
 |   |   |---Load(DummyFil:DummyLdr) - -7128285064986147947
@@ -35,7 +35,7 @@ MapReduce(-1) - -10:
 |---MapReduce(-1) - -6:
     |   Store(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.impl.io.InterStorage) - -7
     |   |
-    |   |---Package[tuple]{Unknown} - --885269774183211482
+    |   |---Package(Packager)[tuple]{Unknown} - --885269774183211482
     |   Local Rearrange[tuple]{Unknown}(false) - --776319888013965510
     |   |
     |   |---Load(DummyFil:DummyLdr) - -7965768498188214494

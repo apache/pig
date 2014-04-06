@@ -45,7 +45,7 @@ public class TestExampleGenerator {
     static int MAX = 100;
     static String A, B;
     static  File fileA, fileB;
-    
+
     @BeforeClass
     public static void oneTimeSetup() throws Exception {
         pigContext.connect();
@@ -55,7 +55,7 @@ public class TestExampleGenerator {
 
         writeData(fileA);
         writeData(fileB);
-     
+
 
         fileA.deleteOnExit();
         fileB.deleteOnExit();
@@ -122,7 +122,7 @@ public class TestExampleGenerator {
 
         assertNotNull(derivedData);
     }
-    
+
     @Test
     public void testFilter3() throws Exception {
 
@@ -144,7 +144,7 @@ public class TestExampleGenerator {
         assertNotNull(derivedData);
 
     }
-    
+
     @Test
     public void testForeach() throws ExecException, IOException {
         PigServer pigServer = new PigServer(pigContext);
@@ -157,7 +157,7 @@ public class TestExampleGenerator {
 
         assertNotNull(derivedData);
     }
-    
+
     //see PIG-2170
     @Test
     public void testForeachBinCondWithBooleanExp() throws ExecException, IOException {
@@ -171,7 +171,7 @@ public class TestExampleGenerator {
 
         assertNotNull(derivedData);
     }
-    
+
     @Test
     public void testForeachWithTypeCastCounter() throws ExecException, IOException {
         PigServer pigServer = new PigServer(pigContext);
@@ -245,7 +245,7 @@ public class TestExampleGenerator {
         assertNotNull(derivedData);
 
     }
-    
+
     @Test
     public void testGroup2() throws Exception {
         PigServer pigServer = new PigServer(pigContext);
@@ -270,7 +270,7 @@ public class TestExampleGenerator {
         assertNotNull(derivedData);
 
     }
-    
+
     @Test
     public void testFilterUnion() throws Exception {
         PigServer pigServer = new PigServer(pigContext);
@@ -283,7 +283,7 @@ public class TestExampleGenerator {
         assertNotNull(derivedData);
 
     }
-    
+
     @Test
     public void testForEachNestedBlock() throws Exception {
         PigServer pigServer = new PigServer(pigContext);
@@ -307,7 +307,7 @@ public class TestExampleGenerator {
         assertNotNull(derivedData);
 
     }
-    
+
     @Test
     public void testUnion() throws Exception {
         PigServer pigServer = new PigServer(pigContext);
@@ -328,7 +328,7 @@ public class TestExampleGenerator {
 
         assertNotNull(derivedData);
     }
-    
+
     @Test
     public void testCross() throws Exception {
         PigServer pigServer = new PigServer(pigContext);
@@ -339,7 +339,7 @@ public class TestExampleGenerator {
 
         assertNotNull(derivedData);
     }
-    
+
     @Test
     public void testLimit() throws Exception {
         PigServer pigServer = new PigServer(pigContext);
@@ -349,7 +349,7 @@ public class TestExampleGenerator {
 
         assertNotNull(derivedData);
     }
-    
+
     //see PIG-2275
     @Test
     public void testFilterWithIsNull() throws ExecException, IOException {
@@ -363,7 +363,7 @@ public class TestExampleGenerator {
 
         assertNotNull(derivedData);
     }
-    
+
     @Test
     public void testFilterWithUDF() throws ExecException, IOException {
         PigServer pigServer = new PigServer(pigContext);
@@ -383,7 +383,7 @@ public class TestExampleGenerator {
         File out = File.createTempFile("testFilterGroupCountStoreOutput", "");
         out.deleteOnExit();
         out.delete();
-    
+
         PigServer pigServer = new PigServer(pigContext);
         pigServer.setBatchOn();
         pigServer.registerQuery("A = load " + A.toString() + " as (x, y);");
@@ -392,16 +392,26 @@ public class TestExampleGenerator {
         pigServer.registerQuery("D = foreach C generate group as x, COUNT(B) as the_count;");
         pigServer.registerQuery("store D into '" +  Util.encodeEscape(out.getAbsolutePath()) + "';");
         Map<Operator, DataBag> derivedData = pigServer.getExamples(null);
-    
+
         assertNotNull(derivedData);
     }
-    
+
     @Test
     public void testLoaderWithContext() throws Exception {
         PigServer pigServer = new PigServer(pigContext);
         pigServer.registerQuery("A = load " + A.toString() + " using " + UDFContextTestLoaderWithSignature.class.getName() + "('a') as (x, y);");
         Map<Operator, DataBag> derivedData = pigServer.getExamples("A");
-        
+
+        assertNotNull(derivedData);
+    }
+
+    @Test
+    public void testOrderBy() throws Exception {
+        PigServer pigServer = new PigServer(pigContext);
+        pigServer.registerQuery("A = load " + A.toString() + " as (x, y);");
+        pigServer.registerQuery("B = order A by x;");
+        Map<Operator, DataBag> derivedData = pigServer.getExamples("B");
+
         assertNotNull(derivedData);
     }
 

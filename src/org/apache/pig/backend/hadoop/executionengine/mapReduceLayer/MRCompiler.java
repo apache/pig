@@ -57,6 +57,8 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.JoinPackager;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.LitePackager;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCollectedGroup;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCounter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCross;
@@ -65,7 +67,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFilter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POGlobalRearrange;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POJoinPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLimit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
@@ -73,8 +74,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PONative;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage.PackageType;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackageLite;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPartitionRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PORank;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSkewedJoin;
@@ -83,6 +82,8 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.Packager;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.Packager.PackageType;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
@@ -1104,9 +1105,9 @@ public class MRCompiler extends PhyPlanVisitor {
         try{
             nonBlocking(op);
             phyToMROpMap.put(op, curMROp);
-            if (op.getPackageType() == PackageType.JOIN) {
+            if (op.getPkgr().getPackageType() == PackageType.JOIN) {
                 curMROp.markRegularJoin();
-            } else if (op.getPackageType() == PackageType.GROUP) {
+            } else if (op.getPkgr().getPackageType() == PackageType.GROUP) {
                 if (op.getNumInps() == 1) {
                     curMROp.markGroupBy();
                 } else if (op.getNumInps() > 1) {
@@ -1758,11 +1759,12 @@ public class MRCompiler extends PhyPlanVisitor {
             curMROp.customPartitioner = op.getCustomPartitioner();
             
             POPackage pkg = new POPackage(new OperatorKey(scope,nig.getNextNodeId(scope)));
-            pkg.setKeyType(DataType.TUPLE);
-            pkg.setDistinct(true);
+            Packager pkgr = pkg.getPkgr();
+            pkgr.setKeyType(DataType.TUPLE);
+            pkgr.setDistinct(true);
             pkg.setNumInps(1);
             boolean[] inner = {false}; 
-            pkg.setInner(inner);
+            pkgr.setInner(inner);
             curMROp.reducePlan.add(pkg);
             
             List<PhysicalPlan> eps1 = new ArrayList<PhysicalPlan>();
@@ -1908,11 +1910,12 @@ public class MRCompiler extends PhyPlanVisitor {
 			
 			// create POPakcage
 			POPackage pkg = new POPackage(new OperatorKey(scope,nig.getNextNodeId(scope)), rp);
-			pkg.setKeyType(type);
+            Packager pkgr = pkg.getPkgr();
+            pkgr.setKeyType(type);
 			pkg.setResultType(DataType.TUPLE);
 			pkg.setNumInps(2);
 			boolean [] inner = op.getInnerFlags();
-			pkg.setInner(inner);            
+            pkgr.setInner(inner);
 			pkg.visit(this);       
 			compiledInputs = new MapReduceOper[] {curMROp};
 			
@@ -2150,8 +2153,11 @@ public class MRCompiler extends PhyPlanVisitor {
         mro.setMapDone(true);
         
         if (limit!=-1) {
-        	POPackageLite pkg_c = new POPackageLite(new OperatorKey(scope,nig.getNextNodeId(scope)));
-        	pkg_c.setKeyType((fields.length>1) ? DataType.TUPLE : keyType);
+            POPackage pkg_c = new POPackage(new OperatorKey(scope,
+                    nig.getNextNodeId(scope)));
+            LitePackager pkgr = new LitePackager();
+            pkgr.setKeyType((fields.length > 1) ? DataType.TUPLE : keyType);
+            pkg_c.setPkgr(pkgr);
             pkg_c.setNumInps(1);
             //pkg.setResultType(DataType.TUPLE);            
             mro.combinePlan.add(pkg_c);
@@ -2191,11 +2197,14 @@ public class MRCompiler extends PhyPlanVisitor {
 	        lr_c2.setResultType(DataType.TUPLE);
 	        mro.combinePlan.addAsLeaf(lr_c2);
         }
-        
-        POPackageLite pkg = new POPackageLite(new OperatorKey(scope,nig.getNextNodeId(scope)));
-        pkg.setKeyType((fields == null || fields.length>1) ? DataType.TUPLE :
-            keyType);
-        pkg.setNumInps(1);       
+
+        POPackage pkg = new POPackage(new OperatorKey(scope,
+                nig.getNextNodeId(scope)));
+        LitePackager pkgr = new LitePackager();
+        pkgr.setKeyType((fields == null || fields.length > 1) ? DataType.TUPLE
+                : keyType);
+        pkg.setPkgr(pkgr);
+        pkg.setNumInps(1);
         mro.reducePlan.add(pkg);
         
         PhysicalPlan ep = new PhysicalPlan();
@@ -2447,10 +2456,12 @@ public class MRCompiler extends PhyPlanVisitor {
         mro.setMapDone(true);
         
         POPackage pkg = new POPackage(new OperatorKey(scope,nig.getNextNodeId(scope)));
-        pkg.setKeyType(DataType.CHARARRAY);
+        Packager pkgr = new Packager();
+        pkg.setPkgr(pkgr);
+        pkgr.setKeyType(DataType.CHARARRAY);
         pkg.setNumInps(1);
         boolean[] inner = {false}; 
-        pkg.setInner(inner);
+        pkgr.setInner(inner);
         mro.reducePlan.add(pkg);
         
         // Lets start building the plan which will have the sort
@@ -2738,35 +2749,30 @@ public class MRCompiler extends PhyPlanVisitor {
 
         public static void replaceWithPOJoinPackage(PhysicalPlan plan, MapReduceOper mr,
                 POPackage pack, POForEach forEach, String chunkSize) throws VisitorException {
-            String scope = pack.getOperatorKey().scope;
-            NodeIdGenerator nig = NodeIdGenerator.getGenerator();
-            POJoinPackage joinPackage;
-            joinPackage = new POJoinPackage(
-                        new OperatorKey(scope, nig.getNextNodeId(scope)), 
-                        -1, pack, forEach);
-            joinPackage.setChunkSize(Long.parseLong(chunkSize));
+            JoinPackager pkgr = new JoinPackager(pack.getPkgr(), forEach);
+            pkgr.setChunkSize(Long.parseLong(chunkSize));
+            pack.setPkgr(pkgr);
             List<PhysicalOperator> succs = plan.getSuccessors(forEach);
-            if (succs!=null)
-            {
-                if (succs.size()!=1)
-                {
+            if (succs != null) {
+                if (succs.size() != 1) {
                     int errCode = 2028;
-                    String msg = "ForEach can only have one successor. Found " + succs.size() + " successors.";
-                    throw new MRCompilerException(msg, errCode, PigException.BUG);
+                    String msg = "ForEach can only have one successor. Found "
+                            + succs.size() + " successors.";
+                    throw new MRCompilerException(msg, errCode,
+                            PigException.BUG);
                 }
             }
             plan.remove(pack);
-            
             try {
-                plan.replace(forEach, joinPackage);
+                plan.replace(forEach, pack);
             } catch (PlanException e) {
                 int errCode = 2029;
-                String msg = "Error rewriting POJoinPackage.";
+                String msg = "Error rewriting join package.";
                 throw new MRCompilerException(msg, errCode, PigException.BUG, e);
             }
-            mr.phyToMRMap.put(forEach, joinPackage);
-            LogFactory.
-            getLog(LastInputStreamingOptimizer.class).info("Rewrite: POPackage->POForEach to POJoinPackage");
+            mr.phyToMRMap.put(forEach, pack);
+            LogFactory.getLog(LastInputStreamingOptimizer.class).info(
+                    "Rewrite: POPackage->POForEach to POPackage(JoinPackager)");
         }
 
     }
