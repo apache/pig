@@ -99,12 +99,12 @@ import org.apache.pig.parser.QueryParserUtils;
 import org.apache.pig.pen.ExampleGenerator;
 import org.apache.pig.scripting.ScriptEngine;
 import org.apache.pig.tools.grunt.GruntParser;
+import org.apache.pig.tools.pigstats.EmptyPigStats;
 import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 import org.apache.pig.tools.pigstats.ScriptState;
-import org.apache.pig.tools.pigstats.EmptyPigStats;
 import org.apache.pig.validator.BlackAndWhitelistFilter;
 import org.apache.pig.validator.BlackAndWhitelistValidator;
 import org.apache.pig.validator.PigCommandFilter;
@@ -152,8 +152,6 @@ public class PigServer {
 
     protected final String scope = constructScope();
 
-
-    private boolean isMultiQuery = true;
     private boolean aggregateWarning = true;
 
     private boolean validateEachStatement = false;
@@ -224,7 +222,6 @@ public class PigServer {
         currDAG = new Graph(false);
 
         aggregateWarning = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("aggregate.warning"));
-        isMultiQuery = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("opt.multiquery","true"));
 
         jobName = pigContext.getProperties().getProperty(
                 PigContext.JOB_NAME,
@@ -335,7 +332,7 @@ public class PigServer {
         if (currDAG != null) {
             graphs.push(currDAG);
         }
-        currDAG = new Graph(isMultiQuery);
+        currDAG = new Graph(true);
     }
 
     /**
@@ -408,13 +405,7 @@ public class PigServer {
             parseAndBuild();
         }
 
-        PigStats stats = null;
-        if( !isMultiQuery ) {
-            // ignore if multiquery is off
-            stats = PigStats.get();
-        } else {
-            stats = execute();
-        }
+        PigStats stats = execute();
 
         return getJobs(stats);
     }
