@@ -363,6 +363,7 @@ public class POMergeJoin extends PhysicalOperator {
                             leftTuples = newLeftTupleArray();
 
                             leftTuples.add((Tuple)prevLeftInp.result);
+                            return new Result(endOfRecordMark, null);
                         }
 
                         else{           // This is end of all input and this is last join output.
@@ -373,8 +374,8 @@ public class POMergeJoin extends PhysicalOperator {
                                 // Non-fatal error. We can continue.
                                 log.error("Received exception while trying to close right side file: " + e.getMessage());
                             }
+                            return new Result(POStatus.STATUS_EOP, null);
                         }
-                        return new Result(endOfRecordMark, null);
                     }
                     else{   // At this point right side can't be behind.
                         int errCode = 1102;
