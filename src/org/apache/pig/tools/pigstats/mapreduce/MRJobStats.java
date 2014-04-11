@@ -18,7 +18,6 @@
 
 package org.apache.pig.tools.pigstats.mapreduce;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -31,24 +30,21 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.Counters;
+import org.apache.hadoop.mapred.Counters.Counter;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobID;
 import org.apache.hadoop.mapred.RunningJob;
 import org.apache.hadoop.mapred.TaskReport;
-import org.apache.hadoop.mapred.Counters.Counter;
 import org.apache.pig.PigCounters;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.FileBasedOutputSizeReader;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigStatsOutputSizeReader;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
-import org.apache.pig.newplan.PlanVisitor;
-import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.ObjectSerializer;
+import org.apache.pig.newplan.PlanVisitor;
 import org.apache.pig.tools.pigstats.InputStats;
 import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.OutputStats;
@@ -118,58 +114,80 @@ public final class MRJobStats extends JobStats {
 
     private Counters counters = null;
 
+    @Override
     public String getJobId() {
         return (jobId == null) ? null : jobId.toString();
     }
 
+    @Override
     public int getNumberMaps() { return numberMaps; }
 
+    @Override
     public int getNumberReduces() { return numberReduces; }
 
+    @Override
     public long getMaxMapTime() { return maxMapTime; }
 
+    @Override
     public long getMinMapTime() { return minMapTime; }
 
+    @Override
     public long getAvgMapTime() { return avgMapTime; }
 
+    @Override
     public long getMaxReduceTime() { return maxReduceTime; }
 
+    @Override
     public long getMinReduceTime() { return minReduceTime; }
 
+    @Override
     public long getAvgReduceTime() { return avgReduceTime; }
 
+    @Override
     public long getMapInputRecords() { return mapInputRecords; }
 
+    @Override
     public long getMapOutputRecords() { return mapOutputRecords; }
 
+    @Override
     public long getReduceInputRecords() { return reduceInputRecords; }
 
+    @Override
     public long getReduceOutputRecords() { return reduceOutputRecords; }
 
+    @Override
     public long getSMMSpillCount() { return spillCount; }
 
+    @Override
     public long getProactiveSpillCountObjects() { return activeSpillCountObj; }
 
+    @Override
     public long getProactiveSpillCountRecs() { return activeSpillCountRecs; }
 
+    @Override
     public Counters getHadoopCounters() { return counters; }
 
+    @Override
     public Map<String, Long> getMultiStoreCounters() {
         return Collections.unmodifiableMap(multiStoreCounters);
     }
 
+    @Override
     public Map<String, Long> getMultiInputCounters() {
         return Collections.unmodifiableMap(multiInputCounters);
     }
 
+    @Override
     public String getAlias() {
         return (String)getAnnotation(ALIAS);
     }
 
+    @Override
     public String getAliasLocation() {
         return (String)getAnnotation(ALIAS_LOCATION);
     }
 
+    @Override
     public String getFeature() {
         return (String)getAnnotation(FEATURE);
     }
@@ -219,6 +237,7 @@ public final class MRJobStats extends JobStats {
         medianReduceTime = median;
     }
 
+    @Override
     public String getDisplayString(boolean local) {
         StringBuilder sb = new StringBuilder();
         String id = (jobId == null) ? "N/A" : jobId.toString();
@@ -418,39 +437,6 @@ public final class MRJobStats extends JobStats {
                 addOneOutputStats(sto);
             }
         }
-    }
-
-    /**
-     * Looks up the output size reader from OUTPUT_SIZE_READER_KEY and invokes
-     * it to get the size of output. If OUTPUT_SIZE_READER_KEY is not set,
-     * defaults to FileBasedOutputSizeReader.
-     * @param sto POStore
-     * @param conf configuration
-     */
-    static long getOutputSize(POStore sto, Configuration conf) {
-        PigStatsOutputSizeReader reader = null;
-        String readerNames = conf.get(
-                PigStatsOutputSizeReader.OUTPUT_SIZE_READER_KEY,
-                FileBasedOutputSizeReader.class.getCanonicalName());
-
-        for (String className : readerNames.split(",")) {
-            reader = (PigStatsOutputSizeReader) PigContext.instantiateFuncFromSpec(className);
-            if (reader.supports(sto)) {
-                LOG.info("using output size reader: " + className);
-                try {
-                    return reader.getOutputSize(sto, conf);
-                } catch (FileNotFoundException e) {
-                    LOG.warn("unable to find the output file", e);
-                    return -1;
-                } catch (IOException e) {
-                    LOG.warn("unable to get byte written of the job", e);
-                    return -1;
-                }
-            }
-        }
-
-        LOG.warn("unable to find an output size reader");
-        return -1;
     }
 
     private void addOneOutputStats(POStore sto) {

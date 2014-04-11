@@ -30,7 +30,7 @@ PIG-2207: Support custom counters for aggregating warnings from different udfs (
 
 IMPROVEMENTS
 
-PIG-3868: Fix Iterator_1 e2e test on windows (ssvinarchukhorton via rohini)
+PIG-3884: Move multi store counters to PigStatsUtil from MRPigStatsUtil (rohini)
 
 PIG-3591: Refactor POPackage to separate MR specific code from packaging (mwagner via cheolsoo)
 
@@ -104,6 +104,8 @@ OPTIMIZATIONS
 PIG-3882: Multiquery off mode execution is not done in batch and very inefficient (rohini)
  
 BUG FIXES
+
+PIG-3868: Fix Iterator_1 e2e test on windows (ssvinarchukhorton via rohini)
 
 PIG-3871: Replace org.python.google.* with com.google.* in imports (cheolsoo)
 

@@ -23,8 +23,8 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
-import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.mapreduce.SimplePigStats;
 
 /**
@@ -45,31 +45,12 @@ public class PigStatsUtil {
     public static final String HDFS_BYTES_READ
             = "HDFS_BYTES_READ";
 
-    /**
-     * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#MULTI_INPUT_RECORD_COUNTER} instead.
-     */
-    @Deprecated
     public static final String MULTI_INPUTS_RECORD_COUNTER
             = "Input records from ";
-
-    /**
-     * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#MULTI_INPUT_COUNTER_GROUP} instead.
-     */
-    @Deprecated
     public static final String MULTI_INPUTS_COUNTER_GROUP
             = "MultiInputCounters";
-
-    /**
-     * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#MULTI_STORE_RECORD_COUNTER} instead.
-     */
-    @Deprecated
     public static final String MULTI_STORE_RECORD_COUNTER
             = "Output records in ";
-
-    /**
-     * @deprecated use {@link org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil#MULTI_STORE_COUNTER_GROUP} instead.
-     */
-    @Deprecated
     public static final String MULTI_STORE_COUNTER_GROUP
             = "MultiStoreCounters";
 
@@ -147,6 +128,58 @@ public class PigStatsUtil {
 
     public static void setStatsMap(Map<String, List<PigStats>> statsMap) {
         PigStats.start(new EmbeddedPigStats(statsMap));
+    }
+
+    /**
+     * Returns the counter name for the given input file name
+     *
+     * @param fname the input file name
+     * @return the counter name
+     */
+    public static String getMultiInputsCounterName(String fname, int index) {
+        String shortName = getShortName(fname);
+        return (shortName == null) ? null
+                : MULTI_INPUTS_RECORD_COUNTER + "_" + index + "_" + shortName;
+    }
+
+    /**
+     * Returns the counter name for the given {@link POStore}
+     *
+     * @param store the POStore
+     * @return the counter name
+     */
+    public static String getMultiStoreCounterName(POStore store) {
+        String shortName = getShortName(store.getSFile().getFileName());
+        return (shortName == null) ? null
+                : MULTI_STORE_RECORD_COUNTER + "_" + store.getIndex() + "_" + shortName;
+    }
+
+    // Restrict total string size of a counter name to 64 characters.
+    // Leave 24 characters for prefix string.
+    private static final int COUNTER_NAME_LIMIT = 40;
+    private static final String SEPARATOR = "/";
+    private static final String SEMICOLON = ";";
+
+    private static String getShortName(String uri) {
+        int scolon = uri.indexOf(SEMICOLON);
+        int slash;
+        if (scolon!=-1) {
+            slash = uri.lastIndexOf(SEPARATOR, scolon);
+        } else {
+            slash = uri.lastIndexOf(SEPARATOR);
+        }
+        String shortName = null;
+        if (scolon==-1) {
+            shortName = uri.substring(slash+1);
+        }
+        if (slash < scolon) {
+            shortName = uri.substring(slash+1, scolon);
+        }
+        if (shortName != null && shortName.length() > COUNTER_NAME_LIMIT) {
+            shortName = shortName.substring(shortName.length()
+                    - COUNTER_NAME_LIMIT);
+        }
+        return shortName;
     }
 
 }
