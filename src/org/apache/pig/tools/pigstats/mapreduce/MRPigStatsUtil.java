@@ -20,6 +20,7 @@ package org.apache.pig.tools.pigstats.mapreduce;
 
 import java.io.IOException;
 import java.util.Map;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.mapred.Counters;
@@ -32,16 +33,13 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCo
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.NativeMapReduceOper;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.classification.InterfaceAudience.Private;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.tools.pigstats.PigStats.JobGraph;
-import org.apache.pig.tools.pigstats.mapreduce.SimplePigStats;
-import org.apache.pig.tools.pigstats.mapreduce.MRScriptState;
-import org.apache.pig.tools.pigstats.PigStats;
-import org.apache.pig.tools.pigstats.PigStatsUtil;
 import org.apache.pig.tools.pigstats.JobStats;
+import org.apache.pig.tools.pigstats.PigStats;
+import org.apache.pig.tools.pigstats.PigStats.JobGraph;
+import org.apache.pig.tools.pigstats.PigStatsUtil;
 
 
 
@@ -50,36 +48,12 @@ import org.apache.pig.tools.pigstats.JobStats;
  */
 public class MRPigStatsUtil extends PigStatsUtil {
 
-    public static final String MULTI_STORE_RECORD_COUNTER
-            = "Output records in ";
-    public static final String MULTI_STORE_COUNTER_GROUP
-            = "MultiStoreCounters";
     public static final String TASK_COUNTER_GROUP
             = "org.apache.hadoop.mapred.Task$Counter";
     public static final String FS_COUNTER_GROUP
             = HadoopShims.getFsCounterGroupName();
-    public static final String MAP_INPUT_RECORDS
-            = "MAP_INPUT_RECORDS";
-    public static final String MAP_OUTPUT_RECORDS
-            = "MAP_OUTPUT_RECORDS";
-    public static final String REDUCE_INPUT_RECORDS
-            = "REDUCE_INPUT_RECORDS";
-    public static final String REDUCE_OUTPUT_RECORDS
-            = "REDUCE_OUTPUT_RECORDS";
-    public static final String HDFS_BYTES_WRITTEN
-            = "HDFS_BYTES_WRITTEN";
-    public static final String HDFS_BYTES_READ
-            = "HDFS_BYTES_READ";
-    public static final String MULTI_INPUTS_RECORD_COUNTER
-            = "Input records from ";
-    public static final String MULTI_INPUTS_COUNTER_GROUP
-            = "MultiInputCounters";
 
     private static final Log LOG = LogFactory.getLog(MRPigStatsUtil.class);
-
-    // Restrict total string size of a counter name to 64 characters.
-    // Leave 24 characters for prefix string.
-    private static final int COUNTER_NAME_LIMIT = 40;
 
     /**
      * Returns the count for the given counter name in the counter group
@@ -104,55 +78,6 @@ public class MRPigStatsUtil extends PigStatsUtil {
             LOG.warn("Failed to get the counter for " + counterName, e);
         }
         return value;
-    }
-
-    /**
-     * Returns the counter name for the given {@link POStore}
-     *
-     * @param store the POStore
-     * @return the counter name
-     */
-    public static String getMultiStoreCounterName(POStore store) {
-        String shortName = getShortName(store.getSFile().getFileName());
-        return (shortName == null) ? null
-                : MULTI_STORE_RECORD_COUNTER + "_" + store.getIndex() + "_" + shortName;
-    }
-
-    /**
-     * Returns the counter name for the given input file name
-     *
-     * @param fname the input file name
-     * @return the counter name
-     */
-    public static String getMultiInputsCounterName(String fname, int index) {
-        String shortName = getShortName(fname);
-        return (shortName == null) ? null
-                : MULTI_INPUTS_RECORD_COUNTER + "_" + index + "_" + shortName;
-    }
-
-    private static final String SEPARATOR = "/";
-    private static final String SEMICOLON = ";";
-
-    private static String getShortName(String uri) {
-        int scolon = uri.indexOf(SEMICOLON);
-        int slash;
-        if (scolon!=-1) {
-            slash = uri.lastIndexOf(SEPARATOR, scolon);
-        } else {
-            slash = uri.lastIndexOf(SEPARATOR);
-        }
-        String shortName = null;
-        if (scolon==-1) {
-            shortName = uri.substring(slash+1);
-        }
-        if (slash < scolon) {
-            shortName = uri.substring(slash+1, scolon);
-        }
-        if (shortName != null && shortName.length() > COUNTER_NAME_LIMIT) {
-            shortName = shortName.substring(shortName.length()
-                    - COUNTER_NAME_LIMIT);
-        }
-        return shortName;
     }
 
     /**
