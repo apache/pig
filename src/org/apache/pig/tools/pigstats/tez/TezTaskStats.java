@@ -1,5 +1,8 @@
 package org.apache.pig.tools.pigstats.tez;
 
+import static org.apache.pig.tools.pigstats.tez.TezStats.FS_COUNTER_GROUP;
+import static org.apache.pig.tools.pigstats.tez.TezStats.TASK_COUNTER_GROUP;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -20,12 +23,12 @@ import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 import org.apache.pig.tools.pigstats.PigStats.JobGraphPrinter;
 import org.apache.pig.tools.pigstats.PigStatsUtil;
+import org.apache.tez.common.counters.TaskCounter;
 
 public class TezTaskStats extends JobStats {
     private static final Log LOG = LogFactory.getLog(TezTaskStats.class);
 
     private String vertexName;
-    private Configuration conf;
     private List<POStore> stores = null;
     private List<FileSpec> loads = null;
 
@@ -63,6 +66,7 @@ public class TezTaskStats extends JobStats {
         return sb.toString();
     }
 
+    @Override
     @SuppressWarnings("unchecked")
     public void setConf(Configuration conf) {
         super.setConf(conf);
@@ -78,9 +82,8 @@ public class TezTaskStats extends JobStats {
         }
     }
 
-    public void addInputStatistics(Map<String, Long> counters) {
-        if (inputs == null) {
-            LOG.warn("Unable to get inputs of the job");
+    public void addInputStatistics(Map<String, Map<String, Long>> map) {
+        if (loads == null) {
             return;
         }
 
@@ -88,11 +91,19 @@ public class TezTaskStats extends JobStats {
             long records = -1;
             long hdfsBytesRead = -1;
             String filename = fs.getFileName();
-            if (counters.get(PigStatsUtil.MAP_INPUT_RECORDS) != null) {
-                records = counters.get(PigStatsUtil.MAP_INPUT_RECORDS);
+            Map<String, Long> taskCounter = map.get(TASK_COUNTER_GROUP);
+            if (taskCounter != null) {
+                //TaskCounter.INPUT_RECORDS_PROCESSED.name()
+                if (taskCounter.get("INPUT_RECORDS_PROCESSED") != null) {
+                    records = taskCounter.get("INPUT_RECORDS_PROCESSED");
+                } else if (taskCounter.get(PigStatsUtil.MAP_INPUT_RECORDS) != null) {
+                    // Tez 0.3 has MAP_INPUT_RECORDS TODO: Remove after we move away from Tez 0.3
+                    records = taskCounter.get(PigStatsUtil.MAP_INPUT_RECORDS);
+                }
             }
-            if (counters.get(PigStatsUtil.HDFS_BYTES_READ) != null) {
-                hdfsBytesRead = counters.get(PigStatsUtil.HDFS_BYTES_READ);
+            if (map.get(FS_COUNTER_GROUP) !=null &&
+                    map.get(FS_COUNTER_GROUP).get(PigStatsUtil.HDFS_BYTES_READ) != null) {
+                hdfsBytesRead = map.get(FS_COUNTER_GROUP).get(PigStatsUtil.HDFS_BYTES_READ);
             }
             InputStats is = new InputStats(filename, hdfsBytesRead,
                     records, (state == JobState.SUCCESS));
@@ -101,22 +112,32 @@ public class TezTaskStats extends JobStats {
         }
     }
 
-    public void addOutputStatistics(Map<String, Long> counters) {
+    public void addOutputStatistics(Map<String, Map<String, Long>> map) {
         if (stores == null) {
-            LOG.warn("Unable to get stores of the job");
             return;
         }
 
         for (POStore sto : stores) {
             long records = -1;
-            long hdfsBytesWritten = -1;
+            long hdfsBytesWritten = JobStats.getOutputSize(sto, conf);
             String filename = sto.getSFile().getFileName();
-            if (counters.get(PigStatsUtil.MAP_OUTPUT_RECORDS) != null) {
-                records = counters.get(PigStatsUtil.MAP_OUTPUT_RECORDS);
+            if (sto.isMultiStore()) {
+                Long n = map.get(PigStatsUtil.MULTI_STORE_COUNTER_GROUP).get(PigStatsUtil.getMultiStoreCounterName(sto));
+                if (n != null) records = n;
+            } else if (map.get(TASK_COUNTER_GROUP) != null) {
+                if(map.get(TASK_COUNTER_GROUP).get(TaskCounter.OUTPUT_RECORDS.name()) != null) {
+                    records = map.get(TASK_COUNTER_GROUP).get(TaskCounter.OUTPUT_RECORDS.name());
+                } else if(map.get(TASK_COUNTER_GROUP).get(PigStatsUtil.MAP_OUTPUT_RECORDS) != null) {
+                    // Tez 0.3 has MAP_OUTPUT_RECORDS TODO: Remove after we move away from Tez 0.3
+                    records = map.get(TASK_COUNTER_GROUP).get(PigStatsUtil.MAP_OUTPUT_RECORDS);
+                }
             }
-            if (counters.get(PigStatsUtil.HDFS_BYTES_WRITTEN) != null) {
-                hdfsBytesWritten = counters.get(PigStatsUtil.HDFS_BYTES_WRITTEN);
+            /*
+            if (map.get(FS_COUNTER_GROUP)!= null &&
+                    map.get(FS_COUNTER_GROUP).get(PigStatsUtil.HDFS_BYTES_WRITTEN) != null) {
+                hdfsBytesWritten = map.get(FS_COUNTER_GROUP).get(PigStatsUtil.HDFS_BYTES_WRITTEN);
             }
+            */
             OutputStats os = new OutputStats(filename, hdfsBytesWritten,
                     records, (state == JobState.SUCCESS));
             os.setPOStore(sto);
@@ -231,5 +252,13 @@ public class TezTaskStats extends JobStats {
     @Deprecated
     public Map<String, Long> getMultiInputCounters() {
         throw new UnsupportedOperationException();
+    }
+
+    public boolean hasLoadOrStore() {
+        if ((loads != null && !loads.isEmpty())
+                || (stores != null && !stores.isEmpty())) {
+            return true;
+        }
+        return false;
     }
 }

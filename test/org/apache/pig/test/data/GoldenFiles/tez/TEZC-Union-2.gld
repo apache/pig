@@ -84,7 +84,21 @@ d: Local Rearrange[tuple]{int}(false) - scope-52	->	 scope-35
     |   |---Project[bag][1] - scope-44
     |
     |---d: Package(CombinerPackager)[tuple]{int} - scope-47
-# Combine plan on edge <scope-31>
+# Combine plan on edge <scope-30>
+d: Local Rearrange[tuple]{int}(false) - scope-52	->	 scope-35
+|   |
+|   Project[int][0] - scope-54
+|
+|---e: New For Each(false,false)[bag] - scope-41
+    |   |
+    |   Project[int][0] - scope-42
+    |   |
+    |   POUserFunc(org.apache.pig.builtin.LongSum$Intermediate)[tuple] - scope-43
+    |   |
+    |   |---Project[bag][1] - scope-44
+    |
+    |---d: Package(CombinerPackager)[tuple]{int} - scope-47
+# Combine plan on edge <scope-29>
 d: Local Rearrange[tuple]{int}(false) - scope-52	->	 scope-35
 |   |
 |   Project[int][0] - scope-54

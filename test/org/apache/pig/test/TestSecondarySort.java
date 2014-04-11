@@ -38,8 +38,11 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.VisitorException;
 import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
+// ant sends abstract classes also to junit. skipNonTests attribute does not work with all ant versions
+@Ignore
 public abstract class TestSecondarySort {
     protected static MiniGenericCluster cluster = null;
     protected PigServer pigServer;
@@ -476,7 +479,7 @@ public abstract class TestSecondarySort {
 
         Util.deleteFile(cluster, clusterFilePath);
     }
-    
+
     @Test
     // Once custom partitioner is used, we cannot use secondary key optimizer, see PIG-3827
     public void testCustomPartitionerWithSort() throws Exception {
@@ -502,9 +505,9 @@ public abstract class TestSecondarySort {
         } catch (Exception e) {
             captureException = true;
         }
-        
+
         assertTrue(captureException);
-        
+
         Util.deleteFile(cluster, clusterPath);
     }
 }

@@ -671,11 +671,7 @@ public class TezCompiler extends PhyPlanVisitor {
 
                     tezOp.plan.addAsLeaf(lr);
                     TezEdgeDescriptor edge = TezCompilerUtil.connect(tezPlan, tezOp, curTezOp);
-                    if (tezOp.getSplitOperatorKey() != null) {
-                        inputKeys.add(tezOp.getSplitOperatorKey().toString());
-                    } else {
-                        inputKeys.add(tezOp.getOperatorKey().toString());
-                    }
+                    inputKeys.add(tezOp.getOperatorKey().toString());
 
                     // Configure broadcast edges for replicated tables
                     edge.dataMovementType = DataMovementType.BROADCAST;
@@ -1971,9 +1967,11 @@ public class TezCompiler extends PhyPlanVisitor {
                 splitOp.setSplitter(true);
                 phyToTezOpMap.put(op, splitOp);
                 output = new POValueOutputTez(OperatorKey.genOpKey(scope));
+                output.setAlias(op.getAlias());
                 splitOp.plan.addAsLeaf(output);
             }
             curTezOp = getTezOp();
+            curTezOp.setSplitParent(splitOp.getOperatorKey());
             tezPlan.add(curTezOp);
             output.addOutputKey(curTezOp.getOperatorKey().toString());
             TezEdgeDescriptor edge = TezCompilerUtil.connect(tezPlan, splitOp, curTezOp);
@@ -1981,6 +1979,7 @@ public class TezCompiler extends PhyPlanVisitor {
             TezCompilerUtil.configureValueOnlyTupleOutput(edge, DataMovementType.ONE_TO_ONE);
             curTezOp.setRequestedParallelismByReference(splitOp);
             POValueInputTez input = new POValueInputTez(OperatorKey.genOpKey(scope));
+            input.setAlias(op.getAlias());
             input.setInputKey(splitOp.getOperatorKey().toString());
             curTezOp.plan.addAsLeaf(input);
         } catch (Exception e) {

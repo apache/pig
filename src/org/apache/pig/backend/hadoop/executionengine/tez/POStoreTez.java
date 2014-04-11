@@ -27,19 +27,24 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.tools.pigstats.mapreduce.MRPigStatsUtil;
+import org.apache.tez.common.counters.CounterGroup;
+import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.runtime.api.LogicalOutput;
+import org.apache.tez.runtime.api.TezProcessorContext;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 
 /**
  * POStoreTez is used to write to a Tez MROutput
  */
-public class POStoreTez extends POStore implements TezOutput {
+public class POStoreTez extends POStore implements TezOutput, TezTaskConfigurable {
 
     private static final long serialVersionUID = 1L;
     private transient MROutput output;
     private transient KeyValueWriter writer;
     private String outputKey;
+    private TezCounter outputRecordCounter;
 
     public POStoreTez(OperatorKey k) {
         super(k);
@@ -62,6 +67,24 @@ public class POStoreTez extends POStore implements TezOutput {
     @Override
     public String[] getTezOutputs() {
         return new String[] { outputKey };
+    }
+
+    @Override
+    public void initialize(TezProcessorContext processorContext)
+            throws ExecException {
+        if (isMultiStore()) {
+            CounterGroup multiStoreGroup = processorContext.getCounters()
+                    .getGroup(MRPigStatsUtil.MULTI_STORE_COUNTER_GROUP);
+            if (multiStoreGroup == null) {
+                processorContext.getCounters().addGroup(
+                        MRPigStatsUtil.MULTI_STORE_COUNTER_GROUP,
+                        MRPigStatsUtil.MULTI_STORE_COUNTER_GROUP);
+            }
+            String name = MRPigStatsUtil.getMultiStoreCounterName(this);
+            if (name != null) {
+                outputRecordCounter = multiStoreGroup.addCounter(name, name, 0);
+            }
+        }
     }
 
     @Override

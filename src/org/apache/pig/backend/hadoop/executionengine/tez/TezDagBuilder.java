@@ -33,6 +33,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
+import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.OutputFormat;
@@ -92,6 +93,7 @@ import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.tez.common.TezJobConfig;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
@@ -119,7 +121,7 @@ import org.apache.tez.runtime.library.input.ConcatenatedMergedKeyValuesInput;
 public class TezDagBuilder extends TezOpPlanVisitor {
     private static final Log log = LogFactory.getLog(TezJobControlCompiler.class);
 
-    private TezDAG dag;
+    private DAG dag;
     private Map<String, LocalResource> localResources;
     private PigContext pc;
     private Configuration globalConf;
@@ -127,7 +129,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
     private String scope;
     private NodeIdGenerator nig;
 
-    public TezDagBuilder(PigContext pc, TezOperPlan plan, TezDAG dag,
+    public TezDagBuilder(PigContext pc, TezOperPlan plan, DAG dag,
             Map<String, LocalResource> localResources) {
         super(plan, new DependencyOrderWalker<TezOperator, TezOperPlan>(plan));
         this.pc = pc;
@@ -136,6 +138,14 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         this.dag = dag;
         this.scope = plan.getRoots().get(0).getOperatorKey().getScope();
         this.nig = NodeIdGenerator.getGenerator();
+
+        try {
+            // Add credentials from binary token file and get tokens for namenodes
+            // specified in mapreduce.job.hdfs-servers
+            SecurityHelper.populateTokenCache(globalConf, dag.getCredentials());
+        } catch (IOException e) {
+            throw new RuntimeException("Error while fetching delegation tokens", e);
+        }
     }
 
     @Override
@@ -358,12 +368,17 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         ProcessorDescriptor procDesc = new ProcessorDescriptor(
                 tezOp.getProcessorName());
 
+        // Pass physical plans to vertex as user payload.
+        JobConf payloadConf = new JobConf(ConfigurationUtil.toConfiguration(pc.getProperties(), false));
+
+        // We do this so that dag.getCredentials(), job.getCredentials(),
+        // job.getConfiguration().getCredentials() all reference the same Credentials object
+        // Unfortunately there is no setCredentials() on Job
+        payloadConf.setCredentials(dag.getCredentials());
         // We won't actually use this job, but we need it to talk with the Load Store funcs
         @SuppressWarnings("deprecation")
-        Job job = new Job(ConfigurationUtil.toConfiguration(pc.getProperties(), false));
-
-        // Pass physical plans to vertex as user payload.
-        Configuration payloadConf = job.getConfiguration();
+        Job job = new Job(payloadConf);
+        payloadConf = (JobConf) job.getConfiguration();
 
         if (tezOp.sampleOperator != null) {
             payloadConf.set("pig.sampleVertex", tezOp.sampleOperator.getOperatorKey().toString());
@@ -574,19 +589,13 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                     storeOutDescriptor, MROutputCommitter.class);
         }
 
-        if (stores.size() > 0) {
-            new PigOutputFormat().checkOutputSpecs(job);
-        }
-
         // LoadFunc and StoreFunc add delegation tokens to Job Credentials in
         // setLocation and setStoreLocation respectively. For eg: HBaseStorage
         // InputFormat add delegation token in getSplits and OutputFormat in
         // checkOutputSpecs. For eg: FileInputFormat and FileOutputFormat
-        dag.getCredentials().addAll(job.getCredentials());
-
-        // Add credentials from binary token file and get tokens for namenodes
-        // specified in mapreduce.job.hdfs-servers
-        SecurityHelper.populateTokenCache(job.getConfiguration(), dag.getCredentials());
+        if (stores.size() > 0) {
+            new PigOutputFormat().checkOutputSpecs(job);
+        }
 
         return vertex;
     }

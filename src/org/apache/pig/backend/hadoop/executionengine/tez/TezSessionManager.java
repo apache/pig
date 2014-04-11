@@ -86,6 +86,8 @@ public class TezSessionManager {
         while (true) {
             TezSessionStatus status = tezSession.getSessionStatus();
             if (status.equals(TezSessionStatus.SHUTDOWN)) {
+                //TODO: TEZ-1017 Show diagnostics message
+                //log.error("TezSession has already shutdown. Diagnostics: " + tezSession.getSessionDiagnostics());
                 throw new RuntimeException("TezSession has already shutdown");
             }
             if (status.equals(TezSessionStatus.READY)) {

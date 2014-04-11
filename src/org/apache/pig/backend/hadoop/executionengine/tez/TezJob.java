@@ -19,9 +19,11 @@ package org.apache.pig.backend.hadoop.executionengine.tez;
 
 import java.io.IOException;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -32,6 +34,7 @@ import org.apache.tez.client.TezSession;
 import org.apache.tez.common.counters.CounterGroup;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.Vertex;
@@ -51,15 +54,16 @@ public class TezJob extends ControlledJob {
     private EnumSet<StatusGetOpts> statusGetOpts;
     private DAGStatus dagStatus;
     private Configuration conf;
-    private TezDAG dag;
+    private DAG dag;
     private DAGClient dagClient;
     private Map<String, LocalResource> requestAMResources;
     private TezSession tezSession;
     private boolean reuseSession;
     private TezCounters dagCounters;
-    private Map<String, Map<String, Long>> vertexCounters;
+    // Vertex, CounterGroup, Counter, Value
+    private Map<String, Map<String, Map<String, Long>>> vertexCounters;
 
-    public TezJob(TezConfiguration conf, TezDAG dag, Map<String, LocalResource> requestAMResources)
+    public TezJob(TezConfiguration conf, DAG dag, Map<String, LocalResource> requestAMResources)
             throws IOException {
         super(conf);
         this.conf = conf;
@@ -70,7 +74,7 @@ public class TezJob extends ControlledJob {
         this.vertexCounters = Maps.newHashMap();
     }
 
-    public TezDAG getDag() {
+    public DAG getDag() {
         return dag;
     }
 
@@ -82,8 +86,12 @@ public class TezJob extends ControlledJob {
         return dagCounters;
     }
 
-    public Map<String, Long> getVertexCounters(String name) {
-        return vertexCounters.get(name);
+    public Map<String, Map<String, Long>> getVertexCounters(String group) {
+        return vertexCounters.get(group);
+    }
+
+    public Map<String, Long> getVertexCounters(String group, String name) {
+        return vertexCounters.get(group).get(name);
     }
 
     @Override
@@ -149,17 +157,20 @@ public class TezJob extends ControlledJob {
             String name = v.getVertexName();
             try {
                 VertexStatus s = dagClient.getVertexStatus(name, statusGetOpts);
-                Map<String, Long> cntMap = Maps.newHashMap();
                 TezCounters counters = s.getVertexCounters();
+                Map<String, Map<String, Long>> grpCounters = Maps.newHashMap();
                 Iterator<CounterGroup> grpIt = counters.iterator();
                 while (grpIt.hasNext()) {
-                    Iterator<TezCounter> cntIt = grpIt.next().iterator();
+                    CounterGroup grp = grpIt.next();
+                    Iterator<TezCounter> cntIt = grp.iterator();
+                    Map<String, Long> cntMap = Maps.newHashMap();
                     while (cntIt.hasNext()) {
                         TezCounter cnt = cntIt.next();
                         cntMap.put(cnt.getName(), cnt.getValue());
                     }
+                    grpCounters.put(grp.getName(), cntMap);
                 }
-                vertexCounters.put(name, cntMap);
+                vertexCounters.put(name, grpCounters);
             } catch (Exception e) {
                 // Don't fail the job even if vertex counters couldn't
                 // be retrieved.
@@ -200,6 +211,25 @@ public class TezJob extends ControlledJob {
                 break;
         }
         return jobState;
+    }
+
+    @Override
+    public synchronized String getMessage() {
+        return super.getMessage() + "\n " + getDiagnostics();
+    }
+
+    private String getDiagnostics() {
+        try {
+            if (dagClient != null && dagStatus == null) {
+                dagStatus = dagClient.getDAGStatus(new HashSet<StatusGetOpts>());
+            }
+            if (dagStatus != null) {
+                return StringUtils.join(dagStatus.getDiagnostics(), "\n");
+            }
+        } catch (Exception e) {
+            //Ignore
+        }
+        return "";
     }
 }
 

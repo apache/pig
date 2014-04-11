@@ -32,6 +32,7 @@ import org.apache.pig.backend.BackendException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.Launcher;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.tez.optimizers.NoopFilterRemover;
 import org.apache.pig.backend.hadoop.executionengine.tez.optimizers.UnionOptimizer;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
@@ -150,6 +151,9 @@ public class TezLauncher extends Launcher {
             throws PlanException, IOException, VisitorException {
         TezCompiler comp = new TezCompiler(php, pc, tezResourceManager);
         TezOperPlan tezPlan = comp.compile();
+
+        NoopFilterRemover filter = new NoopFilterRemover(tezPlan);
+        filter.visit();
 
         boolean nocombiner = Boolean.parseBoolean(pc.getProperties().getProperty(
                 PigConfiguration.PROP_NO_COMBINER, "false"));

@@ -24,11 +24,13 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.hadoop.executionengine.JobCreationException;
 import org.apache.pig.impl.PigContext;
+import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.TezConfiguration;
 
 /**
@@ -47,10 +49,11 @@ public class TezJobControlCompiler {
         this.tezConf = new TezConfiguration(conf);
     }
 
-    public TezDAG buildDAG(TezOperPlan tezPlan, Map<String, LocalResource> localResources)
+    public DAG buildDAG(TezOperPlan tezPlan, Map<String, LocalResource> localResources)
             throws IOException, YarnException {
         String jobName = pigContext.getProperties().getProperty(PigContext.JOB_NAME, "pig");
-        TezDAG tezDag = new TezDAG(jobName);
+        DAG tezDag = new DAG(jobName);
+        tezDag.setCredentials(new Credentials());
         TezDagBuilder dagBuilder = new TezDagBuilder(pigContext, tezPlan, tezDag, localResources);
         dagBuilder.visit();
         return tezDag;
@@ -98,7 +101,7 @@ public class TezJobControlCompiler {
             Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
             localResources.putAll(planContainer.getLocalResources());
             localResources.putAll(tezPlan.getExtraResources());
-            TezDAG tezDag = buildDAG(tezPlan, localResources);
+            DAG tezDag = buildDAG(tezPlan, localResources);
             return new TezJob(tezConf, tezDag, localResources);
         } catch (Exception e) {
             int errCode = 2017;

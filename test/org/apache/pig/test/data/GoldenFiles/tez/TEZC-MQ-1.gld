@@ -8,7 +8,7 @@ Tez vertex scope-24
 
 Tez vertex scope-24
 # Plan on vertex
-Split - scope-32
+1-1: Split - scope-32
 |   |
 |   b: Store(file:///tmp/output/b:org.apache.pig.builtin.PigStorage) - scope-13
 |   |

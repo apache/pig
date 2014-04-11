@@ -142,7 +142,7 @@ public class TezOperPlan extends OperatorPlan<TezOperator> {
     @Override
     public boolean disconnect(TezOperator from, TezOperator to) {
         from.outEdges.remove(to.getOperatorKey());
-        to.outEdges.remove(from.getOperatorKey());
+        to.inEdges.remove(from.getOperatorKey());
         return super.disconnect(from, to);
     }
 

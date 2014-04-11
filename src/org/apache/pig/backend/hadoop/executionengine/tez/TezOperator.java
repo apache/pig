@@ -70,13 +70,11 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
     //int requestedMemory = 1024;
     //int requestedCpu = 1;
 
-    // Presence indicates that this TezOper is sub-plan of a POSplit.
-    // This is in-case when multi-query is turned on
-    // Only POStore or POLocalRearrange leaf can be a sub-plan of POSplit
-    private OperatorKey splitOperatorKey = null;
-
     // This indicates that this TezOper is a split operator
     private boolean splitter;
+
+    // This indicates that this TezOper has POSplit as a predecessor.
+    private OperatorKey splitParent = null;
 
     // Indicates that the plan creation is complete
     boolean closed = false;
@@ -177,12 +175,12 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
         this.requestedParallelism = oper.requestedParallelism;
     }
 
-    public OperatorKey getSplitOperatorKey() {
-        return splitOperatorKey;
+    public OperatorKey getSplitParent() {
+        return splitParent;
     }
 
-    public void setSplitOperatorKey(OperatorKey splitOperatorKey) {
-        this.splitOperatorKey = splitOperatorKey;
+    public void setSplitParent(OperatorKey splitParent) {
+        this.splitParent = splitParent;
     }
 
     public void setSplitter(boolean spl) {

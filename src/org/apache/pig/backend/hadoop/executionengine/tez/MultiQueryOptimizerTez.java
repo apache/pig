@@ -23,8 +23,6 @@ import java.util.Map.Entry;
 
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPoissonSample;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POReservoirSample;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.tez.util.TezCompilerUtil;
@@ -50,26 +48,15 @@ public class MultiQueryOptimizerTez extends TezOpPlanVisitor {
             List<TezOperator> successors = getPlan().getSuccessors(tezOp);
             List<TezOperator> succ_successors = new ArrayList<TezOperator>();
             for (TezOperator successor : successors) {
-                // don't want to be complicated by nested split
-                if (successor.isSplitter()) {
-                    continue;
-                }
+
                 // If has other dependency, don't merge into split,
                 if (getPlan().getPredecessors(successor).size()!=1) {
                     continue;
                 }
-                boolean containsBlacklistedOp = false;
-                for (PhysicalOperator op : successor.plan) {
-                    if (op instanceof POReservoirSample || op instanceof POPoissonSample) {
-                        containsBlacklistedOp = true;
-                        break;
-                    }
-                }
-                if (containsBlacklistedOp) {
-                    continue;
-                }
+
                 // Detect diamond shape, we cannot merge it into split, since Tez
                 // does not handle double edge between vertexes
+                // TODO: PIG-3876 to handle this by writing to same edge
                 boolean sharedSucc = false;
                 if (getPlan().getSuccessors(successor)!=null) {
                     for (TezOperator succ_successor : getPlan().getSuccessors(successor)) {
@@ -102,8 +89,6 @@ public class MultiQueryOptimizerTez extends TezOpPlanVisitor {
                 tezOp.plan.remove(firstNodeLeaf);
                 singleSplitee.plan.remove(secondNodeRoot);
 
-                //TODO remove filter all
-
                 tezOp.plan.merge(singleSplitee.plan);
                 tezOp.plan.connect(firstNodeLeafPred, secondNodeSucc);
 
@@ -113,6 +98,7 @@ public class MultiQueryOptimizerTez extends TezOpPlanVisitor {
             } else {
                 POValueOutputTez valueOutput = (POValueOutputTez)tezOp.plan.getLeaves().get(0);
                 POSplit split = new POSplit(OperatorKey.genOpKey(valueOutput.getOperatorKey().getScope()));
+                split.setAlias(valueOutput.getAlias());
                 for (TezOperator splitee : splittees) {
                     PhysicalOperator spliteeRoot =  splitee.plan.getRoots().get(0);
                     splitee.plan.remove(spliteeRoot);

@@ -23,6 +23,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -44,6 +45,9 @@ import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.CounterGroup;
+import org.apache.tez.common.counters.DAGCounter;
+import org.apache.tez.common.counters.FileSystemCounter;
+import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DAG;
@@ -55,12 +59,9 @@ import com.google.common.collect.Maps;
 public class TezStats extends PigStats {
     private static final Log LOG = LogFactory.getLog(TezStats.class);
 
-    public static final String DAG_COUNTER =
-            "org.apache.tez.common.counters.DAGCounter";
-    public static final String FS_COUNTER =
-            "org.apache.tez.common.counters.FileSystemCounter";
-    public static final String TASK_COUNTER =
-            "org.apache.tez.common.counters.TaskCounter";
+    public static final String DAG_COUNTER_GROUP = DAGCounter.class.getName();
+    public static final String FS_COUNTER_GROUP = FileSystemCounter.class.getName();
+    public static final String TASK_COUNTER_GROUP = TaskCounter.class.getName();
 
     private List<String> dagStatsStrings;
     private Map<String, TezTaskStats> tezOpVertexMap;
@@ -152,7 +153,9 @@ public class TezStats extends PigStats {
                 String[] lines = errorMessage.split("\n");
                 for (int i = 0; i < lines.length; i++) {
                     String s = lines[i].trim();
-                    sb.append(String.format("%1$20s: %2$-100s%n", i == 0 ? "ErrorMessage" : "", s));
+                    if (i == 0 || !StringUtils.isEmpty(s)) {
+                        sb.append(String.format("%1$20s: %2$-100s%n", i == 0 ? "ErrorMessage" : "", s));
+                    }
                 }
                 sb.append("\n");
             }
@@ -163,15 +166,14 @@ public class TezStats extends PigStats {
             sb.append("\n");
         }
 
-        List<InputStats> is = getInputStats();
-        for (int i = 0; i < is.size(); i++) {
-            String s = is.get(i).getDisplayString(isLocal).trim();
-            sb.append(String.format("%1$20s: %2$-100s%n", i == 0 ? "Input(s)" : "", s));
+        sb.append("Input(s):\n");
+        for (InputStats is : getInputStats()) {
+            sb.append(is.getDisplayString(isLocal).trim()).append("\n");
         }
-        List<OutputStats> os = getOutputStats();
-        for (int i = 0; i < os.size(); i++) {
-            String s = os.get(i).getDisplayString(isLocal).trim();
-            sb.append(String.format("%1$20s: %2$-100s%n", i == 0 ? "Output(s)" : "", s));
+        sb.append("\n");
+        sb.append("Output(s):\n");
+        for (OutputStats os : getOutputStats()) {
+            sb.append(os.getDisplayString(isLocal).trim()).append("\n");
         }
         LOG.info("Script Statistics:\n" + sb.toString());
     }
@@ -203,33 +205,42 @@ public class TezStats extends PigStats {
             }
         }
         if (!succeeded) {
-            errorMessage = tezJob.getMessage();
+            errorMessage = tezJob.getMessage().trim();
         }
     }
 
     private void addVertexStats(String tezOpName, Configuration conf, boolean succeeded,
-            Map<String, Long> counters) {
+            Map<String, Map<String, Long>> map) {
         TezTaskStats stats = tezOpVertexMap.get(tezOpName);
         stats.setConf(conf);
         stats.setId(tezOpName);
         stats.setSuccessful(succeeded);
-        stats.addInputStatistics(counters);
-        stats.addOutputStatistics(counters);
+        if (map == null) {
+            if (stats.hasLoadOrStore()) {
+                LOG.warn("Unable to get input(s)/output(s) of the job");
+            }
+        } else {
+            stats.addInputStatistics(map);
+            stats.addOutputStatistics(map);
+        }
     }
 
     private static String getDisplayString(TezJob tezJob) {
         StringBuilder sb = new StringBuilder();
         TezCounters cnt = tezJob.getDagCounters();
+        if (cnt == null) {
+            return "";
+        }
 
         sb.append(String.format("%1$20s: %2$-100s%n", "JobId",
                 tezJob.getJobID()));
 
-        CounterGroup dagGrp = cnt.getGroup(DAG_COUNTER);
+        CounterGroup dagGrp = cnt.getGroup(DAG_COUNTER_GROUP);
         TezCounter numTasks = dagGrp.findCounter("TOTAL_LAUNCHED_TASKS");
         sb.append(String.format("%1$20s: %2$-100s%n", "TotalLaunchedTasks",
                 numTasks.getValue()));
 
-        CounterGroup fsGrp = cnt.getGroup(FS_COUNTER);
+        CounterGroup fsGrp = cnt.getGroup(FS_COUNTER_GROUP);
         TezCounter bytesRead = fsGrp.findCounter("FILE_BYTES_READ");
         TezCounter bytesWritten = fsGrp.findCounter("FILE_BYTES_WRITTEN");
         sb.append(String.format("%1$20s: %2$-100s%n", "FileBytesRead",

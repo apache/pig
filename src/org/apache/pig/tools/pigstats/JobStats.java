@@ -18,19 +18,27 @@
 
 package org.apache.pig.tools.pigstats;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.Counters;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.FileBasedOutputSizeReader;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigStatsOutputSizeReader;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
+import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.PlanVisitor;
-import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 
 /**
@@ -40,6 +48,8 @@ import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 @InterfaceAudience.Public
 @InterfaceStability.Evolving
 public abstract class JobStats extends Operator {
+
+    private static final Log LOG = LogFactory.getLog(JobStats.class);
 
     public static final String ALIAS = "JobStatistics:alias";
     public static final String ALIAS_LOCATION = "JobStatistics:alias_location";
@@ -320,5 +330,38 @@ public abstract class JobStats extends Operator {
      */
     @Deprecated
     abstract public Map<String, Long> getMultiInputCounters();
+
+    /**
+     * Looks up the output size reader from OUTPUT_SIZE_READER_KEY and invokes
+     * it to get the size of output. If OUTPUT_SIZE_READER_KEY is not set,
+     * defaults to FileBasedOutputSizeReader.
+     * @param sto POStore
+     * @param conf configuration
+     */
+    public static long getOutputSize(POStore sto, Configuration conf) {
+        PigStatsOutputSizeReader reader = null;
+        String readerNames = conf.get(
+                PigStatsOutputSizeReader.OUTPUT_SIZE_READER_KEY,
+                FileBasedOutputSizeReader.class.getCanonicalName());
+
+        for (String className : readerNames.split(",")) {
+            reader = (PigStatsOutputSizeReader) PigContext.instantiateFuncFromSpec(className);
+            if (reader.supports(sto)) {
+                LOG.info("using output size reader: " + className);
+                try {
+                    return reader.getOutputSize(sto, conf);
+                } catch (FileNotFoundException e) {
+                    LOG.warn("unable to find the output file", e);
+                    return -1;
+                } catch (IOException e) {
+                    LOG.warn("unable to get byte written of the job", e);
+                    return -1;
+                }
+            }
+        }
+
+        LOG.warn("unable to find an output size reader");
+        return -1;
+    }
 
 }
