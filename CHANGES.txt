@@ -30,6 +30,10 @@ PIG-2207: Support custom counters for aggregating warnings from different udfs (
 
 IMPROVEMENTS
 
+PIG-3868: Fix Iterator_1 e2e test on windows (ssvinarchukhorton via rohini)
+
+PIG-3591: Refactor POPackage to separate MR specific code from packaging (mwagner via cheolsoo)
+
 PIG-3449: Move JobCreationException to org.apache.pig.backend.hadoop.executionengine (cheolsoo)
 
 PIG-3765: Ability to disable Pig commands and operators (prkommireddi)
@@ -96,8 +100,18 @@ PIG-3117: A debug mode in which pig does not delete temporary files (ihadanny vi
 PIG-3484: Make the size of pig.script property configurable (cheolsoo)
  
 OPTIMIZATIONS
+
+PIG-3882: Multiquery off mode execution is not done in batch and very inefficient (rohini)
  
 BUG FIXES
+
+PIG-3871: Replace org.python.google.* with com.google.* in imports (cheolsoo)
+
+PIG-3858: PigLogger/PigStatusReporter is not set for fetch tasks (lbendig via cheolsoo)
+
+PIG-3798: Registered jar in pig script are appended to the classpath multiple times (cheolsoo)
+
+PIG-3844: Make ScriptState InheritableThreadLocal for threads that need it (amatsukawa via cheolsoo)
 
 PIG-3837: ant pigperf target is broken in trunk (cheolsoo)
 
@@ -161,8 +175,6 @@ PIG-3722: Udf deserialization for registered classes fails in local_mode (aniket
 PIG-3641: Split "otherwise" producing incorrect output when combined with ColumnPruning (knoguchi)
 
 PIG-3682: mvn-inst target does not install pig-h2.jar into local .m2 (raluri via aniket486)
-
-PIG-3661: Piggybank AvroStorage fails if used in more than one load or store statement (rohini)
 
 PIG-3511: Security: Pig temporary directories might have world readable permissions (rohini)
 
@@ -262,6 +274,10 @@ PIG-3047: Check the size of a relation before adding it to distributed cache in 
 PIG-3480: TFile-based tmpfile compression crashes in some cases (dvryaboy via aniket486)
 
 BUG FIXES
+
+PIG-3661: Piggybank AvroStorage fails if used in more than one load or store statement (rohini)
+
+PIG-3819: e2e tests containing "perl -e "print $_;" fails on Hadoop 2 (daijy)
 
 PIG-3813: Rank column is assigned different uids everytime when schema is reset (cheolsoo)
 

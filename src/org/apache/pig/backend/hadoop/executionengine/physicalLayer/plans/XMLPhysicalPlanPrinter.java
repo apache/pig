@@ -33,6 +33,7 @@ import javax.xml.transform.stream.StreamResult;
 
 import org.apache.pig.PigException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.MultiQueryPackager;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCollectedGroup;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PODemux;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFRJoin;
@@ -40,16 +41,19 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSkewedJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.Packager;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.MultiMap;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 
 
 public class XMLPhysicalPlanPrinter<P extends OperatorPlan<PhysicalOperator>> extends
@@ -175,6 +179,11 @@ public class XMLPhysicalPlanPrinter<P extends OperatorPlan<PhysicalOperator>> ex
             subPlans = ((POSplit)node).getPlans();
         } else if (node instanceof PODemux) {
             subPlans = ((PODemux)node).getPlans();
+        } else if(node instanceof POPackage){
+            childNode = createPONode(node);
+            Packager pkgr = ((POPackage) node).getPkgr();
+            Node pkgrNode = createPackagerNode(pkgr);
+            childNode.appendChild(pkgrNode);
         } else if(node instanceof POFRJoin){
             childNode = createPONode(node);
             POFRJoin frj = (POFRJoin)node;
@@ -214,5 +223,17 @@ public class XMLPhysicalPlanPrinter<P extends OperatorPlan<PhysicalOperator>> ex
         for (PhysicalOperator pred : predecessors) {
             depthFirst(pred, childNode);
         }
+    }
+
+    private Node createPackagerNode(Packager pkgr) {
+        Element pkgrNode = doc.createElement(pkgr.getClass().getSimpleName());
+        if (pkgr instanceof MultiQueryPackager) {
+            List<Packager> pkgrs = ((MultiQueryPackager) pkgr)
+                    .getPackagers();
+            for (Packager child : pkgrs) {
+                pkgrNode.appendChild(createPackagerNode(child));
+            }
+        }
+        return pkgrNode;
     }
 }

@@ -28,6 +28,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.NullableUnknownWritable;
 import org.apache.pig.impl.io.PigNullableWritable;
 
@@ -84,12 +85,12 @@ public class MultiQueryPackager extends Packager {
      */
     private boolean inCombiner = false;
 
-    transient private PigNullableWritable myKey;
+    private PigNullableWritable keyWritable = null;
 
     /**
      * Appends the specified package object to the end of
      * the package list.
-     *
+     * 
      * @param pack package to be appended to the list
      */
     public void addPackager(Packager pkgr) {
@@ -99,7 +100,7 @@ public class MultiQueryPackager extends Packager {
     /**
      * Appends the specified package object to the end of
      * the package list.
-     *
+     * 
      * @param pack package to be appended to the list
      * @param mapKeyType the map key type associated with the package
      */
@@ -113,7 +114,7 @@ public class MultiQueryPackager extends Packager {
 
     /**
      * Returns the list of packages.
-     *
+     * 
      * @return the list of the packages
      */
     public List<Packager> getPackagers() {
@@ -133,7 +134,7 @@ public class MultiQueryPackager extends Packager {
             return new Result(POStatus.STATUS_EOP, null);
         }
 
-        byte origIndex = myKey.getIndex();
+        byte origIndex = keyWritable.getIndex();
 
         int index = (int)origIndex;
         index &= idxPart;
@@ -151,9 +152,9 @@ public class MultiQueryPackager extends Packager {
         // check to see if we need to unwrap the key. The keys may be
         // wrapped inside a tuple by LocalRearrange operator when jobs
         // with different map key types are merged
-        PigNullableWritable curKey = myKey;
+        PigNullableWritable curKey = keyWritable;
         if (!sameMapKeyType && !inCombiner && isKeyWrapped.get(index)) {
-            Tuple tup = (Tuple)myKey.getValueAsPigType();
+            Tuple tup = (Tuple) keyWritable.getValueAsPigType();
             curKey = HDataType.getWritableComparableTypes(tup.get(0),
                     pkgr.getKeyType());
             curKey.setIndex(origIndex);
@@ -193,14 +194,14 @@ public class MultiQueryPackager extends Packager {
             myObj.setIndex(origIndex);
             tuple.set(0, myObj);
         }
-        // illustrator markup has been handled by "pack"
+        // illustrator markup has been handled by "pkgr"
         return res;
     }
 
     /**
      * Returns the list of booleans that indicates if the
      * key needs to unwrapped for the corresponding plan.
-     *
+     * 
      * @return the list of isKeyWrapped boolean values
      */
     public List<Boolean> getIsKeyWrappedList() {
@@ -209,7 +210,7 @@ public class MultiQueryPackager extends Packager {
 
     /**
      * Adds a list of IsKeyWrapped boolean values
-     *
+     * 
      * @param lst the list of boolean values to add
      */
     public void addIsKeyWrappedList(List<Boolean> lst) {
@@ -234,4 +235,16 @@ public class MultiQueryPackager extends Packager {
         return sameMapKeyType;
     }
 
+    @Override
+    public int getNumInputs(byte index) {
+        return packagers.get(((int) index) & idxPart).getNumInputs(index);
+    }
+
+    @Override
+    public Tuple getValueTuple(PigNullableWritable keyWritable,
+            NullableTuple ntup, int index) throws ExecException {
+        this.keyWritable = keyWritable;
+        return packagers.get(((int) index) & idxPart).getValueTuple(
+                keyWritable, ntup, index);
+    }
 }

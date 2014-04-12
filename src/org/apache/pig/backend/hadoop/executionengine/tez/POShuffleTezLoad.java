@@ -145,6 +145,7 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
             }
 
             key = pkgr.getKey(min);
+            keyWritable = min;
 
             DataBag[] bags = new DataBag[numInputs];
             POPackageTupleBuffer buffer = new POPackageTupleBuffer();
@@ -190,7 +191,7 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
                                 for (Object val : vals) {
                                     NullableTuple nTup = (NullableTuple) val;
                                     int index = nTup.getIndex();
-                                    Tuple tup = pkgr.getValueTuple(key, nTup, index);
+                                    Tuple tup = pkgr.getValueTuple(keyWritable, nTup, index);
                                     bag.add(tup);
                                 }
                             }

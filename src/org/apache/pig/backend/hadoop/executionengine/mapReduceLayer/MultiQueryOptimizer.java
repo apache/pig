@@ -691,7 +691,7 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
             List<Packager> pkgs = ((MultiQueryPackager) fromPkgr)
                     .getPackagers();
             for (Packager p : pkgs) {
-                ((MultiQueryPackager) fromPkgr).addPackager(p);
+                ((MultiQueryPackager) toPkgr).addPackager(p);
                 pkCount++;
             }
             toPkgr.addIsKeyWrappedList(((MultiQueryPackager) fromPkgr)
@@ -733,7 +733,7 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         }
 
         if (toPkgr.isSameMapKeyType()) {
-            toPkgr.setKeyType(pk.getPkgr().getKeyType());
+            toPkgr.setKeyType(fromPkgr.getKeyType());
         } else {
             toPkgr.setKeyType(DataType.TUPLE);
         }

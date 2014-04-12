@@ -194,9 +194,9 @@ public class TestJobSubmission {
         // default_parallel is considered only at runtime, so here we only test requested parallel
         // more thorough tests can be found in TestNumberOfReducers.java
         String query = "a = load 'input';" +
-                       "b = load 'input';" +
-                       "c = join a by $0, b by $0 using 'skewed' parallel 100;" +
-                       "store c into 'output';";
+                "b = load 'input';" +
+                "c = join a by $0, b by $0 using 'skewed' parallel 100;" +
+                "store c into 'output';";
         PigServer ps = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         PhysicalPlan pp = Util.buildPp(ps, query);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
@@ -228,8 +228,8 @@ public class TestJobSubmission {
         util.startMiniHBaseCluster(1, 1);
 
         String query = "a = load '/passwd';" +
-                       "b = group a by $0;" +
-                       "store b into 'output';";
+                "b = group a by $0;" +
+                "store b into 'output';";
         PigServer ps = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         PhysicalPlan pp = Util.buildPp(ps, query);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
@@ -297,13 +297,13 @@ public class TestJobSubmission {
 
     @Test
     public void testReducerNumEstimationForOrderBy() throws Exception{
-       // use the estimation
+        // use the estimation
         pc.getProperties().setProperty("pig.exec.reducers.bytes.per.reducer", "100");
         pc.getProperties().setProperty("pig.exec.reducers.max", "10");
 
         String query = "a = load '/passwd';" +
-                       "b = order a by $0;" +
-                       "store b into 'output';";
+                "b = order a by $0;" +
+                "store b into 'output';";
         PigServer ps = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         PhysicalPlan pp = Util.buildPp(ps, query);
 

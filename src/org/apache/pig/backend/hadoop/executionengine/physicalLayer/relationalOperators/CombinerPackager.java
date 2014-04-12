@@ -29,6 +29,7 @@ import org.apache.pig.data.InternalCachedBag;
 import org.apache.pig.data.NonSpillableDataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.NullableTuple;
+import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.util.Pair;
 /**
  * The package operator that packages the globally rearranged tuples into
@@ -55,12 +56,12 @@ public class CombinerPackager extends Packager {
      * @param bags for each field, indicates whether it should be a bag (true)
      * or a simple field (false).
      */
-    public CombinerPackager(Packager pkgr, boolean[] bags) {
+    public CombinerPackager(Packager pkg, boolean[] bags) {
         super();
-        keyType = pkgr.keyType;
+        keyType = pkg.keyType;
         numInputs = 1;
-        inner = new boolean[pkgr.inner.length];
-        for (int i = 0; i < pkgr.inner.length; i++) {
+        inner = new boolean[pkg.inner.length];
+        for (int i = 0; i < pkg.inner.length; i++) {
             inner[i] = true;
         }
         if (bags != null) {
@@ -75,6 +76,7 @@ public class CombinerPackager extends Packager {
     /**
      * @param keyInfo the keyInfo to set
      */
+    @Override
     public void setKeyInfo(Map<Integer, Pair<Boolean, Map<Integer, Integer>>> keyInfo) {
         this.keyInfo = keyInfo;
         // TODO: IMPORTANT ASSUMPTION: Currently we only combine in the
@@ -84,15 +86,15 @@ public class CombinerPackager extends Packager {
         // has an index of 0. When we do support combiner in Cogroups
         // THIS WILL NEED TO BE REVISITED.
         Pair<Boolean, Map<Integer, Integer>> lrKeyInfo =
-            keyInfo.get(0); // assumption: only group are "combinable", hence index 0
+                keyInfo.get(0); // assumption: only group are "combinable", hence index 0
         keyLookup = lrKeyInfo.second;
     }
 
     private DataBag createDataBag(int numBags) {
         String bagType = null;
         if (PigMapReduce.sJobConfInternal.get() != null) {
-               bagType = PigMapReduce.sJobConfInternal.get().get("pig.cachedbag.type");
-           }
+            bagType = PigMapReduce.sJobConfInternal.get().get("pig.cachedbag.type");
+        }
 
         if (bagType != null && bagType.equalsIgnoreCase("default")) {
             return new NonSpillableDataBag();
@@ -137,10 +139,10 @@ public class CombinerPackager extends Packager {
 
         detachInput();
 
-        // The successor of the POCombinerPackage as of
+        // The successor of the POPackage(Combiner) as of
         // now SHOULD be a POForeach which has been adjusted
         // to look for its inputs by projecting from the corresponding
-        // positions in the POCombinerPackage output.
+        // positions in the POPackage(Combiner) output.
         // So we will NOT be adding the key in the result here but merely
         // putting all bags into a result tuple and returning it.
         Tuple res;
@@ -150,11 +152,12 @@ public class CombinerPackager extends Packager {
         r.result = res;
         r.returnStatus = POStatus.STATUS_OK;
         return r;
+
     }
 
     @Override
-    public Tuple getValueTuple(Object key, NullableTuple ntup, int index)
-            throws ExecException {
+    public Tuple getValueTuple(PigNullableWritable keyWritable,
+            NullableTuple ntup, int index) throws ExecException {
         return (Tuple) ntup.getValueAsPigType();
     }
 

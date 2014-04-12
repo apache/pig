@@ -47,12 +47,12 @@ public class AccumulatorOptimizerUtil {
         }
 
         // if POPackage is for distinct, just return
-        if (((POPackage) po_package).getPkgr().isDistinct()) {
+        if (pkgr.isDistinct()) {
             return;
         }
 
         // if any input to POPackage is inner, just return
-        boolean[] isInner = ((POPackage) po_package).getPkgr().getInner();
+        boolean[] isInner = pkgr.getInner();
         for (boolean b: isInner) {
             if (b) {
                 return;

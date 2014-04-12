@@ -19,11 +19,8 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOp
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
@@ -35,6 +32,7 @@ import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.InternalCachedBag;
+import org.apache.pig.data.ReadOnceBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.NullableTuple;
@@ -42,10 +40,7 @@ import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.impl.util.IdentityHashSet;
-import org.apache.pig.impl.util.Pair;
-import org.apache.pig.pen.util.ExampleTuple;
-import org.apache.pig.pen.util.LineageTracer;
+import org.apache.pig.pen.Illustrator;
 
 /**
  * The package operator that packages
@@ -77,14 +72,6 @@ public class POPackage extends PhysicalOperator {
     //key, no value.
     protected int numInputs;
 
-    // A mapping of input index to key information got from LORearrange
-    // for that index. The Key information is a pair of boolean, Map.
-    // The boolean indicates whether there is a lone project(*) in the
-    // cogroup by. If not, the Map has a mapping of column numbers in the
-    // "value" to column numbers in the "key" which contain the fields in
-    // the "value"
-    protected Map<Integer, Pair<Boolean, Map<Integer, Integer>>> keyInfo;
-
     protected static final BagFactory mBagFactory = BagFactory.getInstance();
     protected static final TupleFactory mTupleFactory = TupleFactory.getInstance();
 
@@ -94,7 +81,7 @@ public class POPackage extends PhysicalOperator {
 
     protected Packager pkgr;
 
-    private boolean[] readOnce;
+    protected PigNullableWritable keyWritable;
 
     public POPackage(OperatorKey k) {
         this(k, -1, null);
@@ -115,16 +102,21 @@ public class POPackage extends PhysicalOperator {
     public POPackage(OperatorKey k, int rp, List<PhysicalOperator> inp,
             Packager pkgr) {
         super(k, rp, inp);
-        this.numInputs = -1;
-        this.keyInfo = new HashMap<Integer, Pair<Boolean, Map<Integer, Integer>>>();
+        numInputs = -1;
         this.pkgr = pkgr;
     }
 
     public POPackage(POPackage copy) {
         super(copy);
         this.numInputs = copy.numInputs;
-        this.keyInfo = copy.keyInfo;
         this.pkgr = copy.pkgr;
+        this.pkgr.keyInfo = copy.pkgr.keyInfo;
+    }
+
+    @Override
+    public void setIllustrator(Illustrator illustrator) {
+        super.setIllustrator(illustrator);
+        pkgr.setIllustrator(illustrator);
     }
 
     @Override
@@ -160,6 +152,7 @@ public class POPackage extends PhysicalOperator {
         try {
             tupIter = inp;
             key = pkgr.getKey(k);
+            keyWritable = k;
             inputAttached = true;
         } catch (Exception e) {
             throw new RuntimeException(
@@ -171,6 +164,7 @@ public class POPackage extends PhysicalOperator {
     /**
      * attachInput's better half!
      */
+    @Override
     public void detachInput() {
         tupIter = null;
         key = null;
@@ -184,15 +178,12 @@ public class POPackage extends PhysicalOperator {
     public void setNumInps(int numInps) {
         this.numInputs = numInps;
         pkgr.setNumInputs(numInps);
-        readOnce = new boolean[numInputs];
-        for (int i = 0; i < numInputs; i++)
-            readOnce[i] = false;
     }
 
     /**
-     * From the inputs, constructs the output tuple
-     * for this co-group in the required format which
-     * is (key, {bag of tuples from input 1}, {bag of tuples from input 2}, ...)
+     * From the inputs, constructs the output tuple for this co-group in the
+     * required format which is (key, {bag of tuples from input 1}, {bag of
+     * tuples from input 2}, ...)
      */
     @Override
     public Result getNextTuple() throws ExecException {
@@ -206,12 +197,18 @@ public class POPackage extends PhysicalOperator {
                 }
             }
         }
+        int numInputs = pkgr.getNumInputs(keyWritable.getIndex());
+        boolean[] readOnce = new boolean[numInputs];
+        for (int i = 0; i < numInputs; i++)
+            readOnce[i] = false;
+
         if (isInputAttached()) {
             // Create numInputs bags
             DataBag[] dbs = null;
             dbs = new DataBag[numInputs];
 
             if (isAccumulative()) {
+                readOnce[numInputs - 1] = false;
                 // create bag wrapper to pull tuples in many batches
                 // all bags have reference to the sample tuples buffer
                 // which contains tuples from one batch
@@ -223,16 +220,21 @@ public class POPackage extends PhysicalOperator {
                 }
 
             } else {
+                readOnce[numInputs - 1] = true;
+                // We know the tuples will come sorted by index, so we can wrap
+                // the last input in a ReadOnceBag and let the Packager decide
+                // whether or not to read into memory
+
                 // create bag to pull all tuples out of iterator
                 for (int i = 0; i < numInputs; i++) {
                     dbs[i] = useDefaultBag ? BagFactory.getInstance()
                             .newDefaultBag()
-                    // In a very rare case if there is a POStream after this
-                    // POPackage in the pipeline and is also blocking the
-                    // pipeline;
-                    // constructor argument should be 2 * numInputs. But for one
-                    // obscure
-                    // case we don't want to pay the penalty all the time.
+                            // In a very rare case if there is a POStream after this
+                            // POPackage in the pipeline and is also blocking the
+                            // pipeline;
+                            // constructor argument should be 2 * numInputs. But for one
+                            // obscure
+                            // case we don't want to pay the penalty all the time.
                             : new InternalCachedBag(numInputs);
                 }
                 // For each indexed tup in the inp, sort them
@@ -241,8 +243,11 @@ public class POPackage extends PhysicalOperator {
                 while (tupIter.hasNext()) {
                     NullableTuple ntup = tupIter.next();
                     int index = ntup.getIndex();
-                    Tuple copy = pkgr.getValueTuple(key,
-                            ntup, index);
+                    if (index == numInputs - 1) {
+                        dbs[index] = new PeekedBag(pkgr, ntup, tupIter, keyWritable);
+                        break;
+                    }
+                    Tuple copy = pkgr.getValueTuple(keyWritable, ntup, index);
 
                     if (numInputs == 1) {
 
@@ -266,10 +271,7 @@ public class POPackage extends PhysicalOperator {
             detachInput();
         }
 
-        Result r = pkgr.getNext();
-        Tuple packedTup = (Tuple) r.result;
-        packedTup = illustratorMarkup(null, packedTup, 0);
-        return r;
+        return pkgr.getNext();
     }
 
     public Packager getPkgr() {
@@ -278,6 +280,8 @@ public class POPackage extends PhysicalOperator {
 
     public void setPkgr(Packager pkgr) {
         this.pkgr = pkgr;
+        pkgr.setParent(this);
+        pkgr.setIllustrator(illustrator);
     }
 
     /**
@@ -341,22 +345,24 @@ public class POPackage extends PhysicalOperator {
                 if (iter.hasNext()) {
                     NullableTuple ntup = iter.next();
                     int index = ntup.getIndex();
-                    Tuple copy = pkgr.getValueTuple(key, ntup, index);
+                    Tuple copy = pkgr.getValueTuple(keyWritable, ntup, index);
                     if (numInputs == 1) {
+
                         // this is for multi-query merge where
-                         // the numInputs is always 1, but the index
+                        // the numInputs is always 1, but the index
                         // (the position of the inner plan in the
                         // enclosed operator) may not be 1.
                         bags[0].add(copy);
-                     } else {
+                    } else {
                         bags[index].add(copy);
-                     }
+                    }
                 }else{
                     break;
                 }
             }
         }
 
+        @Override
         public void clear() {
             for(int i=0; i<bags.length; i++) {
                 bags[i].clear();
@@ -364,6 +370,7 @@ public class POPackage extends PhysicalOperator {
             iter = null;
         }
 
+        @Override
         public Iterator<Tuple> getTuples(int index) {
             return bags[index].iterator();
         }
@@ -373,74 +380,77 @@ public class POPackage extends PhysicalOperator {
         }
     };
 
-    public Tuple illustratorMarkup2(Object in, Object out) {
-       if(illustrator != null) {
-           ExampleTuple tOut = new ExampleTuple((Tuple) out);
-           illustrator.getLineage().insert(tOut);
-           tOut.synthetic = ((ExampleTuple) in).synthetic;
-           illustrator.getLineage().union(tOut, (Tuple) in);
-           return tOut;
-       } else
-           return (Tuple) out;
-    }
-
     @Override
     public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
-        if (illustrator != null) {
-            ExampleTuple tOut = new ExampleTuple((Tuple) out);
-            LineageTracer lineageTracer = illustrator.getLineage();
-            lineageTracer.insert(tOut);
-            Tuple tmp;
-            boolean synthetic = false;
-            if (illustrator.getEquivalenceClasses() == null) {
-                LinkedList<IdentityHashSet<Tuple>> equivalenceClasses = new LinkedList<IdentityHashSet<Tuple>>();
-                for (int i = 0; i < numInputs; ++i) {
-                    IdentityHashSet<Tuple> equivalenceClass = new IdentityHashSet<Tuple>();
-                    equivalenceClasses.add(equivalenceClass);
-                }
-                illustrator.setEquivalenceClasses(equivalenceClasses, this);
-            }
+        return pkgr.illustratorMarkup(in, out, eqClassIndex);
+    }
 
-            if (pkgr.isDistinct()) {
-                int count;
-                for (count = 0; tupIter.hasNext(); ++count) {
-                    NullableTuple ntp = tupIter.next();
-                    tmp = (Tuple) ntp.getValueAsPigType();
-                    if (!tmp.equals(tOut))
-                        lineageTracer.union(tOut, tmp);
+    public int numberOfEquivalenceClasses() {
+        return pkgr.numberOfEquivalenceClasses();
+    }
+
+    // A ReadOnceBag that we've already "peeked" at
+    private static class PeekedBag extends ReadOnceBag {
+        private static final long serialVersionUID = 1L;
+        NullableTuple head;
+        int index;
+
+        public PeekedBag(Packager pkgr, NullableTuple head,
+                Iterator<NullableTuple> tupIter,
+                PigNullableWritable keyWritable) {
+            super(pkgr, tupIter, keyWritable);
+            this.head = head;
+            this.index = head.getIndex();
+        }
+
+        @Override
+        public Iterator<Tuple> iterator() {
+            return new Iterator<Tuple>() {
+                boolean headReturned = false;
+
+                @Override
+                public boolean hasNext() {
+                    if (!headReturned)
+                        return true;
+
+                    return tupIter.hasNext();
                 }
-                if (count > 1) // only non-distinct tuples are inserted into the equivalence class
-                    illustrator.getEquivalenceClasses().get(eqClassIndex).add(tOut);
-                illustrator.addData((Tuple) tOut);
-                return (Tuple) tOut;
-            }
-            boolean outInEqClass = true;
-            try {
-                for (int i = 1; i < numInputs + 1; i++) {
-                    DataBag dbs = (DataBag) ((Tuple) out).get(i);
-                    Iterator<Tuple> iter = dbs.iterator();
-                    if (dbs.size() <= 1 && outInEqClass) // all inputs have >= 2 records
-                        outInEqClass = false;
-                    while (iter.hasNext()) {
-                        tmp = iter.next();
-                        // any of synthetic data in bags causes the output tuple to be synthetic
-                        if (!synthetic && ((ExampleTuple) tmp).synthetic)
-                            synthetic = true;
-                        lineageTracer.union(tOut, tmp);
+
+                @Override
+                public Tuple next() {
+                    if (!headReturned) {
+                        headReturned = true;
+                        try {
+                            return pkgr.getValueTuple(keyWritable, head,
+                                    head.getIndex());
+                        } catch (ExecException e) {
+                            throw new RuntimeException(
+                                    "PeekedBag failed to get value tuple : "
+                                            + e.toString());
+                        }
                     }
+                    NullableTuple ntup = tupIter.next();
+                    Tuple ret = null;
+                    try {
+                        ret = pkgr.getValueTuple(keyWritable, ntup, index);
+                    } catch (ExecException e) {
+                        throw new RuntimeException(
+                                "PeekedBag failed to get value tuple : "
+                                        + e.toString());
+                    }
+                    if (getReporter() != null) {
+                        getReporter().progress();
+                    }
+                    return ret;
                 }
-            } catch (ExecException e) {
-                // TODO better exception handling
-                throw new RuntimeException("Illustrator exception :"
-                        + e.getMessage());
-            }
-            if (outInEqClass)
-                illustrator.getEquivalenceClasses().get(eqClassIndex).add(tOut);
-            tOut.synthetic = synthetic;
-            illustrator.addData((Tuple) tOut);
-            return tOut;
-        } else
-            return (Tuple) out;
+
+                @Override
+                public void remove() {
+                    throw new UnsupportedOperationException(
+                            "PeekedBag does not support removal");
+                }
+            };
+        }
     }
 
 }

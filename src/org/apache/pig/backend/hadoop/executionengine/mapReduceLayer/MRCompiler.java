@@ -2749,16 +2749,27 @@ public class MRCompiler extends PhyPlanVisitor {
             JoinPackager pkgr = new JoinPackager(pack.getPkgr(), forEach);
             pkgr.setChunkSize(Long.parseLong(chunkSize));
             pack.setPkgr(pkgr);
+            List<PhysicalOperator> succs = plan.getSuccessors(forEach);
+            if (succs != null) {
+                if (succs.size() != 1) {
+                    int errCode = 2028;
+                    String msg = "ForEach can only have one successor. Found "
+                            + succs.size() + " successors.";
+                    throw new MRCompilerException(msg, errCode,
+                            PigException.BUG);
+                }
+            }
             plan.remove(pack);
             try {
                 plan.replace(forEach, pack);
             } catch (PlanException e) {
                 int errCode = 2029;
-                String msg = "Error rewriting POJoinPackage.";
+                String msg = "Error rewriting join package.";
                 throw new MRCompilerException(msg, errCode, PigException.BUG, e);
             }
-
-            LogFactory.getLog(LastInputStreamingOptimizer.class).info("Rewrite: POPackage->POForEach to POJoinPackage");
+            mr.phyToMRMap.put(forEach, pack);
+            LogFactory.getLog(LastInputStreamingOptimizer.class).info(
+                    "Rewrite: POPackage->POForEach to POPackage(JoinPackager)");
         }
 
     }

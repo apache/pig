@@ -130,7 +130,12 @@ public abstract class ScriptState {
 
     private static final Log LOG = LogFactory.getLog(ScriptState.class);
 
-    private static ThreadLocal<ScriptState> tss = new ThreadLocal<ScriptState>();
+    /**
+     * PIG-3844. Each thread should have its own copy of ScriptState. We initialize the ScriptState
+     * for new threads with the ScriptState of its parent thread, using InheritableThreadLocal.
+     * Used eg. in PPNL running in separate thread.
+     */
+    private static InheritableThreadLocal<ScriptState> tss = new InheritableThreadLocal<ScriptState>();
 
     protected String id;
 

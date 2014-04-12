@@ -196,10 +196,7 @@ public class IllustratorAttacher extends PhyPlanVisitor {
 
     @Override
     public void visitPackage(POPackage pkg) throws VisitorException{
-         if (!(pkg.getPkgr() instanceof LitePackager) && pkg.getPkgr().isDistinct())
-             setIllustrator(pkg, 1);
-         else
-             setIllustrator(pkg, null);
+        setIllustrator(pkg, pkg.numberOfEquivalenceClasses());
     }
 
     @Override
@@ -210,17 +207,15 @@ public class IllustratorAttacher extends PhyPlanVisitor {
         for (PhysicalPlan innerPlan : innerPlans)
           innerPlanAttach(nfe, innerPlan);
         List<PhysicalOperator> preds = mPlan.getPredecessors(nfe);
-        if (preds != null && preds.size() == 1 && preds.get(0) instanceof POPackage) {
-            POPackage pkg = (POPackage) preds.get(0);
-            if (!(pkg.getPkgr() instanceof LitePackager) && pkg.getPkgr().isDistinct()) {
-                // equivalence class of POPackage for DISTINCT needs to be used
-                // instead of the succeeding POForEach's equivalence class
-                setIllustrator(nfe, pkg.getIllustrator().getEquivalenceClasses());
-                nfe.getIllustrator().setEqClassesShared();
-            }
-        } else {
+        if (preds != null && preds.size() == 1
+                && preds.get(0) instanceof POPackage
+                && ((POPackage) preds.get(0)).getPkgr().isDistinct()) {
+            // equivalence class of POPackage for DISTINCT needs to be used
+            //instead of the succeeding POForEach's equivalence class
+            setIllustrator(nfe, preds.get(0).getIllustrator().getEquivalenceClasses());
+            nfe.getIllustrator().setEqClassesShared();
+        } else
             setIllustrator(nfe, 1);
-        }
     }
 
     @Override

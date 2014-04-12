@@ -21,28 +21,23 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
-import org.apache.pig.data.InternalCachedBag;
 import org.apache.pig.data.NonSpillableDataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.pen.Illustrator;
 
 public class JoinPackager extends Packager {
 
     private static final long serialVersionUID = 1L;
-
     private POOptimizedForEach forEach;
     private boolean newKey = true;
     private Tuple res = null;
     private static final Result eopResult = new Result(POStatus.STATUS_EOP, null);
-    private boolean firstTime = true;
-    private boolean useDefaultBag = false;
 
     public static final String DEFAULT_CHUNK_SIZE = "1000";
 
@@ -80,9 +75,9 @@ public class JoinPackager extends Packager {
      * Calls getNext to get next ForEach result. The input for POJoinPackage is
      * a (key, NullableTuple) pair. We will materialize n-1 inputs into bags, feed input#n
      * one tuple a time to the delegated ForEach operator, the input for ForEach is
-     *
+     * 
      *     (input#1, input#2, input#3....input#n[i]), i=(1..k), suppose input#n consists
-     *
+     * 
      * of k tuples.
      * For every ForEach input, pull all the results from ForEach.
      * getNext will be called multiple times for a particular input,
@@ -91,17 +86,6 @@ public class JoinPackager extends Packager {
      */
     @Override
     public Result getNext() throws ExecException {
-
-        if(firstTime){
-            firstTime = false;
-            if (PigMapReduce.sJobConfInternal.get() != null) {
-                String bagType = PigMapReduce.sJobConfInternal.get().get("pig.cachedbag.type");
-                if (bagType != null && bagType.equalsIgnoreCase("default")) {
-                    useDefaultBag = true;
-                }
-            }
-        }
-
         Tuple it = null;
 
         // If we see a new NullableTupleIterator, materialize n-1 inputs, construct ForEach input
@@ -113,20 +97,7 @@ public class JoinPackager extends Packager {
             // Put n-1 inputs into bags
             dbs = new DataBag[numInputs];
             for (int i = 0; i < numInputs - 1; i++) {
-                if (!readOnce[i]) {
-                    dbs[i] = bags[i];
-                } else {
-                    dbs[i] = useDefaultBag ? BagFactory.getInstance()
-                            .newDefaultBag()
-                    // In a very rare case if there is a POStream after this
-                    // POJoinPackage in the pipeline and is also blocking the
-                    // pipeline;
-                    // constructor argument should be 2 * numInputs. But for one
-                    // obscure
-                    // case we don't want to pay the penalty all the time.
-                            : new InternalCachedBag(numInputs - 1);
-                    dbs[i].addAll(bags[i]);
-                }
+                dbs[i] = bags[i];
             }
 
             // For last bag, we always use NonSpillableBag.
@@ -218,9 +189,25 @@ public class JoinPackager extends Packager {
     @Override
     public void attachInput(Object key, DataBag[] bags, boolean[] readOnce)
             throws ExecException {
-        super.attachInput(key, bags, readOnce);
+        checkBagType();
+
+        this.key = key;
+        this.bags = bags;
+        this.readOnce = readOnce;
+        // JoinPackager expects all but the last bag to be materialized
+        for (int i = 0; i < bags.length - 1; i++) {
+            if (readOnce[i]) {
+                DataBag materializedBag = getBag();
+                materializedBag.addAll(bags[i]);
+                bags[i] = materializedBag;
+            }
+        }
+        if (readOnce[numInputs - 1] != true) {
+            throw new ExecException(
+                    "JoinPackager expects the last input to be streamed");
+        }
         this.newKey = true;
-    };
+    }
 
     public List<PhysicalPlan> getInputPlans() {
         return forEach.getInputPlans();
@@ -246,5 +233,16 @@ public class JoinPackager extends Packager {
      */
     public void setChunkSize(long chunkSize) {
         this.chunkSize = chunkSize;
+    }
+
+    @Override
+    public void setIllustrator(Illustrator illustrator) {
+        this.illustrator = illustrator;
+        forEach.setIllustrator(illustrator);
+    }
+
+    @Override
+    public String name() {
+        return this.getClass().getSimpleName() + "(" + forEach.getFlatStr() + ")";
     }
 }

@@ -17,20 +17,24 @@
  */
 
 /**
- *
+ * 
  */
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators;
 
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.NullableTuple;
+import org.apache.pig.impl.io.PigNullableWritable;
+import org.apache.pig.impl.util.IdentityHashSet;
 import org.apache.pig.impl.util.Pair;
+import org.apache.pig.pen.util.ExampleTuple;
+import org.apache.pig.pen.util.LineageTracer;
 
 /**
  * This package operator is a specialization
@@ -41,11 +45,14 @@ import org.apache.pig.impl.util.Pair;
 public class LitePackager extends Packager {
 
     private static final long serialVersionUID = 1L;
+    private PigNullableWritable keyWritable;
 
+    @Override
     public boolean[] getInner() {
         return null;
     }
 
+    @Override
     public void setInner(boolean[] inner) {
     }
 
@@ -58,12 +65,7 @@ public class LitePackager extends Packager {
         LitePackager clone = (LitePackager) super.clone();
         clone.inner = null;
         if (keyInfo != null) {
-            clone.keyInfo = new HashMap<Integer, Pair<Boolean, Map<Integer, Integer>>>();
-
-            for (Entry<Integer, Pair<Boolean, Map<Integer, Integer>>> entry : keyInfo
-                    .entrySet()) {
-                clone.keyInfo.put(entry.getKey(), entry.getValue());
-            }
+            clone.keyInfo = new HashMap<Integer, Pair<Boolean, Map<Integer, Integer>>>(keyInfo);
         }
         return clone;
     }
@@ -81,27 +83,6 @@ public class LitePackager extends Packager {
      */
     @Override
     public void setDistinct(boolean distinct) {
-    }
-
-    /**
-     * @return the isKeyTuple
-     */
-    public boolean getKeyTuple() {
-        return isKeyTuple;
-    }
-
-    /**
-     * @return the keyAsTuple
-     */
-    public Tuple getKeyAsTuple() {
-        return isKeyTuple ? (Tuple) key : null;
-    }
-
-    /**
-     * @return the key
-     */
-    public Object getKey() {
-        return key;
     }
 
     /**
@@ -127,27 +108,48 @@ public class LitePackager extends Packager {
         detachInput();
         Result r = new Result();
         r.returnStatus = POStatus.STATUS_OK;
-        r.result = res;
+        r.result = illustratorMarkup(null, res, 0);
         return r;
     }
 
     /**
-     * Makes use of the superclass method, but this requires
-     * an additional parameter key passed by ReadOnceBag.
-     * key of this instance will be set to null in detachInput
-     * call, but an instance of ReadOnceBag may have the original
-     * key that it uses. Therefore this extra argument is taken
-     * to temporarily set it before the call to the superclass method
-     * and then restore it.
+     * Makes use of the superclass method, but this requires an additional
+     * parameter key passed by ReadOnceBag. key of this instance will be set to
+     * null in detachInput call, but an instance of ReadOnceBag may have the
+     * original key that it uses. Therefore this extra argument is taken to
+     * temporarily set it before the call to the superclass method and then
+     * restore it.
      */
     @Override
-    public Tuple getValueTuple(Object key, NullableTuple ntup, int index)
-            throws ExecException {
-        Object origKey = this.key;
-        this.key = key;
-        Tuple retTuple = super.getValueTuple(key, ntup, index);
-        this.key = origKey;
+    public Tuple getValueTuple(PigNullableWritable keyWritable,
+            NullableTuple ntup, int index) throws ExecException {
+        PigNullableWritable origKey = this.keyWritable;
+        this.keyWritable = keyWritable;
+        Tuple retTuple = super.getValueTuple(keyWritable, ntup, index);
+        this.keyWritable = origKey;
         return retTuple;
+    }
+
+    @Override
+    public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
+        if (illustrator != null) {
+            ExampleTuple tOut = new ExampleTuple((Tuple) out);
+            LineageTracer lineageTracer = illustrator.getLineage();
+            lineageTracer.insert(tOut);
+            if (illustrator.getEquivalenceClasses() == null) {
+                LinkedList<IdentityHashSet<Tuple>> equivalenceClasses = new LinkedList<IdentityHashSet<Tuple>>();
+                for (int i = 0; i < numInputs; ++i) {
+                    IdentityHashSet<Tuple> equivalenceClass = new IdentityHashSet<Tuple>();
+                    equivalenceClasses.add(equivalenceClass);
+                }
+                illustrator.setEquivalenceClasses(equivalenceClasses, parent);
+            }
+            illustrator.getEquivalenceClasses().get(eqClassIndex).add(tOut);
+            tOut.synthetic = false; // not expect this to be really used
+            illustrator.addData((Tuple) tOut);
+            return tOut;
+        } else
+            return (Tuple) out;
     }
 }
 

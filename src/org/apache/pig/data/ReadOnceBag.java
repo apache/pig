@@ -25,28 +25,25 @@ import java.util.Iterator;
 
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.LitePackager;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.Packager;
 import org.apache.pig.impl.io.NullableTuple;
+import org.apache.pig.impl.io.PigNullableWritable;
 
 /**
- * This bag is specifically created for use by POPackageLite. So it has three
- * properties, the NullableTuple iterator, the key (Object) and the keyInfo
- * (Map<Integer, Pair<Boolean, Map<Integer, Integer>>>) all three
- * of which are required in the constructor call. This bag does not store
- * the tuples in memory, but has access to an iterator typically provided by
- * Hadoop. Use this when you already have an iterator over tuples and do not
- * want to copy over again to a new bag.
+ * This bag does not store the tuples in memory, but has access to an iterator
+ * typically provided by Hadoop. Use this when you already have an iterator over
+ * tuples and do not want to copy over again to a new bag.
  */
 public class ReadOnceBag implements DataBag {
 
     // The Packager that created this
-    LitePackager pkgr;
+    protected Packager pkgr;
 
     //The iterator of Tuples. Marked transient because we will never serialize this.
-    transient Iterator<NullableTuple> tupIter;
+    protected transient Iterator<NullableTuple> tupIter;
 
     // The key being worked on
-    Object key;
+    protected PigNullableWritable keyWritable;
 
     /**
      *
@@ -61,11 +58,11 @@ public class ReadOnceBag implements DataBag {
      * @param tupIter Iterator<NullableTuple>
      * @param key Object
      */
-    public ReadOnceBag(LitePackager pkgr, Iterator<NullableTuple> tupIter,
-            Object key) {
+    public ReadOnceBag(Packager pkgr, Iterator<NullableTuple> tupIter,
+            PigNullableWritable keyWritable) {
         this.pkgr = pkgr;
         this.tupIter = tupIter;
-        this.key = key;
+        this.keyWritable = keyWritable;
     }
 
     /* (non-Javadoc)
@@ -217,7 +214,7 @@ public class ReadOnceBag implements DataBag {
         return hash;
     }
 
-    class ReadOnceBagIterator implements Iterator<Tuple>
+    protected class ReadOnceBagIterator implements Iterator<Tuple>
     {
         /* (non-Javadoc)
          * @see java.util.Iterator#hasNext()
@@ -236,7 +233,7 @@ public class ReadOnceBag implements DataBag {
             int index = ntup.getIndex();
             Tuple ret = null;
             try {
-                ret = pkgr.getValueTuple(key, ntup, index);
+                ret = pkgr.getValueTuple(keyWritable, ntup, index);
             } catch (ExecException e)
             {
                 throw new RuntimeException("ReadOnceBag failed to get value tuple : "+e.toString());

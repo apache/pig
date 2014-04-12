@@ -129,15 +129,13 @@ public class JrubyScriptEngine extends ScriptEngine {
     @Override
     public void registerFunctions(String path, String namespace, PigContext pigContext) throws IOException {
         if (!isInitialized) {
-            pigContext.scriptJars.add(getJarPath(Ruby.class));
+            pigContext.addScriptJar(getJarPath(Ruby.class));
             pigContext.addScriptFile("pigudf.rb", "pigudf.rb");
             isInitialized = true;
         }
 
         for (Map.Entry<String,Object> entry : RubyFunctions.getFunctions("evalfunc", path).entrySet()) {
             String method = entry.getKey();
-
-            String functionType = rubyEngine.callMethod(entry.getValue(), "name", String.class);
 
             FuncSpec funcspec = new FuncSpec(JrubyEvalFunc.class.getCanonicalName() + "('" + path + "','" + method +"')");
             pigContext.registerFunction(namespace + "." + method, funcspec);
@@ -197,14 +195,14 @@ public class JrubyScriptEngine extends ScriptEngine {
                     if (file.isDirectory()) {
                         continue;
                     } else if (file.getName().endsWith(".jar") || file.getName().endsWith(".zip")) {
-                        pigContext.scriptJars.add(file.getPath());
+                        pigContext.addScriptJar(file.getPath());
                     } else {
                         String localPath = libFile.getName() + file.getPath().replaceFirst(libFile.getPath(), "");
                         pigContext.addScriptFile(localPath, file.getPath());
                     }
                 }
             } else {
-                pigContext.scriptJars.add(lib);
+                pigContext.addScriptJar(lib);
             }
         }
     }

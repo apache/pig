@@ -30,6 +30,7 @@ import java.util.Set;
 
 import org.apache.pig.PigException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.MultiQueryPackager;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCollectedGroup;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCounter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PODemux;
@@ -47,6 +48,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.Packager;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorPlan;
@@ -190,6 +192,15 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends
           }
           else if(node instanceof POForEach){
             sb.append(planString(((POForEach)node).getInputPlans()));
+          }
+          else if(node instanceof POPackage){
+            Packager pkgr = ((POPackage) node).getPkgr();
+            if(pkgr instanceof MultiQueryPackager){
+              List<Packager> pkgrs = ((MultiQueryPackager) pkgr).getPackagers();
+              for (Packager child : pkgrs){
+                  sb.append(LSep + child.name() + "\n");
+              }
+            }
           }
           else if(node instanceof POFRJoin){
             POFRJoin frj = (POFRJoin)node;
