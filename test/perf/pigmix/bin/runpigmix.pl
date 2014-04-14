@@ -81,9 +81,10 @@ for(my $i = 1; $i <= 17; $i++) {
         $total_mr_times = $total_mr_times + $mr_times;
 
 
-	my $multiplier=0;
-	if ($mr_times!=0) 
-	    $multiplier = $pig_times/$mr_times;
+        my $multiplier=0;
+        if ($mr_times!=0) {
+            $multiplier = $pig_times/$mr_times;
+        }
         print "PigMix_$i pig run time: $pig_times, java run time: $mr_times, multiplier: $multiplier\n";
     }
 }
