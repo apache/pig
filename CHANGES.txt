@@ -107,6 +107,8 @@ PIG-3882: Multiquery off mode execution is not done in batch and very inefficien
  
 BUG FIXES
 
+PIG-3895: Pigmix run script has compilation error (rohini)
+
 PIG-3885: AccumuloStorage incompatible with Accumulo 1.6.0 (elserj via daijy)
 
 PIG-3888: Direct fetch doesn't differentiate between frontend and backend sides (lbendig via daijy)
