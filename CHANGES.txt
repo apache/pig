@@ -105,6 +105,8 @@ PIG-3882: Multiquery off mode execution is not done in batch and very inefficien
  
 BUG FIXES
 
+PIG-3888: Direct fetch doesn't differentiate between frontend and backend sides (lbendig via daijy)
+
 PIG-3887: TestMRJobStats is broken in trunk (cheolsoo)
 
 PIG-3868: Fix Iterator_1 e2e test on windows (ssvinarchukhorton via rohini)

@@ -119,4 +119,14 @@ public class HadoopShims {
     public static void unsetConf(Configuration conf, String key) {
         // Not supported in Hadoop 0.20/1.x
     }
+    
+    /**
+     * Fetch mode needs to explicitly set the task id which is otherwise done by Hadoop 
+     * @param conf
+     * @param taskAttemptID
+     */
+    public static void setTaskAttemptId(Configuration conf, TaskAttemptID taskAttemptID) {
+        conf.set("mapred.task.id", taskAttemptID.toString());
+    }
+    
 }
