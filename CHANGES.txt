@@ -30,6 +30,8 @@ PIG-2207: Support custom counters for aggregating warnings from different udfs (
 
 IMPROVEMENTS
 
+PIG-3851: Upgrade jline to 2.11 (daijy)
+
 PIG-3884: Move multi store counters to PigStatsUtil from MRPigStatsUtil (rohini)
 
 PIG-3591: Refactor POPackage to separate MR specific code from packaging (mwagner via cheolsoo)
