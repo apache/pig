@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
@@ -34,6 +35,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
+import org.apache.pig.backend.hadoop.executionengine.shims.HadoopShims;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.SchemaTupleBackend;
 import org.apache.pig.impl.PigContext;
@@ -70,17 +72,22 @@ public class FetchLauncher {
      * @throws IOException
      */
     public PigStats launchPig(PhysicalPlan pp) throws IOException {
-        POStore poStore = (POStore) pp.getLeaves().get(0);
-        init(pp, poStore);
+        try {
+            POStore poStore = (POStore) pp.getLeaves().get(0);
+            init(pp, poStore);
 
-        // run fetch
-        runPipeline(poStore);
-
-        UDFFinishVisitor udfFinisher = new UDFFinishVisitor(pp,
-                new DependencyOrderWalker<PhysicalOperator, PhysicalPlan>(pp));
-        udfFinisher.visit();
-
-        return PigStats.start(new EmptyPigStats(pigContext, poStore));
+            // run fetch
+            runPipeline(poStore);
+            
+            UDFFinishVisitor udfFinisher = new UDFFinishVisitor(pp,
+                    new DependencyOrderWalker<PhysicalOperator, PhysicalPlan>(pp));
+            udfFinisher.visit();
+            
+            return PigStats.start(new EmptyPigStats(pigContext, poStore));
+        }
+        finally {
+            UDFContext.getUDFContext().addJobConf(null);
+        }
     }
 
     /**
@@ -112,6 +119,10 @@ public class FetchLauncher {
 
         poStore.setStoreImpl(new FetchPOStoreImpl(pigContext));
         poStore.setUp();
+
+        TaskAttemptID taskAttemptID = HadoopShims.getNewTaskAttemptID();
+        HadoopShims.setTaskAttemptId(conf, taskAttemptID);
+        
         if (!PlanHelper.getPhysicalOperators(pp, POStream.class).isEmpty()) {
             MapRedUtil.setupStreamingDirsConfSingle(poStore, pigContext, conf);
         }

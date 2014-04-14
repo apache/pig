@@ -119,4 +119,14 @@ public class HadoopShims {
     public static void unsetConf(Configuration conf, String key) {
         conf.unset(key);
     }
+    
+    /**
+     * Fetch mode needs to explicitly set the task id which is otherwise done by Hadoop 
+     * @param conf
+     * @param taskAttemptID
+     */
+    public static void setTaskAttemptId(Configuration conf, TaskAttemptID taskAttemptID) {
+        conf.setInt("mapreduce.job.application.attempt.id", taskAttemptID.getId());
+    }
+    
 }
