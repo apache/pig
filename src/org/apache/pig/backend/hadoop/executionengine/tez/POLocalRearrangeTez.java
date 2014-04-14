@@ -48,6 +48,7 @@ public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
     protected String outputKey;
     protected transient KeyValueWriter writer;
 
+    protected boolean isFRJoin = false;
     protected boolean isSkewedJoin = false;
 
     public POLocalRearrangeTez(OperatorKey k) {
@@ -73,6 +74,14 @@ public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
 
     public void setOutputKey(String outputKey) {
         this.outputKey = outputKey;
+    }
+
+    public boolean isFRJoin() {
+        return isFRJoin;
+    }
+
+    public void setFRJoin(boolean isFRJoin) {
+        this.isFRJoin = isFRJoin;
     }
 
     public boolean isSkewedJoin() {

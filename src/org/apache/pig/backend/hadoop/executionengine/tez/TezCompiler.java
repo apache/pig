@@ -668,6 +668,7 @@ public class TezCompiler extends PhyPlanVisitor {
                 if (!tezOp.isClosed()) {
                     POLocalRearrangeTez lr = new POLocalRearrangeTez(op.getLRs()[i]);
                     lr.setOutputKey(curTezOp.getOperatorKey().toString());
+                    lr.setFRJoin(true);
 
                     tezOp.plan.addAsLeaf(lr);
                     TezEdgeDescriptor edge = TezCompilerUtil.connect(tezPlan, tezOp, curTezOp);

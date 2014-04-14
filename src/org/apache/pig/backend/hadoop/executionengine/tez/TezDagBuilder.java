@@ -457,7 +457,9 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                     LinkedList<POLocalRearrangeTez> lrs =
                             PlanHelper.getPhysicalOperators(pred.plan, POLocalRearrangeTez.class);
                     for (POLocalRearrangeTez lr : lrs) {
-                        if (lr.getOutputKey().equals(tezOp.getOperatorKey().toString())) {
+                        if (lr.isFRJoin()) {
+                            // skip FR join input
+                        } else if (lr.getOutputKey().equals(tezOp.getOperatorKey().toString())) {
                             localRearrangeMap.put((int)lr.getIndex(), inputKey);
                         }
                     }
