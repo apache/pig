@@ -67,6 +67,7 @@ public class PigProcessor implements LogicalIOProcessor {
     private PhysicalOperator leaf;
 
     private Configuration conf;
+    private PigTezLogger pigTezLogger;
 
     public static String sampleVertex;
     public static Map<String, Object> sampleMap;
@@ -102,8 +103,7 @@ public class PigProcessor implements LogicalIOProcessor {
 
         boolean aggregateWarning = "true".equalsIgnoreCase(pc.getProperties().getProperty("aggregate.warning"));
 
-        PigTezLogger pigTezLogger = new PigTezLogger(new TezStatusReporter(processorContext), aggregateWarning);
-
+        pigTezLogger = new PigTezLogger(new TezStatusReporter(processorContext), aggregateWarning);
         PhysicalOperator.setPigLogger(pigTezLogger);
 
         LinkedList<TezTaskConfigurable> tezTCs = PlanHelper.getPhysicalOperators(execPlan, TezTaskConfigurable.class);
@@ -121,6 +121,8 @@ public class PigProcessor implements LogicalIOProcessor {
     @Override
     public void close() throws Exception {
         // Avoid memory leak. ThreadLocals especially leak a lot of memory.
+        // The Reporter and Context objects hold TezProcessorContextImpl
+        // which holds input and its sort buffers which are huge.
         PhysicalOperator.reporter = new ThreadLocal<PigProgressable>();
         PigMapReduce.sJobConfInternal = new ThreadLocal<Configuration>();
         PigMapReduce.sJobContext = null;
@@ -130,9 +132,12 @@ public class PigProcessor implements LogicalIOProcessor {
         conf = null;
         sampleMap = null;
         sampleVertex = null;
+        if (pigTezLogger != null) {
+            pigTezLogger.destroy();
+            pigTezLogger = null;
+        }
     }
 
-    @SuppressWarnings("rawtypes")
     @Override
     public void run(Map<String, LogicalInput> inputs,
             Map<String, LogicalOutput> outputs) throws Exception {
@@ -256,7 +261,7 @@ public class PigProcessor implements LogicalIOProcessor {
         }
     }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @SuppressWarnings({ "unchecked" })
     private void collectSample(String sampleVertex, LogicalInput logicalInput) throws Exception {
         Boolean cached = (Boolean) ObjectCache.getInstance().retrieve("cached.sample." + sampleVertex);
         if (cached == Boolean.TRUE) {

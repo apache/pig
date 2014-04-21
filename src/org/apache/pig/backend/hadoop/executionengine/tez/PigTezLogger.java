@@ -42,6 +42,7 @@ public class PigTezLogger implements PigLogger {
         this.aggregate = aggregate;
     }
 
+    @Override
     @SuppressWarnings("rawtypes")
     public void warn(Object o, String msg, Enum warningEnum) {
         String className = o.getClass().getName();
@@ -73,6 +74,10 @@ public class PigTezLogger implements PigLogger {
 
     public synchronized boolean getAggregate() {
         return aggregate;
+    }
+
+    public void destroy() {
+        this.reporter = null;
     }
 
 }
