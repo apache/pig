@@ -24,8 +24,10 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.BufferedWriter;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileWriter;
+import java.io.FileReader;
 import java.io.IOException;
 import java.util.Properties;
 
@@ -35,6 +37,7 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.parser.ParserException;
 import org.apache.pig.parser.SourceLocation;
 import org.apache.pig.test.TestPigRunner.TestNotificationListener;
+import org.apache.pig.test.Util;
 import org.apache.pig.tools.parameters.ParameterSubstitutionException;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.junit.Test;
@@ -124,6 +127,35 @@ public class TestMain {
             log.error("Encountered exception", e);
             fail("Encountered Exception");
         }
+    }
+
+    @Test
+    public void testParseInputScript() throws Exception {
+        File input = Util.createInputFile("tmp", "",
+                new String[]{"{(1,1.0)}\ttestinputstring1",
+                        "{(2,2.0)}\ttestinputstring1",
+                        "{(3,3.0)}\ttestinputstring1",
+                        "{(4,4.0)}\ttestinputstring1"}
+        );
+        File out = new File(System.getProperty("java.io.tmpdir")+"/testParseInputScriptOut");
+        File scriptFile = Util.createInputFile("pigScript", "",
+                new String[]{"A = load '"+input.getAbsolutePath()+"' as (a:{(x:chararray, y:float)}, b:chararray);",
+                        "B = foreach A generate\n" +
+                                "    b,\n" +
+                                "    (bag{tuple(long)}) a.x as ax:{(x:long)};",
+                        "store B into '"+out.getAbsolutePath()+"';"}
+        );
+
+        Main.run(new String[]{"-x", "local", scriptFile.getAbsolutePath()}, null);
+        BufferedReader file = new BufferedReader(new FileReader(new File(out.getAbsolutePath()+"/part-m-00000")));
+        String line;
+        int count = 0;
+        while(( line = file.readLine()) != null) {
+            count++;
+        }
+        assertEquals(4,count);
+        Util.deleteDirectory(new File(out.getAbsolutePath()));
+        assertTrue(!new File(out.getAbsolutePath()).exists());
     }
 
     public static class TestNotificationListener2 extends TestNotificationListener {
