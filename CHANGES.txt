@@ -109,6 +109,8 @@ PIG-3882: Multiquery off mode execution is not done in batch and very inefficien
  
 BUG FIXES
 
+PIG-3894: Datetime function AddDuration, SubtractDuration and all Between functions don't check for null values in the input tuple (jennythompson via cheolsoo)
+
 PIG-3772: Syntax error when casting an inner schema of a bag and line break involved (ssvinarchukhorton via daijy)
 
 PIG-3889: Direct fetch doesn't set job submission timestamps (cheolsoo)
