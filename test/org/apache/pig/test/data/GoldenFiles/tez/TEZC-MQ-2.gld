@@ -2,9 +2,11 @@
 # There are 1 DAGs in the session
 #--------------------------------------------------
 #--------------------------------------------------
-# TEZ DAG plan: scope-209
+# TEZ DAG plan: scope-212
 #--------------------------------------------------
-Tez vertex scope-106	->	Tez vertex scope-119,Tez vertex scope-113,Tez vertex scope-126,Tez vertex scope-156,Tez vertex scope-146,Tez vertex scope-166,Tez vertex scope-178,
+Tez vertex scope-106	->	Tez vertex scope-119,Tez vertex scope-113,Tez vertex scope-126,Tez vertex scope-156,Tez vertex scope-146,Tez vertex scope-166,Tez vertex scope-209,
+Tez vertex scope-166	->	Tez vertex scope-209,
+Tez vertex scope-209
 Tez vertex scope-113
 Tez vertex scope-119	->	Tez vertex scope-126,Tez vertex scope-129,
 Tez vertex scope-126
@@ -12,8 +14,6 @@ Tez vertex scope-129
 Tez vertex scope-146	->	Tez vertex scope-156,
 Tez vertex scope-156	->	Tez vertex scope-158,
 Tez vertex scope-158
-Tez vertex scope-166	->	Tez vertex scope-178,
-Tez vertex scope-178
 
 Tez vertex scope-106
 # Plan on vertex
@@ -79,7 +79,7 @@ Tez vertex scope-106
 |   |   |
 |   |   d1: Store(file:///tmp/output/d1:org.apache.pig.builtin.PigStorage) - scope-80
 |   |   |
-|   |   POValueOutputTez - scope-180	->	 [scope-178]
+|   |   f2: Store(file:///tmp/output/f2:org.apache.pig.builtin.PigStorage) - scope-210
 |   |
 |   |---d1: Filter[bag] - scope-73
 |       |   |
@@ -110,6 +110,23 @@ Tez vertex scope-106
     |   |---Project[bytearray][1] - scope-4
     |
     |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-0
+Tez vertex scope-166
+# Plan on vertex
+f1: Split - scope-203
+|   |
+|   f1: Store(file:///tmp/output/f1:org.apache.pig.builtin.PigStorage) - scope-99
+|   |
+|   f2: Store(file:///tmp/output/f2:org.apache.pig.builtin.PigStorage) - scope-211
+|
+|---f1: Limit - scope-170
+    |
+    |---f1: New For Each(true)[bag] - scope-169
+        |   |
+        |   Project[tuple][1] - scope-168
+        |
+        |---f1: Package(Packager)[tuple]{tuple} - scope-167
+Tez vertex group scope-209	<-	 [scope-106, scope-166]	->	 null
+# No plan on vertex group
 Tez vertex scope-113
 # Plan on vertex
 b1: Split - scope-202
@@ -231,23 +248,3 @@ e1: Store(file:///tmp/output/e1:org.apache.pig.builtin.PigStorage) - scope-90
     |   Project[bag][1] - scope-160
     |
     |---Package(LitePackager)[tuple]{int} - scope-159
-Tez vertex scope-166
-# Plan on vertex
-f1: Split - scope-203
-|   |
-|   f1: Store(file:///tmp/output/f1:org.apache.pig.builtin.PigStorage) - scope-99
-|   |
-|   POValueOutputTez - scope-181	->	 [scope-178]
-|
-|---f1: Limit - scope-170
-    |
-    |---f1: New For Each(true)[bag] - scope-169
-        |   |
-        |   Project[tuple][1] - scope-168
-        |
-        |---f1: Package(Packager)[tuple]{tuple} - scope-167
-Tez vertex scope-178
-# Plan on vertex
-f2: Store(file:///tmp/output/f2:org.apache.pig.builtin.PigStorage) - scope-105
-|
-|---POShuffledValueInputTez - scope-179	<-	 [scope-106, scope-166]

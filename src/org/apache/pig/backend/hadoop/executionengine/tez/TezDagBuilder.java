@@ -74,6 +74,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezPOPackageAnnotator.LoRearrangeDiscoverer;
@@ -112,8 +113,8 @@ import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.mapreduce.partition.MRPartitioner;
+import org.apache.tez.runtime.library.input.SortedGroupedMergedInput;
 import org.apache.tez.runtime.library.input.ConcatenatedMergedKeyValueInput;
-import org.apache.tez.runtime.library.input.ConcatenatedMergedKeyValuesInput;
 
 /**
  * A visitor to construct DAG out of Tez plan.
@@ -223,8 +224,9 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         EdgeProperty edgeProperty = newEdge(fromOp, toOp);
 
         String groupInputClass = edgeProperty.getDataMovementType().equals(
-                DataMovementType.SCATTER_GATHER) ? ConcatenatedMergedKeyValuesInput.class
-                .getName() : ConcatenatedMergedKeyValueInput.class.getName();
+                DataMovementType.SCATTER_GATHER)
+                        ? SortedGroupedMergedInput.class.getName()
+                        : ConcatenatedMergedKeyValueInput.class.getName();
         return new GroupInputEdge(from, to, edgeProperty,
                 new InputDescriptor(groupInputClass).setUserPayload(edgeProperty.getEdgeDestination().getUserPayload()));
     }
@@ -457,10 +459,9 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                     LinkedList<POLocalRearrangeTez> lrs =
                             PlanHelper.getPhysicalOperators(pred.plan, POLocalRearrangeTez.class);
                     for (POLocalRearrangeTez lr : lrs) {
-                        if (lr.isFRJoin()) {
-                            // skip FR join input
-                        } else if (lr.getOutputKey().equals(tezOp.getOperatorKey().toString())) {
-                            localRearrangeMap.put((int)lr.getIndex(), inputKey);
+                        if (lr.isConnectedToPackage()
+                                && lr.getOutputKey().equals(tezOp.getOperatorKey().toString())) {
+                            localRearrangeMap.put((int) lr.getIndex(), inputKey);
                         }
                     }
                 }
@@ -507,12 +508,27 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
         MRToTezHelper.convertMRToTezRuntimeConf(payloadConf, globalConf);
 
+        if (!pc.inIllustrator) {
+            for (POStore store : stores) {
+                // unset inputs for POStore, otherwise, map/reduce plan will be unnecessarily deserialized
+                store.setInputs(null);
+                store.setParentPlan(null);
+            }
+            // We put them in the reduce because PigOutputCommitter checks the
+            // ID of the task to see if it's a map, and if not, calls the reduce
+            // committers.
+            payloadConf.set(JobControlCompiler.PIG_MAP_STORES,
+                    ObjectSerializer.serialize(new ArrayList<POStore>()));
+            payloadConf.set(JobControlCompiler.PIG_REDUCE_STORES,
+                    ObjectSerializer.serialize(stores));
+        }
+
         // Take our assembled configuration and create a vertex
         byte[] userPayload = TezUtils.createUserPayloadFromConf(payloadConf);
         procDesc.setUserPayload(userPayload);
         // Can only set parallelism here if the parallelism isn't derived from
         // splits
-        int parallelism = Math.max(tezOp.getRequestedParallelism(), 1);
+        int parallelism = tezOp.getRequestedParallelism();
         InputSplitInfo inputSplitInfo = null;
         if (loads != null && loads.size() > 0) {
             // Not using MRInputAMSplitGenerator because delegation tokens are
@@ -521,6 +537,26 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             // TODO: Can be set to -1 if TEZ-601 gets fixed and getting input
             // splits can be moved to if(loads) block below
             parallelism = inputSplitInfo.getNumTasks();
+            tezOp.setRequestedParallelism(parallelism);
+        }
+        if (tezOp.getRequestedParallelism() < 0) {
+            if (pc.defaultParallel > 0) {
+                parallelism = pc.defaultParallel;
+            } else {
+                // Rough estimation till we have Automatic Reducer Parallelism
+                // and Parallelism estimator. To be removed.
+                int sumOfPredParallelism = 0;
+                int predParallelism;
+                for (TezOperator pred : mPlan.getPredecessors(tezOp)) {
+                    predParallelism = pred.getRequestedParallelism();
+                    if (predParallelism < 0) {
+                        predParallelism = Math.max(pc.defaultParallel, 1);
+                    }
+                    sumOfPredParallelism += predParallelism;
+                }
+                sumOfPredParallelism = Math.min(sumOfPredParallelism, 20);
+                parallelism = Math.max(sumOfPredParallelism, 1);
+            }
             tezOp.setRequestedParallelism(parallelism);
         }
         Vertex vertex = new Vertex(tezOp.getOperatorKey().toString(), procDesc, parallelism,
@@ -705,6 +741,12 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                             JobControlCompiler.LOG_DIR).toString());
                 }
                 payloadConf.set("pig.streaming.task.output.dir", outputPathString);
+
+                if(tezOp.plan.getLeaves().get(0) instanceof POSplit) {
+                    // Set this so that we get correct counters
+                    st.setMultiStore(true);
+                }
+
             } else { // multi store case
                 log.info("Setting up multi store job");
                 String tmpLocationStr = FileLocalizer.getTemporaryPath(pc)
@@ -727,17 +769,6 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                         JobControlCompiler.LOG_DIR).toString());
                 payloadConf.set("pig.streaming.task.output.dir",
                         tmpLocation.toString());
-            }
-
-            if (!pc.inIllustrator) {
-
-                // We put them in the reduce because PigOutputCommitter checks the
-                // ID of the task to see if it's a map, and if not, calls the reduce
-                // committers.
-                payloadConf.set(JobControlCompiler.PIG_MAP_STORES,
-                        ObjectSerializer.serialize(new ArrayList<POStore>()));
-                payloadConf.set(JobControlCompiler.PIG_REDUCE_STORES,
-                        ObjectSerializer.serialize(stores));
             }
 
         }

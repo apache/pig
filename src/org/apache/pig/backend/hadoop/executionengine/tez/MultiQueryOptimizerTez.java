@@ -165,12 +165,8 @@ public class MultiQueryOptimizerTez extends TezOpPlanVisitor {
             parentOper.setRequestedParallelism(subPlanOper.getRequestedParallelism());
         }
         subPlanOper.setRequestedParallelismByReference(parentOper);
-        if (subPlanOper.UDFs != null) {
-            parentOper.UDFs.addAll(subPlanOper.UDFs);
-        }
-        if (subPlanOper.scalars != null) {
-            parentOper.scalars.addAll(subPlanOper.scalars);
-        }
+        parentOper.UDFs.addAll(subPlanOper.UDFs);
+        parentOper.scalars.addAll(subPlanOper.scalars);
         if (subPlanOper.outEdges != null) {
             for (Entry<OperatorKey, TezEdgeDescriptor> entry: subPlanOper.outEdges.entrySet()) {
                 parentOper.outEdges.put(entry.getKey(), entry.getValue());

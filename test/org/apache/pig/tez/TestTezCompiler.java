@@ -72,12 +72,16 @@ public class TestTezCompiler {
 
     @Before
     public void setUp() throws ExecException {
-        NodeIdGenerator.reset();
-        PigServer.resetScope();
+        resetScope();
         pc.getProperties().remove(PigConfiguration.OPT_MULTIQUERY);
         pc.getProperties().remove(PigConfiguration.TEZ_OPT_UNION);
         pc.getProperties().remove(PigConfiguration.PIG_EXEC_NO_SECONDARY_KEY);
         pigServer = new PigServer(pc);
+    }
+
+    private void resetScope() {
+        NodeIdGenerator.reset();
+        PigServer.resetScope();
     }
 
     @Test
@@ -463,6 +467,60 @@ public class TestTezCompiler {
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-8.gld");
         setProperty(PigConfiguration.TEZ_OPT_UNION, "" + false);
         run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-8-OPTOFF.gld");
+    }
+
+    @Test
+    public void testUnionSplit() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
+                "b = load 'file:///tmp/input' as (y:chararray, x:int);" +
+                "split a into a1 if x > 100, a2 otherwise;" +
+                "c = union onschema a1, b;" +
+                "split c into d if x > 500, e otherwise;" +
+                "store a2 into 'file:///tmp/output/a2';" +
+                "store d into 'file:///tmp/output/d';" +
+                "store e into 'file:///tmp/output/e';";
+
+        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + true);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-9.gld");
+        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + false);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-9-OPTOFF.gld");
+    }
+
+    @Test
+    public void testUnionUnion() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
+                "b = load 'file:///tmp/input' as (y:chararray, x:int);" +
+                "c = union onschema a, b;" +
+                "d = load 'file:///tmp/input1' as (x:int, y:chararray);" +
+                "e = union onschema c, d;" +
+                "f = group e by x;" +
+                "store f into 'file:///tmp/output';";
+
+        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + true);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-10.gld");
+        resetScope();
+        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + false);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-10-OPTOFF.gld");
+    }
+
+    //TODO: union followed by union followed by store does not work.
+    //@Test
+    public void testUnionUnionStore() throws Exception {
+        String query =
+                "a = load 'file:///tmp/input' as (x:int, y:chararray);" +
+                "b = load 'file:///tmp/input' as (y:chararray, x:int);" +
+                "c = union onschema a, b;" +
+                "d = load 'file:///tmp/input1' as (x:int, y:chararray);" +
+                "e = union onschema c, d;" +
+                "store e into 'file:///tmp/output';";
+
+        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + true);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-11.gld");
+        resetScope();
+        setProperty(PigConfiguration.TEZ_OPT_UNION, "" + false);
+        run(query, "test/org/apache/pig/test/data/GoldenFiles/tez/TEZC-Union-11-OPTOFF.gld");
     }
 
     @Test

@@ -415,6 +415,10 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
             this.inputKeys.add(input);
         }
 
+        public boolean removeInput(OperatorKey input) {
+            return this.inputKeys.remove(input);
+        }
+
         public String getOutput() {
             return outputKey;
         }

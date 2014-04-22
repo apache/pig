@@ -2,7 +2,7 @@
 # There are 1 DAGs in the session
 #--------------------------------------------------
 #--------------------------------------------------
-# TEZ DAG plan: scope-65
+# TEZ DAG plan: scope-67
 #--------------------------------------------------
 Tez vertex scope-20	->	Tez vertex scope-49,Tez vertex scope-50,
 Tez vertex scope-21	->	Tez vertex scope-49,Tez vertex scope-50,
@@ -24,9 +24,9 @@ Local Rearrange[tuple]{tuple}(false) - scope-54	->	 scope-32
         |   |
         |   Project[int][0] - scope-51
         |
-        |---d: Local Rearrange[tuple]{int}(false) - scope-56	->	 scope-42
+        |---d: Local Rearrange[tuple]{int}(false) - scope-57	->	 scope-42
             |   |
-            |   Project[int][0] - scope-57
+            |   Project[int][0] - scope-58
             |
             |---a: New For Each(false,false)[bag] - scope-7
                 |   |
@@ -41,19 +41,19 @@ Local Rearrange[tuple]{tuple}(false) - scope-54	->	 scope-32
                 |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-0
 Tez vertex scope-21
 # Plan on vertex
-Local Rearrange[tuple]{tuple}(false) - scope-61	->	 scope-32
+Local Rearrange[tuple]{tuple}(false) - scope-62	->	 scope-32
 |   |
-|   Constant(DummyVal) - scope-62
+|   Constant(DummyVal) - scope-63
 |
-|---ReservoirSample - scope-60
+|---ReservoirSample - scope-61
     |
-    |---New For Each(false)[tuple] - scope-59
+    |---New For Each(false)[tuple] - scope-60
         |   |
-        |   Project[int][0] - scope-58
+        |   Project[int][0] - scope-59
         |
-        |---d: Local Rearrange[tuple]{int}(false) - scope-63	->	 scope-42
+        |---d: Local Rearrange[tuple]{int}(false) - scope-65	->	 scope-42
             |   |
-            |   Project[int][0] - scope-64
+            |   Project[int][0] - scope-66
             |
             |---c: New For Each(false,false)[bag] - scope-15
                 |   |

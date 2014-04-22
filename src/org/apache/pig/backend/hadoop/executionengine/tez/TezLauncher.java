@@ -195,7 +195,7 @@ public class TezLauncher extends Launcher {
         }
 
         boolean isUnionOpt = "true".equalsIgnoreCase(pc.getProperties()
-                .getProperty(PigConfiguration.TEZ_OPT_UNION, "false"));
+                .getProperty(PigConfiguration.TEZ_OPT_UNION, "true"));
         // Use VertexGroup in Tez
         if (isUnionOpt) {
             UnionOptimizer uo = new UnionOptimizer(tezPlan);

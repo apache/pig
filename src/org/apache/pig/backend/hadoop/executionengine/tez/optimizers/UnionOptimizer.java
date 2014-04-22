@@ -22,10 +22,14 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
 
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.tez.POStoreTez;
+import org.apache.pig.backend.hadoop.executionengine.tez.POValueOutputTez;
+import org.apache.pig.backend.hadoop.executionengine.tez.RoundRobinPartitioner;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezEdgeDescriptor;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezInput;
 import org.apache.pig.backend.hadoop.executionengine.tez.TezOpPlanVisitor;
@@ -36,6 +40,9 @@ import org.apache.pig.backend.hadoop.executionengine.tez.TezOutput;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.ReverseDependencyOrderWalker;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
+import org.apache.tez.runtime.library.input.ShuffledMergedInput;
+import org.apache.tez.runtime.library.output.OnFileSortedOutput;
 
 /**
  * Optimizes union by removing the intermediate union vertex and making the
@@ -66,6 +73,7 @@ public class UnionOptimizer extends TezOpPlanVisitor {
         }
 
         TezOperator unionOp = tezOp;
+        String unionOpKey = unionOp.getOperatorKey().toString();
         String scope = unionOp.getOperatorKey().scope;
         TezOperPlan tezPlan = getPlan();
 
@@ -124,16 +132,28 @@ public class UnionOptimizer extends TezOpPlanVisitor {
             for (OperatorKey predKey : unionOp.getVertexGroupMembers()) {
                 TezOperator pred = tezPlan.getOperator(predKey);
                 PhysicalPlan predPlan = pred.plan;
-                // Remove POValueOutputTez from predecessor leaf
-                predPlan.remove(predPlan.getLeaves().get(0));
-
                 PhysicalOperator predLeaf = predPlan.getLeaves().get(0);
+                // if predLeaf not POValueOutputTez
+                if (predLeaf instanceof POSplit) {
+                    // Find the subPlan that connects to the union operator
+                    predPlan = getUnionPredPlanFromSplit(predPlan, unionOpKey);
+                    predLeaf = predPlan.getLeaves().get(0);
+                }
+
                 PhysicalPlan clonePlan = unionOpPlan.clone();
                 //Clone changes the operator keys
                 List<POStoreTez> clonedUnionStoreOutputs = PlanHelper.getPhysicalOperators(clonePlan, POStoreTez.class);
 
+                // Remove POValueOutputTez from predecessor leaf
+                predPlan.remove(predLeaf);
+                boolean isEmptyPlan = predPlan.isEmpty();
+                if (!isEmptyPlan) {
+                    predLeaf = predPlan.getLeaves().get(0);
+                }
                 predPlan.merge(clonePlan);
-                predPlan.connect(predLeaf, clonePlan.getRoots().get(0));
+                if (!isEmptyPlan) {
+                    predPlan.connect(predLeaf, clonePlan.getRoots().get(0));
+                }
 
                 // Connect predecessor to the storeVertexGroups
                 int i = 0;
@@ -153,25 +173,73 @@ public class UnionOptimizer extends TezOpPlanVisitor {
                     tezPlan.connect(pred, outputVertexGroup);
                 }
 
+                copyOperatorProperties(pred, unionOp);
                 tezPlan.disconnect(pred, unionOp);
             }
 
+            List<TezOperator> successors = tezPlan.getSuccessors(unionOp);
+            List<TezOutput> valueOnlyOutputs = new ArrayList<TezOutput>();
+            for (TezOutput tezOutput : unionOutputs) {
+                if (tezOutput instanceof POValueOutputTez) {
+                    valueOnlyOutputs.add(tezOutput);
+                }
+            }
+            // Connect to outputVertexGroupOps
             // Copy output edges of union -> successor to predecessor->successor, vertexgroup -> successor
             // and connect vertexgroup -> successor in the plan.
             for (Entry<OperatorKey, TezEdgeDescriptor> entry : unionOp.outEdges.entrySet()) {
                 TezOperator succOp = tezPlan.getOperator(entry.getKey());
+                // Case of union followed by union.
+                // unionOp.outEdges will not point to vertex group, but to its output.
+                // So find the vertex group if there is one.
+                TezOperator succOpVertexGroup = null;
+                for (TezOperator succ : successors) {
+                    if (succ.isVertexGroup()
+                            && succ.getVertexGroupInfo().getOutput()
+                                    .equals(succOp.getOperatorKey().toString())) {
+                        succOpVertexGroup = succ;
+                        break;
+                    }
+                }
+                TezEdgeDescriptor edge = entry.getValue();
+                // Edge cannot be one to one as it will get input from two or
+                // more union predecessors. Change it to SCATTER_GATHER
+                if (edge.dataMovementType == DataMovementType.ONE_TO_ONE) {
+                    edge.dataMovementType = DataMovementType.SCATTER_GATHER;
+                    edge.partitionerClass = RoundRobinPartitioner.class;
+                    edge.outputClassName = OnFileSortedOutput.class.getName();
+                    edge.inputClassName = ShuffledMergedInput.class.getName();
+
+                    for (TezOutput tezOutput : valueOnlyOutputs) {
+                        if (ArrayUtils.contains(tezOutput.getTezOutputs(), entry.getKey().toString())) {
+                            edge.setIntermediateOutputKeyComparatorClass(
+                                    POValueOutputTez.EmptyWritableComparator.class.getName());
+                        }
+                    }
+                }
                 TezOperator vertexGroupOp = outputVertexGroupOps[unionOutputKeys.indexOf(entry.getKey().toString())];
-                // Required for create the Edge in TezDAGBuilder
                 for (OperatorKey predKey : vertexGroupOp.getVertexGroupMembers()) {
                     TezOperator pred = tezPlan.getOperator(predKey);
-                    pred.outEdges.put(entry.getKey(), entry.getValue());
-                    succOp.inEdges.put(predKey, entry.getValue());
+                    // Keep the output edge directly to successor
+                    // Don't need to keep output edge for vertexgroup
+                    pred.outEdges.put(entry.getKey(), edge);
+                    succOp.inEdges.put(predKey, edge);
+                    if (succOpVertexGroup != null) {
+                        succOpVertexGroup.getVertexGroupMembers().add(predKey);
+                        succOpVertexGroup.getVertexGroupInfo().addInput(predKey);
+                        // Connect directly to the successor vertex group
+                        tezPlan.disconnect(pred, vertexGroupOp);
+                        tezPlan.connect(pred, succOpVertexGroup);
+                    }
                 }
-                // Not used in TezDAGBuilder. Just setting for correctness.
-                vertexGroupOp.outEdges.put(entry.getKey(), entry.getValue());
-                succOp.inEdges.put(vertexGroupOp.getOperatorKey(), entry.getValue());
-
-                tezPlan.connect(vertexGroupOp, succOp);
+                if (succOpVertexGroup != null) {
+                    succOpVertexGroup.getVertexGroupMembers().remove(unionOp.getOperatorKey());
+                    succOpVertexGroup.getVertexGroupInfo().removeInput(unionOp.getOperatorKey());
+                    //Discard the new vertex group created
+                    tezPlan.remove(vertexGroupOp);
+                } else {
+                    tezPlan.connect(vertexGroupOp, succOp);
+                }
             }
         } catch (Exception e) {
             throw new VisitorException(e);
@@ -186,7 +254,7 @@ public class UnionOptimizer extends TezOpPlanVisitor {
                 LinkedList<TezInput> inputs = PlanHelper.getPhysicalOperators(succ.plan, TezInput.class);
                 for (TezInput input : inputs) {
                     for (String key : input.getTezInputs()) {
-                        if (key.equals(unionOp.getOperatorKey().toString())) {
+                        if (key.equals(unionOpKey)) {
                             input.replaceInput(key,
                                     newOutputKeys[unionOutputKeys.indexOf(succ.getOperatorKey().toString())]);
                         }
@@ -199,6 +267,27 @@ public class UnionOptimizer extends TezOpPlanVisitor {
         //Remove union operator from the plan
         tezPlan.remove(unionOp);
 
+    }
+
+    private void copyOperatorProperties(TezOperator pred, TezOperator unionOp) {
+        pred.setUseSecondaryKey(unionOp.isUseSecondaryKey());
+        pred.UDFs.addAll(unionOp.UDFs);
+        pred.scalars.addAll(unionOp.scalars);
+    }
+
+    public static PhysicalPlan getUnionPredPlanFromSplit(PhysicalPlan plan, String unionOpKey) throws VisitorException {
+        List<POSplit> splits = PlanHelper.getPhysicalOperators(plan, POSplit.class);
+        for (POSplit split : splits) {
+            for (PhysicalPlan subPlan : split.getPlans()) {
+                if (subPlan.getLeaves().get(0) instanceof POValueOutputTez) {
+                    POValueOutputTez out = (POValueOutputTez) subPlan.getLeaves().get(0);
+                    if (out.containsOutputKey(unionOpKey)) {
+                        return subPlan;
+                    }
+                }
+            }
+        }
+        throw new VisitorException("Did not find the union predecessor in the split plan");
     }
 
 }

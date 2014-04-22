@@ -54,7 +54,7 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
 
     private WritableComparator comparator = null;
     private boolean isSkewedJoin = false;
-    
+
     private transient Configuration conf;
 
     public POShuffleTezLoad(POPackage pack) {
@@ -125,6 +125,7 @@ public class POShuffleTezLoad extends POPackage implements TezInput {
                         hasData = true;
                         cur = readers.get(i).getCurrentKey();
                         if (min == null || comparator.compare(min, cur) > 0) {
+                            //Not a deep clone. Writable is referenced.
                             min = ((PigNullableWritable)cur).clone();
                             minIndex = i;
                         }

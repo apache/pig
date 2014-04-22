@@ -668,7 +668,7 @@ public class TezCompiler extends PhyPlanVisitor {
                 if (!tezOp.isClosed()) {
                     POLocalRearrangeTez lr = new POLocalRearrangeTez(op.getLRs()[i]);
                     lr.setOutputKey(curTezOp.getOperatorKey().toString());
-                    lr.setFRJoin(true);
+                    lr.setConnectedToPackage(false);
 
                     tezOp.plan.addAsLeaf(lr);
                     TezEdgeDescriptor edge = TezCompilerUtil.connect(tezPlan, tezOp, curTezOp);
@@ -1518,8 +1518,9 @@ public class TezCompiler extends PhyPlanVisitor {
             POForEach nfe1 = new POForEach(new OperatorKey(scope,nig.getNextNodeId(scope)),-1,eps1,flat1);
             oper.plan.addAsLeaf(nfe1);
 
+            String numSamples = pigContext.getProperties().getProperty(PigConfiguration.PIG_RANDOM_SAMPLER_SAMPLE_SIZE, "100");
             POReservoirSample poSample = new POReservoirSample(new OperatorKey(scope,nig.getNextNodeId(scope)),
-                    -1, null, 100);
+                    -1, null, Integer.parseInt(numSamples));
             oper.plan.addAsLeaf(poSample);
             lrSample.setOutputKey(curTezOp.getOperatorKey().toString());
             oper.plan.addAsLeaf(lrSample);

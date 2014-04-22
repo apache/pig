@@ -2,7 +2,7 @@
 # There are 1 DAGs in the session
 #--------------------------------------------------
 #--------------------------------------------------
-# TEZ DAG plan: scope-83
+# TEZ DAG plan: scope-85
 #--------------------------------------------------
 Tez vertex scope-29	->	Tez vertex scope-63,Tez vertex scope-64,
 Tez vertex scope-30	->	Tez vertex scope-63,Tez vertex scope-64,
@@ -19,15 +19,15 @@ Local Rearrange[tuple]{tuple}(false) - scope-67	->	 scope-43
 |   |
 |   Constant(DummyVal) - scope-68
 |
-|---New For Each(true,true)[tuple] - scope-73
+|---New For Each(true,true)[tuple] - scope-74
     |   |
-    |   Project[int][0] - scope-70
+    |   Project[int][0] - scope-71
     |   |
-    |   POUserFunc(org.apache.pig.impl.builtin.GetMemNumRows)[tuple] - scope-71
+    |   POUserFunc(org.apache.pig.impl.builtin.GetMemNumRows)[tuple] - scope-72
     |   |
-    |   |---Project[tuple][*] - scope-72
+    |   |---Project[tuple][*] - scope-73
     |
-    |---PoissonSample - scope-69
+    |---PoissonSample - scope-70
         |
         |---Local Rearrange[tuple]{int}(false) - scope-65	->	 scope-53
             |   |
@@ -46,23 +46,23 @@ Local Rearrange[tuple]{tuple}(false) - scope-67	->	 scope-43
                 |---a: Load(file:///tmp/input:org.apache.pig.builtin.PigStorage) - scope-0
 Tez vertex scope-30
 # Plan on vertex
-Local Rearrange[tuple]{tuple}(false) - scope-76	->	 scope-43
+Local Rearrange[tuple]{tuple}(false) - scope-77	->	 scope-43
 |   |
-|   Constant(DummyVal) - scope-77
+|   Constant(DummyVal) - scope-78
 |
-|---New For Each(true,true)[tuple] - scope-82
+|---New For Each(true,true)[tuple] - scope-84
     |   |
-    |   Project[int][0] - scope-79
+    |   Project[int][0] - scope-81
     |   |
-    |   POUserFunc(org.apache.pig.impl.builtin.GetMemNumRows)[tuple] - scope-80
+    |   POUserFunc(org.apache.pig.impl.builtin.GetMemNumRows)[tuple] - scope-82
     |   |
-    |   |---Project[tuple][*] - scope-81
+    |   |---Project[tuple][*] - scope-83
     |
-    |---PoissonSample - scope-78
+    |---PoissonSample - scope-80
         |
-        |---Local Rearrange[tuple]{int}(false) - scope-74	->	 scope-53
+        |---Local Rearrange[tuple]{int}(false) - scope-75	->	 scope-53
             |   |
-            |   Project[int][0] - scope-75
+            |   Project[int][0] - scope-76
             |
             |---c: New For Each(false,false)[bag] - scope-15
                 |   |

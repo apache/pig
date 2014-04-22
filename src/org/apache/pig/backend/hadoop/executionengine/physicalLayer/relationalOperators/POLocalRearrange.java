@@ -719,27 +719,40 @@ public class POLocalRearrange extends PhysicalOperator {
 
     protected void deepCopyTo(POLocalRearrange clone)
             throws CloneNotSupportedException {
-        List<PhysicalPlan> clonePlans = new ArrayList<PhysicalPlan>(
-                plans.size());
-        for (PhysicalPlan plan : plans) {
-            clonePlans.add(plan.clone());
+
+        clone.setParentPlan(parentPlan);
+        clone.index = index;
+        if (useSecondaryKey) {
+            clone.keyType = mainKeyType;
+        } else {
+            clone.keyType = keyType;
         }
+        clone.setUseSecondaryKey(useSecondaryKey);
+        // Needs to be called as setDistinct so that the fake index tuple gets
+        // created.
+        clone.setDistinct(mIsDistinct);
+        clone.setCross(isCross);
+        clone.addOriginalLocation(alias, getOriginalLocations());
+        clone.setStripKeyFromValue(stripKeyFromValue);
+
         try {
-            clone.setPlans(clonePlans);
+            clone.setPlans(clonePlans(plans));
+            if (secondaryPlans != null) {
+                clone.setSecondaryPlans(clonePlans(secondaryPlans));
+            }
         } catch (PlanException pe) {
             CloneNotSupportedException cnse = new CloneNotSupportedException("Problem with setting plans of " + this.getClass().getSimpleName());
             cnse.initCause(pe);
             throw cnse;
         }
-        clone.keyType = keyType;
-        clone.mainKeyType = mainKeyType;
-        clone.secondaryKeyType = secondaryKeyType;
-        clone.useSecondaryKey = useSecondaryKey;
-        clone.index = index;
-        // Needs to be called as setDistinct so that the fake index tuple gets
-        // created.
-        clone.setDistinct(mIsDistinct);
-        clone.addOriginalLocation(alias, getOriginalLocations());
+    }
+
+    private List<PhysicalPlan> clonePlans(List<PhysicalPlan> origPlans) throws CloneNotSupportedException {
+        List<PhysicalPlan> clonePlans = new ArrayList<PhysicalPlan>(origPlans.size());
+        for (PhysicalPlan plan : origPlans) {
+            clonePlans.add(plan.clone());
+        }
+        return clonePlans;
     }
 
     public boolean isCross() {

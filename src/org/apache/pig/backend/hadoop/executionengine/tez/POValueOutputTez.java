@@ -99,6 +99,10 @@ public class POValueOutputTez extends PhysicalOperator implements TezOutput {
         outputKeys.remove(outputKey);
     }
 
+    public boolean containsOutputKey(String outputKey) {
+        return outputKeys.contains(outputKey);
+    }
+
     @Override
     public Result getNextTuple() throws ExecException {
         Result inp;

@@ -36,7 +36,9 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.tez.runtime.api.LogicalInput;
+import org.apache.tez.runtime.api.Reader;
 import org.apache.tez.runtime.library.api.KeyValueReader;
+import org.apache.tez.runtime.library.api.KeyValuesReader;
 
 /**
  * POValueInputTez is used read tuples from a Tez Intermediate output from a 1-1
@@ -52,6 +54,9 @@ public class POValueInputTez extends PhysicalOperator implements TezInput {
     // TODO Change this to value only reader after implementing
     // value only input output
     private transient KeyValueReader reader;
+    private transient KeyValuesReader shuffleReader;
+    private transient boolean shuffleInput;
+    private transient boolean hasNext;
     protected static final TupleFactory mTupleFactory = TupleFactory.getInstance();
 
     public POValueInputTez(OperatorKey k) {
@@ -83,9 +88,17 @@ public class POValueInputTez extends PhysicalOperator implements TezInput {
         if (input == null) {
             throw new ExecException("Input from vertex " + inputKey + " is missing");
         }
+
         try {
-            reader = (KeyValueReader) input.getReader();
-            LOG.info("Attached input from vertex " + inputKey + " : input=" + input + ", reader=" + reader);
+            Reader r = input.getReader();
+            if (r instanceof KeyValueReader) {
+                reader = (KeyValueReader) r;
+            } else {
+                shuffleInput = true;
+                shuffleReader = (KeyValuesReader) r;
+                hasNext = shuffleReader.next();
+            }
+            LOG.info("Attached input from vertex " + inputKey + " : input=" + input + ", reader=" + r);
         } catch (Exception e) {
             throw new ExecException(e);
         }
@@ -97,20 +110,30 @@ public class POValueInputTez extends PhysicalOperator implements TezInput {
             if (finished) {
                 return RESULT_EOP;
             }
-            if (reader.next()) {
-                Tuple origTuple = (Tuple)reader.getCurrentValue();
-                Tuple copy = mTupleFactory.newTuple(origTuple.getAll());
-                return new Result(POStatus.STATUS_OK, copy);
-            } else {
-                finished = true;
-                // For certain operators (such as STREAM), we could still have some work
-                // to do even after seeing the last input. These operators set a flag that
-                // says all input has been sent and to run the pipeline one more time.
-                if (Boolean.valueOf(conf.get(JobControlCompiler.END_OF_INP_IN_MAP, "false"))) {
-                    this.parentPlan.endOfAllInput = true;
+            if (shuffleInput) {
+                while (hasNext) {
+                    if (shuffleReader.getCurrentValues().iterator().hasNext()) {
+                        Tuple origTuple = (Tuple)shuffleReader.getCurrentValues().iterator().next();
+                        Tuple copy = mTupleFactory.newTuple(origTuple.getAll());
+                        return new Result(POStatus.STATUS_OK, copy);
+                    }
+                    hasNext = shuffleReader.next();
                 }
-                return RESULT_EOP;
+            } else {
+                if (reader.next()) {
+                    Tuple origTuple = (Tuple)reader.getCurrentValue();
+                    Tuple copy = mTupleFactory.newTuple(origTuple.getAll());
+                    return new Result(POStatus.STATUS_OK, copy);
+                }
             }
+            finished = true;
+            // For certain operators (such as STREAM), we could still have some work
+            // to do even after seeing the last input. These operators set a flag that
+            // says all input has been sent and to run the pipeline one more time.
+            if (Boolean.valueOf(conf.get(JobControlCompiler.END_OF_INP_IN_MAP, "false"))) {
+                this.parentPlan.endOfAllInput = true;
+            }
+            return RESULT_EOP;
         } catch (IOException e) {
             throw new ExecException(e);
         }

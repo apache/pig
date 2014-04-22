@@ -48,7 +48,7 @@ public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
     protected String outputKey;
     protected transient KeyValueWriter writer;
 
-    protected boolean isFRJoin = false;
+    protected boolean connectedToPackage = true;
     protected boolean isSkewedJoin = false;
 
     public POLocalRearrangeTez(OperatorKey k) {
@@ -64,6 +64,7 @@ public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
         if (copy instanceof POLocalRearrangeTez) {
             POLocalRearrangeTez copyTez = (POLocalRearrangeTez) copy;
             this.isSkewedJoin = copyTez.isSkewedJoin;
+            this.connectedToPackage = copyTez.connectedToPackage;
             this.outputKey = copyTez.outputKey;
         }
     }
@@ -76,12 +77,12 @@ public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
         this.outputKey = outputKey;
     }
 
-    public boolean isFRJoin() {
-        return isFRJoin;
+    public boolean isConnectedToPackage() {
+        return connectedToPackage;
     }
 
-    public void setFRJoin(boolean isFRJoin) {
-        this.isFRJoin = isFRJoin;
+    public void setConnectedToPackage(boolean connectedToPackage) {
+        this.connectedToPackage = connectedToPackage;
     }
 
     public boolean isSkewedJoin() {
@@ -186,6 +187,8 @@ public class POLocalRearrangeTez extends POLocalRearrange implements TezOutput {
                 mKey.scope, NodeIdGenerator.getGenerator().getNextNodeId(
                         mKey.scope)), requestedParallelism);
         deepCopyTo(clone);
+        clone.isSkewedJoin = isSkewedJoin;
+        clone.connectedToPackage = connectedToPackage;
         clone.setOutputKey(outputKey);
         return clone;
     }

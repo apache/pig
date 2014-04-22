@@ -92,14 +92,9 @@ public class TezTaskStats extends JobStats {
             long hdfsBytesRead = -1;
             String filename = fs.getFileName();
             Map<String, Long> taskCounter = map.get(TASK_COUNTER_GROUP);
-            if (taskCounter != null) {
-                //TaskCounter.INPUT_RECORDS_PROCESSED.name()
-                if (taskCounter.get("INPUT_RECORDS_PROCESSED") != null) {
-                    records = taskCounter.get("INPUT_RECORDS_PROCESSED");
-                } else if (taskCounter.get(PigStatsUtil.MAP_INPUT_RECORDS) != null) {
-                    // Tez 0.3 has MAP_INPUT_RECORDS TODO: Remove after we move away from Tez 0.3
-                    records = taskCounter.get(PigStatsUtil.MAP_INPUT_RECORDS);
-                }
+            if (taskCounter != null
+                    && taskCounter.get(TaskCounter.INPUT_RECORDS_PROCESSED.name()) != null) {
+                records = taskCounter.get(TaskCounter.INPUT_RECORDS_PROCESSED.name());
             }
             if (map.get(FS_COUNTER_GROUP) !=null &&
                     map.get(FS_COUNTER_GROUP).get(PigStatsUtil.HDFS_BYTES_READ) != null) {
@@ -124,13 +119,9 @@ public class TezTaskStats extends JobStats {
             if (sto.isMultiStore()) {
                 Long n = map.get(PigStatsUtil.MULTI_STORE_COUNTER_GROUP).get(PigStatsUtil.getMultiStoreCounterName(sto));
                 if (n != null) records = n;
-            } else if (map.get(TASK_COUNTER_GROUP) != null) {
-                if(map.get(TASK_COUNTER_GROUP).get(TaskCounter.OUTPUT_RECORDS.name()) != null) {
-                    records = map.get(TASK_COUNTER_GROUP).get(TaskCounter.OUTPUT_RECORDS.name());
-                } else if(map.get(TASK_COUNTER_GROUP).get(PigStatsUtil.MAP_OUTPUT_RECORDS) != null) {
-                    // Tez 0.3 has MAP_OUTPUT_RECORDS TODO: Remove after we move away from Tez 0.3
-                    records = map.get(TASK_COUNTER_GROUP).get(PigStatsUtil.MAP_OUTPUT_RECORDS);
-                }
+            } else if (map.get(TASK_COUNTER_GROUP) != null
+                    && map.get(TASK_COUNTER_GROUP).get(TaskCounter.OUTPUT_RECORDS.name()) != null) {
+                records = map.get(TASK_COUNTER_GROUP).get(TaskCounter.OUTPUT_RECORDS.name());
             }
             /*
             if (map.get(FS_COUNTER_GROUP)!= null &&

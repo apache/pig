@@ -22,6 +22,8 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -47,6 +49,7 @@ import org.apache.tez.runtime.library.api.KeyValuesReader;
 public class POIdentityInOutTez extends POLocalRearrangeTez implements TezInput, TezOutput {
 
     private static final long serialVersionUID = 1L;
+    private static final Log LOG = LogFactory.getLog(POIdentityInOutTez.class);
     private String inputKey;
     private transient KeyValueReader reader;
     private transient KeyValuesReader shuffleReader;
@@ -92,6 +95,7 @@ public class POIdentityInOutTez extends POLocalRearrangeTez implements TezInput,
                 shuffleInput = true;
                 shuffleReader = (KeyValuesReader) r;
             }
+            LOG.info("Attached input from vertex " + inputKey + " : input=" + input + ", reader=" + r);
         } catch (Exception e) {
             throw new ExecException(e);
         }
@@ -106,6 +110,7 @@ public class POIdentityInOutTez extends POLocalRearrangeTez implements TezInput,
         }
         try {
             writer = (KeyValueWriter) output.getWriter();
+            LOG.info("Attached output to vertex " + outputKey + " : output=" + output + ", writer=" + writer);
         } catch (Exception e) {
             throw new ExecException(e);
         }
