@@ -113,8 +113,8 @@ import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.mapreduce.partition.MRPartitioner;
-import org.apache.tez.runtime.library.input.SortedGroupedMergedInput;
 import org.apache.tez.runtime.library.input.ConcatenatedMergedKeyValueInput;
+import org.apache.tez.runtime.library.input.SortedGroupedMergedInput;
 
 /**
  * A visitor to construct DAG out of Tez plan.
@@ -330,7 +330,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
         conf.set("udf.import.list",
                 ObjectSerializer.serialize(PigContext.getPackageImportList()));
 
-        MRToTezHelper.convertMRToTezRuntimeConf(conf, globalConf);
+        MRToTezHelper.processMRSettings(conf, globalConf);
 
         in.setUserPayload(TezUtils.createUserPayloadFromConf(conf));
         out.setUserPayload(TezUtils.createUserPayloadFromConf(conf));
@@ -506,7 +506,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
 
         UDFContext.getUDFContext().serialize(payloadConf);
 
-        MRToTezHelper.convertMRToTezRuntimeConf(payloadConf, globalConf);
+        MRToTezHelper.processMRSettings(payloadConf, globalConf);
 
         if (!pc.inIllustrator) {
             for (POStore store : stores) {
@@ -559,6 +559,7 @@ public class TezDagBuilder extends TezOpPlanVisitor {
             }
             tezOp.setRequestedParallelism(parallelism);
         }
+
         Vertex vertex = new Vertex(tezOp.getOperatorKey().toString(), procDesc, parallelism,
                 isMap ? MRHelpers.getMapResource(globalConf) : MRHelpers.getReduceResource(globalConf));
 
@@ -913,4 +914,5 @@ public class TezDagBuilder extends TezOpPlanVisitor {
                     comparatorForKeyType(keyType), RawComparator.class);
         }
     }
+
 }

@@ -65,7 +65,7 @@ public class SecondaryKeyOptimizerTez extends TezOpPlanVisitor implements Second
                     break;
                 }
             }
-            
+
             if (connectingLR == null) {
                 continue;
             }
@@ -101,9 +101,9 @@ public class SecondaryKeyOptimizerTez extends TezOpPlanVisitor implements Second
                     inEdge.setUseSecondaryKey(true);
                     inEdge.setSecondarySortOrder(info.getSecondarySortOrder());
                     log.info("Using Secondary Key Optimization in the edge between vertex - "
-                            + to.getOperatorKey()
+                            + from.getOperatorKey()
                             + " and vertex - "
-                            + from.getOperatorKey());
+                            + to.getOperatorKey());
                 }
             }
         }

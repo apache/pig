@@ -519,16 +519,7 @@ public class JobControlCompiler{
             log.info("mapred.job.reduce.markreset.buffer.percent is set to " + conf.get("mapred.job.reduce.markreset.buffer.percent"));
         }
 
-        // Convert mapred.output.* to output.compression.*, See PIG-1791
-        if( "true".equals( conf.get( "mapred.output.compress" ) ) ) {
-            conf.set( "output.compression.enabled",  "true" );
-            String codec = conf.get( "mapred.output.compression.codec" );
-            if( codec == null ) {
-                throw new JobCreationException("'mapred.output.compress' is set but no value is specified for 'mapred.output.compression.codec'." );
-            } else {
-                conf.set( "output.compression.codec", codec );
-            }
-        }
+        configureCompression(conf);
 
         try{
             //Process the POLoads
@@ -701,7 +692,7 @@ public class JobControlCompiler{
 
             // the OutputFormat we report to Hadoop is always PigOutputFormat which
             // can be wrapped with LazyOutputFormat provided if it is supported by
-            // the Hadoop version and PigConfiguration.PIG_OUTPUT_LAZY is set 
+            // the Hadoop version and PigConfiguration.PIG_OUTPUT_LAZY is set
             if ("true".equalsIgnoreCase(conf.get(PigConfiguration.PIG_OUTPUT_LAZY))) {
                 try {
                     Class<?> clazz = PigContext.resolveClassName(
@@ -734,7 +725,7 @@ public class JobControlCompiler{
                     if(!pigContext.inIllustrator)
                         mro.reducePlan.remove(st);
                 }
-                
+
                 MapRedUtil.setupStreamingDirsConfSingle(st, pigContext, conf);
             }
             else if (mapStores.size() + reduceStores.size() > 0) { // multi store case
@@ -961,6 +952,19 @@ public class JobControlCompiler{
             int errCode = 2017;
             String msg = "Internal error creating job configuration.";
             throw new JobCreationException(msg, errCode, PigException.BUG, e);
+        }
+    }
+
+    public static void configureCompression(Configuration conf) {
+        // Convert mapred.output.* to output.compression.*, See PIG-1791
+        if( "true".equals( conf.get( "mapred.output.compress" ) ) ) {
+            conf.set( "output.compression.enabled",  "true" );
+            String codec = conf.get( "mapred.output.compression.codec" );
+            if( codec == null ) {
+                throw new IllegalArgumentException("'mapred.output.compress' is set but no value is specified for 'mapred.output.compression.codec'." );
+            } else {
+                conf.set( "output.compression.codec", codec );
+            }
         }
     }
 

@@ -17,7 +17,9 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.tez.util;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -25,7 +27,11 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.impl.util.Pair;
 import org.apache.tez.common.TezJobConfig;
@@ -43,11 +49,14 @@ public class MRToTezHelper {
      */
     private static Map<String, Pair<String, String>> mrToTezIOParamMap = new HashMap<String, Pair<String, String>>();
 
+    private static List<String> mrSettingsToRetain = new ArrayList<String>();
+
     private MRToTezHelper() {
     }
 
     static {
         populateMRToTezIOParamMap();
+        populateMRSettingsToRetain();
     }
 
     private static void populateMRToTezIOParamMap() {
@@ -61,6 +70,25 @@ public class MRToTezHelper {
                         TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_OUTPUT_COMPRESS_CODEC,
                         TezJobConfig.TEZ_RUNTIME_INTERMEDIATE_INPUT_COMPRESS_CODEC));
 
+    }
+
+    private static void populateMRSettingsToRetain() {
+
+        // FileInputFormat
+        mrSettingsToRetain.add(FileInputFormat.INPUT_DIR);
+        mrSettingsToRetain.add(FileInputFormat.SPLIT_MAXSIZE);
+        mrSettingsToRetain.add(FileInputFormat.SPLIT_MINSIZE);
+        mrSettingsToRetain.add(FileInputFormat.PATHFILTER_CLASS);
+        mrSettingsToRetain.add(FileInputFormat.NUM_INPUT_FILES);
+        mrSettingsToRetain.add(FileInputFormat.INPUT_DIR_RECURSIVE);
+
+        // FileOutputFormat
+        mrSettingsToRetain.add("mapreduce.output.basename");
+        mrSettingsToRetain.add(FileOutputFormat.COMPRESS);
+        mrSettingsToRetain.add(FileOutputFormat.COMPRESS_CODEC);
+        mrSettingsToRetain.add(FileOutputFormat.COMPRESS_TYPE);
+        mrSettingsToRetain.add(FileOutputFormat.OUTDIR);
+        mrSettingsToRetain.add(FileOutputCommitter.SUCCESSFUL_JOB_OUTPUT_DIR_MARKER);
     }
 
     public static TezConfiguration getDAGAMConfFromMRConf(
@@ -107,26 +135,50 @@ public class MRToTezHelper {
         return dagAMConf;
     }
 
-    public static void convertMRToTezRuntimeConf(Configuration conf, Configuration baseConf) {
-        for (Entry<String, String> dep : DeprecatedKeys
-                .getMRToTezRuntimeParamMap().entrySet()) {
-            if (baseConf.get(dep.getKey()) != null) {
+    /**
+     * Process the mapreduce configuration settings and
+     *    - copy as is the still required ones (like those used by FileInputFormat/FileOutputFormat)
+     *    - convert and set equivalent tez runtime settings
+     *    - handle compression related settings
+     *
+     * @param conf Configuration on which the mapreduce settings will have to be transferred
+     * @param mrConf Configuration that contains mapreduce settings
+     */
+    public static void processMRSettings(Configuration conf, Configuration mrConf) {
+        for (String mrSetting : mrSettingsToRetain) {
+            if (mrConf.get(mrSetting) != null) {
+                conf.set(mrSetting, mrConf.get(mrSetting));
+            }
+        }
+        JobControlCompiler.configureCompression(conf);
+        convertMRToTezRuntimeConf(conf, mrConf);
+    }
+
+    /**
+     * Convert MR settings to Tez settings and set on conf.
+     *
+     * @param conf  Configuration on which MR equivalent Tez settings should be set
+     * @param mrConf Configuration that contains MR settings
+     */
+    private static void convertMRToTezRuntimeConf(Configuration conf, Configuration mrConf) {
+        for (Entry<String, String> dep : DeprecatedKeys.getMRToTezRuntimeParamMap().entrySet()) {
+            if (mrConf.get(dep.getKey()) != null) {
                 conf.unset(dep.getKey());
                 LOG.info("Setting " + dep.getValue() + " to "
-                        + baseConf.get(dep.getKey()) + " from MR setting "
+                        + mrConf.get(dep.getKey()) + " from MR setting "
                         + dep.getKey());
-                conf.setIfUnset(dep.getValue(), baseConf.get(dep.getKey()));
+                conf.setIfUnset(dep.getValue(), mrConf.get(dep.getKey()));
             }
         }
 
         for (Entry<String, Pair<String, String>> dep : mrToTezIOParamMap.entrySet()) {
-            if (baseConf.get(dep.getKey()) != null) {
+            if (mrConf.get(dep.getKey()) != null) {
                 conf.unset(dep.getKey());
                 LOG.info("Setting " + dep.getValue() + " to "
-                        + baseConf.get(dep.getKey()) + " from MR setting "
+                        + mrConf.get(dep.getKey()) + " from MR setting "
                         + dep.getKey());
-                conf.setIfUnset(dep.getValue().first, baseConf.get(dep.getKey()));
-                conf.setIfUnset(dep.getValue().second, baseConf.get(dep.getKey()));
+                conf.setIfUnset(dep.getValue().first, mrConf.get(dep.getKey()));
+                conf.setIfUnset(dep.getValue().second, mrConf.get(dep.getKey()));
             }
         }
     }
