@@ -227,12 +227,16 @@ public class TezOperator extends Operator<TezOpPlanVisitor> {
         return (feature == OPER_FEATURE.UNION);
     }
 
-    public void markIndexer() {
-        feature = OPER_FEATURE.INDEXER;
-    }
-
     public void markUnion() {
         feature = OPER_FEATURE.UNION;
+    }
+
+    public boolean isIndexer() {
+        return (feature == OPER_FEATURE.INDEXER);
+    }
+
+    public void markIndexer() {
+        feature = OPER_FEATURE.INDEXER;
     }
 
     public boolean isSampler() {
