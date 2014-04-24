@@ -17,21 +17,29 @@ import static org.apache.pig.ExecType.LOCAL;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Random;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
 import junit.framework.TestCase;
 
+import org.apache.commons.compress.compressors.bzip2.BZip2CompressorOutputStream;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.test.Util;
+import org.w3c.dom.Document;
 
 public class TestXMLLoader extends TestCase {
-  private static String patternString = "(\\d+)!+(\\w+)~+(\\w+)";
   public static ArrayList<String[]> data = new ArrayList<String[]>();
   static {
     data.add(new String[] { "<configuration>"});
@@ -89,13 +97,11 @@ public class TestXMLLoader extends TestCase {
     inlineClosedTags.add(new String[] { "<event id='33'><tag k='a' v='b'/></event>"});
     inlineClosedTags.add(new String[] { "</events>"});
   }
-  
   public void testShouldReturn0TupleCountIfSearchTagIsNotFound () throws Exception
   {
     String filename = TestHelper.createTempFile(data, "");
     PigServer pig = new PigServer(LOCAL);
     filename = filename.replace("\\", "\\\\");
-    patternString = patternString.replace("\\", "\\\\");
     String query = "A = LOAD '" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('invalid') as (doc:chararray);";
     pig.registerQuery(query);
     Iterator<?> it = pig.openIterator("A");
@@ -118,7 +124,6 @@ public class TestXMLLoader extends TestCase {
     String filename = TestHelper.createTempFile(data, "");
     PigServer pig = new PigServer(LOCAL);
     filename = filename.replace("\\", "\\\\");
-    patternString = patternString.replace("\\", "\\\\");
     String query = "A = LOAD '" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('property') as (doc:chararray);";
     pig.registerQuery(query);
     Iterator<?> it = pig.openIterator("A");
@@ -175,7 +180,6 @@ public class TestXMLLoader extends TestCase {
     }
 	    
    }
-
    public void testLoaderShouldLoadBasicGzFile() throws Exception {
     String filename = TestHelper.createTempFile(data, "");
 	  
@@ -224,7 +228,6 @@ public class TestXMLLoader extends TestCase {
       String filename = TestHelper.createTempFile(testData, "");
       PigServer pig = new PigServer(LOCAL);
       filename = filename.replace("\\", "\\\\");
-      patternString = patternString.replace("\\", "\\\\");
       String query = "A = LOAD '" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('name') as (doc:chararray);";
       pig.registerQuery(query);
       Iterator<?> it = pig.openIterator("A");
@@ -248,7 +251,6 @@ public class TestXMLLoader extends TestCase {
       String filename = TestHelper.createTempFile(data, "");
       PigServer pig = new PigServer(LOCAL);
       filename = filename.replace("\\", "\\\\");
-      patternString = patternString.replace("\\", "\\\\");
       String query = "A = LOAD '" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('ignoreProperty') as (doc:chararray);";
       pig.registerQuery(query);
       Iterator<?> it = pig.openIterator("A");
@@ -265,14 +267,13 @@ public class TestXMLLoader extends TestCase {
       }
       assertEquals(1, tupleCount);  
    }
-   
    public void testShouldReturn0TupleCountIfNoEndTagIsFound() throws Exception
    {
       // modify the data content to avoid end tag for </ignoreProperty>
       ArrayList<String[]> testData = new ArrayList<String[]>();
       for (String content[] : data) {
          
-         if(false == data.equals(new String[] { "</ignoreProperty>"}))
+         if(!content[0].equals("</ignoreProperty>"))
          {
             testData.add(content);
          }
@@ -281,8 +282,7 @@ public class TestXMLLoader extends TestCase {
       String filename = TestHelper.createTempFile(testData, "");
       PigServer pig = new PigServer(LOCAL);
       filename = filename.replace("\\", "\\\\");
-      patternString = patternString.replace("\\", "\\\\");
-      String query = "A = LOAD '" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('</ignoreProperty>') as (doc:chararray);";
+      String query = "A = LOAD '" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('ignoreProperty') as (doc:chararray);";
       pig.registerQuery(query);
       Iterator<?> it = pig.openIterator("A");
       int tupleCount = 0;
@@ -307,8 +307,7 @@ public class TestXMLLoader extends TestCase {
       String filename = TestHelper.createTempFile(testData, "");
       PigServer pig = new PigServer(LOCAL);
       filename = filename.replace("\\", "\\\\");
-      patternString = patternString.replace("\\", "\\\\");
-      String query = "A = LOAD '" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('</ignoreProperty>') as (doc:chararray);";
+      String query = "A = LOAD '" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('ignoreProperty') as (doc:chararray);";
       pig.registerQuery(query);
       Iterator<?> it = pig.openIterator("A");
       int tupleCount = 0;
@@ -330,7 +329,6 @@ public class TestXMLLoader extends TestCase {
       String filename = TestHelper.createTempFile(nestedTags, "");
       PigServer pig = new PigServer(LOCAL);
       filename = filename.replace("\\", "\\\\");
-      patternString = patternString.replace("\\", "\\\\");
       String query = "A = LOAD '" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('event') as (doc:chararray);";
       pig.registerQuery(query);
       Iterator<?> it = pig.openIterator("A");
@@ -353,7 +351,6 @@ public class TestXMLLoader extends TestCase {
      String filename = TestHelper.createTempFile(inlineClosedTags, "");
      PigServer pig = new PigServer(LOCAL);
      filename = filename.replace("\\", "\\\\");
-     patternString = patternString.replace("\\", "\\\\");
      String query = "A = LOAD '" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('event') as (doc:chararray);";
      pig.registerQuery(query);
      Iterator<?> it = pig.openIterator("A");
@@ -375,7 +372,6 @@ public class TestXMLLoader extends TestCase {
      String filename = TestHelper.createTempFile(inlineClosedTags, "");
      PigServer pig = new PigServer(LOCAL);
      filename = filename.replace("\\", "\\\\");
-     patternString = patternString.replace("\\", "\\\\");
      String query = "A = LOAD '" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('event') as (doc:chararray);";
      pig.registerQuery(query);
      Iterator<?> it = pig.openIterator("A");
@@ -390,5 +386,109 @@ public class TestXMLLoader extends TestCase {
          docBuilder.parse(new ByteArrayInputStream(((String)tuple.get(0)).getBytes()));
        }
      }
+   }
+
+   /**
+    * This test case test the special case when a non-matching tag spans two file
+    * splits in a .bz2 compressed file. At the same time, the part that falls in
+    * the first split is a prefix of the matching tag.
+    * In other words, till the end of the first split, it looks like the tag is
+    * matching but it is not actually matching.
+    * 
+    * @throws Exception
+    */
+   public void testXMLLoaderShouldNotReturnLastNonMatchedTag() throws Exception {
+     Configuration conf = new Configuration();
+     long blockSize = 100 * 1024;
+     conf.setLong("fs.local.block.size", blockSize);
+
+     String tagName = "event";
+
+     PigServer pig = new PigServer(LOCAL, conf);
+     FileSystem localFs = FileSystem.getLocal(conf);
+     FileStatus[] testFiles = localFs.globStatus(new Path("src/test/java/org/apache/pig/piggybank/test/evaluation/xml/data/*xml.bz2"));
+     assertTrue("No test files", testFiles.length > 0);
+     for (FileStatus testFile : testFiles) {
+       String testFileName = testFile.getPath().toUri().getPath().replace("\\", "\\\\");
+       String query = "A = LOAD '" + testFileName + "' USING org.apache.pig.piggybank.storage.XMLLoader('event') as (doc:chararray);";
+       pig.registerQuery(query);
+       Iterator<?> it = pig.openIterator("A");
+       while (it.hasNext()) {
+         Tuple tuple = (Tuple) it.next();
+         if (tuple == null)
+           break;
+         else {
+           if (tuple.size() > 0) {
+             assertTrue(((String)tuple.get(0)).startsWith("<"+tagName+">"));
+           }
+         }
+       }
+     }
+   }
+
+   /**
+    * This test checks that a multi-line tag spanning two splits should be
+    * matched.
+    * @throws Exception
+    */
+   public void testXMLLoaderShouldMatchTagSpanningSplits() throws Exception {
+     Configuration conf = new Configuration();
+     long blockSize = 512;
+     conf.setLong("fs.local.block.size", blockSize);
+     conf.setLong("mapred.max.split.size", blockSize);
+
+     String tagName = "event";
+     File tempFile = File.createTempFile("long-file", ".xml");
+     FileSystem localFs = FileSystem.getLocal(conf);
+     FSDataOutputStream directOut = localFs.create(new Path(tempFile.getAbsolutePath()), true);
+
+     String matchingElement = "<event>\ndata\n</event>\n";
+     long pos = 0;
+     int matchingCount = 0;
+     PrintStream ps = new PrintStream(directOut);
+     // 1- Write some elements that fit completely in the first block
+     while (pos + 2 * matchingElement.length() < blockSize) {
+       ps.print(matchingElement);
+       pos += matchingElement.length();
+       matchingCount++;
+     }
+     // 2- Write a long element that spans multiple lines and multiple blocks
+     String longElement = matchingElement.replace("data",
+         "data\ndata\ndata\ndata\ndata\ndata\ndata\ndata\ndata\ndata\ndata\n");
+     ps.print(longElement);
+     pos += longElement.length();
+     matchingCount++;
+     // 3- Write some more elements to fill in the second block completely
+     while (pos < 2 * blockSize) {
+       ps.print(matchingElement);
+       pos += matchingElement.length();
+       matchingCount++;
+     }
+     ps.close();
+     
+     
+     PigServer pig = new PigServer(LOCAL, conf);
+     String tempFileName = tempFile.getAbsolutePath().replace("\\", "\\\\");
+     String query = "A = LOAD '" + tempFileName + "' USING org.apache.pig.piggybank.storage.XMLLoader('event') as (doc:chararray);";
+     pig.registerQuery(query);
+     Iterator<?> it = pig.openIterator("A");
+     
+     int count = 0;
+     while (it.hasNext()) {
+       Tuple tuple = (Tuple) it.next();
+       if (tuple == null)
+         break;
+       else {
+         if (tuple.size() > 0) {
+           count++;
+           // Make sure the returned text is a proper XML element
+           DocumentBuilder docBuilder =
+               DocumentBuilderFactory.newInstance().newDocumentBuilder();
+           Document doc = docBuilder.parse(new ByteArrayInputStream(((String)tuple.get(0)).getBytes()));
+           assertTrue(doc.getDocumentElement().getNodeName().equals(tagName));
+         }
+       }
+     }
+     assertEquals(matchingCount, count);
    }
 }
