@@ -32,8 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import junit.framework.Assert;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.Counters;
@@ -41,9 +39,9 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigRunner;
 import org.apache.pig.PigRunner.ReturnCode;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.tools.pigstats.InputStats;
 import org.apache.pig.tools.pigstats.JobStats;
@@ -618,7 +616,7 @@ public class TestPigRunner {
         Util.deleteFile(cluster, OUTPUT_FILE);
         PigContext ctx = stats.getPigContext();
 
-        Assert.assertNotNull(ctx);
+        assertNotNull(ctx);
 
         assertTrue(ctx.extraJars.contains(ClassLoader.getSystemResource("pig-withouthadoop.jar")));
         assertTrue("default", ctx.getProperties().getProperty("mapred.job.queue.name")!=null && ctx.getProperties().getProperty("mapred.job.queue.name").equals("default")||
@@ -675,8 +673,8 @@ public class TestPigRunner {
            String[] args = { "-x", "local", "-c", PIG_FILE };
            PigStats stats = PigRunner.run(args, null);
        
-           Assert.assertTrue(stats.isSuccessful());
-           Assert.assertEquals( 0, stats.getReturnCode() );
+           assertTrue(stats.isSuccessful());
+           assertEquals( 0, stats.getReturnCode() );
         } finally {
             new File(PIG_FILE).delete();
             Util.deleteFile(cluster, OUTPUT_FILE);
@@ -965,7 +963,7 @@ public class TestPigRunner {
         private static final int JobFinished = 3;
 
         @Override
-        public void initialPlanNotification(String id, MROperPlan plan) {
+        public void initialPlanNotification(String id, OperatorPlan<?> plan) {
             System.out.println("id: " + id + " planNodes: " + plan.getKeys().size());
             assertNotNull(plan);
         }

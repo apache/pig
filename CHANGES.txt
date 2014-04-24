@@ -22,6 +22,8 @@ Trunk (unreleased changes)
  
 INCOMPATIBLE CHANGES
 
+PIG-3898: Refactor PPNL for non-MR execution engine (cheolsoo)
+
 PIG-3485: Remove CastUtils.bytesToMap(byte[] b) method from LoadCaster interface (cheolsoo) 
 
 PIG-3419: Pluggable Execution Engine (achalsoni81 via cheolsoo)

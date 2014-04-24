@@ -18,9 +18,9 @@
 
 package org.apache.pig.tools.pigstats;
 
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
+import org.apache.pig.impl.plan.OperatorPlan;
 
 import org.apache.pig.PigRunner;
 
@@ -33,66 +33,66 @@ import org.apache.pig.PigRunner;
 public interface PigProgressNotificationListener extends java.util.EventListener {
 
     /**
-     * Invoked before any MR jobs are run with the plan that is to be executed.
+     * Invoked before any Hadoop jobs are run with the plan that is to be executed.
      *
      * @param scriptId the unique id of the script
-     * @param plan the MROperPlan that is to be executed
+     * @param plan the OperatorPlan that is to be executed
      */
-    public void initialPlanNotification(String scriptId, MROperPlan plan);
+    public void initialPlanNotification(String scriptId, OperatorPlan<?> plan);
 
     /**
-     * Invoked just before launching MR jobs spawned by the script.
+     * Invoked just before launching Hadoop jobs spawned by the script.
      * @param scriptId the unique id of the script
-     * @param numJobsToLaunch the total number of MR jobs spawned by the script
+     * @param numJobsToLaunch the total number of Hadoop jobs spawned by the script
      */
     public void launchStartedNotification(String scriptId, int numJobsToLaunch);
-    
+
     /**
-     * Invoked just before submitting a batch of MR jobs.
+     * Invoked just before submitting a batch of Hadoop jobs.
      * @param scriptId the unique id of the script
-     * @param numJobsSubmitted the number of MR jobs in the batch
+     * @param numJobsSubmitted the number of Hadoop jobs in the batch
      */
     public void jobsSubmittedNotification(String scriptId, int numJobsSubmitted);
-    
+
     /**
-     * Invoked after a MR job is started.
+     * Invoked after a Hadoop job is started.
      * @param scriptId the unique id of the script 
-     * @param assignedJobId the MR job id
+     * @param assignedJobId the Hadoop job id
      */
     public void jobStartedNotification(String scriptId, String assignedJobId);
-    
+
     /**
-     * Invoked just after a MR job is completed successfully. 
+     * Invoked just after a Hadoop job is completed successfully. 
      * @param scriptId the unique id of the script 
-     * @param jobStats the {@link JobStats} object associated with the MR job
+     * @param jobStats the {@link JobStats} object associated with the Hadoop job
      */
     public void jobFinishedNotification(String scriptId, JobStats jobStats);
-    
+
     /**
-     * Invoked when a MR job fails.
+     * Invoked when a Hadoop job fails.
      * @param scriptId the unique id of the script 
-     * @param jobStats the {@link JobStats} object associated with the MR job
+     * @param jobStats the {@link JobStats} object associated with the Hadoop job
      */
     public void jobFailedNotification(String scriptId, JobStats jobStats);
-    
+
     /**
      * Invoked just after an output is successfully written.
      * @param scriptId the unique id of the script
      * @param outputStats the {@link OutputStats} object associated with the output
      */
     public void outputCompletedNotification(String scriptId, OutputStats outputStats);
-    
+
     /**
      * Invoked to update the execution progress. 
      * @param scriptId the unique id of the script
      * @param progress the percentage of the execution progress
      */
     public void progressUpdatedNotification(String scriptId, int progress);
-    
+
     /**
-     * Invoked just after all MR jobs spawned by the script are completed.
+     * Invoked just after all Hadoop jobs spawned by the script are completed.
      * @param scriptId the unique id of the script
-     * @param numJobsSucceeded the total number of MR jobs succeeded
+     * @param numJobsSucceeded the total number of Hadoop jobs succeeded
      */
     public void launchCompletedNotification(String scriptId, int numJobsSucceeded);
 }
