@@ -280,7 +280,10 @@ public class ProjectExpression extends ColumnExpression {
             return fieldSchema;
         LogicalRelationalOperator referent = findReferent();
 
-        LogicalSchema schema = referent.getSchema();
+        LogicalSchema schema = null;
+        if (referent.getSchema()!=null) {
+            schema = referent.getSchema().deepCopy();
+        }
 
         if (attachedRelationalOp instanceof LOGenerate && plan.getSuccessors(this)==null) {
             if (!(findReferent() instanceof LOInnerLoad)||

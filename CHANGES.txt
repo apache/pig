@@ -115,6 +115,8 @@ PIG-3882: Multiquery off mode execution is not done in batch and very inefficien
  
 BUG FIXES
 
+PIG-3909: Type Casting issue (daijy)
+
 PIG-3905: 0.12.1 release can't be build for Hadoop2 (daijy)
 
 PIG-3894: Datetime function AddDuration, SubtractDuration and all Between functions don't check for null values in the input tuple (jennythompson via cheolsoo)
